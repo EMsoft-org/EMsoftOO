@@ -1,0 +1,3 @@
+# EMsoftOO
+
+A first attempt to convert the core of the EMsoft package to Object Oriented fortran-2018...
