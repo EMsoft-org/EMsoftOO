@@ -79,6 +79,9 @@ use mod_kinds
 use mod_global
 use stringconstants
 use,intrinsic :: ISO_C_BINDING
+use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
+                                          stdout=>output_unit, &
+                                          stderr=>error_unit
 
 IMPLICIT NONE
 
@@ -211,8 +214,8 @@ IMPLICIT NONE
 
 character(fnlen), INTENT(IN)      :: progname
 character(fnlen), INTENT(IN)      :: progdesc
-logical,INTENT(IN),OPTIONAL       :: makeconfig
-logical,INTENT(IN),OPTIONAL       :: showconfig
+logical, INTENT(IN), OPTIONAL     :: makeconfig
+logical, INTENT(IN), OPTIONAL     :: showconfig
 
   call EMsoft % init
 
@@ -443,6 +446,11 @@ end function getConfigParameter
 !> @date  12/31/19 MDG 1.0 new function
 !--------------------------------------------------------------------------
 function generateFilePath(self, cp, fn) result(fp)
+
+  use mod_io 
+
+  IMPLICIT NONE 
+
   class(T_EMsoftClass),intent(inout) :: self
   character(*),INTENT(IN)            :: cp    ! configuration parameter string 
   character(*),INTENT(IN),OPTIONAL   :: fn    ! file name with incomplete path 
@@ -450,10 +458,13 @@ function generateFilePath(self, cp, fn) result(fp)
 
   character(fnlen)                   :: path 
 
+  type(T_IOClass)                    :: Message
+
   path = trim(self % getConfigParameter(cp))
 
   if (trim(path).eq.'unknown configuration parameter') then    ! report error and exit 
-
+    Message = T_IOClass()
+    call Message % printError('generateFilePath',' unknown configuration parameter')
   else 
     if (present(fn)) then 
       fp = trim(path)//trim(fn)           ! prepend the path 

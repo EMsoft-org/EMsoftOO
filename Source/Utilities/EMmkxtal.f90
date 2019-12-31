@@ -22,11 +22,12 @@ Message = T_IOClass()
 
 write (*,*) 'Revision = ', trim( EMsoft % getConfigParameter('EMsoftRevision') )
 
-write (*,*) 'Completed path = ', trim( EMsoft % generateFilePath('EMsofttestpath','test.h5'))
-
-write (*,*) 'Completed path = ', trim( EMsoft % generateFilePath('blahblah','test.h5'))
-
-write (*,*) 'Completed path = ', trim( EMsoft % generateFilePath('Templatecodefilename',''))
+m = trim( EMsoft % generateFilePath('EMsofttestpath','test.h5'))
+write (*,*) 'Completed path = ', trim(m)
+! m = trim( EMsoft % generateFilePath('blahblah','test.h5')) 
+! write (*,*) 'Completed path = ', trim(m)
+m = trim( EMsoft % generateFilePath('Templatecodefilename','')) 
+write (*,*) 'Completed path = ', trim(m)
 
 
 io_int = (/ 10, 20 /)
