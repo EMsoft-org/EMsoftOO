@@ -36,6 +36,33 @@
 !
 !> @brief definition of the EMsoft class; this class contains all the configuration parameters
 !
+!> @details  This class provides access to all the configuration parameters from the config file,
+!  as well as any command line or environment parameters that are relevant.  Upon starting any
+!  EMsoft program, the following lines should be included:
+!
+!   use mod_global
+!   use mod_EMsoft
+!
+!   character(fnlen)        :: progname = 'this is the program name'
+!   character(fnlen)        :: progdesc = 'and this is the descriptor'
+!   type(T_EMsoftClass)     :: EMsoft 
+!
+!   ! this is a call to the constructor routine
+!   EMsoft = T_EMsoftClass(progname, progdesc[,makeconfig][,showconfig])    
+!
+! This will print the usual start up message with copyright, build date, version, etc. info.
+! It will also initialize all the configuration parameters; these are then available to the 
+! calling program by means of the getConfigParameter method. The setConfigParameter method can
+! be used to explicitly override any of the config parameters in this class. 
+!
+! The optional arguments to the constructor can be used to create the EMsoftConfig.json file 
+! (using makeconfig=.TRUE.), or to simply print out all the configuration parameters (using 
+! showconfig=.TRUE.).
+!
+! Finally, the method generateFilePath can be used to complete any given file path; in the old 
+! f90 code this was done in three consecutive lines that were always basically the same, and here
+! we provide a method to simply return the file name completed with the full path. 
+!
 !> @date 12/30/19 MDG 1.0 original
 !--------------------------------------------------------------------------
 
@@ -54,6 +81,9 @@ use stringconstants
 use,intrinsic :: ISO_C_BINDING
 
 IMPLICIT NONE
+
+private
+public :: T_EMsoftClass 
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -102,53 +132,53 @@ IMPLICIT NONE
     private 
 
 ! private methods
-      procedure, pass(self)         :: init
-      procedure, pass(self)         :: printEMsoftHeader
-! these are the original routines from the local.f90 module 
-      procedure, pass(self)         :: EMsoft_getEMsoftpathname
-      procedure, pass(self)         :: EMsoft_getXtalpathname
-      procedure, pass(self)         :: EMsoft_getEMdatapathname
-      procedure, pass(self)         :: EMsoft_getEMtmppathname
-      procedure, pass(self)         :: EMsoft_getSlackWebHookURL
-      procedure, pass(self)         :: EMsoft_getSlackChannel
-      procedure, pass(self)         :: EMsoft_getUsername
-      procedure, pass(self)         :: EMsoft_getUserlocation
-      procedure, pass(self)         :: EMsoft_getUseremail
-      procedure, pass(self)         :: EMsoft_getNotify
-      procedure, pass(self)         :: EMsoft_getEMdevelop
-      procedure, pass(self)         :: EMsoft_getRelease
-      procedure, pass(self)         :: EMsoft_geth5copypath
-      procedure, pass(self)         :: EMsoft_getEMsoftplatform
-      procedure, pass(self)         :: EMsoft_getEMsofttestpath
-      procedure, pass(self)         :: EMsoft_getEMsoftTestingPath
-      procedure, pass(self)         :: EMsoft_getEMsoftversion
-      procedure, pass(self)         :: EMsoft_getConfigpath
-      procedure, pass(self)         :: EMsoft_getTemplatepathname
-      procedure, pass(self)         :: EMsoft_getResourcepathname
-      procedure, pass(self)         :: EMsoft_getUserHomePath
-      procedure, pass(self)         :: EMsoft_getOpenCLpathname
-      procedure, pass(self)         :: EMsoft_getTemplatecodefilename
-      procedure, pass(self)         :: EMsoft_getWyckoffPositionsfilename
-      procedure, pass(self)         :: EMsoft_getRandomseedfilename
-      procedure, pass(self)         :: EMsoft_getEMsoftnativedelimiter
-      procedure, pass(self)         :: EMsoft_getEMsoftRevision
-      procedure, pass(self)         :: EMsoft_getEMsoftBuildDate
+      procedure, pass(self) :: init
+      procedure, pass(self) :: printEMsoftHeader
+      procedure, pass(self) :: EMsoft_getEMsoftpathname
+      procedure, pass(self) :: EMsoft_getXtalpathname
+      procedure, pass(self) :: EMsoft_getEMdatapathname
+      procedure, pass(self) :: EMsoft_getEMtmppathname
+      procedure, pass(self) :: EMsoft_getSlackWebHookURL
+      procedure, pass(self) :: EMsoft_getSlackChannel
+      procedure, pass(self) :: EMsoft_getUsername
+      procedure, pass(self) :: EMsoft_getUserlocation
+      procedure, pass(self) :: EMsoft_getUseremail
+      procedure, pass(self) :: EMsoft_getNotify
+      procedure, pass(self) :: EMsoft_getEMdevelop
+      procedure, pass(self) :: EMsoft_getRelease
+      procedure, pass(self) :: EMsoft_geth5copypath
+      procedure, pass(self) :: EMsoft_getEMsoftplatform
+      procedure, pass(self) :: EMsoft_getEMsofttestpath
+      procedure, pass(self) :: EMsoft_getEMsoftTestingPath
+      procedure, pass(self) :: EMsoft_getEMsoftversion
+      procedure, pass(self) :: EMsoft_getConfigpath
+      procedure, pass(self) :: EMsoft_getTemplatepathname
+      procedure, pass(self) :: EMsoft_getResourcepathname
+      procedure, pass(self) :: EMsoft_getUserHomePath
+      procedure, pass(self) :: EMsoft_getOpenCLpathname
+      procedure, pass(self) :: EMsoft_getTemplatecodefilename
+      procedure, pass(self) :: EMsoft_getWyckoffPositionsfilename
+      procedure, pass(self) :: EMsoft_getRandomseedfilename
+      procedure, pass(self) :: EMsoft_getEMsoftnativedelimiter
+      procedure, pass(self) :: EMsoft_getEMsoftRevision
+      procedure, pass(self) :: EMsoft_getEMsoftBuildDate
+      procedure, pass(self) :: EMsoft_getEMXtalFolderpathname
+      procedure, pass(self) :: EMsoft_getwikipathname
+      procedure, pass(self) :: EMsoft_getUser
+      procedure, pass(self) :: EMsoft_getfftwWisdomfilename
+      procedure, pass(self) :: EMsoft_getwikicodefilename
+      procedure, pass(self) :: EMsoft_getJSONparameter
       ! procedure, pass(self)         :: EMsoft_getEMsoftHDFtest
-      procedure, pass(self)         :: EMsoft_getEMXtalFolderpathname
-      procedure, pass(self)         :: EMsoft_getwikipathname
-      procedure, pass(self)         :: EMsoft_getUser
-      procedure, pass(self)         :: EMsoft_getfftwWisdomfilename
-      procedure, pass(self)         :: EMsoft_getwikicodefilename
-      procedure, pass(self)         :: EMsoft_getJSONparameter
 
 
 ! public methods
 ! [there aren't many... just one to set each parameter, and one to get each parameter;
 !  in addition there is one to init the EMsoft configuration file (used by the EMsoftinit program) ]
-      ! procedure, pass(self), public :: getConfigParameter
+      procedure, pass(self), public :: getConfigParameter
       ! procedure, pass(self), public :: setConfigParameter
       ! procedure, pass(self), public :: initConfigFile 
-      ! procedure, pass(self), public :: printConfigParameters
+      procedure, pass(self), public :: printConfigParameters
+      procedure, pass(self), public :: generateFilePath
 
   end type T_EMsoftClass
 
@@ -160,6 +190,12 @@ IMPLICIT NONE
 contains
 
 !--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
+! we begin with the functions/subroutines that are public in this class
+!--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
+
+!--------------------------------------------------------------------------
 !
 ! FUNCTION: EMsoft_constructor
 !
@@ -169,13 +205,14 @@ contains
 !
 !> @date  12/30/19 MDG 1.0 new function
 !--------------------------------------------------------------------------
-type(T_EMsoftClass) function EMsoft_constructor(progname, progdesc, makeconfig) result(EMsoft)
+type(T_EMsoftClass) function EMsoft_constructor(progname, progdesc, makeconfig, showconfig) result(EMsoft)
 
 IMPLICIT NONE
 
 character(fnlen), INTENT(IN)      :: progname
 character(fnlen), INTENT(IN)      :: progdesc
 logical,INTENT(IN),OPTIONAL       :: makeconfig
+logical,INTENT(IN),OPTIONAL       :: showconfig
 
   call EMsoft % init
 
@@ -187,6 +224,12 @@ logical,INTENT(IN),OPTIONAL       :: makeconfig
     endif
   else 
       call EMsoft % printEMsoftHeader(progname, progdesc)
+  end if
+
+  if (PRESENT(showconfig)) then 
+    if (showconfig) then 
+      call EMsoft % printConfigParameters
+    endif
   end if
 
 end function EMsoft_constructor
@@ -250,6 +293,180 @@ end subroutine init
 
 
 !--------------------------------------------------------------------------
+!
+! SUBROUTINE: printConfigParameters
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief prints all the components of EMsoftClass 
+!
+!> @date  12/31/19 MDG 1.0 new function
+!--------------------------------------------------------------------------
+subroutine printConfigParameters(self)
+  class(T_EMsoftClass),intent(inout) :: self
+
+  write (*,*) ' EMsoft Configuration Parameters '
+  write (*,*) ' ------------------------------- '
+  write (*,*) 'EMsoftpathname           = ', trim( self % EMsoftpathname )
+  write (*,*) 'EMXtalFolderpathname     = ', trim( self % EMXtalFolderpathname )
+  write (*,*) 'EMdatapathname           = ', trim( self % EMdatapathname )
+  write (*,*) 'EMtmppathname            = ', trim( self % EMtmppathname )
+  write (*,*) 'EMsoftLibraryLocation    = ', trim( self % EMsoftLibraryLocation )
+  write (*,*) 'EMSlackWebHookURL        = ', trim( self % EMSlackWebHookURL )
+  write (*,*) 'EMSlackChannel           = ', trim( self % EMSlackChannel )
+  write (*,*) 'UserName                 = ', trim( self % UserName )
+  write (*,*) 'UserLocation             = ', trim( self % UserLocation )
+  write (*,*) 'UserEmail                = ', trim( self % UserEmail )
+  write (*,*) 'EMNotify                 = ', trim( self % EMNotify )
+  write (*,*) 'Develop                  = ', trim( self % Develop )
+  write (*,*) 'Release                  = ', trim( self % Release )
+  write (*,*) 'h5copypath               = ', trim( self % h5copypath )
+  write (*,*) 'EMsoftplatform           = ', trim( self % EMsoftplatform )
+  write (*,*) 'EMsofttestpath           = ', trim( self % EMsofttestpath )
+  write (*,*) 'EMsoftTestingPath        = ', trim( self % EMsoftTestingPath )
+  write (*,*) 'EMsoftversion            = ', trim( self % EMsoftversion )
+  write (*,*) 'Configpath               = ', trim( self % Configpath )
+  write (*,*) 'Templatepathname         = ', trim( self % Templatepathname )
+  write (*,*) 'Resourcepathname         = ', trim( self % Resourcepathname )
+  write (*,*) 'Homepathname             = ', trim( self % Homepathname )
+  write (*,*) 'OpenCLpathname           = ', trim( self % OpenCLpathname )
+  write (*,*) 'Templatecodefilename     = ', trim( self % Templatecodefilename )
+  write (*,*) 'WyckoffPositionsfilename = ', trim( self % WyckoffPositionsfilename )
+  write (*,*) 'Randomseedfilename       = ', trim( self % Randomseedfilename )
+  write (*,*) 'EMsoftnativedelimiter    = ', trim( self % EMsoftnativedelimiter )
+  write (*,*) 'EMsoftRevision           = ', trim( self % EMsoftRevision )
+  write (*,*) 'EMsoftBuildDate          = ', trim( self % EMsoftBuildDate )
+  write (*,*) 'wikipathname             = ', trim( self % wikipathname )
+  write (*,*) 'User                     = ', trim( self % User )
+  write (*,*) 'fftwWisdomfilename       = ', trim( self % fftwWisdomfilename )
+  write (*,*) 'wikicodefilename         = ', trim( self % wikicodefilename )
+  write (*,*) ' ' 
+
+end subroutine printConfigParameters
+
+!--------------------------------------------------------------------------
+!
+! FUNCTION: getConfigParameter
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief get a particular component of EMsoftClass
+!
+!> @date  12/31/19 MDG 1.0 new function
+!--------------------------------------------------------------------------
+function getConfigParameter(self, inp) result(cp)
+  class(T_EMsoftClass),intent(inout) :: self
+  character(*),INTENT(IN)            :: inp
+  character(fnlen)                   :: cp
+
+  select case(trim(inp))
+    case('EMsoftpathname')
+      cp = trim( self % EMsoftpathname )
+    case('EMXtalFolderpathname')
+      cp = trim( self % EMXtalFolderpathname )
+    case('EMdatapathname')
+      cp = trim( self % EMdatapathname )
+    case('EMtmppathname')
+      cp = trim( self % EMtmppathname )
+    case('EMsoftLibraryLocation')
+      cp = trim( self % EMsoftLibraryLocation )
+    case('EMSlackWebHookURL')
+      cp = trim( self % EMSlackWebHookURL )
+    case('EMSlackChannel')
+      cp = trim( self % EMSlackChannel )
+    case('UserName')
+      cp = trim( self % UserName )
+    case('UserLocation')
+      cp = trim( self % UserLocation )
+    case('UserEmail')
+      cp = trim( self % UserEmail )
+    case('EMNotify')
+      cp = trim( self % EMNotify )
+    case('Develop')
+      cp = trim( self % Develop )
+    case('Release')
+      cp = trim( self % Release )
+    case('h5copypath')
+      cp = trim( self % h5copypath )
+    case('EMsoftplatform')
+      cp = trim( self % EMsoftplatform )
+    case('EMsofttestpath')
+      cp = trim( self % EMsofttestpath )
+    case('EMsoftTestingPath')
+      cp = trim( self % EMsoftTestingPath )
+    case('EMsoftversion')
+      cp = trim( self % EMsoftversion )
+    case('Configpath')
+      cp = trim( self % Configpath )
+    case('Templatepathname')
+      cp = trim( self % Templatepathname )
+    case('Resourcepathname')
+      cp = trim( self % Resourcepathname )
+    case('Homepathname')
+      cp = trim( self % Homepathname )
+    case('OpenCLpathname')
+      cp = trim( self % OpenCLpathname )
+    case('Templatecodefilename')
+      cp = trim( self % Templatecodefilename )
+    case('WyckoffPositionsfilename')
+      cp = trim( self % WyckoffPositionsfilename )
+    case('Randomseedfilename')
+      cp = trim( self % Randomseedfilename )
+    case('EMsoftnativedelimiter')
+      cp = trim( self % EMsoftnativedelimiter )
+    case('EMsoftRevision')
+      cp = trim( self % EMsoftRevision )
+    case('EMsoftBuildDate')
+      cp = trim( self % EMsoftBuildDate )
+    case('wikipathname')
+      cp = trim( self % wikipathname )
+    case('User')
+      cp = trim( self % User )
+    case('fftwWisdomfilename')
+      cp = trim( self % fftwWisdomfilename )
+    case('wikicodefilename')
+      cp = trim( self % wikicodefilename )
+    case default
+      cp = 'unknown configuration parameter'
+  end select 
+
+end function getConfigParameter
+
+!--------------------------------------------------------------------------
+!
+! FUNCTION: generateFilePath
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief complete a file path 
+!
+!> @date  12/31/19 MDG 1.0 new function
+!--------------------------------------------------------------------------
+function generateFilePath(self, cp, fn) result(fp)
+  class(T_EMsoftClass),intent(inout) :: self
+  character(*),INTENT(IN)            :: cp    ! configuration parameter string 
+  character(*),INTENT(IN),OPTIONAL   :: fn    ! file name with incomplete path 
+  character(fnlen)                   :: fp    ! completed file name 
+
+  character(fnlen)                   :: path 
+
+  path = trim(self % getConfigParameter(cp))
+
+  if (trim(path).eq.'unknown configuration parameter') then    ! report error and exit 
+
+  else 
+    if (present(fn)) then 
+      fp = trim(path)//trim(fn)           ! prepend the path 
+      fp = EMsoft_toNativePath(self, fp)  ! and use the correct delimiter for this platform 
+    else 
+      fp = trim(path)                     ! this is already a complete file name ... 
+      fp = EMsoft_toNativePath(self, fp)  ! and use the correct delimiter for this platform 
+    end if 
+  end if
+
+end function generateFilePath
+
+!--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 ! from here on, we have the older functions (all private) that are called 
 ! by the new class functions 
@@ -270,7 +487,7 @@ end subroutine init
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  02/27/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsoftpathname(self) result(EMsoftpathname)
+function EMsoft_getEMsoftpathname(self) result(EMsoftpathname)
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
 IMPLICIT NONE
@@ -314,7 +531,7 @@ end function EMsoft_getEMsoftpathname
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  08/15/17 MDG 1.1 removed need for xtal folder to be named XtalFolder
 !--------------------------------------------------------------------------
-recursive function EMsoft_getXtalpathname(self) result(xtalpathname)
+function EMsoft_getXtalpathname(self) result(xtalpathname)
 
 IMPLICIT NONE
 
@@ -339,7 +556,7 @@ end function EMsoft_getXtalpathname
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  02/27/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMdatapathname(self) result(EMdatapathname)
+function EMsoft_getEMdatapathname(self) result(EMdatapathname)
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
@@ -387,7 +604,7 @@ end function EMsoft_getEMdatapathname
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  03/02/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMtmppathname(self) result(EMtmppathname)
+function EMsoft_getEMtmppathname(self) result(EMtmppathname)
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
@@ -433,7 +650,7 @@ end function EMsoft_getEMtmppathname
 !
 !> @date  08/18/17 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getSlackWebHookURL(self) result(SlackWebHookURL)
+function EMsoft_getSlackWebHookURL(self) result(SlackWebHookURL)
 
 IMPLICIT NONE
 
@@ -458,7 +675,7 @@ end function EMsoft_getSlackWebHookURL
 !
 !> @date  08/18/17 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getSlackChannel(self) result(SlackChannel)
+function EMsoft_getSlackChannel(self) result(SlackChannel)
 
 IMPLICIT NONE
 
@@ -484,7 +701,7 @@ end function EMsoft_getSlackChannel
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  03/02/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-recursive function EMsoft_getUsername(self) result(username)
+function EMsoft_getUsername(self) result(username)
 
 IMPLICIT NONE
 
@@ -521,7 +738,7 @@ end function EMsoft_getUsername
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  03/02/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-recursive function EMsoft_getUserlocation(self) result(userlocation)
+function EMsoft_getUserlocation(self) result(userlocation)
 
 IMPLICIT NONE
 
@@ -558,7 +775,7 @@ end function EMsoft_getUserlocation
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  03/02/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-recursive function EMsoft_getUseremail(self) result(useremail)
+function EMsoft_getUseremail(self) result(useremail)
 
 IMPLICIT NONE
 
@@ -587,7 +804,7 @@ end function EMsoft_getUseremail
 !
 !> @date  08/18/17 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getNotify(self) result(Notify)
+function EMsoft_getNotify(self) result(Notify)
 !DEC$ ATTRIBUTES DLLEXPORT :: EMsoft_getNotify
 
 IMPLICIT NONE
@@ -614,7 +831,7 @@ end function EMsoft_getNotify
 !> @date  08/18/16 MDG 1.0 new function
 !> @date  09/10/19 MDG 1.1 add environment variable option for EMdevelop
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMdevelop(self) result(EMdevelop)
+function EMsoft_getEMdevelop(self) result(EMdevelop)
 
 IMPLICIT NONE
 
@@ -651,7 +868,7 @@ end function EMsoft_getEMdevelop
 !
 !> @date  10/28/17 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getRelease(self) result(Release)
+function EMsoft_getRelease(self) result(Release)
 
 IMPLICIT NONE
 
@@ -680,7 +897,7 @@ end function EMsoft_getRelease
 !
 !> @date  08/18/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_geth5copypath(self) result(h5copypath)
+function EMsoft_geth5copypath(self) result(h5copypath)
 
 IMPLICIT NONE
 
@@ -708,7 +925,7 @@ end function EMsoft_geth5copypath
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsoftplatform(self) result(platform)
+function EMsoft_getEMsoftplatform(self) result(platform)
 
 IMPLICIT NONE
 
@@ -732,7 +949,7 @@ end function EMsoft_getEMsoftplatform
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsofttestpath(self) result(testpath)
+function EMsoft_getEMsofttestpath(self) result(testpath)
 
 IMPLICIT NONE
 
@@ -759,7 +976,7 @@ end function EMsoft_getEMsofttestpath
 !
 !> @param no input parameters
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsoftTestingPath(self) result(buildpath)
+function EMsoft_getEMsoftTestingPath(self) result(buildpath)
 
 IMPLICIT NONE
 
@@ -783,7 +1000,7 @@ end function EMsoft_getEMsoftTestingPath
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsoftversion(self) result(version)
+function EMsoft_getEMsoftversion(self) result(version)
 
 IMPLICIT NONE
 
@@ -807,7 +1024,7 @@ end function EMsoft_getEMsoftversion
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getConfigpath(self) result(configpath)
+function EMsoft_getConfigpath(self) result(configpath)
 
 IMPLICIT NONE
 
@@ -841,7 +1058,7 @@ end function EMsoft_getConfigpath
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  05/11/17 MDG 1.1 added support for JSON template files
 !--------------------------------------------------------------------------
-recursive function EMsoft_getTemplatepathname(self, json) result(templatepathname)
+function EMsoft_getTemplatepathname(self, json) result(templatepathname)
 
 IMPLICIT NONE
 
@@ -875,7 +1092,7 @@ end function EMsoft_getTemplatepathname
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getResourcepathname(self) result(resourcepathname)
+function EMsoft_getResourcepathname(self) result(resourcepathname)
 
 IMPLICIT NONE
 
@@ -899,7 +1116,7 @@ end function EMsoft_getResourcepathname
 !
 !> @date  10/25/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getUserHomePath(self) result(userHomePathName)
+function EMsoft_getUserHomePath(self) result(userHomePathName)
 
 IMPLICIT NONE
 
@@ -934,7 +1151,7 @@ end function EMsoft_getUserHomePath
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getOpenCLpathname(self) result(openclpathname)
+function EMsoft_getOpenCLpathname(self) result(openclpathname)
 
 IMPLICIT NONE
 
@@ -958,7 +1175,7 @@ end function EMsoft_getOpenCLpathname
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getTemplatecodefilename(self) result(templatecodefilename)
+function EMsoft_getTemplatecodefilename(self) result(templatecodefilename)
 
 IMPLICIT NONE
 
@@ -982,7 +1199,7 @@ end function EMsoft_getTemplatecodefilename
 !
 !> @date  09/05/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getWyckoffPositionsfilename(self) result(WPfilename)
+function EMsoft_getWyckoffPositionsfilename(self) result(WPfilename)
 
 IMPLICIT NONE
 
@@ -1006,7 +1223,7 @@ end function EMsoft_getWyckoffPositionsfilename
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getRandomseedfilename(self) result(randomseedfilename)
+function EMsoft_getRandomseedfilename(self) result(randomseedfilename)
 
 IMPLICIT NONE
 
@@ -1030,7 +1247,7 @@ end function EMsoft_getRandomseedfilename
 !
 !> @date  07/02/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsoftnativedelimiter(self) result(EMsoftnativedelimiter)
+function EMsoft_getEMsoftnativedelimiter(self) result(EMsoftnativedelimiter)
 
 IMPLICIT NONE
 
@@ -1058,7 +1275,7 @@ end function EMsoft_getEMsoftnativedelimiter
 !
 !> @date  
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsoftRevision(self) result(revision)
+function EMsoft_getEMsoftRevision(self) result(revision)
 
 IMPLICIT NONE
 
@@ -1082,7 +1299,7 @@ end function EMsoft_getEMsoftRevision
 !
 !> @date  
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsoftBuildDate(self) result(buildDate)
+function EMsoft_getEMsoftBuildDate(self) result(buildDate)
 
 IMPLICIT NONE
 
@@ -1108,7 +1325,7 @@ end function EMsoft_getEMsoftBuildDate
 !> @date  08/15/17 MDG 1.0 new function
 !> @date  03/02/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMXtalFolderpathname(self) result(EMXtalFolderpathname)
+function EMsoft_getEMXtalFolderpathname(self) result(EMXtalFolderpathname)
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
@@ -1155,7 +1372,7 @@ end function EMsoft_getEMXtalFolderpathname
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  05/11/17 MDG 1.1 added support for JSON template files
 !--------------------------------------------------------------------------
-recursive function EMsoft_getwikipathname(self) result(wikipathname)
+function EMsoft_getwikipathname(self) result(wikipathname)
 
 IMPLICIT NONE
 
@@ -1179,7 +1396,7 @@ end function EMsoft_getwikipathname
 !
 !> @date  10/25/16 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getUser(self) result(userName)
+function EMsoft_getUser(self) result(userName)
 
 IMPLICIT NONE
 
@@ -1207,7 +1424,7 @@ end function EMsoft_getUser
 !
 !> @date  01/29/19 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getfftwWisdomfilename(self) result(fftwWisdomfilename)
+function EMsoft_getfftwWisdomfilename(self) result(fftwWisdomfilename)
 
 IMPLICIT NONE
 
@@ -1231,7 +1448,7 @@ end function EMsoft_getfftwWisdomfilename
 !
 !> @date  09/08/19 MDG 1.0 new function
 !--------------------------------------------------------------------------
-recursive function EMsoft_getwikicodefilename(self) result(wikicodefilename)
+function EMsoft_getwikicodefilename(self) result(wikicodefilename)
 
 IMPLICIT NONE
 
@@ -1259,7 +1476,7 @@ end function EMsoft_getwikicodefilename
 !> @date  08/15/17 MDG 1.3 changed default behavior for empty JSON parameter strings
 !> @date  02/27/19 MDG 2.0 add code to allow for operation without config json file
 !--------------------------------------------------------------------------
-recursive function EMsoft_getJSONparameter(self, ep, nobackslash) result(param)
+function EMsoft_getJSONparameter(self, ep, nobackslash) result(param)
 
 use json_module
 
@@ -1364,7 +1581,7 @@ end function EMsoft_getJSONparameter
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  02/27/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-recursive function EMsoft_getEMsoftHDFtest() result(doHDFtest)
+function EMsoft_getEMsoftHDFtest() result(doHDFtest)
 !DEC$ ATTRIBUTES DLLEXPORT :: EMsoft_getEMsoftHDFtest
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64

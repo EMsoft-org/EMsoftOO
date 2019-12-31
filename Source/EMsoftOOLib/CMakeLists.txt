@@ -22,7 +22,7 @@ set(EMsoftOOLib_SRCS
 
   ${EMsoftOOLib_SOURCE_DIR}/mod_kinds.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_global.f90
-  ${EMsoftOOLib_SOURCE_DIR}/mod_global.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_io.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )
