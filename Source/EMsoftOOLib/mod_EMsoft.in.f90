@@ -743,7 +743,7 @@ character(1)     :: EMsoftnativedelimiter
 
 EMsoftnativedelimiter = EMsoft_getEMsoftnativedelimiter(self)
 
-binarypath = "@EMsoft_BINARY_DIR@"
+binarypath = "@EMsoftOO_BINARY_DIR@"
 
 testpath = trim(EMsoft_toNativePath(self, binarypath))&
            //EMsoftnativedelimiter//SC_Testing&
@@ -767,7 +767,7 @@ class(T_EMsoftClass),intent(inout)      :: self
 
 character(fnlen) :: buildpath
 
-buildpath = "@EMsoft_TESTING_DIR@"
+buildpath = "@EMsoftOO_TESTING_DIR@"
 
 end function EMsoft_getEMsoftTestingPath
 
@@ -791,7 +791,7 @@ class(T_EMsoftClass),intent(inout)      :: self
 
 character(20) :: version
 
-version = "@EMsoft_VER_MAJOR@_@EMsoft_VER_MINOR@_@EMsoft_VER_PATCH@_@EMsoft_VERSION_TWEAK@"
+version = "@EMsoftOO_VER_MAJOR@_@EMsoftOO_VER_MINOR@_@EMsoftOO_VER_PATCH@_@EMsoftOO_VERSION_TWEAK@"
 
 end function EMsoft_getEMsoftversion
 
@@ -1066,7 +1066,7 @@ class(T_EMsoftClass),intent(inout)      :: self
 
 character(7) :: revision
 
-revision = "@EMsoft_SHORT_GIT_HASH@"
+revision = "@EMsoftOO_SHORT_GIT_HASH@"
 
 end function EMsoft_getEMsoftRevision
 
@@ -1090,7 +1090,7 @@ class(T_EMsoftClass),intent(inout)      :: self
 
 character(24) :: buildDate
 
-buildDate = "@EMsoft_BUILD_TIMESTAMP@"
+buildDate = "@EMsoftOO_BUILD_TIMESTAMP@"
 
 end function EMsoft_getEMsoftBuildDate
 
