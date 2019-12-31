@@ -1,0 +1,26 @@
+# -----------------------------------------------------------------------------------
+# This file was auto generated from the template file "CompleteBundle.cmake.in", if you
+# need to make changes edit the template file NOT this one. Your changes will be
+# lost the next time CMake is run. You have been warned.
+#   This file is called from CMake's installation generated scripts. It is added
+# via a CMake call
+#   install(SCRIPT "${OSX_MAKE_STANDALONE_BUNDLE_CMAKE_SCRIPT}")
+# which can be sometime found in the macro 'MakeOSXBundleApp' which is sometimes located
+# in the file OSX_BundleTools.cmake
+# -----------------------------------------------------------------------------------
+
+message (STATUS "#------------ Starting OS X Tool Fixup --------------------------")
+
+include (CMakeParseArguments)
+
+#-- Need this for link line stuff?
+if(COMMAND cmake_policy)
+  cmake_policy(SET CMP0009 NEW)
+  cmake_policy(SET CMP0011 NEW)
+endif(COMMAND cmake_policy)
+
+
+
+execute_process(COMMAND /bin/bash "@OPTIMIZE_BUNDLE_SHELL_SCRIPT@" ${CMAKE_INSTALL_PREFIX})
+
+             
