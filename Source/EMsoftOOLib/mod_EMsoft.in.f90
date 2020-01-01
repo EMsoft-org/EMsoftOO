@@ -306,44 +306,52 @@ end subroutine init
 !> @date  12/31/19 MDG 1.0 new function
 !--------------------------------------------------------------------------
 subroutine printConfigParameters(self)
-  class(T_EMsoftClass),intent(inout) :: self
 
-  write (*,*) ' EMsoft Configuration Parameters '
-  write (*,*) ' ------------------------------- '
-  write (*,*) 'EMsoftpathname           = ', trim( self % EMsoftpathname )
-  write (*,*) 'EMXtalFolderpathname     = ', trim( self % EMXtalFolderpathname )
-  write (*,*) 'EMdatapathname           = ', trim( self % EMdatapathname )
-  write (*,*) 'EMtmppathname            = ', trim( self % EMtmppathname )
-  write (*,*) 'EMsoftLibraryLocation    = ', trim( self % EMsoftLibraryLocation )
-  write (*,*) 'EMSlackWebHookURL        = ', trim( self % EMSlackWebHookURL )
-  write (*,*) 'EMSlackChannel           = ', trim( self % EMSlackChannel )
-  write (*,*) 'UserName                 = ', trim( self % UserName )
-  write (*,*) 'UserLocation             = ', trim( self % UserLocation )
-  write (*,*) 'UserEmail                = ', trim( self % UserEmail )
-  write (*,*) 'EMNotify                 = ', trim( self % EMNotify )
-  write (*,*) 'Develop                  = ', trim( self % Develop )
-  write (*,*) 'Release                  = ', trim( self % Release )
-  write (*,*) 'h5copypath               = ', trim( self % h5copypath )
-  write (*,*) 'EMsoftplatform           = ', trim( self % EMsoftplatform )
-  write (*,*) 'EMsofttestpath           = ', trim( self % EMsofttestpath )
-  write (*,*) 'EMsoftTestingPath        = ', trim( self % EMsoftTestingPath )
-  write (*,*) 'EMsoftversion            = ', trim( self % EMsoftversion )
-  write (*,*) 'Configpath               = ', trim( self % Configpath )
-  write (*,*) 'Templatepathname         = ', trim( self % Templatepathname )
-  write (*,*) 'Resourcepathname         = ', trim( self % Resourcepathname )
-  write (*,*) 'Homepathname             = ', trim( self % Homepathname )
-  write (*,*) 'OpenCLpathname           = ', trim( self % OpenCLpathname )
-  write (*,*) 'Templatecodefilename     = ', trim( self % Templatecodefilename )
-  write (*,*) 'WyckoffPositionsfilename = ', trim( self % WyckoffPositionsfilename )
-  write (*,*) 'Randomseedfilename       = ', trim( self % Randomseedfilename )
-  write (*,*) 'EMsoftnativedelimiter    = ', trim( self % EMsoftnativedelimiter )
-  write (*,*) 'EMsoftRevision           = ', trim( self % EMsoftRevision )
-  write (*,*) 'EMsoftBuildDate          = ', trim( self % EMsoftBuildDate )
-  write (*,*) 'wikipathname             = ', trim( self % wikipathname )
-  write (*,*) 'User                     = ', trim( self % User )
-  write (*,*) 'fftwWisdomfilename       = ', trim( self % fftwWisdomfilename )
-  write (*,*) 'wikicodefilename         = ', trim( self % wikicodefilename )
-  write (*,*) ' ' 
+  use mod_io 
+
+  IMPLICIT NONE 
+
+  class(T_EMsoftClass),intent(inout) :: self
+  type(T_IOClass)                    :: Message 
+
+  character(fnlen)                   :: m
+
+  call Message % printMessage( ' EMsoft Configuration Parameters ' )
+  call Message % printMessage( ' ------------------------------- ' )
+  call Message % printMessage( 'EMsoftpathname           = '//trim( self % EMsoftpathname ) )
+  call Message % printMessage( 'EMXtalFolderpathname     = '//trim( self % EMXtalFolderpathname ) )
+  call Message % printMessage( 'EMdatapathname           = '//trim( self % EMdatapathname ) )
+  call Message % printMessage( 'EMtmppathname            = '//trim( self % EMtmppathname ) )
+  call Message % printMessage( 'EMsoftLibraryLocation    = '//trim( self % EMsoftLibraryLocation ) )
+  call Message % printMessage( 'EMSlackWebHookURL        = '//trim( self % EMSlackWebHookURL ) )
+  call Message % printMessage( 'EMSlackChannel           = '//trim( self % EMSlackChannel ) )
+  call Message % printMessage( 'UserName                 = '//trim( self % UserName ) )
+  call Message % printMessage( 'UserLocation             = '//trim( self % UserLocation ) )
+  call Message % printMessage( 'UserEmail                = '//trim( self % UserEmail ) )
+  call Message % printMessage( 'EMNotify                 = '//trim( self % EMNotify ) )
+  call Message % printMessage( 'Develop                  = '//trim( self % Develop ) )
+  call Message % printMessage( 'Release                  = '//trim( self % Release ) )
+  call Message % printMessage( 'h5copypath               = '//trim( self % h5copypath ) )
+  call Message % printMessage( 'EMsoftplatform           = '//trim( self % EMsoftplatform ) )
+  call Message % printMessage( 'EMsofttestpath           = '//trim( self % EMsofttestpath ) )
+  call Message % printMessage( 'EMsoftTestingPath        = '//trim( self % EMsoftTestingPath ) )
+  call Message % printMessage( 'EMsoftversion            = '//trim( self % EMsoftversion ) )
+  call Message % printMessage( 'Configpath               = '//trim( self % Configpath ) )
+  call Message % printMessage( 'Templatepathname         = '//trim( self % Templatepathname ) )
+  call Message % printMessage( 'Resourcepathname         = '//trim( self % Resourcepathname ) )
+  call Message % printMessage( 'Homepathname             = '//trim( self % Homepathname ) )
+  call Message % printMessage( 'OpenCLpathname           = '//trim( self % OpenCLpathname ) )
+  call Message % printMessage( 'Templatecodefilename     = '//trim( self % Templatecodefilename ) )
+  call Message % printMessage( 'WyckoffPositionsfilename = '//trim( self % WyckoffPositionsfilename ) )
+  call Message % printMessage( 'Randomseedfilename       = '//trim( self % Randomseedfilename ) )
+  call Message % printMessage( 'EMsoftnativedelimiter    = '//trim( self % EMsoftnativedelimiter ) )
+  call Message % printMessage( 'EMsoftRevision           = '//trim( self % EMsoftRevision ) )
+  call Message % printMessage( 'EMsoftBuildDate          = '//trim( self % EMsoftBuildDate ) )
+  call Message % printMessage( 'wikipathname             = '//trim( self % wikipathname ) )
+  call Message % printMessage( 'User                     = '//trim( self % User ) )
+  call Message % printMessage( 'fftwWisdomfilename       = '//trim( self % fftwWisdomfilename ) )
+  call Message % printMessage( 'wikicodefilename         = '//trim( self % wikicodefilename ) )
+  call Message % printMessage( ' '  )
 
 end subroutine printConfigParameters
 
@@ -499,14 +507,18 @@ end function generateFilePath
 !> @date  02/27/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
 function EMsoft_getEMsoftpathname(self) result(EMsoftpathname)
+
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use mod_io 
 
 IMPLICIT NONE
 
 class(T_EMsoftClass),intent(inout)      :: self
 
-character(fnlen)                        :: EMsoftpathname, ep, envParam, envReturn
+character(fnlen)                        :: EMsoftpathname, ep, envParam, envReturn, m
 integer                                 :: l, status
+type(T_IOClass)                         :: Message 
+
 
 ep = SC_EMsoftpathname
 EMsoftpathname = EMsoft_getJSONparameter(self, ep)
@@ -519,11 +531,10 @@ if (trim(EMsoftpathname).eq.'tryEnvironmentVariable') then
     l = len(trim(EMsoftpathname))
     if (EMsoftpathname(l:l).ne.'/') EMsoftpathname = trim(EMsoftpathname)//'/'
   else
-    write (error_unit,"(A)") 'EMsoftpathname was not defined in the json file'
-    write (error_unit,"(A)") 'EMSOFTPATHNAME environment variable was NOT defined as a backup.'
+    Message = T_IOClass()
     status = 999001
-    write (error_unit,"(' status = ',I10)") status
-    STOP 999001
+    call Message % printError('EMsoftpathname was not defined in the json file', &
+                   status, (/ 'EMSOFTPATHNAME environment variable was NOT defined as a backup.'/))
   end if
 end if 
 
@@ -570,11 +581,13 @@ end function EMsoft_getXtalpathname
 function EMsoft_getEMdatapathname(self) result(EMdatapathname)
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use mod_io
 
 IMPLICIT NONE
 
 class(T_EMsoftClass),intent(inout)      :: self
 
+type(T_IOClass)                         :: Message
 character(fnlen)                        :: EMdatapathname, ep, envParam, envReturn
 integer                                 :: l
 
@@ -590,9 +603,10 @@ if (trim(EMdatapathname).eq.'tryEnvironmentVariable') then
     if (EMdatapathname(l:l).ne.'/') EMdatapathname = trim(EMdatapathname)//'/'
   else
     if (displayEMsoftWarningMessages.eq.0) then 
-      write (error_unit,"(A)") 'EMdatapathname was not defined in the json file'
-      write (error_unit,"(/A)") '  WARNING: EMDATAPATHNAME environment variable was NOT defined as a backup.'
-      write (error_unit,"(A/)") '     ----> using absolute path convention'
+      Message = T_IOClass()
+      call Message % printWarning('EMdatapathname was not defined in the json file', &
+                     (/ 'EMDATAPATHNAME environment variable was NOT defined as a backup.', &
+                        '----> using absolute path convention                            '/) )
       displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
     end if
     EMdatapathname = ''
@@ -618,11 +632,13 @@ end function EMsoft_getEMdatapathname
 function EMsoft_getEMtmppathname(self) result(EMtmppathname)
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use mod_io
 
 IMPLICIT NONE
 
 class(T_EMsoftClass),intent(inout)      :: self
 
+type(T_IOClass)                         :: Message
 character(fnlen)                        :: EMtmppathname, ep, envParam, envReturn
 integer                                 :: l
 
@@ -638,9 +654,10 @@ if (trim(EMtmppathname).eq.'tryEnvironmentVariable') then
     if (EMtmppathname(l:l).ne.'/') EMtmppathname = trim(EMtmppathname)//'/'
   else
     if (displayEMsoftWarningMessages.eq.0) then 
-      write (error_unit,"(/A)") '  WARNING: Unable to find definition for EMtmppathname'
-      write (error_unit,"(/A)") '  WARNING: EMTMPPATHNAME environment variable was NOT defined as a backup.'
-      write (error_unit,"(A/)") '     ----> using absolute path convention'
+      Message = T_IOClass()
+      call Message % printWarning('EMtmppathname was not defined in the json file', &
+                     (/ 'EMTMPPATHNAME environment variable was NOT defined as a backup.', &
+                        '----> using absolute path convention                           '/) )
       displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
     end if
     EMtmppathname = ''
@@ -1339,11 +1356,13 @@ end function EMsoft_getEMsoftBuildDate
 function EMsoft_getEMXtalFolderpathname(self) result(EMXtalFolderpathname)
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use mod_io
 
 IMPLICIT NONE
 
 class(T_EMsoftClass),intent(inout)      :: self
 
+type(T_IOClass)                         :: Message
 character(fnlen)                        :: EMXtalFolderpathname, ep, envParam, envReturn
 integer                                 :: l
 
@@ -1359,9 +1378,10 @@ if (trim(EMXtalFolderpathname).eq.'tryEnvironmentVariable') then
     if (EMXtalFolderpathname(l:l).ne.'/') EMXtalFolderpathname = trim(EMXtalFolderpathname)//'/'
   else
     if (displayEMsoftWarningMessages.eq.0) then 
-      write (error_unit,"(A/)") '  WARNING: Unable to find definition for EMXtalFolderpathname'
-      write (error_unit,"(A/)") '  WARNING: EMXTALFOLDERPATHNAME environment variable was NOT defined as a backup.'
-      write (error_unit,"(A/)") '     ----> using absolute path convention'
+      Message = T_IOClass()
+      call Message % printWarning('EMXtalFolderpathname was not defined in the json file', &
+                     (/ 'EMXTALFOLDERPATHNAME environment variable was NOT defined as a backup.', &
+                        '----> using absolute path convention                                  '/) )
       displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
     end if
     EMXtalFolderpathname = ''
@@ -1492,11 +1512,13 @@ function EMsoft_getJSONparameter(self, ep, nobackslash) result(param)
 use json_module
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use mod_io 
 
 IMPLICIT NONE
 
 class(T_EMsoftClass),intent(inout)      :: self
 
+type(T_IOClass)                         :: Message
 character(fnlen),INTENT(IN)             :: ep
 character(fnlen)                        :: param
 logical,INTENT(IN),optional             :: nobackslash
@@ -1504,9 +1526,11 @@ logical,INTENT(IN),optional             :: nobackslash
 type(json_file)                         :: json
 integer(kind=irg)                       :: error_cnt, slen
 character(kind=jsonCK,len=:),allocatable:: cval
-character(fnlen)                        :: jsonfilename, jsonname
+character(fnlen)                        :: jsonfilename, jsonname, mm(2)
 logical                                 :: found, jexists, bs
 character(1)                            :: EMsoftnativedelimiter
+
+Message = T_IOClass()
 
 bs = .TRUE.
 if (present(nobackslash)) then
@@ -1541,12 +1565,12 @@ if (jexists) then
   call json%get(trim(ep), cval, found)
   if (.not. found) then
    if (trim(ep).eq.SC_Develop) then
-    param = trim(ep)
+     param = trim(ep)
    else
-    write(error_unit,'(A)') 'WARNING: USER='//trim(EMsoft_getUser(self))
-    write(error_unit,'(A)') 'WARNING: field '//trim(ep)//' not found in json file: '//trim(jsonname)
-    write(error_unit,'(A)') 'WARNING: continuing with empty parameter value for '//trim(ep)
-    param = ''
+     mm(1) = 'field '//trim(ep)//' not found in json file: '//trim(jsonname)
+     mm(2) = 'continuing with empty parameter value for '//trim(ep) 
+     call Message % printWarning('USER='//trim(EMsoft_getUser(self)), mm)
+     param = ''
    end if
   else
     param = trim(cval)
@@ -1565,9 +1589,9 @@ if (jexists) then
   end if
 else
   if (displayConfigFileMissingMessage.eq.0) then 
-    write(error_unit,'(A)') '  WARNING: USER='//trim(EMsoft_getUser(self))
-    write(error_unit,'(A)') '  WARNING: file '//trim(jsonname)//' not found '
-    write(error_unit,'(A/)') '  -----> Trying environment variables next ... '
+    mm(1) = 'file '//trim(jsonname)//' not found '
+    mm(2) = '  -----> Trying environment variables next ... '
+    call Message % printWarning('  WARNING: USER='//trim(EMsoft_getUser(self)), mm)
     displayConfigFileMissingMessage = 1
   end if
   param = 'tryEnvironmentVariable'
@@ -1641,7 +1665,9 @@ end function EMsoft_getEMsoftHDFtest
 !--------------------------------------------------------------------------
 
 subroutine printEMsoftHeader(self, progname, progdesc, makeconfig)
-!DEC$ ATTRIBUTES DLLEXPORT :: EMsoft
+
+use mod_io 
+use mod_timing 
 
 IMPLICIT NONE
 
@@ -1650,25 +1676,26 @@ character(fnlen),INTENT(IN)           :: progname
 character(fnlen),INTENT(IN)           :: progdesc
 logical,INTENT(IN),OPTIONAL           :: makeconfig
 
-integer(kind=irg)                     :: std = 6
+type(T_IOClass)                       :: Message
+type(T_TimingClass)                   :: Timing
 
+ Message = T_IOClass() 
 
- write (std,"(//1x,'Copyright (C) 2001-2020 Marc De Graef Research Group/CMU')") 
- write (std,"(1x,'EMsoft comes with ABSOLUTELY NO WARRANTY.')")
- write (std,"(1x,'This is free software, and you are welcome to redistribute it')")
- write (std,"(1x,'under certain conditions; see License.txt file for details.'//)")
+ call Message % printMessage('Copyright (C) 2001-2020 Marc De Graef Research Group/CMU',frm="(/A)")
+ call Message % printMessage('EMsoft comes with ABSOLUTELY NO WARRANTY.')
+ call Message % printMessage('This is free software, and you are welcome to redistribute it')
+ call Message % printMessage('under certain conditions; see License.txt file for details.',frm="(A/)")
 
- write (std,"(1x,'Program name         : ',A)") trim(progname)
- write (std,"(1x,'Purpose              : ',A)") trim(progdesc)
- write (std,"(1x,'Platform             : ',A)") "@CMAKE_SYSTEM_NAME@"
- write (std,"(1x,'Source code version  : ',A)") trim(self % EMsoft_getEMsoftversion())
- write (std,"(1x,'Source code Revision : ',A)") trim(self % EMsoft_getEMsoftRevision())
- write (std,"(1x,'Build Date/Time      : ',A/)") trim(self % EMsoft_getEMsoftBuildDate())
+ call Message % printMessage('Program name         : '//trim(progname))
+ call Message % printMessage('Purpose              : '//trim(progdesc))
+ call Message % printMessage('Platform             : '//"@CMAKE_SYSTEM_NAME@")
+ call Message % printMessage('Source code version  : '//trim(self % EMsoft_getEMsoftversion()))
+ call Message % printMessage('Source code Revision : '//trim(self % EMsoft_getEMsoftRevision()))
+ call Message % printMessage('Build Date/Time      : '//trim(self % EMsoft_getEMsoftBuildDate()),frm="(A/)")
 
- write (std,"(1x,'See https://github.com/EMsoft-org/EMsoft/wiki for selected help pages.'/)")
+ call Message % printMessage( 'See https://github.com/EMsoft-org/EMsoft/wiki for selected help pages.',frm="(A/)")
 
- call timestamp(std)
- write (std,"(1x,/)")
+ Timing = T_Timingclass(showDateTime=.TRUE.)
 
  if (present(makeconfig)) then ! we need to (re-)create the EMsoftConfig.json file...
     if (makeconfig.eqv..TRUE.) then
@@ -1957,95 +1984,6 @@ if (present(config)) then
 end if
 
 end subroutine EMsoft_path_init
-
-
-!--------------------------------------------------------------------------
-!
-! subroutine: timestamp
-!
-!> @author John Burkardt
-!
-!> @brief prints the current YMDHMS date as a time stamp.
-!
-!> @note  This code was originally distributed under the GNU LGPL license;
-!> Original code at <https://people.sc.fsu.edu/~jburkardt/f_src/timestamp/timestamp.f90>
-!> significantly modified and adapted for EMsoft needs.
-!
-!> @param stdout output unit identifier
-!> @param timestring (output) string containing the time data
-!> @param datestring (output) string containing the date data
-!
-!> @date 05/31/01  JB original
-!> @date 05/01/13 MDG changed 'm' to 'mo' for month variable, and some other minor changes
-!> @date 06/05/14 MDG added stdout as optional argument
-!> @date 03/19/15 MDG added timestring and datestring optional arguments
-!--------------------------------------------------------------------------
-subroutine timestamp (stdout, timestring, datestring)
-!DEC$ ATTRIBUTES DLLEXPORT :: timestamp
-
-  IMPLICIT NONE
-
-  integer(kind=irg),INTENT(IN),OPTIONAL    :: stdout
-  character(len = 11),INTENT(OUT),OPTIONAL :: datestring
-  character(len = 15),INTENT(OUT),OPTIONAL :: timestring
-
-  integer(kind=irg)      :: std, d, h, mo, mm, n, s, values(8), y
-  character ( len = 8 )  :: ampm, date
-!  character ( len = 3 ), parameter, dimension(12) :: month = (/ &
-!    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' /)
-  character ( len = 3 ), dimension(12) :: month
-  character ( len = 10 ) :: time
-  character ( len = 5 )  :: zone
-
-  std = 6
-  if (PRESENT(stdout)) std=stdout
-  month = (/ &
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' /)
-! this is the start of the original code
-  call date_and_time ( date, time, zone, values )
-
-  y = values(1)
-  mo = values(2)
-  d = values(3)
-  h = values(5)
-  n = values(6)
-  s = values(7)
-  mm = values(8)
-
-  if ( h < 12 ) then
-    ampm = 'AM'
-  else if ( h == 12 ) then
-    if ( n == 0 .and. s == 0 ) then
-      ampm = 'Noon'
-    else
-      ampm = 'PM'
-    end if
-  else
-    h = h - 12
-    if ( h < 12 ) then
-      ampm = 'PM'
-    else if ( h == 12 ) then
-      if ( n == 0 .and. s == 0 ) then
-        ampm = 'Midnight'
-      else
-        ampm = 'AM'
-      end if
-    end if
-  end if
-! end of original code
-
-  if ((.not.PRESENT(datestring)).and.(.not.PRESENT(timestring))) then
-    write ( std, '(a1,a3,1x,i2,1x,i4,2x,i2,a1,i2.2,a1,i2.2,a1,i3.3,1x,a)' ) &
-      ' ',month(mo), d, y, h, ':', n, ':', s, '.', mm, trim ( ampm )
-  else
-    if (PRESENT(datestring)) write (datestring, '(a,1x,i2,1x,i4)' ) month(mo), d, y
-    if (PRESENT(timestring)) then
-      write (timestring, '(i2,a1,i2.2,a1,i2.2,a1,i3.3,1x,a)' ) h,':',n,':',s,'.',mm,trim(ampm)
-    end if
-  end if
-
-end subroutine timestamp
-
 
 
 end module mod_EMsoft

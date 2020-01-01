@@ -36,6 +36,9 @@
 !
 !> @brief message and error handling routines
 !
+!> @details  Ideally, this should be the only module that has explicit write statements
+!> in it.  
+!
 !> @date 12/31/19 MDG 1.0 original
 !--------------------------------------------------------------------------
 
@@ -75,7 +78,9 @@ public :: T_IOClass
       procedure, pass(self) :: WriteValueRealComplex
       procedure, pass(self) :: WriteValueString
 
-      procedure, pass(self), public :: printError
+      procedure, pass(self) :: printShortError
+      procedure, pass(self) :: printErrorStatus
+
       procedure, pass(self), public :: printWarning
       procedure, pass(self), public :: printMessage
 
@@ -84,6 +89,8 @@ public :: T_IOClass
       generic, public :: WriteValue => WriteValueIntShort, WriteValueIntLong, WriteValueIntLongLong, &
                                        WriteValueRealSingle, WriteValueRealDouble, WriteValueRealComplex, &
                                        WriteValueString
+      generic, public :: printError => printShortError, printErrorStatus
+
   end type T_IOClass
 
   ! the constructor routine for this class 
@@ -136,7 +143,7 @@ end function Message_constructor
 !
 !> @date 12/31/19 MDG 1.0 original
 !--------------------------------------------------------------------------
-subroutine printMessage(self, mess, frm, advance)
+subroutine printMessage(self, mess, frm, advance, redirect)
 
 IMPLICIT NONE
 
@@ -145,23 +152,29 @@ IMPLICIT NONE
   character(*),INTENT(IN)                 :: mess         !< message string
   character(*),OPTIONAL,INTENT(IN)        :: frm          !< optional formatting string
   character(*),OPTIONAL,INTENT(IN)        :: advance      !< optional formatting string
+  integer(kind=irg),OPTIONAL,INTENT(IN)   :: redirect     !< redirect to this unit
+
+  integer(kind=irg)                       :: unit 
+
+  unit = stdout
+  if (present(redirect)) unit = redirect 
 
 ! default format or not ?
   if (PRESENT(frm)) then
    if (present(advance)) then
-     write (stdout,fmt=frm,advance="no") trim(mess)
+     write (unit,fmt=frm,advance="no") trim(mess)
    else 
-     write (stdout,fmt=frm) trim(mess)
+     write (unit,fmt=frm) trim(mess)
    end if
   else    ! default output format: a simple string
-   write (stdout,fmt="(A)") trim(mess)
+   write (unit,fmt="(A)") trim(mess)
   end if 
 
 end subroutine printMessage
 
 !--------------------------------------------------------------------------
 !
-! SUBROUTINE: printError
+! SUBROUTINE: printShortError
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -169,11 +182,10 @@ end subroutine printMessage
 !
 !> @param s1 routine name string
 !> @param s2 explanation string
-!> @param stdout optional output unit identifier
 !
 !> @date   12/31/19 MDG 1.0 original
 ! ###################################################################
-subroutine printError(self, s1, s2)
+subroutine printShortError(self, s1, s2)
 
 IMPLICIT NONE
 
@@ -182,10 +194,51 @@ IMPLICIT NONE
   character(*), INTENT(IN)  :: s1  !< first part of error message (routine name)
   character(*), INTENT(IN)  :: s2  !< second part of error message (brief explanation)
 
-  call self % printMessage(' ----> Fatal error in routine '//s1//': '//s2, frm='(//A//)') 
+  call self % printMessage(' ----> Fatal error in routine '//s1//': '//s2, frm='(//A/)', redirect=stderr) 
   stop '  Progam ended abnormally'
 
-end subroutine printError
+end subroutine printShortError
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: printErrorStatus
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief Write error message with status number and abort program
+!
+!> @param s1 string
+!> @param s2 optional string 
+!
+!> @date   12/31/19 MDG 1.0 original
+! ###################################################################
+subroutine printErrorStatus(self, s1, status, s2)
+
+IMPLICIT NONE
+
+  class(T_IOClass),intent(inout)      :: self
+
+  character(*), INTENT(IN)            :: s1      !< first part of error message (routine name)
+  integer(kind=irg),INTENT(IN)        :: status  !< error identifier
+  character(*), INTENT(IN),OPTIONAL   :: s2(:)   !< second part of error message (brief explanation)
+
+  integer(kind=irg)                   :: io_int(1), ss2(1), i
+
+  ss2 = shape(s2)
+
+  call self % printMessage(' EMsoft error encountered:', frm='(//A)', redirect=stderr) 
+  call self % printMessage('  '//s1, frm='(A)', redirect=stderr) 
+  if (present(s2)) then 
+    do i=1,ss2(1) 
+      call self % printMessage('  '//s2(i), frm='(A)', redirect=stderr)
+    end do 
+  end if 
+  io_int(1) = status
+  call self % WriteValue(' Error Status :',io_int,1,"(I7/)", redirect=stderr)
+  stop '  Progam ended abnormally'
+
+end subroutine printErrorStatus
+
 
 !--------------------------------------------------------------------------
 !
@@ -205,12 +258,22 @@ subroutine printWarning(self, s1, s2)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(T_IOClass),intent(inout)      :: self
 
-  character(*), INTENT(IN)  :: s1  !< first part of error message (routine name)
-  character(*), INTENT(IN)  :: s2  !< second part of error message (brief explanation)
+  character(*), INTENT(IN)            :: s1     !< first part of error message (routine name)
+  character(*), INTENT(IN),OPTIONAL   :: s2(:)  !< second part of error message (brief explanation)
 
-  call self % printMessage(' ----> Warning in routine '//s1//': '//s2, frm='(//A//)') 
+  integer(kind=irg)                   :: ss2(1), i
+
+  ss2 = shape(s2)
+
+  call self % printMessage(' EMsoft warning encountered:', frm='(//A)', redirect=stderr) 
+  call self % printMessage('  '//s1, frm='(A)', redirect=stderr) 
+  if (present(s2)) then 
+    do i=1,ss2(1) 
+      call self % printMessage('  '//s2(i), frm='(A)', redirect=stderr)
+    end do 
+  end if 
 
 end subroutine printWarning
 
@@ -478,7 +541,7 @@ end subroutine ReadValueRealDouble
 !> @date 06/05/14 MDG 2.0 changed io handling
 !> @date 03/29/18 MDG 4.1 removed stdout argument
 ! ###################################################################
-subroutine WriteValueString(self, Qstring, out_string, frm, advance)
+subroutine WriteValueString(self, Qstring, out_string, frm, advance, redirect)
 
 IMPLICIT NONE
 
@@ -488,19 +551,38 @@ IMPLICIT NONE
   character(*),INTENT(IN)                         :: out_string
   character(*),INTENT(IN),OPTIONAL                :: frm
   character(*),INTENT(IN),OPTIONAL                :: advance
+  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
 
   ! send Qstring to the output only if it is non-zero length
-  if (len(Qstring).ne.0) call self % printMessage(Qstring, frm = "(A)",advance="no")
+  if (len(Qstring).ne.0) then
+    if (present(redirect)) then 
+      call self % printMessage(Qstring, frm = "(A)",advance="no",redirect=redirect)
+    else
+      call self % printMessage(Qstring, frm = "(A)",advance="no")
+    end if 
+  end if
 
 
   if (PRESENT(frm)) then 
     if (present(advance)) then 
-      call self % printMessage(out_string, frm = frm, advance="no")
+      if (present(redirect)) then 
+        call self % printMessage(out_string, frm = frm, advance="no", redirect=redirect)
+      else
+        call self % printMessage(out_string, frm = frm, advance="no")
+      end if
     else 
-      call self % printMessage(out_string, frm = frm)
+      if (present(redirect)) then 
+        call self % printMessage(out_string, frm = frm, redirect=redirect)
+      else
+        call self % printMessage(out_string, frm = frm)
+      end if 
     end if
   else
-   call self % printMessage(out_string, frm = "(A)")
+    if (present(redirect)) then 
+      call self % printMessage(out_string, frm = "(A)", redirect=redirect)
+    else
+      call self % printMessage(out_string, frm = "(A)")
+    end if
   end if
 
 end subroutine WriteValueString
@@ -522,7 +604,7 @@ end subroutine WriteValueString
 !> @date 06/05/14 MDG 2.0 changed io handling
 !> @date 03/29/18 MDG 4.1 removed stdout argument
 ! ###################################################################
-subroutine WriteValueIntShort(self, Qstring, out_int, num, frm, advance)
+subroutine WriteValueIntShort(self, Qstring, out_int, num, frm, advance, redirect)
 
 IMPLICIT NONE
 
@@ -533,31 +615,41 @@ IMPLICIT NONE
   character(*),INTENT(IN),OPTIONAL                :: frm
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
   character(*),INTENT(IN),OPTIONAL                :: advance
+  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
 
-  integer(kind=irg)                               :: i  
+  integer(kind=irg)                               :: i, unit  
 
-  if (len(Qstring).ne.0) call self % printMessage(Qstring, frm = "(A)",advance="no")
+  unit = stdout
+  if (present(redirect)) unit = redirect
+
+  if (len(Qstring).ne.0) then 
+    if (present(redirect)) then 
+      call self % printMessage(Qstring, frm = "(A)",advance="no",redirect=redirect)
+    else
+      call self % printMessage(Qstring, frm = "(A)",advance="no")
+    end if 
+  end if 
 
   ! one or more than one values expected ?
   if (PRESENT(num)) then
    if (PRESENT(frm)) then
      if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") (out_int(i),i=1,num)
+      write (unit, fmt=frm, advance="no") (out_int(i),i=1,num)
     else
-      write (stdout, fmt=frm) (out_int(i),i=1,num)
+      write (unit, fmt=frm) (out_int(i),i=1,num)
     end if 
    else
-    write (stdout,*) (out_int(i),i=1,num)
+    write (unit,*) (out_int(i),i=1,num)
    end if
   else
    if (PRESENT(frm)) then
     if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") out_int(1)
+      write (unit, fmt=frm, advance="no") out_int(1)
     else
-      write (stdout, fmt=frm) out_int(1)
+      write (unit, fmt=frm) out_int(1)
     end if
    else
-    write (stdout,*) out_int(1)
+    write (unit,*) out_int(1)
    end if
   end if
 
@@ -580,7 +672,7 @@ end subroutine WriteValueIntShort
 !> @date 06/05/14 MDG 2.0 changed io handling
 !> @date 03/29/18 MDG 4.1 removed stdout argument
 ! ###################################################################
-subroutine WriteValueIntLong(self, Qstring, out_int, num, frm, advance)
+subroutine WriteValueIntLong(self, Qstring, out_int, num, frm, advance, redirect)
 
 IMPLICIT NONE
 
@@ -591,31 +683,41 @@ IMPLICIT NONE
   character(*),INTENT(IN),OPTIONAL                :: frm
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
   character(*),INTENT(IN),OPTIONAL                :: advance
+  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
 
-  integer(kind=irg)                               :: i  
+  integer(kind=irg)                               :: i, unit  
 
-  if (len(Qstring).ne.0) call self % printMessage(Qstring, frm = "(A)",advance="no")
+  unit = stdout
+  if (present(redirect)) unit = redirect
+
+  if (len(Qstring).ne.0) then 
+    if (present(redirect)) then 
+      call self % printMessage(Qstring, frm = "(A)",advance="no",redirect=redirect)
+    else
+      call self % printMessage(Qstring, frm = "(A)",advance="no")
+    end if 
+  end if 
 
   ! one or more than one values expected ?
   if (PRESENT(num)) then
    if (PRESENT(frm)) then
     if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") (out_int(i),i=1,num)
+      write (unit, fmt=frm, advance="no") (out_int(i),i=1,num)
     else
-      write (stdout, fmt=frm) (out_int(i),i=1,num)
+      write (unit, fmt=frm) (out_int(i),i=1,num)
     end if 
    else
-    write (stdout,*) (out_int(i),i=1,num)
+    write (unit,*) (out_int(i),i=1,num)
    end if
   else
    if (PRESENT(frm)) then
     if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") out_int(1)
+      write (unit, fmt=frm, advance="no") out_int(1)
     else
-      write (stdout, fmt=frm) out_int(1)
+      write (unit, fmt=frm) out_int(1)
     end if
    else
-    write (stdout,*) out_int(1)
+    write (unit,*) out_int(1)
    end if
   end if
 
@@ -638,7 +740,7 @@ end subroutine WriteValueIntLong
 !> @date 06/05/14 MDG 2.0 changed io handling
 !> @date 03/29/18 MDG 4.1 removed stdout argument
 ! ###################################################################
-subroutine WriteValueIntLongLong(self, Qstring, out_int, num, frm, advance)
+subroutine WriteValueIntLongLong(self, Qstring, out_int, num, frm, advance, redirect)
 
 IMPLICIT NONE
 
@@ -649,31 +751,41 @@ IMPLICIT NONE
   character(*),INTENT(IN),OPTIONAL                :: frm
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
   character(*),INTENT(IN),OPTIONAL                :: advance
+  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
 
-  integer(kind=irg)                               :: i  
+  integer(kind=irg)                               :: i, unit  
 
-  if (len(Qstring).ne.0) call self % printMessage(Qstring, frm = "(A)",advance="no")
+  unit = stdout
+  if (present(redirect)) unit = redirect
+
+  if (len(Qstring).ne.0) then 
+    if (present(redirect)) then 
+      call self % printMessage(Qstring, frm = "(A)",advance="no",redirect=redirect)
+    else
+      call self % printMessage(Qstring, frm = "(A)",advance="no")
+    end if 
+  end if 
 
   ! one or more than one values expected ?
   if (PRESENT(num)) then
    if (PRESENT(frm)) then
     if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") (out_int(i),i=1,num)
+      write (unit, fmt=frm, advance="no") (out_int(i),i=1,num)
     else
-      write (stdout, fmt=frm) (out_int(i),i=1,num)
+      write (unit, fmt=frm) (out_int(i),i=1,num)
     end if 
    else
-    write (stdout,*) (out_int(i),i=1,num)
+    write (unit,*) (out_int(i),i=1,num)
    end if
   else
    if (PRESENT(frm)) then
       if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") out_int(1)
+      write (unit, fmt=frm, advance="no") out_int(1)
     else
-      write (stdout, fmt=frm) out_int(1)
+      write (unit, fmt=frm) out_int(1)
     end if
    else
-    write (stdout,*) out_int(1)
+    write (unit,*) out_int(1)
    end if
   end if
 
@@ -698,7 +810,7 @@ end subroutine WriteValueIntLongLong
 !> @date 06/05/14 MDG 2.0 changed io handling
 !> @date 03/29/18 MDG 4.1 removed stdout argument
 ! ###################################################################
-subroutine WriteValueRealSingle(self, Qstring, out_real, num, frm, advance)
+subroutine WriteValueRealSingle(self, Qstring, out_real, num, frm, advance, redirect)
 
 IMPLICIT NONE
 
@@ -709,31 +821,41 @@ IMPLICIT NONE
   character(*),INTENT(IN),OPTIONAL                :: frm
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
   character(*),INTENT(IN),OPTIONAL                :: advance
+  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
 
-  integer(kind=irg)                               :: i  
+  integer(kind=irg)                               :: i, unit  
 
-  if (len(Qstring).ne.0) call self % printMessage(Qstring, frm = "(A)",advance="no")
+  unit = stdout
+  if (present(redirect)) unit = redirect
+
+  if (len(Qstring).ne.0) then 
+    if (present(redirect)) then 
+      call self % printMessage(Qstring, frm = "(A)",advance="no",redirect=redirect)
+    else
+      call self % printMessage(Qstring, frm = "(A)",advance="no")
+    end if 
+  end if 
 
   ! one or more than one values expected ?
   if (PRESENT(num)) then
    if (PRESENT(frm)) then
     if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") (out_real(i),i=1,num)
+      write (unit, fmt=frm, advance="no") (out_real(i),i=1,num)
     else
-      write (stdout, fmt=frm) (out_real(i),i=1,num)
+      write (unit, fmt=frm) (out_real(i),i=1,num)
     end if  
    else
-    write (stdout,*) (out_real(i),i=1,num)
+    write (unit,*) (out_real(i),i=1,num)
    end if
   else
    if (PRESENT(frm)) then
     if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") out_real(1)
+      write (unit, fmt=frm, advance="no") out_real(1)
     else
-      write (stdout, fmt=frm) out_real(1)
+      write (unit, fmt=frm) out_real(1)
     end if
    else
-    write (stdout,*) out_real(1)
+    write (unit,*) out_real(1)
    end if
   end if
 
@@ -758,7 +880,7 @@ end subroutine WriteValueRealSingle
 !> @date 06/05/14 MDG 2.0 changed io handling
 !> @date 03/29/18 MDG 4.1 removed stdout argument
 ! ###################################################################
-subroutine WriteValueRealDouble(self, Qstring, out_real, num, frm, advance)
+subroutine WriteValueRealDouble(self, Qstring, out_real, num, frm, advance, redirect)
 
 IMPLICIT NONE
 
@@ -769,31 +891,41 @@ IMPLICIT NONE
   character(*),INTENT(IN),OPTIONAL                :: frm
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
   character(*),INTENT(IN),OPTIONAL                :: advance
+  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
 
-  integer(kind=irg)                               :: i  
+  integer(kind=irg)                               :: i, unit  
 
-  if (len(Qstring).ne.0) call self % printMessage(Qstring, frm = "(A)",advance="no")
+  unit = stdout
+  if (present(redirect)) unit = redirect
+
+  if (len(Qstring).ne.0) then 
+    if (present(redirect)) then 
+      call self % printMessage(Qstring, frm = "(A)",advance="no",redirect=redirect)
+    else
+      call self % printMessage(Qstring, frm = "(A)",advance="no")
+    end if 
+  end if 
 
   ! one or more than one values expected ?
   if (PRESENT(num)) then
    if (PRESENT(frm)) then
       if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") (out_real(i),i=1,num)
+      write (unit, fmt=frm, advance="no") (out_real(i),i=1,num)
     else
-      write (stdout, fmt=frm) (out_real(i),i=1,num)
+      write (unit, fmt=frm) (out_real(i),i=1,num)
     end if  
    else
-    write (stdout,*) (out_real(i),i=1,num)
+    write (unit,*) (out_real(i),i=1,num)
    end if
   else
    if (PRESENT(frm)) then
     if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") out_real(1)
+      write (unit, fmt=frm, advance="no") out_real(1)
     else
-      write (stdout, fmt=frm) out_real(1)
+      write (unit, fmt=frm) out_real(1)
     end if
    else
-    write (stdout,*) out_real(1)
+    write (unit,*) out_real(1)
    end if
   end if
 
@@ -817,7 +949,7 @@ end subroutine WriteValueRealDouble
 !> @date 06/05/14 MDG 2.0 changed io handling
 !> @date 03/29/18 MDG 4.1 removed stdout argument
 ! ###################################################################
-subroutine WriteValueRealComplex(self, Qstring, out_cmplx, num, frm, advance)
+subroutine WriteValueRealComplex(self, Qstring, out_cmplx, num, frm, advance, redirect)
 
 IMPLICIT NONE
 
@@ -828,31 +960,41 @@ IMPLICIT NONE
   character(*),INTENT(IN),OPTIONAL                :: frm
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
   character(*),INTENT(IN),OPTIONAL                :: advance
+  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
 
-  integer(kind=irg)                               :: i
+  integer(kind=irg)                               :: i, unit
 
-  if (len(Qstring).ne.0) call self % printMessage(Qstring, frm = "(A)",advance="no")
+   unit = stdout
+  if (present(redirect)) unit = redirect
+
+  if (len(Qstring).ne.0) then 
+    if (present(redirect)) then 
+      call self % printMessage(Qstring, frm = "(A)",advance="no",redirect=redirect)
+    else
+      call self % printMessage(Qstring, frm = "(A)",advance="no")
+    end if 
+  end if 
 
   ! one or more than one values expected ?
   if (PRESENT(num)) then
    if (PRESENT(frm)) then
       if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") (out_cmplx(i),i=1,num)
+      write (unit, fmt=frm, advance="no") (out_cmplx(i),i=1,num)
     else
-      write (stdout, fmt=frm) (out_cmplx(i),i=1,num)
+      write (unit, fmt=frm) (out_cmplx(i),i=1,num)
     end if  
    else
-    write (stdout,*) (out_cmplx(i),i=1,num)
+    write (unit,*) (out_cmplx(i),i=1,num)
    end if
   else
    if (PRESENT(frm)) then
     if (present(advance)) then 
-      write (stdout, fmt=frm, advance="no") out_cmplx(1)
+      write (unit, fmt=frm, advance="no") out_cmplx(1)
     else
-      write (stdout, fmt=frm) out_cmplx(1)
+      write (unit, fmt=frm) out_cmplx(1)
     end if
    else
-    write (stdout,*) out_cmplx(1)
+    write (unit,*) out_cmplx(1)
    end if
   end if
 
