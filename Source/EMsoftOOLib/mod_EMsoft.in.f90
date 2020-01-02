@@ -476,11 +476,10 @@ function generateFilePath(self, cp, fn) result(fp)
   else 
     if (present(fn)) then 
       fp = trim(path)//trim(fn)           ! prepend the path 
-      fp = EMsoft_toNativePath(self, fp)  ! and use the correct delimiter for this platform 
     else 
       fp = trim(path)                     ! this is already a complete file name ... 
-      fp = EMsoft_toNativePath(self, fp)  ! and use the correct delimiter for this platform 
     end if 
+    fp = EMsoft_toNativePath(self, fp)  ! and use the correct delimiter for this platform 
   end if
 
 end function generateFilePath
@@ -1069,7 +1068,7 @@ EMsoftnativedelimiter = EMsoft_getEMsoftnativedelimiter(self)
 ! get the user's home directory to prepend to the config file name
 dirstring = EMsoft_getUserHomePath(self)
 
-configpath = trim(dirstring)//EMsoftnativedelimiter//SC_config//EMsoftnativedelimiter//SC_EMsoft
+configpath = trim(dirstring)//EMsoftnativedelimiter//SC_config//EMsoftnativedelimiter//SC_EMsoft//EMsoftnativedelimiter
 
 end function EMsoft_getConfigpath
 
@@ -1826,7 +1825,8 @@ end function EMsoft_fromNativePath
 !--------------------------------------------------------------------------
 
 subroutine EMsoft_path_init(self, config)
-!DEC$ ATTRIBUTES DLLEXPORT :: EMsoft_path_init
+
+use mod_io
 
 IMPLICIT NONE
 
@@ -1834,14 +1834,15 @@ class(T_EMsoftClass),intent(inout)      :: self
 
 logical,INTENT(IN),OPTIONAL             :: config
 
+type(T_IOClass)                         :: Message 
 character(fnlen)                        :: pathstring, dirstring, ep, EMsoftpathname, EMdatapathname, &
-                                           username, userlocn, useremail
+                                           username, userlocn, useremail, m
 integer(kind=irg)                       :: i, error_cnt
 logical                                 :: found, fexists, jexists
 character(fnlen)                        :: confname, emsoftname, jsonname, jsonfilename, fname, cwd, &
-                                           dirname, library, dataname, xtalname, platform
+                                           dirname, library, dataname, xtalname
 character(3)                            :: release, develop
-character(len=1)                        :: edp, tab, yesno, EMsoftnativedelimiter
+character(len=1)                        :: edp, tab, yesno 
 
 edp = '"'
 tab = CHAR(9)
@@ -1854,35 +1855,35 @@ confname = SC_config
 emsoftname = SC_EMsoft
 jsonfilename = SC_jsonfilename
 
-! determine the pathname delimiter character
-EMsoftnativedelimiter = EMsoft_getEMsoftnativedelimiter(self)
-
 ! get the config file name
-jsonname = trim(EMsoft_getConfigpath(self))//EMsoftnativedelimiter//trim(jsonfilename)
+jsonname = self % generateFilePath('Configpath',jsonfilename)
 
 ! test whether or not this file actually exists
 inquire(file=trim(jsonname),exist=jexists)
 
+write (*,*) 'jsonfilename : ', trim(jsonfilename)
+write (*,*) 'jsonname = ', trim(jsonname), '  ', jexists
+
 ! if this routine is called with config=.TRUE. parameter, then that means that we
 ! must create a new EMsoftConfig.json file if it doesn't already exist; we will inform
 ! the user if it does exist, and rename the existing file
+Message = T_IOClass()
+
 if (present(config)) then
   if (config.eqv..TRUE.) then
 
     if (jexists) then
-      write (*,*) '-------'
-      write (*,*) 'WARNING: An older configuration file already exists in the .config/EMsoft folder'
-      write (*,*) '         The existing file will be renamed and a new file created.'
-      write (*,"(/'          Do you want to continue ? (y/n) ',$)")
-      read(*,"(A1)") yesno
+      call Message % printMessage( (/ '-------                                                                         ', &
+                                      'WARNING: An older configuration file already exists in the .config/EMsoft folder', &
+                                      '         The existing file will be renamed and a new file created.              '/) )
+      call Message % ReadValue('          Do you want to continue ? (y/n) ', yesno, frm="(A1)" )
       if (yesno.eq.'n') then
         stop 'program terminated'
       end if
-      write (*,*) '         Renaming old file to ',trim(jsonname)//'.save'
-      write (*,*) '         Creating new configuration file'
-      write (*,*) '-------'
-      platform = EMsoft_getEMsoftplatform(self)
-      if (trim(platform).ne.'Windows') then   ! use the UNIX rename command 'mv oldname newname'
+      call Message % printMessage('         Renaming old file to '//trim(jsonname)//'.save')
+      call Message % printMessage((/ '         Creating new configuration file', &
+                                     '-------                                 '/) )
+      if (trim(self % EMsoftplatform).ne.'Windows') then   ! use the UNIX rename command 'mv oldname newname'
         call system('mv '//trim(jsonname)//' '//trim(jsonname)//'.save')
       else   ! on Windows the file rename command is 'ren oldname newname'
         call system('ren '//trim(jsonname)//' '//trim(jsonname)//'.save')
@@ -1890,33 +1891,33 @@ if (present(config)) then
     end if
 
 ! look for the .config/EMsoft/EMsoftConfig.json file one step at a time
-    dirstring = EMsoft_getUserHomePath(self)
+    dirstring = self % Homepathname
     call chdir(trim(dirstring))
 
 ! check for the .config folder
-    dirname = trim(dirstring)//EMsoftnativedelimiter//trim(confname)
+    dirname = trim(dirstring)//self % EMsoftnativedelimiter//trim(confname)
     inquire(file=trim(dirname),exist=fexists)
     if (.not.(fexists)) then
       call system('mkdir '//trim(dirname))
-      write (*,*) trim(dirname),' folder did not exist and has been created'
+      call Message % printMessage(trim(dirname)//' folder did not exist and has been created')
     end if
     call chdir(trim(dirname))
 
 ! check for the EMsoft folder
-    dirname = trim(dirname)//EMsoftnativedelimiter//SC_EMsoft
+    dirname = trim(dirname)//self % EMsoftnativedelimiter//SC_EMsoft
     inquire(file=trim(dirname),exist=fexists)
     if (.not.(fexists)) then
       call system('mkdir '//trim(dirname))
-      write (*,*) trim(dirname),' folder did not exist and has been created'
+      call Message % printMessage(trim(dirname)//' folder did not exist and has been created')
     end if
     call chdir(trim(dirname))
 
 ! check whether or not the tmp folder exists...
-    fname = trim(dirname)//EMsoftnativedelimiter//SC_tmp
+    fname = trim(dirname)//self % EMsoftnativedelimiter//SC_tmp
     inquire(file=trim(fname),exist=fexists)
     if (.not.(fexists)) then
       call system('mkdir '//trim(fname))
-      write (*,*) trim(fname),' folder did not exist and has been created'
+      call Message % printMessage(trim(fname)//' folder did not exist and has been created')
     end if
 
 ! ok, so we have created the correct folder structure; now we need to generate the
@@ -1925,60 +1926,59 @@ if (present(config)) then
     release = 'No'
     develop = 'No'
 
-! generate the json file
+! generate the json file; in principle we can replace all of these with Message class statements,
+! but there's really no reason to do so ... 
     open(unit=dataunit,file=trim(jsonname),status='new',form='formatted')
-    write (dataunit,"('{')")
+    call Message % printMessage('{',redirect=dataunit)
     write (dataunit,"(A,A,'EMsoftpathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-       trim(EMsoft_getUserHomePath(self))//EMsoftnativedelimiter,edp
+       trim(EMsoft_getUserHomePath(self))//self % EMsoftnativedelimiter,edp
     write (dataunit,"(A,A,'EMXtalFolderpathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-       trim(EMsoft_getUserHomePath(self))//EMsoftnativedelimiter,edp
+       trim(EMsoft_getUserHomePath(self))//self % EMsoftnativedelimiter,edp
     write (dataunit,"(A,A,'EMdatapathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-       trim(EMsoft_getUserHomePath(self))//EMsoftnativedelimiter,edp
+       trim(EMsoft_getUserHomePath(self))//self % EMsoftnativedelimiter,edp
     write (dataunit,"(A,A,'EMtmppathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-       trim(fname)//EMsoftnativedelimiter,edp
+       trim(fname)//self % EMsoftnativedelimiter,edp
     write (dataunit,"(A,A,'EMsoftLibraryLocation',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-       trim(EMsoft_getUserHomePath(self))//EMsoftnativedelimiter,edp
+       trim(EMsoft_getUserHomePath(self))//self % EMsoftnativedelimiter,edp
     write (dataunit,"(A,A,'Release',A,': ',A,A,A,',')") tab, edp, edp, edp, trim(release), edp
     write (dataunit,"(A,A,'Develop',A,': ',A,A,A,',')") tab, edp, edp, edp, trim(develop), edp
 
-    write (*,*) '------'
-    write (*,*) 'Please respond to the following questions (each entry < 132 characters)'
-    write(*,"(A,$)") '  Enter your user name : '
-    read(*,"(A)") username
+    call Message % printMessage((/ '-------                                                                ', &
+                                   'Please respond to the following questions (each entry < 132 characters)'/) )
+    call Message % ReadValue('  Enter your user name : ', username, frm="(A)" )
     write (dataunit,"(A,A,'UserName',A,': ',A,A,A,',')") tab, edp, edp, edp, trim(username), edp
 
-    write(*,"(A,$)") '  Enter your email address : '
-    read(*,"(A,$)") useremail
+    call Message % ReadValue('  Enter your email address : ', useremail, frm="(A)" )
     write (dataunit,"(A,A,'UserEmail',A,': ',A,A,A,',')") tab, edp, edp, edp, trim(useremail), edp
 
-    write(*,"(A,$)") '  Enter your affiliation : '
-    read(*,"(A,$)") userlocn
+    call Message % ReadValue('  Enter your affiliation : ', userlocn, frm="(A)" )
     write (dataunit,"(A,A,'UserLocation',A,': ',A,A,A)") tab, edp, edp, edp, trim(userlocn), edp
 
-    write (dataunit,"('}')")
+    call Message % printMessage('}',redirect=dataunit)
     close(unit=dataunit,status='keep')
 
-    write (*,"(/' A skeleton EMsoftConfig.json file has been created in your .config/EMsoft folder.')")
-    write (*,"(' You will need to edit this file to change the parameters from their default values.')")
-    write (*,"(' ')")
-    write (*,"(' - EMsoftpathname should point to the top folder of your EMsoft installation.')")
-    write (*,"(' - EMdatapathname should point to where you want to keep all EMsoft output files.')")
-    write (*,"('   Note that this folder should NOT be inside the EMsoftpathname folder!')")
-    write (*,"('   You may leave this variable undefined (empty string) to force programs to')")
-    write (*,"('   generate all files in the current working folder or to use full path file names.')")
-    write (*,"(' - EMXtalFolderpathname should point to the folder that will contain the *.xtal files.')")
-    write (*,"(' - EMtmppathname should point to the tmp folder where the EMsoftConfig.json file is located.')")
-    write (*,"(' - EMsoftLibraryLocation is needed only if you have a fully functional IDL installation; this')")
-    write (*,"('   variable should then point to the location of the EMsoftLib.dylib or EMsoftLib.dll file.')")
-    write (*,"(' - One of the variables Develop and Release should be set to Yes, the other to No; if you are')")
-    write (*,"('   developing new EMsoft code using the EMsoftPrivate folder, then set Develop to Yes')")
-    write (*,"('   and Release to No to indicate Debug mode. for regular users: Develop=No, Release=Yes')")
-    write (*,"(' - EMNotify can be set to Slack or Email to send program completion messages to the user')")
-    write (*,"(' - EMSlackWebHookURL and EMSlackChannel are used for Slack messages (see Package Configuration wiki)')")
-    write (*,"(' ')")
-    write (*,"(' Make sure that each non-empty pathname ends with /, even on Windows platforms ! ')")
-    write (*,"(' ')")
-    write (*,"(' Every EMsoft program will read this configuration file to figure out where things are located.'/)")
+    call Message % printMessage( &
+      (/' A skeleton EMsoftConfig.json file has been created in your .config/EMsoft folder.                  ', &
+        ' You will need to edit this file to change the parameters from their default values.                ', &
+        '                                                                                                    ', &
+        ' - EMsoftpathname should point to the top folder of your EMsoft installation.                       ', &
+        ' - EMdatapathname should point to where you want to keep all EMsoft output files.                   ', &
+        '   Note that this folder should NOT be inside the EMsoftpathname folder!                            ', &
+        '   You may leave this variable undefined (empty string) to force programs to                        ', &
+        '   generate all files in the current working folder or to use full path file names.                 ', &
+        ' - EMXtalFolderpathname should point to the folder that will contain the *.xtal files.              ', &
+        ' - EMtmppathname should point to the tmp folder where the EMsoftConfig.json file is located.        ', &
+        ' - EMsoftLibraryLocation is needed only if you have a fully functional IDL installation; this       ', &
+        '   variable should then point to the location of the EMsoftLib.dylib or EMsoftLib.dll file.         ', &
+        ' - One of the variables Develop and Release should be set to Yes, the other to No; if you are       ', &
+        '   developing new EMsoft code using the EMsoftPrivate folder, then set Develop to Yes               ', &
+        '   and Release to No to indicate Debug mode. for regular users: Develop=No, Release=Yes             ', &
+        ' - EMNotify can be set to Slack or Email to send program completion messages to the user            ', &
+        ' - EMSlackWebHookURL and EMSlackChannel are used for Slack messages (see Package Configuration wiki)', &
+        '                                                                                                    ', &
+        ' Make sure that each non-empty pathname ends with /, even on Windows platforms !                    ', &
+        '                                                                                                    ', &
+        ' Every EMsoft program will read this configuration file to figure out where things are located.     '/) )
 
   end if
 end if

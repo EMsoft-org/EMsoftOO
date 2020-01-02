@@ -22,7 +22,7 @@ Timing = T_TimingClass( showDateTime = .TRUE. )
 
 call Timing % Time_tick()
 
-EMsoft = T_EMsoftClass(progname, progdesc, showconfig=.FALSE.) 
+EMsoft = T_EMsoftClass(progname, progdesc, showconfig=.FALSE., makeconfig=.TRUE.) 
 Message = T_IOClass()
 
 ! m = 'Revision = '//trim( EMsoft % getConfigParameter('EMsoftRevision') )
@@ -61,13 +61,13 @@ Message = T_IOClass()
 call Message % printMessage( 'Time : '//Timing % getTimeString() )
 call Message % printMessage( 'Date : '//Timing % getDateString() )
 
-call Timing % printTimeStamp(redirect=10)
+! call Timing % printTimeStamp(redirect=10)
 
-call sleep(5) 
+call sleep(2) 
 
 call Timing % Time_tick(2)
 
-call sleep(3) 
+call sleep(1) 
 call Timing % Time_tock(2)
 call Timing % Time_tock(1)
 

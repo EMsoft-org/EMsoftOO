@@ -34,11 +34,9 @@
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief Provides a few timing routines
+!> @brief Provides a timing class with a few timing routines
 ! 
-!> @date   11/19/01 MDG 1.0 original
-!> @date   06/04/13 MDG 2.0 rewrite
-!> @date   06/05/14 MDG 3.0 replaced globals by timetype argument
+!> @date 01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 module mod_timing
 
@@ -67,7 +65,7 @@ public :: T_TimingClass
       integer(kind=irg),allocatable :: Tinterval(:)
       character(len = 11)           :: datestring
       character(len = 15)           :: timestring
-      character(len = 26)           :: timestamp
+      character(len = 27)           :: timestamp
 
     contains
       private 
@@ -149,7 +147,7 @@ end function Timing_constructor
 !
 !> @brief start time recording using system_clock
 !
-!> @date   03/17/16 MDG 1.0 original
+!> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine Time_tick(self, n)
 
@@ -177,7 +175,7 @@ end subroutine Time_tick
 !
 !> @brief stop time recording using system_clock
 !
-!> @date   03/17/16 MDG 1.0 original
+!> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine Time_tock(self, n) 
 
@@ -624,23 +622,23 @@ subroutine makeTimeStamp (self)
 
   class(T_TimingClass),intent(inout)    :: self
 
-  integer(kind=irg)                     :: d, h, mo, mm, n, s, values(8), y
+  integer(kind=irg)                     :: d, h, mo, mm, n, s, v(8), y
   character ( len = 8 )                 :: ampm, date
   character ( len = 10 )                :: time
   character ( len = 5 )                 :: zone
 
 ! call the intrinsic routine 
-  call date_and_time ( date, time, zone, values )
+  call date_and_time ( date, time, zone, v)
 
-! extract values  (based on JB code)
-  y = values(1)
-  mo = values(2)
-  d = values(3)
-  h = values(5)
-  n = values(6)
-  s = values(7)
-  mm = values(8)
+  y = v(1)
+  mo = v(2)
+  d = v(3)
+  h = v(5)
+  n = v(6)
+  s = v(7)
+  mm = v(8)
 
+! extract AM-PM (based on JB code)
   if (h.lt.12) then
     ampm = 'AM'
   else if (h.eq.12) then
@@ -665,7 +663,7 @@ subroutine makeTimeStamp (self)
 
   write (self % datestring, '(a,1x,i2,1x,i4)' ) month(mo), d, y
   write (self % timestring, '(i2,a1,i2.2,a1,i2.2,a1,i3.3,1x,a)' ) h,':',n,':',s,'.',mm,trim(ampm)
-  self % timestamp = self % datestring // self % timestring
+  self % timestamp = self % datestring //' '//self % timestring
 
 end subroutine makeTimeStamp
 

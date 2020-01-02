@@ -80,9 +80,10 @@ public :: T_IOClass
 
       procedure, pass(self) :: printShortError
       procedure, pass(self) :: printErrorStatus
+      procedure, pass(self) :: printMessageSingle
+      procedure, pass(self) :: printMessageMultiple
 
       procedure, pass(self), public :: printWarning
-      procedure, pass(self), public :: printMessage
 
       generic, public :: ReadValue => ReadValueIntShort, ReadValueIntLong, ReadValueRealSingle, &
                                       ReadValueRealDouble, ReadValueString, ReadValueStringArray
@@ -90,6 +91,7 @@ public :: T_IOClass
                                        WriteValueRealSingle, WriteValueRealDouble, WriteValueRealComplex, &
                                        WriteValueString
       generic, public :: printError => printShortError, printErrorStatus
+      generic, public :: printMessage => printMessageSingle, printMessageMultiple
 
   end type T_IOClass
 
@@ -124,7 +126,7 @@ end function Message_constructor
 
 !--------------------------------------------------------------------------
 !
-! SUBROUTINE: printMessage
+! SUBROUTINE: printMessageSingle
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -143,11 +145,11 @@ end function Message_constructor
 !
 !> @date 12/31/19 MDG 1.0 original
 !--------------------------------------------------------------------------
-subroutine printMessage(self, mess, frm, advance, redirect)
+subroutine printMessageSingle(self, mess, frm, advance, redirect)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(T_IOClass),intent(inout)          :: self
 
   character(*),INTENT(IN)                 :: mess         !< message string
   character(*),OPTIONAL,INTENT(IN)        :: frm          !< optional formatting string
@@ -170,7 +172,60 @@ IMPLICIT NONE
    write (unit,fmt="(A)") trim(mess)
   end if 
 
-end subroutine printMessage
+end subroutine printMessageSingle
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: printMessageMultiple
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief dump a message with multiple lines to standard output
+!
+!> @details Simple routine to print a string on the standard output, with optional formatting
+!> instructions, for instance if one wants an empty line before (frm='(/A)') or after (frm='(A/)') 
+!> the string.  Note that one can include the name of the optional variable in the subroutine
+!> call, as in:
+!> call Message('this is a string', frm='(//A//)' , stdout = 22)
+!> this makes it clear that frm and stdout are optional variables.
+! 
+!> @param mess message string
+!> @param frm optional string formatting command
+!
+!> @date 12/31/19 MDG 1.0 original
+!--------------------------------------------------------------------------
+subroutine printMessageMultiple(self, mess, frm, redirect)
+
+IMPLICIT NONE
+
+  class(T_IOClass),intent(inout)          :: self
+
+  character(*),INTENT(IN)                 :: mess(:)      !< message string
+  character(*),OPTIONAL,INTENT(IN)        :: frm          !< optional formatting string
+  integer(kind=irg),OPTIONAL,INTENT(IN)   :: redirect     !< redirect to this unit
+
+  integer(kind=irg)                       :: unit, ss(1), i 
+
+  ss = shape(mess) 
+
+  unit = stdout
+  if (present(redirect)) unit = redirect 
+
+! default format or not ?
+  if (PRESENT(frm)) then
+    do i=1,ss(1)
+      write (unit,fmt=frm) trim(mess(i))
+    end do
+  else    ! default output format: a simple string
+    do i=1,ss(1)
+      write (unit,fmt="(A)") trim(mess(i))
+    end do
+  end if 
+
+end subroutine printMessageMultiple
+
+
+
 
 !--------------------------------------------------------------------------
 !
