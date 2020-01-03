@@ -36,13 +36,19 @@
 !
 !> @brief message and error handling routines
 !
-!> @details  Ideally, this should be the only module that has explicit write statements
-!> in it.  
-!
 !> @date 12/31/19 MDG 1.0 original
 !--------------------------------------------------------------------------
 
 module mod_io
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! Message and error handling routines.
+  !!
+  !! We try to eliminate calls to *write* and *read* as much as possible from
+  !! all programs and replace them by the routines in this module (for any IO
+  !! that involves the command line, not for data files)
 
 use mod_global 
 use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
@@ -57,8 +63,8 @@ public :: T_IOClass
 
   type, public  :: T_IOClass
     private
-      character(fnlen)  :: origin 
       character(fnlen)  :: message 
+       !! a simple string of length fnlen
 
     contains
     private
@@ -114,13 +120,27 @@ contains
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief initialize the IO class; this doesn't really do anything yet 
+!> @brief initialize the IO class; 
 !
 !> @date  12/31/19 MDG 1.0 new function
 !--------------------------------------------------------------------------
-type(T_IOClass) function Message_constructor() result(Message)
-
+type(T_IOClass) function Message_constructor( m ) result(Message)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! constructor for the IO Class 
+  
 IMPLICIT NONE
+
+character(fnlen), INTENT(IN), OPTIONAL      :: m 
+ !! input character string
+
+if (present(m)) then 
+  Message % message = trim(m)
+else 
+  Message % message = ''
+end if 
 
 end function Message_constructor
 
@@ -131,30 +151,34 @@ end function Message_constructor
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief dump a message to standard output
-!
-!> @details Simple routine to print a string on the standard output, with optional formatting
-!> instructions, for instance if one wants an empty line before (frm='(/A)') or after (frm='(A/)') 
-!> the string.  Note that one can include the name of the optional variable in the subroutine
-!> call, as in:
-!> call Message('this is a string', frm='(//A//)' , stdout = 22)
-!> this makes it clear that frm and stdout are optional variables.
 ! 
-!> @param mess message string
-!> @param frm optional string formatting command
-!> @param advance  print a new line character ?
-!
 !> @date 12/31/19 MDG 1.0 original
 !--------------------------------------------------------------------------
 subroutine printMessageSingle(self, mess, frm, advance, redirect)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! Simple routine to print a string to standard output (default), with optional formatting
+  !! instructions; for instance, if one wants an empty line before (frm='(/A)') or after (frm='(A/)') 
+  !! the string.  Note that one can include the name of the optional variable in the subroutine
+  !! call, as in:
+  !!
+  !! call self % printMessage('this is a string', frm='(//A//)' , redirect = 22)
+
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout)          :: self
 
-  character(*),INTENT(IN)                 :: mess         !< message string
-  character(*),OPTIONAL,INTENT(IN)        :: frm          !< optional formatting string
-  character(*),OPTIONAL,INTENT(IN)        :: advance      !< optional formatting string
-  integer(kind=irg),OPTIONAL,INTENT(IN)   :: redirect     !< redirect to this unit
+  character(*),INTENT(IN)                 :: mess         
+   !! message string
+  character(*),OPTIONAL,INTENT(IN)        :: frm          
+   !! optional formatting string
+  character(*),OPTIONAL,INTENT(IN)        :: advance      
+   !! optional keyword to omit linefeed character
+  integer(kind=irg),OPTIONAL,INTENT(IN)   :: redirect     
+   !! optional redirect to this unit (stdout by default)
 
   integer(kind=irg)                       :: unit 
 
@@ -182,27 +206,32 @@ end subroutine printMessageSingle
 !
 !> @brief dump a message with multiple lines to standard output
 !
-!> @details Simple routine to print a string on the standard output, with optional formatting
-!> instructions, for instance if one wants an empty line before (frm='(/A)') or after (frm='(A/)') 
-!> the string.  Note that one can include the name of the optional variable in the subroutine
-!> call, as in:
-!> call Message('this is a string', frm='(//A//)' , stdout = 22)
-!> this makes it clear that frm and stdout are optional variables.
-! 
-!> @param mess message string
-!> @param frm optional string formatting command
-!
 !> @date 12/31/19 MDG 1.0 original
 !--------------------------------------------------------------------------
 subroutine printMessageMultiple(self, mess, frm, redirect)
-
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! Simple routine to print one or more strings to standard output (default), with optional formatting
+  !! instructions; for instance, if one wants an empty line before (frm='(/A)') or after (frm='(A/)') 
+  !! the string.  Note that one can include the name of the optional variable in the subroutine
+  !! call, as in:
+  !!
+  !! call self % printMessage( (/'this is a string       ', &
+  !!                             'and this is another one'/), redirect = 10)
+  !! Note that *mess* is a string array, so all component strings MUST have the same length!
+   
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout)          :: self
 
-  character(*),INTENT(IN)                 :: mess(:)      !< message string
-  character(*),OPTIONAL,INTENT(IN)        :: frm          !< optional formatting string
-  integer(kind=irg),OPTIONAL,INTENT(IN)   :: redirect     !< redirect to this unit
+  character(*),INTENT(IN)                 :: mess(:)      
+   !! message array of strings
+  character(*),OPTIONAL,INTENT(IN)        :: frm          
+   !! optional formatting string
+  integer(kind=irg),OPTIONAL,INTENT(IN)   :: redirect     
+   !! redirect to this unit
 
   integer(kind=irg)                       :: unit, ss(1), i 
 
@@ -224,9 +253,6 @@ IMPLICIT NONE
 
 end subroutine printMessageMultiple
 
-
-
-
 !--------------------------------------------------------------------------
 !
 ! SUBROUTINE: printShortError
@@ -235,19 +261,23 @@ end subroutine printMessageMultiple
 !
 !> @brief Write error message and abort program
 !
-!> @param s1 routine name string
-!> @param s2 explanation string
-!
 !> @date   12/31/19 MDG 1.0 original
 ! ###################################################################
 subroutine printShortError(self, s1, s2)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write an error message (routine_name: message) and abort the program
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
 
-  character(*), INTENT(IN)  :: s1  !< first part of error message (routine name)
-  character(*), INTENT(IN)  :: s2  !< second part of error message (brief explanation)
+  character(*), INTENT(IN)  :: s1  
+   !! first part of error message (routine name)
+  character(*), INTENT(IN)  :: s2  
+   !! second part of error message (brief explanation)
 
   call self % printMessage(' ----> Fatal error in routine '//s1//': '//s2, frm='(//A/)', redirect=stderr) 
   stop '  Progam ended abnormally'
@@ -262,21 +292,26 @@ end subroutine printShortError
 !
 !> @brief Write error message with status number and abort program
 !
-!> @param s1 string
-!> @param s2 optional string 
-!
 !> @date   12/31/19 MDG 1.0 original
 ! ###################################################################
 subroutine printErrorStatus(self, s1, status, s2)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write an error message with status number and abort program
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout)      :: self
 
-  character(*), INTENT(IN)            :: s1      !< first part of error message (routine name)
-  integer(kind=irg),INTENT(IN)        :: status  !< error identifier
-  character(*), INTENT(IN),OPTIONAL   :: s2(:)   !< second part of error message (brief explanation)
-
+  character(*), INTENT(IN)            :: s1      
+   !! first part of error message (routine name)
+  integer(kind=irg),INTENT(IN)        :: status  
+   !! error identifier
+  character(*), INTENT(IN),OPTIONAL   :: s2(:)   
+   !! optional second part of error message (brief explanation); can have multiple lines
+ 
   integer(kind=irg)                   :: io_int(1), ss2(1), i
 
   ss2 = shape(s2)
@@ -303,20 +338,23 @@ end subroutine printErrorStatus
 !
 !> @brief Write warning message
 !
-!> @param s1 routine name string
-!> @param s2 explanation string
-!> @param stdout optional output unit identifier
-!
 !> @date   12/31/19 MDG 1.0 original
 ! ###################################################################
 subroutine printWarning(self, s1, s2)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write an warning message, potentially multiple lines 
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout)      :: self
 
-  character(*), INTENT(IN)            :: s1     !< first part of error message (routine name)
-  character(*), INTENT(IN),OPTIONAL   :: s2(:)  !< second part of error message (brief explanation)
+  character(*), INTENT(IN)            :: s1     
+   !! first part of error message (routine name)
+  character(*), INTENT(IN),OPTIONAL   :: s2(:)  
+   !! second part of error message (brief explanation)
 
   integer(kind=irg)                   :: ss2(1), i
 
@@ -344,25 +382,27 @@ end subroutine printWarning
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief read a string from standard input (unit = 5)
+!> @brief read a string from standard input (stdin)
 !
-!> @param Qstring question string
-!> @param rd_string string to be read
-!> @param frm optional format string
-
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine ReadValueString(self, Qstring, rd_string, frm)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! read a string from standard input (stdin)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
 
   character(*),INTENT(IN)                         :: Qstring
+   !! user prompt string 
   character(*),INTENT(OUT)                        :: rd_string
+   !! string to be read 
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
 
   call self % printMessage(Qstring, frm = "(' ',A,' ')", advance="no")
 
@@ -380,27 +420,29 @@ end subroutine ReadValueString
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief read an array of strings from standard input (unit = 5)
+!> @brief read an array of strings from standard input (stdin)
 !
-!> @param Qstring question string
-!> @param rd_string string to be read
-!> @param num number of strings in array
-!> @param frm optional format string
-
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine ReadValueStringArray(self, Qstring, rd_string, num, frm)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! read an array of strings from standard input (stdin)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
 
   character(*),INTENT(IN)                         :: Qstring
+   !! user prompt string 
   character(1),INTENT(OUT)                        :: rd_string(num)
+   !! array of strings to be read
   integer(kind=irg),INTENT(IN)                    :: num
+   !! number of strings to read 
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
 
   integer(kind=irg)                               :: i
 
@@ -426,23 +468,25 @@ end subroutine ReadValueStringArray
 !
 !> @brief read one or more short integers
 !
-!> @param Qstring question string
-!> @param rd_int integer to be read
-!> @param num optional number of integers to be read
-
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine ReadValueIntShort(self, Qstring, rd_int, num)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! read one or more short integers from standard input (stdin)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
+   !! user prompt string 
   integer(kind=ish),INTENT(OUT)                   :: rd_int(*)
+   !! output array of short integers
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! number of integers to read
 
   integer(kind=irg)                               :: i
 
@@ -465,23 +509,25 @@ end subroutine ReadValueIntShort
 !
 !> @brief read one or more regular (4-byte) integers
 !
-!> @param Qstring question string
-!> @param rd_int integer to be read
-!> @param num optional number of integers to be read
-
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine ReadValueIntLong(self, Qstring, rd_int, num)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! read one or more long integers from standard input (stdin)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
+   !! user prompt string
   integer(kind=irg),INTENT(OUT)                   :: rd_int(*)
+   !! array to hold integers 
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! number of integers to read
 
   integer(kind=irg)                               :: i
 
@@ -504,23 +550,25 @@ end subroutine ReadValueIntLong
 !
 !> @brief read one or more regular (4-byte) reals
 !
-!> @param Qstring question string
-!> @param rd_real integer to be read
-!> @param num optional number of integers to be read
-
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine ReadValueRealSingle(self, Qstring, rd_real, num)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! read one or more 4-byte reals from standard input (stdin)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
+   !! user prompt string 
   real(kind=sgl),INTENT(OUT)                      :: rd_real(*)
+   !! array to hold single precision reals
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! number of reals to read
 
   integer(kind=irg)                               :: i
 
@@ -543,24 +591,25 @@ end subroutine ReadValueRealSingle
 !
 !> @brief read one or more regular (4-byte) reals
 !
-!> @param Qstring question string
-!> @param rd_real integer to be read
-!> @param num optional number of integers to be read
-!> @param stdout optional output unit identifier
-
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine ReadValueRealDouble(self, Qstring, rd_real, num)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! read one or more 8-byte reals from standard input (stdin)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
+   !! user prompt string
   real(kind=dbl),INTENT(OUT)                      :: rd_real(*)
+   !! array to hold double precision reals
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! number of doubles to read 
 
   integer(kind=irg)                               :: i
 
@@ -588,25 +637,29 @@ end subroutine ReadValueRealDouble
 !
 !> @brief write a string
 !
-!> @param Qstring question string
-!> @param out_string output string
-!> @param frm optional formatting argument
-!
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueString(self, Qstring, out_string, frm, advance, redirect)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write a string to standard input (stdin)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
 
   character(*),INTENT(IN)                         :: Qstring 
+   !! comment string
   character(*),INTENT(IN)                         :: out_string
+   !! output string
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
   character(*),INTENT(IN),OPTIONAL                :: advance
+   !! optional hold on linefeed
   integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+   !! optional redirect to a different output unit
 
   ! send Qstring to the output only if it is non-zero length
   if (len(Qstring).ne.0) then
@@ -650,27 +703,31 @@ end subroutine WriteValueString
 !
 !> @brief write one or more short integers
 !
-!> @param Qstring question string
-!> @param out_int output string
-!> @param num optional number of integers
-!> @param frm optional formatting argument
-!
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueIntShort(self, Qstring, out_int, num, frm, advance, redirect)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write one or more short integers to output (stdout or redirect)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
+   !! comment string
   integer(kind=ish),INTENT(IN)                    :: out_int(*)
+   !! one or more output short integers
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! optional number of integers to write 
   character(*),INTENT(IN),OPTIONAL                :: advance
+   !! optional hold on linefeed
   integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+   !! optional redirect to other output unit 
 
   integer(kind=irg)                               :: i, unit  
 
@@ -718,27 +775,31 @@ end subroutine WriteValueIntShort
 !
 !> @brief write one or more 4-byte integers
 !
-!> @param Qstring question string
-!> @param out_int output string
-!> @param num optional number of integers
-!> @param frm optional formatting argument
-!
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueIntLong(self, Qstring, out_int, num, frm, advance, redirect)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write one or more regular integers to output (stdout or redirect)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
- 
+
   character(*), INTENT(IN)                        :: Qstring
+   !! comment string
   integer(kind=irg),INTENT(IN)                    :: out_int(*)
+   !! one or more output short integers
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! optional number of integers to write 
   character(*),INTENT(IN),OPTIONAL                :: advance
+   !! optional hold on linefeed
   integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+   !! optional redirect to other output unit 
 
   integer(kind=irg)                               :: i, unit  
 
@@ -782,31 +843,35 @@ end subroutine WriteValueIntLong
 ! 
 !  subroutine WriteValueIntLongLong
 !
-!> @author Saransh, Carnegie Mellon University
+!> @author Saransh Singh, Carnegie Mellon University
 !
 !> @brief write one or more 8-byte integers
 !
-!> @param Qstring question string
-!> @param out_int output string
-!> @param num optional number of integers
-!> @param frm optional formatting argument
-!
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueIntLongLong(self, Qstring, out_int, num, frm, advance, redirect)
+  !! author: Saransh Singh, revised by MDG
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write one or more 8-byte integers to output (stdout or redirect)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
+   !! comment string
   integer(kind=ill),INTENT(IN)                    :: out_int(*)
+   !! one or more output short integers
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! optional number of integers to write 
   character(*),INTENT(IN),OPTIONAL                :: advance
+   !! optional hold on linefeed
   integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+   !! optional redirect to other output unit 
 
   integer(kind=irg)                               :: i, unit  
 
@@ -855,28 +920,31 @@ end subroutine WriteValueIntLongLong
 !
 !> @brief write one or more single precision reals
 !
-!> @param Qstring question string
-!> @param out_real output string
-!> @param num optional number of integers
-!> @param frm optional formatting argument
-!> @param stdout optional output unit identifier
-!
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueRealSingle(self, Qstring, out_real, num, frm, advance, redirect)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write one or more single precision reals to output (stdout or redirect)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
+   !! comment string
   real(kind=sgl),INTENT(IN)                       :: out_real(*)
+   !! one or more output single precision reals
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! optional number of reals to write 
   character(*),INTENT(IN),OPTIONAL                :: advance
+   !! optional hold on linefeed
   integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+   !! optional redirect to other output unit 
 
   integer(kind=irg)                               :: i, unit  
 
@@ -926,27 +994,31 @@ end subroutine WriteValueRealSingle
 !
 !> @brief write one or more double precision reals
 !
-!> @param Qstring question string
-!> @param out_real output string
-!> @param num optional number of integers
-!> @param frm optional formatting argument
-!
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueRealDouble(self, Qstring, out_real, num, frm, advance, redirect)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write one or more double precision reals to output (stdout or redirect)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
+   !! comment string
   real(kind=dbl),INTENT(IN)                       :: out_real(*)
+   !! one or more output double precision reals
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! optional number of reals to write 
   character(*),INTENT(IN),OPTIONAL                :: advance
+   !! optional hold on linefeed
   integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+   !! optional redirect to other output unit 
 
   integer(kind=irg)                               :: i, unit  
 
@@ -995,27 +1067,31 @@ end subroutine WriteValueRealDouble
 !
 !> @brief write one or more single precision complex numbers
 !
-!> @param Qstring question string
-!> @param out_real output string
-!> @param num optional number of integers
-!> @param frm optional formatting argument
-!
-!> @date 03/19/13 MDG 1.0 new routine
-!> @date 06/05/14 MDG 2.0 changed io handling
-!> @date 03/29/18 MDG 4.1 removed stdout argument
+!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueRealComplex(self, Qstring, out_cmplx, num, frm, advance, redirect)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! write one or more single precision complex numbers to output (stdout or redirect)
 
 IMPLICIT NONE
 
   class(T_IOClass),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
+   !! comment string
   complex(kind=sgl),INTENT(IN)                    :: out_cmplx(*)
+   !! one or more output single precision complex numbers
   character(*),INTENT(IN),OPTIONAL                :: frm
+   !! optional formatting string
   integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+   !! optional number of complex numbers to write 
   character(*),INTENT(IN),OPTIONAL                :: advance
+   !! optional hold on linefeed
   integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+   !! optional redirect to other output unit 
 
   integer(kind=irg)                               :: i, unit
 

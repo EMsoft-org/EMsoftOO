@@ -39,8 +39,13 @@
 !> @date 12/30/19 MDG 1.0 original
 !--------------------------------------------------------------------------
 module mod_kinds
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! definitions of single and double precision reals as well as integer types
 
-  use iso_fortran_env, only: int32, int64, real32, real64
+  use iso_fortran_env, only: int16, int32, int64, real32, real64
 
   IMPLICIT NONE 
 
@@ -52,20 +57,20 @@ module mod_kinds
 !> These are the kind variables used by the EMsoft package.
 
 ! Define the "kind" parameters for single and double precision reals,
-!> single precision real kind parameter
   integer,parameter                     :: sgl = real32    !  SELECTED_REAL_KIND(p=6,r=37)
-!> double precision real kind parameter
+   !! single precision real kind parameter
   integer,parameter                     :: dbl = real64    !  SELECTED_REAL_KIND(p=13,r=200)
+   !! double precision real kind parameter
 !DEC$ ATTRIBUTES DLLEXPORT :: sgl
 !DEC$ ATTRIBUTES DLLEXPORT :: dbl
 
 ! Define the "kind" parameters for short and regular integers,
-!> short integer kind parameter
-  integer,parameter                     :: ish = SELECTED_INT_KIND(3)
-!> long integer kind parameter
+  integer,parameter                     :: ish = int16     ! SELECTED_INT_KIND(3)
+   !! short integer kind parameter
   integer,parameter                     :: irg = int32     !  SELECTED_INT_KIND(9)
-!> long long kind parameter
+   !! long integer kind parameter
   integer,parameter                     :: ill = int64     !  SELECTED_INT_KIND(12)
+   !! long long kind parameter
 !DEC$ ATTRIBUTES DLLEXPORT :: ish
 !DEC$ ATTRIBUTES DLLEXPORT :: irg
 !DEC$ ATTRIBUTES DLLEXPORT :: ill

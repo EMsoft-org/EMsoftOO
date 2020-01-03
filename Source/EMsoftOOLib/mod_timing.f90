@@ -39,6 +39,12 @@
 !> @date 01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 module mod_timing
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! Provides a timing class with a few simple timing routines
+
 
 use mod_kinds
 use mod_io
@@ -58,14 +64,22 @@ public :: T_TimingClass
                                                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' /)
 
   type, public   ::  T_TimingClass
+    !! Timing Class definition
     private 
       integer(kind=irg)             :: numT
+       !! number of time slots (multiple overlapping timers)
       integer(kind=irg),allocatable :: Tstart(:)
+       !! array of start times 
       integer(kind=irg),allocatable :: Tstop(:)
+       !! array of stop times 
       integer(kind=irg),allocatable :: Tinterval(:)
+       !! array of intervals
       character(len = 11)           :: datestring
+       !! a simple date string
       character(len = 15)           :: timestring
+       !! a time string 
       character(len = 27)           :: timestamp
+       !! a combined date-time string
 
     contains
       private 
@@ -106,13 +120,20 @@ contains
 !> @date  01/01/20 MDG 1.0 new function
 !--------------------------------------------------------------------------
 type(T_TimingClass) function Timing_constructor( showDateTime, nCounters ) result(Timing)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! constructor for the Timing Class
 
 use mod_io 
 
 IMPLICIT NONE
 
   logical, INTENT(IN), OPTIONAL            :: showDateTime
+   !! optional logical to print the currect time stamp
   integer(kind=irg), INTENT(IN), OPTIONAL  :: nCounters
+   !! number of time counters to be defined (default = 10)
 
   type(T_IOClass)                          :: Message
 
@@ -150,11 +171,17 @@ end function Timing_constructor
 !> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine Time_tick(self, n)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! start one of the nCounters clocks
 
 IMPLICIT NONE
 
 class(T_TimingClass)                    :: self 
 integer(kind=irg), intent(IN), OPTIONAL :: n
+ !! integer labeling the counter to be used 
 
 integer(kind=irg)                       :: i, t
 
@@ -178,11 +205,17 @@ end subroutine Time_tick
 !> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine Time_tock(self, n) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! stop one of the nCounters clocks, and compute the interval
 
 IMPLICIT NONE
 
 class(T_TimingClass)                    :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
+ !! integer labeling the counter to be used 
 
 integer(kind=irg)                       :: i, now, clock_rate
 
@@ -207,11 +240,17 @@ end subroutine Time_tock
 !> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine Time_reset(self, n) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! reset one or all of the nCounters clocks
 
 IMPLICIT NONE
 
 class(T_TimingClass)                    :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
+ !! selects which clock to reset; if absent, reset all 
 
 integer(kind=irg)                       :: i
 
@@ -235,16 +274,22 @@ end subroutine Time_reset
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief stop time recording using system_clock
+!> @brief return one of the timing intervals
 !
 !> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function getInterval(self, n) result(t)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! return one of the timer intervals (first one if not specified)
 
 IMPLICIT NONE
 
 class(T_TimingClass)                    :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
+ !! optinal selected timer
 
 real(kind=sgl)                          :: t
 
@@ -268,6 +313,11 @@ end function getInterval
 !> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 function getDateString(self) result(t)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! return the date string 
 
 IMPLICIT NONE
 
@@ -290,6 +340,11 @@ end function getDateString
 !> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 function getTimeString(self) result(t)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! return the time string
 
 IMPLICIT NONE
 
@@ -312,6 +367,11 @@ end function getTimeString
 !> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 subroutine printTimeStamp(self, redirect) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! print the timestamp string
 
 use mod_io
 
@@ -319,6 +379,7 @@ IMPLICIT NONE
 
 class(T_TimingClass)                    :: self 
 integer(kind=irg),INTENT(IN),OPTIONAL   :: redirect
+ !! optional redirect to another output unit
 
 type(T_IOClass)                         :: Message
 integer(kind=irg)                       :: unit
@@ -337,6 +398,73 @@ else
 end if
 
 end subroutine printTimeStamp
+
+
+!--------------------------------------------------------------------------
+!
+! subroutine: makeTimeStamp
+!
+!> @brief sets the current YMDHMS date as a time stamp.
+!
+!> @date 01/01/20 MDG based on timestamp original routine by J. Burkardt, but adapted for timing class
+!>                    <https://people.sc.fsu.edu/~jburkardt/f_src/timestamp/timestamp.f90>
+!--------------------------------------------------------------------------
+subroutine makeTimeStamp (self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/01/20
+  !!
+  !! generate the date and time strings as well as the combined timestamp
+
+  IMPLICIT NONE
+
+  class(T_TimingClass),intent(inout)    :: self
+
+  integer(kind=irg)                     :: d, h, mo, mm, n, s, v(8), y
+  character ( len = 8 )                 :: ampm, date
+  character ( len = 10 )                :: time
+  character ( len = 5 )                 :: zone
+
+! call the intrinsic routine 
+  call date_and_time ( date, time, zone, v)
+
+  y = v(1)
+  mo = v(2)
+  d = v(3)
+  h = v(5)
+  n = v(6)
+  s = v(7)
+  mm = v(8)
+
+! extract AM-PM (based on JB code)
+  if (h.lt.12) then
+    ampm = 'AM'
+  else if (h.eq.12) then
+    if ((n.eq.0).and.(s.eq.0)) then
+      ampm = 'Noon'
+    else
+      ampm = 'PM'
+    end if
+  else
+    h = h - 12
+    if (h.lt.12) then
+      ampm = 'PM'
+    else if (h.eq.12) then
+      if ((n.eq.0).and.(s.eq.0)) then
+        ampm = 'Midnight'
+      else
+        ampm = 'AM'
+      end if
+    end if
+  end if
+! end of original JB code
+
+  write (self % datestring, '(a,1x,i2,1x,i4)' ) month(mo), d, y
+  write (self % timestring, '(i2,a1,i2.2,a1,i2.2,a1,i3.3,1x,a)' ) h,':',n,':',s,'.',mm,trim(ampm)
+  self % timestamp = self % datestring //' '//self % timestring
+
+end subroutine makeTimeStamp
+
 
 
 
@@ -606,65 +734,5 @@ end subroutine printTimeStamp
 !   call WriteValue(' Time per step/pixel [s] ', io_real, 1, frm = "(F)")
 ! end subroutine Time_stop
 
-
-!--------------------------------------------------------------------------
-!
-! subroutine: makeTimeStamp
-!
-!> @brief sets the current YMDHMS date as a time stamp.
-!
-!> @date 01/01/20 MDG based on timestamp original routine by J. Burkardt, but adapted for timing class
-!>                    <https://people.sc.fsu.edu/~jburkardt/f_src/timestamp/timestamp.f90>
-!--------------------------------------------------------------------------
-subroutine makeTimeStamp (self)
-
-  IMPLICIT NONE
-
-  class(T_TimingClass),intent(inout)    :: self
-
-  integer(kind=irg)                     :: d, h, mo, mm, n, s, v(8), y
-  character ( len = 8 )                 :: ampm, date
-  character ( len = 10 )                :: time
-  character ( len = 5 )                 :: zone
-
-! call the intrinsic routine 
-  call date_and_time ( date, time, zone, v)
-
-  y = v(1)
-  mo = v(2)
-  d = v(3)
-  h = v(5)
-  n = v(6)
-  s = v(7)
-  mm = v(8)
-
-! extract AM-PM (based on JB code)
-  if (h.lt.12) then
-    ampm = 'AM'
-  else if (h.eq.12) then
-    if ((n.eq.0).and.(s.eq.0)) then
-      ampm = 'Noon'
-    else
-      ampm = 'PM'
-    end if
-  else
-    h = h - 12
-    if (h.lt.12) then
-      ampm = 'PM'
-    else if (h.eq.12) then
-      if ((n.eq.0).and.(s.eq.0)) then
-        ampm = 'Midnight'
-      else
-        ampm = 'AM'
-      end if
-    end if
-  end if
-! end of original JB code
-
-  write (self % datestring, '(a,1x,i2,1x,i4)' ) month(mo), d, y
-  write (self % timestring, '(i2,a1,i2.2,a1,i2.2,a1,i3.3,1x,a)' ) h,':',n,':',s,'.',mm,trim(ampm)
-  self % timestamp = self % datestring //' '//self % timestring
-
-end subroutine makeTimeStamp
 
 end module mod_timing

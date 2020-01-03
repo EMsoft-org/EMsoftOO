@@ -36,10 +36,15 @@
 !
 !> @brief definitions of all global constants, except for strings (see stringconstants.in.f90)
 !
-!> @date 30/12/19 MDG 1.0 original; contains old constants.f90 module
+!> @date 12/30/19 MDG 1.0 original; contains old constants.f90 module
 !--------------------------------------------------------------------------
 
 module mod_global
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/30/19
+  !!
+  !! global constant definitions (except for strings which are in stringconstants.in.f90)
 
 use mod_kinds
 use,intrinsic :: ISO_C_BINDING
