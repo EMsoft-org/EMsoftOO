@@ -24,6 +24,13 @@ call Timing % Time_tick()
 
 EMsoft = EMsoft_T(progname, progdesc, showconfig=.TRUE., makeconfig=.FALSE.) 
 
+call EMsoft%setConfigParameter('WyckoffPositionsfilename','no idea where this file is located ')
+
+write (*,*) 'modified string = ',trim(EMsoft%getConfigParameter('WyckoffPositionsfilename'))
+
+
+
+
 Message = T_IOClass()
 
 ! m = 'Revision = '//trim( EMsoft % getConfigParameter('EMsoftRevision') )
