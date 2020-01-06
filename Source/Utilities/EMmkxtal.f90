@@ -12,7 +12,7 @@ character(fnlen)        :: progname = 'this is the program name'
 character(fnlen)        :: progdesc = 'and this is the descriptor'
 character(fnlen)        :: m
 
-type(T_EMsoftClass)     :: EMsoft 
+type(EMsoft_T)     :: EMsoft 
 type(T_IOClass)         :: Message
 type(T_TimingClass)     :: Timing
 
@@ -22,7 +22,8 @@ Timing = T_TimingClass( showDateTime = .TRUE. )
 
 call Timing % Time_tick()
 
-EMsoft = T_EMsoftClass(progname, progdesc, showconfig=.FALSE., makeconfig=.TRUE.) 
+EMsoft = EMsoft_T(progname, progdesc, showconfig=.TRUE., makeconfig=.FALSE.) 
+
 Message = T_IOClass()
 
 ! m = 'Revision = '//trim( EMsoft % getConfigParameter('EMsoftRevision') )

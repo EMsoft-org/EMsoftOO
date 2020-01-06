@@ -63,11 +63,11 @@ module mod_EMsoft
   !!
   !!   character(fnlen)        :: progdesc = 'and this is the descriptor'
   !!
-  !!   type(T_EMsoftClass)     :: EMsoft 
+  !!   type(EMsoft_T)     :: EMsoft 
   !!
   !!   ! this is a call to the constructor routine
   !!
-  !!   EMsoft = T_EMsoftClass(progname, progdesc[,makeconfig][,showconfig])    
+  !!   EMsoft = EMsoft_T(progname, progdesc[,makeconfig][,showconfig])    
   !!
   !! This will print the usual start up message with copyright, build date, version, etc. info.
   !! It will also initialize all the configuration parameters; these are then available to the 
@@ -85,7 +85,7 @@ module mod_EMsoft
 use mod_kinds
 use mod_global
 use stringconstants
-use,intrinsic :: ISO_C_BINDING
+use, intrinsic :: ISO_C_BINDING
 use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
                                           stdout=>output_unit, &
                                           stderr=>error_unit
@@ -93,13 +93,13 @@ use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
 IMPLICIT NONE
 
 private
-public :: T_EMsoftClass 
+public :: EMsoft_T 
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
-  type, public   ::  T_EMsoftClass
+  type, public   ::  EMsoft_T
     !! EMsoft Class definition 
     private 
      character(fnlen)  :: EMsoftpathname
@@ -112,10 +112,6 @@ public :: T_EMsoftClass
       !! path to a temporary folder 
      character(fnlen)  :: EMsoftLibraryLocation
       !! location of the main dylib/dll file, used only for IDL applications
-     character(fnlen)  :: EMSlackWebHookURL
-      !! URL for Slack messaging
-     character(fnlen)  :: EMSlackChannel
-      !! Channel to be used for Slack messaging
      character(fnlen)  :: UserName
       !! user name 
      character(fnlen)  :: UserLocation
@@ -124,9 +120,9 @@ public :: T_EMsoftClass
       !! user email (used for messaging)
      character(5)      :: EMNotify
       !! is messaging enabled? (Email or Slack)
-     character(3)      :: Develop
+     character(3)      :: EMDevelop
       !! is this a development installation (Yes/No)
-     character(3)      :: Release
+     character(3)      :: EMRelease
       !! is this a release version (Yes/No)
 ! other configuration parameters that may be needed in various programs but are not in the EMsoftConfig.json file
      character(fnlen)  :: h5copypath
@@ -145,7 +141,9 @@ public :: T_EMsoftClass
       !! location of the name list template files 
      character(fnlen)  :: Resourcepathname
       !! location the resources folder 
-     character(fnlen)  :: Homepathname
+     character(fnlen)  :: Xtalpathname
+      !! path to the location of the .xtal file folder 
+     character(fnlen)  :: userHomepathname
       !! user home folder 
      character(fnlen)  :: OpenCLpathname
       !! path to the OpenCL script folder 
@@ -161,7 +159,6 @@ public :: T_EMsoftClass
       !! Git short hash 
      character(fnlen)  :: EMsoftBuildDate
       !! Latest build date 
-     ! character(fnlen)  :: EMsoftHDFtest
      character(fnlen)  :: wikipathname
       !! path to the wiki resources 
      character(fnlen)  :: User
@@ -172,6 +169,10 @@ public :: T_EMsoftClass
       !! name of the files that contains the wiki file codes
      character(3)      :: EMsoftHDFtest
       !! equal to YES when the EMsoftHDFtest environmental parameter is set
+     character(fnlen)  :: SlackWebHookURL
+      !! URL for Slack messaging
+     character(fnlen)  :: SlackChannel
+      !! channel for Slack messaging 
 
     contains
     private 
@@ -179,58 +180,63 @@ public :: T_EMsoftClass
 ! private methods
       procedure, pass(self) :: init
       procedure, pass(self) :: printEMsoftHeader
-      procedure, pass(self) :: EMsoft_getEMsoftpathname
-      procedure, pass(self) :: EMsoft_getXtalpathname
-      procedure, pass(self) :: EMsoft_getEMdatapathname
-      procedure, pass(self) :: EMsoft_getEMtmppathname
-      procedure, pass(self) :: EMsoft_getSlackWebHookURL
-      procedure, pass(self) :: EMsoft_getSlackChannel
-      procedure, pass(self) :: EMsoft_getUsername
-      procedure, pass(self) :: EMsoft_getUserlocation
-      procedure, pass(self) :: EMsoft_getUseremail
-      procedure, pass(self) :: EMsoft_getNotify
-      procedure, pass(self) :: EMsoft_getEMdevelop
-      procedure, pass(self) :: EMsoft_getRelease
-      procedure, pass(self) :: EMsoft_geth5copypath
-      procedure, pass(self) :: EMsoft_getEMsoftplatform
-      procedure, pass(self) :: EMsoft_getEMsofttestpath
-      procedure, pass(self) :: EMsoft_getEMsoftTestingPath
-      procedure, pass(self) :: EMsoft_getEMsoftversion
-      procedure, pass(self) :: EMsoft_getConfigpath
-      procedure, pass(self) :: EMsoft_getTemplatepathname
-      procedure, pass(self) :: EMsoft_getResourcepathname
-      procedure, pass(self) :: EMsoft_getUserHomePath
-      procedure, pass(self) :: EMsoft_getOpenCLpathname
-      procedure, pass(self) :: EMsoft_getTemplatecodefilename
-      procedure, pass(self) :: EMsoft_getWyckoffPositionsfilename
-      procedure, pass(self) :: EMsoft_getRandomseedfilename
-      procedure, pass(self) :: EMsoft_getEMsoftnativedelimiter
-      procedure, pass(self) :: EMsoft_getEMsoftRevision
-      procedure, pass(self) :: EMsoft_getEMsoftBuildDate
-      procedure, pass(self) :: EMsoft_getEMXtalFolderpathname
-      procedure, pass(self) :: EMsoft_getwikipathname
-      procedure, pass(self) :: EMsoft_getUser
-      procedure, pass(self) :: EMsoft_getfftwWisdomfilename
-      procedure, pass(self) :: EMsoft_getwikicodefilename
-      procedure, pass(self) :: EMsoft_getJSONparameter
-      procedure, pass(self) :: EMsoft_getEMsoftHDFtest
+      procedure, pass(self) :: getEMsoftpathname
+      procedure, pass(self) :: getXtalpathname
+      procedure, pass(self) :: getEMdatapathname
+      procedure, pass(self) :: getEMtmppathname
+      procedure, pass(self) :: getSlackWebHookURL
+      procedure, pass(self) :: getSlackChannel
+      procedure, pass(self) :: getUsername
+      procedure, pass(self) :: getUserlocation
+      procedure, pass(self) :: getUseremail
+      procedure, pass(self) :: getNotify
+      procedure, pass(self) :: getEMdevelop
+      procedure, pass(self) :: getRelease
+      procedure, pass(self) :: geth5copypath
+      procedure, pass(self) :: getEMsoftplatform
+      procedure, pass(self) :: getEMsofttestpath
+      procedure, pass(self) :: getEMsoftTestingPath
+      procedure, pass(self) :: getEMsoftversion
+      procedure, pass(self) :: getConfigpath
+      procedure, pass(self) :: getTemplatepathname
+      procedure, pass(self) :: getResourcepathname
+      procedure, pass(self) :: getUserHomePath
+      procedure, pass(self) :: getOpenCLpathname
+      procedure, pass(self) :: getTemplatecodefilename
+      procedure, pass(self) :: getWyckoffPositionsfilename
+      procedure, pass(self) :: getRandomseedfilename
+      procedure, pass(self) :: getEMsoftnativedelimiter
+      procedure, pass(self) :: getEMsoftRevision
+      procedure, pass(self) :: getEMsoftBuildDate
+      procedure, pass(self) :: getEMXtalFolderpathname
+      procedure, pass(self) :: getwikipathname
+      procedure, pass(self) :: getUser
+      procedure, pass(self) :: getfftwWisdomfilename
+      procedure, pass(self) :: getwikicodefilename
+      procedure, pass(self) :: getJSONparameter
+      procedure, pass(self) :: getEMsoftHDFtest
+      procedure, pass(self) :: path_init
 
 
 ! public methods
 ! [there aren't many... just one to set each parameter, and one to get each parameter;
 !  in addition there is one to init the EMsoft configuration file (used by the EMsoftinit program) ]
       procedure, pass(self), public :: getConfigParameter
+      !DEC$ ATTRIBUTES DLLEXPORT :: getConfigParameter
       ! procedure, pass(self), public :: setConfigParameter
-      ! procedure, pass(self), public :: initConfigFile 
+     ! !DEC$ ATTRIBUTES DLLEXPORT :: setConfigParameter
       procedure, pass(self), public :: printConfigParameters
+      !DEC$ ATTRIBUTES DLLEXPORT :: printConfigParameters
       procedure, pass(self), public :: generateFilePath
+      !DEC$ ATTRIBUTES DLLEXPORT :: generateFilePath
 
-  end type T_EMsoftClass
+  end type EMsoft_T
 
 ! the constructor routine for this class 
-  interface T_EMsoftClass
-    module procedure :: EMsoft_constructor
-  end interface T_EMsoftClass
+  interface EMsoft_T
+    module procedure :: constructor
+    !DEC$ ATTRIBUTES DLLEXPORT :: constructor
+  end interface EMsoft_T
 
 contains
 
@@ -242,7 +248,7 @@ contains
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_constructor
+! FUNCTION: constructor
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -250,7 +256,7 @@ contains
 !
 !> @date  12/30/19 MDG 1.0 new function
 !--------------------------------------------------------------------------
-type(T_EMsoftClass) function EMsoft_constructor(progname, progdesc, makeconfig, showconfig) result(EMsoft)
+type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig) result(EMsoft)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/30/19
@@ -266,7 +272,7 @@ character(fnlen), INTENT(IN)      :: progdesc
 logical, INTENT(IN), OPTIONAL     :: makeconfig
  !! optionally, generate the JSON configuration file
 logical, INTENT(IN), OPTIONAL     :: showconfig
- !! optionaly, print all the configration parameters
+ !! optionaly, print all the configuration parameters
 
   call EMsoft % init
 
@@ -286,7 +292,7 @@ logical, INTENT(IN), OPTIONAL     :: showconfig
     endif
   end if
 
-end function EMsoft_constructor
+end function constructor
 
 !--------------------------------------------------------------------------
 !
@@ -305,53 +311,46 @@ subroutine init(self)
   !!
   !! initializes all the components of EMsoftClass
 
-  class(T_EMsoftClass),intent(inout) :: self
+  class(EMsoft_T),intent(inout) :: self
 
-! fill in all the values
-  self % EMsoftpathname               = trim(self % EMsoft_getEMsoftpathname())
-  self % EMXtalFolderpathname         = trim(self % EMsoft_getXtalpathname())
-  self % EMdatapathname               = trim(self % EMsoft_getEMdatapathname())
-  self % EMtmppathname                = trim(self % EMsoft_getEMtmppathname())
-  ! self % EMsoftLibraryLocation = 
-  self % EMSlackWebHookURL            = trim(self % EMsoft_getSlackWebHookURL())
-  self % EMSlackChannel               = trim(self % EMsoft_getSlackChannel())
-  self % UserName                     = trim(self % EMsoft_getUsername())
-  self % UserLocation                 = trim(self % EMsoft_getUserlocation())
-  self % UserEmail                    = trim(self % EMsoft_getUseremail())
-  self % EMNotify                     = trim(self % EMsoft_getNotify())
-  self % Develop = 'No'
-  if (self % EMsoft_getEMdevelop()) then 
-    self % Develop                      = 'Yes'
-  end if 
-  self % Release = 'No' 
-  if (self % EMsoft_getRelease()) then 
-    self % Release = 'Yes'
-  end if 
-  self % h5copypath                   = trim(self % EMsoft_geth5copypath())
-  self % EMsoftplatform               = trim(self % EMsoft_getEMsoftplatform())
-  self % EMsofttestpath               = trim(self % EMsoft_getEMsofttestpath())
-  self % EMsoftTestingPath            = trim(self % EMsoft_getEMsoftTestingPath())
-  self % EMsoftversion                = trim(self % EMsoft_getEMsoftversion())
-  self % Configpath                   = trim(self % EMsoft_getConfigpath())
-  self % Templatepathname             = trim(self % EMsoft_getTemplatepathname())
-  self % Resourcepathname             = trim(self % EMsoft_getResourcepathname())
-  self % Homepathname                 = trim(self % EMsoft_getUserHomePath())
-  self % OpenCLpathname               = trim(self % EMsoft_getOpenCLpathname())
-  self % Templatecodefilename         = trim(self % EMsoft_getTemplatecodefilename())
-  self % WyckoffPositionsfilename     = trim(self % EMsoft_getWyckoffPositionsfilename())
-  self % Randomseedfilename           = trim(self % EMsoft_getRandomseedfilename())
-  self % EMsoftnativedelimiter        = trim(self % EMsoft_getEMsoftnativedelimiter())
-  self % EMsoftRevision               = trim(self % EMsoft_getEMsoftRevision())
-  self % EMsoftBuildDate              = trim(self % EMsoft_getEMsoftBuildDate())
-  self % EMXtalFolderpathname         = trim(self % EMsoft_getEMXtalFolderpathname())
-  self % wikipathname                 = trim(self % EMsoft_getwikipathname())
-  self % User                         = trim(self % EMsoft_getUser())
-  self % fftwWisdomfilename           = trim(self % EMsoft_getfftwWisdomfilename())
-  self % wikicodefilename             = trim(self % EMsoft_getwikicodefilename())
-  self % EMsoftHDFtest = 'No'
-  if (self % EMsoft_getEMsoftHDFtest()) then 
-    self % EMsoftHDFtest = 'Yes'
-  end if 
+! fill in all the values; the first set MUST be done in this order ... 
+  call self % getEMsoftplatform()
+  call self % getEMsoftnativedelimiter()
+  call self % getUser()
+  call self % getUserHomePath()
+  call self % getConfigpath()
+  call self % getEMsoftpathname()
+  call self % getEMXtalFolderpathname()
+  call self % getResourcepathname()
+  call self % getTemplatepathname()
+  call self % getTemplatecodefilename()
+
+! from here on the order does not matter
+  call self % getXtalpathname()
+  call self % getEMdatapathname()
+  call self % getEMtmppathname()
+  call self % getSlackWebHookURL()
+  call self % getSlackChannel()
+  call self % getUsername()
+  call self % getUserlocation()
+  call self % getUseremail()
+  call self % getNotify()
+  call self % getEMdevelop()
+  call self % getRelease()
+  call self % geth5copypath()
+  call self % getEMsofttestpath()
+  call self % getEMsoftTestingPath()
+  call self % getEMsoftversion()
+  call self % getEMsoftPlatform()
+  call self % getOpenCLpathname()
+  call self % getWyckoffPositionsfilename()
+  call self % getRandomseedfilename()
+  call self % getEMsoftRevision()
+  call self % getEMsoftBuildDate()
+  call self % getwikipathname()
+  call self % getfftwWisdomfilename()
+  call self % getwikicodefilename()
+  call self % getEMsoftHDFtest()
 
 end subroutine init
 
@@ -377,26 +376,25 @@ subroutine printConfigParameters(self)
 
   IMPLICIT NONE 
 
-  class(T_EMsoftClass),intent(inout) :: self
-  type(T_IOClass)                    :: Message 
+  class(EMsoft_T),intent(inout) :: self
+  type(T_IOClass)               :: Message 
 
-  character(fnlen)                   :: m
+  character(fnlen)              :: m
 
-  call Message % printMessage( ' EMsoft Configuration Parameters ' )
-  call Message % printMessage( ' ------------------------------- ' )
+  call Message % printMessage( '<EMsoftConfigurationParameters> ' )
   call Message % printMessage( 'EMsoftpathname           = '//trim( self % EMsoftpathname ) )
   call Message % printMessage( 'EMXtalFolderpathname     = '//trim( self % EMXtalFolderpathname ) )
   call Message % printMessage( 'EMdatapathname           = '//trim( self % EMdatapathname ) )
   call Message % printMessage( 'EMtmppathname            = '//trim( self % EMtmppathname ) )
   call Message % printMessage( 'EMsoftLibraryLocation    = '//trim( self % EMsoftLibraryLocation ) )
-  call Message % printMessage( 'EMSlackWebHookURL        = '//trim( self % EMSlackWebHookURL ) )
-  call Message % printMessage( 'EMSlackChannel           = '//trim( self % EMSlackChannel ) )
+  call Message % printMessage( 'EMSlackWebHookURL        = '//trim( self % SlackWebHookURL ) )
+  call Message % printMessage( 'EMSlackChannel           = '//trim( self % SlackChannel ) )
   call Message % printMessage( 'UserName                 = '//trim( self % UserName ) )
   call Message % printMessage( 'UserLocation             = '//trim( self % UserLocation ) )
   call Message % printMessage( 'UserEmail                = '//trim( self % UserEmail ) )
   call Message % printMessage( 'EMNotify                 = '//trim( self % EMNotify ) )
-  call Message % printMessage( 'Develop                  = '//trim( self % Develop ) )
-  call Message % printMessage( 'Release                  = '//trim( self % Release ) )
+  call Message % printMessage( 'Develop                  = '//trim( self % EMDevelop ) )
+  call Message % printMessage( 'Release                  = '//trim( self % EMRelease ) )
   call Message % printMessage( 'h5copypath               = '//trim( self % h5copypath ) )
   call Message % printMessage( 'EMsoftplatform           = '//trim( self % EMsoftplatform ) )
   call Message % printMessage( 'EMsofttestpath           = '//trim( self % EMsofttestpath ) )
@@ -405,7 +403,7 @@ subroutine printConfigParameters(self)
   call Message % printMessage( 'Configpath               = '//trim( self % Configpath ) )
   call Message % printMessage( 'Templatepathname         = '//trim( self % Templatepathname ) )
   call Message % printMessage( 'Resourcepathname         = '//trim( self % Resourcepathname ) )
-  call Message % printMessage( 'Homepathname             = '//trim( self % Homepathname ) )
+  call Message % printMessage( 'Homepathname             = '//trim( self % userHomepathname ) )
   call Message % printMessage( 'OpenCLpathname           = '//trim( self % OpenCLpathname ) )
   call Message % printMessage( 'Templatecodefilename     = '//trim( self % Templatecodefilename ) )
   call Message % printMessage( 'WyckoffPositionsfilename = '//trim( self % WyckoffPositionsfilename ) )
@@ -418,7 +416,7 @@ subroutine printConfigParameters(self)
   call Message % printMessage( 'fftwWisdomfilename       = '//trim( self % fftwWisdomfilename ) )
   call Message % printMessage( 'wikicodefilename         = '//trim( self % wikicodefilename ) )
   call Message % printMessage( 'EMsoftHDFtest            = '//trim( self % EMsoftHDFtest ) )
-  call Message % printMessage( ' '  )
+  call Message % printMessage( '</EMsoftConfigurationParameters> ' )
 
 end subroutine printConfigParameters
 
@@ -439,11 +437,11 @@ function getConfigParameter(self, inp) result(cp)
   !!
   !! get a particular component of EMsoftClass
 
-  class(T_EMsoftClass),intent(inout) :: self
-  character(*),INTENT(IN)            :: inp
+  class(EMsoft_T),intent(inout) :: self
+  character(*),INTENT(IN)       :: inp
    !! string describing the requested configuration parameter 
 
-  character(fnlen)                   :: cp
+  character(fnlen)              :: cp
 
   select case(trim(inp))
     case('EMsoftpathname')
@@ -456,10 +454,10 @@ function getConfigParameter(self, inp) result(cp)
       cp = trim( self % EMtmppathname )
     case('EMsoftLibraryLocation')
       cp = trim( self % EMsoftLibraryLocation )
-    case('EMSlackWebHookURL')
-      cp = trim( self % EMSlackWebHookURL )
-    case('EMSlackChannel')
-      cp = trim( self % EMSlackChannel )
+    case('SlackWebHookURL')
+      cp = trim( self % SlackWebHookURL )
+    case('SlackChannel')
+      cp = trim( self % SlackChannel )
     case('UserName')
       cp = trim( self % UserName )
     case('UserLocation')
@@ -469,9 +467,9 @@ function getConfigParameter(self, inp) result(cp)
     case('EMNotify')
       cp = trim( self % EMNotify )
     case('Develop')
-      cp = trim( self % Develop )
+      cp = trim( self % EMDevelop )
     case('Release')
-      cp = trim( self % Release )
+      cp = trim( self % EMRelease )
     case('h5copypath')
       cp = trim( self % h5copypath )
     case('EMsoftplatform')
@@ -489,7 +487,7 @@ function getConfigParameter(self, inp) result(cp)
     case('Resourcepathname')
       cp = trim( self % Resourcepathname )
     case('Homepathname')
-      cp = trim( self % Homepathname )
+      cp = trim( self % userHomepathname )
     case('OpenCLpathname')
       cp = trim( self % OpenCLpathname )
     case('Templatecodefilename')
@@ -541,7 +539,7 @@ function generateFilePath(self, cp, fn) result(fp)
 
   IMPLICIT NONE 
 
-  class(T_EMsoftClass),intent(inout) :: self
+  class(EMsoft_T),intent(inout) :: self
   character(*),INTENT(IN)            :: cp    
    !! configuration parameter string 
   character(*),INTENT(IN),OPTIONAL   :: fn    
@@ -564,7 +562,7 @@ function generateFilePath(self, cp, fn) result(fp)
     else 
       fp = trim(path)                     ! this is already a complete file name ... 
     end if 
-    fp = EMsoft_toNativePath(self, fp)  ! and use the correct delimiter for this platform 
+    fp = toNativePath(self, fp)  ! and use the correct delimiter for this platform 
   end if
 
 end function generateFilePath
@@ -579,7 +577,7 @@ end function generateFilePath
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_getEMsoftpathname
+! FUNCTION: getEMsoftpathname
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -588,7 +586,7 @@ end function generateFilePath
 !> @date  07/02/16 MDG 1.0 new function
 !> @date  02/27/19 MDG 2.0 add functionality for environment variables
 !--------------------------------------------------------------------------
-function EMsoft_getEMsoftpathname(self) result(EMsoftpathname)
+subroutine getEMsoftpathname(self) 
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -600,23 +598,23 @@ use mod_io
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)      :: self
 
-character(fnlen)                        :: EMsoftpathname, ep, envParam, envReturn, m
-integer                                 :: l, status
-type(T_IOClass)                         :: Message 
+character(fnlen)                   :: EMsoftpathname, ep, envParam, envReturn, m
+integer                            :: l, status
+type(T_IOClass)                    :: Message 
 
 
 ep = SC_EMsoftpathname
-EMsoftpathname = EMsoft_getJSONparameter(self, ep)
+self % EMsoftpathname = getJSONparameter(self, ep)
 
-if (trim(EMsoftpathname).eq.'tryEnvironmentVariable') then 
+if (trim(self%EMsoftpathname).eq.'tryEnvironmentVariable') then 
   envParam = 'EMSOFTPATHNAME'
   call getenv(trim(envParam),envReturn)
   if (trim(envReturn).ne.'') then 
-    EMsoftpathname = trim(envReturn)
-    l = len(trim(EMsoftpathname))
-    if (EMsoftpathname(l:l).ne.'/') EMsoftpathname = trim(EMsoftpathname)//'/'
+    self%EMsoftpathname = trim(envReturn)
+    l = len(trim(self%EMsoftpathname))
+    if (self%EMsoftpathname(l:l).ne.'/') self%EMsoftpathname = trim(self%EMsoftpathname)//'/'
   else
     Message = T_IOClass()
     status = 999001
@@ -625,905 +623,22 @@ if (trim(EMsoftpathname).eq.'tryEnvironmentVariable') then
   end if
 end if 
 
-end function EMsoft_getEMsoftpathname
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getXtalpathname
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the xtalpathname
-!
-!> @date  07/02/16 MDG 1.0 new function
-!> @date  08/15/17 MDG 1.1 removed need for xtal folder to be named XtalFolder
-!--------------------------------------------------------------------------
-function EMsoft_getXtalpathname(self) result(xtalpathname)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the xtalpathname
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: xtalpathname, p
-
-xtalpathname = trim(EMsoft_getEMXtalFolderpathname(self))
-
-end function EMsoft_getXtalpathname
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMdatapathname
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the EMdatapathname variable from the EMsoftconfig.json file
-!
-!> @date  07/02/16 MDG 1.0 new function
-!> @date  02/27/19 MDG 2.0 add functionality for environment variables
-!--------------------------------------------------------------------------
-function EMsoft_getEMdatapathname(self) result(EMdatapathname)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the EMdatapathname variable from the EMsoftconfig.json file
-
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
-use mod_io
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-type(T_IOClass)                         :: Message
-character(fnlen)                        :: EMdatapathname, ep, envParam, envReturn
-integer                                 :: l
-
-ep = SC_EMdatapathname
-EMdatapathname = EMsoft_getJSONparameter(self, ep)
-
-if (trim(EMdatapathname).eq.'tryEnvironmentVariable') then 
-  envParam = 'EMDATAPATHNAME'
-  call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
-    EMdatapathname = trim(envReturn)
-    l = len(trim(EMdatapathname))
-    if (EMdatapathname(l:l).ne.'/') EMdatapathname = trim(EMdatapathname)//'/'
-  else
-    if (displayEMsoftWarningMessages.eq.0) then 
-      Message = T_IOClass()
-      call Message % printWarning('EMdatapathname was not defined in the json file', &
-                     (/ 'EMDATAPATHNAME environment variable was NOT defined as a backup.', &
-                        '----> using absolute path convention                            '/) )
-      displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
-    end if
-    EMdatapathname = ''
-  end if
-end if 
-
-end function EMsoft_getEMdatapathname
+end subroutine getEMsoftpathname
 
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_getEMtmppathname
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the EMtmppathname variable from the EMsoftconfig.json file
-!
-!> @date  07/02/16 MDG 1.0 new function
-!> @date  03/02/19 MDG 2.0 add functionality for environment variables
-!--------------------------------------------------------------------------
-function EMsoft_getEMtmppathname(self) result(EMtmppathname)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the EMtmppathname variable from the EMsoftconfig.json file
-
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
-use mod_io
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-type(T_IOClass)                         :: Message
-character(fnlen)                        :: EMtmppathname, ep, envParam, envReturn
-integer                                 :: l
-
-ep = SC_EMtmppathname
-EMtmppathname = EMsoft_getJSONparameter(self, ep)
-
-if (trim(EMtmppathname).eq.'tryEnvironmentVariable') then 
-  envParam = 'EMTMPPATHNAME'
-  call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
-    EMtmppathname = trim(envReturn)
-    l = len(trim(EMtmppathname))
-    if (EMtmppathname(l:l).ne.'/') EMtmppathname = trim(EMtmppathname)//'/'
-  else
-    if (displayEMsoftWarningMessages.eq.0) then 
-      Message = T_IOClass()
-      call Message % printWarning('EMtmppathname was not defined in the json file', &
-                     (/ 'EMTMPPATHNAME environment variable was NOT defined as a backup.', &
-                        '----> using absolute path convention                           '/) )
-      displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
-    end if
-    EMtmppathname = ''
-  end if
-end if 
-
-end function EMsoft_getEMtmppathname
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getSlackWebHookURL
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the URL for the Slack Webhook to send message to the user
-!
-!> @date  08/18/17 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getSlackWebHookURL(self) result(SlackWebHookURL)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the URL for the Slack Webhook to send message to the user
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen) :: SlackWebHookURL, ep
-
-ep = SC_EMSlackWebHookURL
-SlackWebHookURL = EMsoft_getJSONparameter(self, ep, nobackslash=.TRUE.)
-
-end function EMsoft_getSlackWebHookURL
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getSlackChannel
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the Slack Channel to send message to the user
-!
-!> @date  08/18/17 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getSlackChannel(self) result(SlackChannel)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the Slack Channel to send message to the user
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen) :: SlackChannel, ep
-
-ep = SC_EMSlackChannel
-SlackChannel = EMsoft_getJSONparameter(self, ep, nobackslash=.TRUE.)
-
-end function EMsoft_getSlackChannel
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getUsername
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the Username variable from the EMsoftconfig.json file
-!
-!> @date  07/02/16 MDG 1.0 new function
-!> @date  03/02/19 MDG 2.0 add functionality for environment variables
-!--------------------------------------------------------------------------
-function EMsoft_getUsername(self) result(username)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the Username variable from the EMsoftconfig.json file
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: username, ep, envParam, envReturn, loginname
-
-ep = SC_UserName
-username = EMsoft_getJSONparameter(self, ep, nobackslash=.TRUE.)
-
-if (trim(username).eq.'tryEnvironmentVariable') then 
-  envParam = 'USERNAME'
-  call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
-    username = trim(envReturn)
-  else
-    call getlog(loginname)
-    username = trim(loginname)
-  end if
-end if 
-
-end function EMsoft_getUsername
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getUserlocation
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the userlocation variable from the EMsoftconfig.json file
-!
-!> @date  07/02/16 MDG 1.0 new function
-!> @date  03/02/19 MDG 2.0 add functionality for environment variables
-!--------------------------------------------------------------------------
-function EMsoft_getUserlocation(self) result(userlocation)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the userlocation variable from the EMsoftconfig.json file
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: userlocation, ep, envParam, envReturn, hostname
-
-ep = SC_UserLocation
-userlocation = EMsoft_getJSONparameter(self, ep, nobackslash=.TRUE.)
-
-if (trim(userlocation).eq.'tryEnvironmentVariable') then 
-  envParam = 'USERlocation'
-  call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
-    userlocation = trim(envReturn)
-  else
-    call hostnm(hostname)
-    userlocation = trim(hostname)
-  end if
-end if 
-
-end function EMsoft_getUserlocation
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getUseremail
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the useremail variable from the EMsoftconfig.json file
-!
-!> @date  07/02/16 MDG 1.0 new function
-!> @date  03/02/19 MDG 2.0 add functionality for environment variables
-!--------------------------------------------------------------------------
-function EMsoft_getUseremail(self) result(useremail)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the useremail variable from the EMsoftconfig.json file
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: useremail, ep, envParam, envReturn, hostname
-
-ep = SC_UserEmail
-useremail = EMsoft_getJSONparameter(self, ep, nobackslash=.TRUE.)
-
-if (trim(useremail).eq.'tryEnvironmentVariable') then 
-  useremail = 'undefined'
-end if
-
-end function EMsoft_getUseremail
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getNotify
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the EMNotify parameter
-!
-!> @date  08/18/17 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getNotify(self) result(Notify)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the EMNotify variable from the EMsoftconfig.json file
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen) :: Notify, ep
-
-ep = SC_EMNotify
-Notify = EMsoft_getJSONparameter(self, ep, nobackslash=.TRUE.)
-
-end function EMsoft_getNotify
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMdevelop
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief check whether or not the Develop keyword is present in the config file
-!
-!> @date  08/18/16 MDG 1.0 new function
-!> @date  09/10/19 MDG 1.1 add environment variable option for EMdevelop
-!--------------------------------------------------------------------------
-function EMsoft_getEMdevelop(self) result(EMdevelop)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! check whether or not the Develop keyword is present in the config file
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: EMstring, ep, envParam, envReturn
-logical                                 :: EMdevelop
-
-! default: not in developer mode
-EMdevelop = .FALSE.
-
-ep = SC_Develop
-EMstring = EMsoft_getJSONparameter(self, ep, nobackslash=.TRUE.)
-
-if (trim(EMstring).eq.'Yes') then 
-  EMdevelop = .TRUE.
-else if (trim(EMstring).eq.'tryEnvironmentVariable') then
-       envParam = 'EMdevelop'
-       call getenv(trim(envParam),envReturn)
-       if (trim(envReturn).eq.'Yes') EMdevelop = .TRUE.
-     end if
-
-end function EMsoft_getEMdevelop
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getRelease
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief check whether or not the Release keyword is present in the config file
-!
-!> @date  10/28/17 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getRelease(self) result(Release)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! check whether or not the Release keyword is present in the config file
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: EMstring, ep
-logical                                 :: Release
-
-ep = SC_Release
-EMstring = EMsoft_getJSONparameter(self, ep, nobackslash=.TRUE.)
-
-Release = .FALSE.
-if (trim(EMstring).eq.'Yes') Release = .TRUE.
-
-end function EMsoft_getRelease
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_geth5copypath
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the location of the h5copy program
-!
-!> @date  08/18/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_geth5copypath(self) result(h5copypath)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the location of the h5copy program
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen) :: h5copypath
-
-if (trim(EMsoft_getEMsoftplatform(self)).eq.SC_Windows) then
-  h5copypath = "@HDF5_INSTALL@"//SC_h5copy//".exe"
-else
-  h5copypath = "@HDF5_INSTALL@"//SC_h5copy
-end if
-
-end function EMsoft_geth5copypath
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMsoftplatform
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the EMsoftplatform
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getEMsoftplatform(self) result(platform)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the EMsoftplatform
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen) :: platform
-
-platform = "@CMAKE_SYSTEM_NAME@"
-
-end function EMsoft_getEMsoftplatform
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMsofttestpath
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the EMsofttestpath variable
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getEMsofttestpath(self) result(testpath)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the EMsofttestpath variable
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen) :: testpath, binarypath
-character(1)     :: EMsoftnativedelimiter
-
-EMsoftnativedelimiter = EMsoft_getEMsoftnativedelimiter(self)
-
-binarypath = "@EMsoftOO_BINARY_DIR@"
-
-testpath = trim(EMsoft_toNativePath(self, binarypath))&
-           //EMsoftnativedelimiter//SC_Testing&
-           //EMsoftnativedelimiter//SC_Temporary
-
-end function EMsoft_getEMsofttestpath
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMsoftTestingPath
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief Returns the path to the EMsoft binary directory
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getEMsoftTestingPath(self) result(buildpath)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! Returns the path to the EMsoft binary directory
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen) :: buildpath
-
-buildpath = "@EMsoftOO_TESTING_DIR@"
-
-end function EMsoft_getEMsoftTestingPath
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMsoftversion
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the Version Information
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getEMsoftversion(self) result(version)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the Version Information
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(20) :: version
-
-version = "@EMsoftOO_VER_MAJOR@_@EMsoftOO_VER_MINOR@_@EMsoftOO_VER_PATCH@_@EMsoftOO_VERSION_TWEAK@"
-
-end function EMsoft_getEMsoftversion
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getConfigpath
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the path for the configuration file
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getConfigpath(self) result(configpath)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the path for the configuration file
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)  :: configpath
-
-character(fnlen)  :: dirstring
-character(1)      :: EMsoftnativedelimiter
-
-! determine the pathname delimiter character
-EMsoftnativedelimiter = EMsoft_getEMsoftnativedelimiter(self)
-
-! get the user's home directory to prepend to the config file name
-dirstring = EMsoft_getUserHomePath(self)
-
-configpath = trim(dirstring)//EMsoftnativedelimiter//SC_config//EMsoftnativedelimiter//SC_EMsoft//EMsoftnativedelimiter
-
-end function EMsoft_getConfigpath
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getTemplatepathname
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the templatepathname
-!
-!> @date  07/02/16 MDG 1.0 new function
-!> @date  05/11/17 MDG 1.1 added support for JSON template files
-!--------------------------------------------------------------------------
-function EMsoft_getTemplatepathname(self, json) result(templatepathname)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the templatepathname
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-logical,INTENT(IN),OPTIONAL             :: json
-
-character(fnlen)                        :: templatepathname
-
-if (present(json)) then
-  if (json.eqv..TRUE.) then
-    templatepathname = trim(EMsoft_getEMsoftpathname(self))//SC_JSONTemplates//'/'
-  else
-    templatepathname = trim(EMsoft_getEMsoftpathname(self))//SC_NamelistTemplates//'/'
-  end if
-else
-  templatepathname = trim(EMsoft_getEMsoftpathname(self))//SC_NamelistTemplates//'/'
-end if
-
-end function EMsoft_getTemplatepathname
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getResourcepathname
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the resourcepathname
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getResourcepathname(self) result(resourcepathname)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the resourcepathname
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: resourcepathname
-
-resourcepathname = trim(EMsoft_getEMsoftpathname(self))//SC_resources//'/'
-
-end function EMsoft_getResourcepathname
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getUserHomePath
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the user home folder 
-!
-!> @date  10/25/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getUserHomePath(self) result(userHomePathName)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the user home folder 
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)  :: userHomePathName
-character(9)      :: Home
-character(2)      :: HomeDrive
-
-HomeDrive = ''
-if (trim(EMsoft_getEMsoftplatform(self)).eq.SC_Windows) then
-  Home = 'HOMEPATH'
-  call getenv("HOMEDRIVE",HomeDrive)
-else
-  Home = 'HOME'
-end if
-
-call getenv(trim(Home),userHomePathName)
-userHomePathName = trim(HomeDrive)//trim(userHomePathName)
-
-end function EMsoft_getUserHomePath
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getOpenCLpathname
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the openclpathname
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getOpenCLpathname(self) result(openclpathname)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the openclpathname
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: openclpathname
-
-openclpathname = trim(EMsoft_getEMsoftpathname(self))//SC_opencl//'/'
-
-end function EMsoft_getOpenCLpathname
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getTemplatecodefilename
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the templatecodefilename
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getTemplatecodefilename(self) result(templatecodefilename)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the templatecodefilename
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: templatecodefilename
-
-templatecodefilename = trim(EMsoft_getResourcepathname(self))//SC_templatecodestxt
-
-end function EMsoft_getTemplatecodefilename
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getWyckoffPositionsfilename
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the Wyckoff Positions filename
-!
-!> @date  09/05/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getWyckoffPositionsfilename(self) result(WPfilename)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the Wyckoff Positions filename
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: WPfilename
-
-WPfilename = trim(EMsoft_getResourcepathname(self))//SC_WyckoffPositionstxt
-
-end function EMsoft_getWyckoffPositionsfilename
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getRandomseedfilename
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the randomseedfilename
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getRandomseedfilename(self) result(randomseedfilename)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the randomseedfilename
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(fnlen)                        :: randomseedfilename
-
-randomseedfilename = trim(EMsoft_getResourcepathname(self))//SC_RandomSeedsdata
-
-end function EMsoft_getRandomseedfilename
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMsoftnativedelimiter
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the native delimiter for file paths
-!
-!> @date  07/02/16 MDG 1.0 new function
-!--------------------------------------------------------------------------
-function EMsoft_getEMsoftnativedelimiter(self) result(EMsoftnativedelimiter)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the native delimiter for file paths
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(1)  :: EMsoftnativedelimiter
-
-if (trim(EMsoft_getEMsoftplatform(self)).eq.SC_Windows) then
-  EMsoftnativedelimiter = '\'  ! ' <- this single prime inside a comment prevents syntax issues with some source code editors 
-else
-  EMsoftnativedelimiter = '/'
-end if
-
-end function EMsoft_getEMsoftnativedelimiter
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMsoftRevision
-!
-!> @author  Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the Git Hash of the current commit.
-!
-!> @date 07/02/16 MDG 1.0 new function 
-!--------------------------------------------------------------------------
-function EMsoft_getEMsoftRevision(self) result(revision)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the Git Hash of the current commit.
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(7) :: revision
-
-revision = "@EMsoftOO_SHORT_GIT_HASH@"
-
-end function EMsoft_getEMsoftRevision
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMsoftBuildDate
-!
-!> @author  Marc De Graef, Carnegie Mellon University
-!
-!> @brief returns the build time stamp
-!
-!> @date 07/02/16 MDG 1.0 new function 
-!--------------------------------------------------------------------------
-function EMsoft_getEMsoftBuildDate(self) result(buildDate)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 12/31/19
-  !!
-  !! returns the build time stamp
-
-IMPLICIT NONE
-
-class(T_EMsoftClass),intent(inout)      :: self
-
-character(24) :: buildDate
-
-buildDate = "@EMsoftOO_BUILD_TIMESTAMP@"
-
-end function EMsoft_getEMsoftBuildDate
-
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: EMsoft_getEMXtalFolderpathname
+! SUBROUTINE: getEMXtalFolderpathname
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief returns the EMXtalFolderpathname variable from the EMsoftconfig.json file
 !
 !
-!> @date  08/15/17 MDG 1.0 new function
-!> @date  03/02/19 MDG 2.0 add functionality for environment variables
+!> @date  08/15/17 MDG 1.0 new subroutine
+!> @date  03/02/19 MDG 2.0 add subroutineality for environment variables
 !--------------------------------------------------------------------------
-function EMsoft_getEMXtalFolderpathname(self) result(EMXtalFolderpathname)
+subroutine getEMXtalFolderpathname(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1535,22 +650,22 @@ use mod_io
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)      :: self
 
 type(T_IOClass)                         :: Message
-character(fnlen)                        :: EMXtalFolderpathname, ep, envParam, envReturn
+character(fnlen)                        :: ep, envParam, envReturn
 integer                                 :: l
 
 ep = SC_EMXtalFolderpathname
-EMXtalFolderpathname = EMsoft_getJSONparameter(self, ep)
+self%EMXtalFolderpathname = getJSONparameter(self, ep)
 
-if (trim(EMXtalFolderpathname).eq.'tryEnvironmentVariable') then 
+if (trim(self%EMXtalFolderpathname).eq.'tryEnvironmentVariable') then 
   envParam = 'EMXTALFOLDERPATHNAME'
   call getenv(trim(envParam),envReturn)
   if (trim(envReturn).ne.'') then 
-    EMXtalFolderpathname = trim(envReturn)
-    l = len(trim(EMXtalFolderpathname))
-    if (EMXtalFolderpathname(l:l).ne.'/') EMXtalFolderpathname = trim(EMXtalFolderpathname)//'/'
+    self%EMXtalFolderpathname = trim(envReturn)
+    l = len(trim(self%EMXtalFolderpathname))
+    if (self%EMXtalFolderpathname(l:l).ne.'/') self%EMXtalFolderpathname = trim(self%EMXtalFolderpathname)//'/'
   else
     if (displayEMsoftWarningMessages.eq.0) then 
       Message = T_IOClass()
@@ -1559,24 +674,867 @@ if (trim(EMXtalFolderpathname).eq.'tryEnvironmentVariable') then
                         '----> using absolute path convention                                  '/) )
       displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
     end if
-    EMXtalFolderpathname = ''
+    self%EMXtalFolderpathname = ''
   end if
 end if 
 
-end function EMsoft_getEMXtalFolderpathname
+end subroutine getEMXtalFolderpathname
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_getwikipathname
+! SUBROUTINE: getXtalpathname
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the xtalpathname
+!
+!> @date  07/02/16 MDG 1.0 new function
+!> @date  08/15/17 MDG 1.1 removed need for xtal folder to be named XtalFolder
+!--------------------------------------------------------------------------
+subroutine getXtalpathname(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the xtalpathname
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%xtalpathname = trim(self%EMXtalFolderpathname)
+
+end subroutine getXtalpathname
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMdatapathname
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the EMdatapathname variable from the EMsoftconfig.json file
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!> @date  02/27/19 MDG 2.0 add subroutineality for environment variables
+!--------------------------------------------------------------------------
+subroutine getEMdatapathname(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the EMdatapathname variable from the EMsoftconfig.json file
+
+use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use mod_io
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+type(T_IOClass)                    :: Message
+character(fnlen)                   :: ep, envParam, envReturn
+integer                            :: l
+
+ep = SC_EMdatapathname
+self%EMdatapathname = getJSONparameter(self, ep)
+
+if (trim(self%EMdatapathname).eq.'tryEnvironmentVariable') then 
+  envParam = 'EMDATAPATHNAME'
+  call getenv(trim(envParam),envReturn)
+  if (trim(envReturn).ne.'') then 
+    self%EMdatapathname = trim(envReturn)
+    l = len(trim(self%EMdatapathname))
+    if (self%EMdatapathname(l:l).ne.'/') self%EMdatapathname = trim(self%EMdatapathname)//'/'
+  else
+    if (displayEMsoftWarningMessages.eq.0) then 
+      Message = T_IOClass()
+      call Message % printWarning('EMdatapathname was not defined in the json file', &
+                     (/ 'EMDATAPATHNAME environment variable was NOT defined as a backup.', &
+                        '----> using absolute path convention                            '/) )
+      displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
+    end if
+    self%EMdatapathname = ''
+  end if
+end if 
+
+end subroutine getEMdatapathname
+
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMtmppathname
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the EMtmppathname variable from the EMsoftconfig.json file
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!> @date  03/02/19 MDG 2.0 add subroutineality for environment variables
+!--------------------------------------------------------------------------
+subroutine getEMtmppathname(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the EMtmppathname variable from the EMsoftconfig.json file
+
+use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use mod_io
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+type(T_IOClass)                    :: Message
+character(fnlen)                   :: ep, envParam, envReturn
+integer                            :: l
+
+ep = SC_EMtmppathname
+self%EMtmppathname = getJSONparameter(self, ep)
+
+if (trim(self%EMtmppathname).eq.'tryEnvironmentVariable') then 
+  envParam = 'EMTMPPATHNAME'
+  call getenv(trim(envParam),envReturn)
+  if (trim(envReturn).ne.'') then 
+    self%EMtmppathname = trim(envReturn)
+    l = len(trim(self%EMtmppathname))
+    if (self%EMtmppathname(l:l).ne.'/') self%EMtmppathname = trim(self%EMtmppathname)//'/'
+  else
+    if (displayEMsoftWarningMessages.eq.0) then 
+      Message = T_IOClass()
+      call Message % printWarning('EMtmppathname was not defined in the json file', &
+                     (/ 'EMTMPPATHNAME environment variable was NOT defined as a backup.', &
+                        '----> using absolute path convention                           '/) )
+      displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
+    end if
+    self%EMtmppathname = ''
+  end if
+end if 
+
+end subroutine getEMtmppathname
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getSlackWebHookURL
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the URL for the Slack Webhook to send message to the user
+!
+!> @date  08/18/17 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getSlackWebHookURL(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the URL for the Slack Webhook to send message to the user
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)     :: self
+
+character(fnlen)                  :: ep
+
+ep = SC_EMSlackWebHookURL
+self%SlackWebHookURL = getJSONparameter(self, ep, nobackslash=.TRUE.)
+
+end subroutine getSlackWebHookURL
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getSlackChannel
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the Slack Channel to send message to the user
+!
+!> @date  08/18/17 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getSlackChannel(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the Slack Channel to send message to the user
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+character(fnlen)                   :: ep
+
+ep = SC_EMSlackChannel
+self%SlackChannel = getJSONparameter(self, ep, nobackslash=.TRUE.)
+
+end subroutine getSlackChannel
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getUsername
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the Username variable from the EMsoftconfig.json file
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!> @date  03/02/19 MDG 2.0 add subroutineality for environment variables
+!--------------------------------------------------------------------------
+subroutine getUsername(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the Username variable from the EMsoftconfig.json file
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+character(fnlen)                   :: ep, envParam, envReturn, loginname
+
+ep = SC_UserName
+self%username = getJSONparameter(self, ep, nobackslash=.TRUE.)
+
+if (trim(self%username).eq.'tryEnvironmentVariable') then 
+  envParam = 'USERNAME'
+  call getenv(trim(envParam),envReturn)
+  if (trim(envReturn).ne.'') then 
+    self%username = trim(envReturn)
+  else
+    call getlog(loginname)
+    self%username = trim(loginname)
+  end if
+end if 
+
+end subroutine getUsername
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getUserlocation
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the userlocation variable from the EMsoftconfig.json file
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!> @date  03/02/19 MDG 2.0 add subroutineality for environment variables
+!--------------------------------------------------------------------------
+subroutine getUserlocation(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the userlocation variable from the EMsoftconfig.json file
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+character(fnlen)                   :: ep, envParam, envReturn, hostname
+
+ep = SC_UserLocation
+self%userlocation = getJSONparameter(self, ep, nobackslash=.TRUE.)
+
+if (trim(self%userlocation).eq.'tryEnvironmentVariable') then 
+  envParam = 'USERlocation'
+  call getenv(trim(envParam),envReturn)
+  if (trim(envReturn).ne.'') then 
+    self%userlocation = trim(envReturn)
+  else
+    call hostnm(hostname)
+    self%userlocation = trim(hostname)
+  end if
+end if 
+
+end subroutine getUserlocation
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getUseremail
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the useremail variable from the EMsoftconfig.json file
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!> @date  03/02/19 MDG 2.0 add subroutineality for environment variables
+!--------------------------------------------------------------------------
+subroutine getUseremail(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the useremail variable from the EMsoftconfig.json file
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+character(fnlen)                   :: ep, envParam, envReturn, hostname
+
+ep = SC_UserEmail
+self%useremail = getJSONparameter(self, ep, nobackslash=.TRUE.)
+
+if (trim(self%useremail).eq.'tryEnvironmentVariable') then 
+  self%useremail = 'undefined'
+end if
+
+end subroutine getUseremail
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getNotify
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the EMNotify parameter
+!
+!> @date  08/18/17 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getNotify(self) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the EMNotify variable from the EMsoftconfig.json file
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)     :: self
+
+character(fnlen)                  :: ep
+
+ep = SC_EMNotify
+self%EMNotify = getJSONparameter(self, ep, nobackslash=.TRUE.)
+
+end subroutine getNotify
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMdevelop
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief check whether or not the Develop keyword is present in the config file
+!
+!> @date  08/18/16 MDG 1.0 new subroutine
+!> @date  09/10/19 MDG 1.1 add environment variable option for EMdevelop
+!--------------------------------------------------------------------------
+subroutine getEMdevelop(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! check whether or not the Develop keyword is present in the config file
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+character(fnlen)                        :: EMstring, ep, envParam, envReturn
+logical                                 :: EMdevelop
+
+! default: not in developer mode
+EMdevelop = .FALSE.
+
+ep = SC_Develop
+EMstring = getJSONparameter(self, ep, nobackslash=.TRUE.)
+
+if (trim(EMstring).eq.'Yes') then 
+  EMdevelop = .TRUE.
+else if (trim(EMstring).eq.'tryEnvironmentVariable') then
+       envParam = 'EMdevelop'
+       call getenv(trim(envParam),envReturn)
+       if (trim(envReturn).eq.'Yes') EMdevelop = .TRUE.
+     end if
+
+if (EMdevelop.eqv..TRUE.) then 
+  self%EMdevelop = 'Yes'
+else
+  self%EMdevelop = 'No'
+end if 
+
+end subroutine getEMdevelop
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getRelease
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief check whether or not the Release keyword is present in the config file
+!
+!> @date  10/28/17 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getRelease(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! check whether or not the Release keyword is present in the config file
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+character(fnlen)                   :: ep
+
+ep = SC_Release
+self%EMRelease = getJSONparameter(self, ep, nobackslash=.TRUE.)
+
+end subroutine getRelease
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMsoftplatform
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the EMsoftplatform
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getEMsoftplatform(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the EMsoftplatform
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%EMsoftplatform = "@CMAKE_SYSTEM_NAME@"
+
+end subroutine getEMsoftplatform
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: geth5copypath
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the location of the h5copy program
+!
+!> @date  08/18/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine geth5copypath(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the location of the h5copy program
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+if (trim(self%EMsoftplatform).eq.SC_Windows) then
+  self%h5copypath = "@HDF5_INSTALL@"//SC_h5copy//".exe"
+else
+  self%h5copypath = "@HDF5_INSTALL@"//SC_h5copy
+end if
+
+end subroutine geth5copypath
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMsofttestpath
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the EMsofttestpath variable
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getEMsofttestpath(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the EMsofttestpath variable
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)     :: self
+
+character(fnlen)                  :: binarypath
+
+binarypath = "@EMsoftOO_BINARY_DIR@"
+
+self%EMsofttestpath = trim(toNativePath(self, binarypath))&
+                        //self%EMsoftnativedelimiter//SC_Testing&
+                        //self%EMsoftnativedelimiter//SC_Temporary
+
+end subroutine getEMsofttestpath
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMsoftTestingPath
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief Returns the path to the EMsoft binary directory
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getEMsoftTestingPath(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! Returns the path to the EMsoft binary directory
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%EMsoftTestingpath = "@EMsoftOO_TESTING_DIR@"
+
+end subroutine getEMsoftTestingPath
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMsoftversion
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the Version Information
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getEMsoftversion(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the Version Information
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%EMsoftversion = "@EMsoftOO_VER_MAJOR@_@EMsoftOO_VER_MINOR@_@EMsoftOO_VER_PATCH@_@EMsoftOO_VERSION_TWEAK@"
+
+end subroutine getEMsoftversion
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getConfigpath
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the path for the configuration file
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getConfigpath(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the path for the configuration file
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%configpath = trim(self%userHomePathname)//self%EMsoftnativedelimiter//SC_config &
+                  //self%EMsoftnativedelimiter//SC_EMsoft//self%EMsoftnativedelimiter
+
+end subroutine getConfigpath
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getTemplatepathname
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the templatepathname
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!> @date  05/11/17 MDG 1.1 added support for JSON template files
+!--------------------------------------------------------------------------
+subroutine getTemplatepathname(self, json)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the templatepathname
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+logical,INTENT(IN),OPTIONAL        :: json
+
+if (present(json)) then
+  if (json.eqv..TRUE.) then
+    self%templatepathname = trim(self%EMsoftpathname)//SC_JSONTemplates//self%EMsoftnativedelimiter
+  else
+    self%templatepathname = trim(self%EMsoftpathname)//SC_NamelistTemplates//self%EMsoftnativedelimiter
+  end if
+else
+  self%templatepathname = trim(self%EMsoftpathname)//SC_NamelistTemplates//self%EMsoftnativedelimiter
+end if
+
+end subroutine getTemplatepathname
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getResourcepathname
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the resourcepathname
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getResourcepathname(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the resourcepathname
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%resourcepathname = trim(self%EMsoftpathname)//SC_resources//self%EMsoftnativedelimiter
+
+end subroutine getResourcepathname
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getUserHomePath
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the user home folder 
+!
+!> @date  10/25/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getUserHomePath(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the user home folder 
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+character(9)      :: Home
+character(2)      :: HomeDrive
+
+HomeDrive = ''
+if (trim(self%EMsoftplatform).eq.SC_Windows) then
+  Home = 'HOMEPATH'
+  call getenv("HOMEDRIVE",HomeDrive)
+else
+  Home = 'HOME'
+end if
+
+call getenv(trim(Home),self%userHomePathName)
+self%userHomePathName = trim(HomeDrive)//trim(self%userHomePathName)
+
+end subroutine getUserHomePath
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getOpenCLpathname
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the openclpathname
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getOpenCLpathname(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the openclpathname
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%openclpathname = trim(self%EMsoftpathname)//SC_opencl//self%EMsoftnativedelimiter
+
+end subroutine getOpenCLpathname
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getTemplatecodefilename
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the templatecodefilename
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getTemplatecodefilename(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the templatecodefilename
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%templatecodefilename = trim(self%Resourcepathname)//SC_templatecodestxt
+
+end subroutine getTemplatecodefilename
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getWyckoffPositionsfilename
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the Wyckoff Positions filename
+!
+!> @date  09/05/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getWyckoffPositionsfilename(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the Wyckoff Positions filename
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%WyckoffPositionsfilename = trim(self%Resourcepathname)//SC_WyckoffPositionstxt
+
+end subroutine getWyckoffPositionsfilename
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getRandomseedfilename
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the randomseedfilename
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getRandomseedfilename(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the randomseedfilename
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%randomseedfilename = trim(self%Resourcepathname)//SC_RandomSeedsdata
+
+end subroutine getRandomseedfilename
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMsoftnativedelimiter
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the native delimiter for file paths
+!
+!> @date  07/02/16 MDG 1.0 new subroutine
+!--------------------------------------------------------------------------
+subroutine getEMsoftnativedelimiter(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the native delimiter for file paths
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+if (trim(self%EMsoftplatform).eq.SC_Windows) then
+  self%EMsoftnativedelimiter = '\'  ! ' <- this single prime inside a comment prevents syntax issues with some source code editors 
+else
+  self%EMsoftnativedelimiter = '/'
+end if
+
+end subroutine getEMsoftnativedelimiter
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMsoftRevision
+!
+!> @author  Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the Git Hash of the current commit.
+!
+!> @date 07/02/16 MDG 1.0 new subroutine 
+!--------------------------------------------------------------------------
+subroutine getEMsoftRevision(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the Git Hash of the current commit.
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%EMsoftrevision = "@EMsoftOO_SHORT_GIT_HASH@"
+
+end subroutine getEMsoftRevision
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getEMsoftBuildDate
+!
+!> @author  Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the build time stamp
+!
+!> @date 07/02/16 MDG 1.0 new subroutine 
+!--------------------------------------------------------------------------
+subroutine getEMsoftBuildDate(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 12/31/19
+  !!
+  !! returns the build time stamp
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)      :: self
+
+self%EMsoftBuildDate = "@EMsoftOO_BUILD_TIMESTAMP@"
+
+end subroutine getEMsoftBuildDate
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getwikipathname
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief returns the wikipathname
 !
-!> @date  07/02/16 MDG 1.0 new function
+!> @date  07/02/16 MDG 1.0 new subroutine
 !> @date  05/11/17 MDG 1.1 added support for JSON template files
 !--------------------------------------------------------------------------
-function EMsoft_getwikipathname(self) result(wikipathname)
+subroutine getwikipathname(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1585,25 +1543,23 @@ function EMsoft_getwikipathname(self) result(wikipathname)
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)      :: self
 
-character(fnlen)                        :: wikipathname
+self%wikipathname = trim(self%EMsoftpathname)//SC_wiki//self%EMsoftnativedelimiter
 
-wikipathname = trim(EMsoft_getEMsoftpathname(self))//SC_wiki//'/'
-
-end function EMsoft_getwikipathname
+end subroutine getwikipathname
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_getUser
+! SUBROUTINE: getUser
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief returns the system user name 
 !
-!> @date  10/25/16 MDG 1.0 new function
+!> @date  10/25/16 MDG 1.0 new subroutine
 !--------------------------------------------------------------------------
-function EMsoft_getUser(self) result(userName)
+subroutine getUser(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1612,29 +1568,29 @@ function EMsoft_getUser(self) result(userName)
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)      :: self
 
-character(fnlen)  :: userName
-character(9)      :: User
+character(9)                       :: User
+character(fnlen)                   :: uName
 
 User = 'USER'
 
-call getenv(trim(User),userName)
-userName = trim(userName)
+call getenv(trim(User),uName)
+self%User = trim(uName)
 
-end function EMsoft_getUser
+end subroutine getUser
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_getfftwWisdomfilename
+! SUBROUTINE: getfftwWisdomfilename
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief returns the filename of the fftw wisdom file
 !
-!> @date  01/29/19 MDG 1.0 new function
+!> @date  01/29/19 MDG 1.0 new subroutine
 !--------------------------------------------------------------------------
-function EMsoft_getfftwWisdomfilename(self) result(fftwWisdomfilename)
+subroutine getfftwWisdomfilename(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1643,25 +1599,23 @@ function EMsoft_getfftwWisdomfilename(self) result(fftwWisdomfilename)
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)      :: self
 
-character(fnlen)                        :: fftwWisdomfilename
+self%fftwWisdomfilename = trim(self%Resourcepathname)//SC_fftwwisdomtxt
 
-fftwWisdomfilename = trim(EMsoft_getResourcepathname(self))//SC_fftwwisdomtxt
-
-end function EMsoft_getfftwWisdomfilename
+end subroutine getfftwWisdomfilename
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_getwikicodefilename
+! SUBROUTINE: getwikicodefilename
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief returns the wikicodefilename
 !
-!> @date  09/08/19 MDG 1.0 new function
+!> @date  09/08/19 MDG 1.0 new subroutine
 !--------------------------------------------------------------------------
-function EMsoft_getwikicodefilename(self) result(wikicodefilename)
+subroutine getwikicodefilename(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1670,29 +1624,27 @@ function EMsoft_getwikicodefilename(self) result(wikicodefilename)
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)      :: self
 
-character(fnlen)                        :: wikicodefilename
+self%wikicodefilename = trim(self%Resourcepathname)//SC_wikicodestxt
 
-wikicodefilename = trim(EMsoft_getResourcepathname(self))//SC_wikicodestxt
-
-end function EMsoft_getwikicodefilename
+end subroutine getwikicodefilename
 
 
 
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_getEMsoftHDFtest
+! SUBROUTINE: getEMsoftHDFtest
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief returns the EMsoftHDFtest environment variable 
 !
-!> @date  07/02/16 MDG 1.0 new function
-!> @date  02/27/19 MDG 2.0 add functionality for environment variables
+!> @date  07/02/16 MDG 1.0 new subroutine
+!> @date  02/27/19 MDG 2.0 add subroutineality for environment variables
 !--------------------------------------------------------------------------
-function EMsoft_getEMsoftHDFtest(self) result(doHDFtest)
+subroutine getEMsoftHDFtest(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1703,26 +1655,23 @@ use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)      :: self
 
-logical                                 :: doHDFtest
- !! output parameter (logical)
-
-character(fnlen)                        :: envParam, envReturn
+character(fnlen)                   :: envParam, envReturn
 
 envParam = 'EMsoftHDFtest'
 call getenv(trim(envParam),envReturn)
-doHDFtest = .FALSE.
+self%EMsoftHDFtest = 'No'
 if (trim(envReturn).ne.'') then 
-  doHDFtest = .TRUE.
+  self%EMsoftHDFtest = 'Yes'
 end if 
 
-end function EMsoft_getEMsoftHDFtest
+end subroutine getEMsoftHDFtest
 
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_getJSONparameter
+! FUNCTION: getJSONparameter
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -1730,13 +1679,13 @@ end function EMsoft_getEMsoftHDFtest
 !
 !> @param ep JSON variable name string
 !
-!> @date  07/02/16 MDG 1.0 new function
+!> @date  07/02/16 MDG 1.0 new subroutine
 !> @date  08/19/16 MDG 1.1 modification for Develop check
 !> @date  12/03/16 MDG 1.2 added check for final delimiter
 !> @date  08/15/17 MDG 1.3 changed default behavior for empty JSON parameter strings
 !> @date  02/27/19 MDG 2.0 add code to allow for operation without config json file
 !--------------------------------------------------------------------------
-function EMsoft_getJSONparameter(self, ep, nobackslash) result(param)
+function getJSONparameter(self, ep, nobackslash) result(param)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1750,14 +1699,14 @@ use mod_io
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)           :: self
 
 character(fnlen),INTENT(IN)             :: ep
  !! JSON variable name string
 logical,INTENT(IN),optional             :: nobackslash
  !! optionally, omit the backslash from the output string
 character(fnlen)                        :: param
- !! function return string
+ !! subroutine return string
 
 type(T_IOClass)                         :: Message
 type(json_file)                         :: json
@@ -1765,7 +1714,6 @@ integer(kind=irg)                       :: error_cnt, slen
 character(kind=jsonCK,len=:),allocatable:: cval
 character(fnlen)                        :: jsonfilename, jsonname, mm(2)
 logical                                 :: found, jexists, bs
-character(1)                            :: EMsoftnativedelimiter
 
 Message = T_IOClass()
 
@@ -1774,11 +1722,8 @@ if (present(nobackslash)) then
   if (nobackslash.eqv..TRUE.) bs = .FALSE.
 end if 
 
-! determine the pathname delimiter character
-EMsoftnativedelimiter = EMsoft_getEMsoftnativedelimiter(self)
-
 jsonfilename = SC_jsonfilename
-jsonname =  trim(EMsoft_getConfigpath(self))//EMsoftnativedelimiter//trim(jsonfilename)
+jsonname =  trim(self%Configpath)//self%EMsoftnativedelimiter//trim(jsonfilename)
 
 ! test whether or not this file actually exists
 inquire(file=trim(jsonname),exist=jexists)
@@ -1806,7 +1751,7 @@ if (jexists) then
    else
      mm(1) = 'field '//trim(ep)//' not found in json file: '//trim(jsonname)
      mm(2) = 'continuing with empty parameter value for '//trim(ep) 
-     call Message % printWarning('USER='//trim(EMsoft_getUser(self)), mm)
+     call Message % printWarning('USER='//trim(self%User), mm)
      param = ''
    end if
   else
@@ -1820,26 +1765,22 @@ if (jexists) then
 ! behavior which is to prepend the contents of the datapathname configuration variable.
   slen = len(trim(cval))
   if ((slen.ne.0).and.(bs.eqv..TRUE.)) then 
-    if (cval(slen:slen).ne.EMsoftnativedelimiter) then
-      param = trim(cval)//EMsoftnativedelimiter
+    if (cval(slen:slen).ne.self%EMsoftnativedelimiter) then
+      param = trim(cval)//self%EMsoftnativedelimiter
     end if
   end if
 else
   if (displayConfigFileMissingMessage.eq.0) then 
     mm(1) = 'file '//trim(jsonname)//' not found '
     mm(2) = '  -----> Trying environment variables next ... '
-    call Message % printWarning('  WARNING: USER='//trim(EMsoft_getUser(self)), mm)
+    call Message % printWarning('  WARNING: USER='//trim(self%User), mm)
     displayConfigFileMissingMessage = 1
   end if
   param = 'tryEnvironmentVariable'
 end if
 
 
-end function EMsoft_getJSONparameter
-
-
-
-
+end function getJSONparameter
 
 !--------------------------------------------------------------------------
 !
@@ -1870,7 +1811,7 @@ use mod_timing
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)    :: self
+class(EMsoft_T),intent(inout)         :: self
 character(fnlen),INTENT(IN)           :: progname
  !! name of the calling program
 character(fnlen),INTENT(IN)           :: progdesc
@@ -1883,7 +1824,8 @@ type(T_TimingClass)                   :: Timing
 
  Message = T_IOClass() 
 
- call Message % printMessage('Copyright (C) 2001-2020 Marc De Graef Research Group/CMU',frm="(/A)")
+ call Message % printMessage('<EMsoftHeader>',frm="(/A/)")
+ call Message % printMessage('Copyright (C) 2001-2020 Marc De Graef Research Group/CMU',frm="(A)")
  call Message % printMessage('EMsoft comes with ABSOLUTELY NO WARRANTY.')
  call Message % printMessage('This is free software, and you are welcome to redistribute it')
  call Message % printMessage('under certain conditions; see License.txt file for details.',frm="(A/)")
@@ -1891,17 +1833,19 @@ type(T_TimingClass)                   :: Timing
  call Message % printMessage('Program name         : '//trim(progname))
  call Message % printMessage('Purpose              : '//trim(progdesc))
  call Message % printMessage('Platform             : '//"@CMAKE_SYSTEM_NAME@")
- call Message % printMessage('Source code version  : '//trim(self % EMsoft_getEMsoftversion()))
- call Message % printMessage('Source code Revision : '//trim(self % EMsoft_getEMsoftRevision()))
- call Message % printMessage('Build Date/Time      : '//trim(self % EMsoft_getEMsoftBuildDate()),frm="(A/)")
+ call Message % printMessage('Source code version  : '//trim(self % EMsoftversion))
+ call Message % printMessage('Source code Revision : '//trim(self % EMsoftRevision))
+ call Message % printMessage('Build Date/Time      : '//trim(self % EMsoftBuildDate),frm="(A/)")
 
  call Message % printMessage( 'See https://github.com/EMsoft-org/EMsoft/wiki for selected help pages.',frm="(A/)")
 
  Timing = T_Timingclass(showDateTime=.TRUE.)
 
+ call Message % printMessage('</EMsoftHeader>',frm="(A/)")
+
  if (present(makeconfig)) then ! we need to (re-)create the EMsoftConfig.json file...
     if (makeconfig.eqv..TRUE.) then
-      call EMsoft_path_init(self)
+      call self%path_init
     end if
  end if
 
@@ -1909,7 +1853,7 @@ end subroutine printEMsoftHeader
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_toNativePath
+! FUNCTION: toNativePath
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -1917,7 +1861,7 @@ end subroutine printEMsoftHeader
 !
 !> @date  02/16/16 MDG 1.0 new routine
 !--------------------------------------------------------------------------
-function EMsoft_toNativePath(self, inpath) result(outpath)
+function toNativePath(self, inpath) result(outpath)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1926,7 +1870,7 @@ function EMsoft_toNativePath(self, inpath) result(outpath)
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)    :: self
+class(EMsoft_T),intent(inout)    :: self
 
 character(fnlen),INTENT(IN)           :: inpath
  !! path to be converted 
@@ -1938,7 +1882,7 @@ character(1)                          :: todelim, fromdelim, c
 
 slen = len(inpath)
 outpath = ''
-todelim = EMsoft_getEMsoftnativedelimiter(self)
+todelim = self%EMsoftnativedelimiter
 
 if (todelim.eq.'\') then    ! ' 
   fromdelim = '/'
@@ -1952,11 +1896,11 @@ do i=1,slen
   outpath(i:i) = c
 end do
 
-end function EMsoft_toNativePath
+end function toNativePath
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: EMsoft_fromNativePath
+! FUNCTION: fromNativePath
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -1964,7 +1908,7 @@ end function EMsoft_toNativePath
 !
 !> @date  02/16/16 MDG 1.0 original version
 !--------------------------------------------------------------------------
-function EMsoft_fromNativePath(self, inpath) result(outpath)
+function fromNativePath(self, inpath) result(outpath)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1973,7 +1917,7 @@ function EMsoft_fromNativePath(self, inpath) result(outpath)
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)   :: self
+class(EMsoft_T),intent(inout)        :: self
 
 character(fnlen),INTENT(IN)          :: inpath
  !! input path to be converted
@@ -1985,7 +1929,7 @@ character(1)                         :: todelim, fromdelim, c
 
 slen = len(inpath)
 outpath = ''
-fromdelim = EMsoft_getEMsoftnativedelimiter(self)
+fromdelim = self%EMsoftnativedelimiter
 
 if (fromdelim.eq.'/') then
   todelim = '\'      ! ' 
@@ -1999,14 +1943,14 @@ do i=1,slen
   outpath(i:i) = c
 end do
 
-end function EMsoft_fromNativePath
+end function fromNativePath
 
 
 !--------------------------------------------------------------------------
-! EMsoft:local:EMsoft_path_init.f90
+! EMsoft:local:path_init.f90
 !--------------------------------------------------------------------------
 !
-! SUBROUTINE: EMsoft_path_init
+! SUBROUTINE: path_init
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -2020,7 +1964,7 @@ end function EMsoft_fromNativePath
 !> @date  10/07/16 MDG 1.5 modified creation of configuration file for new split Public/Private develop setup
 !> @date  08/31/18 MDG 1.6 replaced 'mv' command by 'ren' for Windows platform
 !--------------------------------------------------------------------------
-subroutine EMsoft_path_init(self)
+subroutine path_init(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -2035,7 +1979,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(T_EMsoftClass),intent(inout)      :: self
+class(EMsoft_T),intent(inout)           :: self
 
 type(T_IOClass)                         :: Message 
 character(fnlen)                        :: pathstring, dirstring, ep, EMsoftpathname, EMdatapathname, &
@@ -2088,7 +2032,7 @@ if (jexists) then
 end if
 
 ! look for the .config/EMsoft/EMsoftConfig.json file one step at a time
-dirstring = self % Homepathname
+dirstring = self % userHomepathname
 call chdir(trim(dirstring))
 
 ! check for the .config folder
@@ -2128,15 +2072,15 @@ develop = 'No'
 open(unit=dataunit,file=trim(jsonname),status='new',form='formatted')
 call Message % printMessage('{',redirect=dataunit)
 write (dataunit,"(A,A,'EMsoftpathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-   trim(EMsoft_getUserHomePath(self))//self % EMsoftnativedelimiter,edp
+   trim(self%userHomepathname)//self % EMsoftnativedelimiter,edp
 write (dataunit,"(A,A,'EMXtalFolderpathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-   trim(EMsoft_getUserHomePath(self))//self % EMsoftnativedelimiter,edp
+   trim(self%userHomepathname)//self % EMsoftnativedelimiter,edp
 write (dataunit,"(A,A,'EMdatapathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-   trim(EMsoft_getUserHomePath(self))//self % EMsoftnativedelimiter,edp
+   trim(self%userHomepathname)//self % EMsoftnativedelimiter,edp
 write (dataunit,"(A,A,'EMtmppathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
    trim(fname)//self % EMsoftnativedelimiter,edp
 write (dataunit,"(A,A,'EMsoftLibraryLocation',A,': ',A,A,A,',')") tab, edp, edp, edp, &
-   trim(EMsoft_getUserHomePath(self))//self % EMsoftnativedelimiter,edp
+   trim(self%userHomepathname)//self % EMsoftnativedelimiter,edp
 write (dataunit,"(A,A,'Release',A,': ',A,A,A,',')") tab, edp, edp, edp, trim(release), edp
 write (dataunit,"(A,A,'Develop',A,': ',A,A,A,',')") tab, edp, edp, edp, trim(develop), edp
 
@@ -2166,7 +2110,7 @@ call Message % printMessage( &
     '   generate all files in the current working folder or to use full path file names.                 ', &
     ' - EMXtalFolderpathname should point to the folder that will contain the *.xtal files.              ', &
     ' - EMtmppathname should point to the tmp folder where the EMsoftConfig.json file is located.        ', &
-    ' - EMsoftLibraryLocation is needed only if you have a fully functional IDL installation; this       ', &
+    ' - EMsoftLibraryLocation is needed only if you have a fully subroutineal IDL installation; this     ', &
     '   variable should then point to the location of the EMsoftLib.dylib or EMsoftLib.dll file.         ', &
     ' - One of the variables Develop and Release should be set to Yes, the other to No; if you are       ', &
     '   developing new EMsoft code using the EMsoftPrivate folder, then set Develop to Yes               ', &
@@ -2178,7 +2122,7 @@ call Message % printMessage( &
     '                                                                                                    ', &
     ' Every EMsoft program will read this configuration file to figure out where things are located.     '/) )
 
-end subroutine EMsoft_path_init
+end subroutine path_init
 
 
 end module mod_EMsoft
