@@ -140,7 +140,6 @@ use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
                                           stderr=>error_unit
 
 IMPLICIT NONE
-
   private
 
     intrinsic :: conjg, cabs
@@ -181,7 +180,7 @@ IMPLICIT NONE
       procedure, pass(self) :: quatangle
       procedure, pass(self) :: quatLp
       procedure, pass(self) :: quatslerp
-      procedure, pass(self) :: quatsequal
+      procedure, pass(self), public :: quatsequal
 
       generic, public :: quat_print => quatprint
       generic, public :: operator(+) => quatadd
@@ -283,7 +282,7 @@ IMPLICIT NONE
   if (self%s.eq.'s') then 
     call Message % WriteValue('', self%q, 4, frm="('(',4f12.6,')')")
   else 
-    call Message % WriteValue('', self%qd, 4, frm="('(',4f16.10,')')")
+    call Message % WriteValue('', self%qd, 4, frm="('(',4f20.14,')')")
   end if 
 
 end subroutine quatprint
@@ -311,10 +310,10 @@ IMPLICIT NONE
   type(T_QuaternionClass)             :: qres 
 
   if (self%s.eq.'s') then
-    qres % q = self%q + y%q 
+    qres%q = self%q + y%q 
     qres%s = 's'
   else
-    qres % qd = self%qd + y%qd 
+    qres%qd = self%qd + y%qd 
     qres%s = 'd'
   end if 
 
@@ -343,10 +342,10 @@ IMPLICIT NONE
   type(T_QuaternionClass)             :: qres 
 
   if (self%s.eq.'s') then 
-    qres % q = self%q - y%q 
+    qres%q = self%q - y%q 
     qres%s = 's'
   else
-    qres % qd = self%qd - y%qd 
+    qres%qd = self%qd - y%qd 
     qres%s = 'd'
   end if
 
@@ -577,13 +576,13 @@ IMPLICIT NONE
       cy = quatconjg(y)
       p = quatsdiv( cy, q*q )
       qres = quatmult(self,p)
-      qres%s = self%s
+      qres%s = 's'
   else
       qd = quatnorm(y)
       cy = quatconjg(y)
       p = quatsdivd( cy, qd*qd )
       qres = quatmult(self,p)
-      qres%s = self%s
+      qres%s = 'd'
   end if 
 
 
@@ -978,6 +977,7 @@ IMPLICIT NONE
     if (d.gt.eps) res = .FALSE.
   else 
     dd = maxval( abs( diff%qd(:) ) )
+    write (*,*) 'dd = ', dd
     if (dd.gt.epsd) res = .FALSE.
   end if
 

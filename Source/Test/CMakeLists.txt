@@ -41,6 +41,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   set(EXE_LINK_LIBRARIES ${EMSOFT_hdf5LinkLibs} EMsoftOOHDFLib)
 
   set(EMsoftOO_UNIT_TESTS 
+    MODQuaternions
     # HDFtextfile
     # HDFinteger
     # HDFchar
