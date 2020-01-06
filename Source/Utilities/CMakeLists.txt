@@ -230,13 +230,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
 endif()
 
-# Add_EMsoftOO_Executable(TARGET EMlistSG 
-#                               SOURCES ${APP_DIR}/EMlistSG.f90 
-#                               LINK_LIBRARIES EMsoftOOLib
-#                               SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-#                               INSTALL_PROGRAM TRUE
-#                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-#                               )
+Add_EMsoftOO_Executable(TARGET Qtest
+                              SOURCES ${APP_DIR}/Qtest.f90 
+                              LINK_LIBRARIES EMsoftOOLib
+                              SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                              INSTALL_PROGRAM TRUE
+                              INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                              )
 
 # Add_EMsoftOO_Executable(TARGET EMcuboMK
 #                               SOURCES ${APP_DIR}/EMcuboMK.f90 

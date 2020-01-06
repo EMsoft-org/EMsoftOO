@@ -141,15 +141,22 @@ use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
 
 IMPLICIT NONE
 
-  interface conjg 
-    module procedure :: quatconjg
-  end interface 
+  private
 
-  interface abs
-    module procedure :: quatnorm
-  end interface 
+    intrinsic :: conjg, cabs
+    public :: conjg, cabs
 
-private
+    interface conjg
+      procedure quatconjg
+    end interface conjg
+
+    interface cabs
+      procedure quatnorm
+    end interface cabs
+
+    interface operator(.eq.)
+      procedure quatsequal
+    end interface 
 
   type, public :: T_QuaternionClass 
     !! Quaternion Class definition
@@ -165,22 +172,24 @@ private
       procedure, pass(self) :: quatsubtract
       procedure, pass(self) :: quatmult
       procedure, pass(self) :: quatsmult
+      procedure, pass(self) :: quatsmultd
       procedure, pass(self) :: quatdiv
       procedure, pass(self) :: quatsdiv
+      procedure, pass(self) :: quatconjg
+      procedure, pass(self) :: quatnorm
       procedure, pass(self) :: quatinnerproduct
       procedure, pass(self) :: quatangle
       procedure, pass(self) :: quatLp
       procedure, pass(self) :: quatslerp
-      
-      procedure, pass(self), public :: quatconjg
-      procedure, pass(self), public :: quatnorm
-
+      procedure, pass(self) :: quatsequal
 
       generic, public :: quat_print => quatprint
       generic, public :: operator(+) => quatadd
       generic, public :: operator(-) => quatsubtract
-      generic, public :: operator(*) => quatmult, quatsmult
-      generic, public :: operator(/) => quatdiv, quatsdiv
+      generic, public :: operator(*) => quatmult 
+      generic, public :: operator(*) => quatsmult, quatsmultd
+      generic, public :: operator(/) => quatdiv 
+      generic, public :: operator(/) => quatsdiv
       generic, public :: quat_innerproduct => quatinnerproduct
       generic, public :: quat_angle => quatangle
       generic, public :: quat_Lp => quatLp
@@ -190,7 +199,7 @@ private
 
 ! the constructor routine for this class 
   interface T_QuaternionClass
-    module procedure :: Quaternion_constructor
+    module procedure Quaternion_constructor
   end interface T_QuaternionClass
 
 contains
@@ -214,7 +223,7 @@ contains
 type(T_QuaternionClass) function Quaternion_constructor( q, qd ) result(Quat)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/03/20
+  !! date: 01/05/20
   !!
   !! constructor for the Quaternion Class 
   
@@ -224,17 +233,23 @@ IMPLICIT NONE
   real(kind=dbl), INTENT(IN), OPTIONAL      :: qd(4)
 
 ! fill in one or the other quaternion 
-  if (present(q)) then 
-    Quat % q = q 
+  if ((.not.present(q)).and.(.not.present(qd))) then 
+    Quat % q = (/ 0.0, 0.0, 0.0, 0.0 /)
     Quat % qd = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
     Quat % s = 's'
-  end if 
+  else 
+      if (present(q)) then 
+        Quat % q = q 
+        Quat % qd = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        Quat % s = 's'
+      end if 
 
-  if (present(qd)) then 
-    Quat % q = (/ 0.0, 0.0, 0.0, 0.0 /)
-    Quat % qd = qd 
-    Quat % s = 'd'
-  end if 
+      if (present(qd)) then 
+        Quat % q = (/ 0.0, 0.0, 0.0, 0.0 /)
+        Quat % qd = qd 
+        Quat % s = 'd'
+      end if 
+  end if
 
 end function Quaternion_constructor
 
@@ -252,7 +267,7 @@ end function Quaternion_constructor
 recursive subroutine quatprint(self)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/03/20
+  !! date: 01/05/20
   !!
   !! print a single precision quaternion (for debugging purposes mostly)
 
@@ -268,7 +283,7 @@ IMPLICIT NONE
   if (self%s.eq.'s') then 
     call Message % WriteValue('', self%q, 4, frm="('(',4f12.6,')')")
   else 
-    call Message % WriteValue('', self%qd, 4, frm="('(',4f12.6,')')")
+    call Message % WriteValue('', self%qd, 4, frm="('(',4f16.10,')')")
   end if 
 
 end subroutine quatprint
@@ -459,7 +474,6 @@ IMPLICIT NONE
   qres%s = 'd'
 
 end function quatsmultd
-
 
 !--------------------------------------------------------------------------
 !
@@ -927,6 +941,48 @@ IMPLICIT NONE
   end if 
 
 end function quatslerp
+
+!--------------------------------------------------------------------------
+!
+! FUNCTION: quatsqual
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief compare two quaternions and return .TRUE. if they are equal
+!
+!> @date 01/05/20   MDG 1.0 original
+!--------------------------------------------------------------------------
+recursive function quatsequal(self, qb) result(res)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/05/20
+  !!
+  !! quaternion division (doubgle precision)
+
+IMPLICIT NONE 
+
+  class(T_QuaternionClass),intent(in)    :: self, qb
+   !! input quaternions 
+  logical                                :: res
+
+  type(T_QuaternionClass)                :: diff
+
+  real(kind=sgl)                         :: d, eps=1.0e-7
+  real(kind=dbl)                         :: dd, epsd=1.0e-12
+
+  res = .TRUE.
+  diff = self - qb 
+
+  if (self%s.eq.'s') then 
+    d = maxval( abs( diff%q(:) ) )
+    if (d.gt.eps) res = .FALSE.
+  else 
+    dd = maxval( abs( diff%qd(:) ) )
+    if (dd.gt.epsd) res = .FALSE.
+  end if
+
+end function quatsequal
+
 
 !--------------------------------------------------------------------------
 !
