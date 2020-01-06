@@ -24,6 +24,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_global.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_io.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_timing.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_quaternions.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_rng.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )
