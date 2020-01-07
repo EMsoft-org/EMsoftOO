@@ -26,20 +26,14 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-!--------------------------------------------------------------------------
-! EMsoft:MODQuaternionsTest.f90
-!--------------------------------------------------------------------------
-!
-! MODULE: MODQuaternionsTest
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief test of methods in the quaternions class module 
-!
-!> @date 01/05/20   MDG 1.0 original
-!--------------------------------------------------------------------------
-
 module MODQuaternionsTest
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/05/20
+  !!
+  !! perform a series of unit tests on the quaternion module 
+  !!
+  !! TODO: add test for quaternion slerp
 
 contains 
 
@@ -73,6 +67,9 @@ type(Quaternion_T) :: resdutv
 type(Quaternion_T) :: resduc 
 type(Quaternion_T) :: resdudv 
 real(kind=dbl), parameter  :: absvald = 5.477225575051661D0
+real(kind=dbl),parameter   :: ipd = 70.D0
+real(kind=dbl),parameter   :: qand = 1.570796326794897D0
+real(kind=dbl)             :: vecd(3) = (/ 1.D0, 0.D0, 0.D0 /), rvecd(3)
 
 type(Quaternion_T) :: resszero 
 type(Quaternion_T) :: ressupv 
@@ -82,6 +79,9 @@ type(Quaternion_T) :: ressutv
 type(Quaternion_T) :: ressuc 
 type(Quaternion_T) :: ressudv 
 real(kind=sgl), parameter  :: absvals = 5.4772256
+real(kind=sgl),parameter   :: ips = 70.0
+real(kind=sgl),parameter   :: qans = 1.5707963
+real(kind=sgl)             :: vecs(3) = (/ 1.0, 0.0, 0.0 /), rvecs(3)
 
 resdzero = Quaternion_T( qd = (/ 0.D0, 0.D0, 0.D0, 0.D0/) )
 resdupv  = Quaternion_T( qd = (/ 6.D0, 8.D0, 10.D0, 12.D0/) )
@@ -99,7 +99,9 @@ ressutv  = Quaternion_T( q = (/-60.0, 12.0, 30.0, 24.0/) )
 ressuc   = Quaternion_T( q = (/1.0,-2.0,-3.0,-4.0/) )
 ressudv  = Quaternion_T( q = (/0.40229885, 0.045977011, 0.0, 0.091954023/) )
 
+! initialize the error identifier to zero (should remain zero upon successful exit)
 res = 0
+
 !===================================================
 !=============Double Precision Tests================
 !===================================================
@@ -150,14 +152,14 @@ end if
 w = u*v
 if (.not.(w%quatsequal(resdutv))) then 
   res = 6
-  write (*,"('double precision scalar multiplication test failed = ')") 
+  write (*,"('double precision quaternion multiplication test failed = ')") 
   return
 end if
 
 w = u/v
 if (.not.(w%quatsequal(resdudv))) then 
   res = 7
-  write (*,"('double precision division test failed = ',D18.10)") diff
+  write (*,"('double precision division test failed = ')")
   return
 end if
 
@@ -175,6 +177,43 @@ if (diffd.gt.epsd) then
   return
 end if
 
+diffd = u%quat_innerproduct(v) - ipd 
+if (diffd.gt.epsd) then 
+  res = 10
+  write (*,"('double precision innerproduct test failed = ',D18.10)") diffd
+  return
+end if
+
+diffd = u%quat_angle(v) - qand
+if (diffd.gt.epsd) then 
+  res = 11
+  write (*,"('double precision quaternion angle test failed = ',D18.10)") diffd
+  return
+end if
+
+! from here on we work with unit quaternions
+call u%quat_normalize()
+call v%quat_normalize()
+
+diffd = cabs(u) - 1.D0 
+if (diffd.gt.epsd) then 
+  res = 12
+  write (*,"('double precision normalization test failed = ',D18.10)") diffd
+  return
+end if
+
+! make u a rotation of 120° around the [111] axis 
+u = Quaternion_T( qd=(/ 0.5_dbl, 0.5_dbl, 0.5_dbl, 0.5_dbl /) )
+rvecd = u%quat_Lp(vecd)
+diffd = sum( rvecd - (/ 0.D0, 1.D0, 0.D0/) )
+if (diffd.gt.epsd) then 
+  res = 13
+  write (*,"('double precision vector rotation test failed = ',D18.10)") diffd
+  return
+end if
+
+
+
 !===================================================
 !=============Single Precision Tests================
 !===================================================
@@ -184,14 +223,14 @@ end if
 u = Quaternion_T( q = (/0.0, 0.0, 0.0, 0.0/) )
 diff = cabs( u )
 if (diff.gt.eps) then 
-  res = 10
-  write (*,"('single precision zero initialization test failed = ',D18.10)") diff
+  res = 20
+  write (*,"('single precision zero initialization test failed = ',F12.8)") diff
   return
 end if
 
 if (.not.(u%quatsequal(resszero))) then 
-  res = 11
-  write (*,"('single precision zero comparison test failed = ',D18.10)") diff
+  res = 21
+  write (*,"('single precision zero comparison test failed = ')") 
   return
 end if
 
@@ -201,52 +240,89 @@ v = Quaternion_T( q=(/5.0,6.0,7.0,8.0/) )
 
 w = u+v
 if (.not.(w%quatsequal(ressupv))) then 
-  res = 12
-  write (*,"('single precision addition test failed = ',D18.10)") diff
+  res = 22
+  write (*,"('single precision addition test failed = ')") 
   return
 end if
 
 w = u-v
 if (.not.(w%quatsequal(ressumv))) then 
-  res = 13
-  write (*,"('single precision subtraction test failed = ',D18.10)") diff
+  res = 23
+  write (*,"('single precision subtraction test failed = ')") 
   return
 end if
 
 w = u*b
 if (.not.(w%quatsequal(ressuta))) then 
-  res = 14
-  write (*,"('single precision scalar multiplication test failed = ',D18.10)") diff
+  res = 24
+  write (*,"('single precision scalar multiplication test failed = ')")
   return
 end if
 
 w = u*v
 if (.not.(w%quatsequal(ressutv))) then 
-  res = 15 
-  write (*,"('single precision scalar multiplication test failed = ',D18.10)") diff
+  res = 25 
+  write (*,"('single precision quaternion multiplication test failed = ')")
   return
 end if
 
 w = u/v
 if (.not.(w%quatsequal(ressudv))) then 
-  res = 16
-  write (*,"('single precision division test failed = ',D18.10)") diff
+  res = 26
+  write (*,"('single precision division test failed = ')") 
   return
 end if
 
 w = conjg(u)
 if (.not.(w%quatsequal(ressuc))) then 
-  res = 17
-  write (*,"('single precision conjugation test failed = ',D18.10)") diff
+  res = 27
+  write (*,"('single precision conjugation test failed = ')") 
   return
 end if
 
 diff = cabs(u) - absvals
 if (diff.gt.eps) then 
-  res = 18
-  write (*,"('single precision norm test failed = ',D18.10)") diff
+  res = 28
+  write (*,"('single precision norm test failed = ',F12.8)") diff
   return
 end if
+
+diff = u%quat_innerproduct(v) - ips 
+if (diff.gt.eps) then 
+  res = 29
+  write (*,"('single precision innerproduct test failed = ',F12.8)") diff
+  return
+end if
+
+diff = u%quat_angle(v) - qans
+if (diff.gt.eps) then 
+  res = 30
+  write (*,"('single precision quaternion angle test failed = ',F12.8)") diff
+  return
+end if
+
+! from here on we work with unit quaternions
+call u%quat_normalize()
+call v%quat_normalize()
+
+diff = cabs(u) - 1.0 
+if (diff.gt.eps) then 
+  res = 31
+  write (*,"('single precision normalization test failed = ',F12.8)") diff
+  return
+end if
+
+! make u a rotation of 120° around the [111] axis 
+u = Quaternion_T( q=(/ 0.5_sgl, 0.5_sgl, 0.5_sgl, 0.5_sgl /) )
+rvecs = u%quat_Lp(vecs)
+diff = sum( rvecs - (/ 0.0, 1.0, 0.0/) )
+if (diff.gt.eps) then 
+  res = 32
+  write (*,"('single precision vector rotation test failed = ',D18.10)") diff
+  return
+end if
+
+
 
 end subroutine MODQuaternionsExecuteTest
 

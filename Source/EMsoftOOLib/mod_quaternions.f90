@@ -80,9 +80,11 @@ IMPLICIT NONE
       procedure, pass(self) :: quatsdiv
       procedure, pass(self) :: quatconjg
       procedure, pass(self) :: quatnorm
+      procedure, pass(self) :: quatnormalize
       procedure, pass(self) :: quatinnerproduct
       procedure, pass(self) :: quatangle
       procedure, pass(self) :: quatLp
+      procedure, pass(self) :: quatLpd
       procedure, pass(self) :: quatslerp
       procedure, pass(self), public :: quatsequal
 
@@ -93,9 +95,10 @@ IMPLICIT NONE
       generic, public :: operator(*) => quatsmult, quatsmultd
       generic, public :: operator(/) => quatdiv 
       generic, public :: operator(/) => quatsdiv
+      generic, public :: quat_normalize => quatnormalize
       generic, public :: quat_innerproduct => quatinnerproduct
       generic, public :: quat_angle => quatangle
-      generic, public :: quat_Lp => quatLp
+      generic, public :: quat_Lp => quatLp, quatLpd
       generic, public :: quat_slerp => quatslerp
 
   end type Quaternion_T 
@@ -118,7 +121,7 @@ contains
 type(Quaternion_T) function Quaternion_constructor( q, qd ) result(Quat)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! constructor for the Quaternion Class 
   
@@ -152,7 +155,7 @@ end function Quaternion_constructor
 recursive subroutine quatprint(self)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! print a single precision quaternion (for debugging purposes mostly)
 
@@ -179,7 +182,7 @@ end subroutine quatprint
 pure recursive function quatadd(self, y) result(qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion addition (single precision)
 
@@ -202,7 +205,7 @@ end function quatadd
 recursive function quatsubtract(self, y) result(qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion subtraction (single precision)
 
@@ -225,7 +228,7 @@ end function quatsubtract
 pure recursive function quatmult(self, y) result(qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion multiplication   (single precision)
 
@@ -275,7 +278,7 @@ end function quatmult
 pure recursive function quatsmult(self, s) result(qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! scalar quaternion multiplication   (single precision)
 
@@ -297,7 +300,7 @@ end function quatsmult
 pure recursive function quatsmultd(self, s) result(qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! scalar quaternion multiplication   (double precision)
 
@@ -319,7 +322,7 @@ end function quatsmultd
 pure recursive function quatconjg(self) result (qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion conjugation (extends intrinsic routine conjg)
 
@@ -344,7 +347,7 @@ end function quatconjg
 pure recursive function quatnorm(self) result (res)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion norm (extends intrinsic routine abs)
 
@@ -370,10 +373,41 @@ IMPLICIT NONE
 end function quatnorm
 
 !--------------------------------------------------------------------------
+recursive subroutine quatnormalize(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/07/20
+  !!
+  !! normalize the input quaternion 
+
+IMPLICIT NONE 
+
+  class(Quaternion_T),intent(inout) :: self
+   !! input quaternion
+
+  type(Quaternion_T)                :: q
+  real(kind=sgl)                    :: n
+  real(kind=dbl)                    :: nd
+
+  if (self%s.eq.'s') then
+    n = self%q(1)**2 + self%q(2)**2 + self%q(3)**2 + self%q(4)**2
+    n = sqrt( n )
+    q = self%quatsdiv(n)
+    self%q = q%q
+  else
+    nd = self%qd(1)**2 + self%qd(2)**2 + self%qd(3)**2 + self%qd(4)**2
+    nd = sqrt( nd )
+    q = self%quatsdiv(n)
+    self%qd = q%qd
+  end if 
+
+end subroutine quatnormalize
+
+!--------------------------------------------------------------------------
 recursive function quatdiv(self, y) result (qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion division (single precision)
 
@@ -409,7 +443,7 @@ end function quatdiv
 recursive function quatsdiv(self, s) result (qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion division (single precision)
 
@@ -439,7 +473,7 @@ end function quatsdiv
 recursive function quatsdivd(self, s) result (qres)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion division (doubgle precision)
 
@@ -469,7 +503,7 @@ end function quatsdivd
 pure recursive function quatinnerproduct(self, y) result (res)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion inner product (single precision)
 
@@ -488,7 +522,7 @@ end function quatinnerproduct
 pure recursive function quatinnerproductd(self, y) result (res)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion inner product (double precision)
 
@@ -507,52 +541,42 @@ end function quatinnerproductd
 pure recursive function quatangle(self, y) result(res)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! interquaternion angle   (single precision)
+  !! this only has meaning for a unit quaternion, so we test first and return -10000.0
+  !! if either of the quaternions is not a unit quaternion.
 
 IMPLICIT NONE 
 
   class(Quaternion_T),intent(in)    :: self, y
    !! input quaternions
-  real(kind=sgl)                    :: res
+  real(kind=dbl)                    :: res
    !! angle (radians)
 
-  real(kind=sgl)                    :: q
+  real(kind=sgl)                    :: q, nself, ny
+  real(kind=dbl)                    :: qd, nselfd, nyd
 
-  q = quatinnerproduct(self,y)
-  res = acos( 2.0*q*q - 1.0 )
+  if (self%s.eq.'s') then 
+      nself = self%quatnorm()
+      ny = y%quatnorm()
+      q = self%quat_innerproduct(y)
+      res = dble(acos( q/(nself * ny) ))
+  else 
+      nselfd = self%quatnorm()
+      nyd = y%quatnorm()
+      qd = self%quat_innerproduct(y)
+      res = dacos( qd/(nselfd * nyd) )
+  end if
 
 end function quatangle
-
-!--------------------------------------------------------------------------!
-pure recursive function quatangled(self, y) result(res)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 01/03/20
-  !!
-  !! interquaternion angle   (double precision)
-
-IMPLICIT NONE 
-
-   class(Quaternion_T),intent(in)   :: self, y
-   !! input quaternions
-  real(kind=sgl)                    :: res
-   !! angle (radians)
-
-  real(kind=dbl)                    :: q
-
-  q = quatinnerproductd(self,y)
-  res = dacos( 2.D0*q*q - 1.D0 )
-
-end function quatangled
 
 !--------------------------------------------------------------------------!
 ! pure recursive function quatLp(self, v) result (res)
 recursive function quatLp(self, v) result (res)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! actively rotate a unit vector by a unit quaternion, L_p = p v p* (single precision)
 
@@ -587,14 +611,14 @@ IMPLICIT NONE
 
   class(Quaternion_T),intent(in)    :: self
    !! input quaternion
-  real(kind=sgl),intent(in)         :: v(3)         
+  real(kind=dbl),intent(in)         :: v(3)         
    !! input vector to be rotated 
   real(kind=dbl)                    :: res(3)
    !! output vector
 
   type(Quaternion_T)                :: qv, rqv, cq
 
-  qv%q = (/ 0.0, v(1), v(2), v(3) /) 
+  qv%q = (/ 0.D0, v(1), v(2), v(3) /) 
   cq = quatconjg(self)
   rqv = quatmult(self, quatmult(qv, cq) )
   res(1:3) = rqv%q(2:4)
@@ -606,7 +630,7 @@ end function quatLpd
 recursive function quatslerp(self, qb, n) result(res)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! return an array of interpolated quaternions
 
@@ -674,7 +698,7 @@ end function quatslerp
 recursive function quatsequal(self, qb) result(res)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/05/20
+  !! date: 01/06/20
   !!
   !! quaternion division (doubgle precision)
 
