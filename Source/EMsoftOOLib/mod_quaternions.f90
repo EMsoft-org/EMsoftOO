@@ -65,8 +65,11 @@ IMPLICIT NONE
     !! Quaternion Class definition
     private
       real(kind=sgl), dimension(4) :: q
+       !! single precision quaternion
       real(kind=dbl), dimension(4) :: qd
+       !! double precision quaternion
       character(1)                 :: s
+       !! precision indicator ('s' or 'd')
 
     contains
     private 
