@@ -26,102 +26,6 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-!--------------------------------------------------------------------------
-! EMsoft:quaternions.f90
-!--------------------------------------------------------------------------
-!
-! MODULE: quaternions
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief module with basic quaternion functions (some overloaded operators)
-!                    
-!> @details   [verified against Mathematica Quaternion package on 3/15/12]
-!>
-!> REMEMBER THAT QUATERNION MULTIPLICATION IS NON-COMMUTATIVE !!!!!
-!>
-!> quaternions are defined as arrays of 4 single or double precision reals;
-!> the first entry is the scalar part, the remaining three form the vector part.
-!>
-!> If you want to try it out, here is an example test program\n
-!>\n
-!> program qtest\n
-!>\n
-!>use local\n
-!>use quaternions\n
-!>\n
-!>IMPLICIT NONE\n
-!>\n
-!>! for single precision, use the following lines\n
-!>!real(kind=sgl)  ::  u(4), v(4), w(4)\n
-!>!real(kind=sgl) :: x, a=2\n
-!>! define two quaternions (single)\n
-!>!u = (/1.0,2.0,3.0,4.0/)\n
-!>!v = (/5.0,6.0,7.0,8.0/)\n
-!>\n
-!>! for double precision, uncomment the next set and comment the previous set lines\n
-!>real(kind=dbl)  ::  u(4), v(4), w(4)\n
-!>real(kind=dbl) :: x, a=2.D0\n
-!>! double\n
-!>u = (/1.D0,2.D0,3.D0,4.D0/)\n
-!>v = (/5.D0,6.D0,7.D0,8.D0/)\n
-!>\n
-!>\n
-!>write (stdout,*) ' quaternion u '\n
-!>call quaternion_print(u)\n
-!>write (stdout,*) ' quaternion v '\n
-!>call quaternion_print(v)\n
-!>\n
-!>! next, do all the operations to make sure that they are correct\n
-!>\n
-!>write (stdout,*) '   addition u+v '\n
-!>w = u+v\n
-!>call quaternion_print(w)\n
-!>write (stdout,*) ' '\n
-!>\n
-!>write (stdout,*) '   subtraction u-v '\n
-!>w = u-v\n
-!>call quaternion_print(w)\n
-!>write (stdout,*) ' '\n
-!>\n
-!>write (stdout,*) '   scalar multiplication (both orderings)  '\n
-!>w = a*u\n
-!>call quaternion_print(w)\n
-!>w = u*a\n
-!>call quaternion_print(w)\n
-!>write (stdout,*) ' '\n
-!>\n
-!>write (stdout,*) '   multiplication uv '\n
-!>w = quat_mult(u,v)\n
-!>call quaternion_print(w)\n
-!>write (stdout,*) ' '\n
-!>\n
-!write (stdout,*) '   conjugate u '\n
-!>w = conjg(u)\n
-!>call quaternion_print(w)\n
-!>write (stdout,*) ' '\n
-!>\n
-!>write (stdout,*) '   norm(u) '\n
-!>x = cabs(u)\n
-!>write (stdout,*) x\n
-!>write (stdout,*) ' '\n
-!>\n
-!>write (stdout,*) '   division u/v '\n
-!>w = quat_div(u,v)\n
-!>call quaternion_print(w)\n
-!>write (stdout,*) ' '\n
-!>\n
-!>end program qtest\n
-!>
-!
-!> @date 03/15/12   MDG 1.0 original
-!> @date 08/04/13   MDG 1.1 moved rotation conversion functions to rotations.f90
-!> @date 08/12/13   MDG 2.0 re-defined quaternions to be arrays of 4 reals rather than by letter ... 
-!> @date 02/06/15   MDG 2.1 added quat_slerp interpolation routines
-!> @date 03/11/15   MDG 2.2 renamed quaternion vector rotation routines and split into active and passive
-!> @date 03/11/15   MDG 2.3 redefined quaternion product using epsijk constant (see rotations tutorial paper)
-!> @date 03/14/15   MDG 2.4 sign change in quaternion product; removed quat_Lpstar routines
-!--------------------------------------------------------------------------
 module mod_quaternions
   !! author: MDG 
   !! version: 1.0 
@@ -157,7 +61,7 @@ IMPLICIT NONE
       procedure quatsequal
     end interface 
 
-  type, public :: T_QuaternionClass 
+  type, public :: Quaternion_T
     !! Quaternion Class definition
     private
       real(kind=sgl), dimension(4) :: q
@@ -194,12 +98,12 @@ IMPLICIT NONE
       generic, public :: quat_Lp => quatLp
       generic, public :: quat_slerp => quatslerp
 
-  end type T_QuaternionClass 
+  end type Quaternion_T 
 
 ! the constructor routine for this class 
-  interface T_QuaternionClass
+  interface Quaternion_T
     module procedure Quaternion_constructor
-  end interface T_QuaternionClass
+  end interface Quaternion_T
 
 contains
 
@@ -209,17 +113,9 @@ contains
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
+
 !--------------------------------------------------------------------------
-!
-! FUNCTION: Quaternion_constructor
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief initialize the Quaternion class 
-!
-!> @date  01/03/20 MDG 1.0 new function
-!--------------------------------------------------------------------------
-type(T_QuaternionClass) function Quaternion_constructor( q, qd ) result(Quat)
+type(Quaternion_T) function Quaternion_constructor( q, qd ) result(Quat)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/05/20
@@ -253,16 +149,6 @@ IMPLICIT NONE
 end function Quaternion_constructor
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE: quatprint
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief print a quaternion (for debugging purposes mostly)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
-!--------------------------------------------------------------------------
 recursive subroutine quatprint(self)
   !! author: MDG 
   !! version: 1.0 
@@ -274,28 +160,21 @@ use mod_io
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self
+  class(Quaternion_T),intent(in)    :: self
    !! input quaternion 
 
-  type(T_IOClass)                        :: Message 
+  type(IO_T)                        :: Message 
 
   if (self%s.eq.'s') then 
-    call Message % WriteValue('', self%q, 4, frm="('(',4f12.6,')')")
+    call Message % WriteValue('', self%q, 4, frm="('(',4f12.6,'); precision: '$)")
+    call Message % WriteValue('',self%s)
   else 
-    call Message % WriteValue('', self%qd, 4, frm="('(',4f20.14,')')")
+    call Message % WriteValue('', self%qd, 4, frm="('(',4f20.14,'); precision: '$)")
+    call Message % WriteValue('',self%s)
   end if 
 
 end subroutine quatprint
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatadd
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion addition (single precision)
-!
-!> @date 1/05/20   MDG 1.0 original
 !--------------------------------------------------------------------------
 pure recursive function quatadd(self, y) result(qres)
   !! author: MDG 
@@ -306,8 +185,8 @@ pure recursive function quatadd(self, y) result(qres)
 
 IMPLICIT NONE
 
-  class(T_QuaternionClass),intent(in) :: self, y
-  type(T_QuaternionClass)             :: qres 
+  class(Quaternion_T),intent(in) :: self, y
+  type(Quaternion_T)             :: qres 
 
   if (self%s.eq.'s') then
     qres%q = self%q + y%q 
@@ -320,15 +199,6 @@ IMPLICIT NONE
 end function quatadd
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: quatsubtract
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion subtraction (single precision)
-!
-!> @date 1/05/20   MDG 1.0 original
-!--------------------------------------------------------------------------
 recursive function quatsubtract(self, y) result(qres)
   !! author: MDG 
   !! version: 1.0 
@@ -338,8 +208,8 @@ recursive function quatsubtract(self, y) result(qres)
 
 IMPLICIT NONE
 
-  class(T_QuaternionClass),intent(in) :: self, y
-  type(T_QuaternionClass)             :: qres 
+  class(Quaternion_T),intent(in) :: self, y
+  type(Quaternion_T)             :: qres 
 
   if (self%s.eq.'s') then 
     qres%q = self%q - y%q 
@@ -352,17 +222,6 @@ IMPLICIT NONE
 end function quatsubtract
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: quatmult
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion multiplication   (single precision)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
-!> @date 3/11/15   MDG 3.0 redefined quaternion product (see rotations tutorial paper)
-!--------------------------------------------------------------------------
 pure recursive function quatmult(self, y) result(qres)
   !! author: MDG 
   !! version: 1.0 
@@ -372,9 +231,9 @@ pure recursive function quatmult(self, y) result(qres)
 
 IMPLICIT NONE
 
-  class(T_QuaternionClass),intent(in) :: self, y
+  class(Quaternion_T),intent(in) :: self, y
    !! input quaternions
-  type(T_QuaternionClass)             :: qres 
+  type(Quaternion_T)             :: qres 
    !! output quaternion 
 
 ! the following is a way to reduce the number of multiplications
@@ -413,15 +272,6 @@ IMPLICIT NONE
 end function quatmult
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: quatsmult
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion multiplication   (single precision)
-!
-!> @date 01/03/20  MDG 1.0 original
-!--------------------------------------------------------------------------
 pure recursive function quatsmult(self, s) result(qres)
   !! author: MDG 
   !! version: 1.0 
@@ -431,11 +281,11 @@ pure recursive function quatsmult(self, s) result(qres)
 
 IMPLICIT NONE
 
-  class(T_QuaternionClass),intent(in)   :: self 
+  class(Quaternion_T),intent(in)   :: self 
    !! input quaternion
-  real(kind=sgl), INTENT(IN)            :: s
+  real(kind=sgl), INTENT(IN)       :: s
    !! scalar input 
-  type(T_QuaternionClass)               :: qres 
+  type(Quaternion_T)               :: qres 
    !! output quaternion
 
   qres%q = (/ s*self%q(1), s*self%q(2), s*self%q(3), s*self%q(4) /) 
@@ -443,15 +293,6 @@ IMPLICIT NONE
 
 end function quatsmult
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatsmultd
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion multiplication   (single precision)
-!
-!> @date 01/03/20  MDG 1.0 original
 !--------------------------------------------------------------------------
 pure recursive function quatsmultd(self, s) result(qres)
   !! author: MDG 
@@ -462,11 +303,11 @@ pure recursive function quatsmultd(self, s) result(qres)
 
 IMPLICIT NONE
 
-  class(T_QuaternionClass),intent(in)   :: self 
+  class(Quaternion_T),intent(in)   :: self 
    !! input quaternion
-  real(kind=dbl), INTENT(IN)            :: s
+  real(kind=dbl), INTENT(IN)       :: s
    !! scalar input 
-  type(T_QuaternionClass)               :: qres 
+  type(Quaternion_T)               :: qres 
    !! output quaternion
 
   qres%qd = (/ s*self%qd(1), s*self%qd(2), s*self%qd(3), s*self%qd(4) /) 
@@ -474,16 +315,6 @@ IMPLICIT NONE
 
 end function quatsmultd
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatconjg
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion complex conjugation (extends intrinsic routine conjg)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
 !--------------------------------------------------------------------------
 pure recursive function quatconjg(self) result (qres)
   !! author: MDG 
@@ -494,9 +325,9 @@ pure recursive function quatconjg(self) result (qres)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self
+  class(Quaternion_T),intent(in)    :: self
    !! input quaternion
-  type(T_QuaternionClass)                :: qres
+  type(Quaternion_T)                :: qres
    !! output quaternion
 
   if (self%s.eq.'s') then 
@@ -510,16 +341,6 @@ IMPLICIT NONE
 end function quatconjg
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: quatnorm
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion norm (extends intrinsic routine cabs)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
-!--------------------------------------------------------------------------
 pure recursive function quatnorm(self) result (res)
   !! author: MDG 
   !! version: 1.0 
@@ -529,29 +350,25 @@ pure recursive function quatnorm(self) result (res)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in) :: self
+  class(Quaternion_T),intent(in) :: self
    !! input quaternion
-  real(kind=sgl)                      :: res
+  real(kind=dbl)                 :: res
    !! output norm
-  
-  if (self%s.eq.'s') then 
-    res = sqrt( self%q(1)*self%q(1) + self%q(2)*self%q(2) + self%q(3)*self%q(3) + self%q(4)*self%q(4) )
+
+  real(kind=sgl)                 :: n
+  real(kind=dbl)                 :: nd, resd
+
+  if (self%s.eq.'s') then
+    n = self%q(1)**2 + self%q(2)**2 + self%q(3)**2 + self%q(4)**2
+    resd = dsqrt( dble(n) )
+    res = dble(sngl(resd))
   else
-    res = sqrt( self%qd(1)*self%qd(1) + self%qd(2)*self%qd(2) + self%qd(3)*self%qd(3) + self%qd(4)*self%qd(4) )
-  end if
+    nd = self%qd(1)**2 + self%qd(2)**2 + self%qd(3)**2 + self%qd(4)**2
+    res = dsqrt( nd )
+  end if 
 
 end function quatnorm
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatdiv
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion division (single precision)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
 !--------------------------------------------------------------------------
 recursive function quatdiv(self, y) result (qres)
   !! author: MDG 
@@ -562,14 +379,14 @@ recursive function quatdiv(self, y) result (qres)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self, y
+  class(Quaternion_T),intent(in)    :: self, y
    !! input quaternions
-  type(T_QuaternionClass)                :: qres
+  type(Quaternion_T)                :: qres
    !! output quaternion 
 
-  type(T_QuaternionClass)                :: p, cy
-  real(kind=sgl)                         :: q
-  real(kind=dbl)                         :: qd
+  type(Quaternion_T)                :: p, cy
+  real(kind=sgl)                    :: q
+  real(kind=dbl)                    :: qd
 
   if (self%s.eq.'s') then 
       q = quatnorm(y)
@@ -589,16 +406,6 @@ IMPLICIT NONE
 end function quatdiv
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: quatsdiv
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion division by scalar (single precision)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
-!--------------------------------------------------------------------------
 recursive function quatsdiv(self, s) result (qres)
   !! author: MDG 
   !! version: 1.0 
@@ -610,13 +417,13 @@ use mod_io
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self
+  class(Quaternion_T),intent(in)    :: self
    !! input quaternion (numerator)
-  real(kind=sgl), INTENT(IN)             :: s            
+  real(kind=sgl), INTENT(IN)        :: s            
    !! input quaternion (denominator)
 
-  type(T_QuaternionClass)                :: qres
-  type(T_IOClass)                        :: Message
+  type(Quaternion_T)                :: qres
+  type(IO_T)                        :: Message
 
   if (s.ne.0.0) then 
       qres%q = (/ self%q(1)/s, self%q(2)/s, self%q(3)/s, self%q(4)/s /) 
@@ -629,16 +436,6 @@ IMPLICIT NONE
 end function quatsdiv
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: quatsdivd
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief quaternion division (double precision)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
-!--------------------------------------------------------------------------
 recursive function quatsdivd(self, s) result (qres)
   !! author: MDG 
   !! version: 1.0 
@@ -650,13 +447,13 @@ use mod_io
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self
+  class(Quaternion_T),intent(in)    :: self
    !! input quaternion (numerator)
-  real(kind=dbl), INTENT(IN)             :: s            
+  real(kind=dbl), INTENT(IN)        :: s            
    !! input quaternion (denominator)
 
-  type(T_QuaternionClass)                :: qres
-  type(T_IOClass)                        :: Message
+  type(Quaternion_T)                :: qres
+  type(IO_T)                        :: Message
 
   if (s.ne.0.0) then 
     qres%qd = (/ self%qd(1)/s, self%qd(2)/s, self%qd(3)/s, self%qd(4)/s /) 
@@ -669,16 +466,6 @@ IMPLICIT NONE
 end function quatsdivd
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: quatinnerproduct
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief  quaternion inner product  (single precision)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
-!--------------------------------------------------------------------------
 pure recursive function quatinnerproduct(self, y) result (res)
   !! author: MDG 
   !! version: 1.0 
@@ -688,25 +475,15 @@ pure recursive function quatinnerproduct(self, y) result (res)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self, y
+  class(Quaternion_T),intent(in)    :: self, y
    !! input quaternions
-  real(kind=sgl)                         :: res
+  real(kind=sgl)                    :: res
    !! inner product 
 
   res = self%q(1) * y%q(1) + self%q(2) * y%q(2) + self%q(3) * y%q(3) + self%q(4) * y%q(4)
 
 end function quatinnerproduct
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatinnerproductd
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief  quaternion inner product  (double precision)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
 !--------------------------------------------------------------------------
 pure recursive function quatinnerproductd(self, y) result (res)
   !! author: MDG 
@@ -717,25 +494,15 @@ pure recursive function quatinnerproductd(self, y) result (res)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self, y
+  class(Quaternion_T),intent(in)    :: self, y
    !! input quaternions
-  real(kind=sgl)                         :: res
+  real(kind=sgl)                    :: res
    !! inner product 
 
   res = self%qd(1) * y%qd(1) + self%qd(2) * y%qd(2) + self%qd(3) * y%qd(3) + self%qd(4) * y%qd(4)
 
 end function quatinnerproductd
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatangle
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief   interquaternion angle   (single precision)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
 !--------------------------------------------------------------------------!
 pure recursive function quatangle(self, y) result(res)
   !! author: MDG 
@@ -746,28 +513,18 @@ pure recursive function quatangle(self, y) result(res)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self, y
+  class(Quaternion_T),intent(in)    :: self, y
    !! input quaternions
-  real(kind=sgl)                         :: res
+  real(kind=sgl)                    :: res
    !! angle (radians)
 
-  real(kind=sgl)                         :: q
+  real(kind=sgl)                    :: q
 
   q = quatinnerproduct(self,y)
   res = acos( 2.0*q*q - 1.0 )
 
 end function quatangle
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatangled
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief   interquaternion angle   (double precision)
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
 !--------------------------------------------------------------------------!
 pure recursive function quatangled(self, y) result(res)
   !! author: MDG 
@@ -778,31 +535,21 @@ pure recursive function quatangled(self, y) result(res)
 
 IMPLICIT NONE 
 
-   class(T_QuaternionClass),intent(in)   :: self, y
+   class(Quaternion_T),intent(in)   :: self, y
    !! input quaternions
-  real(kind=sgl)                         :: res
+  real(kind=sgl)                    :: res
    !! angle (radians)
 
-  real(kind=dbl)                         :: q
+  real(kind=dbl)                    :: q
 
   q = quatinnerproductd(self,y)
   res = dacos( 2.D0*q*q - 1.D0 )
 
 end function quatangled
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatLp
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief  actively rotate a unit vector by a unit quaternion, L_p = p v p*
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
-!> @date 3/11/15   MDG 3.0 name change, to be compatible with rotations tutorial paper
 !--------------------------------------------------------------------------!
-pure recursive function quatLp(self, v) result (res)
+! pure recursive function quatLp(self, v) result (res)
+recursive function quatLp(self, v) result (res)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/05/20
@@ -811,14 +558,14 @@ pure recursive function quatLp(self, v) result (res)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self
+  class(Quaternion_T),intent(in)    :: self
    !! input quaternion
-  real(kind=sgl),intent(in)              :: v(3)         
+  real(kind=sgl),intent(in)         :: v(3)         
    !! input vector to be rotated 
-  real(kind=sgl)                         :: res(3)
+  real(kind=sgl)                    :: res(3)
    !! output vector
 
-  type(T_QuaternionClass)                :: qv, rqv, cq
+  type(Quaternion_T)                :: qv, rqv, cq
 
   qv%q = (/ 0.0, v(1), v(2), v(3) /) 
   cq = quatconjg(self)
@@ -827,19 +574,9 @@ IMPLICIT NONE
 
 end function quatLp
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatLpd
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief   actively rotate a unit vector by a unit quaternion, L_p = p v p*
-!
-!> @date 3/15/12   MDG 1.0 original
-!> @date 8/12/13   MDG 2.0 rewrite
-!> @date 3/11/15   MDG 3.0 name change, to be compatible with rotations tutorial paper
 !--------------------------------------------------------------------------!
-pure recursive function quatLpd(self, v) result (res)
+! pure recursive function quatLpd(self, v) result (res)
+recursive function quatLpd(self, v) result (res)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/03/20
@@ -848,14 +585,14 @@ pure recursive function quatLpd(self, v) result (res)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self
+  class(Quaternion_T),intent(in)    :: self
    !! input quaternion
-  real(kind=sgl),intent(in)              :: v(3)         
+  real(kind=sgl),intent(in)         :: v(3)         
    !! input vector to be rotated 
-  real(kind=dbl)                         :: res(3)
+  real(kind=dbl)                    :: res(3)
    !! output vector
 
-  type(T_QuaternionClass)                :: qv, rqv, cq
+  type(Quaternion_T)                :: qv, rqv, cq
 
   qv%q = (/ 0.0, v(1), v(2), v(3) /) 
   cq = quatconjg(self)
@@ -864,17 +601,9 @@ IMPLICIT NONE
 
 end function quatLpd
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quatslerp
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief return an array of interpolated quaternions
-!
-!> @date 02/06/15   MDG 1.0 original
 !--------------------------------------------------------------------------!
-pure recursive function quatslerp(self, qb, n) result(res)
+! pure recursive function quatslerp(self, qb, n) result(res)
+recursive function quatslerp(self, qb, n) result(res)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/05/20
@@ -883,19 +612,19 @@ pure recursive function quatslerp(self, qb, n) result(res)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)         :: self   ! = qa 
+  class(Quaternion_T),intent(in)         :: self   ! = qa 
    !! input quaternion (start)
-  class(T_QuaternionClass),intent(in)         :: qb
+  class(Quaternion_T),intent(in)         :: qb
    !! input quaternion (end)
-  integer(kind=irg),intent(in)                :: n            
+  integer(kind=irg),intent(in)           :: n            
    !! number of steps in the interpolation
-  type(T_QuaternionClass)                     :: res(n)
+  type(Quaternion_T)                     :: res(n)
    !! output interpolated quaternion list
 
-  type(T_QuaternionClass)                     :: cqa
-  real(kind=sgl)                              :: theta, phi, dphi, s
-  real(kind=dbl)                              :: thetad, phid, dphid, sd
-  integer(kind=irg)                           :: i
+  type(Quaternion_T)                     :: cqa
+  real(kind=sgl)                         :: theta, phi, dphi, s
+  real(kind=dbl)                         :: thetad, phid, dphid, sd
+  integer(kind=irg)                      :: i
 
   if (self%s.eq.'s') then 
       do i=1,n 
@@ -942,15 +671,6 @@ IMPLICIT NONE
 end function quatslerp
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: quatsqual
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief compare two quaternions and return .TRUE. if they are equal
-!
-!> @date 01/05/20   MDG 1.0 original
-!--------------------------------------------------------------------------
 recursive function quatsequal(self, qb) result(res)
   !! author: MDG 
   !! version: 1.0 
@@ -960,14 +680,14 @@ recursive function quatsequal(self, qb) result(res)
 
 IMPLICIT NONE 
 
-  class(T_QuaternionClass),intent(in)    :: self, qb
+  class(Quaternion_T),intent(in)    :: self, qb
    !! input quaternions 
-  logical                                :: res
+  logical                           :: res
 
-  type(T_QuaternionClass)                :: diff
+  type(Quaternion_T)                :: diff
 
-  real(kind=sgl)                         :: d, eps=1.0e-7
-  real(kind=dbl)                         :: dd, epsd=1.0e-12
+  real(kind=sgl)                    :: d, eps=1.0e-7
+  real(kind=dbl)                    :: dd, epsd=1.0e-12
 
   res = .TRUE.
   diff = self - qb 
@@ -977,27 +697,15 @@ IMPLICIT NONE
     if (d.gt.eps) res = .FALSE.
   else 
     dd = maxval( abs( diff%qd(:) ) )
-    write (*,*) 'dd = ', dd
     if (dd.gt.epsd) res = .FALSE.
   end if
 
 end function quatsequal
 
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: quat_Marsaglia
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief return a single random quaternion using the Marsaglia approach
-!
-!> @param seed seed number 
-! 
-!> @date 04/23/18   MDG 1.0 original
 !--------------------------------------------------------------------------!
 recursive function quat_Marsaglia(seed) result(q)
-!DEC$ ATTRIBUTES DLLEXPORT :: quatMarsagliad
+!DEC$ ATTRIBUTES DLLEXPORT :: quatMarsaglia
 
 use mod_rng 
 
@@ -1005,7 +713,7 @@ IMPLICIT NONE
 
 type(rng_t),INTENT(INOUT)           :: seed 
 !f2py intent(in,out) ::  seed 
-type(T_QuaternionClass)             :: q 
+type(Quaternion_T)                  :: q 
 
 real(kind=dbl)                      :: x1,x2,y1,y2,s1,s2
 

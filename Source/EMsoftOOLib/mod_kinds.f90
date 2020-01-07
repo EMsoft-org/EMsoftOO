@@ -26,18 +26,6 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-!--------------------------------------------------------------------------
-! EMsoft:mod_kinds.f90
-!--------------------------------------------------------------------------
-!
-! MODULE: mod_kinds
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief definitions of single and double precision
-!
-!> @date 12/30/19 MDG 1.0 original
-!--------------------------------------------------------------------------
 module mod_kinds
   !! author: MDG 
   !! version: 1.0 

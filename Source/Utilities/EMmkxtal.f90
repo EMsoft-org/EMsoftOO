@@ -13,12 +13,12 @@ character(fnlen)        :: progdesc = 'and this is the descriptor'
 character(fnlen)        :: m
 
 type(EMsoft_T)     :: EMsoft 
-type(T_IOClass)         :: Message
-type(T_TimingClass)     :: Timing
+type(IO_T)         :: Message
+type(Timing_T)     :: Timing
 
 integer(kind=irg)       :: io_int(2), status
 
-Timing = T_TimingClass( showDateTime = .TRUE. )
+Timing = Timing_T( showDateTime = .TRUE. )
 
 call Timing % Time_tick()
 
@@ -31,7 +31,7 @@ write (*,*) 'modified string = ',trim(EMsoft%getConfigParameter('WyckoffPosition
 
 
 
-Message = T_IOClass()
+Message = IO_T()
 
 ! m = 'Revision = '//trim( EMsoft % getConfigParameter('EMsoftRevision') )
 ! call Message % printMessage(m)
@@ -50,7 +50,7 @@ Message = T_IOClass()
 ! call Message % printWarning('hmmm',(/'why not ... '/))
 
 
-!     Message = T_IOClass()
+!     Message = IO_T()
 
 
 !          call Message % printWarning('EMdatapathname was not defined in the json file', &

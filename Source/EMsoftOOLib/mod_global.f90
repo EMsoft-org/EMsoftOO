@@ -26,19 +26,6 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-!--------------------------------------------------------------------------
-! EMsoft:mod_global.f90
-!--------------------------------------------------------------------------
-!
-! MODULE: mod_global
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief definitions of all global constants, except for strings (see stringconstants.in.f90)
-!
-!> @date 12/30/19 MDG 1.0 original; contains old constants.f90 module
-!--------------------------------------------------------------------------
-
 module mod_global
   !! author: MDG 
   !! version: 1.0 

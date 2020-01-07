@@ -337,7 +337,7 @@ subroutine printConfigParameters(self)
   IMPLICIT NONE 
 
   class(EMsoft_T),intent(inout) :: self
-  type(T_IOClass)               :: Message 
+  type(IO_T)               :: Message 
 
   character(fnlen)              :: m
 
@@ -582,12 +582,12 @@ function generateFilePath(self, cp, fn) result(fp)
 
   character(fnlen)                   :: path 
 
-  type(T_IOClass)                    :: Message
+  type(IO_T)                    :: Message
 
   path = trim(self % getConfigParameter(cp))
 
   if (trim(path).eq.'unknown configuration parameter') then    ! report error and exit 
-    Message = T_IOClass()
+    Message = IO_T()
     call Message % printError('generateFilePath',' unknown configuration parameter')
   else 
     if (present(fn)) then 
@@ -625,7 +625,7 @@ class(EMsoft_T),intent(inout)      :: self
 
 character(fnlen)                   :: EMsoftpathname, ep, envParam, envReturn, m
 integer                            :: l, status
-type(T_IOClass)                    :: Message 
+type(IO_T)                    :: Message 
 
 
 ep = SC_EMsoftpathname
@@ -639,7 +639,7 @@ if (trim(self%EMsoftpathname).eq.'tryEnvironmentVariable') then
     l = len(trim(self%EMsoftpathname))
     if (self%EMsoftpathname(l:l).ne.'/') self%EMsoftpathname = trim(self%EMsoftpathname)//'/'
   else
-    Message = T_IOClass()
+    Message = IO_T()
     status = 999001
     call Message % printError('EMsoftpathname was not defined in the json file', &
                    status, (/ 'EMSOFTPATHNAME environment variable was NOT defined as a backup.'/))
@@ -664,7 +664,7 @@ IMPLICIT NONE
 
 class(EMsoft_T),intent(inout)      :: self
 
-type(T_IOClass)                         :: Message
+type(IO_T)                         :: Message
 character(fnlen)                        :: ep, envParam, envReturn
 integer                                 :: l
 
@@ -680,7 +680,7 @@ if (trim(self%EMXtalFolderpathname).eq.'tryEnvironmentVariable') then
     if (self%EMXtalFolderpathname(l:l).ne.'/') self%EMXtalFolderpathname = trim(self%EMXtalFolderpathname)//'/'
   else
     if (displayEMsoftWarningMessages.eq.0) then 
-      Message = T_IOClass()
+      Message = IO_T()
       call Message % printWarning('EMXtalFolderpathname was not defined in the json file', &
                      (/ 'EMXTALFOLDERPATHNAME environment variable was NOT defined as a backup.', &
                         '----> using absolute path convention                                  '/) )
@@ -723,7 +723,7 @@ IMPLICIT NONE
 
 class(EMsoft_T),intent(inout)      :: self
 
-type(T_IOClass)                    :: Message
+type(IO_T)                    :: Message
 character(fnlen)                   :: ep, envParam, envReturn
 integer                            :: l
 
@@ -739,7 +739,7 @@ if (trim(self%EMdatapathname).eq.'tryEnvironmentVariable') then
     if (self%EMdatapathname(l:l).ne.'/') self%EMdatapathname = trim(self%EMdatapathname)//'/'
   else
     if (displayEMsoftWarningMessages.eq.0) then 
-      Message = T_IOClass()
+      Message = IO_T()
       call Message % printWarning('EMdatapathname was not defined in the json file', &
                      (/ 'EMDATAPATHNAME environment variable was NOT defined as a backup.', &
                         '----> using absolute path convention                            '/) )
@@ -767,7 +767,7 @@ IMPLICIT NONE
 
 class(EMsoft_T),intent(inout)      :: self
 
-type(T_IOClass)                    :: Message
+type(IO_T)                    :: Message
 character(fnlen)                   :: ep, envParam, envReturn
 integer                            :: l
 
@@ -783,7 +783,7 @@ if (trim(self%EMtmppathname).eq.'tryEnvironmentVariable') then
     if (self%EMtmppathname(l:l).ne.'/') self%EMtmppathname = trim(self%EMtmppathname)//'/'
   else
     if (displayEMsoftWarningMessages.eq.0) then 
-      Message = T_IOClass()
+      Message = IO_T()
       call Message % printWarning('EMtmppathname was not defined in the json file', &
                      (/ 'EMTMPPATHNAME environment variable was NOT defined as a backup.', &
                         '----> using absolute path convention                           '/) )
@@ -1403,14 +1403,14 @@ logical,INTENT(IN),optional             :: nobackslash
 character(fnlen)                        :: param
  !! subroutine return string
 
-type(T_IOClass)                         :: Message
+type(IO_T)                         :: Message
 type(json_file)                         :: json
 integer(kind=irg)                       :: error_cnt, slen
 character(kind=jsonCK,len=:),allocatable:: cval
 character(fnlen)                        :: jsonfilename, jsonname, mm(2)
 logical                                 :: found, jexists, bs
 
-Message = T_IOClass()
+Message = IO_T()
 
 bs = .TRUE.
 if (present(nobackslash)) then
@@ -1499,10 +1499,10 @@ character(fnlen),INTENT(IN)           :: progdesc
 logical,INTENT(IN),OPTIONAL           :: makeconfig
  !! do we need to (optionally) generate the configuration file ?
 
-type(T_IOClass)                       :: Message
-type(T_TimingClass)                   :: Timing
+type(IO_T)                       :: Message
+type(Timing_T)                   :: Timing
 
- Message = T_IOClass() 
+ Message = IO_T() 
 
  call Message % printMessage('<EMsoftHeader>',frm="(/A/)")
  call Message % printMessage('Copyright (C) 2001-2020 Marc De Graef Research Group/CMU',frm="(A)")
@@ -1519,7 +1519,7 @@ type(T_TimingClass)                   :: Timing
 
  call Message % printMessage( 'See https://github.com/EMsoft-org/EMsoft/wiki for selected help pages.',frm="(A/)")
 
- Timing = T_Timingclass(showDateTime=.TRUE.)
+ Timing = Timing_T(showDateTime=.TRUE.)
 
  call Message % printMessage('</EMsoftHeader>',frm="(A/)")
 
@@ -1625,7 +1625,7 @@ IMPLICIT NONE
 
 class(EMsoft_T),intent(inout)           :: self
 
-type(T_IOClass)                         :: Message 
+type(IO_T)                         :: Message 
 character(fnlen)                        :: pathstring, dirstring, ep, EMsoftpathname, EMdatapathname, &
                                            username, userlocn, useremail, m
 integer(kind=irg)                       :: i, error_cnt
@@ -1655,7 +1655,7 @@ inquire(file=trim(jsonname),exist=jexists)
 ! if this routine is called with config=.TRUE. parameter, then that means that we
 ! must create a new EMsoftConfig.json file if it doesn't already exist; we will inform
 ! the user if it does exist, and rename the existing file
-Message = T_IOClass()
+Message = IO_T()
 
 if (jexists) then
   call Message % printMessage( (/ '-------                                                                         ', &

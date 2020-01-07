@@ -16,17 +16,17 @@ IMPLICIT NONE
 !v = (/5.0,6.0,7.0,8.0/)
 
 ! for double precision, uncomment the next set and comment the previous set lines
-type(T_QuaternionClass)  ::  u, v, w
+type(Quaternion_T)  ::  u, v, w
 real(kind=dbl)  :: x, a=2.D0
 
 write (stdout,*) 'no initialization'
-u = T_QuaternionClass()
+u = Quaternion_T()
 call u%quat_print 
 
 
 ! double
-u = T_QuaternionClass( qd=(/1.D0,2.D0,3.D0,4.D0/) )
-v = T_QuaternionClass( qd=(/5.D0,6.D0,7.D0,8.D0/) )
+u = Quaternion_T( qd=(/1.D0,2.D0,3.D0,4.D0/) )
+v = Quaternion_T( qd=(/5.D0,6.D0,7.D0,8.D0/) )
 
 
 write (stdout,*) ' quaternion u '

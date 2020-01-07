@@ -26,18 +26,6 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-!--------------------------------------------------------------------------
-! EMsoft:mod_timing.f90
-!--------------------------------------------------------------------------
-!
-! MODULE: mod_timing
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief Provides a timing class with a few timing routines
-! 
-!> @date 01/01/20 MDG 1.0 original
-!--------------------------------------------------------------------------
 module mod_timing
   !! author: MDG 
   !! version: 1.0 
@@ -55,7 +43,7 @@ use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
 IMPLICIT NONE
 
 private
-public :: T_TimingClass
+public :: Timing_T
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -63,7 +51,7 @@ public :: T_TimingClass
   character ( len = 3 ), dimension(12) :: month = (/ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', &
                                                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' /)
 
-  type, public   ::  T_TimingClass
+  type, public   ::  Timing_T
     !! Timing Class definition
     private 
       integer(kind=irg)             :: numT
@@ -93,12 +81,12 @@ public :: T_TimingClass
         procedure, pass(self), public :: printTimeStamp
         procedure, pass(self)         :: makeTimeStamp
  
-   end type T_TimingClass
+   end type Timing_T
 
 ! the constructor routine for this class 
-   interface T_TimingClass
+   interface Timing_T
      module procedure :: Timing_constructor
-   end interface T_TimingClass        
+   end interface Timing_T        
 
 
 contains
@@ -110,16 +98,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: Timing_constructor
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief initialize the Timing class with the current date and time strings, print if timestamp given
-!
-!> @date  01/01/20 MDG 1.0 new function
-!--------------------------------------------------------------------------
-type(T_TimingClass) function Timing_constructor( showDateTime, nCounters ) result(Timing)
+type(Timing_T) function Timing_constructor( showDateTime, nCounters ) result(Timing)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/01/20
@@ -135,7 +114,7 @@ IMPLICIT NONE
   integer(kind=irg), INTENT(IN), OPTIONAL  :: nCounters
    !! number of time counters to be defined (default = 10)
 
-  type(T_IOClass)                          :: Message
+  type(IO_T)                          :: Message
 
 ! set the maximum number of time intervals to be stored
   if (present(nCounters)) then 
@@ -152,23 +131,13 @@ IMPLICIT NONE
 ! and print them if requested 
   if (present(showDateTime)) then
     if (showDateTime) then 
-      Message = T_IOClass()
+      Message = IO_T()
       call Message % printMessage( Timing % timestamp, frm="(A/)")
     end if 
   end if
 
 end function Timing_constructor
 
-
-!--------------------------------------------------------------------------
-!
-! SUBROUTINE: Time_tick
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief start time recording using system_clock
-!
-!> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine Time_tick(self, n)
   !! author: MDG 
@@ -179,7 +148,7 @@ recursive subroutine Time_tick(self, n)
 
 IMPLICIT NONE
 
-class(T_TimingClass)                    :: self 
+class(Timing_T)                    :: self 
 integer(kind=irg), intent(IN), OPTIONAL :: n
  !! integer labeling the counter to be used 
 
@@ -195,15 +164,6 @@ self % Tstart(i) = t
 end subroutine Time_tick
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE: Time_tock
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief stop time recording using system_clock
-!
-!> @date   01/01/20 MDG 1.0 original
-!--------------------------------------------------------------------------
 recursive subroutine Time_tock(self, n) 
   !! author: MDG 
   !! version: 1.0 
@@ -213,7 +173,7 @@ recursive subroutine Time_tock(self, n)
 
 IMPLICIT NONE
 
-class(T_TimingClass)                    :: self 
+class(Timing_T)                    :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
  !! integer labeling the counter to be used 
 
@@ -230,15 +190,6 @@ self % Tinterval(i) = real(now - self % Tstart(i))/real(clock_rate)
 end subroutine Time_tock
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE: Time_reset
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief reset one or all counters 
-!
-!> @date   01/01/20 MDG 1.0 original
-!--------------------------------------------------------------------------
 recursive subroutine Time_reset(self, n) 
   !! author: MDG 
   !! version: 1.0 
@@ -248,7 +199,7 @@ recursive subroutine Time_reset(self, n)
 
 IMPLICIT NONE
 
-class(T_TimingClass)                    :: self 
+class(Timing_T)                    :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
  !! selects which clock to reset; if absent, reset all 
 
@@ -267,16 +218,6 @@ end if
 
 end subroutine Time_reset
 
-
-!--------------------------------------------------------------------------
-!
-! FUNCTION: getInterval
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief return one of the timing intervals
-!
-!> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function getInterval(self, n) result(t)
   !! author: MDG 
@@ -287,7 +228,7 @@ recursive function getInterval(self, n) result(t)
 
 IMPLICIT NONE
 
-class(T_TimingClass)                    :: self 
+class(Timing_T)                    :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
  !! optinal selected timer
 
@@ -303,15 +244,6 @@ t = self % Tinterval(i)
 end function getInterval
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: getDateString
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief return the current date string 
-!
-!> @date   01/01/20 MDG 1.0 original
-!--------------------------------------------------------------------------
 function getDateString(self) result(t)
   !! author: MDG 
   !! version: 1.0 
@@ -321,7 +253,7 @@ function getDateString(self) result(t)
 
 IMPLICIT NONE
 
-class(T_TimingClass)                    :: self 
+class(Timing_T)                    :: self 
 
 character(len=11)                       :: t
 
@@ -329,15 +261,6 @@ t = self % datestring
 
 end function getDateString
 
-!--------------------------------------------------------------------------
-!
-! FUNCTION: getTimeString
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief return the current time string 
-!
-!> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 function getTimeString(self) result(t)
   !! author: MDG 
@@ -348,7 +271,7 @@ function getTimeString(self) result(t)
 
 IMPLICIT NONE
 
-class(T_TimingClass)                    :: self 
+class(Timing_T)                    :: self 
 
 character(len=15)                       :: t
 
@@ -356,15 +279,6 @@ t = self % timestring
 
 end function getTimeString
 
-!--------------------------------------------------------------------------
-!
-! SUBROUTINE: printTimeStamp
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief print the current date-time string to std output or redirected  
-!
-!> @date   01/01/20 MDG 1.0 original
 !--------------------------------------------------------------------------
 subroutine printTimeStamp(self, redirect) 
   !! author: MDG 
@@ -377,14 +291,14 @@ use mod_io
 
 IMPLICIT NONE
 
-class(T_TimingClass)                    :: self 
+class(Timing_T)                    :: self 
 integer(kind=irg),INTENT(IN),OPTIONAL   :: redirect
  !! optional redirect to another output unit
 
-type(T_IOClass)                         :: Message
+type(IO_T)                         :: Message
 integer(kind=irg)                       :: unit
 
-Message = T_IOClass()
+Message = IO_T()
 
 unit = stdout
 if (present(redirect)) unit = redirect
@@ -399,15 +313,6 @@ end if
 
 end subroutine printTimeStamp
 
-
-!--------------------------------------------------------------------------
-!
-! subroutine: makeTimeStamp
-!
-!> @brief sets the current YMDHMS date as a time stamp.
-!
-!> @date 01/01/20 MDG based on timestamp original routine by J. Burkardt, but adapted for timing class
-!>                    <https://people.sc.fsu.edu/~jburkardt/f_src/timestamp/timestamp.f90>
 !--------------------------------------------------------------------------
 subroutine makeTimeStamp (self)
   !! author: MDG 
@@ -415,10 +320,12 @@ subroutine makeTimeStamp (self)
   !! date: 01/01/20
   !!
   !! generate the date and time strings as well as the combined timestamp
+  !! (based on timestamp original routine by J. Burkardt, but adapted for this timing class
+  !! <https://people.sc.fsu.edu/~jburkardt/f_src/timestamp/timestamp.f90>
 
   IMPLICIT NONE
 
-  class(T_TimingClass),intent(inout)    :: self
+  class(Timing_T),intent(inout)    :: self
 
   integer(kind=irg)                     :: d, h, mo, mm, n, s, v(8), y
   character ( len = 8 )                 :: ampm, date

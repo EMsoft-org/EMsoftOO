@@ -26,19 +26,6 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-!--------------------------------------------------------------------------
-! EMsoft:mod_io.f90
-!--------------------------------------------------------------------------
-!
-! MODULE: mod_io
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief message and error handling routines
-!
-!> @date 12/31/19 MDG 1.0 original
-!--------------------------------------------------------------------------
-
 module mod_io
   !! author: MDG 
   !! version: 1.0 
@@ -47,7 +34,7 @@ module mod_io
   !! Message and error handling routines.
   !!
   !! We try to eliminate calls to *write* and *read* as much as possible from
-  !! all programs and replace them by the routines in this module (for any IO
+  !! all programs and replace them by the methods in this module (for any IO
   !! that involves the command line, not for data files)
 
 use mod_global 
@@ -58,10 +45,10 @@ use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
 IMPLICIT NONE 
 
 private
-public :: T_IOClass 
+public :: IO_T 
 
 
-  type, public  :: T_IOClass
+  type, public  :: IO_T
     private
       character(fnlen)  :: message 
        !! a simple string of length fnlen
@@ -99,12 +86,12 @@ public :: T_IOClass
       generic, public :: printError => printShortError, printErrorStatus
       generic, public :: printMessage => printMessageSingle, printMessageMultiple
 
-  end type T_IOClass
+  end type IO_T
 
   ! the constructor routine for this class 
-  interface T_IOClass
+  interface IO_T
     module procedure :: Message_constructor
-  end interface T_IOClass
+  end interface IO_T
 
 contains
 
@@ -115,16 +102,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: Message_constructor
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief initialize the IO class; 
-!
-!> @date  12/31/19 MDG 1.0 new function
-!--------------------------------------------------------------------------
-type(T_IOClass) function Message_constructor( m ) result(Message)
+type(IO_T) function Message_constructor( m ) result(Message)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -145,15 +123,6 @@ end if
 end function Message_constructor
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE: printMessageSingle
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief dump a message to standard output
-! 
-!> @date 12/31/19 MDG 1.0 original
-!--------------------------------------------------------------------------
 subroutine printMessageSingle(self, mess, frm, advance, redirect)
   !! author: MDG 
   !! version: 1.0 
@@ -169,7 +138,7 @@ subroutine printMessageSingle(self, mess, frm, advance, redirect)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout)          :: self
+  class(IO_T),intent(inout)          :: self
 
   character(*),INTENT(IN)                 :: mess         
    !! message string
@@ -199,15 +168,6 @@ IMPLICIT NONE
 end subroutine printMessageSingle
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE: printMessageMultiple
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief dump a message with multiple lines to standard output
-!
-!> @date 12/31/19 MDG 1.0 original
-!--------------------------------------------------------------------------
 subroutine printMessageMultiple(self, mess, frm, redirect)
   !! author: MDG 
   !! version: 1.0 
@@ -224,7 +184,7 @@ subroutine printMessageMultiple(self, mess, frm, redirect)
    
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout)          :: self
+  class(IO_T),intent(inout)          :: self
 
   character(*),INTENT(IN)                 :: mess(:)      
    !! message array of strings
@@ -253,15 +213,6 @@ IMPLICIT NONE
 
 end subroutine printMessageMultiple
 
-!--------------------------------------------------------------------------
-!
-! SUBROUTINE: printShortError
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief Write error message and abort program
-!
-!> @date   12/31/19 MDG 1.0 original
 ! ###################################################################
 subroutine printShortError(self, s1, s2)
   !! author: MDG 
@@ -272,7 +223,7 @@ subroutine printShortError(self, s1, s2)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*), INTENT(IN)  :: s1  
    !! first part of error message (routine name)
@@ -284,15 +235,6 @@ IMPLICIT NONE
 
 end subroutine printShortError
 
-!--------------------------------------------------------------------------
-!
-! SUBROUTINE: printErrorStatus
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief Write error message with status number and abort program
-!
-!> @date   12/31/19 MDG 1.0 original
 ! ###################################################################
 subroutine printErrorStatus(self, s1, status, s2)
   !! author: MDG 
@@ -303,7 +245,7 @@ subroutine printErrorStatus(self, s1, status, s2)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout)      :: self
+  class(IO_T),intent(inout)      :: self
 
   character(*), INTENT(IN)            :: s1      
    !! first part of error message (routine name)
@@ -329,16 +271,6 @@ IMPLICIT NONE
 
 end subroutine printErrorStatus
 
-
-!--------------------------------------------------------------------------
-!
-! SUBROUTINE: printWarning
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief Write warning message
-!
-!> @date   12/31/19 MDG 1.0 original
 ! ###################################################################
 subroutine printWarning(self, s1, s2)
   !! author: MDG 
@@ -349,7 +281,7 @@ subroutine printWarning(self, s1, s2)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout)      :: self
+  class(IO_T),intent(inout)      :: self
 
   character(*), INTENT(IN)            :: s1     
    !! first part of error message (routine name)
@@ -375,16 +307,6 @@ end subroutine printWarning
 ! reading routines
 ! ###################################################################
 
-
-! ###################################################################
-! 
-!  subroutine ReadValueString   
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief read a string from standard input (stdin)
-!
-!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine ReadValueString(self, Qstring, rd_string, frm)
   !! author: MDG 
@@ -395,7 +317,7 @@ subroutine ReadValueString(self, Qstring, rd_string, frm)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*),INTENT(IN)                         :: Qstring
    !! user prompt string 
@@ -415,15 +337,6 @@ IMPLICIT NONE
 end subroutine ReadValueString
 
 ! ###################################################################
-! 
-!  subroutine ReadValueStringArray   
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief read an array of strings from standard input (stdin)
-!
-!> @date 12/31/19 MDG 1.0 new routine
-! ###################################################################
 subroutine ReadValueStringArray(self, Qstring, rd_string, num, frm)
   !! author: MDG 
   !! version: 1.0 
@@ -433,7 +346,7 @@ subroutine ReadValueStringArray(self, Qstring, rd_string, num, frm)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*),INTENT(IN)                         :: Qstring
    !! user prompt string 
@@ -461,15 +374,6 @@ IMPLICIT NONE
 end subroutine ReadValueStringArray
 
 ! ###################################################################
-! 
-!  subroutine ReadValueIntShort   
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief read one or more short integers
-!
-!> @date 12/31/19 MDG 1.0 new routine
-! ###################################################################
 subroutine ReadValueIntShort(self, Qstring, rd_int, num)
   !! author: MDG 
   !! version: 1.0 
@@ -479,7 +383,7 @@ subroutine ReadValueIntShort(self, Qstring, rd_int, num)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! user prompt string 
@@ -502,15 +406,6 @@ IMPLICIT NONE
 end subroutine ReadValueIntShort
 
 ! ###################################################################
-! 
-!  subroutine ReadValueIntLong 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief read one or more regular (4-byte) integers
-!
-!> @date 12/31/19 MDG 1.0 new routine
-! ###################################################################
 subroutine ReadValueIntLong(self, Qstring, rd_int, num)
   !! author: MDG 
   !! version: 1.0 
@@ -520,7 +415,7 @@ subroutine ReadValueIntLong(self, Qstring, rd_int, num)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! user prompt string
@@ -543,15 +438,6 @@ IMPLICIT NONE
 end subroutine ReadValueIntLong
 
 ! ###################################################################
-! 
-!  subroutine ReadValueRealSingle 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief read one or more regular (4-byte) reals
-!
-!> @date 12/31/19 MDG 1.0 new routine
-! ###################################################################
 subroutine ReadValueRealSingle(self, Qstring, rd_real, num)
   !! author: MDG 
   !! version: 1.0 
@@ -561,7 +447,7 @@ subroutine ReadValueRealSingle(self, Qstring, rd_real, num)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! user prompt string 
@@ -584,15 +470,6 @@ IMPLICIT NONE
 end subroutine ReadValueRealSingle
 
 ! ###################################################################
-! 
-!  subroutine ReadValueRealDouble 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief read one or more regular (4-byte) reals
-!
-!> @date 12/31/19 MDG 1.0 new routine
-! ###################################################################
 subroutine ReadValueRealDouble(self, Qstring, rd_real, num)
   !! author: MDG 
   !! version: 1.0 
@@ -602,7 +479,7 @@ subroutine ReadValueRealDouble(self, Qstring, rd_real, num)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! user prompt string
@@ -624,20 +501,6 @@ IMPLICIT NONE
 
 end subroutine ReadValueRealDouble
 
-
-! ###################################################################
-! writing routines
-! ###################################################################
-
-! ###################################################################
-! 
-!  subroutine WriteValueString 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief write a string
-!
-!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueString(self, Qstring, out_string, frm, advance, redirect)
   !! author: MDG 
@@ -648,7 +511,7 @@ subroutine WriteValueString(self, Qstring, out_string, frm, advance, redirect)
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*),INTENT(IN)                         :: Qstring 
    !! comment string
@@ -696,15 +559,6 @@ IMPLICIT NONE
 end subroutine WriteValueString
 
 ! ###################################################################
-! 
-!  subroutine WriteValueIntShort 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief write one or more short integers
-!
-!> @date 12/31/19 MDG 1.0 new routine
-! ###################################################################
 subroutine WriteValueIntShort(self, Qstring, out_int, num, frm, advance, redirect)
   !! author: MDG 
   !! version: 1.0 
@@ -714,7 +568,7 @@ subroutine WriteValueIntShort(self, Qstring, out_int, num, frm, advance, redirec
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -768,15 +622,6 @@ IMPLICIT NONE
 end subroutine WriteValueIntShort
 
 ! ###################################################################
-! 
-!  subroutine WriteValueIntLong 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief write one or more 4-byte integers
-!
-!> @date 12/31/19 MDG 1.0 new routine
-! ###################################################################
 subroutine WriteValueIntLong(self, Qstring, out_int, num, frm, advance, redirect)
   !! author: MDG 
   !! version: 1.0 
@@ -786,7 +631,7 @@ subroutine WriteValueIntLong(self, Qstring, out_int, num, frm, advance, redirect
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -840,15 +685,6 @@ IMPLICIT NONE
 end subroutine WriteValueIntLong
 
 ! ###################################################################
-! 
-!  subroutine WriteValueIntLongLong
-!
-!> @author Saransh Singh, Carnegie Mellon University
-!
-!> @brief write one or more 8-byte integers
-!
-!> @date 12/31/19 MDG 1.0 new routine
-! ###################################################################
 subroutine WriteValueIntLongLong(self, Qstring, out_int, num, frm, advance, redirect)
   !! author: Saransh Singh, revised by MDG
   !! version: 1.0 
@@ -858,7 +694,7 @@ subroutine WriteValueIntLongLong(self, Qstring, out_int, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -911,16 +747,6 @@ IMPLICIT NONE
 
 end subroutine WriteValueIntLongLong
 
-
-! ###################################################################
-! 
-!  subroutine WriteValueRealSingle 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief write one or more single precision reals
-!
-!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueRealSingle(self, Qstring, out_real, num, frm, advance, redirect)
   !! author: MDG
@@ -931,7 +757,7 @@ subroutine WriteValueRealSingle(self, Qstring, out_real, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -984,17 +810,6 @@ IMPLICIT NONE
 
 end subroutine WriteValueRealSingle
 
-
-
-! ###################################################################
-! 
-!  subroutine WriteValueRealDouble 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief write one or more double precision reals
-!
-!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueRealDouble(self, Qstring, out_real, num, frm, advance, redirect)
   !! author: MDG
@@ -1005,7 +820,7 @@ subroutine WriteValueRealDouble(self, Qstring, out_real, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -1058,16 +873,6 @@ IMPLICIT NONE
 
 end subroutine WriteValueRealDouble
 
-
-! ###################################################################
-! 
-!  subroutine WriteValueRealComplex 
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief write one or more single precision complex numbers
-!
-!> @date 12/31/19 MDG 1.0 new routine
 ! ###################################################################
 subroutine WriteValueRealComplex(self, Qstring, out_cmplx, num, frm, advance, redirect)
   !! author: MDG
@@ -1078,7 +883,7 @@ subroutine WriteValueRealComplex(self, Qstring, out_cmplx, num, frm, advance, re
 
 IMPLICIT NONE
 
-  class(T_IOClass),intent(inout) :: self
+  class(IO_T),intent(inout) :: self
  
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -1130,8 +935,6 @@ IMPLICIT NONE
   end if
 
 end subroutine WriteValueRealComplex
-
-
 
 end module mod_io
 
