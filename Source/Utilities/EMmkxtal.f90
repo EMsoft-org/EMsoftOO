@@ -5,6 +5,8 @@ use mod_global
 use mod_EMsoft
 use mod_io
 use mod_timing
+use mod_quaternions 
+use mod_rng
 
 IMPLICIT NONE
 
@@ -17,6 +19,9 @@ type(IO_T)         :: Message
 type(Timing_T)     :: Timing
 
 integer(kind=irg)       :: io_int(2), status
+type(rng_t)             :: seed 
+type(QuaternionArray_T) :: qra , qrb
+
 
 Timing = Timing_T( showDateTime = .TRUE. )
 
@@ -86,6 +91,14 @@ call Timing % Time_reset(2)
 
 write (*,*) 'Interval 1 : ', Timing % getInterval(1)
 write (*,*) 'Interval 2 : ', Timing % getInterval(2)
+
+write (*,*) 'calling Marsaglia generator for 10 random quaternions '
+
+qra = quat_randomArray(10, 'd', seed, northern=.TRUE.)
+call qra%quat_print() 
+
+qrb = quat_randomArray(10, 's', seed, northern=.TRUE.)
+call qrb%quat_print() 
 
 
 

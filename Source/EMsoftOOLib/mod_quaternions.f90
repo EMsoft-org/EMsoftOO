@@ -36,7 +36,7 @@ module mod_quaternions
   !! Quaternions are defined with the scalar part in position 1, and the vector part in positions 2:4.
   !!
   !! There are two class definitions in this file, one for single quaternions, the other for 
-  !! quaternion array operations (using OpenMP threads). The program MODQuaternionsTest.f90 
+  !! quaternion array operations (some using OpenMP threads). The program MODQuaternionsTest.f90 
   !! can be used as part of ctest to run a test program on this module.
 
 
@@ -141,6 +141,8 @@ IMPLICIT NONE
 
     contains
     private 
+    ! quaternion IO routines
+      procedure, pass(self) :: quatarrayprint
 ! quaternion arithmetic routines 
       procedure, pass(self) :: quatarrayadd
       procedure, pass(self) :: quatarraysubtract
@@ -162,6 +164,7 @@ IMPLICIT NONE
       procedure, pass(self) :: extractfromQuaternionArray
 
 ! generics
+      generic, public :: quat_print => quatarrayprint
       generic, public :: operator(+) => quatarrayadd
       generic, public :: operator(-) => quatarraysubtract
       generic, public :: operator(*) => quatarraymult 
@@ -181,12 +184,19 @@ IMPLICIT NONE
     module procedure QuaternionArray_constructor
   end interface QuaternionArray_T
 
+  public :: quat_randomArray
+  interface quat_randomArray 
+    module procedure generateRandomArray
+  end interface 
+
+  private :: quat_Marsaglia 
+
 contains
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 ! We begin with the functions/subroutines that are public in the 
-! Quaternion_T class and pair up functions for individual and quaternion 
+! two classes and pair up functions for individual and quaternion 
 ! arrays for easier module maintenance.
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -285,14 +295,13 @@ IMPLICIT NONE
 
 end function QuaternionArray_constructor
 
-
 !--------------------------------------------------------------------------
 recursive subroutine quatprint(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/06/20
   !!
-  !! print a single precision quaternion (for debugging purposes mostly)
+  !! print a quaternion
 
 use mod_io
 
@@ -312,6 +321,37 @@ IMPLICIT NONE
   end if 
 
 end subroutine quatprint
+
+!--------------------------------------------------------------------------
+recursive subroutine quatarrayprint(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! print an array of quaternions
+
+use mod_io
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)   :: self
+   !! input quaternion 
+
+  type(IO_T)                            :: Message 
+  integer(kind=irg)                     :: i
+
+  if (self%s.eq.'s') then 
+    do i=1,self%n
+      call Message % WriteValue('', self%q(:,i), 4, frm="('(',4f12.6,')')")
+    end do
+  else 
+    do i=1,self%n
+      call Message % WriteValue('', self%qd(:,i), 4, frm="('(',4f20.14,')')")
+    end do
+  end if 
+
+end subroutine quatarrayprint
+
 
 !--------------------------------------------------------------------------
 pure recursive function quatadd(self, y) result(qres)
@@ -1501,7 +1541,7 @@ recursive function quatsequal(self, qb) result(res)
   !! version: 1.0 
   !! date: 01/06/20
   !!
-  !! quaternion division (doubgle precision)
+  !! quaternion comparison (double precision)
 
 IMPLICIT NONE 
 
@@ -1528,18 +1568,56 @@ IMPLICIT NONE
 end function quatsequal
 
 
+!--------------------------------------------------------------------------
+recursive function generateRandomArray(n, s, seed, northern) result(res)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! generate an array of random unit quaternions (single/double precision)
 
+use mod_rng
 
+  integer(kind=irg), intent(in)       :: n
+   !! number of unut quaternions to be generated 
+  character(1), intent(in)            :: s 
+   !! single 's' or double 'd' precision ?
+  type(rng_t), intent(inout)          :: seed 
+   !! a seed number for the Marsaglia random number generator 
+  logical, intent(in), OPTIONAL       :: northern 
 
+  type(QuaternionArray_T)             :: res 
+  type(Quaternion_T)                  :: q 
+  integer(kind=irg)                   :: i
+  logical                             :: pos 
 
+  pos = .FALSE.
+  if (present(northern)) then 
+    if (northern.eqv..TRUE.) pos = .TRUE.
+  end if
 
+  res%s = s 
+  if (s.eq.'s') then 
+    allocate(res%q(4,n))
+  else
+    allocate(res%qd(4,n))
+  end if
+  res%n = n
 
+  do i=1,n 
+    q = quat_Marsaglia(seed)
+    if (pos.eqv..TRUE.) then
+      if (q%qd(1).lt.0.0) q%qd = -q%qd 
+    end if
+    if (s.eq.'s') then 
+      res%q(:,i) = sngl(q%qd(:))
+    else 
+      res%qd(:,i) = q%qd(:)
+    end if
+  end do 
 
+end function generateRandomArray
 
-
-
-
-! this needs to be moved into another module (sampling module?)
 !--------------------------------------------------------------------------!
 recursive function quat_Marsaglia(seed) result(q)
 !DEC$ ATTRIBUTES DLLEXPORT :: quatMarsaglia
