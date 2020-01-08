@@ -138,7 +138,7 @@ subroutine printMessageSingle(self, mess, frm, advance, redirect)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)          :: self
+  class(IO_T),intent(inout)               :: self
 
   character(*),INTENT(IN)                 :: mess         
    !! message string
@@ -184,7 +184,7 @@ subroutine printMessageMultiple(self, mess, frm, redirect)
    
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)          :: self
+  class(IO_T),intent(inout)               :: self
 
   character(*),INTENT(IN)                 :: mess(:)      
    !! message array of strings
@@ -245,7 +245,7 @@ subroutine printErrorStatus(self, s1, status, s2)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)      :: self
+  class(IO_T),intent(inout)           :: self
 
   character(*), INTENT(IN)            :: s1      
    !! first part of error message (routine name)
@@ -281,7 +281,7 @@ subroutine printWarning(self, s1, s2)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)      :: self
+  class(IO_T),intent(inout)           :: self
 
   character(*), INTENT(IN)            :: s1     
    !! first part of error message (routine name)

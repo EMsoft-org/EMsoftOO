@@ -67,6 +67,9 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: dataunit2
 !DEC$ ATTRIBUTES DLLEXPORT :: dataunit3
 
+!> Maximum number of positions in asymmetric unit
+  integer(kind=irg), parameter          :: maxpasym = 250   
+!DEC$ ATTRIBUTES DLLEXPORT :: maxpasym
 
 ! ****************************************************
 ! ****************************************************

@@ -33,7 +33,7 @@ module MODQuaternionsTest
   !!
   !! perform a series of unit tests on the quaternion module 
   !!
-  !! TODO: add test for quaternion slerp
+  !! TODO: add test for quaternion slerp ?
 
 contains 
 
@@ -50,15 +50,22 @@ IMPLICIT NONE
 integer(C_INT32_T),INTENT(OUT)  :: res
 
 type(Quaternion_T)      :: u, v, w
-real(kind=dbl)          :: x, a=2.D0, diffd
-real(kind=sgl)          :: y, b=2.0, diff
+real(kind=dbl)          :: x, a=2.D0, diffd, dd(4)
+real(kind=sgl)          :: y, b=2.0, diff, d(4)
+
+type(QuaternionArray_T) :: uA, vA, wA 
 
 ! threshold values 
 real(kind=dbl),parameter:: epsd = 1.0D-12
 real(kind=sgl),parameter:: eps  = 1.0E-7
 
+! various parameters
+integer(kind=irg)       :: i, errcnt 
+
 !===================================================
 ! set the reference values (verified with Mathematica scripts)
+
+! correct answers for the Quaternion_T class
 type(Quaternion_T) :: resdzero 
 type(Quaternion_T) :: resdupv 
 type(Quaternion_T) :: resdumv 
@@ -68,8 +75,9 @@ type(Quaternion_T) :: resduc
 type(Quaternion_T) :: resdudv 
 real(kind=dbl), parameter  :: absvald = 5.477225575051661D0
 real(kind=dbl),parameter   :: ipd = 70.D0
-real(kind=dbl),parameter   :: qand = 1.570796326794897D0
+real(kind=dbl),parameter   :: qand = 0.25019592042251176D0
 real(kind=dbl)             :: vecd(3) = (/ 1.D0, 0.D0, 0.D0 /), rvecd(3)
+real(kind=dbl)             :: rvecarrd(3,4) 
 
 type(Quaternion_T) :: resszero 
 type(Quaternion_T) :: ressupv 
@@ -80,8 +88,9 @@ type(Quaternion_T) :: ressuc
 type(Quaternion_T) :: ressudv 
 real(kind=sgl), parameter  :: absvals = 5.4772256
 real(kind=sgl),parameter   :: ips = 70.0
-real(kind=sgl),parameter   :: qans = 1.5707963
+real(kind=sgl),parameter   :: qans = 0.2501958
 real(kind=sgl)             :: vecs(3) = (/ 1.0, 0.0, 0.0 /), rvecs(3)
+real(kind=sgl)             :: rvecarrs(3,4) 
 
 resdzero = Quaternion_T( qd = (/ 0.D0, 0.D0, 0.D0, 0.D0/) )
 resdupv  = Quaternion_T( qd = (/ 6.D0, 8.D0, 10.D0, 12.D0/) )
@@ -98,6 +107,11 @@ ressuta  = Quaternion_T( q = (/2.0, 4.0, 6.0, 8.0/) )
 ressutv  = Quaternion_T( q = (/-60.0, 12.0, 30.0, 24.0/) )
 ressuc   = Quaternion_T( q = (/1.0,-2.0,-3.0,-4.0/) )
 ressudv  = Quaternion_T( q = (/0.40229885, 0.045977011, 0.0, 0.091954023/) )
+
+! correct answers for the QuaternionArray_T class 
+! type(QuaternionArray_T) :: resarrdadd
+
+! resarrdadd = QuaternionArray_T( n=4, )
 
 ! initialize the error identifier to zero (should remain zero upon successful exit)
 res = 0
@@ -170,21 +184,21 @@ if (.not.(w%quatsequal(resduc))) then
   return
 end if
 
-diffd = cabs(u) - absvald
+diffd = abs(cabs(u) - absvald)
 if (diffd.gt.epsd) then 
   res = 9
   write (*,"('double precision norm test failed = ',D18.10)") diffd
   return
 end if
 
-diffd = u%quat_innerproduct(v) - ipd 
+diffd = abs(u%quat_innerproduct(v) - ipd)
 if (diffd.gt.epsd) then 
   res = 10
   write (*,"('double precision innerproduct test failed = ',D18.10)") diffd
   return
 end if
 
-diffd = u%quat_angle(v) - qand
+diffd = abs(u%quat_angle(v) - qand)
 if (diffd.gt.epsd) then 
   res = 11
   write (*,"('double precision quaternion angle test failed = ',D18.10)") diffd
@@ -193,9 +207,7 @@ end if
 
 ! from here on we work with unit quaternions
 call u%quat_normalize()
-call v%quat_normalize()
-
-diffd = cabs(u) - 1.D0 
+diffd = abs(cabs(u) - 1.D0)
 if (diffd.gt.epsd) then 
   res = 12
   write (*,"('double precision normalization test failed = ',D18.10)") diffd
@@ -205,13 +217,12 @@ end if
 ! make u a rotation of 120° around the [111] axis 
 u = Quaternion_T( qd=(/ 0.5_dbl, 0.5_dbl, 0.5_dbl, 0.5_dbl /) )
 rvecd = u%quat_Lp(vecd)
-diffd = sum( rvecd - (/ 0.D0, 1.D0, 0.D0/) )
+diffd = sum( abs(rvecd - (/ 0.D0, 1.D0, 0.D0/)) )
 if (diffd.gt.epsd) then 
   res = 13
   write (*,"('double precision vector rotation test failed = ',D18.10)") diffd
   return
 end if
-
 
 
 !===================================================
@@ -280,21 +291,21 @@ if (.not.(w%quatsequal(ressuc))) then
   return
 end if
 
-diff = cabs(u) - absvals
+diff = abs(cabs(u) - absvals)
 if (diff.gt.eps) then 
   res = 28
   write (*,"('single precision norm test failed = ',F12.8)") diff
   return
 end if
 
-diff = u%quat_innerproduct(v) - ips 
+diff = abs(u%quat_innerproduct(v) - ips)
 if (diff.gt.eps) then 
   res = 29
   write (*,"('single precision innerproduct test failed = ',F12.8)") diff
   return
 end if
 
-diff = u%quat_angle(v) - qans
+diff = abs(u%quat_angle(v) - qans)
 if (diff.gt.eps) then 
   res = 30
   write (*,"('single precision quaternion angle test failed = ',F12.8)") diff
@@ -305,7 +316,7 @@ end if
 call u%quat_normalize()
 call v%quat_normalize()
 
-diff = cabs(u) - 1.0 
+diff = abs(cabs(u) - 1.0)
 if (diff.gt.eps) then 
   res = 31
   write (*,"('single precision normalization test failed = ',F12.8)") diff
@@ -315,13 +326,314 @@ end if
 ! make u a rotation of 120° around the [111] axis 
 u = Quaternion_T( q=(/ 0.5_sgl, 0.5_sgl, 0.5_sgl, 0.5_sgl /) )
 rvecs = u%quat_Lp(vecs)
-diff = sum( rvecs - (/ 0.0, 1.0, 0.0/) )
+diff = sum( abs(rvecs - (/ 0.0, 1.0, 0.0/)) )
 if (diff.gt.eps) then 
   res = 32
   write (*,"('single precision vector rotation test failed = ',D18.10)") diff
   return
 end if
 
+
+!===================================================
+!==========Double Precision Array Tests=============
+!===================================================
+
+!===================================================
+! declare two arrays with identical quaternions to simplify the testing ... 
+uA = QuaternionArray_T( n=4, qd = reshape( (/ 1.0_dbl,2.0_dbl,3.0_dbl,4.0_dbl, &
+                                              1.0_dbl,2.0_dbl,3.0_dbl,4.0_dbl, &
+                                              1.0_dbl,2.0_dbl,3.0_dbl,4.0_dbl, &
+                                              1.0_dbl,2.0_dbl,3.0_dbl,4.0_dbl /), (/ 4, 4 /) ) )
+
+vA = QuaternionArray_T( n=4, qd = reshape( (/ 5.0_dbl,6.0_dbl,7.0_dbl,8.0_dbl, &
+                                              5.0_dbl,6.0_dbl,7.0_dbl,8.0_dbl, &
+                                              5.0_dbl,6.0_dbl,7.0_dbl,8.0_dbl, &
+                                              5.0_dbl,6.0_dbl,7.0_dbl,8.0_dbl /), (/ 4, 4 /) ) )
+
+wA = uA + vA 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(resdupv))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 40
+  write (*,"('double precision quaternion array addition test failed = ')")
+  return
+end if
+
+wA = uA - vA 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(resdumv))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 41
+  write (*,"('double precision quaternion array subtraction test failed = ')")
+  return
+end if
+
+wA = uA * vA 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(resdutv))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 42
+  write (*,"('double precision quaternion array multiplication test failed = ')")
+  return
+end if
+
+wA = uA / vA 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(resdudv))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 43
+  write (*,"('double precision quaternion array division test failed = ')")
+  return
+end if
+
+wA = uA * a 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(resduta))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 44
+  write (*,"('double precision quaternion array scalar multiplication test failed = ')")
+  return
+end if
+
+wA = conjg(uA) 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(resduc))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 45
+  write (*,"('double precision quaternion array conjugation test failed = ')")
+  return
+end if
+
+dd = cabs(uA)
+errcnt = 0
+do i=1,4
+  if (abs(dd(i)-absvald).gt.epsd) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 46
+  write (*,"('double precision quaternion array abs test failed = ')")
+  return
+end if
+
+dd = uA%quat_innerproduct(vA)
+errcnt = 0
+do i=1,4
+  if (abs(dd(i)-ipd).gt.epsd) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 47
+  write (*,"('double precision quaternion array inner product test failed = ')")
+  return
+end if
+
+dd = uA%quat_angle(vA)
+errcnt = 0
+do i=1,4
+  if (abs(dd(i)-qand).gt.epsd) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 48
+  write (*,"('double precision quaternion array interquaternion angle test failed ')")
+  return
+end if
+
+call uA%quat_normalize()
+errcnt = 0
+dd = cabs(uA)
+do i=1,4
+  if (abs(dd(i)-1.D0).gt.epsd) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 49
+  write (*,"('double precision normalization test failed ')") 
+  return
+end if
+
+! make u a rotation of 120° around the [111] axis 
+uA = QuaternionArray_T( n=4,  qd=reshape( (/ 0.5_dbl, 0.5_dbl, 0.5_dbl, 0.5_dbl, &
+                                             0.5_dbl, 0.5_dbl, 0.5_dbl, 0.5_dbl, &
+                                             0.5_dbl, 0.5_dbl, 0.5_dbl, 0.5_dbl, &
+                                             0.5_dbl, 0.5_dbl, 0.5_dbl, 0.5_dbl /), (/ 4, 4 /) ) )
+rvecarrd = uA%quat_Lp(vecd)
+errcnt = 0
+do i=1,4 
+  diffd = sum( abs(rvecarrd(:,i) - (/ 0.D0, 1.D0, 0.D0/)) )
+  if (diffd.gt.epsd) errcnt = errcnt+1
+end do
+if (errcnt.gt.0) then 
+  res = 50
+  write (*,"('double precision quaternion array vector rotation test failed ')")
+  return
+end if
+
+
+!===================================================
+!==========Single Precision Array Tests=============
+!===================================================
+
+!===================================================
+! declare two arrays with identical quaternions to simplify the testing ... 
+uA = QuaternionArray_T( n=4, q = reshape( (/ 1.0_sgl,2.0_sgl,3.0_sgl,4.0_sgl, &
+                                             1.0_sgl,2.0_sgl,3.0_sgl,4.0_sgl, &
+                                             1.0_sgl,2.0_sgl,3.0_sgl,4.0_sgl, &
+                                             1.0_sgl,2.0_sgl,3.0_sgl,4.0_sgl /), (/ 4, 4 /) ) )
+
+vA = QuaternionArray_T( n=4, q = reshape( (/ 5.0_sgl,6.0_sgl,7.0_sgl,8.0_sgl, &
+                                             5.0_sgl,6.0_sgl,7.0_sgl,8.0_sgl, &
+                                             5.0_sgl,6.0_sgl,7.0_sgl,8.0_sgl, &
+                                             5.0_sgl,6.0_sgl,7.0_sgl,8.0_sgl /), (/ 4, 4 /) ) )
+
+wA = uA + vA 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(ressupv))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 51
+  write (*,"('single precision quaternion array addition test failed = ')")
+  return
+end if
+
+wA = uA - vA 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(ressumv))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 52
+  write (*,"('single precision quaternion array subtraction test failed = ')")
+  return
+end if
+
+wA = uA * vA 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(ressutv))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 53
+  write (*,"('single precision quaternion array multiplication test failed = ')")
+  return
+end if
+
+wA = uA / vA 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(ressudv))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 54
+  write (*,"('single precision quaternion array division test failed = ')")
+  return
+end if
+
+wA = uA * b 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(ressuta))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 55
+  write (*,"('single precision quaternion array scalar multiplication test failed = ')")
+  return
+end if
+
+wA = conjg(uA) 
+errcnt = 0
+do i=1,4
+  u = wA%getQuatfromArray(i)
+  if (.not.(u%quatsequal(ressuc))) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 56
+  write (*,"('single precision quaternion array conjugation test failed = ')")
+  return
+end if
+
+d = cabs(uA)
+errcnt = 0
+do i=1,4
+  if (abs(d(i)-absvals).gt.eps) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 57
+  write (*,"('single precision quaternion array abs test failed = ')")
+  return
+end if
+
+d = uA%quat_innerproduct(vA)
+errcnt = 0
+do i=1,4
+  if (abs(d(i)-ips).gt.eps) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 58
+  write (*,"('single precision quaternion array inner product test failed = ')")
+  return
+end if
+
+d = uA%quat_angle(vA)
+errcnt = 0
+do i=1,4
+  if (abs(d(i)-qans).gt.eps) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 59
+  write (*,"('single precision quaternion array interquaternion angle test failed ')")
+  return
+end if
+
+call uA%quat_normalize()
+errcnt = 0
+d = cabs(uA)
+do i=1,4
+  if (abs(d(i)-1.0).gt.eps) errcnt = errcnt + 1
+end do 
+if (errcnt.ne.0) then 
+  res = 60
+  write (*,"('single precision normalization test failed ')") 
+  return
+end if
+
+! make u a rotation of 120° around the [111] axis 
+uA = QuaternionArray_T( n=4,  q=reshape( (/ 0.5_sgl, 0.5_sgl, 0.5_sgl, 0.5_sgl, &
+                                            0.5_sgl, 0.5_sgl, 0.5_sgl, 0.5_sgl, &
+                                            0.5_sgl, 0.5_sgl, 0.5_sgl, 0.5_sgl, &
+                                            0.5_sgl, 0.5_sgl, 0.5_sgl, 0.5_sgl /), (/ 4, 4 /) ) )
+rvecarrs = uA%quat_Lp(vecs)
+errcnt = 0
+do i=1,4 
+  diff = sum( abs(rvecarrs(:,i) - (/ 0.0, 1.0, 0.0/)) )
+  if (diff.gt.eps) errcnt = errcnt+1
+end do
+if (errcnt.gt.0) then 
+  res = 61
+  write (*,"('single precision quaternion array vector rotation test failed ')")
+  return
+end if
 
 
 end subroutine MODQuaternionsExecuteTest

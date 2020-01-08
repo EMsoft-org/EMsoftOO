@@ -40,12 +40,14 @@ module mod_Lambert
   !! are some other projections, such as the stereographic one.  Each function is named
   !! by the projection, the dimensionality of the starting grid, and the forward or inverse
   !! character.  For each function, there is also a single precision and a double precision
-  !! version, but we use the interface formalism to have only a single call.  The Forward
+  !! version, but we use the generic function formalism to have only a single call.  The Forward
   !! mapping is taken to be the one from the simple grid to the curved grid.  Since the module
   !! deals with various grids, we also add a few functions/subroutines that apply symmetry
-  !! operations on those grids.
+  !! operations on those grids.  Finally, since Lambert grid interpolation is very common in
+  !! EMsoft programs, we provide several versions that work with a variety of master pattern
+  !! types.
   !!
-  !! modification history
+  !! original modification history
   !! @date 07/10/13   MDG 1.0 original
   !! @date 07/12/13   MDG 1.1 added forward cube to ball to quaternion mappings
   !! @date 08/01/13   MDG 1.2 added standard Lambert projection
@@ -53,7 +55,6 @@ module mod_Lambert
   !! @date 09/20/13   MDG 1.4 added ApplyLaueSymmetry
   !! @date 08/29/15   MDG 1.5 small changes to hexagonal mapping routines; coordinate swap inside routines
   !! @date 01/20/18   MDG 1.6 added Lambert interpolation routines
-
 
 use mod_kinds
 use mod_global

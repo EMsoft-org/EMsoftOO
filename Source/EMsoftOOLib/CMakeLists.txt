@@ -27,6 +27,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_quaternions.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_rng.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Lambert.f90
+  # ${EMsoftOOLib_SOURCE_DIR}/mod_crystallography.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )
@@ -89,7 +90,8 @@ target_link_libraries(EMsoftOOLib
                 # EMsoftOOLib_C 
                 # EMsoftOOLib_Cpp 
                 jsonfortran 
-                bcls::bcls            
+                bcls::bcls
+                gomp       
 )
 # if (Fortran_COMPILER_NAME MATCHES "ifort.*")
 #   target_link_libraries(EMsoftOOLib

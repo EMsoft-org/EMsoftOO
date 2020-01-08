@@ -31,10 +31,13 @@ module mod_quaternions
   !! version: 1.0 
   !! date: 01/03/20
   !!
-  !! Quaternion arithmetic class 
+  !! Quaternion and Quaternion Array arithmetic class 
   !!
   !! Quaternions are defined with the scalar part in position 1, and the vector part in positions 2:4.
   !!
+  !! There are two class definitions in this file, one for single quaternions, the other for 
+  !! quaternion array operations (using OpenMP threads). The program MODQuaternionsTest.f90 
+  !! can be used as part of ctest to run a test program on this module.
 
 
 use mod_global
@@ -46,21 +49,25 @@ use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
 IMPLICIT NONE
   private
 
+! we overload the conjg, cabs, and .eq. intrinsics
     intrinsic :: conjg, cabs
     public :: conjg, cabs
 
     interface conjg
       procedure quatconjg
+      procedure quatarrayconjg
     end interface conjg
 
     interface cabs
       procedure quatnorm
+      procedure quatarraynorm
     end interface cabs
 
     interface operator(.eq.)
       procedure quatsequal
     end interface 
 
+! definition of the quaternion class 
   type, public :: Quaternion_T
     !! Quaternion Class definition
     private
@@ -73,7 +80,9 @@ IMPLICIT NONE
 
     contains
     private 
+! quaternion IO routines
       procedure, pass(self) :: quatprint
+! quaternion arithmetic routines 
       procedure, pass(self) :: quatadd
       procedure, pass(self) :: quatsubtract
       procedure, pass(self) :: quatmult
@@ -81,14 +90,18 @@ IMPLICIT NONE
       procedure, pass(self) :: quatsmultd
       procedure, pass(self) :: quatdiv
       procedure, pass(self) :: quatsdiv
+      procedure, pass(self) :: quatsdivd
       procedure, pass(self) :: quatconjg
       procedure, pass(self) :: quatnorm
       procedure, pass(self) :: quatnormalize
-      procedure, pass(self) :: quatinnerproduct
-      procedure, pass(self) :: quatangle
+! quaternion-based transformations
       procedure, pass(self) :: quatLp
       procedure, pass(self) :: quatLpd
+! routines with two or more input quaternions
+      procedure, pass(self) :: quatinnerproduct
+      procedure, pass(self) :: quatangle
       procedure, pass(self) :: quatslerp
+! miscellaneous routines 
       procedure, pass(self), public :: quatsequal
 
       generic, public :: quat_print => quatprint
@@ -97,11 +110,11 @@ IMPLICIT NONE
       generic, public :: operator(*) => quatmult 
       generic, public :: operator(*) => quatsmult, quatsmultd
       generic, public :: operator(/) => quatdiv 
-      generic, public :: operator(/) => quatsdiv
+      generic, public :: operator(/) => quatsdiv, quatsdivd
       generic, public :: quat_normalize => quatnormalize
+      generic, public :: quat_Lp => quatLp, quatLpd
       generic, public :: quat_innerproduct => quatinnerproduct
       generic, public :: quat_angle => quatangle
-      generic, public :: quat_Lp => quatLp, quatLpd
       generic, public :: quat_slerp => quatslerp
 
   end type Quaternion_T 
@@ -111,14 +124,72 @@ IMPLICIT NONE
     module procedure Quaternion_constructor
   end interface Quaternion_T
 
+
+
+! next we define the quaternion array class 
+  type, public :: QuaternionArray_T
+    !! Quaternion Class definition
+    private
+      integer(kind=irg)            :: n 
+      integer(kind=irg)            :: nthreads
+      real(kind=sgl), allocatable  :: q(:,:)
+       !! single precision quaternion
+      real(kind=dbl), allocatable  :: qd(:,:)
+       !! double precision quaternion
+      character(1)                 :: s
+       !! precision indicator ('s' or 'd')
+
+    contains
+    private 
+! quaternion arithmetic routines 
+      procedure, pass(self) :: quatarrayadd
+      procedure, pass(self) :: quatarraysubtract
+      procedure, pass(self) :: quatarraymult
+      procedure, pass(self) :: quatarraysmult
+      procedure, pass(self) :: quatarraysmultd
+      procedure, pass(self) :: quatarraydiv
+      procedure, pass(self) :: quatarraysdiv
+      procedure, pass(self) :: quatarrayconjg
+      procedure, pass(self) :: quatarraynorm
+      procedure, pass(self) :: quatarraynormalize
+! quaternion-based transformations
+      procedure, pass(self) :: quatarrayLp
+      procedure, pass(self) :: quatarrayLpd
+! routines with two or more input quaternion arrays
+      procedure, pass(self) :: quatarrayinnerproduct
+      procedure, pass(self) :: quatarrayangle
+! miscellaneous routines 
+      procedure, pass(self) :: extractfromQuaternionArray
+
+! generics
+      generic, public :: operator(+) => quatarrayadd
+      generic, public :: operator(-) => quatarraysubtract
+      generic, public :: operator(*) => quatarraymult 
+      generic, public :: operator(*) => quatarraysmult, quatarraysmultd
+      generic, public :: operator(/) => quatarraydiv 
+      generic, public :: operator(/) => quatarraysdiv
+      generic, public :: quat_normalize => quatarraynormalize
+      generic, public :: quat_Lp => quatarrayLp, quatarrayLpd
+      generic, public :: quat_innerproduct => quatarrayinnerproduct
+      generic, public :: quat_angle => quatarrayangle
+      generic, public :: getQuatfromArray => extractfromQuaternionArray
+
+  end type QuaternionArray_T 
+
+! the constructor routine for this class 
+  interface QuaternionArray_T
+    module procedure QuaternionArray_constructor
+  end interface QuaternionArray_T
+
 contains
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! We begin with the functions/subroutines that are public in this class
+! We begin with the functions/subroutines that are public in the 
+! Quaternion_T class and pair up functions for individual and quaternion 
+! arrays for easier module maintenance.
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-
 
 !--------------------------------------------------------------------------
 type(Quaternion_T) function Quaternion_constructor( q, qd ) result(Quat)
@@ -155,6 +226,67 @@ IMPLICIT NONE
 end function Quaternion_constructor
 
 !--------------------------------------------------------------------------
+type(QuaternionArray_T) function QuaternionArray_constructor( n, nthreads, q, qd, s ) result(QuatArray)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! constructor for the QuaternionArray Class 
+  !!
+  !! either call with parameters n and s 
+  !! or with n and either one of q or qd 
+  
+use mod_io 
+
+IMPLICIT NONE
+
+  integer(kind=irg), INTENT(IN)             :: n
+  integer(kind=irg), INTENT(IN), OPTIONAL   :: nthreads
+  real(kind=sgl), INTENT(IN), OPTIONAL      :: q(4,n)
+  real(kind=dbl), INTENT(IN), OPTIONAL      :: qd(4,n)
+  character(1), INTENT(IN), OPTIONAL        :: s
+
+  type(IO_T)                                :: Message
+
+! OpenMP threads
+  QuatArray % nthreads = 0
+  if (present(nthreads)) QuatArray % nthreads = nthreads
+
+! are we declaring just an empty variable with no entries, but with a given precision ?
+  if ( present(s) .and. (.not.present(q)) .and. (.not.present(qd)) ) then 
+    QuatArray % n = n 
+    QuatArray % s = s 
+    if (s.eq.'s') then 
+      allocate(QuatArray % q(4,n))  
+      QuatArray % q = 0.0
+    else 
+      allocate(QuatArray % qd(4,n))  
+      QuatArray % qd = 0.D0
+    end if 
+    return 
+  end if  
+    
+! number of quaternions in array
+  QuatArray % n = n 
+
+! single precision
+  if (present(q)) then 
+    allocate(QuatArray % q(4,n))  
+    QuatArray % q = q
+    QuatArray % s = 's'
+  end if 
+
+! double precision
+  if (present(qd)) then 
+    allocate(QuatArray % qd(4,n))  
+    QuatArray % qd = qd
+    QuatArray % s = 'd'
+  end if 
+
+end function QuaternionArray_constructor
+
+
+!--------------------------------------------------------------------------
 recursive subroutine quatprint(self)
   !! author: MDG 
   !! version: 1.0 
@@ -187,7 +319,7 @@ pure recursive function quatadd(self, y) result(qres)
   !! version: 1.0 
   !! date: 01/06/20
   !!
-  !! quaternion addition (single precision)
+  !! quaternion addition (single/double precision)
 
 IMPLICIT NONE
 
@@ -205,12 +337,63 @@ IMPLICIT NONE
 end function quatadd
 
 !--------------------------------------------------------------------------
+recursive function quatarrayadd(self, y) result(qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! quaternion array addition (single/double precision)
+
+use mod_io
+
+IMPLICIT NONE
+
+  class(QuaternionArray_T),intent(in) :: self, y
+  type(QuaternionArray_T)             :: qres 
+
+  type(IO_T)                          :: Message 
+  integer(kind=irg)                   :: sz(2)
+
+! test to make sure that both arrays have the same number of quaternions 
+  if (self%n.ne.y%n) then 
+    call Message%printError('quatarrayadd','input arrays must have the same number of quaternions')
+  end if 
+
+  if (self%s.ne.y%s) then 
+    call Message%printError('quatarrayadd','input arrays must have the same precision')
+  end if 
+
+  qres%n = self%n
+  qres%s = self%s
+  qres%nthreads = self%nthreads
+
+  if (self%s.eq.'s') then
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%q)) then 
+      sz = shape(qres%q)
+      if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%q)
+    end if 
+    allocate(qres%q(4,self%n))
+    qres%q = self%q + y%q 
+  else
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%qd)) then 
+      sz = shape(qres%qd)
+      if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%qd)
+    end if 
+    allocate(qres%qd(4,self%n))
+    qres%qd = self%qd + y%qd 
+  end if 
+
+end function quatarrayadd
+
+!--------------------------------------------------------------------------
 recursive function quatsubtract(self, y) result(qres)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/06/20
   !!
-  !! quaternion subtraction (single precision)
+  !! quaternion subtraction (single/double precision)
 
 IMPLICIT NONE
 
@@ -228,12 +411,63 @@ IMPLICIT NONE
 end function quatsubtract
 
 !--------------------------------------------------------------------------
+recursive function quatarraysubtract(self, y) result(qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! quaternion array subtraction (single/double precision)
+
+use mod_io 
+
+IMPLICIT NONE
+
+  class(QuaternionArray_T),intent(in) :: self, y
+  type(QuaternionArray_T)             :: qres 
+
+  type(IO_T)                          :: Message 
+  integer(kind=irg)                   :: sz(2)
+
+! test to make sure that both arrays have the same number of quaternions 
+  if (self%n.ne.y%n) then 
+    call Message%printError('quatarrayadd','input arrays must have the same number of quaternions')
+  end if 
+
+  if (self%s.ne.y%s) then 
+    call Message%printError('quatarrayadd','input arrays must have the same precision')
+  end if 
+
+  qres%n = self%n
+  qres%s = self%s
+  qres%nthreads = self%nthreads
+
+   if (self%s.eq.'s') then
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%q)) then 
+      sz = shape(qres%q)
+      if ( (sz(1).ne.4).or.(sz(2).ne.self%n) ) deallocate(qres%q)
+    end if 
+    allocate(qres%q(4,self%n))
+    qres%q = self%q - y%q 
+  else
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%qd)) then 
+      sz = shape(qres%qd)
+      if ( (sz(1).ne.4).or.(sz(2).ne.self%n) ) deallocate(qres%qd)
+    end if 
+    allocate(qres%qd(4,self%n))
+    qres%qd = self%qd - y%qd 
+  end if 
+
+end function quatarraysubtract
+
+!--------------------------------------------------------------------------
 pure recursive function quatmult(self, y) result(qres)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/06/20
   !!
-  !! quaternion multiplication   (single precision)
+  !! quaternion multiplication   (single/double precision)
 
 IMPLICIT NONE
 
@@ -278,6 +512,93 @@ IMPLICIT NONE
 end function quatmult
 
 !--------------------------------------------------------------------------
+recursive function quatarraymult(self, y) result(qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! quaternion array multiplication   (single/double precision)
+
+use mod_io
+use omp_lib
+
+IMPLICIT NONE
+
+  class(QuaternionArray_T),intent(in) :: self, y
+   !! input quaternion arrays
+  type(QuaternionArray_T)             :: qres 
+   !! output quaternion array
+
+  type(IO_T)                          :: Message 
+  integer(kind=irg)                   :: i, maxthreads, ompthreads, sz(2) 
+
+! test to make sure that both arrays have the same number of quaternions 
+  if (self%n.ne.y%n) then 
+    call Message%printError('quatarrayadd','input arrays must have the same number of quaternions')
+  end if 
+
+  if (self%s.ne.y%s) then 
+    call Message%printError('quatarrayadd','input arrays must have the same precision')
+  end if 
+
+  qres%n = self%n
+  qres%s = self%s
+  qres%nthreads = self%nthreads
+
+! set the number of OpenMP threads
+  maxthreads = OMP_GET_MAX_THREADS()
+  if (self%nthreads.eq.0) then ! use the maximum number of threads unless self%n is less than that
+    ompthreads = maxthreads
+    if (self%n.lt.ompthreads) ompthreads = self%n 
+  else
+    ompthreads = self%nthreads
+    if (self%nthreads.gt.maxthreads) ompthreads = maxthreads
+  end if 
+  call OMP_SET_NUM_THREADS(ompthreads)
+
+  if (self%s.eq.'s') then 
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%q)) then 
+      sz = shape(qres%q)
+      if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%q)
+    end if 
+    allocate(qres%q(4,self%n))
+
+!$OMP PARALLEL DEFAULT(shared)
+!$OMP DO SCHEDULE(DYNAMIC,1) 
+    do i=1,self%n
+      qres%q(1:4,i) = (/ &
+         self%q(1,i)*y%q(1,i) - self%q(2,i)*y%q(2,i) -          ( self%q(3,i)*y%q(3,i) + self%q(4,i)*y%q(4,i) ), &
+         self%q(1,i)*y%q(2,i) + self%q(2,i)*y%q(1,i) + epsijk * ( self%q(3,i)*y%q(4,i) - self%q(4,i)*y%q(3,i) ), &
+         self%q(1,i)*y%q(3,i) + self%q(3,i)*y%q(1,i) + epsijk * ( self%q(4,i)*y%q(2,i) - self%q(2,i)*y%q(4,i) ), &
+         self%q(1,i)*y%q(4,i) + self%q(4,i)*y%q(1,i) + epsijk * ( self%q(2,i)*y%q(3,i) - self%q(3,i)*y%q(2,i) ) /)
+    end do 
+!$OMP END DO 
+!$OMP END PARALLEL    
+  else 
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%qd)) then 
+      sz = shape(qres%qd)
+      if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%qd)
+    end if 
+    allocate(qres%qd(4,self%n))
+
+!$OMP PARALLEL DEFAULT(shared)
+!$OMP DO SCHEDULE(DYNAMIC,1) 
+    do i=1,self%n
+    qres%qd(1:4,i) = (/ &
+         self%qd(1,i)*y%qd(1,i) - self%qd(2,i)*y%qd(2,i) -           ( self%qd(3,i)*y%qd(3,i) + self%qd(4,i)*y%qd(4,i) ), &
+         self%qd(1,i)*y%qd(2,i) + self%qd(2,i)*y%qd(1,i) + epsijkd * ( self%qd(3,i)*y%qd(4,i) - self%qd(4,i)*y%qd(3,i) ), &
+         self%qd(1,i)*y%qd(3,i) + self%qd(3,i)*y%qd(1,i) + epsijkd * ( self%qd(4,i)*y%qd(2,i) - self%qd(2,i)*y%qd(4,i) ), &
+         self%qd(1,i)*y%qd(4,i) + self%qd(4,i)*y%qd(1,i) + epsijkd * ( self%qd(2,i)*y%qd(3,i) - self%qd(3,i)*y%qd(2,i) ) /) 
+    end do 
+!$OMP END DO 
+!$OMP END PARALLEL    
+  end if
+      
+end function quatarraymult
+
+!--------------------------------------------------------------------------
 pure recursive function quatsmult(self, s) result(qres)
   !! author: MDG 
   !! version: 1.0 
@@ -300,6 +621,39 @@ IMPLICIT NONE
 end function quatsmult
 
 !--------------------------------------------------------------------------
+pure recursive function quatarraysmult(self, s) result(qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! scalar quaternion array multiplication   (single precision)
+
+IMPLICIT NONE
+
+  class(QuaternionArray_T),intent(in)   :: self 
+   !! input quaternion
+  real(kind=sgl), INTENT(IN)            :: s
+   !! scalar input 
+  type(QuaternionArray_T)               :: qres 
+   !! output quaternion
+
+  integer(kind=irg)                     :: sz(2) 
+
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+  if (allocated(qres%q)) then 
+    sz = shape(qres%q)
+    if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%q)
+  end if 
+  allocate(qres%q(4,self%n))
+
+  qres%q = s*self%q
+  qres%s = self%s
+  qres%n = self%n
+  qres%nthreads = self%nthreads
+
+end function quatarraysmult
+
+!--------------------------------------------------------------------------
 pure recursive function quatsmultd(self, s) result(qres)
   !! author: MDG 
   !! version: 1.0 
@@ -320,6 +674,39 @@ IMPLICIT NONE
   qres%s = 'd'
 
 end function quatsmultd
+
+!--------------------------------------------------------------------------
+pure recursive function quatarraysmultd(self, s) result(qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! scalar quaternion array multiplication   (double precision)
+
+IMPLICIT NONE
+
+  class(QuaternionArray_T),intent(in)   :: self 
+   !! input quaternion
+  real(kind=dbl), INTENT(IN)            :: s
+   !! scalar input 
+  type(QuaternionArray_T)               :: qres 
+   !! output quaternion
+
+  integer(kind=irg)                     :: sz(2) 
+
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+  if (allocated(qres%qd)) then 
+    sz = shape(qres%qd)
+    if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%qd)
+  end if 
+  allocate(qres%qd(4,self%n))
+
+  qres%qd = s*self%qd
+  qres%s = self%s
+  qres%n = self%n
+  qres%nthreads = self%nthreads
+
+end function quatarraysmultd
 
 !--------------------------------------------------------------------------
 pure recursive function quatconjg(self) result (qres)
@@ -345,6 +732,51 @@ IMPLICIT NONE
   end if 
 
 end function quatconjg
+
+!--------------------------------------------------------------------------
+pure recursive function quatarrayconjg(self) result (qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! quaternion array conjugation (extends intrinsic routine conjg)
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)    :: self
+   !! input quaternion
+  type(QuaternionArray_T)                :: qres
+   !! output quaternion
+
+  integer(kind=irg)                      :: sz(2) 
+
+  if (self%s.eq.'s') then 
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%q)) then 
+      sz = shape(qres%q)
+      if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%q)
+    end if 
+    allocate(qres%q(4,self%n))
+
+    qres%q(1,:)   =  self%q(1,:)
+    qres%q(2:4,:) = -self%q(2:4,:)
+  else
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%qd)) then 
+      sz = shape(qres%qd)
+      if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%qd)
+    end if 
+    allocate(qres%qd(4,self%n))
+
+    qres%qd(1,:)   =  self%qd(1,:)
+    qres%qd(2:4,:) = -self%qd(2:4,:)
+  end if 
+
+  qres%s = self%s
+  qres%n = self%n
+  qres%nthreads = self%nthreads
+
+end function quatarrayconjg
 
 !--------------------------------------------------------------------------
 pure recursive function quatnorm(self) result (res)
@@ -376,6 +808,41 @@ IMPLICIT NONE
 end function quatnorm
 
 !--------------------------------------------------------------------------
+pure recursive function quatarraynorm(self) result (res)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! quaternion array norm (extends intrinsic routine abs)
+  !!
+  !! this routine requires the output array to be allocated in the calling program.
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in) :: self
+   !! input quaternion
+  real(kind=dbl)                      :: res(self%n)
+   !! output norm
+
+  real(kind=sgl),allocatable          :: n(:)
+  real(kind=dbl),allocatable          :: nd(:), resd(:)
+
+  if (self%s.eq.'s') then
+    allocate(n(self%n), resd(self%n))
+    n(:) = self%q(1,:)**2 + self%q(2,:)**2 + self%q(3,:)**2 + self%q(4,:)**2
+    resd = dsqrt( dble(n) )
+    res = dble(sngl(resd))
+    deallocate(n, resd)
+  else
+    allocate(nd(self%n)) 
+    nd(:) = self%qd(1,:)**2 + self%qd(2,:)**2 + self%qd(3,:)**2 + self%qd(4,:)**2
+    res = dsqrt( nd )
+    deallocate(nd)
+  end if 
+
+end function quatarraynorm
+
+!--------------------------------------------------------------------------
 recursive subroutine quatnormalize(self)
   !! author: MDG 
   !! version: 1.0 
@@ -400,11 +867,48 @@ IMPLICIT NONE
   else
     nd = self%qd(1)**2 + self%qd(2)**2 + self%qd(3)**2 + self%qd(4)**2
     nd = sqrt( nd )
-    q = self%quatsdiv(n)
+    q = self%quatsdivd(nd)
     self%qd = q%qd
   end if 
 
 end subroutine quatnormalize
+
+!--------------------------------------------------------------------------
+recursive subroutine quatarraynormalize(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/07/20
+  !!
+  !! normalize the input quaternion 
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(inout) :: self
+   !! input quaternion
+
+  real(kind=sgl),allocatable             :: n(:)
+  real(kind=dbl),allocatable             :: nd(:)
+  integer(kind=irg)                      :: i
+
+  if (self%s.eq.'s') then
+    allocate(n(self%n))
+    n(:) = self%q(1,:)**2 + self%q(2,:)**2 + self%q(3,:)**2 + self%q(4,:)**2
+    n = sqrt( n )
+    do i=1,self%n
+      self%q(:,i) = self%q(:,i)/n(i)
+    end do
+    deallocate(n)
+  else
+    allocate(nd(self%n))
+    nd(:) = self%qd(1,:)**2 + self%qd(2,:)**2 + self%qd(3,:)**2 + self%qd(4,:)**2
+    nd = sqrt( nd )
+    do i=1,self%n
+      self%qd(:,i) = self%qd(:,i)/nd(i)
+    end do
+    deallocate(nd)
+  end if 
+
+end subroutine quatarraynormalize
 
 !--------------------------------------------------------------------------
 recursive function quatdiv(self, y) result (qres)
@@ -412,7 +916,7 @@ recursive function quatdiv(self, y) result (qres)
   !! version: 1.0 
   !! date: 01/06/20
   !!
-  !! quaternion division (single precision)
+  !! quaternion division (single/double precision)
 
 IMPLICIT NONE 
 
@@ -441,6 +945,44 @@ IMPLICIT NONE
 
 
 end function quatdiv
+
+!--------------------------------------------------------------------------
+recursive function quatarraydiv(self, y) result (qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/06/20
+  !!
+  !! quaternion array division (single/double precision)
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)    :: self, y
+   !! input quaternions
+  type(QuaternionArray_T)                :: qres
+   !! output quaternion 
+
+  type(QuaternionArray_T)                :: p, cy
+  real(kind=sgl),allocatable             :: q(:)
+  real(kind=dbl),allocatable             :: qd(:)
+  integer(kind=irg)                      :: i
+
+  if (self%s.eq.'s') then 
+      q = quatarraynorm(y)
+      cy = quatarrayconjg(y)
+      do i=1,self%n 
+        cy%q(:,i) = cy%q(:,i) / q(i)**2
+      end do
+      qres = quatarraymult(self,cy)
+  else
+      qd = quatarraynorm(y)
+      cy = quatarrayconjg(y)
+      do i=1,self%n 
+        cy%qd(:,i) = cy%qd(:,i) / qd(i)**2
+      end do
+      qres = quatarraymult(self,cy)
+  end if 
+
+end function quatarraydiv
 
 !--------------------------------------------------------------------------
 recursive function quatsdiv(self, s) result (qres)
@@ -473,6 +1015,45 @@ IMPLICIT NONE
 end function quatsdiv
 
 !--------------------------------------------------------------------------
+recursive function quatarraysdiv(self, s) result (qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! quaternion array scalar division (single precision)
+
+use mod_io 
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)    :: self
+   !! input quaternion (numerator)
+  real(kind=sgl), INTENT(IN)             :: s            
+   !! input quaternion (denominator)
+
+  type(QuaternionArray_T)                :: qres
+  type(IO_T)                             :: Message
+  integer(kind=irg)                      :: sz(2)
+
+  if (s.ne.0.0) then 
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%q)) then 
+      sz = shape(qres%q)
+      if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%q)
+    end if 
+    allocate(qres%q(4,self%n))
+
+    qres%q = self%q/s
+    qres%s = self%s
+    qres%n = self%n
+    qres%nthreads = self%nthreads
+  else 
+    call Message % printError('quatarraysdiv', 'Attempting to divide quaternion aray by zero' )
+  end if
+
+end function quatarraysdiv
+
+!--------------------------------------------------------------------------
 recursive function quatsdivd(self, s) result (qres)
   !! author: MDG 
   !! version: 1.0 
@@ -503,6 +1084,45 @@ IMPLICIT NONE
 end function quatsdivd
 
 !--------------------------------------------------------------------------
+recursive function quatarraysdivd(self, s) result (qres)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! quaternion array scalar division (double precision)
+
+use mod_io 
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)    :: self
+   !! input quaternion (numerator)
+  real(kind=dbl), INTENT(IN)             :: s            
+   !! input quaternion (denominator)
+
+  type(QuaternionArray_T)                :: qres
+  type(IO_T)                             :: Message
+  integer(kind=irg)                      :: sz(2)
+
+  if (s.ne.0.D0) then 
+! if the quaternion array is already allocated, check to make sure it has the right dimensions
+    if (allocated(qres%qd)) then 
+      sz = shape(qres%qd)
+      if ((sz(1).ne.4).or.(sz(2).ne.self%n)) deallocate(qres%qd)
+    end if 
+    allocate(qres%qd(4,self%n))
+
+    qres%qd = self%qd/s
+    qres%s = self%s
+    qres%n = self%n
+    qres%nthreads = self%nthreads
+  else 
+    call Message % printError('quatarraysdivd', 'Attempting to divide quaternion aray by zero' )
+  end if
+
+end function quatarraysdivd
+
+!--------------------------------------------------------------------------
 pure recursive function quatinnerproduct(self, y) result (res)
   !! author: MDG 
   !! version: 1.0 
@@ -514,31 +1134,54 @@ IMPLICIT NONE
 
   class(Quaternion_T),intent(in)    :: self, y
    !! input quaternions
-  real(kind=sgl)                    :: res
+  real(kind=dbl)                    :: res
    !! inner product 
 
-  res = self%q(1) * y%q(1) + self%q(2) * y%q(2) + self%q(3) * y%q(3) + self%q(4) * y%q(4)
+  if (self%s.eq.'s') then 
+    res = dble(self%q(1) * y%q(1) + self%q(2) * y%q(2) + self%q(3) * y%q(3) + self%q(4) * y%q(4))
+  else
+    res = self%qd(1) * y%qd(1) + self%qd(2) * y%qd(2) + self%qd(3) * y%qd(3) + self%qd(4) * y%qd(4)
+  end if
 
 end function quatinnerproduct
 
 !--------------------------------------------------------------------------
-pure recursive function quatinnerproductd(self, y) result (res)
+recursive function quatarrayinnerproduct(self, y) result (res)
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/06/20
+  !! date: 01/08/20
   !!
-  !! quaternion inner product (double precision)
+  !! quaternion array inner product (single precision)
+  !!
+  !! calling program must allocate the output array
+
+use mod_io 
 
 IMPLICIT NONE 
 
-  class(Quaternion_T),intent(in)    :: self, y
+  class(QuaternionArray_T),intent(in)    :: self, y
    !! input quaternions
-  real(kind=sgl)                    :: res
+  real(kind=dbl)                         :: res(self%n)
    !! inner product 
 
-  res = self%qd(1) * y%qd(1) + self%qd(2) * y%qd(2) + self%qd(3) * y%qd(3) + self%qd(4) * y%qd(4)
+   type(IO_T)                            :: Message
 
-end function quatinnerproductd
+! test to make sure that both arrays have the same number of quaternions 
+  if (self%n.ne.y%n) then 
+    call Message%printError('quatarrayinnerproduct','input arrays must have the same number of quaternions')
+  end if 
+
+  if (self%s.ne.y%s) then 
+    call Message%printError('quatarrayinnerproduct','input arrays must have the same precision')
+  end if 
+  
+  if (self%s.eq.'s') then 
+    res(:) = dble(self%q(1,:) * y%q(1,:) + self%q(2,:) * y%q(2,:) + self%q(3,:) * y%q(3,:) + self%q(4,:) * y%q(4,:))
+  else
+    res(:) = self%qd(1,:) * y%qd(1,:) + self%qd(2,:) * y%qd(2,:) + self%qd(3,:) * y%qd(3,:) + self%qd(4,:) * y%qd(4,:)
+  end if
+
+end function quatarrayinnerproduct
 
 !--------------------------------------------------------------------------!
 pure recursive function quatangle(self, y) result(res)
@@ -546,7 +1189,7 @@ pure recursive function quatangle(self, y) result(res)
   !! version: 1.0 
   !! date: 01/06/20
   !!
-  !! interquaternion angle   (single precision)
+  !! interquaternion angle   (single/double precision)
   !! this only has meaning for a unit quaternion, so we test first and return -10000.0
   !! if either of the quaternions is not a unit quaternion.
 
@@ -575,6 +1218,57 @@ IMPLICIT NONE
 end function quatangle
 
 !--------------------------------------------------------------------------!
+recursive function quatarrayangle(self, y) result(res)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! interquaternion angle for a pair of quaternion arrays (single/double precision)
+  !! this only has meaning for a unit quaternion, so we test first and return -10000.0
+  !! if either of the quaternions is not a unit quaternion.
+
+use mod_io
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)     :: self, y
+   !! input quaternions
+  real(kind=dbl)                          :: res(self%n)
+   !! angle (radians)
+
+  type(IO_T)                              :: Message
+  real(kind=sgl), allocatable             :: q(:), nself(:), ny(:)
+  real(kind=dbl), allocatable             :: qd(:), nselfd(:), nyd(:)
+
+! test to make sure that both arrays have the same number of quaternions 
+  if (self%n.ne.y%n) then 
+    call Message%printError('quatarrayangle','input arrays must have the same number of quaternions')
+  end if 
+
+  if (self%s.ne.y%s) then 
+    call Message%printError('quatarrayangle','input arrays must have the same precision')
+  end if 
+
+  if (self%s.eq.'s') then 
+      allocate(nself(self%n), ny(self%n), q(self%n)) 
+      nself = self%quatarraynorm()
+      ny = y%quatarraynorm()
+      q = self%quatarrayinnerproduct(y)
+      res = dble(acos( q/(nself * ny) ))
+      deallocate(nself, ny, q)
+  else 
+      allocate(nselfd(self%n), nyd(self%n), qd(self%n)) 
+      nselfd = self%quatarraynorm()
+      nyd = y%quatarraynorm()
+      qd = self%quatarrayinnerproduct(y)
+      res = dacos( qd/(nselfd * nyd) )
+      deallocate(nselfd, nyd, qd)
+  end if
+
+end function quatarrayangle
+
+
+!--------------------------------------------------------------------------!
 ! pure recursive function quatLp(self, v) result (res)
 recursive function quatLp(self, v) result (res)
   !! author: MDG 
@@ -595,11 +1289,43 @@ IMPLICIT NONE
   type(Quaternion_T)                :: qv, rqv, cq
 
   qv%q = (/ 0.0, v(1), v(2), v(3) /) 
+  qv%s = 's'
   cq = quatconjg(self)
   rqv = quatmult(self, quatmult(qv, cq) )
   res(1:3) = rqv%q(2:4)
 
 end function quatLp
+
+!--------------------------------------------------------------------------!
+recursive function quatarrayLp(self, v) result (res)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/06/20
+  !!
+  !! actively rotate a single vector by an array of unit quaternions, L_p = p v p* (single precision)
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)    :: self
+   !! input quaternion
+  real(kind=sgl),intent(in)              :: v(3)         
+   !! input vector to be rotated 
+  real(kind=sgl)                         :: res(3,self%n)
+   !! output vector
+
+  type(Quaternion_T)                     :: qv, rqv, q, cq 
+  integer(kind=irg)                      :: i
+
+  qv%q = (/ 0.0, v(1), v(2), v(3) /) 
+  qv%s = 's'
+  do i=1,self%n
+    q = extractfromQuaternionArray(self, i)
+    cq = q%quatconjg()
+    rqv = quatmult(q, quatmult(qv, cq) )
+    res(1:3,i) = rqv%q(2:4)
+  end do 
+
+end function quatarrayLp
 
 !--------------------------------------------------------------------------!
 ! pure recursive function quatLpd(self, v) result (res)
@@ -621,12 +1347,84 @@ IMPLICIT NONE
 
   type(Quaternion_T)                :: qv, rqv, cq
 
-  qv%q = (/ 0.D0, v(1), v(2), v(3) /) 
+  qv%qd = (/ 0.D0, v(1), v(2), v(3) /) 
+  qv%s = 'd'
   cq = quatconjg(self)
   rqv = quatmult(self, quatmult(qv, cq) )
-  res(1:3) = rqv%q(2:4)
+  res(1:3) = rqv%qd(2:4)
 
 end function quatLpd
+
+!--------------------------------------------------------------------------!
+recursive function quatArrayLpd(self, v) result (res)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/03/20
+  !!
+  !! actively rotate a unit vector by an array of unit quaternions, L_p = p v p* (double precision)
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)    :: self
+   !! input quaternion
+  real(kind=dbl),intent(in)              :: v(3)         
+   !! input vector to be rotated 
+  real(kind=dbl)                         :: res(3,self%n)
+   !! output vector
+
+  type(Quaternion_T)                     :: qv, rqv, q, cq 
+  integer(kind=irg)                      :: i
+
+  qv%qd = (/ 0.D0, v(1), v(2), v(3) /) 
+  qv%s = 'd'
+  do i=1,self%n
+    q = extractfromQuaternionArray(self, i)
+    cq = q%quatconjg()
+    rqv = quatmult(q, quatmult(qv, cq) )
+    res(1:3,i) = rqv%qd(2:4)
+  end do 
+
+end function quatArrayLpd
+
+!--------------------------------------------------------------------------!
+recursive function extractfromQuaternionArray(self, i) result (res)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! actively rotate a single vector by an array of unit quaternions, L_p = p v p* (single precision)
+
+use mod_io 
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(in)   :: self
+   !! input quaternion array
+  integer(kind=irg), intent(in)         :: i 
+   !! quaternion to be extracted 
+  type(Quaternion_T)                    :: res
+   !! extracted quaternion 
+
+  type(IO_T)                            :: Message 
+
+  if (i.le.self%n) then 
+    res%s = self%s 
+    if (self%s.eq.'s') then 
+      res%q(:) = self%q(:,i) 
+    else
+      res%qd(:) = self%qd(:,i) 
+    end if 
+  else 
+    call Message%printWarning('extractfromQuaternionArray: requested quaternion index larger than array size', &
+                              (/'   ---> returning empty quaternion'/) )
+    if (self%s.eq.'s') then 
+      res = Quaternion_T( q = (/ 0.0, 0.0, 0.0, 0.0 /) )
+    else
+      res = Quaternion_T( qd = (/ 0.D0, 0.D0, 0.D0, 0.D0 /) )
+    end if
+  end if 
+
+end function extractfromQuaternionArray
 
 !--------------------------------------------------------------------------!
 ! pure recursive function quatslerp(self, qb, n) result(res)
@@ -730,6 +1528,18 @@ IMPLICIT NONE
 end function quatsequal
 
 
+
+
+
+
+
+
+
+
+
+
+
+! this needs to be moved into another module (sampling module?)
 !--------------------------------------------------------------------------!
 recursive function quat_Marsaglia(seed) result(q)
 !DEC$ ATTRIBUTES DLLEXPORT :: quatMarsaglia
