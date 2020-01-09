@@ -19,11 +19,10 @@ endif()
 
 
 set(EMsoftOOHDFLib_SRCS
-  ${EMsoftOOHDFLib_SOURCE_DIR}/placeholder.f90
   # ${EMsoftOOHDFLib_SOURCE_DIR}/EBSDmod.f90
 	# ${EMsoftOOHDFLib_SOURCE_DIR}/initializersHDF.f90
  # 	${EMsoftOOHDFLib_SOURCE_DIR}/EBSDDImod.f90
- # 	${EMsoftOOHDFLib_SOURCE_DIR}/HDFsupport.f90
+ 	${EMsoftOOHDFLib_SOURCE_DIR}/mod_HDFsupport.f90
  # 	${EMsoftOOHDFLib_SOURCE_DIR}/NameListHDFwriters.f90
  #  ${EMsoftOOHDFLib_Additional_SRCS}
  #  ${EMsoftOOHDFLib_SOURCE_DIR}/commonmod.f90
