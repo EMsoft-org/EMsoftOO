@@ -71,6 +71,8 @@ IMPLICIT NONE
   logical, save                           :: FixedLengthflag, HDFverbose, dumpHDFstack
   integer(kind=irg), save                 :: interfaceOpenLevel=0
 
+  public :: cstringify
+
   type, public :: HDF_T 
    !! HDF Class definition (this class takes over from the original self structure)
    private
@@ -5658,7 +5660,7 @@ itis = .FALSE.
 i = h5ltfind_dataset_f(self%head%next%ObjectID, trim(dataset))
 
 if (i.eq.1) then 
-  call readDatasetInteger(self, dataset, hdferr, FL)
+  call readDatasetInteger_(self, dataset, hdferr, FL)
   call error_check_(self, 'CheckFixedLengthflag:readDatasetInteger:'//trim(dataset), hdferr)
 
   if (FL.eq.1) then 
@@ -5717,8 +5719,6 @@ recursive SUBROUTINE h5_write_pseudo_bse_image_(self, fname, dsetnm, hdferr, wda
   rnk = rank(wdata)
   write(*,*) 'dims =', dims!, 'rank = ',rnk
 
-  !START THE FORTRAN INTERFACE
-  CALL h5open_EMsoft(hdferr)
   !CREATE THE FILE
   CALL h5fcreate_f(fname, H5F_ACC_TRUNC_F, fid, hdferr)
   !CREATE THE DATASPACE
@@ -5738,8 +5738,6 @@ recursive SUBROUTINE h5_write_pseudo_bse_image_(self, fname, dsetnm, hdferr, wda
 !  CALL h5sclose_f(spaceid, hdferr)
   !CLOSE THE FILE
   CALL h5fclose_f(fid, hdferr)
-  !CLOSE THE FORTRAN INTERFACE
-  CALL h5close_EMsoft(hdferr)
 
 END SUBROUTINE h5_write_pseudo_bse_image_
 
@@ -5783,8 +5781,6 @@ recursive SUBROUTINE h5_tsl_read_ebsd_pattern_(self, fname, dsetnm, hdferr, rdat
   cnt(2) = szy
   cnt(3) = 1
 
-  !Initialize fortran interface
-  CALL h5open_EMsoft(hdferr)
   !Open the hdf5 file
   CALL h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
   !Open an existing dataset
@@ -5806,8 +5802,6 @@ recursive SUBROUTINE h5_tsl_read_ebsd_pattern_(self, fname, dsetnm, hdferr, rdat
   CALL h5sclose_f(spaceid,hdferr) 
   !CLOSE THE DATASET
   CALL h5dclose_f(dsetid,hdferr)
-  !CLOSE THE FORTRAN INTERFACE
-  CALL h5close_EMsoft(hdferr)
 
 END SUBROUTINE h5_tsl_read_ebsd_pattern_
 
@@ -5832,8 +5826,6 @@ recursive SUBROUTINE h5_read_integer_dataset_(self, fname, dsetnm, hdferr, rdata
   INTEGER, TARGET, INTENT(OUT)      :: rdata
   TYPE(C_PTR)                       :: buff
 
-  !Initialize fortran interface
-  CALL h5open_EMsoft(hdferr)
   !Open the hdf5 file
   CALL h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
 
@@ -5850,8 +5842,6 @@ recursive SUBROUTINE h5_read_integer_dataset_(self, fname, dsetnm, hdferr, rdata
   CALL h5sclose_f(spaceid,hdferr)     
   !CLOSE THE DATASET
   CALL h5dclose_f(dsetid,hdferr)
-  !CLOSE THE FORTRAN INTERFACE
-  CALL h5close_EMsoft(hdferr)
 
 END SUBROUTINE h5_read_integer_dataset_
 

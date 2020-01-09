@@ -38,17 +38,16 @@ set(EMsoftOOTestDir "${EMsoftOO_SOURCE_DIR}/Source/Test")
 if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   
   GetHDF5LinkLibraries(EMSOFTOO)
-  set(EXE_LINK_LIBRARIES ${EMSOFT_hdf5LinkLibs} EMsoftOOHDFLib)
+  set(EXE_LINK_LIBRARIES ${EMSOFTOO_hdf5LinkLibs} EMsoftOOLib EMsoftOOHDFLib)
 
   set(EMsoftOO_UNIT_TESTS 
     MODQuaternions
-    # HDFtextfile
-    # HDFinteger
-    # HDFchar
-    # HDFfloat
-    # HDFdouble
-    # HDFhyperslab
-    # HDFstack
+    HDFtextfile
+    HDFinteger
+    HDFchar
+    HDFfloat
+    HDFdouble
+    HDFhyperslab
     # MODcrystal
     # MODMuellerCalculus
     # MODRotations
