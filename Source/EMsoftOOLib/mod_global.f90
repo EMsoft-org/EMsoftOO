@@ -37,6 +37,7 @@ use mod_kinds
 use,intrinsic :: ISO_C_BINDING
 
 IMPLICIT NONE
+public
 
 !> @note This module must be "use"d by every program, subroutine, and function.
 !> These are the only global variables used by the EMsoft package.

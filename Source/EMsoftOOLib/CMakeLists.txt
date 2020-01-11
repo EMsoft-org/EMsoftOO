@@ -27,6 +27,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_quaternions.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_rng.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Lambert.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_symmetry.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_crystallography.f90
 
   ${EMsoftOOLib_Additional_SRCS}

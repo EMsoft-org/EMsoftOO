@@ -48,6 +48,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
     HDFfloat
     HDFdouble
     HDFhyperslab
+    MODsymmetry
     # MODcrystal
     # MODMuellerCalculus
     # MODRotations

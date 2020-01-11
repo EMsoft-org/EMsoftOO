@@ -46,7 +46,7 @@ module mod_HDFsupport
   !! 11/01/16 MDG 1.9 fixed dimensional error in hyperslab read routines
   !! 12/14/16 MDG 2.0 added logical switch to flag DREAM.3D-generated files which require different string handling (fixed length vs variable length)
   !! 12/16/16 MDG 3.0 completely reworked HDF error handling; introduced h5open_EMsoft to initialize the fortran HDF interface
-  !! 08/30/19 MDG 4.0 modified self definition for python f90wrap compatibility
+  !! 08/30/19 MDG 4.0 modified HDF_head definition for python f90wrap compatibility
   !! 09/30/19 MAJ 4.1 initial mods of allocations that caused Mac OSX/ifort issues in write routines 
   !! 10/01/19 MDG 4.2 additional mods to make ifort work on Mac OS X 
   !! 11/08/19 MDG 4.3 replaced individual dims parameters by single dims array in multiple routines
@@ -189,78 +189,78 @@ IMPLICIT NONE
      final :: HDF_destructor
 
 ! generic (public) function definitions and overloads
-    generic, public :: push => push_
-    generic, public :: pop => pop_
-    generic, public :: stackdump => stackdump_
-    ! generic, public :: togglestackdump => togglestackdump_
-
-    generic, public :: createFile => createFile_
-    generic, public :: openFile => openFile_
-    generic, public :: createGroup => createGroup_
-    generic, public :: openGroup => openGroup_
-    generic, public :: openDataset => openDataset_
-    generic, public :: error_check => error_check_
-
-    generic, public :: writeDatasetTextFile => writeDatasetTextFile_
-    generic, public :: extractDatasetTextfile => extractDatasetTextfile_
-    generic, public :: writeDatasetStringArray => writeDatasetStringArray_
-    generic, public :: writeDatasetCharArray => writeDatasetCharArray1D, writeDatasetCharArray2D, &
-                                                writeDatasetCharArray3D, writeDatasetCharArray4D
-    generic, public :: writeDatasetInteger => writeDatasetInteger_
-    generic, public :: writeDatasetInteger1byteArray1D => writeDatasetInteger1byteArray1D_
-    generic, public :: writeDatasetIntegerArray => writeDatasetIntegerArray1D, writeDatasetIntegerArray2D, &
-                                                   writeDatasetIntegerArray3D, writeDatasetIntegerArray4D
-    generic, public :: writeDatasetFloat => writeDatasetFloat_
-    generic, public :: writeDatasetDouble => writeDatasetDouble_
-    generic, public :: writeDatasetFloatArray => writeDatasetFloatArray1D, writeDatasetFloatArray2D, &
-                                                 writeDatasetFloatArray3D, writeDatasetFloatArray4D, &
-                                                 writeDatasetFloatArray6D
-    generic, public :: writeDatasetDoubleArray => writeDatasetDoubleArray1D, writeDatasetDoubleArray2D, &
-                                                  writeDatasetDoubleArray3D, writeDatasetDoubleArray4D
-    generic, public :: writeHyperslabCharArray => writeHyperslabCharArray2D, writeHyperslabCharArray3D, &
-                                                  writeHyperslabCharArray4D
-    generic, public :: writeHyperslabIntegerArray => writeHyperslabIntegerArray2D, writeHyperslabIntegerArray3D, &
-                                                     writeHyperslabIntegerArray4D
-    generic, public :: writeHyperslabFloatArray => writeHyperslabFloatArray2D,  writeHyperslabFloatArray3D, &
-                                                   writeHyperslabFloatArray4D
-    generic, public :: writeHyperslabDoubleArray => writeHyperslabDoubleArray2D, writeHyperslabDoubleArray3D, &
-                                                    writeHyperslabDoubleArray4D
-    generic, public :: readfromTextfile => readfromTextfile_
-    generic, public :: readDatasetStringArray => readDatasetStringArray_
-    generic, public :: readDatasetCharArray => readDatasetCharArray1D, readDatasetCharArray2D, &
-                                               readDatasetCharArray3D, readDatasetCharArray4D
-    generic, public :: readDatasetInteger => readDatasetInteger_
-    generic, public :: readDatasetIntegerArray => readDatasetIntegerArray1D, readDatasetIntegerArray2D, &
-                                                  readDatasetIntegerArray3D, readDatasetIntegerArray4D
-    generic, public :: readDatasetFloat => readDatasetFloat_
-    generic, public :: readDatasetFloatArray => readDatasetFloatArray1D, readDatasetFloatArray2D, &
-                                                readDatasetFloatArray3D, readDatasetFloatArray4D
-    generic, public :: readDatasetDouble => readDatasetDouble_
-    generic, public :: readDatasetDoubleArray => readDatasetDoubleArray1D, readDatasetDoubleArray2D, &
-                                                 readDatasetDoubleArray3D, readDatasetDoubleArray4D
-    generic, public :: readHyperslabCharArray2D => readHyperslabCharArray2D_ 
-    generic, public :: readHyperslabCharArray3D => readHyperslabCharArray3D_
-    generic, public :: readHyperslabCharArray4D => readHyperslabCharArray4D_
-    generic, public :: readHyperslabIntegerArray2D => readHyperslabIntegerArray2D_
-    generic, public :: readHyperslabIntegerArray3D =>readHyperslabIntegerArray3D_
-    generic, public :: readHyperslabIntegerArray4D =>readHyperslabIntegerArray4D_
-    generic, public :: readHyperslabFloatArray2D => readHyperslabFloatArray2D_
-    generic, public :: readHyperslabFloatArray3D => readHyperslabFloatArray3D_
-    generic, public :: readHyperslabFloatArray4D =>  readHyperslabFloatArray4D_
-    generic, public :: readHyperslabDoubleArray2D => readHyperslabDoubleArray2D_
-    generic, public :: readHyperslabDoubleArray3D => readHyperslabDoubleArray3D_
-    generic, public :: readHyperslabDoubleArray4D => readHyperslabDoubleArray4D_
-    generic, public :: addStringAttributeToGroup => addStringAttributeToGroup_
-    generic, public :: getStringAttributeFromGroup => getStringAttributeFromGroup_
-    generic, public :: read2DImage => read2DImage_ 
-    ! generic, public :: CrystalData => CrystalData_
-    ! generic, public :: SaveDataHDF => SaveDataHDF_
-    ! generic, public :: ReadDataHDF => ReadDataHDF_
-    generic, public :: h5_write_pseudo_bse_image => h5_write_pseudo_bse_image_
-    generic, public :: h5_tsl_read_ebsd_pattern => h5_tsl_read_ebsd_pattern_
-    generic, public :: h5_read_integer_dataset => h5_read_integer_dataset_
-    generic, public :: CheckFixedLengthflag => CheckFixedLengthflag_
-    generic, public :: resetFixedLengthflag => resetFixedLengthflag_
+     generic, public :: push => push_
+     generic, public :: pop => pop_
+     generic, public :: stackdump => stackdump_
+     ! generic, public :: togglestackdump => togglestackdump_
+ 
+     generic, public :: createFile => createFile_
+     generic, public :: openFile => openFile_
+     generic, public :: createGroup => createGroup_
+     generic, public :: openGroup => openGroup_
+     generic, public :: openDataset => openDataset_
+     generic, public :: error_check => error_check_
+ 
+     generic, public :: writeDatasetTextFile => writeDatasetTextFile_
+     generic, public :: extractDatasetTextfile => extractDatasetTextfile_
+     generic, public :: writeDatasetStringArray => writeDatasetStringArray_
+     generic, public :: writeDatasetCharArray => writeDatasetCharArray1D, writeDatasetCharArray2D, &
+                                                 writeDatasetCharArray3D, writeDatasetCharArray4D
+     generic, public :: writeDatasetInteger => writeDatasetInteger_
+     generic, public :: writeDatasetInteger1byteArray1D => writeDatasetInteger1byteArray1D_
+     generic, public :: writeDatasetIntegerArray => writeDatasetIntegerArray1D, writeDatasetIntegerArray2D, &
+                                                    writeDatasetIntegerArray3D, writeDatasetIntegerArray4D
+     generic, public :: writeDatasetFloat => writeDatasetFloat_
+     generic, public :: writeDatasetDouble => writeDatasetDouble_
+     generic, public :: writeDatasetFloatArray => writeDatasetFloatArray1D, writeDatasetFloatArray2D, &
+                                                  writeDatasetFloatArray3D, writeDatasetFloatArray4D, &
+                                                  writeDatasetFloatArray6D
+     generic, public :: writeDatasetDoubleArray => writeDatasetDoubleArray1D, writeDatasetDoubleArray2D, &
+                                                   writeDatasetDoubleArray3D, writeDatasetDoubleArray4D
+     generic, public :: writeHyperslabCharArray => writeHyperslabCharArray2D, writeHyperslabCharArray3D, &
+                                                   writeHyperslabCharArray4D
+     generic, public :: writeHyperslabIntegerArray => writeHyperslabIntegerArray2D, writeHyperslabIntegerArray3D, &
+                                                      writeHyperslabIntegerArray4D
+     generic, public :: writeHyperslabFloatArray => writeHyperslabFloatArray2D,  writeHyperslabFloatArray3D, &
+                                                    writeHyperslabFloatArray4D
+     generic, public :: writeHyperslabDoubleArray => writeHyperslabDoubleArray2D, writeHyperslabDoubleArray3D, &
+                                                     writeHyperslabDoubleArray4D
+     generic, public :: readfromTextfile => readfromTextfile_
+     generic, public :: readDatasetStringArray => readDatasetStringArray_
+     generic, public :: readDatasetCharArray => readDatasetCharArray1D, readDatasetCharArray2D, &
+                                                readDatasetCharArray3D, readDatasetCharArray4D
+     generic, public :: readDatasetInteger => readDatasetInteger_
+     generic, public :: readDatasetIntegerArray => readDatasetIntegerArray1D, readDatasetIntegerArray2D, &
+                                                   readDatasetIntegerArray3D, readDatasetIntegerArray4D
+     generic, public :: readDatasetFloat => readDatasetFloat_
+     generic, public :: readDatasetFloatArray => readDatasetFloatArray1D, readDatasetFloatArray2D, &
+                                                 readDatasetFloatArray3D, readDatasetFloatArray4D
+     generic, public :: readDatasetDouble => readDatasetDouble_
+     generic, public :: readDatasetDoubleArray => readDatasetDoubleArray1D, readDatasetDoubleArray2D, &
+                                                  readDatasetDoubleArray3D, readDatasetDoubleArray4D
+     generic, public :: readHyperslabCharArray2D => readHyperslabCharArray2D_ 
+     generic, public :: readHyperslabCharArray3D => readHyperslabCharArray3D_
+     generic, public :: readHyperslabCharArray4D => readHyperslabCharArray4D_
+     generic, public :: readHyperslabIntegerArray2D => readHyperslabIntegerArray2D_
+     generic, public :: readHyperslabIntegerArray3D =>readHyperslabIntegerArray3D_
+     generic, public :: readHyperslabIntegerArray4D =>readHyperslabIntegerArray4D_
+     generic, public :: readHyperslabFloatArray2D => readHyperslabFloatArray2D_
+     generic, public :: readHyperslabFloatArray3D => readHyperslabFloatArray3D_
+     generic, public :: readHyperslabFloatArray4D =>  readHyperslabFloatArray4D_
+     generic, public :: readHyperslabDoubleArray2D => readHyperslabDoubleArray2D_
+     generic, public :: readHyperslabDoubleArray3D => readHyperslabDoubleArray3D_
+     generic, public :: readHyperslabDoubleArray4D => readHyperslabDoubleArray4D_
+     generic, public :: addStringAttributeToGroup => addStringAttributeToGroup_
+     generic, public :: getStringAttributeFromGroup => getStringAttributeFromGroup_
+     generic, public :: read2DImage => read2DImage_ 
+     ! generic, public :: CrystalData => CrystalData_
+     ! generic, public :: SaveDataHDF => SaveDataHDF_
+     ! generic, public :: ReadDataHDF => ReadDataHDF_
+     generic, public :: h5_write_pseudo_bse_image => h5_write_pseudo_bse_image_
+     generic, public :: h5_tsl_read_ebsd_pattern => h5_tsl_read_ebsd_pattern_
+     generic, public :: h5_read_integer_dataset => h5_read_integer_dataset_
+     generic, public :: CheckFixedLengthflag => CheckFixedLengthflag_
+     generic, public :: resetFixedLengthflag => resetFixedLengthflag_
 
   end type HDF_T
 
