@@ -234,7 +234,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig) result(EMsoft)
+type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent) result(EMsoft)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/30/19
@@ -250,18 +250,24 @@ character(fnlen), INTENT(IN)      :: progdesc
 logical, INTENT(IN), OPTIONAL     :: makeconfig
  !! optionally, generate the JSON configuration file
 logical, INTENT(IN), OPTIONAL     :: showconfig
- !! optionaly, print all the configuration parameters
+ !! optionally, print all the configuration parameters
+logical, INTENT(IN), OPTIONAL     :: silent
+ !! optionally, don't show any output
 
-  call EMsoft % init
+  call EMsoft % init()
 
   if (PRESENT(makeconfig)) then 
     if (makeconfig) then 
       call EMsoft % printEMsoftHeader(progname, progdesc, makeconfig)
     else
-      call EMsoft % printEMsoftHeader(progname, progdesc)
+      if (.not.present(silent)) then 
+        call EMsoft % printEMsoftHeader(progname, progdesc)
+      end if 
     endif
   else 
+    if (.not.present(silent)) then 
       call EMsoft % printEMsoftHeader(progname, progdesc)
+    end if
   end if
 
   if (PRESENT(showconfig)) then 

@@ -5242,7 +5242,7 @@ end function readHyperslabDoubleArray4D_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! routines for the handling of EMsoft .xtal files 
+! routines for the handling of EMsoft .xtal files, move to mod_crystallography 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
@@ -5267,18 +5267,16 @@ end function readHyperslabDoubleArray4D_
 ! !> @date   03/30/15 MDG 5.0 changed file format to HDF; always assume that the file exists
 ! !> @date   09/29/16 MDG 5.1 added option to read CrystalData from currently open HDF file
 ! !--------------------------------------------------------------------------
-! recursive subroutine CrystalData(self, cell, verbose, existingHDFhead)
+! recursive subroutine CrystalData_(self, cell, verbose, existingHDFhead)
 !   !! author: MDG 
 !   !! version: 1.0 
 !   !! date: 01/09/20
 !   !!
 !   !! load or generate crystal data 
 
-! use io
-! use crystal
-! use files
-! use symmetry
-! use typedefs
+! use mod_io
+! use mod_crystallography
+! use mod_symmetry
 
 ! IMPLICIT NONE
 
@@ -5287,14 +5285,15 @@ end function readHyperslabDoubleArray4D_
 ! logical,INTENT(IN),OPTIONAL             :: verbose
 ! type(HDF_T),OPTIONAL,INTENT(INOUT)      :: existingHDFhead
 
+! type(SpaceGroup_T)                      :: SG 
+! type(IO_T)                              :: Message 
 ! integer(kind=irg)                       :: i, ipg, isave
 
-! call self%ReadDataHDF(cell, existingHDFhead)
+! call ReadDataHDF_(self, cell, existingHDFhead)
 
-! ! strucdef = .TRUE.
-!  cell%hexset = .FALSE.
-!  if (cell%xtal_system.eq.4) cell%hexset = .TRUE.
-!  if ((cell%xtal_system.eq.5).AND.(cell%SYM_SGset.ne.2)) cell%hexset = .TRUE.
+!  self%hexset = .FALSE.
+!  if (self%xtal_system.eq.4) self%hexset = .TRUE.
+!  if ((self%xtal_system.eq.5).AND.(self%setting.ne.2)) self%hexset = .TRUE.
 
 ! ! compute the metric matrices
 !  call cell%CalcMatrices()
@@ -5304,7 +5303,7 @@ end function readHyperslabDoubleArray4D_
 ! ! if the actual group is also the symmorphic group, then both 
 ! ! steps can be done simultaneously, otherwise two calls to 
 ! ! GenerateSymmetry are needed.
-!  if (SGsymnum(cell%SYM_SGnum).eq.cell%SYM_SGnum) then
+!  if (SGsymnum(self%SGnumber).eq.self%SGnumber) then
 !   call GenerateSymmetry(cell,.TRUE.)
 !  else
 !   isave = cell%SYM_SGnum
@@ -5321,7 +5320,7 @@ end function readHyperslabDoubleArray4D_
 !  end if
 ! end if 
 
-! end subroutine CrystalData
+! end subroutine CrystalData_
 
 ! !--------------------------------------------------------------------------
 ! !

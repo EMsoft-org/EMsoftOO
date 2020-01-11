@@ -14,13 +14,13 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
           EMOpenCLLib
   )
 
-  # Add_EMSoft_Executable(TARGET EMOpenCLinfo 
-  #                       SOURCES ${APP_DIR}/EMOpenCLinfo.f90 
-  #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-  #                       SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-  #                       INSTALL_PROGRAM TRUE
-  #                       INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
-  #                       )
+  Add_EMSoftOO_Executable(TARGET EMOpenCLinfo 
+                        SOURCES ${APP_DIR}/EMOpenCLinfo.f90 
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                        SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
+                        )
 endif()
 
 if(EMsoftOO_ENABLE_HDF5_SUPPORT)
