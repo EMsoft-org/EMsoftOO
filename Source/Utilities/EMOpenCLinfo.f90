@@ -71,7 +71,6 @@
 program EMOpenCLinfo
 
 use mod_EMsoft
-use mod_io
 use mod_global
 use clfortran
 use mod_CLsupport
@@ -80,16 +79,9 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 character(fnlen)                         :: progname, progdesc
-integer(c_int32_t)                       :: err
-integer(c_size_t)                        :: zero_size = 0
-integer(c_size_t)                        :: temp_size
-integer(c_int)                           :: num_platforms
-integer(c_int)                           :: i
-integer(c_intptr_t), allocatable, target :: platform_ids(:)
 
+type(OpenCL_T)                           :: CL
 type(EMsoft_T)                           :: EMsoft 
-type(IO_T)                               :: Message
-integer(kind=irg)                        :: io_int(3)
 
 progname = 'EMOpenCLinfo.f90'
 progdesc = 'List OpenCL platform and device information'
@@ -98,44 +90,9 @@ EMsoft = EMsoft_T(progname,progdesc)
 ! deal with the command line arguments, if any (mostly to generate pdf version of wiki pages)
 !call Interpret_Program_Arguments(2,(/ 904, 930 /), progname)
 
-! Get the number of platforms, prior to allocating an array.
-err = clGetPlatformIDs(0, C_NULL_PTR, num_platforms)
-if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms')
-io_int(1) = num_platforms
-call Message%WriteValue('Number of Platforms: ',io_int,1,"(I2)") 
-
-if (num_platforms.gt.0) then 
-! Allocate an array to hold platform handles.
-    allocate(platform_ids(num_platforms))
-
-! Get platforms IDs.
-    err = clGetPlatformIDs(num_platforms, C_LOC(platform_ids), num_platforms)
-    if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms')
-
-!
-! Header for platform details and devices.
-!
-    call Message%printMessage('--------')
-
-! Loop over platforms and print information.
-    do i = 1, num_platforms
-! Iterate over platforms and get number of devices.
-      io_int(1) = i
-      call Message%WriteValue('Platform: ', io_int, 1, "(I2/)")
-
-! Query platform information.
-      call CLquery_platform_info(platform_ids(i))
-
-! Print separator between platforms, half size.
-      call Message%printMessage('--------')
-    end do
-else
-! the number of platforms is 0 which means that OpenCL is either absent or incorrectly set up
-  call Message%printMessage( &
-     (/ 'No OpenCL platforms were found; this means that EMsoft programs with OpenCL   ', &
-        'functionality will not work properly.  Please check your OpenCL configuration.', &
-        '    ----> EMOpenCLinfo: No OpenCL functionality detected on this system       ' /) )
-end if
+! initialize the OpenCL class and print all OpenCL information
+CL = OpenCL_T()
+call CL%print_platform_info()
 
 end program EMOpenCLinfo
 

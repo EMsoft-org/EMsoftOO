@@ -26,67 +26,327 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 module mod_CLsupport
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/12/20
+  !!
+  !! OpenCL module; this module is based on the following code, but modified 
+  !! substantially and turned into an OpenCL_T class :
+  !!--------------------------------------------------------------------------
+  !!--------------------------------------------------------------------------
+  !! original Copyright information (clfortran's query_platforms_devices.f90)
+  !! -----------------------------------------------------------------------------
+  !!
+  !! Copyright (C) 2013-2014 Company for Advanced Supercomputing Solutions LTD
+  !! Bosmat 2a St.
+  !! Shoham
+  !! Israel 60850
+  !! http://www.cass-hpc.com
+  !!
+  !! Author: Mordechai Butrashvily <support@cass-hpc.com>
+  !!
+  !! -----------------------------------------------------------------------------
+  !!
+  !! This program is free software: you can redistribute it and/or modify
+  !! it under the terms of the GNU Lesser General Public License as published by
+  !! the Free Software Foundation, either version 3 of the License, or
+  !! (at your option) any later version.
+  !!
+  !! This program is distributed in the hope that it will be useful,
+  !! but WITHOUT ANY WARRANTY; without even the implied warranty of
+  !! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  !! GNU Lesser General Public License for more details.
+  !!
+  !! You should have received a copy of the GNU Lesser General Public License
+  !! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  !!
+  !! -----------------------------------------------------------------------------
 
 use mod_EMsoft
 use clfortran
+use ISO_C_BINDING
+use mod_global
 
 IMPLICIT NONE
+  private 
+
+  character(45)   ::  errorStrings(68) = (/ &
+        'CL_DEVICE_NOT_FOUND                          ', &  ! = -1
+        'CL_DEVICE_NOT_AVAILABLE                      ', &  ! = -2
+        'CL_COMPILER_NOT_AVAILABLE                    ', &  ! = -3
+        'CL_MEM_OBJECT_ALLOCATION_FAILURE             ', &  ! = -4
+        'CL_OUT_OF_RESOURCES                          ', &  ! = -5
+        'CL_OUT_OF_HOST_MEMORY                        ', &  ! = -6
+        'CL_PROFILING_INFO_NOT_AVAILABLE              ', &  ! = -7
+        'CL_MEM_COPY_OVERLAP                          ', &  ! = -8
+        'CL_IMAGE_FORMAT_MISMATCH                     ', &  ! = -9
+        'CL_IMAGE_FORMAT_NOT_SUPPORTED                ', &  ! = -10
+        'CL_BUILD_PROGRAM_FAILURE                     ', &  ! = -11
+        'CL_MAP_FAILURE                               ', &  ! = -12
+        'CL_MISALIGNED_SUB_BUFFER_OFFSET              ', &  ! = -13
+        'CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST ', &  ! = -14
+        'CL_COMPILE_PROGRAM_FAILURE                   ', &  ! = -15
+        'CL_LINKER_NOT_AVAILABLE                      ', &  ! = -16
+        'CL_LINK_PROGRAM_FAILURE                      ', &  ! = -17
+        'CL_DEVICE_PARTITION_FAILED                   ', &  ! = -18
+        'CL_KERNEL_ARG_INFO_NOT_AVAILABLE             ', &  ! = -19
+        'UNDEFINED                                    ', &  ! = -20
+        'UNDEFINED                                    ', &  ! = -21
+        'UNDEFINED                                    ', &  ! = -22
+        'UNDEFINED                                    ', &  ! = -23
+        'UNDEFINED                                    ', &  ! = -24
+        'UNDEFINED                                    ', &  ! = -25
+        'UNDEFINED                                    ', &  ! = -26
+        'UNDEFINED                                    ', &  ! = -27
+        'UNDEFINED                                    ', &  ! = -28
+        'UNDEFINED                                    ', &  ! = -29
+        'CL_INVALID_VALUE                             ', &  ! = -30
+        'CL_INVALID_DEVICE_TYPE                       ', &  ! = -31
+        'CL_INVALID_PLATFORM                          ', &  ! = -32
+        'CL_INVALID_DEVICE                            ', &  ! = -33
+        'CL_INVALID_CONTEXT                           ', &  ! = -34
+        'CL_INVALID_QUEUE_PROPERTIES                  ', &  ! = -35
+        'CL_INVALID_COMMAND_QUEUE                     ', &  ! = -36
+        'CL_INVALID_HOST_PTR                          ', &  ! = -37
+        'CL_INVALID_MEM_OBJECT                        ', &  ! = -38
+        'CL_INVALID_IMAGE_FORMAT_DESCRIPTOR           ', &  ! = -39
+        'CL_INVALID_IMAGE_SIZE                        ', &  ! = -40
+        'CL_INVALID_SAMPLER                           ', &  ! = -41
+        'CL_INVALID_BINARY                            ', &  ! = -42
+        'CL_INVALID_BUILD_OPTION                      ', &  ! = -43
+        'CL_INVALID_PROGRAM                           ', &  ! = -44
+        'CL_INVALID_PROGRAM_EXECUTABLE                ', &  ! = -45
+        'CL_INVALID_KERNEL_NAME                       ', &  ! = -46
+        'CL_INVALID_KERNEL_DEFINITION                 ', &  ! = -47
+        'CL_INVALID_KERNEL                            ', &  ! = -48
+        'CL_INVALID_ARG_INDEX                         ', &  ! = -49
+        'CL_INVALID_ARG_VALUE                         ', &  ! = -50
+        'CL_INVALID_ARG_SIZE                          ', &  ! = -51
+        'UNDEFINED                                    ', &  ! = -52
+        'CL_INVALID_WORK_DIMENSION                    ', &  ! = -53
+        'CL_INVALID_WORK_GROUP_SIZE                   ', &  ! = -54
+        'CL_INVALID_WORK_ITEM_SIZE                    ', &  ! = -55
+        'CL_INVALID_GLOBAL_OFFSET                     ', &  ! = -56
+        'CL_INVALID_EVENT_WAIT_LIST                   ', &  ! = -57
+        'CL_INVALID_EVENT                             ', &  ! = -58
+        'CL_INVALID_OPERATION                         ', &  ! = -59
+        'CL_INVALID_GL_OBJECT                         ', &  ! = -60
+        'CL_INVALID_BUFFER_SIZE                       ', &  ! = -61
+        'CL_INVALID_MIP_LEVEL                         ', &  ! = -62
+        'CL_INVALID_GLOBAL_WORK_SIZE                  ', &  ! = -63
+        'CL_INVALID_PROPERTY                          ', &  ! = -64
+        'CL_INVALID_IMAGE_DESCRIPTOR                  ', &  ! = -65
+        'CL_INVALID_COMPILER_OPTIONS                  ', &  ! = -66
+        'CL_INVALID_LINKER_OPTIONS                    ', &  ! = -67
+        'CL_INVALID_DEVICE_PARTITION_COUNT            ' /)  ! = -68
+
+
+  type,public :: OpenCL_T 
+    private 
+    ! platform variables 
+      character(fnlen), allocatable             :: p_profile(:)
+      character(fnlen), allocatable             :: p_version(:)
+      character(fnlen), allocatable             :: p_name(:)
+      character(fnlen), allocatable             :: p_vendor(:)
+      character(fnlen), allocatable             :: p_extensions(:)
+      integer(c_intptr_t), allocatable          :: p_ids(:)
+! CPU information      
+      integer(c_intptr_t), allocatable          :: d_CPUids(:,:)
+      integer(c_size_t), allocatable            :: d_CPUmwgs(:,:) 
+      integer(c_size_t), allocatable            :: d_CPUmwis(:,:,:) 
+      integer(c_size_t), allocatable            :: d_CPUmaxalloc(:,:)
+      integer(c_int32_t), allocatable           :: d_CPUcu(:,:)
+      integer(c_int64_t), allocatable           :: d_CPUgms(:,:) 
+      integer(c_int64_t), allocatable           :: d_CPUmmas(:,:)
+      character(fnlen), allocatable             :: d_CPUname(:,:)
+! GPU information 
+      integer(c_intptr_t), allocatable          :: d_GPUids(:,:)
+      integer(c_size_t), allocatable            :: d_GPUmwgs(:,:) 
+      integer(c_size_t), allocatable            :: d_GPUmwis(:,:,:) 
+      integer(c_size_t), allocatable            :: d_GPUmaxalloc(:,:)
+      integer(c_int32_t), allocatable           :: d_GPUcu(:,:)
+      integer(c_int64_t), allocatable           :: d_GPUgms(:,:) 
+      integer(c_int64_t), allocatable           :: d_GPUmmas(:,:)
+      character(fnlen), allocatable             :: d_GPUname(:,:)
+! other parameters
+      integer(kind=irg)                         :: num_platforms
+      integer(kind=irg)                         :: maxCPUdev
+      integer(kind=irg)                         :: maxGPUdev
+      integer(c_int32_t),allocatable            :: num_CPUdevices(:)
+      integer(c_int32_t),allocatable            :: num_GPUdevices(:)
+      logical,allocatable                       :: noCPUdevices(:)
+      logical,allocatable                       :: noGPUdevices(:) 
+
+    contains
+      private
+        procedure, pass(self) :: error_check_
+        procedure, pass(self) :: query_platform_info_
+        procedure, pass(self) :: print_platform_info_
+        final :: CL_destructor 
+
+        generic, public :: error_check => error_check_
+        generic, public :: query_platform_info => query_platform_info_
+        generic, public :: print_platform_info => print_platform_info_
+        ! generic, public :: getNumPlatforms => query_platform_info_
+
+  end type OpenCL_T
+
+  ! the constructor routine for this class 
+  interface OpenCL_T
+    module procedure CL_constructor
+  end interface OpenCL_T
 
 contains
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE:CLquery_platform_info
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief display information about an OpenCL device (based on (clfortran's query_platforms_devices.f90)
-!
-!> @param platform_id id number of platform
-!
-!> @date 02/18/16 MDG 1.0 modification of clfortran's original routine
-!> @date 05/21/16 MDG 1.1 split CPU and GPU device information into separate blocks
+type(OpenCL_T) function CL_constructor( ) result(CL)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/12/20
+  !!
+  !! constructor for the OpenCL Class
+  !!
+  !! This constructor queries the OpenCL platforms and devices, and fills in 
+  !! all the corresponding arrays  
+  
+use mod_io 
+
+IMPLICIT NONE
+
+type(IO_T)                      :: Message
+integer(c_int32_t)              :: err
+integer(c_int)                  :: nplatforms
+integer(c_size_t)               :: zero_size = 0
+integer(c_size_t)               :: temp_size
+integer(kind=irg)               :: i
+integer(c_intptr_t)             :: platform_id
+integer(c_int32_t)              :: num_devices
+integer(c_intptr_t), allocatable, target :: platform_ids(:)
+
+
+! Get the number of platforms, prior to allocating arrays.
+  err = clGetPlatformIDs(0, C_NULL_PTR, nplatforms)
+  if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms')
+  CL%num_platforms = nplatforms
+
+  if (CL%num_platforms.gt.0) then 
+    allocate(CL%p_profile(CL%num_platforms))
+    allocate(CL%p_version(CL%num_platforms))
+    allocate(CL%p_name(CL%num_platforms))
+    allocate(CL%p_vendor(CL%num_platforms))
+    allocate(CL%p_extensions(CL%num_platforms))
+    allocate(CL%p_ids(CL%num_platforms))
+    allocate(CL%num_CPUdevices(CL%num_platforms))
+    allocate(CL%num_GPUdevices(CL%num_platforms))
+    allocate(CL%noCPUdevices(CL%num_platforms))
+    allocate(CL%noGPUdevices(CL%num_platforms))
+    CL%noCPUdevices = .FALSE.
+    CL%noGPUdevices = .FALSE.
+    allocate(platform_ids(CL%num_platforms))
+
+  ! Get platforms IDs.
+    err = clGetPlatformIDs(nplatforms, C_LOC(platform_ids), nplatforms)
+    if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms')
+    CL%p_ids(:) = platform_ids(:)
+
+  ! for each platform, get the number of devices so we can allocate the d_*PUids array 
+    CL%maxCPUdev = 0
+    CL%maxGPUdev = 0
+    do i=1, CL%num_platforms  
+      platform_id = platform_ids(i)
+
+  ! device_type = CL_DEVICE_TYPE_CPU
+      err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, 0, C_NULL_PTR, num_devices)
+      CL%maxCPUdev = maxval( (/ CL%maxCPUdev, num_devices /) )
+
+  ! device_type = CL_DEVICE_TYPE_GPU
+      err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 0, C_NULL_PTR, num_devices)
+      CL%maxGPUdev = maxval( (/ CL%maxGPUdev, num_devices /) )
+    end do 
+    allocate(CL%d_CPUids(CL%num_platforms, CL%maxCPUdev))
+    allocate(CL%d_CPUmwgs(CL%num_platforms, CL%maxCPUdev))
+    allocate(CL%d_CPUmwis(CL%num_platforms, CL%maxCPUdev,3))
+    allocate(CL%d_CPUmaxalloc(CL%num_platforms, CL%maxCPUdev))
+    allocate(CL%d_CPUcu(CL%num_platforms, CL%maxCPUdev))
+    allocate(CL%d_CPUgms(CL%num_platforms, CL%maxCPUdev))
+    allocate(CL%d_CPUmmas(CL%num_platforms, CL%maxCPUdev))
+    allocate(CL%d_CPUname(CL%num_platforms, CL%maxCPUdev))
+    allocate(CL%d_GPUids(CL%num_platforms, CL%maxGPUdev))
+    allocate(CL%d_GPUmwgs(CL%num_platforms, CL%maxGPUdev))
+    allocate(CL%d_GPUmwis(CL%num_platforms, CL%maxGPUdev,3))
+    allocate(CL%d_GPUmaxalloc(CL%num_platforms, CL%maxGPUdev))
+    allocate(CL%d_GPUcu(CL%num_platforms, CL%maxGPUdev))
+    allocate(CL%d_GPUgms(CL%num_platforms, CL%maxGPUdev)) 
+    allocate(CL%d_GPUmmas(CL%num_platforms, CL%maxGPUdev))
+    allocate(CL%d_GPUname(CL%num_platforms, CL%maxGPUdev))
+
+  ! get all relevant information for each platform
+    do i=1, CL%num_platforms  
+      call CL%query_platform_info_(i)
+    end do
+  else
+  ! the number of platforms is 0 which means that OpenCL is either absent or incorrectly set up
+    call Message%printMessage( &
+       (/ 'No OpenCL platforms were found; this means that EMsoft programs with OpenCL   ', &
+          'functionality will not work properly.  Please check your OpenCL configuration.', &
+          '    ----> EMOpenCLinfo: No OpenCL functionality detected on this system       ' /) )
+end if
+
+end function CL_constructor
+
+! destructor ... 
 !--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-! original Copyright information (clfortran's query_platforms_devices.f90)
+subroutine CL_destructor( CL )
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/12/20
+  !!
+  !! destructor for the OpenCL Class
+  !!
+IMPLICIT NONE
+
+type(OpenCL_T),INTENT(INOUT)  :: CL 
+
+  deallocate(CL%p_profile)
+  deallocate(CL%p_version)
+  deallocate(CL%p_name)
+  deallocate(CL%p_vendor)
+  deallocate(CL%p_extensions)
+  deallocate(CL%p_ids)
+  deallocate(CL%num_CPUdevices)
+  deallocate(CL%num_GPUdevices)
+  deallocate(CL%noCPUdevices)
+  deallocate(CL%noGPUdevices)
+  deallocate(CL%d_CPUids)
+  deallocate(CL%d_GPUids)
+  deallocate(CL%d_CPUmwgs)
+  deallocate(CL%d_CPUmwis)
+  deallocate(CL%d_CPUmaxalloc)
+  deallocate(CL%d_CPUcu)
+  deallocate(CL%d_CPUgms)
+  deallocate(CL%d_CPUmmas)
+  deallocate(CL%d_CPUname)
+
+end subroutine CL_destructor
 ! -----------------------------------------------------------------------------
-!
-! Copyright (C) 2013-2014 Company for Advanced Supercomputing Solutions LTD
-! Bosmat 2a St.
-! Shoham
-! Israel 60850
-! http://www.cass-hpc.com
-!
-! Author: Mordechai Butrashvily <support@cass-hpc.com>
-!
-! -----------------------------------------------------------------------------
-!
-! This program is free software: you can redistribute it and/or modify
-! it under the terms of the GNU Lesser General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! This program is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU Lesser General Public License for more details.
-!
-! You should have received a copy of the GNU Lesser General Public License
-! along with this program.  If not, see <http://www.gnu.org/licenses/>.
-!
-! -----------------------------------------------------------------------------
-recursive subroutine CLquery_platform_info(platform_id)
-!DEC$ ATTRIBUTES DLLEXPORT :: CLquery_platform_info
+recursive subroutine query_platform_info_(self, p_id)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/12/20
+  !!
+  !! extract information about OpenCL platforms and devices 
+  !! (based on (clfortran's query_platforms_devices.f90)
 
 use ISO_C_BINDING
-use mod_io
 use mod_global 
 
 IMPLICIT NONE
 
+class(OpenCL_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: p_id 
+
 ! Input variable.
-integer(c_intptr_t), INTENT(IN):: platform_id
+integer(c_intptr_t)            :: platform_id
 
 ! Helper variables to work with OpenCL API.
 integer(c_int32_t)             :: err
@@ -105,7 +365,6 @@ character, allocatable, target :: platform_name(:)
 character, allocatable, target :: platform_vendor(:)
 character, allocatable, target :: platform_extensions(:)
 
-type(IO_T)                     :: Message
 ! String array for holding device name.
 character, allocatable, target :: device_name(:)
 ! Maximum compute units for device.
@@ -113,142 +372,121 @@ integer(c_size_t), target      :: device_mwgs, device_mwis(3), device_maxalloc
 integer(c_int32_t), target     :: device_cu
 
 integer(c_int64_t), target     :: device_gms, device_mmas
-integer(kind=irg)              :: io_int(8), dcu, s(1)
-character(fnlen)               :: dn
+
+platform_id = self%p_ids(p_id)
 
 ! Profile.
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, zero_size, C_NULL_PTR, temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 allocate(platform_profile(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, temp_size, C_LOC(platform_profile), temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
-print *, 'Profile: ', platform_profile
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
+self%p_profile(p_id) = trim(cv_a2s(platform_profile))
 deallocate(platform_profile)
 
 ! Version.
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, zero_size, C_NULL_PTR, temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 allocate(platform_version(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, temp_size, C_LOC(platform_version), temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
-print *, 'Version: ', platform_version
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
+self%p_version(p_id) = trim(cv_a2s(platform_version))
 deallocate(platform_version)
 
 ! Name.
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, zero_size, C_NULL_PTR, temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 allocate(platform_name(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, temp_size, C_LOC(platform_name), temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
-print *, 'Name: ', platform_name
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
+self%p_name(p_id) = trim(cv_a2s(platform_name))
 deallocate(platform_name)
 
 ! Vendor.
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, zero_size, C_NULL_PTR, temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 allocate(platform_vendor(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, temp_size, C_LOC(platform_vendor), temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
-print *, 'Vendor: ', platform_vendor
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
+self%p_vendor(p_id) = trim(cv_a2s(platform_vendor))
 deallocate(platform_vendor)
 
 ! Extensions.
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, zero_size, C_NULL_PTR, temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 allocate(platform_extensions(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, temp_size, C_LOC(platform_extensions), temp_size)
-call CLerror_check('CLquery_platform_info:clGetPlatformInfo',err)
-print *, 'Extensions: ', platform_extensions
+call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
+self%p_extensions(p_id) = trim(cv_a2s(platform_extensions))
 deallocate(platform_extensions)
 
 !
-! Print device information for this platform.
+! Get device information for this platform.
 !
-! Get device count.
-print *
+! Get CPU device count.
+
 ! device_type = CL_DEVICE_TYPE_CPU
 err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, 0, C_NULL_PTR, num_devices)
-call CLerror_check('CLquery_platform_info:clGetDeviceIDs',err,.TRUE.)
+call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err,.TRUE.)
 
 if (err /= CL_SUCCESS .or. num_devices < 1) then
-  call Message%printMessage( 'No CPU devices found on this platform')
+  self%noCPUdevices(p_id) = .TRUE. 
 else
-  io_int(1) = num_devices
-  call Message%WriteValue('Num CPU Devices: ', io_int, 1, "(/A,I2)")
-
-! Allocate an array to hold device handles.
+  self%num_CPUdevices(p_id) = num_devices 
   allocate(device_ids(num_devices))
 
 ! Get device IDs.
   err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, num_devices, C_LOC(device_ids), num_devices)
-  call CLerror_check('CLquery_platform_info:clGetDeviceIDs',err)
-  if (err /= CL_SUCCESS) then
-    call Message%printError('CLquery_platform_info','Error quering CPU devices: ')
-  end if
+  call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err)
+  self%d_CPUids(p_id,1:num_devices) = device_ids
 
 ! Loop over devices and print information.
   do i = 1, num_devices
 ! Maximum compute units.
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, temp_size, C_LOC(device_cu), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
-  
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    self%d_CPUcu(p_id, i) = device_cu 
+
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     device_gms = device_gms/1024/1024/1024
-
-! temp_size = 8
-! err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, temp_size, C_LOC(device_gms), temp_size)
-!write (*,*) 'mmas : ', device_mmas
+    self%d_CPUgms(p_id, i) = device_gms
 
 ! CL_DEVICE_MAX_WORK_GROUP_SIZE
     temp_size = 8 
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    self%d_CPUmwgs(p_id, i) = device_mwgs
 
 ! CL_DEVICE_MAX_WORK_ITEM_SIZES
     temp_size = 8 * 3
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    self%d_CPUmwis(p_id, i, 1:3) = device_mwis
 
 ! Name.
     temp_size = 4
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, zero_size, C_NULL_PTR, temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     allocate(device_name(temp_size))
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, temp_size, C_LOC(device_name), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
-
-! Print brief device details. Since this routine can be used by the user to determine GPU device IDs,
-! we subtract 1 from the device ID to make sure that the CPU gets number 0...
-    dcu = device_cu
-    s = shape(device_name)
-    dn = ''
-    do j=1,s(1)
-      dn(j:j) = device_name(j)
-    end do  
-    io_int(1:7) = (/ i, dcu, int(device_mwgs), int(device_mwis(1)), &
-      int(device_mwis(2)),int(device_mwis(3)),int(device_gms)  /)
-    call Message%WriteValue('', io_int, 7, &
-          "(' Device (#',I2,', CU/MWGS/MWIS/GMS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,$)") 
-    call Message%printMessage(') - '//trim(dn), frm="(A)" )
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    self%d_CPUname(p_id, i) = cv_a2s(device_name)
     deallocate(device_name)
   end do
-
 end if
 
-! Get device count.
-!device_type = CL_DEVICE_TYPE_ALL
-print *
+! Get GPU device count.
+! device_type = CL_DEVICE_TYPE_GPU
 err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 0, C_NULL_PTR, num_devices)
-call CLerror_check('CLquery_platform_info:clGetDeviceIDs',err,.TRUE.)
+call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err,.TRUE.)
 
 if (err /= CL_SUCCESS .or. num_devices < 1) then
-  call Message%printMessage('No GPU devices found on this platform ')
+  self%noGPUdevices(p_id) = .TRUE. 
 else
-  io_int(1) = num_devices
-  call Message%WriteValue('Num GPU Devices: ', io_int, 1, "(/A, I2)") 
+  self%num_GPUdevices(p_id) = num_devices 
 
 ! Allocate an array to hold device handles.
   if (allocated(device_ids)) deallocate(device_ids)
@@ -256,10 +494,8 @@ else
 
 ! Get device IDs.
   err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, num_devices, C_LOC(device_ids), num_devices)
-  call CLerror_check('CLquery_platform_info:clGetDeviceIDs',err)
-  if (err /= CL_SUCCESS) then
-    call Message%printError('CLquery_platform_info', 'Error quering devices: ')
-  end if
+  call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err)
+  self%d_GPUids(p_id,1:num_devices) = device_ids
 
 
 ! Loop over devices and print information.
@@ -267,58 +503,155 @@ else
 ! Maximum compute units.
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, temp_size, C_LOC(device_cu), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    self%d_GPUcu(p_id, i) = device_cu 
 
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     device_gms = device_gms/1024/1024/1024
-
-! temp_size = 8
-! err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, temp_size, C_LOC(device_gms), temp_size)
-!write (*,*) 'mmas : ', device_mmas
+    self%d_GPUgms(p_id, i) = device_gms 
 
 ! CL_DEVICE_MAX_WORK_GROUP_SIZE
     temp_size = 8 
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    self%d_GPUmwgs(p_id, i) = device_mwgs 
 
 
 ! CL_DEVICE_MAX_WORK_ITEM_SIZES
     temp_size = 8 * 3
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    self%d_GPUmwis(p_id, i, 1:3) = device_mwis(1:3) 
 
 ! Name.
     temp_size = 4
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, zero_size, C_NULL_PTR, temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     allocate(device_name(temp_size))
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, temp_size, C_LOC(device_name), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    self%d_GPUname(p_id, i) = cv_a2s(device_name) 
+    deallocate(device_name) 
 
 ! CL_DEVICE_MAX_MEM_ALLOC_SIZE
     temp_size = 8 
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, temp_size, C_LOC(device_maxalloc), temp_size)
-    call CLerror_check('CLquery_platform_info:clGetDeviceInfo',err)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     device_maxalloc = device_maxalloc/1024/1024
+    self%d_GPUmaxalloc(p_id, i) = device_maxalloc
 
-! Print brief device details. Since this routine can be used by the user to determine GPU device IDs,
-! we subtract 1 from the device ID to make sure that the CPU gets number 0...
-    dcu = device_cu
-    s = shape(device_name)
-    dn = ''
-    do j=1,s(1)
-      dn(j:j) = device_name(j)
-    end do  
-    io_int = (/ i, dcu, int(device_mwgs), int(device_mwis(1)), &
-      int(device_mwis(2)),int(device_mwis(3)),int(device_gms), int(device_maxalloc)  /)
-    call Message%WriteValue('', io_int, 8, &
-          "(' Device (#',I2,', CU/MWGS/MWIS/GMS/MAS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,',',I4,$)") 
-    call Message%printMessage(') - '//trim(dn), frm="(A)" )
-    deallocate(device_name)
   end do
 end if
+
+end subroutine query_platform_info_
+
+! -----------------------------------------------------------------------------
+function cv_a2s(inp) result(outp)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/12/20
+  !!
+  !! (private) auxiliary conversion routine 
+
+IMPLICIT NONE 
+
+character, intent(in),pointer       :: inp(:)
+
+character(fnlen)                    :: outp 
+integer(kind=irg)                   :: sz(1), i 
+
+  sz = shape(inp)
+  outp = ''
+
+  do i= 1, sz(1)
+    outp(i:i) = inp(i)
+  end do
+
+end function cv_a2s
+
+! -----------------------------------------------------------------------------
+recursive subroutine print_platform_info_(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/12/20
+  !!
+  !! display information about an OpenCL device (based on (clfortran's query_platforms_devices.f90)
+
+use ISO_C_BINDING
+use mod_io
+use mod_global 
+
+IMPLICIT NONE
+
+class(OpenCL_T),INTENT(IN)     :: self 
+
+type(IO_T)                     :: Message
+integer(kind=irg)              :: io_int(8), i, j
+
+io_int(1) = self%num_platforms
+call Message%WriteValue('Number of Platforms: ',io_int,1,"(I2)") 
+
+call Message%printMessage('------------------------')
+
+! Loop over platforms and print information.
+do i = 1, self%num_platforms
+! Iterate over platforms and get number of devices.
+  io_int(1) = i
+  call Message%WriteValue('Platform: ', io_int, 1, "(I2/)")
+
+! Profile.
+  call Message%printMessage('Profile:      '//self%p_profile(i), frm="(' ',A)")
+! Version.
+  call Message%printMessage('Version:      '//self%p_version(i), frm="(' ',A)")
+! Name.
+  call Message%printMessage('Name:         '//self%p_name(i), frm="(' ',A)")
+! Vendor.
+  call Message%printMessage('Vendor:       '//self%p_vendor(i), frm="(' ',A)")
+! Extensions.
+  call Message%printMessage('Extensions :  '//self%p_extensions(i), frm="(' ',A/)")
+!
+! Print CPU device information for this platform.
+  if (self%noCPUdevices(i).eqv..TRUE.) then
+    call Message%printMessage( 'No CPU devices found on this platform', frm="(/A)")
+  else
+    io_int(1) = self%num_CPUdevices(i)
+    call Message%WriteValue(' # CPU Devices: ', io_int, 1, "(I2)")
+    call Message%printMessage('')
+
+! Loop over devices and print information.
+    do j = 1, self%num_CPUdevices(i)
+      io_int(1:7) = (/ j, self%d_CPUcu(i,j), int(self%d_CPUmwgs(i,j)), int(self%d_CPUmwis(i,j,1)), &
+        int(self%d_CPUmwis(i,j,2)),int(self%d_CPUmwis(i,j,3)),int(self%d_CPUgms(i,j))  /)
+      call Message%WriteValue('', io_int, 7, &
+            "(' Device (#',I2,', CU/MWGS/MWIS/GMS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,$)") 
+      call Message%printMessage(') - '//trim(self%d_CPUname(i,j)), frm="(A)" )
+    end do
+  end if
+
+! Print GPU device information for this platform.
+
+  if (self%noGPUdevices(i).eqv..TRUE.) then 
+    call Message%printMessage('No GPU devices found on this platform ', frm="(/A)")
+  else
+    io_int(1) = self%num_GPUdevices(i)
+    call Message%WriteValue(' # GPU Devices: ', io_int, 1, "(I2)") 
+    call Message%printMessage('')
+
+! Loop over devices and print information.
+    do j = 1, self%num_GPUdevices(i)
+      io_int = (/ j, self%d_GPUcu(i,j), int(self%d_GPUmwgs(i,j)), int(self%d_GPUmwis(i,j,1)), &
+        int(self%d_GPUmwis(i,j,2)),int(self%d_GPUmwis(i,j,3)),int(self%d_GPUgms(i,j)), int(self%d_GPUmaxalloc(i,j))  /)
+      call Message%WriteValue('', io_int, 8, &
+            "(' Device (#',I2,', CU/MWGS/MWIS/GMS/MAS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,',',I4,$)") 
+      call Message%printMessage(') - '//trim(self%d_GPUname(i,j)), frm="(A)" )
+    end do
+
+    call Message%printMessage('------------------------')
+  end if
+
+end do 
 
 call Message%printMessage( &
   (/ '                                            ', &
@@ -328,7 +661,9 @@ call Message%printMessage( &
      ' GMS = Global Memory Size (Gb);             ', &
      ' MAS = Maximum Allocatable Memory Size (Mb) '/) )
 
-end subroutine CLquery_platform_info
+end subroutine print_platform_info_
+
+
 
 
 !--------------------------------------------------------------------------
@@ -532,7 +867,8 @@ end subroutine CLread_source_file_wrapper
 !
 !> @date 02/23/16  MDG 1.0 original
 !--------------------------------------------------------------------------
-recursive subroutine CLinit_PDCCQ(platform, nump, selnump, device, numd, selnumd, devinfo, context, command_queue)
+recursive subroutine CLinit_PDCCQ(self, platform, nump, selnump, device, numd, selnumd, devinfo, &
+                                  context, command_queue)
 !DEC$ ATTRIBUTES DLLEXPORT :: CLinit_PDCCQ
 
 use ISO_C_BINDING
@@ -541,6 +877,7 @@ use mod_global
 
 IMPLICIT NONE
 
+class(OpenCL_T),INTENT(INOUT)            :: self
 integer(c_intptr_t),allocatable, target  :: platform(:)
 integer(kind=irg), INTENT(OUT)           :: nump
 integer(kind=irg), INTENT(IN)            :: selnump
@@ -560,10 +897,10 @@ integer(c_int64_t)                       :: cmd_queue_props
 
 ! get the platform ID
 ierr = clGetPlatformIDs(0, C_NULL_PTR, nump)
-call CLerror_check('CLinit_PDCCQ:clGetPlatformIDs',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetPlatformIDs',ierr)
 allocate(platform(nump))
 ierr = clGetPlatformIDs(nump, C_LOC(platform), nump)
-call CLerror_check('CLinit_PDCCQ:clGetPlatformIDs',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetPlatformIDs',ierr)
 
 if (selnump.gt.nump) then
   call Message%printError("CLinit_PDCCQ","non-existing platform id requested")
@@ -571,10 +908,10 @@ end if
 
 ! get the device ID
 ierr =  clGetDeviceIDs(platform(selnump), CL_DEVICE_TYPE_GPU, 0, C_NULL_PTR, numd)
-call CLerror_check('CLinit_PDCCQ:clGetDeviceIDs',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetDeviceIDs',ierr)
 allocate(device(numd))
 ierr =  clGetDeviceIDs(platform(selnump), CL_DEVICE_TYPE_GPU, numd, C_LOC(device), numd)
-call CLerror_check('CLinit_PDCCQ:clGetDeviceIDs',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetDeviceIDs',ierr)
 
 if (selnumd.gt.numd) then
   call Message%printError("CLinit_PDCCQ","non-existing device id requested")
@@ -582,7 +919,7 @@ end if
 
 ! get the device name and return it as devinfo
 ierr = clGetDeviceInfo(device(selnumd), CL_DEVICE_NAME, sizeof(info), C_LOC(info), cnuminfo)
-call CLerror_check('CLinit_PDCCQ:clGetDeviceInfo',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetDeviceInfo',ierr)
 
 if (cnuminfo.gt.fnlen) then 
   call Message%WriteValue("CLinit_PDCCQ","device info string truncated to 132 characters")
@@ -596,11 +933,11 @@ ctx_props(1) = CL_CONTEXT_PLATFORM
 ctx_props(2) = platform(selnump)
 ctx_props(3) = 0
 context = clCreateContext(C_LOC(ctx_props), numd, C_LOC(device),C_NULL_FUNPTR, C_NULL_PTR, ierr)
-call CLerror_check('CLinit_PDCCQ:clCreateContext',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clCreateContext',ierr)
 
 cmd_queue_props = CL_QUEUE_PROFILING_ENABLE
 command_queue = clCreateCommandQueue(context, device(selnumd), cmd_queue_props, ierr)
-call CLerror_check('CLinit_PDCCQ:clCreateCommandQueue',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clCreateCommandQueue',ierr)
 
 end subroutine CLinit_PDCCQ
 
@@ -626,7 +963,8 @@ end subroutine CLinit_PDCCQ
 !
 !> @date 02/28/18  MDG 1.0 original
 !--------------------------------------------------------------------------
-recursive subroutine CLinit_multiPDCCQ(platform, nump, selnump, device, numd, usenumd, selnumd, devinfo, context, command_queue)
+recursive subroutine CLinit_multiPDCCQ(self, platform, nump, selnump, device, numd, usenumd, &
+                                       selnumd, devinfo, context, command_queue)
 !DEC$ ATTRIBUTES DLLEXPORT :: CLinit_multiPDCCQ
 
 use ISO_C_BINDING
@@ -635,6 +973,7 @@ use mod_global
 
 IMPLICIT NONE
 
+class(OpenCL_T),INTENT(INOUT)            :: self
 integer(c_intptr_t),allocatable, target  :: platform(:)
 integer(kind=irg), INTENT(OUT)           :: nump
 integer(kind=irg), INTENT(IN)            :: selnump
@@ -657,10 +996,10 @@ integer(kind=irg)                        :: i
 
 ! get the platform ID
 ierr = clGetPlatformIDs(0, C_NULL_PTR, nump)
-call CLerror_check('CLinit_PDCCQ:clGetPlatformIDs',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetPlatformIDs',ierr)
 allocate(platform(nump))
 ierr = clGetPlatformIDs(nump, C_LOC(platform), nump)
-call CLerror_check('CLinit_PDCCQ:clGetPlatformIDs',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetPlatformIDs',ierr)
 
 if (selnump.gt.nump) then
   call Message%printError("CLinit_PDCCQ","non-existing platform id requested")
@@ -668,10 +1007,10 @@ end if
 
 ! get the device ID
 ierr =  clGetDeviceIDs(platform(selnump), CL_DEVICE_TYPE_GPU, 0, C_NULL_PTR, numd)
-call CLerror_check('CLinit_PDCCQ:clGetDeviceIDs',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetDeviceIDs',ierr)
 allocate(device(numd))
 ierr =  clGetDeviceIDs(platform(selnump), CL_DEVICE_TYPE_GPU, numd, C_LOC(device), numd)
-call CLerror_check('CLinit_PDCCQ:clGetDeviceIDs',ierr)
+call error_check_(self, 'CLinit_PDCCQ:clGetDeviceIDs',ierr)
 
 if(usenumd .gt. numd) then
   call Message%printMessage('')
@@ -692,7 +1031,7 @@ allocate(context(usenumd), command_queue(usenumd), devinfo(usenumd))
 ! get the device name and return it as devinfo
 do i=1,usenumd
   ierr = clGetDeviceInfo(device(selnumd(i)), CL_DEVICE_NAME, sizeof(info), C_LOC(info), cnuminfo)
-  call CLerror_check('CLinit_PDCCQ:clGetDeviceInfo',ierr)
+  call error_check_(self, 'CLinit_PDCCQ:clGetDeviceInfo',ierr)
 
   if (cnuminfo.gt.fnlen) then 
     call Message%WriteValue("CLinit_PDCCQ","device info string truncated")
@@ -711,27 +1050,20 @@ cmd_queue_props = CL_QUEUE_PROFILING_ENABLE
 do i=1,usenumd
 
   context(i) = clCreateContext(C_LOC(ctx_props), 1, C_LOC(device(selnumd(i))),C_NULL_FUNPTR, C_NULL_PTR, ierr)
-  call CLerror_check('CLinit_PDCCQ:clCreateContext',ierr)
+  call error_check_(self, 'CLinit_PDCCQ:clCreateContext',ierr)
 
   command_queue(i) = clCreateCommandQueue(context(i), device(selnumd(i)), cmd_queue_props, ierr)
-  call CLerror_check('CLinit_PDCCQ:clCreateCommandQueue',ierr)
+  call error_check_(self, 'CLinit_PDCCQ:clCreateCommandQueue',ierr)
 end do
 end subroutine CLinit_multiPDCCQ
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE:CLerror_check
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief checks whether or not there was a CL 1.2 error and returns the error message.
-!
-!> @param ierr error number (0 is no error) 
-!
-!> @date 06/06/16  MDG 1.0 original
-!--------------------------------------------------------------------------
-recursive subroutine CLerror_check(routine, ierr, nonfatal)
-!DEC$ ATTRIBUTES DLLEXPORT :: CLerror_check
+recursive subroutine error_check_(self, routine, ierr, nonfatal)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/07/20
+  !!
+  !! checks whether or not there was a CL 1.2 error and returns the error message
 
 use ISO_C_BINDING
 use mod_io
@@ -739,6 +1071,7 @@ use mod_global
 
 IMPLICIT NONE
 
+class(OpenCL_T), INTENT(INOUT)          :: self 
 character(*),INTENT(IN)                 :: routine
 integer(kind=c_int32_t),INTENT(IN)      :: ierr
 logical,INTENT(IN),OPTIONAL             :: nonfatal
@@ -748,134 +1081,16 @@ character(fnlen)                        :: estr
 integer(kind=irg)                       :: iout(1)
 
 if (ierr.ne.0) then
-
-  select case(ierr)
-   case(-1) 
-        estr = 'Error: CL_DEVICE_NOT_FOUND' !                       = -1
-   case(-2) 
-        estr = 'Error: CL_DEVICE_NOT_AVAILABLE' !                   = -2
-   case(-3) 
-        estr = 'Error: CL_COMPILER_NOT_AVAILABLE' !                 = -3
-   case(-4) 
-        estr = 'Error: CL_MEM_OBJECT_ALLOCATION_FAILURE' !          = -4
-   case(-5) 
-        estr = 'Error: CL_OUT_OF_RESOURCES' !                       = -5
-   case(-6) 
-        estr = 'Error: CL_OUT_OF_HOST_MEMORY' !                     = -6
-   case(-7) 
-        estr = 'Error: CL_PROFILING_INFO_NOT_AVAILABLE' !           = -7
-   case(-8) 
-        estr = 'Error: CL_MEM_COPY_OVERLAP' !                       = -8
-   case(-9) 
-        estr = 'Error: CL_IMAGE_FORMAT_MISMATCH' !                  = -9
-   case(-10) 
-        estr = 'Error: CL_IMAGE_FORMAT_NOT_SUPPORTED' !             = -10
-   case(-11) 
-        estr = 'Error: CL_BUILD_PROGRAM_FAILURE' !                  = -11
-   case(-12) 
-        estr = 'Error: CL_MAP_FAILURE' !                            = -12
-   case(-13) 
-        estr = 'Error: CL_MISALIGNED_SUB_BUFFER_OFFSET' !           = -13
-   case(-14) 
-        estr = 'Error: CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST' ! 14
-   case(-15) 
-        estr = 'Error: CL_COMPILE_PROGRAM_FAILURE' !                = -15
-   case(-16) 
-        estr = 'Error: CL_LINKER_NOT_AVAILABLE' !                   = -16
-   case(-17) 
-        estr = 'Error: CL_LINK_PROGRAM_FAILURE' !                   = -17
-   case(-18) 
-        estr = 'Error: CL_DEVICE_PARTITION_FAILED' !                = -18
-   case(-19) 
-        estr = 'Error: CL_KERNEL_ARG_INFO_NOT_AVAILABLE' !          = -19
-
-   case(-30) 
-        estr = 'Error: CL_INVALID_VALUE' !                          = -30
-   case(-31) 
-        estr = 'Error: CL_INVALID_DEVICE_TYPE' !                    = -31
-   case(-32) 
-        estr = 'Error: CL_INVALID_PLATFORM' !                       = -32
-   case(-33) 
-        estr = 'Error: CL_INVALID_DEVICE' !                         = -33
-   case(-34) 
-        estr = 'Error: CL_INVALID_CONTEXT' !                        = -34
-   case(-35) 
-        estr = 'Error: CL_INVALID_QUEUE_PROPERTIES' !               = -35
-   case(-36) 
-        estr = 'Error: CL_INVALID_COMMAND_QUEUE' !                  = -36
-   case(-37) 
-        estr = 'Error: CL_INVALID_HOST_PTR' !                       = -37
-   case(-38) 
-        estr = 'Error: CL_INVALID_MEM_OBJECT' !                     = -38
-   case(-39) 
-        estr = 'Error: CL_INVALID_IMAGE_FORMAT_DESCRIPTOR' !        = -39
-   case(-40) 
-        estr = 'Error: CL_INVALID_IMAGE_SIZE' !                     = -40
-   case(-41) 
-        estr = 'Error: CL_INVALID_SAMPLER' !                        = -41
-   case(-42) 
-        estr = 'Error: CL_INVALID_BINARY' !                         = -42
-   case(-43) 
-        estr = 'Error: CL_INVALID_BUILD_OPTION' !                   = -43
-   case(-44) 
-        estr = 'Error: CL_INVALID_PROGRAM' !                        = -44
-   case(-45) 
-        estr = 'Error: CL_INVALID_PROGRAM_EXECUTABLE' !             = -45
-   case(-46) 
-        estr = 'Error: CL_INVALID_KERNEL_NAME' !                    = -46
-   case(-47) 
-        estr = 'Error: CL_INVALID_KERNEL_DEFINITION' !              = -47
-   case(-48) 
-        estr = 'Error: CL_INVALID_KERNEL' !                         = -48
-   case(-49) 
-        estr = 'Error: CL_INVALID_ARG_INDEX' !                      = -49
-   case(-50) 
-        estr = 'Error: CL_INVALID_ARG_VALUE' !                      = -50
-   case(-51) 
-        estr = 'Error: CL_INVALID_ARG_SIZE' !                       = -51
-   case(-52) 
-        estr = 'Error: CL_INVALID_KERNEL_ARGS' !                    = -52
-   case(-53) 
-        estr = 'Error: CL_INVALID_WORK_DIMENSION' !                 = -53
-   case(-54) 
-        estr = 'Error: CL_INVALID_WORK_GROUP_SIZE' !                = -54
-   case(-55) 
-        estr = 'Error: CL_INVALID_WORK_ITEM_SIZE' !                 = -55
-   case(-56) 
-        estr = 'Error: CL_INVALID_GLOBAL_OFFSET' !                  = -56
-   case(-57) 
-        estr = 'Error: CL_INVALID_EVENT_WAIT_LIST' !                = -57
-   case(-58) 
-        estr = 'Error: CL_INVALID_EVENT' !                          = -58
-   case(-59) 
-        estr = 'Error: CL_INVALID_OPERATION' !                      = -59
-   case(-60) 
-        estr = 'Error: CL_INVALID_GL_OBJECT' !                      = -60
-   case(-61) 
-        estr = 'Error: CL_INVALID_BUFFER_SIZE' !                    = -61
-   case(-62) 
-        estr = 'Error: CL_INVALID_MIP_LEVEL' !                      = -62
-   case(-63) 
-        estr = 'Error: CL_INVALID_GLOBAL_WORK_SIZE' !               = -63
-   case(-64) 
-        estr = 'Error: CL_INVALID_PROPERTY' !                       = -64
-   case(-65) 
-        estr = 'Error: CL_INVALID_IMAGE_DESCRIPTOR' !               = -65
-   case(-66) 
-        estr = 'Error: CL_INVALID_COMPILER_OPTIONS' !               = -66
-   case(-67) 
-        estr = 'Error: CL_INVALID_LINKER_OPTIONS' !                 = -67
-   case(-68) 
-        estr = 'Error: CL_INVALID_DEVICE_PARTITION_COUNT' !         = -68
-   case default  
-        estr = 'Error: Unknown CL error code'
-        iout(1) = ierr
-        call Message%WriteValue('Unknown CL error code : ', iout, 1)
-  end select
+  if ( (abs(ierr).le.68) .and. (abs(ierr).gt.0) ) then 
+    estr = errorStrings(-ierr)
+  else
+    iout(1) = ierr
+    call Message%WriteValue('Unknown CL error code : ', iout, 1)
+  end if
 
   if (present(nonfatal)) then
     if (nonfatal.eqv..TRUE.) then
-      print *, ' Non-fatal error: '//trim(estr)
+      call Message%printMessage('error_check', ' Non-fatal error: '//trim(estr) )
     end if
   else
     call Message%printError(trim(routine),trim(estr))
@@ -883,7 +1098,7 @@ if (ierr.ne.0) then
 
 end if
 
-end subroutine CLerror_check
+end subroutine error_check_
 
 
 end module mod_CLsupport
