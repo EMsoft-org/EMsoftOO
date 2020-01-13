@@ -68,6 +68,10 @@ module mod_EMsoft
   !! Finally, the method generateFilePath can be used to complete any given file path; in the old 
   !! f90 code this was done in three consecutive lines that were always basically the same, and here
   !! we provide a method to simply return the file name completed with the full path. 
+  !! 
+  !! This class also deals with the command line arguments and the generation of 
+  !! template files (this used to be part of the files.f90 module).
+
 
 use mod_kinds
 use mod_global
@@ -203,6 +207,12 @@ public :: EMsoft_T
       procedure, pass(self) :: getJSONparameter
       procedure, pass(self) :: getEMsoftHDFtest
       procedure, pass(self) :: path_init
+      procedure, pass(self) :: toNativePath_
+      procedure, pass(self) :: fromNativePath_ 
+      procedure, pass(self) :: ConvertWiki2PDF_
+      procedure, pass(self) :: CopyTemplateFiles_
+      procedure, pass(self) :: Interpret_Program_Arguments_with_nml_
+      procedure, pass(self) :: Interpret_Program_Arguments_no_nml_
 
 
 ! public methods
@@ -216,6 +226,11 @@ public :: EMsoft_T
       !DEC$ ATTRIBUTES DLLEXPORT :: printConfigParameters
       procedure, pass(self), public :: generateFilePath
       !DEC$ ATTRIBUTES DLLEXPORT :: generateFilePath
+      procedure, pass(self), public :: toNativePath => toNativePath_
+      !DEC$ ATTRIBUTES DLLEXPORT :: toNativePath
+      procedure, pass(self), public :: fromNativePath => fromNativePath_
+      !DEC$ ATTRIBUTES DLLEXPORT :: fromNativePath
+
 
   end type EMsoft_T
 
@@ -234,12 +249,22 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent) result(EMsoft)
+type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent, tpl) result(EMsoft)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/30/19
   !!
   !! constructor for the EMsoft Class 
+  !!
+  !! if 'makeconfig' is present, a new EMsoftConfig.json file will be created in $HOME/.config/EMsoft
+  !! 
+  !! if 'showconfig' is present, a list of all configuration parameters will be shown 
+  !!
+  !! if 'silent' is present, no output will be shown 
+  !!
+  !! if 'tpl' is present, and the -t option is given to the calling program, then the
+  !! template files listed in the tpl integer array will be copied to the user's working
+  !! folder.  The codes can be found in the templatecodes.txt file in the resources folder.
   
 IMPLICIT NONE
 
@@ -253,20 +278,26 @@ logical, INTENT(IN), OPTIONAL     :: showconfig
  !! optionally, print all the configuration parameters
 logical, INTENT(IN), OPTIONAL     :: silent
  !! optionally, don't show any output
+integer(kind=irg), INTENT(IN), OPTIONAL :: tpl(:)
+ !! list of template files to be created 
 
   call EMsoft % init()
 
-  if (PRESENT(makeconfig)) then 
-    if (makeconfig) then 
-      call EMsoft % printEMsoftHeader(progname, progdesc, makeconfig)
-    else
+  if (present(tpl)) then 
+    call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl)
+  else 
+    if (PRESENT(makeconfig)) then 
+      if (makeconfig) then 
+        call EMsoft % printEMsoftHeader(progname, progdesc, makeconfig)
+      else
+        if (.not.present(silent)) then 
+          call EMsoft % printEMsoftHeader(progname, progdesc)
+        end if 
+      endif
+    else 
       if (.not.present(silent)) then 
         call EMsoft % printEMsoftHeader(progname, progdesc)
-      end if 
-    endif
-  else 
-    if (.not.present(silent)) then 
-      call EMsoft % printEMsoftHeader(progname, progdesc)
+      end if
     end if
   end if
 
@@ -578,7 +609,7 @@ function generateFilePath(self, cp, fn) result(fp)
 
   IMPLICIT NONE 
 
-  class(EMsoft_T),intent(inout) :: self
+  class(EMsoft_T),intent(inout)      :: self
   character(*),INTENT(IN)            :: cp    
    !! configuration parameter string 
   character(*),INTENT(IN),OPTIONAL   :: fn    
@@ -601,7 +632,7 @@ function generateFilePath(self, cp, fn) result(fp)
     else 
       fp = trim(path)                     ! this is already a complete file name ... 
     end if 
-    fp = toNativePath(self, fp)  ! and use the correct delimiter for this platform 
+    fp = toNativePath_(self, fp)  ! and use the correct delimiter for this platform 
   end if
 
 end function generateFilePath
@@ -1049,7 +1080,7 @@ character(fnlen)                  :: binarypath
 
 binarypath = "@EMsoftOO_BINARY_DIR@"
 
-self%EMsofttestpath = trim(toNativePath(self, binarypath))&
+self%EMsofttestpath = trim(toNativePath_(self, binarypath))&
                         //self%EMsoftnativedelimiter//SC_Testing&
                         //self%EMsoftnativedelimiter//SC_Temporary
 
@@ -1484,13 +1515,15 @@ end if
 end function getJSONparameter
 
 !--------------------------------------------------------------------------
-subroutine printEMsoftHeader(self, progname, progdesc, makeconfig)
+subroutine printEMsoftHeader(self, progname, progdesc, makeconfig, templatelist)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
   !!
   !! prints a copyright statement as well as where the user can find the license information
   !! This is then followed by the program name, a one-line description, and a time stamp.
+  !!
+  !! 01/13/20: added templatelist optional parameter
 
 use mod_io 
 use mod_timing 
@@ -1504,9 +1537,12 @@ character(fnlen),INTENT(IN)           :: progdesc
  !! description of what the calling program does
 logical,INTENT(IN),OPTIONAL           :: makeconfig
  !! do we need to (optionally) generate the configuration file ?
+integer(kind=irg),INTENT(IN),OPTIONAL :: templatelist(:)
 
-type(IO_T)                       :: Message
-type(Timing_T)                   :: Timing
+type(IO_T)                            :: Message
+type(Timing_T)                        :: Timing
+integer(kind=irg)                     :: sz(1) 
+character(fnlen)                      :: nmldefault
 
  Message = IO_T() 
 
@@ -1535,10 +1571,16 @@ type(Timing_T)                   :: Timing
     end if
  end if
 
+ if (present(templatelist)) then 
+    sz = shape(templatelist)
+    nmldefault = trim(progname)//'.nml'
+    call Interpret_Program_Arguments_with_nml_(self, nmldefault, sz(1), templatelist, progname)
+ end if 
+
 end subroutine printEMsoftHeader
 
 !--------------------------------------------------------------------------
-function toNativePath(self, inpath) result(outpath)
+function toNativePath_(self, inpath) result(outpath)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1573,10 +1615,10 @@ do i=1,slen
   outpath(i:i) = c
 end do
 
-end function toNativePath
+end function toNativePath_
 
 !--------------------------------------------------------------------------
-function fromNativePath(self, inpath) result(outpath)
+function fromNativePath_(self, inpath) result(outpath)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1611,7 +1653,7 @@ do i=1,slen
   outpath(i:i) = c
 end do
 
-end function fromNativePath
+end function fromNativePath_
 
 !--------------------------------------------------------------------------
 subroutine path_init(self)
@@ -1774,5 +1816,452 @@ call Message % printMessage( &
 
 end subroutine path_init
 
+!--------------------------------------------------------------------------
+recursive subroutine ConvertWiki2PDF_(self, nt, wikilist)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/12/20
+  !!
+  !! programs that do not have a template file will have wiki codes starting at 900
+
+use mod_io
+
+IMPLICIT NONE
+
+class(EMsoft_T),INTENT(INOUT)           :: self
+integer(kind=irg),INTENT(IN)            :: nt
+integer(kind=irg),INTENT(IN)            :: wikilist(nt)
+
+type(IO_T)                              :: Message
+logical                                 :: pandoc_found, fexist
+integer(kind=irg)                       :: i, j, ios, nlines
+integer(kind=irg),parameter             :: maxnumtemplates = 1024
+character(fnlen)                        :: wikifiles(maxnumtemplates), wcf, tpl, input_name, output_name, wikipath, &
+                                           pandoc_tpl, defcmd, line, cmd
+character(3)                            :: wplextension = '.md'
+character(4)                            :: pdfextension = '.pdf'
+
+
+! first make sure that pandoc is available on this platform
+! we'll ask for the version number, and if the returned output contains more than one line
+! then the program is available; this will work on UNIX platforms but will need to be 
+! modified for Windows.
+pandoc_found = .FALSE. 
+call system('pandoc -v | wc -l > linecount')
+open(unit=dataunit,file='linecount',status='old',form='formatted')
+read(dataunit,"(I10)") nlines
+close(unit=dataunit,status='delete')
+if (nlines.gt.1) pandoc_found=.TRUE.
+
+if (pandoc_found.eqv..TRUE.) then 
+! read the wikifile resources file to get all relevant file names 
+  wcf = trim(generateFilePath(self, 'wikicodefilename' ))
+  inquire(file=trim(wcf),exist=fexist)
+  if (.not.fexist) then 
+    call Message%printError('ConvertWiki2PDF','wiki code file not found: '//wcf)
+  end if
+
+  open(UNIT=dataunit,FILE=trim(wcf), STATUS='old', FORM='formatted',ACCESS='sequential')
+
+  wikifiles = ''
+  do
+   read(dataunit,'(I3.3,A)',iostat=ios) j, line
+   if (ios.ne.0) then 
+    exit
+   end if
+   wikifiles(j+1) = trim(line)
+  end do
+  CLOSE(UNIT=dataunit, STATUS='keep')
+
+! get the correct path for the wiki files 
+  wikipath = trim(generateFilePath(self, 'wikipathname' ))
+
+! then get the pandoc default.latex location (in the resources folder)
+  pandoc_tpl = trim(generateFilePath(self, 'Resourcepathname', 'default.latex' ) )
+  inquire(file=trim(pandoc_tpl),exist=fexist)
+
+  if (fexist.eqv..TRUE.) then 
+    defcmd = '-V fontsize=10pt --template '//trim(pandoc_tpl)
+  else
+    defcmd = ''
+    call Message%printWarning(' the pandoc default.latex template file could not be found; continuing... ')
+  end if
+
+! loop over all relevant wiki files and generate the corresponding PDF file
+  do i=1,nt
+    tpl = trim(wikifiles(wikilist(i)+1))
+    input_name = trim(wikipath)//trim(tpl)//trim(wplextension)
+    input_name = toNativePath_(self, input_name)
+
+    inquire(file=trim(input_name),exist=fexist)
+
+    if (fexist.eqv..TRUE.) then  ! create a shell script that will call pandoc and generate the PDF file 
+      output_name = trim(tpl)//pdfextension
+! example command string:
+!  pandoc -V fontsize=10pt --template EMsoftResourcesFolder/default.latex -s EMGBOdm.md -o EMGBOdm.pdf
+      cmd = 'pandoc '//trim(defcmd)//' -s '//trim(input_name)//' -o '//trim(output_name)
+      open(unit=dataunit,file='wiki2pdf',status='unknown',form='formatted')
+      write(dataunit,"(A)") '#!/bin/bash'
+      write(dataunit,"(A)") 'cdir=`pwd`'
+      write(dataunit,"(A)") 'cd '//trim(wikipath)
+      write(dataunit,"(A)") trim(cmd)
+      write(dataunit,"(A)") 'mv '//trim(output_name)//' ${cdir}'
+      write(dataunit,"(A)") 'cd ${cdir}'
+      close(unit=dataunit, status='keep')
+      call system('chmod +x wiki2pdf')
+      call system('./wiki2pdf')
+      open(unit=dataunit,file='wiki2pdf',status='unknown',form='formatted')
+      close(unit=dataunit, status='delete')
+      call Message%printMessage(' wiki file converted to PDF: '//trim(output_name))
+    else 
+      call Message%printMessage(' wiki file '//trim(input_name)//' not found; continuing ...')
+    end if 
+  end do
+else 
+  call Message%printError('ConvertWiki2PDF',' pandoc program not found in search PATH')
+end if 
+
+end subroutine ConvertWiki2PDF_
+
+!--------------------------------------------------------------------------
+recursive subroutine CopyTemplateFiles_(self, nt, templatelist, json)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! copy template files into local folder
+  !!
+  !! In the resources folder, there is a text file called templatecodes.txt
+  !! in which each template file is given a unique ID number.  The present routine
+  !! receives the requested numbers and then looks at that file to figure out 
+  !! which template files need to be copied into the user's working directory.
+
+use mod_io
+
+IMPLICIT NONE
+
+class(EMsoft_T),INTENT(INOUT)           :: self
+integer(kind=irg),INTENT(IN)            :: nt
+integer(kind=irg),INTENT(IN)            :: templatelist(*)
+logical,INTENT(IN),OPTIONAL             :: json
+
+type(IO_T)                              :: Message
+integer(kind=irg),parameter             :: maxnumtemplates = 512
+character(fnlen)                        :: templates(maxnumtemplates)
+character(fnlen)                        :: input_name, output_name, tcf, tppath1, tppath2, tpl, tplextension
+integer(kind=irg)                       :: ios, i, j, ipos
+character(255)                          :: line
+logical                                 :: fexist 
+character(3)                            :: develop
+
+! first open and read the resources/templatecodes.txt file
+
+tcf = trim(generateFilePath(self, 'Templatecodefilename') )
+inquire(file=trim(tcf),exist=fexist)
+if (.not.fexist) then 
+  call Message%printError('CopyTemplateFiles','template code file not found:'//tcf)
+end if
+
+open(UNIT=dataunit,FILE=trim(tcf), STATUS='old', FORM='formatted',ACCESS='sequential')
+
+templates = ''
+do
+ read(dataunit,'(I3.3,A)',iostat=ios) j, line
+ if (ios.ne.0) then 
+  exit
+ end if
+ templates(j+1) = trim(line)
+end do
+CLOSE(UNIT=dataunit, STATUS='keep')
+
+tplextension = '.template'
+if (present(json)) then
+  if (json.eqv..TRUE.) then 
+    tppath1 = trim(getConfigParameter(self, 'Templatepathname' ) ) !  (json))
+    tplextension = '.jtemplate'
+  else
+    tppath1 = trim(getConfigParameter(self, 'Templatepathname' ) )
+  end if
+else
+  tppath1 = trim(getConfigParameter(self, 'Templatepathname' ) )
+end if
+
+! then, determine whether or not the user is working in develop mode by checking for the 
+! Develop keyword in the EMsoftconfig.json file... Regular users will only have a single
+! NameListTemplates folder, but developers have two, so we need to make sure we check both
+! locations.  The second location is the private folder...
+develop = trim(getConfigParameter(self, 'EMdevelop') )
+tppath2 = ''
+if (develop.eq.'Yes') then
+  ipos = index(tppath1,'Public')
+  do i=1,ipos-1
+    tppath2(i:i) = tppath1(i:i)
+  end do
+  if (present(json)) then
+    if (json.eqv..TRUE.) then 
+      tcf = 'Private/JSONTemplates/'
+    else
+      tcf = 'Private/NamelistTemplates/'
+    end if
+  else
+    tcf = 'Private/NamelistTemplates/'
+  endif
+  do i=ipos,ipos+26
+    j = i-ipos+1
+    tppath2(i:i) = tcf(j:j)
+  end do
+end if
+
+do i=1,nt
+ if (templatelist(i).lt.900) then  ! exclude programs that haev a wiki file but no template file
+   tpl = trim(templates(templatelist(i)+1))
+   input_name = trim(tppath1)//trim(tpl)//trim(tplextension)
+   input_name = toNativePath_(self, input_name)
+
+   inquire(file=trim(input_name),exist=fexist)
+   if (.not.fexist) then 
+    if (develop.eq.'Yes') then
+     input_name = trim(tppath2)//trim(tpl)//trim(tplextension)
+     input_name = toNativePath_(self, input_name)
+     inquire(file=trim(input_name),exist=fexist)
+     if (.not.fexist) then 
+       call Message%printError('CopyTemplateFiles','template file '//trim(templates(templatelist(i)+1))// &
+                               trim(tplextension)//' not found in either template folder')
+     end if
+    else
+     call Message%printError('CopyTemplateFiles','template file '//trim(templates(templatelist(i)+1))// &
+                             trim(tplextension)//' not found')
+    end if
+   end if
+   output_name = trim(templates(templatelist(i)+1))//trim(tplextension)
+   output_name = toNativePath_(self, output_name)
+   open(UNIT=dataunit,FILE=trim(input_name), STATUS='old', FORM='formatted',ACCESS='sequential')
+   open(UNIT=dataunit2,FILE=trim(output_name), STATUS='unknown', FORM='formatted',ACCESS='sequential')
+   do
+          read(dataunit,'(A)',iostat=ios) line
+          if (ios.ne.0) then 
+            exit
+          end if
+          write(dataunit2,'(A)') trim(line)
+    end do
+   close(UNIT=dataunit, STATUS='keep')
+   close(UNIT=dataunit2, STATUS='keep')
+   call Message%printMessage('  -> created template file '//trim(templates(templatelist(i)+1))//&
+                             trim(tplextension), frm = "(A)")
+ end if
+end do
+ 
+end subroutine CopyTemplateFiles_
+
+!--------------------------------------------------------------------------
+recursive subroutine Interpret_Program_Arguments_with_nml_(self, nmldefault, numt, templatelist, progname)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! copy template files into local folder
+  !!
+  !! interpret the command line arguments
+  !!
+  !! In the resources folder, there is a text file called templatecodes.txt
+  !! in which each template file is given a unique ID number.  The present routine
+  !! receives the requested numbers and then looks into the file to figure out 
+  !! which ones need to be copied.
+
+use mod_io
+
+IMPLICIT NONE
+
+class(EMsoft_T), INTENT(INOUT)          :: self
+character(fnlen),INTENT(INOUT)          :: nmldefault
+!f2py intent(in,out) ::  nmldefault
+integer(kind=irg),INTENT(IN)            :: numt
+integer(kind=irg),INTENT(IN)            :: templatelist(numt)
+character(fnlen),INTENT(IN)             :: progname
+
+type(IO_T)                              :: Message
+integer(kind=irg)                       :: numarg       ! number of command line arguments
+integer(kind=irg)                       :: iargc        ! external function for command line
+character(fnlen)                        :: arg          ! to be read from the command line
+character(fnlen)                        :: nmlfile      ! nml file name
+integer(kind=irg)                       :: i, io_int(1)
+logical                                 :: haltprogram, json
+
+json = .FALSE.
+
+!numarg = iargc()
+numarg = command_argument_count()
+nmlfile = ''
+nmlfile = trim(nmldefault)
+
+if (numarg.gt.0) then
+  io_int(1) = numarg
+  call Message%WriteValue('Number of command line arguments detected: ',io_int,1)
+end if
+
+haltprogram = .FALSE.
+if (numarg.ge.1) haltprogram = .TRUE.
+
+if (numarg.gt.0) then ! there is at least one argument
+  do i=1,numarg
+!   call getarg(i,arg)
+    call get_command_argument(i,arg)
+!    mess = 'Found the following argument: '//trim(arg); call Message("(/A/)")
+! does the argument start with a '-' character?    
+    if (arg(1:1).eq.'-') then
+      if (trim(arg).eq.'-h') then
+        call Message%printMessage(' Program should be called as follows: ', frm = "(/A)")
+        call Message%printMessage('        '//trim(progname)//' -h -t -j [nmlfile]', frm = "(A)")
+        call Message%printMessage(' where nmlfile is an optional file name for the namelist file;', frm = "(A/)")
+        call Message%printMessage(' If absent, the default name '''//trim(nmldefault)//''' will be used.', frm = "(A)")
+        call Message%printMessage(' To create templates of all possible input files, type '//trim(progname)//' -t', frm = "(A)")
+        call Message%printMessage(' To produce this message, type '//trim(progname)//' -h', frm = "(A)")
+        call Message%printMessage(' All program arguments can be combined in the same order;  ', frm = "(A)")
+        call Message%printMessage(' the argument without - will be interpreted as the input file name.', frm = "(A/)")
+      end if
+      if (trim(arg).eq.'-t') then
+! with this option the program creates template namelist files in the current folder so that the 
+! user can edit them (file extension will be .template; should be changed by user to .nml)
+        call Message%printMessage('Creating program name list template files:', frm = "(/A)")
+        call CopyTemplateFiles_(self, numt, templatelist)
+      end if
+      if (trim(arg).eq.'-pdf') then 
+! if the pandoc program is installed (for instance within the anaconda distribution)
+! then the user can ask for the wiki manual page (if it exists) to be converted into a pdf
+! file that will be placed in the current folder.
+!
+! example command to generate the pdf file for the EMGBOdm program:
+!   pandoc -V fontsize=10pt --template ~/templates/default.latex -s EMGBOdm.md -o EMGBOdm.pdf
+!
+! We use the same template codes but now they are linked to the corresponding wiki file
+! which should be located in a folder at the same level as the resources folder.
+!
+        call Message%printMessage(' User requested wiki-to-pdf conversion', frm = "(/A)")
+        call ConvertWiki2PDF_(self, numt, templatelist)
+      end if 
+      if (trim(arg).eq.'-j') then
+        json = .TRUE.
+! with this option the program creates template JSON files in the current folder so that the 
+! user can edit them (file extension will be .jsontemplate; should be changed by user to .json)
+!
+! It should be noted that the template files contain comment lines starting with the "!" character;
+! this is not standard JSON (which does not allow for comment lines).  The EMsoft JSON files will 
+! first be filtered to remove all the comment lines before being passed to the json parser routine.
+        call Message%printMessage('Creating program JSON template files:', frm = "(/A)")
+        call CopyTemplateFiles_(self, numt,templatelist,json=json)
+      end if
+    else
+! no, the first character is not '-', so this argument must be the filename
+! If it is present, but any of the other arguments were present as well, then
+! we stop the program. 
+      nmlfile = arg
+      if (numarg.eq.1) haltprogram = .FALSE.
+    end if
+  end do
+end if
+
+if (haltprogram) then
+  call Message%printMessage('To execute program, remove all flags except for nml/json input file name', frm = "(/A/)")
+  stop
+end if
+
+nmldefault = nmlfile
+
+end subroutine Interpret_Program_Arguments_with_nml_
+
+!--------------------------------------------------------------------------
+recursive subroutine Interpret_Program_Arguments_no_nml_(self, numt, templatelist, progname, flagset)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! interpret the command line arguments
+  !!
+  !! This routine assumes that there is no template file, but there 
+  !! could still be a wiki file... 
+
+use mod_io
+
+IMPLICIT NONE
+
+class(EMsoft_T), INTENT(INOUT)          :: self
+integer(kind=irg),INTENT(IN)            :: numt
+integer(kind=irg),INTENT(IN)            :: templatelist(*)
+character(fnlen),INTENT(IN)             :: progname
+character(fnlen),INTENT(INOUT),OPTIONAL :: flagset  
+
+type(IO_T)                              :: Message
+integer(kind=irg)                       :: numarg       !< number of command line arguments
+integer(kind=irg)                       :: iargc        !< external function for command line
+character(fnlen)                        :: arg          !< to be read from the command line
+character(fnlen)                        :: nmlfile      !< nml file name
+integer(kind=irg)                       :: i, io_int(1)
+logical                                 :: haltprogram, json, flags
+
+json = .FALSE.
+
+flags = .FALSE. 
+if (present(flagset)) then
+  flags = .TRUE. 
+end if
+
+numarg = command_argument_count()
+
+if (numarg.gt.0) then
+  io_int(1) = numarg
+  call Message%WriteValue('Number of command line arguments detected: ',io_int,1)
+end if
+
+haltprogram = .FALSE.
+if (numarg.ge.1) haltprogram = .TRUE.
+
+if (numarg.gt.0) then ! there is at least one argument
+  do i=1,numarg
+!   call getarg(i,arg)
+    call get_command_argument(i,arg)
+! does the argument start with a '-' character?    
+    if (arg(1:1).eq.'-') then
+      if (trim(arg).eq.'-h') then
+        call Message%printMessage(' Program should be called as follows: ', frm = "(/A)")
+        call Message%printMessage('        '//trim(progname)//' -h -pdf ', frm = "(A)")
+        call Message%printMessage(' To produce this message, type '//trim(progname)//' -h', frm = "(A)")
+        call Message%printMessage(' use -pdf to produce a PDF help file if the corresponding wiki file exists ', frm = "(A)")
+      end if
+      if (trim(arg).eq.'-pdf') then 
+! if the pandoc program is installed (for instance within the anaconda distribution)
+! then the user can ask for the wiki manual page (if it exists) to be converted into a pdf
+! file that will be placed in the current folder.
+!
+! example command to generate the pdf file for the EMGBOdm program:
+!   pandoc -V fontsize=10pt --template ~/templates/default.latex -s EMGBOdm.md -o EMGBOdm.pdf
+!
+! We use the same template codes but now they are linked to the corresponding wiki file
+! which should be located in a folder at the same level as the resources folder.
+!
+        call Message%printMessage(' User requested wiki-to-pdf conversion', frm = "(/A)")
+        call ConvertWiki2PDF_(self, numt, templatelist)
+      end if 
+      if (flags.eqv..TRUE.) then
+        if (trim(arg).eq.trim(flagset)) then 
+          flagset = 'yes'
+          haltprogram = .FALSE.
+        end if
+      end if 
+    else
+! no, the first character is not '-', so this argument must be the filename
+! If it is present, but any of the other arguments were present as well, then
+! we stop the program. 
+      nmlfile = arg
+      if (numarg.eq.1) haltprogram = .FALSE.
+    end if
+  end do
+end if
+
+if (haltprogram) then
+  call Message%printMessage('To execute program, remove all flags ', frm = "(/A/)")
+  stop
+end if
+
+end subroutine Interpret_Program_Arguments_no_nml_
 
 end module mod_EMsoft

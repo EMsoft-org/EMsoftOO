@@ -182,14 +182,27 @@ IMPLICIT NONE
         procedure, pass(self) :: error_check_
         procedure, pass(self) :: query_platform_info_
         procedure, pass(self) :: print_platform_info_
+        procedure, pass(self) :: CLread_source_file_
+        procedure, pass(self) :: CLread_source_file_wrapper_
+        procedure, pass(self) :: CLinit_PDCCQ_
+        procedure, pass(self) :: CLinit_multiPDCCQ_
         final :: CL_destructor 
 
         generic, public :: error_check => error_check_
         generic, public :: query_platform_info => query_platform_info_
         generic, public :: print_platform_info => print_platform_info_
-        ! generic, public :: getNumPlatforms => query_platform_info_
+        generic, public :: CLread_source_file => CLread_source_file_
+        generic, public :: CLread_source_file_wrapper => CLread_source_file_wrapper_
+        generic, public :: CLinit_PDCCQ => CLinit_PDCCQ_, CLinit_multiPDCCQ_
 
   end type OpenCL_T
+
+!DEC$ ATTRIBUTES DLLEXPORT :: error_check_
+!DEC$ ATTRIBUTES DLLEXPORT :: query_platform_info_
+!DEC$ ATTRIBUTES DLLEXPORT :: print_platform_info_
+!DEC$ ATTRIBUTES DLLEXPORT :: CLread_source_file_
+!DEC$ ATTRIBUTES DLLEXPORT :: CLread_source_file_wrapper_
+!DEC$ ATTRIBUTES DLLEXPORT :: CLinit_PDCCQ_
 
   ! the constructor routine for this class 
   interface OpenCL_T
@@ -663,26 +676,13 @@ call Message%printMessage( &
 
 end subroutine print_platform_info_
 
-
-
-
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE:CLread_source_file
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief read an OpenCL source file and return the source properly formatted
-!
-!> @param sourcefile filename for the OpenCL source code
-!> @param source c_str containing the source, NULL-terminated
-!> @param slength source string length
-!
-!> @date 02/18/16  MDG 1.0 original
-!> @date 01/15/17  MDG 1.1 added functionality for second opencl folder for developers...
-!--------------------------------------------------------------------------
-recursive subroutine CLread_source_file(EMsoft, sourcefile, csource, slength)
-!DEC$ ATTRIBUTES DLLEXPORT :: CLread_source_file
+recursive subroutine CLread_source_file_(self, EMsoft, sourcefile, csource, slength)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! read an OpenCL source file and return the source properly formatted
 
 use mod_EMsoft
 use mod_global
@@ -694,6 +694,7 @@ IMPLICIT NONE
 
 integer, parameter                      :: source_length = 50000
 
+class(OpenCL_T),INTENT(IN)              :: self 
 type(EMsoft_T),intent(INOUT)            :: EMsoft
 character(fnlen), INTENT(IN)            :: sourcefile
 character(len=source_length, KIND=c_char),INTENT(OUT) :: csource
@@ -778,25 +779,15 @@ csource = trim(source)
 csource(irec:irec) = C_NULL_CHAR
 slength = irec
 
-end subroutine CLread_source_file
+end subroutine CLread_source_file_
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE:CLread_source_file_wrapper
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief read an OpenCL source file and return the source properly formatted
-!
-!> @param sourcefile filename for the OpenCL source code
-!> @param source c_str containing the source, NULL-terminated
-!> @param slength source string length
-!
-!> @date 02/18/16  MDG 1.0 original
-!> @date 01/15/17  MDG 1.1 added functionality for second opencl folder for developers...
-!--------------------------------------------------------------------------
-recursive subroutine CLread_source_file_wrapper(sourcefile, csource, slength)
-!DEC$ ATTRIBUTES DLLEXPORT :: CLread_source_file_wrapper
+recursive subroutine CLread_source_file_wrapper_(self, sourcefile, csource, slength)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! read an OpenCL source file and return the source properly formatted
 
 use mod_global
 use mod_io
@@ -806,6 +797,7 @@ IMPLICIT NONE
 
 integer, parameter                      :: source_length = 50000
 
+class(OpenCL_T), INTENT(IN)             :: self
 character(fnlen), INTENT(IN)            :: sourcefile
 character(len=source_length, KIND=c_char),INTENT(OUT) :: csource
 integer(c_size_t),INTENT(OUT)           :: slength
@@ -844,32 +836,16 @@ csource = trim(source)
 csource(irec:irec) = C_NULL_CHAR
 slength = irec
 
-end subroutine CLread_source_file_wrapper
-
+end subroutine CLread_source_file_wrapper_
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE:CLinit_PDCCQ
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief initialize a CL platform, device, context, and command queue
-!
-!> @param platform
-!> @param nump number of platforms available
-!> @param selnump selected platform number
-!> @param device
-!> @param numd number of devices available in selected platform 
-!> @param selnumd selected device number
-!> @param devinfo
-!> @param context
-!> @param command_queue
-!
-!> @date 02/23/16  MDG 1.0 original
-!--------------------------------------------------------------------------
-recursive subroutine CLinit_PDCCQ(self, platform, nump, selnump, device, numd, selnumd, devinfo, &
+recursive subroutine CLinit_PDCCQ_(self, platform, nump, selnump, device, numd, selnumd, devinfo, &
                                   context, command_queue)
-!DEC$ ATTRIBUTES DLLEXPORT :: CLinit_PDCCQ
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! initialize a CL platform, device, context, and command queue
 
 use ISO_C_BINDING
 use mod_io
@@ -879,14 +855,23 @@ IMPLICIT NONE
 
 class(OpenCL_T),INTENT(INOUT)            :: self
 integer(c_intptr_t),allocatable, target  :: platform(:)
+ !! platform
 integer(kind=irg), INTENT(OUT)           :: nump
+ !! nump number of platforms available
 integer(kind=irg), INTENT(IN)            :: selnump
+ !! selnump selected platform number
 integer(c_intptr_t),allocatable, target  :: device(:)
+ !! device
 integer(kind=irg), INTENT(OUT)           :: numd
+ !! numd number of devices available in selected platform 
 integer(kind=irg), INTENT(IN)            :: selnumd
+ !! selnumd selected device number
 character(fnlen),INTENT(OUT)             :: devinfo
+ !! devinfo
 integer(c_intptr_t),target               :: context
+ !! context
 integer(c_intptr_t),target               :: command_queue
+ !! command_queue
 
 type(IO_T)                               :: Message
 integer(c_int32_t)                       :: ierr
@@ -939,33 +924,18 @@ cmd_queue_props = CL_QUEUE_PROFILING_ENABLE
 command_queue = clCreateCommandQueue(context, device(selnumd), cmd_queue_props, ierr)
 call error_check_(self, 'CLinit_PDCCQ:clCreateCommandQueue',ierr)
 
-end subroutine CLinit_PDCCQ
-
+end subroutine CLinit_PDCCQ_
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE:CLinit_multiPDCCQ
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief initialize a CL platform, multiple devices, a context, and command queues for multi-GPU runs
-!
-!> @param platform
-!> @param nump number of platforms available
-!> @param selnump selected platform number
-!> @param device
-!> @param numd number of devices available in selected platform 
-!> @param usenumd how many of these do we want to use?
-!> @param selnumd array of selected device numbers
-!> @param devinfo
-!> @param context
-!> @param command_queue
-!
-!> @date 02/28/18  MDG 1.0 original
-!--------------------------------------------------------------------------
-recursive subroutine CLinit_multiPDCCQ(self, platform, nump, selnump, device, numd, usenumd, &
+recursive subroutine CLinit_multiPDCCQ_(self, platform, nump, selnump, device, numd, usenumd, &
                                        selnumd, devinfo, context, command_queue)
-!DEC$ ATTRIBUTES DLLEXPORT :: CLinit_multiPDCCQ
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! initialize a CL platform, multiple devices, a context, and command queues for multi-GPU runs
+  !!
+  !! this routine still needs to be tested 
 
 use ISO_C_BINDING
 use mod_io
@@ -975,16 +945,25 @@ IMPLICIT NONE
 
 class(OpenCL_T),INTENT(INOUT)            :: self
 integer(c_intptr_t),allocatable, target  :: platform(:)
+ !! platform
 integer(kind=irg), INTENT(OUT)           :: nump
+ !! nump number of platforms available
 integer(kind=irg), INTENT(IN)            :: selnump
+ !! selnump selected platform number
 integer(c_intptr_t),allocatable, target  :: device(:)
+ !! device
 integer(kind=irg), INTENT(OUT)           :: numd
+ !! numd number of devices available in selected platform 
 integer(kind=irg), INTENT(INOUT)         :: usenumd
-!f2py intent(in,out) ::  usenumd
+ !! number of devices to be used
 integer(kind=irg), INTENT(IN)            :: selnumd(usenumd)
+ !! array of selected device numbers
 character(fnlen),allocatable,INTENT(OUT) :: devinfo(:)
-integer(c_intptr_t),allocatable, target  :: context(:)
-integer(c_intptr_t),allocatable, target  :: command_queue(:)
+ !! devinfo
+integer(c_intptr_t),allocatable,target   :: context(:)
+ !! context
+integer(c_intptr_t),allocatable,target   :: command_queue(:)
+ !! command_queue
 
 type(IO_T)                               :: Message
 integer(c_int32_t)                       :: ierr
@@ -1055,7 +1034,7 @@ do i=1,usenumd
   command_queue(i) = clCreateCommandQueue(context(i), device(selnumd(i)), cmd_queue_props, ierr)
   call error_check_(self, 'CLinit_PDCCQ:clCreateCommandQueue',ierr)
 end do
-end subroutine CLinit_multiPDCCQ
+end subroutine CLinit_multiPDCCQ_
 
 !--------------------------------------------------------------------------
 recursive subroutine error_check_(self, routine, ierr, nonfatal)
