@@ -535,29 +535,29 @@ IMPLICIT NONE
   type, public :: SpaceGroup_T
     !! symmetry class definition
     private 
-      integer(kind=irg)     :: SGnumber
+      integer(kind=irg)     :: SGnumber = 0
        !! space group number 
-      character(11)         :: SGname                     
+      character(11)         :: SGname = '           '
        !! current space group name
-      integer(kind=irg)     :: setting
+      integer(kind=irg)     :: setting = 0
        !! space group setting (for those groups that have multiple settings)
-      integer(kind=irg)     :: SGorder
+      integer(kind=irg)     :: SGorder = 0
        !! space group order
-      integer(kind=irg)     :: xtal_system
+      integer(kind=irg)     :: xtal_system = 0
        !! crystal system number
-      logical               :: hexset
+      logical               :: hexset = .FALSE.
        !! are we using a hexagonal setting?
       logical               :: symmorphic
        !! is this a symmorphic space group?
-      integer(kind=irg)     :: GENnum                   
+      integer(kind=irg)     :: GENnum = 0
        !! number of generator matrices
-      integer(kind=irg)     :: MATnum                   
+      integer(kind=irg)     :: MATnum = 0               
        !! number of non-zero symmetry matrices
-      integer(kind=irg)     :: NUMpt                    
+      integer(kind=irg)     :: NUMpt = 0               
        !! number of point group operators
-      logical               :: reduce                   
+      logical               :: reduce = .TRUE.
        !! switch to enable/disable reduction to fundamental cell
-      logical               :: trigonal                 
+      logical               :: trigonal = .FALSE.
        !! switch for hexagonal vs. rhombohedral settings
       logical               :: second = .FALSE.   ! we always use hexagonal setting for trigonal case
        !! switch for second setting of spacegroup (if any)
@@ -593,7 +593,10 @@ IMPLICIT NONE
 ! routines to extract space group parameters
       procedure, pass(self) :: getSpaceGroupName_ 
       procedure, pass(self) :: getSpaceGroupOrder_
-      procedure, pass(self) :: getSpaceGroupnumber_ 
+      procedure, pass(self) :: getSpaceGroupNumber_ 
+      procedure, pass(self) :: getSpaceGroupGENnum_ 
+      procedure, pass(self) :: getSpaceGroupMATnum_ 
+      procedure, pass(self) :: getSpaceGroupNUMpt_ 
       procedure, pass(self) :: getSpaceGroupSetting_ 
       procedure, pass(self) :: getSpaceGroupCentro_
       procedure, pass(self) :: getSpaceGroupXtalSystem_
@@ -601,6 +604,13 @@ IMPLICIT NONE
       procedure, pass(self) :: getSpaceGroupDataMatrices_
       procedure, pass(self) :: getSpaceGroupPGdirecMatrices_
       procedure, pass(self) :: getSpaceGroupPGrecipMatrices_
+      procedure, pass(self) :: getSpaceGrouptrigonal_
+      procedure, pass(self) :: getSpaceGroupsecond_
+! routines to set space group parameters 
+      procedure, pass(self) :: setSpaceGroupreduce_
+      procedure, pass(self) :: setSpaceGrouphexset_
+      procedure, pass(self) :: setSpaceGrouptrigonal_
+      procedure, pass(self) :: setSpaceGroupsecond_
 ! general purpose routines that use symmetry 
       procedure, pass(self) :: CalcFamily_
       procedure, pass(self) :: CalcOrbit_
@@ -628,6 +638,9 @@ IMPLICIT NONE
       generic, public :: getSpaceGroup => getSpaceGroup_
       generic, public :: resetSpaceGroup => resetSpaceGroup_
       generic, public :: getSpaceGroupName => getSpaceGroupName_
+      generic, public :: getSpaceGroupGENnum => getSpaceGroupGENnum_
+      generic, public :: getSpaceGroupMATnum => getSpaceGroupMATnum_
+      generic, public :: getSpaceGroupNUMpt => getSpaceGroupNUMpt_
       generic, public :: getSpaceGroupOrder => getSpaceGroupOrder_
       generic, public :: getSpaceGroupNumber => getSpaceGroupNumber_
       generic, public :: getSpaceGroupSetting => getSpaceGroupSetting_
@@ -637,6 +650,12 @@ IMPLICIT NONE
       generic, public :: getSpaceGroupDataMatrices => getSpaceGroupDataMatrices_
       generic, public :: getSpaceGroupPGdirecMatrices => getSpaceGroupPGdirecMatrices_
       generic, public :: getSpaceGroupPGrecipMatrices => getSpaceGroupPGrecipMatrices_
+      generic, public :: getSpaceGrouptrigonal => getSpaceGrouptrigonal_
+      generic, public :: getSpaceGroupsecond => getSpaceGroupsecond_
+      generic, public :: setSpaceGroupreduce => setSpaceGroupreduce_
+      generic, public :: setSpaceGrouphexset => setSpaceGrouphexset_
+      generic, public :: setSpaceGrouptrigonal => setSpaceGrouptrigonal_
+      generic, public :: setSpaceGroupsecond => setSpaceGroupsecond_
       generic, public :: GetSetting => GetSetting_
       generic, public :: GenerateSymmetry => GenerateSymmetry_
       generic, public :: ListPointGroups => ListPointGroups_
@@ -730,31 +749,36 @@ type(IO_T)                              :: Message
 integer(kind=irg)                       :: i, pgnum
 integer(kind=irg),parameter             :: icv(7) = (/ 7, 6, 3, 2, 5, 4, 1 /)
 
-! this constructor needs either a space group number or a crystal system number 
-if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) ) then 
-  call Message%printError('SpaceGroup_constructor',' needs either a space group number or a crystal system')
-end if
-
-if (present(SGnumber) .and. (.not.(present(xtalSystem))) ) then 
-! find the crystal system number from the space group number SGXsym = (/ 1, 3, 16, 75, 143, 168, 195 /)
-  SG%SGnumber = SGnumber
-  i = 0
-  do while(SGnumber.gt.SGXsym(i+1))
-    i = i+1 
-  end do 
-! convert this number to the EMsoft crystal system numbering scheme
-  SG%xtal_system = icv(i)
-end if 
-
-if ( (.not.(present(SGnumber))) .and. (present(xtalSystem)) ) then 
-  SG%xtal_system = xtalSystem
+! if there are no input parameters, then we start by asking for the crystal system 
+if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) .and. .not.(present(setting)) ) then 
+  call getXtalSystem_(SG)
   call getSpaceGroup_(SG)
-end if
-
-if (present(setting)) then 
-  SG%setting = setting 
-else 
   call getSetting_(SG)
+
+else  ! at least one of the optional parameters are present 
+
+  if (present(SGnumber) .and. (.not.(present(xtalSystem))) ) then 
+! find the crystal system number from the space group number SGXsym = (/ 1, 3, 16, 75, 143, 168, 195 /)
+    SG%SGnumber = SGnumber
+    i = 0
+    do while(SGnumber.gt.SGXsym(i+1))
+      i = i+1 
+    end do 
+! convert this number to the EMsoft crystal system numbering scheme
+    SG%xtal_system = icv(i)
+  end if 
+
+  if ( (.not.(present(SGnumber))) .and. (present(xtalSystem)) ) then 
+    SG%xtal_system = xtalSystem
+    call getSpaceGroup_(SG)
+  end if
+
+  if (present(setting)) then 
+    SG%setting = setting 
+  else 
+    call getSetting_(SG)
+  end if 
+
 end if 
 
 ! fill in the space group name  and order 
@@ -821,6 +845,47 @@ self%second = .FALSE.
 self%centrosym = .FALSE. 
 
 end subroutine resetSpaceGroup_
+
+!--------------------------------------------------------------------------
+recursive subroutine getXtalSystem_(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! ask the user for the crystal system 
+
+use mod_io
+
+IMPLICIT NONE 
+
+class(SpaceGroup_T), intent(inout)     :: self
+
+type(IO_T)                             :: Message
+integer(kind=irg)                      :: io_int(1)   
+
+ call Message%printMessage(' Select the crystal system : ', frm = "(A)")
+ call Message%printMessage('  1. Cubic ', frm = "(A)")
+ call Message%printMessage('  2. Tetragonal ', frm = "(A)")
+ call Message%printMessage('  3. Orthorhombic ', frm = "(A)")
+ call Message%printMessage('  4. Hexagonal ', frm = "(A)")
+ call Message%printMessage('  5. Trigonal ', frm = "(A)")
+ call Message%printMessage('  6. Monoclinic ', frm = "(A)")
+ call Message%printMessage('  7. Triclinic ', frm = "(A/)")
+! call Message('  8. 2-D Quasi-Crystal', frm = "(A/)")
+! call Message('  9. 3-D Quasi-Crystal', frm = "(A/)")
+
+ call Message%printMessage(' Note about the trigonal system:', frm = "(A)")
+ call Message%printMessage(' -------------------------------', frm = "(A)")
+ call Message%printMessage(' Primitive trigonal crystals are defined with respect to a HEXAGONAL', frm = "(A)")
+ call Message%printMessage(' reference frame.  Rhombohedral crystals can be referenced with', frm = "(A)")
+ call Message%printMessage(' respect to a HEXAGONAL basis (first setting), or with respect to', frm = "(A)")
+ call Message%printMessage(' a RHOMBOHEDRAL basis (second setting).  The default setting for ', frm = "(A)")
+ call Message%printMessage(' trigonal symmetry is the hexagonal setting.  When you select', frm = "(A)")
+ call Message%printMessage(' crystal system 5 above, you will be prompted for the setting. ', frm = "(A//)")
+ call Message%ReadValue(' crystal system ---> ', io_int, 1)
+ self%xtal_system = io_int(1)
+ 
+end subroutine getXtalSystem_
 
 !--------------------------------------------------------------------------
 recursive subroutine getSpaceGroup_(self)
@@ -1453,6 +1518,58 @@ SGsetting = self%setting
 end function getSpaceGroupSetting_
 
 !--------------------------------------------------------------------------
+recursive function getSpaceGroupGENnum_(self) result(g)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! return the space group number of generators
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+integer(kind=irg)                   :: g
+
+g = self%GENnum
+
+end function getSpaceGroupGENnum_
+
+!--------------------------------------------------------------------------
+recursive function getSpaceGroupMATnum_(self) result(g)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! return the space group number of symmetry matrices 
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+integer(kind=irg)                   :: g
+
+g = self%MATnum
+
+end function getSpaceGroupMATnum_
+
+!--------------------------------------------------------------------------
+recursive function getSpaceGroupNUMpt_(self) result(g)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! return the space group number of point symmetry matrices
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+integer(kind=irg)                   :: g
+
+g = self%NUMpt
+
+end function getSpaceGroupNUMpt_
+
+
+!--------------------------------------------------------------------------
 recursive function getSpaceGroupCentro_(self) result(SGcentrosym)
   !! author: MDG 
   !! version: 1.0 
@@ -1571,6 +1688,111 @@ allocate(SGrecip(sz(1),sz(2),sz(3)))
 SGrecip = self%recip
 
 end function getSpaceGroupPGrecipMatrices_
+
+!--------------------------------------------------------------------------
+recursive function getSpaceGrouptrigonal_(self) result(trigonal)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/11/20
+  !!
+  !! get the space group trigonal parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical                             :: trigonal
+
+trigonal = self%trigonal
+
+end function getSpaceGrouptrigonal_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSpaceGroupreduce_(self, reduce)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/11/20
+  !!
+  !! set the space group reduce parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical,INTENT(IN)                  :: reduce
+
+self%reduce = reduce
+
+end subroutine setSpaceGroupreduce_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSpaceGrouphexset_(self, hexset)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/11/20
+  !!
+  !! set the space group hexset parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical,INTENT(IN)                  :: hexset
+
+self%hexset = hexset
+
+end subroutine setSpaceGrouphexset_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSpaceGrouptrigonal_(self, trigonal)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/11/20
+  !!
+  !! set the space group trigonal parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical,INTENT(IN)                  :: trigonal
+
+self%trigonal = trigonal
+
+end subroutine setSpaceGrouptrigonal_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSpaceGroupsecond_(self, second)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/11/20
+  !!
+  !! set the space group second parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical,INTENT(IN)                  :: second
+
+self%second = second
+
+end subroutine setSpaceGroupsecond_
+
+!--------------------------------------------------------------------------
+recursive function getSpaceGroupsecond_(self) result(second)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/11/20
+  !!
+  !! set the space group second parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical                             :: second
+
+second = self%second
+
+end function getSpaceGroupsecond_
+
+
+
 
 
 !--------------------------------------------------------------------------

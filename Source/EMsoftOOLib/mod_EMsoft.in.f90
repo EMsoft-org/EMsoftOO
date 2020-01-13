@@ -249,7 +249,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent, tpl) result(EMsoft)
+type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent, tpl, fset) result(EMsoft)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/30/19
@@ -265,6 +265,10 @@ type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, 
   !! if 'tpl' is present, and the -t option is given to the calling program, then the
   !! template files listed in the tpl integer array will be copied to the user's working
   !! folder.  The codes can be found in the templatecodes.txt file in the resources folder.
+  !!
+  !! if 'flagset' is present, that means that additional command line argument tests need 
+  !! to be carried out, in particular a test to see if Wyckoff positions need to be used 
+  !! for the EMmkxtal program.  Other options may be added in the future.
   
 IMPLICIT NONE
 
@@ -280,11 +284,16 @@ logical, INTENT(IN), OPTIONAL     :: silent
  !! optionally, don't show any output
 integer(kind=irg), INTENT(IN), OPTIONAL :: tpl(:)
  !! list of template files to be created 
+character(fnlen), INTENT(INOUT), OPTIONAL  :: fset
 
   call EMsoft % init()
 
   if (present(tpl)) then 
-    call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl)
+    if (present(fset)) then 
+      call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl, flagset=fset)
+    else
+      call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl)
+    end if
   else 
     if (PRESENT(makeconfig)) then 
       if (makeconfig) then 
@@ -1515,7 +1524,7 @@ end if
 end function getJSONparameter
 
 !--------------------------------------------------------------------------
-subroutine printEMsoftHeader(self, progname, progdesc, makeconfig, templatelist)
+subroutine printEMsoftHeader(self, progname, progdesc, makeconfig, templatelist, flagset)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1530,19 +1539,21 @@ use mod_timing
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)         :: self
-character(fnlen),INTENT(IN)           :: progname
+class(EMsoft_T),intent(inout)           :: self
+character(fnlen),INTENT(IN)             :: progname
  !! name of the calling program
-character(fnlen),INTENT(IN)           :: progdesc
+character(fnlen),INTENT(IN)             :: progdesc
  !! description of what the calling program does
-logical,INTENT(IN),OPTIONAL           :: makeconfig
+logical,INTENT(IN),OPTIONAL             :: makeconfig
  !! do we need to (optionally) generate the configuration file ?
-integer(kind=irg),INTENT(IN),OPTIONAL :: templatelist(:)
+integer(kind=irg),INTENT(IN),OPTIONAL   :: templatelist(:)
+ !! list of namelist template codes that need to be generated 
+character(fnlen),INTENT(INOUT),OPTIONAL :: flagset
 
-type(IO_T)                            :: Message
-type(Timing_T)                        :: Timing
-integer(kind=irg)                     :: sz(1) 
-character(fnlen)                      :: nmldefault
+type(IO_T)                              :: Message
+type(Timing_T)                          :: Timing
+integer(kind=irg)                       :: sz(1) 
+character(fnlen)                        :: nmldefault
 
  Message = IO_T() 
 
@@ -1573,8 +1584,12 @@ character(fnlen)                      :: nmldefault
 
  if (present(templatelist)) then 
     sz = shape(templatelist)
-    nmldefault = trim(progname)//'.nml'
-    call Interpret_Program_Arguments_with_nml_(self, nmldefault, sz(1), templatelist, progname)
+    if (present(flagset)) then 
+      call Interpret_Program_Arguments_no_nml_(self, sz(1), templatelist, progname, flagset)
+    else 
+      nmldefault = trim(progname)//'.nml'
+      call Interpret_Program_Arguments_with_nml_(self, nmldefault, sz(1), templatelist, progname)
+    end if 
  end if 
 
 end subroutine printEMsoftHeader

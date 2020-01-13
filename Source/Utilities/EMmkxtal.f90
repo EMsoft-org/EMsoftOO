@@ -1,105 +1,90 @@
+! ###################################################################
+! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
+! All rights reserved.
+!
+! Redistribution and use in source and binary forms, with or without modification, are 
+! permitted provided that the following conditions are met:
+!
+!     - Redistributions of source code must retain the above copyright notice, this list 
+!        of conditions and the following disclaimer.
+!     - Redistributions in binary form must reproduce the above copyright notice, this 
+!        list of conditions and the following disclaimer in the documentation and/or 
+!        other materials provided with the distribution.
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
+!        of its contributors may be used to endorse or promote products derived from 
+!        this software without specific prior written permission.
+!
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+! ###################################################################
 program EMmkxtal
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
 use mod_io
-use mod_timing
-use mod_quaternions 
-use mod_rng
+use mod_symmetry
+use mod_crystallography 
 
 IMPLICIT NONE
 
-character(fnlen)        :: progname = 'this is the program name'
-character(fnlen)        :: progdesc = 'and this is the descriptor'
-character(fnlen)        :: m
+character(fnlen)        :: progname = 'EMmkxtal.f90'
+character(fnlen)        :: progdesc = 'Create an HDF crystal structure file and place it in the XtalFolder'
 
-type(EMsoft_T)     :: EMsoft 
-type(IO_T)         :: Message
-type(Timing_T)     :: Timing
+type(EMsoft_T)          :: EMsoft 
+type(IO_T)              :: Message
+type(SpaceGroup_T)      :: SG 
+type(Cell_T)            :: cell 
 
-integer(kind=irg)       :: io_int(2), status
-type(rng_t)             :: seed 
-type(QuaternionArray_T) :: qra , qrb
+character(fnlen)        :: flag   ! we need to test for the -w Wyckoff positions command line argument
+character(fnlen)        :: fname, source 
+logical                 :: useWyckoff  = .FALSE.
 
-
-Timing = Timing_T( showDateTime = .TRUE. )
-
-call Timing % Time_tick()
-
-EMsoft = EMsoft_T(progname, progdesc, showconfig=.TRUE., makeconfig=.FALSE.) 
-
-call EMsoft%setConfigParameter('WyckoffPositionsfilename','no idea where this file is located ')
-
-write (*,*) 'modified string = ',trim(EMsoft%getConfigParameter('WyckoffPositionsfilename'))
-
-
-
-
+! initialize the cell and IO classes
+cell = Cell_T()
 Message = IO_T()
 
-! m = 'Revision = '//trim( EMsoft % getConfigParameter('EMsoftRevision') )
-! call Message % printMessage(m)
+! display the splash screen and analyze any non-standard command line arguments
+flag = '-w'
+EMsoft = EMsoft_T(progname, progdesc, tpl= (/ 917 /), flagset=flag) 
+if (trim(flag).eq.'yes') then 
+    useWyckoff = .TRUE.
+    call cell%setWyckoff(useWyckoff)
+end if
 
-! m = 'Completed path = '//trim( EMsoft % generateFilePath('EMsofttestpath','test.h5'))
-! call Message % printMessage(m)
+! generate the space group class; this generates all symmetry arrays 
+SG = SpaceGroup_T()
 
-! m = 'Completed path = '//trim( EMsoft % generateFilePath('Templatecodefilename','')) 
-! call Message % printMessage(m)
+! to avoid circular references, the cell class also needs to know the crystal system
+call cell%setXtalSystem(SG%getSpaceGroupXtalSystem())
 
+! get the lattice parameters
+call cell%setLatParm(SG) 
 
-! io_int = (/ 10, 20 /)
-! call Message % WriteValue('test message ', io_int, 2)
-! call Message % WriteValue('test message ', io_int, 2, "(I10,'f----f',I10)")
+! get the atom positions, either using Wyckoff positions or the regular way 
+if (useWyckoff) then
+  call cell%GetAsymPosWyckoff(SG, EMsoft)
+else
+  call cell%GetAsymPos()
+end if
 
-! call Message % printWarning('hmmm',(/'why not ... '/))
+! ask for the .xtal file name 
+call Message%ReadValue('Enter output file name (*.xtal) ', fname)
+call cell%setFileName(fname)
 
+! and for the source of the crystal data 
+call Message%ReadValue('Enter the source for this data [max. 512 characters, quoted] ', source)
+call cell%setSource(source)
 
-!     Message = IO_T()
-
-
-!          call Message % printWarning('EMdatapathname was not defined in the json file', &
-!                      (/ 'EMDATAPATHNAME environment variable was NOT defined as a backup.', &
-!                         '----> using absolute path convention                            '/) )
-
-
-!     status = 999001
-!     call Message % printError('EMsoftpathname was not defined in the json file', &
-!                    status, (/ 'EMSOFTPATHNAME environment variable was NOT defined as a backup.' /) )
-
-
-
-! call Message % printError('blah','more blah')
-
-call Message % printMessage( 'Time : '//Timing % getTimeString() )
-call Message % printMessage( 'Date : '//Timing % getDateString() )
-
-! call Timing % printTimeStamp(redirect=10)
-
-call sleep(2) 
-
-call Timing % Time_tick(2)
-
-call sleep(1) 
-call Timing % Time_tock(2)
-call Timing % Time_tock(1)
-
-write (*,*) 'Interval 1 : ', Timing % getInterval(1)
-write (*,*) 'Interval 2 : ', Timing % getInterval(2)
-
-call Timing % Time_reset(2)
-
-write (*,*) 'Interval 1 : ', Timing % getInterval(1)
-write (*,*) 'Interval 2 : ', Timing % getInterval(2)
-
-write (*,*) 'calling Marsaglia generator for 10 random quaternions '
-
-qra = quat_randomArray(10, 'd', seed, northern=.TRUE.)
-call qra%quat_print() 
-
-qrb = quat_randomArray(10, 's', seed, northern=.TRUE.)
-call qrb%quat_print() 
-
-
+! finally, save the file 
+call cell%SaveDataHDF(SG)
 
 end program EMmkxtal
