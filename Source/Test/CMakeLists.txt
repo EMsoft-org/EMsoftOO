@@ -38,7 +38,7 @@ set(EMsoftOOTestDir "${EMsoftOO_SOURCE_DIR}/Source/Test")
 if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   
   GetHDF5LinkLibraries(EMSOFTOO)
-  set(EXE_LINK_LIBRARIES ${EMSOFTOO_hdf5LinkLibs} EMsoftOOLib EMsoftOOHDFLib)
+  set(EXE_LINK_LIBRARIES ${EMSOFTOO_hdf5LinkLibs} EMsoftOOLib )
 
   set(EMsoftOO_UNIT_TESTS 
     MODQuaternions
@@ -62,8 +62,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       TEST_NAME ${test}
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
                       SOLUTION_FOLDER EMsoftOOPublic/Test
-                      INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-                                    ${EMsoftOO_SOURCE_DIR}/Source/Test)
+                      INCLUDE_DIRS ${EMsoftOO_SOURCE_DIR}/Source/Test)
     if(MSVC)
         target_compile_options( ${test}Test PRIVATE "/MT$<$<CONFIG:Debug>:d>")
         target_link_options(${test}Test PRIVATE "/NODEFAULTLIB:MSVCRT")

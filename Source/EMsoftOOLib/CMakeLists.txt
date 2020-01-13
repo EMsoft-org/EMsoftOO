@@ -1,4 +1,19 @@
+include(${PROJECT_SOURCE_DIR}/Source/EMsoftOO_Functions.cmake)
+
 project(EMsoftOOLib)
+
+set(install_dir "bin")
+set(lib_install_dir "lib")
+
+if(APPLE)
+  get_property(EMsoftOO_PACKAGE_DEST_PREFIX GLOBAL PROPERTY EMsoftOO_PACKAGE_DEST_PREFIX)
+  set(install_dir "${EMsoftOO_PACKAGE_DEST_PREFIX}/bin")
+  set(lib_install_dir "${EMsoftOO_PACKAGE_DEST_PREFIX}/lib")
+elseif(WIN32)
+  set(install_dir ".")
+  set(lib_install_dir ".")
+endif()
+
 
 include (${CMP_SOURCE_DIR}/cmpCMakeMacros.cmake 
 ${EMsoftOOLib_BINARY_DIR}/StringConstants.cmake)
@@ -29,6 +44,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_Lambert.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_symmetry.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_crystallography.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_HDFsupport.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )
@@ -86,19 +102,24 @@ set(EMsoftOOLib_SRCS
 # )
 # target_include_directories(EMsoftOOLib_Cpp PRIVATE ${SHTfile_BINARY_DIR})
 
+GetHDF5LinkLibraries(EMSOFTOO)
+
 add_library(EMsoftOOLib ${LIB_TYPE} ${EMsoftOOLib_SRCS})
+
 target_link_libraries(EMsoftOOLib
                 # EMsoftOOLib_C 
                 # EMsoftOOLib_Cpp 
+                ${EMSOFT_hdf5LinkLibs} 
                 jsonfortran 
                 bcls::bcls
                 gomp       
 )
-# if (Fortran_COMPILER_NAME MATCHES "ifort.*")
-#   target_link_libraries(EMsoftOOLib
-#                   ${MKL_LIBRARIES}
-#   )
-# endif()
+
+if (Fortran_COMPILER_NAME MATCHES "ifort.*")
+  target_link_libraries(EMsoftOOLib
+                  ${MKL_LIBRARIES}
+  )
+endif()
 
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   target_link_libraries(EMsoftOOLib
@@ -108,16 +129,25 @@ if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   )
 endif()
 
-
-target_include_directories(EMsoftOOLib PUBLIC ${CLFortran_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIR})
+target_include_directories(EMsoftOOLib 
+                          PUBLIC 
+                            ${CLFortran_INCLUDE_DIRS} 
+                            ${FFTW3_INCLUDE_DIR}
+                            ${HDF5_INCLUDE_DIR}
+                            ${HDF5_INCLUDE_DIR_FORTRAN}
+                          PRIVATE
+                            "${EMsoftOO_SOURCE_DIR}/Source"                            
+                          )
 
 set_target_properties (EMsoftOOLib PROPERTIES
                   LINKER_LANGUAGE Fortran
                    # Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
                   FOLDER EMsoftOOPublic
                   )
+
 set_source_files_properties(${EMsoftOOLib_BINARY_DIR}/stringconstants.f90 PROPERTIES GENERATED TRUE)
 add_dependencies(EMsoftOOLib EMsoftOOLib_Generate_StringConstants)
+
 
 # On Windows we need a few extra compile and linker flags. By making these PUBLIC they should
 # flow down to every dependent target 
@@ -183,7 +213,6 @@ EMsoftOO_SetupInstallDirs()
     BUNDLE DESTINATION "."
   )
 #endif()
-
 
 install(FILES ${EMsoftOOLib_BINARY_DIR}/EMsoftOOStringConstants.h
       DESTINATION ${include_install_dir}/EMsoftOOLib

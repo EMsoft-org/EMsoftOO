@@ -28,7 +28,7 @@ target_include_directories(EMOpenCLLib
                           PUBLIC 
                             ${CLFortran_INSTALL}/include
                             $<BUILD_INTERFACE:${EMsoftOOLib_BINARY_DIR}>
-                            $<BUILD_INTERFACE:${EMsoftOOHDFLib_BINARY_DIR}>
+                            # $<BUILD_INTERFACE:${EMsoftOOHDFLib_BINARY_DIR}>
                           PRIVATE
                             "${EMsoftOO_SOURCE_DIR}/Source"                            
                     )
@@ -37,7 +37,7 @@ target_link_libraries(EMOpenCLLib
                           ${OpenCL_LIBRARY}
                           clfortran
                           EMsoftOOLib 
-                          EMsoftOOHDFLib 
+                          # EMsoftOOHDFLib 
 )
 
 

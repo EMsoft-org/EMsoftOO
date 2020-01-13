@@ -10,7 +10,6 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
           ${OpenCL_LIBRARY}
           clfortran
           EMsoftOOLib 
-          EMsoftOOHDFLib
           EMOpenCLLib
   )
 
@@ -26,7 +25,7 @@ endif()
 if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
       GetHDF5LinkLibraries(EMSOFT)
-      set(EXE_LINK_LIBRARIES ${EMSOFT_hdf5LinkLibs} EMsoftOOHDFLib)
+      set(EXE_LINK_LIBRARIES ${EMSOFT_hdf5LinkLibs})
     
      #  Add_EMsoftOO_Executable(TARGET EMsoftOOSlackTest
      #                                SOURCES ${APP_DIR}/EMsoftOOSlackTest.f90 
@@ -161,7 +160,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
                                     SOLUTION_FOLDER EMsoftOOPublic/Utilities 
                                     INSTALL_PROGRAM TRUE
-                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                                     )
 
       # Add_EMsoftOO_Executable(TARGET EMxtalExtract 

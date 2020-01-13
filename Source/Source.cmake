@@ -12,9 +12,6 @@ include("${EMsoftOO_SOURCE_DIR}/Source/EMsoftOO_Functions.cmake")
 add_subdirectory(${PROJECT_SOURCE_DIR}/Source/EMsoftOOLib ${PROJECT_BINARY_DIR}/EMsoftOOLib)
 
 option(EMsoftOO_ENABLE_HDF5_SUPPORT "Enable HDF5 based I/O" ON)
-if( ${EMsoftOO_ENABLE_HDF5_SUPPORT} )
-  add_subdirectory(${PROJECT_SOURCE_DIR}/Source/EMsoftOOHDFLib ${PROJECT_BINARY_DIR}/EMsoftOOHDFLib)
-endif()
 
 option(EMsoftOO_ENABLE_OpenCL_SUPPORT "Enable OpenCL support" ON)
 if( ${EMsoftOO_ENABLE_OpenCL_SUPPORT} )
