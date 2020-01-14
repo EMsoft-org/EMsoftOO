@@ -62,7 +62,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       TEST_NAME ${test}
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
                       SOLUTION_FOLDER EMsoftOOPublic/Test
-                      INCLUDE_DIRS ${EMsoftOO_SOURCE_DIR}/Source/Test)
+                      INCLUDE_DIRS ${EMsoftOO_SOURCE_DIR}/Source/Test ${EMsoftOOLib_BINARY_DIR})
     if(MSVC)
         target_compile_options( ${test}Test PRIVATE "/MT$<$<CONFIG:Debug>:d>")
         target_link_options(${test}Test PRIVATE "/NODEFAULTLIB:MSVCRT")

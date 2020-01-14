@@ -162,6 +162,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                     INSTALL_PROGRAM TRUE
                                     INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                                     )
+      add_dependencies(EMmkxtal EMsoftOOLib)
 
       # Add_EMsoftOO_Executable(TARGET EMxtalExtract 
       #                               SOURCES ${APP_DIR}/EMxtalExtract.f90 
