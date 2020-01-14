@@ -114,7 +114,7 @@ IMPLICIT NONE
   integer(kind=irg), INTENT(IN), OPTIONAL  :: nCounters
    !! number of time counters to be defined (default = 10)
 
-  type(IO_T)                          :: Message
+  type(IO_T)                               :: Message
 
 ! set the maximum number of time intervals to be stored
   if (present(nCounters)) then 

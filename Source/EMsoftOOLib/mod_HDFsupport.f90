@@ -94,6 +94,7 @@ IMPLICIT NONE
      procedure, pass(self) :: stackdump_
      ! procedure, pass(self) :: toggleStackDump_
      procedure, pass(self) :: error_check_
+     procedure, pass(self) :: associatedHead_
 ! open and closing routines for files, groups, and datasets  
      procedure, pass(self) :: createFile_
      procedure, pass(self) :: openFile_
@@ -192,6 +193,7 @@ IMPLICIT NONE
      generic, public :: push => push_
      generic, public :: pop => pop_
      generic, public :: stackdump => stackdump_
+     generic, public :: associatedHead => associatedHead_
      ! generic, public :: togglestackdump => togglestackdump_
  
      generic, public :: createFile => createFile_
@@ -608,6 +610,24 @@ else
 end if
 
 end subroutine stackdump_
+
+!--------------------------------------------------------------------------
+recursive function associatedHead_(self) result(assoc)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! check whether or not the head pointer is associated
+
+class(HDF_T), INTENT(INOUT)     :: self 
+logical                         :: assoc
+
+assoc = .FALSE.
+if (associated(self%head%next)) then 
+  assoc = .TRUE.
+end if 
+
+end function associatedHead_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------

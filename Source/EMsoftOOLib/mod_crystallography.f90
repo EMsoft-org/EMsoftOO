@@ -117,7 +117,7 @@ IMPLICIT NONE
 ! routines to get class parameters 
 
 ! routines to read/write .xtal files 
-
+          procedure, pass(self) :: SaveDataHDF_
 ! miscellaneous routines 
           procedure, pass(self) :: resetUnitCell
           procedure, pass(self) :: GetAsymPosWyckoff_
@@ -173,6 +173,8 @@ IMPLICIT NONE
           generic, public :: setFileName => setFileName_
           !DEC$ ATTRIBUTES DLLEXPORT :: setFileName 
           generic, public :: setSource => setSource_
+          !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
+          generic, public :: SaveDataHDF => SaveDataHDF_
           !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
 
   end type Cell_T
@@ -1818,6 +1820,153 @@ end if
 
 end subroutine calcTheoreticalDensity
 
+
+!--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
+! HDF support routines for writing and reading .xtal files 
+!--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
+
+!--------------------------------------------------------------------------
+recursive subroutine SaveDataHDF_(self, SG, EMsoft, localHDF)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! save crystal structure data to an HDF file 
+
+use mod_io
+use mod_global
+use mod_EMsoft
+use HDF5
+use mod_HDFsupport
+use mod_timing
+use mod_symmetry
+use stringconstants
+ 
+IMPLICIT NONE
+
+class(Cell_T),INTENT(INOUT)             :: self
+type(SpaceGroup_T),INTENT(INOUT)        :: SG
+type(EMsoft_T),INTENT(INOUT)            :: EMsoft
+type(HDF_T),OPTIONAL,INTENT(INOUT)      :: localHDF
+
+type(IO_T)                              :: Message 
+type(Timing_T)                          :: Timer
+
+type(HDF_T)                             :: me  ! local HDF class
+
+character(11)                           :: dstr
+character(15)                           :: tstr
+character(fnlen)                        :: progname = 'EMmkxtal.f90', groupname, dataset, fname, strings(1)
+integer(kind=irg)                       :: hdferr, setting 
+real(kind=dbl)                          :: cellparams(6)
+integer(kind=irg),allocatable           :: atomtypes(:)
+real(kind=sgl),allocatable              :: atompos(:,:)
+logical                                 :: openHDFfile
+
+Message = IO_T()
+Timer = Timing_T()
+
+openHDFfile = .TRUE.
+if (present(localHDF)) then
+  if (localHDF%associatedHead()) then
+    openHDFfile = .FALSE.
+    me = localHDF
+  else
+    call Message%printError("SaveDataHDF","HDF class passed in to routine is not instantiated")
+  end if 
+end if
+
+dstr = Timer%getDateString()
+tstr = Timer%getTimeString() 
+
+! Initialize FORTRAN interface if needed.
+!
+if (openHDFfile) then 
+  me = HDF_T()
+  fname = trim(EMsoft%generateFilePath('Xtalpathname',self%fname))
+  hdferr =  me%createFile(fname)
+  call me%error_check('SaveDataHDF:HDF_createFile:'//trim(fname), hdferr)
+end if
+
+groupname = SC_CrystalData
+hdferr = me%createGroup(groupname)
+call me%error_check( 'SaveDataHDF:HDF_createGroup:'//trim(groupname), hdferr)
+
+dataset = SC_ProgramName
+strings(1) = trim(progname)
+hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+dataset = SC_CreationDate
+strings(1) = dstr
+hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+dataset = SC_CreationTime
+strings(1) = tstr
+hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+dataset = SC_Creator
+strings(1) = trim(EMsoft%getConfigParameter('Username'))
+hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+dataset = SC_CrystalSystem
+hdferr = me%writeDatasetInteger(dataset, self%xtal_system)
+call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+dataset = SC_LatticeParameters
+cellparams = (/ self%a, self%b, self%c, self%alpha, self%beta, self%gamma /)
+hdferr = me%writeDatasetDoubleArray(dataset, cellparams, 6)
+call me%error_check( 'SaveDataHDF:writeDatasetDoubleArray:'//trim(dataset), hdferr)
+
+dataset = SC_SpaceGroupNumber
+hdferr = me%writeDatasetInteger(dataset, SG%getSpaceGroupNumber())
+call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+
+! make sure we do not write a '0' for the SGset variable; it must be either 1 or 2
+if (SG%getSpaceGroupSetting().eq.0) then 
+  setting = 1
+else 
+  setting = SG%getSpaceGroupSetting()
+end if 
+dataset = SC_SpaceGroupSetting
+hdferr = me%writeDatasetInteger(dataset, setting)
+call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+
+dataset = SC_Natomtypes
+hdferr = me%writeDatasetInteger(dataset, self%ATOM_ntype)
+call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+
+allocate(atomtypes(self%ATOM_ntype))
+atomtypes(1:self%ATOM_ntype) = self%ATOM_type(1:self%ATOM_ntype)
+dataset = SC_Atomtypes
+hdferr = me%writeDatasetIntegerArray(dataset, atomtypes, self%ATOM_ntype)
+call me%error_check( 'SaveDataHDF:writeDatasetIntegerArray:'//trim(dataset), hdferr)
+deallocate(atomtypes)
+
+allocate(atompos(self%ATOM_ntype,5))
+atompos(1:self%ATOM_ntype,1:5) = self%ATOM_pos(1:self%ATOM_ntype,1:5)
+dataset = SC_AtomData
+hdferr = me%writeDatasetFloatArray(dataset, atompos, self%ATOM_ntype, 5)
+call me%error_check( 'SaveDataHDF:writeDatasetFloatArray:'//trim(dataset), hdferr)
+deallocate(atompos)
+
+dataset = SC_Source
+strings(1) = trim(self%source)
+hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+if (openHDFfile) then
+  call me%pop(.TRUE.)
+else ! just close this group, but not the file
+  call me%pop()
+end if
+
+end subroutine SaveDataHDF_
 
 ! !--------------------------------------------------------------------------
 ! !

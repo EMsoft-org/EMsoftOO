@@ -54,7 +54,8 @@ Message = IO_T()
 
 ! display the splash screen and analyze any non-standard command line arguments
 flag = '-w'
-EMsoft = EMsoft_T(progname, progdesc, tpl= (/ 917 /), flagset=flag) 
+EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 917 /), flagset=flag) 
+! EMsoft = EMsoft_T(progname, progdesc)
 if (trim(flag).eq.'yes') then 
     useWyckoff = .TRUE.
     call cell%setWyckoff(useWyckoff)
@@ -85,6 +86,6 @@ call Message%ReadValue('Enter the source for this data [max. 512 characters, quo
 call cell%setSource(source)
 
 ! finally, save the file 
-call cell%SaveDataHDF(SG)
+call cell%SaveDataHDF(SG, EMsoft)
 
 end program EMmkxtal

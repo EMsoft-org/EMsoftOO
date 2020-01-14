@@ -611,6 +611,7 @@ IMPLICIT NONE
       procedure, pass(self) :: setSpaceGrouphexset_
       procedure, pass(self) :: setSpaceGrouptrigonal_
       procedure, pass(self) :: setSpaceGroupsecond_
+      procedure, pass(self) :: setSpaceGroupSetting_ 
 ! general purpose routines that use symmetry 
       procedure, pass(self) :: CalcFamily_
       procedure, pass(self) :: CalcOrbit_
@@ -656,6 +657,7 @@ IMPLICIT NONE
       generic, public :: setSpaceGrouphexset => setSpaceGrouphexset_
       generic, public :: setSpaceGrouptrigonal => setSpaceGrouptrigonal_
       generic, public :: setSpaceGroupsecond => setSpaceGroupsecond_
+      generic, public :: setSpaceGroupSetting => setSpaceGroupSetting_
       generic, public :: GetSetting => GetSetting_
       generic, public :: GenerateSymmetry => GenerateSymmetry_
       generic, public :: ListPointGroups => ListPointGroups_
@@ -696,7 +698,8 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupSymmorphic
 !DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupDataMatrices
 !DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupPGdirecMatrices
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupGrecipMatrices
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupPGrecipMatrices
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupSetting
 !DEC$ ATTRIBUTES DLLEXPORT :: fixRecipPG
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcFamily
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcOrbit
@@ -1705,6 +1708,23 @@ logical                             :: trigonal
 trigonal = self%trigonal
 
 end function getSpaceGrouptrigonal_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSpaceGroupSetting_(self, setting)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/11/20
+  !!
+  !! set the space group reduce parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)        :: setting
+
+self%setting = setting
+
+end subroutine setSpaceGroupSetting_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGroupreduce_(self, reduce)
