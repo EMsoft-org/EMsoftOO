@@ -25,7 +25,7 @@ endif()
 if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
       GetHDF5LinkLibraries(EMSOFT)
-      set(EXE_LINK_LIBRARIES ${EMSOFT_hdf5LinkLibs})
+      set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFT_hdf5LinkLibs})
     
      #  Add_EMsoftOO_Executable(TARGET EMsoftOOSlackTest
      #                                SOURCES ${APP_DIR}/EMsoftOOSlackTest.f90 
@@ -162,7 +162,6 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                     INSTALL_PROGRAM TRUE
                                     INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                                     )
-      add_dependencies(EMmkxtal EMsoftOOLib)
 
       # Add_EMsoftOO_Executable(TARGET EMxtalExtract 
       #                               SOURCES ${APP_DIR}/EMxtalExtract.f90 
