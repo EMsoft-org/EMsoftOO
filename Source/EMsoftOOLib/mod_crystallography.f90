@@ -35,6 +35,9 @@ module mod_crystallography
 
 use mod_kinds 
 use mod_global
+use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
+                                          stdout=>output_unit, &
+                                          stderr=>error_unit
 
 IMPLICIT NONE
   private
@@ -611,7 +614,7 @@ character(fnlen)                        :: instring
   list = (/ (' ',j=1,256) /)
   call Message%printMessage(' ->  Fractional coordinates, site occupation, and Debye-Waller Factor [nm^2] : ', &
                             frm = "(A,' ')",advance="no")
-  call Message%ReadValue('', instring)
+  read (stdin,"(A)") instring
   sl = len(trim(instring))
   j = 0
   do i=1,sl
@@ -1885,7 +1888,7 @@ tstr = Timer%getTimeString()
 !
 if (openHDFfile) then 
   me = HDF_T()
-  fname = trim(EMsoft%generateFilePath('Xtalpathname',self%fname))
+  fname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%fname))
   hdferr =  me%createFile(fname)
   call me%error_check('SaveDataHDF:HDF_createFile:'//trim(fname), hdferr)
 end if
@@ -1910,7 +1913,7 @@ hdferr = me%writeDatasetStringArray(dataset, strings, 1)
 call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 
 dataset = SC_Creator
-strings(1) = trim(EMsoft%getConfigParameter('Username'))
+strings(1) = trim(EMsoft%getConfigParameter('UserName'))
 hdferr = me%writeDatasetStringArray(dataset, strings, 1)
 call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 

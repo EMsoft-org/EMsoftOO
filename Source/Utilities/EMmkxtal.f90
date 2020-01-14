@@ -26,6 +26,11 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 program EMmkxtal
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! generate a .xtal file; tested on 01/14/20.
 
 use mod_kinds
 use mod_global
@@ -53,10 +58,9 @@ cell = Cell_T()
 Message = IO_T()
 
 ! display the splash screen and analyze any non-standard command line arguments
-flag = '-w'
-EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 917 /), flagset=flag) 
-! EMsoft = EMsoft_T(progname, progdesc)
-if (trim(flag).eq.'yes') then 
+EMsoft%flagset = '-w'
+EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 917 /)) 
+if (trim(EMsoft%flagset).eq.'yes') then 
     useWyckoff = .TRUE.
     call cell%setWyckoff(useWyckoff)
 end if

@@ -163,6 +163,8 @@ private
       !! URL for Slack messaging
      character(fnlen)  :: SlackChannel
       !! channel for Slack messaging 
+     character(fnlen), public  :: flagset = ''
+      !! parameter used to communicate flags to the Interpret_Program_Arguments routines
 
     contains
     private 
@@ -213,7 +215,6 @@ private
       procedure, pass(self) :: Interpret_Program_Arguments_with_nml_
       procedure, pass(self) :: Interpret_Program_Arguments_no_nml_
 
-
 ! public methods
 ! [there aren't many... just one to set each parameter, and one to get each parameter;
 !  in addition there is one to init the EMsoft configuration file (used by the EMsoftinit program) ]
@@ -229,7 +230,6 @@ private
       !DEC$ ATTRIBUTES DLLEXPORT :: toNativePath
       procedure, pass(self), public :: fromNativePath => fromNativePath_
       !DEC$ ATTRIBUTES DLLEXPORT :: fromNativePath
-
 
   end type EMsoft_T
 
@@ -248,7 +248,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent, tpl, fset) result(EMsoft)
+type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent, tpl) result(EMsoft)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/30/19
@@ -283,16 +283,11 @@ logical, INTENT(IN), OPTIONAL     :: silent
  !! optionally, don't show any output
 integer(kind=irg), INTENT(IN), OPTIONAL :: tpl(:)
  !! list of template files to be created 
-character(fnlen), INTENT(INOUT), OPTIONAL  :: fset
 
   call EMsoft % init()
 
   if (present(tpl)) then 
-    if (present(fset)) then 
-      call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl, flagset=fset)
-    else
-      call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl)
-    end if
+    call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl)
   else 
     if (PRESENT(makeconfig)) then 
       if (makeconfig) then 
@@ -1523,7 +1518,7 @@ end if
 end function getJSONparameter
 
 !--------------------------------------------------------------------------
-subroutine printEMsoftHeader(self, progname, progdesc, makeconfig, templatelist, flagset)
+subroutine printEMsoftHeader(self, progname, progdesc, makeconfig, templatelist)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/31/19
@@ -1546,8 +1541,6 @@ character(fnlen),INTENT(IN)             :: progdesc
 logical,INTENT(IN),OPTIONAL             :: makeconfig
  !! do we need to (optionally) generate the configuration file ?
 integer(kind=irg),INTENT(IN),OPTIONAL   :: templatelist(:)
- !! list of namelist template codes that need to be generated 
-character(fnlen),INTENT(INOUT),OPTIONAL :: flagset
 
 type(IO_T)                              :: Message
 type(Timing_T)                          :: Timing
@@ -1583,8 +1576,8 @@ character(fnlen)                        :: nmldefault
 
  if (present(templatelist)) then 
     sz = shape(templatelist)
-    if (present(flagset)) then 
-      call Interpret_Program_Arguments_no_nml_(self, sz(1), templatelist, progname, flagset)
+    if (trim(self%flagset).ne.'') then 
+      call Interpret_Program_Arguments_no_nml_(self, sz(1), templatelist, progname)
     else 
       nmldefault = trim(progname)//'.nml'
       call Interpret_Program_Arguments_with_nml_(self, nmldefault, sz(1), templatelist, progname)
@@ -2184,7 +2177,7 @@ nmldefault = nmlfile
 end subroutine Interpret_Program_Arguments_with_nml_
 
 !--------------------------------------------------------------------------
-recursive subroutine Interpret_Program_Arguments_no_nml_(self, numt, templatelist, progname, flagset)
+recursive subroutine Interpret_Program_Arguments_no_nml_(self, numt, templatelist, progname)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/13/20
@@ -2200,9 +2193,8 @@ IMPLICIT NONE
 
 class(EMsoft_T), INTENT(INOUT)          :: self
 integer(kind=irg),INTENT(IN)            :: numt
-integer(kind=irg),INTENT(IN)            :: templatelist(*)
+integer(kind=irg),INTENT(IN)            :: templatelist(numt)
 character(fnlen),INTENT(IN)             :: progname
-character(fnlen),INTENT(INOUT),OPTIONAL :: flagset  
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: numarg       !< number of command line arguments
@@ -2215,7 +2207,7 @@ logical                                 :: haltprogram, json, flags
 json = .FALSE.
 
 flags = .FALSE. 
-if (present(flagset)) then
+if (trim(self%flagset).ne.'') then
   flags = .TRUE. 
 end if
 
@@ -2256,8 +2248,8 @@ if (numarg.gt.0) then ! there is at least one argument
         call ConvertWiki2PDF_(self, numt, templatelist)
       end if 
       if (flags.eqv..TRUE.) then
-        if (trim(arg).eq.trim(flagset)) then 
-          flagset = 'yes'
+        if (trim(arg).eq.trim(self%flagset)) then 
+          self % flagset = 'yes'
           haltprogram = .FALSE.
         end if
       end if 
