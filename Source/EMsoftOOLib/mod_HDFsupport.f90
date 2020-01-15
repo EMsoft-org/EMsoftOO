@@ -92,6 +92,7 @@ IMPLICIT NONE
      procedure, pass(self) :: push_
      procedure, pass(self) :: pop_
      procedure, pass(self) :: stackdump_
+     procedure, pass(self) :: getObjectID_
      ! procedure, pass(self) :: toggleStackDump_
      procedure, pass(self) :: error_check_
      procedure, pass(self) :: associatedHead_
@@ -193,6 +194,7 @@ IMPLICIT NONE
      generic, public :: push => push_
      generic, public :: pop => pop_
      generic, public :: stackdump => stackdump_
+     generic, public :: getObjectID => getObjectID_
      generic, public :: associatedHead => associatedHead_
      ! generic, public :: togglestackdump => togglestackdump_
  
@@ -269,6 +271,7 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: push
 !DEC$ ATTRIBUTES DLLEXPORT :: pop
 !DEC$ ATTRIBUTES DLLEXPORT :: stackdump
+!DEC$ ATTRIBUTES DLLEXPORT :: getObjectID
 ! !DEC$ ATTRIBUTES DLLEXPORT :: togglestackdump
 !DEC$ ATTRIBUTES DLLEXPORT :: error_check
 !DEC$ ATTRIBUTES DLLEXPORT :: createFile
@@ -628,6 +631,25 @@ if (associated(self%head%next)) then
 end if 
 
 end function associatedHead_
+
+!--------------------------------------------------------------------------
+recursive function getObjectID_(self) result(ObjID)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/15/20
+  !!
+  !! returns an object identifier
+
+class(HDF_T), INTENT(INOUT)     :: self 
+integer(HID_T)                  :: ObjID
+
+ObjID = 0
+if (associated(self%head%next)) then 
+  ObjID = self%head%next%ObjectID
+end if 
+
+end function getObjectID_
+
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -5259,398 +5281,6 @@ call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5dclose_f:'//trim(datan
 
 end function readHyperslabDoubleArray4D_
 
-
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-! routines for the handling of EMsoft .xtal files, move to mod_crystallography 
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: CrystalData
-! !
-! !> @author Marc De Graef, Carnegie Mellon University
-! !
-! !> @brief load or generate crystal data
-! ! 
-! !> @param cell unit cell pointer
-! !> @param verbose (OPTIONAL)
-! !> @param existingHDFhead (OPTIONAL) pass-on variable with current self pointer, if any
-! !
-! !> @date    1/ 5/99 MDG 1.0 original
-! !> @date    5/19/01 MDG 2.0 f90 version
-! !> @date   11/27/01 MDG 2.1 added kind support
-! !> @date   03/25/13 MDG 3.0 updated IO
-! !> @date   01/10/14 MDG 4.0 update after new cell type
-! !> @date   06/06/14 MDG 4.1 added cell pointer and loadingfile arguments
-! !> @date   03/30/15 MDG 5.0 changed file format to HDF; always assume that the file exists
-! !> @date   09/29/16 MDG 5.1 added option to read CrystalData from currently open HDF file
-! !--------------------------------------------------------------------------
-! recursive subroutine CrystalData_(self, cell, verbose, existingHDFhead)
-!   !! author: MDG 
-!   !! version: 1.0 
-!   !! date: 01/09/20
-!   !!
-!   !! load or generate crystal data 
-
-! use mod_io
-! use mod_crystallography
-! use mod_symmetry
-
-! IMPLICIT NONE
-
-! class(HDF_T),INTENT(INOUT)              :: self
-! type(Cell_T),INTENT(INOUT)              :: cell
-! logical,INTENT(IN),OPTIONAL             :: verbose
-! type(HDF_T),OPTIONAL,INTENT(INOUT)      :: existingHDFhead
-
-! type(SpaceGroup_T)                      :: SG 
-! type(IO_T)                              :: Message 
-! integer(kind=irg)                       :: i, ipg, isave
-
-! call ReadDataHDF_(self, cell, existingHDFhead)
-
-!  self%hexset = .FALSE.
-!  if (self%xtal_system.eq.4) self%hexset = .TRUE.
-!  if ((self%xtal_system.eq.5).AND.(self%setting.ne.2)) self%hexset = .TRUE.
-
-! ! compute the metric matrices
-!  call cell%CalcMatrices()
-
-! ! [code modified on 8/1/18 (MDG), to correct k-vector sampling symmetry errors]
-! ! First generate the point symmetry matrices, then the actual space group.
-! ! if the actual group is also the symmorphic group, then both 
-! ! steps can be done simultaneously, otherwise two calls to 
-! ! GenerateSymmetry are needed.
-!  if (SGsymnum(self%SGnumber).eq.self%SGnumber) then
-!   call GenerateSymmetry(cell,.TRUE.)
-!  else
-!   isave = cell%SYM_SGnum
-!   cell%SYM_SGnum = SGsymnum(cell%SYM_SGnum)
-!   call GenerateSymmetry(cell,.TRUE.)
-!   cell%SYM_SGnum = isave
-!   call GenerateSymmetry(cell,.FALSE.)
-!  end if
-
-! ! and print the information on the screen
-! if (present(verbose)) then
-!  if (verbose) then
-!    call DumpXtalInfo(cell)
-!  end if
-! end if 
-
-! end subroutine CrystalData_
-
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: SaveDataHDF
-! !
-! !> @author Marc De Graef, Carnegie Mellon University
-! !
-! !> @brief save crystal structure data to an HDF file
-! ! 
-! !> @param cell unit cell pointer
-! !> @param existingHDFhead (optional) if present, then use this as self
-! !
-! !> @date    1/ 5/99 MDG 1.0 original
-! !> @date    5/19/01 MDG 2.0 f90 version
-! !> @date   11/27/01 MDG 2.1 added kind support
-! !> @date   03/25/13 MDG 3.0 updated IO
-! !> @date   01/10/14 MDG 4.0 update after new cell type
-! !> @date   06/06/14 MDG 4.1 added cell pointer argument
-! !> @date   03/29/15 MDG 5.0 branched from old version; HDF support 
-! !> @date   11/07/15 MDG 5.1 correction to writing of SEM_SGset variable
-! !> @date   09/28/16 MDG 5.2 added option to store CrystalData in currently open HDF file
-! !--------------------------------------------------------------------------
-! recursive subroutine SaveDataHDF(cell, existingHDFhead)
-!   !! author: MDG 
-!   !! version: 1.0 
-!   !! date: 01/09/20
-!   !!
-!   !!  
-
-
-! use io
-! use crystal
-! use HDF5
-! use error
- 
-! IMPLICIT NONE
-
-! type(unitcell)         , INTENT(INOUT)  :: cell
-! !f2py intent(in,out) ::  cell
-! type(HDFobjectStackType),OPTIONAL,INTENT(INOUT)        :: existingHDFhead
-! !f2py intent(in,out) ::  existingHDFhead
-
-! type(HDFobjectStackType)                :: self
-
-! character(11)                           :: dstr
-! character(15)                           :: tstr
-! character(fnlen)                        :: progname = 'EMmkxtal.f90', groupname, dataset, fname, strings(1)
-! integer(kind=irg)                       :: hdferr
-! real(kind=dbl)                          :: cellparams(6)
-! integer(kind=irg),allocatable           :: atomtypes(:)
-! real(kind=sgl),allocatable              :: atompos(:,:)
-! logical                                 :: openHDFfile
-
-! openHDFfile = .TRUE.
-! if (present(existingHDFhead)) then
-!   if (associated(existingHDFhead%next)) then
-!     openHDFfile = .FALSE.
-!     self = existingHDFhead
-!   else
-!     call FatalError("SaveDataHDF","self pointer passed in to routine is not associated")
-!   end if 
-! end if
-
-! call timestamp(datestring=dstr, timestring=tstr)
-
-! ! Initialize FORTRAN interface if needed.
-! !
-! if (openHDFfile) then 
-!   nullify(self%next)
-!   call h5open_EMsoft(hdferr)
-!   call error_check_(self, 'SaveDataHDF:h5open_EMsoft', hdferr)
-
-!   fname = trim(EMsoft_getXtalpathname())//trim(cell%fname)
-!   fname = EMsoft_toNativePath(fname)
-!   hdferr =  HDF_createFile_(fname)
-!   call error_check_(self, 'SaveDataHDF:HDF_createFile_:'//trim(fname), hdferr)
-! end if
-
-! groupname = SC_CrystalData
-! hdferr = HDF_createGroup_(groupname)
-! call error_check_(self, 'SaveDataHDF:HDF_createGroup_:'//trim(groupname), hdferr)
-
-! dataset = SC_ProgramName
-! hdferr = writeDatasetStringArray_(dataset, progname, 1)
-! call error_check_(self, 'SaveDataHDF:writeDatasetStringArray_:'//trim(dataset), hdferr)
-
-! dataset = SC_CreationDate
-! hdferr = writeDatasetStringArray_(dataset, dstr, 1)
-! call error_check_(self, 'SaveDataHDF:writeDatasetStringArray_:'//trim(dataset), hdferr)
-
-! dataset = SC_CreationTime
-! hdferr = writeDatasetStringArray_(dataset, tstr, 1)
-! call error_check_(self, 'SaveDataHDF:writeDatasetStringArray_:'//trim(dataset), hdferr)
-
-! dataset = SC_Creator
-! hdferr = writeDatasetStringArray_(dataset, EMsoft_getUsername(), 1)
-! call error_check_(self, 'SaveDataHDF:writeDatasetStringArray_:'//trim(dataset), hdferr)
-
-! dataset = SC_CrystalSystem
-! hdferr = writeDatasetInteger(dataset, cell%xtal_system)
-! call error_check_(self, 'SaveDataHDF:writeDatasetStringArray_:'//trim(dataset), hdferr)
-
-! dataset = SC_LatticeParameters
-! cellparams = (/ cell%a, cell%b, cell%c, cell%alpha, cell%beta, cell%gamma /)
-! hdferr = writeDatasetDoubleArray1D(dataset, cellparams, 6)
-! call error_check_(self, 'SaveDataHDF:writeDatasetDoubleArray1D:'//trim(dataset), hdferr)
-
-! dataset = SC_SpaceGroupNumber
-! hdferr = writeDatasetInteger(dataset, cell%SYM_SGnum)
-! call error_check_(self, 'SaveDataHDF:writeDatasetInteger_:'//trim(dataset), hdferr)
-
-! ! make sure we do not write a '0' for the SGset variable; it must be either 1 or 2
-! if (cell%SYM_SGset.eq.0) cell%SYM_SGset = 1
-! dataset = SC_SpaceGroupSetting
-! hdferr = writeDatasetInteger(dataset, cell%SYM_SGset)
-! call error_check_(self, 'SaveDataHDF:writeDatasetInteger_:'//trim(dataset), hdferr)
-
-! dataset = SC_Natomtypes
-! hdferr = writeDatasetInteger(dataset, cell%ATOM_ntype)
-! call error_check_(self, 'SaveDataHDF:writeDatasetInteger_:'//trim(dataset), hdferr)
-
-! allocate(atomtypes(cell%ATOM_ntype))
-! atomtypes(1:cell%ATOM_ntype) = cell%ATOM_type(1:cell%ATOM_ntype)
-! dataset = SC_Atomtypes
-! hdferr = writeDatasetIntegerArray1D(dataset, atomtypes, cell%ATOM_ntype)
-! call error_check_(self, 'SaveDataHDF:writeDatasetIntegerArray1D:'//trim(dataset), hdferr)
-! deallocate(atomtypes)
-
-! allocate(atompos(cell%ATOM_ntype,5))
-! atompos(1:cell%ATOM_ntype,1:5) = cell%ATOM_pos(1:cell%ATOM_ntype,1:5)
-! dataset = SC_AtomData
-! hdferr = writeDatasetFloatArray2D(dataset, atompos, cell%ATOM_ntype, 5)
-! call error_check_(self, 'SaveDataHDF:writeDatasetFloatArray2D:'//trim(dataset), hdferr)
-! deallocate(atompos)
-
-! dataset = SC_Source
-! strings(1) = trim(cell%source)
-! hdferr = writeDatasetStringArray_(dataset, strings, 1)
-! call error_check_(self, 'SaveDataHDF:writeDatasetStringArray_:'//trim(dataset), hdferr)
-
-! if (openHDFfile) then
-!   call self%pop_(.TRUE.)
-!   call h5close_EMsoft(hdferr)
-!   call error_check_(self, 'SaveDataHDF:h5close_EMsoft', hdferr)
-! else ! just close this group, but not the file
-!   call self%pop_()
-! end if
-
-! end subroutine SaveDataHDF
-
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: ReadDataHDF
-! !
-! !> @author Marc De Graef, Carnegie Mellon University
-! !
-! !> @brief read crystal structure data from an HDF file
-! ! 
-! !> @param cell unit cell pointer
-! !> @param existingHDFhead (optional) if present, then use this as self
-! !
-! !> @date    1/ 5/99 MDG 1.0 original
-! !> @date    5/19/01 MDG 2.0 f90 version
-! !> @date   11/27/01 MDG 2.1 added kind support
-! !> @date   03/25/13 MDG 3.0 updated IO
-! !> @date   01/10/14 MDG 4.0 update after new cell type
-! !> @date   06/06/14 MDG 4.1 added cell pointer argument
-! !> @date   03/29/15 MDG 5.0 branched from old version; HDF support 
-! !> @date   11/07/15 MDG 5.1 corrected reading of SYM_SGset for older xtal files
-! !> @date   09/29/16 MDG 5.2 added option to read CrystalData from currently open HDF file
-! !--------------------------------------------------------------------------
-! recursive subroutine ReadDataHDF(cell, existingHDFhead)
-!   !! author: MDG 
-!   !! version: 1.0 
-!   !! date: 01/09/20
-!   !!
-!   !!  
-
-
-! use io
-! use crystal
-! use error
-! use HDF5
-! use ISO_C_BINDING
- 
-! IMPLICIT NONE
-
-! type(unitcell)         , INTENT(INOUT)  :: cell
-! !f2py intent(in,out) ::  cell
-! type(HDFobjectStackType),OPTIONAL,INTENT(INOUT)        :: existingHDFhead
-! !f2py intent(in,out) ::  existingHDFhead
-
-! type(HDFobjectStackType)                :: self
-
-! character(fnlen)                        :: dataset, groupname, fname
-! integer(HSIZE_T)                        :: dims(1), dims2(2)
-! integer(kind=irg)                       :: hdferr, nlines
-! real(kind=dbl),allocatable              :: cellparams(:)
-! integer(kind=irg),allocatable           :: atomtypes(:)
-! real(kind=sgl),allocatable              :: atompos(:,:)
-! character(fnlen)                        :: pp
-! logical                                 :: openHDFfile, d_exists
-! character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-
-
-! openHDFfile = .TRUE.
-! if (present(existingHDFhead)) then
-!   if (associated(existingHDFhead%next)) then
-!     openHDFfile = .FALSE.
-!     self = existingHDFhead
-!   else
-!     call FatalError("ReadDataHDF","self pointer passed in to routine is not associated")
-!   end if 
-! end if
-
-! if (openHDFfile) then 
-!   nullify(self%next)
-!   call h5open_EMsoft(hdferr)
-!   call error_check_(self, 'ReadDataHDF:h5open_EMsoft', hdferr)
-
-!   fname = trim(EMsoft_getXtalpathname())//trim(cell%fname)
-!   fname = EMsoft_toNativePath(fname)
-!   hdferr =  HDF_openFile_(fname)
-!   call error_check_(self, 'ReadDataHDF:HDF_openFile_:'//trim(fname), hdferr)
-! end if
-
-! groupname = SC_CrystalData
-! hdferr = HDF_openGroup_(groupname)
-! call error_check_(self, 'ReadDataHDF:HDF_openGroup_:'//trim(groupname), hdferr)
-
-! dataset = SC_CrystalSystem
-! call readDatasetInteger(dataset, hdferr, cell%xtal_system)
-! call error_check_(self, 'ReadDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
-
-
-! dataset = SC_LatticeParameters
-! call readDatasetDoubleArray1D(dataset, dims, hdferr, cellparams)
-! call error_check_(self, 'ReadDataHDF:readDatasetDoubleArray1D:'//trim(dataset), hdferr)
-
-! cell%a = cellparams(1)
-! cell%b = cellparams(2)
-! cell%c = cellparams(3)
-! cell%alpha = cellparams(4)
-! cell%beta = cellparams(5)
-! cell%gamma = cellparams(6)
-
-! dataset = SC_SpaceGroupNumber
-! call readDatasetInteger(dataset, hdferr, cell%SYM_SGnum) 
-! call error_check_(self, 'ReadDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
-
-! dataset = SC_SpaceGroupSetting
-! call readDatasetInteger(dataset, hdferr, cell%SYM_SGset)
-! call error_check_(self, 'ReadDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
-
-! ! this parameter must be either 1 or 2, but is initialized to 0;
-! ! some older .xtal files may still have 0 in them, so we correct this here
-! if (cell%SYM_SGset.eq.0) cell%SYM_SGset = 1
-
-! dataset = SC_Natomtypes
-! call readDatasetInteger(dataset, hdferr, cell%ATOM_ntype)
-! call error_check_(self, 'ReadDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
-
-
-! dataset = SC_Atomtypes
-! call readDatasetIntegerArray1D(dataset, dims, hdferr, atomtypes)
-! call error_check_(self, 'ReadDataHDF:readDatasetIntegerArray1D:'//trim(dataset), hdferr)
-
-! cell%ATOM_type(1:cell%ATOM_ntype) = atomtypes(1:cell%ATOM_ntype) 
-! deallocate(atomtypes)
-
-! dataset = SC_AtomData
-! call readDatasetFloatArray2D(dataset, dims2, hdferr, atompos)
-! call error_check_(self, 'ReadDataHDF:readDatasetFloatArray2D:'//trim(dataset), hdferr)
-
-! cell%ATOM_pos(1:cell%ATOM_ntype,1:5) = atompos(1:cell%ATOM_ntype,1:5) 
-! deallocate(atompos)
-
-! dataset = SC_Source
-! call H5Lexists_f(self%head%next%objectID,trim(dataset),d_exists, hdferr)
-! if (d_exists) then 
-!   call readDatasetStringArray_(dataset, nlines, hdferr, stringarray)
-!   cell%source = trim(stringarray(1))
-!   deallocate(stringarray)
-! else
-!   cell%source = 'undefined'
-!   call Message('ReadDataHDF: There is no Source data set in this structure file')
-! end if
-
-! if (openHDFfile) then
-!   call self%pop_(.TRUE.)
-
-!   call h5close_EMsoft(hdferr)
-!   call error_check_(self, 'ReadDataHDF:h5close_EMsoft', hdferr)
-! else ! just close this group, but not the file
-!   call self%pop_()
-! end if
-
-! ! for trigonal space groups we need to set SYM_trigonal to .TRUE.
-! if ((cell%SYM_SGnum.ge.143).and.(cell%SYM_SGnum.le.167)) then
-!   cell%SG%SYM_trigonal = .TRUE.
-! else
-!   cell%SG%SYM_trigonal = .FALSE.
-! end if 
-
-! ! we have not yet implemented the rhombohedral setting of the trigonal 
-! ! space groups, so this needs to remain at .FALSE. always.
-! cell%SG%SYM_second = .FALSE.
-! !if (cell%SYM_SGset.ne.0) cell%SG%SYM_second=.TRUE.
-
-! end subroutine ReadDataHDF
 
 !--------------------------------------------------------------------------
 recursive function CheckFixedLengthflag_(self, dataset) result(itis)

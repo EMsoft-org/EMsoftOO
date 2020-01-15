@@ -105,11 +105,14 @@ IMPLICIT NONE
           procedure, pass(self) :: calcAngleDouble
           procedure, pass(self) :: calcCrossSingle
           procedure, pass(self) :: calcCrossDouble
+          procedure, pass(self) :: calcPositions_
 ! routines to set class parameters 
           procedure, pass(self) :: setWyckoff_
           procedure, pass(self) :: setFileName_
           procedure, pass(self) :: setSource_
           procedure, pass(self) :: setXtalSystem_
+          procedure, pass(self) :: setAtomPos_
+          procedure, pass(self) :: setNatomtype_
           procedure, pass(self) :: requestLatticeParameters
           procedure, pass(self) :: getLatticeParameterSingle
           procedure, pass(self) :: getLatticeParametersAll
@@ -120,7 +123,10 @@ IMPLICIT NONE
 ! routines to get class parameters 
 
 ! routines to read/write .xtal files 
-          procedure, pass(self) :: SaveDataHDF_
+          procedure, pass(self) :: readDataHDF_
+          procedure, pass(self) :: saveDataHDF_
+          procedure, pass(self) :: getCrystalData_
+          procedure, pass(self) :: dumpXtalInfo_
 ! miscellaneous routines 
           procedure, pass(self) :: resetUnitCell
           procedure, pass(self) :: GetAsymPosWyckoff_
@@ -153,6 +159,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: calcAngle 
           generic, public :: calcCross => calcCrossSingle, calcCrossDouble
           !DEC$ ATTRIBUTES DLLEXPORT :: calcCross 
+          generic, public :: calcPositions => calcPositions_
+          !DEC$ ATTRIBUTES DLLEXPORT :: calcPositions 
           ! generic, public :: MilBrav => convertMilBrav
           !DEC$ ATTRIBUTES DLLEXPORT :: MilBrav 
           generic, public :: getLatParm => getLatticeParameterSingle, getLatticeParametersAll
@@ -163,10 +171,6 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: setXtalSystem 
           generic, public :: getAsymPos => getAsymmetricPosition
           !DEC$ ATTRIBUTES DLLEXPORT :: getAsymPos 
-          ! generic, public :: displayElements => displayPeriodicTable 
-          !DEC$ ATTRIBUTES DLLEXPORT :: displayElements 
-          ! generic, public :: extractposition => extractAtomPositionData 
-          !DEC$ ATTRIBUTES DLLEXPORT :: extractposition 
           generic, public :: calcDensity => calcTheoreticalDensity 
           !DEC$ ATTRIBUTES DLLEXPORT :: calcDensity 
           generic, public :: GetAsymPosWyckoff => GetAsymPosWyckoff_
@@ -177,8 +181,19 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: setFileName 
           generic, public :: setSource => setSource_
           !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
-          generic, public :: SaveDataHDF => SaveDataHDF_
+          generic, public :: setNatomtype => setNatomtype_
           !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
+          generic, public :: readDataHDF => readDataHDF_
+          !DEC$ ATTRIBUTES DLLEXPORT :: readDataHDF 
+          generic, public :: saveDataHDF => saveDataHDF_
+          !DEC$ ATTRIBUTES DLLEXPORT :: saveDataHDF 
+          generic, public :: setAtomPos => setAtomPos_ 
+          !DEC$ ATTRIBUTES DLLEXPORT :: setAtomPos 
+          generic, public :: getCrystalData => getCrystalData_
+          !DEC$ ATTRIBUTES DLLEXPORT :: getCrystalData 
+          generic, public :: dumpXtalInfo => dumpXtalInfo_
+          !DEC$ ATTRIBUTES DLLEXPORT :: dumpXtalInfo 
+
 
   end type Cell_T
 
@@ -428,7 +443,7 @@ end subroutine computeMatrices
 
 
 !--------------------------------------------------------------------------
-recursive subroutine DumpXtalInfo(self, SG)    
+recursive subroutine dumpXtalInfo_(self, SG)    
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/12/20
@@ -440,7 +455,7 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-type(Cell_T), intent(inout)             :: self
+class(Cell_T), intent(inout)            :: self
 type(SpaceGroup_T), intent(inout)       :: SG 
 
 type(IO_T)                              :: Message 
@@ -452,23 +467,23 @@ real(kind=dbl)                          :: oi_real(5)
  call Message%printMessage('', frm = "(A/)")
  call Message%printMessage('Crystal Structure Information', frm = "('-->',A,'<--')")
  oi_real(1) = self%getLatParm('a')
- call WriteValue('  a [nm]             : ', oi_real, 1, "(F9.5)")
+ call Message%WriteValue('  a [nm]             : ', oi_real, 1, "(F9.5)")
  oi_real(1) = self%getLatParm('b')
- call WriteValue('  b [nm]             : ', oi_real, 1, "(F9.5)")
+ call Message%WriteValue('  b [nm]             : ', oi_real, 1, "(F9.5)")
  oi_real(1) = self%getLatParm('c')
- call WriteValue('  c [nm]             : ', oi_real, 1, "(F9.5)")
+ call Message%WriteValue('  c [nm]             : ', oi_real, 1, "(F9.5)")
  oi_real(1) = self%getLatParm('alpha')
- call WriteValue('  alpha [deg]        : ', oi_real, 1, "(F9.5)")
+ call Message%WriteValue('  alpha [deg]        : ', oi_real, 1, "(F9.5)")
  oi_real(1) = self%getLatParm('beta')
- call WriteValue('  beta  [deg]        : ', oi_real, 1, "(F9.5)")
+ call Message%WriteValue('  beta  [deg]        : ', oi_real, 1, "(F9.5)")
  oi_real(1) = self%getLatParm('gamma')
- call WriteValue('  gamma [deg]        : ', oi_real, 1, "(F9.5)")
+ call Message%WriteValue('  gamma [deg]        : ', oi_real, 1, "(F9.5)")
  oi_real(1) = self%vol
- call WriteValue('  Volume [nm^3]      : ', oi_real, 1, "(F12.8)")
+ call Message%WriteValue('  Volume [nm^3]      : ', oi_real, 1, "(F12.8)")
  oi_int(1) = SG%getSpaceGroupNumber()
- call WriteValue('  Space group #      : ', oi_int, 1, "(1x,I3)")
- call WriteValue('  Space group symbol : ', trim(SYM_SGname(SG%getSpaceGroupNumber())) )
- call WriteValue('  Generator String   : ',  trim(SYM_GL(SG%getSpaceGroupNumber())) )
+ call Message%WriteValue('  Space group #      : ', oi_int, 1, "(1x,I3)")
+ call Message%WriteValue('  Space group symbol : ', trim(SYM_SGname(SG%getSpaceGroupNumber())) )
+ call Message%WriteValue('  Generator String   : ',  trim(SYM_GL(SG%getSpaceGroupNumber())) )
  if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().ne.5)) then 
   call Message%printMessage('   Using second origin setting', frm = "(A)")
  endif
@@ -483,15 +498,15 @@ real(kind=dbl)                          :: oi_real(5)
 
 ! space group and point group information
  oi_int(1) = SG%getSpaceGroupGENnum()
- call WriteValue('  # generators       : ', oi_int, 1, "(1x,I3)")
+ call Message%WriteValue('  # generators       : ', oi_int, 1, "(1x,I3)")
  oi_int(1) = SG%getSpaceGroupMATnum()
- call WriteValue('  # symmetry matrices: ', oi_int, 1, "(1x,I3)")
+ call Message%WriteValue('  # symmetry matrices: ', oi_int, 1, "(1x,I3)")
  oi_int(1) = SG%getSpaceGroupNUMpt()
- call WriteValue('  # point sym. matr. : ', oi_int, 1, "(1x,I3)")
+ call Message%WriteValue('  # point sym. matr. : ', oi_int, 1, "(1x,I3)")
 
 ! generate atom positions and dump output  
  call Message%printMessage('', frm = "(A/)")
- call CalcPositions(self,'v')
+ call self%calcPositions(SG, 'v')
  oi_int(1) = self%ATOM_ntype
  call Message%WriteValue('  Number of asymmetric atom positions ', oi_int, 1)
  do i=1,self%ATOM_ntype
@@ -506,7 +521,7 @@ real(kind=dbl)                          :: oi_real(5)
 end do
 call Message%printMessage('', frm = "(A/)")
 
-end subroutine DumpXtalInfo
+end subroutine dumpXtalInfo_
 
 !--------------------------------------------------------------------------
 recursive subroutine setWyckoff_(self, useWyckoff)
@@ -560,6 +575,23 @@ self%source = trim(source)
 end subroutine setSource_
 
 !--------------------------------------------------------------------------
+recursive subroutine setNatomtype_(self, n)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! set the Source
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+integer(kind=irg),INTENT(IN)    :: n
+
+self%ATOM_ntype = n
+
+end subroutine setNatomtype_
+
+!--------------------------------------------------------------------------
 recursive subroutine setXtalSystem_(self, xs)
   !! author: MDG 
   !! version: 1.0 
@@ -575,6 +607,24 @@ integer(kind=irg),INTENT(IN)    :: xs
 self%xtal_system = xs
 
 end subroutine setXtalSystem_
+
+!--------------------------------------------------------------------------
+recursive subroutine setAtomPos_(self, pos)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! set a single atom position
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+real(kind=sgl),INTENT(IN)       :: pos(3)
+
+self%ATOM_pos = 0.0
+self%ATOM_pos(1,1:3) = pos(1:3)
+
+end subroutine setAtomPos_
 
 !--------------------------------------------------------------------------
 recursive subroutine getAsymmetricPosition(self)
@@ -1831,7 +1881,7 @@ end subroutine calcTheoreticalDensity
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-recursive subroutine SaveDataHDF_(self, SG, EMsoft, localHDF)
+recursive subroutine saveDataHDF_(self, SG, EMsoft, localHDF)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/14/20
@@ -1969,120 +2019,312 @@ else ! just close this group, but not the file
   call me%pop()
 end if
 
-end subroutine SaveDataHDF_
+end subroutine saveDataHDF_
 
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: CalcPositions
-! !
-! !> @author Marc De Graef, Carnegie Mellon University
-! !
-! !> @brief  compute atom positions in one or more unit cells
-! !
-! !> @details Compute all atom positions in the fundamental unit
-! !> cell and translate to neighbouring cells if needed
-! !> (used for structure drawings and structure factor computations)
-! !!
-! !> @param cell unit cell pointer
-! !> @param switch input vector 
-! !
-! !> @date  10/13/98 MDG 1.0 original
-! !> @date   5/19/01 MDG 2.0 f90
-! !> @date  11/27/01 MDG 2.1 added kind support
-! !> @date  03/21/13 MDG 3.0 clean up and updated IO
-! !> @date  01/10/14 MDG 4.0 SG is now part of the unitcell type
-! !> @date  06/05/14 MDG 4.1 made cell an argument instead of global variable; replaced itmp by argument
-! !--------------------------------------------------------------------------
-! recursive subroutine CalcPositions(cell,switch)
-! !DEC$ ATTRIBUTES DLLEXPORT :: CalcPositions
+!--------------------------------------------------------------------------
+recursive subroutine getCrystalData_(self, xtalname, SG, EMsoft, verbose, localHDF)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/09/20
+  !!
+  !! load or generate crystal data 
 
-! use mod_io
+use mod_EMsoft
+use mod_io
+use mod_symmetry
+use mod_HDFsupport
 
-! IMPLICIT NONE
+IMPLICIT NONE
 
-! type(unitcell)                  :: cell
-! character(1),INTENT(IN)         :: switch                       !< if switch='m', then multiple unit cells, otherwise single cell
+class(Cell_T),INTENT(INOUT)             :: self
+character(fnlen),INTENT(IN)             :: xtalname
+type(SpaceGroup_T),INTENT(INOUT)        :: SG 
+type(EMsoft_T),INTENT(INOUT)            :: EMsoft
+logical,INTENT(IN),OPTIONAL             :: verbose
+type(HDF_T),OPTIONAL,INTENT(INOUT)      :: localHDF
 
-! logical                         :: inside                       !< auxiliary logical
-! integer(kind=irg)               :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3)  !< various auxiliary variables
-! real(kind=dbl)                  :: ctmp(192,3),ff(3),sh(3)      !< auxiliary variables  
-! real(kind=sgl)                  :: r(3),g(3)                    !< auxiliary variables  
+type(HDF_T)                             :: me
+type(IO_T)                              :: Message 
+integer(kind=irg)                       :: i, ipg, SGnum
 
-! ! make sure all coordinates are reduced to the fundamental unit cell
-!  cell%SG%SYM_reduce=.TRUE.
+ self%fname = trim(xtalname)
+ if (present(localHDF)) then 
+  call self%readDataHDF(SG, EMsoft, localHDF)
+ else
+  call self%readDataHDF(SG, EMsoft)
+ end if
 
-! ! multiple cells ?
-!  if (switch.eq.'m') then 
-!   call ReadValue('Number of unit cells in a, b and c direction ?: ', io_int,3)
-!   do j=1,3
-!    celln(j) = io_int(j)
-!    sh(j) = 0.5_dbl*celln(j)+1.0_dbl
-!   end do
-!   ncells = celln(1)*celln(2)*celln(3)
-!  else
-! ! no, just one cell
-!   do j=1,3
-!    celln(j)=0
-!    sh(j)=1.0_dbl
-!   end do
-!   ncells = 1
-!  end if
+ call SG%setSpaceGrouphexset(.FALSE.)
+ if (SG%getSpaceGroupXtalSystem().eq.4)  call SG%setSpaceGrouphexset(.TRUE.)
+ if ((SG%getSpaceGroupXtalSystem().eq.5).AND.(SG%getSpaceGroupSetting().ne.2)) call SG%setSpaceGrouphexset(.TRUE.)
 
-! ! main loop
-! ! first allocate the apos variable (contains CARTESIAN coordinates
-! ! if switch is 'm', crystal coordinates otherwise)
-!  if (allocated(cell%apos)) deallocate(cell%apos)
-!  allocate (cell%apos(cell%ATOM_ntype, ncells * cell%SG%SYM_MATnum, 3),stat=ier)
-!  if (ier.ne.0) call FatalError('CalcPositions',' unable to allocate memory for array cell%apos')
+! compute the metric matrices
+ call self%CalcMatrices()
 
-!  do i=1,cell%ATOM_ntype
+! [code modified on 8/1/18 (MDG), to correct k-vector sampling symmetry errors]
+! First generate the point symmetry matrices, then the actual space group.
+! if the actual group is also the symmorphic group, then both 
+! steps can be done simultaneously, otherwise two calls to 
+! GenerateSymmetry are needed.
+ SGnum = SG%getSpaceGroupNumber()
+ if (SGsymnum(SGnum).eq.SGnum) then
+  call SG%GenerateSymmetry(.TRUE.)
+ else
+  call SG%setSpaceGroupNumber(SGsymnum(SGnum))
+  call SG%GenerateSymmetry(.TRUE.)
+  call SG%setSpaceGroupNumber(SGnum)
+  call SG%GenerateSymmetry(.FALSE.)
+ end if
 
-! ! for each atom in the asymmetric unit
-!   call CalcOrbit(cell,i,n,ctmp)
-!   cell%numat(i)=n
-!   icnt=1
+! and print the information on the screen
+if (present(verbose)) then
+ if (verbose) then
+   call self%dumpXtalInfo(SG)
+ end if
+end if 
 
-! ! replicate in all cells
-!   do j=1,celln(1)+1
-!    ff(1)=dble(j)
-!    do k=1,celln(2)+1
-!     ff(2)=dble(k)
-!     do l=1,celln(3)+1
-!      ff(3)=dble(l)
-!      do kk=1,cell%numat(i)
-!       do mm=1,3
-!        r(mm)=ctmp(kk,mm)+ff(mm)-sh(mm)
-!       end do 
-!       if (switch.eq.'m') then
-! ! make sure the atom is actually inside the block of unit
-! ! cells, or on one of the edges/faces/corners
-!        inside=.TRUE.
-!        do mm=1,3
-!         if ((r(mm)+sh(mm)).gt.(celln(mm)+1.0)) inside=.FALSE.
-!        end do
-!        if (inside) then
-!         call TransSpace(cell,r,g,'d','c')
-!         do mm=1,3
-!          cell%apos(i,icnt,mm)=g(mm)
-!         end do
-!         icnt=icnt+1
-!        end if
-!       else ! switch
+end subroutine getCrystalData_
 
-! ! prepare for structure factor computation
-!        do mm=1,3
-!         cell%apos(i,icnt,mm)=r(mm)
-!        end do
-!        icnt=icnt+1
-!       end if  ! switch
-!      end do ! kk
-!     end do ! l 
-!    end do ! k
-!   end do ! j
-!   cell%numat(i)=icnt-1
-!  end do  ! cell%ATOM_type
+!--------------------------------------------------------------------------
+recursive subroutine readDataHDF_(self, SG, EMsoft, localHDF)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/09/20
+  !!
+  !! Read crystal structure data from an HDF file 
 
-! end subroutine CalcPositions
+use mod_EMsoft
+use mod_io
+use mod_symmetry
+use HDF5
+use mod_HDFsupport
+use ISO_C_BINDING
+use stringconstants
+ 
+IMPLICIT NONE
+
+class(Cell_T),INTENT(INOUT)             :: self
+type(SPACEGROUP_T),INTENT(INOUT)        :: SG
+type(EMsoft_T),INTENT(INOUT)            :: EMsoft
+type(HDF_T),OPTIONAL,INTENT(INOUT)      :: localHDF
+
+type(HDF_T)                             :: me
+
+type(IO_T)                              :: Message
+character(fnlen)                        :: dataset, groupname, fname
+integer(HSIZE_T)                        :: dims(1), dims2(2)
+integer(kind=irg)                       :: hdferr, nlines, xtal_system, SGnum, setting, &
+                                           ATOM_ntype 
+real(kind=dbl),allocatable              :: cellparams(:)
+integer(kind=irg),allocatable           :: atomtypes(:)
+real(kind=sgl),allocatable              :: atompos(:,:)
+character(fnlen)                        :: pp
+logical                                 :: openHDFfile, d_exists
+character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+
+
+openHDFfile = .TRUE.
+if (present(localHDF)) then
+  if (localHDF%associatedHead()) then
+    openHDFfile = .FALSE.
+    me = localHDF
+  else
+    call Message%printError("readDataHDF","self pointer passed in to routine is not associated")
+  end if 
+end if
+
+if (openHDFfile) then 
+  me = HDF_T()
+  fname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%fname))
+  hdferr =  me%openFile(fname)
+end if
+
+groupname = SC_CrystalData
+hdferr = me%openGroup(groupname)
+call me%error_check('readDataHDF:HDF_openGroup:'//trim(groupname), hdferr)
+
+dataset = SC_CrystalSystem
+call me%readDatasetInteger(dataset, hdferr, xtal_system)
+call SG%setSpaceGroupXtalSystem(xtal_system)
+self%xtal_system = xtal_system
+call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
+
+dataset = SC_LatticeParameters
+call me%readDatasetDoubleArray(dataset, dims, hdferr, cellparams)
+call me%error_check('readDataHDF:readDatasetDoubleArray:'//trim(dataset), hdferr)
+
+self%a = cellparams(1)
+self%b = cellparams(2)
+self%c = cellparams(3)
+self%alpha = cellparams(4)
+self%beta = cellparams(5)
+self%gamma = cellparams(6)
+
+dataset = SC_SpaceGroupNumber
+call me%readDatasetInteger(dataset, hdferr, SGnum) 
+SG = SpaceGroup_T( SGnumber = SGnum )
+call SG%setSpaceGroupNumber(SGnum)
+call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
+
+dataset = SC_SpaceGroupSetting
+call me%readDatasetInteger(dataset, hdferr, setting)
+! this parameter must be either 1 or 2, but is initialized to 0;
+! some older .xtal files may still have 0 in them, so we correct this here
+if (setting.eq.0) setting = 1
+call SG%setSpaceGroupSetting(setting)
+call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
+
+dataset = SC_Natomtypes
+call me%readDatasetInteger(dataset, hdferr, ATOM_ntype)
+self%ATOM_ntype = ATOM_ntype
+call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
+
+dataset = SC_Atomtypes
+call me%readDatasetIntegerArray(dataset, dims, hdferr, atomtypes)
+call me%error_check('readDataHDF:readDatasetIntegerArray:'//trim(dataset), hdferr)
+self%ATOM_type(1:self%ATOM_ntype) = atomtypes(1:self%ATOM_ntype) 
+deallocate(atomtypes)
+
+dataset = SC_AtomData
+call me%readDatasetFloatArray(dataset, dims2, hdferr, atompos)
+call me%error_check('readDataHDF:readDatasetFloatArray:'//trim(dataset), hdferr)
+self%ATOM_pos(1:self%ATOM_ntype,1:5) = atompos(1:self%ATOM_ntype,1:5) 
+deallocate(atompos)
+
+! the following data set does not exist in older .xtal files so we test for its presence
+dataset = SC_Source
+call H5Lexists_f(me%getobjectID(),trim(dataset),d_exists, hdferr)
+if (d_exists) then 
+  call me%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
+  self%source = trim(stringarray(1))
+  deallocate(stringarray)
+else
+  self%source = 'undefined'
+  call Message%printMessage('readDataHDF: There is no Source data set in this structure file')
+end if
+
+if (openHDFfile) then
+  call me%pop(.TRUE.)
+else ! just close this group, but not the file
+  call me%pop()
+end if
+
+! for trigonal space groups we need to set SYM_trigonal to .TRUE.
+if ((SGnum.ge.143).and.(SGnum.le.167)) then
+  call SG%setSpaceGrouptrigonal(.TRUE.)
+else
+  call SG%setSpaceGrouptrigonal(.FALSE.)
+end if 
+
+! we have not yet implemented the rhombohedral setting of the trigonal 
+! space groups, so this needs to remain at .FALSE. always.
+call SG%setSpaceGroupsecond(.FALSE.)
+
+end subroutine readDataHDF_
+
+!--------------------------------------------------------------------------
+recursive subroutine calcPositions_(self, SG, switch)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/09/20
+  !!
+  !! Compute all atom positions in the fundamental unit
+  !! cell and translate to neighbouring cells if needed
+  !! (used for structure drawings and structure factor computations)
+
+use mod_io
+use mod_symmetry
+
+IMPLICIT NONE
+
+class(Cell_T),INTENT(INOUT)     :: self
+type(SpaceGroup_T),INTENT(INOUT):: SG
+character(1),INTENT(IN)         :: switch ! if switch='m', then multiple unit cells, otherwise single cell
+
+type(IO_T)                      :: Message
+logical                         :: inside                       ! auxiliary logical
+integer(kind=irg)               :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3)  ! various auxiliary variables
+real(kind=dbl)                  :: ff(3),sh(3)                  ! auxiliary variables  
+real(kind=sgl)                  :: r(3),g(3)                    ! auxiliary variables  
+real(kind=dbl),allocatable      :: ctmp(:,:)
+
+! make sure all coordinates are reduced to the fundamental unit cell
+ call SG%setSpaceGroupreduce(.TRUE.)
+
+! multiple cells ?
+ if (switch.eq.'m') then 
+  call Message%ReadValue('Number of unit cells in a, b and c direction ?: ', io_int,3)
+  do j=1,3
+   celln(j) = io_int(j)
+   sh(j) = 0.5_dbl*celln(j)+1.0_dbl
+  end do
+  ncells = celln(1)*celln(2)*celln(3)
+ else
+! no, just one cell
+  do j=1,3
+   celln(j)=0
+   sh(j)=1.0_dbl
+  end do
+  ncells = 1
+ end if
+
+! main loop
+! first allocate the apos variable (contains CARTESIAN coordinates
+! if switch is 'm', crystal coordinates otherwise)
+ if (allocated(self%apos)) deallocate(self%apos)
+ allocate (self%apos(self%ATOM_ntype, ncells * SG%getSpaceGroupMATnum(), 3),stat=ier)
+ if (ier.ne.0) call Message%printError('calcPositions',' unable to allocate memory for array cell%apos')
+
+ do i=1,self%ATOM_ntype
+
+! for each atom in the asymmetric unit
+  call SG%CalcOrbit(dble(self%ATOM_pos(i,1:3)),n,ctmp)
+  self%numat(i)=n
+  icnt=1
+
+! replicate in all cells
+  do j=1,celln(1)+1
+   ff(1)=dble(j)
+   do k=1,celln(2)+1
+    ff(2)=dble(k)
+    do l=1,celln(3)+1
+     ff(3)=dble(l)
+     do kk=1,self%numat(i)
+      do mm=1,3
+       r(mm)=ctmp(kk,mm)+ff(mm)-sh(mm)
+      end do 
+      if (switch.eq.'m') then
+! make sure the atom is actually inside the block of unit
+! cells, or on one of the edges/faces/corners
+       inside=.TRUE.
+       do mm=1,3
+        if ((r(mm)+sh(mm)).gt.(celln(mm)+1.0)) inside=.FALSE.
+       end do
+       if (inside) then
+        call self%TransSpace(r,g,'d','c')
+        do mm=1,3
+         self%apos(i,icnt,mm)=g(mm)
+        end do
+        icnt=icnt+1
+       end if
+      else ! switch
+
+! prepare for structure factor computation
+       do mm=1,3
+        self%apos(i,icnt,mm)=r(mm)
+       end do
+       icnt=icnt+1
+      end if  ! switch
+     end do ! kk
+    end do ! l 
+   end do ! k
+  end do ! j
+  self%numat(i)=icnt-1
+  deallocate(ctmp)
+
+ end do  ! self%ATOM_type
+
+end subroutine calcPositions_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------

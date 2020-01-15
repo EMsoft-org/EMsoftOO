@@ -612,6 +612,8 @@ IMPLICIT NONE
       procedure, pass(self) :: setSpaceGrouptrigonal_
       procedure, pass(self) :: setSpaceGroupsecond_
       procedure, pass(self) :: setSpaceGroupSetting_ 
+      procedure, pass(self) :: setSpaceGroupNumber_ 
+      procedure, pass(self) :: setSpaceGroupXtalSystem_ 
 ! general purpose routines that use symmetry 
       procedure, pass(self) :: CalcFamily_
       procedure, pass(self) :: CalcOrbit_
@@ -658,6 +660,8 @@ IMPLICIT NONE
       generic, public :: setSpaceGrouptrigonal => setSpaceGrouptrigonal_
       generic, public :: setSpaceGroupsecond => setSpaceGroupsecond_
       generic, public :: setSpaceGroupSetting => setSpaceGroupSetting_
+      generic, public :: setSpaceGroupNumber => setSpaceGroupNumber_
+      generic, public :: setSpaceGroupXtalSystem => setSpaceGroupXtalSystem_
       generic, public :: GetSetting => GetSetting_
       generic, public :: GenerateSymmetry => GenerateSymmetry_
       generic, public :: ListPointGroups => ListPointGroups_
@@ -1725,6 +1729,40 @@ integer(kind=irg),INTENT(IN)        :: setting
 self%setting = setting
 
 end subroutine setSpaceGroupSetting_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSpaceGroupNumber_(self, SGnum)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/15/20
+  !!
+  !! set the space group number parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)        :: SGnum
+
+self%SGnumber = SGnum
+
+end subroutine setSpaceGroupNumber_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSpaceGroupXtalSystem_(self, xs)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/15/20
+  !!
+  !! set the space group crystal system parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)        :: xs
+
+self%xtal_system = xs
+
+end subroutine setSpaceGroupXtalSystem_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGroupreduce_(self, reduce)
