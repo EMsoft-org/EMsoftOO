@@ -111,13 +111,17 @@ IMPLICIT NONE
           procedure, pass(self) :: setFileName_
           procedure, pass(self) :: getFileName_
           procedure, pass(self) :: setSource_
+          procedure, pass(self) :: getSource_
           procedure, pass(self) :: setXtalSystem_
           procedure, pass(self) :: setAtomPos_
           procedure, pass(self) :: setNatomtype_
+          procedure, pass(self) :: getNatomtype_
+          procedure, pass(self) :: getatomtype_
           procedure, pass(self) :: requestLatticeParameters
           procedure, pass(self) :: getLatticeParameterSingle
           procedure, pass(self) :: getLatticeParametersAll
           procedure, pass(self) :: getAsymmetricPosition
+          procedure, pass(self) :: getAsymPosArray
           procedure, pass(self) :: displayPeriodicTable
           ! procedure, pass(self) :: extractAtomPositionData
           procedure, pass(self) :: calcTheoreticalDensity
@@ -170,6 +174,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: setXtalSystem 
           generic, public :: getAsymPos => getAsymmetricPosition
           !DEC$ ATTRIBUTES DLLEXPORT :: getAsymPos 
+          generic, public :: getAsymPosData => getAsymPosArray
+          !DEC$ ATTRIBUTES DLLEXPORT :: getAsymPos 
           generic, public :: calcDensity => calcTheoreticalDensity 
           !DEC$ ATTRIBUTES DLLEXPORT :: calcDensity 
           generic, public :: GetAsymPosWyckoff => GetAsymPosWyckoff_
@@ -182,8 +188,14 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: getFileName 
           generic, public :: setSource => setSource_
           !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
+          generic, public :: getSource => getSource_
+          !DEC$ ATTRIBUTES DLLEXPORT :: getSource 
           generic, public :: setNatomtype => setNatomtype_
-          !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
+          !DEC$ ATTRIBUTES DLLEXPORT :: setNatomtype 
+          generic, public :: getNatomtype => getNatomtype_
+          !DEC$ ATTRIBUTES DLLEXPORT :: getNatomtype 
+          generic, public :: getAtomtype => getatomtype_
+          !DEC$ ATTRIBUTES DLLEXPORT :: getNatomtype 
           generic, public :: readDataHDF => readDataHDF_
           !DEC$ ATTRIBUTES DLLEXPORT :: readDataHDF 
           generic, public :: saveDataHDF => saveDataHDF_
@@ -592,6 +604,23 @@ self%source = trim(source)
 end subroutine setSource_
 
 !--------------------------------------------------------------------------
+recursive function getSource_(self) result(source)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/16/20
+  !!
+  !! get the Source
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)   :: self 
+character(fnlen)               :: source
+
+source = trim(self%source)
+
+end function getSource_
+
+!--------------------------------------------------------------------------
 recursive subroutine setNatomtype_(self, n)
   !! author: MDG 
   !! version: 1.0 
@@ -607,6 +636,23 @@ integer(kind=irg),INTENT(IN)    :: n
 self%ATOM_ntype = n
 
 end subroutine setNatomtype_
+
+!--------------------------------------------------------------------------
+recursive function getNatomtype_(self) result(n)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/13/20
+  !!
+  !! set the Source
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+integer(kind=irg)               :: n
+
+n = self%ATOM_ntype 
+
+end function getNatomtype_
 
 !--------------------------------------------------------------------------
 recursive subroutine setXtalSystem_(self, xs)
@@ -642,6 +688,50 @@ self%ATOM_pos = 0.0
 self%ATOM_pos(1,1:3) = pos(1:3)
 
 end subroutine setAtomPos_
+
+!--------------------------------------------------------------------------
+recursive function getatomtype_(self) result(atp)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/16/20
+  !!
+  !! returns the AsymPos array to the calling program
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+integer(kind=irg), allocatable  :: atp(:)
+
+integer(kind=irg)               :: sz(1) 
+
+sz = shape(self%ATOM_type)
+allocate(atp(sz(1)))
+
+atp = self%ATOM_type
+
+end function getatomtype_ 
+
+!--------------------------------------------------------------------------
+recursive function getAsymPosArray(self) result(asp)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/16/20
+  !!
+  !! returns the AsymPos array to the calling program
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+real(kind=dbl), allocatable     :: asp(:,:)
+
+integer(kind=irg)               :: sz(2) 
+
+sz = shape(self%ATOM_pos)
+allocate(asp(sz(1),sz(2)))
+
+asp = self%ATOM_pos
+
+end function getAsymPosArray 
 
 !--------------------------------------------------------------------------
 recursive subroutine getAsymmetricPosition(self)

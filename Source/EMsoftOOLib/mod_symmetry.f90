@@ -416,6 +416,26 @@ IMPLICIT NONE
                                                         8, 9, -1, -1, -1, -1 /)
 !DEC$ ATTRIBUTES DLLEXPORT :: PGSamplingType
 
+! There are 24 space groups with two origin choices.
+! The symmetry of both sites is stored in the array
+! sitesym; the space group numbers are stored
+! in tworig.
+! numbers of the space groups with two settings
+integer(kind=irg),public, parameter  :: tworig(24)=(/48,50,59,68,70,85,86,88,125,126,129,130,133,134,137,138,&
+                                                     141,142,201,203,222,224,227,228/)
+!DEC$ ATTRIBUTES DLLEXPORT :: tworig
+
+! site symmetry list
+character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  ',' -1    ','mm2/n  ',' -1    ', &
+                                                   '222    ',' -1    ','222    ',' -1    ','-4     ',' -1    ', &
+                                                   '-4     ',' -1    ','-4     ',' -1    ','422    ','2/m    ', &
+                                                   '422/n  ',' -1    ','-4m2   ','2/m    ','-4/ncn ',' -1    ', &
+                                                   '-4121/c',' -1    ','-42m   ','2/m    ','-4m2/n ',' -1    ', &
+                                                   '-4cg   ','2/m    ','-4m2   ','2/m    ','-4c21  ',' -1    ', &
+                                                   '23     ',' -3    ','23     ',' -3    ','432    ',' -3    ', &
+                                                   '-43m   ','-3m    ','-43m   ','-3m    ','23     ',' -3    '/)
+!DEC$ ATTRIBUTES DLLEXPORT :: sitesym
+
 !> 31 diffraction group symbols in BESR order
   character(5), public, dimension(31)  :: DG =(/ '    1','   1R','    2','   2R','  21R','   mR', &
                                                  '    m','  m1R','2mRmR','  2mm','2RmmR','2mm1R', &
@@ -1025,25 +1045,6 @@ class(SpaceGroup_T),INTENT(INOUT) :: self
 
 integer(kind=irg)                 :: i, iset, isg, io_int(1)    
 type(IO_T)                        :: Message
-
-! There are 24 space groups with two origin choices.
-! The symmetry of both sites is stored in the array
-! sitesym; the space group numbers are stored
-! in tworig
-
-! numbers of the space groups with two settings
-integer(kind=irg),parameter  :: tworig(24)=(/48,50,59,68,70,85,86,88,125,126,129,130,133,134,137,138,&
-                                            141,142,201,203,222,224,227,228/)
-
-! site symmetry list
-character(7),parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  ',' -1    ','mm2/n  ',' -1    ', &
-                                           '222    ',' -1    ','222    ',' -1    ','-4     ',' -1    ', &
-                                           '-4     ',' -1    ','-4     ',' -1    ','422    ','2/m    ', &
-                                           '422/n  ',' -1    ','-4m2   ','2/m    ','-4/ncn ',' -1    ', &
-                                           '-4121/c',' -1    ','-42m   ','2/m    ','-4m2/n ',' -1    ', &
-                                           '-4cg   ','2/m    ','-4m2   ','2/m    ','-4c21  ',' -1    ', &
-                                           '23     ',' -3    ','23     ',' -3    ','432    ',' -3    ', &
-                                           '-43m   ','-3m    ','-43m   ','-3m    ','23     ',' -3    '/)
 
  isg = 0
  do i=1,24
