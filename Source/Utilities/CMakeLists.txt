@@ -143,13 +143,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
      #                                INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
      #                                )
 
-     #  Add_EMsoftOO_Executable(TARGET EMlatgeom 
-     #                                SOURCES ${APP_DIR}/EMlatgeom.f90 
-     #                                LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-     #                                SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-     #                                INSTALL_PROGRAM TRUE
-     #                                INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-     #                                )
+      Add_EMsoftOO_Executable(TARGET EMlatgeom 
+                                    SOURCES ${APP_DIR}/EMlatgeom.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
 
      #  Add_EMsoftOO_Executable(TARGET EMstereo 
      #                                SOURCES ${APP_DIR}/EMstereo.f90 
