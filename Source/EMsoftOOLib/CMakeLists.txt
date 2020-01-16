@@ -47,6 +47,12 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_HDFsupport.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_postscript.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_misc.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_image.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_image_io.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_bmp.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_tif.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_lzw.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_pgm.f90
 
 
   ${EMsoftOOLib_Additional_SRCS}
