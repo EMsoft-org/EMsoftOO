@@ -386,7 +386,7 @@ IMPLICIT NONE
   integer(kind=irg), public, dimension(32)  :: PGTHDorder = (/ 1, 2, 2, 2, 4, 4, 4, 8, 4, 8, &
                                                                8, 8, 8, 8,16, 3, 6, 6, 6,12, &
                                                                6,12,12,12,12,12,24,12,24,24, &
-                                                              24,32 /)
+                                                              24,48 /)
 !DEC$ ATTRIBUTES DLLEXPORT :: PGTHDorder
 
 !> 3D point groups : purely rotational point groups corresponding to each point group
@@ -782,6 +782,11 @@ else  ! at least one of the optional parameters are present
     call getSpaceGroup_(SG)
   end if
 
+  if (present(SGnumber) .and. (present(xtalSystem)) ) then 
+    SG%SGnumber = SGnumber
+    SG%xtal_system = xtalSystem
+  end if
+
   if (present(setting)) then 
     SG%setting = setting 
   else 
@@ -802,6 +807,10 @@ end do
 
 ! allocate the arrays for symmetry operators 
 allocate( SG%data(SG%SGorder, 4, 4), SG%direc(PGTHDorder(pgnum),3,3), SG%recip(PGTHDorder(pgnum),3,3) )
+
+SG%data = 0.D0
+SG%direc = 0.D0
+SG%recip = 0.D0
 
 ! generate all the symmetry operators as well as the corresponding point group symmetry 
 call GenerateSymmetry_(SG,.TRUE.)

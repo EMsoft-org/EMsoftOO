@@ -58,11 +58,12 @@ character(fnlen)               :: progdesc = 'Stereographic projection of a fami
 character(1)         		       :: sp
 logical              		       :: nn,topbot
 real(kind=sgl)       		       :: rr(3),g(3),r(3),M(3,3), CX, CY, CRad, negthresh,xst,yst
-integer(kind=irg)    		       :: h,k,l,hkl(3),iview(3),cr,ans,sgn,i,num, io_int(1), imanum
+integer(kind=irg)    		       :: h,k,l,hkl(3),iview(3),cr,ans,sgn,i,j,num, io_int(1), imanum, sz(3)
 character(fnlen)               :: xtalname
 character(200)                 :: parta
 integer(kind=irg),allocatable  :: itmp(:,:)
-
+real(kind=dbl),allocatable     :: SGdirec(:,:,:)
+ 
  EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 912 /) )
 
 ! read crystal information
@@ -86,7 +87,7 @@ integer(kind=irg),allocatable  :: itmp(:,:)
   call Message%ReadValue('Real Space (d) or reciprocal space (r) : ', sp,'(A1)')
 
 ! viewing direction (watch for hexagonal indices !)
- call GetViewingDirection(SG%getSpaceGrouphexset(), iview)
+  call GetViewingDirection(SG%getSpaceGrouphexset(), iview)
 
 ! create transformation matrix
   call ProjectionMatrix(cell,iview,M)
@@ -114,6 +115,7 @@ integer(kind=irg),allocatable  :: itmp(:,:)
     hkl(1)=h
     hkl(2)=k
     hkl(3)=l
+    write(*,*) i, hkl
 
 ! reduce to smallest integers to avoid overlap
 ! of indices, such as (111) and (222)

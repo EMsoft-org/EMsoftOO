@@ -2022,15 +2022,17 @@ integer(kind=irg)                       :: i, ipg, SGnum
 ! if the actual group is also the symmorphic group, then both 
 ! steps can be done simultaneously, otherwise two calls to 
 ! GenerateSymmetry are needed.
- SGnum = SG%getSpaceGroupNumber()
- if (SGsymnum(SGnum).eq.SGnum) then
-  call SG%GenerateSymmetry(.TRUE.)
- else
-  call SG%setSpaceGroupNumber(SGsymnum(SGnum))
-  call SG%GenerateSymmetry(.TRUE.)
-  call SG%setSpaceGroupNumber(SGnum)
-  call SG%GenerateSymmetry(.FALSE.)
- end if
+ ! SGnum = SG%getSpaceGroupNumber()
+ ! if (SGsymnum(SGnum).eq.SGnum) then
+ !  call SG%GenerateSymmetry(.TRUE.)
+ ! else
+ !  call SG%setSpaceGroupNumber(SGsymnum(SGnum))
+ !  write (*,*) ' SG order = ', SGorder(SG%getSpaceGroupNumber())
+ !  call SG%GenerateSymmetry(.TRUE.)
+ !  call SG%setSpaceGroupNumber(SGnum)
+ !  call SG%GenerateSymmetry(.FALSE.)
+ !  write (*,*) ' SG order = ', SGorder(SG%getSpaceGroupNumber())
+ ! end if
 
 ! and print the information on the screen
 if (present(verbose)) then
@@ -2118,7 +2120,7 @@ self%gamma = cellparams(6)
 
 dataset = SC_SpaceGroupNumber
 call me%readDatasetInteger(dataset, hdferr, SGnum) 
-SG = SpaceGroup_T( SGnumber = SGnum )
+SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system )
 call SG%setSpaceGroupNumber(SGnum)
 call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
 
