@@ -57,7 +57,7 @@ IMPLICIT NONE
        !! number of atom types in asymmetric unit
       real(kind=sgl)                       :: ATOM_pos(maxpasym,5)
        !! atom coordinates, site occupations, and Debye-Waller factors for atoms in asymmetric unit 
-      character(fnlen)                     :: fname
+      character(fnlen)                     :: xtalname
        !! crystal structure file name
       character(fnlen)                     :: source
        !! string describing the citation for the crystallographic data
@@ -109,6 +109,7 @@ IMPLICIT NONE
 ! routines to set class parameters 
           procedure, pass(self) :: setWyckoff_
           procedure, pass(self) :: setFileName_
+          procedure, pass(self) :: getFileName_
           procedure, pass(self) :: setSource_
           procedure, pass(self) :: setXtalSystem_
           procedure, pass(self) :: setAtomPos_
@@ -161,8 +162,6 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: calcCross 
           generic, public :: calcPositions => calcPositions_
           !DEC$ ATTRIBUTES DLLEXPORT :: calcPositions 
-          ! generic, public :: MilBrav => convertMilBrav
-          !DEC$ ATTRIBUTES DLLEXPORT :: MilBrav 
           generic, public :: getLatParm => getLatticeParameterSingle, getLatticeParametersAll
           !DEC$ ATTRIBUTES DLLEXPORT :: getLatParm 
           generic, public :: setLatParm => requestLatticeParameters
@@ -179,6 +178,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: setWyckoff 
           generic, public :: setFileName => setFileName_
           !DEC$ ATTRIBUTES DLLEXPORT :: setFileName 
+          generic, public :: getFileName => getFileName_
+          !DEC$ ATTRIBUTES DLLEXPORT :: getFileName 
           generic, public :: setSource => setSource_
           !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
           generic, public :: setNatomtype => setNatomtype_
@@ -193,7 +194,6 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: getCrystalData 
           generic, public :: dumpXtalInfo => dumpXtalInfo_
           !DEC$ ATTRIBUTES DLLEXPORT :: dumpXtalInfo 
-
 
   end type Cell_T
 
@@ -275,7 +275,7 @@ class(Cell_T), intent(inout)    :: self
  self%ATOM_type = 0_irg
  self%ATOM_ntype = 0_irg
  self%ATOM_pos = 0.0_dbl
- self%fname = ''
+ self%xtalname = ''
  self%source = ''
 
 ! and deallocate any arrays
@@ -541,7 +541,7 @@ self%Wyckoff = useWyckoff
 end subroutine setWyckoff_
 
 !--------------------------------------------------------------------------
-recursive subroutine setFileName_(self, fname)
+recursive subroutine setFileName_(self, xtalname)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/13/20
@@ -551,11 +551,28 @@ recursive subroutine setFileName_(self, fname)
 IMPLICIT NONE 
 
 class(Cell_T), INTENT(INOUT)    :: self 
-character(fnlen),INTENT(IN)     :: fname 
+character(fnlen),INTENT(IN)     :: xtalname 
 
-self%fname = trim(fname)
+self%xtalname = trim(xtalname)
 
 end subroutine setFileName_
+
+!--------------------------------------------------------------------------
+recursive function getFileName_(self) result(xtalname)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/15/20
+  !!
+  !! get the .xtal filename 
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+character(fnlen)                :: xtalname 
+
+xtalname = trim(self%xtalname)
+
+end function getFileName_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSource_(self, source)
@@ -1303,67 +1320,6 @@ real(kind=dbl)                          :: x(3), vl
 end subroutine CalcCrossDouble
 
 !--------------------------------------------------------------------------
-recursive subroutine MilBrav(p,q,d)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 01/07/20
-  !!
-  !! conversion from Miller to Miller-Bravais indices for
-  !! directions.  The switch d is either '34' or '43'.
-  !! implements equations 1.31 and 1.32, pages 24-25. 
-
-IMPLICIT NONE
-
-integer(kind=irg),INTENT(INOUT)         :: p(3)         
- !! input/output vector
-!f2py intent(in,out) ::  p
-integer(kind=irg),INTENT(INOUT)         :: q(4)         
- !! input/output vector
-!f2py intent(in,out) ::  q
-character(2),INTENT(IN)                 :: d            
- !! direction string ('34' or '43')
-
-integer(kind=irg)                       :: i, j         
-real(kind=sgl)                          :: r(4), rm, tmp(4)     
-
- if (d.eq.'43') then 
-! equation 1.31
-! these will always be integers, so no reduction is required
-  p(1) = q(1)-q(3)
-  p(2) = q(2)-q(3)
-  p(3) = q(4)
- else
-! equation 1.32
-! there is no need to divide by 3, since that would be taken out 
-! by the reduction to integers in the next step
-  r(1) = float(2*p(1)-p(2))
-  r(2) = float(2*p(2)-p(1))
-  r(3) = -float(p(1)+p(2))
-  r(4) = float(3*p(3))
-
-! next reduce to common integers
-! first, find the non-zero minimum index
-  rm = 100.0
-  do i=1,4 
-   if ((abs(r(i)).lt.rm).and.(r(i).ne.0.0)) rm = abs(r(i))
-  end do
-
-! then check if this index is a common divider of the others
-  j = 0
-  do i=1,4
-   tmp(i) = r(i)/rm
-   if ( ( abs(tmp(i))-int(abs(tmp(i))) ).eq.0.0) j=j+1
-  end do
-  if (j.eq.4) then
-    q = tmp
-  else  
-    q = r
-  end if
- end if
-
-end subroutine MilBrav
-
-!--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 ! routines for crystallographic IO 
 !--------------------------------------------------------------------------
@@ -1911,7 +1867,7 @@ type(HDF_T)                             :: me  ! local HDF class
 
 character(11)                           :: dstr
 character(15)                           :: tstr
-character(fnlen)                        :: progname = 'EMmkxtal.f90', groupname, dataset, fname, strings(1)
+character(fnlen)                        :: progname = 'EMmkxtal.f90', groupname, dataset, xtalname, strings(1)
 integer(kind=irg)                       :: hdferr, setting 
 real(kind=dbl)                          :: cellparams(6)
 integer(kind=irg),allocatable           :: atomtypes(:)
@@ -1938,9 +1894,9 @@ tstr = Timer%getTimeString()
 !
 if (openHDFfile) then 
   me = HDF_T()
-  fname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%fname))
-  hdferr =  me%createFile(fname)
-  call me%error_check('SaveDataHDF:HDF_createFile:'//trim(fname), hdferr)
+  xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
+  hdferr =  me%createFile(xtalname)
+  call me%error_check('SaveDataHDF:HDF_createFile:'//trim(xtalname), hdferr)
 end if
 
 groupname = SC_CrystalData
@@ -2047,7 +2003,7 @@ type(HDF_T)                             :: me
 type(IO_T)                              :: Message 
 integer(kind=irg)                       :: i, ipg, SGnum
 
- self%fname = trim(xtalname)
+ self%xtalname = trim(xtalname)
  if (present(localHDF)) then 
   call self%readDataHDF(SG, EMsoft, localHDF)
  else
@@ -2111,7 +2067,7 @@ type(HDF_T),OPTIONAL,INTENT(INOUT)      :: localHDF
 type(HDF_T)                             :: me
 
 type(IO_T)                              :: Message
-character(fnlen)                        :: dataset, groupname, fname
+character(fnlen)                        :: dataset, groupname, xtalname
 integer(HSIZE_T)                        :: dims(1), dims2(2)
 integer(kind=irg)                       :: hdferr, nlines, xtal_system, SGnum, setting, &
                                            ATOM_ntype 
@@ -2135,8 +2091,8 @@ end if
 
 if (openHDFfile) then 
   me = HDF_T()
-  fname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%fname))
-  hdferr =  me%openFile(fname)
+  xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
+  hdferr =  me%openFile(xtalname)
 end if
 
 groupname = SC_CrystalData

@@ -45,6 +45,9 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_symmetry.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_crystallography.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_HDFsupport.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_postscript.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_misc.f90
+
 
   ${EMsoftOOLib_Additional_SRCS}
 )

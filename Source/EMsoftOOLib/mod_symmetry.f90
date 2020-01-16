@@ -606,6 +606,7 @@ IMPLICIT NONE
       procedure, pass(self) :: getSpaceGroupPGrecipMatrices_
       procedure, pass(self) :: getSpaceGrouptrigonal_
       procedure, pass(self) :: getSpaceGroupsecond_
+      procedure, pass(self) :: getSpaceGrouphexset_
 ! routines to set space group parameters 
       procedure, pass(self) :: setSpaceGroupreduce_
       procedure, pass(self) :: setSpaceGrouphexset_
@@ -653,6 +654,7 @@ IMPLICIT NONE
       generic, public :: getSpaceGroupDataMatrices => getSpaceGroupDataMatrices_
       generic, public :: getSpaceGroupPGdirecMatrices => getSpaceGroupPGdirecMatrices_
       generic, public :: getSpaceGroupPGrecipMatrices => getSpaceGroupPGrecipMatrices_
+      generic, public :: getSpaceGrouphexset => getSpaceGrouphexset_
       generic, public :: getSpaceGrouptrigonal => getSpaceGrouptrigonal_
       generic, public :: getSpaceGroupsecond => getSpaceGroupsecond_
       generic, public :: setSpaceGroupreduce => setSpaceGroupreduce_
@@ -1780,6 +1782,23 @@ logical,INTENT(IN)                  :: reduce
 self%reduce = reduce
 
 end subroutine setSpaceGroupreduce_
+
+!--------------------------------------------------------------------------
+recursive function getSpaceGrouphexset_(self) result(hexset)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/11/20
+  !!
+  !! set the space group hexset parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical                             :: hexset
+
+hexset = self%hexset
+
+end function getSpaceGrouphexset_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGrouphexset_(self, hexset)
