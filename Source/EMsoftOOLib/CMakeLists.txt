@@ -53,6 +53,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_tif.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_lzw.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_pgm.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_math.f90
+  ${EMsoftOOLib_SOURCE_DIR}/spsort.f
 
 
   ${EMsoftOOLib_Additional_SRCS}

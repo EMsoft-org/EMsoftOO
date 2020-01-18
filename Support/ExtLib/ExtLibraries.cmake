@@ -79,10 +79,10 @@ if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
 
   # Find BLAS/LAPACK Library
   if(APPLE)
-    find_library(EMsoft_BLAS_LAPACK_LIBS Accelerate)
+    find_library(EMsoftOO_BLAS_LAPACK_LIBS Accelerate)
   else()
     find_package(LAPACK REQUIRED)
-    set(EMsoft_BLAS_LAPACK_LIBS ${LAPACK_LIBRARIES})
+    set(EMsoftOO_BLAS_LAPACK_LIBS ${LAPACK_LIBRARIES})
   endif()
 endif()
 

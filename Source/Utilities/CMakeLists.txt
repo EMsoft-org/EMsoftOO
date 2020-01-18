@@ -119,6 +119,15 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                     INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
                                     )
 
+      Add_EMsoftOO_Executable(TARGET modtest
+                                    SOURCES ${APP_DIR}/modtest.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
+
+
      #  Add_EMsoftOO_Executable(TARGET EMzap 
      #                                SOURCES ${APP_DIR}/EMzap.f90 
      #                                LINK_LIBRARIES ${EXE_LINK_LIBRARIES}

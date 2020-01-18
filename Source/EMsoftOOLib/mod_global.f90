@@ -74,9 +74,9 @@ public
 ! ****************************************************
 ! ****************************************************
 ! ****************************************************
-! used to change the sign of the permutation symbol from Adam Morawiec's book to
-! the convention used for the EMsoft package.  If you want to use Adam's convention,
-! both of these parameters should be set to +1; -1 will change the sign everywhere
+! these two parameters are used to change the sign of the permutation symbol from Adam 
+! Morawiec's book to the convention used for the EMsoft package.  If you want to use Adam's 
+! convention, both of these parameters should be set to +1; -1 will change the sign everywhere
 ! for all representations that involve the unit vector.  The quaternion product is 
 ! also redefined to include the epsijk parameter.  Doing so guarantees that the 
 ! quat_Lp operator ALWAYS returns an active result, regardless of the choice of epsijk;
@@ -101,7 +101,7 @@ public
 ! to produce consistent results.  This takes a lengthy explanation ... see the
 ! rotations tutorial paper for an in-depth explanation.  These changes propagate
 ! to a number of files, notably quaternions.f90, and everywhere else that quaternions
-! and rotations in general are used.
+! and rotations in general are used (in particular the mod_rotations module).
 !
 ! Reference:  D.J. Rowenhorst, A.D. Rollett, G.S. Roher, M.A. Groeber, M.A. Jackson, 
 !  P.J. Konijnenberg, and M. De Graef. "Tutorial: consistent representations of and 
