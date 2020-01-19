@@ -55,6 +55,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_pgm.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_math.f90
   ${EMsoftOOLib_SOURCE_DIR}/spsort.f
+  ${EMsoftOOLib_SOURCE_DIR}/mod_rotations.f90
 
 
   ${EMsoftOOLib_Additional_SRCS}

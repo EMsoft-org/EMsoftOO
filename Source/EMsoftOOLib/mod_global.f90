@@ -149,6 +149,11 @@ public
 !DEC$ ATTRIBUTES DLLEXPORT :: cRestmass
 !DEC$ ATTRIBUTES DLLEXPORT :: cJ2eV
 
+  real(kind=dbl), parameter :: dtor = cPi/180.D0 
+  real(kind=dbl), parameter :: rtod = 180.D0/cPi
+!DEC$ ATTRIBUTES DLLEXPORT :: dtor
+!DEC$ ATTRIBUTES DLLEXPORT :: rtod
+
 !> element symbols (we'll do 1-98 for all parameter lists)
   character(2), dimension(98) :: ATOM_sym=(/' H','He','Li','Be',' B',' C',' N',' O',' F','Ne', &
                                             'Na','Mg','Al','Si',' P',' S','Cl','Ar',' K','Ca', &
