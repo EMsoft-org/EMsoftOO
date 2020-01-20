@@ -52,7 +52,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
     Image
     # MODcrystal
     # MODMuellerCalculus
-    # MODRotations
+    MODRotations
   )
 
   foreach(test ${EMsoftOO_UNIT_TESTS})

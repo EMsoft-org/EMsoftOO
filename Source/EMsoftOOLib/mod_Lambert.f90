@@ -843,13 +843,19 @@ IMPLICIT NONE
   integer(kind=irg)                       :: ierr
   !f2py intent(in,out) ::  ierr
 
-  real(kind=sgl)                          :: XYZ(3), sXYZ(3), T1, T2, c, s, q, LamXYZ(3)
+  real(kind=sgl)                          :: XYZ(3), sXYZ(3), T1, T2, c, s, q, LamXYZ(3), eps
   integer(kind=irg)                       :: p
+
+eps = 1.0D-7
 
 ierr = 0
 if (maxval(abs(self%xyz)).gt.LPs%ap/2) then
   res = (/ 0.0, 0.0, 0.0 /)
   ierr = 1
+  return
+end if
+if (maxval(abs(self%xyz)).lt.eps) then
+  res = (/ 0.0, 0.0, 0.0 /)
   return
 end if
 
@@ -933,12 +939,17 @@ IMPLICIT NONE
   real(kind=dbl)                          :: XYZ(3), sXYZ(3), T1, T2, c, s, q, LamXYZ(3), eps
   integer(kind=irg)                       :: p
 
-eps = 1.0D-8
+eps = 1.0D-12
 
 ierr = 0
 if (maxval(dabs(self%xyzd)).gt.(LPs%ap/2.D0+eps)) then
   res = (/ 0.D0, 0.D0, 0.D0 /)
   ierr = 1
+  return
+end if
+
+if (maxval(dabs(self%xyzd)).lt.eps) then
+  res = (/ 0.D0, 0.D0, 0.D0 /)
   return
 end if
 

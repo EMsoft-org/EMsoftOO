@@ -24,12 +24,8 @@ endif()
 
 if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
-      GetHDF5LinkLibraries(EMSOFT)
-# <<<<<<< Updated upstream
-      set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFT_hdf5LinkLibs})
-# =======
-      # set(EXE_LINK_LIBRARIES ${EMSOFT_hdf5LinkLibs} EMsoftOOLib)
-# >>>>>>> Stashed changes
+      GetHDF5LinkLibraries(EMSOFTOO)
+      set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFTOO_hdf5LinkLibs})
     
      #  Add_EMsoftOO_Executable(TARGET EMsoftOOSlackTest
      #                                SOURCES ${APP_DIR}/EMsoftOOSlackTest.f90 

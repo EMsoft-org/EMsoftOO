@@ -246,6 +246,8 @@ private
     procedure, pass(self) :: rq_
     procedure, pass(self) :: r_check_
     procedure, pass(self) :: r_print_
+    procedure, pass(self) :: r_copy_
+    procedure, pass(self) :: r_copyd_
 
     generic, public :: rs => rs_
     generic, public :: ro => ro_
@@ -257,6 +259,8 @@ private
     generic, public :: rq => rq_
     generic, public :: r_check => r_check_
     generic, public :: r_print => r_print_
+    generic, public :: r_copy => r_copy_
+    generic, public :: r_copyd => r_copyd_
 
 end type r_T
 
@@ -283,6 +287,8 @@ private
     procedure, pass(self) :: sq_
     procedure, pass(self) :: s_check_
     procedure, pass(self) :: s_print_
+    procedure, pass(self) :: s_copy_
+    procedure, pass(self) :: s_copyd_
 
     generic, public :: sr => sr_
     generic, public :: so => so_
@@ -294,6 +300,8 @@ private
     generic, public :: sq => sq_
     generic, public :: s_check => s_check_
     generic, public :: s_print => s_print_
+    generic, public :: s_copy => s_copy_
+    generic, public :: s_copyd => s_copyd_
 
 end type s_T
 
@@ -320,6 +328,8 @@ private
     procedure, pass(self) :: oq_
     procedure, pass(self) :: o_check_
     procedure, pass(self) :: o_print_
+    procedure, pass(self) :: o_copy_
+    procedure, pass(self) :: o_copyd_
 
     generic, public :: or => or_
     generic, public :: os => os_
@@ -331,6 +341,8 @@ private
     generic, public :: oq => oq_
     generic, public :: o_check => o_check_
     generic, public :: o_print => o_print_
+    generic, public :: o_copy => o_copy_
+    generic, public :: o_copyd => o_copyd_
 
 end type o_T
 
@@ -357,6 +369,8 @@ private
     procedure, pass(self) :: hq_
     procedure, pass(self) :: h_check_
     procedure, pass(self) :: h_print_
+    procedure, pass(self) :: h_copy_
+    procedure, pass(self) :: h_copyd_
 
     generic, public :: hr => hr_
     generic, public :: hs => hs_
@@ -368,6 +382,8 @@ private
     generic, public :: hq => hq_
     generic, public :: h_check => h_check_
     generic, public :: h_print => h_print_
+    generic, public :: h_copy => h_copy_
+    generic, public :: h_copyd => h_copyd_
 
 end type h_T
 
@@ -394,6 +410,8 @@ private
     procedure, pass(self) :: aq_
     procedure, pass(self) :: a_check_
     procedure, pass(self) :: a_print_
+    procedure, pass(self) :: a_copy_
+    procedure, pass(self) :: a_copyd_
 
     generic, public :: ar => ar_
     generic, public :: as => as_
@@ -405,6 +423,8 @@ private
     generic, public :: aq => aq_
     generic, public :: a_check => a_check_
     generic, public :: a_print => a_print_
+    generic, public :: a_copy => a_copy_
+    generic, public :: a_copyd => a_copyd_
 
 end type a_T
 
@@ -431,6 +451,8 @@ private
     procedure, pass(self) :: vq_
     procedure, pass(self) :: v_check_
     procedure, pass(self) :: v_print_
+    procedure, pass(self) :: v_copy_
+    procedure, pass(self) :: v_copyd_
 
     generic, public :: vr => vr_
     generic, public :: vs => vs_
@@ -442,6 +464,8 @@ private
     generic, public :: vq => vq_
     generic, public :: v_check => v_check_
     generic, public :: v_print => v_print_
+    generic, public :: v_copy => v_copy_
+    generic, public :: v_copyd => v_copyd_
 
 end type v_T
 
@@ -468,6 +492,8 @@ private
     procedure, pass(self) :: cq_
     procedure, pass(self) :: c_check_
     procedure, pass(self) :: c_print_
+    procedure, pass(self) :: c_copy_
+    procedure, pass(self) :: c_copyd_
 
     generic, public :: cr => cr_
     generic, public :: cs => cs_
@@ -479,6 +505,8 @@ private
     generic, public :: cq => cq_
     generic, public :: c_check => c_check_
     generic, public :: c_print => c_print_
+    generic, public :: c_copy => c_copy_
+    generic, public :: c_copyd => c_copyd_
 
 end type c_T
 
@@ -505,6 +533,8 @@ private
     procedure, pass(self) :: eq_
     procedure, pass(self) :: e_check_
     procedure, pass(self) :: e_print_
+    procedure, pass(self) :: e_copy_
+    procedure, pass(self) :: e_copyd_
 
     generic, public :: er => er_
     generic, public :: es => es_
@@ -516,6 +546,8 @@ private
     generic, public :: eq => eq_
     generic, public :: e_check => e_check_
     generic, public :: e_print => e_print_
+    generic, public :: e_copy => e_copy_
+    generic, public :: e_copyd => e_copyd_
 
 end type e_T
 
@@ -542,6 +574,8 @@ private
     procedure, pass(self) :: qe_
     procedure, pass(self) :: q_check_
     procedure, pass(self) :: q_print_
+    procedure, pass(self) :: q_copy_
+    procedure, pass(self) :: q_copyd_
 
     generic, public :: qr => qr_
     generic, public :: qs => qs_
@@ -553,6 +587,8 @@ private
     generic, public :: qe => qe_
     generic, public :: q_check => q_check_
     generic, public :: q_print => q_print_
+    generic, public :: q_copy => q_copy_
+    generic, public :: q_copyd => q_copyd_
 
 end type q_T
 
@@ -681,9 +717,63 @@ private
   contains
   private
 
-    procedure, pass(self) :: print_orientation_
+    procedure, pass(self) :: print_orientation_ 
+    procedure, pass(self) :: getClass_e_
+    procedure, pass(self) :: getClass_o_
+    procedure, pass(self) :: getClass_a_
+    procedure, pass(self) :: getClass_r_
+    procedure, pass(self) :: getClass_q_
+    procedure, pass(self) :: getClass_h_
+    procedure, pass(self) :: getClass_s_
+    procedure, pass(self) :: getClass_c_
+    procedure, pass(self) :: getClass_v_
+    procedure, pass(self) :: get_e_
+    procedure, pass(self) :: get_o_
+    procedure, pass(self) :: get_a_
+    procedure, pass(self) :: get_r_
+    procedure, pass(self) :: get_q_
+    procedure, pass(self) :: get_h_
+    procedure, pass(self) :: get_s_
+    procedure, pass(self) :: get_c_
+    procedure, pass(self) :: get_v_
+    procedure, pass(self) :: get_ed_
+    procedure, pass(self) :: get_od_
+    procedure, pass(self) :: get_ad_
+    procedure, pass(self) :: get_rd_
+    procedure, pass(self) :: get_qd_
+    procedure, pass(self) :: get_hd_
+    procedure, pass(self) :: get_sd_
+    procedure, pass(self) :: get_cd_
+    procedure, pass(self) :: get_vd_
 
     generic, public :: print_orientation => print_orientation_
+    generic, public :: getClass_e => getClass_e_
+    generic, public :: getClass_o => getClass_o_
+    generic, public :: getClass_a => getClass_a_
+    generic, public :: getClass_r => getClass_r_
+    generic, public :: getClass_q => getClass_q_
+    generic, public :: getClass_h => getClass_h_
+    generic, public :: getClass_s => getClass_s_
+    generic, public :: getClass_c => getClass_c_
+    generic, public :: getClass_v => getClass_v_
+    generic, public :: get_e => get_e_
+    generic, public :: get_o => get_o_
+    generic, public :: get_a => get_a_
+    generic, public :: get_r => get_r_
+    generic, public :: get_q => get_q_
+    generic, public :: get_h => get_h_
+    generic, public :: get_s => get_s_
+    generic, public :: get_c => get_c_
+    generic, public :: get_v => get_v_
+    generic, public :: get_ed => get_ed_
+    generic, public :: get_od => get_od_
+    generic, public :: get_ad => get_ad_
+    generic, public :: get_rd => get_rd_
+    generic, public :: get_qd => get_qd_
+    generic, public :: get_hd => get_hd_
+    generic, public :: get_sd => get_sd_
+    generic, public :: get_cd => get_cd_
+    generic, public :: get_vd => get_vd_
 
 end type orientation_T
 
@@ -692,6 +782,33 @@ interface orientation_T
   module procedure orientation_constructor
 end interface orientation_T
 
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_e
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_a
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_r
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_o
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_h
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_c
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_q
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_v
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_s
+!DEC$ ATTRIBUTES DLLEXPORT :: get_e
+!DEC$ ATTRIBUTES DLLEXPORT :: get_a
+!DEC$ ATTRIBUTES DLLEXPORT :: get_r
+!DEC$ ATTRIBUTES DLLEXPORT :: get_o
+!DEC$ ATTRIBUTES DLLEXPORT :: get_h
+!DEC$ ATTRIBUTES DLLEXPORT :: get_c
+!DEC$ ATTRIBUTES DLLEXPORT :: get_q
+!DEC$ ATTRIBUTES DLLEXPORT :: get_v
+!DEC$ ATTRIBUTES DLLEXPORT :: get_s
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ed
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ad
+!DEC$ ATTRIBUTES DLLEXPORT :: get_rd
+!DEC$ ATTRIBUTES DLLEXPORT :: get_od
+!DEC$ ATTRIBUTES DLLEXPORT :: get_hd
+!DEC$ ATTRIBUTES DLLEXPORT :: get_cd
+!DEC$ ATTRIBUTES DLLEXPORT :: get_qd
+!DEC$ ATTRIBUTES DLLEXPORT :: get_vd
+!DEC$ ATTRIBUTES DLLEXPORT :: get_sd
 
 !--------------------------------------------------------------------------
 
@@ -1114,6 +1231,772 @@ real(kind=sgl)                          :: ioreal(4)
 end subroutine print_orientation_
 
 !--------------------------------------------------------------------------
+recursive function getClass_e_(self) result(e)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(e_T)                               :: e 
+
+e = self%e
+
+end function getClass_e_
+
+!--------------------------------------------------------------------------
+recursive function getClass_o_(self) result(o)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(o_T)                               :: o 
+
+o = self%o
+
+end function getClass_o_
+
+!--------------------------------------------------------------------------
+recursive function getClass_a_(self) result(a)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(a_T)                               :: a 
+
+a = self%a
+
+end function getClass_a_
+
+!--------------------------------------------------------------------------
+recursive function getClass_r_(self) result(r)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(r_T)                               :: r 
+
+r = self%r
+
+end function getClass_r_
+
+!--------------------------------------------------------------------------
+recursive function getClass_q_(self) result(q)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(q_T)                               :: q 
+
+q = self%q
+
+end function getClass_q_
+
+!--------------------------------------------------------------------------
+recursive function getClass_h_(self) result(h)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(h_T)                               :: h 
+
+h = self%h
+
+end function getClass_h_
+
+!--------------------------------------------------------------------------
+recursive function getClass_c_(self) result(c)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(c_T)                               :: c 
+
+c = self%c
+
+end function getClass_c_
+
+!--------------------------------------------------------------------------
+recursive function getClass_s_(self) result(s)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(s_T)                               :: s 
+
+s = self%s
+
+end function getClass_s_
+
+!--------------------------------------------------------------------------
+recursive function getClass_v_(self) result(v)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+type(v_T)                               :: v 
+
+v = self%v
+
+end function getClass_v_
+
+!--------------------------------------------------------------------------
+recursive function get_e_(self) result(e)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: e(3)
+
+e = self%e%e
+
+end function get_e_
+
+!--------------------------------------------------------------------------
+recursive function get_ed_(self) result(e)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: e(3)
+
+e = self%e%ed
+
+end function get_ed_
+
+!--------------------------------------------------------------------------
+recursive function get_o_(self) result(o)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: o(3,3)
+
+o = self%o%o
+
+end function get_o_
+
+!--------------------------------------------------------------------------
+recursive function get_od_(self) result(o)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: o(3,3)
+
+o = self%o%od
+
+end function get_od_
+
+!--------------------------------------------------------------------------
+recursive function get_a_(self) result(a)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: a(4)
+
+a = self%a%a
+
+end function get_a_
+
+!--------------------------------------------------------------------------
+recursive function get_ad_(self) result(a)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: a(4)
+
+a = self%a%ad
+
+end function get_ad_
+
+!--------------------------------------------------------------------------
+recursive function get_r_(self) result(r)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: r(4)
+
+r = self%r%r
+
+end function get_r_
+
+!--------------------------------------------------------------------------
+recursive function get_rd_(self) result(r)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: r(4)
+
+r = self%r%rd
+
+end function get_rd_
+
+!--------------------------------------------------------------------------
+recursive function get_q_(self) result(q)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: q(4)
+
+q = self%q%q
+
+end function get_q_
+
+!--------------------------------------------------------------------------
+recursive function get_qd_(self) result(q)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: q(4)
+
+q = self%q%qd
+
+end function get_qd_
+
+!--------------------------------------------------------------------------
+recursive function get_h_(self) result(h)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: h(3)
+
+h = self%h%h
+
+end function get_h_
+
+!--------------------------------------------------------------------------
+recursive function get_hd_(self) result(h)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: h(3)
+
+h = self%h%hd
+
+end function get_hd_
+
+!--------------------------------------------------------------------------
+recursive function get_c_(self) result(c)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: c(3)
+
+c = self%c%c
+
+end function get_c_
+
+!--------------------------------------------------------------------------
+recursive function get_cd_(self) result(c)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: c(3)
+
+c = self%c%cd
+
+end function get_cd_
+
+!--------------------------------------------------------------------------
+recursive function get_s_(self) result(s)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: s(3)
+
+s = self%s%s
+
+end function get_s_
+
+!--------------------------------------------------------------------------
+recursive function get_sd_(self) result(s)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: s(3)
+
+s = self%s%sd
+
+end function get_sd_
+
+!--------------------------------------------------------------------------
+recursive function get_v_(self) result(v)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                          :: v(3)
+
+v = self%v%v
+
+end function get_v_
+
+!--------------------------------------------------------------------------
+recursive function get_vd_(self) result(v)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(orientation_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                          :: v(3)
+
+v = self%v%vd
+
+end function get_vd_
+
+!--------------------------------------------------------------------------
+recursive function e_copy_(self) result(e)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(e_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: e(3)
+
+e = self%e
+
+end function e_copy_
+
+!--------------------------------------------------------------------------
+recursive function e_copyd_(self) result(e)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(e_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: e(3)
+
+e = self%ed
+
+end function e_copyd_
+
+!--------------------------------------------------------------------------
+recursive function o_copy_(self) result(o)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(o_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: o(3,3)
+
+o = self%o
+
+end function o_copy_
+
+!--------------------------------------------------------------------------
+recursive function o_copyd_(self) result(o)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(o_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: o(3,3)
+
+o = self%od
+
+end function o_copyd_
+
+!--------------------------------------------------------------------------
+recursive function a_copy_(self) result(a)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(a_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: a(4)
+
+a = self%a
+
+end function a_copy_
+
+!--------------------------------------------------------------------------
+recursive function a_copyd_(self) result(a)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(a_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: a(4)
+
+a = self%ad
+
+end function a_copyd_
+
+!--------------------------------------------------------------------------
+recursive function r_copy_(self) result(r)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(r_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: r(4)
+
+r = self%r
+
+end function r_copy_
+
+!--------------------------------------------------------------------------
+recursive function r_copyd_(self) result(r)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(r_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: r(4)
+
+r = self%rd
+
+end function r_copyd_
+
+!--------------------------------------------------------------------------
+recursive function q_copy_(self) result(q)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(q_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: q(4)
+
+q = self%q
+
+end function q_copy_
+
+!--------------------------------------------------------------------------
+recursive function q_copyd_(self) result(q)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(q_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: q(4)
+
+q = self%qd
+
+end function q_copyd_
+
+!--------------------------------------------------------------------------
+recursive function h_copy_(self) result(h)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(h_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: h(3)
+
+h = self%h
+
+end function h_copy_
+
+!--------------------------------------------------------------------------
+recursive function h_copyd_(self) result(h)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(h_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: h(3)
+
+h = self%hd
+
+end function h_copyd_
+
+!--------------------------------------------------------------------------
+recursive function c_copy_(self) result(c)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(c_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: c(3)
+
+c = self%c
+
+end function c_copy_
+
+!--------------------------------------------------------------------------
+recursive function c_copyd_(self) result(c)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(c_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: c(3)
+
+c = self%cd
+
+end function c_copyd_
+
+!--------------------------------------------------------------------------
+recursive function s_copy_(self) result(s)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(s_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: s(3)
+
+s = self%s
+
+end function s_copy_
+
+!--------------------------------------------------------------------------
+recursive function s_copyd_(self) result(s)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(s_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: s(3)
+
+s = self%sd
+
+end function s_copyd_
+
+!--------------------------------------------------------------------------
+recursive function v_copy_(self) result(v)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(v_T),INTENT(INOUT)      :: self 
+real(kind=sgl)                :: v(3)
+
+v = self%v
+
+end function v_copy_
+
+!--------------------------------------------------------------------------
+recursive function v_copyd_(self) result(v)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/20/20
+ !!
+ !! extract a member from the orientations class 
+
+IMPLICIT NONE
+
+class(v_T),INTENT(INOUT)      :: self 
+real(kind=dbl)                :: v(3)
+
+v = self%vd
+
+end function v_copyd_
+
+
+!--------------------------------------------------------------------------
 recursive subroutine toDegrees(self)
  !! author: MDG
  !! version: 1.0
@@ -1349,7 +2232,6 @@ if (rotdoubleprecision) then
   if (self%rd(4).lt.0.D0) then 
      call Message%printError('rotations:r_check','Rodrigues-Frank vector has negative length')
   endif
-  write (*,*) ' diff = ',abs(sqrt(sum(self%rd(1:3)*self%rd(1:3)))-1.D0)
   if (abs(sqrt(sum(self%rd(1:3)*self%rd(1:3)))-1.D0).gt.epsd) then
      call Message%printError('rotations:r_check','Rodrigues-Frank axis vector not normalized')
   endif
@@ -2342,7 +3224,7 @@ if (rotdoubleprecision) then
      if ( close_enough_d(ld,1.D0) ) then
           r%rd = (/ tmpd(1), tmpd(2), tmpd(3), inftyd() /)
      else
-          r%rd = (/ tmpd(1), tmpd(2), tmpd(3), 2.D0*datan(ld) /)
+          r%rd = (/ tmpd(1), tmpd(2), tmpd(3), dtan(2.D0*datan(ld)) /)
      end if
   else ! return the identity orientation
      r%rd = (/ 0.D0, 0.D0, 1.D0, 0.D0 /)
@@ -2355,7 +3237,7 @@ else
      if ( close_enough(l,1.0) ) then
           r%r = (/ tmp(1), tmp(2), tmp(3), infty() /)
      else
-          r%r = (/ tmp(1), tmp(2), tmp(3), 2.0*atan(l) /)
+          r%r = (/ tmp(1), tmp(2), tmp(3), tan(2.0*atan(l)) /)
      end if
   else ! return the identity orientation
      r%r = (/ 0.0, 0.0, 1.0, 0.0 /)
@@ -2385,7 +3267,7 @@ if (rotdoubleprecision) then
   ld = dsqrt(sum(self%sd*self%sd))
 
   if (ld.gt.0.D0) then ! not the identity rotation
-     tmpd = self%sd/l
+     tmpd = self%sd/ld
      if ( close_enough_d(ld,1.D0) ) then
           ax%ad = (/ tmpd(1), tmpd(2), tmpd(3), cPi /) 
      else
@@ -2393,7 +3275,7 @@ if (rotdoubleprecision) then
      end if
      o = ax%ao()
   else ! return the identity matrix
-     o%od = 0.0
+     o%od = 0.D0
      o%od(1,1) = 1.D0
      o%od(2,2) = 1.D0
      o%od(3,3) = 1.D0
@@ -2744,7 +3626,7 @@ type(a_T)                   :: a
 
 type(IO_T)                  :: Message 
 integer(kind=irg)           :: i
-real(kind=sgl)              :: t, omega, qq(4), o(3,3)
+real(kind=sgl)              :: t, omega, qq(4), o(3,3), o2(3,3)
 real(kind=sgl)              :: VL(3,3), VR(3,3), Wr(3), Wi(3), WORK(20)
 complex(kind=sgl)           :: ev
 complex(kind=sgl),parameter :: cone = cmplx(1.0,0.0)
@@ -2752,7 +3634,7 @@ real(kind=sgl),parameter    :: thr = 1.0E-6
 integer(kind=irg)           :: nn, LDA, LDVL, LDVR, INFO, LWORK
 character(1)                :: JOBVL, JOBVR
 
-real(kind=dbl)              :: td, omegad, qqd(4), od(3,3)
+real(kind=dbl)              :: td, omegad, qqd(4), od(3,3), od2(3,3)
 real(kind=dbl)              :: VLD(3,3), VRD(3,3), WrD(3), WiD(3), WORKD(20)
 complex(kind=dbl)           :: evd
 complex(kind=dbl),parameter :: coned = cmplx(1.D0,0.D0)
@@ -2761,6 +3643,7 @@ real(kind=dbl),parameter    :: thrd = 1.0D-14
 
 if (rotdoubleprecision) then
    od = self%od  
+   od2 = od
 
   ! first get the rotation angle
    td = 0.5D0*(od(1,1)+od(2,2)+od(3,3) - 1.D0)
@@ -2792,15 +3675,16 @@ if (rotdoubleprecision) then
    do i=1,3 
       if ((abs(WrD(i)-1.D0).lt.thrd).and.(abs(WiD(i)).lt.thrd)) then
         a%ad(1:3) = VRD(1:3,i)
-        if ((od(2,3)-od(3,2)).ne.0.D0) a%ad(1) = dsign(a%ad(1),-epsijkd*(od(2,3)-od(3,2)))
-        if ((od(3,1)-od(1,3)).ne.0.D0) a%ad(2) = dsign(a%ad(2),-epsijkd*(od(3,1)-od(1,3)))
-        if ((od(1,2)-od(2,1)).ne.0.D0) a%ad(3) = dsign(a%ad(3),-epsijkd*(od(1,2)-od(2,1)))
+        if ((od2(2,3)-od2(3,2)).ne.0.D0) a%ad(1) = dsign(a%ad(1),-epsijkd*(od2(2,3)-od2(3,2)))
+        if ((od2(3,1)-od2(1,3)).ne.0.D0) a%ad(2) = dsign(a%ad(2),-epsijkd*(od2(3,1)-od2(1,3)))
+        if ((od2(1,2)-od2(2,1)).ne.0.D0) a%ad(3) = dsign(a%ad(3),-epsijkd*(od2(1,2)-od2(2,1)))
         return
       end if
     end do
   end if
 else
    o = self%o  
+   o2 = o 
 
   ! first get the rotation angle
    t = 0.5*(o(1,1)+o(2,2)+o(3,3) - 1.D0)
@@ -2832,9 +3716,9 @@ else
    do i=1,3 
       if ((abs(Wr(i)-1.0).lt.thr).and.(abs(Wi(i)).lt.thr)) then
         a%a(1:3) = VR(1:3,i)
-        if ((o(2,3)-o(3,2)).ne.0.0) a%a(1) = sign(a%a(1),-epsijk*(o(2,3)-o(3,2)))
-        if ((o(3,1)-o(1,3)).ne.0.0) a%a(2) = sign(a%a(2),-epsijk*(o(3,1)-o(1,3)))
-        if ((o(1,2)-o(2,1)).ne.0.0) a%a(3) = sign(a%a(3),-epsijk*(o(1,2)-o(2,1)))
+        if ((o2(2,3)-o2(3,2)).ne.0.0) a%a(1) = sign(a%a(1),-epsijk*(o2(2,3)-o2(3,2)))
+        if ((o2(3,1)-o2(1,3)).ne.0.0) a%a(2) = sign(a%a(2),-epsijk*(o2(3,1)-o2(1,3)))
+        if ((o2(1,2)-o2(2,1)).ne.0.0) a%a(3) = sign(a%a(3),-epsijk*(o2(1,2)-o2(2,1)))
         return
       end if
     end do
@@ -3222,11 +4106,11 @@ type(Lambert_T)            :: Lambert
 integer(kind=irg)          :: ierr
 
 if (rotdoubleprecision) then
-  Lambert = Lambert_T( xyz=self%h )
-  ierr = Lambert%LambertBallToCube(c%c)
-else
   Lambert = Lambert_T( xyzd=self%hd )
   ierr = Lambert%LambertBallToCube(c%cd)
+else
+  Lambert = Lambert_T( xyz=self%h )
+  ierr = Lambert%LambertBallToCube(c%c)
 end if
 
 end function hc_
@@ -3797,11 +4681,11 @@ integer(kind=irg)          :: ierr
 type(Lambert_T)            :: Lambert
 
 if (rotdoubleprecision) then
-    Lambert = Lambert_T( xyz=self%c )
-    ierr = Lambert%LambertCubeToBall(h%h)
-else
     Lambert = Lambert_T( xyzd=self%cd )
     ierr = Lambert%LambertCubeToBall(h%hd)
+else
+    Lambert = Lambert_T( xyz=self%c )
+    ierr = Lambert%LambertCubeToBall(h%h)
 end if
 
 end function ch_
@@ -3916,6 +4800,7 @@ if (rotdoubleprecision) then
   td = a%ad(4)
   if (abs(td-cPi).lt.thrd) then
     a%ad(4) = inftyd()
+    r%rd = a%ad 
     return
   end if
    
@@ -4076,14 +4961,13 @@ if (rotdoubleprecision) then
   td = dtan(self%ed(2)*0.5D0)
   sigd = 0.5D0*(self%ed(1)+self%ed(3))
   deld = 0.5D0*(self%ed(1)-self%ed(3))
-  taud = sqrt(td*td+dsin(sigd)**2)
+  taud = dsqrt(td*td+dsin(sigd)**2)
 
   if (close_enough_d(sigd,cPi*0.5D0)) then  ! Infinity 
     alphad = cPi
   else
     alphad = 2.D0 * datan(taud/dcos(sigd))
   end if 
-
   if (abs(alphad).lt.thrd) then
   ! return a default identity axis-angle pair
           a%ad = (/ 0.D0, 0.D0, 1.D0, 0.D0 /)

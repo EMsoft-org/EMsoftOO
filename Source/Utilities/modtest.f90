@@ -27,9 +27,12 @@
 ! ###################################################################
 
 program t 
-    use mod_kinds
-    use mod_rotations 
-    use mod_global
+use mod_kinds
+use mod_global
+use mod_math
+use mod_rotations
+use mod_Lambert
+use,INTRINSIC :: ISO_C_BINDING
 
 IMPLICIT NONE 
 
@@ -38,14 +41,76 @@ type(s_T)     :: s, ss
 type(q_T)     :: q 
 type(a_T)     :: a 
 type(e_t)     :: e
-type(orientation_T)  :: oo
+type(orientation_T)             :: oo
 
 integer(kind=irg) :: ierr 
 real(kind=dbl)    :: x =  1.D0/dsqrt(3.D0)
 
+type(e_T)                       :: ine, oute, int1e, int2e
+type(o_T)                       :: ino, outo, int1o, int2o
+type(a_T)                       :: ina, outa, int1a, int2a
+type(r_T)                       :: inr, outr, int1r, int2r
+type(q_T)                       :: inq, outq, int1q, int2q
+type(h_T)                       :: inh, outh, int1h, int2h
+type(c_T)                       :: inc, outc, int1c, int2c
+type(s_T)                       :: ins, outs, int1s, int2s
+type(v_T)                       :: inv, outv, int1v, int2v
+type(orientation_T)             :: ot
+
+integer(C_INT32_T)              :: res
+
+real(kind=dbl)                  :: iom(3,3), oom(3,3), omm(3,3), qd(4), qd2(4), ad(4), ad2(4), rd(4), rd2(4), &
+                                   hd(3), ccd(3), sd(3), vd(3), diff, diffmax, aux, ivec(3)
+real(kind=dbl),parameter        :: maxerr = 1.0D-9
+integer(kind=irg)               :: tcnt, i,  numarg, testcounter, testsfailed
+integer(kind=irg),parameter     :: rcnt = 75
+character(fnlen)                :: arg
+logical                         :: verbose
+
 
 call setRotationPrecision('Double')
 
+ine = e_T( edinp = cvtoRadians( (/ 0.D0, 0.D0, 0.D0 /) ) )
+ot = orientation_T( ine )
+call ot%print_orientation('d')
+
+  inc = ot%getClass_c()
+  call inc%c_print('inc ')
+  int1e = inc%ce()
+  ! call int1e%e_print('int1e ')
+  ! int1a = int1e%ea()
+  ! call int1a%a_print('int1a ')
+  ! int1h = int1a%ah()
+  ! call int1h%h_print('int1h ')
+  ! outc = int1h%hc()
+
+  outc = int1e%ec()
+  call outc%c_print('outc ')
+  ccd = outc%c_copyd()
+  write (*,*) 'ccd = ', ccd 
+  aux = maxval(abs(ccd))
+  if (abs(aux-LPs%ap*0.5).lt.1.D-08) then
+    diff = maxval(abs(ccd)-abs(ot%get_cd()))
+  else
+    diff = maxval(abs(ccd-ot%get_cd()))
+  end if 
+  write (*,*) 'c%ce() max cu difference = ', diff
+ 
+  ! outc = int1h%hc()
+  ! call inc%c_print('inc ')
+  ! call int1e%e_print('int1e ')
+  ! call int1h%h_print('int1h ')
+  ! call outc%c_print('outc ')
+  ! outc = int1e%ec()
+  ! call outc%c_print('outc ')
+
+
+
+
+
+
+
+stop
 a = a_T( adinp = (/ 0.D0, 0.D0, -1.D0, cPi/4.D0 /) )
 
 oo = orientation_T( a )
