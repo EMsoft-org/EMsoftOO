@@ -1063,7 +1063,7 @@ select type (p)
     or%h = or%e%eh()
     or%c = or%e%ec()
     or%s = or%e%es()
-    or%r = or%e%er()
+    or%v = or%e%ev()
   class is (o_T)
     if (rotdoubleprecision) then 
       or%o = o_T( odinp = p%od )
@@ -1077,7 +1077,7 @@ select type (p)
     or%h = or%o%oh()
     or%c = or%o%oc()
     or%s = or%o%os()
-    or%r = or%o%or()
+    or%v = or%o%ov()
   class is (a_T)
     if (rotdoubleprecision) then 
       or%a = a_T( adinp = p%ad )
@@ -2453,20 +2453,21 @@ type(IO_T)                 :: Message
 real(kind=dbl)             :: r
 real(kind=dbl), parameter  :: eps = 1.e-7
 real(kind=dbl)             :: rd
-real(kind=dbl), parameter  :: epsd = 1.d-15
+real(kind=dbl), parameter  :: epsd = 1.d-10
 
 res = 1
 
 if (rotdoubleprecision) then
   rd = sqrt(sum(self%vd*self%vd))
+  write (*,*) rd, cPi, rd-cPi
   if ((rd-cPi).ge.epsd) then
-     call Message%printError('rotations:r_check','magnitude must be in range [0,pi]')
+     call Message%printError('rotations:v_check','magnitude must be in range [0,pi]')
   endif
   res = 0
 else
   r = sqrt(sum(self%v*self%v))
   if ((r-sngl(cPi)).ge.eps) then
-     call Message%printError('rotations:r_check','magnitude must be in range [0,pi]')
+     call Message%printError('rotations:v_check','magnitude must be in range [0,pi]')
   endif
   res = 0
 end if
@@ -4527,6 +4528,7 @@ if (rotdoubleprecision) then
           nd = self%vd / and
   else
           nd = (/0.D0, 0.D0, 1.D0/)
+          and = 0.D0
   end if
   a%ad = (/ nd, and /)
 else
@@ -4536,6 +4538,7 @@ else
           n = self%v / an
   else
           n = (/0.0, 0.0, 1.0/)
+          an = 0.0
   end if
   a%a = (/ n, an /)
 end if

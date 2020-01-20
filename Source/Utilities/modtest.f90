@@ -70,10 +70,21 @@ logical                         :: verbose
 
 call setRotationPrecision('Double')
 
-ine = e_T( edinp = cvtoRadians( (/ 0.D0, 0.D0, 0.D0 /) ) )
+ine = e_T( edinp = cvtoRadians( (/ 180.D0, 90.D0, 0.D0 /) ) )
 ot = orientation_T( ine )
 call ot%print_orientation('d')
 
+inv = ot%getClass_v()
+ina = inv%va()
+call ina%a_print('ina ')
+outv = ina%av()
+call outv%v_print('outv ')
+
+inv = v_T( vdinp = (/ 0.0000000000D0,   -(dsqrt(2.D0)*0.5D0)*cPi,   -(dsqrt(2.D0)*0.5D0)*cPi /) )
+ot = orientation_T( inv )
+call ot%print_orientation('d')
+
+stop
   inc = ot%getClass_c()
   call inc%c_print('inc ')
   int1e = inc%ce()
