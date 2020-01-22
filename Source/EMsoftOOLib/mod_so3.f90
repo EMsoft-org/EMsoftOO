@@ -194,6 +194,7 @@ type, public :: so3_T
     procedure, pass(self) :: sample_Fiber_
     procedure, pass(self) :: SampleIsoMisorientation_
     procedure, pass(self) :: getOrientationsfromFile_
+    procedure, pass(self) :: writeOrientationstoFile_
     procedure, pass(self) :: getVertex_
     procedure, pass(self) :: getMacKenzieDistribution_
 
@@ -223,6 +224,7 @@ type, public :: so3_T
     generic, public :: sample_Fiber => sample_Fiber_
     generic, public :: SampleIsoMisorientation => SampleIsoMisorientation_
     generic, public :: getOrientationsfromFile => getOrientationsfromFile_
+    generic, public :: writeOrientationstoFile => writeOrientationstoFile_
     generic, public :: getVertex => getVertex_
     generic, public :: getMacKenzieDistribution => getMacKenzieDistribution_
 
@@ -1542,6 +1544,120 @@ end select
 close(unit=53,status='keep')
 
 end subroutine getOrientationsfromFile_
+
+!--------------------------------------------------------------------------
+recursive subroutine writeOrientationstoFile_(self, filename, mode, list)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/22/20
+  !!
+  !! write a list of orientations from a linked list to a text file 
+
+use mod_io 
+use mod_math
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self 
+
+character(fnlen),INTENT(IN)             :: filename
+ !! complete path to output file name 
+character(2), INTENT(IN)                :: mode
+ !! output orientation representation  (eu, ro, ho, ...)
+character(2), INTENT(IN), OPTIONAL      :: list 
+ !! list from which to write 
+
+type(e_T)                               :: e
+type(o_T)                               :: o
+type(q_T)                               :: q
+type(s_T)                               :: s
+type(v_T)                               :: v
+type(h_T)                               :: h
+type(c_T)                               :: c
+type(r_T)                               :: r
+type(a_T)                               :: a
+
+type(IO_T)                              :: Message
+type(FZpointd), pointer                 :: FZtmp 
+integer(kind=irg)                       :: cnt, i
+real(kind=dbl)                          :: io_real(9)
+
+if (present(list)) then
+  select case(list)
+    case('FZ')
+      FZtmp => self%FZlist
+      cnt = self%FZcnt 
+    case('CM')
+      FZtmp => self%CMlist
+      cnt = self%CMcnt 
+    case('CO')
+      FZtmp => self%COlist
+      cnt = self%COcnt 
+    case('FB')
+      FZtmp => self%FBlist
+      cnt = self%FBcnt 
+    case default 
+      FZtmp => self%FZlist
+      cnt = self%FZcnt 
+  end select 
+else
+  FZtmp => self%FZlist
+  cnt = self%FZcnt
+end if 
+
+open(unit=53, file=trim(filename), status='unknown', form='formatted')
+write (53,"(A2)") mode 
+write (53,"(I6)") cnt 
+
+do i=1, cnt
+  select case(mode)
+    case('eu')
+      e = FZtmp%rod%re()
+      io_real(1:3) = e%e_copyd() / dtor 
+      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
+    case('ro')
+      io_real(1:4) = FZtmp%rod%r_copyd() 
+      if (io_real(4).eq.inftyd()) then 
+        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),'infinity')")
+      else
+        call Message%WriteValue('', io_real, 4, frm="(3(F14.8,' '),F14.8)")
+      end if 
+    case('om')
+      o = FZtmp%rod%ro()
+      io_real(1:9) = reshape(o%o_copyd(), (/ 9 /) ) 
+      call Message%WriteValue('', io_real, 9, frm="(8(F14.8,' '),F14.8")
+    case('ho')
+      h = FZtmp%rod%rh()
+      io_real(1:3) = h%h_copyd()
+      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
+    case('cu')
+      c = FZtmp%rod%rc()
+      io_real(1:3) = c%c_copyd()
+      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
+    case('rv')
+      v = FZtmp%rod%rv()
+      io_real(1:3) = v%v_copyd() 
+      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
+    case('st')
+      s = FZtmp%rod%rs()
+      io_real(1:3) = s%s_copyd()
+      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
+    case('ax')
+      a = FZtmp%rod%ra()
+      io_real(1:4) = a%a_copyd()
+      io_real(4) = io_real(4) / dtor 
+      call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8")
+    case('qu')
+      q = FZtmp%rod%rq()
+      io_real(1:4) = q%q_copyd() 
+      call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8")
+    case default
+  end select
+  FZtmp => FZtmp%next 
+end do 
+close(unit=53, status = 'keep')
+
+end subroutine writeOrientationstoFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine listtoArray_(self, l, eAR, oAR, qAR, sAR, vAR, hAR, cAR, rAR, aAR) 
