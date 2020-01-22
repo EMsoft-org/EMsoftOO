@@ -243,13 +243,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
       #                               INSTALL_PROGRAM TRUE
       #                               INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
       #                               )
-      # Add_EMSoft_Executable(TARGET EMsampleRFZ 
-      #                               SOURCES ${APP_DIR}/EMsampleRFZ.f90 
-      #                               LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-      #                               SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-      #                               INSTALL_PROGRAM TRUE
-      #                               INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-      #                               )
+      
+      Add_EMSoftOO_Executable(TARGET EMsampleRFZ 
+                                    SOURCES ${APP_DIR}/EMsampleRFZ.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
 
 
 endif()

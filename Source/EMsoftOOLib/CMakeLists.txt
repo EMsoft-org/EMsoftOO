@@ -58,7 +58,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_rotations.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_povray.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_so3.f90
-
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

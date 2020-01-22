@@ -184,6 +184,7 @@ type, public :: so3_T
     procedure, pass(self) :: listtoArray_
     procedure, pass(self) :: getListHead_
     procedure, pass(self) :: getListCount_
+    procedure, pass(self) :: setGridType_
 
     procedure, pass(self) :: delete_FZlist_
     procedure, pass(self) :: SampleRFZ_
@@ -214,6 +215,7 @@ type, public :: so3_T
     generic, public :: listtoArray => listtoArray_
     generic, public :: getListHead => getListHead_
     generic, public :: getListCount => getListCount_
+    generic, public :: setGridType => setGridType_
 
     generic, public :: delete_FZlist => delete_FZlist_
     generic, public :: SampleRFZ => SampleRFZ_
@@ -283,6 +285,10 @@ if (present(zerolist)) then
     nullify(SO%FZlist)
     SO%FZcnt = 0
   end select
+else
+  if (associated(SO%FZlist)) call SO%delete_FZlist('FZ')
+  nullify(SO%FZlist)
+  SO%FZcnt = 0
 end if 
 
 end function so3_constructor
@@ -1290,9 +1296,9 @@ IMPLICIT NONE
 
 class(so3_T),INTENT(INOUT)              :: self 
 
-real(kind=dbl),INTENT(IN)               :: itmp(48,3)   
- !! equivalent fiber axis unit vectors
 integer(kind=irg),INTENT(IN)            :: num
+real(kind=dbl),INTENT(IN)               :: itmp(num,3)   
+ !! equivalent fiber axis unit vectors
 real(kind=dbl),INTENT(IN)               :: dpmin        
  !! maximum dot product
 integer(kind=irg),INTENT(IN)            :: N            
@@ -1546,7 +1552,7 @@ close(unit=53,status='keep')
 end subroutine getOrientationsfromFile_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeOrientationstoFile_(self, filename, mode, list)
+recursive subroutine writeOrientationstoFile_(self, filename, mode, list, trod)
   !! author: MDG
   !! version: 1.0 
   !! date: 01/22/20
@@ -1566,6 +1572,8 @@ character(2), INTENT(IN)                :: mode
  !! output orientation representation  (eu, ro, ho, ...)
 character(2), INTENT(IN), OPTIONAL      :: list 
  !! list from which to write 
+logical, INTENT(IN), OPTIONAL           :: trod
+ !! list from which to write 
 
 type(e_T)                               :: e
 type(o_T)                               :: o
@@ -1581,6 +1589,12 @@ type(IO_T)                              :: Message
 type(FZpointd), pointer                 :: FZtmp 
 integer(kind=irg)                       :: cnt, i
 real(kind=dbl)                          :: io_real(9)
+logical                                 :: dotrod 
+
+dotrod = .FALSE.
+if (present(trod)) then 
+  if (trod.eqv..TRUE.) dotrod = .TRUE. 
+end if
 
 if (present(list)) then
   select case(list)
@@ -1609,52 +1623,102 @@ open(unit=53, file=trim(filename), status='unknown', form='formatted')
 write (53,"(A2)") mode 
 write (53,"(I6)") cnt 
 
-do i=1, cnt
-  select case(mode)
-    case('eu')
-      e = FZtmp%rod%re()
-      io_real(1:3) = e%e_copyd() / dtor 
-      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
-    case('ro')
-      io_real(1:4) = FZtmp%rod%r_copyd() 
-      if (io_real(4).eq.inftyd()) then 
-        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),'infinity')")
-      else
-        call Message%WriteValue('', io_real, 4, frm="(3(F14.8,' '),F14.8)")
-      end if 
-    case('om')
-      o = FZtmp%rod%ro()
-      io_real(1:9) = reshape(o%o_copyd(), (/ 9 /) ) 
-      call Message%WriteValue('', io_real, 9, frm="(8(F14.8,' '),F14.8")
-    case('ho')
-      h = FZtmp%rod%rh()
-      io_real(1:3) = h%h_copyd()
-      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
-    case('cu')
-      c = FZtmp%rod%rc()
-      io_real(1:3) = c%c_copyd()
-      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
-    case('rv')
-      v = FZtmp%rod%rv()
-      io_real(1:3) = v%v_copyd() 
-      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
-    case('st')
-      s = FZtmp%rod%rs()
-      io_real(1:3) = s%s_copyd()
-      call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8")
-    case('ax')
-      a = FZtmp%rod%ra()
-      io_real(1:4) = a%a_copyd()
-      io_real(4) = io_real(4) / dtor 
-      call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8")
-    case('qu')
-      q = FZtmp%rod%rq()
-      io_real(1:4) = q%q_copyd() 
-      call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8")
-    case default
-  end select
-  FZtmp => FZtmp%next 
-end do 
+if (dotrod.eqv..TRUE.) then 
+  do i=1, cnt
+    select case(mode)
+      case('eu')
+        e = FZtmp%trod%re()
+        io_real(1:3) = e%e_copyd() / dtor 
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('ro')
+        io_real(1:4) = FZtmp%trod%r_copyd() 
+        if (io_real(4).eq.inftyd()) then 
+          call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),'infinity')",redirect=53)
+        else
+          call Message%WriteValue('', io_real, 4, frm="(3(F14.8,' '),F14.8)",redirect=53)
+        end if 
+      case('om')
+        o = FZtmp%trod%ro()
+        io_real(1:9) = reshape(o%o_copyd(), (/ 9 /) ) 
+        call Message%WriteValue('', io_real, 9, frm="(8(F14.8,' '),F14.8)",redirect=53)
+      case('ho')
+        h = FZtmp%trod%rh()
+        io_real(1:3) = h%h_copyd()
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('cu')
+        c = FZtmp%trod%rc()
+        io_real(1:3) = c%c_copyd()
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('rv')
+        v = FZtmp%trod%rv()
+        io_real(1:3) = v%v_copyd() 
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('st')
+        s = FZtmp%trod%rs()
+        io_real(1:3) = s%s_copyd()
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('ax')
+        a = FZtmp%trod%ra()
+        io_real(1:4) = a%a_copyd()
+        io_real(4) = io_real(4) / dtor 
+        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8)",redirect=53)
+      case('qu')
+        q = FZtmp%trod%rq()
+        io_real(1:4) = q%q_copyd() 
+        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8)",redirect=53)
+      case default
+    end select
+    FZtmp => FZtmp%next 
+  end do 
+else
+  do i=1, cnt
+    select case(mode)
+      case('eu')
+        e = FZtmp%rod%re()
+        io_real(1:3) = e%e_copyd() / dtor 
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('ro')
+        io_real(1:4) = FZtmp%rod%r_copyd() 
+        if (io_real(4).eq.inftyd()) then 
+          call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),'infinity')",redirect=53)
+        else
+          call Message%WriteValue('', io_real, 4, frm="(3(F14.8,' '),F14.8)",redirect=53)
+        end if 
+      case('om')
+        o = FZtmp%rod%ro()
+        io_real(1:9) = reshape(o%o_copyd(), (/ 9 /) ) 
+        call Message%WriteValue('', io_real, 9, frm="(8(F14.8,' '),F14.8)",redirect=53)
+      case('ho')
+        h = FZtmp%rod%rh()
+        io_real(1:3) = h%h_copyd()
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('cu')
+        c = FZtmp%rod%rc()
+        io_real(1:3) = c%c_copyd()
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('rv')
+        v = FZtmp%rod%rv()
+        io_real(1:3) = v%v_copyd() 
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('st')
+        s = FZtmp%rod%rs()
+        io_real(1:3) = s%s_copyd()
+        call Message%WriteValue('', io_real, 3, frm="(2(F14.8,' '),F14.8)",redirect=53)
+      case('ax')
+        a = FZtmp%rod%ra()
+        io_real(1:4) = a%a_copyd()
+        io_real(4) = io_real(4) / dtor 
+        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8)",redirect=53)
+      case('qu')
+        q = FZtmp%rod%rq()
+        io_real(1:4) = q%q_copyd() 
+        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8)",redirect=53)
+      case default
+    end select
+    FZtmp => FZtmp%next 
+  end do 
+end if  
+
 close(unit=53, status = 'keep')
 
 end subroutine writeOrientationstoFile_
@@ -1818,6 +1882,23 @@ select case(l)
 end select 
 
 end function getListCount_
+
+!--------------------------------------------------------------------------
+recursive subroutine setGridType_(self, g)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/22/20
+  !!
+  !! set the gridtype parameter
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)    :: self
+integer(kind=irg)             :: g 
+
+self%gridtype = g 
+
+end subroutine setGridType_
 
 !--------------------------------------------------------------------------
 recursive function IsinsideMFZ_(self, rod) result(insideMFZ)

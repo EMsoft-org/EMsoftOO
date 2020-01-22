@@ -165,6 +165,7 @@ private
       !! channel for Slack messaging 
      character(fnlen), public  :: flagset = ''
       !! parameter used to communicate flags to the Interpret_Program_Arguments routines
+     character(fnlen), public  :: nmldeffile
 
     contains
     private 
@@ -1581,6 +1582,7 @@ character(fnlen)                        :: nmldefault
     else 
       nmldefault = trim(progname)//'.nml'
       call Interpret_Program_Arguments_with_nml_(self, nmldefault, sz(1), templatelist, progname)
+      self%nmldeffile = trim(nmldefault)
     end if 
  end if 
 

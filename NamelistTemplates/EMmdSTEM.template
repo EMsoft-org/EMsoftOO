@@ -1,0 +1,52 @@
+ &MDSTEMlist
+! DO NOT CHANGE THIS LINE
+!------------------------
+! IO Filenames
+!------------------------
+! Name of the crystal structure file
+ xtalname = 'undefined',
+! Name of the file containing displace vectors
+ inputfilename = 'undefined',
+! Output file containing diffracted intensities
+ datafile = 'undefined',
+!------------------------
+! Diffraction Parameters
+!------------------------
+! Accelerating Voltage, in kV
+ voltage = 200.0,
+! Smallest d-spacing to take into account [nm]
+ dmin = 0.08,
+! Convergence angle of the beam cone, in mRad
+ convergence = 3.0,
+! Number of rings in the beam cone discretization
+ discsize = 81,
+!------------------------
+! Crystal Parameters
+!------------------------
+! Crystal orientation Euler angles
+ eu = 0.0, 0.0, 0.0,
+! Nearest zone axis in this orientation
+ ZAindex = 0,0,1,
+! Laue shift values in the basis vectors of the CBED pattern
+ lauec = 0,0,
+! Distance between points in the Z direction in the displacement field, in nm
+ thk = 4.0,
+! Number of subslices to use for each displacement point. E
+subslice = 20,
+!------------------------
+! OpenCL Parameters
+!------------------------
+! Device ID for GPU
+ devid = 1,
+! Platform ID for GPU
+ platid = 1,
+!------------------------
+! Parameters for DDD simulations
+!------------------------
+! Is the data presorted into a 4D array in an h5 file?
+ presorted = .True.,
+! Scaling factor for input data that is not presorted, (x,y,z,dx,dy,dz)
+! If you used a python script similar to the one in the ***** folder, to
+! format your data as an h5 file, this is not used
+ scalefactor = 1,1,1,1,1,1,
+/ 
