@@ -255,6 +255,8 @@ IMPLICIT NONE
     private 
 ! quaternion IO routines
       procedure, pass(self) :: quatprint
+      procedure, pass(self) :: getquats
+      procedure, pass(self) :: getquatd
 ! quaternion arithmetic routines 
       procedure, pass(self) :: quatadd
       procedure, pass(self) :: quatsubtract
@@ -278,6 +280,8 @@ IMPLICIT NONE
       procedure, pass(self), public :: quatsequal
 
       generic, public :: quat_print => quatprint
+      generic, public :: get_quats => getquats
+      generic, public :: get_quatd => getquatd
       generic, public :: operator(+) => quatadd
       generic, public :: operator(-) => quatsubtract
       generic, public :: operator(*) => quatmult 
@@ -494,6 +498,42 @@ IMPLICIT NONE
   end if 
 
 end subroutine quatprint
+
+!--------------------------------------------------------------------------
+recursive function getquats(self) result(qs)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/22/20
+  !!
+  !! return a quaternion
+
+IMPLICIT NONE 
+
+class(Quaternion_T),intent(in)    :: self
+ !! input quaternion 
+real(kind=sgl)                    :: qs(4) 
+
+qs = self%q 
+
+end function getquats
+
+!--------------------------------------------------------------------------
+recursive function getquatd(self) result(qd)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/22/20
+  !!
+  !! return a quaternion
+
+IMPLICIT NONE 
+
+class(Quaternion_T),intent(in)    :: self
+ !! input quaternion 
+real(kind=dbl)                    :: qd(4) 
+
+qd = self%qd 
+
+end function getquatd
 
 !--------------------------------------------------------------------------
 recursive subroutine quatarrayprint(self)

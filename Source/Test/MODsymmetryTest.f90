@@ -62,7 +62,7 @@ real(kind=dbl), allocatable     :: SGdata(:,:,:), SGdirec(:,:,:), SGrecip(:,:,:)
 integer(kind=irg)               :: sz(3), i, g(3), nn, sz2(2)
 logical                         :: centro, symmorphic, allowed
 real(kind=dbl)                  :: m4b4(4,4), m3b3(3,3), o = 1.D0, z = 0.D0, diff, sd(3), diffd, &
-                                   cref(3), cref2(3),  kk(3)
+                                   cref(3), cref2(3), cref3(3), kk(3)
 real(kind=dbl), parameter       :: epsd = 1.0D-12 
 integer(kind=sgl),allocatable   :: itmp(:,:)
 real(kind=dbl),allocatable      :: ctmp(:,:)
@@ -76,6 +76,7 @@ m4b4 = reshape( (/-o, z, z, z,  z, -o, z, z,  z, z, o, z,  z, z, z, o /), (/4,4/
 m3b3 = reshape( (/-o, z, z,  z, -o, z,  z, z, o /), (/3,3/) )
 cref = (/ 0.3D0, -0.2D0, -0.4D0 /)
 cref2= (/-0.1D0, -0.1D0,  0.8D0 /)
+cref3= (/ 0.2D0,  0.3D0,  0.9D0 /)
 
 ! initialize the error identifier to zero (should remain zero upon successful exit)
 res = 0
@@ -288,7 +289,7 @@ if ((sz2(1).ne.8).or.(sz2(2).ne.3)) then
   return
 end if
 
-diffd = sum( abs( ctmp(3,:) - cref(:)))
+diffd = sum( abs( ctmp(7,:) - cref3(:)))
 if (diffd.gt.epsd) then 
   res = 25 
   write (*,"('space group CalcOrbit test failed ')")
@@ -301,7 +302,6 @@ kk = (/  0.1D0, 0.1D0, 0.8D0 /)
 call SG%CalcStar(kk, nn, ctmp, 'd')
 sz2 = shape(ctmp)
 
-write(*,*) sz2 
 
 if ((sz2(1).ne.2).or.(sz2(2).ne.3)) then 
   res = 26 
