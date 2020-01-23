@@ -198,6 +198,13 @@ type, public :: so3_T
     procedure, pass(self) :: writeOrientationstoFile_
     procedure, pass(self) :: getVertex_
     procedure, pass(self) :: getMacKenzieDistribution_
+! some other related routines
+    procedure, pass(self) :: ReduceDisorientationtoMFZ_
+    procedure, pass(self) :: ReduceOrientationtoCubicEFZ_
+    procedure, pass(self) :: ReduceOrientationtoRFZ_
+    procedure, pass(self) :: getDisorientation_
+    procedure, pass(self) :: getDisorientationTwoPhases_
+    procedure, pass(self) :: getAverageDisorientationMap_
 
     generic, public :: getFZtypeandorder => getFZtypeandorder_
     generic, public :: setFZtypeandorder => setFZtypeandorder_
@@ -229,6 +236,13 @@ type, public :: so3_T
     generic, public :: writeOrientationstoFile => writeOrientationstoFile_
     generic, public :: getVertex => getVertex_
     generic, public :: getMacKenzieDistribution => getMacKenzieDistribution_
+
+    generic, public :: ReduceDisorientationtoMFZ => ReduceDisorientationtoMFZ_
+    generic, public :: ReduceOrientationtoCubicEFZ => ReduceOrientationtoCubicEFZ_
+    generic, public :: ReduceOrientationtoRFZ => ReduceOrientationtoRFZ_
+    generic, public :: getDisorientation => getDisorientation_
+    generic, public :: getDisorientationTwoPhases => getDisorientationTwoPhases_
+    generic, public :: getAverageDisorientationMap => getAverageDisorientationMap_
 
 end type so3_T
 
@@ -2191,22 +2205,6 @@ S2 = 2.D0 * ( cPi - MKCC(a,b,c) - cos(a) * MKCC(c,a,b) - cos(b) * MKCC(b,c,a) )
 end function MKS2
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE: getMacKenzieDistribution
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief computes the theoretical MacKenzie distribution for a given rotational point group
-!
-!> @note Uses the expressions from A. Morawiec, J.Appl.Cryst. (1995) 28:289-293
-!
-!> @param pgnum
-!> @param misor  array of misorientation angles for which the function values are requested
-!> @param Nmisor number of misorientation values
-!> @param MK MacKenzie distribution values
-!
-!> @date 02/22/19 MDG 1.0 original
-!--------------------------------------------------------------------------
 recursive subroutine getMacKenzieDistribution_(self, Nmisor, misor, MK)
   !! author: MDG
   !! version: 1.0 
@@ -2330,5 +2328,431 @@ else
 end if
 
 end subroutine getMacKenzieDistribution_
+
+!--------------------------------------------------------------------------
+recursive subroutine ReduceDisorientationtoMFZ_(self, ro, SG, roMFZ)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/23/20
+  !!
+  !! Reduce a disorientation (Rodrigues) to the Mackenzie Fundamental Zone
+  !!
+  !! This requires the symmetry operations of the Rodrigues FZ, which 
+  !! includes mirrors and inversion symmetry, i.e., the regular (full) point group
+  !! symmetry of the shape of the RFZ.  We already have those implemented in the 
+  !! regular symmetry module, and we assume that those symmetry matrices have been
+  !! initialized and are present in the cell class.  Then we just call the regular
+  !! CalcStar routine to generate the equivalents and pick the one that is inside
+  !! the MFZ.
+
+use mod_quaternions
+use mod_symmetry
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)        :: self
+type(r_T), INTENT(INOUT)          :: ro
+type(SpaceGroup_T), INTENT(INOUT) :: SG
+type(r_T), INTENT(OUT)            :: roMFZ
+
+type(r_T)                         :: rod
+real(kind=dbl)                    :: r(3), x(4), mag
+integer(kind=irg)                 :: i, j, n
+real(kind=dbl),allocatable        :: stmp(:,:)
+logical                           :: inMFZ
+
+roMFZ = r_T( rdinp = (/ 0.D0, 0.D0, 1.D0, 0.D0 /) )
+x = ro%r_copyd()
+r(1:3) = x(1:3)*x(4)
+call SG%CalcStar(r,n,stmp,'d')
+
+MFZloop: do j=1,n
+  mag = dsqrt(sum(stmp(j,1:3)**2))
+  rod = r_T( rdinp = (/ stmp(j,1:3)/mag, mag /) )
+  inMFZ = self%IsinsideMFZ(rod)
+  if (inMFZ) then
+   roMFZ = rod
+   EXIT MFZloop
+  end if
+! we really should never get to the following line ...
+  if (j.eq.n) then
+    roMFZ = r_T( rdinp = (/ 0.D0, 0.D0, 1.D0, 0.D0 /) )
+  end if
+end do MFZloop
+
+end subroutine ReduceDisorientationtoMFZ_
+
+!--------------------------------------------------------------------------
+recursive subroutine ReduceOrientationtoCubicEFZ_(self, eu, euFZ)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/23/20
+  !!
+  !! Reduce an orientation (Euler angles) to the cubic FZ in Euler space
+  !!
+  !! [no longer uses dict module]
+
+use mod_quaternions
+use mod_symmetry
+use mod_io 
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)    :: self
+type(e_T), INTENT(INOUT)      :: eu 
+type(e_T), INTENT(OUT)        :: euFZ
+
+type(IO_T)                    :: Message
+type(quaternion_T)            :: Mu, qu, qS 
+type(q_T)                     :: qq
+real(kind=dbl)                :: c, s, z, x(4), y(3)
+integer(kind=irg)             :: i, j, Pmdims
+
+euFZ = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) )
+Pmdims = 24  ! cubic symmetry has rotational group 432
+
+qq = eu%eq()
+x = qq%q_copyd()
+Mu = quaternion_T( qd = x )
+call Mu%quat_pos()
+
+FZloop: do j=1,Pmdims
+  qS = quaternion_T( qd = SYM_Qsymop(1:4,j) )
+  qu = qS*Mu
+  call qu%quat_pos()
+  qq = q_T( qdinp = qu%get_quatd() )
+  euFZ = qq%qe()
+  y = euFZ%e_copyd()
+  ! apply the cubic Euler FZ boundary conditions
+  c = cos(y(3))
+  s = sin(y(3))
+  z = acos(minval( (/ c/sqrt(1+c*c), s/sqrt(1+s*s) /) ))
+  if ((y(2).gt.z).and.(y(2).lt.cPi/2D0).and.(y(3).lt.cPi/2.D0)) EXIT FZloop
+! we really should never get to the following line ...
+  if (j.eq.Pmdims) call Message%printWarning('ReduceOrientationtoCubicEFZ: no orientation found in cubic EFZ')
+end do FZloop
+
+end subroutine ReduceOrientationtoCubicEFZ_
+
+!--------------------------------------------------------------------------
+recursive subroutine ReduceOrientationtoRFZ_(self, eu, Pm, euFZ, MFZ)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/23/20
+  !!
+  !! Reduce an orientation (Euler angles) to the Rodrigues Fundamental Zone
+  !!
+  !! [no longer uses dict module but requires that the calling program 
+  !! initializes the Pm QuaternionArray_T class for the correct point group
+  !! using the QSym_Init method in mod_quaternions]
+
+use mod_quaternions
+use mod_symmetry
+use mod_io 
+use mod_math
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)             :: self
+type(e_T), INTENT(INOUT)               :: eu 
+type(QuaternionArray_T),INTENT(INOUT)  :: Pm 
+type(e_T), INTENT(OUT)                 :: euFZ
+logical,OPTIONAL,INTENT(IN)            :: MFZ
+
+type(IO_T)                             :: Message
+type(Quaternion_T)                     :: Mu, qu, qS 
+type(q_T)                              :: qq
+type(r_T)                              :: rod      
+real(kind=dbl)                         :: x(4), y(3)
+integer(kind=irg)                      :: i, j, Pmdims
+logical                                :: useMFZ
+real(kind=dbl)                         :: tol
+
+tol = 1.0D+5
+
+useMFZ = .FALSE.
+if (present(MFZ)) then 
+  if (MFZ.eqv..TRUE.) useMFZ = .TRUE.
+endif
+
+euFZ = e_T( edinp = (/ 0.D0, 0.D0, 0.D0/) )
+Pmdims = Pm%getQnumber()
+
+qq = eu%eq()
+x = qq%q_copyd()
+if (x(1).lt.0.D0) x = -x
+Mu = Quaternion_T( qd = x )
+
+FZloop: do j=1,Pmdims
+  qu = Pm%getQuatfromArray(j)*Mu
+  x = qu%get_quatd()
+  if (x(1).lt.0D0) x = -x 
+  qq = q_T( qdinp = x )
+  rod = qq%qr()
+  x = rod%r_copyd()
+  if(abs(x(4)) .gt. tol) rod = r_T( rdinp = (/ x(1:3), inftyd() /) )
+  
+  if (useMFZ.eqv..TRUE.) then
+    if (self%IsinsideMFZ(rod)) EXIT FZloop
+  else
+    if (self%IsinsideFZ(rod))  EXIT FZloop
+  end if
+  ! we really should never get to the following line ...
+  if (j.eq.Pmdims) call Message%printWarning( 'ReduceOrientationtoRFZ: no solution found')
+end do FZloop
+
+euFZ = rod%re()
+
+end subroutine ReduceOrientationtoRFZ_
+
+!--------------------------------------------------------------------------
+recursive subroutine getDisorientation_(self, Pm, or1, or2, disax)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/23/20
+  !!
+  !! Determine the disorientation angle between two orientations (in radians)
+  !!
+  !! This routine is now generalized to take arbitrary orientation classes as input
+  !! (they need not have the same class!), and generates the complete disorientation as an
+  !! axis-angle pair class. The calling program can then chose which part to use, the
+  !! disorientation angle or the axis (or both).
+
+use mod_quaternions
+use mod_symmetry
+use mod_rotations
+use mod_math
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)             :: self
+type(QuaternionArray_T),INTENT(INOUT)  :: Pm 
+class(*), INTENT(INOUT)                :: or1 
+class(*), INTENT(INOUT)                :: or2 
+type(a_T), INTENT(OUT)                 :: disax
+
+type(Quaternion_T)                     :: qu1, qu2, Mu, qu, Mus, qus, p 
+real(kind=dbl)                         :: a, ac, ax(3), x(4)
+integer(kind=irg)                      :: j, k, Pmdims
+
+Pmdims = Pm%getQnumber() 
+
+! first we need to convert the input orientations into Quaternion_T objects;
+! since we do not know ahead of time which representations will be provided
+! as input, we use a select type block in the getQfromClass method in 
+! the rotations module.
+qu1 = getQfromClass(or1)
+qu2 = getQfromClass(or2)
+
+Mu = Quaternion_T( qd = qu1%get_quatd() )
+call Mu%quat_pos()
+
+qu = Quaternion_T( qd = qu2%get_quatd() )
+call qu%quat_pos()
+
+ac = 1000.D0
+do j=1,Pmdims ! loop over the symmetric equivalents of Mu
+  Mus = Pm%getQuatfromArray(j)*Mu
+  call Mus%quat_pos()
+  do k=1,Pmdims
+    qus = Pm%getQuatfromArray(k)*qu
+    call qus%quat_pos()
+    p = Mus*conjg(qus)
+    call p%quat_pos()
+    x = p%get_quatd()
+    a = 2.0*acos(x(1))
+    if (a.lt.ac) then
+      ac = a
+      ax(1:3) = x(2:4)/vecnorm(x(2:4))
+    end if
+    p = qus*conjg(Mus)
+    call p%quat_pos()
+    x = p%get_quatd()
+    a = 2.0*acos(x(1))
+    if (a.lt.ac) then
+      ac = a
+      ax(1:3) = x(2:4)/vecnorm(x(2:4))
+    end if
+  end do
+end do 
+
+disax = a_T( adinp = (/ ax(1:3), ac /) )
+
+end subroutine getDisorientation_
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: getDisorientationAngleAxisTwoPhases
+!
+!> @author Saransh Singh, Carnegie Mellon University
+!
+!> @brief Determine the disorientation angle and axis between two orientations (in radians)
+!
+!> @param eu1 first Euler triplet (in radians)
+!> @param eu2 first Euler triplet (in radians)
+!> @param dict1 dict1 structure
+!> @param dict2 dict2 structure
+!> @param disax smallest rotation angle disorientation axis-angle pair
+!
+!> @date 02/14/17 SS 1.0 original
+!--------------------------------------------------------------------------
+recursive subroutine getDisorientationTwoPhases_(self, Pm1, Pm2, or1, or2, disax)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/23/20
+  !!
+  !! Determine the disorientation angle between two orientations (in radians) for 
+  !! two different phases.
+  !!
+  !! This routine is now generalized to take arbitrary orientation classes as input
+  !! (they need not have the same class!), and generates the complete disorientation as an
+  !! axis-angle pair class. The calling program can then chose which part to use, the
+  !! disorientation angle or the axis (or both).
+
+use mod_quaternions
+use mod_symmetry
+use mod_rotations
+use mod_math
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+type(QuaternionArray_T),INTENT(INOUT)   :: Pm1
+type(QuaternionArray_T),INTENT(INOUT)   :: Pm2
+class(*), INTENT(INOUT)                 :: or1 
+class(*), INTENT(INOUT)                 :: or2 
+type(a_T), INTENT(OUT)                  :: disax
+
+type(Quaternion_T)                      :: qu1, qu2, Mu, qu, Mus, qus, p 
+real(kind=dbl)                          :: a, ac, ax(3), x(4)
+integer(kind=irg)                       :: j, k, Pm1dims, Pm2dims
+
+Pm1dims = Pm1%getQnumber() 
+Pm2dims = Pm2%getQnumber() 
+
+! first we need to convert the input orientations into Quaternion_T objects;
+! since we do not know ahead of time which representations will be provided
+! as input, we use a select type block in the getQfromClass method in 
+! the rotations module.
+qu1 = getQfromClass(or1)
+qu2 = getQfromClass(or2)
+
+Mu = Quaternion_T( qd = qu1%get_quatd() )
+call Mu%quat_pos()
+
+qu = Quaternion_T( qd = qu2%get_quatd() )
+call qu%quat_pos()
+
+ac = 1000.D0
+do j=1,Pm1dims ! loop over the symmetric equivalents of Mu
+  Mus = Pm1%getQuatfromArray(j)*Mu
+  call Mus%quat_pos()
+  do k=1,Pm2dims
+    qus = Pm2%getQuatfromArray(k)*qu
+    call qus%quat_pos()
+    p = Mus*conjg(qus)
+    call p%quat_pos()
+    x = p%get_quatd()
+    a = 2.0*acos(x(1))
+    if (a.lt.ac) then
+      ac = a
+      ax(1:3) = x(2:4)/vecnorm(x(2:4))
+    end if
+  end do
+end do 
+
+disax = a_T( adinp = (/ ax(1:3), ac /) )
+
+end subroutine getDisorientationTwoPhases_
+
+!--------------------------------------------------------------------------
+recursive subroutine getAverageDisorientationMap_(self, quats, Pm, wd, ht, ADMap) 
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/23/20
+  !!
+  !! Determine the average disorientation map (in degrees)
+  !!
+  !! the calling program must initialize the symmetry elements in Pm, as well 
+  !! as generate the input quaternion array in a QuaternionArray_T class.
+
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+type(QuaternionArray_T),INTENT(IN)      :: quats
+ !! orientation array
+type(QuaternionArray_T),INTENT(INOUT)   :: Pm
+ !! symmetry operators in quaternion form
+integer(kind=irg),INTENT(IN)            :: wd
+ !! map width (in pixels)
+integer(kind=irg),INTENT(IN)            :: ht
+ !! map height
+real(kind=dbl),INTENT(OUT)              :: ADMap(wd,ht)
+ !! output average disorientation angle map
+
+integer(kind=irg)                       :: i, j, ic, icr, ict
+real(kind=dbl)                          :: misor(4,wd,ht), denom(wd, ht), x(4) 
+type(a_T)                               :: disax
+type(q_T)                               :: q1, q2 
+type(Quaternion_T)                      :: qu1, qu2 
+
+ADMap = 0.D0
+denom = 4.D0
+misor = 0.D0   ! contains four misorientation angles in the order r, t, l, b 
+
+! correct the multiplicities along the edges
+denom(2:wd-1,1) = 3.D0
+denom(2:wd-1,ht) = 3.D0
+denom(1,2:ht-1) = 3.D0
+denom(wd,2:ht-1) = 3.D0
+! correct the multiplicities in the corners
+denom(1,1) = 2.D0
+denom(1,ht) = 2.D0
+denom(wd,1) = 2.D0
+denom(wd,ht) = 2.D0
+
+! we'll do this line by line (horizontally)
+do j=1,ht
+  do i=1,wd
+    ic = wd*(j-1)+i
+    icr = wd*(j-1)+i+1
+    ict = wd*j + i
+
+! right neighbor (also includes left one)
+    if (i.lt.wd) then 
+      qu1 = quats%getQuatfromArray(ic)
+      q1 = q_T( qdinp = qu1%get_quatd() )
+      qu2 = quats%getQuatfromArray(icr)
+      q2 = q_T( qdinp = qu2%get_quatd() )
+      call self%getDisorientation(Pm, q1, q2, disax)
+      x = disax%a_copyd()
+      misor(1,i,j) = x(4)
+      misor(3,i+1,j) = x(4)
+    end if
+
+! top neighbor
+    if (j.lt.ht) then
+      qu1 = quats%getQuatfromArray(ic)
+      q1 = q_T( qdinp = qu1%get_quatd() )
+      qu2 = quats%getQuatfromArray(ict)
+      q2 = q_T( qdinp = qu2%get_quatd() )
+      call self%getDisorientation(Pm, q1, q2, disax)
+      x = disax%a_copyd()
+      misor(2,i,j) = x(4)
+      misor(4,i,j+1) = x(4)
+    end if
+  end do 
+end do 
+
+! then take the average
+ADMap = sum(misor,1)/denom
+
+! and convert to degrees
+ADMap = ADMap / dtor
+
+end subroutine getAverageDisorientationMap_
 
 end module mod_so3

@@ -810,6 +810,10 @@ end interface orientation_T
 !DEC$ ATTRIBUTES DLLEXPORT :: get_vd
 !DEC$ ATTRIBUTES DLLEXPORT :: get_sd
 
+! finally we have a method to extract a quaternion class from an arbitrary class 
+! using unlimited polymorphic variables 
+public :: getQfromClass 
+
 !--------------------------------------------------------------------------
 
 contains
@@ -1180,6 +1184,47 @@ select type (p)
 end select 
 
 end function orientation_constructor
+
+!--------------------------------------------------------------------------
+function getQfromClass( p ) result(q)
+!! author: MDG 
+!! version: 1.0 
+!! date: 01/18/20
+!!
+!! take an arbitrary rotation class and convert it to the q_T class
+
+use mod_quaternions 
+
+class(*), INTENT(INOUT)      :: p 
+
+type(Quaternion_T)           :: q 
+type(q_T)                    :: qq
+
+select type (p)
+  class is (e_T)
+    qq = p%eq()
+  class is (a_T)
+    qq = p%aq()
+  class is (o_T)
+    qq = p%oq()
+  class is (r_T)
+    qq = p%rq()
+  class is (h_T)
+    qq = p%hq()
+  class is (c_T)
+    qq = p%cq()
+  class is (s_T)
+    qq = p%sq()
+  class is (v_T)
+    qq = p%vq()
+  class is (q_T)
+    qq = p
+  class default 
+end select 
+
+q = Quaternion_T( qd = qq%q_copyd() )
+
+end function getQfromClass
 
 !--------------------------------------------------------------------------
 recursive subroutine print_orientation_(self, degrad)

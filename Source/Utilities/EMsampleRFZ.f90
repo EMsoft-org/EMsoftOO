@@ -34,7 +34,7 @@ program EMsampleRFZ
   !! Basic program to generate a uniform sampling of Rodrigues Fundamental Zone
   !!
   !! This program calls the SampleRFZ routine of the so3 module to generate
-  !! an angle file of euler angles for points that uniformly sample an RFZ for a given
+  !! an angle file of orientations for points that uniformly sample an RFZ for a given
   !! crystal symmetry. 
 
 use mod_kinds

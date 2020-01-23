@@ -258,6 +258,8 @@ IMPLICIT NONE
       procedure, pass(self) :: getquats
       procedure, pass(self) :: getquatd
 ! quaternion arithmetic routines 
+      procedure, pass(self) :: quatflip
+      procedure, pass(self) :: quatpos
       procedure, pass(self) :: quatadd
       procedure, pass(self) :: quatsubtract
       procedure, pass(self) :: quatmult
@@ -280,6 +282,8 @@ IMPLICIT NONE
       procedure, pass(self), public :: quatsequal
 
       generic, public :: quat_print => quatprint
+      generic, public :: quat_flip => quatflip
+      generic, public :: quat_pos => quatpos
       generic, public :: get_quats => getquats
       generic, public :: get_quatd => getquatd
       generic, public :: operator(+) => quatadd
@@ -339,6 +343,8 @@ IMPLICIT NONE
       procedure, pass(self) :: quatarrayangle
 ! miscellaneous routines 
       procedure, pass(self) :: extractfromQuaternionArray
+      procedure, pass(self) :: QSym_Init_
+      procedure, pass(self) :: getQnumber_
 
 ! generics
       generic, public :: quat_print => quatarrayprint
@@ -353,6 +359,8 @@ IMPLICIT NONE
       generic, public :: quat_innerproduct => quatarrayinnerproduct
       generic, public :: quat_angle => quatarrayangle
       generic, public :: getQuatfromArray => extractfromQuaternionArray
+      generic, public :: QSym_Init => QSym_Init_
+      generic, public :: getQnumber => getQnumber_
 
   end type QuaternionArray_T 
 
@@ -565,6 +573,45 @@ IMPLICIT NONE
 
 end subroutine quatarrayprint
 
+!--------------------------------------------------------------------------
+pure recursive subroutine quatflip(self) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/06/20
+  !!
+  !! change the sign of the complete quaternion
+
+IMPLICIT NONE
+
+class(Quaternion_T),intent(inout) :: self
+
+if (self%s.eq.'s') then 
+  self%q = -self%q 
+else 
+  self%qd = -self%qd 
+end if 
+
+end subroutine quatflip 
+
+!--------------------------------------------------------------------------
+pure recursive subroutine quatpos(self) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/06/20
+  !!
+  !! convert a quaternion to one with a positive scalar part, if it is negative
+
+IMPLICIT NONE
+
+class(Quaternion_T),intent(inout) :: self
+
+if (self%s.eq.'s') then 
+  if (self%q(1).lt.0.0) self%q = -self%q 
+else 
+  if (self%qd(1).lt.0.D0) self%qd = -self%qd 
+end if 
+
+end subroutine quatpos 
 
 !--------------------------------------------------------------------------
 pure recursive function quatadd(self, y) result(qres)
@@ -1874,5 +1921,190 @@ q%s = 'd'
 
 end function quat_Marsaglia
 
+!--------------------------------------------------------------------------
+recursive subroutine QSym_Init_(self, pgnum, qsym) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! initialize the quaternion symmetry operators for a given rotational point group
+
+use mod_symmetry
+use mod_io
+
+IMPLICIT NONE
+
+class(QuaternionArray_T), INTENT(INOUT)   :: self
+integer(kind=irg), INTENT(IN)             :: pgnum
+type(QuaternionArray_T), INTENT(OUT)      :: qsym
+
+type(IO_T)                                :: Message
+integer(kind=irg)                         :: i, Nqsym, prot
+real(kind=dbl), allocatable               :: Pm(:,:)
+
+! here we need to analyze the rotational symmetry group, and copy the appropriate 
+! quaternion symmetry operators into a QuaternionArray_T class.
+
+! first get the number of the rotational point group that corresponds to the crystal point group
+prot = PGrot(pgnum)
+! possible values for prot are: (/1,3,6,9,12,16,18,21,24,28,30/)
+! corresponding to the point groups 1, 2, 222, 4, 422, 3, 32, 6, 622, 23, 432 and 532 respectively
+
+!------------
+! IMPORTANT NOTE: the original von Mises-Fischer (VMF) approach requires that q and -q are considered to 
+! be separate quaternions, so the original Matlab code included the negatives of all quaternion symmetry operators 
+! as well, leading to a cardinality of twice the rotational point group order.  It appears that we do not have to
+! do so if we replace the exponential in the VMF by a hyperbolic cosine function, which would account directly
+! for the q, -q duplicity... Alternatively, one can use the axial Watson distribution.
+!------------
+
+! identity operator is part of all point groups
+
+! select statement for each individual rotational point group (see typedefs.f90 for SYM_Qsymop definitions)
+select case (prot) 
+        case(1)         ! 1 (no additional symmetry elements)
+                allocate(Pm(4,1))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 1
+
+        case(3)         ! 2  (we'll assume that the two-fold axis lies along the e_y-axis)
+                allocate(Pm(4,2))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 2
+                Pm(1:4,2) = SYM_Qsymop(1:4,3)
+
+        case(6)         ! 222
+                allocate(Pm(4,4))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 4
+                do i=2,4
+                  Pm(1:4,i) = SYM_Qsymop(1:4,i)
+                end do
+
+        case(9)         ! 4
+                allocate(Pm(4,4))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 4
+                Pm(1:4,2) = SYM_Qsymop(1:4,4)
+                Pm(1:4,3) = SYM_Qsymop(1:4,7)
+                Pm(1:4,4) = SYM_Qsymop(1:4,10)
+
+        case(12)        ! 422
+                allocate(Pm(4,8))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 8
+                Pm(1:4,2) = SYM_Qsymop(1:4,4)
+                Pm(1:4,3) = SYM_Qsymop(1:4,7)
+                Pm(1:4,4) = SYM_Qsymop(1:4,10)
+                Pm(1:4,5) = SYM_Qsymop(1:4,2)
+                Pm(1:4,6) = SYM_Qsymop(1:4,3)
+                Pm(1:4,7) = SYM_Qsymop(1:4,11)
+                Pm(1:4,8) = SYM_Qsymop(1:4,12)
+
+        case(16)        ! 3
+                allocate(Pm(4,3))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 3
+                Pm(1:4,2) = SYM_Qsymop(1:4,26)
+                Pm(1:4,3) = SYM_Qsymop(1:4,28)
+
+        case(18)        ! 32 (needs special handling)
+                allocate(Pm(4,6))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 6
+                Pm(1:4,2) = SYM_Qsymop(1:4,26)
+                Pm(1:4,3) = SYM_Qsymop(1:4,28)
+                Pm(1:4,4) = SYM_Qsymop(1:4,30)
+                Pm(1:4,5) = SYM_Qsymop(1:4,32)
+                Pm(1:4,6) = SYM_Qsymop(1:4,34)
+
+        case(21)        ! 6
+                allocate(Pm(4,6))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 6
+                do i=25,29
+                  Pm(1:4,i-23) = SYM_Qsymop(1:4,i)
+                end do
+
+        case(24)        ! 622
+                allocate(Pm(4,6))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 12
+                do i=25,35
+                  Pm(1:4,i-23) = SYM_Qsymop(1:4,i)
+                end do
+
+        case(28)        ! 23
+                allocate(Pm(4,12))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 12
+                do i=2,4
+                  Pm(1:4,i) = SYM_Qsymop(1:4,i)
+                end do
+                do i=17,24
+                  Pm(1:4,4+(i-16)) = SYM_Qsymop(1:4,i)
+                end do
+
+        case(30)        ! 432
+                allocate(Pm(4,24))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 24
+                do i=2,24
+                  Pm(1:4,i) = SYM_Qsymop(1:4,i)
+                end do
+        case(33)        ! 532
+                allocate(Pm(4,60))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 60
+                do i=2,60
+                  Pm(1:4,i) = SYM_Qsymop(1:4,35+i)
+                end do
+        case(34)  ! 822
+                allocate(Pm(4,16))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 16
+                do i = 1,15
+                  Pm(1:4,i+1) = SYM_Qsymop(1:4,95+i)
+                end do
+        case(35)  ! 1022
+                allocate(Pm(4,20))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 20
+                do i = 1,19
+                  Pm(1:4,i+1) = SYM_Qsymop(1:4,110+i)
+                end do
+        case(36)  ! 1222
+                allocate(Pm(4,24))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 24
+                do i = 1,23
+                  Pm(1:4,i+1) = SYM_Qsymop(1:4,129+i)
+                end do
+
+        case default    ! this should never happen ...
+                call Message%printError('QSym_Init','unknown rotational point group number')
+end select
+
+! and initialize the quatenrion array class 
+qsym = QuaternionArray_T( n = Nqsym, nthreads = 1, qd = Pm )
+
+end subroutine QSym_Init_
+
+!--------------------------------------------------------------------------
+recursive function getQnumber_(self) result(num) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/08/20
+  !!
+  !! returns the number of quaternions in the QuaternionArray_T class
+
+IMPLICIT NONE
+
+class(QuaternionArray_T), INTENT(INOUT)   :: self
+integer(kind=irg)                         :: num
+
+num = self%n
+
+end function getQnumber_
 
 end module mod_quaternions
