@@ -880,37 +880,42 @@ recursive subroutine SampleRFZ_(self, nsteps, qFZ)
   !!
   !! Here's how you would use this routine in a main program:
   !!
-  !! use mod_so3
-  !!
-  !! type(so3_T)             :: SO
-  !! integer(kind=irg)       :: nsteps
-  !! 
-  !! pgnum = 32
-  !! SO = so3_T( pgnum )
-  !! nullify(FZlist)
-  !! FZcnt = 0
-  !! nsteps = 10
-  !! call sampleRFZ(nsteps, pgnum, FZcnt, FZlist)
+  !!    use mod_so3
+  !!    use mod_rotations
+  !!   
+  !!    IMPLICIT NONE 
+  !!   
+  !!    type(so3_T)             :: SO
+  !!    integer(kind=irg)       :: i, pgnum, nsteps, FZcnt
+  !!    type(FZpointd), pointer :: FZtmp
+  !!    type(e_T)               :: eu
+  !!    
+  !!    pgnum = 32
+  !!    SO = so3_T( pgnum )
+  !!    
+  !!    nsteps = 10
+  !!    call SO%sampleRFZ(nsteps)
   !! 
   !! Then you can access all the entries in the list and, for instance, convert them to Euler angles...
   !!
-  !! FZtmp => FZlist                        ! point to the top of the list
-  !! do i = 1, FZcnt                        ! loop over all entries
-  !!   eu = ro2eu(FZtmp%rod)                ! convert to Euler angles
-  !!   do something with eu                 ! for instance, write eu to a file
-  !!   FZtmp => FZtmp%next                  ! point to the next entry
-  !! end do
+  !!    FZtmp => SO%getListHead('FZ')          ! point to the top of the list
+  !!    FZcnt = SO%getListCount('FZ')          ! get the number of entries in the list
+  !!    do i = 1, FZcnt                        ! loop over all entries
+  !!      eu = FZtmp%rod%re()                  ! convert to Euler angles (in radians by default)
+  !!    !  do something with eu                ! for instance, write eu to a file
+  !!      FZtmp => FZtmp%next                  ! point to the next entry
+  !!    end do
   !!
   !! If you just want to look at the first 10 entries on the list and show all other orientation representations:
   !!
-  !! type(orientationtyped):: ot
-  !! 
-  !! FZtmp => FZlist
-  !! do i = 1,10
-  !!   ot = init_orientation(FZtmp%rod,'ro')
-  !!   call print_orientation(ot)
-  !!   FZtmp => FZtmp%next
-  !! end do
+  !!    type(orientation_T) :: ot
+  !!    
+  !!    FZtmp => SO%getListHead('FZ')
+  !!    do i = 1,10
+  !!      ot = orientation_T( FZtmp%rod )
+  !!      call ot%print_orientation('d')    ! the argument 'd' means angles will be in degrees ('r' for radians)
+  !!      FZtmp => FZtmp%next
+  !!    end do
 
 IMPLICIT NONE
 
@@ -2435,12 +2440,12 @@ end do FZloop
 end subroutine ReduceOrientationtoCubicEFZ_
 
 !--------------------------------------------------------------------------
-recursive subroutine ReduceOrientationtoRFZ_(self, eu, Pm, euFZ, MFZ)
+recursive subroutine ReduceOrientationtoRFZ_(self, rot, Pm, roFZ, MFZ)
   !! author: MDG
   !! version: 1.0 
   !! date: 01/23/20
   !!
-  !! Reduce an orientation (Euler angles) to the Rodrigues Fundamental Zone
+  !! Reduce an orientation (any of nine ... ) to the Rodrigues Fundamental Zone
   !!
   !! [no longer uses dict module but requires that the calling program 
   !! initializes the Pm QuaternionArray_T class for the correct point group
@@ -2454,9 +2459,9 @@ use mod_math
 IMPLICIT NONE
 
 class(so3_T),INTENT(INOUT)             :: self
-type(e_T), INTENT(INOUT)               :: eu 
+class(*), INTENT(INOUT)                :: rot 
 type(QuaternionArray_T),INTENT(INOUT)  :: Pm 
-type(e_T), INTENT(OUT)                 :: euFZ
+type(r_T), INTENT(OUT)                 :: roFZ
 logical,OPTIONAL,INTENT(IN)            :: MFZ
 
 type(IO_T)                             :: Message
@@ -2475,13 +2480,34 @@ if (present(MFZ)) then
   if (MFZ.eqv..TRUE.) useMFZ = .TRUE.
 endif
 
-euFZ = e_T( edinp = (/ 0.D0, 0.D0, 0.D0/) )
+roFZ = r_T( rdinp = (/ 0.D0, 0.D0, 1.D0, 0.D0 /) )
 Pmdims = Pm%getQnumber()
 
-qq = eu%eq()
-x = qq%q_copyd()
-if (x(1).lt.0.D0) x = -x
-Mu = Quaternion_T( qd = x )
+! convert the input rot to quaternion form 
+select type (rot)
+  class is (e_T)
+    qq = rot%eq()
+  class is (o_T)
+    qq = rot%oq()
+  class is (a_T)
+    qq = rot%aq()
+  class is (h_T)
+    qq = rot%hq()
+  class is (s_T)
+    qq = rot%sq()
+  class is (c_T)
+    qq = rot%cq()
+  class is (q_T)
+    qq = rot
+  class is (v_T)
+    qq = rot%vq()
+  class is (r_T)
+    qq = rot%rq()
+  class default
+end select
+
+Mu = Quaternion_T( qd = qq%q_copyd() )
+call Mu%quat_pos()
 
 FZloop: do j=1,Pmdims
   qu = Pm%getQuatfromArray(j)*Mu
@@ -2501,7 +2527,7 @@ FZloop: do j=1,Pmdims
   if (j.eq.Pmdims) call Message%printWarning( 'ReduceOrientationtoRFZ: no solution found')
 end do FZloop
 
-euFZ = rod%re()
+roFZ = rod
 
 end subroutine ReduceOrientationtoRFZ_
 

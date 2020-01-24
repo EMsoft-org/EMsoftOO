@@ -286,6 +286,7 @@ IMPLICIT NONE
       generic, public :: quat_pos => quatpos
       generic, public :: get_quats => getquats
       generic, public :: get_quatd => getquatd
+      generic, public :: quat_norm => quatnorm
       generic, public :: operator(+) => quatadd
       generic, public :: operator(-) => quatsubtract
       generic, public :: operator(*) => quatmult 
@@ -343,6 +344,7 @@ IMPLICIT NONE
       procedure, pass(self) :: quatarrayangle
 ! miscellaneous routines 
       procedure, pass(self) :: extractfromQuaternionArray
+      procedure, pass(self) :: insertQuatintoArray
       procedure, pass(self) :: QSym_Init_
       procedure, pass(self) :: getQnumber_
 
@@ -359,6 +361,7 @@ IMPLICIT NONE
       generic, public :: quat_innerproduct => quatarrayinnerproduct
       generic, public :: quat_angle => quatarrayangle
       generic, public :: getQuatfromArray => extractfromQuaternionArray
+      generic, public :: insertQuatinArray => insertQuatintoArray
       generic, public :: QSym_Init => QSym_Init_
       generic, public :: getQnumber => getQnumber_
 
@@ -1692,7 +1695,7 @@ recursive function extractfromQuaternionArray(self, i) result (res)
   !! version: 1.0 
   !! date: 01/08/20
   !!
-  !! actively rotate a single vector by an array of unit quaternions, L_p = p v p* (single precision)
+  !! extract a quaternion from an array of quaternions
 
 use mod_io 
 
@@ -1725,6 +1728,41 @@ IMPLICIT NONE
   end if 
 
 end function extractfromQuaternionArray
+
+
+!--------------------------------------------------------------------------!
+recursive subroutine insertQuatintoArray(self, i, q)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/23/20
+  !!
+  !! insert a quaternion into an array of quaternions 
+
+use mod_io 
+
+IMPLICIT NONE 
+
+  class(QuaternionArray_T),intent(inout):: self
+   !! input quaternion array
+  integer(kind=irg), intent(in)         :: i 
+   !! quaternion to be extracted 
+  type(Quaternion_T), intent(in)        :: q
+   !! extracted quaternion 
+
+  type(IO_T)                            :: Message 
+
+  if (i.le.self%n) then 
+    if (self%s.eq.'s') then 
+      self%q(:,i) = q%get_quats()
+    else
+      self%qd(:,i) = q%get_quatd()
+    end if 
+  else 
+    call Message%printWarning('extractfromQuaternionArray: requested quaternion index larger than array size', &
+                              (/'   ---> no quaternion inserted'/) )
+  end if 
+
+end subroutine insertQuatintoArray
 
 !--------------------------------------------------------------------------!
 ! pure recursive function quatslerp(self, qb, n) result(res)
