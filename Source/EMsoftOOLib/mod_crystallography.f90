@@ -116,6 +116,8 @@ IMPLICIT NONE
           procedure, pass(self) :: setAtomPos_
           procedure, pass(self) :: setNatomtype_
           procedure, pass(self) :: getNatomtype_
+          procedure, pass(self) :: getnumat_
+          procedure, pass(self) :: getapos_
           procedure, pass(self) :: getatomtype_
           procedure, pass(self) :: requestLatticeParameters
           procedure, pass(self) :: getLatticeParameterSingle
@@ -180,6 +182,10 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: calcDensity 
           generic, public :: GetAsymPosWyckoff => GetAsymPosWyckoff_
           !DEC$ ATTRIBUTES DLLEXPORT :: GetAsymPosWyckoff 
+          generic, public :: getnumat => getnumat_
+          !DEC$ ATTRIBUTES DLLEXPORT :: getnumat_ 
+          generic, public :: getapos => getapos_
+          !DEC$ ATTRIBUTES DLLEXPORT :: getapos_ 
           generic, public :: setWyckoff => setWyckoff_
           !DEC$ ATTRIBUTES DLLEXPORT :: setWyckoff 
           generic, public :: setFileName => setFileName_
@@ -695,7 +701,7 @@ recursive function getatomtype_(self) result(atp)
   !! version: 1.0 
   !! date: 01/16/20
   !!
-  !! returns the AsymPos array to the calling program
+  !! returns the ATOM_type array to the calling program
 
 IMPLICIT NONE 
 
@@ -709,7 +715,50 @@ allocate(atp(sz(1)))
 
 atp = self%ATOM_type
 
-end function getatomtype_ 
+end function getatomtype_
+
+!--------------------------------------------------------------------------
+recursive function getnumat_(self) result(numat)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/25/20
+  !!
+  !! returns the apos array to the calling program
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+integer(kind=irg), allocatable  :: numat(:)
+
+integer(kind=irg)               :: sz(3) 
+
+allocate( numat( self%ATOM_ntype ) )
+
+numat = self%numat(1:self%ATOM_ntype)
+
+end function getnumat_
+
+!--------------------------------------------------------------------------
+recursive function getapos_(self) result(apos)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/25/20
+  !!
+  !! returns the apos array to the calling program
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+real(kind=dbl), allocatable     :: apos(:,:,:)
+
+integer(kind=irg)               :: sz(3) 
+
+sz = shape(self%apos)
+allocate(apos(sz(1),sz(2),sz(3)))
+
+apos = self%apos
+
+end function getapos_
 
 !--------------------------------------------------------------------------
 recursive function getAsymPosArray(self) result(asp)

@@ -111,7 +111,7 @@ character(20),parameter :: PSfonts(5) = (/"Symbol              ", &
 
 
 !> Shannon-Prewitt ionic radii in nanometer
-real(kind=sgl), dimension(98) :: ATOM_SPradii=(/0.010,0.010,0.680,0.300,0.160,0.150,0.148,0.146,0.133,0.500, &
+real(kind=sgl), public, dimension(98) :: ATOM_SPradii=(/0.010,0.010,0.680,0.300,0.160,0.150,0.148,0.146,0.133,0.500, &
                                                 0.098,0.065,0.450,0.380,0.340,0.190,0.181,0.500,0.133,0.940, &
                                                 0.068,0.060,0.740,0.690,0.670,0.640,0.630,0.620,0.720,0.740, &
                                                 0.113,0.073,0.580,0.202,0.196,0.500,0.148,0.110,0.880,0.770, &
@@ -124,7 +124,7 @@ real(kind=sgl), dimension(98) :: ATOM_SPradii=(/0.010,0.010,0.680,0.300,0.160,0.
 !DEC$ ATTRIBUTES DLLEXPORT :: ATOM_SPradii
 
 !> atomic (metallic) radii in nanometer (0.100 if not known/applicable)
-real(kind=sgl), dimension(98) :: ATOM_MTradii=(/0.100,0.100,0.156,0.112,0.100,0.100,0.100,0.100,0.100,0.100, &
+real(kind=sgl), public, dimension(98) :: ATOM_MTradii=(/0.100,0.100,0.156,0.112,0.100,0.100,0.100,0.100,0.100,0.100, &
                                                 0.191,0.160,0.142,0.100,0.100,0.100,0.100,0.100,0.238,0.196, &
                                                 0.160,0.146,0.135,0.128,0.136,0.127,0.125,0.124,0.128,0.137, &
                                                 0.135,0.139,0.125,0.116,0.100,0.100,0.253,0.215,0.181,0.160, &
@@ -137,7 +137,7 @@ real(kind=sgl), dimension(98) :: ATOM_MTradii=(/0.100,0.100,0.156,0.112,0.100,0.
 !DEC$ ATTRIBUTES DLLEXPORT :: ATOM_MTradii
 
 !> atom colors for PostScript drawings
-character(3), dimension(98) :: ATOM_color=(/'blu','grn','blu','blu','red','bro','blu','red','grn','grn', &
+character(3), public, dimension(98) :: ATOM_color=(/'blu','grn','blu','blu','red','bro','blu','red','grn','grn', &
                                             'blu','pnk','grn','blu','pnk','cyn','blu','blu','grn','grn', &
                                             'blu','blu','grn','red','pnk','cyn','blu','blu','grn','grn', &
                                             'blu','blu','grn','red','pnk','cyn','blu','blu','grn','grn', &
@@ -148,7 +148,7 @@ character(3), dimension(98) :: ATOM_color=(/'blu','grn','blu','blu','red','bro',
                                             'blu','blu','grn','red','pnk','cyn','blu','blu','grn','grn', &
                                             'blu','blu','grn','red','pnk','cyn','blu','grn'/)
 
-real(kind=sgl), dimension(3,92) :: ATOM_colors = reshape( (/ &
+real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
                                               0.90000,0.90000,0.15000, &
                                               0.00000,0.90000,0.15000, &
                                               0.32311,0.53387,0.69078, &
@@ -300,6 +300,7 @@ real(kind=sgl), dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: DumpImage_
       procedure, pass(self) :: DumpImageDistort_
       procedure, pass(self) :: DrawSPFrame_
+      procedure, pass(self) :: DrawcellFrame_
       procedure, pass(self) :: getpsscale_
 
 
@@ -389,6 +390,8 @@ real(kind=sgl), dimension(3,92) :: ATOM_colors = reshape( (/ &
 !DEC$ ATTRIBUTES DLLEXPORT :: DumpImageDistort
       generic, public :: DrawSPFrame => DrawSPFrame_
 !DEC$ ATTRIBUTES DLLEXPORT :: DrawSPFrame
+      generic, public :: DrawcellFrame => DrawcellFrame_
+!DEC$ ATTRIBUTES DLLEXPORT :: DrawcellFrame
       generic, public :: getpsscale => getpsscale_
 !DEC$ ATTRIBUTES DLLEXPORT :: getpsscale
 
@@ -1699,6 +1702,54 @@ character(17)     :: str
  call self%text(CX,8.00,'Projection of '//str)
 
 end subroutine DrawSPFrame_
+
+!--------------------------------------------------------------------------
+subroutine DrawcellFrame_(self, cell, iview, sp, CX, CY, hexset)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/15/20
+  !!
+  !! format the output page for the EMdrawcell program
+
+use mod_io 
+use mod_crystallography 
+use mod_misc 
+
+IMPLICIT NONE
+
+class(PostScript_T), INTENT(INOUT)  :: self
+type(Cell_T), INTENT(INOUT)         :: cell 
+integer(kind=irg),INTENT(INOUT)     :: iview(3)             
+ !! viewing direction
+character(1),INTENT(IN)             :: sp                   
+ !! drawing space character
+real(kind=sgl), INTENT(IN)          :: CX, CY               
+ !! center of page   
+logical, INTENT(IN)                 :: hexset
+
+character(12)                       :: instr
+character(17)                       :: str
+
+ if (sp.eq.'d') then 
+  call self%newpage(.FALSE.,'Crystal Structure Drawing')
+ else
+  call self%newpage(.FALSE.,'Reciprocal Lattice Drawing')
+ endif
+ call self%setlinewidth(0.012)
+ call self%drawrect(0.0,0.0,CX,CY)
+ call self%setlinewidth(0.008)
+ call self%setfont(PSfonts(2),0.12/self % psscale)
+ call self%cellinfo(cell,0.0,8.3)
+ call IndexString(hexset, instr, iview, 'd')
+ call self%text(CX*0.5,8.14,'Viewing Direction '//instr)
+ if (sp.eq.'d') then 
+  str='direct space'
+ else
+  str='reciprocal space'
+ endif
+ call self%text(CX*0.5,8.00,'Drawing of '//str)
+
+end subroutine DrawcellFrame_
 
 
 end module mod_postscript

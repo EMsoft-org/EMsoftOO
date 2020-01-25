@@ -338,6 +338,70 @@ integer(kind=irg)               :: io_int(4)    ! used for IO
 end subroutine GetViewingDirection
 
 !--------------------------------------------------------------------------
+recursive function ComputeViewTrans(cell, iview, VD) result(M)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/25/20
+  !!
+  !! compute the viewing transformation matrix
+  !!
+  !! Based on sections 13.5.1-5 in "Computer Graphics: Systems and Concepts", by R. Salmon and M. Slater, 
+  !! pp. 397-408, Addison-Wesley 1987
+
+use mod_crystallography
+
+IMPLICIT NONE
+
+type(Cell_T), INTENT(IN)        :: cell
+integer(kind=irg),INTENT(IN)    :: iview(3)     
+ !! viewing direction indices
+real(kind=sgl),INTENT(IN)       :: VD           
+ !! viewing distance in [nm]
+real(kind=sgl)                  :: M(4,4)       
+ !! transformation matrix
+
+real(kind=sgl)                  :: p(3),n(3),u(3),v(3),pmin   
+integer(kind=irg)               :: i,j,imin  
+
+n=float(iview)                         ! VPN View Plane Normal
+call cell%TransSpace(n,p,'d','c')       ! convert to cartesian
+call cell%NormVec(p,'c')               ! and normalize
+ 
+pmin=1.1                               ! select vector v normal to VPN in projection
+ do i=1,3
+  if (abs(p(i)).lt.pmin) then
+   pmin=abs(p(i))
+   imin=i
+  end if
+ end do
+ v= (/0.0,0.0,0.0/)
+ v(imin)=1.0
+ call cell%CalcCross(v,n,u,'c','c',0)         ! compute u = v x VPN
+ call cell%NormVec(u,'c')                     ! parallel to the U axis and normalized
+ n=-p
+ call cell%CalcCross(u,n,v,'c','c',0)         ! the third vector, right handed !!
+ call cell%NormVec(v,'c')                     ! and normalize
+
+! and store the vectors in the M matrix
+ do i=1,3
+  M(i,1)=u(i)
+  M(i,2)=v(i)
+  M(i,3)=n(i)
+  M(i,4)=0.0
+  M(4,i)=0.0
+ end do
+ M(4,4)=1.0
+
+! apply the viewing distance for perspective projections
+ do j=1,3
+  M(4,1)=M(4,1)-p(j)*u(j)*VD
+  M(4,2)=M(4,2)-p(j)*v(j)*VD
+  M(4,3)=M(4,3)-p(j)*n(j)*VD
+ end do
+ 
+end function ComputeViewTrans
+
+!--------------------------------------------------------------------------
 recursive subroutine GetDrawingSpace(sp)
   !! author: MDG 
   !! version: 1.0 
