@@ -42,7 +42,8 @@ IMPLICIT NONE
 type, public :: XXXNameListType
 end type XXXNameListType
 
-type, public ::XXX_T
+! class definition
+type, public :: XXX_T
 private 
   character(fnlen)       :: nmldeffile = 'EMXXX.nml'
   type(XXXNameListType)  :: nml 
@@ -53,6 +54,8 @@ private
   procedure, pass(self) :: getNameList_
 
   generic, public :: getNameList => getNameList_
+  generic, public :: readNameList => readNameList_
+  generic, public :: XXX => XXX_
 
 end type XXX_T
 
@@ -64,7 +67,7 @@ end interface XXX_T
 contains
 
 !--------------------------------------------------------------------------
-type(XXX_T) function XXX_constructor( nmlpath, nmlfile ) result(XXX)
+type(XXX_T) function XXX_constructor( nmlfile ) result(XXX)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -73,32 +76,39 @@ type(XXX_T) function XXX_constructor( nmlpath, nmlfile ) result(XXX)
  
 IMPLICIT NONE
 
-character(fnlen)             :: nmlpath
 character(fnlen), OPTIONAL   :: nmlfile 
-
-if (present(nmlfile)) then 
-  self%nmldeffile = trim(nmlfile)
-else
-  nmldeffile = 'EMXXX.nml'
-end if
 
 call XXX%readNameList(nmlfile)
 
 end function XXX_constructor
 
 !--------------------------------------------------------------------------
-subroutine readNameList_(self)
+subroutine readNameList_(self, nmlfile, initonly)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
 !!
 !! read the namelist from an nml file for the XXX_T Class 
 
+use mod_io 
+
+IMPLICIT NONE 
+
+class(XXX_T), INTENT(INOUT)          :: self
+character(fnlen),INTENT(IN)                 :: nmlfile
+ !! full path to namelist file 
+logical,OPTIONAL,INTENT(IN)                 :: initonly
+ !! fill in the default values only; do not read the file
+
+type(IO_T)                                  :: Message       
+logical                                     :: skipread = .FALSE.
+
+
 
 end subroutine readNameList_
 
 !--------------------------------------------------------------------------
-function getNameList_(self) result = nml
+function getNameList_(self) result(nml)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -113,5 +123,25 @@ type(XXXNameListType), INTENT(OUT)   :: nml
 nml = self%nml
 
 end function getNameList_
+
+!--------------------------------------------------------------------------
+subroutine XXX_(self, EMsoft)
+!! author: MDG 
+!! version: 1.0 
+!! date: 01/24/20
+!!
+!! perform the computations
+
+use EMsoft
+
+IMPLICIT NONE 
+
+class(XXX_T), INTENT(INOUT)       :: self
+type(EMsoft_T), INTENT(INOUT)                     :: EMsoft
+
+
+end subroutine XXX_
+
+
 
 end module mod_XXX

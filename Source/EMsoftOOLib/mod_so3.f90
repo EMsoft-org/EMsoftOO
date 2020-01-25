@@ -182,6 +182,8 @@ type, public :: so3_T
     procedure, pass(self) :: insideCubicFZ_
     procedure, pass(self) :: insideCubeHexFZ_
     procedure, pass(self) :: listtoArray_
+    procedure, pass(self) :: listtoQuaternionArray_
+    procedure, pass(self) :: QuaternionArraytolist_
     procedure, pass(self) :: getListHead_
     procedure, pass(self) :: getListCount_
     procedure, pass(self) :: setGridType_
@@ -220,6 +222,8 @@ type, public :: so3_T
     generic, public :: insideCubicFZ => insideCubicFZ_
     generic, public :: insideCubeHexFZ => insideCubeHexFZ_
     generic, public :: listtoArray => listtoArray_
+    generic, public :: listtoQuaternionArray => listtoQuaternionArray_
+    generic, public :: QuaternionArraytolist => QuaternionArraytolist_
     generic, public :: getListHead => getListHead_
     generic, public :: getListCount => getListCount_
     generic, public :: setGridType => setGridType_
@@ -1843,6 +1847,127 @@ end do
 end subroutine listtoArray_
 
 !--------------------------------------------------------------------------
+recursive subroutine listtoQuaternionArray_(self, qAR, l)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/24/20
+  !!
+  !! convert a linked list into a QuaternionArray_T object 
+
+use mod_quaternions 
+use mod_rotations
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self 
+type(QuaternionArray_T), INTENT(OUT)    :: qAR
+character(2), INTENT(IN), OPTIONAL      :: l 
+
+type(FZpointd), pointer                 :: FZtmp
+integer(kind=irg)                       :: i, cnt
+type(q_T)                               :: qu
+type(r_T)                               :: rod
+type(Quaternion_T)                      :: qq
+
+if (present(l)) then 
+  select case(l)
+    case('FZ')
+      FZtmp => self%FZlist
+      cnt = self%FZcnt 
+    case('CM')
+      FZtmp => self%CMlist
+      cnt = self%CMcnt 
+    case('CO')
+      FZtmp => self%COlist
+      cnt = self%COcnt 
+    case('FB')
+      FZtmp => self%FBlist
+      cnt = self%FBcnt 
+    case default 
+      FZtmp => self%FZlist
+      cnt = self%FZcnt 
+  end select 
+else 
+  FZtmp => self%FZlist
+  cnt = self%FZcnt 
+end if 
+
+qAR = QuaternionArray_T( n = cnt, s='d' )
+
+do i=1,cnt 
+  rod = FZtmp%rod
+  qu = rod%rq()
+  call qAR%insertQuatinArray( i, Quaternion_T( qd = qu%q_copyd() ) )
+  FZtmp => FZtmp%next 
+end do
+
+end subroutine listtoQuaternionArray_
+
+!--------------------------------------------------------------------------
+recursive subroutine QuaternionArraytolist_(self, qAR, l)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/24/20
+  !!
+  !! convert a QuaternionArray_T object into a linked list
+
+use mod_quaternions 
+use mod_rotations
+use mod_io
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self 
+type(QuaternionArray_T), INTENT(INOUT)  :: qAR
+character(2), INTENT(IN), OPTIONAL      :: l 
+
+type(IO_T)                              :: Message 
+type(FZpointd), pointer                 :: FZtmp
+integer(kind=irg)                       :: i, cnt, N
+type(Quaternion_T)                      :: qu
+type(q_T)                               :: qq
+
+if (present(l)) then 
+  select case(l)
+    case('FZ')
+      FZtmp => self%FZlist
+      cnt = self%FZcnt 
+    case('CM')
+      FZtmp => self%CMlist
+      cnt = self%CMcnt 
+    case('CO')
+      FZtmp => self%COlist
+      cnt = self%COcnt 
+    case('FB')
+      FZtmp => self%FBlist
+      cnt = self%FBcnt 
+    case default 
+      FZtmp => self%FZlist
+      cnt = self%FZcnt 
+  end select 
+else 
+  FZtmp => self%FZlist
+  cnt = self%FZcnt 
+end if 
+
+N = qAR%getQnumber()
+
+! if there are fewer than cnt items in the Array, then we only copy those into the list 
+if (N.lt.cnt) then 
+  cnt = N 
+  call Message%printWarning('QuaternionArraytolist: there are fewer items in array than in list; only copying those...')
+end if 
+
+do i=1,cnt 
+  qu = qAR%getQuatfromArray(i)
+  qq = q_T( qdinp = qu%get_quatd() )
+  FZtmp%rod = qq%qr()
+  FZtmp => FZtmp%next 
+end do
+
+end subroutine QuaternionArraytolist_
+
+!--------------------------------------------------------------------------
 recursive function getListHead_(self, l) result(FZptr)
   !! author: MDG
   !! version: 1.0 
@@ -2465,7 +2590,7 @@ type(r_T), INTENT(OUT)                 :: roFZ
 logical,OPTIONAL,INTENT(IN)            :: MFZ
 
 type(IO_T)                             :: Message
-type(Quaternion_T)                     :: Mu, qu, qS 
+type(Quaternion_T)                     :: Mu, qu, qS, pp 
 type(q_T)                              :: qq
 type(r_T)                              :: rod      
 real(kind=dbl)                         :: x(4), y(3)

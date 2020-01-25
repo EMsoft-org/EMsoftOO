@@ -557,6 +557,8 @@ character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  '
     private 
       integer(kind=irg)     :: SGnumber = 0
        !! space group number 
+      integer(kind=irg)     :: PGnumber = 0
+       !! space group number 
       character(11)         :: SGname = '           '
        !! current space group name
       integer(kind=irg)     :: setting = 0
@@ -640,6 +642,8 @@ character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  '
       procedure, pass(self) :: CalcOrbit_
       procedure, pass(self) :: CalcStar_
 ! routines to extract particular parameters 
+      procedure, pass(self) :: getPGnumber_
+      procedure, pass(self) :: setPGnumber_
       procedure, pass(self) :: GetOrderinZone_
       procedure, pass(self) :: getLaueGroupNumber_
       procedure, pass(self) :: getHexvsRho_
@@ -693,6 +697,8 @@ character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  '
       generic, public :: CalcOrbit => CalcOrbit_
       generic, public :: CalcStar => CalcStar_
 
+      generic, public :: getPGnumber => getPGnumber_
+      generic, public :: setPGnumber => setPGnumber_
       generic, public :: GetOrderinZone => GetOrderinZone_
       generic, public :: getLaueGroupNumber => getLaueGroupNumber_
       generic, public :: getHexvsRho => getHexvsRho_
@@ -824,6 +830,7 @@ pgnum = 0
 do i=1,32
   if (SGPG(i).le.SG%SGnumber) pgnum = i
 end do
+call SG%setPGnumber(pgnum)
 
 ! allocate the arrays for symmetry operators 
 allocate( SG%data(SG%SGorder, 4, 4), SG%direc(PGTHDorder(pgnum),3,3), SG%recip(PGTHDorder(pgnum),3,3) )
@@ -2128,6 +2135,52 @@ allocate(stmp(self%NUMpt,3))
 end subroutine CalcStar_
 
 !--------------------------------------------------------------------------
+function getPGnumber_(self) result(pgnum)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/24/20
+  !!
+  !! convert the space group number to a point group number 
+ 
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)       :: self
+integer(kind=irg)                       :: pgnum 
+
+integer(kind=irg)                       :: i 
+
+! find the rotational symmetry group number
+if (self%SGnumber.ge.221) then
+  i = 32
+else
+  i=0
+  do while (SGPG(i+1).le.self%SGnumber) 
+    i = i+1
+  end do
+end if
+
+pgnum = self%PGnumber 
+
+end function getPGnumber_
+
+!--------------------------------------------------------------------------
+subroutine setPGnumber_(self, pgnum)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/25/20
+  !!
+  !! set the point group number
+ 
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)       :: self
+integer(kind=irg),INTENT(IN)            :: pgnum 
+
+self%PGnumber = pgnum 
+
+end subroutine setPGnumber_
+
+!--------------------------------------------------------------------------
 recursive subroutine GetOrderinZone_(self, k, il, num, jcnt, itmp)
   !! author: MDG 
   !! version: 1.0 
@@ -2205,7 +2258,7 @@ end if
 
 LGN = PGLaueinv(i)
 
-end function getLaueGroupNumber_ 
+end function getLaueGroupNumber_
 
 !--------------------------------------------------------------------------
 recursive function getHexvsRho_(self, pgnum) result(stnum)

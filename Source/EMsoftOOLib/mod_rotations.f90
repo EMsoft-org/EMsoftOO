@@ -2607,7 +2607,7 @@ recursive function q_check_(self) result(res)
  !! version: 1.0
  !! date: 01/17/20
  !!
- !! Validity check for quaternion representation
+ !! Validity check for quaternion representation; we enforce normalization here
 
 use mod_io
 
@@ -2618,29 +2618,17 @@ integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
 real(kind=sgl)             :: r
-real(kind=sgl), parameter  :: eps = 1.e-7
 real(kind=dbl)             :: rd
-real(kind=dbl), parameter  :: epsd = 1.d-15
 
 res = 1
 
 if (rotdoubleprecision) then
-  rd = sqrt(sum(self%qd*self%qd))
-  if (self%qd(1).lt.0.D0) then
-     call Message%printError('rotations:q_check','quaternion must have positive scalar part')
-  endif
-  if (abs(r-1.D0).gt.epsd) then
-     call Message%printError('rotations:q_check','quaternion must have unit norm')
-  endif
+  rd = dsqrt(sum(self%qd*self%qd))
+  self%qd = self%qd/rd 
   res = 0
 else
   r = sqrt(sum(self%q*self%q))
-  if (self%q(1).lt.0.0) then
-     call Message%printError('rotations:q_check','quaternion must have positive scalar part')
-  endif
-  if (abs(r-1.0).gt.eps) then
-     call Message%printError('rotations:q_check','quaternion must have unit norm')
-  endif
+  self%q = self%q/r 
   res = 0
 end if
 
@@ -3238,9 +3226,22 @@ class(r_T), intent(inout)  :: self
 type(q_T)                  :: q
 
 type(a_T)                  :: a
+real(kind=sgl)             :: n, x(4)
+real(kind=dbl)             :: nd, xd(4)
 
 a = self%ra()
 q = a%aq()
+
+! make sure the quaternion is normalized
+if (rotdoubleprecision) then
+    xd = q%q_copyd()
+    nd = dsqrt(sum(xd**2))
+    q = q_T( qdinp = xd/nd )
+else
+    x = q%q_copy()
+    n = sqrt(sum(x**2))
+    q = q_T( qinp = x/n )
+end if
 
 end function rq_
 

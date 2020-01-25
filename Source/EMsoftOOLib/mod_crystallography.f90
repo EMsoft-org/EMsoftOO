@@ -2162,7 +2162,7 @@ type(IO_T)                              :: Message
 character(fnlen)                        :: dataset, groupname, xtalname
 integer(HSIZE_T)                        :: dims(1), dims2(2)
 integer(kind=irg)                       :: hdferr, nlines, xtal_system, SGnum, setting, &
-                                           ATOM_ntype 
+                                           ATOM_ntype, i 
 real(kind=dbl),allocatable              :: cellparams(:)
 integer(kind=irg),allocatable           :: atomtypes(:)
 real(kind=sgl),allocatable              :: atompos(:,:)
@@ -2221,6 +2221,17 @@ call me%readDatasetInteger(dataset, hdferr, setting)
 if (setting.eq.0) setting = 1
 call SG%setSpaceGroupSetting(setting)
 call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
+
+! here we also set the point group number, which is needed by many routines
+if (SGnum.ge.221) then
+  i = 32
+else
+  i=0
+  do while (SGPG(i+1).le.SGnum) 
+    i = i+1
+  end do
+end if
+call SG%setPGnumber(i)
 
 dataset = SC_Natomtypes
 call me%readDatasetInteger(dataset, hdferr, ATOM_ntype)
