@@ -1885,10 +1885,6 @@ second = self%second
 
 end function getSpaceGroupsecond_
 
-
-
-
-
 !--------------------------------------------------------------------------
 recursive subroutine ListPointGroups_(self)
   !! author: MDG 

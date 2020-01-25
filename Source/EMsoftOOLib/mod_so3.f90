@@ -276,9 +276,11 @@ character(2), INTENT(IN), OPTIONAL        :: zerolist
 
 if (present(pgnum2)) then 
   call SO%setFZtypeandorder(pgnum, pgnum2)
+  SO%pgnum2 = pgnum2
 else 
   call SO%setFZtypeandorder(pgnum)
 end if 
+SO%pgnum = pgnum
 
 if (present(zerolist)) then 
   select case(zerolist)

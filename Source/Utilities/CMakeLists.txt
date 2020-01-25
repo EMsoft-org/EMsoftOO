@@ -263,13 +263,13 @@ endif()
 #                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
 #                               )
 
-# Add_EMsoftOO_Executable(TARGET EMcuboMK
-#                               SOURCES ${APP_DIR}/EMcuboMK.f90 
-#                               LINK_LIBRARIES EMsoftOOLib
-#                               SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-#                               INSTALL_PROGRAM TRUE
-#                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-#                               )
+Add_EMsoftOO_Executable(TARGET EMcuboMK
+                              SOURCES ${APP_DIR}/EMcuboMK.f90 
+                              LINK_LIBRARIES EMsoftOOLib
+                              SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                              INSTALL_PROGRAM TRUE
+                              INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                              )
 
 
 # Add_EMsoftOO_Executable(TARGET EMsoftOOinit 
