@@ -201,6 +201,7 @@ type, public :: so3_T
     procedure, pass(self) :: getVertex_
     procedure, pass(self) :: getMacKenzieDistribution_
 ! some other related routines
+    procedure, pass(self) :: ReducelisttoRFZ_
     procedure, pass(self) :: ReduceDisorientationtoMFZ_
     procedure, pass(self) :: ReduceOrientationtoCubicEFZ_
     procedure, pass(self) :: ReduceOrientationtoRFZ_
@@ -240,12 +241,12 @@ type, public :: so3_T
     generic, public :: writeOrientationstoFile => writeOrientationstoFile_
     generic, public :: getVertex => getVertex_
     generic, public :: getMacKenzieDistribution => getMacKenzieDistribution_
+    generic, public :: ReducelisttoRFZ => ReducelisttoRFZ_
 
     generic, public :: ReduceDisorientationtoMFZ => ReduceDisorientationtoMFZ_
     generic, public :: ReduceOrientationtoCubicEFZ => ReduceOrientationtoCubicEFZ_
     generic, public :: ReduceOrientationtoRFZ => ReduceOrientationtoRFZ_
-    generic, public :: getDisorientation => getDisorientation_
-    generic, public :: getDisorientationTwoPhases => getDisorientationTwoPhases_
+    generic, public :: getDisorientation => getDisorientation_, getDisorientationTwoPhases_
     generic, public :: getAverageDisorientationMap => getAverageDisorientationMap_
 
 end type so3_T
@@ -1686,11 +1687,11 @@ if (dotrod.eqv..TRUE.) then
         a = FZtmp%trod%ra()
         io_real(1:4) = a%a_copyd()
         io_real(4) = io_real(4) / dtor 
-        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8)",redirect=53)
+        call Message%WriteValue('', io_real, 4, frm="(3(F14.8,' '),F14.8)",redirect=53)
       case('qu')
         q = FZtmp%trod%rq()
         io_real(1:4) = q%q_copyd() 
-        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8)",redirect=53)
+        call Message%WriteValue('', io_real, 4, frm="(3(F14.8,' '),F14.8)",redirect=53)
       case default
     end select
     FZtmp => FZtmp%next 
@@ -1733,11 +1734,11 @@ else
         a = FZtmp%rod%ra()
         io_real(1:4) = a%a_copyd()
         io_real(4) = io_real(4) / dtor 
-        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8)",redirect=53)
+        call Message%WriteValue('', io_real, 4, frm="(3(F14.8,' '),F14.8)",redirect=53)
       case('qu')
         q = FZtmp%rod%rq()
         io_real(1:4) = q%q_copyd() 
-        call Message%WriteValue('', io_real, 3, frm="(3(F14.8,' '),F14.8)",redirect=53)
+        call Message%WriteValue('', io_real, 4, frm="(3(F14.8,' '),F14.8)",redirect=53)
       case default
     end select
     FZtmp => FZtmp%next 
@@ -2567,6 +2568,43 @@ end do FZloop
 end subroutine ReduceOrientationtoCubicEFZ_
 
 !--------------------------------------------------------------------------
+recursive subroutine ReducelisttoRFZ_(self, Pm)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/25/20
+  !!
+  !! takes a linked list l and reduces the entire list to the selected Rodrigues FZ
+
+use mod_quaternions 
+use mod_rotations
+
+IMPLICIT NONE 
+
+class(so3_T), INTENT(INOUT)             :: self 
+type(QuaternionArray_T),INTENT(INOUT)   :: Pm
+
+integer(kind=irg)                       :: i 
+type(QuaternionArray_T)                 :: qAR
+type(Quaternion_T)                      :: qq
+type(q_T)                               :: qu
+type(r_T)                               :: roFZ
+
+! first, convert the linked list to a QuaternionArray_T object 
+call self%listtoQuaternionArray( qAR, 'FZ' )
+! then reduce the orientations to the RFZ 
+do i = 1, qAR%getQnumber()
+  qq = qAR%getQuatfromArray(i)
+  qu = q_T( qdinp = qq%get_quatd() )
+  call self%ReduceOrientationtoRFZ_( qu, Pm, roFZ )
+  qu = roFZ%rq()
+  call qAR%insertQuatinArray(i, Quaternion_T( qd = qu%q_copyd() ) )
+end do
+! and convert the array back to the linked list 
+call self%QuaternionArraytolist( qAR, 'FZ')
+
+end subroutine ReducelisttoRFZ_
+
+!--------------------------------------------------------------------------
 recursive subroutine ReduceOrientationtoRFZ_(self, rot, Pm, roFZ, MFZ)
   !! author: MDG
   !! version: 1.0 
@@ -2733,21 +2771,6 @@ disax = a_T( adinp = (/ ax(1:3), ac /) )
 
 end subroutine getDisorientation_
 
-!--------------------------------------------------------------------------
-!
-! SUBROUTINE: getDisorientationAngleAxisTwoPhases
-!
-!> @author Saransh Singh, Carnegie Mellon University
-!
-!> @brief Determine the disorientation angle and axis between two orientations (in radians)
-!
-!> @param eu1 first Euler triplet (in radians)
-!> @param eu2 first Euler triplet (in radians)
-!> @param dict1 dict1 structure
-!> @param dict2 dict2 structure
-!> @param disax smallest rotation angle disorientation axis-angle pair
-!
-!> @date 02/14/17 SS 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine getDisorientationTwoPhases_(self, Pm1, Pm2, or1, or2, disax)
   !! author: MDG

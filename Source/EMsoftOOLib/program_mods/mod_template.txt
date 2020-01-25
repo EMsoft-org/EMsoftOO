@@ -52,6 +52,7 @@ contains
 private 
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
+  procedure, pass(self) :: XXX_
 
   generic, public :: getNameList => getNameList_
   generic, public :: readNameList => readNameList_
@@ -118,7 +119,7 @@ function getNameList_(self) result(nml)
 IMPLICIT NONE 
 
 class(XXX_T), INTENT(INOUT)          :: self
-type(XXXNameListType), INTENT(OUT)   :: nml
+type(XXXNameListType)                :: nml
 
 nml = self%nml
 

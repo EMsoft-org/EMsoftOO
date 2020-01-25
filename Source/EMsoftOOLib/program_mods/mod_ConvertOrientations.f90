@@ -233,18 +233,7 @@ call Message%printMessage(' - read orientation data from file '//trim(fname), fr
 
 ! apply the reduction to the RFZ ?
 if (self%nml%reducetoRFZ.eq.1) then 
-! first, convert the linked list to a QuaternionArray_T object 
-  call SO%listtoQuaternionArray( qAR, 'FZ' )
-! then reduce the orientations to the RFZ 
-  do i = 1, qAR%getQnumber()
-    qq = qAR%getQuatfromArray(i)
-    qu = q_T( qdinp = qq%get_quatd() )
-    call SO%ReduceOrientationtoRFZ( qu, qsym, roFZ )
-    qu = roFZ%rq()
-    call qAR%insertQuatinArray(i, Quaternion_T( qd = qu%q_copyd() ) )
-  end do
-! and convert the array back to the linked list 
-  call SO%QuaternionArraytolist( qAR, 'FZ')
+  call SO%ReducelisttoRFZ( qsym )
 end if 
 
 ! and write the results to an output file 

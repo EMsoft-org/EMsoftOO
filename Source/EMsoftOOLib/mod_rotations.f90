@@ -2258,7 +2258,7 @@ recursive function r_check_(self) result(res)
  !! version: 1.0
  !! date: 01/17/20
  !!
- !! Validity check for Rodrigues vector representation
+ !! Validity check for Rodrigues vector representation (normalizes the unit vector)
 
 use mod_io
 
@@ -2268,8 +2268,9 @@ class(r_T), intent(inout)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
-real(kind=sgl), parameter  :: eps = 1.e-7
-real(kind=dbl), parameter  :: epsd = 1.d-10
+real(kind=sgl)             :: r 
+real(kind=dbl)             :: rd 
+
 
 res = 1
 
@@ -2277,19 +2278,15 @@ if (rotdoubleprecision) then
   if (self%rd(4).lt.0.D0) then 
      call Message%printError('rotations:r_check','Rodrigues-Frank vector has negative length')
   endif
-  if (abs(sqrt(sum(self%rd(1:3)*self%rd(1:3)))-1.D0).gt.epsd) then
-     call Message%printError('rotations:r_check','Rodrigues-Frank axis vector not normalized')
-  endif
-
+  rd = dsqrt(sum(self%rd(1:3)*self%rd(1:3)))
+  self%rd(1:3) = self%rd(1:3) / rd
   res = 0
 else
   if (self%r(4).lt.0.0) then 
      call Message%printError('rotations:r_check','Rodrigues-Frank vector has negative length')
   endif
-  if (abs(sqrt(sum(self%r(1:3)*self%r(1:3)))-1.0).gt.eps) then
-     call Message%printError('rotations:r_check','Rodrigues-Frank axis vector not normalized')
-  endif
-
+  r = sqrt(sum(self%r(1:3)*self%r(1:3)))
+  self%r(1:3) = self%r(1:3) / r
   res = 0
 end if
 
