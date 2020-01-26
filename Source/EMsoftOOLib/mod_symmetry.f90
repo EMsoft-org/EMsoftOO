@@ -1473,6 +1473,8 @@ do i=1,self%MATnum
  end if  ! (sm.lt.0.1)
 end do
 
+self%recip_pending = .FALSE.
+
 end subroutine fixRecipPG_
 
 !--------------------------------------------------------------------------

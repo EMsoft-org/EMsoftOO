@@ -2173,6 +2173,12 @@ integer(kind=irg)                       :: i, ipg, SGnum
  !  write (*,*) ' SG order = ', SGorder(SG%getSpaceGroupNumber())
  ! end if
 
+! the reciprocal space symmetry matrices can not be computed unless the 
+! direct and reciprocal structure matrices are available (this really only matters 
+! for hexagonal and rhombohedral reference frames).  So, we generate the 
+! reciprocal symmetry matrices here ...
+if (SG%recip_pending.eqv..TRUE.) call SG%fixRecipPG( self%dmt, self%rmt)
+
 ! and print the information on the screen
 if (present(verbose)) then
  if (verbose) then
