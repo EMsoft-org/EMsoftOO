@@ -27,13 +27,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
       GetHDF5LinkLibraries(EMSOFTOO)
       set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFTOO_hdf5LinkLibs})
     
-     #  Add_EMsoftOO_Executable(TARGET EMsoftOOSlackTest
-     #                                SOURCES ${APP_DIR}/EMsoftOOSlackTest.f90 
-     #                                LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-     #                                SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-     #                                INSTALL_PROGRAM TRUE
-     #                                INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-     #                                )
+      Add_EMsoftOO_Executable(TARGET EMsoftSlackTest
+                                    SOURCES ${APP_DIR}/EMsoftSlackTest.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
 
       Add_EMsoftOO_Executable(TARGET EMDisorientations
                                     SOURCES ${APP_DIR}/EMDisorientations.f90 
@@ -272,11 +272,11 @@ Add_EMsoftOO_Executable(TARGET EMcuboMK
                               )
 
 
-# Add_EMsoftOO_Executable(TARGET EMsoftOOinit 
-#                               SOURCES ${APP_DIR}/EMsoftOOinit.f90 
-#                               LINK_LIBRARIES EMsoftOOLib
-#                               SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-#                               INSTALL_PROGRAM TRUE
-#                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-#                               )
+Add_EMsoftOO_Executable(TARGET EMsoftinit 
+                              SOURCES ${APP_DIR}/EMsoftinit.f90 
+                              LINK_LIBRARIES EMsoftOOLib
+                              SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                              INSTALL_PROGRAM TRUE
+                              INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                              )
 

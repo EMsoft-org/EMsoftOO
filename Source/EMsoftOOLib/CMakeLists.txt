@@ -59,6 +59,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_povray.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_so3.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_dirstats.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_notifications.f90
   
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90
