@@ -302,6 +302,7 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: DrawSPFrame_
       procedure, pass(self) :: DrawcellFrame_
       procedure, pass(self) :: getpsscale_
+      procedure, pass(self) :: StereoProj_
 
 
       generic, public :: openFile => openFile_ 
@@ -394,6 +395,8 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
 !DEC$ ATTRIBUTES DLLEXPORT :: DrawcellFrame
       generic, public :: getpsscale => getpsscale_
 !DEC$ ATTRIBUTES DLLEXPORT :: getpsscale
+      generic, public :: StereoProj => StereoProj_
+!DEC$ ATTRIBUTES DLLEXPORT :: StereoProj
 
   end type PostScript_T
 
@@ -1750,6 +1753,120 @@ character(17)                       :: str
  call self%text(CX*0.5,8.00,'Drawing of '//str)
 
 end subroutine DrawcellFrame_
+
+!--------------------------------------------------------------------------
+recursive subroutine StereoProj_(self, cell, SG, sp, iview, hm, km, lm, topbot)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! draw a stereographic projection
+
+use mod_crystallography
+use mod_symmetry 
+use mod_math 
+use mod_io 
+use mod_misc 
+
+IMPLICIT NONE
+
+class(PostScript_T),INTENT(INOUT)   :: self 
+type(Cell_T),INTENT(INOUT)          :: cell
+type(SpaceGroup_T),INTENT(INOUT)    :: SG
+character(1),INTENT(IN)             :: sp         
+ !! space character 'd' or 'r'
+integer(kind=irg),INTENT(INOUT)     :: iview(3)   
+ !! viewing direction
+integer(kind=irg),INTENT(IN)        :: hm, km, lm 
+ !! maximum h,k,l indices to be included in drawing
+logical,INTENT(IN)                  :: topbot     
+ !! logical 
+
+logical                             :: nn
+logical,allocatable                 :: z(:,:,:)
+real(kind=sgl)                      :: rr(3),g(3),r(3),M(3,3), CX, CY, CRad,xst,yst 
+real(kind=sgl),parameter            :: negthresh = -0.000001
+integer(kind=irg)                   :: i,h,k,l,hkl(3),hkil(4),cr,hh,kk,ll,num,hkm 
+integer(kind=irg),allocatable       :: itmp(:,:) 
+
+! 20cm radius projection circle [inches]
+ CRad = 3.937
+ CX = 3.25
+ CY = 3.5
+ 
+! create transformation matrix
+ call ProjectionMatrix(cell, iview, M)
+ 
+! write text and draw projection circle
+ call self%DrawSPFrame(cell, SG, CX, CY, CRad, iview, sp)
+
+! loop over families
+! make sure that the arrays are big enough for the hexagonal case...
+if (SG%getSpaceGrouphexset().eqv..TRUE.) then 
+  hkm = abs(hm)+abs(km)
+  allocate(z(-hkm:hkm,-hkm:hkm,-lm:lm))
+else
+ allocate(z(-hm:hm,-km:km,-lm:lm))
+end if
+
+z = .FALSE.
+ do hh=-hm,hm
+  do kk=-km,km
+   do ll=-lm,lm
+    if (z(hh,kk,ll).eqv..TRUE.) cycle
+! determine the family members
+    if ((SG%getSpaceGrouphexset().eqv..TRUE.).AND.(sp.eq.'d')) then
+     hkil= (/ hh,kk,-(hh+kk),ll /)
+     call MilBrav(hkl,hkil,'43')
+    else
+     hkl= (/ hh,kk,ll /)
+    end if
+    if ((hh**2+kk**2+ll**2).ne.0) then
+     call IndexReduce(hkl)
+     call SG%CalcFamily(hkl, num, sp, itmp)
+! loop over all points and draw projection+label
+      do i=0,num-1
+       h=itmp(i,1)
+       k=itmp(i,2)
+       l=itmp(i,3)
+       hkl(1:3)=itmp(i,1:3)
+       if ((h.le.hm).and.(k.le.km).and.(l.le.lm)) then
+! reduce to smallest integers to avoid overlap
+! of indices, such as (111) and (222)
+         call IndexReduce(hkl)
+         h=hkl(1)
+         k=hkl(2)
+         l=hkl(3)
+         g=float( (/h,k,l/) )
+         call cell%TransSpace(g,r,sp,'c')
+         call cell%NormVec(r,'c')
+! apply viewing tansformation
+         rr = matmul(M,r)
+! compute stereographic projection coordinates
+         xst=CX+CRad*rr(1)/(1.0+abs(rr(3)))
+         yst=CY+CRad*rr(2)/(1.0+abs(rr(3)))
+         cr=1
+         if (z(h,k,l).eqv..FALSE.) then
+          if (rr(3).gt.negthresh) then
+           call self%filledcircle(xst,yst,0.015/self%getpsscale(),0.0)
+           nn = .TRUE.
+           call self%DumpIndices(SG%getSpaceGrouphexset(),sp,h,k,l,cr,xst,yst,nn)
+          else if (topbot) then
+           call self%circle(xst,yst,0.035/self%getpsscale())
+           nn = .FALSE.
+           call self%DumpIndices(SG%getSpaceGrouphexset(),sp,h,k,l,cr,xst,yst,nn)
+          end if
+         end if
+         z(h,k,l) = .TRUE.
+       end if
+      end do
+    end if
+   end do 
+  end do 
+ end do 
+
+end subroutine StereoProj_
+
 
 
 end module mod_postscript
