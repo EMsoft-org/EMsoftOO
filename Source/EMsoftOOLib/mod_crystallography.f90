@@ -137,11 +137,10 @@ IMPLICIT NONE
           procedure, pass(self) :: dumpXtalInfo_
 ! miscellaneous routines 
           procedure, pass(self) :: resetUnitCell
+          procedure, pass(self) :: ShortestG_
           procedure, pass(self) :: GetAsymPosWyckoff_
 
 
-          ! procedure, pass(self) :: GetOR
-          ! procedure, pass(self) :: ComputeOR
           ! procedure, pass(self) :: CalcsgHOLZ
           ! procedure, pass(self) :: GetHOLZGeometry
           ! procedure, pass(self) :: GetHOLZcoordinates
@@ -215,6 +214,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: getCrystalData 
           generic, public :: dumpXtalInfo => dumpXtalInfo_
           !DEC$ ATTRIBUTES DLLEXPORT :: dumpXtalInfo 
+          generic, public :: ShortestG => ShortestG_
+          !DEC$ ATTRIBUTES DLLEXPORT :: ShortestG_ 
 
   end type Cell_T
 
@@ -2466,218 +2467,218 @@ end subroutine calcPositions_
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
-! !--------------------------------------------------------------------------
-! recursive subroutine ShortestG_(self, k, gone, gtwo, isym)
-!   !! author: MDG 
-!   !! version: 1.0 
-!   !! date: 01/10/20
-!   !!
-!   !! determine the pair of shortest reciprocal lattice 
-!   !! vectors for a given zone axis; used to draw diffraction 
-!   !! patterns and in a bunch of other routines
-!   !!
-!   !! we look for 4 integer numbers which transform ga and gb
-!   !! simultaneously into two shortest possible vectors of the same zone;
-!   !! a range of -10:10 should be sufficient as a search space
-!   !! 
-!   !! If g1 and g2 are those shortest vectors, then we have
-!   !! 
-!   !!    ga  =  na*g1 + ma*g2\n
-!   !!    gb  =  nb*g1 + mb*g2\n
-!   !! 
-!   !! Inversion of this relation gives
-!   !! 
-!   !!    g1  =  (mb*ga - ma*gb)/D\n
-!   !!    g2  =  (-nb*ga + na*gb)/D\n
-!   !! 
-!   !! with D = na*mb - nb*ma.
-!   !! 
-!   !! The procedure below searches for the combination of 
-!   !! (ma,mb,na,nb) which simultaneously minimizes the 
-!   !! length of g1 and g2, and makes sure that both g1 and g2
-!   !! are integer linear combinations of the reciprocal basis
-!   !! vectors.
+!--------------------------------------------------------------------------
+recursive subroutine ShortestG_(self, SG, k, gone, gtwo, isym)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! determine the pair of shortest reciprocal lattice 
+  !! vectors for a given zone axis; used to draw diffraction 
+  !! patterns and in a bunch of other routines
+  !!
+  !! we look for 4 integer numbers which transform ga and gb
+  !! simultaneously into two shortest possible vectors of the same zone;
+  !! a range of -10:10 should be sufficient as a search space
+  !! 
+  !! If g1 and g2 are those shortest vectors, then we have
+  !! 
+  !!    ga  =  na*g1 + ma*g2\n
+  !!    gb  =  nb*g1 + mb*g2\n
+  !! 
+  !! Inversion of this relation gives
+  !! 
+  !!    g1  =  (mb*ga - ma*gb)/D\n
+  !!    g2  =  (-nb*ga + na*gb)/D\n
+  !! 
+  !! with D = na*mb - nb*ma.
+  !! 
+  !! The procedure below searches for the combination of 
+  !! (ma,mb,na,nb) which simultaneously minimizes the 
+  !! length of g1 and g2, and makes sure that both g1 and g2
+  !! are integer linear combinations of the reciprocal basis
+  !! vectors.
 
+use mod_io 
+use mod_symmetry
 
-! use error
-! use crystal
-! use constants
+IMPLICIT NONE
 
-! IMPLICIT NONE
+class(Cell_T),INTENT(INOUT)             :: self
+type(SpaceGroup_T),INTENT(INOUT)        :: SG 
+integer(kind=irg),INTENT(INOUT)         :: isym                 
+ !! used to resolve some potential ambiguities for 3-fold and 6-fold symmetries
+integer(kind=irg),INTENT(IN)            :: k(3)                 
+ !! input zone axis indices
+integer(kind=irg),INTENT(OUT)           :: gone(3)              
+ !! output first vector
+integer(kind=irg),INTENT(OUT)           :: gtwo(3)              
+ !! output second vector
 
-! class(SpaceGroup_T),INTENT(INOUT)       :: self
-! integer(kind=irg),INTENT(INOUT)         :: isym                 
-!  !! used to resolve some potential ambiguities for 3-fold and 6-fold symmetries
-! integer(kind=irg),INTENT(IN)            :: k(3)                 
-!  !! input zone axis indices
-! integer(kind=irg),INTENT(OUT)           :: gone(3)              
-!  !! output first vector
-! integer(kind=irg),INTENT(OUT)           :: gtwo(3)              
-!  !! output second vector
+type(IO_T)                              :: Message
+integer(kind=irg)                       :: ga(3),gb(3),nzero(3),u,v,w,snz,ml(4),igsave(3)
+integer(kind=irg)                       :: ima,imb,ina,inb,el(6),denom,minsum,inm,il(48),jcnt,num 
+real(kind=sgl)                          :: fel(6),fit,gsave(3)
+integer(kind=irg),allocatable           :: ifit(:,:,:,:)
+integer(kind=irg),allocatable           :: itmp(:,:)
 
-! integer(kind=irg)                       :: ga(3),gb(3),nzero(3),u,v,w,snz,ml(4),igsave(3)       ! auxiliary variables
-! integer(kind=irg)                       :: ima,imb,ina,inb,el(6),denom,minsum,inm,il(48),jcnt,num ! auxiliary variables
-! real(kind=sgl)                          :: fel(6),fit,gsave(3)  ! auxiliary variables
-! integer(kind=irg),allocatable           :: ifit(:,:,:,:)        ! array used to search
-! integer(kind=irg)                       :: itmp(48,3)           ! array used for family computations etc
+ u = k(1)
+ v = k(2)
+ w = k(3)
 
-!  u = k(1)
-!  v = k(2)
-!  w = k(3)
-
-! ! determine two arbitrary vectors normal to k 
-! ! first count the zeroes in k
-!  nzero = (/0,0,0/)
-!  where (k.eq.0) nzero = 1
-!  snz = sum(nzero)
+! determine two arbitrary vectors normal to k 
+! first count the zeroes in k
+ nzero = (/0,0,0/)
+ where (k.eq.0) nzero = 1
+ snz = sum(nzero)
  
-!  if (snz.eq.0) then  ! make sure ga x gb is parallel to k
-!    ga = (/v,-u,0/)
-!    gb = (/w,0,-u/)
-!  else
-!   select case (snz)
-!   case(1);  ga = nzero; gb = 1 - nzero
-!             if (nzero(1).eq.1) gb = gb * (/0,w,-v/)
-!             if (nzero(2).eq.1) gb = gb * (/w,0,-u/)
-!             if (nzero(3).eq.1) gb = gb * (/v,-u,0/)
-!   case(2);  if ((nzero(1).eq.1).and.(nzero(2).eq.1)) then
-!              ga = (/1,0,0/); gb = (/0,1,0/)
-!             endif
-!             if ((nzero(1).eq.1).and.(nzero(3).eq.1)) then
-!              ga = (/0,0,1/); gb = (/1,0,0/)
-!             endif
-!             if ((nzero(2).eq.1).and.(nzero(3).eq.1)) then
-!              ga = (/0,1,0/); gb = (/0,0,1/)
-!             endif
-!   case(3); call FatalError('ShortestG',' beam direction cannot be [0,0,0]')
-!   end select
-!  end if 
+ if (snz.eq.0) then  ! make sure ga x gb is parallel to k
+   ga = (/v,-u,0/)
+   gb = (/w,0,-u/)
+ else
+  select case (snz)
+  case(1);  ga = nzero; gb = 1 - nzero
+            if (nzero(1).eq.1) gb = gb * (/0,w,-v/)
+            if (nzero(2).eq.1) gb = gb * (/w,0,-u/)
+            if (nzero(3).eq.1) gb = gb * (/v,-u,0/)
+  case(2);  if ((nzero(1).eq.1).and.(nzero(2).eq.1)) then
+             ga = (/1,0,0/); gb = (/0,1,0/)
+            endif
+            if ((nzero(1).eq.1).and.(nzero(3).eq.1)) then
+             ga = (/0,0,1/); gb = (/1,0,0/)
+            endif
+            if ((nzero(2).eq.1).and.(nzero(3).eq.1)) then
+             ga = (/0,1,0/); gb = (/0,0,1/)
+            endif
+  case(3); call Message%printError('ShortestG',' beam direction cannot be [0,0,0]')
+  end select
+ end if 
 
-! ! check linear combinations to see if there are any shorter ones
-!  inm = 10
-!  allocate(ifit(-inm:inm,-inm:inm,-inm:inm,-inm:inm))
-!  do ima=-inm,inm
-!   do imb=-inm,inm
-!    do ina=-inm,inm
-!     do inb=-inm,inm
-!      el(1) = imb*ga(1)-ima*gb(1) 
-!      el(2) = imb*ga(2)-ima*gb(2) 
-!      el(3) = imb*ga(3)-ima*gb(3) 
-!      el(4) = ina*gb(1)-inb*ga(1) 
-!      el(5) = ina*gb(2)-inb*ga(2) 
-!      el(6) = ina*gb(3)-inb*ga(3) 
-!      denom = ina*imb-inb*ima
-!      ifit(ima,imb,ina,inb)=100
-!      if (denom.ne.0) then
-!       fel = float(el)/float(denom)
-!       fit = sum(abs(float(int(fel))-fel))
-! ! here is where we only keep the integer combinations
-!       if (fit.eq.0.0) then
-!         gone(1:3) = int(fel(1:3))
-!         gtwo(1:3) = int(fel(4:6))
-! ! keep the sum of the squares of the lengths 
-!        ifit(ima,imb,ina,inb)=sum(gone**2)+sum(gtwo**2) 
-!       end if
-!      end if
-!     end do
-!    end do
-!   end do
-!  end do
-!  minsum = 50
+! check linear combinations to see if there are any shorter ones
+ inm = 10
+ allocate(ifit(-inm:inm,-inm:inm,-inm:inm,-inm:inm))
+ do ima=-inm,inm
+  do imb=-inm,inm
+   do ina=-inm,inm
+    do inb=-inm,inm
+     el(1) = imb*ga(1)-ima*gb(1) 
+     el(2) = imb*ga(2)-ima*gb(2) 
+     el(3) = imb*ga(3)-ima*gb(3) 
+     el(4) = ina*gb(1)-inb*ga(1) 
+     el(5) = ina*gb(2)-inb*ga(2) 
+     el(6) = ina*gb(3)-inb*ga(3) 
+     denom = ina*imb-inb*ima
+     ifit(ima,imb,ina,inb)=100
+     if (denom.ne.0) then
+      fel = float(el)/float(denom)
+      fit = sum(abs(float(int(fel))-fel))
+! here is where we only keep the integer combinations
+      if (fit.eq.0.0) then
+        gone(1:3) = int(fel(1:3))
+        gtwo(1:3) = int(fel(4:6))
+! keep the sum of the squares of the lengths 
+       ifit(ima,imb,ina,inb)=sum(gone**2)+sum(gtwo**2) 
+      end if
+     end if
+    end do
+   end do
+  end do
+ end do
+ minsum = 50
 
-! ! look for the minimum of ifit with the smallest and most
-! ! positive coefficients; store them in ml
-! ! [minloc does not work here because there may be multiple minima]
-!  do ima=-inm,inm
-!   do imb=-inm,inm
-!    do ina=-inm,inm
-!     do inb=-inm,inm
-!      if (ifit(ima,imb,ina,inb).le.minsum) then
-!       minsum = ifit(ima,imb,ina,inb)
-!       ml(1) = ima
-!       ml(2) = imb
-!       ml(3) = ina
-!       ml(4) = inb
-!      end if
-!     end do
-!    end do
-!   end do
-!  end do
-!  deallocate(ifit)
+! look for the minimum of ifit with the smallest and most
+! positive coefficients; store them in ml
+! [minloc does not work here because there may be multiple minima]
+ do ima=-inm,inm
+  do imb=-inm,inm
+   do ina=-inm,inm
+    do inb=-inm,inm
+     if (ifit(ima,imb,ina,inb).le.minsum) then
+      minsum = ifit(ima,imb,ina,inb)
+      ml(1) = ima
+      ml(2) = imb
+      ml(3) = ina
+      ml(4) = inb
+     end if
+    end do
+   end do
+  end do
+ end do
+ deallocate(ifit)
 
-! ! transform ga and gb into g1 and g2 
-!  gone = (ml(2)*ga-ml(1)*gb)/(ml(3)*ml(2)-ml(4)*ml(1))
-!  gtwo = (ml(3)*gb-ml(4)*ga)/(ml(3)*ml(2)-ml(4)*ml(1))
+! transform ga and gb into g1 and g2 
+ gone = (ml(2)*ga-ml(1)*gb)/(ml(3)*ml(2)-ml(4)*ml(1))
+ gtwo = (ml(3)*gb-ml(4)*ga)/(ml(3)*ml(2)-ml(4)*ml(1))
 
-! ! next rank these two vectors so that their cross product is along +k
-!  call CalcCross(cell,float(gone),float(gtwo),gsave,'r','r',0)
-!  fit = CalcDot(cell,gsave,float(k),'r')
-!  if (fit.lt.0.0) then
-!   igsave = gone
-!   gone = gtwo
-!   gtwo = igsave
-!  end if
+! next rank these two vectors so that their cross product is along +k
+ call self%CalcCross(float(gone),float(gtwo),gsave,'r','r',0)
+ fit = self%CalcDot(gsave,float(k),'r')
+ if (fit.lt.0.0) then
+  igsave = gone
+  gone = gtwo
+  gtwo = igsave
+ end if
 
-! ! finally, if isym.ne.0 make sure that the selection of the 
-! ! basis vectors for the 3-fold and 6-fold 2D point groups is
-! ! correctly done.
-! !
-! ! For isym < 7:   90 degrees between vectors (should not be a problem)
-! ! For isym = 7:  120 degrees between vectors (should be ok too)
-! ! distinguish between 3 coming from a cubic group
-! ! vs. the same symmetries originating from a hexagonal setting
-!  if ((isym.eq.7).and.(cell%gamma.eq.120.0)) then
-!    isym=11
-!    fit = CalcAngle(cell,float(gone),float(gtwo),'r')*180.0/cPi 
-!    if (abs(fit-120.0).lt.1.0) then
-!      gtwo=gone+gtwo
-!    end if
-!  end if
+! finally, if isym.ne.0 make sure that the selection of the 
+! basis vectors for the 3-fold and 6-fold 2D point groups is
+! correctly done.
+!
+! For isym < 7:   90 degrees between vectors (should not be a problem)
+! For isym = 7:  120 degrees between vectors (should be ok too)
+! distinguish between 3 coming from a cubic group
+! vs. the same symmetries originating from a hexagonal setting
+ if ((isym.eq.7).and.(self%gamma.eq.120.0)) then
+   isym=11
+   fit = self%CalcAngle(float(gone),float(gtwo),'r')/dtor
+   if (abs(fit-120.0).lt.1.0) then
+     gtwo=gone+gtwo
+   end if
+ end if
 
-! ! For isym = 8:  here we should distinguish between the settings 3m1 and 31m !!!
-! !                The angle should always be 120 degrees, so we must check that
-! !                this is the case for the selected gone and gtwo.
-!  if ((isym.eq.8).and.(cell%gamma.eq.120.0)) then
-!    isym=12
-!    fit = CalcAngle(cell,float(gone),float(gtwo),'r')*180.0/cPi 
-!    if (abs(fit-120.0).lt.1.0) then
-!      gtwo=gone+gtwo
-!    end if
-!  end if
-! !
-!  if (isym.eq.8) then
-!    fit = CalcAngle(cell,float(gone),float(gtwo),'r')*180.0/cPi 
-!    if (abs(fit-120.0).gt.1.0) then
-!      gtwo=gtwo-gone
-!    end if
+! For isym = 8:  here we should distinguish between the settings 3m1 and 31m !!!
+!                The angle should always be 120 degrees, so we must check that
+!                this is the case for the selected gone and gtwo.
+ if ((isym.eq.8).and.(self%gamma.eq.120.0)) then
+   isym=12
+   fit = self%CalcAngle(float(gone),float(gtwo),'r')/dtor 
+   if (abs(fit-120.0).lt.1.0) then
+     gtwo=gone+gtwo
+   end if
+ end if
+!
+ if (isym.eq.8) then
+   fit = self%CalcAngle(float(gone),float(gtwo),'r')/dtor 
+   if (abs(fit-120.0).gt.1.0) then
+     gtwo=gtwo-gone
+   end if
 
-! ! we assume it is the 31m setting;  if the order of gone is 6, then that is not true
-!    call CalcFamily(cell,gone,num,'r',itmp)
-!    call GetOrder(float(k),il,num,jcnt,itmp)
-!    if (jcnt.eq.6) then  ! it is the 3m1 setting
-!      isym = 13
-!    end if
-!  end if
+! we assume it is the 31m setting;  if the order of gone is 6, then that is not true
+   call SG%CalcFamily(gone,num,'r',itmp)
+   call SG%GetOrderinZone(float(k),il,num,jcnt,itmp)
+   if (jcnt.eq.6) then  ! it is the 3m1 setting
+     isym = 13
+   end if
+ end if
 
-! ! it could the 3m1 setting for the 3m hexagonal case
-!  if (isym.eq.12) then
-! ! we assume it is the 31m setting;  if the order of gone is 6, then that is not true
-!    call CalcFamily(cell,gone,num,'r',itmp)
-!    call GetOrder(float(k),il,num,jcnt,itmp)
-!    if (jcnt.eq.6) then  ! it is the 3m1 setting
-!      isym = 14
-!    end if
-!  end if
+! it could the 3m1 setting for the 3m hexagonal case
+ if (isym.eq.12) then
+! we assume it is the 31m setting;  if the order of gone is 6, then that is not true
+   call SG%CalcFamily(gone,num,'r',itmp)
+   call SG%GetOrderinZone(float(k),il,num,jcnt,itmp)
+   if (jcnt.eq.6) then  ! it is the 3m1 setting
+     isym = 14
+   end if
+ end if
 
-! ! For isym = 9 or 10:   60 degrees between vectors (may not be the case)
-!  if ((isym.eq.9).or.(isym.eq.10)) then
-!    fit = CalcAngle(cell,float(gone),float(gtwo),'r')*180.0/cPi 
-!    if (abs(fit-120.0).lt.1.0) then
-!      gtwo=gone+gtwo
-!    end if
-!  end if
+! For isym = 9 or 10:   60 degrees between vectors (may not be the case)
+ if ((isym.eq.9).or.(isym.eq.10)) then
+   fit = self%CalcAngle(float(gone),float(gtwo),'r')/dtor
+   if (abs(fit-120.0).lt.1.0) then
+     gtwo=gone+gtwo
+   end if
+ end if
 
-! end subroutine ShortestG_
+end subroutine ShortestG_
 
 
 
