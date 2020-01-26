@@ -249,7 +249,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent, tpl) result(EMsoft)
+type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent, tpl, noCLA) result(EMsoft)
   !! author: MDG 
   !! version: 1.0 
   !! date: 12/30/19
@@ -284,7 +284,15 @@ logical, INTENT(IN), OPTIONAL     :: silent
  !! optionally, don't show any output
 integer(kind=irg), INTENT(IN), OPTIONAL :: tpl(:)
  !! list of template files to be created 
+logical, INTENT(IN), OPTIONAL     :: noCLA 
+ !! turn off Command Line Argument handling 
 
+if (present(noCLA)) then 
+  if (noCLA.eqv..TRUE.) then ! we do not want command line argument handling 
+    call EMsoft % init()
+    call EMsoft % printEMsoftHeader(progname, progdesc)
+  end if 
+else 
   call EMsoft % init()
 
   if (present(tpl)) then 
@@ -310,6 +318,7 @@ integer(kind=irg), INTENT(IN), OPTIONAL :: tpl(:)
       call EMsoft % printConfigParameters
     endif
   end if
+end if 
 
 end function constructor
 

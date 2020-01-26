@@ -36,6 +36,15 @@ module mod_misc
 use mod_kinds
 use mod_global
 
+IMPLICIT NONE 
+
+!> this type is used to define an orientation relation, i.e., two parallel
+!> directions and two parallel planes
+type OrientationRelation
+  real(kind=sgl)                        :: tA(3), tB(3), gA(3), gB(3)
+end type OrientationRelation
+
+
 contains
 
 !--------------------------------------------------------------------------
@@ -457,8 +466,120 @@ integer(kind=irg)               :: jnd(4)
 
 end subroutine GetIndex
 
+!--------------------------------------------------------------------------
+recursive subroutine GetOR(orel)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! ask for orientation relation between two crystals in terms of parallel planes
+  !! and parallel directions; 
 
+use mod_io
 
+IMPLICIT NONE
 
+type(OrientationRelation),INTENT(OUT)  :: orel  
+
+type(IO_T)                             :: Message 
+real(kind=sgl)                         :: c1,c2 
+integer(kind=irg)                      :: io_int(6) 
+
+ c1 = 1.0_sgl
+ c2 = 1.0_sgl
+ do while ((c1.ne.0.0_sgl).or.(c2.ne.0.0_sgl))
+  call Message%printMessage('Enter orientation relation in following form:', frm = "(A)")
+  call Message%printMessage('planes:     h_A,k_A,l_A,h_B,k_B,l_B ', frm = "(A)")
+  call Message%printMessage('directions: u_A,v_A,w_A,u_B,v_B,w_B ', frm = "(A)")
+  call Message%ReadValue('Plane normals :', io_int, 6) 
+  orel%gA(1:3) = float(io_int(1:3))
+  orel%gB(1:3) = float(io_int(4:6))
+  call Message%ReadValue('Directions    :', io_int, 6) 
+  orel%tA(1:3) = float(io_int(1:3))
+  orel%tB(1:3) = float(io_int(4:6))
+
+! check for orthonormality using zone equation
+  c1=sum(orel%tA*orel%gA)
+  if (c1.ne.0.0_sgl) then
+   call Message%printMessage('Plane does not contain direction (crystal A)', frm ="(A)")
+  end if
+  c2=sum(orel%tB*orel%gB)
+  if (c2.ne.0.0_sgl) then
+   call Message%printMessage('Plane does not contain direction (crystal B)', frm = "(A)")
+  end if
+ end do
+
+end subroutine GetOR
+
+!--------------------------------------------------------------------------
+recursive function ComputeOR(orel, cellA, cellB, direction) result(TT)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! compute the orientation relation transformation matrix
+
+use mod_math
+use mod_io
+use mod_crystallography
+
+IMPLICIT NONE
+
+type(OrientationRelation),INTENT(INOUT)  :: orel  
+type(Cell_T),INTENT(INOUT)               :: cellA
+type(Cell_T),INTENT(INOUT)               :: cellB 
+character(2),INTENT(IN)                  :: direction  
+ !! direction of transformation (AB or BA)
+real(kind=sgl)                           :: TT(3,3)
+
+type(IO_T)                               :: Message
+real(kind=sgl)                           :: r(3), p(3), Ep(3,3), E(3,3), io_real(3), dsm(3,3)
+real(kind=dbl)                           :: dE(3,3)
+integer(kind=irg)                        :: i
+
+! compute E matrix  [page 74]
+ call cellA%TransSpace(orel % gA,r,'r','d')
+ call cellA%NormVec(r,'d')
+ call cellA%NormVec(orel % tA,'d')
+ call cellA%CalcCross(orel % tA,r,p,'d','d',0)
+ call cellA%NormVec(p,'d')
+ dsm = sngl(cellA%getdsm())
+ E(1,1:3)=matmul(dsm, r)
+ E(2,1:3)=matmul(dsm, p)
+ E(3,1:3)=matmul(dsm, orel % tA)
+ call mInvert(dble(E),dE,.FALSE.)
+ E = dE
+ call Message%printMessage('Transformation matrix E', frm = "(A)")
+ do i=1,3
+  io_real(1:3) = E(i,1:3)
+  call Message%WriteValue('', io_real, 3)
+ end do
+
+! compute E-prime matrix 
+ call cellB%TransSpace(orel % gB,r,'r','d')
+ call cellB%NormVec(r,'d')
+ call cellB%NormVec(orel % tB,'d')
+ call cellB%CalcCross(orel % tB,r,p,'d','d',0)
+ call cellB%NormVec(p,'d')
+ dsm = sngl(cellB%getdsm())
+ Ep(1,1:3)=matmul(dsm, r)
+ Ep(2,1:3)=matmul(dsm, p)
+ Ep(3,1:3)=matmul(dsm, orel % tB)
+ call Message%printMessage('Transformation matrix E-prime', frm = "(A)")
+ do i=1,3
+  io_real(1:3) = Ep(i,1:3)
+  call Message%WriteValue('', io_real, 3)
+ end do
+
+! and multiply both matrices to get transformation matrix M
+ TT = matmul(E,Ep)
+ call Message%printMessage('Transformation matrix for orientation relation', frm = "(A)")
+ do i=1,3
+  io_real(1:3) = TT(i,1:3)
+  call Message%WriteValue('', io_real, 3)
+ end do
+ call Message%printMessage(' --- ', frm = "(A)")
+
+end function ComputeOR
 
 end module mod_misc

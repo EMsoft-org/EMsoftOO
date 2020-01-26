@@ -123,6 +123,7 @@ IMPLICIT NONE
           procedure, pass(self) :: getLatticeParameterSingle
           procedure, pass(self) :: getLatticeParametersAll
           procedure, pass(self) :: getAsymmetricPosition
+          procedure, pass(self) :: getDirectStructureMatrix
           procedure, pass(self) :: getAsymPosArray
           procedure, pass(self) :: displayPeriodicTable
           ! procedure, pass(self) :: extractAtomPositionData
@@ -178,6 +179,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: getAsymPos 
           generic, public :: getAsymPosData => getAsymPosArray
           !DEC$ ATTRIBUTES DLLEXPORT :: getAsymPos 
+          generic, public :: getdsm => getDirectStructureMatrix
+          !DEC$ ATTRIBUTES DLLEXPORT :: getdsm
           generic, public :: calcDensity => calcTheoreticalDensity 
           !DEC$ ATTRIBUTES DLLEXPORT :: calcDensity 
           generic, public :: GetAsymPosWyckoff => GetAsymPosWyckoff_
@@ -591,6 +594,23 @@ character(fnlen)                :: xtalname
 xtalname = trim(self%xtalname)
 
 end function getFileName_
+
+!--------------------------------------------------------------------------
+recursive function getDirectStructureMatrix(self) result(dsm)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! get the direct structure matrix 
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+real(kind=dbl)                  :: dsm(3,3) 
+
+dsm = self%dsm
+
+end function getDirectStructureMatrix
 
 !--------------------------------------------------------------------------
 recursive subroutine setSource_(self, source)
@@ -2660,154 +2680,6 @@ end subroutine calcPositions_
 ! end subroutine ShortestG_
 
 
-
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: GetOR
-! !
-! !> @author Marc De Graef, Carnegie Mellon University
-! !
-! !> @brief ask for orientation relation between two crystals
-! !
-! !> @details ask for orientation relation between two crystals in terms of parallel planes
-! !> and parallel directions; 
-! !
-! !> @param orel output variable of type orientation
-! !
-! !> @todo Is this routine really necessary ? It is not called very often.
-! !
-! !> @date 10/13/98 MDG 1.0 original
-! !> @date    5/19/01 MDG 2.0 f90 version
-! !> @date   11/27/01 MDG 2.1 added kind support
-! !> @date   03/19/13 MDG 3.0 interface support
-! !> @date   01/10/14 MDG 4.0 checked for changes to unitcell type
-! !> @date   06/05/14 MDG 4.1 added stdout 
-! !> @date   03/29/18 MDG 4.2 removed stdout 
-! !--------------------------------------------------------------------------
-! recursive subroutine GetOR(orel)
-! !DEC$ ATTRIBUTES DLLEXPORT :: GetOR
-
-! use io
-
-! IMPLICIT NONE
-
-! type(orientation),INTENT(OUT)                   :: orel                 !< orientation relation type
-
-! real(kind=sgl)                                  :: c1,c2                !< auxiliary variables
-! integer(kind=irg)                               :: io_int(6)            !< used for IO
-
- 
-!  c1 = 1.0_sgl
-!  c2 = 1.0_sgl
-!  do while ((c1.ne.0.0_sgl).or.(c2.ne.0.0_sgl))
-!   call Message('Enter orientation relation in following form:', frm = "(A)")
-!   call Message('planes:     h_A,k_A,l_A,h_B,k_B,l_B ', frm = "(A)")
-!   call Message('directions: u_A,v_A,w_A,u_B,v_B,w_B ', frm = "(A)")
-!   call ReadValue('Plane normals :', io_int, 6) 
-!   orel%gA(1:3) = float(io_int(1:3))
-!   orel%gB(1:3) = float(io_int(4:6))
-!   call ReadValue('Directions    :', io_int, 6) 
-!   orel%tA(1:3) = float(io_int(1:3))
-!   orel%tB(1:3) = float(io_int(4:6))
-
-! ! check for orthonormality using zone equation
-!   c1=sum(orel%tA*orel%gA)
-!   if (c1.ne.0.0_sgl) then
-!    call Message('Plane does not contain direction (crystal A)', frm ="(A)")
-!   end if
-!   c2=sum(orel%tB*orel%gB)
-!   if (c2.ne.0.0_sgl) then
-!    call Message('Plane does not contain direction (crystal B)', frm = "(A)")
-!   end if
-!  end do
-
-! end subroutine GetOR
-
-
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: ComputeOR
-! !
-! !> @author Marc De Graef, Carnegie Mellon University
-! !
-! !> @brief compute the orientation relation transformation matrix
-! !
-! !> @param orel output variable of type orientation
-! !> @param cellA unit cell A pointer
-! !> @param cellB unit cell B pointer
-! !> @param direction 'AB' for A new, B old; 'BA' for B new, A old
-! !
-! !> @date   12/20/13 MDG 1.0 first version, used for EMoverlap and EMorient
-! !> @date   01/10/14 MDG 4.0 checked for changes to unitcell type
-! !> @date   06/05/14 MDG 4.1 modification for cell pointers
-! !> @date   09/21/15 SS  4.2 correction in final step (buggy lines commented out and new lines marked)
-! !--------------------------------------------------------------------------
-! recursive function ComputeOR(orel, cellA, cellB, direction) result(TT)
-! !DEC$ ATTRIBUTES DLLEXPORT :: ComputeOR
-
-! use math
-! use io
-! use error
-
-! IMPLICIT NONE
-
-! type(orientation),INTENT(INOUT) :: orel         !< orientation relation type
-! !f2py intent(in,out) ::  orel         !< orientation relation type
-! type(unitcell)                  :: cellA, cellB 
-! character(2),INTENT(IN)         :: direction  !< direction of transformation (AB or BA)
-! real(kind=sgl)                  :: TT(3,3)
-
-! real(kind=sgl)                  :: r(3), p(3), Ep(3,3), E(3,3)
-! real(kind=dbl)                  :: dE(3,3)
-! integer(kind=irg)               :: i
-
-
-! ! compute E matrix  [page 74]
-!  call TransSpace(cellA, orel % gA,r,'r','d')
-!  call NormVec(cellA, r,'d')
-!  call NormVec(cellA, orel % tA,'d')
-!  call CalcCross(cellA, orel % tA,r,p,'d','d',0)
-!  call NormVec(cellA, p,'d')
-!  E(1,1:3)=r(1:3)
-!  E(2,1:3)=p(1:3)
-!  E(3,1:3)=orel % tA(1:3)
-!  !if (direction.eq.'AB') then
-!  !  call mInvert(dble(E),dE,.FALSE.)
-!  !  E = sngl(dE)
-!  !end if
-
-! ! compute E-prime matrix 
-!  call TransSpace(cellB, orel % gB,r,'r','d')
-!  call NormVec(cellB, r,'d')
-!  call NormVec(cellB, orel % tB,'d')
-!  call CalcCross(cellB, orel % tB,r,p,'d','d',0)
-!  call NormVec(cellB, p,'d')
-!  Ep(1,1:3)=r(1:3)
-!  Ep(2,1:3)=p(1:3)
-!  Ep(3,1:3)=orel % tB(1:3)
-!  !if (direction.eq.'BA') then
-!  !  call mInvert(dble(Ep),dE,.FALSE.)
-!  !  Ep = sngl(dE)
-!  !end if
-
-! ! and multiply E^(-1)Ep or Ep^(-1)E matrices to get transformation matrix M
-!  if (direction.eq.'BA') then
-! !=============NEW==================
-!    call mInvert(dble(Ep),dE,.FALSE.)
-!    Ep = sngl(dE) 
-! !==================================
-!    TT = matmul(Ep,E)
-!  else if (direction .eq. 'AB') then
-! !=============NEW==================
-!    call mInvert(dble(E),dE,.FALSE.)
-!    E = sngl(dE)
-! !==================================   
-!    TT = matmul(E,Ep)
-!  else
-!    call FatalError('ComputeOR','Unknown direction specified')
-!  end if
-
-! end function ComputeOR
 
 ! !--------------------------------------------------------------------------
 ! ! 

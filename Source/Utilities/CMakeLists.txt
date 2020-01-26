@@ -140,13 +140,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
      #                                INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
      #                                )
 
-     #  Add_EMsoftOO_Executable(TARGET EMorient 
-     #                                SOURCES ${APP_DIR}/EMorient.f90 
-     #                                LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-     #                                SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-     #                                INSTALL_PROGRAM TRUE
-     #                                INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-     #                                )
+      Add_EMsoftOO_Executable(TARGET EMorient 
+                                    SOURCES ${APP_DIR}/EMorient.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
 
       Add_EMsoftOO_Executable(TARGET EMlatgeom 
                                     SOURCES ${APP_DIR}/EMlatgeom.f90 
@@ -236,13 +236,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
       #                               INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
       #                               )
 
-      # Add_EMSoft_Executable(TARGET EMmergefiles
-      #                               SOURCES ${APP_DIR}/EMmergefiles.f90 
-      #                               LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-      #                               SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-      #                               INSTALL_PROGRAM TRUE
-      #                               INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-      #                               )
+      Add_EMSoftOO_Executable(TARGET EMmergefiles
+                                    SOURCES ${APP_DIR}/EMmergefiles.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
       
       Add_EMSoftOO_Executable(TARGET EMsampleRFZ 
                                     SOURCES ${APP_DIR}/EMsampleRFZ.f90 
