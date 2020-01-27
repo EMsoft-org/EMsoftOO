@@ -712,7 +712,7 @@ private
     type(h_T) :: h ! homochoric representation according to Frank's paper  
     type(c_T) :: c ! cubic grid representation (derived from homochoric)
     type(s_T) :: s ! 3D stereographic  [added 10/05/17]
-    type(v_T) :: v ! exponential map [added 10/25/19]
+    type(v_T) :: v ! rotation vector [added 10/25/19]
 
   contains
   private

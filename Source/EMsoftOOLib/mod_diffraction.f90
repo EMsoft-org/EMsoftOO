@@ -249,6 +249,7 @@ private
     procedure, pass(self) :: getScatfac_
     procedure, pass(self) :: BWsolve_
     procedure, pass(self) :: setrlpmethod_
+    procedure, pass(self) :: getrlp_
 
     generic, public :: GetVoltage => GetVoltage_
     generic, public :: CalcWaveLength => CalcWaveLength_
@@ -259,6 +260,7 @@ private
     generic, public :: getScatfac => getScatfac_
     generic, public :: BWsolve => BWsolve_
     generic, public :: setrlpmethod => setrlpmethod_
+    generic, public :: getrlp => getrlp_
 
 end type Diffraction_T
 
@@ -395,7 +397,7 @@ use mod_io
 IMPLICIT NONE 
 
 class(Diffraction_T),INTENT(INOUT)      :: self
-integer(kind=irg), INTENT(IN), OPTIONAL :: m
+character(2), INTENT(IN), OPTIONAL      :: m
 logical, INTENT(IN), OPTIONAL           :: ask 
 
 type(IO_T)                              :: Message
@@ -403,11 +405,8 @@ integer(kind=irg)                       :: io_int(1)
 
 if (present(m)) then    ! we ignore the 'ask' parameter 
    self%rlp%absorption = .FALSE.
-   select case (m) 
-    case(1); self%rlp%method='DT'; 
-    case(2); self%rlp%method='WK'; 
-    case(3); self%rlp%method='WK'; self%rlp%absorption=.TRUE.
-   end select
+   self%rlp%method=m 
+   if (m.eq.'WK') self%rlp%absorption = .TRUE.
 else 
   if (present(ask)) then
    call Message%printMessage(  (/ & 
@@ -426,6 +425,23 @@ else
 end if 
 
 end subroutine setrlpmethod_
+
+!--------------------------------------------------------------------------
+recursive function getrlp_(self) result(rlp)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! ask for accelerating voltage, then call CalcWaveLength
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+type(gnode)                         :: rlp 
+
+rlp = self%rlp 
+
+end function getrlp_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetVoltage_(self, cell)
@@ -1550,7 +1566,7 @@ complex(kind=dbl),allocatable       :: MIWORK(:)
 
 ! then call the eigenvalue solver
   call zgeev(JOBVL,JOBVR,nn,M,LDA,W,VL,LDVL,CGG,LDVR,WORK,LWORK,RWORK,INFO)
-  if (INFO.ne.0) call FatalError('Error in BWsolve: ','ZGEEV return not zero')
+  if (INFO.ne.0) call Message%printError('Error in BWsolve: ','ZGEEV return not zero')
 
 ! it appears that the eigenvectors may not always be normalized ...
 ! so we renormalize them here...

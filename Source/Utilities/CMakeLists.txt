@@ -75,13 +75,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                     INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
                                     )
 
-     #  Add_EMsoftOO_Executable(TARGET EMqg 
-     #                                SOURCES ${APP_DIR}/EMqg.f90 
-     #                                LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-     #                                SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-     #                                INSTALL_PROGRAM TRUE
-     #                                INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-     #                                )
+      Add_EMsoftOO_Executable(TARGET EMqg 
+                                    SOURCES ${APP_DIR}/EMqg.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
 
       Add_EMsoftOO_Executable(TARGET EMshowxtal
                                     SOURCES ${APP_DIR}/EMshowxtal.f90 
