@@ -112,6 +112,7 @@ IMPLICIT NONE
           procedure, pass(self) :: getFileName_
           procedure, pass(self) :: setSource_
           procedure, pass(self) :: getSource_
+          procedure, pass(self) :: getVolume_
           procedure, pass(self) :: setXtalSystem_
           procedure, pass(self) :: setAtomPos_
           procedure, pass(self) :: setNatomtype_
@@ -124,6 +125,9 @@ IMPLICIT NONE
           procedure, pass(self) :: getLatticeParametersAll
           procedure, pass(self) :: getAsymmetricPosition
           procedure, pass(self) :: getDirectStructureMatrix
+          procedure, pass(self) :: getReciprocalStructureMatrix
+          procedure, pass(self) :: getDirectMetricTensor
+          procedure, pass(self) :: getReciprocalMetricTensor
           procedure, pass(self) :: getAsymPosArray
           procedure, pass(self) :: displayPeriodicTable
           ! procedure, pass(self) :: extractAtomPositionData
@@ -180,6 +184,12 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: getAsymPos 
           generic, public :: getdsm => getDirectStructureMatrix
           !DEC$ ATTRIBUTES DLLEXPORT :: getdsm
+          generic, public :: getrsm => getReciprocalStructureMatrix
+          !DEC$ ATTRIBUTES DLLEXPORT :: getrsm
+          generic, public :: getdmt => getDirectMetricTensor
+          !DEC$ ATTRIBUTES DLLEXPORT :: getdmt
+          generic, public :: getrmt => getReciprocalMetricTensor
+          !DEC$ ATTRIBUTES DLLEXPORT :: getrmt
           generic, public :: calcDensity => calcTheoreticalDensity 
           !DEC$ ATTRIBUTES DLLEXPORT :: calcDensity 
           generic, public :: GetAsymPosWyckoff => GetAsymPosWyckoff_
@@ -198,6 +208,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
           generic, public :: getSource => getSource_
           !DEC$ ATTRIBUTES DLLEXPORT :: getSource 
+          generic, public :: getVolume => getVolume_
+          !DEC$ ATTRIBUTES DLLEXPORT :: getVolume 
           generic, public :: setNatomtype => setNatomtype_
           !DEC$ ATTRIBUTES DLLEXPORT :: setNatomtype 
           generic, public :: getNatomtype => getNatomtype_
@@ -220,8 +232,6 @@ IMPLICIT NONE
   end type Cell_T
 
 ! the following parameters and arrays need to be moved to somewhere else ... 
-      ! real(kind=sgl),allocatable           :: scatfacg(:)
-      ! complex(kind=sgl),allocatable        :: scatfac(:,:) 
       ! complex(kind=dbl),allocatable        :: LUT(:,:,:), SghLUT(:,:,:,:)
       ! complex(kind=dbl),allocatable        :: LUTqg(:,:,:)
       ! logical,allocatable                  :: dbdiff(:,:,:)
@@ -614,6 +624,57 @@ dsm = self%dsm
 end function getDirectStructureMatrix
 
 !--------------------------------------------------------------------------
+recursive function getReciprocalStructureMatrix(self) result(rsm)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! get the reciprocal structure matrix 
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+real(kind=dbl)                  :: rsm(3,3) 
+
+rsm = self%rsm
+
+end function getReciprocalStructureMatrix
+
+!--------------------------------------------------------------------------
+recursive function getDirectMetricTensor(self) result(dmt)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! get the direct metric tensor 
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+real(kind=dbl)                  :: dmt(3,3) 
+
+dmt = self%dmt
+
+end function getDirectMetricTensor
+
+!--------------------------------------------------------------------------
+recursive function getReciprocalMetricTensor(self) result(rmt)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! get the reciprocal metric tensor 
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+real(kind=dbl)                  :: rmt(3,3) 
+
+rmt = self%rmt
+
+end function getReciprocalMetricTensor
+
+!--------------------------------------------------------------------------
 recursive subroutine setSource_(self, source)
   !! author: MDG 
   !! version: 1.0 
@@ -646,6 +707,23 @@ character(fnlen)               :: source
 source = trim(self%source)
 
 end function getSource_
+
+!--------------------------------------------------------------------------
+recursive function getVolume_(self) result(vol)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! get the cell volume
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)   :: self 
+real(kind=dbl)                 :: vol
+
+vol = self%vol
+
+end function getVolume_
 
 !--------------------------------------------------------------------------
 recursive subroutine setNatomtype_(self, n)

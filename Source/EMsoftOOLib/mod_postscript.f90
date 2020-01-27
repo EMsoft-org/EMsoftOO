@@ -303,6 +303,8 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: DrawcellFrame_
       procedure, pass(self) :: getpsscale_
       procedure, pass(self) :: StereoProj_
+      procedure, pass(self) :: DumpZAP_
+      procedure, pass(self) :: DumpPP_
 
 
       generic, public :: openFile => openFile_ 
@@ -397,6 +399,10 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
 !DEC$ ATTRIBUTES DLLEXPORT :: getpsscale
       generic, public :: StereoProj => StereoProj_
 !DEC$ ATTRIBUTES DLLEXPORT :: StereoProj
+      generic, public :: DumpZAP => DumpZAP_ 
+!DEC$ ATTRIBUTES DLLEXPORT :: DumpZAP
+      generic, public :: DumpPP => DumpPP_
+!DEC$ ATTRIBUTES DLLEXPORT :: DumpPP
 
   end type PostScript_T
 
@@ -1867,6 +1873,262 @@ z = .FALSE.
 
 end subroutine StereoProj_
 
+!--------------------------------------------------------------------------
+recursive subroutine DumpZAP_(self,cell,SG,xo,yo,u,v,w,p,np,first,indi,laL,icnt,dbdiff,Vg,Vgsave,rg,rfamily,rnumfam,hhcc)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! draw a single zone axis diffraction pattern
+
+use mod_io
+use mod_crystallography
+use mod_symmetry
+
+IMPLICIT NONE
+
+class(PostScript_T),INTENT(INOUT)   :: self 
+type(Cell_T),INTENT(INOUT)          :: cell
+type(SpaceGroup_T),INTENT(INOUT)    :: SG
+real(kind=sgl),INTENT(IN)           :: xo, yo               
+ !! lower left position
+integer(kind=irg),INTENT(IN)        :: u, v, w              
+ !! zone axis components
+integer(kind=irg),INTENT(IN)        :: p                    
+ !! ??
+logical,INTENT(IN)                  :: np                   
+ !! logical for new page
+logical,INTENT(IN)                  :: first                
+ !! logical
+integer(kind=irg),INTENT(IN)        :: indi                 
+ !! ??
+real(kind=sgl),INTENT(IN)           :: laL                  
+ !! camera length
+integer(kind=irg),INTENT(IN)        :: icnt                 
+ !! counter
+logical,INTENT(IN)                  :: dbdiff(icnt)         
+ !! array to deal with double diffraction spots
+real(kind=sgl),INTENT(IN)           :: Vg(*),rg(*),Vgsave(*)
+integer(kind=irg),INTENT(IN)        :: hhcc
+integer(kind=irg),INTENT(IN)        :: rfamily(hhcc,48,3),rnumfam(*)
+
+type(IO_T)                          :: Message
+! nref is the anticipated maximum number of reflections per pattern
+integer(kind=irg),parameter         :: nref = 2000
+integer(kind=irg)                   :: dp,i,j,jcnt,ui,vi,wi,pp,locg(nref,3),ier, io_int(1)
+integer(kind=irg),allocatable       :: idx(:)
+real(kind=sgl)                      :: sc,gmax,leng(nref),PX,PY,qx,qy,locv(nref),locvsave(nref),t(3),c(3),gg(3),gx(3),gy(3)
+real(kind=sgl),allocatable          :: lng(:)
+real(kind=sgl),parameter            :: le=3.25,he=2.9375,thr=1.0E-4
+logical                             :: dbd(nref)
+
+! do page preamble stuff if this is a new page
+! [This assumes that the PostScript file has already been opened]
+ if (np) then
+  call self%newpage(.FALSE.,'Kinematical Zone Axis Patterns')
+  call self%text(5.25,-0.05,'scale bar in reciprocal nm')
+  gmax = laL
+  call self%textvar(5.25,self % psfigheight+0.02,'Camera Constant [nm mm]',gmax)
+  call self%setfont(PSfonts(2),0.15)
+  call self%text(-0.25,self % psfigheight+0.02,'Structure File : '//cell %getFileName())
+ end if
+
+! draw frame and related stuff
+ call self%setlinewidth(0.012)
+ call self%balloon(xo,yo,le,he,0.0312)
+ call self%setlinewidth(0.001)
+ PX = xo+1.8125
+ PY = yo+1.0+15.0/32.0
+ call self%circle(PX,PY,1.375)
+
+! zone axis
+ call self%setfont(PSfonts(2),0.12)
+ call self%text(xo+0.05,yo+he-0.15,'Zone axis ')
+ ui=u
+ vi=v
+ wi=w
+ call self%PrintIndices('d',SG%getSpaceGrouphexset(),ui,vi,wi,xo+0.6,yo+he-0.15)
+
+! multiplicity
+ call self%setfont(PSfonts(2),0.12)
+ pp=p
+ call self%textint(xo+0.05,yo+he-0.30,'Multiplicity ',pp)
+
+! scale bar (sc is the conversion factor from nm-1 to inches)
+ sc = laL/25.4
+ call self%setlinewidth(0.020)
+ call self%line(xo+0.05,yo+0.06,xo+0.05+5.0*sc,yo+0.06)
+ call self%setfont(PSfonts(2),0.15)
+ call self%text(xo+0.05+2.5*sc,yo+0.10,'5 ')
+
+! select all reflections belonging to this zone axis pattern
+ leng(1:nref)=0.0
+ jcnt=0
+ do i=1,icnt
+  do j=1,rnumfam(i)
+   dp=u*rfamily(i,j,1)+v*rfamily(i,j,2)+w*rfamily(i,j,3)
+   if (dp.eq.0) then
+    jcnt=jcnt+1
+    if (jcnt.gt.nref) call Message%printError('DumpZAP ',' too many reflections (<2000)' )
+    locg(jcnt,1:3)=rfamily(i,j,1:3)
+    leng(jcnt)=rg(i)
+    locv(jcnt)=Vg(i)
+    locvsave(jcnt)=Vgsave(i)
+    dbd(jcnt)=.FALSE.
+! take care of potential double diffraction reflections
+    if ((SG%getSpaceGroupSymmorphic()).and.(dbdiff(i))) dbd(jcnt) = .TRUE.
+   end if
+  end do
+ end do
+
+! rank them by length (use SLATEC routine)
+ allocate(idx(jcnt))
+ allocate(lng(jcnt))
+ lng(1:jcnt) = leng(1:jcnt)
+ call SPSORT(lng,jcnt,idx,1,ier)
+ io_int(1) = jcnt
+ call Message%WriteValue(' Number of reflections : ', io_int, 1)
+
+! normalize the zone axis in cartesian components; this is the z-axis
+ t(1)=-float(u)
+ t(2)=-float(v)
+ t(3)=-float(w)
+ call cell%TransSpace(t,c,'d','c')
+ call cell%NormVec(c,'c')
+
+! take the first reflection in the list and make that the x-axis
+! skip the zero reflection !!
+ j=idx(2)
+
+! normalize the first reciprocal vector in cartesian components
+! this will be the x-axis of the diffraction pattern
+ gg(1:3)=float(locg(j,1:3))
+ call cell%TransSpace(gg,gx,'r','c')
+ call cell%NormVec(gx,'c')
+
+! then get the cross product between t and g; this is the y-axis
+ call cell%CalcCross(c,gx,gy,'c','c',0)
+
+! plot origin of reciprocal space 
+ call self%filledcircle(PX,PY,0.05,0.0)
+
+! then plot the remaining reflections
+ do i=1,jcnt
+  j=idx(i)
+  gg(1:3)=float(locg(j,1:3))
+  call TransSpace(cell,gg,c,'r','c')
+  qx=PX-cell%CalcDot(c,gx,'c')*sc
+  qy=PY+cell%CalcDot(c,gy,'c')*sc
+
+! first check for systematic absence due to lattice centering
+  if ((locvsave(j).eq.-100.0).and.(indi.ge.2)) then
+    call self%cross(qx,qy,0.03,0.001)
+  end if
+
+! could it be a double diffraction spot ?
+  if ((SG%getSpaceGroupSymmorphic()).and.(dbd(j))) call self%square(qx,qy,0.04)
+
+! is it a regular reflection ?
+  if (locv(j).ge.thr) then
+   call self%filledcircle(qx,qy,locv(j),0.0)
+   if ((indi.eq.1).or.(indi.eq.3)) then 
+    call self%Printhkl(qx,qy,locg(j,1),locg(j,2),locg(j,3))
+   end if
+  end if
+
+ end do
+
+ deallocate(idx, lng)
+ 
+end subroutine DumpZAP_
+
+!--------------------------------------------------------------------------
+recursive subroutine DumpPP_(self,cell,xo,yo,np,laL,icnt,Vgsave,rg,rnumfam)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! draw a kinematical powder pattern
+
+use mod_crystallography 
+
+IMPLICIT NONE 
+
+class(PostScript_T),INTENT(INOUT)   :: self 
+type(Cell_T),INTENT(INOUT)          :: cell
+real(kind=sgl),INTENT(IN)           :: xo, yo               
+ !! lower left position   
+logical,INTENT(IN)                  :: np                   
+ !! logical for new page    
+real(kind=sgl),INTENT(IN)           :: laL                  
+ !! camera length   
+integer(kind=irg),INTENT(IN)        :: icnt                 
+ !! counter   
+real(kind=sgl),INTENT(IN)           :: rg(*),Vgsave(*)
+integer(kind=irg),INTENT(IN)        :: rnumfam(*)
+    
+! nref = max number of rings    
+integer(kind=irg),parameter         :: nref = 500
+integer(kind=irg)                   :: i,j
+real(kind=sgl)                      :: sc,gmax,leng(nref),PX,PY,locv(nref),grad,w,Vmax
+real(kind=sgl),parameter            :: le=3.25,he=2.9375,thr=1.0E-4
+
+! do page preamble stuff if this is a new page
+! [This assumes that the PostScript file has already been opened]
+ if (np) then
+  call self%newpage(.FALSE.,'Kinematical Zone Axis Patterns')
+  call self%text(5.25,-0.05,'scale bar in reciprocal nm')
+  gmax = laL
+  call self%textvar(5.25,self%psfigheight+0.02,'Camera Constant [nm mm]',gmax)
+  call self%setfont(PSfonts(2),0.15)
+  call self%text(-0.25,self%psfigheight+0.02,'Structure File : '//cell%getFileName())
+ end if
+
+! draw frame and related stuff
+ call self%setlinewidth(0.012)
+ call self%balloon(xo,yo,le,he,0.0312)
+ call self%setlinewidth(0.001)
+ PX = xo+1.8125
+ PY = yo+1.0+15.0/32.0
+ call self%circle(PX,PY,1.375)
+
+! frame title
+ call self%setfont(PSfonts(2),0.12)
+ call self%text(xo+0.05,yo+he-0.15,'Powder Pattern')
+
+! scale bar (sc is the conversion factor from nm-1 to inches)
+ sc = laL/25.4
+ call self%setlinewidth(0.020)
+ call self%line(xo+0.05,yo+0.06,xo+0.05+5.0*sc,yo+0.06)
+ call self%setfont(PSfonts(2),0.15)
+ call self%text(xo+0.05+2.5*sc,yo+0.10,'5 ')
+
+! scale all reflection intensities by the multiplicity
+ leng(1:nref)=0.0
+ Vmax = 0.0
+ do i=1,icnt-1
+  leng(i)=rg(i)
+  locv(i)=Vgsave(i)*rnumfam(i)
+  if (locv(i).gt.Vmax) Vmax=locv(i)
+ end do
+
+! plot origin of reciprocal space 
+ call self%filledcircle(PX,PY,0.05,0.0)
+
+! then plot the diffraction circles 
+ do i=1,icnt
+  j=icnt+1-i
+! get the circle radius and intensity
+  grad = leng(j)*sc
+  w = locv(j)*0.03/Vmax
+! draw circle if radius fits in drawing frame and intensity large enough
+  if ((w.gt.0.0001).AND.(grad.le.1.375)) then 
+   call self%setlinewidth(w)
+   call self%circle(PX,PY,grad)
+  end if
+ end do
+
+end subroutine DumpPP_
 
 
 end module mod_postscript
