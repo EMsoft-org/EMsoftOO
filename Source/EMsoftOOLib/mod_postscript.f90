@@ -2016,7 +2016,7 @@ logical                             :: dbd(nref)
  do i=1,jcnt
   j=idx(i)
   gg(1:3)=float(locg(j,1:3))
-  call TransSpace(cell,gg,c,'r','c')
+  call cell%TransSpace(gg,c,'r','c')
   qx=PX-cell%CalcDot(c,gx,'c')*sc
   qy=PY+cell%CalcDot(c,gy,'c')*sc
 
