@@ -91,13 +91,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                     INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
                                     )
 
-     #  Add_EMsoftOO_Executable(TARGET EMstar 
-     #                                SOURCES ${APP_DIR}/EMstar.f90 
-     #                                LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-     #                                SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-     #                                INSTALL_PROGRAM TRUE
-     #                                INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-     #                                )
+      Add_EMsoftOO_Executable(TARGET EMstar 
+                                    SOURCES ${APP_DIR}/EMstar.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
 
       Add_EMsoftOO_Executable(TARGET EMorbit 
                                     SOURCES ${APP_DIR}/EMorbit.f90 

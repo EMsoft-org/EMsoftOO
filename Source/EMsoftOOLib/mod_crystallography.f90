@@ -2278,6 +2278,8 @@ integer(kind=irg)                       :: i, ipg, SGnum
 ! reciprocal symmetry matrices here ...
 if (SG%recip_pending.eqv..TRUE.) call SG%fixRecipPG( self%dmt, self%rmt)
 
+call self%calcPositions(SG,'s') 
+
 ! and print the information on the screen
 if (present(verbose)) then
  if (verbose) then

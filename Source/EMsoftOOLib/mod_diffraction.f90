@@ -250,6 +250,7 @@ private
     procedure, pass(self) :: BWsolve_
     procedure, pass(self) :: setrlpmethod_
     procedure, pass(self) :: getrlp_
+    procedure, pass(self) :: Printrlp_
 
     generic, public :: GetVoltage => GetVoltage_
     generic, public :: CalcWaveLength => CalcWaveLength_
@@ -261,6 +262,7 @@ private
     generic, public :: BWsolve => BWsolve_
     generic, public :: setrlpmethod => setrlpmethod_
     generic, public :: getrlp => getrlp_
+    generic, public :: Printrlp => Printrlp_
 
 end type Diffraction_T
 
@@ -341,6 +343,7 @@ logical,INTENT(IN),OPTIONAL             :: verbose
 type(IO_T)                              :: Message
 real(kind=dbl)                          :: temp1, temp2, oi_real(1)
 
+
   temp1 = 1.0D+9*cPlanck/dsqrt(2.D0*cRestmass*cCharge)
   temp2 = cCharge*0.5D0*self%voltage*1000.D0/cRestmass/(cLight**2)
 
@@ -370,7 +373,7 @@ real(kind=dbl)                          :: temp1, temp2, oi_real(1)
  if (present(verbose)) then
   if (verbose) then
     oi_real(1) = self%V0mod
-    call Message%WriteValue('', oi_real, 1,"(' Mean inner potential [V]                ',E10.4)")
+    call Message%WriteValue('', oi_real, 1,"(/' Mean inner potential [V]                ',E10.4)")
     oi_real(1) = self%Relcor
     call Message%WriteValue('', oi_real, 1,"(' Relativistic correction factor [gamma]  ',E10.4)")
     oi_real(1) = self%Psihat
@@ -444,7 +447,97 @@ rlp = self%rlp
 end function getrlp_
 
 !--------------------------------------------------------------------------
-recursive subroutine GetVoltage_(self, cell)
+recursive function getrlpmethod_(self) result(rlpmethod)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/26/20
+  !!
+  !! retrieve the rlp method
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+character(2)                        :: rlpmethod 
+
+rlpmethod = self%rlp%method
+
+end function getrlpmethod_
+
+!--------------------------------------------------------------------------
+recursive subroutine Printrlp_(self,first)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/09/20
+  !!
+  !! output the contents of the rlp structure
+
+use mod_io
+
+IMPLICIT NONE
+
+class(Diffraction_T),INTENT(INOUT)      :: self 
+logical,optional,intent(INOUT)          :: first                
+ !! switch for long/short output
+
+type(IO_T)                              :: Message 
+integer(kind=irg)                       :: oi_int(3)
+real(kind=sgl)                          :: oi_real(7)
+complex(kind=sgl)                       :: oi_cmplx(1)
+
+
+if (present(first)) then
+ if (first) then
+  call Message%printMessage('     Scattering factors : ', frm = "(/A)",advance="no")
+  if (self%rlp%method.eq.'WK') then 
+   if (self%rlp%absorption.eqv..TRUE.) then 
+    call Message%printMessage(' Weickenmeier-Kohl (with absorption)', frm = "(A/)")
+   else
+    call Message%printMessage(' Weickenmeier-Kohl', frm = "(A/)")
+   end if
+  else
+    call Message%printMessage(' Doyle-Turner/Smith-Burge', frm = "(A/)")
+  end if
+
+  if (self%rlp%absorption.eqv..TRUE.) then
+    call Message%printMessage( &
+        '   h  k  l    |g|    Ucg_r  Ucg_i   |Ug|    phase   |Ugp|   phase   xi_g   xi_gp    ratio  Re-1/q_g-Im', &
+        frm = "(A)")
+  else
+    call Message%printMessage('   h  k  l    |g|    Ucg_r  |Ug|    phase    xi_g   1/q_g', frm = "(A)")
+  end if
+  first = .FALSE.
+ end if
+end if
+
+if (self%rlp%absorption.eqv..TRUE.) then
+ oi_int(1:3) = self%rlp%hkl(1:3)
+ call Message%WriteValue('',oi_int, 3, "(1x,3I3,1x)",advance="no")
+ oi_real(1) = self%rlp%g
+ call Message%WriteValue('',oi_real, 1, "(F9.4)",advance="no")
+ oi_cmplx(1) = self%rlp%Ucg
+ call Message%WriteValue('',oi_cmplx, 1, "(2F7.3,1x)",advance="no")
+ oi_real(1:7)  = (/ self%rlp%Umod,self%rlp%Vphase*180.0/sngl(cPi),self%rlp%Upmod,self%rlp%Vpphase*180.0/sngl(cPi),&
+                    self%rlp%xg,self%rlp%xgp,self%rlp%ar /)
+ call Message%WriteValue('',oi_real, 7, "(4F8.3,3F8.1)",advance="no")
+ oi_cmplx(1) = self%rlp%qg
+ call Message%WriteValue('',oi_cmplx, 1, "(2F8.3)")
+else
+ oi_int(1:3) = self%rlp%hkl(1:3)
+ call Message%WriteValue('',oi_int, 3, "(1x,3I3,1x)",advance="no")
+ oi_real(1) = self%rlp%g
+ call Message%WriteValue('',oi_real, 1, "(F9.4)",advance="no")
+ oi_real(1) = real(self%rlp%Ucg)
+ call Message%WriteValue('',oi_real, 1, "(F7.3,1x)",advance="no")
+ oi_real(1:3)  = (/ self%rlp%Umod,self%rlp%Vphase*180.0/sngl(cPi),self%rlp%xg /)
+ call Message%WriteValue('',oi_real, 3, "(2F8.3,F8.1)",advance="no")
+ oi_cmplx(1) = self%rlp%qg
+ call Message%WriteValue('',oi_cmplx, 1, "(2F8.3)")
+end if
+
+end subroutine Printrlp_
+
+!--------------------------------------------------------------------------
+recursive subroutine GetVoltage_(self, cell, verbose)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/26/20
@@ -458,16 +551,22 @@ IMPLICIT NONE
 
 class(Diffraction_T),INTENT(INOUT)  :: self
 type(Cell_T),INTENT(INOUT)          :: cell 
+logical,INTENT(IN),OPTIONAL         :: verbose
 
 
 real(kind=sgl)                      :: io_real(1)
 type(IO_T)                          :: Message 
 
-call Message%ReadValue('Enter the microscope accelerating voltage [kV, R] : ', io_real, 1)
+call Message%ReadValue(' Enter the microscope accelerating voltage [kV, R] : ', io_real, 1)
 self%voltage = dble(io_real(1))
-call self%CalcWaveLength(cell)
 
-end subroutine
+if (present(verbose)) then
+    if (verbose.eqv..TRUE.) call self%CalcWaveLength(cell, verbose = .TRUE.)
+else
+    call self%CalcWaveLength(cell)
+end if
+
+end subroutine GetVoltage_
 
 !--------------------------------------------------------------------------
 recursive function CalcDiffAngle_(self, cell, hkl) result(tt)
