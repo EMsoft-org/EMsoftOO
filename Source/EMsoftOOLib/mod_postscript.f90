@@ -260,6 +260,7 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: openFile_
       procedure, pass(self) :: closeFile_
       procedure, pass(self) :: newpage_
+      procedure, pass(self) :: setpspage_
       procedure, pass(self) :: cellinfo_
       procedure, pass(self) :: clippath_
       procedure, pass(self) :: translate_
@@ -305,6 +306,13 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: StereoProj_
       procedure, pass(self) :: DumpZAP_
       procedure, pass(self) :: DumpPP_
+      procedure, pass(self) :: DumpLine_
+      procedure, pass(self) :: DumpMatrix_
+      procedure, pass(self) :: DumpAtom_
+      procedure, pass(self) :: InfoPage_
+      procedure, pass(self) :: StrucFacPage_
+      procedure, pass(self) :: StereoPage_
+      procedure, pass(self) :: DiffPage_
 
 
       generic, public :: openFile => openFile_ 
@@ -313,6 +321,8 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
 !DEC$ ATTRIBUTES DLLEXPORT :: closeFile
       generic, public :: newpage => newpage_
 !DEC$ ATTRIBUTES DLLEXPORT :: newpage
+      generic, public :: setpspage => setpspage_
+!DEC$ ATTRIBUTES DLLEXPORT :: setpspage
       generic, public :: cellinfo => cellinfo_
 !DEC$ ATTRIBUTES DLLEXPORT :: cellinfo
       generic, public :: clippath => clippath_
@@ -403,6 +413,20 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
 !DEC$ ATTRIBUTES DLLEXPORT :: DumpZAP
       generic, public :: DumpPP => DumpPP_
 !DEC$ ATTRIBUTES DLLEXPORT :: DumpPP
+      generic, public :: dumpline => dumpline_
+!dec$ attributes dllexport :: dumpline
+      generic, public :: DumpMatrix => DumpMatrix_
+!dec$ attributes dllexport :: DumpMatrix
+      generic, public :: DumpAtom => DumpAtom_
+!dec$ attributes dllexport :: DumpAtom
+      generic, public :: InfoPage => InfoPage_
+!dec$ attributes dllexport :: InfoPage
+      generic, public :: StrucFacPage => StrucFacPage_ 
+!dec$ attributes dllexport :: StrucFacPage
+      generic, public :: StereoPage => StereoPage_ 
+!dec$ attributes dllexport :: StereoPage
+      generic, public :: DiffPage => DiffPage_ 
+!dec$ attributes dllexport :: DiffPage
 
   end type PostScript_T
 
@@ -503,7 +527,7 @@ character(fnlen)                      :: gname
 end subroutine openfile_
 
 !--------------------------------------------------------------------------
-recursive subroutine closefile_(self)
+recursive subroutine closeFile_(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/15/20
@@ -522,7 +546,7 @@ class(PostScript_T),INTENT(INOUT)    :: self
 ! and close it
   close(unit=self%psunit,status='keep')
 
-end subroutine closefile_
+end subroutine closeFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine newpage_(self, frm, btxt)
@@ -563,6 +587,23 @@ character(*),INTENT(IN)   	        :: btxt
  call self%text(0.1,-0.1,PSlbl)
  
 end subroutine newpage_
+
+!--------------------------------------------------------------------------
+recursive subroutine setpspage_(self, pgnum)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! set a page number 
+
+IMPLICIT NONE
+
+class(PostScript_T),INTENT(INOUT)   :: self
+integer(kind=irg), INTENT(IN)       :: pgnum 
+
+self%pspage = pgnum 
+
+end subroutine setpspage_
 
 !--------------------------------------------------------------------------
 recursive subroutine cellinfo_(self, cell, xo, yo)
@@ -2129,6 +2170,1019 @@ real(kind=sgl),parameter            :: le=3.25,he=2.9375,thr=1.0E-4
  end do
 
 end subroutine DumpPP_
+
+!--------------------------------------------------------------------------
+subroutine InfoPage_(self, cell, SG)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! creates a page with crystallographic unit cell info
+
+use mod_io
+use mod_crystallography
+use mod_symmetry
+
+IMPLICIT NONE 
+
+class(PostScript_T),INTENT(INOUT) :: self
+type(Cell_T),INTENT(INOUT)        :: cell
+type(SpaceGroup_T),INTENT(INOUT)  :: SG
+
+real(kind=sgl)                    :: ast,bst,cst,alphast,betast,gammast,coor(5),dx,dy,db,topx,topy,x,y
+integer(kind=irg)                 :: iap,i,j
+character(1),parameter            :: xsys(7) = (/'c','t','o','h','R','m','a'/)
+character(2)                      :: brvs
+character(11)                     :: sgname 
+real(kind=dbl)                    :: dmt(3,3), rmt(3,3), dsm(3,3), rsm(3,3)
+real(kind=dbl),allocatable        :: apos(:,:)
+integer(kind=irg),allocatable     :: atp(:)
+
+! start first page 
+ call self%newpage(.TRUE.,trim(cell%getFileName()))
+
+! write text 
+ call self%text(5.25,0.05,'Distances [nm], angles [degrees]')
+ call self%setlinewidth(0.012)
+
+! direct space information
+ call self%textballoon(0.75,8.45,'Direct Space',PSfonts(2),0.20)
+ call self%setfont(PSfonts(4),0.14)
+ call self%text(1.0,8.00,'a :')
+ call self%text(1.0,7.84,'b :') 
+ call self%text(1.0,7.68,'c :')
+ write (self%psunit,900) 1.25,8.00,cell%getLatParm('a')
+ write (self%psunit,900) 1.25,7.84,cell%getLatParm('b')
+ write (self%psunit,900) 1.25,7.68,cell%getLatParm('c')
+ call self%setfont(PSfonts(1),0.14)
+ call self%text(1.0,7.52,'a :')
+ call self%text(1.0,7.36,'b :')
+ call self%text(1.0,7.20,'g :')
+ call self%setfont(PSfonts(4),0.14)
+ write (self%psunit,900) 1.25,7.52,cell%getLatParm('alpha')
+ write (self%psunit,900) 1.25,7.36,cell%getLatParm('beta') 
+ write (self%psunit,900) 1.25,7.20,cell%getLatParm('gamma')
+
+! space group information and unit cell volume
+ call self%text(3.0,8.00,'Space Group :')
+ call self%setfont(PSfonts(2),0.14)
+ write (self%psunit,905) 4.2,8.00,SG%getSpaceGroupName(), SG%getSpaceGroupNumber()
+ call self%setfont(PSfonts(4),0.14)
+ call self%text(3.0,7.84,'Bravais Lattice :')
+ call self%setfont(PSfonts(2),0.14)
+ brvs(1:1)=xsys(SG%getSpaceGroupXtalSystem())
+ sgname = SG%getSpaceGroupName()
+ if (SG%getSpaceGroupXtalSystem().ne.5) then 
+  brvs(2:2)=sgname(2:2)
+ else
+  brvs(2:2)=' '
+ endif
+ write (self%psunit,902) 4.2,7.84,brvs
+ call self%setfont(PSfonts(4),0.14)
+ call self%text(3.0,7.52,'Volume V [nm^3] :')
+ write (self%psunit,900) 4.2,7.52,cell%getVolume()
+
+ dsm = cell%getdsm()
+ rsm = cell%getrsm()
+ dmt = cell%getdmt()
+ rmt = cell%getrmt()
+
+! reciprocal space information
+ call self%textballoon(0.75,6.75,'Reciprocal Space',PSfonts(2),0.20)
+ ast=sqrt(rmt(1,1))
+ bst=sqrt(rmt(2,2))
+ cst=sqrt(rmt(3,3))
+ alphast=acos(rmt(2,3)/bst/cst)/dtor
+ betast =acos(rmt(1,3)/ast/cst)/dtor
+ gammast=acos(rmt(1,2)/ast/bst)/dtor
+ call self%setfont(PSfonts(4),0.14)
+ call self%text(1.0,6.30,'a* :')
+ call self%text(1.0,6.14,'b* :') 
+ call self%text(1.0,5.98,'c* :')
+ write (self%psunit,900) 1.25,6.30,ast
+ write (self%psunit,900) 1.25,6.14,bst
+ write (self%psunit,900) 1.25,5.98,cst
+ call self%setfont(PSfonts(1),0.14)
+ call self%text(1.0,5.82,'a* :')
+ call self%text(1.0,5.66,'b* :')
+ call self%text(1.0,5.50,'g* :')
+ call self%setfont(PSfonts(4),0.14)
+ write (self%psunit,900) 1.25,5.82,alphast
+ write (self%psunit,900) 1.25,5.66,betast
+ write (self%psunit,900) 1.25,5.50,gammast
+
+! unit cell volume and reciprocal basis vectors
+ call self%text(3.0,6.30,'Volume V* [nm^-3] :')
+ write (self%psunit,900) 4.2,6.30,1.0/cell%getVolume()
+
+! metric tensors and structure matrices
+ call self%textballoon(0.75,5.05,'Important Matrices',PSfonts(2),0.20)
+ call self%DumpMatrix(1.0,4.2,sngl(dmt),'g =')
+ call self%DumpMatrix(3.5,4.2,sngl(rmt),'g*=')
+ call self%DumpMatrix(1.0,3.2,sngl(dsm),'a =')
+ call self%DumpMatrix(3.5,3.2,sngl(rsm),'b =')
+
+apos = cell%getAsymPosData() 
+atp = cell%getAtomtype()
+
+! asymmetric unit
+ call self%textballoon(0.75,2.80,'Asymmetric Unit',PSfonts(2),0.20)
+ dx= 2.75
+ dy=-0.16
+ topx =-1.75
+ topy = 2.3
+ x=topx
+ y=topy
+ db = 0.2
+ do i=1,cell%getNatomtype()
+  if (mod(i-1,10).eq.0) then 
+   x=x+dx
+   call self%setfont(PSfonts(3),0.14)
+   call self%text(x,y+0.2,'atom ')
+   call self%text(x+0.55,y+0.2,'x ')
+   call self%text(x+0.90,y+0.2,'y ')
+   call self%text(x+1.25,y+0.2,'z ')
+   call self%text(x+1.50,y+0.2,'occ. ')
+   call self%text(x+1.95,y+0.2,'B ')
+   call self%setfont(PSfonts(4),0.12) 
+  endif
+  y=topy + mod(i-1,10)*dy
+  do j=1,3
+   coor(j) = apos(i,j)
+  end do
+  coor(4) = apos(i,4)
+  coor(5) = apos(i,5)
+  iap = atp(i)
+  call self%DumpAtom(x,y,ATOM_sym(iap),iap,coor)
+ end do
+
+! real number output
+ 900    format (1x,F12.7,' ',F12.7,' M (',F12.4,') show')
+! integer number output
+ 901    format (1x,F12.7,' ',F12.7,' M (',I8,') show')
+! character output
+ 902    format (1x,F12.7,' ',F12.7,' M (',A,') show')
+ 905    format (1x,F12.7,' ',F12.7,' M (',A11,'  [#',I3,']) show')
+
+end subroutine InfoPage_
+
+!--------------------------------------------------------------------------
+subroutine DumpMatrix_(self, x, y, g, tt)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! format a 3x3 matrix in PostScript
+
+class(PostScript_T),INTENT(INOUT)      :: self
+real(kind=sgl),INTENT(IN)              :: g(3,3)
+real(kind=sgl),INTENT(IN)              :: x
+real(kind=sgl),INTENT(IN)              :: y
+character(3),INTENT(IN)                :: tt
+
+real(kind=sgl)                         :: dy,dx
+
+! set the matrix label
+ call self%setlinewidth(0.012)
+ call self%setfont(PSfonts(4),0.12) 
+ call self%text(x-0.1,y+0.3,tt)
+
+! draw the left bracket
+ dy=0.26
+ dx=x+0.1
+ call self%setlinewidth(0.004)
+ call self%line(dx+0.1,y-0.1,dx,y-0.1)
+ call self%line(dx,y-0.1,dx,y+2.5*dy)
+ call self%line(dx,y+2.5*dy,dx+0.1,y+2.5*dy)
+ call self%setlinewidth(0.012)
+
+! write all the entries
+ write (self%psunit,900) dx,y+2.0*dy,g(1,1)
+ write (self%psunit,900) dx,y+1.0*dy,g(2,1)
+ write (self%psunit,900) dx,y+0.0*dy,g(3,1)
+ dx=dx+0.5
+ write (self%psunit,900) dx,y+2.0*dy,g(1,2)
+ write (self%psunit,900) dx,y+1.0*dy,g(2,2)
+ write (self%psunit,900) dx,y+0.0*dy,g(3,2)
+ dx=dx+0.5
+ write (self%psunit,900) dx,y+2.0*dy,g(1,3)
+ write (self%psunit,900) dx,y+1.0*dy,g(2,3)
+ write (self%psunit,900) dx,y+0.0*dy,g(3,3)
+ dx=dx+0.65
+
+! and conclude with the right bracket
+ call self%setlinewidth(0.004)
+ call self%line(dx-0.1,y-0.1,dx,y-0.1)
+ call self%line(dx,y-0.1,dx,y+2.5*dy)
+ call self%line(dx,y+2.5*dy,dx-0.1,y+2.5*dy)
+ call self%setlinewidth(0.012)
+      
+ 900    format (1x,F12.7,' ',F12.7,' M (',F12.5,') show')
+
+end subroutine DumpMatrix_
+
+!--------------------------------------------------------------------------
+subroutine DumpAtom_(self, x, y, A, AT, coor)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! format atom info for asymmetric unit
+
+IMPLICIT NONE
+
+class(PostScript_T),INTENT(INOUT)       :: self
+
+real(kind=sgl),INTENT(IN)               :: x,y,coor(5)
+character(2),INTENT(IN)                 :: A
+integer(kind=irg),INTENT(IN)            :: AT
+real(kind=sgl)                          :: dx
+
+ write (self%psunit,900) x,y,A,AT 
+ dx=x+0.40
+ write (self%psunit,910) dx,y,coor(1)
+ dx=dx+0.36
+ write (self%psunit,910) dx,y,coor(2)
+ dx=dx+0.36
+ write (self%psunit,910) dx,y,coor(3)
+ dx=dx+0.36
+ write (self%psunit,910) dx,y,coor(4)
+ dx=dx+0.36
+ write (self%psunit,910) dx,y,coor(5)
+
+! formats 
+ 900    format (1x,F12.7,' ',F12.7,' M (',A2,' [',I2,'] ) show')
+ 910    format (1x,F12.7,' ',F12.7,' M (',f6.4,') show')
+
+end subroutine DumpAtom_
+
+!--------------------------------------------------------------------------
+subroutine StrucFacPage_(self, cell, SG, Diff)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! Structure Factor Information Page
+
+use mod_io 
+use mod_symmetry
+use mod_crystallography
+use mod_diffraction
+
+IMPLICIT NONE 
+
+class(PostScript_T),INTENT(INOUT)      :: self
+type(Cell_T),INTENT(INOUT)             :: cell
+type(SpaceGroup_T),INTENT(INOUT)       :: SG
+type(Diffraction_T),INTENT(INOUT)      :: Diff 
+
+type(IO_T)                             :: Message
+integer(kind=irg),parameter            :: inm = 4
+integer(kind=irg),allocatable          :: family(:,:,:),numfam(:),idx(:), itmp(:,:)
+integer(kind=irg)                      :: i,j,ii,ier,h,k,l,totfam,ind(3),icnt, oi_int(1),num
+logical                                :: first
+logical,allocatable                    :: z(:,:,:)
+real(kind=sgl)                         :: g(3),twopi,xs,rag, thr
+real(kind=sgl),allocatable             :: Vgg(:,:),ddg(:),gg(:),xi(:),xip(:),twth(:)
+character(1)                           :: space
+type(gnode)                            :: rlp
+
+! start page 
+ call self%newpage(.TRUE.,'Structure Factor Information')
+
+! write text 
+ call self%text(4.0,0.05,'Distances [nm], angles [mrad], potential [V,rad]')
+
+! label columns
+ xs = 0.0
+ call self%setfont(PSfonts(3),0.14)
+ call self%text(xs+1.03,8.15,'h ')
+ call self%text(xs+1.18,8.15,'k ')
+ call self%text(xs+1.33,8.15,'l ')
+ call self%text(xs+1.53,8.15,'p ')
+ call self%text(xs+1.93,8.15,'d ')
+ call self%text(xs+2.38,8.15,'g ')
+ call self%setfont(PSfonts(1),0.14) 
+ call self%text(xs+2.83,8.15,'2q ')
+ call self%setfont(PSfonts(3),0.14) 
+ call self%text(xs+3.33,8.15,'|V| ')
+ call self%text(xs+3.68,8.15,'Vphase ')
+ call self%text(xs+4.18,8.15,'|V''| ')
+ call self%text(xs+4.58,8.15,'V''phase ')
+ call self%setfont(PSfonts(1),0.14) 
+ call self%text(xs+5.23,8.15,'x ')
+ call self%setfont(PSfonts(3),0.14) 
+ call self%text(xs+5.31,8.13,'g ')
+ call self%setfont(PSfonts(1),0.14) 
+ call self%text(xs+5.58,8.15,'x''')
+ call self%setfont(PSfonts(3),0.14) 
+ call self%text(xs+5.66,8.13,'g ')
+
+! initialize parameters
+ thr = 1.E-5
+ twopi = 2.0*cPi
+ space = 'r'
+
+! allocate all arrays
+ allocate(z(-inm:inm,-inm:inm,-inm:inm))
+ ii = (2*inm+1)**3
+ allocate(family(ii,48,3))
+ allocate(numfam(ii))
+ allocate(Vgg(ii,6))
+ allocate(ddg(ii))
+ allocate(gg(ii))
+ allocate(xi(ii))
+ allocate(xip(ii))
+ allocate(twth(ii))
+! determine the families of reflections with (hkl)<=(inm,inm,inm)
+! first initialize the boolean array z
+ z(-inm:inm,-inm:inm,-inm:inm) = .FALSE.
+! then loop through all (hkl) values
+ first = .TRUE.
+ icnt = 1
+ totfam=0
+ do h=-inm,inm
+  ind(1)=-h
+  do k=-inm,inm
+   ind(2)=-k
+   do l=-inm,inm
+    ind(3)=-l
+
+! make sure we have not already done this one in another family
+    if (.not.z(-h,-k,-l)) then
+
+! if it is a new one, then determine the entire family
+     call Diff%CalcUcg(cell,ind)
+     rlp = Diff%getrlp() 
+
+! but ignore the reciprocal lattice point if Vgg is small
+     if (rlp%Vmod.ge.thr) then 
+
+! copy family in array and label all its members in z-array
+      call SG%CalcFamily(ind,num,space,itmp)
+      do i=1,num
+       do j=1,3
+        family(icnt,i,j)=itmp(i,j)
+       end do
+       z(itmp(i,1),itmp(i,2),itmp(i,3))=.TRUE.
+      end do
+
+! store the Fourier coefficient of the lattice potential
+      Vgg(icnt,1)=rlp%Vmod
+      Vgg(icnt,2)=rlp%Vphase
+      Vgg(icnt,3)=rlp%Vpmod
+      Vgg(icnt,4)=rlp%Vpphase
+      Vgg(icnt,5)=rlp%xgp
+      Vgg(icnt,6)=rlp%xg
+
+! increment family counter
+      numfam(icnt)=num
+      totfam=totfam+num-1
+      icnt=icnt+1
+     end if
+    end if
+   end do
+  end do
+ end do
+
+ icnt=icnt-1
+ oi_int(1)=icnt
+ call Message%WriteValue(' Total number of families        = ', oi_int, 1, "(I6)")
+ oi_int(1)=totfam
+ call Message%WriteValue(' Total number of family members  = ', oi_int, 1, "(I6)")
+
+! compute d-spacings, g-spacings, two-theta, and extinction distance
+ do k=1,icnt
+  g(1:3)=float(family(k,1,1:3))
+  gg(k)=cell%CalcLength(g,'r')
+  ddg(k)=1.0/gg(k)
+  twth(k)=2.0*asin(0.5*Diff%getWaveLength()*gg(k))
+  xip(k) = Vgg(k,5)
+  xi(k)  = Vgg(k,6)
+ end do
+
+! take care of (0,0,0) reflection
+ ind(1)=0
+ ind(2)=0
+ ind(3)=0
+ call Diff%CalcUcg(cell,ind)
+ rlp = Diff%getrlp()
+ Vgg(icnt,1)=rlp%Vmod 
+ Vgg(icnt,2)=rlp%Vphase
+ Vgg(icnt,3)=rlp%Vpmod 
+ Vgg(icnt,4)=rlp%Vpphase
+ gg(icnt)=0.0
+ twth(icnt)=0.0
+ xi(icnt)=0.0
+ xip(icnt) = rlp%xgp
+
+! use the spsort.f routine from SLATEC
+! to rank by increasing value of gg
+ allocate(idx(ii))
+ call SPSORT(gg,icnt,idx,1,ier)
+
+! and create output table
+ i=1
+ j=icnt
+ rag = 0.0
+ call self%DumpLine(i,family(j,1,1),family(j,1,2),family(j,1,3),numfam(j),ddg(j),rag,twth(j), &
+               Vgg(j,1),Vgg(j,2),Vgg(j,3),Vgg(j,4),xi(j),xip(j))
+ do i=2,icnt
+  j=idx(i)
+  if (ddg(j).ne.0.0) then
+   rag = 1.0/ddg(j)
+  else
+   rag = 0.0
+  endif
+ call self%DumpLine(i,family(j,1,1),family(j,1,2),family(j,1,3),numfam(j),ddg(j),rag,twth(j), &
+               Vgg(j,1),Vgg(j,2),Vgg(j,3),Vgg(j,4),xi(j),xip(j))
+ end do
+
+
+deallocate(idx)
+deallocate(z)
+deallocate(family)
+deallocate(numfam)
+deallocate(Vgg)
+deallocate(ddg)
+deallocate(gg)
+deallocate(xi)
+deallocate(xip)
+deallocate(twth)
+
+! integer number output
+ 901    format (1x,F12.7,' ',F12.7,' M (',I8,') show')
+
+end subroutine StrucFacPage_
+
+!--------------------------------------------------------------------------
+subroutine DumpLine_(self,i,h,k,l,p,d,g,th,vm,vp,vpm,vpp,xi,xip)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! formats a line of structure factor information
+
+IMPLICIT NONE 
+
+class(PostScript_T),INTENT(INOUT)      :: self
+integer                                :: h,k,l,p,i
+real                                   :: d,g,th,xi,vm,vp,vpm,vpp,xip, x, y, xs
+
+! start a new page (if needed) and label columns
+ if ((mod(i-1,50).eq.0).AND.(i.ne.1)) then
+  call self%newpage(.TRUE.,'Structure Factor Information')
+
+! write text 
+  call self%text(4.0,0.05,'Distances [nm], angles [mrad], potential [V,rad]')
+
+! label columns
+  xs = 0.0
+  call self%setfont(PSfonts(3),0.14)
+  call self%text(xs+1.03,8.15,'h ')
+  call self%text(xs+1.18,8.15,'k ')
+  call self%text(xs+1.33,8.15,'l ')
+  call self%text(xs+1.53,8.15,'p ')
+  call self%text(xs+1.93,8.15,'d ')
+  call self%text(xs+2.38,8.15,'g ')
+  call self%setfont(PSfonts(1),0.14) 
+  call self%text(xs+2.83,8.15,'2q ')
+  call self%setfont(PSfonts(3),0.14) 
+  call self%text(xs+3.33,8.15,'|V| ')
+  call self%text(xs+3.68,8.15,'Vphase ')
+  call self%text(xs+4.18,8.15,'|V''| ')
+  call self%text(xs+4.58,8.15,'V''phase ')
+  call self%setfont(PSfonts(1),0.14) 
+  call self%text(xs+5.23,8.15,'x ')
+  call self%setfont(PSfonts(3),0.14) 
+  call self%text(xs+5.31,8.13,'g ')
+  call self%setfont(PSfonts(1),0.14) 
+  call self%text(xs+5.58,8.15,'x''')
+  call self%setfont(PSfonts(3),0.14) 
+  call self%text(xs+5.66,8.13,'g ')
+ end if
+
+! put all entries in the correct positions
+ x = xs+1.0
+ y = 8.0 - (mod(i-1,50))*0.15
+ call self%setfont(PSfonts(4),0.12) 
+ write (self%psunit,900) x,y,h       
+ x=x+0.15
+ write (self%psunit,900) x,y,k       
+ x=x+0.15
+ write (self%psunit,900) x,y,l       
+ x=x+0.20
+ write (self%psunit,900) x,y,p       
+ x=x+0.25
+ write (self%psunit,901) x,y,d       
+ x=x+0.45
+ write (self%psunit,901) x,y,g       
+ x=x+0.45
+ write (self%psunit,902) x,y,th*1000.0      
+ x=x+0.55
+ write (self%psunit,901) x,y,vm      
+ x=x+0.45
+ write (self%psunit,901) x,y,vp      
+ x=x+0.45
+ write (self%psunit,901) x,y,vpm     
+ x=x+0.45
+ write (self%psunit,901) x,y,vpp     
+ x=x+0.45
+ if (xi.gt.100000.0) then 
+  write (self%psunit,905) x,y       
+ else
+  write (self%psunit,906) x,y,xi       
+ endif
+ x=x+0.45
+ if (xip.gt.100000.0) then 
+  write (self%psunit,905) x,y       
+ else
+  write (self%psunit,906) x,y,xip       
+ endif
+!
+ 900    format (1x,F12.7,' ',F12.7,' M (',I2,') show')
+ 901    format (1x,F12.7,' ',F12.7,' M (',F8.5,') show')
+ 902    format (1x,F12.7,' ',F12.7,' M (',F9.4,') show')
+ 903    format (1x,F12.7,' ',F12.7,' M (',F12.4,') show')
+ 904    format (1x,F12.7,' ',F12.7,' M (',I8,') show')
+ 905    format (1x,F12.7,' ',F12.7,' M ( >100,000 ) show')
+ 906    format (1x,F12.7,' ',F12.7,' M (',F8.2,') show')
+
+end subroutine DumpLine_
+
+!--------------------------------------------------------------------------
+subroutine StereoPage_(self, cell, SG)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! creates pages with stereographic projections
+
+use mod_io 
+use mod_crystallography
+use mod_symmetry
+
+class(PostScript_T),INTENT(INOUT)     :: self
+type(Cell_T),INTENT(INOUT)            :: cell
+type(SpaceGroup_T),INTENT(INOUT)      :: SG
+
+type(IO_T)                            :: Message
+character(1)                          :: sp
+logical                               :: topbot
+integer(kind=irg)                     :: hm,km,lm,iview(3), io_int(3)
+
+ topbot=.TRUE.
+ call Message%printMessage( (/ 'Enter the maximum index for h,k and l, or for ',&
+                               'u,v, and w. For a hexagonal system, please use',&
+                               '4-index notation [uv.w] or (hk.l) to determine',&
+                               'the largest index.                            ' /), frm = "(A)")
+ call Message%ReadValue(' Enter maximum indices : ', io_int, 3)
+ hm = io_int(1)
+ km = io_int(2)
+ lm = io_int(3)
+! first [001] projection of real space
+ sp = 'd'
+ iview(1)=0
+ iview(2)=0
+ iview(3)=1
+! call the drawing routine
+ call self%StereoProj(cell,SG,sp,iview,hm,km,lm,topbot)
+! then [001] projection of reciprocal space
+ sp = 'r'
+! call the drawing routine
+ call self%StereoProj(cell,SG,sp,iview,hm,km,lm,topbot)
+
+end subroutine StereoPage_
+
+!--------------------------------------------------------------------------
+recursive subroutine DiffPage_(self, cell, SG, Diff, camlen)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !!  draw kinematical zone axis electron diffraction patterns
+
+use mod_crystallography
+use mod_symmetry
+use mod_io
+use mod_diffraction
+use mod_misc
+
+IMPLICIT NONE
+
+class(PostScript_T),INTENT(INOUT)   :: self
+type(Cell_T),INTENT(INOUT)          :: cell
+type(SpaceGroup_T),INTENT(INOUT)    :: SG
+class(Diffraction_T),INTENT(INOUT)  :: Diff 
+real(kind=sgl),INTENT(IN)           :: camlen
+
+type(IO_T)                          :: Message
+    
+integer(kind=irg),parameter         :: inm = 5
+character(1)                        :: list(256)
+logical                             :: first,np,ppat,a
+logical,allocatable                 :: z(:,:,:),zr(:,:,:)
+integer(kind=irg)                   :: i,j,h,k,l,m,totfam,hh,ll,fmax,inmhkl(3),ricnt,icnt,ind(3),uu,vv,ww,slect(256), &
+                                       js,ii,num,hc,hhcc,iinm,dpcnt,imo,ih,ik,il,ier,iref, io_int(4)
+integer(kind=irg),allocatable       :: idx(:)
+integer(kind=irg),allocatable       :: family(:,:),numfam(:)
+real(kind=sgl)                      :: twopi,ggl,g(3),Vmax,laL,gmax,RR,thr, oi_real(1)
+real(kind=sgl),allocatable          :: gg(:)
+real(kind=sgl)                      :: rmt(3,3)
+real(kind=sgl),parameter            :: xoff(0:5)=(/0.0,3.3125,0.0,3.3125,0.0,3.3125/),yoff(0:5)=(/6.0,6.0,3.0,3.0,0.0,0.0/), &
+                                       eps = 1.0E-3
+logical,allocatable                 :: dbdiff(:)
+integer(kind=irg),allocatable       :: itmp(:,:)   !< array used for family computations etc
+    
+real(kind=sgl),allocatable          :: Vg(:),rg(:),Vgsave(:)
+integer(kind=irg),allocatable       :: rfamily(:,:,:),rnumfam(:)
+type(gnode)                         :: rlp
+
+! set some parameters
+ thr = 1.E-4 
+ twopi = 2.0*cPi
+ Vmax = 0.0
+
+! gmax is the radius of the sphere whose intersection with the 
+! back focal plane is the circle on the output zone axis patterns
+ laL = sngl(Diff%getWaveLength()) * camlen
+ RR = 1.375 * 25.4
+ gmax = RR/laL
+
+ oi_real(1) = sngl(Diff%getWaveLength())
+ call Message%WriteValue('wavelength [nm] = ', oi_real, 1)
+ oi_real(1) = camlen
+ call Message%WriteValue(' L         [mm] = ', oi_real, 1)
+ oi_real(1) = laL
+ call Message%WriteValue('camera length lambda*L [mm nm] = ', oi_real, 1) 
+
+! determine the families of reciprocal lattice points
+! in a region of reciprocal space.
+! set the index boundaries
+
+rmt = cell%getrmt()
+
+ do i=1,3
+  inmhkl(i) = 2*int(gmax/sqrt(rmt(i,i)))
+ end do
+ hc = maxval(inmhkl)
+
+! allocate all the necessary arrays
+ allocate(zr(-hc:hc,-hc:hc,-hc:hc))
+ allocate(z(-inm:inm,-inm:inm,-inm:inm))
+ hhcc = (2*hc+1)**3
+ allocate(Vg(hhcc))
+ allocate(Vgsave(hhcc))
+ allocate(rfamily(hhcc,48,3))
+ allocate(rnumfam(hhcc))
+ allocate(rg(hhcc))
+ iinm = (2*inm+1)**3
+ allocate(family(iinm,3))
+ allocate(numfam(iinm))
+
+! if this is a non-symmorphic space group, then also
+! allocate the dbdiff array to tag potential double 
+! diffraction reflections
+ if (.not.SG%getSpaceGroupSymmorphic()) then
+   allocate(dbdiff(hhcc))
+   dbdiff(1:hhcc) = .FALSE.
+ endif
+
+! and initialize the ones that need to be initialized
+ zr(-hc:hc,-hc:hc,-hc:hc) = .FALSE.
+ z(-inm:inm,-inm:inm,-inm:inm) = .FALSE.
+
+! here we go:
+ first = .TRUE.
+ icnt = 1
+ totfam=0
+ do h=-inmhkl(1),inmhkl(1)
+  ind(1)=h
+  do k=-inmhkl(2),inmhkl(2)
+   ind(2)=k
+   do l=-inmhkl(3),inmhkl(3)
+    ind(3)=l
+! make sure we have not already done this one in another family
+    if (.not.zr(h,k,l)) then
+! check the length, to make sure it lies within the sphere gmax
+     ggl = cell%CalcLength(float(ind),'r')
+! if it is larger than gmax, then compute the entire family
+     if (ggl.ge.gmax) then
+      call SG%CalcFamily(ind,num,'r',itmp)
+! and label the family members in the zr array so that we 
+! do not include those points later on in the loop
+      do i=1,num
+       zr(itmp(i,1),itmp(i,2),itmp(i,3))=.TRUE.
+      end do
+     else 
+! if the length is smaller than gmax, then compute the 
+! Fourier coefficient Vg and determine the entire family
+! [recall that all members in a family have the same Vg]
+! Do this only for those reflections that are allowed by
+! the lattice centering !
+      a = SG%IsGAllowed((/h,k,l/))
+      if (a) then
+       call Diff%CalcUcg(cell,ind)
+       rlp = Diff%getrlp()
+
+! check for nonsymmorphic systematic absences
+       if ((.not.SG%getSpaceGroupSymmorphic()).and.(rlp%Vmod.lt.eps)) then
+        io_int = (/ h, k, l, 0 /)
+        call Message%WriteValue(' potential double diffraction family :', io_int,3,"('{',I3,I3,I3,'}')")
+        dbdiff(icnt) = .TRUE.
+        rlp%Vmod = 0.0
+       endif
+! compute the entire family
+       deallocate(itmp)
+       call SG%CalcFamily(ind,num,'r',itmp)
+       rg(icnt)=ggl
+! copy family in array
+       do i=1,num
+        rfamily(icnt,i,1:3)=itmp(i,1:3)
+        zr(itmp(i,1),itmp(i,2),itmp(i,3))=.TRUE.
+       end do
+! and take the modulus squared for the intensity
+       Vg(icnt)=rlp%Vmod**2
+       Vgsave(icnt)=Vg(icnt)
+! update the maximum value 
+       Vmax = max(Vg(icnt),Vmax)
+      else
+! remove the equivalent systematic absences
+       deallocate(itmp)
+       call SG%CalcFamily(ind,num,'r',itmp)
+       rg(icnt)=ggl
+       do i=1,num
+        rfamily(icnt,i,1:3)=itmp(i,1:3)
+        zr(itmp(i,1),itmp(i,2),itmp(i,3))=.TRUE.
+       end do
+! and put the intensity to a negative value
+! that way we will know whether or not to draw them
+       Vg(icnt)=-100.0
+       Vgsave(icnt)=Vg(icnt)
+      end if
+! and increment the family counter
+      rnumfam(icnt)=num
+      totfam=totfam+num-1
+      icnt=icnt+1
+     end if 
+    end if 
+   end do
+  end do
+ end do
+
+ icnt=icnt-1
+! normalize potential coefficients to largest one
+! and scale in a non-linear way to mimic density on 
+! an electron micrograph [Gonzalez & Windtz]
+! Use the where operator to avoid the negative intensities
+ call Message%ReadValue('logarithmic[0] or exponential[1] intensity scale ', io_int, 1)
+ ll = io_int(1)
+ if (ll.eq.0) then
+  where(Vg.gt.0.0) Vg=0.01*alog(1.0+0.1*Vg)
+ else
+  where(Vg.gt.0.0) Vg=0.05*(Vg/Vmax)**0.2
+ end if
+ ricnt=icnt
+
+! determine families of directions
+ first = .TRUE.
+ icnt = 1
+ totfam=0
+ do uu=-inm,inm
+  do vv=-inm,inm
+   do ww=-inm,inm
+    if ((uu**2+vv**2+ww**2).ne.0) then
+! make sure we have not already done this one in another family
+     ind= (/ -uu, -vv, -ww /)
+     call IndexReduce(ind)
+     if (.not.z(ind(1),ind(2),ind(3))) then
+! determine the family <uvw>
+      deallocate(itmp)
+      call SG%CalcFamily(ind,num,'d',itmp)
+! and keep only one family member, namely the one with the
+! largest sum of the three integers, i.e. u+v+w
+! [this is a simple way to get mostly positive indices as
+! the zone axis indices]
+      js = -100
+      ii = 0
+      do i=1,num
+       hh = itmp(i,1)+itmp(i,2)+itmp(i,3)
+       if (hh.gt.js) then 
+        ii = i
+        js = hh
+       end if
+! then remove the multiples of those direction indices from list 
+       do m=-inm,inm
+        ih=itmp(i,1)*m
+        ik=itmp(i,2)*m
+        il=itmp(i,3)*m
+        if (((abs(ih).le.inm).and.(abs(ik).le.inm)).and.(abs(il).le.inm)) then 
+         z(ih,ik,il)=.TRUE.
+        end if
+       end do
+      end do
+      family(icnt,1:3)=itmp(ii,1:3)
+! increment family counter
+      numfam(icnt)=num
+      totfam=totfam+num-1
+      icnt=icnt+1
+     end if
+    end if
+   end do
+  end do
+ end do
+ icnt=icnt-1
+ io_int(1) = icnt
+ call Message%WriteValue('->Total number of direction families = ', io_int, 1)
+
+! compute length of direction vectors and rank by increasing length
+ allocate(idx(icnt))
+ allocate(gg(icnt))
+ gg(1:icnt) = 0.0
+ do k=1,icnt
+  g(1:3)=float(family(k,1:3))
+  gg(k)=cell%CalcLength(g,'d')
+ end do
+
+! rank by increasing value of gg (use SLATEC routine)
+ call SPSORT(gg,icnt,idx,1,ier)
+
+! ask for number to be included in output
+ call Message%printMessage('List of available zone axis patterns', frm = "(A)")
+ do i=1,icnt
+  j=idx(i)
+  io_int(1)=i
+  do k=1,3
+   io_int(k+1) = family(j,k)
+  end do
+  if (mod(i,4).eq.0) then 
+   call Message%WriteValue('', io_int,4,"(I3,' [',3I3,'];')")
+  else
+   call Message%WriteValue('', io_int,4,"(I3,' [',3I3,'];')",advance="no")
+  endif
+ end do
+ call Message%printMessage('Enter selection (e.g. 4,10-20, ... ) ', frm = "(//,A)")
+ call Message%printMessage('[Include 0 to also draw a powder pattern] ', frm = "(A)")
+ list = (/ (' ',j=1,256) /)
+ call Message%printMessage(' -> ', frm = "(A,' ')",advance="no")
+ read (5,"(256A)") list
+ call studylist(list,slect,fmax,ppat)
+
+ if (.not.SG%getSpaceGroupSymmorphic()) then
+  call Message%printMessage('Potential double diffraction reflections will be indicated by open squares.', frm = "(A,/)")
+ end if
+ call Message%ReadValue('No indices (0), labels (1), extinctions (2), labels + extinctions (3): ', io_int, 1)
+ iref = io_int(1)
+
+! and create output in 2 columns, 3 rows 
+ do i=1,fmax  
+  dpcnt=dpcnt+1
+  j=idx(slect(i))
+  imo = mod(i-1,6)
+  if (imo.eq.0) then 
+   np=.TRUE.
+  else
+   np=.FALSE.
+  endif
+  if (i.eq.1) then
+   first=.TRUE.
+  else
+   first=.FALSE.
+  endif
+  if (slect(i).eq.0) then
+   call Message%printMessage('Creating Powder Pattern ', frm = "(A)")
+   call self%DumpPP(cell,xoff(imo),yoff(imo),np,laL,ricnt,Vgsave,rg,rnumfam)
+   ppat=.FALSE.
+  else
+   io_int(1:3) = family(j,1:3)
+   call Message%WriteValue('Creating ZAP ', io_int,3, "('[',3i3,'] : ')",advance="no")
+   call self%DumpZAP(cell,SG,xoff(imo),yoff(imo),family(j,1),family(j,2),family(j,3),numfam(j),np,first,iref,laL,ricnt,dbdiff, &
+        Vg, Vgsave, rg, rfamily, rnumfam, hhcc)
+  endif
+ end do
+
+! and clean up all variables
+ deallocate(zr,z,Vg, Vgsave, rfamily, rnumfam, rg, family, numfam, idx, gg)
+ if (.not.SG%getSpaceGroupSymmorphic()) deallocate(dbdiff)
+
+end subroutine DiffPage_
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: studylist
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief analyze reflection input list
+!
+!> @details determine which zone axis pattern to draw from user input
+!> the parameter ppat is returned as true if the user also requested a powder pattern
+!
+!> @param list input string
+!> @param slect list of patterns
+!> @param np number of patterns
+!> @param ppat draw a powder pattern?
+!
+!> @date   10/20/98 MDG 1.0 original
+!> @date    5/22/01 MDG 2.0 f90
+!> @date   11/27/01 MDG 2.1 added kind support
+!> @date   03/26/13 MDG 3.0 updated IO
+!--------------------------------------------------------------------------
+recursive subroutine studylist(list,slect,np,ppat)
+!DEC$ ATTRIBUTES DLLEXPORT :: studylist
+
+IMPLICIT NONE
+
+character(1),INTENT(IN)                 :: list(256)            !< input string
+integer(kind=irg),INTENT(OUT)           :: slect(256)           !< list of patterns to be drawn
+integer(kind=irg),INTENT(OUT)           :: np                           !< number of patterns
+logical,INTENT(INOUT)                   :: ppat                 !< powder pattern included ?
+!f2py intent(in,out) ::  ppat                 !< powder pattern included ?
+
+integer(kind=irg)                       :: comma(100),hyphen(100),ccnt,hcnt,i,j,k,ip,icnt,nd,n,istart,istop
+integer(kind=irg),parameter             :: nmb(48:57)=(/0,1,2,3,4,5,6,7,8,9/)
+
+! initialize a few parameters
+ ccnt = 0
+ hcnt = 0
+ ppat = .FALSE.
+ slect = 0
+ comma = 0
+ hyphen= 0
+ j = 0
+
+! count characters and search for , and -
+ do i=1,256
+  if (list(i)(1:1).ne.' ') j=j+1
+  if (list(i)(1:1).eq.',') then 
+   ccnt = ccnt+1
+   comma(ccnt)=i
+  end if
+  if (list(i)(1:1).eq.'-') then 
+   hcnt = hcnt+1
+   hyphen(hcnt)=i
+  end if
+ end do 
+ ccnt = ccnt+1
+ comma(ccnt) = j+1
+
+! interpret the string
+ j = 1
+ ip = 1
+ icnt = 0
+ do i=1,ccnt
+! is it a range ?
+  if (((hyphen(j).lt.comma(i)).and.(hcnt.gt.0)).and.(j.le.hcnt)) then
+
+! yes, it is;  get the first number
+   nd = hyphen(j)-ip
+   n = 0
+   do k=0,nd-1
+    n = 10*n+nmb(ichar(list(ip+k)(1:1)))
+   end do
+   istart = n
+   ip = hyphen(j)+1
+
+! and then the second number
+   nd = comma(i)-ip
+   n = 0
+   do k=0,nd-1
+    n = 10*n+nmb(ichar(list(ip+k)(1:1)))
+   end do
+   istop = n
+
+! and fill in the entire range
+   do k=istart,istop
+    icnt=icnt+1
+    slect(icnt)=k
+    if (k.eq.0) then
+     ppat = .TRUE.
+    end if
+   end do
+   ip = comma(i)+1
+   j=j+1
+  else
+
+! no, it is not a range; determine number of digits
+   nd = comma(i)-ip
+   n = 0
+   do k=0,nd-1
+    n = 10*n+nmb(ichar(list(ip+k)(1:1)))
+   end do
+   icnt=icnt+1
+   slect(icnt)=n
+   if (n.eq.0) then
+    ppat = .TRUE.
+   end if
+   ip = comma(i)+1
+  end if
+ end do 
+ np = icnt
+ 
+end subroutine
+
+
+
 
 
 end module mod_postscript

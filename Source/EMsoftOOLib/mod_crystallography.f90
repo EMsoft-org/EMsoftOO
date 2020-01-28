@@ -2366,17 +2366,16 @@ self%gamma = cellparams(6)
 
 dataset = SC_SpaceGroupNumber
 call me%readDatasetInteger(dataset, hdferr, SGnum) 
-SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system )
-call SG%setSpaceGroupNumber(SGnum)
 call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
-
 dataset = SC_SpaceGroupSetting
 call me%readDatasetInteger(dataset, hdferr, setting)
-! this parameter must be either 1 or 2, but is initialized to 0;
-! some older .xtal files may still have 0 in them, so we correct this here
-if (setting.eq.0) setting = 1
-call SG%setSpaceGroupSetting(setting)
 call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
+
+if (setting.eq.0) setting = 1
+SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system, setting = setting )
+!call SG%setSpaceGroupNumber(SGnum)
+
+!all SG%setSpaceGroupSetting(setting)
 
 ! here we also set the point group number, which is needed by many routines
 if (SGnum.ge.221) then

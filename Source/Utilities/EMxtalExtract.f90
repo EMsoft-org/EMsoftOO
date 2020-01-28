@@ -75,8 +75,7 @@ integer(kind=irg), allocatable  :: atp(:)
 ! read crystal information
  call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
  call cell%getCrystalData(xtalname, SG, EMsoft)
-! compute atom positions
- call cell%calcPositions(SG, 'v')
+
 ! get a filename for the output 
  call Message%ReadValue('Enter text file name for output (*.txt) ', txtname)
  open (unit=dataunit, file=trim(txtname), status='unknown',form='formatted')

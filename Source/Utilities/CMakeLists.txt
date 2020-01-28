@@ -116,13 +116,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                     )
 
 
-     #  Add_EMsoftOO_Executable(TARGET EMzap 
-     #                                SOURCES ${APP_DIR}/EMzap.f90 
-     #                                LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-     #                                SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-     #                                INSTALL_PROGRAM TRUE
-     #                                INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-     #                                )
+      Add_EMsoftOO_Executable(TARGET EMzap 
+                                    SOURCES ${APP_DIR}/EMzap.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
 
       Add_EMsoftOO_Executable(TARGET EMZAgeom 
                                     SOURCES ${APP_DIR}/EMZAgeom.f90 
@@ -212,13 +212,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                     INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
                                     )
 
-      # Add_EMsoftOO_Executable(TARGET EMxtalinfo 
-      #                               SOURCES ${APP_DIR}/EMxtalinfo.f90 
-      #                               LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-      #                               SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-      #                               INSTALL_PROGRAM TRUE
-      #                               INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
-      #                               )
+      Add_EMsoftOO_Executable(TARGET EMxtalinfo 
+                                    SOURCES ${APP_DIR}/EMxtalinfo.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
 
       # Add_EMsoftOO_Executable(TARGET EMHOLZ 
       #                               SOURCES ${APP_DIR}/EMHOLZ.f90 
@@ -246,14 +246,6 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
 
 endif()
-
-# Add_EMsoftOO_Executable(TARGET Qtest
-#                               SOURCES ${APP_DIR}/Qtest.f90 
-#                               LINK_LIBRARIES EMsoftOOLib
-#                               SOLUTION_FOLDER EMsoftOOPublic/Utilities 
-#                               INSTALL_PROGRAM TRUE
-#                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-#                               )
 
 Add_EMsoftOO_Executable(TARGET EMcuboMK
                               SOURCES ${APP_DIR}/EMcuboMK.f90 
