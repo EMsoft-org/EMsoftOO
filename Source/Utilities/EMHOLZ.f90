@@ -26,12 +26,12 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMxtalinfo
+program EMHOLZ
   !! author: MDG
   !! version: 1.0 
   !! date: 01/26/20
   !!
-  !! generate multiple pages with crystallographic information for a given structure
+  !! Generate kinematical HOLZ patterns
 
 use mod_kinds
 use mod_global
@@ -40,26 +40,28 @@ use mod_crystallography
 use mod_symmetry
 use mod_io
 use mod_postscript
+use mod_HOLZ
 use mod_diffraction
 
 IMPLICIT NONE 
 
-character(fnlen)        :: progname = 'EMxtalinfo.f90'
-character(fnlen)        :: progdesc = 'Important crystallographic data for TEM applications'
+character(fnlen)        :: progname = 'EMHOLZ.f90'
+character(fnlen)        :: progdesc = 'Kinematical HOLZ pattern and HOLZ line simulations'
 
 type(EMsoft_T)          :: EMsoft 
 type(IO_T)              :: Message 
 type(Cell_T)            :: cell
 type(SpaceGroup_T)      :: SG 
-type(Diffraction_T)     :: Diff
 type(PostScript_T)      :: PS 
+type(HOLZ_T)            :: HOLZ
+type(Diffraction_T)     :: Diff
 
-real(kind=sgl)          :: io_real(1), camlen
-integer(kind=irg)       :: imanum, io_int(1)
+real(kind=sgl)          :: camlen, io_real(1)
+integer(kind=irg)       :: imanum
 character(fnlen)        :: xtalname
 
 ! program header and command line argument handling 
-EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 927 /) )
+EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 902 /) )
 
 ! ask for the crystal structure file
 call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
@@ -71,21 +73,13 @@ call Diff%getVoltage(cell, verbose=.TRUE.)
 call Message%ReadValue(' Camera Length [mm, R] : ', io_real, 1)
 camlen = io_real(1)
 
-! open PostScript file
-imanum = 1
-PS = PostScript_T(progdesc, EMsoft, imanum)
-call PS%setpspage(0)
-call Message%printMessage('Crystallographic Information', frm = "(/A/)")
-call PS%InfoPage(cell, SG)
-call Message%printMessage('Structure Factors', frm = "(/A/)")
-call PS%StrucFacPage(cell, SG, Diff)
-call Message%printMessage('Stereographic Projections', frm = "(/A/)")
-call PS%StereoPage(cell, SG)
-call Message%printMessage('Diffraction Patterns' , frm = "(/A/)")
-call PS%DiffPage(cell, SG, Diff, camlen)
+! construct the HOLZ class, which, optionally, also opens the PostScript file
+HOLZ = HOLZ_T( progdesc, EMsoft, PS )
+
+! generate a set of HOLZ patterns
+call HOLZ%HOLZPage(cell, SG, PS, Diff, camlen)
 
 ! close Postscript file
 call PS%closefile()
 
-end program EMxtalinfo
-
+end program EMHOLZ

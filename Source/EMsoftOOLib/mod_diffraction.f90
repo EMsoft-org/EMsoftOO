@@ -246,6 +246,7 @@ private
     procedure, pass(self) :: PreCalcFSCATT_
     procedure, pass(self) :: CalcsgSingle_
     procedure, pass(self) :: CalcsgDouble_
+    procedure, pass(self) :: getV_
     procedure, pass(self) :: getScatfac_
     procedure, pass(self) :: getWaveLength_
     procedure, pass(self) :: BWsolve_
@@ -263,6 +264,7 @@ private
     generic, public :: getWaveLength => getWaveLength_
     generic, public :: BWsolve => BWsolve_
     generic, public :: setrlpmethod => setrlpmethod_
+    generic, public :: getV => getV_
     generic, public :: getrlp => getrlp_
     generic, public :: Printrlp => Printrlp_
 
@@ -464,6 +466,23 @@ character(2)                        :: rlpmethod
 rlpmethod = self%rlp%method
 
 end function getrlpmethod_
+
+!--------------------------------------------------------------------------
+recursive function getV_(self) result(V)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/28/20
+  !!
+  !! return the accelerating voltage
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+real(kind=dbl)                      :: V
+
+V = self%voltage
+
+end function getV_
 
 !--------------------------------------------------------------------------
 recursive subroutine Printrlp_(self,first)

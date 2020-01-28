@@ -121,8 +121,10 @@ IMPLICIT NONE
           procedure, pass(self) :: getapos_
           procedure, pass(self) :: getatomtype_
           procedure, pass(self) :: requestLatticeParameters
+          procedure, pass(self) :: setLatticeParameterSingle
           procedure, pass(self) :: getLatticeParameterSingle
           procedure, pass(self) :: getLatticeParametersAll
+          procedure, pass(self) :: setLatticeParametersAll
           procedure, pass(self) :: getAsymmetricPosition
           procedure, pass(self) :: getDirectStructureMatrix
           procedure, pass(self) :: getReciprocalStructureMatrix
@@ -174,6 +176,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: calcPositions 
           generic, public :: getLatParm => getLatticeParameterSingle, getLatticeParametersAll
           !DEC$ ATTRIBUTES DLLEXPORT :: getLatParm 
+          generic, public :: setLatParm => setLatticeParameterSingle, setLatticeParametersAll
+          !DEC$ ATTRIBUTES DLLEXPORT :: setLatParm 
           generic, public :: setLatParm => requestLatticeParameters
           !DEC$ ATTRIBUTES DLLEXPORT :: setLatParm 
           generic, public :: setXtalSystem => setXtalSystem_
@@ -350,6 +354,39 @@ select case(p)
 end function getLatticeParameterSingle
 
 !--------------------------------------------------------------------------
+recursive subroutine setLatticeParameterSingle( self, p, lp )
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/28/20
+  !!
+  !! set a single lattice parameter 
+
+use mod_global 
+
+IMPLICIT NONE
+
+class(Cell_T),intent(inout)    :: self
+character(*), intent(in)       :: p 
+real(kind=dbl), intent(in)     :: lp 
+
+select case(p)
+  case('a')
+    self%a = lp
+  case('b')
+    self%b = lp
+  case('c')
+    self%c = lp
+  case('alpha')
+    self%alpha = lp
+  case('beta')
+    self%beta = lp
+  case('gamma')
+    self%gamma = lp
+  end select
+
+end subroutine setLatticeParameterSingle
+
+!--------------------------------------------------------------------------
 recursive function getLatticeParametersAll( self ) result(lp)
   !! author: MDG 
   !! version: 1.0 
@@ -368,6 +405,30 @@ real(kind=dbl)                 :: lp(6)
 lp = (/ self%a, self%b, self%c, self%alpha, self%beta, self%gamma /)
 
 end function getLatticeParametersAll
+
+!--------------------------------------------------------------------------
+recursive subroutine setLatticeParametersAll( self, lp)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/28/20
+  !!
+  !! set all lattice parameters
+
+use mod_global 
+
+IMPLICIT NONE
+
+class(Cell_T),intent(inout)    :: self
+real(kind=dbl),intent(in)      :: lp(6) 
+
+self%a = lp(1)
+self%b = lp(2)
+self%c = lp(3)
+self%alpha = lp(4)
+self%beta = lp(5)
+self%gamma = lp(6)
+
+end subroutine setLatticeParametersAll
 
 !--------------------------------------------------------------------------
 recursive subroutine computeMatrices(self)

@@ -302,7 +302,10 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: DumpImageDistort_
       procedure, pass(self) :: DrawSPFrame_
       procedure, pass(self) :: DrawcellFrame_
+      procedure, pass(self) :: getpsunit_
       procedure, pass(self) :: getpsscale_
+      procedure, pass(self) :: getpsfigwidth_
+      procedure, pass(self) :: getpsfigheight_
       procedure, pass(self) :: StereoProj_
       procedure, pass(self) :: DumpZAP_
       procedure, pass(self) :: DumpPP_
@@ -405,8 +408,14 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
 !DEC$ ATTRIBUTES DLLEXPORT :: DrawSPFrame
       generic, public :: DrawcellFrame => DrawcellFrame_
 !DEC$ ATTRIBUTES DLLEXPORT :: DrawcellFrame
+      generic, public :: getpsunit => getpsunit_
+!DEC$ ATTRIBUTES DLLEXPORT :: getpsunit
       generic, public :: getpsscale => getpsscale_
 !DEC$ ATTRIBUTES DLLEXPORT :: getpsscale
+      generic, public :: getpsfigwidth => getpsfigwidth_
+!DEC$ ATTRIBUTES DLLEXPORT :: getpsfigwidth
+      generic, public :: getpsfigheight => getpsfigheight_
+!DEC$ ATTRIBUTES DLLEXPORT :: getpsfigheight
       generic, public :: StereoProj => StereoProj_
 !DEC$ ATTRIBUTES DLLEXPORT :: StereoProj
       generic, public :: DumpZAP => DumpZAP_ 
@@ -641,6 +650,23 @@ end subroutine cellinfo_
 
 
 !--------------------------------------------------------------------------
+recursive function getpsunit_(self) result(psu)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/15/20
+  !!
+  !! get the postscript output device id
+
+IMPLICIT NONE
+
+class(PostScript_T),INTENT(INOUT)  :: self
+real(kind=sgl)                     :: psu
+
+psu = self%psunit
+
+end function getpsunit_
+
+!--------------------------------------------------------------------------
 recursive function getpsscale_(self) result(psscale)
   !! author: MDG 
   !! version: 1.0 
@@ -656,6 +682,41 @@ real(kind=sgl)                     :: psscale
 psscale = self%psscale
 
 end function getpsscale_
+
+!--------------------------------------------------------------------------
+recursive function getpsfigwidth_(self) result(psfw)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/28/20
+  !!
+  !! return ps figure width
+
+IMPLICIT NONE
+
+class(PostScript_T),INTENT(INOUT)  :: self
+real(kind=sgl)                     :: psfw
+
+psfw = self%psfigwidth
+
+end function getpsfigwidth_
+
+!--------------------------------------------------------------------------
+recursive function getpsfigheight_(self) result(psfh)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/15/20
+  !!
+  !! make the last path the clippath
+
+IMPLICIT NONE
+
+class(PostScript_T),INTENT(INOUT)  :: self
+real(kind=sgl)                     :: psfh
+
+psfh = self%psfigheight
+
+end function getpsfigheight_
+
 
 !--------------------------------------------------------------------------
 recursive subroutine clippath_(self)

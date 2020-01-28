@@ -63,6 +63,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_others.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_TB.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_diffraction.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_HOLZ.f90
   
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90
