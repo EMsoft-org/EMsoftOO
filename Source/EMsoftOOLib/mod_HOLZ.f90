@@ -172,7 +172,7 @@ nullify(HOLZ%HOLZlist%next)
 end function HOLZ_constructor
 
 !--------------------------------------------------------------------------
-function getListHead_(self) result(top)
+subroutine getListHead_(self, top)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/28/20
@@ -181,12 +181,12 @@ function getListHead_(self) result(top)
 
 IMPLICIT NONE
 
-class(HOLZ_T),INTENT(INOUT)             :: self
-type(HOLZreflection), pointer           :: top 
+class(HOLZ_T),INTENT(INOUT)                 :: self
+type(HOLZreflection), pointer,INTENT(OUT)   :: top 
 
 top => self%HOLZlist
 
-end function getListHead_
+end subroutine getListHead_
 
 !--------------------------------------------------------------------------
 subroutine DeleteList_(self)
@@ -472,7 +472,7 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
    first = .FALSE.
 
 ! get the linked list to store all reflections
-   bot => self%getListHead() 
+   call self%getListHead( bot ) 
    if (.not.associated(bot)) then 
     nullify(bot%next)
    end if
@@ -485,7 +485,7 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
      cell = savecell
 ! deallocate the previous linked list and allocate a new one
      call self%DeleteList()
-     bot => self%getListHead() 
+     call self%getListHead( bot ) 
      nullify(bot%next)
    else
 ! show the current lattice parameters and save the parameters
@@ -877,8 +877,8 @@ HOLZvar = self%HOLZvar
 
  call Message%printMessage('Computing HOLZ reflection data',"(/A)")
 
-top => self%getListHead()
-bot => self%getListHead()
+ call self%getListHead( top )
+ call self%getListHead( bot )
 
 ! set the index boundaries
  inmhkl(1) = int(1.1*HOLZvar%Gmax/cell%CalcLength(HOLZvar%g1,'r'))
@@ -1047,7 +1047,7 @@ HOLZvar = self%HOLZvar
 
 call Message%printMessage('Computing HOLZ reflection data',"(/A/)")
 
-    temp => self%getListHead()
+    call self%getListHead( temp )
 
     do while (associated(temp))
        gg = temp%hkl
@@ -1136,7 +1136,7 @@ HOLZvar = self%HOLZvar
  call Message%printMessage('Plotting HOLZ reflections',"(/A/)")
 
 ! point to the top of the linked list
- temp => self%getListHead()
+ call self%getListHead( temp )
 
 ! move through the entire list and draw all reflections with exponentially scaled intensity;
  do while (associated(temp))
@@ -1192,7 +1192,7 @@ integer(kind=irg)                       :: i,nref, psunit
  call Message%printMessage('Plotting HOLZ lines and labels',"(/A/)")
 
 ! point to the top of the linked list
- temp => self%getListHead()
+ call self%getListHead(temp)
  nref = 0
  open(unit=30,file='temp.txt',status='unknown',form='formatted')
  call PS%setfont(PSfonts(4),0.08)

@@ -106,8 +106,8 @@ end if
 
 call Kik%DeleteList() 
 
-allocate(Kik%KikList)
-nullify(Kik%KikList%next)
+allocate(Kik%Kiklist)
+nullify(Kik%Kiklist%next)
 
 end function Kikuchi_constructor
 
@@ -128,7 +128,7 @@ call self%DeleteList()
 end subroutine Kikuchi_destructor
 
 !--------------------------------------------------------------------------
-function getListHead_(self) result(top)
+subroutine getListHead_(self, top)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/30/20
@@ -137,12 +137,12 @@ function getListHead_(self) result(top)
 
 IMPLICIT NONE
 
-class(Kikuchi_T),INTENT(INOUT)          :: self
-type(kikuchireflection), pointer        :: top 
+class(Kikuchi_T),INTENT(INOUT)                  :: self
+type(kikuchireflection), pointer,INTENT(OUT)    :: top 
 
 top => self%Kiklist
 
-end function getListHead_
+end subroutine getListHead_
 
 !--------------------------------------------------------------------------
 subroutine DeleteList_(self)
@@ -258,7 +258,7 @@ integer(kind=irg)                   :: uvw(3),contrast
   PY = 4.00
 ! add other data lines to the upper left
   call PS%setfont(PSfonts(2),0.15)
-  call PS%textvar(-0.25,psfh-0.18,'Acc. Voltage [kV] ',sngl(Diff%getV())*0.001)
+  call PS%textvar(-0.25,psfh-0.18,'Acc. Voltage [kV] ',sngl(Diff%getV()))
   call PS%text(-0.25,psfh-0.38,'Zone axis ')
   call PS%PrintIndices('d',SG%getSpaceGrouphexset(),uvw(1),uvw(2),uvw(3),-0.25+1.5,psfh-0.38)
 ! scale bar (sc is the conversion factor from nm-1 to inches)
@@ -323,7 +323,7 @@ character(1)                        :: q
 type(kikuchireflection),pointer     :: top, temp, bot
 type(gnode)                         :: rlp 
 
- top => self%getListHead()
+ call self%getListHead(top)
  bot => top 
  nullify(bot%next)
 
@@ -503,10 +503,11 @@ character(12)                       :: txt
 integer(kind=irg)                   :: i,nref, psunit
 type(kikuchireflection),pointer     :: top, temp, bot
 
- top = self%getListHead()
+ nullify(top, temp, bot)
+ call self%getListHead(top)
  psunit = PS%getpsunit() 
 
- call Message%WriteValue('Plotting Kikuchi bands and labels',"(/A/)")
+ call Message%printMessage('Plotting Kikuchi bands and labels',frm="(/A/)")
  PX = 3.75
  PY = 4.00
 

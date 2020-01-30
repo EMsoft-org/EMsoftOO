@@ -660,7 +660,7 @@ recursive function getpsunit_(self) result(psu)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)  :: self
-real(kind=sgl)                     :: psu
+integer(kind=irg)                  :: psu
 
 psu = self%psunit
 
