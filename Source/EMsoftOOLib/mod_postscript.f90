@@ -3129,28 +3129,13 @@ rmt = cell%getrmt()
 end subroutine DiffPage_
 
 !--------------------------------------------------------------------------
-!
-! SUBROUTINE: studylist
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief analyze reflection input list
-!
-!> @details determine which zone axis pattern to draw from user input
-!> the parameter ppat is returned as true if the user also requested a powder pattern
-!
-!> @param list input string
-!> @param slect list of patterns
-!> @param np number of patterns
-!> @param ppat draw a powder pattern?
-!
-!> @date   10/20/98 MDG 1.0 original
-!> @date    5/22/01 MDG 2.0 f90
-!> @date   11/27/01 MDG 2.1 added kind support
-!> @date   03/26/13 MDG 3.0 updated IO
-!--------------------------------------------------------------------------
 recursive subroutine studylist(list,slect,np,ppat)
-!DEC$ ATTRIBUTES DLLEXPORT :: studylist
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/27/20
+  !!
+  !! determine which zone axis pattern to draw from user input
+  !! the parameter ppat is returned as true if the user also requested a powder pattern
 
 IMPLICIT NONE
 
@@ -3240,10 +3225,7 @@ integer(kind=irg),parameter             :: nmb(48:57)=(/0,1,2,3,4,5,6,7,8,9/)
  end do 
  np = icnt
  
-end subroutine
-
-
-
+end subroutine studylist
 
 
 end module mod_postscript

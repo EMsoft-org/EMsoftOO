@@ -194,7 +194,7 @@ subroutine DeleteList_(self)
   !! version: 1.0 
   !! date: 01/28/20
   !!
-  !! return the pointer to the top of the reflection list 
+  !! delete the linked list 
 
 IMPLICIT NONE
 
@@ -473,8 +473,10 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 
 ! get the linked list to store all reflections
    bot => self%getListHead() 
-   nullify(bot%next)
-
+   if (.not.associated(bot)) then 
+    nullify(bot%next)
+   end if
+ else
 ! either get a new zone or change the lattice parameters and keep the zone
    call Message%ReadValue(' New zone (1) or change lattice parameters for present zone (2) ', io_int, 1)
    if (io_int(1).eq.1) then
@@ -875,6 +877,9 @@ HOLZvar = self%HOLZvar
 
  call Message%printMessage('Computing HOLZ reflection data',"(/A)")
 
+top => self%getListHead()
+bot => self%getListHead()
+
 ! set the index boundaries
  inmhkl(1) = int(1.1*HOLZvar%Gmax/cell%CalcLength(HOLZvar%g1,'r'))
  inmhkl(2) = int(1.1*HOLZvar%Gmax/cell%CalcLength(HOLZvar%g2,'r'))
@@ -999,6 +1004,7 @@ end if
              bot%hly(2) = -bot%hly(1)      
          end if
         end if
+write (*,*) bot%draw, bot%hlx, bot%hly
 
        end if
     end if
