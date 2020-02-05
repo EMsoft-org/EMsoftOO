@@ -25,7 +25,7 @@ set(MODALITY_DIRS
     # OLIO
     # OM
     # pyEMsoftOO
-    # SEM
+    SEM
     # TEM
     # QC
     Utilities

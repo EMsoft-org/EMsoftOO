@@ -120,6 +120,7 @@ IMPLICIT NONE
           procedure, pass(self) :: getnumat_
           procedure, pass(self) :: getapos_
           procedure, pass(self) :: getatomtype_
+          procedure, pass(self) :: getDensity_
           procedure, pass(self) :: requestLatticeParameters
           procedure, pass(self) :: setLatticeParameterSingle
           procedure, pass(self) :: getLatticeParameterSingle
@@ -196,6 +197,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: getrmt
           generic, public :: calcDensity => calcTheoreticalDensity 
           !DEC$ ATTRIBUTES DLLEXPORT :: calcDensity 
+          generic, public :: getDensity => getDensity_ 
+          !DEC$ ATTRIBUTES DLLEXPORT :: getDensity 
           generic, public :: GetAsymPosWyckoff => GetAsymPosWyckoff_
           !DEC$ ATTRIBUTES DLLEXPORT :: GetAsymPosWyckoff 
           generic, public :: getnumat => getnumat_
@@ -236,14 +239,7 @@ IMPLICIT NONE
   end type Cell_T
 
 ! the following parameters and arrays need to be moved to somewhere else ... 
-      ! complex(kind=dbl),allocatable        :: LUT(:,:,:), SghLUT(:,:,:,:)
-      ! complex(kind=dbl),allocatable        :: LUTqg(:,:,:)
-      ! logical,allocatable                  :: dbdiff(:,:,:)
-      ! type(symdata)                        :: SG
-      ! type(reflisttype),pointer            :: reflist
-      ! type(reflisttype),pointer            :: firstw                ! connection to first weak entry in linked list
       ! integer(kind=irg)                    :: DynNbeams, DynNbeamsLinked, nns, nnw, numscatfac
-      ! real(kind=dbl)                       :: voltage, mLambda, mRelcor, mSigma, mPsihat   ! voltage always in keV !
 
   ! the constructor routine for this class 
   interface Cell_T
@@ -2078,6 +2074,18 @@ logical                                 :: hasperiod
  if (pt(4).eq.0.0) pt(4) = 1.0
 
 end subroutine extractAtomPositionData
+
+!--------------------------------------------------------------------------
+recursive function getDensity_(self) result(dza)
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)  :: self 
+real(kind=dbl)                :: dza(3) 
+
+dza = (/ self%density, self%avA, self%avZ /)
+
+end function getDensity_
 
 !--------------------------------------------------------------------------
 recursive subroutine calcTheoreticalDensity(self, Z2percent)

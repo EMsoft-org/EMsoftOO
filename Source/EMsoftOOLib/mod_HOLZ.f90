@@ -428,6 +428,8 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 ! this program was originally written for comparison with a TEM negative, hence 
 ! the  strange pattern dimensions ... This may need to be redone in some other way at some point...
 
+ associate(HOLZvar => self%HOLZvar)
+
  savecell = cell 
  psunit = PS%getpsunit()
 
@@ -466,9 +468,9 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
    newzone = .TRUE.
 
 ! get the zone axis
-   call GetIndex(SG%getSpaceGrouphexset(),self%HOLZvar%uvw,'d')
+   call GetIndex(SG%getSpaceGrouphexset(),HOLZvar%uvw,'d')
    call Message%ReadValue(' Enter foil thickness [nm, R] (to get relrods of proper length) : ', oi_real, 1)
-   self%HOLZvar%thickness = oi_real(1)
+   HOLZvar%thickness = oi_real(1)
    first = .FALSE.
 
 ! get the linked list to store all reflections
@@ -481,7 +483,7 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
    call Message%ReadValue(' New zone (1) or change lattice parameters for present zone (2) ', io_int, 1)
    if (io_int(1).eq.1) then
      newzone = .TRUE.
-     call GetIndex(SG%getSpaceGrouphexset(),self%HOLZvar%uvw,'d')
+     call GetIndex(SG%getSpaceGrouphexset(),HOLZvar%uvw,'d')
      cell = savecell
 ! deallocate the previous linked list and allocate a new one
      call self%DeleteList()
@@ -496,57 +498,57 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 ! it is a new zone, so draw the diffraction pattern on the top half of the page
   if (newzone.eqv..TRUE.) then
 ! get the basis vectors g1 and g2
-    call cell%ShortestG(SG, self%HOLZvar%uvw,g1i,g2i,i)
-    self%HOLZvar%g1 = float(g1i); self%HOLZvar%g2 = float(g2i)
+    call cell%ShortestG(SG, HOLZvar%uvw,g1i,g2i,i)
+    HOLZvar%g1 = float(g1i); HOLZvar%g2 = float(g2i)
     
 ! get the beam divergence angle to determine the diameter of the central disk
     oi_real(1) = 500.0*minval( (/ Diff%CalcDiffAngle(cell,(/ g1i(1),g1i(2),g1i(3) /)), &
                                   Diff%CalcDiffAngle(cell,(/ g2i(1),g2i(2),g2i(3) /)) /) )
     call Message%WriteValue(' Maximum disk diameter without overlap [mrad]= ', oi_real, 1, "(f10.4)")
     call Message%ReadValue(' Enter the beam divergence angle [mrad, R] ', oi_real, 1); 
-    self%HOLZvar%thetac = oi_real(1)*0.001
+    HOLZvar%thetac = oi_real(1)*0.001
     
 ! distance between consecutive HOLZ layers in nm-1
-    self%HOLZvar%H = 1.0/cell%CalcLength(float(self%HOLZvar%uvw),'d')
+    HOLZvar%H = 1.0/cell%CalcLength(float(HOLZvar%uvw),'d')
 
 ! determine g3 basis vector
-    call cell%CalcCross(self%HOLZvar%g1,self%HOLZvar%g2,self%HOLZvar%g3,'r','r',1)
-    call cell%NormVec(self%HOLZvar%g3,'r')
-    self%HOLZvar%g3 = self%HOLZvar%H * self%HOLZvar%g3
+    call cell%CalcCross(HOLZvar%g1,HOLZvar%g2,HOLZvar%g3,'r','r',1)
+    call cell%NormVec(HOLZvar%g3,'r')
+    HOLZvar%g3 = HOLZvar%H * HOLZvar%g3
 
 ! get foil normal
     call Message%printMessage('Enter Foil Normal F [real space indices]',"(A)")
-    call GetIndex(SG%getSpaceGrouphexset(),self%HOLZvar%FN,'d')
+    call GetIndex(SG%getSpaceGrouphexset(),HOLZvar%FN,'d')
 ! compute components of FN with respect to g1, g2, g3
-    call cell%TransSpace(float(self%HOLZvar%FN),self%HOLZvar%FNr,'d','r')
-    call cell%NormVec(self%HOLZvar%FNr,'r')
-    self%HOLZvar%FNg = (/ cell%CalcDot(self%HOLZvar%FNr,self%HOLZvar%g1,'r'), &
-                          cell%CalcDot(self%HOLZvar%FNr,self%HOLZvar%g2,'r'), &
-                          cell%CalcDot(self%HOLZvar%FNr,self%HOLZvar%g3,'r') /)
+    call cell%TransSpace(float(HOLZvar%FN),HOLZvar%FNr,'d','r')
+    call cell%NormVec(HOLZvar%FNr,'r')
+    HOLZvar%FNg = (/ cell%CalcDot(HOLZvar%FNr,HOLZvar%g1,'r'), &
+                          cell%CalcDot(HOLZvar%FNr,HOLZvar%g2,'r'), &
+                          cell%CalcDot(HOLZvar%FNr,HOLZvar%g3,'r') /)
 
 ! determine shortest vector of FOLZ layer
     call self%ShortestGFOLZ(cell)
-    oi_real(1:3) = self%HOLZvar%gp(1)*self%HOLZvar%g1(1:3)+self%HOLZvar%gp(2)*self%HOLZvar%g2(1:3)
+    oi_real(1:3) = HOLZvar%gp(1)*HOLZvar%g1(1:3)+HOLZvar%gp(2)*HOLZvar%g2(1:3)
     call Message%WriteValue(' HOLZ shift vector = ', oi_real, 3, "(3f9.4)") 
 
 ! get Laue center in terms of g1 and g2
-    oi_real(1:3) = self%HOLZvar%g1(1:3)
-    oi_real(4:6) = self%HOLZvar%g2(1:3)
-    oi_real(7:9) = self%HOLZvar%g3(1:3)
+    oi_real(1:3) = HOLZvar%g1(1:3)
+    oi_real(4:6) = HOLZvar%g2(1:3)
+    oi_real(7:9) = HOLZvar%g3(1:3)
     call Message%WriteValue( 'The new basis vectors for this zone axis are ', &
           oi_real, 9, "(/'g1 = ',3f10.5,/'g2 = ',3f10.5,/'g3 = ',3f10.5,/)")
-    oi_real(1) = self%HOLZvar%H
+    oi_real(1) = HOLZvar%H
     call Message%WriteValue(' reciprocal interplanar spacing H = ', oi_real, 1, "(F10.4,' nm^-1'/)")
     call Message%ReadValue(' Enter the coordinates of the Laue center with respect to g1 and g2', oi_real, 2)
-    self%HOLZvar%LC1 = oi_real(1)
-    self%HOLZvar%LC2 = oi_real(2)
+    HOLZvar%LC1 = oi_real(1)
+    HOLZvar%LC2 = oi_real(2)
 
 ! compute how many HOLZ layers need to be drawn.
 ! this follows from the camera length and the size of the micrograph
     i=1
     numHOLZ = 0
     do while(i.lt.20)
-     RHOLZ(i) = sqrt(2.0*self%HOLZvar%H*float(i)/Diff%getWaveLength() - (float(i)*self%HOLZvar%H)**2)    
+     RHOLZ(i) = sqrt(2.0*HOLZvar%H*float(i)/Diff%getWaveLength() - (float(i)*HOLZvar%H)**2)    
      if (RHOLZ(i).lt.RHOLZmax) numHOLZ = numHOLZ+1
      i=i+1
     end do
@@ -565,7 +567,7 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
     if (newzone) then
      call PS%newpage(.FALSE.,'Kinematical HOLZ Diffraction Patterns')
      call PS%text(5.25,-0.05,'scale bar in reciprocal nm')
-     call PS%textvar(5.25,PS%getpsfigheight()+0.02,'Camera Constant [nm mm]',self%HOLZvar%laL)
+     call PS%textvar(5.25,PS%getpsfigheight()+0.02,'Camera Constant [nm mm]',HOLZvar%laL)
      call PS%setfont(PSfonts(2),0.15)
      call PS%text(-0.25,PS%getpsfigheight()+0.02,'Structure File : '//trim(cell%getFileName()))
     end if
@@ -573,29 +575,29 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 ! draw frame and related stuff
     xo = 2.25
     yo = 5.00
-    self%HOLZvar%PX = xo + self%HOLZvar%rectangle(1)
-    self%HOLZvar%PY = yo + self%HOLZvar%rectangle(2)
-    self%HOLZvar%CBEDrad = 1.5
-    self%HOLZvar%CBEDsc = 1.3
+    HOLZvar%PX = xo + HOLZvar%rectangle(1)
+    HOLZvar%PY = yo + HOLZvar%rectangle(2)
+    HOLZvar%CBEDrad = 1.5
+    HOLZvar%CBEDsc = 1.3
     call PS%setlinewidth(0.012)
     call PS%balloon(xo,yo,negative(1),negative(2),0.0312)
 
 ! zone axis
     call PS%setfont(PSfonts(2),0.12)
     call PS%text(xo+0.05,yo+negative(2)+0.12,'Zone axis ')
-    call PS%PrintIndices('d',SG%getSpaceGrouphexset(),self%HOLZvar%uvw(1),self%HOLZvar%uvw(2),self%HOLZvar%uvw(3), &
+    call PS%PrintIndices('d',SG%getSpaceGrouphexset(),HOLZvar%uvw(1),HOLZvar%uvw(2),HOLZvar%uvw(3), &
                       xo+0.6,yo+negative(2)+0.12)
 
 ! add other data lines to the upper left
     call PS%setfont(PSfonts(2),0.15)
     call PS%textvar(-0.25,PS%getpsfigheight()-0.18,'Acc. Voltage [kV] ',sngl(Diff%getV()))
     call PS%text(-0.25,PS%getpsfigheight()-0.38,'Foil normal ')
-    call PS%PrintIndices('d',SG%getSpaceGrouphexset(),self%HOLZvar%FN(1),self%HOLZvar%FN(2),self%HOLZvar%FN(3),&
+    call PS%PrintIndices('d',SG%getSpaceGrouphexset(),HOLZvar%FN(1),HOLZvar%FN(2),HOLZvar%FN(3),&
                       -0.25+1.5,PS%getpsfigheight()-0.38)
-    call PS%textvar(-0.25,PS%getpsfigheight()-0.58,'Foil thickness [nm] ',self%HOLZvar%thickness)
+    call PS%textvar(-0.25,PS%getpsfigheight()-0.58,'Foil thickness [nm] ',HOLZvar%thickness)
     call PS%text(-0.25,PS%getpsfigheight()-0.78,'Laue center ')
-    call PS%textvar(-0.25+1.1,PS%getpsfigheight()-0.78,'',self%HOLZvar%LC1)
-    call PS%textvar(-0.25+1.6,PS%getpsfigheight()-0.78,'',self%HOLZvar%LC2)
+    call PS%textvar(-0.25+1.1,PS%getpsfigheight()-0.78,'',HOLZvar%LC1)
+    call PS%textvar(-0.25+1.6,PS%getpsfigheight()-0.78,'',HOLZvar%LC2)
 
 ! HOLZ ring radii
     call PS%text(xo-1.5,PS%getpsfigheight()-1.45,'HOLZ radii [nm-1] ')
@@ -606,7 +608,7 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 
 ! CBED 000 disk text
     call PS%setfont(PSfonts(2),0.12)
-    call PS%textvar(-0.25,0.5,'Convergence angle [mrad] ',self%HOLZvar%thetac*1000.0)
+    call PS%textvar(-0.25,0.5,'Convergence angle [mrad] ',HOLZvar%thetac*1000.0)
 
 ! lattice parameters
     call PS%setfont(PSfonts(4),0.14)
@@ -626,14 +628,14 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
     write (psunit,"(1x,F12.7,' ',F12.7,' M (',F12.4,') show')") 0.0,1.20,cell%getLatParm('gamma')
 
 ! scale bar (sc is the conversion factor from nm-1 to inches)
-    sc = self%HOLZvar%laL/25.4
+    sc = HOLZvar%laL/25.4
     call PS%setlinewidth(0.020)
     call PS%line(xo+0.05,yo+0.06,xo+0.05+5.0*sc,yo+0.06)
     call PS%setfont(PSfonts(2),0.15)
     call PS%text(xo+0.05+2.5*sc,yo+0.10,'5 ')
 
 ! plot origin of reciprocal space 
-    call PS%filledcircle(self%HOLZvar%PX,self%HOLZvar%PY,0.03,0.0)
+    call PS%filledcircle(HOLZvar%PX,HOLZvar%PY,0.03,0.0)
 
 ! set clip path
     call PS%closepath
@@ -652,7 +654,7 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 ! then the HOLZ layers 
     do i=1,numHOLZ
       call PS%setlinewidth(0.005)
-      call PS%circle(self%HOLZvar%PX,self%HOLZvar%PY,RHOLZ(i)*self%HOLZvar%laL/25.4)
+      call PS%circle(HOLZvar%PX,HOLZvar%PY,RHOLZ(i)*HOLZvar%laL/25.4)
       call self%CalcHOLZ(cell,SG,Diff,PS,i)
     end do
 
@@ -666,40 +668,40 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 
 ! draw the vectors g1 and g2, and the projection gp of G
     call PS%setlinewidth(0.02)
-    call PS%filledcircle(0.5,self%HOLZvar%PY-2.5,0.015,0.0)
+    call PS%filledcircle(0.5,HOLZvar%PY-2.5,0.015,0.0)
 
 ! g1
-    pos = matmul(self%HOLZvar%gtoc,(/1.0,0.0/) )
-    self%HOLZvar%glen = 2.0*sqrt(pos(1)**2+pos(2)**2)
-    pos = pos/self%HOLZvar%glen
-    call PS%line(0.5,self%HOLZvar%PY-2.5,0.5+pos(1),self%HOLZvar%PY-2.5+pos(2))
-    call PS%filledcircle(0.5+pos(1),self%HOLZvar%PY-2.5+pos(2),0.04,0.0)
-    call PS%PrintIndices('r',SG%getSpaceGrouphexset(),int(self%HOLZvar%g1(1)),int(self%HOLZvar%g1(2)),int(self%HOLZvar%g1(3)), &
-                      0.5+pos(1)+0.1, self%HOLZvar%PY-2.5+pos(2))
+    pos = matmul(HOLZvar%gtoc,(/1.0,0.0/) )
+    HOLZvar%glen = 2.0*sqrt(pos(1)**2+pos(2)**2)
+    pos = pos/HOLZvar%glen
+    call PS%line(0.5,HOLZvar%PY-2.5,0.5+pos(1),HOLZvar%PY-2.5+pos(2))
+    call PS%filledcircle(0.5+pos(1),HOLZvar%PY-2.5+pos(2),0.04,0.0)
+    call PS%PrintIndices('r',SG%getSpaceGrouphexset(),int(HOLZvar%g1(1)),int(HOLZvar%g1(2)),int(HOLZvar%g1(3)), &
+                      0.5+pos(1)+0.1, HOLZvar%PY-2.5+pos(2))
 
 ! g2
-    pos = matmul(self%HOLZvar%gtoc,(/0.0,1.0/) )
-    pos = pos/self%HOLZvar%glen
-    call PS%line(0.5,self%HOLZvar%PY-2.5,0.5+pos(1),self%HOLZvar%PY-2.5+pos(2))
-    call PS%filledcircle(0.5+pos(1),self%HOLZvar%PY-2.5+pos(2),0.04,0.0)
-    call PS%PrintIndices('r',SG%getSpaceGrouphexset(),int(self%HOLZvar%g2(1)),int(self%HOLZvar%g2(2)),int(self%HOLZvar%g2(3)), &
-                           0.5+pos(1)+0.1, self%HOLZvar%PY-2.5+pos(2))
+    pos = matmul(HOLZvar%gtoc,(/0.0,1.0/) )
+    pos = pos/HOLZvar%glen
+    call PS%line(0.5,HOLZvar%PY-2.5,0.5+pos(1),HOLZvar%PY-2.5+pos(2))
+    call PS%filledcircle(0.5+pos(1),HOLZvar%PY-2.5+pos(2),0.04,0.0)
+    call PS%PrintIndices('r',SG%getSpaceGrouphexset(),int(HOLZvar%g2(1)),int(HOLZvar%g2(2)),int(HOLZvar%g2(3)), &
+                           0.5+pos(1)+0.1, HOLZvar%PY-2.5+pos(2))
 
 ! and then the projection of G onto g1,g2
-    pos = matmul(self%HOLZvar%gtoc,(/self%HOLZvar%gp(1),self%HOLZvar%gp(2)/) )
-    pos = pos/self%HOLZvar%glen
+    pos = matmul(HOLZvar%gtoc,(/HOLZvar%gp(1),HOLZvar%gp(2)/) )
+    pos = pos/HOLZvar%glen
     call PS%setlinewidth(0.02)
-    call PS%line(0.45+pos(1),self%HOLZvar%PY-2.5+pos(2),0.55+pos(1),self%HOLZvar%PY-2.5+pos(2))
-    call PS%line(0.5+pos(1),self%HOLZvar%PY-2.45+pos(2),0.5+pos(1),self%HOLZvar%PY-2.55+pos(2))
+    call PS%line(0.45+pos(1),HOLZvar%PY-2.5+pos(2),0.55+pos(1),HOLZvar%PY-2.5+pos(2))
+    call PS%line(0.5+pos(1),HOLZvar%PY-2.45+pos(2),0.5+pos(1),HOLZvar%PY-2.55+pos(2))
     call PS%text(-0.5,3.2,'Basis vectors g1, g2,')
     call PS%text(-0.5,3.0,'and projection of G (cross)') 
 ! draw fixed radius circle for bright field CBED disk  
     call PS%setlinewidth(0.025)
-    call PS%circle(self%HOLZvar%PX,yo-2.5,self%HOLZvar%CBEDrad)
+    call PS%circle(HOLZvar%PX,yo-2.5,HOLZvar%CBEDrad)
 ! indicate center of pattern
     call PS%setlinewidth(0.01)
-    call PS%line(self%HOLZvar%PX-0.05,yo-2.5,self%HOLZvar%PX+0.05,yo-2.5)
-    call PS%line(self%HOLZvar%PX,yo-2.45,self%HOLZvar%PX,yo-2.55)
+    call PS%line(HOLZvar%PX-0.05,yo-2.5,HOLZvar%PX+0.05,yo-2.5)
+    call PS%line(HOLZvar%PX,yo-2.45,HOLZvar%PX,yo-2.55)
 
     call self%PlotHOLZlines(PS, 0.0)
     nexttop = .TRUE.
@@ -737,7 +739,7 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 
 ! CBED 000 disk text
     call PS%setfont(PSfonts(2),0.12)
-    call PS%textvar(-0.25,0.5+dy,'Convergence angle [mrad] ',self%HOLZvar%thetac*1000.0)
+    call PS%textvar(-0.25,0.5+dy,'Convergence angle [mrad] ',HOLZvar%thetac*1000.0)
 
 ! lattice parameters
     call PS%setfont(PSfonts(4),0.14)
@@ -758,12 +760,12 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
 
 ! draw fixed radius circle for bright field CBED disk  
     call PS%setlinewidth(0.025)
-    call PS%circle(self%HOLZvar%PX,yo-2.5+dy,self%HOLZvar%CBEDrad)
+    call PS%circle(HOLZvar%PX,yo-2.5+dy,HOLZvar%CBEDrad)
 
 ! indicate center of pattern
     call PS%setlinewidth(0.01)
-    call PS%line(self%HOLZvar%PX-0.05,yo-2.5+dy,self%HOLZvar%PX+0.05,yo-2.5+dy)
-    call PS%line(self%HOLZvar%PX,yo-2.45+dy,self%HOLZvar%PX,yo-2.55+dy)
+    call PS%line(HOLZvar%PX-0.05,yo-2.5+dy,HOLZvar%PX+0.05,yo-2.5+dy)
+    call PS%line(HOLZvar%PX,yo-2.45+dy,HOLZvar%PX,yo-2.55+dy)
 
     call self%PlotHOLZlines(PS, dy)
   end if ! newzone .eq. .TRUE.
@@ -771,6 +773,8 @@ real(kind=sgl),parameter                :: le=3.25,he=2.9375
   call Message%ReadValue(' Another pattern ? [1/0] ', io_int, 1)
   if (io_int(1).ne.1) again=.FALSE.
  end do  ! end of main loop
+
+end associate 
 
 end subroutine HOLZPage_
 
@@ -792,12 +796,11 @@ class(HOLZ_T), INTENT(INOUT)            :: self
 type(cell_T),INTENT(INOUT)              :: cell
 
 type(IO_T)                              :: Message 
-type(HOLZvartype)                       :: HOLZvar
 real(kind=sgl)                          :: gmin,gam11,gam12,gam22
 integer(kind=irg),parameter             :: inm = 8
 integer(kind=irg)                       :: ih,ik,il,NN, oi_int(1)
 
-HOLZvar = self%HOLZvar 
+associate(HOLZvar => self%HOLZvar) 
 
 ! look for the shortest reflection satisfying hu+kv+lw = 1
 ! This could be replaced by code from Jackson's paper (1987),
@@ -837,7 +840,7 @@ HOLZvar = self%HOLZvar
  HOLZvar%gp(2) = (cell%CalcDot(HOLZvar%gshort,HOLZvar%g2,'r')*gam11-&
                   cell%CalcDot(HOLZvar%gshort,HOLZvar%g1,'r')*gam12)*gmin
 
-self%HOLZvar = HOLZvar 
+end associate
 
 end subroutine ShortestGFOLZ_
 
@@ -865,7 +868,6 @@ type(PostScript_T),INTENT(INOUT)           :: PS
 integer(kind=irg),INTENT(IN)               :: N 
    
 type(HOLZreflection),pointer               :: top, bot
-type(HOLZvartype)                          :: HOLZvar 
 type(IO_T)                                 :: Message
 type(gnode)                                :: rlp
 integer(kind=irg)                          :: inmhkl(2),i,j,nref,istat, oi_int(1)
@@ -873,7 +875,7 @@ real(kind=sgl)                             :: correction,gg(3),Ig,smax,gxy(2),px
                                               ll(3),lpg(3),gplen
 logical                                    :: a,dbdiff
 
-HOLZvar = self%HOLZvar 
+associate(HOLZvar => self%HOLZvar)
 
  call Message%printMessage('Computing HOLZ reflection data',"(/A)")
 
@@ -1004,8 +1006,6 @@ end if
              bot%hly(2) = -bot%hly(1)      
          end if
         end if
-write (*,*) bot%draw, bot%hlx, bot%hly
-
        end if
     end if
    end do
@@ -1013,6 +1013,8 @@ write (*,*) bot%draw, bot%hlx, bot%hly
 
   oi_int(1) = nref
   call Message%WriteValue(' number of reflections to be drawn : ', oi_int, 1, "(I6)")
+
+end associate 
 
 end subroutine CalcHOLZ_
 
@@ -1037,13 +1039,12 @@ type(SpaceGroup_T),INTENT(INOUT)        :: SG
 type(Diffraction_T),INTENT(INOUT)       :: Diff
 
 type(IO_T)                              :: Message
-type(HOLZvartype)                       :: HOLZvar
 type(HOLZreflection),pointer            :: temp
 
 real(kind=sgl)                          :: correction,gg(3),gxy(2),pxy(2),exer,sgdenom,x,tgm,qx,qy, &
                                            y,det,LC3,ll(3),lpg(3),gplen
 
-HOLZvar = self%HOLZvar 
+associate(HOLZvar => self%HOLZvar)
 
 call Message%printMessage('Computing HOLZ reflection data',"(/A/)")
 
@@ -1105,7 +1106,7 @@ call Message%printMessage('Computing HOLZ reflection data',"(/A/)")
        temp=>temp%next
      end do
 
-self%HOLZvar = HOLZvar
+end associate 
 
 end subroutine ReCalcHOLZ_
 
@@ -1125,13 +1126,12 @@ IMPLICIT NONE
 class(HOLZ_T),INTENT(INOUT)              :: self 
 type(PostScript_T),INTENT(INOUT)         :: PS 
 
-type(HOLZvartype)                        :: HOLZvar
 type(HOLZreflection),pointer             :: temp
 type(IO_T)                               :: Message
 
 real(kind=sgl)                           :: V,qx,qy
 
-HOLZvar = self%HOLZvar
+associate(HOLZvar => self%HOLZvar)
 
  call Message%printMessage('Plotting HOLZ reflections',"(/A/)")
 
@@ -1158,6 +1158,8 @@ HOLZvar = self%HOLZvar
   temp=>temp%next
  end do
 
+end associate 
+
 end subroutine PlotHOLZ_
 
 !--------------------------------------------------------------------------
@@ -1177,7 +1179,6 @@ class(HOLZ_T),INTENT(INOUT)             :: self
 type(PostScript_T),INTENT(INOUT)        :: PS 
 real(kind=sgl),INTENT(IN)               :: dy
 
-type(HOLZvartype)                       :: HOLZvar
 type(HOLZreflection),pointer            :: temp
 
 type(IO_T)                              :: Message
@@ -1186,7 +1187,8 @@ character(12)                           :: txt
 integer(kind=irg)                       :: i,nref, psunit
 
 
- HOLZvar = self%HOLZvar 
+associate(HOLZvar => self%HOLZvar)
+
  psunit = PS%getpsunit()
 
  call Message%printMessage('Plotting HOLZ lines and labels',"(/A/)")
@@ -1239,6 +1241,8 @@ integer(kind=irg)                       :: i,nref, psunit
    end if
  end do
  close(unit=30,status='delete')
+
+end associate
 
 end subroutine PlotHOLZlines_
 

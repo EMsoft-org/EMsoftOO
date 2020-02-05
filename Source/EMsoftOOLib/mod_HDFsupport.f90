@@ -103,6 +103,10 @@ IMPLICIT NONE
      procedure, pass(self) :: openGroup_
      procedure, pass(self) :: openDataset_
 ! general purpose dataset writing routines 
+     procedure, pass(self) :: writeNMLintegers_
+     procedure, pass(self) :: writeNMLreals_
+     procedure, pass(self) :: writeNMLdbles_
+     procedure, pass(self) :: writeEMheader_
      procedure, pass(self) :: writeDatasetTextFile_
      procedure, pass(self) :: extractDatasetTextfile_
      procedure, pass(self) :: writeDatasetStringArray_
@@ -205,6 +209,10 @@ IMPLICIT NONE
      generic, public :: openDataset => openDataset_
      generic, public :: error_check => error_check_
  
+     generic, public :: writeNMLintegers => writeNMLintegers_
+     generic, public :: writeNMLreals => writeNMLreals_
+     generic, public :: writeNMLdbles => writeNMLdbles_
+     generic, public :: writeEMheader => writeEMheader_
      generic, public :: writeDatasetTextFile => writeDatasetTextFile_
      generic, public :: extractDatasetTextfile => extractDatasetTextfile_
      generic, public :: writeDatasetStringArray => writeDatasetStringArray_
@@ -5998,5 +6006,102 @@ slen = slen+1
 cstrout(slen:slen) = C_NULL_CHAR 
 
 end function cstringify
+
+!--------------------------------------------------------------------------
+recursive subroutine writeNMLintegers_(self, io_int, intlist, n_int)
+!DEC$ ATTRIBUTES DLLEXPORT :: HDF_writeNMLintegers
+ !! author: MDG
+ !! version: 1.0 
+ !! date: 02/04/20
+ !!
+ !! write a series of integer namelist entries to an HDF file
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                :: self
+integer(kind=irg),INTENT(IN)              :: n_int
+integer(kind=irg),INTENT(IN)              :: io_int(n_int)
+character(20),INTENT(IN)                  :: intlist(n_int)
+
+integer(kind=irg)                         :: hdferr, i
+character(fnlen)                          :: dataset
+logical                                   :: g_exists, overwrite=.TRUE.
+
+do i=1,n_int
+  dataset = intlist(i)
+  call H5Lexists_f(self%head%next%objectID,trim(dataset),g_exists, hdferr)
+  if (g_exists) then 
+    hdferr = self%writeDatasetInteger(dataset, io_int(i), overwrite)
+   else
+    hdferr = self%writeDatasetInteger(dataset, io_int(i))
+  end if
+  if (hdferr.ne.0) call error_check_(self,'writeNMLintegers: unable to create '//trim(intlist(i))//' dataset', hdferr)
+end do
+
+end subroutine writeNMLintegers_
+
+!--------------------------------------------------------------------------
+recursive subroutine writeNMLreals_(self, io_real, reallist, n_real)
+ !! author: MDG
+ !! version: 1.0 
+ !! date: 02/04/20
+ !!
+ !! write a series of real namelist entries to an HDF file
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                :: self
+integer(kind=irg),INTENT(IN)              :: n_real
+real(kind=sgl),INTENT(IN)                 :: io_real(n_real)
+character(20),INTENT(IN)                  :: reallist(n_real)
+
+integer(kind=irg)                         :: hdferr, i
+character(fnlen)                          :: dataset
+logical                                   :: g_exists, overwrite=.TRUE.
+
+do i=1,n_real
+  dataset = reallist(i)
+  call H5Lexists_f(self%head%next%objectID,trim(dataset),g_exists, hdferr)
+  if (g_exists) then 
+    hdferr = self%writeDatasetFloat(dataset, io_real(i), overwrite)
+  else
+    hdferr = self%writeDatasetFloat(dataset, io_real(i))
+  end if
+  if (hdferr.ne.0) call error_check_(self,'writeNMLreals: unable to create '//trim(reallist(i))//' dataset',hdferr)
+end do
+
+end subroutine writeNMLreals_
+
+!--------------------------------------------------------------------------
+recursive subroutine writeNMLdbles_(self, io_real, reallist, n_real)
+ !! author: MDG
+ !! version: 1.0 
+ !! date: 02/04/20
+ !!
+ !! write a series of double precision namelist entries to an HDF file
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                :: self
+integer(kind=irg),INTENT(IN)              :: n_real
+real(kind=dbl),INTENT(IN)                 :: io_real(n_real)
+character(20),INTENT(IN)                  :: reallist(n_real)
+
+integer(kind=irg)                         :: hdferr, i
+character(fnlen)                          :: dataset
+logical                                   :: g_exists, overwrite=.TRUE.
+
+do i=1,n_real
+  dataset = reallist(i)
+  call H5Lexists_f(self%head%next%objectID,trim(dataset),g_exists, hdferr)
+  if (g_exists) then 
+    hdferr = self%writeDatasetDouble(dataset, io_real(i), overwrite)
+  else
+    hdferr = self%writeDatasetDouble(dataset, io_real(i))
+  end if
+  if (hdferr.ne.0) call error_check_(self,'writeNMLdbles: unable to create '//trim(reallist(i))//' dataset', hdferr)
+end do
+
+end subroutine writeNMLdbles_
 
 end module mod_HDFsupport

@@ -3338,4 +3338,5 @@ end select
 
 end function GetDiffractionGroup_
 
-end module
+
+end module mod_symmetry

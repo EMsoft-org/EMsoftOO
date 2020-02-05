@@ -43,6 +43,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_rng.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Lambert.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_symmetry.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_symmetry2D.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_crystallography.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_HDFsupport.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_postscript.f90
@@ -65,6 +66,11 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_diffraction.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_HOLZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Kikuchi.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_gvectors.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_kvectors.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_MRC.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_initializers.f90
+
   
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90

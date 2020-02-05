@@ -19,8 +19,12 @@ set(EMOpenCLLib_SRCS
 	${EMOpenCLLib_SOURCE_DIR}/mod_CLsupport.f90
   # ${EMOpenCLLib_SOURCE_DIR}/Indexingmod.f90
 
+  ${EMOpenCLLib_SOURCE_DIR}/program_mods/mod_MCOpenCL.f90
+
 # 	${EMOpenCLLib_SOURCE_DIR}/EMdymodHDF.f90
 )
+
+GetHDF5LinkLibraries(EMSOFTOO)
 
 add_library(EMOpenCLLib ${LIB_TYPE} ${EMOpenCLLib_SRCS})
 
@@ -28,7 +32,6 @@ target_include_directories(EMOpenCLLib
                           PUBLIC 
                             ${CLFortran_INSTALL}/include
                             $<BUILD_INTERFACE:${EMsoftOOLib_BINARY_DIR}>
-                            # $<BUILD_INTERFACE:${EMsoftOOHDFLib_BINARY_DIR}>
                           PRIVATE
                             "${EMsoftOO_SOURCE_DIR}/Source"                            
                     )
@@ -37,7 +40,6 @@ target_link_libraries(EMOpenCLLib
                           ${OpenCL_LIBRARY}
                           clfortran
                           EMsoftOOLib 
-                          # EMsoftOOHDFLib 
 )
 
 

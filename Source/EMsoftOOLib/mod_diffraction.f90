@@ -235,6 +235,9 @@ private
     real(kind=sgl),allocatable      :: scatfacg(:)
     complex(kind=sgl),allocatable   :: scatfac(:,:) 
     integer(kind=irg)               :: numscatfac
+    complex(kind=sgl),allocatable   :: LUT(:,:,:), SghLUT(:,:,:,:)
+    complex(kind=sgl),allocatable   :: LUTqg(:,:,:)
+    logical,allocatable             :: dbdiff(:,:,:)
 
 contains 
 private 
@@ -249,9 +252,19 @@ private
     procedure, pass(self) :: getV_
     procedure, pass(self) :: getScatfac_
     procedure, pass(self) :: getWaveLength_
+    procedure, pass(self) :: getBetheParameter_
+    procedure, pass(self) :: Set_Bethe_Parameters_
     procedure, pass(self) :: BWsolve_
     procedure, pass(self) :: setrlpmethod_
     procedure, pass(self) :: getrlp_
+    procedure, pass(self) :: allocateLUT_
+    procedure, pass(self) :: getshapeLUT_
+    procedure, pass(self) :: getLUT_
+    procedure, pass(self) :: getLUTqg_
+    procedure, pass(self) :: getdbdiff_
+    procedure, pass(self) :: setLUT_
+    procedure, pass(self) :: setLUTqg_
+    procedure, pass(self) :: setdbdiff_
     procedure, pass(self) :: Printrlp_
 
     generic, public :: GetVoltage => GetVoltage_
@@ -262,10 +275,20 @@ private
     generic, public :: Calcsg => CalcsgSingle_, CalcsgDouble_
     generic, public :: getScatfac => getScatfac_
     generic, public :: getWaveLength => getWaveLength_
+    generic, public :: getBetheParameter => getBetheParameter_
+    generic, public :: SetBetheParameters => Set_Bethe_Parameters_
     generic, public :: BWsolve => BWsolve_
     generic, public :: setrlpmethod => setrlpmethod_
     generic, public :: getV => getV_
     generic, public :: getrlp => getrlp_
+    generic, public :: allocateLUT => allocateLUT_
+    generic, public :: getshapeLUT => getshapeLUT_
+    generic, public :: getLUT => getLUT_
+    generic, public :: getLUTqg => getLUTqg_
+    generic, public :: getdbdiff => getdbdiff_
+    generic, public :: setLUT => setLUT_
+    generic, public :: setLUTqg => setLUTqg_
+    generic, public :: setdbdiff => setdbdiff_
     generic, public :: Printrlp => Printrlp_
 
 end type Diffraction_T
@@ -274,6 +297,31 @@ end type Diffraction_T
   interface Diffraction_T
     module procedure Diffraction_constructor
   end interface Diffraction_T
+
+!DEC$ ATTRIBUTES DLLEXPORT :: GetVoltage
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcWaveLength
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcDiffAngle
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcUcg
+!DEC$ ATTRIBUTES DLLEXPORT :: PreCalcFSCATT
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcsgSingle
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcsgDouble
+!DEC$ ATTRIBUTES DLLEXPORT :: getV
+!DEC$ ATTRIBUTES DLLEXPORT :: getScatfac
+!DEC$ ATTRIBUTES DLLEXPORT :: getWaveLength
+!DEC$ ATTRIBUTES DLLEXPORT :: getBetheParameter
+!DEC$ ATTRIBUTES DLLEXPORT :: Set_Bethe_Parameters
+!DEC$ ATTRIBUTES DLLEXPORT :: BWsolve
+!DEC$ ATTRIBUTES DLLEXPORT :: setrlpmethod
+!DEC$ ATTRIBUTES DLLEXPORT :: getrlp
+!DEC$ ATTRIBUTES DLLEXPORT :: getshapeLUT
+!DEC$ ATTRIBUTES DLLEXPORT :: allocateLUT
+!DEC$ ATTRIBUTES DLLEXPORT :: getLUT
+!DEC$ ATTRIBUTES DLLEXPORT :: getLUTqg
+!DEC$ ATTRIBUTES DLLEXPORT :: getdbdiff
+!DEC$ ATTRIBUTES DLLEXPORT :: setLUT
+!DEC$ ATTRIBUTES DLLEXPORT :: setLUTqg
+!DEC$ ATTRIBUTES DLLEXPORT :: setdbdiff
+!DEC$ ATTRIBUTES DLLEXPORT :: Printrlp
 
 
 ! ! some of these go in the PostScript module 
@@ -449,6 +497,170 @@ type(gnode)                         :: rlp
 rlp = self%rlp 
 
 end function getrlp_
+
+!--------------------------------------------------------------------------
+recursive subroutine allocateLUT_(self, dims)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/04/20
+  !!
+  !! allocates the LUT arrays
+
+use mod_io 
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg)                   :: dims(3) 
+
+integer(kind=irg)                   :: imh, imk, iml, istat
+type(IO_T)                          :: Message
+
+imh = dims(1)
+imk = dims(2)
+iml = dims(3)
+
+! the LUT array stores all the Fourier coefficients, so that we only need to compute them once... i.e., here and now
+allocate(self%LUT(-2*imh:2*imh,-2*imk:2*imk,-2*iml:2*iml),stat=istat)
+if (istat.ne.0) call Message%printError('allocateLUT:',' unable to allocate LUT array')
+
+allocate(self%LUTqg(-2*imh:2*imh,-2*imk:2*imk,-2*iml:2*iml),stat=istat)
+if (istat.ne.0) call Message%printError('allocateLUT:',' unable to allocate LUTqg array')
+ 
+! allocate an array that keeps track of potential double diffraction reflections
+allocate(self%dbdiff(-2*imh:2*imh,-2*imk:2*imk,-2*iml:2*iml),stat=istat)
+if (istat.ne.0) call Message%printError('allocateLUT:',' unable to allocate dbdiff array')
+
+self%LUT = cmplx(0.D0,0.D0)
+self%LUTqg = cmplx(0.D0,0.D0)
+self%dbdiff = .FALSE.
+
+end subroutine allocateLUT_
+
+!--------------------------------------------------------------------------
+recursive function getshapeLUT_(self) result(s)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/04/20
+  !!
+  !! returns the shape of the LUT array
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg)                   :: s(3) 
+
+ s = shape(self%LUT)
+
+end function getshapeLUT_
+
+!--------------------------------------------------------------------------
+recursive function getLUT_(self, hkl) result(c)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/04/20
+  !!
+  !! return an entry from the LUT array
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg)                   :: hkl(3)
+complex(kind=dbl)                   :: c 
+
+ c = self%LUT( hkl(1), hkl(2), hkl(3) )
+
+end function getLUT_
+
+!--------------------------------------------------------------------------
+recursive function getLUTqg_(self, hkl) result(c)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/04/20
+  !!
+  !! return an entry from the LUTqg array
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg)                   :: hkl(3)
+complex(kind=dbl)                   :: c 
+
+ c = self%LUTqg( hkl(1), hkl(2), hkl(3) )
+
+end function getLUTqg_
+
+!--------------------------------------------------------------------------
+recursive function getdbdiff_(self, hkl) result(c)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/04/20
+  !!
+  !! return an entry from the dbdiff array
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg)                   :: hkl(3)
+logical                             :: c
+
+ c = self%dbdiff( hkl(1), hkl(2), hkl(3) )
+
+end function getdbdiff_
+
+!--------------------------------------------------------------------------
+recursive subroutine setLUT_(self, hkl, c)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/04/20
+  !!
+  !! set an entry in the LUT array
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)        :: hkl(3)
+complex(kind=sgl),INTENT(IN)        :: c 
+
+self%LUT( hkl(1), hkl(2), hkl(3) ) = c
+
+end subroutine setLUT_
+
+!--------------------------------------------------------------------------
+recursive subroutine setLUTqg_(self, hkl, c)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/04/20
+  !!
+  !! set an entry in the LUTqg array
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)        :: hkl(3)
+complex(kind=sgl),INTENT(IN)        :: c 
+
+self%LUTqg( hkl(1), hkl(2), hkl(3) ) = c
+
+end subroutine setLUTqg_
+
+!--------------------------------------------------------------------------
+recursive subroutine setdbdiff_(self, hkl, c)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/04/20
+  !!
+  !! set an entry in the dbdiff array
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)        :: hkl(3)
+logical,INTENT(IN)                  :: c
+
+self%dbdiff( hkl(1), hkl(2), hkl(3) ) = c
+
+end subroutine setdbdiff_
 
 !--------------------------------------------------------------------------
 recursive function getrlpmethod_(self) result(rlpmethod)
@@ -1120,6 +1332,104 @@ Lambda = self%Lambda
 end function getWaveLength_
 
 !--------------------------------------------------------------------------
+recursive function getBetheParameter_(self, c) result(bp)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/02/20
+  !!
+  !! returns one of the Bethe parameters
+
+use mod_io
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self 
+character(2),INTENT(IN)             :: c
+real(kind=dbl)                      :: bp
+
+type(IO_T)                          :: Message
+
+select case(c)
+  case('c1')
+    bp = self%BetheParameters%c1
+  case('c2')
+    bp = self%BetheParameters%c2
+  case('c3')
+    bp = self%BetheParameters%c3
+  case('sg')
+    bp = self%BetheParameters%sgdbdiff
+  case default 
+    call Message%printWarning('getBetheParameter: unknown Bethe parameter '//c//'; returning 0.0')
+    bp = 0.D0
+end select 
+
+end function getBetheParameter_
+
+!--------------------------------------------------------------------------
+recursive subroutine Set_Bethe_Parameters_(self, EMsoft, silent, filename)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/02/20
+  !!
+  !! Read the Bethe potential parameters from a file, if it exists; otherwise take defaults
+  !!
+  !! The parameters set in this routine determine the difference between strong and
+  !! weak reflections.  The routine checks for the presence of the BetheParameters.nml file
+  !! in the current folder.  If present, it will read the parameters, otherwise it will use 
+  !! defaults which have been determined to be reasonable based on dynamical EBSD runs. 
+
+use mod_EMsoft
+use mod_io
+
+IMPLICIT NONE
+
+class(Diffraction_T), INTENT(INOUT)         :: self
+type(EMsoft_T), INTENT(INOUT)               :: EMsoft
+logical,INTENT(IN),OPTIONAL                 :: silent
+character(fnlen),INTENT(IN),OPTIONAL        :: filename
+
+type(IO_T)                                  :: Message
+character(fnlen)                            :: Bethefilename, fname
+logical                                     :: fexist
+real(kind=sgl)                              :: c1, c2, c3, sgdbdiff
+
+namelist /BetheList/ c1, c2, c3, sgdbdiff
+
+if (present(filename)) then
+  Bethefilename = trim(filename)
+else 
+  Bethefilename = 'BetheParameters.nml'
+end if 
+
+! check for the presence of the namelist file in the current folder
+inquire(file=trim(Bethefilename),exist=fexist)
+
+! set all default values (must be done here, since nml file may not contain all of them)
+c1 = 4.0_sgl           ! changed from 8 and 12 for a test on 8/14/15
+c2 = 8.0_sgl           !
+c3 = 50.0_sgl          !
+sgdbdiff = 1.00_sgl    !
+
+if (fexist) then ! check for the file in the local folder
+! read the parameters from the file
+ fname = EMsoft%toNativePath(Bethefilename)
+ open(UNIT=dataunit,FILE=trim(fname),DELIM='APOSTROPHE')
+ READ(UNIT=dataunit,NML=BetheList)
+ close(UNIT=dataunit)
+ if (.not.present(silent)) then
+   call Message%printMessage('Read Bethe parameters from BetheParameters.nml', frm = "(A)")
+   write (6,nml=BetheList)
+ end if
+end if
+
+self%BetheParameters%c1 = c1
+self%BetheParameters%c2 = c2
+self%BetheParameters%c3 = c3
+self%BetheParameters%sgdbdiff = sgdbdiff
+
+end subroutine Set_Bethe_Parameters_
+
+!--------------------------------------------------------------------------
 recursive function CalcsgSingle_(self, cell, gg, kk, FN) result(sg)
   !! author: MDG 
   !! version: 1.0 
@@ -1287,7 +1597,6 @@ complex(kind=dbl),allocatable       :: MIWORK(:)
  deallocate(MIWORK)
  
 end subroutine BWsolve_
-
 
 ! !
 ! ! ###################################################################

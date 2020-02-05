@@ -88,7 +88,6 @@ public :: Timing_T
      module procedure :: Timing_constructor
    end interface Timing_T        
 
-
 contains
 
 !--------------------------------------------------------------------------
@@ -148,7 +147,7 @@ recursive subroutine Time_tick(self, n)
 
 IMPLICIT NONE
 
-class(Timing_T)                    :: self 
+class(Timing_T)                         :: self 
 integer(kind=irg), intent(IN), OPTIONAL :: n
  !! integer labeling the counter to be used 
 
@@ -173,7 +172,7 @@ recursive subroutine Time_tock(self, n)
 
 IMPLICIT NONE
 
-class(Timing_T)                    :: self 
+class(Timing_T)                         :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
  !! integer labeling the counter to be used 
 
@@ -199,7 +198,7 @@ recursive subroutine Time_reset(self, n)
 
 IMPLICIT NONE
 
-class(Timing_T)                    :: self 
+class(Timing_T)                         :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
  !! selects which clock to reset; if absent, reset all 
 
@@ -228,7 +227,7 @@ recursive function getInterval(self, n) result(t)
 
 IMPLICIT NONE
 
-class(Timing_T)                    :: self 
+class(Timing_T)                         :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
  !! optinal selected timer
 
@@ -253,7 +252,7 @@ function getDateString(self) result(t)
 
 IMPLICIT NONE
 
-class(Timing_T)                    :: self 
+class(Timing_T)                         :: self 
 
 character(len=11)                       :: t
 
@@ -271,7 +270,7 @@ function getTimeString(self) result(t)
 
 IMPLICIT NONE
 
-class(Timing_T)                    :: self 
+class(Timing_T)                         :: self 
 
 character(len=15)                       :: t
 
@@ -291,11 +290,11 @@ use mod_io
 
 IMPLICIT NONE
 
-class(Timing_T)                    :: self 
+class(Timing_T)                         :: self 
 integer(kind=irg),INTENT(IN),OPTIONAL   :: redirect
  !! optional redirect to another output unit
 
-type(IO_T)                         :: Message
+type(IO_T)                              :: Message
 integer(kind=irg)                       :: unit
 
 Message = IO_T()
@@ -325,7 +324,7 @@ subroutine makeTimeStamp (self)
 
   IMPLICIT NONE
 
-  class(Timing_T),intent(inout)    :: self
+  class(Timing_T),intent(inout)         :: self
 
   integer(kind=irg)                     :: d, h, mo, mm, n, s, v(8), y
   character ( len = 8 )                 :: ampm, date

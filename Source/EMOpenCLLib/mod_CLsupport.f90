@@ -182,27 +182,27 @@ IMPLICIT NONE
         procedure, pass(self) :: error_check_
         procedure, pass(self) :: query_platform_info_
         procedure, pass(self) :: print_platform_info_
-        procedure, pass(self) :: CLread_source_file_
-        procedure, pass(self) :: CLread_source_file_wrapper_
-        procedure, pass(self) :: CLinit_PDCCQ_
-        procedure, pass(self) :: CLinit_multiPDCCQ_
+        procedure, pass(self) :: read_source_file_
+        procedure, pass(self) :: read_source_file_wrapper_
+        procedure, pass(self) :: init_PDCCQ_
+        procedure, pass(self) :: init_multiPDCCQ_
         final :: CL_destructor 
 
         generic, public :: error_check => error_check_
         generic, public :: query_platform_info => query_platform_info_
         generic, public :: print_platform_info => print_platform_info_
-        generic, public :: CLread_source_file => CLread_source_file_
-        generic, public :: CLread_source_file_wrapper => CLread_source_file_wrapper_
-        generic, public :: CLinit_PDCCQ => CLinit_PDCCQ_, CLinit_multiPDCCQ_
+        generic, public :: read_source_file => read_source_file_
+        generic, public :: read_source_file_wrapper => read_source_file_wrapper_
+        generic, public :: init_PDCCQ => init_PDCCQ_, init_multiPDCCQ_
 
   end type OpenCL_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: error_check_
-!DEC$ ATTRIBUTES DLLEXPORT :: query_platform_info_
-!DEC$ ATTRIBUTES DLLEXPORT :: print_platform_info_
-!DEC$ ATTRIBUTES DLLEXPORT :: CLread_source_file_
-!DEC$ ATTRIBUTES DLLEXPORT :: CLread_source_file_wrapper_
-!DEC$ ATTRIBUTES DLLEXPORT :: CLinit_PDCCQ_
+!DEC$ ATTRIBUTES DLLEXPORT :: error_check
+!DEC$ ATTRIBUTES DLLEXPORT :: query_platform_info
+!DEC$ ATTRIBUTES DLLEXPORT :: print_platform_info
+!DEC$ ATTRIBUTES DLLEXPORT :: read_source_file
+!DEC$ ATTRIBUTES DLLEXPORT :: read_source_file_wrapper
+!DEC$ ATTRIBUTES DLLEXPORT :: init_PDCCQ
 
   ! the constructor routine for this class 
   interface OpenCL_T
@@ -677,7 +677,7 @@ call Message%printMessage( &
 end subroutine print_platform_info_
 
 !--------------------------------------------------------------------------
-recursive subroutine CLread_source_file_(self, EMsoft, sourcefile, csource, slength)
+recursive subroutine read_source_file_(self, EMsoft, sourcefile, csource, slength)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/13/20
@@ -779,10 +779,10 @@ csource = trim(source)
 csource(irec:irec) = C_NULL_CHAR
 slength = irec
 
-end subroutine CLread_source_file_
+end subroutine read_source_file_
 
 !--------------------------------------------------------------------------
-recursive subroutine CLread_source_file_wrapper_(self, sourcefile, csource, slength)
+recursive subroutine read_source_file_wrapper_(self, sourcefile, csource, slength)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/13/20
@@ -836,10 +836,10 @@ csource = trim(source)
 csource(irec:irec) = C_NULL_CHAR
 slength = irec
 
-end subroutine CLread_source_file_wrapper_
+end subroutine read_source_file_wrapper_
 
 !--------------------------------------------------------------------------
-recursive subroutine CLinit_PDCCQ_(self, platform, nump, selnump, device, numd, selnumd, devinfo, &
+recursive subroutine init_PDCCQ_(self, platform, nump, selnump, device, numd, selnumd, devinfo, &
                                   context, command_queue)
   !! author: MDG 
   !! version: 1.0 
@@ -924,10 +924,10 @@ cmd_queue_props = CL_QUEUE_PROFILING_ENABLE
 command_queue = clCreateCommandQueue(context, device(selnumd), cmd_queue_props, ierr)
 call error_check_(self, 'CLinit_PDCCQ:clCreateCommandQueue',ierr)
 
-end subroutine CLinit_PDCCQ_
+end subroutine init_PDCCQ_
 
 !--------------------------------------------------------------------------
-recursive subroutine CLinit_multiPDCCQ_(self, platform, nump, selnump, device, numd, usenumd, &
+recursive subroutine init_multiPDCCQ_(self, platform, nump, selnump, device, numd, usenumd, &
                                        selnumd, devinfo, context, command_queue)
   !! author: MDG 
   !! version: 1.0 
@@ -1034,7 +1034,7 @@ do i=1,usenumd
   command_queue(i) = clCreateCommandQueue(context(i), device(selnumd(i)), cmd_queue_props, ierr)
   call error_check_(self, 'CLinit_PDCCQ:clCreateCommandQueue',ierr)
 end do
-end subroutine CLinit_multiPDCCQ_
+end subroutine init_multiPDCCQ_
 
 !--------------------------------------------------------------------------
 recursive subroutine error_check_(self, routine, ierr, nonfatal)
