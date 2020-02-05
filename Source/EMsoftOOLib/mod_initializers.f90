@@ -102,9 +102,6 @@ if(present(noLUT)) then
 end if
 
 if(.not. justinit) then
-! clear the Diff variable (set everything to zero)
- call cell%ResetCell()
-
 ! load the crystal structure file, which also computes all the important 
 ! matrices as well as all the symmetry arrays
  xtalname = trim(cell%getFilename())
@@ -116,11 +113,7 @@ if(.not. justinit) then
 end if
 
 ! we assume that the wavelength has already been set in the Diff class... 
- ! Diff%setvoltage = dble(voltage)
-
- ! skip = 3        ! always use Weickenmeier&Kohl scattering coefficients, including absorptive form factors
- ! call CalcWaveLength(Diff,rlp,skip,verbose)
-
+call Diff%CalcWaveLength(cell)
 
 ! compute the range of reflections for the lookup table and allocate the table
 ! The master list is easily created by brute force

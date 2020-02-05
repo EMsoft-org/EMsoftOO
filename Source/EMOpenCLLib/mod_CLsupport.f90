@@ -740,11 +740,10 @@ else
 end if
 
 if (sourcefile(idx:idx).ne.EMsoftnativedelimiter) then
-  fname = trim(clpath)//trim(sourcefile)
+  fname = EMsoft%generateFilePath('OpenCLpathname',sourcefile)
 else
   fname = trim(sourcefile)
 endif
-fname = EMsoft%generateFilePath('OpenCLpathname',fname)
 inquire(file=trim(fname),exist=fexist)
 if (.not.fexist) then 
   if (develop.eq.'Yes') then

@@ -60,7 +60,7 @@ public :: Timing_T
        !! array of start times 
       integer(kind=irg),allocatable :: Tstop(:)
        !! array of stop times 
-      integer(kind=irg),allocatable :: Tinterval(:)
+      real(kind=sgl),allocatable    :: Tinterval(:)
        !! array of intervals
       character(len = 11)           :: datestring
        !! a simple date string

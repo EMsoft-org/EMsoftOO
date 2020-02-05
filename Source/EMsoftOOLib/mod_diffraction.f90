@@ -249,6 +249,7 @@ private
     procedure, pass(self) :: PreCalcFSCATT_
     procedure, pass(self) :: CalcsgSingle_
     procedure, pass(self) :: CalcsgDouble_
+    procedure, pass(self) :: setV_
     procedure, pass(self) :: getV_
     procedure, pass(self) :: getScatfac_
     procedure, pass(self) :: getWaveLength_
@@ -279,6 +280,7 @@ private
     generic, public :: SetBetheParameters => Set_Bethe_Parameters_
     generic, public :: BWsolve => BWsolve_
     generic, public :: setrlpmethod => setrlpmethod_
+    generic, public :: setV => setV_
     generic, public :: getV => getV_
     generic, public :: getrlp => getrlp_
     generic, public :: allocateLUT => allocateLUT_
@@ -305,6 +307,7 @@ end type Diffraction_T
 !DEC$ ATTRIBUTES DLLEXPORT :: PreCalcFSCATT
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcsgSingle
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcsgDouble
+!DEC$ ATTRIBUTES DLLEXPORT :: setV
 !DEC$ ATTRIBUTES DLLEXPORT :: getV
 !DEC$ ATTRIBUTES DLLEXPORT :: getScatfac
 !DEC$ ATTRIBUTES DLLEXPORT :: getWaveLength
@@ -356,11 +359,14 @@ logical, INTENT(IN), OPTIONAL       :: verbose
 
 integer(kind=irg)                   :: hkl(3)
 
+write (*,*) 'voltage = ', voltage 
 Diff%voltage = voltage 
+Diff%rlp%method = 'WK'
 
 hkl=(/0,0,0/)
 call Diff%CalcUcg(cell, hkl) 
 Diff%V0mod = Diff%rlp%Vmod
+write (*,*) 'V0mod = ',Diff%V0mod 
 
 if (present(verbose)) then 
     if (verbose.eqv..TRUE.) call Diff%CalcWaveLength( cell, verbose )
@@ -695,6 +701,23 @@ real(kind=dbl)                      :: V
 V = self%voltage
 
 end function getV_
+
+!--------------------------------------------------------------------------
+recursive subroutine setV_(self, V)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/05/20
+  !!
+  !! set the accelerating voltage
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+real(kind=dbl),INTENT(IN)           :: V
+
+self%voltage = V 
+
+end subroutine setV_
 
 !--------------------------------------------------------------------------
 recursive subroutine Printrlp_(self,first)

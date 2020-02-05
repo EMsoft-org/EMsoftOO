@@ -533,7 +533,7 @@ associate (mcnl => self%nml )
 numsy = mcnl%numsx
 
 timer = Timing_T(showDateTime=.TRUE.)
-tstre = timer%getTimeString()
+tstrb = timer%getTimeString()
 
 ! get the crystal structure from the *.xtal file
 verbose = .TRUE.
@@ -541,7 +541,8 @@ dmin = 0.05
 val = 0
 val1 = 0
 call cell%setFileName(mcnl%xtalname)
-Diff = Diffraction_T( mcnl%EkeV, cell)
+call Diff%setV(mcnl%EkeV)
+call Diff%setrlpmethod('WK')
 call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, noLUT=.TRUE., verbose=verbose)
 
 ! then calculate density, average atomic number and average atomic weight
@@ -745,7 +746,7 @@ else
    call Message%printError('DoMCSimulation','Unknown mode specified in namelist/json file')
 end if
 
-call timer%Time_tick(tstart)
+call timer%Time_tick()
 
 angleloop: do iang = 1,numangle
 
@@ -988,25 +989,26 @@ end if
 ! and write some infgormation to the console
 
     io_int(1) = totnum_el
-    call Message%WriteValue('Total number of incident electrons = ',io_int,1,'(I15)')
+    call Message%printMessage(' ')
+    call Message%WriteValue(' Total number of incident electrons = ',io_int,1,'(I15)')
     if (mode .eq. 'bse1') then
         io_int(1) = sum(accum_e(iang,:,:))
-        call Message%WriteValue('Total number of BSE1 electrons = ',io_int,1,'(I15)')
+        call Message%WriteValue(' Total number of BSE1 electrons = ',io_int,1,'(I15)')
         bse = sum(accum_e(iang,:,:))
         io_real(1) = dble(bse)/dble(totnum_el)
-        call Message%WriteValue('Backscatter yield = ',io_real,1,'(F15.6)')
+        call Message%WriteValue(' Backscatter yield = ',io_real,1,'(F15.6)')
     else if (mode .eq. 'full') then
 ! note that we need to prevent integer overflows !
         allocate(accum_e_ill(numEbins,-nx:nx,-nx:nx),stat=istat)
         accum_e_ill = accum_e
         io_int(1) = sum(accum_e_ill)
         deallocate(accum_e_ill)
-        call Message%WriteValue('Total number of BSE electrons = ',io_int,1,'(I15)')
+        call Message%WriteValue(' Total number of BSE electrons = ',io_int,1,'(I15)')
         io_real(1) = dble(io_int(1))/dble(totnum_el)
-        call Message%WriteValue('Backscatter yield = ',io_real,1,'(F15.6)')
+        call Message%WriteValue(' Backscatter yield = ',io_real,1,'(F15.6)')
     else if (mode .eq. 'Ivol') then
         io_int(1) = sum(accum_xyz)
-        call Message%WriteValue('Total number of electrons in interaction volume = ',io_int,1,'(I15)')
+        call Message%WriteValue(' Total number of electrons in interaction volume = ',io_int,1,'(I15)')
     else 
         call Message%printError('DoMCSimulations','Unknown mode specified in namelist/json file')
     end if
@@ -1033,8 +1035,9 @@ if (mode .eq. 'full') then
 end if
 
 call timer%Time_tock() 
-io_int(1) = timer%getInterval()
-call Message%WriteValue('Total execution time [s] = ',io_int,1)
+io_real(1) = timer%getInterval()
+call Message%printMessage(' ')
+call Message%WriteValue('Total execution time [s] = ',io_real,1)
 
 io_int(1) = totnum_el/num_max
 totnum_el = (io_int(1)+1)*num_max
