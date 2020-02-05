@@ -139,7 +139,7 @@ add_library(EMsoftOOLib ${LIB_TYPE} ${EMsoftOOLib_SRCS})
 target_link_libraries(EMsoftOOLib
                 # EMsoftOOLib_C 
                 # EMsoftOOLib_Cpp 
-                ${EMSOFT_hdf5LinkLibs} 
+                ${EMSOFTOO_hdf5LinkLibs} 
                 jsonfortran 
                 bcls::bcls
                 gomp       

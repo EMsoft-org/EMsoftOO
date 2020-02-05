@@ -392,22 +392,22 @@ end if
 dataset = SC_MCmode
 sval(1) = mcnl%MCmode
 hdferr = HDF%writeDatasetStringArray(dataset, sval, 1)
-if (hdferr.ne.0) call error_check_(self,'writeHDFNameList: unable to create MCmode dataset',.TRUE., hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create MCmode dataset', hdferr)
 
 dataset = SC_xtalname
 line2(1) = mcnl%xtalname
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call error_check_(self,'writeHDFNameList: unable to create xtalname dataset',.TRUE., hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create xtalname dataset', hdferr)
 
 dataset = SC_dataname
 line2(1) = mcnl%dataname
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call error_check_(self,'writeHDFNameList: unable to create dataname dataset',.TRUE., hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create dataname dataset', hdferr)
 
 dataset = SC_mode
 sval(1) = mcnl%mode
 hdferr = HDF%writeDatasetStringArray(dataset, sval, 1)
-if (hdferr.ne.0) call error_check_(self,'writeHDFNameList: unable to create mode dataset',.TRUE., hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create mode dataset', hdferr)
 
 ! and pop this group off the stack
 call HDF%pop()
@@ -550,7 +550,7 @@ io_real(1:3) = cell%getDensity()
 density = io_real(1)
 at_wt = io_real(2)
 Ze = io_real(3)
-call WriteValue('Density, avA, avZ = ',io_real,3,"(2f10.5,',',f10.5)")
+call Message%WriteValue('Density, avA, avZ = ',io_real,3,"(2f10.5,',',f10.5)")
 mode = mcnl%mode
 
 if (mode .eq. 'full') then
@@ -645,7 +645,7 @@ call CL%read_source_file(EMsoft, sourcefile, csource, slength)
 
 ! create the program
 io_int(1) = slength
-call WriteValue('Kernel source length (characters) : ',io_int,1)
+call Message%WriteValue('Kernel source length (characters) : ',io_int,1)
 pcnt = 1
 psource = C_LOC(csource)
 prog = clCreateProgramWithSource(context, pcnt, C_LOC(psource), C_LOC(slength), ierr)
@@ -1034,7 +1034,7 @@ end if
 
 call timer%Time_tock() 
 io_int(1) = timer%getInterval()
-call WriteValue('Total execution time [s] = ',io_int,1)
+call Message%WriteValue('Total execution time [s] = ',io_int,1)
 
 io_int(1) = totnum_el/num_max
 totnum_el = (io_int(1)+1)*num_max
@@ -1144,7 +1144,7 @@ end if
 ! end of HDF_FileVersion = 4.0 write statements
 ! =====================================================
 
-call HDF_pop(.TRUE.)
+call HDF%pop(.TRUE.)
 !
 !=====================
 ! RELEASE EVERYTHING
