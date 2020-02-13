@@ -1554,7 +1554,7 @@ integer(kind=irg),INTENT(IN),OPTIONAL   :: templatelist(:)
 
 type(IO_T)                              :: Message
 type(Timing_T)                          :: Timing
-integer(kind=irg)                       :: sz(1) 
+integer(kind=irg)                       :: sz(1), slen 
 character(fnlen)                        :: nmldefault
 
  Message = IO_T() 
@@ -1589,7 +1589,12 @@ character(fnlen)                        :: nmldefault
     if (trim(self%flagset).ne.'') then 
       call Interpret_Program_Arguments_no_nml_(self, sz(1), templatelist, progname)
     else 
-      nmldefault = trim(progname)//'.nml'
+      slen = len(trim(progname))
+      nmldefault = trim(progname)
+! replace .f90 by .nml
+      nmldefault(slen-2:slen-2) = 'n'
+      nmldefault(slen-1:slen-1) = 'm'
+      nmldefault(slen  :slen  ) = 'l'
       call Interpret_Program_Arguments_with_nml_(self, nmldefault, sz(1), templatelist, progname)
       self%nmldeffile = trim(nmldefault)
     end if 
@@ -2172,7 +2177,7 @@ if (numarg.gt.0) then ! there is at least one argument
 ! no, the first character is not '-', so this argument must be the filename
 ! If it is present, but any of the other arguments were present as well, then
 ! we stop the program. 
-      nmlfile = arg
+      nmldefault = arg
       if (numarg.eq.1) haltprogram = .FALSE.
     end if
   end do
@@ -2183,7 +2188,6 @@ if (haltprogram) then
   stop
 end if
 
-nmldefault = nmlfile
 
 end subroutine Interpret_Program_Arguments_with_nml_
 

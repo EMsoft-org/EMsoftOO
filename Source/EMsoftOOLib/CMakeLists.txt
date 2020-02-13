@@ -75,6 +75,9 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Disorientations.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_MCfiles.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_MPfiles.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDmaster.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

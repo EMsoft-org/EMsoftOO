@@ -255,18 +255,24 @@ private
     procedure, pass(self) :: getWaveLength_
     procedure, pass(self) :: getBetheParameter_
     procedure, pass(self) :: Set_Bethe_Parameters_
+    procedure, pass(self) :: writeBetheparameterNameList_
     procedure, pass(self) :: BWsolve_
     procedure, pass(self) :: setrlpmethod_
     procedure, pass(self) :: getrlp_
     procedure, pass(self) :: allocateLUT_
     procedure, pass(self) :: getshapeLUT_
     procedure, pass(self) :: getLUT_
+    procedure, pass(self) :: getSghLUT_
     procedure, pass(self) :: getLUTqg_
     procedure, pass(self) :: getdbdiff_
     procedure, pass(self) :: setLUT_
     procedure, pass(self) :: setLUTqg_
     procedure, pass(self) :: setdbdiff_
+    procedure, pass(self) :: Initialize_SghLUT_
+    procedure, pass(self) :: preCalcSgh_
     procedure, pass(self) :: Printrlp_
+
+
 
     generic, public :: GetVoltage => GetVoltage_
     generic, public :: CalcWaveLength => CalcWaveLength_
@@ -278,6 +284,7 @@ private
     generic, public :: getWaveLength => getWaveLength_
     generic, public :: getBetheParameter => getBetheParameter_
     generic, public :: SetBetheParameters => Set_Bethe_Parameters_
+    generic, public :: writeBetheparameterNameList => writeBetheparameterNameList_
     generic, public :: BWsolve => BWsolve_
     generic, public :: setrlpmethod => setrlpmethod_
     generic, public :: setV => setV_
@@ -286,11 +293,14 @@ private
     generic, public :: allocateLUT => allocateLUT_
     generic, public :: getshapeLUT => getshapeLUT_
     generic, public :: getLUT => getLUT_
+    generic, public :: getSghLUT => getSghLUT_
     generic, public :: getLUTqg => getLUTqg_
     generic, public :: getdbdiff => getdbdiff_
     generic, public :: setLUT => setLUT_
     generic, public :: setLUTqg => setLUTqg_
     generic, public :: setdbdiff => setdbdiff_
+    generic, public :: Initialize_SghLUT => Initialize_SghLUT_
+    generic, public :: preCalcSgh => preCalcSgh_
     generic, public :: Printrlp => Printrlp_
 
 end type Diffraction_T
@@ -313,11 +323,13 @@ end type Diffraction_T
 !DEC$ ATTRIBUTES DLLEXPORT :: getWaveLength
 !DEC$ ATTRIBUTES DLLEXPORT :: getBetheParameter
 !DEC$ ATTRIBUTES DLLEXPORT :: Set_Bethe_Parameters
+!DEC$ ATTRIBUTES DLLEXPORT :: writeBetheparameterNameList
 !DEC$ ATTRIBUTES DLLEXPORT :: BWsolve
 !DEC$ ATTRIBUTES DLLEXPORT :: setrlpmethod
 !DEC$ ATTRIBUTES DLLEXPORT :: getrlp
 !DEC$ ATTRIBUTES DLLEXPORT :: getshapeLUT
 !DEC$ ATTRIBUTES DLLEXPORT :: allocateLUT
+!DEC$ ATTRIBUTES DLLEXPORT :: getSghLUT
 !DEC$ ATTRIBUTES DLLEXPORT :: getLUT
 !DEC$ ATTRIBUTES DLLEXPORT :: getLUTqg
 !DEC$ ATTRIBUTES DLLEXPORT :: getdbdiff
@@ -577,6 +589,25 @@ complex(kind=dbl)                   :: c
  c = self%LUT( hkl(1), hkl(2), hkl(3) )
 
 end function getLUT_
+
+!--------------------------------------------------------------------------
+recursive function getSghLUT_(self, n, hkl) result(c)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/12/20
+  !!
+  !! return an entry from the LUT array
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN)       :: n
+integer(kind=irg), INTENT(IN)       :: hkl(3)
+complex(kind=dbl)                   :: c(n)
+
+ c(1:n) = self%SghLUT( 1:n, hkl(1), hkl(2), hkl(3) )
+
+end function getSghLUT_
 
 !--------------------------------------------------------------------------
 recursive function getLUTqg_(self, hkl) result(c)
@@ -1453,6 +1484,54 @@ self%BetheParameters%sgdbdiff = sgdbdiff
 end subroutine Set_Bethe_Parameters_
 
 !--------------------------------------------------------------------------
+recursive subroutine writeBetheparameterNameList_(self, HDF)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/12/20
+  !!
+  !! write namelist to already opened HDF file
+
+use HDF5
+use mod_HDFsupport
+use ISO_C_BINDING
+use stringconstants
+
+IMPLICIT NONE
+
+class(Diffraction_T), INTENT(INOUT)                   :: self 
+type(HDF_T), INTENT(INOUT)                            :: HDF
+
+integer(kind=irg),parameter                           :: n_int = 1, n_real = 4
+integer(kind=irg)                                     :: hdferr,  io_int(n_int), restart, uniform
+real(kind=sgl)                                        :: io_real(n_real)
+character(20)                                         :: intlist(n_int), reallist(n_real)
+character(fnlen)                                      :: dataset, groupname
+character(fnlen,kind=c_char)                          :: line2(1)
+logical                                               :: g_exists, overwrite=.TRUE.
+
+! We are not writing the complete BetheParameters structure to the name list, only
+! the parameters of importance for the dynamical simulations ... 
+
+! create the group for this namelist
+groupname = SC_BetheList
+hdferr = HDF%createGroup(groupname)
+
+! write all the single doubles
+io_real = (/ self%BetheParameters%c1, self%BetheParameters%c2, self%Betheparameters%c3, self%BetheParameters%sgdbdiff /)
+            
+reallist(1) = 'c1'
+reallist(2) = 'c2'
+reallist(3) = 'c3'
+reallist(4) = 'sgdbdiff'
+call HDF%writeNMLreals(io_real, reallist, n_real)
+
+! and pop this group off the stack
+call HDF%pop()
+
+end subroutine writeBetheparameterNameList_
+
+
+!--------------------------------------------------------------------------
 recursive function CalcsgSingle_(self, cell, gg, kk, FN) result(sg)
   !! author: MDG 
   !! version: 1.0 
@@ -1620,6 +1699,165 @@ complex(kind=dbl),allocatable       :: MIWORK(:)
  deallocate(MIWORK)
  
 end subroutine BWsolve_
+
+!--------------------------------------------------------------------------
+recursive subroutine Initialize_SghLUT_(self, cell, SG, dmin, numset, nat, verbose)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 02/11/20
+  !!
+  !! initialize a look-up table with Sgh structure-factor-like entries
+  !! 
+
+use mod_crystallography
+use mod_symmetry
+use mod_io
+
+IMPLICIT NONE
+
+class(Diffraction_T), INTENT(INOUT)        :: self
+type(Cell_T), INTENT(INOUT)                :: cell
+type(SpaceGroup_T), INTENT(INOUT)          :: SG
+real(kind=sgl),INTENT(IN)                  :: dmin
+integer(kind=sgl),INTENT(IN)               :: numset
+integer(kind=sgl),INTENT(INOUT)            :: nat(100)
+logical,INTENT(IN),optional                :: verbose
+
+type(IO_T)                                 :: Message
+integer(kind=irg)                          :: istat, io_int(3), skip
+integer(kind=irg)                          :: imh, imk, iml, gg(3), ix, iy, iz
+real(kind=sgl)                             :: dhkl, io_real(3), ddt
+complex(kind=dbl)                          :: Sghvec(numset)
+
+! compute the range of reflections for the lookup table and allocate the table
+! The master list is easily created by brute force
+ imh = 1
+ do 
+   dhkl = 1.0/cell%CalcLength( (/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
+   if (dhkl.lt.dmin) EXIT
+   imh = imh + 1
+ end do
+ imk = 1
+ do 
+   dhkl = 1.0/cell%CalcLength( (/0.0_sgl,float(imk),0.0_sgl/), 'r')
+   if (dhkl.lt.dmin) EXIT
+   imk = imk + 1
+ end do
+ iml = 1
+ do 
+   dhkl = 1.0/cell%CalcLength( (/0.0_sgl,0.0_sgl,float(iml)/), 'r')
+   if (dhkl.lt.dmin) EXIT
+   iml = iml + 1
+ end do
+ 
+ if (present(verbose)) then
+  if (verbose) then
+    io_int = (/ imh, imk, iml /)
+    call Message%WriteValue(' Range of reflections along a*, b* and c* = ',io_int,3)
+  end if
+ end if
+  
+! the SghLUT array stores all the structure-factor-like quantities of the Sgh matrix needed for EBSD, ECP, etc simulations
+ allocate(self%SghLUT(1:numset,-2*imh:2*imh,-2*imk:2*imk,-2*iml:2*iml),stat=istat)
+ if (istat.ne.0) call Message%printError('Initialize_SghLUT:',' unable to allocate SghLUT array')
+ self%SghLUT = cmplx(0.D0,0.D0)
+
+ if (present(verbose)) then
+  if (verbose) then
+   call Message%printMessage('Generating Sgh coefficient lookup table ... ', frm = "(/A)",advance="no")
+  end if
+ end if
+ 
+! note that the lookup table must be twice as large as the list of participating reflections,
+! since the Sgh matrix uses g-h as its index !!!  
+izl: do iz=-2*iml,2*iml
+iyl:  do iy=-2*imk,2*imk
+ixl:   do ix=-2*imh,2*imh
+        gg = (/ ix, iy, iz /)
+        if (SG%IsGAllowed(gg)) then  ! is this reflection allowed by lattice centering ?
+! add the reflection to the look up table
+           call self%preCalcSgh(cell,SG,gg,numset,nat,Sghvec)
+           self%SghLUT(1:numset, ix, iy, iz) = Sghvec(1:numset)
+        end if ! IsGAllowed
+       end do ixl
+      end do iyl
+    end do izl
+
+  if (present(verbose)) then
+   if (verbose) then
+    call Message%printMessage('Done', frm = "(A/)")
+   end if
+  end if
+
+! that's it
+end subroutine Initialize_SghLUT_
+
+!--------------------------------------------------------------------------
+recursive subroutine preCalcSgh_(self, cell, SG, kkk, numset, nat, Sghvec)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 02/11/20
+  !!
+  !! compute structure factor-like Sgh array entry for EBSD, ECCI and ECP simulations
+
+use mod_crystallography
+use mod_symmetry
+
+IMPLICIT NONE
+
+class(Diffraction_T), INTENT(INOUT)     :: self
+type(Cell_T), INTENT(INOUT)             :: cell
+type(SpaceGroup_T),INTENT(INOUT)        :: SG
+integer(kind=irg),INTENT(IN)            :: kkk(3)
+integer(kind=irg),INTENT(IN)            :: numset
+integer(kind=irg),INTENT(INOUT)         :: nat(100)
+complex(kind=dbl),INTENT(INOUT)         :: Sghvec(numset)
+
+integer(kind=irg)                       :: ip, ir, ic, ikk, n
+real(kind=sgl)                          :: Znsq, DBWF, kkl
+complex(kind=dbl)                       :: carg
+real(kind=dbl),allocatable              :: ctmp(:,:), apdata(:,:), apos(:,:,:)
+real(kind=dbl)                          :: arg, tpi
+integer(kind=irg), allocatable          :: numat(:), atp(:)
+
+  tpi = 2.D0 * cPi
+  Sghvec = cmplx(0.D0,0.D0)
+
+  apdata = cell%getAsymPosData()
+  numat = cell%getnumat()
+  atp = cell%getatomtype()
+  apos = cell%getapos()
+
+! for each special position we need to compute its contribution to the Sgh array
+  do ip=1,cell%getNatomtype()
+    call SG%CalcOrbit(apdata(ip,1:3),n,ctmp)
+    nat(ip) = numat(ip)
+! get Zn-squared for this special position, and include the site occupation parameter as well
+    Znsq = float(atp(ip))**2 * apdata(ip,4)
+! We'll assume isotropic Debye-Waller factors for now ...
+! That means we need the square of the length of s=kk^2/4
+    kkl = 0.25 * cell%CalcLength(float(kkk),'r')**2
+! Debye-Waller exponential times Z^2
+    DBWF = Znsq * exp(-apdata(ip,5)*kkl)
+! here is where we insert the proper weight factor, Z^2 exp[-M_{h-g}]
+! and also the detector geometry...   For now, we do nothing with the detector
+! geometry; the Rossouw et al 1994 paper lists a factor A that does not depend
+! on anything in particular, so we assume it is 1. 
+    do ikk=1,n ! sum over all the atoms in this orbit
+! get the argument of the complex exponential
+      arg = tpi*sum(dble(kkk(1:3))*apos(ip,ikk,1:3))
+      carg = cmplx(dcos(arg),dsin(arg))
+! multiply with the prefactor and add
+      Sghvec(ip) = Sghvec(ip) + carg * cmplx(DBWF,0.D0)
+    end do
+  end do
+  
+end subroutine preCalcSgh_
+
+
+
+
+
 
 ! !
 ! ! ###################################################################

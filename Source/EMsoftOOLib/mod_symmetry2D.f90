@@ -180,7 +180,7 @@ end select
 end subroutine Generate2DSymmetry
 
 !--------------------------------------------------------------------------
-recursive subroutine Apply2DPGSymmetry_(TDPG,ipx,ipy,isym,iequiv,nequiv)
+recursive subroutine Apply2DPGSymmetry(TDPG,ipx,ipy,isym,iequiv,nequiv)
 !DEC$ ATTRIBUTES DLLEXPORT :: Apply2DPGSymmetry
   !! author: MDG 
   !! version: 1.0 
@@ -245,7 +245,7 @@ do i=2,mequiv
 end do
 
 ! that's it.
-end subroutine Apply2DPGSymmetry_
+end subroutine Apply2DPGSymmetry
 
 
 

@@ -140,6 +140,7 @@ IMPLICIT NONE
 ! routines to read/write .xtal files 
           procedure, pass(self) :: readDataHDF_
           procedure, pass(self) :: saveDataHDF_
+          procedure, pass(self) :: addXtalDataGroup_
           procedure, pass(self) :: getCrystalData_
           procedure, pass(self) :: dumpXtalInfo_
 ! miscellaneous routines 
@@ -227,6 +228,8 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: readDataHDF 
           generic, public :: saveDataHDF => saveDataHDF_
           !DEC$ ATTRIBUTES DLLEXPORT :: saveDataHDF 
+          generic, public :: addXtalDataGroup => addXtalDataGroup_
+          !DEC$ ATTRIBUTES DLLEXPORT :: addXtalDataGroup
           generic, public :: setAtomPos => setAtomPos_ 
           !DEC$ ATTRIBUTES DLLEXPORT :: setAtomPos 
           generic, public :: getCrystalData => getCrystalData_
@@ -2144,7 +2147,7 @@ end subroutine calcTheoreticalDensity
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-recursive subroutine saveDataHDF_(self, SG, EMsoft, localHDF)
+recursive subroutine saveDataHDF_(self, SG, EMsoft)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/14/20
@@ -2165,7 +2168,6 @@ IMPLICIT NONE
 class(Cell_T),INTENT(INOUT)             :: self
 type(SpaceGroup_T),INTENT(INOUT)        :: SG
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
-type(HDF_T),OPTIONAL,INTENT(INOUT)      :: localHDF
 
 type(IO_T)                              :: Message 
 type(Timing_T)                          :: Timer
@@ -2184,108 +2186,208 @@ logical                                 :: openHDFfile
 Message = IO_T()
 Timer = Timing_T()
 
-openHDFfile = .TRUE.
-if (present(localHDF)) then
-  if (localHDF%associatedHead()) then
-    openHDFfile = .FALSE.
-    me = localHDF
-  else
-    call Message%printError("SaveDataHDF","HDF class passed in to routine is not instantiated")
+dstr = Timer%getDateString()
+tstr = Timer%getTimeString() 
+
+me = HDF_T() 
+
+  xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
+  hdferr =  me%createFile(xtalname)
+  call me%error_check('SaveDataHDF:HDF_createFile:'//trim(xtalname), hdferr)
+
+  groupname = SC_CrystalData
+  hdferr = me%createGroup(groupname)
+  call me%error_check( 'SaveDataHDF:HDF_createGroup:'//trim(groupname), hdferr)
+
+  dataset = SC_ProgramName
+  strings(1) = trim(progname)
+  hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+  call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+  dataset = SC_CreationDate
+  strings(1) = dstr
+  hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+  call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+  dataset = SC_CreationTime
+  strings(1) = tstr
+  hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+  call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+  dataset = SC_Creator
+  strings(1) = trim(EMsoft%getConfigParameter('UserName'))
+  hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+  call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+  dataset = SC_CrystalSystem
+  hdferr = me%writeDatasetInteger(dataset, self%xtal_system)
+  call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+  dataset = SC_LatticeParameters
+  cellparams = (/ self%a, self%b, self%c, self%alpha, self%beta, self%gamma /)
+  hdferr = me%writeDatasetDoubleArray(dataset, cellparams, 6)
+  call me%error_check( 'SaveDataHDF:writeDatasetDoubleArray:'//trim(dataset), hdferr)
+
+  dataset = SC_SpaceGroupNumber
+  hdferr = me%writeDatasetInteger(dataset, SG%getSpaceGroupNumber())
+  call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+
+  ! make sure we do not write a '0' for the SGset variable; it must be either 1 or 2
+  if (SG%getSpaceGroupSetting().eq.0) then 
+    setting = 1
+  else 
+    setting = SG%getSpaceGroupSetting()
   end if 
-end if
+  dataset = SC_SpaceGroupSetting
+  hdferr = me%writeDatasetInteger(dataset, setting)
+  call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+
+  dataset = SC_Natomtypes
+  hdferr = me%writeDatasetInteger(dataset, self%ATOM_ntype)
+  call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+
+  allocate(atomtypes(self%ATOM_ntype))
+  atomtypes(1:self%ATOM_ntype) = self%ATOM_type(1:self%ATOM_ntype)
+  dataset = SC_Atomtypes
+  hdferr = me%writeDatasetIntegerArray(dataset, atomtypes, self%ATOM_ntype)
+  call me%error_check( 'SaveDataHDF:writeDatasetIntegerArray:'//trim(dataset), hdferr)
+  deallocate(atomtypes)
+
+  allocate(atompos(self%ATOM_ntype,5))
+  atompos(1:self%ATOM_ntype,1:5) = self%ATOM_pos(1:self%ATOM_ntype,1:5)
+  dataset = SC_AtomData
+  hdferr = me%writeDatasetFloatArray(dataset, atompos, self%ATOM_ntype, 5)
+  call me%error_check( 'SaveDataHDF:writeDatasetFloatArray:'//trim(dataset), hdferr)
+  deallocate(atompos)
+
+  dataset = SC_Source
+  strings(1) = trim(self%source)
+  hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+  call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+
+  call me%pop(.TRUE.)
+
+end subroutine saveDataHDF_
+
+
+!--------------------------------------------------------------------------
+recursive subroutine addXtalDataGroup_(self, SG, EMsoft, useHDF)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! save crystal structure data to an HDF file 
+
+use mod_io
+use mod_global
+use mod_EMsoft
+use HDF5
+use mod_HDFsupport
+use mod_timing
+use mod_symmetry
+use stringconstants
+ 
+IMPLICIT NONE
+
+class(Cell_T),INTENT(INOUT)             :: self
+type(SpaceGroup_T),INTENT(INOUT)        :: SG
+type(EMsoft_T),INTENT(INOUT)            :: EMsoft
+type(HDF_T),INTENT(INOUT)               :: useHDF
+
+type(IO_T)                              :: Message 
+type(Timing_T)                          :: Timer
+
+character(11)                           :: dstr
+character(15)                           :: tstr
+character(fnlen)                        :: progname = 'EMmkxtal.f90', groupname, dataset, xtalname, strings(1)
+integer(kind=irg)                       :: hdferr, setting 
+real(kind=dbl)                          :: cellparams(6)
+integer(kind=irg),allocatable           :: atomtypes(:)
+real(kind=sgl),allocatable              :: atompos(:,:)
+logical                                 :: openHDFfile
+
+Message = IO_T()
+Timer = Timing_T()
 
 dstr = Timer%getDateString()
 tstr = Timer%getTimeString() 
 
-! Initialize FORTRAN interface if needed.
-!
-if (openHDFfile) then 
-  me = HDF_T()
-  xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
-  hdferr =  me%createFile(xtalname)
-  call me%error_check('SaveDataHDF:HDF_createFile:'//trim(xtalname), hdferr)
-end if
+  groupname = SC_CrystalData
+  hdferr = useHDF%createGroup(groupname)
+  call useHDF%error_check( 'SaveDataHDF:HDF_createGroup:'//trim(groupname), hdferr)
 
-groupname = SC_CrystalData
-hdferr = me%createGroup(groupname)
-call me%error_check( 'SaveDataHDF:HDF_createGroup:'//trim(groupname), hdferr)
+  dataset = SC_ProgramName
+  strings(1) = trim(progname)
+  hdferr = useHDF%writeDatasetStringArray(dataset, strings, 1)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 
-dataset = SC_ProgramName
-strings(1) = trim(progname)
-hdferr = me%writeDatasetStringArray(dataset, strings, 1)
-call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+  dataset = SC_CreationDate
+  strings(1) = dstr
+  hdferr = useHDF%writeDatasetStringArray(dataset, strings, 1)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 
-dataset = SC_CreationDate
-strings(1) = dstr
-hdferr = me%writeDatasetStringArray(dataset, strings, 1)
-call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+  dataset = SC_CreationTime
+  strings(1) = tstr
+  hdferr = useHDF%writeDatasetStringArray(dataset, strings, 1)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 
-dataset = SC_CreationTime
-strings(1) = tstr
-hdferr = me%writeDatasetStringArray(dataset, strings, 1)
-call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+  dataset = SC_Creator
+  strings(1) = trim(EMsoft%getConfigParameter('UserName'))
+  hdferr = useHDF%writeDatasetStringArray(dataset, strings, 1)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 
-dataset = SC_Creator
-strings(1) = trim(EMsoft%getConfigParameter('UserName'))
-hdferr = me%writeDatasetStringArray(dataset, strings, 1)
-call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+  dataset = SC_CrystalSystem
+  hdferr = useHDF%writeDatasetInteger(dataset, self%xtal_system)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 
-dataset = SC_CrystalSystem
-hdferr = me%writeDatasetInteger(dataset, self%xtal_system)
-call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+  dataset = SC_LatticeParameters
+  cellparams = (/ self%a, self%b, self%c, self%alpha, self%beta, self%gamma /)
+  hdferr = useHDF%writeDatasetDoubleArray(dataset, cellparams, 6)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetDoubleArray:'//trim(dataset), hdferr)
 
-dataset = SC_LatticeParameters
-cellparams = (/ self%a, self%b, self%c, self%alpha, self%beta, self%gamma /)
-hdferr = me%writeDatasetDoubleArray(dataset, cellparams, 6)
-call me%error_check( 'SaveDataHDF:writeDatasetDoubleArray:'//trim(dataset), hdferr)
+  dataset = SC_SpaceGroupNumber
+  hdferr = useHDF%writeDatasetInteger(dataset, SG%getSpaceGroupNumber())
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
 
-dataset = SC_SpaceGroupNumber
-hdferr = me%writeDatasetInteger(dataset, SG%getSpaceGroupNumber())
-call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+  ! make sure we do not write a '0' for the SGset variable; it must be either 1 or 2
+  if (SG%getSpaceGroupSetting().eq.0) then 
+    setting = 1
+  else 
+    setting = SG%getSpaceGroupSetting()
+  end if 
+  dataset = SC_SpaceGroupSetting
+  hdferr = useHDF%writeDatasetInteger(dataset, setting)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
 
-! make sure we do not write a '0' for the SGset variable; it must be either 1 or 2
-if (SG%getSpaceGroupSetting().eq.0) then 
-  setting = 1
-else 
-  setting = SG%getSpaceGroupSetting()
-end if 
-dataset = SC_SpaceGroupSetting
-hdferr = me%writeDatasetInteger(dataset, setting)
-call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+  dataset = SC_Natomtypes
+  hdferr = useHDF%writeDatasetInteger(dataset, self%ATOM_ntype)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
 
-dataset = SC_Natomtypes
-hdferr = me%writeDatasetInteger(dataset, self%ATOM_ntype)
-call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+  allocate(atomtypes(self%ATOM_ntype))
+  atomtypes(1:self%ATOM_ntype) = self%ATOM_type(1:self%ATOM_ntype)
+  dataset = SC_Atomtypes
+  hdferr = useHDF%writeDatasetIntegerArray(dataset, atomtypes, self%ATOM_ntype)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetIntegerArray:'//trim(dataset), hdferr)
+  deallocate(atomtypes)
 
-allocate(atomtypes(self%ATOM_ntype))
-atomtypes(1:self%ATOM_ntype) = self%ATOM_type(1:self%ATOM_ntype)
-dataset = SC_Atomtypes
-hdferr = me%writeDatasetIntegerArray(dataset, atomtypes, self%ATOM_ntype)
-call me%error_check( 'SaveDataHDF:writeDatasetIntegerArray:'//trim(dataset), hdferr)
-deallocate(atomtypes)
+  allocate(atompos(self%ATOM_ntype,5))
+  atompos(1:self%ATOM_ntype,1:5) = self%ATOM_pos(1:self%ATOM_ntype,1:5)
+  dataset = SC_AtomData
+  hdferr = useHDF%writeDatasetFloatArray(dataset, atompos, self%ATOM_ntype, 5)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetFloatArray:'//trim(dataset), hdferr)
+  deallocate(atompos)
 
-allocate(atompos(self%ATOM_ntype,5))
-atompos(1:self%ATOM_ntype,1:5) = self%ATOM_pos(1:self%ATOM_ntype,1:5)
-dataset = SC_AtomData
-hdferr = me%writeDatasetFloatArray(dataset, atompos, self%ATOM_ntype, 5)
-call me%error_check( 'SaveDataHDF:writeDatasetFloatArray:'//trim(dataset), hdferr)
-deallocate(atompos)
+  dataset = SC_Source
+  strings(1) = trim(self%source)
+  hdferr = useHDF%writeDatasetStringArray(dataset, strings, 1)
+  call useHDF%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 
-dataset = SC_Source
-strings(1) = trim(self%source)
-hdferr = me%writeDatasetStringArray(dataset, strings, 1)
-call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+  call useHDF%pop()
 
-if (openHDFfile) then
-  call me%pop(.TRUE.)
-else ! just close this group, but not the file
-  call me%pop()
-end if
-
-end subroutine saveDataHDF_
+end subroutine addXtalDataGroup_
 
 !--------------------------------------------------------------------------
-recursive subroutine getCrystalData_(self, xtalname, SG, EMsoft, verbose, localHDF)
+recursive subroutine getCrystalData_(self, xtalname, SG, EMsoft, verbose, useHDF)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/09/20
@@ -2304,15 +2406,15 @@ character(fnlen),INTENT(IN)             :: xtalname
 type(SpaceGroup_T),INTENT(INOUT)        :: SG 
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
 logical,INTENT(IN),OPTIONAL             :: verbose
-type(HDF_T),OPTIONAL,INTENT(INOUT)      :: localHDF
+type(HDF_T),OPTIONAL,INTENT(INOUT)      :: useHDF
 
 type(HDF_T)                             :: me
 type(IO_T)                              :: Message 
 integer(kind=irg)                       :: i, ipg, SGnum
 
  self%xtalname = trim(xtalname)
- if (present(localHDF)) then 
-  call self%readDataHDF(SG, EMsoft, localHDF)
+ if (present(useHDF)) then 
+  call self%readDataHDF(SG, EMsoft, useHDF)
  else
   call self%readDataHDF(SG, EMsoft)
  end if
@@ -2359,7 +2461,7 @@ end if
 end subroutine getCrystalData_
 
 !--------------------------------------------------------------------------
-recursive subroutine readDataHDF_(self, SG, EMsoft, localHDF)
+recursive subroutine readDataHDF_(self, SG, EMsoft, useHDF)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/09/20
@@ -2379,7 +2481,7 @@ IMPLICIT NONE
 class(Cell_T),INTENT(INOUT)             :: self
 type(SPACEGROUP_T),INTENT(INOUT)        :: SG
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
-type(HDF_T),OPTIONAL,INTENT(INOUT)      :: localHDF
+type(HDF_T),OPTIONAL,INTENT(INOUT)      :: useHDF
 
 type(HDF_T)                             :: me
 
@@ -2395,22 +2497,16 @@ character(fnlen)                        :: pp
 logical                                 :: openHDFfile, d_exists
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 
-
 openHDFfile = .TRUE.
-if (present(localHDF)) then
-  if (localHDF%associatedHead()) then
-    openHDFfile = .FALSE.
-    me = localHDF
-  else
-    call Message%printError("readDataHDF","self pointer passed in to routine is not associated")
-  end if 
+if (present(useHDF)) then
+  openHDFfile = .FALSE.
+  me = useHDF
+else 
+  me = HDF_T()
 end if
 
-if (openHDFfile) then 
-  me = HDF_T()
-  xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
-  hdferr =  me%openFile(xtalname)
-end if
+xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
+hdferr =  me%openFile(xtalname)
 
 groupname = SC_CrystalData
 hdferr = me%openGroup(groupname)
@@ -2502,6 +2598,8 @@ end if
 ! we have not yet implemented the rhombohedral setting of the trigonal 
 ! space groups, so this needs to remain at .FALSE. always.
 call SG%setSpaceGroupsecond(.FALSE.)
+
+! if (openHDFfile) call me%closer()
 
 end subroutine readDataHDF_
 

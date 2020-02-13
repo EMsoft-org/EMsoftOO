@@ -44,7 +44,7 @@ contains
 
 !--------------------------------------------------------------------------
 recursive subroutine Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, &
-                                      localHDF, initLUT, noLUT, interpolate)
+                                      useHDF, initLUT, noLUT, interpolate)
 !DEC$ ATTRIBUTES DLLEXPORT :: Initialize_Cell
  !! author: MDG 
  !! version: 1.0 
@@ -69,7 +69,7 @@ type(DynType),INTENT(INOUT)                :: Dyn
 type(EMsoft_T),INTENT(INOUT)               :: EMsoft
 real(kind=sgl),INTENT(IN)                  :: dmin
 logical,INTENT(IN),OPTIONAL                :: verbose
-type(HDF_T),OPTIONAL,INTENT(INOUT)         :: localHDF
+type(HDF_T),OPTIONAL,INTENT(INOUT)         :: useHDF
 logical,INTENT(IN),OPTIONAL                :: initLUT
 logical,INTENT(IN),OPTIONAL                :: noLUT
 logical,INTENT(IN),OPTIONAL                :: interpolate
@@ -105,8 +105,8 @@ if(.not. justinit) then
 ! load the crystal structure file, which also computes all the important 
 ! matrices as well as all the symmetry arrays
  xtalname = trim(cell%getFilename())
- if (present(localHDF)) then 
-   call cell%getCrystalData(xtalname, SG, EMsoft, verbose, localHDF)
+ if (present(useHDF)) then 
+   call cell%getCrystalData(xtalname, SG, EMsoft, verbose, useHDF)
  else 
    call cell%getCrystalData(xtalname, SG, EMsoft, verbose)
  end if

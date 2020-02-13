@@ -53,7 +53,6 @@ module mod_HDFsupport
 
 
 use mod_global
-! use typedefs
 use HDF5
 use stringconstants
 
@@ -69,7 +68,7 @@ IMPLICIT NONE
   end type HDFobjectStackType
 
   logical, save                           :: FixedLengthflag, HDFverbose, dumpHDFstack
-  integer(kind=irg), save                 :: interfaceOpenLevel=0
+  logical, public, save                           :: interfaceOpen = .FALSE.
 
   public :: cstringify
 
@@ -195,6 +194,7 @@ IMPLICIT NONE
      final :: HDF_destructor
 
 ! generic (public) function definitions and overloads
+
      generic, public :: push => push_
      generic, public :: pop => pop_
      generic, public :: stackdump => stackdump_
@@ -284,6 +284,8 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: error_check
 !DEC$ ATTRIBUTES DLLEXPORT :: createFile
 !DEC$ ATTRIBUTES DLLEXPORT :: openFile
+!DEC$ ATTRIBUTES DLLEXPORT :: openFortranHDFInterface
+!DEC$ ATTRIBUTES DLLEXPORT :: closeFortranHDFInterface
 !DEC$ ATTRIBUTES DLLEXPORT :: createGroup
 !DEC$ ATTRIBUTES DLLEXPORT :: openGroup
 !DEC$ ATTRIBUTES DLLEXPORT :: openDataset
@@ -339,6 +341,8 @@ IMPLICIT NONE
     module procedure HDF_constructor
   end interface HDF_T
 
+public :: openFortranHDFInterface, closeFortranHDFInterface 
+
 contains
 
 !--------------------------------------------------------------------------
@@ -348,46 +352,31 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(HDF_T) function HDF_constructor( verbose ) result(HDF)
+type(HDF_T) function HDF_constructor( ) result(HDF)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/08/20
   !!
   !! constructor for the HDF Class 
 
+use mod_io 
+
 IMPLICIT NONE
 
-  logical, INTENT(IN), OPTIONAL :: verbose
-
+  type(IO_T)                    :: Message
   integer(kind=irg)             :: hdferr
   integer(kind=irg)             :: printonoff
 
 ! silent HDF operation or somewhat verbose ?
   HDFverbose = .FALSE. 
   dumpHDFstack = .FALSE.     ! set with the switchStackDump method
-  if (present(verbose)) then 
-    if (verbose.eqv..TRUE.) HDFverbose = .TRUE.
+
+! make sure that the fortran HDF interface is open; if not call an error 
+  if (HDFinterfaceOpen.eqv..FALSE.) then 
+    call Message%printError('HDF_constructor', 'The HDF fortran interface is closed; must be opened in calling program')
   end if 
 
-! the hdf interface may already be open from another class instantiation, so 
-! we need to check this here; if not, then we need to open the interface. 
-! this should be left open for the duration of the calling program.
-  if (interfaceOpenLevel.eq.0) then 
-! we open the fortran HDF interface here, and close it in the corresponding final routine 
-! that means that no program will need to worry about needing to explicitly open the interface...
-    call h5open_f(hdferr)
-    call error_check_(HDF, 'HDF_constructor:h5open_f', hdferr)
-
-! and turn standard error reporting off; we'll handle errors our way...
-    printonoff = 0
-    call h5eset_auto_f(printonoff,hdferr)
-    call error_check_(HDF, 'HDF_constructor:h5eset_auto_f', hdferr)
-  end if
-
-! update the interfaceOpenLevel counter (for nested access to HDF files)
-  interfaceOpenLevel = interfaceOpenLevel + 1
-
-! then we nullify the HDF%head private variable (again, the user does not get any access
+! then we nullify the HDF%head private variable (again, the user does not get direct access
 ! to this linked list... it is used internally and for debugging purposes).
   nullify(HDF%head%next)
 
@@ -414,22 +403,81 @@ subroutine HDF_destructor(self)
     deallocate(tmp)
   end do
 
-! if we are at the lowest nesting level, then we can safely close the interface
-  if (interfaceOpenLevel.eq.1) then 
+end subroutine HDF_destructor
+
+!--------------------------------------------------------------------------
+subroutine openFortranHDFInterface(verbose)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/13/20
+  !!
+  !! open the HDF interface 
+
+use mod_io 
+
+IMPLICIT NONE 
+
+  logical, INTENT(IN), OPTIONAL       :: verbose
+
+  type(HDF_T)                         :: HDF
+  type(IO_T)                          :: Message 
+  integer(kind=irg)                   :: hdferr
+  integer(kind=irg)                   :: printonoff
+  type(HDFobjectStackType), pointer   :: tmp
+
+! open the interface
+    call h5open_f(hdferr)
+    call error_check_(HDF, 'HDF_constructor:h5open_f', hdferr)
+
+! and turn standard error reporting off; we'll handle errors our way...
+    printonoff = 0
+    call h5eset_auto_f(printonoff,hdferr)
+    call error_check_(HDF, 'HDF_constructor:h5eset_auto_f', hdferr)
+
+    HDFinterfaceOpen = .TRUE.
+
+    if (present(verbose)) then 
+        if (verbose.eqv..TRUE.) call Message%printMessage(' *** Fortran HDF interface OPEN *** ')
+    end if
+
+end subroutine openFortranHDFInterface
+
+!--------------------------------------------------------------------------
+subroutine closeFortranHDFInterface(verbose)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/13/20
+  !!
+  !! close the HDF interface 
+
+use mod_io 
+
+IMPLICIT NONE 
+
+  logical, INTENT(IN), OPTIONAL       :: verbose
+
+  type(HDF_T)                         :: HDF
+  type(IO_T)                          :: Message 
+  integer(kind=irg)                   :: hdferr
+  integer(kind=irg)                   :: printonoff
+  type(HDFobjectStackType), pointer   :: tmp
+
 ! turn standard error reporting back on 
     printonoff = 1
     call h5eset_auto_f(printonoff, hdferr)
-    call error_check_(self, 'HDF_destructor:h5eset_auto_f', hdferr)
+    call error_check_(HDF, 'HDF_destructor:h5eset_auto_f', hdferr)
 
 ! close the HDF fortran interface
     call h5close_f(hdferr)
-    call error_check_(self, 'HDF_destructor:h5close_f', hdferr)
-  end if 
+    call error_check_(HDF, 'HDF_destructor:h5close_f', hdferr)
 
-! and decrement the level counter 
-  interfaceOpenLevel = interfaceOpenLevel - 1   
+    HDFinterfaceOpen = .FALSE.
 
-end subroutine HDF_destructor
+    if (present(verbose)) then 
+        if (verbose.eqv..TRUE.) call Message%printMessage(' *** Fortran HDF interface CLOSED *** ')
+    end if
+
+end subroutine closeFortranHDFInterface
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -522,6 +570,7 @@ if (PRESENT(closeall)) then
 ! delete the old entry
     deallocate(tmp)
   end do
+  nullify(self%head%next)
 else
 ! close the current object 
   error = HDF_close_level(self%head%next%objectType, self%head%next%objectID)
@@ -1051,6 +1100,7 @@ else ! there could be multiple variable length strings to be read...
 !
   f_ptr = C_LOC(rdata(1))
   call h5dread_f(self%head%next%objectID, H5T_STRING, f_ptr, hdferr)
+  ! call h5dread_f(self%head%next%objectID, H5T_NATIVE_CHARACTER, f_ptr, hdferr)
   call error_check_(self, 'readDatasetStringArray_:h5dread_f:'//trim(dataname), hdferr)
 
 !
@@ -5785,10 +5835,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
@@ -5799,10 +5849,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
@@ -5813,10 +5863,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
 
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
 
 end if
 
@@ -5829,10 +5879,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
@@ -5843,10 +5893,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
@@ -5857,10 +5907,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
@@ -5871,10 +5921,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
@@ -5885,10 +5935,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
@@ -5907,10 +5957,10 @@ call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
-  hdferr = writeDatasetStringArray_(self, line, line2, 1, overwrite)
+  hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
-  hdferr = writeDatasetStringArray_(self, line, line2, 1)
+  hdferr = self%writeDatasetStringArray(line, line2, 1)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
@@ -5918,7 +5968,7 @@ end if
 if (PRESENT(dataname).eqv..TRUE.) call pop_(self)
 
 ! and close this group
-call pop_(self)
+call self%pop()
 
 end subroutine writeEMheader_
 

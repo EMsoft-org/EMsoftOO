@@ -31,7 +31,7 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
   #                       )
  
-  # Add_EMsoft_Executable(TARGET EMEBSDFull
+  # Add_EMsoftOO_Executable(TARGET EMEBSDFull
   #                       SOURCES ${APP_DIR}/EMEBSDFull.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMEBSDFull.template 
@@ -40,7 +40,7 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoft_Executable(TARGET EMEBSDreflectors 
+  # Add_EMsoftOO_Executable(TARGET EMEBSDreflectors 
   #                       SOURCES ${APP_DIR}/EMEBSDreflectors.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMEBSDreflectors.template 
@@ -50,13 +50,22 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
   #                       )
 endif()
 
-if(EMsoft_ENABLE_HDF5_SUPPORT)
+if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
-  GetHDF5LinkLibraries(EMSOFT)
-  set(EXE_LINK_LIBRARIES ${EMSOFT_hdf5LinkLibs} EMsoftHDFLib )
+  GetHDF5LinkLibraries(EMSOFTOO)
+  set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFTOO_hdf5LinkLibs} )
+
+  Add_EMsoftOO_Executable(TARGET EMEBSDmaster 
+                        SOURCES ${APP_DIR}/EMEBSDmaster.f90 
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EMEBSDmaster.template 
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM 
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
+                        )
 
 
-  # Add_EMsoft_Executable(TARGET EMEBSD 
+  # Add_EMsoftOO_Executable(TARGET EMEBSD 
   #                       SOURCES ${APP_DIR}/EMEBSD.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMEBSD.template 
@@ -65,16 +74,8 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoft_Executable(TARGET EMEBSDmaster 
-  #                       SOURCES ${APP_DIR}/EMEBSDmaster.f90 
-  #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-  #                       TEMPLATE ${TMPLT_DIR}/EMEBSDmaster.template 
-  #                       SOLUTION_FOLDER EMsoftOOPublic/SEM 
-  #                       INSTALL_PROGRAM TRUE
-  #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
-  #                       )
 
-  # Add_EMsoft_Executable(TARGET EMEBSDmasterSHT 
+  # Add_EMsoftOO_Executable(TARGET EMEBSDmasterSHT 
   #                       SOURCES ${APP_DIR}/EMEBSDmasterSHT.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMEBSDmasterSHT.template 
@@ -84,7 +85,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       )
 
   
-  # Add_EMsoft_Executable(TARGET EMECP 
+  # Add_EMsoftOO_Executable(TARGET EMECP 
   #                       SOURCES ${APP_DIR}/EMECP.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMECP.template 
@@ -93,7 +94,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoft_Executable(TARGET EMECPmaster 
+  # Add_EMsoftOO_Executable(TARGET EMECPmaster 
   #                       SOURCES ${APP_DIR}/EMECPmaster.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMECPmaster.template 
@@ -102,7 +103,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
   
-  # Add_EMsoft_Executable(TARGET EMKosselmaster 
+  # Add_EMsoftOO_Executable(TARGET EMKosselmaster 
   #                       SOURCES ${APP_DIR}/EMKosselmaster.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMKosselmaster.template 
@@ -111,7 +112,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
   
-  # Add_EMsoft_Executable(TARGET EMMC 
+  # Add_EMsoftOO_Executable(TARGET EMMC 
   #                       SOURCES ${APP_DIR}/EMMC.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMMC.template 
@@ -120,7 +121,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
   
-  # Add_EMsoft_Executable(TARGET EMECCI 
+  # Add_EMsoftOO_Executable(TARGET EMECCI 
   #                       SOURCES ${APP_DIR}/EMECCI.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMECCI.template 
@@ -130,7 +131,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       )
   
 
-  # Add_EMsoft_Executable(TARGET EMECPSingle 
+  # Add_EMsoftOO_Executable(TARGET EMECPSingle 
   #                       SOURCES ${APP_DIR}/EMECPSingle.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMECPSingle.template 
@@ -139,7 +140,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoft_Executable(TARGET EMKAM
+  # Add_EMsoftOO_Executable(TARGET EMKAM
   #                       SOURCES ${APP_DIR}/EMKAM.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMKAM.template 
@@ -148,7 +149,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoft_Executable(TARGET EMAverageOrient
+  # Add_EMsoftOO_Executable(TARGET EMAverageOrient
   #                       SOURCES ${APP_DIR}/EMAverageOrient.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMAverageOrient.template 
@@ -157,7 +158,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoft_Executable(TARGET EMOrientationSimilarity
+  # Add_EMsoftOO_Executable(TARGET EMOrientationSimilarity
   #                       SOURCES ${APP_DIR}/EMOrientationSimilarity.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMOrientationSimilarity.template 
@@ -166,7 +167,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoft_Executable(TARGET EMOrientationViz
+  # Add_EMsoftOO_Executable(TARGET EMOrientationViz
   #                       SOURCES ${APP_DIR}/EMOrientationViz.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMOrientationViz.template 
@@ -176,7 +177,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       )
 
 
-  # Add_EMsoft_Executable(TARGET EMTKD 
+  # Add_EMsoftOO_Executable(TARGET EMTKD 
   #                       SOURCES ${APP_DIR}/EMTKD.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMTKD.template 
@@ -185,7 +186,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
   
-  # Add_EMsoft_Executable(TARGET EMTKDmaster 
+  # Add_EMsoftOO_Executable(TARGET EMTKDmaster 
   #                       SOURCES ${APP_DIR}/EMTKDmaster.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                       TEMPLATE ${TMPLT_DIR}/EMTKDmaster.template 
@@ -194,7 +195,7 @@ if(EMsoft_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoft_Executable(TARGET EMEBSDoverlap
+  # Add_EMsoftOO_Executable(TARGET EMEBSDoverlap
   #                       SOURCES ${APP_DIR}/EMEBSDoverlap.f90 
   #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}  
   #                       TEMPLATE ${TMPLT_DIR}/EMEBSDoverlap.template 

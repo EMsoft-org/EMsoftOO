@@ -79,7 +79,7 @@ public :: Timing_T
         procedure, pass(self), public :: getDateString
         procedure, pass(self), public :: getTimeString
         procedure, pass(self), public :: printTimeStamp
-        procedure, pass(self)         :: makeTimeStamp
+        procedure, pass(self), public :: makeTimeStamp
  
    end type Timing_T
 

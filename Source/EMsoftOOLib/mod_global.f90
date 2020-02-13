@@ -57,6 +57,11 @@ public
 !DEC$ ATTRIBUTES DLLEXPORT :: displayEMsoftWarningMessages
 !DEC$ ATTRIBUTES DLLEXPORT :: displayConfigFileMissingMessage
 
+!> We define a logical to query the current HDF fortran interface state 
+!> There can be issues with HDF reading/writing if the interface is opened multiple times 
+!> without the corresponding close commands...
+  logical                               :: HDFinterfaceOpen 
+
 !> standard array size for all wrapper routine calls; applies to ipar, fpar, and spar arrays
   integer(c_int32_t),parameter          :: wraparraysize = 80
 !DEC$ ATTRIBUTES DLLEXPORT :: wraparraysize

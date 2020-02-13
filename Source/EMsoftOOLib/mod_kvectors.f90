@@ -62,14 +62,19 @@ type, public :: kvectors_T
     real(kind=dbl)              :: gperp(3)
     real(kind=dbl)              :: kstar(3)
   
-  
   contains
   private
   
     procedure, pass(self) :: MakeRefList_
     procedure, pass(self) :: Calckvectors_
     procedure, pass(self) :: CalckvectorsSymmetry_
+    procedure, pass(self) :: get_ListHead_
+    procedure, pass(self) :: get_numk_
+    procedure, pass(self) :: set_kinp_
+    procedure, pass(self) :: set_ktmax_
+    procedure, pass(self) :: set_SamplingType_
     procedure, pass(self) :: check_mapmode_
+    procedure, pass(self) :: set_mapmode_
     procedure, pass(self) :: Add_knode_
     procedure, pass(self) :: AddkVector_
     procedure, pass(self) :: Delete_kvectorlist_
@@ -80,7 +85,13 @@ type, public :: kvectors_T
     generic, public :: MakeRefList => MakeRefList_
     generic, public :: Calckvectors => Calckvectors_
     generic, public :: CalckvectorsSymmetry => CalckvectorsSymmetry_
+    generic, public :: get_ListHead => get_ListHead_
+    generic, public :: get_numk => get_numk_
+    generic, public :: set_kinp => set_kinp_
+    generic, public :: set_ktmax => set_ktmax_
+    generic, public :: set_SamplingType => set_SamplingType_
     generic, public :: check_mapmode => check_mapmode_
+    generic, public :: set_mapmode => set_mapmode_
     generic, public :: Add_knode => Add_knode_
     generic, public :: AddkVector => AddkVector_
     generic, public :: Delete_kvectorlist => Delete_kvectorlist_
@@ -93,6 +104,11 @@ end type kvectors_T
 !DEC$ ATTRIBUTES DLLEXPORT :: Calckvectors
 !DEC$ ATTRIBUTES DLLEXPORT :: CalckvectorsSymmetry
 !DEC$ ATTRIBUTES DLLEXPORT :: check_mapmode
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ListHead
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numk
+!DEC$ ATTRIBUTES DLLEXPORT :: set_mapmode
+!DEC$ ATTRIBUTES DLLEXPORT :: set_kinp
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ktmax
 !DEC$ ATTRIBUTES DLLEXPORT :: Add_knode
 !DEC$ ATTRIBUTES DLLEXPORT :: AddkVector
 !DEC$ ATTRIBUTES DLLEXPORT :: Delete_kvectorlist
@@ -119,6 +135,9 @@ IMPLICIT NONE
 integer(kind=irg)     :: nref 
 
 ! simply initialize the reflist; nref will be 0 but is not needed in calling program
+
+nullify(KVec%klist)
+
 call KVec%MakeRefList(nref)
 
 end function kvectors_constructor
@@ -184,13 +203,17 @@ type(IO_T)                        :: Message
 type(kvectorlist),pointer         :: rltail
 integer(kind=irg)                 :: istat
 
+if (associated(self%klist)) then 
+  call self%Delete_kvectorlist() 
+end if 
+
 ! create it if it does not already exist
 if (.not.associated(self%klist)) then
   nref = 0
   allocate(self%klist,stat=istat)
-  if (istat.ne.0) call Message_printError('MakeRefList:',' unable to allocate pointer')
+  if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
   rltail => self%klist           ! tail points to new value
-  nullify(rltail%next)             ! nullify next in new value
+  nullify(rltail%next)           ! nullify next in new value
 end if
 
 end subroutine MakeRefList_
@@ -242,6 +265,116 @@ do i = 1, 5
 end do 
 
 end function check_mapmode_
+
+!--------------------------------------------------------------------------
+recursive subroutine set_mapmode_(self, mp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/12/20
+!!
+!! set (and check) the map mode
+
+use mod_io 
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)  :: self
+character(*), INTENT(IN)          :: mp
+
+type(IO_T)                        :: Message 
+
+self%mapmode = trim(mp)
+
+if (.not.self%check_mapmode()) then 
+  call Message%printError('set_mapmode','kvector mapping mode '//trim(mp)//' not known')
+end if 
+
+end subroutine set_mapmode_
+
+!--------------------------------------------------------------------------
+recursive subroutine set_kinp_(self, k)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/12/20
+!!
+!! set the input wave vector 
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)  :: self
+real(kind=dbl), INTENT(IN)        :: k(3)
+
+self%kinp = k
+
+end subroutine set_kinp_
+
+!--------------------------------------------------------------------------
+recursive subroutine set_ktmax_(self, k)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/12/20
+!!
+!! set the max tangential component
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)  :: self
+real(kind=dbl), INTENT(IN)        :: k
+
+self%ktmax = k
+
+end subroutine set_ktmax_
+
+!--------------------------------------------------------------------------
+recursive subroutine set_SamplingType_(self, i)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/12/20
+!!
+!! set the the sampling type parameter isym 
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN)     :: i
+
+self%isym = i
+
+end subroutine set_SamplingType_
+
+!--------------------------------------------------------------------------
+recursive function get_numk_(self) result(numk)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/12/20
+!!
+!! return the number of k-vectors
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)  :: self
+integer(kind=irg)                 :: numk 
+
+numk = self%numk
+
+end function get_numk_
+
+!--------------------------------------------------------------------------
+recursive function get_ListHead_(self) result(klist)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/12/20
+!!
+!! return the number of k-vectors
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)  :: self
+type(kvectorlist), pointer        :: klist
+
+klist => self%klist 
+
+end function get_ListHead_
 
 !--------------------------------------------------------------------------
 recursive subroutine Calckvectors_(self,cell,SG,Diff,ga,npx,npy,ijmax,usehex,LegendreArray)
@@ -564,7 +697,7 @@ if (self%mapmode.eq.'RoscaLambert') then
 
 ! allocate the head of the linked list
    allocate(self%klist,stat=istat)              ! allocate new value
-   if (istat.ne.0) call FatalError('Calckvectors',' unable to allocate self%klist pointer')
+   if (istat.ne.0) call Message%printError('Calckvectors',' unable to allocate self%klist pointer')
    ktail => self%klist                          ! tail points to new value
    nullify(ktail%next)                          ! nullify next in new value
    self%numk = 1                                     ! keep track of number of k-vectors so far

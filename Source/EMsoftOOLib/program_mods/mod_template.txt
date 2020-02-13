@@ -51,10 +51,12 @@ private
 contains
 private 
   procedure, pass(self) :: readNameList_
+  procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: XXX_
 
   generic, public :: getNameList => getNameList_
+  generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: XXX => XXX_
 
@@ -126,10 +128,44 @@ nml = self%nml
 end function getNameList_
 
 !--------------------------------------------------------------------------
+recursive subroutine writeHDFNameList_(self, HDF)
+!! author: MDG 
+!! version: 1.0 
+!! date: 01/22/20
+!!
+!! write namelist to HDF file
+
+use mod_HDFsupport
+use stringconstants 
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(XXX_T), INTENT(INOUT)        :: self 
+type(HDF_T), INTENT(INOUT)              :: HDF
+
+integer(kind=irg),parameter             :: n_int = 11, n_real_bse1 = 9, n_real_full = 7, n_real_ivol= 6
+integer(kind=irg)                       :: hdferr,  io_int(n_int)
+real(kind=dbl)                          :: io_real_bse1(n_real_bse1), io_real_full(n_real_full), &
+                                           io_real_ivol(n_real_ivol)
+character(20)                           :: reallist_bse1(n_real_bse1), reallist_full(n_real_full), &
+                                           reallist_ivol(n_real_ivol)
+character(20)                           :: intlist(n_int)
+character(fnlen)                        :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)            :: line2(1)
+
+associate( mcnl => self%nml )
+
+end associate
+
+end subroutine writeHDFNameList_
+
+!--------------------------------------------------------------------------
 subroutine XXX_(self, EMsoft)
 !! author: MDG 
 !! version: 1.0 
-!! date: 01/24/20
+!! date: 01/22/20
 !!
 !! perform the computations
 

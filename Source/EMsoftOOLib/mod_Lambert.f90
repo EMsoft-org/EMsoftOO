@@ -126,6 +126,7 @@ IMPLICIT NONE
         procedure, pass(self) :: LambertForwardDouble
         procedure, pass(self) :: LambertInverseSingle
         procedure, pass(self) :: LambertInverseDouble
+        procedure, pass(self) :: Apply3DPGSymmetry_
 
 ! mappings from 2D square grid to the Northern hemisphere of a 2D sphere
         generic, public :: LambertSquareToSphere =>  Lambert2DSquareForwardSingle, Lambert2DSquareForwardDouble
@@ -162,8 +163,10 @@ IMPLICIT NONE
 ! simple Lambert projection
         generic, public :: LambertForward => LambertForwardSingle, LambertForwardDouble
 !DEC$ ATTRIBUTES DLLEXPORT :: LambertForward
-        generic, public :: LambertInverse =>LambertInverseSingle, LambertInverseDouble
+        generic, public :: LambertInverse => LambertInverseSingle, LambertInverseDouble
 !DEC$ ATTRIBUTES DLLEXPORT :: LambertInverse
+        generic, public :: Apply3DPGSymmetry => Apply3DPGSymmetry_
+!DEC$ ATTRIBUTES DLLEXPORT :: Apply3DPGSymmetry
 
   end type Lambert_T
 
@@ -2127,19 +2130,6 @@ res = sum(resarray)
 end function InterpolationLambert4DSingle
 
 !--------------------------------------------------------------------------
-!
-! FUNCTION: InterpolationLambert4DDouble4b4
-!
-!> @author Marc De Graef, Carnegie Mellon University
-!
-!> @brief perform a Lambert interpolation
-!
-!> @param dc direction cosines
-!> @param m master array
-!> @param npx number of pixels along square semi-edge
-! 
-!> @date  01/20/18 MDG 1.0 original
-!--------------------------------------------------------------------------
 recursive function InterpolationLambert4DDouble4b4(dc, m, npx) result(res)
   !! author: MDG 
   !! version: 1.0 
@@ -2173,5 +2163,163 @@ res(1:4,1:4) = m(1:4,1:4,nix,niy)*dxm*dym + m(1:4,1:4,nixp,niy)*dx*dym + &
                m(1:4,1:4,nix,niyp)*dxm*dy + m(1:4,1:4,nixp,niyp)*dx*dy
 
 end function InterpolationLambert4DDouble4b4
+
+!--------------------------------------------------------------------------
+recursive subroutine Apply3DPGSymmetry_(self,cell,SG,ipx,ipy,ipz,npx,iequiv,nequiv,usehex,stereographic,cubictype)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/07/20
+  !!
+  !! Apply the 3D point group symmetry to a pair of coordinates on a Lambert grid
+
+use mod_crystallography
+use mod_symmetry
+use mod_io
+
+IMPLICIT NONE
+
+class(Lambert_T), INTENT(INOUT) :: self
+type(Cell_T),INTENT(INOUT)      :: cell
+type(SpaceGroup_T),INTENT(INOUT):: SG
+integer(kind=irg),INTENT(IN)    :: ipx
+integer(kind=irg),INTENT(IN)    :: ipy
+integer(kind=irg),INTENT(IN)    :: ipz
+integer(kind=irg),INTENT(IN)    :: npx
+integer(kind=irg),INTENT(OUT)   :: iequiv(3,48)
+integer(kind=irg),INTENT(OUT)   :: nequiv
+logical,INTENT(IN),OPTIONAL     :: usehex
+logical,INTENT(IN),OPTIONAL     :: stereographic
+integer(kind=irg),INTENT(IN),OPTIONAL :: cubictype
+
+type(Lambert_T)                 :: L
+type(IO_T)                      :: Message
+real(kind=dbl)                  :: xy(2), xyz(3), kstar(3)
+real(kind=dbl),parameter        :: neps = -0.0001D0
+integer(kind=irg)               :: ierr, i, ix, iy
+real(kind=dbl),allocatable      :: stmp(:,:)            !< output array with equivalent vectors
+integer(kind=irg)               :: n                    !< number of entries in equivalent vector array
+character(1)                    :: space                !< 'd' or 'r'
+
+
+! for the cubic groups, we need to apply a lower symmetry group due to the fact that we
+! do not use interpolations to apply the three-fold axes.  So, for all space groups with
+! number .ge. 195, we must apply a lower symmetry group.  To avoid unnecessary repetitions,
+! we pre-compute the relevant symmetry operations and store them in an extra SG%SYM_extra array
+! when we apply the symmetry for the first time.  Then, we test the space group number in 
+! the CalcStar routine to see which set of arrays to use.  Since the cubic symmetry is used a lot,
+! we hard-coded the symmetry operations to make things go slightly faster.
+
+
+! we have points on the square/hexagonal Lambert projection and we need to determine the 
+! set of equivalent points; we can use the CalcStar routine to do this, but first we
+! need to convert the 2D coordinates into a 3D vector in reciprocal space.
+xy = (/ dble(ipx), dble(ipy) /) / dble(npx)
+L = Lambert_T( xyd = xy )
+if (present(usehex)) then
+  ierr = L%LambertHexToSphere(xyz)
+else
+  ierr = L%LambertSquareToSphere(xyz)
+end if
+if (ipz.lt.0) xyz(3) = -xyz(3)
+! convert to reciprocal space
+call cell%NormVec(xyz, 'c')
+call cell%TransSpace(xyz, kstar, 'c', 'r')
+
+! apply the 3D point group to get the complete star of kstar
+if (present(cubictype)) then
+  select case (cubictype) 
+    case(3)
+        n = 2
+        allocate(stmp(n,3))
+        stmp(1,1:3) = kstar(1:3)
+        stmp(2,1:3) = (/ -kstar(1), kstar(2), -kstar(3) /)
+
+    case(6)
+        n = 8
+        allocate(stmp(n,3))
+        stmp(1,1:3) = kstar(1:3)
+        stmp(2,1:3) = (/ -kstar(1), -kstar(2),  kstar(3) /)
+        stmp(3,1:3) = (/ -kstar(1),  kstar(2), -kstar(3) /)
+        stmp(4,1:3) = (/ -kstar(1), -kstar(2), -kstar(3) /)
+        stmp(5,1:3) = (/  kstar(1), -kstar(2), -kstar(3) /)
+        stmp(6,1:3) = (/  kstar(1),  kstar(2), -kstar(3) /)
+        stmp(7,1:3) = (/  kstar(1), -kstar(2),  kstar(3) /)
+        stmp(8,1:3) = (/ -kstar(1),  kstar(2),  kstar(3) /)
+
+    case(8)
+        n = 8
+        allocate(stmp(n,3))
+        stmp(1,1:3) = kstar(1:3)
+        stmp(2,1:3) = (/ -kstar(1), -kstar(2),  kstar(3) /)
+        stmp(3,1:3) = (/ -kstar(1),  kstar(2), -kstar(3) /)
+        stmp(4,1:3) = (/  kstar(1), -kstar(2), -kstar(3) /)
+        stmp(5,1:3) = (/  kstar(2), -kstar(1), -kstar(3) /)
+        stmp(6,1:3) = (/ -kstar(2),  kstar(1), -kstar(3) /)
+        stmp(7,1:3) = (/ -kstar(2), -kstar(1),  kstar(3) /)
+        stmp(8,1:3) = (/  kstar(2),  kstar(1),  kstar(3) /)
+
+    case(9)
+        n = 16
+        allocate(stmp(n,3))
+        stmp(1,1:3) = kstar(1:3)
+        stmp(2,1:3) =  (/ -kstar(1), -kstar(2),  kstar(3) /)
+        stmp(3,1:3) =  (/ -kstar(1),  kstar(2), -kstar(3) /)
+        stmp(4,1:3) =  (/ -kstar(1), -kstar(2), -kstar(3) /)
+        stmp(5,1:3) =  (/  kstar(1), -kstar(2), -kstar(3) /)
+        stmp(6,1:3) =  (/  kstar(1),  kstar(2), -kstar(3) /)
+        stmp(7,1:3) =  (/  kstar(1), -kstar(2),  kstar(3) /)
+        stmp(8,1:3) =  (/ -kstar(1),  kstar(2),  kstar(3) /)
+        stmp(9,1:3) =  (/ -kstar(2),  kstar(1),  kstar(3) /)
+        stmp(10,1:3) = (/  kstar(2), -kstar(1),  kstar(3) /)
+        stmp(11,1:3) = (/  kstar(2),  kstar(1), -kstar(3) /)
+        stmp(12,1:3) = (/  kstar(2), -kstar(1), -kstar(3) /)
+        stmp(13,1:3) = (/ -kstar(2), -kstar(1), -kstar(3) /)
+        stmp(14,1:3) = (/ -kstar(2),  kstar(1), -kstar(3) /)
+        stmp(15,1:3) = (/  kstar(2),  kstar(1),  kstar(3) /)
+        stmp(16,1:3) = (/ -kstar(2), -kstar(1),  kstar(3) /)
+
+    case default
+        call Message%printError('Apply3DPGSymmetry','unknown cubictype parameter [3, 6, 8, or 9]')
+  end select
+
+else
+  space = 'r'
+  call SG%CalcStar(kstar,n,stmp,space)
+end if
+
+! then convert the equivalent points back into 2D Lambert coordinates
+do i=1,n
+  call cell%TransSpace(stmp(i,1:3), xyz, 'r', 'c')
+  call cell%NormVec(xyz, 'c')
+  iequiv(3,i) = 1
+  if (xyz(3).lt.neps) iequiv(3,i) = -1
+  if (present(stereographic)) then 
+! export stereographic coordinates
+   if (iequiv(3,i).eq.1) then
+    ix = int(dble(npx)*xyz(1)/(1.D0+xyz(3)))
+    iy = int(dble(npx)*xyz(2)/(1.D0+xyz(3)))
+   else
+    ix = int(dble(npx)*xyz(1)/(1.D0-xyz(3)))
+    iy = int(dble(npx)*xyz(2)/(1.D0-xyz(3)))
+   end if
+   iequiv(1,i) = ix
+   iequiv(2,i) = iy
+  else   
+    L = Lambert_T( xyzd = xyz )
+    if (present(usehex)) then
+      ierr = L%LambertSphereToHex(xy)
+    else
+      ierr = L%LambertSphereToSquare(xy)
+    end if
+    xy = xy * dble(npx)
+    iequiv(1,i) = nint(xy(1))
+    iequiv(2,i) = nint(xy(2))
+  end if
+end do
+nequiv = n
+
+end subroutine Apply3DPGSymmetry_
+
+
 
 end module mod_Lambert
