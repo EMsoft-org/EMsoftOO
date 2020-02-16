@@ -323,6 +323,22 @@ end if
 end function constructor
 
 !--------------------------------------------------------------------------
+subroutine EMsoft_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the kvectors_T Class
+ 
+IMPLICIT NONE
+
+type(EMsoft_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('EMsoft_T')
+
+end subroutine EMsoft_destructor
+
+!--------------------------------------------------------------------------
 subroutine init(self)
   !! author: MDG 
   !! version: 1.0 

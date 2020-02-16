@@ -249,29 +249,33 @@ private
     procedure, pass(self) :: PreCalcFSCATT_
     procedure, pass(self) :: CalcsgSingle_
     procedure, pass(self) :: CalcsgDouble_
-    procedure, pass(self) :: setV_
-    procedure, pass(self) :: getV_
-    procedure, pass(self) :: getScatfac_
-    procedure, pass(self) :: getWaveLength_
-    procedure, pass(self) :: getBetheParameter_
     procedure, pass(self) :: Set_Bethe_Parameters_
     procedure, pass(self) :: writeBetheparameterNameList_
     procedure, pass(self) :: BWsolve_
-    procedure, pass(self) :: setrlpmethod_
-    procedure, pass(self) :: getrlp_
     procedure, pass(self) :: allocateLUT_
+    procedure, pass(self) :: getScatfac_
+    procedure, pass(self) :: getWaveLength_
+    procedure, pass(self) :: getBetheParameter_
+    procedure, pass(self) :: getV_
+    procedure, pass(self) :: getV0mod_
+    procedure, pass(self) :: getRelcor_
+    procedure, pass(self) :: getSigma_
+    procedure, pass(self) :: getPsihat_
     procedure, pass(self) :: getshapeLUT_
+    procedure, pass(self) :: getrlp_
     procedure, pass(self) :: getLUT_
     procedure, pass(self) :: getSghLUT_
     procedure, pass(self) :: getLUTqg_
     procedure, pass(self) :: getdbdiff_
+    procedure, pass(self) :: setrlpmethod_
+    procedure, pass(self) :: setV_
     procedure, pass(self) :: setLUT_
     procedure, pass(self) :: setLUTqg_
     procedure, pass(self) :: setdbdiff_
     procedure, pass(self) :: Initialize_SghLUT_
     procedure, pass(self) :: preCalcSgh_
     procedure, pass(self) :: Printrlp_
-
+    final :: Diffraction_destructor
 
 
     generic, public :: GetVoltage => GetVoltage_
@@ -289,6 +293,10 @@ private
     generic, public :: setrlpmethod => setrlpmethod_
     generic, public :: setV => setV_
     generic, public :: getV => getV_
+    generic, public :: getV0mod => getV0mod_
+    generic, public :: getRelcor => getRelcor_
+    generic, public :: getSigma => getSigma_
+    generic, public :: getPsihat => getPsihat_
     generic, public :: getrlp => getrlp_
     generic, public :: allocateLUT => allocateLUT_
     generic, public :: getshapeLUT => getshapeLUT_
@@ -319,6 +327,10 @@ end type Diffraction_T
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcsgDouble
 !DEC$ ATTRIBUTES DLLEXPORT :: setV
 !DEC$ ATTRIBUTES DLLEXPORT :: getV
+!DEC$ ATTRIBUTES DLLEXPORT :: getV0mod
+!DEC$ ATTRIBUTES DLLEXPORT :: getRelcor
+!DEC$ ATTRIBUTES DLLEXPORT :: getSigma
+!DEC$ ATTRIBUTES DLLEXPORT :: getPsihat
 !DEC$ ATTRIBUTES DLLEXPORT :: getScatfac
 !DEC$ ATTRIBUTES DLLEXPORT :: getWaveLength
 !DEC$ ATTRIBUTES DLLEXPORT :: getBetheParameter
@@ -371,14 +383,12 @@ logical, INTENT(IN), OPTIONAL       :: verbose
 
 integer(kind=irg)                   :: hkl(3)
 
-write (*,*) 'voltage = ', voltage 
 Diff%voltage = voltage 
 Diff%rlp%method = 'WK'
 
 hkl=(/0,0,0/)
 call Diff%CalcUcg(cell, hkl) 
 Diff%V0mod = Diff%rlp%Vmod
-write (*,*) 'V0mod = ',Diff%V0mod 
 
 if (present(verbose)) then 
     if (verbose.eqv..TRUE.) call Diff%CalcWaveLength( cell, verbose )
@@ -387,6 +397,29 @@ else
 end if 
 
 end function Diffraction_constructor
+
+!--------------------------------------------------------------------------
+subroutine Diffraction_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the Diffraction_T Class
+ 
+IMPLICIT NONE
+
+type(Diffraction_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('Diffraction_T')
+
+if (allocated(self%scatfacg)) deallocate(self%scatfacg) 
+if (allocated(self%scatfac)) deallocate(self%scatfac) 
+if (allocated(self%LUT)) deallocate(self%LUT) 
+if (allocated(self%SghLUT)) deallocate(self%SghLUT) 
+if (allocated(self%LUTqg)) deallocate(self%LUTqg) 
+if (allocated(self%dbdiff)) deallocate(self%dbdiff) 
+
+end subroutine Diffraction_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcWaveLength_(self, cell, verbose)
@@ -537,6 +570,10 @@ type(IO_T)                          :: Message
 imh = dims(1)
 imk = dims(2)
 iml = dims(3)
+
+if (allocated( self%LUT )) deallocate(self%LUT)
+if (allocated( self%LUTqg )) deallocate(self%LUTqg)
+if (allocated( self%dbdiff )) deallocate(self%dbdiff)
 
 ! the LUT array stores all the Fourier coefficients, so that we only need to compute them once... i.e., here and now
 allocate(self%LUT(-2*imh:2*imh,-2*imk:2*imk,-2*iml:2*iml),stat=istat)
@@ -749,6 +786,74 @@ real(kind=dbl),INTENT(IN)           :: V
 self%voltage = V 
 
 end subroutine setV_
+
+!--------------------------------------------------------------------------
+recursive function getV0mod_(self) result(V)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/14/20
+  !!
+  !! return V0mod
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+real(kind=dbl)                      :: V
+
+V = self%V0mod
+
+end function getV0mod_
+
+!--------------------------------------------------------------------------
+recursive function getRelcor_(self) result(V)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! return the relativistic correction factor 
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+real(kind=dbl)                      :: V
+
+V = self%Relcor
+
+end function getRelcor_
+
+!--------------------------------------------------------------------------
+recursive function getSigma_(self) result(V)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! return the interaction constant
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+real(kind=dbl)                      :: V
+
+V = self%Sigma
+
+end function getSigma_
+
+!--------------------------------------------------------------------------
+recursive function getPsihat_(self) result(V)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! return the relativistically corrected accelerating voltage
+
+IMPLICIT NONE 
+
+class(Diffraction_T),INTENT(INOUT)  :: self
+real(kind=dbl)                      :: V
+
+V = self%Psihat
+
+end function getPsihat_
 
 !--------------------------------------------------------------------------
 recursive subroutine Printrlp_(self,first)

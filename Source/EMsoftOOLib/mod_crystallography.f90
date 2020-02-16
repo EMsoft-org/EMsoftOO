@@ -107,20 +107,23 @@ IMPLICIT NONE
           procedure, pass(self) :: calcCrossDouble
           procedure, pass(self) :: calcPositions_
 ! routines to set class parameters 
-          procedure, pass(self) :: setWyckoff_
-          procedure, pass(self) :: setFileName_
           procedure, pass(self) :: getFileName_
-          procedure, pass(self) :: setSource_
           procedure, pass(self) :: getSource_
           procedure, pass(self) :: getVolume_
-          procedure, pass(self) :: setXtalSystem_
-          procedure, pass(self) :: setAtomPos_
-          procedure, pass(self) :: setNatomtype_
           procedure, pass(self) :: getNatomtype_
           procedure, pass(self) :: getnumat_
           procedure, pass(self) :: getapos_
           procedure, pass(self) :: getatomtype_
           procedure, pass(self) :: getDensity_
+          procedure, pass(self) :: setWyckoff_
+          procedure, pass(self) :: setFileName_
+          procedure, pass(self) :: setSource_
+          procedure, pass(self) :: setnumat_
+          procedure, pass(self) :: setXtalSystem_
+          procedure, pass(self) :: setAtomPos_
+          procedure, pass(self) :: setatomtype_
+          procedure, pass(self) :: setAtomPosAll_
+          procedure, pass(self) :: setNatomtype_
           procedure, pass(self) :: requestLatticeParameters
           procedure, pass(self) :: setLatticeParameterSingle
           procedure, pass(self) :: getLatticeParameterSingle
@@ -135,8 +138,6 @@ IMPLICIT NONE
           procedure, pass(self) :: displayPeriodicTable
           ! procedure, pass(self) :: extractAtomPositionData
           procedure, pass(self) :: calcTheoreticalDensity
-! routines to get class parameters 
-
 ! routines to read/write .xtal files 
           procedure, pass(self) :: readDataHDF_
           procedure, pass(self) :: saveDataHDF_
@@ -147,7 +148,7 @@ IMPLICIT NONE
           procedure, pass(self) :: resetUnitCell
           procedure, pass(self) :: ShortestG_
           procedure, pass(self) :: GetAsymPosWyckoff_
-
+          final :: Cell_destructor
 
           ! procedure, pass(self) :: CalcsgHOLZ
           ! procedure, pass(self) :: GetHOLZGeometry
@@ -203,9 +204,11 @@ IMPLICIT NONE
           generic, public :: GetAsymPosWyckoff => GetAsymPosWyckoff_
           !DEC$ ATTRIBUTES DLLEXPORT :: GetAsymPosWyckoff 
           generic, public :: getnumat => getnumat_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getnumat_ 
+          !DEC$ ATTRIBUTES DLLEXPORT :: getnumat 
+          generic, public :: setnumat => setnumat_
+          !DEC$ ATTRIBUTES DLLEXPORT :: setnumat 
           generic, public :: getapos => getapos_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getapos_ 
+          !DEC$ ATTRIBUTES DLLEXPORT :: getapos 
           generic, public :: setWyckoff => setWyckoff_
           !DEC$ ATTRIBUTES DLLEXPORT :: setWyckoff 
           generic, public :: setFileName => setFileName_
@@ -224,20 +227,22 @@ IMPLICIT NONE
           !DEC$ ATTRIBUTES DLLEXPORT :: getNatomtype 
           generic, public :: getAtomtype => getatomtype_
           !DEC$ ATTRIBUTES DLLEXPORT :: getNatomtype 
+          generic, public :: setAtomtype => setatomtype_
+          !DEC$ ATTRIBUTES DLLEXPORT :: setNatomtype 
           generic, public :: readDataHDF => readDataHDF_
           !DEC$ ATTRIBUTES DLLEXPORT :: readDataHDF 
           generic, public :: saveDataHDF => saveDataHDF_
           !DEC$ ATTRIBUTES DLLEXPORT :: saveDataHDF 
           generic, public :: addXtalDataGroup => addXtalDataGroup_
           !DEC$ ATTRIBUTES DLLEXPORT :: addXtalDataGroup
-          generic, public :: setAtomPos => setAtomPos_ 
+          generic, public :: setAtomPos => setAtomPos_, setAtomPosAll_ 
           !DEC$ ATTRIBUTES DLLEXPORT :: setAtomPos 
           generic, public :: getCrystalData => getCrystalData_
           !DEC$ ATTRIBUTES DLLEXPORT :: getCrystalData 
           generic, public :: dumpXtalInfo => dumpXtalInfo_
           !DEC$ ATTRIBUTES DLLEXPORT :: dumpXtalInfo 
           generic, public :: ShortestG => ShortestG_
-          !DEC$ ATTRIBUTES DLLEXPORT :: ShortestG_ 
+          !DEC$ ATTRIBUTES DLLEXPORT :: ShortestG
 
   end type Cell_T
 
@@ -280,6 +285,25 @@ if (present(latparm)) then
 end if
 
 end function Cell_constructor
+
+!--------------------------------------------------------------------------
+subroutine Cell_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the Cell_T Class
+ 
+IMPLICIT NONE
+
+type(Cell_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('Cell_T')
+
+! and deallocate any arrays
+if (allocated(self%apos)) deallocate(self%apos)
+
+end subroutine Cell_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine resetUnitCell(self)
@@ -855,6 +879,23 @@ self%ATOM_pos(1,1:3) = pos(1:3)
 end subroutine setAtomPos_
 
 !--------------------------------------------------------------------------
+recursive subroutine setAtomPosAll_(self, pos)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/14/20
+  !!
+  !! set a single atom position
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+real(kind=dbl),INTENT(IN)       :: pos(maxpasym,5)
+
+self%ATOM_pos = pos
+
+end subroutine setAtomPosAll_
+
+!--------------------------------------------------------------------------
 recursive function getatomtype_(self) result(atp)
   !! author: MDG 
   !! version: 1.0 
@@ -877,6 +918,23 @@ atp = self%ATOM_type
 end function getatomtype_
 
 !--------------------------------------------------------------------------
+recursive subroutine setatomtype_(self, atp)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/14/20
+  !!
+  !! sets the ATOM_type array
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+integer(kind=irg), INTENT(IN)   :: atp(1:self%ATOM_ntype)
+
+self%ATOM_type(1:self%ATOM_ntype) = atp(1:self%ATOM_ntype)
+
+end subroutine setatomtype_
+
+!--------------------------------------------------------------------------
 recursive function getnumat_(self) result(numat)
   !! author: MDG 
   !! version: 1.0 
@@ -896,6 +954,23 @@ allocate( numat( self%ATOM_ntype ) )
 numat = self%numat(1:self%ATOM_ntype)
 
 end function getnumat_
+
+!--------------------------------------------------------------------------
+recursive subroutine setnumat_(self, numat)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/14/20
+  !!
+  !! set the number of atoms in the asymmetric unit
+
+IMPLICIT NONE 
+
+class(Cell_T), INTENT(INOUT)    :: self 
+integer(kind=irg), INTENT(IN)   :: numat
+
+self%ATOM_ntype = numat
+
+end subroutine setnumat_
 
 !--------------------------------------------------------------------------
 recursive function getapos_(self) result(apos)
@@ -2461,7 +2536,7 @@ end if
 end subroutine getCrystalData_
 
 !--------------------------------------------------------------------------
-recursive subroutine readDataHDF_(self, SG, EMsoft, useHDF)
+recursive subroutine readDataHDF_(self, SG, EMsoft, useHDF, useXtalName)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/09/20
@@ -2479,9 +2554,10 @@ use stringconstants
 IMPLICIT NONE
 
 class(Cell_T),INTENT(INOUT)             :: self
-type(SPACEGROUP_T),INTENT(INOUT)        :: SG
+type(SpaceGroup_T),INTENT(INOUT)        :: SG
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
 type(HDF_T),OPTIONAL,INTENT(INOUT)      :: useHDF
+character(fnlen),OPTIONAL,INTENT(IN)    :: useXtalName
 
 type(HDF_T)                             :: me
 
@@ -2505,7 +2581,11 @@ else
   me = HDF_T()
 end if
 
-xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
+if (present(useXtalName)) then 
+  xtalname = trim(useXtalName)
+else
+  xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
+end if
 hdferr =  me%openFile(xtalname)
 
 groupname = SC_CrystalData

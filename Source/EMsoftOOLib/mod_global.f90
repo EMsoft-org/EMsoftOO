@@ -62,6 +62,11 @@ public
 !> without the corresponding close commands...
   logical                               :: HDFinterfaceOpen 
 
+!> Since it can be difficult to debug class destructor routines, we define a variable 
+!> that makes the destructors a little more verbose ... 
+  logical                               :: verboseClassDestructors = .TRUE. 
+!DEC$ ATTRIBUTES DLLEXPORT :: verboseClassDestructors
+
 !> standard array size for all wrapper routine calls; applies to ipar, fpar, and spar arrays
   integer(c_int32_t),parameter          :: wraparraysize = 80
 !DEC$ ATTRIBUTES DLLEXPORT :: wraparraysize
@@ -303,6 +308,26 @@ type(LambertParametersType)        :: LPs
                                                            "EMsoftnativedelimiter         " /)
 !DEC$ ATTRIBUTES DLLEXPORT :: ConfigStructureNames
 
+
+contains
+
+!--------------------------------------------------------------------------
+recursive subroutine reportDestructor(cdname)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/16/20
+!!
+!! print out a line telling the user which class destructor routine is being called
+
+IMPLICIT NONE 
+
+character(*),INTENT(IN)  :: cdname 
+
+if (verboseClassDestructors.eqv..TRUE.) then 
+  write (*,*) 'entered destructor routine for class '//trim(cdname)
+end if 
+
+end subroutine reportDestructor
 
 
 end module mod_global

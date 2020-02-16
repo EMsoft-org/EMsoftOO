@@ -69,11 +69,12 @@ type, public :: kvectors_T
     procedure, pass(self) :: Calckvectors_
     procedure, pass(self) :: CalckvectorsSymmetry_
     procedure, pass(self) :: get_ListHead_
+    procedure, pass(self) :: check_mapmode_
     procedure, pass(self) :: get_numk_
+    procedure, pass(self) :: get_mapmode_
     procedure, pass(self) :: set_kinp_
     procedure, pass(self) :: set_ktmax_
     procedure, pass(self) :: set_SamplingType_
-    procedure, pass(self) :: check_mapmode_
     procedure, pass(self) :: set_mapmode_
     procedure, pass(self) :: Add_knode_
     procedure, pass(self) :: AddkVector_
@@ -92,6 +93,7 @@ type, public :: kvectors_T
     generic, public :: set_SamplingType => set_SamplingType_
     generic, public :: check_mapmode => check_mapmode_
     generic, public :: set_mapmode => set_mapmode_
+    generic, public :: get_mapmode => get_mapmode_
     generic, public :: Add_knode => Add_knode_
     generic, public :: AddkVector => AddkVector_
     generic, public :: Delete_kvectorlist => Delete_kvectorlist_
@@ -137,6 +139,7 @@ integer(kind=irg)     :: nref
 ! simply initialize the reflist; nref will be 0 but is not needed in calling program
 
 nullify(KVec%klist)
+KVec%numk = 0
 
 call KVec%MakeRefList(nref)
 
@@ -153,6 +156,8 @@ subroutine kvectors_destructor(self)
 IMPLICIT NONE
 
 type(kvectors_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('kvectors_T')
 
 call self%Delete_kvectorlist()
 
@@ -173,14 +178,21 @@ class(kvectors_T), INTENT(INOUT) :: self
 type(kvectorlist),pointer        :: ktmp, ktail
 
 ! deallocate the entire linked list before returning, to prevent memory leaks
-ktail => self%klist
-ktmp => ktail % next
-do 
-  deallocate(ktail)
-  if (.not. associated(ktmp)) EXIT
-  ktail => ktmp
-  ktmp => ktail % next
-end do
+if (associated(self%klist)) then 
+  ktail => self%klist
+  if (associated(ktail%next)) then 
+    ktmp => ktail % next
+    do 
+      if (associated(ktail)) deallocate(ktail)
+      if (.not. associated(ktmp)) EXIT
+      ktail => ktmp
+      ktmp => ktail % next
+    end do
+  end if
+end if 
+
+nullify(self%klist)
+self%numk = 0 
 
 end subroutine Delete_kvectorlist_
 
@@ -240,7 +252,7 @@ integer(kind=irg)               :: res
 end function Kdelta
 
 !--------------------------------------------------------------------------
-recursive function check_mapmode_(self) result(ok)
+recursive function check_mapmode_(self, mp) result(ok)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/02/20
@@ -249,8 +261,9 @@ recursive function check_mapmode_(self) result(ok)
 
 IMPLICIT NONE
 
-class(kvectors_T),INTENT(INOUT)     :: self
-logical                             :: ok 
+class(kvectors_T),INTENT(INOUT)       :: self
+character(fnlen),INTENT(IN),OPTIONAL  :: mp
+logical                               :: ok 
 
 integer(kind=irg) :: i
 character(20)     :: modes(5) = (/ 'Conical             ', &
@@ -260,9 +273,15 @@ character(20)     :: modes(5) = (/ 'Conical             ', &
                                    'RoscaLambertLegendre' /)
 
 ok = .FALSE.
-do i = 1, 5
-  if (trim(modes(i)).eq.trim(self%mapmode)) ok = .TRUE.
-end do 
+if (present(mp)) then 
+  do i = 1, 5
+    if (trim(modes(i)).eq.trim(mp)) ok = .TRUE.
+  end do 
+else
+  do i = 1, 5
+    if (trim(modes(i)).eq.trim(self%mapmode)) ok = .TRUE.
+  end do 
+end if 
 
 end function check_mapmode_
 
@@ -290,6 +309,23 @@ if (.not.self%check_mapmode()) then
 end if 
 
 end subroutine set_mapmode_
+
+!--------------------------------------------------------------------------
+recursive function get_mapmode_(self) result(mp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/13/20
+!!
+!! get the map mode
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)  :: self
+character(fnlen)                  :: mp
+
+mp = trim(self%mapmode)
+
+end function get_mapmode_
 
 !--------------------------------------------------------------------------
 recursive subroutine set_kinp_(self, k)

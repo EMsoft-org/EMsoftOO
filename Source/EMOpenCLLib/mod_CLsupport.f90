@@ -320,6 +320,8 @@ IMPLICIT NONE
 
 type(OpenCL_T),INTENT(INOUT)  :: CL 
 
+  call reportDestructor('OpenCL_T')
+  
   deallocate(CL%p_profile)
   deallocate(CL%p_version)
   deallocate(CL%p_name)

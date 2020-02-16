@@ -123,6 +123,8 @@ IMPLICIT NONE
 
 type(Kikuchi_T),INTENT(INOUT)          :: self
 
+call reportDestructor('Kikuchi_T')
+
 call self%DeleteList()
 
 end subroutine Kikuchi_destructor

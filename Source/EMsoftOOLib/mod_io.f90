@@ -77,6 +77,7 @@ public :: IO_T
       procedure, pass(self) :: printMessageMultiple
 
       procedure, pass(self), public :: printWarning
+      final :: Message_destructor
 
       generic, public :: ReadValue => ReadValueIntShort, ReadValueIntLong, ReadValueRealSingle, &
                                       ReadValueRealDouble, ReadValueString, ReadValueStringArray
@@ -121,6 +122,23 @@ else
 end if 
 
 end function Message_constructor
+
+!--------------------------------------------------------------------------
+subroutine Message_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the IO_T Class
+ 
+IMPLICIT NONE
+
+type(IO_T), INTENT(INOUT)  :: self 
+
+! this produces far too many calls...
+! call reportDestructor('IO_T')
+
+end subroutine Message_destructor
 
 !--------------------------------------------------------------------------
 subroutine printMessageSingle(self, mess, frm, advance, redirect)

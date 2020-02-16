@@ -856,6 +856,8 @@ IMPLICIT NONE
 
 type(SpaceGroup_T), intent(inout)     :: self
 
+call reportDestructor('SpaceGroup_T')
+
 if (allocated(self%data)) deallocate(self%data)
 if (allocated(self%direc)) deallocate(self%direc)
 if (allocated(self%recip)) deallocate(self%recip)

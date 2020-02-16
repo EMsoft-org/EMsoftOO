@@ -149,7 +149,7 @@ call Diff%CalcWaveLength(cell)
  end if
 
 if(.not. justinit) then  
- call Diff%allocateLUT( (/ imh, imk, iml /) )
+  call Diff%allocateLUT( (/ imh, imk, iml /) )
 end if
 
 ddt = 1.0e-5 

@@ -51,7 +51,7 @@ module mod_HDFsupport
   !! 10/01/19 MDG 4.2 additional mods to make ifort work on Mac OS X 
   !! 11/08/19 MDG 4.3 replaced individual dims parameters by single dims array in multiple routines
 
-
+use mod_kinds
 use mod_global
 use HDF5
 use stringconstants
@@ -395,6 +395,8 @@ subroutine HDF_destructor(self)
   integer(kind=irg)                   :: hdferr
   integer(kind=irg)                   :: printonoff
   type(HDFobjectStackType), pointer   :: tmp
+
+  call reportDestructor('HDF_T')
 
 ! and deallocate the push-pop stack
   do while (associated(self%head%next)) 

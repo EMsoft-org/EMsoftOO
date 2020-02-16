@@ -424,6 +424,22 @@ IMPLICIT NONE
 end function Quaternion_constructor
 
 !--------------------------------------------------------------------------
+subroutine Quaternion_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the Quaternion_T Class
+
+IMPLICIT NONE
+
+type(Quaternion_T), INTENT(INOUT)     :: self 
+
+call reportDestructor('Quaternion_T')
+
+end subroutine Quaternion_destructor
+
+!--------------------------------------------------------------------------
 type(QuaternionArray_T) function QuaternionArray_constructor( n, nthreads, q, qd, s ) result(QuatArray)
   !! author: MDG 
   !! version: 1.0 
@@ -482,6 +498,25 @@ IMPLICIT NONE
   end if 
 
 end function QuaternionArray_constructor
+
+!--------------------------------------------------------------------------
+subroutine QuaternionArray_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the QuaternionArray_T Class
+
+IMPLICIT NONE
+
+type(QuaternionArray_T), INTENT(INOUT)     :: self 
+
+call reportDestructor('QuaternionArray_T')
+
+if (allocated(self%q)) deallocate(self%q)
+if (allocated(self%qd)) deallocate(self%qd)
+
+end subroutine QuaternionArray_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine quatprint(self)

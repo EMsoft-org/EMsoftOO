@@ -38,6 +38,8 @@ use mod_EMsoft
 use mod_io
 use mod_symmetry
 use mod_crystallography 
+use HDF5
+use mod_HDFsupport
 
 IMPLICIT NONE
 
@@ -90,6 +92,8 @@ call Message%ReadValue('Enter the source for this data [max. 512 characters, quo
 call cell%setSource(source)
 
 ! finally, save the file 
+call openFortranHDFInterface()
 call cell%SaveDataHDF(SG, EMsoft)
+call closeFortranHDFInterface()
 
 end program EMmkxtal

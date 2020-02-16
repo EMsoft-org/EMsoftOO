@@ -751,7 +751,9 @@ end if
 ! so this is where we could in principle implement an OpenMP approach; alternatively, 
 ! we could do the inner loop over the incident beam directions in OpenMP (probably simpler)
 
-call timer%Time_tick()
+! we use two times, one (1) for each individual energy level, the other (2) for the overall time
+call timer%Time_tick(2)
+reflist = gvectors_T()
 
 energyloop: do iE=Estart,1,-1
  if (emnl%uniform.eqv..FALSE.) then
@@ -759,6 +761,8 @@ energyloop: do iE=Estart,1,-1
    if (emnl%Esel.ne.-1) then
      if (emnl%Esel.ne.iE) CYCLE energyloop
    end if
+   ! start the energy level timer
+   call timer%Time_tick(1)  
    
 ! print a message to indicate where we are in the computation
    io_int(1)=iE
@@ -775,7 +779,8 @@ energyloop: do iE=Estart,1,-1
    call Diff%setrlpmethod('WK')
    if(iE .ne. Estart) then
     verbose = .TRUE.
-    call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, emnl%dmin, useHDF=HDF, noLUT=.TRUE., verbose=verbose)
+!   call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, emnl%dmin, useHDF=HDF, noLUT=.TRUE., verbose=verbose)
+    call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, emnl%dmin, useHDF=HDF, verbose=verbose)
    end if
 
 !=============================================
@@ -787,6 +792,7 @@ energyloop: do iE=Estart,1,-1
    call kvec%set_kinp( (/ 0.D0, 0.D0, 1.D0 /) )
    call kvec%set_ktmax( 0.D0 )
    call kvec%set_SamplingType( SamplingType )
+
    if (doLegendre.eqv..FALSE.) then
     call kvec%set_mapmode('RoscaLambert')
     if (usehex) then
@@ -802,7 +808,8 @@ energyloop: do iE=Estart,1,-1
       call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),emnl%npx,npy, ijmax,usehex, LegendreArray)
     end if
    end if
-   io_int(1)=kvec%get_numk()
+   numk = kvec%get_numk()
+   io_int(1)=numk
    call Message%WriteValue('# independent beam directions to be considered = ', io_int, 1, "(I8)")
 
 ! convert part of the kvector linked list into arrays for OpenMP
@@ -851,7 +858,7 @@ energyloop: do iE=Estart,1,-1
 
 !$OMP DO SCHEDULE(DYNAMIC,100)    
 ! ---------- and here we start the beam direction loop
-   beamloop:do ik = 1,kvec%get_numk()
+   beamloop:do ik = 1,numk
 
 !=============================================
 ! ---------- create the master reflection list for this beam direction
@@ -864,9 +871,8 @@ energyloop: do iE=Estart,1,-1
      kkk = karray(1:3,ik)
      FN = kkk
 
-     write (*,*) ' Initialize_ReflectionList'
-     call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, emnl%dmin, nref, verbose)
-     write (*,*) ' return from Initialize_ReflectionList'
+     call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, emnl%dmin, verbose)
+     nref = reflist%get_nref()
 ! ---------- end of "create the master reflection list"
 !=============================================
 
@@ -875,9 +881,10 @@ energyloop: do iE=Estart,1,-1
      nullify(firstw)
      nns = 0
      nnw = 0
-     call reflist%Apply_BethePotentials(Diff, firstw, nref, nns, nnw)
+     call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
 
 ! generate the dynamical matrix
+     if (allocated(DynMat)) deallocate(DynMat)
      allocate(DynMat(nns,nns))
      call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
      totstrong = totstrong + nns
@@ -895,7 +902,6 @@ energyloop: do iE=Estart,1,-1
 ! solve the dynamical eigenvalue equation for this beam direction  
      kn = karray(4,ik)
      call reflist%CalcLgh(DynMat,Lgh,dble(thick(iE)),dble(kn),nns,gzero,mcnl%depthstep,lambdaE(iE,1:izzmax),izzmax)
-     deallocate(DynMat)
 
 ! sum over the element-wise (Hadamard) product of the Lgh and Sgh arrays 
      svals = 0.0
@@ -904,7 +910,6 @@ energyloop: do iE=Estart,1,-1
      end do
      svals = svals/float(sum(nat(1:numset)))
 
-     write (*,*) 'svals : ', svals
 
 ! and store the resulting svals values, applying point group symmetry where needed.
      ipx = kij(1,ik)
@@ -921,7 +926,6 @@ energyloop: do iE=Estart,1,-1
        end if
      end if
 !$OMP CRITICAL
-write (*,*) TID, 'inside critical'
   if (emnl%combinesites.eqv..FALSE.) then
      do ix=1,nequiv
        if (iequiv(3,ix).eq.-1) mLPSH(iequiv(1,ix),iequiv(2,ix),1,1:numset) = svals(1:numset)
@@ -948,6 +952,7 @@ write (*,*) TID, 'inside critical'
 ! end of OpenMP portion
 !$OMP END PARALLEL
 
+! deallocate arrays that will need to be re-allocated in the next cycle
   deallocate(karray, kij)
 
   if (usehex) then
@@ -1044,13 +1049,14 @@ groupname = SC_EMheader
   hdferr = HDF%openGroup(datagroupname)
 
 dataset = SC_StopTime
-  call timer%Time_tock() 
-  tstop = timer%getInterval()
+  call timer%Time_tock(1) 
+  tstop = timer%getInterval(1)
+  call timer%Time_reset(1)
   line2(1) = dstr//', '//tstre
   hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
 
   io_int(1) = tstop
-  call Message%WriteValue('Execution time [s]: ',io_int,1)
+  call Message%WriteValue(' Execution time [s]: ',io_int,1)
 
 dataset = SC_Duration
   if (iE.eq.numEbins) then 
@@ -1103,25 +1109,21 @@ dataset = SC_masterSPSH
   call HDF%pop(.TRUE.)
 
  if ((emnl%Esel.eq.-1).and.(iE.ne.1)) then 
-  call Message%printMessage('Intermediate data stored in file '//trim(emnl%outname), frm = "(A/)")
+  call Message%printMessage(' Intermediate data stored in file '//trim(emnl%outname), frm = "(A/)")
  end if
 
  if ((emnl%Esel.eq.-1).and.(iE.eq.1)) then 
-  call Message%printMessage('Final data stored in file '//trim(emnl%outname), frm = "(A/)")
+  call Message%printMessage(' Final data stored in file '//trim(emnl%outname), frm = "(A/)")
  end if
 
 end do energyloop
 
-call timer%Time_tock() 
-io_int(1) = timer%getInterval()
-call Message%WriteValue('Total execution time [s] ',io_int,1)
-
-if (emnl%Esel.ne.-1) then
-  call Message%printMessage('Final data stored in file '//trim(emnl%outname), frm = "(A/)")
-end if
+call timer%Time_tock(2) 
+io_int(1) = timer%getInterval(2)
+call Message%WriteValue(' Total execution time [s] ',io_int,1)
 
 ! if requested, we notify the user that this program has completed its run
-if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
+if (trim(EMsoft%getConfigParameter('EMNotify')).ne.'Off') then
   if (trim(emnl%Notify).eq.'On') then 
     NumLines = 3
     allocate(MessageLines(NumLines))
@@ -1130,7 +1132,7 @@ if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
  
     MessageLines(1) = 'EMEBSDmaster program has ended successfully'
     MessageLines(2) = 'Master pattern data stored in '//trim(outname)
-    write (exectime,"(F10.4)") tstop  
+    write (exectime,"(F10.4)") timer%getInterval(2)  
     MessageLines(3) = 'Total execution time [s]: '//trim(exectime)
     SlackUsername = 'EMsoft on '//trim(c)
     i = PostMessage(EMsoft, MessageLines, NumLines, SlackUsername)

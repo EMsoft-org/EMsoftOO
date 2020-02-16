@@ -50,9 +50,10 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
     HDFhyperslab
     MODsymmetry
     Image
-    # MODcrystal
+    MODcrystal
     # MODMuellerCalculus
     MODRotations
+    MODkvectors
   )
 
   foreach(test ${EMsoftOO_UNIT_TESTS})

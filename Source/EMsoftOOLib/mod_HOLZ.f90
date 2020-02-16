@@ -88,7 +88,7 @@ private
     procedure, pass(self) :: ReCalcHOLZ_
     procedure, pass(self) :: PlotHOLZ_
     procedure, pass(self) :: PlotHOLZlines_
-
+    final :: HOLZ_destructor
 
     generic, public :: getListHead => getListHead_ 
     generic, public :: DeleteList => DeleteList_ 
@@ -170,6 +170,24 @@ allocate(HOLZ%HOLZlist)
 nullify(HOLZ%HOLZlist%next)
 
 end function HOLZ_constructor
+
+!--------------------------------------------------------------------------
+subroutine HOLZ_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the HOLZ_T Class
+ 
+IMPLICIT NONE
+
+type(HOLZ_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('HOLZ_T')
+
+call self%DeleteList()
+
+end subroutine HOLZ_destructor
 
 !--------------------------------------------------------------------------
 subroutine getListHead_(self, top)

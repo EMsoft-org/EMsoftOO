@@ -141,7 +141,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(MPfile_T), INTENT(INOUT)      :: self 
+class(MPfile_T), INTENT(INOUT)          :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
 
 integer(kind=irg),parameter             :: n_int = 8, n_real = 1
@@ -203,6 +203,7 @@ if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create dmin d
 
 dataset = SC_latgridtype
 line2(1) = 'Lambert'
+line2(1) = cstringify(line2(1))
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create latgridtype dataset',hdferr)
 

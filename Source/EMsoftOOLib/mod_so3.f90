@@ -208,6 +208,7 @@ type, public :: so3_T
     procedure, pass(self) :: getDisorientation_
     procedure, pass(self) :: getDisorientationTwoPhases_
     procedure, pass(self) :: getAverageDisorientationMap_
+    final :: so3_destructor
 
     generic, public :: getFZtypeandorder => getFZtypeandorder_
     generic, public :: setFZtypeandorder => setFZtypeandorder_
@@ -313,6 +314,27 @@ else
 end if 
 
 end function so3_constructor
+
+!--------------------------------------------------------------------------
+subroutine so3_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the so3_T Class
+ 
+IMPLICIT NONE
+
+type(so3_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('so3_T')
+
+if (associated(self%FZlist)) call self%delete_FZlist('FZ')
+if (associated(self%CMlist)) call self%delete_FZlist('CM')
+if (associated(self%COlist)) call self%delete_FZlist('CO')
+if (associated(self%FBlist)) call self%delete_FZlist('FB')
+
+end subroutine so3_destructor
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------

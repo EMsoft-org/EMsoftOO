@@ -178,10 +178,11 @@ IMPLICIT NONE
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:)
 
-integer(kind=irg)                             :: s(3)
+integer(kind=irg)                             :: s(3), nx
 
 s = shape(self%MCDT%accum_e)
-allocate(acc(s(1),s(2),s(3)))
+nx = (s(2)-1)/2
+allocate(acc(s(1),-nx:nx,-nx:nx))
 
 acc = self%MCDT%accum_e 
 
@@ -200,10 +201,12 @@ IMPLICIT NONE
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:,:)
 
-integer(kind=irg)                             :: s(4)
+integer(kind=irg)                             :: s(4), nx, ny
 
 s = shape(self%MCDT%accum_z)
-allocate(acc(s(1),s(2),s(3),s(4)))
+nx = (s(3)-1)/2
+ny = (s(4)-1)/2
+allocate( acc(s(1),s(2),-nx:nx,-ny:ny) )
 
 acc = self%MCDT%accum_z 
 
@@ -244,10 +247,12 @@ IMPLICIT NONE
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:)
 
-integer(kind=irg)                             :: s(3)
+integer(kind=irg)                             :: s(3), nx, ny
 
 s = shape(self%MCDT%accum_xyz)
-allocate(acc(s(1),s(2),s(3)))
+nx = (s(1)-1)/2
+ny = (s(2)-1)/2
+allocate(acc(-nx:nx,-ny:ny,s(3)))
 
 acc = self%MCDT%accum_xyz 
 

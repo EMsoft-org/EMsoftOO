@@ -248,6 +248,7 @@ private
     procedure, pass(self) :: r_print_
     procedure, pass(self) :: r_copy_
     procedure, pass(self) :: r_copyd_
+    final :: r_destructor
 
     generic, public :: rs => rs_
     generic, public :: ro => ro_
@@ -289,6 +290,7 @@ private
     procedure, pass(self) :: s_print_
     procedure, pass(self) :: s_copy_
     procedure, pass(self) :: s_copyd_
+    final :: s_destructor
 
     generic, public :: sr => sr_
     generic, public :: so => so_
@@ -330,6 +332,7 @@ private
     procedure, pass(self) :: o_print_
     procedure, pass(self) :: o_copy_
     procedure, pass(self) :: o_copyd_
+    final :: o_destructor
 
     generic, public :: or => or_
     generic, public :: os => os_
@@ -371,6 +374,7 @@ private
     procedure, pass(self) :: h_print_
     procedure, pass(self) :: h_copy_
     procedure, pass(self) :: h_copyd_
+    final :: h_destructor
 
     generic, public :: hr => hr_
     generic, public :: hs => hs_
@@ -412,6 +416,7 @@ private
     procedure, pass(self) :: a_print_
     procedure, pass(self) :: a_copy_
     procedure, pass(self) :: a_copyd_
+    final :: a_destructor
 
     generic, public :: ar => ar_
     generic, public :: as => as_
@@ -453,6 +458,7 @@ private
     procedure, pass(self) :: v_print_
     procedure, pass(self) :: v_copy_
     procedure, pass(self) :: v_copyd_
+    final :: v_destructor
 
     generic, public :: vr => vr_
     generic, public :: vs => vs_
@@ -494,6 +500,7 @@ private
     procedure, pass(self) :: c_print_
     procedure, pass(self) :: c_copy_
     procedure, pass(self) :: c_copyd_
+    final :: c_destructor
 
     generic, public :: cr => cr_
     generic, public :: cs => cs_
@@ -535,6 +542,7 @@ private
     procedure, pass(self) :: e_print_
     procedure, pass(self) :: e_copy_
     procedure, pass(self) :: e_copyd_
+    final :: e_destructor
 
     generic, public :: er => er_
     generic, public :: es => es_
@@ -576,6 +584,7 @@ private
     procedure, pass(self) :: q_print_
     procedure, pass(self) :: q_copy_
     procedure, pass(self) :: q_copyd_
+    final :: q_destructor
 
     generic, public :: qr => qr_
     generic, public :: qs => qs_
@@ -745,6 +754,7 @@ private
     procedure, pass(self) :: get_sd_
     procedure, pass(self) :: get_cd_
     procedure, pass(self) :: get_vd_
+    ! final :: orientation_destructor
 
     generic, public :: print_orientation => print_orientation_
     generic, public :: getClass_e => getClass_e_
@@ -844,6 +854,22 @@ ierr = r%r_check()
 end function r_constructor
 
 !--------------------------------------------------------------------------
+subroutine r_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the r_T Class
+ 
+IMPLICIT NONE
+
+type(r_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('r_T')
+
+end subroutine r_destructor
+
+!--------------------------------------------------------------------------
 type(s_T) function s_constructor( sinp, sdinp ) result(s)
 !! author: MDG 
 !! version: 1.0 
@@ -867,6 +893,22 @@ end if
 ierr = s%s_check() 
 
 end function s_constructor
+
+!--------------------------------------------------------------------------
+subroutine s_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the s_T Class
+ 
+IMPLICIT NONE
+
+type(s_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('s_T')
+
+end subroutine s_destructor
 
 !--------------------------------------------------------------------------
 type(o_T) function o_constructor( oinp, odinp ) result(o)
@@ -894,6 +936,22 @@ ierr = o%o_check()
 end function o_constructor
 
 !--------------------------------------------------------------------------
+subroutine o_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the o_T Class
+ 
+IMPLICIT NONE
+
+type(o_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('o_T')
+
+end subroutine o_destructor
+
+!--------------------------------------------------------------------------
 type(h_T) function h_constructor( hinp, hdinp ) result(h)
 !! author: MDG 
 !! version: 1.0 
@@ -917,6 +975,22 @@ end if
 ierr = h%h_check() 
 
 end function h_constructor
+
+!--------------------------------------------------------------------------
+subroutine h_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the h_T Class
+ 
+IMPLICIT NONE
+
+type(h_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('h_T')
+
+end subroutine h_destructor
 
 !--------------------------------------------------------------------------
 type(a_T) function a_constructor( ainp, adinp ) result(a)
@@ -944,6 +1018,22 @@ ierr = a%a_check()
 end function a_constructor
 
 !--------------------------------------------------------------------------
+subroutine a_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the a_T Class
+ 
+IMPLICIT NONE
+
+type(a_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('a_T')
+
+end subroutine a_destructor
+
+!--------------------------------------------------------------------------
 type(v_T) function v_constructor( vinp, vdinp ) result(v)
 !! author: MDG 
 !! version: 1.0 
@@ -967,6 +1057,22 @@ end if
 ierr = v%v_check() 
 
 end function v_constructor
+
+!--------------------------------------------------------------------------
+subroutine v_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the v_T Class
+ 
+IMPLICIT NONE
+
+type(v_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('v_T')
+
+end subroutine v_destructor
 
 !--------------------------------------------------------------------------
 type(c_T) function c_constructor( cinp, cdinp ) result(c)
@@ -994,6 +1100,22 @@ ierr = c%c_check()
 end function c_constructor
 
 !--------------------------------------------------------------------------
+subroutine c_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the c_T Class
+ 
+IMPLICIT NONE
+
+type(c_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('c_T')
+
+end subroutine c_destructor
+
+!--------------------------------------------------------------------------
 type(e_T) function e_constructor( einp, edinp ) result(e)
 !! author: MDG 
 !! version: 1.0 
@@ -1019,6 +1141,22 @@ ierr = e%e_check()
 end function e_constructor
 
 !--------------------------------------------------------------------------
+subroutine e_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the e_T Class
+ 
+IMPLICIT NONE
+
+type(e_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('e_T')
+
+end subroutine e_destructor
+
+!--------------------------------------------------------------------------
 type(q_T) function q_constructor( qinp, qdinp ) result(q)
 !! author: MDG 
 !! version: 1.0 
@@ -1042,6 +1180,22 @@ end if
 ierr = q%q_check() 
 
 end function q_constructor
+
+!--------------------------------------------------------------------------
+subroutine q_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the q_T Class
+ 
+IMPLICIT NONE
+
+type(q_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('q_T')
+
+end subroutine q_destructor
 
 !--------------------------------------------------------------------------
 type(orientation_T) function orientation_constructor( p ) result(or)
@@ -1184,6 +1338,28 @@ select type (p)
 end select 
 
 end function orientation_constructor
+
+! this is commented out because the gfortran 6.3.1 compiler produces an internal compiler error 
+! f951: internal compiler error: in generate_finalization_wrapper, at fortran/class.c:1974
+
+! f951: internal compiler error: Abort trap: 6
+! gfortran: internal compiler error: Abort trap: 6 (program f951)
+
+! !--------------------------------------------------------------------------
+! subroutine orientation_destructor(self) 
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 02/02/20
+! !!
+! !! destructor for the orientation_T Class
+ 
+! IMPLICIT NONE
+
+! type(orientation_T), INTENT(INOUT)  :: self 
+
+! call reportDestructor('orientation_T')
+
+! end subroutine orientation_destructor
 
 !--------------------------------------------------------------------------
 function getQfromClass( p ) result(q)

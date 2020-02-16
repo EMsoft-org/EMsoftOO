@@ -208,6 +208,7 @@ type, public :: MRC_T
     procedure, pass(self) :: setVolumeDimensions_
     procedure, pass(self) :: setMRCheader_
     procedure, pass(self) :: setFEIheaders_
+    final :: MRC_destructor
 
     generic, public :: write_3Dvolume => write_3Dvolume_
     generic, public :: setVolumeDimensions => setVolumeDimensions_
@@ -260,6 +261,35 @@ open(UNIT=MRC%Unit_No,file=trim(MRC%mrcname),access="DIRECT",action="WRITE", &
      STATUS='unknown',FORM="UNFORMATTED", RECL=MRC%RecLength)
 
 end function MRC_constructor
+
+!--------------------------------------------------------------------------
+subroutine MRC_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the MRC_T Class
+
+use mod_io 
+
+IMPLICIT NONE
+
+type(MRC_T), INTENT(INOUT)      :: self 
+
+type(IO_T)                      :: Message
+logical                         :: itsopen 
+
+call reportDestructor('MRC_T')
+
+! if the MRC uit is still open, close it here 
+inquire(unit=self%Unit_No, opened=itsopen)
+
+if (itsopen.eqv..TRUE.) then 
+  close(unit=self%Unit_No, status='keep')
+  call Message%printMessage(' Closed MRC file '//trim(self%mrcname))
+end if 
+
+end subroutine MRC_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine setVolumeDimensions_(self, dims )

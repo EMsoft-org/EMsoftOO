@@ -127,6 +127,7 @@ IMPLICIT NONE
         procedure, pass(self) :: LambertInverseSingle
         procedure, pass(self) :: LambertInverseDouble
         procedure, pass(self) :: Apply3DPGSymmetry_
+        final :: Lambert_destructor
 
 ! mappings from 2D square grid to the Northern hemisphere of a 2D sphere
         generic, public :: LambertSquareToSphere =>  Lambert2DSquareForwardSingle, Lambert2DSquareForwardDouble
@@ -231,6 +232,23 @@ IMPLICIT NONE
   end if
 
 end function Lambert_constructor
+
+!--------------------------------------------------------------------------
+subroutine Lambert_destructor(self) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/07/20
+  !!
+  !! Lambert class destructor 
+
+IMPLICIT NONE 
+
+type(Lambert_T), INTENT(INOUT)  :: self 
+
+! this produces too many calls so we disable the output
+! call reportDestructor('Lambert_T')
+
+end subroutine Lambert_destructor
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------

@@ -260,6 +260,8 @@ IMPLICIT NONE
 
 type(DirStat_T), INTENT(INOUT)      :: self
 
+call reportDestructor('DirStat_T')
+
 if (allocated(self%xAp)) deallocate(self%xAp)
 if (allocated(self%yAp)) deallocate(self%yAp)
 

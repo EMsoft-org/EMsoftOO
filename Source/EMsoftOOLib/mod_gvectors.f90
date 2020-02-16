@@ -81,6 +81,8 @@ end type reflisttype
 type, public :: gvectors_T
 private
   type(reflisttype), pointer :: reflist
+  type(reflisttype), pointer :: rltail
+  integer(kind=irg)          :: nref
 
 contains
 private
@@ -93,6 +95,7 @@ private
   procedure, pass(self) :: Initialize_ReflectionList_
   procedure, pass(self) :: Initialize_ReflectionList_EwaldSweep_
   procedure, pass(self) :: GetDynMat_
+  procedure, pass(self) :: get_nref_
   procedure, pass(self) :: CalcLgh_ 
   procedure, pass(self) :: getSghfromLUT_
   final :: gvectors_destructor
@@ -106,6 +109,7 @@ private
   generic, public :: Initialize_ReflectionList => Initialize_ReflectionList_, &
                                                   Initialize_ReflectionList_EwaldSweep_
   generic, public :: GetDynMat => GetDynMat_
+  generic, public :: get_nref => get_nref_
   generic, public :: CalcLgh => CalcLgh_
   generic, public :: getSghfromLUT => getSghfromLUT_
 
@@ -120,6 +124,7 @@ end type gvectors_T
 !DEC$ ATTRIBUTES DLLEXPORT :: Initialize_ReflectionList
 !DEC$ ATTRIBUTES DLLEXPORT :: GetDynMat
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcLgh
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nref
 
 ! the constructor routine for this class 
 interface gvectors_T
@@ -138,10 +143,11 @@ type(gvectors_T) function gvectors_constructor( ) result(GVec)
  
 IMPLICIT NONE
 
-integer(kind=irg)     :: nref 
-
-! simply initialize the reflist; nref will be 0 but is not needed in calling program
-call GVec%MakeRefList(nref)
+! the calling program must make sure that the reflist is empty ... 
+! initialize the reflist
+nullify(GVec%reflist)
+GVec%nref = 0 
+call GVec%MakeRefList()
 
 end function gvectors_constructor
 
@@ -157,12 +163,28 @@ IMPLICIT NONE
 
 type(gvectors_T), INTENT(INOUT)  :: self 
 
-call self%Delete_gvectorlist()
+type(reflisttype),pointer        :: rltmpa
+
+call reportDestructor('gvectors_T')
+
+! deallocate the entire linked list before returning, to prevent memory leaks
+if (associated(self%reflist)) then 
+  self%rltail => self%reflist
+  if (associated(self%rltail%next)) then 
+    rltmpa => self%rltail%next
+    do 
+      if (associated(self%rltail)) deallocate(self%rltail)
+      if (.not. associated(rltmpa)) EXIT
+      self%rltail => rltmpa
+      rltmpa => self%rltail%next
+    end do
+  end if
+end if
 
 end subroutine gvectors_destructor
 
 !--------------------------------------------------------------------------
-recursive subroutine MakeRefList_(self, nref)
+recursive subroutine MakeRefList_(self)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/02/20
@@ -174,25 +196,74 @@ use mod_io
 IMPLICIT NONE
 
 class(gvectors_T), INTENT(INOUT)  :: self
-integer(kind=irg),INTENT(INOUT)   :: nref
 
 type(IO_T)                        :: Message
-type(reflisttype),pointer         :: rltail
 integer(kind=irg)                 :: istat
 
 ! create it if it does not already exist
 if (.not.associated(self%reflist)) then
-  nref = 0
   allocate(self%reflist,stat=istat)
   if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
-  rltail => self%reflist           ! tail points to new value
-  nullify(rltail%next)             ! nullify next in new value
+  self%rltail => self%reflist           ! tail points to new value
+  nullify(self%rltail%next)             ! nullify next in new value
 end if
 
 end subroutine MakeRefList_
 
 !--------------------------------------------------------------------------
-recursive subroutine AddReflection_(self, rltail, Diff, nref, hkl)
+recursive subroutine Delete_gvectorlist_(self)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/02/20
+  !!
+  !! delete the entire linked list
+
+IMPLICIT NONE
+
+class(gvectors_T), INTENT(INOUT)  :: self 
+
+type(reflisttype),pointer         :: rltmpa
+
+! deallocate the entire linked list before returning, to prevent memory leaks
+if (associated(self%reflist)) then 
+  self%rltail => self%reflist
+  if (associated(self%rltail%next)) then 
+    rltmpa => self%rltail%next
+    do 
+      if (associated(self%rltail)) deallocate(self%rltail)
+      if (.not. associated(rltmpa)) EXIT
+      self%rltail => rltmpa
+      rltmpa => self%rltail%next
+    end do
+  end if
+end if
+
+nullify(self%reflist)
+nullify(self%rltail)
+
+self%nref = 0
+
+end subroutine Delete_gvectorlist_
+
+!--------------------------------------------------------------------------
+recursive function get_nref_(self) result(nref)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/16/20
+!!
+!! return the number of g-vectors
+
+IMPLICIT NONE
+
+class(gvectors_T), INTENT(INOUT)  :: self
+integer(kind=irg)                 :: nref
+
+nref = self%nref
+
+end function get_nref_
+
+!--------------------------------------------------------------------------
+recursive subroutine AddReflection_(self, Diff, hkl)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/02/20
@@ -206,9 +277,7 @@ use mod_diffraction
 IMPLICIT NONE
 
 class(gvectors_T),INTENT(INOUT)    :: self
-type(reflisttype),pointer          :: rltail
 type(Diffraction_T),INTENT(INOUT)  :: Diff
-integer(kind=irg),INTENT(INOUT)    :: nref
 integer(kind=irg),INTENT(IN)       :: hkl(3)    
  !! Miller indices of reflection to be added to list
 
@@ -216,37 +285,36 @@ type(IO_T)                         :: Message
 integer(kind=irg)                  :: istat
 
 ! create linked list if it does not already exist
- if (.not.associated(rltail)) then
-   nullify(rltail)
- end if
  if (.not.associated(self%reflist)) then
-   call self%MakeRefList(nref)
+   call self%MakeRefList()
+   self%rltail => self%reflist
+   nullify(self%rltail%next)
+   write (*,*) '.not.associated(self%reflist)'
  end if
 
 ! create a new entry
- rltail => self%reflist
- allocate(rltail%next,stat=istat)               ! allocate new value
+ if (.not.associated(self%rltail%next)) allocate(self%rltail%next,stat=istat)               ! allocate new value
  if (istat.ne.0) call Message%printError('AddReflection',' unable to add new reflection')
 
- rltail => rltail%next                          ! tail points to new value
- nullify(rltail%next)                           ! nullify next in new value
+ self%rltail => self%rltail%next                          ! tail points to new value
+ nullify(self%rltail%next)                           ! nullify next in new value
 
- nref = nref + 1                                ! update reflection counter
- rltail%num = nref                              ! store reflection number
- rltail%hkl = hkl                               ! store Miller indices
- rltail%Ucg = Diff%getLUT( hkl )                ! store Ucg  in the list
- rltail%qg = Diff%getLUTqg( hkl )               ! store pi/qg  in the list
- rltail%famnum = 0                              ! init this value for Prune_ReflectionList
-! rltail%Ucgmod = cabs(rlp%Ucg)                 ! added on 2/29/2012 for Bethe potential computations
-! rltail%sangle = 1000.0*dble(CalcDiffAngle(hkl(1),hkl(2),hkl(3)))    ! added 4/18/2012 for EIC project HAADF/BF tomography simulations
-! rltail%thetag = rlp%Vphase                   ! added 12/14/2013 for EMECCI program
- nullify(rltail%nextw)
- nullify(rltail%nexts)
+ self%nref = self%nref + 1                      ! update reflection counter
+ self%rltail%num = self%nref                              ! store reflection number
+ self%rltail%hkl = hkl                               ! store Miller indices
+ self%rltail%Ucg = Diff%getLUT( hkl )                ! store Ucg  in the list
+ self%rltail%qg = Diff%getLUTqg( hkl )               ! store pi/qg  in the list
+ self%rltail%famnum = 0                              ! init this value for Prune_ReflectionList
+! self%rltail%Ucgmod = cabs(rlp%Ucg)                 ! added on 2/29/2012 for Bethe potential computations
+! self%rltail%sangle = 1000.0*dble(CalcDiffAngle(hkl(1),hkl(2),hkl(3)))    ! added 4/18/2012 for EIC project HAADF/BF tomography simulations
+! self%rltail%thetag = rlp%Vphase                   ! added 12/14/2013 for EMECCI program
+ nullify(self%rltail%nextw)
+ nullify(self%rltail%nexts)
  
 end subroutine AddReflection_
 
 !--------------------------------------------------------------------------
-recursive subroutine GetSubReflist_(self, cell, Diff, FN, kk, nref, listrootw, nns, nnw, first)
+recursive subroutine GetSubReflist_(self, cell, Diff, FN, kk, listrootw, nns, nnw, first)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/02/20
@@ -263,7 +331,6 @@ type(Cell_T),INTENT(INOUT)                     :: cell
 type(Diffraction_T),INTENT(INOUT)              :: Diff
 real(kind=sgl),INTENT(IN)                      :: FN(3)
 real(kind=sgl),INTENT(IN)                      :: kk(3)
-integer(kind=irg),INTENT(IN)                   :: nref
 type(reflisttype),pointer                      :: listrootw
 integer(kind=irg),INTENT(OUT)                  :: nns
 integer(kind=irg),INTENT(OUT)                  :: nnw
@@ -294,7 +361,7 @@ nullify(rl)
 if (PRESENT(first)) then
   if (first) then
     la = 1.D0/Diff%getWaveLength()
-    allocate(glist(3,nref),rh(nref),stat=istat)
+    allocate(glist(3,self%nref),rh(self%nref),stat=istat)
     rl => self%reflist%next
     icnt = 0
     do
@@ -379,33 +446,7 @@ end do irloop
 end subroutine GetSubRefList_
 
 !--------------------------------------------------------------------------
-recursive subroutine Delete_gvectorlist_(self)
-  !! author: MDG 
-  !! version: 1.0 
-  !! date: 02/02/20
-  !!
-  !! delete the entire linked list
-
-IMPLICIT NONE
-
-class(gvectors_T), INTENT(INOUT)  :: self 
-
-type(reflisttype),pointer         :: rltail, rltmpa
-
-! deallocate the entire linked list before returning, to prevent memory leaks
-rltail => self%reflist
-rltmpa => rltail % next
-do 
-  deallocate(rltail)
-  if (.not. associated(rltmpa)) EXIT
-  rltail => rltmpa
-  rltmpa => rltail % next
-end do
-
-end subroutine Delete_gvectorlist_
-
-!--------------------------------------------------------------------------
-recursive subroutine Apply_BethePotentials_(self, Diff, listrootw, nref, nns, nnw)
+recursive subroutine Apply_BethePotentials_(self, Diff, listrootw, nns, nnw)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/02/20
@@ -426,7 +467,6 @@ IMPLICIT NONE
 class(gvectors_T), INTENT(INOUT)               :: self 
 type(Diffraction_T), INTENT(INOUT)             :: Diff
 type(reflisttype),pointer                      :: listrootw
-integer(kind=irg),INTENT(IN)                   :: nref
 integer(kind=irg),INTENT(OUT)                  :: nns
 integer(kind=irg),INTENT(OUT)                  :: nnw
 
@@ -443,7 +483,7 @@ nullify(rl)
 
 ! first we extract the list of g-vectors from reflist, so that we can compute 
 ! all the g-h difference vectors
-allocate(glist(3,nref),rh(nref),stat=istat)
+allocate(glist(3,self%nref),rh(self%nref),stat=istat)
 rl => self%reflist%next
 icnt = 0
 do
@@ -524,7 +564,7 @@ deallocate(glist, rh)
 end subroutine Apply_BethePotentials_
 
 !--------------------------------------------------------------------------
-recursive subroutine Compute_ReflectionListZoneAxis_(self,cell,SG,Diff,FN,dmin,k,ga,gb,nref)
+recursive subroutine Compute_ReflectionListZoneAxis_(self,cell,SG,Diff,FN,dmin,k,ga,gb)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/02/20
@@ -547,7 +587,6 @@ real(kind=sgl),INTENT(IN)         :: dmin
 real(kind=sgl),INTENT(IN)         :: k(3)
 integer(kind=irg),INTENT(IN)      :: ga(3)
 integer(kind=irg),INTENT(IN)      :: gb(3)
-integer(kind=irg),INTENT(OUT)     :: nref
 
 type(IO_T)                        :: Message
 integer(kind=irg)                 :: imh, imk, iml, gg(3), ix, iy, iz, i, minholz, RHOLZ, im, istat, N, &
@@ -555,8 +594,6 @@ integer(kind=irg)                 :: imh, imk, iml, gg(3), ix, iy, iz, i, minhol
 real(kind=sgl)                    :: dhkl, io_real(6), H, g3(3), g3n(3), FNg(3), ddt, s, kr(3), exer, &
                                      rBethe_i, rBethe_d, sgp, r_g, la, dval
 integer(kind=irg)                 :: io_int(3), gshort(3), gp(3)
-
-type(reflisttype),pointer         :: rltail
 
 ! set the truncation parameters
 rBethe_i = Diff%getBetheParameter('c3')  ! if larger than this value, we ignore the reflection completely
@@ -569,13 +606,13 @@ imh = (gp(1)-1)/4
 imk = (gp(2)-1)/4
 iml = (gp(3)-1)/4
 
-nullify(self%reflist)
-nullify(rltail)
+! nullify(self%reflist)
+! nullify(self%rltail)
   
 gg = (/0,0,0/)
-call self%AddReflection(rltail, Diff, nref, gg)  ! this guarantees that 000 is always the first reflection
+call self%AddReflection(Diff, gg)  ! this guarantees that 000 is always the first reflection
 
-rltail%sg = 0.0
+self%rltail%sg = 0.0
 ! now compute |sg|/|U_g|/lambda for the other allowed reflections; if this parameter is less than
 ! the threshhold, rBethe_i, then add the reflection to the list of potential reflections
 ! note that this uses the older form of the Bethe Potential truncation parameters for now
@@ -590,16 +627,16 @@ do ix=-imh,imh
         if  ((abs(gg(1)).le.imh).and.(abs(gg(2)).le.imk).and.(abs(gg(3)).le.iml) ) then
           if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
             if (abs(sgp).le.rBethe_d) then 
-              call self%AddReflection(rltail, Diff, nref, gg)
-              rltail%sg = sgp
-              rltail%dbdiff = .TRUE.
+              call self%AddReflection(Diff, gg)
+              self%rltail%sg = sgp
+              self%rltail%dbdiff = .TRUE.
             end if 
           else
             r_g = la * abs(sgp)/abs(Diff%getLUT( gg ))
             if (r_g.le.rBethe_i) then 
-              call self%AddReflection(rltail, Diff, nref, gg )
-              rltail%sg = sgp
-              rltail%dbdiff = .FALSE.
+              call self%AddReflection(Diff, gg )
+              self%rltail%sg = sgp
+              self%rltail%dbdiff = .FALSE.
             end if
           end if
         end if
@@ -607,13 +644,13 @@ do ix=-imh,imh
     end if
   end do
 end do
-io_int(1) = nref
+io_int(1) = self%nref
 call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I5,/)")
 
 end subroutine Compute_ReflectionListZoneAxis_
 
 !--------------------------------------------------------------------------
-recursive subroutine Initialize_ReflectionList_(self, cell, SG, Diff, FN, k, dmin, nref, verbose)
+recursive subroutine Initialize_ReflectionList_(self, cell, SG, Diff, FN, k, dmin, verbose)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/04/20
@@ -634,8 +671,6 @@ type(Diffraction_T),INTENT(INOUT)   :: Diff
 real(kind=sgl),INTENT(IN)           :: FN(3)
 real(kind=sgl),INTENT(IN)           :: k(3)
 real(kind=sgl),INTENT(IN)           :: dmin
-integer(kind=irg),INTENT(INOUT)     :: nref
-!f2py intent(in,out) ::  nref
 logical,INTENT(IN),OPTIONAL         :: verbose
 
 type(IO_T)                          :: Message
@@ -644,7 +679,6 @@ integer(kind=irg)                   :: imh, imk, iml, gg(3), ix, iy, iz, i, minh
 real(kind=sgl)                      :: dhkl, io_real(9), H, g3(3), g3n(3), FNg(3), ddt, s, kr(3), exer, &
                                        rBethe_i, rBethe_d, sgp, r_g, la, dval
 integer(kind=irg)                   :: io_int(3), gshort(3), gp(3)
-type(reflisttype),pointer           :: rltail
 
 ! set the truncation parameters
   rBethe_i = Diff%getBetheParameter('c3')   ! if larger than this value, we ignore the reflection completely
@@ -656,15 +690,11 @@ type(reflisttype),pointer           :: rltail
   imh = (gp(1)-1)/4
   imk = (gp(2)-1)/4
   iml = (gp(3)-1)/4
-  
-  if (associated(self%reflist)) then 
-    call self%Delete_gvectorlist() 
-  end if
  
 ! transmitted beam has excitation error zero
   gg = (/ 0,0,0 /)
-  call self%AddReflection(rltail, Diff, nref, gg )   ! this guarantees that 000 is always the first reflection
-  rltail%sg = 0.0
+  call self%AddReflection(Diff, gg )   ! this guarantees that 000 is always the first reflection
+  self%rltail%sg = 0.0
 
 ! now compute |sg|/|U_g|/lambda for the other allowed reflections; if this parameter is less than
 ! the threshhold, rBethe_i, then add the reflection to the list of potential reflections
@@ -679,16 +709,16 @@ izl:   do iz=-iml,iml
           sgp = Diff%Calcsg(cell,float(gg),k,FN)
           if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
             if (abs(sgp).le.rBethe_d) then 
-              call self%AddReflection(rltail, Diff, nref, gg )
-              rltail%sg = sgp
-              rltail%dbdiff = .TRUE.
+              call self%AddReflection(Diff, gg )
+              self%rltail%sg = sgp
+              self%rltail%dbdiff = .TRUE.
             end if
           else
             r_g = la * abs(sgp)/abs(Diff%getLUT(gg))
             if (r_g.le.rBethe_i) then 
-              call self%AddReflection(rltail, Diff, nref, gg )
-              rltail%sg = sgp
-              rltail%dbdiff = .FALSE.
+              call self%AddReflection(Diff, gg )
+              self%rltail%sg = sgp
+              self%rltail%dbdiff = .FALSE.
             end if
           end if
          end if ! IsGAllowed
@@ -699,7 +729,7 @@ izl:   do iz=-iml,iml
     
   if (present(verbose)) then 
     if (verbose) then 
-      io_int(1) = nref
+      io_int(1) = self%nref
       call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I8)")
     end if
   end if
@@ -707,7 +737,7 @@ izl:   do iz=-iml,iml
 end subroutine Initialize_ReflectionList_
 
 !--------------------------------------------------------------------------
-recursive subroutine Initialize_ReflectionList_EwaldSweep_(self,cell,SG,Diff,FN,k,nref,pedangle, goffset, verbose)
+recursive subroutine Initialize_ReflectionList_EwaldSweep_(self,cell,SG,Diff,FN,k,pedangle, goffset, verbose)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/04/20
@@ -727,8 +757,6 @@ type(SpaceGroup_T),INTENT(INOUT)    :: SG
 type(Diffraction_T),INTENT(INOUT)   :: Diff
 real(kind=sgl),INTENT(IN)           :: FN(3)
 real(kind=sgl),INTENT(IN)           :: k(3)
-integer(kind=irg),INTENT(INOUT)     :: nref
-!f2py intent(in,out) ::  nref
 real(kind=sgl),INTENT(IN)           :: pedangle
 real(kind=sgl),INTENT(IN)           :: goffset
 logical,INTENT(IN),OPTIONAL         :: verbose
@@ -737,7 +765,6 @@ type(IO_T)                          :: Message
 integer(kind=irg)                   :: imh, imk, iml, gg(3), ix, iy, iz, io_int(3), gp(3)
 real(kind=sgl)                      :: FNg(3), c, s, kr(3), sgp, la, kstar(3), gperp(3), gpara(3), bup, blo, y, z, &
                                        gdk, glen, gplen
-type(reflisttype),pointer           :: rltail
 
 ! init a couple of parameters
   la = 1.0/Diff%getWaveLength()
@@ -761,9 +788,9 @@ type(reflisttype),pointer           :: rltail
  
 ! transmitted beam has excitation error zero, and set xg to zero; xg will store the accumulated intensity for each reflection
   gg = (/ 0,0,0 /)
-  call self%AddReflection(rltail, Diff, nref, gg )   ! this guarantees that 000 is always the first reflection
-  rltail%sg = 0.0
-  rltail%xg = 0.0
+  call self%AddReflection(Diff, gg )   ! this guarantees that 000 is always the first reflection
+  self%rltail%sg = 0.0
+  self%rltail%xg = 0.0
 
 ! scan through the reciprocal lattice volume corresponding to the dmin value
 ixl: do ix=-imh,imh
@@ -791,15 +818,15 @@ izl:   do iz=-iml,iml
             sgp = Diff%Calcsg(cell,float(gg),k,FN)
 ! note that we are not applying any Bethe parameter conditions here since those will be applied for each beam orientation separately
             if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
-                call self%AddReflection(rltail, Diff, nref, gg )
-                rltail%sg = sgp
-                rltail%xg = 0.0
-                rltail%dbdiff = .TRUE.
+                call self%AddReflection(Diff, gg )
+                self%rltail%sg = sgp
+                self%rltail%xg = 0.0
+                self%rltail%dbdiff = .TRUE.
             else
-                call self%AddReflection(rltail, Diff, nref, gg )
-                rltail%sg = sgp
-                rltail%xg = 0.0
-                rltail%dbdiff = .FALSE.
+                call self%AddReflection(Diff, gg )
+                self%rltail%sg = sgp
+                self%rltail%xg = 0.0
+                self%rltail%dbdiff = .FALSE.
             end if
           end if ! reflection inside precession-swept Ewald sphere volume
          end if ! IsGAllowed
@@ -810,7 +837,7 @@ izl:   do iz=-iml,iml
     
   if (present(verbose)) then 
     if (verbose) then 
-      io_int(1) = nref
+      io_int(1) = self%nref
       call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I8)")
     end if
   end if

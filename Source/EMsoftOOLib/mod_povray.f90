@@ -84,7 +84,8 @@ type, public :: PoVRay_T
     procedure, pass(self) :: drawFZ_
     procedure, pass(self) :: initFZCyclic_
     procedure, pass(self) :: fliprotationmatrix_
-    final :: closeFile_
+    procedure, pass(self) :: closeFile_
+    final :: PoVRay_destructor
 
 ! general utility procedures
     generic, public :: openFile => openFile_
@@ -109,6 +110,7 @@ type, public :: PoVRay_T
     generic, public :: getpos_FZ222 => getpos_FZ222_
     generic, public :: drawFZ => drawFZ_
     generic, public :: initFZCyclic => initFZCyclic_
+    generic, public :: closeFile => closeFile_
 ! PoVRay uses a left-handed reference frame, so we provide a conversion routine
 ! for the EMsoft right-handed convention
     generic, public :: fliprotationmatrix => fliprotationmatrix_
@@ -139,6 +141,7 @@ end interface PoVRay_T
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ222
 !DEC$ ATTRIBUTES DLLEXPORT :: drawFZ
 !DEC$ ATTRIBUTES DLLEXPORT :: initFZCyclic
+!DEC$ ATTRIBUTES DLLEXPORT :: closeFile
 !DEC$ ATTRIBUTES DLLEXPORT :: PoVRay_fliprotationmatrix
 
 contains 
@@ -223,6 +226,35 @@ call PV%setLightSource()
 end function PoVRay_constructor
 
 !--------------------------------------------------------------------------
+subroutine PoVRay_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the PoVRay_T Class
+
+use mod_io 
+
+IMPLICIT NONE
+
+type(PoVRay_T), INTENT(INOUT)   :: self 
+
+type(IO_T)                      :: Message
+logical                         :: itsopen 
+
+call reportDestructor('PoVRay_T')
+
+! if the MRC uit is still open, close it here 
+inquire(unit=self%dunit, opened=itsopen)
+
+if (itsopen.eqv..TRUE.) then 
+  close(unit=self%dunit, status='keep')
+  call Message%printMessage(' Closed PoVray file '//trim(self%filename))
+end if 
+
+end subroutine PoVRay_destructor
+
+!--------------------------------------------------------------------------
 recursive subroutine closeFile_(self)
  !! author: MDG 
  !! version: 1.0 
@@ -232,7 +264,7 @@ recursive subroutine closeFile_(self)
 
 IMPLICIT NONE
 
-type(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self 
 
 close(unit=self%dunit, status = 'keep')
 

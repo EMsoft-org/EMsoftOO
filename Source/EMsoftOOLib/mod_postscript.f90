@@ -316,7 +316,7 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: StrucFacPage_
       procedure, pass(self) :: StereoPage_
       procedure, pass(self) :: DiffPage_
-
+      final :: PS_destructor
 
       generic, public :: openFile => openFile_ 
 !DEC$ ATTRIBUTES DLLEXPORT :: openFile
@@ -472,6 +472,35 @@ integer(kind=irg), INTENT(IN)   :: imanum
   call PS%openfile(progdesc, EMsoft)
 
 end function PS_constructor
+
+!--------------------------------------------------------------------------
+subroutine PS_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/02/20
+!!
+!! destructor for the PostScript_T Class
+
+use mod_io 
+
+IMPLICIT NONE
+
+type(PostScript_T), INTENT(INOUT)     :: self 
+
+type(IO_T)                            :: Message
+logical                               :: itsopen 
+
+call reportDestructor('PostScript_T')
+
+! if the MRC uit is still open, close it here 
+inquire(unit=self%psunit, opened=itsopen)
+
+if (itsopen.eqv..TRUE.) then 
+  close(unit=self%psunit, status='keep')
+  call Message%printMessage(' Closed PostScript file '//trim(self%psname))
+end if 
+
+end subroutine PS_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine openfile_(self, progdesc, EMsoft, dontask)

@@ -229,7 +229,7 @@ IMPLICIT NONE
 
 class(Timing_T)                         :: self 
 integer(kind=irg), intent(in), OPTIONAL :: n
- !! optinal selected timer
+ !! optional selected timer
 
 real(kind=sgl)                          :: t
 
