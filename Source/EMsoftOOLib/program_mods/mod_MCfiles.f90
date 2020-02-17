@@ -89,9 +89,9 @@ end type MCdataType
 
 type, public :: MCfile_T 
   private 
-    type(MCdataType),public     :: MCDT
-    type(MCOpenCLNameListType)  :: nml 
-    character(fnlen)            :: MCfile
+    type(MCdataType),public             :: MCDT
+    type(MCOpenCLNameListType),public   :: nml 
+    character(fnlen)                    :: MCfile
 
   contains
   private 
@@ -166,7 +166,7 @@ self%nml = nml
 end subroutine copynml_
 
 !--------------------------------------------------------------------------
-subroutine copyaccume_(self, acc)
+subroutine copyaccume_(self, acc, keep)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/12/20
@@ -177,6 +177,7 @@ IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:)
+logical, INTENT(IN), OPTIONAL                 :: keep 
 
 integer(kind=irg)                             :: s(3), nx
 
@@ -186,10 +187,12 @@ allocate(acc(s(1),-nx:nx,-nx:nx))
 
 acc = self%MCDT%accum_e 
 
+if (.not.present(keep)) deallocate(self%MCDT%accum_e)
+
 end subroutine copyaccume_
 
 !--------------------------------------------------------------------------
-subroutine copyaccumz_(self, acc)
+subroutine copyaccumz_(self, acc, keep)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/12/20
@@ -200,6 +203,7 @@ IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:,:)
+logical, INTENT(IN), OPTIONAL                 :: keep 
 
 integer(kind=irg)                             :: s(4), nx, ny
 
@@ -210,10 +214,12 @@ allocate( acc(s(1),s(2),-nx:nx,-ny:ny) )
 
 acc = self%MCDT%accum_z 
 
+if (.not.present(keep)) deallocate(self%MCDT%accum_z)
+
 end subroutine copyaccumz_
 
 !--------------------------------------------------------------------------
-subroutine copyaccumSP_(self, acc)
+subroutine copyaccumSP_(self, acc, keep)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/12/20
@@ -224,6 +230,7 @@ IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:)
+logical, INTENT(IN), OPTIONAL                 :: keep 
 
 integer(kind=irg)                             :: s(3)
 
@@ -232,10 +239,12 @@ allocate(acc(s(1),s(2),s(3)))
 
 acc = self%MCDT%accumSP 
 
+if (.not.present(keep)) deallocate(self%MCDT%accumSP)
+
 end subroutine copyaccumSP_
 
 !--------------------------------------------------------------------------
-subroutine copyaccumxyz_(self, acc)
+subroutine copyaccumxyz_(self, acc, keep)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/12/20
@@ -246,6 +255,7 @@ IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:)
+logical, INTENT(IN), OPTIONAL                 :: keep 
 
 integer(kind=irg)                             :: s(3), nx, ny
 
@@ -255,6 +265,8 @@ ny = (s(2)-1)/2
 allocate(acc(-nx:nx,-ny:ny,s(3)))
 
 acc = self%MCDT%accum_xyz 
+
+if (.not.present(keep)) deallocate(self%MCDT%accum_xyz)
 
 end subroutine copyaccumxyz_
 
@@ -274,7 +286,6 @@ type(MCOpenCLNameListType)              :: nml
 nml = self%nml
 
 end function getnml_
-
 
 !--------------------------------------------------------------------------
 function getnumEbins_(self) result(n)

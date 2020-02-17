@@ -127,6 +127,10 @@ IMPLICIT NONE
         procedure, pass(self) :: LambertInverseSingle
         procedure, pass(self) :: LambertInverseDouble
         procedure, pass(self) :: Apply3DPGSymmetry_
+        procedure, pass(self) :: setxy_ 
+        procedure, pass(self) :: setxyd_ 
+        procedure, pass(self) :: setxyz_ 
+        procedure, pass(self) :: setxyzd_ 
         final :: Lambert_destructor
 
 ! mappings from 2D square grid to the Northern hemisphere of a 2D sphere
@@ -168,6 +172,14 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: LambertInverse
         generic, public :: Apply3DPGSymmetry => Apply3DPGSymmetry_
 !DEC$ ATTRIBUTES DLLEXPORT :: Apply3DPGSymmetry
+        generic, public :: setxy => setxy_ 
+        generic, public :: setxyz => setxyz_
+        generic, public :: setxyd => setxyd_
+        generic, public :: setxyzd => setxyzd_
+!DEC$ ATTRIBUTES DLLEXPORT :: setxy
+!DEC$ ATTRIBUTES DLLEXPORT :: setxyz
+!DEC$ ATTRIBUTES DLLEXPORT :: setxyd
+!DEC$ ATTRIBUTES DLLEXPORT :: setxyzd
 
   end type Lambert_T
 
@@ -249,6 +261,78 @@ type(Lambert_T), INTENT(INOUT)  :: self
 ! call reportDestructor('Lambert_T')
 
 end subroutine Lambert_destructor
+
+!--------------------------------------------------------------------------
+subroutine setxy_(self, xy) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/17/20
+  !!
+  !! set a coordinate 
+
+IMPLICIT NONE 
+
+class(Lambert_T), INTENT(INOUT)  :: self 
+real(kind=sgl), INTENT(IN)       :: xy(2)
+
+self%xy = xy 
+self%s = 's'
+
+end subroutine setxy_
+
+!--------------------------------------------------------------------------
+subroutine setxyz_(self, xyz) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/17/20
+  !!
+  !! set a coordinate 
+
+IMPLICIT NONE 
+
+class(Lambert_T), INTENT(INOUT)  :: self 
+real(kind=sgl), INTENT(IN)       :: xyz(3)
+
+self%xyz = xyz 
+self%s = 's'
+
+end subroutine setxyz_
+
+!--------------------------------------------------------------------------
+subroutine setxyd_(self, xyd) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/17/20
+  !!
+  !! set a coordinate 
+
+IMPLICIT NONE 
+
+class(Lambert_T), INTENT(INOUT)  :: self 
+real(kind=dbl), INTENT(IN)       :: xyd(2)
+
+self%xyd = xyd 
+self%s = 'd'
+
+end subroutine setxyd_
+
+!--------------------------------------------------------------------------
+subroutine setxyzd_(self, xyzd) 
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/17/20
+  !!
+  !! set a coordinate 
+
+IMPLICIT NONE 
+
+class(Lambert_T), INTENT(INOUT)  :: self 
+real(kind=dbl), INTENT(IN)       :: xyzd(3)
+
+self%xyzd = xyzd 
+self%s = 'd'
+
+end subroutine setxyzd_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------

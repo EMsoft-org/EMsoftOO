@@ -70,6 +70,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_kvectors.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_MRC.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_initializers.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_filters.f90
 
   
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
@@ -78,6 +79,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_MCfiles.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_MPfiles.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDmaster.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSD.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

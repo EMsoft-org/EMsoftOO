@@ -248,6 +248,8 @@ private
     procedure, pass(self) :: r_print_
     procedure, pass(self) :: r_copy_
     procedure, pass(self) :: r_copyd_
+    procedure, pass(self) :: r_set_
+    procedure, pass(self) :: r_setd_
     final :: r_destructor
 
     generic, public :: rs => rs_
@@ -262,6 +264,8 @@ private
     generic, public :: r_print => r_print_
     generic, public :: r_copy => r_copy_
     generic, public :: r_copyd => r_copyd_
+    generic, public :: r_set => r_set_
+    generic, public :: r_setd => r_setd_
 
 end type r_T
 
@@ -290,6 +294,8 @@ private
     procedure, pass(self) :: s_print_
     procedure, pass(self) :: s_copy_
     procedure, pass(self) :: s_copyd_
+    procedure, pass(self) :: s_set_
+    procedure, pass(self) :: s_setd_
     final :: s_destructor
 
     generic, public :: sr => sr_
@@ -304,6 +310,8 @@ private
     generic, public :: s_print => s_print_
     generic, public :: s_copy => s_copy_
     generic, public :: s_copyd => s_copyd_
+    generic, public :: s_set => s_set_
+    generic, public :: s_setd => s_setd_
 
 end type s_T
 
@@ -332,6 +340,8 @@ private
     procedure, pass(self) :: o_print_
     procedure, pass(self) :: o_copy_
     procedure, pass(self) :: o_copyd_
+    procedure, pass(self) :: o_set_
+    procedure, pass(self) :: o_setd_
     final :: o_destructor
 
     generic, public :: or => or_
@@ -346,6 +356,8 @@ private
     generic, public :: o_print => o_print_
     generic, public :: o_copy => o_copy_
     generic, public :: o_copyd => o_copyd_
+    generic, public :: o_set => o_set_
+    generic, public :: o_setd => o_setd_
 
 end type o_T
 
@@ -374,6 +386,8 @@ private
     procedure, pass(self) :: h_print_
     procedure, pass(self) :: h_copy_
     procedure, pass(self) :: h_copyd_
+    procedure, pass(self) :: h_set_
+    procedure, pass(self) :: h_setd_
     final :: h_destructor
 
     generic, public :: hr => hr_
@@ -388,6 +402,8 @@ private
     generic, public :: h_print => h_print_
     generic, public :: h_copy => h_copy_
     generic, public :: h_copyd => h_copyd_
+    generic, public :: h_set => h_set_
+    generic, public :: h_setd => h_setd_
 
 end type h_T
 
@@ -416,6 +432,8 @@ private
     procedure, pass(self) :: a_print_
     procedure, pass(self) :: a_copy_
     procedure, pass(self) :: a_copyd_
+    procedure, pass(self) :: a_set_
+    procedure, pass(self) :: a_setd_
     final :: a_destructor
 
     generic, public :: ar => ar_
@@ -430,6 +448,8 @@ private
     generic, public :: a_print => a_print_
     generic, public :: a_copy => a_copy_
     generic, public :: a_copyd => a_copyd_
+    generic, public :: a_set => a_set_
+    generic, public :: a_setd => a_setd_
 
 end type a_T
 
@@ -458,6 +478,8 @@ private
     procedure, pass(self) :: v_print_
     procedure, pass(self) :: v_copy_
     procedure, pass(self) :: v_copyd_
+    procedure, pass(self) :: v_set_
+    procedure, pass(self) :: v_setd_
     final :: v_destructor
 
     generic, public :: vr => vr_
@@ -472,6 +494,8 @@ private
     generic, public :: v_print => v_print_
     generic, public :: v_copy => v_copy_
     generic, public :: v_copyd => v_copyd_
+    generic, public :: v_set => v_set_
+    generic, public :: v_setd => v_setd_
 
 end type v_T
 
@@ -500,6 +524,8 @@ private
     procedure, pass(self) :: c_print_
     procedure, pass(self) :: c_copy_
     procedure, pass(self) :: c_copyd_
+    procedure, pass(self) :: c_set_
+    procedure, pass(self) :: c_setd_
     final :: c_destructor
 
     generic, public :: cr => cr_
@@ -514,6 +540,8 @@ private
     generic, public :: c_print => c_print_
     generic, public :: c_copy => c_copy_
     generic, public :: c_copyd => c_copyd_
+    generic, public :: c_set => c_set_
+    generic, public :: c_setd => c_setd_
 
 end type c_T
 
@@ -542,6 +570,8 @@ private
     procedure, pass(self) :: e_print_
     procedure, pass(self) :: e_copy_
     procedure, pass(self) :: e_copyd_
+    procedure, pass(self) :: e_set_
+    procedure, pass(self) :: e_setd_
     final :: e_destructor
 
     generic, public :: er => er_
@@ -556,6 +586,8 @@ private
     generic, public :: e_print => e_print_
     generic, public :: e_copy => e_copy_
     generic, public :: e_copyd => e_copyd_
+    generic, public :: e_set => e_set_
+    generic, public :: e_setd => e_setd_
 
 end type e_T
 
@@ -584,6 +616,8 @@ private
     procedure, pass(self) :: q_print_
     procedure, pass(self) :: q_copy_
     procedure, pass(self) :: q_copyd_
+    procedure, pass(self) :: q_set_
+    procedure, pass(self) :: q_setd_
     final :: q_destructor
 
     generic, public :: qr => qr_
@@ -598,6 +632,8 @@ private
     generic, public :: q_print => q_print_
     generic, public :: q_copy => q_copy_
     generic, public :: q_copyd => q_copyd_
+    generic, public :: q_set => q_set_
+    generic, public :: q_setd => q_setd_
 
 end type q_T
 
@@ -865,7 +901,7 @@ IMPLICIT NONE
 
 type(r_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('r_T')
+! call reportDestructor('r_T')
 
 end subroutine r_destructor
 
@@ -906,7 +942,7 @@ IMPLICIT NONE
 
 type(s_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('s_T')
+! call reportDestructor('s_T')
 
 end subroutine s_destructor
 
@@ -947,7 +983,7 @@ IMPLICIT NONE
 
 type(o_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('o_T')
+! call reportDestructor('o_T')
 
 end subroutine o_destructor
 
@@ -988,7 +1024,7 @@ IMPLICIT NONE
 
 type(h_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('h_T')
+! call reportDestructor('h_T')
 
 end subroutine h_destructor
 
@@ -1029,7 +1065,7 @@ IMPLICIT NONE
 
 type(a_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('a_T')
+! call reportDestructor('a_T')
 
 end subroutine a_destructor
 
@@ -1070,7 +1106,7 @@ IMPLICIT NONE
 
 type(v_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('v_T')
+! call reportDestructor('v_T')
 
 end subroutine v_destructor
 
@@ -1111,7 +1147,7 @@ IMPLICIT NONE
 
 type(c_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('c_T')
+! call reportDestructor('c_T')
 
 end subroutine c_destructor
 
@@ -1152,7 +1188,7 @@ IMPLICIT NONE
 
 type(e_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('e_T')
+! call reportDestructor('e_T')
 
 end subroutine e_destructor
 
@@ -1193,7 +1229,7 @@ IMPLICIT NONE
 
 type(q_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('q_T')
+! call reportDestructor('q_T')
 
 end subroutine q_destructor
 
@@ -1357,7 +1393,7 @@ end function orientation_constructor
 
 ! type(orientation_T), INTENT(INOUT)  :: self 
 
-! call reportDestructor('orientation_T')
+! ! call reportDestructor('orientation_T')
 
 ! end subroutine orientation_destructor
 
@@ -2215,6 +2251,312 @@ real(kind=dbl)                :: v(3)
 v = self%vd
 
 end function v_copyd_
+
+!--------------------------------------------------------------------------
+recursive subroutine r_set_(self, r)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(r_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: r(4)
+
+self%r = r
+
+end subroutine r_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine r_setd_(self, r)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(r_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: r(4)
+
+self%rd = r
+
+end subroutine r_setd_
+
+!--------------------------------------------------------------------------
+recursive subroutine v_set_(self, v)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(v_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: v(3)
+
+self%v = v
+
+end subroutine v_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine v_setd_(self, v)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(v_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: v(3)
+
+self%vd = v
+
+end subroutine v_setd_
+
+!--------------------------------------------------------------------------
+recursive subroutine a_set_(self, a)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(a_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: a(4)
+
+self%a = a
+
+end subroutine a_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine a_setd_(self, a)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(a_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: a(4)
+
+self%ad = a
+
+end subroutine a_setd_
+
+!--------------------------------------------------------------------------
+recursive subroutine q_set_(self, q)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(q_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: q(4)
+
+self%q = q
+
+end subroutine q_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine q_setd_(self, q)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(q_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: q(4)
+
+self%qd = q
+
+end subroutine q_setd_
+
+!--------------------------------------------------------------------------
+recursive subroutine s_set_(self, s)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(s_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: s(3)
+
+self%s = s
+
+end subroutine s_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine s_setd_(self, s)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(s_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: s(3)
+
+self%sd = s
+
+end subroutine s_setd_
+
+!--------------------------------------------------------------------------
+recursive subroutine h_set_(self, h)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(h_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: h(3)
+
+self%h = h
+
+end subroutine h_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine h_setd_(self, h)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(h_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: h(3)
+
+self%hd = h
+
+end subroutine h_setd_
+
+!--------------------------------------------------------------------------
+recursive subroutine c_set_(self, c)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(c_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: c(3)
+
+self%c = c
+
+end subroutine c_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine c_setd_(self, c)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(c_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: c(3)
+
+self%cd = c
+
+end subroutine c_setd_
+
+!--------------------------------------------------------------------------
+recursive subroutine e_set_(self, e)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(e_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: e(3)
+
+self%e = e
+
+end subroutine e_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine e_setd_(self, e)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(e_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: e(3)
+
+self%ed = e
+
+end subroutine e_setd_
+
+!--------------------------------------------------------------------------
+recursive subroutine o_set_(self, o)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(o_T),INTENT(INOUT)      :: self 
+real(kind=sgl),INTENT(IN)     :: o(3,3)
+
+self%o = o
+
+end subroutine o_set_
+
+!--------------------------------------------------------------------------
+recursive subroutine o_setd_(self, o)
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/17/20
+ !!
+ !! set a rotation value
+
+IMPLICIT NONE
+
+class(o_T),INTENT(INOUT)      :: self 
+real(kind=dbl),INTENT(IN)     :: o(3,3)
+
+self%od = o
+
+end subroutine o_setd_
 
 
 !--------------------------------------------------------------------------

@@ -308,9 +308,14 @@ if (present(zerolist)) then
     SO%FZcnt = 0
   end select
 else
-  if (associated(SO%FZlist)) call SO%delete_FZlist('FZ')
   nullify(SO%FZlist)
+  nullify(SO%CMlist)
+  nullify(SO%COlist)
+  nullify(SO%FBlist)
   SO%FZcnt = 0
+  SO%CMcnt = 0
+  SO%COcnt = 0
+  SO%FBcnt = 0
 end if 
 
 end function so3_constructor
@@ -1466,7 +1471,7 @@ recursive subroutine getOrientationsfromFile_(self, filename)
   !! version: 1.0 
   !! date: 01/22/20
   !!
-  !! read a list of Euler angles from a text file and insert them in a linked list
+  !! read a list of orientations from a text file and insert them in a linked list
 
 IMPLICIT NONE
 

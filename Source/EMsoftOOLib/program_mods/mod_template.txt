@@ -86,6 +86,22 @@ call XXX%readNameList(nmlfile)
 end function XXX_constructor
 
 !--------------------------------------------------------------------------
+subroutine XXX_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 01/22/20
+!!
+!! destructor for the XXX_T Class
+ 
+IMPLICIT NONE
+
+type(XXX_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('XXX_T')
+
+end subroutine XXX_destructor
+
+!--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
 !! author: MDG 
 !! version: 1.0 

@@ -265,7 +265,7 @@ type(a_T)                          :: a
 type(r_T)                          :: r
 type(so3_T)                        :: SO 
 
-integer(kind=irg)                  :: i, j, num, m, io_int(1), FZcnt
+integer(kind=irg)                  :: i, j, num, m, io_int(1), FZcnt, FZtype, FZorder
 real(kind=dbl)                     :: ax(4), calpha, conevector(3), x, &
                                       h, k, l, ih, ik, il, idiff, eps = 0.0001D0
 real(kind=dbl),allocatable         :: itmp(:,:)
