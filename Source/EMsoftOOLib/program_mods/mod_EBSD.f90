@@ -583,7 +583,7 @@ if (trim(enl%anglefiletype).eq.'orientations') then
 else if (trim(enl%anglefiletype).eq.'orpcdef') then 
 ! this requires a conversion from the Euler angles in the file to quaternions
 ! plus storage of the pattern center and deformation tensor arrays  
-  call self%EBSDreadorpcdef(numangles, qAR, orpcdef, verbose)
+  call self%EBSDreadorpcdef(EMsoft, numangles, qAR, orpcdef, verbose)
 else 
   call Message%printError('EBSD','unknown anglefiletype')
 end if 
@@ -628,13 +628,14 @@ call closeFortranHDFInterface()
 end subroutine EBSD_
 
 !--------------------------------------------------------------------------
-recursive subroutine EBSDreadorpcdef_(self, numangles, qAR, orpcdef, verbose)
+recursive subroutine EBSDreadorpcdef_(self, EMsoft, numangles, qAR, orpcdef, verbose)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
 !!
 !! read angles, pattern centers, and deformation tensors from a text file
 
+use mod_EMsoft
 use mod_io 
 use mod_rotations
 use mod_quaternions
@@ -642,6 +643,7 @@ use mod_quaternions
 IMPLICIT NONE
 
 class(EBSD_T), INTENT(INOUT)            :: self
+type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 integer(kind=irg),INTENT(OUT)           :: numangles
 type(QuaternionArray_T), INTENT(INOUT)  :: qAR
 type(EBSDAnglePCDefType),INTENT(INOUT)  :: orpcdef
@@ -655,6 +657,7 @@ type(Quaternion_T)                      :: qq
 integer(kind=irg)                       :: io_int(1), i, istat
 character(2)                            :: atype
 real(kind=sgl)                          :: eulang(3)  
+character(fnlen)                        :: fname
 
 associate( nml => self%nml )
 
@@ -662,7 +665,8 @@ associate( nml => self%nml )
 ! get the angular information, either in Euler angles or in quaternions, from a text file
 !====================================
 ! open the angle file 
-  open(unit=dataunit,file=trim(nml%anglefile),status='old',action='read')
+  fname = EMsoft%generateFilePath('EMdatapathname',nml%anglefile)
+  open(unit=dataunit,file=trim(fname),status='old',action='read')
 
 ! get the type of angle first [ 'eu' or 'qu' ]
   read(dataunit,*) atype
@@ -2506,10 +2510,7 @@ end do
 call timer%Time_tock() 
 tstop = timer%getInterval()
 
-io_real(1) = tstop
-call Message%WriteValue('Execution time [CPU_TIME()] = ',io_real, 1)
-
-io_int(1) = tock
+io_int(1) = tstop
 call Message%WriteValue('Execution time [system_clock()] = ',io_int,1,"(I8,' [s]')")
 
 call HDF%pop()
