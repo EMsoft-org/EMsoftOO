@@ -189,6 +189,7 @@ type, public :: so3_T
     procedure, pass(self) :: setGridType_
 
     procedure, pass(self) :: delete_FZlist_
+    procedure, pass(self) :: nullifyList_
     procedure, pass(self) :: SampleRFZ_
     procedure, pass(self) :: CubochoricNeighbors_
     procedure, pass(self) :: sample_isoCube_
@@ -231,6 +232,7 @@ type, public :: so3_T
     generic, public :: setGridType => setGridType_
 
     generic, public :: delete_FZlist => delete_FZlist_
+    generic, public :: nullifyList => nullifyList_
     generic, public :: SampleRFZ => SampleRFZ_
     generic, public :: CubochoricNeighbors => CubochoricNeighbors_
     generic, public :: sample_isoCube => sample_isoCube_
@@ -285,37 +287,9 @@ end if
 SO%pgnum = pgnum
 
 if (present(zerolist)) then 
-  select case(zerolist)
-  case('FZ')
-    if (associated(SO%FZlist)) call SO%delete_FZlist('FZ')
-    nullify(SO%FZlist)
-    SO%FZcnt = 0
-  case('CM')
-    if (associated(SO%CMlist)) call SO%delete_FZlist('CM')
-    nullify(SO%CMlist)
-    SO%CMcnt = 0
-  case('CO')
-    if (associated(SO%COlist)) call SO%delete_FZlist('CO')
-    nullify(SO%COlist)
-    SO%COcnt = 0
-  case('FB')
-    if (associated(SO%FBlist)) call SO%delete_FZlist('FB')
-    nullify(SO%FBlist)
-    SO%FBcnt = 0
-  case default 
-    if (associated(SO%FZlist)) call SO%delete_FZlist('FZ')
-    nullify(SO%FZlist)
-    SO%FZcnt = 0
-  end select
-else
-  nullify(SO%FZlist)
-  nullify(SO%CMlist)
-  nullify(SO%COlist)
-  nullify(SO%FBlist)
-  SO%FZcnt = 0
-  SO%CMcnt = 0
-  SO%COcnt = 0
-  SO%FBcnt = 0
+  call SO%nullifyList(zerolist)
+else 
+  call SO%nullifyList()
 end if 
 
 end function so3_constructor
@@ -334,12 +308,54 @@ type(so3_T), INTENT(INOUT)  :: self
 
 call reportDestructor('so3_T')
 
-if (associated(self%FZlist)) call self%delete_FZlist('FZ')
-if (associated(self%CMlist)) call self%delete_FZlist('CM')
-if (associated(self%COlist)) call self%delete_FZlist('CO')
-if (associated(self%FBlist)) call self%delete_FZlist('FB')
+! nothing to do for now...
 
 end subroutine so3_destructor
+
+!--------------------------------------------------------------------------
+subroutine nullifyList_(self, zerolist) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/18/20
+!!
+!! nullify the selected list 
+ 
+IMPLICIT NONE
+
+class(so3_T), INTENT(INOUT)           :: self 
+character(2), INTENT(IN), OPTIONAL    :: zerolist
+ !! optional selector for linked list to be reset
+
+if (present(zerolist)) then 
+  select case(zerolist)
+  case('FZ')
+    nullify(self%FZlist)
+    self%FZcnt = 0
+  case('CM')
+    nullify(self%CMlist)
+    self%CMcnt = 0
+  case('CO')
+    nullify(self%COlist)
+    self%COcnt = 0
+  case('FB')
+    nullify(self%FBlist)
+    self%FBcnt = 0
+  case default 
+    nullify(self%FZlist)
+    self%FZcnt = 0
+  end select
+else
+  nullify(self%FZlist)
+  nullify(self%CMlist)
+  nullify(self%COlist)
+  nullify(self%FBlist)
+  self%FZcnt = 0
+  self%CMcnt = 0
+  self%COcnt = 0
+  self%FBcnt = 0
+end if 
+
+end subroutine nullifyList_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -892,7 +908,7 @@ end if
 ! deallocate the entire linked list before returning, to prevent memory leaks
 ltmp => ltail % next
 do 
-  deallocate(ltail)
+  if (associated(ltail)) deallocate(ltail)
   if (.not. associated(ltmp)) EXIT
   ltail => ltmp
   ltmp => ltail % next
@@ -1923,11 +1939,13 @@ else
 end if 
 
 qAR = QuaternionArray_T( n = cnt, s='d' )
+qq = Quaternion_T()
 
 do i=1,cnt 
   rod = FZtmp%rod
   qu = rod%rq()
-  call qAR%insertQuatinArray( i, Quaternion_T( qd = qu%q_copyd() ) )
+  call qq%set_quatd(qu%q_copyd())
+  call qAR%insertQuatinArray( i, qq )
   FZtmp => FZtmp%next 
 end do
 

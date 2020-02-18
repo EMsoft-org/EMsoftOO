@@ -61,18 +61,18 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                         TEMPLATE ${TMPLT_DIR}/EMEBSDmaster.template 
                         SOLUTION_FOLDER EMsoftOOPublic/SEM 
                         INSTALL_PROGRAM TRUE
-                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}  
                         )
 
 
-  # Add_EMsoftOO_Executable(TARGET EMEBSD 
-  #                       SOURCES ${APP_DIR}/EMEBSD.f90 
-  #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-  #                       TEMPLATE ${TMPLT_DIR}/EMEBSD.template 
-  #                       SOLUTION_FOLDER EMsoftOOPublic/SEM 
-  #                       INSTALL_PROGRAM TRUE
-  #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
-  #                       )
+  Add_EMsoftOO_Executable(TARGET EMEBSD 
+                        SOURCES ${APP_DIR}/EMEBSD.f90 
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                        TEMPLATE ${TMPLT_DIR}/EMEBSD.template 
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM 
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} 
+                        )
 
 
   # Add_EMsoftOO_Executable(TARGET EMEBSDmasterSHT 

@@ -84,7 +84,6 @@ end type EBSDNameListType
 
 ! angles, patterns centers, and deformation tensor arrays
 type EBSDAnglePCDefType
-  type(QuaternionArray_T)     :: quatang
   real(kind=sgl),allocatable  :: pcs(:,:)
   real(kind=sgl),allocatable  :: deftensors(:,:,:)
   real(kind=dbl),allocatable  :: pcfield(:,:,:)
@@ -119,7 +118,9 @@ private
   procedure, pass(self) :: EBSD_
   procedure, pass(self) :: EBSDreadorpcdef_
   procedure, pass(self) :: GenerateEBSDDetector_
+  procedure, pass(self) :: GeneratemyEBSDDetector_
   procedure, pass(self) :: ComputeEBSDPatterns_
+  procedure, pass(self) :: ComputedeformedEBSDpatterns_
   procedure, pass(self) :: CalcEBSDPatternSingleFull_
 
   generic, public :: getNameList => getNameList_
@@ -128,7 +129,9 @@ private
   generic, public :: EBSD => EBSD_
   generic, public :: EBSDreadorpcdef => EBSDreadorpcdef_
   generic, public :: GenerateEBSDDetector => GenerateEBSDDetector_
+  generic, public :: GeneratemyEBSDDetector => GeneratemyEBSDDetector_
   generic, public :: ComputeEBSDPatterns => ComputeEBSDPatterns_
+  generic, public :: ComputedeformedEBSDpatterns => ComputedeformedEBSDpatterns_
   generic, public :: CalcEBSDPatternSingleFull => CalcEBSDPatternSingleFull_
 
 end type EBSD_T
@@ -534,6 +537,7 @@ use mod_MPfiles
 use HDF5
 use mod_HDFsupport
 use mod_io
+use mod_rotations
 
 IMPLICIT NONE 
 
@@ -547,6 +551,8 @@ type(MPfile_T)                      :: MPFT
 type(HDF_T)                         :: HDF
 type(so3_T)                         :: SO
 type(IO_T)                          :: Message
+type(Quaternion_T)                  :: quat 
+type(QuaternionArray_T)             :: qAR
 
 type(EBSDmasterNameListType)        :: mpnl
 type(MCOpenCLNameListType)          :: mcnl
@@ -555,29 +561,34 @@ type(EBSDAnglePCDefType)            :: orpcdef
 logical                             :: verbose 
 character(fnlen)                    :: fname 
 integer(kind=irg)                   :: numangles, istat 
+type(FZpointd),pointer              :: FZtmp
+type(r_T)                           :: rr
+
+call openFortranHDFInterface()
 
 associate( enl => self%nml, EBSDdetector => self%det, EBSDMCdata => MCFT%MCDT )
 
 ! 1. read the angle array from file
 verbose = .TRUE.
-! SO = so3_T()
+
+call setRotationPrecision('d')
 
 if (trim(enl%anglefiletype).eq.'orientations') then 
   fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%anglefile))
+  call SO%nullifyList()
   call SO%getOrientationsfromFile(fname)
   numangles = SO%getListCount('FZ')
-  call SO%listtoQuaternionArray( orpcdef%quatang )
+  call SO%listtoQuaternionArray( qAR )
   call SO%delete_FZlist()
 else if (trim(enl%anglefiletype).eq.'orpcdef') then 
 ! this requires a conversion from the Euler angles in the file to quaternions
 ! plus storage of the pattern center and deformation tensor arrays  
-  call self%EBSDreadorpcdef(numangles, orpcdef, verbose)
+  call self%EBSDreadorpcdef(numangles, qAR, orpcdef, verbose)
 else 
   call Message%printError('EBSD','unknown anglefiletype')
 end if 
 
 ! open the HDF interface
-call openFortranHDFInterface()
 HDF = HDF_T() 
 
 ! 2. read the Monte Carlo data file (HDF format)
@@ -585,17 +596,12 @@ fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%energyfile))
 call MCFT%setFileName(fname)
 call MCFT%readMCfile(HDF, getAccume=.TRUE.)
 mcnl = MCFT%getnml()
-! call MCFT%copyaccume(accum_e)
 
 ! 3. read EBSD master pattern file (HDF format)
 fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%masterfile))
 call MPFT%setFileName(fname)
 call MPFT%readMPfile(HDF, getmLPNH=.TRUE., getmLPSH=.TRUE.)
 mpnl = MPFT%getnml()
-! call MPFT%copymLPNH(mLPNH)
-! call MPFT%copymLPSH(mLPSH)
-
-call closeFortranHDFInterface()
 
 ! for a regular Euler angle file, we precompute the detector arrays here; for the 'orpcdef' mode
 ! we compute them later (for each pattern separately)
@@ -607,22 +613,22 @@ if (trim(enl%anglefiletype).eq.'orientations') then
 ! 4. generate detector arrays
   call self%GenerateEBSDDetector(MCFT, verbose)
 
-  deallocate(MCFT%MCDT%accum_e)
-
   ! perform the pattern computations
-  call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, numangles, orpcdef%quatang, progname, nmldeffile)
+  call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, numangles, qAR, progname, nmldeffile)
 end if
 
-! if (trim(enl%anglefiletype).eq.'orpcdef') then
-!   call self%ComputedeformedEBSDpatterns(MCFT, MPFT, numangles, orpcdef, progname, nmldeffile)
-! end if 
+if (trim(enl%anglefiletype).eq.'orpcdef') then
+  call self%ComputedeformedEBSDPatterns(EMsoft, MCFT, MPFT, HDF, numangles, qAR, orpcdef, progname, nmldeffile)
+end if 
 
 end associate 
+
+call closeFortranHDFInterface()
 
 end subroutine EBSD_
 
 !--------------------------------------------------------------------------
-recursive subroutine EBSDreadorpcdef_(self, numangles, orpcdef, verbose)
+recursive subroutine EBSDreadorpcdef_(self, numangles, qAR, orpcdef, verbose)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -631,11 +637,13 @@ recursive subroutine EBSDreadorpcdef_(self, numangles, orpcdef, verbose)
 
 use mod_io 
 use mod_rotations
+use mod_quaternions
 
 IMPLICIT NONE
 
 class(EBSD_T), INTENT(INOUT)            :: self
 integer(kind=irg),INTENT(OUT)           :: numangles
+type(QuaternionArray_T), INTENT(INOUT)  :: qAR
 type(EBSDAnglePCDefType),INTENT(INOUT)  :: orpcdef
 logical,INTENT(IN),OPTIONAL             :: verbose
 
@@ -646,7 +654,7 @@ type(Quaternion_T)                      :: qq
 
 integer(kind=irg)                       :: io_int(1), i, istat
 character(2)                            :: atype
-real(kind=sgl),allocatable              :: eulang(:,:)   ! euler angle array
+real(kind=sgl)                          :: eulang(3)  
 
 associate( nml => self%nml )
 
@@ -671,33 +679,24 @@ associate( nml => self%nml )
   end if
 
 ! allocate the euler angle, pattern center, and deformation tensor arrays
-  allocate(eulang(3,numangles),stat=istat)
   allocate(orpcdef%pcs(3,numangles),stat=istat)
   allocate(orpcdef%deftensors(3,3,numangles),stat=istat)
+  qAR = QuaternionArray_T( n = numangles, s='d' )
 
 ! if istat.ne.0 then do some error handling ... 
   do i=1,numangles
-    read(dataunit,*) eulang(1:3,i), orpcdef%pcs(1:3,i), orpcdef%deftensors(1:3,1:3,i)
+    read(dataunit,*) eulang(1:3), orpcdef%pcs(1:3,i), orpcdef%deftensors(1:3,1:3,i)
+    if (nml%eulerconvention.eq.'hkl') eulang(1) = eulang(1) + 90.0
+! insert the angles into the qAR quaternion array 
+    call e%e_setd( eulang*dtor )
+    q = e%eq()
+    qq = Quaternion_T( qd = q%q_copyd() )
+    call qAR%insertQuatinArray( i, qq ) 
   end do
   close(unit=dataunit,status='keep')
 
-  if (nml%eulerconvention.eq.'hkl') then
-    if (present(verbose)) call Message%printMessage('  -> converting Euler angles to HKL representation', frm = "(A/)")
-    eulang(1,1:numangles) = eulang(1,1:numangles) + 90.0
-  end if
-
 ! convert the euler angle triplets to quaternions
   if (present(verbose)) call Message%printMessage('  -> converting Euler angles to quaternions', frm = "(A/)")
-  call setRotationPrecision('s')
-
-  orpcdef%quatang = QuaternionArray_T( numangles )
-  do i=1,numangles
-    call e%e_set( sngl(eulang(1:3,i)*dtor) )
-    q = e%eq()
-    qq = Quaternion_T( q = q%q_copy() )
-    call orpcdef%quatang%insertQuatinArray( i, qq ) 
-  end do
-  deallocate(eulang)
 
   call Message%printMessage(' Completed reading Euler angles, pattern centers, and deformation tensors')
 
@@ -870,7 +869,7 @@ end associate
 end subroutine GenerateEBSDDetector_
 
 !--------------------------------------------------------------------------
-subroutine ComputeEBSDPatterns_(self, EMsoft, MCFT, MPFT, numangles, angles, progname, nmldeffile)
+subroutine ComputeEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, numangles, angles, progname, nmldeffile)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -902,12 +901,12 @@ class(EBSD_T), INTENT(INOUT)            :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 type(MCfile_T), INTENT(INOUT)           :: MCFT 
 type(MPfile_T), INTENT(INOUT)           :: MPFT 
+type(HDF_T),INTENT(INOUT)               :: HDF 
 integer(kind=irg),INTENT(IN)            :: numangles
 type(QuaternionArray_T), INTENT(IN)     :: angles
 character(fnlen),INTENT(IN)             :: progname
 character(fnlen),INTENT(IN)             :: nmldeffile
 
-type(HDF_T)                             :: HDF 
 type(SpaceGroup_T)                      :: SG
 type(IO_T)                              :: Message 
 type(q_T)                               :: qq, qq1, qq2, qq3
@@ -1049,16 +1048,12 @@ deallocate(wf)
 !====================================
 
 ! get the crystal structure data
-call cell%getCrystalData(mcnl%xtalname, SG, EMsoft)
+call cell%getCrystalData(mcnl%xtalname, SG, EMsoft, useHDF=HDF)
 
 !====================================
 ! ------ and open the output file (only thread 0 can write to this file)
 !====================================
 ! we need to write the image dimensions, and also how many of those there are...
-
-! Initialize FORTRAN interface.
-call openFortranHDFInterface()
-HDF = HDF_T() 
 
 timer = Timing_T()
 tstrb = timer%getTimeString()
@@ -1112,7 +1107,7 @@ groupname = SC_EMData
 hdferr = HDF%createGroup(groupname)
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EMData', hdferr)
 
-! create the EBSD group and add a HDF_FileVersion attribbute to it 
+! create the EBSD group and add a HDF_FileVersion attribute to it 
 hdferr = HDF%createGroup(datagroupname)
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EBSD', hdferr)
 ! before Feb. 19, 2019, an undetected error caused all patterns to be upside down in the Kikuchi bands only,
@@ -1632,43 +1627,43 @@ dataset = SC_EBSDpatterns
      if (trim(bitmode).eq.'char') then 
        hdferr = HDF%writeHyperslabCharArray(dataset, batchpatterns(1:binx,1:biny,1:dim2), hdims, offset, &
                                               dims3)
-       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabCharArray3D EBSDpatterns', hdferr)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabCharArray EBSDpatterns', hdferr)
      end if
      if (trim(bitmode).eq.'int') then 
        hdferr = HDF%writeHyperslabIntegerArray(dataset, batchpatternsint(1:binx,1:biny,1:dim2), hdims, offset, &
                                               dims3)
-       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabIntegerArray3D EBSDpatterns', hdferr)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabIntegerArray EBSDpatterns', hdferr)
      end if
      if (trim(bitmode).eq.'float') then 
        hdferr = HDF%writeHyperslabFloatArray(dataset, batchpatterns32(1:binx,1:biny,1:dim2), hdims, offset, &
                                               dims3)
-       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray3D EBSDpatterns', hdferr)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray EBSDpatterns', hdferr)
      end if
      if (trim(bitmode).eq.'dict') then 
        hdferr = HDF%writeHyperslabFloatArray(dataset, batchpatterns32lin(1:correctsize,1:dim1), hdims2, offset2, &
                                               dims2)
-       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray2D EBSDpatterns', hdferr)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray EBSDpatterns', hdferr)
      end if
    else
      if (trim(bitmode).eq.'char') then 
        hdferr = HDF%writeHyperslabCharArray(dataset, batchpatterns(1:binx,1:biny,1:dim2), hdims, offset, &
                                               dims3, insert)
-       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabCharArray3D EBSDpatterns', hdferr)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabCharArray EBSDpatterns', hdferr)
      end if
      if (trim(bitmode).eq.'int') then 
        hdferr = HDF%writeHyperslabIntegerArray(dataset, batchpatternsint(1:binx,1:biny,1:dim2), hdims, offset, &
                                               dims3, insert)
-       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabIntegerArray3D EBSDpatterns', hdferr)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabIntegerArray EBSDpatterns', hdferr)
      end if
      if (trim(bitmode).eq.'float') then 
        hdferr = HDF%writeHyperslabFloatArray(dataset, batchpatterns32(1:binx,1:biny,1:dim2), hdims, offset, &
                                               dims3, insert)
-       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray3D EBSDpatterns', hdferr)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray EBSDpatterns', hdferr)
      end if
      if (trim(bitmode).eq.'dict') then 
        hdferr = HDF%writeHyperslabFloatArray(dataset, batchpatterns32lin(1:correctsize,1:dim1), hdims2, offset2, &
                                               dims2, insert)
-       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray3D EBSDpatterns', hdferr)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray EBSDpatterns', hdferr)
      end if
    end if
  !end if
@@ -1719,7 +1714,6 @@ if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
 ! close the datafile
 call HDF%pop(.TRUE.)
 
-call closeFortranHDFInterface()
 
 end associate 
 
@@ -1798,7 +1792,7 @@ do ii = 1,ipar(2)
 ! get the pixel direction cosines from the pre-computed array
         dc = (/ rgx(ii,jj),rgy(ii,jj),rgz(ii,jj) /)
 ! apply the grain rotation 
-        dc = qq%quat_Lp(dc)
+        dc = sngl( qq%quat_Lp( dble(dc) ) )
 ! apply the deformation if present
         if (present(Fmatrix)) then
           dc = matmul(sngl(Fmatrix), dc)
@@ -1873,7 +1867,860 @@ binned = binned * mask
 
 end subroutine CalcEBSDPatternSingleFull_
 
+!--------------------------------------------------------------------------
+subroutine ComputedeformedEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, numangles, angles, orpcdef, progname, nmldeffile)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/18/20
+  !!
+  !! compute a energy-weighted EBSD patterns with different pattern centers and deformation states
+
+use mod_EMsoft
+use mod_symmetry
+use mod_crystallography
+use mod_io
+use mod_diffraction
+use mod_Lambert
+use mod_quaternions
+use mod_rotations
+use HDF5
+use mod_HDFsupport
+use ISO_C_BINDING
+use omp_lib
+use mod_timing
+use stringconstants
+use mod_math
+use mod_filters 
+use mod_MCfiles
+use mod_MPfiles
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)            :: self
+type(EMsoft_T), INTENT(INOUT)           :: EMsoft
+type(MCfile_T), INTENT(INOUT)           :: MCFT 
+type(MPfile_T), INTENT(INOUT)           :: MPFT 
+type(HDF_T),INTENT(INOUT)               :: HDF 
+integer(kind=irg),INTENT(IN)            :: numangles
+type(QuaternionArray_T), INTENT(IN)     :: angles
+type(EBSDAnglePCDefType),INTENT(IN)     :: orpcdef
+character(fnlen),INTENT(IN)             :: progname
+character(fnlen),INTENT(IN)             :: nmldeffile
+
+type(SpaceGroup_T)                      :: SG
+type(IO_T)                              :: Message 
+type(q_T)                               :: qq, qq1, qq2, qq3
+type(o_T)                               :: om
+type(e_T)                               :: eu
+type(Quaternion_T)                      :: quat
+type(Timing_T)                          :: timer 
+type(Cell_T)                            :: cell
+
+! all geometrical parameters and filenames
+real(kind=dbl)                          :: prefactor, qz(3)
+
+! allocatable arrays
+real(kind=sgl),allocatable              :: EBSDpattern(:,:), binned(:,:)        ! array with EBSD patterns
+real(kind=sgl),allocatable              :: z(:,:)               ! used to store the computed patterns before writing to disk
+real(kind=sgl),allocatable              :: energywf(:), eulerangles(:,:)
+
+! arrays for each OpenMP thread
+real(kind=sgl),allocatable              :: tmLPNH(:,:,:) , tmLPSH(:,:,:)
+real(kind=sgl),allocatable              :: trgx(:,:), trgy(:,:), trgz(:,:)          ! auxiliary detector arrays needed for interpolation
+real(kind=sgl),allocatable              :: taccum(:,:,:)
+
+! various items
+integer(kind=irg)                       :: i, j, iang, jang, k, io_int(6), hdferr, dim2          ! various counters
+integer(kind=irg)                       :: istat, ipar(7), tick, tock, tickstart
+integer(kind=irg)                       :: nix, niy, binx, biny, nixp, niyp, maxthreads,nextra,ninlastbatch,nlastremainder     ! various parameters
+integer(kind=irg)                       :: NUMTHREADS, TID   ! number of allocated threads, thread ID
+integer(kind=irg)                       :: ninbatch, nbatches,nremainder,ibatch,nthreads,maskradius,nlastbatches, totnumbatches
+integer(kind=irg),allocatable           :: istart(:,:), istop(:,:), patinbatch(:)
+
+real(kind=sgl)                          :: bindx, ma, mi, tstart, tstop, io_real(3)
+real(kind=dbl),parameter                :: nAmpere = 6.241D+18   ! Coulomb per second
+integer(kind=irg),parameter             :: storemax = 20        ! number of EBSD patterns stored in one output block
+integer(kind=irg)                       :: Emin, Emax      ! various parameters
+real(kind=dbl)                          :: dc(3), scl, nel, emult           ! direction cosine array
+real(kind=dbl)                          :: sx, dx, dxm, dy, dym, rhos, x         ! various parameters
+real(kind=dbl)                          :: ixy(2), tmp
+
+real(kind=sgl),allocatable              :: mask(:,:), lx(:), ly(:)
+character(kind=c_char),allocatable      :: batchpatterns(:,:,:), bpat(:,:), threadbatchpatterns(:,:,:) 
+integer(kind=irg),allocatable           :: batchpatternsint(:,:,:), bpatint(:,:), threadbatchpatternsint(:,:,:) 
+real(kind=sgl),allocatable              :: batchpatterns32(:,:,:), threadbatchpatterns32(:,:,:) 
+integer(kind=irg),allocatable           :: acc_array(:,:)
+real(kind=sgl),allocatable              :: master_arrayNH(:,:), master_arraySH(:,:), wf(:) 
+character(len=3)                        :: outputformat
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+
+! parameter for random number generator
+integer, parameter                      :: K4B=selected_int_kind(9)      ! used by ran function in math.f90
+integer(K4B)                            :: idum
+
+integer(HSIZE_T), dimension(1:3)        :: hdims, offset 
+integer(HSIZE_T)                        :: dims2(2), dims3(3)
+character(fnlen,kind=c_char)            :: line2(1)
+character(fnlen)                        :: groupname, dataset, datagroupname, attributename, HDF_FileVersion
+character(11)                           :: dstr
+character(15)                           :: tstrb
+character(15)                           :: tstre
+character(10)                           :: char10
+character(fnlen)                        :: datafile
+logical                                 :: overwrite = .TRUE., insert = .TRUE., singlebatch
+character(5)                            :: bitmode
+integer(kind=irg)                       :: numbits
+real(kind=sgl)                          :: bitrange
+
+! new stuff: deformation tensor
+real(kind=dbl)                          :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3,3), quF(4), Fmatrix_inverse(3,3), &
+                                           Gmatrix(3,3)
+logical                                 :: includeFmatrix=.FALSE.
+
+associate( enl => self%nml, mcnl => MCFT%nml, mpnl => MPFT%nml, &
+           EBSDMCdata => MCFT%MCDT, EBSDMPdata => MPFT%MPDT, EBSDdetector => self%det )
+
+!====================================
+! max number of OpenMP threads on this platform
+maxthreads = omp_get_max_threads()
 
 
+!====================================
+! what is the output format?  GUI or BIN ?
+outputformat = enl%outputformat
+
+!====================================
+! bit depth and format of output
+call get_bit_parameters(enl%bitdepth, numbits, bitrange, bitmode)
+
+! define some energy-related parameters derived from MC input parameters
+!====================================
+! make sure the requested energy range is within the range available from the Monte Carlo computation
+if (enl%energymin.lt.mcnl%Ehistmin) enl%energymin = mcnl%Ehistmin
+if (enl%energymax.gt.mcnl%EkeV) enl%energymax = mcnl%EkeV
+
+! get the indices of the minimum and maximum energy
+Emin = nint((enl%energymin - mcnl%Ehistmin)/mcnl%Ebinsize) +1
+if (Emin.lt.1)  Emin=1
+if (Emin.gt.EBSDMCdata%numEbins)  Emin=EBSDMCdata%numEbins
+
+Emax = nint((enl%energymax - mcnl%Ehistmin)/mcnl%Ebinsize) +1
+if (Emax.lt.1)  Emax=1
+if (Emax.gt.EBSDMCdata%numEbins)  Emax=EBSDMCdata%numEbins
+
+! modified by MDG, 03/26/18
+nel = float(mcnl%totnum_el) * float(mcnl%multiplier)
+emult = nAmpere * 1e-9 / nel  ! multiplicative factor to convert MC data to an equivalent incident beam of 1 nanoCoulomb
+io_real(1) = emult
+call Message%WriteValue(' Multiplicative factor to generate 1 nC of incident electrons ', io_real, 1) 
+
+!====================================
+! init a bunch of parameters
+!====================================
+! binned pattern array
+  binx = enl%numsx/enl%binning
+  biny = enl%numsy/enl%binning
+  bindx = 1.0/float(enl%binning)**2
+
+!====================================
+
+! get the crystal structure data
+call cell%getCrystalData(mcnl%xtalname, SG, EMsoft, useHDF=HDF)
+
+!====================================
+! ------ and open the output file for IDL visualization (only thread 0 can write to this file)
+!====================================
+! we need to write the image dimensions, and also how many of those there are...
+
+timer = Timing_T()
+tstrb = timer%getTimeString()
+dstr = timer%getDateString()
+
+! Create a new file using the default properties.
+datafile = EMsoft%generateFilePath('EMdatapathname', enl%datafile)
+
+hdferr =  HDF%createFile(datafile)
+if (hdferr.ne.0) call HDF%error_check('HDF_createFile ', hdferr)
+
+
+! write the EMheader to the file
+datagroupname = 'EBSD'
+call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
+
+! add the CrystalData group at the top level of the file
+call cell%addXtalDataGroup(SG, EMsoft, HDF)
+
+! create a namelist group to write all the namelist files into
+groupname = SC_NMLfiles
+hdferr = HDF%createGroup(groupname)
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLfiles', hdferr)
+
+! read the text file and write the array to the file
+dataset = SC_EMEBSDNML
+hdferr = HDF%writeDatasetTextFile(dataset, nmldeffile)
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetTextFile EMEBSDNML', hdferr)
+
+call HDF%pop()
+
+! create a NMLparameters group to write all the namelist entries into
+groupname = SC_NMLparameters
+hdferr = HDF%createGroup(groupname)
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLparameters', hdferr)
+
+call self%writeHDFNameList_(HDF)
+
+! and leave this group
+call HDF%pop()
+
+! then the remainder of the data in a EMData group
+groupname = SC_EMData
+hdferr = HDF%createGroup(groupname)
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EMData', hdferr)
+
+! create the EBSD group and add a HDF_FileVersion attribute to it 
+hdferr = HDF%createGroup(datagroupname)
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EBSD', hdferr)
+! before Feb. 19, 2019, an undetected error caused all patterns to be upside down in the Kikuchi bands only,
+! not in the background intensity profile.  This was compensated by a pattern flip of all experimental 
+! patterns in the dictionary indexing program, but when taking individual patterns from this program, they
+! are actually upside down in all versions through HDF_FileVersion 4.0.  As of 4.1, the patterns are in the
+! correct orientation.  This was detected by manually indexing a simulated pattern.
+HDF_FileVersion = '4.1'
+attributename = SC_HDFFileVersion
+hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
+
+dataset = SC_xtalname
+allocate(stringarray(1))
+stringarray(1)= trim(mcnl%xtalname)
+hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1) 
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray xtalname', hdferr)
+
+dataset = SC_numangles
+hdferr = HDF%writeDatasetInteger(dataset, numangles) 
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetInteger numangles', hdferr)
+
+! and add the Euler angles to the output file
+allocate(eulerangles(3,numangles))
+do i=1,numangles
+  quat = angles%getQuatfromArray(i)
+  call qq%q_set( quat%get_quats() )
+  eu = qq%qe()
+  eulerangles(1:3,i) = eu%e_copy()
+end do
+dataset = SC_Eulerangles
+hdferr = HDF%writeDatasetFloatArray(dataset, eulerangles/sngl(dtor), 3, numangles) 
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloatArray2D Eulerangles', hdferr)
+
+! and we leave this group open for further data output from the main program loop ... 
+
+!====================================
+! in this particular routine we always include the deformation tensors, no matter what the nml file says
+!====================================
+includeFmatrix = .TRUE.
+!====================================
+
+!====================================
+! ------ start the actual image computation loop
+!====================================
+
+!====================================
+! to speed things up, we'll split the computation into batches of 1,024 patterns per thread; once those 
+! are computed, we leave the OpenMP part to write them to a file 
+!====================================
+
+
+! and allocate space to store each batch; this requires some careful analysis
+! since we are doing things in multiple threads
+  nthreads = enl%nthreads
+  if (nthreads.gt.maxthreads) then
+    io_int(1) = maxthreads
+    call Message%WriteValue('# threads requested is larger than available number; resetting to ',io_int, 1)
+    nthreads = maxthreads
+  end if
+  ninbatch = 1024
+  nlastbatches = 0
+  singlebatch = .FALSE.
+  if (numangles.ge.ninbatch*nthreads) then 
+    nbatches = numangles/(ninbatch*nthreads)
+    nremainder = mod(numangles,ninbatch*nthreads)
+    nextra = 0
+    if (nremainder.gt.0) then
+      singlebatch = .TRUE.
+      nextra = 1 
+      ninlastbatch = nremainder/nthreads+1
+      nlastremainder = nremainder - (nthreads-1)*ninlastbatch
+    end if
+  else
+! if there are fewer patterns than ninbatch*nthreads we need to redefine ninbatch
+    singlebatch = .TRUE.
+    if (numangles.le.nthreads) then
+      nthreads = 1
+    end if
+    nbatches = 0
+    ninlastbatch = numangles/nthreads+1
+    nlastremainder = numangles - (nthreads-1)*ninlastbatch
+    nlastbatches = 1
+    nextra = 0
+    if (nlastremainder.gt.0) nextra = 1 
+end if
+  if (nbatches.ne.0) then
+    io_int(1) = numangles 
+    io_int(2) = ninbatch
+    io_int(3) = nthreads
+    io_int(4) = nbatches
+    io_int(5) = nremainder
+    call Message%WriteValue('  OpenMP loop variables : ',io_int,5,"(I10,' = ',I4,' * ',I2,' * ',I4,' + ',I6)")
+  end if
+  if ((ninlastbatch.ne.0).and.(nextra.ne.0)) then
+    io_int(1) = numangles - nbatches * nthreads * ninbatch
+    io_int(2) = ninlastbatch
+    io_int(3) = nthreads-1
+    io_int(4) = 1
+    io_int(5) = nlastremainder
+    call Message%WriteValue('  Remainder loop variables : ',io_int,5,"(I10,' = ',I4,' * ',I2,' * ',I4,' + ',I6)")
+  end if
+
+! allocate the istart and istop arrays for all the separate runs
+  totnumbatches = nbatches + nextra
+  allocate(istart(0:nthreads-1,totnumbatches)) 
+  allocate(istop(0:nthreads-1,totnumbatches)) 
+  allocate(patinbatch(totnumbatches))
+  do i=1,nbatches
+    do j=0,nthreads-1
+      istart(j,i) = 1 + ninbatch * ( j + nthreads*(i-1) )
+      istop(j,i)  = ninbatch * ( j+1 + nthreads*(i-1) )
+    end do
+  end do
+  if (nextra.eq.1) then
+    i = nbatches+1
+    do j=0,nthreads-1
+      istart(j,i) = nthreads*ninbatch*nbatches + 1 + ninlastbatch * j
+      if (j.ne.nthreads-1) then
+         istop(j,i) = nthreads*ninbatch*nbatches + ninlastbatch * ( j + 1 )
+      else
+         istop(j,i) = nthreads*ninbatch*nbatches + ninlastbatch * ( nthreads - 1 ) + nlastremainder
+      end if
+    end do
+  end if
+  patinbatch = sum(istop-istart,1) + nthreads
+
+! and allocate the batchpatterns array for hyperslab writing [modified 8/25/17 for different output formats]
+if (trim(bitmode).eq.'char') then 
+  allocate(batchpatterns(binx,biny,ninbatch*nthreads),stat=istat)
+end if
+if (trim(bitmode).eq.'int') then 
+  allocate(batchpatternsint(binx,biny,ninbatch*nthreads),stat=istat)
+end if
+if (trim(bitmode).eq.'float') then 
+  allocate(batchpatterns32(binx,biny,ninbatch*nthreads),stat=istat)
+end if
+
+!====================================
+! here we also create a mask if necessary
+  allocate(mask(binx,biny),stat=istat)
+  mask = 1.0
+  if (enl%maskpattern.eq.'y') then
+! create the circular mask in a potentially rectangular array
+    maskradius = (minval( (/ binx, biny /) ) / 2 )**2
+    allocate(lx(binx), ly(biny), stat=istat)
+    lx = (/ (float(i),i=1,binx) /) - float(binx/2)
+    ly = (/ (float(i),i=1,biny) /) - float(biny/2)
+    do i=1,binx
+      do j=1,biny
+        if ((lx(i)**2+ly(j)**2).gt.maskradius) mask(i,j) = 0.0
+      end do
+    end do
+    deallocate(lx, ly)
+  end if
+
+!====================================
+! determine the scale factor for the Lambert interpolation
+scl = dble(mpnl%npx) 
+
+!====================================
+! define the integer parameter list for the CalcEBSDPatternSingleFull call
+ipar(1) = enl%binning
+ipar(2) = enl%numsx
+ipar(3) = enl%numsy
+ipar(4) = mpnl%npx
+ipar(5) = mpnl%npx
+ipar(6) = EBSDMCdata%numEbins
+ipar(7) = EBSDMCdata%numEbins
+
+!====================================
+! set the number of OpenMP threads 
+io_int(1) = nthreads
+call Message%WriteValue(' Setting number of threads to ',io_int,1,"(I4)")
+call OMP_SET_NUM_THREADS(nthreads)
+
+call timer%Time_tick()
+
+!====================================
+!====================================
+do ibatch=1,totnumbatches
+
+! use OpenMP to run on multiple cores ... 
+!$OMP PARALLEL default(shared)  PRIVATE(TID,iang,i,j,istat,EBSDpattern,binned,idum,bpat,ma,mi,threadbatchpatterns,bpatint)&
+!$OMP& PRIVATE(tmLPNH, tmLPSH, trgx, trgy, trgz, taccum, threadbatchpatternsint, threadbatchpatterns32, prefactor)&
+!$OMP& PRIVATE(Fmatrix_inverse, nel, Fmatrix)
+
+  NUMTHREADS = OMP_GET_NUM_THREADS()
+  TID = OMP_GET_THREAD_NUM()
+
+! each thread needs a private copy of the master and accum arrays; not having
+! those can produce poor scaling... in addition, they need to be recomputed for each pattern !
+  allocate(trgx(enl%numsx,enl%numsy), trgy(enl%numsx,enl%numsy), trgz(enl%numsx,enl%numsy))
+  allocate(taccum(EBSDMCdata%numEbins,enl%numsx,enl%numsy))
+  allocate(tmLPNH(enl%numsx,enl%numsy,EBSDMCdata%numEbins), tmLPSH(enl%numsx,enl%numsy,EBSDMCdata%numEbins))
+! and copy the data in
+  tmLPNH = EBSDMPdata%mLPNH
+  tmLPSH = EBSDMPdata%mLPSH
+
+! allocate the arrays that will hold the computed pattern
+  allocate(binned(binx,biny),stat=istat)
+  if (trim(bitmode).eq.'char') then 
+    allocate(bpat(binx,biny),stat=istat)
+  end if
+  if (trim(bitmode).eq.'int') then 
+    allocate(bpatint(binx,biny),stat=istat)
+  end if
+
+! this array requires some care in terms of its size parameters...
+  if ((singlebatch.eqv..TRUE.).AND.(ibatch.eq.totnumbatches)) then 
+     if (TID.eq.nthreads-1) then
+      if (trim(bitmode).eq.'char') then 
+        allocate(threadbatchpatterns(binx,biny,nlastremainder),stat=istat)
+      end if
+      if (trim(bitmode).eq.'int') then 
+        allocate(threadbatchpatternsint(binx,biny,nlastremainder),stat=istat)
+      end if
+      if (trim(bitmode).eq.'float') then 
+        allocate(threadbatchpatterns32(binx,biny,nlastremainder),stat=istat)
+      end if
+    else
+      if (trim(bitmode).eq.'char') then 
+        allocate(threadbatchpatterns(binx,biny,ninlastbatch),stat=istat)
+      end if
+      if (trim(bitmode).eq.'int') then 
+        allocate(threadbatchpatternsint(binx,biny,ninlastbatch),stat=istat)
+      end if
+      if (trim(bitmode).eq.'float') then 
+        allocate(threadbatchpatterns32(binx,biny,ninlastbatch),stat=istat)
+      end if
+    end if
+  else
+    if (trim(bitmode).eq.'char') then 
+      allocate(threadbatchpatterns(binx,biny,ninbatch),stat=istat)
+    end if
+    if (trim(bitmode).eq.'16bit') then 
+      allocate(threadbatchpatternsint(binx,biny,ninbatch),stat=istat)
+    end if
+    if (trim(bitmode).eq.'float') then 
+      allocate(threadbatchpatterns32(binx,biny,ninbatch),stat=istat)
+    end if
+  end if
+
+  if (trim(enl%bitdepth).eq.'char') then 
+    threadbatchpatterns = ' '
+  end if
+  if (trim(enl%bitdepth).eq.'int') then 
+    threadbatchpatternsint = 0_irg
+  end if
+  if (trim(enl%bitdepth).eq.'float') then 
+    threadbatchpatterns32 = 0.0
+  end if
+
+  do iang=istart(TID,ibatch),istop(TID,ibatch)
+! invert the transposed deformation tensor for this pattern
+    Fmatrix = transpose(orpcdef%deftensors(1:3,1:3,iang))
+    call mInvert(Fmatrix, Fmatrix_inverse, .FALSE.)
+
+! for each pattern we need to compute the detector arrays 
+    if (enl%includebackground.eq.'y') then
+      call self%GeneratemyEBSDDetector(MCFT, enl%numsx, enl%numsy, EBSDMCdata%numEbins, trgx, trgy, trgz, taccum, &
+                                  orpcdef%pcs(1:3,iang),bg=.TRUE.)
+! intensity prefactor
+      prefactor = emult * enl%beamcurrent * enl%dwelltime * 1.0D-6
+    else
+      call self%GeneratemyEBSDDetector(MCFT, enl%numsx, enl%numsy, EBSDMCdata%numEbins, trgx, trgy, trgz, taccum, &
+                                  orpcdef%pcs(1:3,iang),bg=.FALSE.)
+! we pick a reasonable value here ...
+      prefactor = 3.D0 * enl%beamcurrent * enl%dwelltime * 1.0D-6
+    end if
+
+    binned = 0.0
+    
+!   write (*,*) TID, nel, maxval(trgx), maxval(taccum), maxval(Fmatrix_inverse)
+
+    if (includeFmatrix.eqv..TRUE.) then 
+     if (enl%includebackground.eq.'y') then
+      call self%CalcEBSDPatternSingleFull(ipar,angles%getQuatfromArray(iang),taccum,tmLPNH,tmLPSH,trgx,trgy,trgz,binned, &
+                                     Emin,Emax,mask,prefactor,Fmatrix_inverse)
+     else
+      call self%CalcEBSDPatternSingleFull(ipar,angles%getQuatfromArray(iang),taccum,tmLPNH,tmLPSH,trgx,trgy,trgz,binned, &
+                                     Emin,Emax,mask,prefactor,Fmatrix_inverse,removebackground='y')
+     end if
+    else
+     if (enl%includebackground.eq.'y') then
+      call self%CalcEBSDPatternSingleFull(ipar,angles%getQuatfromArray(iang),taccum,tmLPNH,tmLPSH,trgx,trgy,trgz,binned, &
+                                     Emin,Emax,mask,prefactor)
+     else
+      call self%CalcEBSDPatternSingleFull(ipar,angles%getQuatfromArray(iang),taccum,tmLPNH,tmLPSH,trgx,trgy,trgz,binned, &
+                                     Emin,Emax,mask,prefactor,removebackground='y')
+     end if
+    end if
+
+! from here on everything is the same as before...
+
+    if (enl%scalingmode .eq. 'gam') then
+        binned = binned**enl%gammavalue
+    end if
+
+    if (trim(bitmode).eq.'char') then 
+      ma = maxval(binned)
+      mi = minval(binned)
+      binned = mask * ((binned - mi)/ (ma-mi))
+      bpat = char(nint(bitrange*binned))
+
+      threadbatchpatterns(1:binx,1:biny, iang-istart(TID,ibatch)+1) = bpat
+    end if
+
+    if (trim(bitmode).eq.'int') then 
+      ma = maxval(binned)
+      mi = minval(binned)
+      binned = mask * ((binned - mi)/ (ma-mi))
+      bpatint = nint(bitrange*binned)
+
+      threadbatchpatternsint(1:binx,1:biny, iang-istart(TID,ibatch)+1) = bpatint
+    end if
+    
+    if (trim(bitmode).eq.'float') then 
+      threadbatchpatterns32(1:binx,1:biny, iang-istart(TID,ibatch)+1) = binned
+    end if
+
+  end do ! end of iang loop
+
+! and now we write the threadbatchpatterns arrays to the main batch patterns array; we 
+! need to intercept the special case when there are remainder patterns!
+!$OMP CRITICAL
+  if ((singlebatch.eqv..TRUE.).AND.(ibatch.eq.totnumbatches)) then 
+    if (TID.eq.nthreads-1) then
+      if (trim(bitmode).eq.'char') then 
+        batchpatterns(1:binx,1:biny,TID*ninlastbatch+1:TID*ninlastbatch+nlastremainder)=&
+          threadbatchpatterns(1:binx,1:biny, 1:nlastremainder)
+      end if
+      
+      if (trim(bitmode).eq.'int') then 
+        batchpatternsint(1:binx,1:biny,TID*ninlastbatch+1:TID*ninlastbatch+nlastremainder)=&
+          threadbatchpatternsint(1:binx,1:biny, 1:nlastremainder)
+      end if
+      
+      if (trim(bitmode).eq.'float') then 
+        batchpatterns32(1:binx,1:biny,TID*ninlastbatch+1:TID*ninlastbatch+nlastremainder)=&
+          threadbatchpatterns32(1:binx,1:biny, 1:nlastremainder)
+      end if
+      
+    else
+      if (trim(bitmode).eq.'char') then 
+        batchpatterns(1:binx,1:biny, TID*ninlastbatch+1:(TID+1)*ninlastbatch) = &
+          threadbatchpatterns(1:binx,1:biny, 1:ninlastbatch)
+      end if
+      
+      if (trim(bitmode).eq.'int') then 
+        batchpatternsint(1:binx,1:biny, TID*ninlastbatch+1:(TID+1)*ninlastbatch) = &
+          threadbatchpatternsint(1:binx,1:biny, 1:ninlastbatch)
+      end if
+      
+      if (trim(bitmode).eq.'float') then 
+        batchpatterns32(1:binx,1:biny, TID*ninlastbatch+1:(TID+1)*ninlastbatch) = &
+          threadbatchpatterns32(1:binx,1:biny, 1:ninlastbatch)
+      end if
+    end if
+  else
+    if (trim(bitmode).eq.'char') then 
+      batchpatterns(1:binx,1:biny, TID*ninbatch+1:(TID+1)*ninbatch) = threadbatchpatterns(1:binx,1:biny, 1:ninbatch)
+    end if
+    
+    if (trim(bitmode).eq.'int') then 
+      batchpatternsint(1:binx,1:biny, TID*ninbatch+1:(TID+1)*ninbatch) = threadbatchpatternsint(1:binx,1:biny, 1:ninbatch)
+    end if
+    
+    if (trim(bitmode).eq.'float') then 
+      batchpatterns32(1:binx,1:biny, TID*ninbatch+1:(TID+1)*ninbatch) = threadbatchpatterns32(1:binx,1:biny, 1:ninbatch)
+    end if
+  end if
+!$OMP END CRITICAL
+
+!$OMP END PARALLEL
+
+! here we write all the entries in the batchpatterns array to the HDF file as a hyperslab
+dataset = SC_EBSDpatterns
+ !if (outputformat.eq.'bin') then
+   offset = (/ 0, 0, (ibatch-1)*ninbatch*enl%nthreads /)
+   hdims = (/ binx, biny, numangles /)
+   dims3 = (/ binx, biny, patinbatch(ibatch) /)
+   dim2 = patinbatch(ibatch)
+   if (ibatch.eq.1) then
+     if (trim(bitmode).eq.'char') then 
+       hdferr = HDF%writeHyperslabCharArray(dataset, batchpatterns(1:binx,1:biny,1:dim2), hdims, offset, &
+                                              dims3)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabCharArray EBSDpatterns', hdferr)
+     end if
+     if (trim(bitmode).eq.'int') then 
+       hdferr = HDF%writeHyperslabIntegerArray(dataset, batchpatternsint(1:binx,1:biny,1:dim2), hdims, offset, &
+                                              dims3)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabIntegerArray EBSDpatterns', hdferr)
+     end if
+     if (trim(bitmode).eq.'float') then 
+       hdferr = HDF%writeHyperslabFloatArray(dataset, batchpatterns32(1:binx,1:biny,1:dim2), hdims, offset, &
+                                              dims3)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray EBSDpatterns', hdferr)
+     end if
+   else
+     if (trim(bitmode).eq.'char') then 
+       hdferr = HDF%writeHyperslabCharArray(dataset, batchpatterns(1:binx,1:biny,1:dim2), hdims, offset, &
+                                              dims3, insert)
+       if (hdferr.ne.0) call  HDF%error_check('HDF_writeHyperslabCharArray EBSDpatterns', hdferr)
+     end if
+     if (trim(bitmode).eq.'int') then 
+       hdferr = HDF%writeHyperslabIntegerArray(dataset, batchpatternsint(1:binx,1:biny,1:dim2), hdims, offset, &
+                                              dims3, insert)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabIntegerArray EBSDpatterns', hdferr)
+     end if
+     if (trim(bitmode).eq.'float') then 
+       hdferr = HDF%writeHyperslabFloatArray(dataset, batchpatterns32(1:binx,1:biny,1:dim2), hdims, offset, &
+                                              dims3, insert)
+       if (hdferr.ne.0) call HDF%error_check('HDF_writeHyperslabFloatArray EBSDpatterns', hdferr)
+     end if
+   end if
+ !end if
+
+ io_int(1) = ibatch
+ io_int(2) = totnumbatches
+ call Message%WriteValue('Completed cycle ',io_int,2,"(I4,' of ',I4)")
+
+end do
+!====================================
+!====================================
+
+call timer%Time_tock() 
+tstop = timer%getInterval()
+
+io_real(1) = tstop
+call Message%WriteValue('Execution time [CPU_TIME()] = ',io_real, 1)
+
+io_int(1) = tock
+call Message%WriteValue('Execution time [system_clock()] = ',io_int,1,"(I8,' [s]')")
+
+call HDF%pop()
+call HDF%pop()
+
+! and update the end time
+timer = timing_T()
+tstre = timer%getTimeString() 
+
+groupname = SC_EMheader
+hdferr = HDF%openGroup(groupname)
+if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EMheader', hdferr)
+
+datagroupname = "EBSD"
+hdferr = HDF%openGroup(datagroupname)
+if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EBSD', hdferr)
+
+! stop time /EMheader/StopTime 'character'
+dataset = SC_StopTime
+line2(1) = dstr//', '//tstre
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray StopTime', hdferr)
+
+dataset = SC_Duration
+hdferr = HDF%writeDatasetFloat(dataset, tstop)
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
+
+! close the datafile
+call HDF%pop(.TRUE.)
+
+end associate 
+
+end subroutine ComputedeformedEBSDPatterns_
+
+!--------------------------------------------------------------------------
+recursive subroutine GeneratemyEBSDDetector_(self, MCFT, nsx, nsy, numE, tgx, tgy, tgz, accum_e_detector, patcntr, bg)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/05/20
+!!
+!! generate the detector arrays for the case where each pattern has a (slightly) different detector configuration
+
+use mod_io
+use mod_Lambert 
+use mod_MCfiles 
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)            :: self 
+type(MCfile_T), INTENT(INOUT)           :: MCFT 
+integer(kind=irg),INTENT(IN)            :: nsx
+integer(kind=irg),INTENT(IN)            :: nsy
+integer(kind=irg),INTENT(IN)            :: numE
+real(kind=sgl),INTENT(INOUT)            :: tgx(nsx,nsy)
+!f2py intent(in,out) ::  tgx
+real(kind=sgl),INTENT(INOUT)            :: tgy(nsx,nsy)
+!f2py intent(in,out) ::  tgy
+real(kind=sgl),INTENT(INOUT)            :: tgz(nsx,nsy)
+!f2py intent(in,out) ::  tgz
+real(kind=sgl),INTENT(INOUT)            :: accum_e_detector(numE,nsx,nsy)
+!f2py intent(in,out) ::  accum_e_detector
+real(kind=sgl),INTENT(IN)               :: patcntr(3)
+logical,INTENT(IN),OPTIONAL             :: bg
+
+type(Lambert_T)                         :: La
+
+real(kind=sgl),allocatable              :: scin_x(:), scin_y(:), testarray(:,:)                 ! scintillator coordinate ararays [microns]
+real(kind=sgl)                          :: alp, ca, sa, cw, sw
+real(kind=sgl)                          :: L2, Ls, Lc, calpha     ! distances
+real(kind=sgl),allocatable              :: z(:,:)           
+integer(kind=irg)                       :: nix, niy, binx, biny , i, j, Emin, Emax, istat, k, ipx, ipy, nx, ny, elp     ! various parameters
+real(kind=sgl)                          :: dc(3), scl, alpha, theta, g, pcvec(3), s, dp           ! direction cosine array
+real(kind=sgl)                          :: sx, dx, dxm, dy, dym, rhos, x, bindx, xpc, ypc, L         ! various parameters
+real(kind=sgl)                          :: ixy(2)
+
+associate( enl => self%nml, mcnl => MCFT%nml, EBSDMCdata => MCFT%MCDT )
+
+!====================================
+! ------ generate the detector arrays
+!====================================
+xpc = patcntr(1)
+ypc = patcntr(2)
+L = patcntr(3)
+
+allocate(scin_x(nsx),scin_y(nsy),stat=istat)
+! if (istat.ne.0) then ...
+scin_x = - ( -xpc - ( 1.0 - nsx ) * 0.5 - (/ (i-1, i=1,nsx) /) ) * enl%delta
+scin_y = ( ypc - ( 1.0 - nsy ) * 0.5 - (/ (i-1, i=1,nsy) /) ) * enl%delta
+
+! auxiliary angle to rotate between reference frames
+alp = 0.5 * cPi - (mcnl%sig - enl%thetac) * dtor
+ca = cos(alp)
+sa = sin(alp)
+
+cw = cos(mcnl%omega * dtor)
+sw = sin(mcnl%omega * dtor)
+
+! we will need to incorporate a series of possible distortions 
+! here as well, as described in Gert nolze's paper; for now we 
+! just leave this place holder comment instead
+
+! compute auxilliary interpolation arrays
+! if (istat.ne.0) then ...
+
+elp = nsy + 1
+L2 = L * L
+do j=1,nsx
+  sx = L2 + scin_x(j) * scin_x(j)
+  Ls = -sw * scin_x(j) + L*cw
+  Lc = cw * scin_x(j) + L*sw
+  do i=1,nsy
+   rhos = 1.0/sqrt(sx + scin_y(i)**2)
+   tgx(j,elp-i) = (scin_y(i) * ca + sa * Ls) * rhos!Ls * rhos
+   tgy(j,elp-i) = Lc * rhos!(scin_x(i) * cw + Lc * sw) * rhos
+   tgz(j,elp-i) = (-sa * scin_y(i) + ca * Ls) * rhos!(-sw * scin_x(i) + Lc * cw) * rhos
+  end do
+end do
+deallocate(scin_x, scin_y)
+
+! normalize the direction cosines.
+allocate(z(enl%numsx,enl%numsy))
+  z = 1.0/sqrt(tgx*tgx+tgy*tgy+tgz*tgz)
+  tgx = tgx*z
+  tgy = tgy*z
+  tgz = tgz*z
+deallocate(z)
+!====================================
+
+!====================================
+! ------ create the equivalent detector energy array
+!====================================
+! from the Monte Carlo energy data, we need to extract the relevant
+! entries for the detector geometry defined above.  Once that is 
+! done, we can get rid of the larger energy array
+!
+! in the old version, we either computed the background model here, or 
+! we would load a background pattern from file.  In this version, we are
+! using the background that was computed by the MC program, and has 
+! an energy histogram embedded in it, so we need to interpolate this 
+! histogram to the pixels of the scintillator.  In other words, we need
+! to initialize a new accum_e array for the detector by interpolating
+! from the Lambert projection of the MC results.
+!
+nx = (mcnl%numsx - 1)/2
+ny = nsx
+if (present(bg)) then
+ if (bg.eqv..TRUE.) then 
+! determine the scale factor for the Lambert interpolation; the square has
+! an edge length of 2 x sqrt(pi/2)
+  scl = float(nx) !  / LPs%sPio2  [removed on 09/01/15 by MDG for new Lambert routines]
+
+! get the indices of the minimum and maximum energy
+  Emin = nint((enl%energymin - mcnl%Ehistmin)/mcnl%Ebinsize) +1
+  if (Emin.lt.1)  Emin=1
+  if (Emin.gt.EBSDMCdata%numEbins)  Emin=EBSDMCdata%numEbins
+
+  Emax = nint((enl%energymax - mcnl%Ehistmin)/mcnl%Ebinsize) +1
+  if (Emax.lt.1)  Emax=1
+  if (Emax.gt.EBSDMCdata%numEbins)  Emax=EBSDMCdata%numEbins
+
+! correction of change in effective pixel area compared to equal-area Lambert projection
+  alpha = atan(enl%delta/L/sqrt(sngl(cPi)))
+  ipx = nsx/2 + nint(xpc)
+  ipy = nsy/2 + nint(ypc)
+  pcvec = (/ tgx(ipx,ipy), tgy(ipx,ipy), tgz(ipx,ipy) /)
+  calpha = cos(alpha)
+  do i=1,nsx
+    do j=1,nsy
+! do the coordinate transformation for this detector pixel
+       dc = (/ tgx(i,j),tgy(i,j),tgz(i,j) /)
+! make sure the third one is positive; if not, switch all 
+       if (dc(3).lt.0.0) dc = -dc
+! convert these direction cosines to coordinates in the Rosca-Lambert projection
+        call La%setxyz( dc )
+        istat = La%LambertSphereToSquare( ixy )
+        ixy = ixy * scl
+        x = ixy(1)
+        ixy(1) = ixy(2)
+        ixy(2) = -x
+! four-point interpolation (bi-quadratic)
+        nix = int(nx+ixy(1))-nx
+        niy = int(ny+ixy(2))-ny
+        dx = ixy(1)-nix
+        dy = ixy(2)-niy
+        dxm = 1.0-dx
+        dym = 1.0-dy
+! do the area correction for this detector pixel
+        dp = dot_product(pcvec,dc)
+        theta = acos(dp)
+        if ((i.eq.ipx).and.(j.eq.ipy)) then
+          g = 0.25 
+        else
+          g = ((calpha*calpha + dp*dp - 1.0)**1.5)/(calpha**3)
+        end if
+! interpolate the intensity 
+        do k=Emin,Emax 
+          s = EBSDMCdata%accum_e(k,nix,niy) * dxm * dym + &
+              EBSDMCdata%accum_e(k,nix+1,niy) * dx * dym + &
+              EBSDMCdata%accum_e(k,nix,niy+1) * dxm * dy + &
+              EBSDMCdata%accum_e(k,nix+1,niy+1) * dx * dy
+          accum_e_detector(k,i,j) = g * s
+        end do
+    end do
+  end do 
+ else
+   accum_e_detector = 1.0
+ end if 
+end if
+
+end associate 
+
+end subroutine GeneratemyEBSDDetector_
 
 end module mod_EBSD

@@ -398,12 +398,8 @@ subroutine HDF_destructor(self)
 
   call reportDestructor('HDF_T')
 
-! and deallocate the push-pop stack
-  do while (associated(self%head%next)) 
-    tmp => self%head%next
-    self%head%next => self%head%next%next
-    deallocate(tmp)
-  end do
+! for now, there is nothing to destruct since the push-pop stack has already been 
+! nullified in the pop(.TRUE.) call.
 
 end subroutine HDF_destructor
 
@@ -421,20 +417,27 @@ IMPLICIT NONE
 
   logical, INTENT(IN), OPTIONAL       :: verbose
 
-  type(HDF_T)                         :: HDF
   type(IO_T)                          :: Message 
-  integer(kind=irg)                   :: hdferr
+  integer(kind=irg)                   :: hdferr, io_int(1)
   integer(kind=irg)                   :: printonoff
-  type(HDFobjectStackType), pointer   :: tmp
 
-! open the interface
+! open the interface; note that we can not use the error_check routine here
+! because the HDF_T class has not been instantiated yet !!!
     call h5open_f(hdferr)
-    call error_check_(HDF, 'HDF_constructor:h5open_f', hdferr)
+    if (hdferr.lt.0) then 
+      io_int(1) = hdferr 
+      call Message%WriteValue('Error code : ',io_int,1)
+      call Message%printMessage('   returned by routine h5open_f',frm="(A)")
+    end if 
 
 ! and turn standard error reporting off; we'll handle errors our way...
     printonoff = 0
     call h5eset_auto_f(printonoff,hdferr)
-    call error_check_(HDF, 'HDF_constructor:h5eset_auto_f', hdferr)
+    if (hdferr.lt.0) then 
+      io_int(1) = hdferr 
+      call Message%WriteValue('Error code : ',io_int,1)
+      call Message%printMessage('   returned by routine h5eset_auto_f',frm="(A)")
+    end if 
 
     HDFinterfaceOpen = .TRUE.
 
@@ -458,20 +461,27 @@ IMPLICIT NONE
 
   logical, INTENT(IN), OPTIONAL       :: verbose
 
-  type(HDF_T)                         :: HDF
   type(IO_T)                          :: Message 
-  integer(kind=irg)                   :: hdferr
+  integer(kind=irg)                   :: hdferr, io_int(1)
   integer(kind=irg)                   :: printonoff
-  type(HDFobjectStackType), pointer   :: tmp
 
-! turn standard error reporting back on 
+! turn standard error reporting back on; note that we can not use the error_check routine here
+! because the HDF_T class has not been instantiated yet !!! 
     printonoff = 1
     call h5eset_auto_f(printonoff, hdferr)
-    call error_check_(HDF, 'HDF_destructor:h5eset_auto_f', hdferr)
+    if (hdferr.lt.0) then 
+      io_int(1) = hdferr 
+      call Message%WriteValue('Error code : ',io_int,1)
+      call Message%printMessage('   returned by routine h5eset_auto_f',frm="(A)")
+    end if 
 
 ! close the HDF fortran interface
     call h5close_f(hdferr)
-    call error_check_(HDF, 'HDF_destructor:h5close_f', hdferr)
+     if (hdferr.lt.0) then 
+      io_int(1) = hdferr 
+      call Message%WriteValue('Error code : ',io_int,1)
+      call Message%printMessage('   returned by routine h5close_f',frm="(A)")
+    end if 
 
     HDFinterfaceOpen = .FALSE.
 

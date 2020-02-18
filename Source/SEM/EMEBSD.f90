@@ -46,6 +46,7 @@ character(fnlen) :: progdesc = 'Dynamical EBSD patterns, using precomputed MC an
 type(EMsoft_T)   :: EMsoft
 type(EBSD_T)     :: EBSD 
 
+
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 22 /) )
 
@@ -53,6 +54,6 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 22 /) )
 EBSD = EBSD_T(EMsoft%nmldeffile)
 
 ! perform the pattern computations
-call EBSD%EBSD(EMsoft, progname, nmldeffile)
+call EBSD%EBSD(EMsoft, progname, EMsoft%nmldeffile)
 
 end program EMEBSD

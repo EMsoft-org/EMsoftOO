@@ -574,6 +574,7 @@ dataset = SC_EBSDmasterNML
 groupname = SC_NMLparameters
   hdferr = HDF%createGroup(groupname)
 
+  call MPFT%copynml(emnl)
   call MPFT%writeHDFNameList(HDF)
   call Diff%writeBetheparameterNameList(HDF)
 

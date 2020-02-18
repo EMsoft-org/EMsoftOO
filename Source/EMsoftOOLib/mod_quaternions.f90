@@ -257,6 +257,8 @@ IMPLICIT NONE
       procedure, pass(self) :: quatprint
       procedure, pass(self) :: getquats
       procedure, pass(self) :: getquatd
+      procedure, pass(self) :: setquats
+      procedure, pass(self) :: setquatd
 ! quaternion arithmetic routines 
       procedure, pass(self) :: quatflip
       procedure, pass(self) :: quatpos
@@ -286,6 +288,8 @@ IMPLICIT NONE
       generic, public :: quat_pos => quatpos
       generic, public :: get_quats => getquats
       generic, public :: get_quatd => getquatd
+      generic, public :: set_quats => setquats
+      generic, public :: set_quatd => setquatd
       generic, public :: quat_norm => quatnorm
       generic, public :: operator(+) => quatadd
       generic, public :: operator(-) => quatsubtract
@@ -580,6 +584,44 @@ real(kind=dbl)                    :: qd(4)
 qd = self%qd 
 
 end function getquatd
+
+!--------------------------------------------------------------------------
+recursive subroutine setquats(self, qs)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 02/18/20
+  !!
+  !! set a quaternion
+
+IMPLICIT NONE 
+
+class(Quaternion_T),intent(inout)    :: self
+real(kind=sgl),intent(in)            :: qs(4) 
+ !! input quaternion 
+
+self%q = qs
+self%s = 's'
+
+end subroutine setquats
+
+!--------------------------------------------------------------------------
+recursive subroutine setquatd(self, qd)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/22/20
+  !!
+  !! set a quaternion
+
+IMPLICIT NONE 
+
+class(Quaternion_T),intent(inout)    :: self
+real(kind=dbl),intent(in)            :: qd(4) 
+ !! input quaternion 
+
+self%qd = qd
+self%s = 'd'
+
+end subroutine setquatd
 
 !--------------------------------------------------------------------------
 recursive subroutine quatarrayprint(self)

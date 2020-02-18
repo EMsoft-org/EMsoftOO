@@ -67,7 +67,7 @@ type, public :: MPdataType
         integer(kind=irg)               :: newPGnumber
         logical                         :: AveragedMP
         character(fnlen)                :: xtalname
-        real(kind=sgl),allocatable      :: BetheParameters(:)
+        ! real(kind=sgl),allocatable      :: BetheParameters(:)
         real(kind=sgl),allocatable      :: keVs(:)
         real(kind=sgl),allocatable      :: mLPNH4(:,:,:,:)
         real(kind=sgl),allocatable      :: mLPSH4(:,:,:,:)
@@ -98,7 +98,7 @@ type, public :: MPfile_T
     procedure, pass(self) :: getnewPGnumber_
     procedure, pass(self) :: getAveragedMP_
     procedure, pass(self) :: getxtalname_
-    procedure, pass(self) :: copyBetheParameters_
+    ! procedure, pass(self) :: copyBetheParameters_
     procedure, pass(self) :: copykeVs_
     procedure, pass(self) :: copymLPNH4_
     procedure, pass(self) :: copymLPSH4_
@@ -120,7 +120,7 @@ type, public :: MPfile_T
     generic, public :: getnewPGnumber => getnewPGnumber_
     generic, public :: getAveragedMP => getAveragedMP_
     generic, public :: getxtalname => getxtalname_
-    generic, public :: copyBetheParameters => copyBetheParameters_
+    ! generic, public :: copyBetheParameters => copyBetheParameters_
     generic, public :: copykeVs => copykeVs_
     generic, public :: copymLPNH4 => copymLPNH4_
     generic, public :: copymLPSH4 => copymLPSH4_
@@ -167,30 +167,30 @@ self%nml = nml
 
 end subroutine copynml_
 
-!--------------------------------------------------------------------------
-subroutine copyBetheParameters_(self, acc, keep)
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/17/20
-!!
-!! copy the BetheParameters array
+! !--------------------------------------------------------------------------
+! subroutine copyBetheParameters_(self, acc, keep)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 02/17/20
+! !!
+! !! copy the BetheParameters array
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-class(MPfile_T), INTENT(INOUT)                :: self
-real(kind=sgl), allocatable, INTENT(OUT)      :: acc(:)
-logical, INTENT(IN), OPTIONAL                 :: keep 
+! class(MPfile_T), INTENT(INOUT)                :: self
+! real(kind=sgl), allocatable, INTENT(OUT)      :: acc(:)
+! logical, INTENT(IN), OPTIONAL                 :: keep 
 
-integer(kind=irg)                             :: s(1)
+! integer(kind=irg)                             :: s(1)
 
-s = shape(self%MPDT%BetheParameters)
-allocate(acc(s(1)))
+! s = shape(self%MPDT%BetheParameters)
+! allocate(acc(s(1)))
 
-acc = self%MPDT%BetheParameters 
+! acc = self%MPDT%BetheParameters 
 
-if (.not.present(keep)) deallocate(self%MPDT%BetheParameters)
+! if (.not.present(keep)) deallocate(self%MPDT%BetheParameters)
 
-end subroutine copyBetheParameters_
+! end subroutine copyBetheParameters_
 
 !--------------------------------------------------------------------------
 subroutine copykeVs_(self, acc, keep)
@@ -843,7 +843,7 @@ end if
 !====================================
 !====================================
 
-! open the Monte Carlo data group
+! open the Master Pattern data group
 groupname = SC_EMData
     hdferr = HDF%openGroup(groupname)
 if (dfMP.eqv..TRUE.) then 
@@ -871,8 +871,8 @@ dataset = SC_xtalname
     MPDT%xtalname = trim(stringarray(1))
     deallocate(stringarray)
 
-dataset = SC_BetheParameters
-    call HDF%readDatasetFloatArray(dataset, dims, hdferr, MPDT%BetheParameters)
+! dataset = SC_BetheParameters
+!     call HDF%readDatasetFloatArray(dataset, dims, hdferr, MPDT%BetheParameters)
 
 ! various optional arrays
 if (present(getkeVs)) then 
@@ -897,7 +897,7 @@ if (present(getmLPNH)) then
         MPDT%mLPNH4 = mLPNH
       else
         allocate(MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins),stat=istat)
-        MPDT%mLPNH = sum(mLPNH,4)
+        MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,1:MPDT%numEbins) = sum(mLPNH,4)
       end if
       deallocate(mLPNH)
     end if
@@ -919,7 +919,7 @@ if (present(getmLPSH)) then
         MPDT%mLPSH4 = mLPNH
       else
         allocate(MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins),stat=istat)
-        MPDT%mLPSH = sum(mLPNH,4)
+        MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,1:MPDT%numEbins) = sum(mLPNH,4)
       end if
       deallocate(mLPNH)
     end if
@@ -943,7 +943,7 @@ end if
 ! and close the HDF5 Master Pattern file
 call HDF%pop(.TRUE.)
 
-call Message%printMessage(' -> completed reading master pattern data from '//trim(infile), frm = "(A/)")
+call Message%printMessage(' -> completed reading master pattern data from '//trim(self%MPfile), frm = "(A/)")
 
 end associate 
 
