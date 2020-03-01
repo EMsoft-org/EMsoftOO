@@ -12,6 +12,8 @@
  energyfile = 'MCoutput.h5',
 ! BetheParameters file name
  BetheParametersFile = 'BetheParameters.nml',
+! use kinematical approximation ?
+ kinematical = .FALSE., 
 ! do you wish to receive a notification (Email or Slack) when the program completes ?
  Notify = 'Off', 
 ! name of EMMCOpenCL output file to be used to copy the MC data from for this master pattern run;

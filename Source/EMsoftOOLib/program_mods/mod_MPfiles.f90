@@ -57,6 +57,7 @@ type, public :: EBSDmasterNameListType
   logical           :: combinesites
   logical           :: restart
   logical           :: uniform
+  logical           :: kinematical 
 end type EBSDmasterNameListType
 
 
@@ -528,9 +529,9 @@ IMPLICIT NONE
 class(MPfile_T), INTENT(INOUT)          :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
 
-integer(kind=irg),parameter             :: n_int = 8, n_real = 1
+integer(kind=irg),parameter             :: n_int = 9, n_real = 1
 integer(kind=irg)                       :: hdferr, io_int(n_int), restart, uniform, combinesites, &
-                                           useEnergyWeighting
+                                           useEnergyWeighting, dokinematical
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
 character(fnlen)                        :: dataset, groupname
@@ -544,6 +545,11 @@ groupname = SC_EBSDMasterNameList
 hdferr = HDF%createGroup(groupname)
 
 ! write all the single integers
+if (emnl%kinematical) then 
+  dokinematical = 1
+else 
+  dokinematical = 0
+end if 
 if (emnl%combinesites) then 
   combinesites = 1
 else 
@@ -564,7 +570,7 @@ if (emnl%uniform) then
 else 
   uniform = 0
 end if
-io_int = (/ emnl%stdout, emnl%npx, emnl%Esel, emnl%nthreads, combinesites, restart, uniform, useEnergyWeighting /)
+io_int = (/ emnl%stdout, emnl%npx, emnl%Esel, emnl%nthreads, combinesites, restart, uniform, useEnergyWeighting, dokinematical /)
 intlist(1) = 'stdout'
 intlist(2) = 'npx'
 intlist(3) = 'Esel'
@@ -573,6 +579,7 @@ intlist(5) = 'combinesites'
 intlist(6) = 'restart'
 intlist(7) = 'uniform'
 intlist(8) = 'useEnergyWeighting'
+intlist(9) = 'kinematical'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write a single real
@@ -658,7 +665,7 @@ logical,INTENT(IN),OPTIONAL                      :: defectMP
 type(IO_T)                                       :: Message
 character(fnlen)                                 :: infile, groupname, datagroupname, dataset
 logical                                          :: stat, readonly, g_exists, f_exists, FL, keepall, dfMP
-integer(kind=irg)                                :: ii, nlines, restart, combinesites, uniform, istat, hdferr
+integer(kind=irg)                                :: ii, nlines, restart, combinesites, uniform, istat, hdferr, dokinematical
 integer(kind=irg),allocatable                    :: iarray(:)
 real(kind=sgl),allocatable                       :: farray(:)
 real(kind=sgl),allocatable                       :: mLPNH(:,:,:,:), mLPNH3(:,:,:)
@@ -821,6 +828,14 @@ if(g_exists) then
     call HDF%readDatasetInteger(dataset, hdferr, restart)
     mpnl%restart = .FALSE.
     if (restart.ne.0) mpnl%restart = .TRUE.
+end if
+
+dataset = SC_kinematical
+call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
+if(g_exists) then
+    call HDF%readDatasetInteger(dataset, hdferr, dokinematical)
+    mpnl%kinematical= .FALSE.
+    if (dokinematical.ne.0) mpnl%kinematical = .TRUE.
 end if
 
 dataset = SC_stdout

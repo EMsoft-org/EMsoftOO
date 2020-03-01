@@ -95,6 +95,7 @@ private
   procedure, pass(self) :: Initialize_ReflectionList_
   procedure, pass(self) :: Initialize_ReflectionList_EwaldSweep_
   procedure, pass(self) :: GetDynMat_
+  procedure, pass(self) :: GetDynMatKin_
   procedure, pass(self) :: get_nref_
   procedure, pass(self) :: CalcLgh_ 
   procedure, pass(self) :: getSghfromLUT_
@@ -109,6 +110,7 @@ private
   generic, public :: Initialize_ReflectionList => Initialize_ReflectionList_, &
                                                   Initialize_ReflectionList_EwaldSweep_
   generic, public :: GetDynMat => GetDynMat_
+  generic, public :: GetDynMatKin => GetDynMatKin_
   generic, public :: get_nref => get_nref_
   generic, public :: CalcLgh => CalcLgh_
   generic, public :: getSghfromLUT => getSghfromLUT_
@@ -123,6 +125,7 @@ end type gvectors_T
 !DEC$ ATTRIBUTES DLLEXPORT :: Compute_ReflectionListZoneAxis
 !DEC$ ATTRIBUTES DLLEXPORT :: Initialize_ReflectionList
 !DEC$ ATTRIBUTES DLLEXPORT :: GetDynMat
+!DEC$ ATTRIBUTES DLLEXPORT :: GetDynMatKin
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcLgh
 !DEC$ ATTRIBUTES DLLEXPORT :: get_nref
 
@@ -1054,6 +1057,66 @@ if (present(BlochMode)) then
 end if
 
 end subroutine GetDynMat_
+
+
+!--------------------------------------------------------------------------
+recursive subroutine GetDynMatKin_(self, cell, Diff, listrootw, DynMat, nns)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 03/01/20
+  !!
+  !! compute the Bloch wave dynamical matrix for the kinematical case 
+  !! [no Bethe perturbations]
+
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+
+IMPLICIT NONE
+
+class(gvectors_T), INTENT(INOUT) :: self 
+type(Cell_T),INTENT(INOUT)       :: cell
+type(Diffraction_T),INTENT(INOUT):: Diff
+type(reflisttype),pointer        :: listrootw
+integer(kind=irg),INTENT(IN)     :: nns
+complex(kind=dbl),INTENT(INOUT)  :: DynMat(nns,nns)
+
+type(gnode)                      :: rlp
+complex(kind=dbl)                :: czero 
+real(kind=dbl)                   :: mlambda
+real(kind=sgl)                   :: Upz
+integer(kind=sgl)                :: ir, ll(3)
+type(reflisttype),pointer        :: listroot, rlr
+
+czero = cmplx(0.0,0.0,dbl)      ! complex zero
+mLambda = Diff%getWaveLength()
+
+nullify(rlr)
+
+call Diff%setrlpmethod('WK')
+listroot => self%reflist 
+
+DynMat = czero
+call Diff%CalcUcg(cell, (/0,0,0/) )
+rlp = Diff%getrlp()
+Upz = rlp%Upmod
+
+rlr => listroot%next
+ir = 1
+do
+  if (.not.associated(rlr)) EXIT
+  if (ir.ne.1) then  ! not a diagonal entry
+! we only need to fill the first column in the kinematical approximation ...
+    ll = rlr%hkl 
+    DynMat(ir,1) = Diff%getLUT( ll )
+  end if 
+! add the diagonal entry
+  DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda,Upz,dbl)
+  rlr => rlr%nexts
+  ir = ir+1
+end do
+
+end subroutine GetDynMatKin_
 
 !--------------------------------------------------------------------------
 recursive subroutine getSghfromLUT_(self,Diff,nns,numset,nat,Sgh)

@@ -118,10 +118,11 @@ logical           :: useEnergyWeighting
 logical           :: combinesites
 logical           :: restart
 logical           :: uniform
+logical           :: kinematical
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist /EBSDmastervars/ dmin,npx,nthreads,copyfromenergyfile,energyfile,Esel,restart,uniform,Notify, &
-                          combinesites, h5copypath, BetheParametersFile, stdout, useEnergyWeighting
+                          combinesites, h5copypath, BetheParametersFile, stdout, useEnergyWeighting, kinematical
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 stdout = 6
@@ -138,6 +139,7 @@ useEnergyWeighting = .FALSE.    ! use the Monte Carlo depth histogram to scale t
 combinesites = .FALSE.          ! combine all atom sites into one BSE yield or not
 restart = .FALSE.               ! when .TRUE. an existing file will be assumed 
 uniform = .FALSE.               ! when .TRUE., the output master patterns will contain 1.0 everywhere
+kinematical = .FALSE.           ! use the kinematical approximation if .TRUE.
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -171,6 +173,7 @@ self%nml%useEnergyWeighting = useEnergyWeighting
 self%nml%combinesites = combinesites
 self%nml%restart = restart
 self%nml%uniform = uniform
+self%nml%kinematical = kinematical
 
 end subroutine readNameList_
 
@@ -877,19 +880,29 @@ energyloop: do iE=Estart,1,-1
 ! ---------- end of "create the master reflection list"
 !=============================================
 
-
 ! determine strong and weak reflections
      nullify(firstw)
      nns = 0
      nnw = 0
      call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
 
+     if (emnl%kinematical.eqv..FALSE.) then 
 ! generate the dynamical matrix
-     if (allocated(DynMat)) deallocate(DynMat)
-     allocate(DynMat(nns,nns))
-     call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
-     totstrong = totstrong + nns
-     totweak = totweak + nnw
+       if (allocated(DynMat)) deallocate(DynMat)
+       allocate(DynMat(nns,nns))
+       call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
+       totstrong = totstrong + nns
+       totweak = totweak + nnw
+     else 
+! all reflections are strong, but they are not coupled to each other, only to the 
+! incident beam; all q_{g-g'} are zero except the ones with g'=0.  In addition, there 
+! is no anomalous absorption, only normal absorption.
+       if (allocated(DynMat)) deallocate(DynMat)
+       allocate(DynMat(nns,nns))
+       call reflist%GetDynMatKin(cell, Diff, firstw, DynMat, nns)
+       totstrong = totstrong + nns
+       totweak = 0
+     end if 
 
 ! then we need to initialize the Sgh and Lgh arrays
      if (allocated(Sgh)) deallocate(Sgh)
