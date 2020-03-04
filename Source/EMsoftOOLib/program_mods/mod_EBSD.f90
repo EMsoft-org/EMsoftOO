@@ -36,6 +36,7 @@ module mod_EBSD
 use mod_kinds
 use mod_global
 use mod_quaternions
+use mod_MPfiles
 
 IMPLICIT NONE 
 private 
@@ -536,8 +537,10 @@ use mod_MCfiles
 use mod_MPfiles
 use HDF5
 use mod_HDFsupport
+use mod_HDFnames
 use mod_io
 use mod_rotations
+use stringconstants
 
 IMPLICIT NONE 
 
@@ -549,6 +552,7 @@ character(fnlen), INTENT(INOUT)     :: nmldeffile
 type(MCfile_T)                      :: MCFT
 type(MPfile_T)                      :: MPFT
 type(HDF_T)                         :: HDF
+type(HDFnames_T)                    :: HDFnames
 type(so3_T)                         :: SO
 type(IO_T)                          :: Message
 type(Quaternion_T)                  :: quat 
@@ -567,6 +571,13 @@ type(r_T)                           :: rr
 call openFortranHDFInterface()
 
 associate( enl => self%nml, EBSDdetector => self%det, EBSDMCdata => MCFT%MCDT )
+
+! set the HDF group names for this program
+HDFnames = HDFnames_T() 
+call HDFnames%set_ProgramData(SC_EBSD) 
+call HDFnames%set_NMLlist(SC_EBSDNameList) 
+call HDFnames%set_NMLfilename(SC_EBSDNML) 
+call HDFnames%set_Variable(SC_MCOpenCL) 
 
 ! 1. read the angle array from file
 verbose = .TRUE.
@@ -600,8 +611,7 @@ mcnl = MCFT%getnml()
 ! 3. read EBSD master pattern file (HDF format)
 fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%masterfile))
 call MPFT%setFileName(fname)
-call MPFT%readMPfile(HDF, getmLPNH=.TRUE., getmLPSH=.TRUE.)
-mpnl = MPFT%getnml()
+call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
 
 ! for a regular Euler angle file, we precompute the detector arrays here; for the 'orpcdef' mode
 ! we compute them later (for each pattern separately)
@@ -614,11 +624,11 @@ if (trim(enl%anglefiletype).eq.'orientations') then
   call self%GenerateEBSDDetector(MCFT, verbose)
 
   ! perform the pattern computations
-  call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, numangles, qAR, progname, nmldeffile)
+  call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, mpnl, numangles, qAR, progname, nmldeffile)
 end if
 
 if (trim(enl%anglefiletype).eq.'orpcdef') then
-  call self%ComputedeformedEBSDPatterns(EMsoft, MCFT, MPFT, HDF, numangles, qAR, orpcdef, progname, nmldeffile)
+  call self%ComputedeformedEBSDPatterns(EMsoft, MCFT, MPFT, HDF, mpnl, numangles, qAR, orpcdef, progname, nmldeffile)
 end if 
 
 end associate 
@@ -873,7 +883,7 @@ end associate
 end subroutine GenerateEBSDDetector_
 
 !--------------------------------------------------------------------------
-subroutine ComputeEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, numangles, angles, progname, nmldeffile)
+subroutine ComputeEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, mpnl, numangles, angles, progname, nmldeffile)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -906,6 +916,7 @@ type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 type(MCfile_T), INTENT(INOUT)           :: MCFT 
 type(MPfile_T), INTENT(INOUT)           :: MPFT 
 type(HDF_T),INTENT(INOUT)               :: HDF 
+type(EBSDmasterNameListType),INTENT(INOUT) :: mpnl
 integer(kind=irg),INTENT(IN)            :: numangles
 type(QuaternionArray_T), INTENT(IN)     :: angles
 character(fnlen),INTENT(IN)             :: progname
@@ -983,7 +994,7 @@ real(kind=dbl)                          :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3
                                            Gmatrix(3,3)
 logical                                 :: includeFmatrix=.FALSE., noise
 
-associate( enl => self%nml, mcnl => MCFT%nml, mpnl => MPFT%nml, &
+associate( enl => self%nml, mcnl => MCFT%nml, &
            EBSDMCdata => MCFT%MCDT, EBSDMPdata => MPFT%MPDT, EBSDdetector => self%det )
 
 !====================================
@@ -1872,7 +1883,7 @@ binned = binned * mask
 end subroutine CalcEBSDPatternSingleFull_
 
 !--------------------------------------------------------------------------
-subroutine ComputedeformedEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, numangles, angles, orpcdef, progname, nmldeffile)
+subroutine ComputedeformedEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, mpnl, numangles, angles, orpcdef, progname, nmldeffile)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/18/20
@@ -1905,6 +1916,7 @@ type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 type(MCfile_T), INTENT(INOUT)           :: MCFT 
 type(MPfile_T), INTENT(INOUT)           :: MPFT 
 type(HDF_T),INTENT(INOUT)               :: HDF 
+type(EBSDmasterNameListType),INTENT(INOUT) :: mpnl
 integer(kind=irg),INTENT(IN)            :: numangles
 type(QuaternionArray_T), INTENT(IN)     :: angles
 type(EBSDAnglePCDefType),INTENT(IN)     :: orpcdef
@@ -1981,7 +1993,7 @@ real(kind=dbl)                          :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3
                                            Gmatrix(3,3)
 logical                                 :: includeFmatrix=.FALSE.
 
-associate( enl => self%nml, mcnl => MCFT%nml, mpnl => MPFT%nml, &
+associate( enl => self%nml, mcnl => MCFT%nml, &
            EBSDMCdata => MCFT%MCDT, EBSDMPdata => MPFT%MPDT, EBSDdetector => self%det )
 
 !====================================

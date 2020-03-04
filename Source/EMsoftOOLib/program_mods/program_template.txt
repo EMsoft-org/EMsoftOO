@@ -52,7 +52,7 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
 ! deal with the namelist stuff
 YYY = XXX_T(EMsoft%nmldeffile)
 
-! perform the sampling algorithm
+! perform the computations
 call YYY%XXX(EMsoft)
 
 end program EMXXX

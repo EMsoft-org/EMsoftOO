@@ -161,12 +161,8 @@ IMPLICIT NONE
 class(XXX_T), INTENT(INOUT)        :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
 
-integer(kind=irg),parameter             :: n_int = 11, n_real_bse1 = 9, n_real_full = 7, n_real_ivol= 6
+integer(kind=irg),parameter             :: n_int = 11, n_real = 9
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=dbl)                          :: io_real_bse1(n_real_bse1), io_real_full(n_real_full), &
-                                           io_real_ivol(n_real_ivol)
-character(20)                           :: reallist_bse1(n_real_bse1), reallist_full(n_real_full), &
-                                           reallist_ivol(n_real_ivol)
 character(20)                           :: intlist(n_int)
 character(fnlen)                        :: dataset, sval(1),groupname
 character(fnlen,kind=c_char)            :: line2(1)

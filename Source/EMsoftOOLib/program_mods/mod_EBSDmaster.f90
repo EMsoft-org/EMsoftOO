@@ -104,7 +104,6 @@ logical,OPTIONAL,INTENT(IN)                 :: initonly
 type(IO_T)                                  :: Message       
 logical                                     :: skipread = .FALSE.
 
-integer(kind=irg) :: stdout
 integer(kind=irg) :: npx
 integer(kind=irg) :: Esel
 integer(kind=irg) :: nthreads
@@ -114,7 +113,6 @@ character(fnlen)  :: copyfromenergyfile
 character(fnlen)  :: energyfile
 character(fnlen)  :: BetheParametersFile
 character(fnlen)  :: h5copypath
-logical           :: useEnergyWeighting
 logical           :: combinesites
 logical           :: restart
 logical           :: uniform
@@ -122,10 +120,9 @@ logical           :: kinematical
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist /EBSDmastervars/ dmin,npx,nthreads,copyfromenergyfile,energyfile,Esel,restart,uniform,Notify, &
-                          combinesites, h5copypath, BetheParametersFile, stdout, useEnergyWeighting, kinematical
+                          combinesites,h5copypath,BetheParametersFile,kinematical
 
 ! set the input parameters to default values (except for xtalname, which must be present)
-stdout = 6
 npx = 500                       ! Nx pixels (total = 2Nx+1)
 nthreads = 1
 Esel = -1                       ! selected energy value for single energy run
@@ -135,7 +132,6 @@ copyfromenergyfile = 'undefined'! default filename for z_0(E_e) data from a diff
 h5copypath = 'undefined'
 energyfile = 'undefined'        ! default filename for z_0(E_e) data from EMMC Monte Carlo simulations
 BetheParametersFile='BetheParameters.nml'
-useEnergyWeighting = .FALSE.    ! use the Monte Carlo depth histogram to scale the slice intensities (EMEBSDdepthmaster program)
 combinesites = .FALSE.          ! combine all atom sites into one BSE yield or not
 restart = .FALSE.               ! when .TRUE. an existing file will be assumed 
 uniform = .FALSE.               ! when .TRUE., the output master patterns will contain 1.0 everywhere
@@ -158,7 +154,6 @@ if (.not.skipread) then
 end if
 
 ! if we get here, then all appears to be ok, and we need to fill in the nml fields
-self%nml%stdout = stdout
 self%nml%npx = npx
 self%nml%Esel = Esel
 self%nml%nthreads = nthreads
@@ -168,8 +163,6 @@ self%nml%h5copypath = h5copypath
 self%nml%energyfile = energyfile
 self%nml%BetheParametersFile = BetheParametersFile
 self%nml%Notify = Notify
-self%nml%outname = energyfile       ! as off release 3.1, outname must be the same as energyfile
-self%nml%useEnergyWeighting = useEnergyWeighting
 self%nml%combinesites = combinesites
 self%nml%restart = restart
 self%nml%uniform = uniform
@@ -204,8 +197,6 @@ subroutine EBSDmaster_(self, EMsoft, progname)
 
 use mod_EMsoft
 use mod_initializers
-! use EBSDmod
-! use MBmodule
 use mod_symmetry
 use mod_crystallography
 use mod_gvectors
@@ -213,11 +204,11 @@ use mod_kvectors
 use mod_io
 use mod_math
 use mod_diffraction
-! use multibeams
 use mod_timing
 use mod_Lambert
 use HDF5
 use mod_HDFsupport
+use mod_HDFnames
 use ISO_C_BINDING
 use omp_lib
 use mod_notifications
@@ -242,6 +233,7 @@ type(MCfile_T)          :: MCFT
 type(MPfile_T)          :: MPFT
 type(kvectors_T)        :: kvec
 type(gvectors_T)        :: reflist
+type(HDFnames_T)        :: HDFnames
 
 real(kind=dbl)          :: ctmp(192,3), arg, Radius, xyz(3)
 integer(HSIZE_T)        :: dims4(4), cnt4(4), offset4(4)
@@ -294,8 +286,18 @@ character(100)                  :: c
 call openFortranHDFInterface()
 HDF = HDF_T() 
 
+! set the HDF group names for this program
+HDFnames = HDFnames_T() 
+call HDFnames%set_ProgramData(SC_EBSDmaster) 
+call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
+call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+call HDFnames%set_Variable(SC_MCOpenCL) 
+call MPFT%setModality('EBSD')
+
+! simplify the notation a little
 associate( emnl => self%nml )
 
+! initialize the timing routines
 timer = Timing_T()
 tstrb = timer%getTimeString()
 
@@ -347,8 +349,8 @@ end do
 ! should we create a new file or open an existing file?
 !=============================================
   lastEnergy = -1
-  outname = trim(EMsoft%generateFilePath('EMdatapathname',emnl%outname))
   energyfile = trim(EMsoft%generateFilePath('EMdatapathname',emnl%energyfile))
+  outname = trim(energyfile)
 
 if (emnl%restart.eqv..TRUE.) then
 ! in this case we need to check whether or not the file exists, then open
@@ -577,8 +579,7 @@ dataset = SC_EBSDmasterNML
 groupname = SC_NMLparameters
   hdferr = HDF%createGroup(groupname)
 
-  call MPFT%copynml(emnl)
-  call MPFT%writeHDFNameList(HDF)
+  call MPFT%writeHDFNameList(HDF, HDFnames, emnl)
   call Diff%writeBetheparameterNameList(HDF)
 
 ! leave this group
@@ -1123,11 +1124,11 @@ dataset = SC_masterSPSH
   call HDF%pop(.TRUE.)
 
  if ((emnl%Esel.eq.-1).and.(iE.ne.1)) then 
-  call Message%printMessage(' Intermediate data stored in file '//trim(emnl%outname), frm = "(A/)")
+  call Message%printMessage(' Intermediate data stored in file '//trim(emnl%energyfile), frm = "(A/)")
  end if
 
  if ((emnl%Esel.eq.-1).and.(iE.eq.1)) then 
-  call Message%printMessage(' Final data stored in file '//trim(emnl%outname), frm = "(A/)")
+  call Message%printMessage(' Final data stored in file '//trim(emnl%energyfile), frm = "(A/)")
  end if
 
 end do energyloop

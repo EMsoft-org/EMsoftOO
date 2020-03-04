@@ -31,7 +31,9 @@ module mod_MPfiles
   !! version: 1.0 
   !! date: 02/12/20
   !!
-  !! class for Master Pattern file handling 
+  !! generic class for Master Pattern file handling; programs must inherit this class
+  !! and extend it, for instance for EBSD, ECP, or TKD master patterns; we pass the namelist-type 
+  !! to the routines using the type(*) specification.
 
 use mod_kinds
 use mod_global
@@ -40,49 +42,63 @@ use stringconstants
 IMPLICIT NONE 
 private
 
-! namelist for the EMEBSDmaster program
-type, public :: EBSDmasterNameListType
-  integer(kind=irg) :: stdout
+type, public :: SEMmasterNameListType
   integer(kind=irg) :: npx
-  integer(kind=irg) :: Esel
   integer(kind=irg) :: nthreads
   real(kind=sgl)    :: dmin
   character(3)      :: Notify
   character(fnlen)  :: copyfromenergyfile
   character(fnlen)  :: h5copypath
   character(fnlen)  :: energyfile
-  character(fnlen)  :: outname
   character(fnlen)  :: BetheParametersFile
-  logical           :: useEnergyWeighting
   logical           :: combinesites
-  logical           :: restart
   logical           :: uniform
   logical           :: kinematical 
+end type SEMmasterNameListType
+
+! inherit the SEMmasterNameListType and extend it with additional parameters
+type, public, extends(SEMmasterNameListType) :: EBSDmasterNameListType
+  integer(kind=irg) :: Esel
+  logical           :: restart
+  logical           :: useEnergyWeighting 
 end type EBSDmasterNameListType
+
+type, public, extends(SEMmasterNameListType) :: EBSDmasterSHTNameListType
+  integer(kind=irg) :: Esel
+  logical           :: restart
+  logical           :: useEnergyWeighting 
+end type EBSDmasterSHTNameListType
+
+type, public, extends(SEMmasterNameListType) :: ECPmasterNameListType
+end type ECPmasterNameListType
+
+type, public, extends(SEMmasterNameListType) :: TKDmasterNameListType
+  integer(kind=irg) :: Esel
+  logical           :: restart
+end type TKDmasterNameListType
 
 
 type, public :: MPdataType
-        integer(kind=irg)               :: lastEnergy
-        integer(kind=irg)               :: numEbins
-        integer(kind=irg)               :: numset
-        integer(kind=irg)               :: newPGnumber
-        logical                         :: AveragedMP
-        character(fnlen)                :: xtalname
-        ! real(kind=sgl),allocatable      :: BetheParameters(:)
-        real(kind=sgl),allocatable      :: keVs(:)
-        real(kind=sgl),allocatable      :: mLPNH4(:,:,:,:)
-        real(kind=sgl),allocatable      :: mLPSH4(:,:,:,:)
-        real(kind=sgl),allocatable      :: mLPNH(:,:,:)
-        real(kind=sgl),allocatable      :: mLPSH(:,:,:)
-        real(kind=sgl),allocatable      :: masterSPNH(:,:,:)
-        real(kind=sgl),allocatable      :: masterSPSH(:,:,:)
+  integer(kind=irg)               :: lastEnergy
+  integer(kind=irg)               :: numEbins
+  integer(kind=irg)               :: numset
+  integer(kind=irg)               :: newPGnumber
+  logical                         :: AveragedMP
+  character(fnlen)                :: xtalname
+  real(kind=sgl),allocatable      :: keVs(:)
+  real(kind=sgl),allocatable      :: mLPNH4(:,:,:,:)
+  real(kind=sgl),allocatable      :: mLPSH4(:,:,:,:)
+  real(kind=sgl),allocatable      :: mLPNH(:,:,:)
+  real(kind=sgl),allocatable      :: mLPSH(:,:,:)
+  real(kind=sgl),allocatable      :: masterSPNH(:,:,:)
+  real(kind=sgl),allocatable      :: masterSPSH(:,:,:)
 end type MPdataType
 
 type, public :: MPfile_T 
   private 
-    type(MPdataType),public             :: MPDT
-    type(EBSDmasterNameListType),public :: nml 
-    character(fnlen)                    :: MPfile
+    type(MPdataType),public                :: MPDT
+    character(fnlen)                       :: MPfile
+    character(fnlen)                       :: modality
 
   contains
   private 
@@ -91,8 +107,10 @@ type, public :: MPfile_T
     procedure, pass(self) :: setFileName_
     ! procedure, pass(self) :: writeMPfile_
     procedure, pass(self) :: writeHDFNameList_
-    procedure, pass(self) :: copynml_
-    procedure, pass(self) :: getnml_
+    ! procedure, pass(self) :: copynml_
+    ! procedure, pass(self) :: getnml_
+    procedure, pass(self) :: set_Modality_
+    procedure, pass(self) :: get_Modality_
     procedure, pass(self) :: getlastEnergy_
     procedure, pass(self) :: getnumEbins_
     procedure, pass(self) :: getnumset_
@@ -111,10 +129,12 @@ type, public :: MPfile_T
 
     generic, public :: readMPfile => readMPfile_
     generic, public :: setFileName => setFileName_
+    generic, public :: setModality => set_Modality_
+    generic, public :: getModality => get_Modality_
     ! generic, public :: writeMPfile => writeMPfile_
     generic, public :: writeHDFNameList => writeHDFNameList_
-    generic, public :: copynml => copynml_
-    generic, public :: getnml => getnml_
+    ! generic, public :: copynml => copynml_
+    ! generic, public :: getnml => getnml_
     generic, public :: getlastEnergy => getlastEnergy_
     generic, public :: getnumEbins => getnumEbins_
     generic, public :: getnumset => getnumset_
@@ -151,47 +171,22 @@ IMPLICIT NONE
 
 end function MPfile_constructor
 
-!--------------------------------------------------------------------------
-subroutine copynml_(self, nml)
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/17/20
-!!
-!! copy the namelist into the MPfile_T class for writing to file
-
-IMPLICIT NONE 
-
-class(MPfile_T), INTENT(INOUT)            :: self
-type(EBSDmasterNameListType),INTENT(IN)   :: nml
-
-self%nml = nml
-
-end subroutine copynml_
-
 ! !--------------------------------------------------------------------------
-! subroutine copyBetheParameters_(self, acc, keep)
+! subroutine copynml_(self, nml)
 ! !! author: MDG 
 ! !! version: 1.0 
 ! !! date: 02/17/20
 ! !!
-! !! copy the BetheParameters array
+! !! copy the namelist into the MPfile_T class for writing to file
 
 ! IMPLICIT NONE 
 
-! class(MPfile_T), INTENT(INOUT)                :: self
-! real(kind=sgl), allocatable, INTENT(OUT)      :: acc(:)
-! logical, INTENT(IN), OPTIONAL                 :: keep 
+! class(MPfile_T), INTENT(INOUT)            :: self
+! type(EBSDmasterNameListType),INTENT(IN)   :: nml
 
-! integer(kind=irg)                             :: s(1)
+! self%nml = nml
 
-! s = shape(self%MPDT%BetheParameters)
-! allocate(acc(s(1)))
-
-! acc = self%MPDT%BetheParameters 
-
-! if (.not.present(keep)) deallocate(self%MPDT%BetheParameters)
-
-! end subroutine copyBetheParameters_
+! end subroutine copynml_
 
 !--------------------------------------------------------------------------
 subroutine copykeVs_(self, acc, keep)
@@ -375,6 +370,40 @@ if (.not.present(keep)) deallocate(self%MPDT%masterSPSH)
 end subroutine copymasterSPSH_
 
 !--------------------------------------------------------------------------
+function get_Modality_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/03/20
+!!
+!! get Modality from the MPfile_T class
+
+IMPLICIT NONE 
+
+class(MPfile_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = self%Modality
+
+end function get_Modality_
+
+!--------------------------------------------------------------------------
+subroutine set_Modality_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/03/20
+!!
+!! set Modality in the MPfile_T class
+
+IMPLICIT NONE 
+
+class(MPfile_T), INTENT(INOUT)     :: self
+character(*), INTENT(IN)           :: inp
+
+self%Modality = inp
+
+end subroutine set_Modality_
+
+!--------------------------------------------------------------------------
 subroutine setFileName_(self, MPfile)
 !! author: MDG 
 !! version: 1.0 
@@ -391,22 +420,31 @@ self%MPfile = trim(MPfile)
 
 end subroutine setFileName_
 
-!--------------------------------------------------------------------------
-function getnml_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/17/20
-!!
-!! get the namelist from the MPfile_T class
+! !--------------------------------------------------------------------------
+! function getnml_(self) result(nml)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 02/17/20
+! !!
+! !! get the namelist from the MPfile_T class
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-class(MPfile_T), INTENT(INOUT)            :: self
-type(EBSDmasterNameListType)              :: nml
+! class(MPfile_T), INTENT(INOUT)            :: self
+! class(SEMmasterNameListType)              :: nml
 
-nml = self%nml
+! select type(nml)
+!   type is (EBSDmasterNameListType)
+!     nml = self%EBSDnml
+!   type is (EBSDmasterSHTNameListType)
+!     nml = self%EBSDSHTnml
+!   type is (ECPmasterNameListType)
+!     nml = self%ECPnml
+!   type is (TKDmasterNameListType)
+!     nml = self%TKDnml
+! end select
 
-end function getnml_
+! end function getnml_
 
 !--------------------------------------------------------------------------
 function getnumEbins_(self) result(n)
@@ -511,15 +549,17 @@ n = trim(self%MPDT%xtalname)
 end function getxtalname_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeHDFNameList_(self, HDF)
+recursive subroutine writeHDFNameList_(self, HDF, HDFnames, emnl)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/05/20
 !!
-!! write namelist to HDF file
+!! write namelist to HDF file; this routine can handle EBSD, ECP, and TKD name lists
 
 use HDF5
 use mod_HDFsupport
+use mod_HDFnames
+use mod_IO
 use stringconstants 
 
 use ISO_C_BINDING
@@ -528,23 +568,73 @@ IMPLICIT NONE
 
 class(MPfile_T), INTENT(INOUT)          :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(SEMmasterNameListType), INTENT(IN):: emnl 
 
-integer(kind=irg),parameter             :: n_int = 9, n_real = 1
-integer(kind=irg)                       :: hdferr, io_int(n_int), restart, uniform, combinesites, &
-                                           useEnergyWeighting, dokinematical
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
+type(IO_T)                              :: Message
+integer(kind=irg)                       :: hdferr, restart, uniform, combinesites, Esel, &
+                                           useEnergyWeighting, dokinematical, n_int
+integer(kind=irg), allocatable          :: io_int(:)
+character(20), allocatable              :: intlist(:)
 character(fnlen)                        :: dataset, groupname
 character(fnlen,kind=c_char)            :: line2(1)
-logical                                 :: g_exists, overwrite=.TRUE.
-
-associate( emnl => self%nml )
+logical                                 :: g_exists, overwrite=.TRUE., isEBSD=.FALSE., &
+                                           isECP=.FALSE., isTKD=.FALSE., isEBSDSHT=.FALSE.
 
 ! create the group for this namelist
-groupname = SC_EBSDMasterNameList
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
-! write all the single integers
+! next determine what kind of namelist we are dealing with (EBSD, ECP, or TKD)
+select type(emnl) 
+  type is (EBSDmasterNameListType)
+    isEBSD = .TRUE.
+    if (emnl%useEnergyWeighting) then 
+      useEnergyWeighting = 1
+    else 
+      useEnergyWeighting = 0
+    end if
+    if (emnl%restart) then 
+      restart = 1
+    else 
+      restart = 0
+    end if
+    Esel = emnl%Esel
+    n_int = 8
+    allocate( io_int(n_int), intlist(n_int) )
+  type is (EBSDmasterSHTNameListType)
+    isEBSDSHT = .TRUE.
+    if (emnl%useEnergyWeighting) then 
+      useEnergyWeighting = 1
+    else 
+      useEnergyWeighting = 0
+    end if
+    if (emnl%restart) then 
+      restart = 1
+    else 
+      restart = 0
+    end if
+    Esel = emnl%Esel
+    n_int = 8
+    allocate( io_int(n_int), intlist(n_int) )
+  type is (ECPmasterNameListType)
+    isECP = .TRUE.
+    n_int = 5
+    allocate( io_int(n_int), intlist(n_int) )
+  type is (TKDmasterNameListType)
+    isTKD = .TRUE.
+    if (emnl%restart) then 
+      restart = 1
+    else 
+      restart = 0
+    end if
+    Esel = emnl%Esel
+    n_int = 7
+    allocate( io_int(n_int), intlist(n_int) )
+  class default 
+    call Message%printError('writeHDFNameList', 'unknown name list type requested')
+end select
+
+! convert all logicals to integer 1 or 0
 if (emnl%kinematical) then 
   dokinematical = 1
 else 
@@ -555,31 +645,44 @@ if (emnl%combinesites) then
 else 
   combinesites = 0
 end if
-if (emnl%useEnergyWeighting) then 
-  useEnergyWeighting = 1
-else 
-  useEnergyWeighting = 0
-end if
-if (emnl%restart) then 
-  restart = 1
-else 
-  restart = 0
-end if
+
 if (emnl%uniform) then 
   uniform = 1
 else 
   uniform = 0
 end if
-io_int = (/ emnl%stdout, emnl%npx, emnl%Esel, emnl%nthreads, combinesites, restart, uniform, useEnergyWeighting, dokinematical /)
-intlist(1) = 'stdout'
-intlist(2) = 'npx'
-intlist(3) = 'Esel'
-intlist(4) = 'nthreads'
-intlist(5) = 'combinesites'
-intlist(6) = 'restart'
-intlist(7) = 'uniform'
-intlist(8) = 'useEnergyWeighting'
-intlist(9) = 'kinematical'
+
+! these are the common integer parameters for EBSD, ECP, and TKD
+io_int(1) = emnl%npx  
+io_int(2) = emnl%nthreads
+io_int(3) = combinesites
+io_int(4) = dokinematical
+io_int(5) = uniform
+
+intlist(1) = 'npx'
+intlist(2) = 'nthreads'
+intlist(3) = 'combinesites'
+intlist(4) = 'kinematical'
+intlist(5) = 'uniform'
+
+! and here are the specific integer parameters
+if ((isEBSD.eqv..TRUE.) .or. (isEBSDSHT.eqv..TRUE.)) then
+  io_int(6) = restart
+  io_int(7) = useEnergyWeighting
+  io_int(8) = Esel
+  intlist(6) = 'restart'
+  intlist(7) = 'useEnergyWeighting'
+  intlist(8) = 'Esel'
+end if 
+
+if (isTKD.eqv..TRUE.) then
+  io_int(6) = restart
+  io_int(7) = Esel
+  intlist(6) = 'restart'
+  intlist(7) = 'Esel'
+end if 
+
+! and write them to the HDF file
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write a single real
@@ -592,11 +695,13 @@ else
 end if
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create dmin dataset',hdferr)
 
-dataset = SC_latgridtype
-line2(1) = 'Lambert'
-line2(1) = cstringify(line2(1))
-hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create latgridtype dataset',hdferr)
+if (isEBSDSHT.eqv..TRUE.) then 
+  dataset = SC_latgridtype
+  line2(1) = 'Lambert'
+  line2(1) = cstringify(line2(1))
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+  if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create latgridtype dataset',hdferr)
+end if
 
 dataset = SC_copyfromenergyfile
 line2(1) = emnl%copyfromenergyfile
@@ -618,7 +723,7 @@ else
 end if
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create energyfile dataset',hdferr)
 
-dataset = 'BetheParametersFile'
+dataset = SC_BetheParametersFile
 line2(1) = emnl%BetheParametersFile
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists) then 
@@ -631,12 +736,10 @@ if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create BetheP
 ! and pop this group off the stack
 call HDF%pop()
 
-end associate
-
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine readMPfile_(self, HDF, getkeVs, getmLPNH, getmLPSH, &
+recursive subroutine readMPfile_(self, HDF, HDFnames, mpnl, getkeVs, getmLPNH, getmLPSH, &
                                  getmasterSPNH, getmasterSPSH, keep4, defectMP)
 !! author: MDG 
 !! version: 1.0 
@@ -646,6 +749,7 @@ recursive subroutine readMPfile_(self, HDF, getkeVs, getmLPNH, getmLPSH, &
 
 use HDF5 
 use mod_HDFsupport
+use mod_HDFnames
 use mod_io
 use stringconstants
 use ISO_C_BINDING 
@@ -654,6 +758,8 @@ IMPLICIT NONE
 
 class(MPfile_T), INTENT(INOUT)                   :: self 
 type(HDF_T), INTENT(INOUT)                       :: HDF
+type(HDFnames_T), INTENT(INOUT)                  :: HDFnames
+class(SEMmasterNameListType), INTENT(INOUT)      :: mpnl
 logical,INTENT(IN),OPTIONAL                      :: getkeVs
 logical,INTENT(IN),OPTIONAL                      :: getmLPNH
 logical,INTENT(IN),OPTIONAL                      :: getmLPSH
@@ -665,12 +771,15 @@ logical,INTENT(IN),OPTIONAL                      :: defectMP
 type(IO_T)                                       :: Message
 character(fnlen)                                 :: infile, groupname, datagroupname, dataset
 logical                                          :: stat, readonly, g_exists, f_exists, FL, keepall, dfMP
-integer(kind=irg)                                :: ii, nlines, restart, combinesites, uniform, istat, hdferr, dokinematical
+integer(kind=irg)                                :: ii, nlines, restart, combinesites, uniform, istat, hdferr, &
+                                                    dokinematical, useEnergyWeighting, Esel
 integer(kind=irg),allocatable                    :: iarray(:)
 real(kind=sgl),allocatable                       :: farray(:)
 real(kind=sgl),allocatable                       :: mLPNH(:,:,:,:), mLPNH3(:,:,:)
 integer(HSIZE_T)                                 :: dims(1), dims2(2), dims3(3), offset3(3), dims4(4) 
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+logical                                          :: isEBSD=.FALSE., isECP=.FALSE., isTKD=.FALSE.
+character(7)                                     :: modality 
 
 dfMP = .FALSE.
 if (present(defectMP)) then
@@ -682,7 +791,19 @@ if (present(keep4)) then
   if (keep4.eqv..TRUE.) keepall = .TRUE.
 end if
 
-associate( mpnl => self%nml,  MPDT => self%MPDT )
+! next determine what kind of namelist we are dealing with (EBSD, ECP, or TKD)
+select type (mpnl)
+  class is (EBSDmasterNameListType)
+    isEBSD = .TRUE. 
+  class is (ECPmasterNameListType)
+    isECP = .TRUE. 
+  class is (TKDmasterNameListType)
+    isTKD = .TRUE. 
+  class default 
+    call Message%printError('readMPfile', 'unknown master pattern type requested')
+end select
+
+associate( MPDT => self%MPDT )
 
 ! we assume that the calling program has opened the HDF interface
 inquire(file=trim(self%MPfile), exist=f_exists)
@@ -705,20 +826,15 @@ hdferr =  HDF%openFile(self%MPfile, readonly)
 ! check whether or not the MC file was generated using DREAM.3D
 ! this is necessary so that the proper reading of fixed length vs. variable length strings will occur.
 ! this test sets a flag in side the HDFsupport module so that the proper reading routines will be employed
-if (dfMP.eqv..TRUE.) then 
-  datagroupname = '/EMheader/EBSDdefectmaster'
-else
-  datagroupname = '/EMheader/EBSDmaster'
-end if
+
+datagroupname = trim(HDFnames%get_EMheader())//trim(HDFnames%get_ProgramData())
 call H5Lexists_f(HDF%getobjectID(),trim(datagroupname),g_exists, hdferr)
 if (.not.g_exists) then
   call Message%printError('readMPfile','This HDF file does not contain Master Pattern header data')
 end if
 
-groupname = SC_EMheader
-hdferr = HDF%openGroup(groupname)
-groupname = SC_MCOpenCL
-hdferr = HDF%openGroup(groupname)
+hdferr = HDF%openGroup(HDFnames%get_EMheader())
+hdferr = HDF%openGroup(HDFnames%get_Variable())  ! SC_MCOpenCL
 FL = .FALSE.
 datagroupname = 'FixedLength'
 FL = HDF%CheckFixedLengthflag(datagroupname)
@@ -731,9 +847,8 @@ call HDF%pop()
 !====================================
 ! make sure this is a Master Pattern file
 !====================================
-groupname = SC_NMLfiles
-    hdferr = HDF%openGroup(groupname)
-dataset = 'EBSDmasterNML'
+hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+dataset = SC_EBSDmasterNML
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..FALSE.) then
     call HDF%pop(.TRUE.)
@@ -756,9 +871,8 @@ end if
 
 if (MPDT%AveragedMP.eqv..TRUE.) then
   ! read the new point group number from the newpgnum data set in the EBSDoverlapNameList NMLparameters group
-  groupname = SC_NMLparameters
-      hdferr = HDF%openGroup(groupname)
-  groupname = 'EBSDoverlapNameList'
+  hdferr = HDF%openGroup(HDFnames%get_NMLparameters())
+  groupname = SC_EBSDoverlapNameList
       hdferr = HDF%openGroup(groupname)
 
   dataset = 'newpgnum'
@@ -772,15 +886,8 @@ end if
 !====================================
 ! read all NMLparameters group datasets
 !====================================
-groupname = SC_NMLparameters
-    hdferr = HDF%openGroup(groupname)
-groupname = SC_EBSDMasterNameList
-    hdferr = HDF%openGroup(groupname)
-
-! we'll read these roughly in the order that the HDFView program displays them...
-dataset = SC_Esel
-call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-if(g_exists) call HDF%readDatasetInteger(dataset, hdferr, mpnl%Esel)
+hdferr = HDF%openGroup(HDFnames%get_NMLparameters())
+hdferr = HDF%openGroup(HDFnames%get_NMLlist())
 
 ! we need to set the newPGnumber parameter to the correct value, to reflect the fact that 
 ! the symmetry of the overlap pattern will be different [ added by MDG, 06/20/19 ]
@@ -790,6 +897,7 @@ if (MPDT%AveragedMP.eqv..TRUE.) then
   if(g_exists) call HDF%readDatasetInteger(dataset, hdferr, MPDT%newPGnumber)
 end if
 
+! we need to first read all the parameters that are common to EBSD, ECP, and TKD namelists
 dataset = SC_combinesites
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 mpnl%combinesites = .FALSE.
@@ -822,13 +930,6 @@ dataset = SC_npx
 dataset = SC_nthreads
     call HDF%readDatasetInteger(dataset, hdferr, mpnl%nthreads)
 
-dataset = SC_restart
-call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
-if(g_exists) then
-    call HDF%readDatasetInteger(dataset, hdferr, restart)
-    mpnl%restart = .FALSE.
-    if (restart.ne.0) mpnl%restart = .TRUE.
-end if
 
 dataset = SC_kinematical
 call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
@@ -836,12 +937,6 @@ if(g_exists) then
     call HDF%readDatasetInteger(dataset, hdferr, dokinematical)
     mpnl%kinematical= .FALSE.
     if (dokinematical.ne.0) mpnl%kinematical = .TRUE.
-end if
-
-dataset = SC_stdout
-call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
-if(g_exists) then
-    call HDF%readDatasetInteger(dataset, hdferr, mpnl%stdout)
 end if
 
 dataset = SC_uniform
@@ -852,21 +947,55 @@ if (g_exists.eqv..TRUE.) then
     if (uniform.ne.0) mpnl%uniform = .TRUE.
 end if 
 
+! then we read parameters that are specific to the stated modality
+! we need to do this inside a select type construct, since we need to access 
+! members of inherited types...
+select type (mpnl)
+  class is (EBSDmasterNameListType)
+    dataset = SC_Esel
+    call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+    if(g_exists) call HDF%readDatasetInteger(dataset, hdferr, Esel)
+    mpnl%Esel = Esel
+
+    dataset = SC_restart
+    call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
+    if(g_exists) then
+        call HDF%readDatasetInteger(dataset, hdferr, restart)
+        mpnl%restart = .FALSE.
+        if (restart.ne.0) mpnl%restart = .TRUE.
+    end if
+
+    dataset = SC_useEnergyWeighting
+    call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
+    if(g_exists) then
+        call HDF%readDatasetInteger(dataset, hdferr, useEnergyWeighting)
+        mpnl%useEnergyWeighting = .FALSE.
+        if (useEnergyWeighting.ne.0) mpnl%useEnergyWeighting = .TRUE.
+    end if
+  class is (TKDmasterNameListType)
+    dataset = SC_Esel
+    call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+    if(g_exists) call HDF%readDatasetInteger(dataset, hdferr, mpnl%Esel)
+
+    dataset = SC_restart
+    call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
+    if(g_exists) then
+        call HDF%readDatasetInteger(dataset, hdferr, restart)
+        mpnl%restart = .FALSE.
+        if (restart.ne.0) mpnl%restart = .TRUE.
+    end if
+end select
+
 ! and close the NMLparameters group
-    call HDF%pop()
-    call HDF%pop()
+call HDF%pop()
+call HDF%pop()
+
 !====================================
 !====================================
 
 ! open the Master Pattern data group
-groupname = SC_EMData
-    hdferr = HDF%openGroup(groupname)
-if (dfMP.eqv..TRUE.) then 
-  groupname = SC_EBSDdefectmaster
-else
-  groupname = SC_EBSDmaster
-end if
-    hdferr = HDF%openGroup(groupname)
+hdferr = HDF%openGroup(HDFnames%get_EMData())
+hdferr = HDF%openGroup(HDFnames%get_ProgramData())
 
 ! integers
 dataset = SC_lastEnergy
