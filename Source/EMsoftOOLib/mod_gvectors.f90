@@ -1119,7 +1119,7 @@ end do
 end subroutine GetDynMatKin_
 
 !--------------------------------------------------------------------------
-recursive subroutine getSghfromLUT_(self,Diff,nns,numset,nat,Sgh)
+recursive subroutine getSghfromLUT_(self,Diff,nns,numset,Sgh)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/12/20
@@ -1136,7 +1136,6 @@ class(gvectors_T),INTENT(INOUT)         :: self
 type(Diffraction_T),INTENT(INOUT)       :: Diff
 integer(kind=irg),INTENT(IN)            :: nns
 integer(kind=irg),INTENT(IN)            :: numset
-integer(kind=irg),INTENT(IN)            :: nat(100)
 complex(kind=dbl),INTENT(INOUT)         :: Sgh(nns,nns,numset)
 
 type(reflisttype),pointer               :: rltmpa, rltmpb

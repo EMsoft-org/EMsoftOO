@@ -911,7 +911,7 @@ energyloop: do iE=Estart,1,-1
      allocate(Sgh(nns,nns,numset),Lgh(nns,nns))
      Sgh = czero
      Lgh = czero
-     call reflist%getSghfromLUT(Diff,nns,numset,nat,Sgh)
+     call reflist%getSghfromLUT(Diff,nns,numset,Sgh)
 
 
 ! solve the dynamical eigenvalue equation for this beam direction  
