@@ -337,8 +337,10 @@ czero = cmplx(0.D0,0.D0)
 !=============================================
 !=============================================
 ! ---------- read Monte Carlo .h5 output file and extract necessary parameters
-fname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%energyfile))
-call MCFT%setFileName(fname)
+energyfile = ''
+energyfile = EMsoft%generateFilePath('EMdatapathname',trim(emnl%energyfile))
+outname = trim(energyfile)
+call MCFT%setFileName(energyfile)
 call MCFT%readMCfile(HDF, getAccumz=.TRUE.)
 mcnl = MCFT%getnml()
 call MCFT%copyaccumz(accum_z)
@@ -417,7 +419,6 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
 !=============================================
 ! ---------- a couple of initializations
    npy = emnl%npx
-   allocate(svals(numset),stat=istat)
    gzero = 1  ! index of incident beam
 ! ----------
 !=============================================
@@ -459,9 +460,10 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
 !=============================================
 ! create or update the HDF5 output file
 !=============================================
-  HDF = HDF_T() 
-
 ! Open an existing file or create a new file using the default properties.
+write (*,*) 'energyfile = ', trim(energyfile)
+write (*,*) 'outname    = ', trim(outname)
+
   if (trim(energyfile).eq.trim(outname)) then
     hdferr =  HDF%openFile(outname)
   else
@@ -554,8 +556,8 @@ dataset = SC_mLPSH
   end if
 
 dataset = SC_masterSPNH
-  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, numEbins /)
-  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1 /)
+  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, numsites /)
+  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, numsites /)
   offset3 = (/ 0, 0, 0 /)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
   if (g_exists) then 
@@ -565,8 +567,8 @@ dataset = SC_masterSPNH
   end if
 
 dataset = SC_masterSPSH
-  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, numEbins /)
-  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1 /)
+  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, numsites /)
+  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, numsites /)
   offset3 = (/ 0, 0, 0 /)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
   if (g_exists) then 
@@ -580,6 +582,9 @@ dataset = SC_masterSPSH
 ! =====================================================
 
   call HDF%pop(.TRUE.)
+
+write (*,*) 'closed HDF file'
+
 
 ! we use two times, one (1) for each individual energy level, the other (2) for the overall time
 call timer%Time_tick(2)
@@ -712,7 +717,7 @@ allocate(svals(numset))
 
 ! solve the dynamical eigenvalue equation for this beam direction  
      kn = knlist(ik)
-     call reflist%CalcLgh(DynMat,Lgh,dble(thick(iE)),dble(kn),nns,gzero,mcnl%depthstep,lambdaZ,izz)
+     call reflist%CalcLgh(DynMat,Lgh,intthick,dble(kn),nns,gzero,mcnl%depthstep,lambdaZ,izz)
 
 ! sum over the element-wise (Hadamard) product of the Lgh and Sgh arrays 
      svals = 0.0
@@ -845,7 +850,6 @@ end do
   dstr = timer%getDateString() 
   tstre = timer%getTimeString()
 
-  HDF = HDF_T() 
 ! open the existing file using the default properties.
   hdferr =  HDF%openFile(outname)
 

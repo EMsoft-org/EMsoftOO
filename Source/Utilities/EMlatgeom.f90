@@ -69,10 +69,10 @@ type(IO_T)                :: Message
 character(fnlen)          :: progname = 'EMlatgeom.f90'
 character(fnlen)          :: progdesc = 'Simple lattice geometry program'
 
-integer(kind=irg)        	:: isel,another, oi_int(3)
-real(kind=sgl)           	:: v1(3),v2(3),vc(3),p,q,r, oi_real(1)
-character(1)             	:: sp,sp2
-character(fnlen)		      :: xtalname
+integer(kind=irg)            :: isel,another, oi_int(3)
+real(kind=sgl)               :: v1(3),v2(3),vc(3),p,q,r, oi_real(1)
+character(1)                 :: sp,sp2
+character(fnlen)              :: xtalname
 
  EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 914 /) )
 
@@ -133,8 +133,8 @@ use mod_kinds
 use mod_io
         
 type(IO_T)                      :: Message
-integer(kind=irg),INTENT(OUT)  	:: isel	! selection 
-integer(kind=irg)		            :: io_int(1)
+integer(kind=irg),INTENT(OUT)      :: isel    ! selection 
+integer(kind=irg)                    :: io_int(1)
 
  call Message%printMessage(' Select from the following options: ', frm = "(A/)")
  call Message%printMessage(' [1] length of direct space vector', frm = "(A)")

@@ -490,10 +490,10 @@ real(kind=sgl),INTENT(INOUT)    :: volume(-ndims(1):ndims(1),-ndims(2):ndims(2),
 character(3),INTENT(IN)         :: scalingmode
  !! scaling type: 'lin' or 'log' or 'lev'
 
-integer(kind=ish)				        :: ivol(-ndims(1):ndims(1),-ndims(2):ndims(2),-ndims(3):ndims(3))
-integer(kind=ish)					      :: idims(3), mval
-real(kind=sgl)						      :: mi, ma, levels(6)
-integer(kind=irg)					      :: recno, i, j, k
+integer(kind=ish)                        :: ivol(-ndims(1):ndims(1),-ndims(2):ndims(2),-ndims(3):ndims(3))
+integer(kind=ish)                          :: idims(3), mval
+real(kind=sgl)                              :: mi, ma, levels(6)
+integer(kind=irg)                          :: recno, i, j, k
 
 ! This format is described on the following web pages:
 ! http://wwwmpa.mpa-garching.mpg.de/~mselig/povray/povray.html
@@ -676,7 +676,7 @@ real(kind=sgl),INTENT(IN)             :: rgb(3)
  !! rgb color triplet
 
 write (self%dunit,"('sphere { <',2(F9.6,','),F9.6,'>,',F9.6,' material { texture { pigment { rgb <', &
-                2(F9.6,','),F9.6,'>}}}}')") ctr(1:3), radius, rgb(1:3)
+                   &2(F9.6,','),F9.6,'>}}}}')") ctr(1:3), radius, rgb(1:3)
 
 end subroutine addSphere_
 
@@ -701,7 +701,7 @@ real(kind=sgl),INTENT(IN)             :: rgb(3)
  !! color triplet (RGB)
 
 write (self%dunit,"('cylinder { <',2(F9.6,','),F9.6,'>,<',2(F9.6,','),F9.6,'>,', F9.6,' pigment { ', &
-           'rgb <',2(F9.6,','),F9.6,'>}}')") p1(1:3), p2(1:3), radius, rgb(1:3)
+                  &'rgb <',2(F9.6,','),F9.6,'>}}')") p1(1:3), p2(1:3), radius, rgb(1:3)
 
 end subroutine addCylinder_
 

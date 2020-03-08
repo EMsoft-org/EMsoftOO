@@ -51,7 +51,7 @@ type(SpaceGroup_T)          :: SG
 character(fnlen)            :: progname = 'EMlistSG.f90'
 character(fnlen)            :: progdesc = 'List equivalent positions for arbitrary space group'
       
-character(3)   				      :: pos
+character(3)                         :: pos
 integer(kind=irg)           :: p(4),ii,jj,i, io_int(1)
 real(kind=sgl)              :: ppp, io_real(1)
 real(kind=dbl),allocatable  :: sgdata(:,:,:)

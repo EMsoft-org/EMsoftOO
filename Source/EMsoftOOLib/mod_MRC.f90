@@ -11,7 +11,7 @@
 !        list of conditions and the following disclaimer in the documentation and/or 
 !        other materials provided with the distribution.
 !     - The name of Marc De Graef may not be used to endorse or promote products 
-!	derived from this software without specific prior written permission.
+!    derived from this software without specific prior written permission.
 !
 ! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
 ! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
@@ -392,7 +392,7 @@ IMPLICIT NONE
 
 class(MRC_T), INTENT(INOUT)  :: self 
 
-integer(kind=irg)			       :: i
+integer(kind=irg)                   :: i
 
 ! this is a simple direct dump of all the structure entries into the MRC buffer
  call self%Write_Word(self%MRCheader%nx,4)
@@ -459,7 +459,7 @@ IMPLICIT NONE
 
 class(MRC_T), INTENT(INOUT)  :: self
 
-integer(kind=irg)			       :: i
+integer(kind=irg)                   :: i
 
 do i=1,1024
  call self%Write_Real(self%FEIheaders(i)%a_tilt,4)

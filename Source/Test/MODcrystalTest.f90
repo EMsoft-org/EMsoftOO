@@ -52,20 +52,20 @@ integer(C_INT32_T),INTENT(OUT)  :: res
 
 type(Cell_T)        :: cell
 type(SpaceGroup_T)  :: SG
-integer(kind=irg)		:: i, j, k
-real(kind=dbl)			:: diff
-real(kind=sgl)			:: diffs
+integer(kind=irg)        :: i, j, k
+real(kind=dbl)            :: diff
+real(kind=sgl)            :: diffs
 character(fnlen)    :: xtalname 
 
 ! reference values
 real(kind=dbl),parameter:: eps = 1.0D-10
 real(kind=sgl),parameter:: epss = 1.0E-7
-real(kind=dbl)   		:: dmt_ref(3,3), rmt_ref(3,3), dsm_ref(3,3), rsm_ref(3,3), vol_ref, alpha(3,3), &
+real(kind=dbl)           :: dmt_ref(3,3), rmt_ref(3,3), dsm_ref(3,3), rsm_ref(3,3), vol_ref, alpha(3,3), &
                        d(3), d_ref(3), t(3), dp_ref, dp 
-real(kind=sgl)			:: trsps_ref(27)
-real(kind=dbl)			:: trspd_ref(27)
-real(kind=sgl)			:: tins(3), touts(3)
-real(kind=dbl)			:: tind(3), toutd(3)
+real(kind=sgl)            :: trsps_ref(27)
+real(kind=dbl)            :: trspd_ref(27)
+real(kind=sgl)            :: tins(3), touts(3)
+real(kind=dbl)            :: tind(3), toutd(3)
 character(1)        :: inspace(3), outspace(3)
 real(kind=dbl)      :: ATOMpos(maxpasym,5)
 

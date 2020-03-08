@@ -58,7 +58,7 @@ integer(kind=irg)              :: ind(3),ans, oi_int(3)
 real(kind=sgl)                 :: oi_real(7)
 complex(kind=sgl)              :: oi_cmplx(1)
 real(kind=sgl)                 :: preg, dmin, gstepsize
-real(kind=dbl)				         :: eps = 1.0D-6
+real(kind=dbl)                         :: eps = 1.0D-6
 character(fnlen)               :: xtalname
 character(200)                 :: parta
 logical                        :: isallowed

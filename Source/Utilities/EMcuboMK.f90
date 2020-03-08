@@ -49,17 +49,17 @@ IMPLICIT NONE
 character(fnlen)            :: progname = 'EMcuboMK.f90'
 character(fnlen)            :: progdesc = 'Generate MacKenzie histogram for rotational symmetry based on cubochoric sampling'
 
-type(EMsoft_T) 				:: EMsoft 
-type(SpaceGroup_T)			:: SG 
-type(so3_T)					:: SO
-type(IO_T)					:: Message 
-type(r_T)					:: rod 
-type(c_T)					:: cu 
+type(EMsoft_T)                 :: EMsoft 
+type(SpaceGroup_T)            :: SG 
+type(so3_T)                    :: SO
+type(IO_T)                    :: Message 
+type(r_T)                    :: rod 
+type(c_T)                    :: cu 
 
-integer(kind=irg)			:: pgnum, FZorder, FZtype, nsteps, n, i, j, k, io_int(3), ntot, pgrotOrder
-real(kind=dbl)				:: sedge, delta, x, y, z, tot, rho, ho2(3), ho1(3), vol, xx(4)
-real(kind=dbl),allocatable	:: misor(:), histogram(:), e(:), mk(:)
-logical 					:: b
+integer(kind=irg)            :: pgnum, FZorder, FZtype, nsteps, n, i, j, k, io_int(3), ntot, pgrotOrder
+real(kind=dbl)                :: sedge, delta, x, y, z, tot, rho, ho2(3), ho1(3), vol, xx(4)
+real(kind=dbl),allocatable    :: misor(:), histogram(:), e(:), mk(:)
+logical                     :: b
 
 ! print the header information and handle command line arguments
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 906 /) )
@@ -96,68 +96,68 @@ delta = sedge / dble(nsteps)
 
 ! start the sampling, working in concentric cubes from the center outward
 do n = 0, nsteps 
-	if (n.eq.0) then 
-		misor(0) = 0.D0
-		e(0) = 0.D0
-		histogram(0) = 0.D0 
-	else ! loop over concentric cubes 
-		e(n) = dble(n) * delta   ! semi-edge length of sub-cube
-		! get the angle first 
-		if (n.lt.nsteps) then 
-			cu = c_T( cdinp = (/ e(n), 0.D0, 0.D0 /) )
-			rod = cu%cr()
-			xx = rod%r_copyd()
-			misor(n) = 2.D0 * atan(xx(4))
-		else
-			misor(n) = cPi
-		end if
-		! cover the +/- x faces with a complete grid
-		do j = -n, n
-			y = dble(j) * delta
-			do k = -n, n
-				z = dble(k) * delta
-				cu = c_T( cdinp = (/ e(n), y, z /) )
-				rod = cu%cr()
-		        b = SO%IsinsideFZ(rod)
-		        if (b) histogram(n) = histogram(n) + 1.D0
-				cu = c_T( cdinp = (/ -e(n), y, z/) )
-				rod = cu%cr()
-		        b = SO%IsinsideFZ(rod)
-		        if (b) histogram(n) = histogram(n) + 1.D0
-			end do 
-		end do 
-		! then cover the +/- y faces with a grid, omitting the already covered points 
-		do i = -n+1, n-1
-			x = dble(i) * delta
-			do k = -n, n
-				z = dble(k) * delta
-				cu = c_T( cdinp = (/ x, e(n), z /) )
-				rod = cu%cr()
-		        b = SO%IsinsideFZ(rod)
-		        if (b) histogram(n) = histogram(n) + 1.D0
-				cu = c_T( cdinp = (/ x, -e(n), z /) )
-				rod = cu%cr()
-		        b = SO%IsinsideFZ(rod)
-		        if (b) histogram(n) = histogram(n) + 1.D0
-			end do 
-		end do 
-		! finally cover the +/- z faces with a grid, omitting the already covered points 
-		do i = -n+1, n-1
-			x = dble(i) * delta
-			do j = -n+1, n-1
-				y = dble(j) * delta
-				cu = c_T( cdinp = (/ x, y, e(n) /) )
-				rod = cu%cr()
-		        b = SO%IsinsideFZ(rod)
-		        if (b) histogram(n) = histogram(n) + 1.D0
-				cu = c_T( cdinp = (/  x, y, -e(n) /) )
-				rod = cu%cr()
-		        b = SO%IsinsideFZ(rod)
-		        if (b) histogram(n) = histogram(n) + 1.D0
-			end do 
-		end do 
-		histogram(n) = histogram(n) * sin(misor(n)*0.5D0)**2 / dble( 2.D0 + 24.D0 * n**2 )
-	end if
+    if (n.eq.0) then 
+        misor(0) = 0.D0
+        e(0) = 0.D0
+        histogram(0) = 0.D0 
+    else ! loop over concentric cubes 
+        e(n) = dble(n) * delta   ! semi-edge length of sub-cube
+        ! get the angle first 
+        if (n.lt.nsteps) then 
+            cu = c_T( cdinp = (/ e(n), 0.D0, 0.D0 /) )
+            rod = cu%cr()
+            xx = rod%r_copyd()
+            misor(n) = 2.D0 * atan(xx(4))
+        else
+            misor(n) = cPi
+        end if
+        ! cover the +/- x faces with a complete grid
+        do j = -n, n
+            y = dble(j) * delta
+            do k = -n, n
+                z = dble(k) * delta
+                cu = c_T( cdinp = (/ e(n), y, z /) )
+                rod = cu%cr()
+                b = SO%IsinsideFZ(rod)
+                if (b) histogram(n) = histogram(n) + 1.D0
+                cu = c_T( cdinp = (/ -e(n), y, z/) )
+                rod = cu%cr()
+                b = SO%IsinsideFZ(rod)
+                if (b) histogram(n) = histogram(n) + 1.D0
+            end do 
+        end do 
+        ! then cover the +/- y faces with a grid, omitting the already covered points 
+        do i = -n+1, n-1
+            x = dble(i) * delta
+            do k = -n, n
+                z = dble(k) * delta
+                cu = c_T( cdinp = (/ x, e(n), z /) )
+                rod = cu%cr()
+                b = SO%IsinsideFZ(rod)
+                if (b) histogram(n) = histogram(n) + 1.D0
+                cu = c_T( cdinp = (/ x, -e(n), z /) )
+                rod = cu%cr()
+                b = SO%IsinsideFZ(rod)
+                if (b) histogram(n) = histogram(n) + 1.D0
+            end do 
+        end do 
+        ! finally cover the +/- z faces with a grid, omitting the already covered points 
+        do i = -n+1, n-1
+            x = dble(i) * delta
+            do j = -n+1, n-1
+                y = dble(j) * delta
+                cu = c_T( cdinp = (/ x, y, e(n) /) )
+                rod = cu%cr()
+                b = SO%IsinsideFZ(rod)
+                if (b) histogram(n) = histogram(n) + 1.D0
+                cu = c_T( cdinp = (/  x, y, -e(n) /) )
+                rod = cu%cr()
+                b = SO%IsinsideFZ(rod)
+                if (b) histogram(n) = histogram(n) + 1.D0
+            end do 
+        end do 
+        histogram(n) = histogram(n) * sin(misor(n)*0.5D0)**2 / dble( 2.D0 + 24.D0 * n**2 )
+    end if
 end do
 
 call SO%getMacKenzieDistribution(nsteps, misor, mk)

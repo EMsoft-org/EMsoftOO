@@ -1652,7 +1652,7 @@ IMPLICIT NONE
   !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, qq
-  logical 								                :: torot
+  logical                                                 :: torot
 
 torot = .FALSE.
 if(present(quat)) torot = .TRUE.

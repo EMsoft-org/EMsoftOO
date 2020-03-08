@@ -1869,7 +1869,7 @@ complex(kind=dbl)                          :: Sghvec(numset)
 
  if (present(verbose)) then
   if (verbose) then
-   call Message%printMessage('Generating Sgh coefficient lookup table ... ', frm = "(/A)",advance="no")
+   call Message%printMessage(' Generating Sgh coefficient lookup table ... ', frm = "(/A)",advance="no")
   end if
  end if
  

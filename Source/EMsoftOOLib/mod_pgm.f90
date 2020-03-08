@@ -48,15 +48,15 @@ recursive subroutine PGM_Write_File(fname, nx, ny, image)
   !!
   !! write image to .pgm file
 
-character(fnlen),INTENT(IN) 		:: fname
+character(fnlen),INTENT(IN)         :: fname
  !! complete path (native) to output file
-integer(kind=irg),INTENT(IN)  		:: nx,ny
+integer(kind=irg),INTENT(IN)          :: nx,ny
  !! image dimensions 
-integer(kind=irg),INTENT(IN)   	    :: image(nx,ny)
+integer(kind=irg),INTENT(IN)           :: image(nx,ny)
  !! image array
 
 type(IO_T)                          :: Message
-integer(kind=irg)			        :: j, stl
+integer(kind=irg)                    :: j, stl
 
     stl = len(trim(fname))
     call Message%printMessage('Creating PGM file : '//fname(1:stl), frm = "(A)")

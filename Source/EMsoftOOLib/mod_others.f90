@@ -121,11 +121,11 @@ complex recursive FUNCTION FSCATT (G,UL,Z,SYMBOL,ACCVLT,ABSFLG,ACCFLG,DWFLG)
 use mod_io
 
 type(IO_T)                    :: Message 
-real(kind=sgl),parameter     	:: FOURPI=12.56637062
-real(kind=sgl)               	:: K0,A(4),B(4)
-integer(kind=irg)            	:: ABSFLG,Z
-CHARACTER(2)                 	:: SYMBOL
-logical                      	:: ACCFLG,DWFLG
+real(kind=sgl),parameter         :: FOURPI=12.56637062
+real(kind=sgl)                   :: K0,A(4),B(4)
+integer(kind=irg)                :: ABSFLG,Z
+CHARACTER(2)                     :: SYMBOL
+logical                          :: ACCFLG,DWFLG
 
 ! CHECK INPUT
  IF (Z .LT. 1 .OR. Z .GT. 98) call Message%printError('fscatt',' Z is out of range')

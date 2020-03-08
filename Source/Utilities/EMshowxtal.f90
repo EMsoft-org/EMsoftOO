@@ -69,7 +69,7 @@ type(SpaceGroup_T)              :: SG
 
 character(fnlen)                :: xtalname
 logical                         :: verbose=.TRUE.
-integer(kind=irg)			          :: i, j
+integer(kind=irg)                      :: i, j
 character(1)                    :: yesno
 real(kind=dbl),allocatable      :: data(:,:,:), direc(:,:,:)
 

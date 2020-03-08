@@ -518,13 +518,13 @@ IMPLICIT NONE
 class(PostScript_T),INTENT(INOUT)     :: self
 character(fnlen),INTENT(IN)           :: progdesc
 type(EMsoft_T),INTENT(INOUT)          :: EMsoft
-logical,INTENT(IN),optional           :: dontask		
+logical,INTENT(IN),optional           :: dontask        
  !! optional parameter to select file opening route
 
 type(IO_T)                            :: Message 
 
-real(kind=sgl)    		                :: fw, fh		!< page format parameters
-integer(kind=irg) 		                :: i			!< loop counter
+real(kind=sgl)                            :: fw, fh        !< page format parameters
+integer(kind=irg)                         :: i            !< loop counter
 character(fnlen)                      :: gname
 
 ! define the writeable portion of the page (should be made more user-friendly by adding A4 format...)
@@ -597,9 +597,9 @@ recursive subroutine newpage_(self, frm, btxt)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)   :: self
-logical,INTENT(IN)        	        :: frm		
+logical,INTENT(IN)                    :: frm        
  !! logical draw frame or not
-character(*),INTENT(IN)   	        :: btxt		
+character(*),INTENT(IN)               :: btxt        
  !! character string for header balloon
 
  if (self%pspage.ne.0) then
@@ -657,7 +657,7 @@ IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)        :: self
 type(Cell_T),INTENT(INOUT)               :: cell
-real(kind=sgl),INTENT(IN)                :: xo,yo		
+real(kind=sgl),INTENT(IN)                :: xo,yo        
  !! starting location for output 
 
  call self%setfont(PSfonts(2),0.12/self%psscale)
@@ -774,7 +774,7 @@ recursive subroutine translate_(self,x,y)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)     :: self
-real(kind=sgl),INTENT(IN) 	          :: x,y	
+real(kind=sgl),INTENT(IN)               :: x,y    
  !! coordinates of new origin
 
  write (self%psunit,"(F18.7,' ',F18.7,' T')") x,y
@@ -792,7 +792,7 @@ recursive subroutine move_(self,x,y)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)   :: self
-real(kind=sgl),INTENT(IN)           :: x,y	
+real(kind=sgl),INTENT(IN)           :: x,y    
  !! move to this location
 
  write (self%psunit,"(F18.7,' ',F18.7,' M')") x,y
@@ -810,7 +810,7 @@ recursive subroutine draw_(self,x,y)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)         :: x,y	
+real(kind=sgl),INTENT(IN)         :: x,y    
  !! end coordinates of draw
 
   write (self%psunit,"(F18.7,' ',F18.7,' L')") x,y
@@ -828,11 +828,11 @@ recursive subroutine line_gray_(self,x1,y1,x2,y2,gray)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x1,y1		
+real(kind=sgl),INTENT(IN)            :: x1,y1        
  !! starting point
-real(kind=sgl),INTENT(IN)  	      :: x2,y2		
+real(kind=sgl),INTENT(IN)            :: x2,y2        
  !! end point
-real(kind=sgl),INTENT(IN)  	      :: gray		  
+real(kind=sgl),INTENT(IN)            :: gray          
  !! gray level
 
   write (self%psunit,"(F18.7,' setgray ')") gray  
@@ -855,7 +855,7 @@ recursive subroutine setlinewidth_(self,x)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x		
+real(kind=sgl),INTENT(IN)            :: x        
  !! line width parameter
 
  write (self%psunit,"(F12.7,' setlinewidth')") x
@@ -873,12 +873,12 @@ recursive subroutine square_(self,x,y,edge)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)       	:: x,y	
+real(kind=sgl),INTENT(IN)           :: x,y    
  !! center coordinates
-real(kind=sgl),INTENT(IN)       	:: edge	
+real(kind=sgl),INTENT(IN)           :: edge    
  !! edge length
 
-real(kind=sgl)  		              :: ed	
+real(kind=sgl)                        :: ed    
 
  ed=0.5*edge
  write (self%psunit,"('0.0 setgray')")
@@ -901,14 +901,14 @@ recursive subroutine filledsquare_(self,x,y,edge,graylevel)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x,y		    
+real(kind=sgl),INTENT(IN)            :: x,y            
  !! center coordinates
-real(kind=sgl),INTENT(IN)  	      :: edge		    
+real(kind=sgl),INTENT(IN)            :: edge            
  !! edge length
-real(kind=sgl),INTENT(IN)  	      :: graylevel	
+real(kind=sgl),INTENT(IN)            :: graylevel    
  !! gray level for filling
 
-real(kind=sgl)  		:: ed
+real(kind=sgl)          :: ed
 
  ed=0.5*edge
  write (self%psunit,"(F12.7,' setgray')") graylevel
@@ -931,14 +931,14 @@ recursive subroutine cross_(self,x,y,edge,lw)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x,y	
+real(kind=sgl),INTENT(IN)            :: x,y    
  !! center coordinates
-real(kind=sgl),INTENT(IN)  	      :: edge	
+real(kind=sgl),INTENT(IN)            :: edge    
  !! edge length
-real(kind=sgl),INTENT(IN)  	      :: lw		
+real(kind=sgl),INTENT(IN)            :: lw        
  !! line width
 
-real(kind=sgl)  		              :: ed	
+real(kind=sgl)                        :: ed    
 
  ed=0.5*edge
  call self%setlinewidth(lw)
@@ -987,13 +987,13 @@ recursive subroutine arc_(self,x0,y0,x,y,radius,ang1,ang2)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x0,y0		   
+real(kind=sgl),INTENT(IN)            :: x0,y0           
  !! new origin coordinates
-real(kind=sgl),INTENT(IN)  	      :: x,y			   
+real(kind=sgl),INTENT(IN)            :: x,y               
  !! center coordinates
-real(kind=sgl),INTENT(IN)  	      :: radius		   
+real(kind=sgl),INTENT(IN)            :: radius           
  !! radius
-real(kind=sgl),INTENT(IN)  	      :: ang1,ang2	 
+real(kind=sgl),INTENT(IN)            :: ang1,ang2     
  !! start and end angles
 
 
@@ -1012,9 +1012,9 @@ recursive subroutine circle_(self,x,y,radius)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x,y			
+real(kind=sgl),INTENT(IN)            :: x,y            
   !! center coordinates
-real(kind=sgl),INTENT(IN)  	      :: radius		
+real(kind=sgl),INTENT(IN)            :: radius        
   !! radius
 
  write (self%psunit,"('N ',3(F16.10,' '),'0 360 arc Cl S')") x,y,radius
@@ -1032,11 +1032,11 @@ recursive subroutine filledcircle_(self,x,y,radius,graylevel)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x,y		    
+real(kind=sgl),INTENT(IN)            :: x,y            
  !! center coordinates
-real(kind=sgl),INTENT(IN)  	      :: radius	    
+real(kind=sgl),INTENT(IN)            :: radius        
  !! radius
-real(kind=sgl),INTENT(IN)  	      :: graylevel	
+real(kind=sgl),INTENT(IN)            :: graylevel    
  !! gray level
 
  write (self%psunit,"(F12.7,' setgray')") graylevel
@@ -1055,9 +1055,9 @@ recursive subroutine drawframe_(self,x,y)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x		
+real(kind=sgl),INTENT(IN)            :: x        
  !! frame width
-real(kind=sgl),INTENT(IN)  	      :: y 		
+real(kind=sgl),INTENT(IN)            :: y         
  !! frame height
 
 call self%drawrect(0.0,0.0,x,y)
@@ -1075,9 +1075,9 @@ recursive subroutine drawrect_(self,x1,y1,x2,y2)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x1, y1		
+real(kind=sgl),INTENT(IN)            :: x1, y1        
  !! lower left
-real(kind=sgl),INTENT(IN)  	      :: x2, y2 	
+real(kind=sgl),INTENT(IN)            :: x2, y2     
  !! upper right
 
  write (self%psunit,"('N')") 
@@ -1103,9 +1103,9 @@ recursive subroutine line_(self,x1,y1,x2,y2)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)  	      :: x1, y1		
+real(kind=sgl),INTENT(IN)            :: x1, y1        
  !! first point
-real(kind=sgl),INTENT(IN)  	      :: x2, y2 	
+real(kind=sgl),INTENT(IN)            :: x2, y2     
  !! second point
 
   call self%move(x1,y1)
@@ -1127,10 +1127,10 @@ recursive subroutine setdash_(self, num)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-integer(kind=irg),INTENT(IN)  	  :: num	
+integer(kind=irg),INTENT(IN)        :: num    
  !! dash pattern number of components/segments
 
-integer(kind=irg)  		            :: i	! loop counter
+integer(kind=irg)                      :: i    ! loop counter
 
  write (self%psunit,"('[')")
  do i=1,num
@@ -1247,9 +1247,9 @@ recursive subroutine text_(self,x,y,line)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: x,y	
+real(kind=sgl),INTENT(IN)            :: x,y    
  !! text start coordinates
-character(*),INTENT(IN)	          :: line	
+character(*),INTENT(IN)              :: line    
  !! output string
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
@@ -1270,9 +1270,9 @@ recursive subroutine textv_(self,x,y,line)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: x,y	
+real(kind=sgl),INTENT(IN)            :: x,y    
  !! text start coordinates
-character(*),INTENT(IN)	          :: line	
+character(*),INTENT(IN)              :: line    
  !! output string
 
  write (self%psunit,"('gsave ')") 
@@ -1294,11 +1294,11 @@ recursive subroutine texttitle_(self,x,y,line,q)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: x,y	
+real(kind=sgl),INTENT(IN)            :: x,y    
  !! text start coordinates
-character(*),INTENT(IN)	          :: line	
+character(*),INTENT(IN)              :: line    
  !! output string
-real(kind=sgl),INTENT(IN)	        :: q	  
+real(kind=sgl),INTENT(IN)            :: q      
  !! 
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
@@ -1347,11 +1347,11 @@ recursive subroutine textint_(self,x,y,line,vl)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: x,y		  
+real(kind=sgl),INTENT(IN)            :: x,y          
  !! text start coordinates
-character(*),INTENT(IN)	          :: line	      
+character(*),INTENT(IN)              :: line          
  !! output string
-integer(kind=irg),INTENT(IN)	    :: vl		
+integer(kind=irg),INTENT(IN)        :: vl        
  !! integer output value
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
@@ -1373,11 +1373,11 @@ recursive subroutine textvar_(self,x,y,line,vl)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: x,y	
+real(kind=sgl),INTENT(IN)            :: x,y    
  !! text start coordinates
-character(*),INTENT(IN)	          :: line	
+character(*),INTENT(IN)              :: line    
  !! output string
-real(kind=sgl),INTENT(IN)	        :: vl		
+real(kind=sgl),INTENT(IN)            :: vl        
  !! real output value
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
@@ -1399,11 +1399,11 @@ recursive subroutine textvardbl_(self,x,y,line,vl)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: x,y	
+real(kind=sgl),INTENT(IN)            :: x,y    
  !! text start coordinates
-character(*),INTENT(IN)	          :: line	
+character(*),INTENT(IN)              :: line    
  !! output string
-real(kind=dbl),INTENT(IN)	        :: vl		
+real(kind=dbl),INTENT(IN)            :: vl        
  !! double output value
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
@@ -1425,13 +1425,13 @@ recursive subroutine textballoon_(self,x,y,line,font,sc)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: x,y	
+real(kind=sgl),INTENT(IN)            :: x,y    
  !! text start coordinates
-character(*),INTENT(IN)	          :: line	
+character(*),INTENT(IN)              :: line    
  !! output string
-character(*),INTENT(IN)	          :: font	
+character(*),INTENT(IN)              :: font    
  !! font string
-real(kind=sgl),INTENT(IN)	        :: sc	  
+real(kind=sgl),INTENT(IN)            :: sc      
  !! scale factor
 
  call self%setfont(font,sc)
@@ -1462,11 +1462,11 @@ recursive subroutine balloon_(self,x,y,le,he,w)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: x,y		
+real(kind=sgl),INTENT(IN)            :: x,y        
  !! start coordinates
-real(kind=sgl),INTENT(IN)	        :: le, he	
+real(kind=sgl),INTENT(IN)            :: le, he    
  !! length and height
-real(kind=sgl),INTENT(IN)	        :: w		  
+real(kind=sgl),INTENT(IN)            :: w          
  !! width parameter
 
  write (self%psunit,"('/he ',F6.4,' def /bo ',F6.4,' def /wi ',F6.4,' def')") he,0.5*w,le
@@ -1489,9 +1489,9 @@ recursive subroutine setfont_(self,line,sc)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)	        :: sc	  
+real(kind=sgl),INTENT(IN)            :: sc      
  !! font scale factor  
-character(*),INTENT(IN)	          :: line	
+character(*),INTENT(IN)              :: line    
  !! font string
 
  write (self%psunit,"()",advance="no") 
@@ -1513,11 +1513,11 @@ recursive subroutine Printhkl_(self,x,y,h,k,l)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-integer(kind=irg),INTENT(IN)      :: h,k,l		!< Miller index triplet
-real(kind=sgl),INTENT(IN)		      :: x,y			!< starting position of indices
-character(1),parameter 		        :: numbers(0:9) = (/'0','1','2','3','4','5','6','7','8','9'/)
-real(kind=sgl)         		        :: xo,yo,dx,dy,x1,y1
-character(1)           		        :: line
+integer(kind=irg),INTENT(IN)      :: h,k,l        !< Miller index triplet
+real(kind=sgl),INTENT(IN)              :: x,y            !< starting position of indices
+character(1),parameter                 :: numbers(0:9) = (/'0','1','2','3','4','5','6','7','8','9'/)
+real(kind=sgl)                         :: xo,yo,dx,dy,x1,y1
+character(1)                           :: line
 
  call self%setfont(PSfonts(5),0.065)
  call self%setlinewidth(0.004)
@@ -1566,15 +1566,15 @@ IMPLICIT NONE
 class(PostScript_T),INTENT(INOUT)       :: self
 !f2py intent(in,out) ::  PS
 logical,INTENT(IN)                      :: hexset
-character(1),INTENT(IN)           	    :: S			
+character(1),INTENT(IN)                   :: S            
  !! space character 'd' or 'r'
-integer(kind=irg),INTENT(IN)      	    :: h,k,l	
+integer(kind=irg),INTENT(IN)              :: h,k,l    
  !! Miller index triplet
-integer(kind=irg),INTENT(IN)		        :: c			
+integer(kind=irg),INTENT(IN)                :: c            
  !! positioning parameter
-real(kind=sgl),INTENT(IN)		            :: x,y		
+real(kind=sgl),INTENT(IN)                    :: x,y        
  !! starting position of indices
-logical,INTENT(IN)		                  :: n			
+logical,INTENT(IN)                          :: n            
  !! logical
 
 character(1),parameter :: numbers(0:9) = (/'0','1','2','3','4','5','6','7','8','9'/)
@@ -1684,17 +1684,17 @@ use mod_misc
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)   :: self
-character(1),INTENT(IN)           	:: S			  
+character(1),INTENT(IN)               :: S              
  !! space character 'd' or 'r'
 logical,INTENT(IN)                  :: hexset
  !! hexagonal setting logical
-integer(kind=irg),INTENT(IN)      	:: h,k,l		
+integer(kind=irg),INTENT(IN)          :: h,k,l        
  !! Miller index triplet
-real(kind=sgl),INTENT(IN)		        :: x,y			
+real(kind=sgl),INTENT(IN)                :: x,y            
  !! starting position of indices
 
-character(12)    			              :: line
-integer(kind=irg)			              :: hkl(3)
+character(12)                              :: line
+integer(kind=irg)                          :: hkl(3)
 
  hkl = (/ h,k,l /)
  call IndexString(hexset,line,hkl,S)
@@ -1713,15 +1713,15 @@ recursive subroutine DumpImage_(self,imaint,imanum,x0,y0,npx,npy,scl)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)     :: self
-integer(kind=irg),INTENT(IN) 	        :: imaint(npx,npy)
+integer(kind=irg),INTENT(IN)             :: imaint(npx,npy)
  !! image array
 integer(kind=irg),INTENT(INOUT)       :: imanum
  !! image number 
-real(kind=sgl),INTENT(IN)             :: x0,y0		
+real(kind=sgl),INTENT(IN)             :: x0,y0        
  !! image position
-integer(kind=irg),INTENT(IN)         	:: npx,npy	
+integer(kind=irg),INTENT(IN)             :: npx,npy    
  !! image size
-real(kind=sgl),INTENT(IN)             :: scl			
+real(kind=sgl),INTENT(IN)             :: scl            
  !! image scale factor
 
  call self%DumpImageDistort(imaint,imanum,x0,y0,npx,npy,scl,scl)
@@ -1739,22 +1739,22 @@ recursive subroutine DumpImageDistort_(self,imaint,imanum,x0,y0,npx,npy,sclx,scl
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)     :: self
-integer(kind=irg),INTENT(IN) 	        :: imaint(npx,npy)
+integer(kind=irg),INTENT(IN)             :: imaint(npx,npy)
 integer(kind=irg),INTENT(INOUT)       :: imanum
-real(kind=sgl),INTENT(IN)             :: x0,y0		  
+real(kind=sgl),INTENT(IN)             :: x0,y0          
  !! image position
-integer(kind=irg),INTENT(IN)         	:: npx,npy		
+integer(kind=irg),INTENT(IN)             :: npx,npy        
  !! image size
-real(kind=sgl),INTENT(IN)             :: sclx,scly	
+real(kind=sgl),INTENT(IN)             :: sclx,scly    
  !! image scale factors
 
-integer(kind=irg)                 	  :: iq,i,j,ir,iq1,iq2,k
-integer(kind=irg),parameter       	  :: bpp=8
-character(2*npx)                  	  :: bigone
-character(3),parameter            	  :: imnm(20) = (/'i01','i02','i03','i04','i05','i06', &
+integer(kind=irg)                       :: iq,i,j,ir,iq1,iq2,k
+integer(kind=irg),parameter             :: bpp=8
+character(2*npx)                        :: bigone
+character(3),parameter                  :: imnm(20) = (/'i01','i02','i03','i04','i05','i06', &
                                                       'i07','i08','i09','i10','i11','i12','i13','i14', &
                                                       'i15','i16','i17','i18','i19','i20'/)
-character(1),parameter            	  :: hd(0:15) = (/'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'/)
+character(1),parameter                  :: hd(0:15) = (/'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'/)
 
  imanum = imanum + 1
 
@@ -1806,13 +1806,13 @@ IMPLICIT NONE
 class(PostScript_T),INTENT(INOUT) :: self
 type(Cell_T),INTENT(INOUT)        :: cell
 type(SpaceGroup_T),INTENT(INOUT)  :: SG
-real(kind=sgl),INTENT(IN)    			:: CX, CY		
+real(kind=sgl),INTENT(IN)                :: CX, CY        
  !! circle center coordinates 
-real(kind=sgl),INTENT(IN)    			:: CRad 		
+real(kind=sgl),INTENT(IN)                :: CRad         
  !! circle radius
-integer(kind=irg),INTENT(INOUT)		:: iview(3)	
+integer(kind=irg),INTENT(INOUT)        :: iview(3)    
  !! zone axis indices
-character(1),INTENT(IN)	      		:: sp			  
+character(1),INTENT(IN)                  :: sp              
  !! drawing space
 
 character(12)     :: instr

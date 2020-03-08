@@ -56,14 +56,14 @@ type(Cell_T)          :: cellA, cellB
 type(SpaceGroup_T)    :: SGA, SGB 
 type(PostScript_T)    :: PS 
 
-character(1)      		:: sp
-logical           		:: nn,topbot
+character(1)              :: sp
+logical                   :: nn,topbot
 type(OrientationRelation) :: orel
-real(kind=sgl)    		:: rr(3),gg(3),g(3),r(3),M(3,3),negthresh,p(3),Ep(3,3),E(3,3),TT(3,3), io_real(3), &
-				                 CX, CY, CRad, xst, yst
-real(kind=dbl)    		:: dE(3,3),dgg(3)
-integer(kind=irg) 		:: h,k,l,cr,hkl(3),iview(3),inm, i, ih, ik, il, imanum
-character(fnlen)		  :: xtalnameA, xtalnameB
+real(kind=sgl)            :: rr(3),gg(3),g(3),r(3),M(3,3),negthresh,p(3),Ep(3,3),E(3,3),TT(3,3), io_real(3), &
+                                 CX, CY, CRad, xst, yst
+real(kind=dbl)            :: dE(3,3),dgg(3)
+integer(kind=irg)         :: h,k,l,cr,hkl(3),iview(3),inm, i, ih, ik, il, imanum
+character(fnlen)          :: xtalnameA, xtalnameB
 character(17)         :: str
 character(12)         :: instr
 
