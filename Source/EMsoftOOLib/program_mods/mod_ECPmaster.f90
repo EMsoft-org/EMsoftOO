@@ -240,14 +240,14 @@ real(kind=dbl)          :: frac
 integer(kind=irg)       :: gzero, istat, tickstart
 type(MCOpenCLNameListType) :: mcnl
 
-integer(kind=irg)       :: numEbins, numzbins, nx, ny, npy, totnum_el, numsites ! reading from MC file
+integer(kind=irg)       :: numangle, numzbins, nx, ny, npy, totnum_el, numsites ! reading from MC file
 real(kind=dbl)          :: EkeV, Ehistmin, Ebinsize, depthmax, depthstep, sig, omega  ! reading from MC file
 integer(kind=irg), allocatable :: acc_z(:,:,:,:),accum_z(:,:,:,:) ! reading from MC file
 
 integer(kind=irg)       :: io_int_sgl(1), io_int(6) ! integer output variable
 real(kind=dbl)          :: io_real(5) ! real output variable
 
-integer(kind=irg)       :: i, j, ik, kkk, isym, pgnum, SamplingType, nix, nixp, niy, niyp ! variables for point group and Laue group
+integer(kind=irg)       :: i, j, ik, kkk, isym, pgnum, SamplingType, nix, nixp, niy, niyp, hkl(3) ! variables for point group and Laue group
 integer(kind=irg),parameter     :: LaueTest(11) = (/ 149, 151, 153, 156, 158, 160, 161, 164, 165, 166, 167 /)  ! space groups with 2 or mirror at 30 degrees
 integer(kind=irg)       :: npyhex, ijmax, numk, skip ! parameters for calckvectors and calcwavelength subroutine
 
@@ -323,9 +323,6 @@ if (emnl%copyfromenergyfile.ne.'undefined') then
   call MCFT%copyMCdata(EMsoft, HDF, emnl%copyfromenergyfile, emnl%energyfile, emnl%h5copypath)
 end if
 
-numzbins = MCFT%getnumzbins() 
-numEbins = MCFT%getnumEbins()
-
 stereog = .TRUE.
 
 timer = Timing_T()
@@ -333,6 +330,8 @@ tstrb = timer%getTimeString()
 
 tpi = 2.D0*cPi
 czero = cmplx(0.D0,0.D0)
+gzero = 1
+frac = 0.05
 
 !=============================================
 !=============================================
@@ -345,9 +344,12 @@ call MCFT%readMCfile(HDF, getAccumz=.TRUE.)
 mcnl = MCFT%getnml()
 call MCFT%copyaccumz(accum_z)
 
+numzbins = MCFT%getnumzbins() 
+numangle = MCFT%getnumangles()
+
 nsx = (mcnl%numsx - 1)/2
 nsy = nsx
-etotal = float(mcnl%totnum_el)
+etotal = sum(accum_z(numangle,:,:,:))
 
 io_int(1) = mcnl%totnum_el
 call Message%WriteValue(' --> total number of BSE electrons in MC data set ', io_int, 1)
@@ -419,7 +421,7 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
 !=============================================
 ! ---------- a couple of initializations
    npy = emnl%npx
-   gzero = 1  ! index of incident beam
+   ijmax = float(emnl%npx)**2   ! truncation value for beam directions
 ! ----------
 !=============================================
 !=============================================
@@ -461,9 +463,6 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
 ! create or update the HDF5 output file
 !=============================================
 ! Open an existing file or create a new file using the default properties.
-write (*,*) 'energyfile = ', trim(energyfile)
-write (*,*) 'outname    = ', trim(outname)
-
   if (trim(energyfile).eq.trim(outname)) then
     hdferr =  HDF%openFile(outname)
   else
@@ -583,9 +582,6 @@ dataset = SC_masterSPSH
 
   call HDF%pop(.TRUE.)
 
-write (*,*) 'closed HDF file'
-
-
 ! we use two times, one (1) for each individual energy level, the other (2) for the overall time
 call timer%Time_tick(2)
 reflist = gvectors_T()
@@ -634,12 +630,23 @@ reflist = gvectors_T()
 ! and remove the linked list
   call kvec%Delete_kvectorlist()
 
+  call Diff%setrlpmethod('WK')
+  hkl=(/0,0,0/)
+  call Diff%CalcUcg(cell,hkl)
+  rlp = Diff%getrlp()
+  nabsl = rlp%xgp
+
+  do iz=1,izz
+    lambdaZ(iz) = float(sum(accum_z(numangle,iz,:,:)))/float(etotal)
+    lambdaZ(iz) = lambdaZ(iz) * exp(2.0*sngl(cPi)*(iz-1)*mcnl%depthstep/nabsl)
+  end do
+
 verbose = .FALSE.
 totstrong = 0
 totweak = 0
 
 fnat = 1.0/float(sum(cell%getnumat()))
-intthick = dble(depthmax)
+intthick = dble(mcnl%depthmax)
 
 ! here's where we introduce the OpenMP calls, to speed up the overall calculations...
 
@@ -725,7 +732,6 @@ allocate(svals(numset))
        svals(ix) = real(sum(Lgh(1:nns,1:nns)*Sghtmp(1:nns,1:nns,ix)))
      end do
      svals = svals/float(sum(nat(1:numset)))
-
 
 ! and store the resulting svals values, applying point group symmetry where needed.
      ipx = kij(1,ik)
@@ -868,7 +874,7 @@ dataset = SC_StopTime
   call Message%WriteValue(' Execution time [s]: ',io_int,1)
 
 dataset = SC_Duration
-  if (iE.eq.numEbins) then 
+  if (iE.eq.numangle) then 
     call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
     if (g_exists) then     
       hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)

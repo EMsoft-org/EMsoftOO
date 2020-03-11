@@ -581,40 +581,38 @@ dataset = SC_mode
     nml%mode = trim(stringarray(1))
     deallocate(stringarray)
 
-if (trim(nml%mode).ne.'Ivol') then
-    dataset = SC_Ebinsize
-      call HDF%readDatasetDouble(dataset, hdferr, nml%Ebinsize)
+dataset = 'ivolx'
+  call HDF%readDatasetInteger(dataset, hdferr, nml%ivolx) 
 
-    dataset = SC_Ehistmin
-      call HDF%readDatasetDouble(dataset, hdferr, nml%Ehistmin)
+dataset = 'ivoly'
+  call HDF%readDatasetInteger(dataset, hdferr, nml%ivoly) 
 
-    dataset = SC_depthmax
-      call HDF%readDatasetDouble(dataset, hdferr, nml%depthmax)
+dataset = 'ivolz'
+  call HDF%readDatasetInteger(dataset, hdferr, nml%ivolz) 
 
-    dataset = SC_depthstep
-      call HDF%readDatasetDouble(dataset, hdferr, nml%depthstep)
-else
-    dataset = 'ivolx'
-      call HDF%readDatasetInteger(dataset, hdferr, nml%ivolx) 
+dataset = 'ivolstepx'
+  call HDF%readDatasetDouble(dataset, hdferr, x)
+  nml%ivolstepx = sngl(x)
 
-    dataset = 'ivoly'
-      call HDF%readDatasetInteger(dataset, hdferr, nml%ivoly) 
+dataset = 'ivolstepy'
+  call HDF%readDatasetDouble(dataset, hdferr, x)
+  nml%ivolstepy = sngl(x)
 
-    dataset = 'ivolz'
-      call HDF%readDatasetInteger(dataset, hdferr, nml%ivolz) 
+dataset = 'ivolstepz'
+  call HDF%readDatasetDouble(dataset, hdferr, x)
+  nml%ivolstepz = sngl(x)
 
-    dataset = 'ivolstepx'
-      call HDF%readDatasetDouble(dataset, hdferr, x)
-      nml%ivolstepx = sngl(x)
+dataset = SC_Ebinsize
+  call HDF%readDatasetDouble(dataset, hdferr, nml%Ebinsize)
 
-    dataset = 'ivolstepy'
-      call HDF%readDatasetDouble(dataset, hdferr, x)
-      nml%ivolstepy = sngl(x)
+dataset = SC_Ehistmin
+  call HDF%readDatasetDouble(dataset, hdferr, nml%Ehistmin)
 
-    dataset = 'ivolstepz'
-      call HDF%readDatasetDouble(dataset, hdferr, x)
-      nml%ivolstepz = sngl(x)
-end if
+dataset = SC_depthmax
+  call HDF%readDatasetDouble(dataset, hdferr, nml%depthmax)
+
+dataset = SC_depthstep
+  call HDF%readDatasetDouble(dataset, hdferr, nml%depthstep)
 
 dataset = SC_EkeV
     call HDF%readDatasetDouble(dataset, hdferr, nml%EkeV)
@@ -698,13 +696,18 @@ if (nml%multiplier.eq.1) then
   end if
 end if 
 
-if (trim(nml%mode).ne.'Ivol') then 
+if (trim(nml%mode).eq.'full') then 
   dataset = SC_numEbins
     call HDF%readDatasetInteger(dataset, hdferr, MCDT%numEbins)
+  dataset = SC_numzbins
+    call HDF%readDatasetInteger(dataset, hdferr, MCDT%numzbins)
+else if (trim(nml%mode).eq.'bse1') then 
+  dataset = SC_numangle
+    call HDF%readDatasetInteger(dataset, hdferr, MCDT%numangle)
+  dataset = SC_numzbins
+    call HDF%readDatasetInteger(dataset, hdferr, MCDT%numzbins)
 end if
 
-dataset = SC_numzbins
-    call HDF%readDatasetInteger(dataset, hdferr, MCDT%numzbins)
 
 ! various optional arrays
 if (present(getAccume)) then 
@@ -847,6 +850,9 @@ hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
 
 dataset = SC_numzbins
 hdferr = HDF%writeDatasetInteger(dataset, MCDT%numzbins)
+
+dataset = SC_numEbins
+hdferr = HDF%writeDatasetInteger(dataset, MCDT%numEbins)
 
 ! modified using multiplier
 dataset = SC_totnumel

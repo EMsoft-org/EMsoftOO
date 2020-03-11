@@ -2794,14 +2794,14 @@ res = 1
 
 if (rotdoubleprecision) then
   if (self%rd(4).lt.0.D0) then 
-     call Message%printError('rotations:r_check','Rodrigues-Frank vector has negative length')
+     call Message%printMessage('rotations:r_check: Rodrigues-Frank vector has negative length')
   endif
   rd = dsqrt(sum(self%rd(1:3)*self%rd(1:3)))
   self%rd(1:3) = self%rd(1:3) / rd
   res = 0
 else
   if (self%r(4).lt.0.0) then 
-     call Message%printError('rotations:r_check','Rodrigues-Frank vector has negative length')
+     call Message%printMessage('rotations:r_check: Rodrigues-Frank vector has negative length')
   endif
   r = sqrt(sum(self%r(1:3)*self%r(1:3)))
   self%r(1:3) = self%r(1:3) / r
@@ -2836,13 +2836,13 @@ res = 1
 if (rotdoubleprecision) then
   rd = sqrt(sum(self%sd*self%sd))
   if (rd.gt.(1.D0+epsd)) then
-     call Message%printError('rotations:s_check','stereographic vector must have norm <= unity')
+     call Message%printMessage('rotations:s_check: stereographic vector must have norm <= unity')
   endif
   res = 0
 else
   r = sqrt(sum(self%s*self%s))
   if (r.gt.(1.0+eps)) then
-     call Message%printError('rotations:s_check','stereographic vector must have norm <= unity')
+     call Message%printMessage('rotations:s_check: stereographic vector must have norm <= unity')
   endif
   res = 0
 end if
@@ -2879,16 +2879,16 @@ if (rotdoubleprecision) then
          self%od(1,3)*self%od(2,1)*self%od(3,2) - self%od(1,3)*self%od(2,2)*self%od(3,1) - &
          self%od(1,2)*self%od(2,1)*self%od(3,3) - self%od(1,1)*self%od(2,3)*self%od(3,2)
   if (detd.lt.0.D0) then
-     call Message%printError('rotations:o_check','Determinant of rotation matrix must be positive')
+     call Message%printMessage('rotations:o_check: Determinant of rotation matrix must be positive')
   endif
   if (abs(detd-1.D0).gt.epsd) then
-     call Message%printError('rotations:o_check','Determinant of rotation matrix must be unity')
+     call Message%printMessage('rotations:o_check: Determinant of rotation matrix must be unity')
   endif
 
   ! next check the row and column sums
   rd = sum(abs(matmul(self%od,transpose(self%od))))
   if (abs(rd-3.D0).gt.epsd) then
-     call Message%printError('rotations:o_check','rotation matrix times transpose must be identity matrix')
+     call Message%printMessage('rotations:o_check: rotation matrix times transpose must be identity matrix')
   endif
   res = 0
 else
@@ -2897,16 +2897,16 @@ else
         self%o(1,3)*self%o(2,1)*self%o(3,2) - self%o(1,3)*self%o(2,2)*self%o(3,1) - &
         self%o(1,2)*self%o(2,1)*self%o(3,3) - self%o(1,1)*self%o(2,3)*self%o(3,2)
   if (det.lt.0.0) then
-     call Message%printError('rotations:o_check','Determinant of rotation matrix must be positive')
+     call Message%printMessage('rotations:o_check: Determinant of rotation matrix must be positive')
   endif
   if (abs(det-1.0).gt.eps) then
-     call Message%printError('rotations:o_check','Determinant of rotation matrix must be unity')
+     call Message%printMessage('rotations:o_check: Determinant of rotation matrix must be unity')
   endif
 
   ! next check the row and column sums
   r = sum(abs(matmul(self%o,transpose(self%o))))
   if (abs(r-3.0).gt.eps) then
-     call Message%printError('rotations:o_check','rotation matrix times transpose must be identity matrix')
+     call Message%printMessage('rotations:o_check: rotation matrix times transpose must be identity matrix')
   endif
   res = 0
 end if
@@ -2936,13 +2936,13 @@ res = 1
 if (rotdoubleprecision) then
   rd = sqrt(sum(self%hd*self%hd))
   if (rd.gt.LPs%R1) then
-     call Message%printError('rotations:h_check','homochoric vector outside homochoric ball')
+     call Message%printMessage('rotations:h_check: homochoric vector outside homochoric ball')
   endif
   res = 0
 else
   r = sqrt(sum(self%h*self%h))
   if (r.gt.sngl(LPs%R1)) then
-     call Message%printError('rotations:h_check','homochoric vector outside homochoric ball')
+     call Message%printMessage('rotations:h_check: homochoric vector outside homochoric ball')
   endif
   res = 0
 end if
@@ -2975,19 +2975,19 @@ res = 1
 if (rotdoubleprecision) then
   rd = sqrt(sum(self%ad(1:3)*self%ad(1:3)))
   if ((self%ad(4).lt.0.D0).or.(self%ad(4).gt.cPi)) then
-     call Message%printError('rotations:a_check','angle must be in range [0,pi]')
+     call Message%printMessage('rotations:a_check: angle must be in range [0,pi]')
   endif
   if (abs(rd-1.D0).gt.epsd) then
-     call Message%printError('rotations:a_check','axis-angle axis vector must have unit norm')
+     call Message%printMessage('rotations:a_check: axis-angle axis vector must have unit norm')
   endif
   res = 0
 else
   r = sqrt(sum(self%a(1:3)*self%a(1:3)))
   if ((self%a(4).lt.0.0).or.(self%a(4).gt.sngl(cPi))) then
-     call Message%printError('rotations:a_check','angle must be in range [0,pi]')
+     call Message%printMessage('rotations:a_check: angle must be in range [0,pi]')
   endif
   if (abs(r-1.0).gt.eps) then
-     call Message%printError('rotations:a_check','axis-angle axis vector must have unit norm')
+     call Message%printMessage('rotations:a_check: axis-angle axis vector must have unit norm')
   endif
   res = 0
 end if
@@ -3021,13 +3021,13 @@ if (rotdoubleprecision) then
   rd = sqrt(sum(self%vd*self%vd))
   write (*,*) rd, cPi, rd-cPi
   if ((rd-cPi).ge.epsd) then
-     call Message%printError('rotations:v_check','magnitude must be in range [0,pi]')
+     call Message%printMessage('rotations:v_check: magnitude must be in range [0,pi]')
   endif
   res = 0
 else
   r = sqrt(sum(self%v*self%v))
   if ((r-sngl(cPi)).ge.eps) then
-     call Message%printError('rotations:v_check','magnitude must be in range [0,pi]')
+     call Message%printMessage('rotations:v_check: magnitude must be in range [0,pi]')
   endif
   res = 0
 end if
@@ -3058,13 +3058,13 @@ res = 1
 if (rotdoubleprecision) then
   rd = maxval(abs(self%cd))
   if (rd.gt.LPs%ap/2.D0) then
-     call Message%printError('rotations:c_check','cubochoric vector outside cube')
+     call Message%printMessage('rotations:c_check: cubochoric vector outside cube')
   endif
   res = 0
 else
   r = maxval(abs(self%c))
   if (r.gt.sngl(LPs%ap/2.D0)) then
-     call Message%printError('rotations:c_check','cubochoric vector outside cube')
+     call Message%printMessage('rotations:c_check: cubochoric vector outside cube')
   endif
   res = 0
 end if
@@ -3092,24 +3092,24 @@ res = 1
 
 if (rotdoubleprecision) then
   if ((self%ed(1).lt.0.D0).or.(self%ed(1).gt.(2.D0*cPi))) then 
-     call Message%printError('rotations:e_check','phi1 Euler angle outside of valid range [0,2pi]')
+     call Message%printMessage('rotations:e_check: phi1 Euler angle outside of valid range [0,2pi]')
   endif
   if ((self%ed(2).lt.0.D0).or.(self%ed(2).gt.cPi)) then 
-     call Message%printError('rotations:e_check','Phi  Euler angle outside of valid range [0,pi]')
+     call Message%printMessage('rotations:e_check: Phi  Euler angle outside of valid range [0,pi]')
   endif
   if ((self%ed(3).lt.0.D0).or.(self%ed(3).gt.(2.D0*cPi))) then 
-     call Message%printError('rotations:e_check','phi2 Euler angle outside of valid range [0,2pi]')
+     call Message%printMessage('rotations:e_check: phi2 Euler angle outside of valid range [0,2pi]')
   endif
   res = 0
 else
   if ((self%e(1).lt.0.0).or.(self%e(1).gt.(2.0*sngl(cPi)))) then 
-     call Message%printError('rotations:e_check','phi1 Euler angle outside of valid range [0,2pi]')
+     call Message%printMessage('rotations:e_check: phi1 Euler angle outside of valid range [0,2pi]')
   endif
   if ((self%e(2).lt.0.0).or.(self%e(2).gt.cPi)) then 
-     call Message%printError('rotations:e_check','Phi  Euler angle outside of valid range [0,pi]')
+     call Message%printMessage('rotations:e_check: Phi  Euler angle outside of valid range [0,pi]')
   endif
   if ((self%e(3).lt.0.0).or.(self%e(3).gt.(2.0*sngl(cPi)))) then 
-     call Message%printError('rotations:e_check','phi2 Euler angle outside of valid range [0,2pi]')
+     call Message%printMessage('rotations:e_check: phi2 Euler angle outside of valid range [0,2pi]')
   endif
   res = 0
 end if
