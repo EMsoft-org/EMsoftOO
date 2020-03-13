@@ -581,26 +581,28 @@ dataset = SC_mode
     nml%mode = trim(stringarray(1))
     deallocate(stringarray)
 
-dataset = 'ivolx'
-  call HDF%readDatasetInteger(dataset, hdferr, nml%ivolx) 
+if (nml%mode.eq.'Ivol') then 
+  dataset = 'ivolx'
+    call HDF%readDatasetInteger(dataset, hdferr, nml%ivolx) 
 
-dataset = 'ivoly'
-  call HDF%readDatasetInteger(dataset, hdferr, nml%ivoly) 
+  dataset = 'ivoly'
+    call HDF%readDatasetInteger(dataset, hdferr, nml%ivoly) 
 
-dataset = 'ivolz'
-  call HDF%readDatasetInteger(dataset, hdferr, nml%ivolz) 
+  dataset = 'ivolz'
+    call HDF%readDatasetInteger(dataset, hdferr, nml%ivolz) 
 
-dataset = 'ivolstepx'
-  call HDF%readDatasetDouble(dataset, hdferr, x)
-  nml%ivolstepx = sngl(x)
+  dataset = 'ivolstepx'
+    call HDF%readDatasetDouble(dataset, hdferr, x)
+    nml%ivolstepx = sngl(x)
 
-dataset = 'ivolstepy'
-  call HDF%readDatasetDouble(dataset, hdferr, x)
-  nml%ivolstepy = sngl(x)
+  dataset = 'ivolstepy'
+    call HDF%readDatasetDouble(dataset, hdferr, x)
+    nml%ivolstepy = sngl(x)
 
-dataset = 'ivolstepz'
-  call HDF%readDatasetDouble(dataset, hdferr, x)
-  nml%ivolstepz = sngl(x)
+  dataset = 'ivolstepz'
+    call HDF%readDatasetDouble(dataset, hdferr, x)
+    nml%ivolstepz = sngl(x)
+end if 
 
 dataset = SC_Ebinsize
   call HDF%readDatasetDouble(dataset, hdferr, nml%Ebinsize)
@@ -658,8 +660,10 @@ else
     nml%platid  = 1
 end if
 
-dataset = SC_sig
-    call HDF%readDatasetDouble(dataset, hdferr, nml%sig)
+if (nml%mode.eq.'full') then 
+  dataset = SC_sig
+      call HDF%readDatasetDouble(dataset, hdferr, nml%sig)
+end if 
 
 dataset = SC_stdout
     call HDF%readDatasetInteger(dataset, hdferr, nml%stdout)

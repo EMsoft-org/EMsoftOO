@@ -129,9 +129,10 @@ character(fnlen)                            :: copyfromenergyfile
 character(fnlen)                            :: h5copypath
 character(fnlen)                            :: energyfile
 logical                                     :: combinesites
+logical                                     :: kinematical 
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist /ECPmastervars/ dmin, Notify, h5copypath, energyfile, npx, nthreads, copyfromenergyfile, combinesites
+namelist /ECPmastervars/ dmin, Notify, h5copypath, energyfile, npx, nthreads, copyfromenergyfile, combinesites, kinematical
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 nthreads = 1
@@ -141,6 +142,7 @@ Notify = 'Off'
 h5copypath = 'undefined'
 energyfile = 'undefined'        ! default filename for z_0(E_e) data from EMMC Monte Carlo simulations
 copyfromenergyfile = 'undefined'
+kinematical = .FALSE.
 combinesites = .FALSE.
 
 if (present(initonly)) then
@@ -168,6 +170,7 @@ self%nml%h5copypath = h5copypath
 self%nml%copyfromenergyfile = copyfromenergyfile
 self%nml%energyfile = energyfile
 self%nml%combinesites = combinesites
+self%nml%kinematical = kinematical
 
 end subroutine readNameList_
 
@@ -583,7 +586,7 @@ dataset = SC_masterSPSH
   call HDF%pop(.TRUE.)
 
 ! we use two times, one (1) for each individual energy level, the other (2) for the overall time
-call timer%Time_tick(2)
+call timer%Time_tick(1)
 reflist = gvectors_T()
 
 !=============================================
@@ -731,7 +734,7 @@ allocate(svals(numset))
      do ix=1,numset
        svals(ix) = real(sum(Lgh(1:nns,1:nns)*Sghtmp(1:nns,1:nns,ix)))
      end do
-     svals = svals/float(sum(nat(1:numset)))
+     svals = svals * fnat 
 
 ! and store the resulting svals values, applying point group symmetry where needed.
      ipx = kij(1,ik)
@@ -852,10 +855,6 @@ do i=-emnl%npx,emnl%npx
   end do
 end do
 
-  call timer%makeTimeStamp()
-  dstr = timer%getDateString() 
-  tstre = timer%getTimeString()
-
 ! open the existing file using the default properties.
   hdferr =  HDF%openFile(outname)
 
@@ -867,6 +866,11 @@ dataset = SC_StopTime
   call timer%Time_tock(1) 
   tstop = timer%getInterval(1)
   call timer%Time_reset(1)
+
+  call timer%makeTimeStamp()
+  dstr = timer%getDateString() 
+  tstre = timer%getTimeString()
+
   line2(1) = dstr//', '//tstre
   hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
 
@@ -874,15 +878,11 @@ dataset = SC_StopTime
   call Message%WriteValue(' Execution time [s]: ',io_int,1)
 
 dataset = SC_Duration
-  if (iE.eq.numangle) then 
-    call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then     
-      hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
-    else
-      hdferr = HDF%writeDatasetFloat(dataset, tstop)
-    end if
-  else
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then     
     hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
+  else
+    hdferr = HDF%writeDatasetFloat(dataset, tstop)
   end if
 
   call HDF%pop()
@@ -919,10 +919,6 @@ dataset = SC_masterSPSH
 call HDF%pop(.TRUE.)
 
 call Message%printMessage(' Final data stored in file '//trim(emnl%energyfile), frm = "(A/)")
-
-call timer%Time_tock(2) 
-io_int(1) = timer%getInterval(2)
-call Message%WriteValue(' Total execution time [s] ',io_int,1)
 
 ! if requested, we notify the user that this program has completed its run
 if (trim(EMsoft%getConfigParameter('EMNotify')).ne.'Off') then

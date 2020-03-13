@@ -68,12 +68,12 @@ IMPLICIT NONE
   end type HDFobjectStackType
 
   logical, save                           :: FixedLengthflag, HDFverbose, dumpHDFstack
-  logical, public, save                           :: interfaceOpen = .FALSE.
+  logical, public, save                   :: interfaceOpen = .FALSE.
 
   public :: cstringify
 
   type, public :: HDF_T 
-   !! HDF Class definition (this class takes over from the original self structure)
+   !! HDF Class definition (this class takes over from the original HDF_head structure)
    private
      type(HDFobjectStackType)             :: head 
 
@@ -494,7 +494,7 @@ end subroutine closeFortranHDFInterface
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! to avoid user usage of file, group, dataset, etc, IDs, we use a push_-pop_
+! to avoid user usage of file, group, dataset, etc, IDs, we use a push-pop
 ! stack to keep track of the open items and close them again.  
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------

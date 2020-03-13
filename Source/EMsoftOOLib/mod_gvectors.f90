@@ -966,7 +966,6 @@ if (AorD.eq.'D') then
               DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda-weaksgsum,Upz,dbl)
             else
               DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda,Upz,dbl)
-
             end if           
         
            end if       
@@ -1277,8 +1276,6 @@ tmp3 = matmul(conjg(CGG),Ijk)
 Lgh = matmul(tmp3,transpose(CGG))
 
 end subroutine CalcLgh_
-
-
 
 
 ! ! this may need to be moved to the kvectors_T class ... 
