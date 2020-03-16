@@ -665,6 +665,16 @@ if (nml%mode.eq.'full') then
       call HDF%readDatasetDouble(dataset, hdferr, nml%sig)
 end if 
 
+if (nml%mode.eq.'bse1') then 
+  dataset = SC_sigstart
+      call HDF%readDatasetDouble(dataset, hdferr, nml%sigstart)
+  dataset = SC_sigend
+      call HDF%readDatasetDouble(dataset, hdferr, nml%sigend)
+  dataset = SC_sigstep
+      call HDF%readDatasetDouble(dataset, hdferr, nml%sigstep)
+end if 
+
+
 dataset = SC_stdout
     call HDF%readDatasetInteger(dataset, hdferr, nml%stdout)
 

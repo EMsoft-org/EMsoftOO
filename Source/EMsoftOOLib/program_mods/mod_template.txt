@@ -110,17 +110,19 @@ subroutine readNameList_(self, nmlfile, initonly)
 !! read the namelist from an nml file for the XXX_T Class 
 
 use mod_io 
+use mod_EMsoft
 
 IMPLICIT NONE 
 
 class(XXX_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)                 :: nmlfile
+character(fnlen),INTENT(IN)          :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)                 :: initonly
+logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                                  :: Message       
-logical                                     :: skipread = .FALSE.
+type(EMsoft_T)                       :: EMsoft 
+type(IO_T)                           :: Message       
+logical                              :: skipread = .FALSE.
 
 
 
@@ -174,19 +176,21 @@ end associate
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-subroutine XXX_(self, EMsoft)
+subroutine XXX_(self, EMsoft, progname, nmldeffile)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
 !!
 !! perform the computations
 
-use EMsoft
+use mod_EMsoft
 
 IMPLICIT NONE 
 
 class(XXX_T), INTENT(INOUT)       :: self
-type(EMsoft_T), INTENT(INOUT)                     :: EMsoft
+type(EMsoft_T), INTENT(INOUT)           :: EMsoft
+character(fnlen), INTENT(INOUT)         :: progname 
+character(fnlen), INTENT(INOUT)         :: nmldeffile
 
 
 end subroutine XXX_

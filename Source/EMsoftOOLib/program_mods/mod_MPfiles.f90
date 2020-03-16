@@ -123,6 +123,8 @@ type, public :: MPfile_T
     procedure, pass(self) :: copymLPSH4_
     procedure, pass(self) :: copymLPNH_
     procedure, pass(self) :: copymLPSH_
+    procedure, pass(self) :: copysummLPNH_
+    procedure, pass(self) :: copysummLPSH_
     procedure, pass(self) :: copymasterSPNH_
     procedure, pass(self) :: copymasterSPSH_
  
@@ -147,6 +149,8 @@ type, public :: MPfile_T
     generic, public :: copymLPSH4 => copymLPSH4_
     generic, public :: copymLPNH => copymLPNH_
     generic, public :: copymLPSH => copymLPSH_
+    generic, public :: copysummLPNH => copysummLPNH_
+    generic, public :: copysummLPSH => copysummLPSH_
     generic, public :: copymasterSPNH => copymasterSPNH_
     generic, public :: copymasterSPSH => copymasterSPSH_
 
@@ -316,6 +320,58 @@ acc = self%MPDT%mLPSH
 if (.not.present(keep)) deallocate(self%MPDT%mLPSH)
 
 end subroutine copymLPSH_
+
+!--------------------------------------------------------------------------
+subroutine copysummLPNH_(self, acc, keep)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/15/20
+!!
+!! copy the mLPNH array and return it summed over the last dimension
+
+IMPLICIT NONE 
+
+class(MPfile_T), INTENT(INOUT)                :: self
+real(kind=sgl), allocatable, INTENT(OUT)      :: acc(:,:)
+logical, INTENT(IN), OPTIONAL                 :: keep 
+
+integer(kind=irg)                             :: s(3), nx
+
+s = shape(self%MPDT%mLPNH)
+nx = (s(1)-1)/2
+allocate( acc(-nx:nx, -nx:nx) )
+
+acc = sum(self%MPDT%mLPNH, 3)
+
+if (.not.present(keep)) deallocate(self%MPDT%mLPNH)
+
+end subroutine copysummLPNH_
+
+!--------------------------------------------------------------------------
+subroutine copysummLPSH_(self, acc, keep)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/15/20
+!!
+!! copy the mLPSH array and return it summed over the last dimension
+
+IMPLICIT NONE 
+
+class(MPfile_T), INTENT(INOUT)                :: self
+real(kind=sgl), allocatable, INTENT(OUT)      :: acc(:,:)
+logical, INTENT(IN), OPTIONAL                 :: keep 
+
+integer(kind=irg)                             :: s(3), nx
+
+s = shape(self%MPDT%mLPSH)
+nx = (s(1)-1)/2
+allocate( acc(-nx:nx, -nx:nx) )
+
+acc = sum(self%MPDT%mLPSH, 3)
+
+if (.not.present(keep)) deallocate(self%MPDT%mLPSH)
+
+end subroutine copysummLPSH_
 
 !--------------------------------------------------------------------------
 subroutine copymasterSPNH_(self, acc, keep)
@@ -775,7 +831,7 @@ integer(kind=irg)                                :: ii, nlines, restart, combine
                                                     dokinematical, useEnergyWeighting, Esel
 integer(kind=irg),allocatable                    :: iarray(:)
 real(kind=sgl),allocatable                       :: farray(:)
-real(kind=sgl),allocatable                       :: mLPNH(:,:,:,:), mLPNH3(:,:,:)
+real(kind=sgl),allocatable                       :: mLPNH(:,:,:,:), mLPNH3(:,:,:) 
 integer(HSIZE_T)                                 :: dims(1), dims2(2), dims3(3), offset3(3), dims4(4) 
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 logical                                          :: isEBSD=.FALSE., isECP=.FALSE., isTKD=.FALSE.

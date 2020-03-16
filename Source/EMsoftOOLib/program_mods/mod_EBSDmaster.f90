@@ -310,9 +310,6 @@ end if
 
 stereog = .TRUE.
 
-timer = Timing_T()
-tstrb = timer%getTimeString()
-
 tpi = 2.D0*cPi
 czero = cmplx(0.D0,0.D0)
 
