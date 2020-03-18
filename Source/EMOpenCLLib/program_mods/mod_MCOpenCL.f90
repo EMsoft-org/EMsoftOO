@@ -288,6 +288,7 @@ use clfortran
 use mod_CLsupport
 use HDF5
 use mod_HDFsupport
+use mod_HDFnames
 use mod_notifications
 use mod_math
 use ISO_C_BINDING
@@ -305,6 +306,7 @@ type(IO_T)              :: Message
 type(OpenCL_T)          :: CL
 type(Lambert_T)         :: Lambert 
 type(HDF_T)             :: HDF
+type(HDFnames_T)        :: HDFnames
 type(SpaceGroup_T)      :: SG
 type(Diffraction_T)     :: Diff
 type(MCfile_T)          :: MCFT
@@ -388,6 +390,12 @@ tstrb = timer%getTimeString()
 
 call openFortranHDFInterface()
 HDF = HDF_T() 
+HDFnames = HDFnames_T() 
+
+! set the HDF group names for reading the MC input file 
+call HDFnames%set_ProgramData(SC_MCOpenCL) 
+call HDFnames%set_NMLlist(SC_MCCLNameList) 
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML) 
 
 ! get the crystal structure from the *.xtal file
 verbose = .TRUE.
@@ -908,7 +916,7 @@ tstre = timer%getTimeString()
 ! and save the data to an HDF5 file 
 HDF = HDF_T()
 call MCFT%copynml(mcnl)
-call MCFT%writeMCfile(EMsoft, cell, SG, HDF, progname, dstr, tstrb, tstre)
+call MCFT%writeMCfile(EMsoft, cell, SG, HDF, HDFnames, progname, dstr, tstrb, tstre)
 
 call closeFortranHDFInterface()
 

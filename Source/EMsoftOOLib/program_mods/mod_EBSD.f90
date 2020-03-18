@@ -605,7 +605,7 @@ HDF = HDF_T()
 ! 2. read the Monte Carlo data file (HDF format)
 fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%energyfile))
 call MCFT%setFileName(fname)
-call MCFT%readMCfile(HDF, getAccume=.TRUE.)
+call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
 mcnl = MCFT%getnml()
 
 ! 3. read EBSD master pattern file (HDF format)

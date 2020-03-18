@@ -54,6 +54,6 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 40 /) )
 ECP = ECP_T(EMsoft%nmldeffile)
 
 ! perform the computations
-call ECP%ECP(EMsoft, progname, nmldeffile)
+call ECP%ECP(EMsoft, progname, EMsoft%nmldeffile)
 
 end program EMECP

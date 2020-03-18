@@ -75,6 +75,7 @@ type, public :: HDFnames_T
     procedure, pass(self) :: get_ProgramData_
     procedure, pass(self) :: get_CrystalData_
     procedure, pass(self) :: get_Variable_
+    procedure, pass(self) :: get_AllNames_
     final :: HDFnames_destructor
 
     generic, public :: set_EMheader => set_EMheader_
@@ -95,6 +96,7 @@ type, public :: HDFnames_T
     generic, public :: get_ProgramData => get_ProgramData_
     generic, public :: get_CrystalData => get_CrystalData_
     generic, public :: get_Variable => get_Variable_ 
+    generic, public :: get_AllNames => get_AllNames_
 
 end type HDFnames_T
 
@@ -116,6 +118,7 @@ end type HDFnames_T
 !DEC$ ATTRIBUTES DLLEXPORT :: get_ProgramData
 !DEC$ ATTRIBUTES DLLEXPORT :: get_CrystalData
 !DEC$ ATTRIBUTES DLLEXPORT :: get_Variable
+!DEC$ ATTRIBUTES DLLEXPORT :: get_AllNames
 
 ! the constructor routine for this class 
 interface HDFnames_T
@@ -141,6 +144,11 @@ HDFnames%CrystalData = SC_CrystalData
 HDFnames%EMData = SC_EMData 
 HDFnames%NMLfiles = SC_NMLfiles 
 HDFnames%NMLparameters = SC_NMLparameters 
+
+HDFnames%NMLfilename = ''
+HDFnames%NMLlist = ''
+HDFnames%ProgramData = ''
+HDFnames%Variable = ''
 
 end function HDFnames_constructor
 
@@ -465,5 +473,37 @@ character(*), INTENT(IN)             :: inp
 self%Variable = inp
 
 end subroutine set_Variable_
+
+!--------------------------------------------------------------------------
+subroutine get_AllNames_(self)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/17/20
+!!
+!! print all variables in the HDFnames_T class
+
+use mod_io
+
+IMPLICIT NONE 
+
+class(HDFnames_T), INTENT(INOUT)  :: self
+
+type(IO_T)                        :: Message 
+
+call Message%printMessage(' Current components of the HDFnames class')
+call Message%printMessage(' EMheader      : '//trim(self%get_EMheader()))
+call Message%printMessage(' EMData        : '//trim(self%get_EMData()))
+call Message%printMessage(' NMLfiles      : '//trim(self%get_NMLfiles()))
+call Message%printMessage(' NMLfilename   : '//trim(self%get_NMLfilename()))
+call Message%printMessage(' NMLparameters : '//trim(self%get_NMLparameters()))
+call Message%printMessage(' NMLlist       : '//trim(self%get_NMLlist()))
+call Message%printMessage(' ProgramData   : '//trim(self%get_ProgramData()))
+call Message%printMessage(' CrystalData   : '//trim(self%get_CrystalData()))
+call Message%printMessage(' Variable      : '//trim(self%get_Variable()))
+
+end subroutine get_AllNames_
+
+
+
 
 end module mod_HDFnames

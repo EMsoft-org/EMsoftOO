@@ -356,7 +356,7 @@ self%MCfile = trim(MCfile)
 end subroutine setFileName_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeHDFNameList_(self, HDF)
+recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -364,6 +364,7 @@ recursive subroutine writeHDFNameList_(self, HDF)
 !! write namelist to HDF file
 
 use mod_HDFsupport
+use mod_HDFnames
 use stringconstants 
 
 use ISO_C_BINDING
@@ -372,6 +373,7 @@ IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)          :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
 integer(kind=irg),parameter             :: n_int = 11, n_real_bse1 = 9, n_real_full = 7, n_real_ivol= 6
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
@@ -387,7 +389,7 @@ associate( mcnl => self%nml )
 
 ! create the group for this namelist
 groupname = SC_MCCLNameList
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
 ! write all the single integers
 io_int = (/ mcnl%stdout, mcnl%numsx, mcnl%globalworkgrpsz, mcnl%num_el, mcnl%totnum_el, mcnl%multiplier, mcnl%devid, &
@@ -470,7 +472,7 @@ end associate
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine readMCfile_(self, HDF, getAccume, getAccumz, getAccumSP, getAccumxyz) 
+recursive subroutine readMCfile_(self, HDF, HDFnames, getAccume, getAccumz, getAccumSP, getAccumxyz) 
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/05/20
@@ -479,6 +481,7 @@ recursive subroutine readMCfile_(self, HDF, getAccume, getAccumz, getAccumSP, ge
 
 use HDF5 
 use mod_HDFsupport
+use mod_HDFnames
 use mod_io
 use stringconstants
 use ISO_C_BINDING 
@@ -487,6 +490,7 @@ IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)  :: self 
 type(HDF_T),INTENT(INOUT)       :: HDF
+type(HDFnames_T),INTENT(INOUT)  :: HDFnames
 logical,INTENT(IN),OPTIONAL     :: getAccume     
  !! energy accumulator array switch
 logical,INTENT(IN),OPTIONAL     :: getAccumz     
@@ -529,21 +533,20 @@ end if
    
 ! open the Monte Carlo file 
 readonly = .TRUE.
-hdferr =  HDF%openFile(self%MCfile, readonly)
+hdferr =  HDF%openFile(self%MCfile) !, readonly)
 
 ! check whether or not the MC file was generated using DREAM.3D
 ! this is necessary so that the proper reading of fixed length vs. variable length strings will occur.
 ! this test sets a flag in side the HDFsupport module so that the proper reading routines will be employed
-datagroupname = '/EMheader/MCOpenCL'
+hdferr = HDF%openGroup(HDFnames%get_EMheader())
+
+datagroupname = trim(HDFnames%get_ProgramData()) 
 call H5Lexists_f(HDF%getobjectID(),trim(datagroupname),g_exists, hdferr)
 if (.not.g_exists) then
   call Message%printError('readMCfile','This HDF file does not contain Monte Carlo header data')
 end if
 
-groupname = SC_EMheader
-hdferr = HDF%openGroup(groupname)
-groupname = SC_MCOpenCL
-hdferr = HDF%openGroup(groupname)
+hdferr = HDF%openGroup(HDFnames%get_ProgramData())
 FL = .FALSE.
 datagroupname = 'FixedLength'
 FL = HDF%CheckFixedLengthflag(datagroupname)
@@ -557,7 +560,7 @@ call HDF%pop()
 ! make sure this is a Monte Carlo file
 !====================================
 groupname = SC_NMLfiles
-    hdferr = HDF%openGroup(groupname )
+    hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 dataset = 'MCOpenCLNML'
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..FALSE.) then
@@ -569,10 +572,8 @@ call HDF%pop()
 !====================================
 ! read all NMLparameters group datasets
 !====================================
-groupname = SC_NMLparameters
-    hdferr = HDF%openGroup(groupname)
-groupname = SC_MCCLNameList
-    hdferr = HDF%openGroup(groupname)
+    hdferr = HDF%openGroup(HDFnames%get_NMLparameters())
+    hdferr = HDF%openGroup(HDFnames%get_NMLlist())
 
 ! we'll read these roughly in the order that the HDFView program displays them...
 
@@ -694,10 +695,8 @@ dataset = SC_xtalname
 !====================================
 
 ! open the Monte Carlo data group
-groupname = SC_EMData
-    hdferr = HDF%openGroup(groupname)
-groupname = SC_MCOpenCL
-    hdferr = HDF%openGroup(groupname)
+    hdferr = HDF%openGroup(HDFnames%get_EMData())
+    hdferr = HDF%openGroup(HDFnames%get_ProgramData())
 
 ! integers
 dataset = SC_multiplier
@@ -776,7 +775,7 @@ end associate
 end subroutine readMCfile_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeMCfile_(self, EMsoft, cell, SG, HDF, progname, dstr, tstrb, tstre)
+recursive subroutine writeMCfile_(self, EMsoft, cell, SG, HDF, HDFnames, progname, dstr, tstrb, tstre)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/06/20
@@ -788,6 +787,7 @@ use mod_crystallography
 use mod_symmetry
 use HDF5
 use mod_HDFsupport
+use mod_HDFnames
 use stringconstants
 
 IMPLICIT NONE 
@@ -797,6 +797,7 @@ type(EMsoft_T), INTENT(INOUT)       :: EMsoft
 type(Cell_T), INTENT(INOUT)         :: cell 
 type(SpaceGroup_T), INTENT(INOUT)   :: SG
 type(HDF_T),INTENT(INOUT)           :: HDF 
+type(HDFnames_T),INTENT(INOUT)      :: HDFnames
 character(fnlen), INTENT(IN)        :: progname
 character(11), INTENT(INOUT)        :: dstr
 character(15), INTENT(IN)           :: tstrb
@@ -822,7 +823,7 @@ end if
 hdferr = HDF%createFile(dataname)
 
 ! write the EMheader to the file
-datagroupname = 'MCOpenCL'
+datagroupname = HDFnames%get_ProgramData() ! 'MCOpenCL'
 call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
 
 ! add the CrystalData group at the top level of the file
@@ -833,16 +834,15 @@ groupname = SC_NMLfiles
 hdferr = HDF%createGroup(groupname)
 
 ! read the text file and write the array to the file
-dataset = SC_MCOpenCLNML
+dataset = HDFnames%get_NMLfiles()    !  SC_MCOpenCLNML
 hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
 ! leave this group
 call HDF%pop()
 
 ! create a namelist group to write all the namelist files into
-groupname = SC_NMLparameters
-hdferr = HDF%createGroup(groupname)
-call self%writeHDFNameList(HDF)
+hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
+call self%writeHDFNameList(HDF, HDFnames)
 
 ! leave this group
 call HDF%pop()

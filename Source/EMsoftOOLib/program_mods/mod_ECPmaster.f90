@@ -306,10 +306,7 @@ HDF = HDF_T()
 
 ! set the HDF group names for this program
 HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_ECPmaster) 
-call HDFnames%set_NMLlist(SC_ECPmasterNameList) 
-call HDFnames%set_NMLfilename(SC_ECPmasterNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
+
 call MPFT%setModality('ECP')
 
 ! simplify the notation a little
@@ -339,11 +336,14 @@ frac = 0.05
 !=============================================
 !=============================================
 ! ---------- read Monte Carlo .h5 output file and extract necessary parameters
+call HDFnames%set_ProgramData(SC_MCOpenCL) 
+call HDFnames%set_NMLlist(SC_MCCLNameList) 
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML) 
 energyfile = ''
 energyfile = EMsoft%generateFilePath('EMdatapathname',trim(emnl%energyfile))
 outname = trim(energyfile)
 call MCFT%setFileName(energyfile)
-call MCFT%readMCfile(HDF, getAccumz=.TRUE.)
+call MCFT%readMCfile(HDF, HDFnames, getAccumz=.TRUE.)
 mcnl = MCFT%getnml()
 call MCFT%copyaccumz(accum_z)
 
@@ -465,6 +465,9 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
 !=============================================
 ! create or update the HDF5 output file
 !=============================================
+call HDFnames%set_ProgramData(SC_ECPmaster) 
+call HDFnames%set_NMLlist(SC_ECPmasterNameList) 
+call HDFnames%set_NMLfilename(SC_ECPmasterNML) 
 ! Open an existing file or create a new file using the default properties.
   if (trim(energyfile).eq.trim(outname)) then
     hdferr =  HDF%openFile(outname)

@@ -65,8 +65,8 @@ type ECPDetectorType
   ! type(EBSDPixel),allocatable :: detector(:,:) 
 end type ECPDetectorType
 
-type IncidentListECP
-  integer(kind=irg)               :: i, j
+type, public :: IncidentListECP
+  integer(kind=irg)               :: i, j, numk
   real(kind=dbl)                  :: k(3)
   type(IncidentListECP),pointer   :: next
 end type IncidentListECP
@@ -77,7 +77,7 @@ private
   character(fnlen)                :: nmldeffile = 'EMECP.nml'
   type(ECPNameListType)           :: nml 
   type(ECPDetectorType)           :: det
-  type(IncidentListECP)           :: klist
+  type(IncidentListECP),pointer   :: klist
 
 contains
 private 
@@ -88,6 +88,8 @@ private
   procedure, pass(self) :: ECPGenerateDetector_
   procedure, pass(self) :: ECPGetWeightFactors_
   procedure, pass(self) :: GetVectorsCone_
+  procedure, pass(self) :: get_numk_
+  procedure, pass(self) :: set_numk_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -96,6 +98,8 @@ private
   generic, public :: ECPGenerateDetector => ECPGenerateDetector_
   generic, public :: ECPGetWeightFactors => ECPGetWeightFactors_
   generic, public :: GetVectorsCone => GetVectorsCone_
+  generic, public :: get_numk => get_numk_
+  generic, public :: set_numk => set_numk_
 
 end type ECP_T
 
@@ -117,8 +121,11 @@ type(ECP_T) function ECP_constructor( nmlfile ) result(ECP)
 IMPLICIT NONE
 
 character(fnlen), OPTIONAL   :: nmlfile 
+integer(kind=irg)            :: istat 
 
 call ECP%readNameList(nmlfile)
+allocate(ECP%klist,stat=istat)
+nullify(ECP%klist%next)
 
 end function ECP_constructor
 
@@ -249,6 +256,40 @@ type(ECPNameListType)         :: nml
 nml = self%nml
 
 end function getNameList_
+
+!--------------------------------------------------------------------------
+function get_numk_(self) result(numk)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/17/20
+!!
+!! get the number of incident wave vectors in the list 
+
+IMPLICIT NONE 
+
+class(ECP_T), INTENT(INOUT)   :: self
+integer(kind=irg)             :: numk
+
+numk = self%klist%numk
+
+end function get_numk_
+
+!--------------------------------------------------------------------------
+subroutine set_numk_(self, numk)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/17/20
+!!
+!! set the number of incident wave vectors in the list 
+
+IMPLICIT NONE 
+
+class(ECP_T), INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(OUT) :: numk
+
+self%klist%numk = numk
+
+end subroutine set_numk_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
@@ -395,7 +436,7 @@ type(MCOpenCLNameListType)              :: mcnl
 type(IncidentListECP),pointer           :: ktmp
 real(kind=dbl),allocatable              :: klist(:,:)
 real(kind=sgl),allocatable              :: mLPNH(:,:) , mLPSH(:,:)
-integer(kind=irg),allocatable           :: acc(:,:,:)
+
 
 integer(kind=irg)                       :: npx,npy,numset,istat,val, numangles
 integer(kind=irg),allocatable           :: ATOM_type(:)
@@ -432,15 +473,13 @@ logical                                 :: overwrite = .TRUE., insert = .TRUE., 
 ! open the HDF interface
 call openFortranHDFInterface()
 
+! construct the HDF and HDFnames classes
+HDF = HDF_T() 
+HDFnames = HDFnames_T() 
+
 ! associate a couple of variable types
 associate( enl => self%nml, ECPdetector => self%det, ECPMCdata => MCFT%MCDT )
-
-! set the HDF group names for this program
-HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_ECP) 
-call HDFnames%set_NMLlist(SC_ECPNameList) 
-call HDFnames%set_NMLfilename(SC_EMECPNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
+call MPFT%setModality('ECP')
 
 !=================================================================
 ! 1. read the angle array from file
@@ -455,18 +494,24 @@ numangles = SO%getListCount('FZ')
 call SO%listtoQuaternionArray( qAR )
 call SO%delete_FZlist()
 
-! construct the HDF class
-HDF = HDF_T() 
-
+! set the HDF group names for reading the MC input file 
+call HDFnames%set_ProgramData(SC_MCOpenCL) 
+call HDFnames%set_NMLlist(SC_MCCLNameList) 
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
+! call HDFnames%get_AllNames()
 !=================================================================
 ! 2. read the Monte Carlo data file (HDF format)
 !=================================================================
 fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%energyfile))
 call MCFT%setFileName(fname)
-call MCFT%readMCfile(HDF, getAccume=.TRUE.)
+call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
 mcnl = MCFT%getnml()
-call MCFT%copyaccume(acc)
 
+! set the HDF group names for reading the MP input file 
+call HDFnames%set_ProgramData(SC_ECPmaster) 
+call HDFnames%set_NMLlist(SC_ECPMasterNameList) 
+call HDFnames%set_NMLfilename(SC_ECPmasterNML) 
+! call HDFnames%get_AllNames()
 !=================================================================
 ! 3. read ECP master pattern file (HDF format); and sum to 2D arrays
 !=================================================================
@@ -476,12 +521,15 @@ call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
 call MPFT%copysummLPNH(mLPNH)
 call MPFT%copysummLPSH(mLPSH)
 
+! reset the HDFnames to the ones needed by the EMECP program
+call HDFnames%set_ProgramData(SC_EMECP) 
+call HDFnames%set_NMLlist(SC_ECPNameList) 
+call HDFnames%set_NMLfilename(SC_EMECPNML) 
+! call HDFnames%get_AllNames()
+
 !=================================================================
-! 4. generate the detector arrays
+! 4. generate the detector 
 !=================================================================
-allocate(ECPdetector%rgx(enl%npix,enl%npix), &
-         ECPdetector%rgy(enl%npix,enl%npix), &
-         ECPdetector%rgz(enl%npix,enl%npix)) 
 call self%ECPGenerateDetector(verbose)
 
 !=================================================================
@@ -491,7 +539,7 @@ nsig = nint((enl%thetac) + abs(enl%sampletilt)) + 1
 allocate(anglewf(1:nsig),stat=istat)
 
 call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
-call self%ECPGetWeightFactors(mcnl, numangles, acc, anglewf, nsig, verbose=.TRUE.)
+call self%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
 
 !=================================================================
 ! check if there are enough angles in MC for detector geometry
@@ -512,13 +560,14 @@ end if
 ! generate list of incident vectors
 !=================================================================
 numk = 0
-call self%GetVectorsCone(numk)
+call self%GetVectorsCone()
+numk = self%get_numk()
 allocate(kij(2,numk),klist(3,numk),stat=istat)
 
 io_int(1) = numk
 call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1) 
 
-ktmp = self%klist
+ktmp => self%klist
 ! converting to array for OpenMP parallelization
 do i = 1,numk
    klist(1:3,i) = ktmp%k(1:3)
@@ -541,7 +590,7 @@ datafile = trim(EMsoft%generateFilePath('EMdatapathname',enl%datafile))
 hdferr =  HDF%createFile(datafile)
 
 ! write the EMheader to the file
-groupname = trim(HDFnames%get_EMheader())
+groupname = trim(HDFnames%get_ProgramData())
 call HDF%writeEMheader(dstr, tstrb, tstre, progname, groupname)
 
 ! create a namelist group to write all the namelist files into
@@ -676,7 +725,7 @@ call OMP_SET_NUM_THREADS(enl%nthreads)
 ! use OpenMP to run on multiple cores
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(TID,nthreads,dc,ixy,istat,nix,niy,nixp,niyp,dx,dy,dxm,dym,MCangle,isig,dp,isigp) &
-!$OMP& PRIVATE(ipx,ipy,ECPpattern,bpat,ECPpatternintd,ma,mi,offset,hdims,dims3,hdferr,qu,idir,wf)
+!$OMP& PRIVATE(ipx,ipy,ECPpattern,bpat,ECPpatternintd,ma,mi,offset,hdims,dims3,hdferr,qq,idir,wf)
 
 TID = OMP_GET_THREAD_NUM()
 nthreads = OMP_GET_NUM_THREADS()
@@ -881,8 +930,15 @@ delpolar = (thetaout - thetain)/float(det%npolar-1)
 det%nazimuth = 361
 delazimuth = 2.0*cPi/float(det%nazimuth-1)
 
-allocate(det%rgx(det%npolar,det%nazimuth),det%rgy(det%npolar,det%nazimuth),det%rgz(det%npolar,det%nazimuth),stat=istat)
-if (istat .ne. 0) call Message%printError('ECPGenerateDetector','cannot allocate the rgx, rgy and rgz arrays')
+write (*,*) det%npolar, det%nazimuth 
+
+allocate(det%rgx(det%npolar,det%nazimuth))
+allocate(det%rgy(det%npolar,det%nazimuth))
+allocate(det%rgz(det%npolar,det%nazimuth),stat=istat)
+if (istat .ne. 0) then 
+  write (*,*) 'istat = ', istat
+  call Message%printError('ECPGenerateDetector','cannot allocate the rgx, rgy and rgz arrays')
+end if
 
 det%rgx = 0.0
 det%rgy = 0.0
@@ -918,7 +974,7 @@ end associate
 end subroutine ECPGenerateDetector_
 
 !--------------------------------------------------------------------------
-recursive subroutine ECPGetWeightFactors_(self, mcnl, numang, acc, weightfact, nsig, verbose)
+recursive subroutine ECPGetWeightFactors_(self, mcnl, MCFT, weightfact, nsig, verbose)
 !! author: MDG 
 !! version: 1.0 
 !! date: 03/15/20
@@ -935,8 +991,7 @@ IMPLICIT NONE
 
 class(ECP_T),INTENT(INOUT)              :: self
 type(MCOpenCLNameListType),INTENT(INOUT):: mcnl
-integer(kind=irg),INTENT(IN)            :: numang
-integer(kind=irg),INTENT(IN)            :: acc(1:numang,-mcnl%numsx:mcnl%numsx,-mcnl%numsx:mcnl%numsx)
+type(MCfile_T),INTENT(INOUT)            :: MCFT
 integer(kind=irg), INTENT(IN)           :: nsig
 real(kind=sgl), INTENT(OUT)             :: weightfact(nsig)
 logical, INTENT(IN), OPTIONAL           :: verbose
@@ -946,10 +1001,12 @@ integer(kind=irg)                       :: isig, ipolar, iazimuth, istat
 integer(kind=irg)                       :: nix, niy, nixp, niyp, isampletilt
 real(kind=sgl)                          :: dx, dy, dxm, dym, acc_sum, samplenormal(3), dp
 real(kind=sgl)                          :: dc(3), ixy(2), scl, deltheta, thetac, x, MCangle
+integer(kind=irg),allocatable           :: acc(:,:,:)
 
 associate( ecpnl => self%nml, det => self%det )
 
 scl = mcnl%numsx
+call MCFT%copyaccume(acc)
 
 thetac = ecpnl%thetac
 deltheta = (thetac+abs(ecpnl%sampletilt))/float(nsig-1)
@@ -996,7 +1053,7 @@ end associate
 end subroutine ECPGetWeightFactors_
 
 !--------------------------------------------------------------------------
-recursive subroutine GetVectorsCone_(self, numk)
+recursive subroutine GetVectorsCone_(self)
 !! author: MDG 
 !! version: 1.0 
 !! date: 03/15/20
@@ -1006,14 +1063,13 @@ recursive subroutine GetVectorsCone_(self, numk)
 IMPLICIT NONE 
 
 class(ECP_T),INTENT(INOUT)          :: self
-integer(kind=irg),INTENT(OUT)       :: numk
 
 type(IncidentListECP),pointer       :: ktmp
 real(kind=dbl)                      :: kk(3), thetacr, delta, ktmax
-integer(kind=irg)                   :: imin, imax, jmin, jmax
+integer(kind=irg)                   :: imin, imax, jmin, jmax, numk
 integer(kind=irg)                   :: ii, jj, istat
 
-associate( ecpnl => self%nml )
+associate( ecpnl => self%nml, klist => self%klist )
 
 numk = 0
 kk = (/0.D0,0.D0,1.D0/)
@@ -1026,8 +1082,7 @@ imax = ecpnl%npix
 jmin = 1
 jmax = ecpnl%npix
 
-ktmp = self%klist
-nullify(ktmp%next)
+ktmp => klist
 
 do ii = imin, imax
     do jj = jmin, jmax
@@ -1043,6 +1098,8 @@ do ii = imin, imax
 end do
 
 end associate 
+
+call self%set_numk(numk) 
 
 end subroutine GetVectorsCone_
 

@@ -431,13 +431,13 @@ IMPLICIT NONE
     end if 
 
 ! and turn standard error reporting off; we'll handle errors our way...
-    printonoff = 0
-    call h5eset_auto_f(printonoff,hdferr)
-    if (hdferr.lt.0) then 
-      io_int(1) = hdferr 
-      call Message%WriteValue('Error code : ',io_int,1)
-      call Message%printMessage('   returned by routine h5eset_auto_f',frm="(A)")
-    end if 
+    ! printonoff = 0
+    ! call h5eset_auto_f(printonoff,hdferr)
+    ! if (hdferr.lt.0) then 
+    !   io_int(1) = hdferr 
+    !   call Message%WriteValue('Error code : ',io_int,1)
+    !   call Message%printMessage('   returned by routine h5eset_auto_f',frm="(A)")
+    ! end if 
 
     HDFinterfaceOpen = .TRUE.
 

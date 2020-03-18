@@ -321,7 +321,7 @@ doLegendre = .FALSE.
 ! ---------- read Monte Carlo .h5 output file and extract necessary parameters
 fname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%energyfile))
 call MCFT%setFileName(fname)
-call MCFT%readMCfile(HDF, getAccumz=.TRUE.)
+call MCFT%readMCfile(HDF, HDFnames, getAccumz=.TRUE.)
 mcnl = MCFT%getnml()
 call MCFT%copyaccumz(accum_z)
 

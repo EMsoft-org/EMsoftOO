@@ -883,14 +883,14 @@ hdferr =  HDF%openFile(self%MPfile, readonly)
 ! this is necessary so that the proper reading of fixed length vs. variable length strings will occur.
 ! this test sets a flag in side the HDFsupport module so that the proper reading routines will be employed
 
-datagroupname = trim(HDFnames%get_EMheader())//trim(HDFnames%get_ProgramData())
+hdferr = HDF%openGroup(HDFnames%get_EMheader())
+datagroupname = trim(HDFnames%get_ProgramData())
 call H5Lexists_f(HDF%getobjectID(),trim(datagroupname),g_exists, hdferr)
 if (.not.g_exists) then
   call Message%printError('readMPfile','This HDF file does not contain Master Pattern header data')
 end if
 
-hdferr = HDF%openGroup(HDFnames%get_EMheader())
-hdferr = HDF%openGroup(HDFnames%get_Variable())  ! SC_MCOpenCL
+hdferr = HDF%openGroup(HDFnames%get_ProgramData())  ! SC_MCOpenCL
 FL = .FALSE.
 datagroupname = 'FixedLength'
 FL = HDF%CheckFixedLengthflag(datagroupname)
@@ -904,11 +904,11 @@ call HDF%pop()
 ! make sure this is a Master Pattern file
 !====================================
 hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
-dataset = SC_EBSDmasterNML
+dataset = trim(HDFnames%get_NMLfilename())
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..FALSE.) then
     call HDF%pop(.TRUE.)
-    call Message%printError('readMPfile','this is not an EBSD Master Pattern file')
+    call Message%printError('readMPfile','this is not a valid Master Pattern file')
 end if
 call HDF%pop()
 
@@ -1060,8 +1060,12 @@ if(g_exists) then
     call HDF%readDatasetInteger(dataset, hdferr, MPDT%lastEnergy)
 end if
 
+MPDT%numEbins = 1
 dataset = SC_numEbins
+call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
+if(g_exists) then
     call HDF%readDatasetInteger(dataset, hdferr, MPDT%numEbins)
+end if 
 
 dataset = SC_numset
     call HDF%readDatasetInteger(dataset, hdferr, MPDT%numset)
@@ -1082,47 +1086,65 @@ if (present(getkeVs)) then
   end if 
 end if
 
+
 if (present(getmLPNH)) then 
   if (getmLPNH.eqv..TRUE.) then
     dataset = SC_mLPNH
-    if (dfMP.eqv..TRUE.) then 
-      call HDF%readDatasetFloatArray(dataset, dims3, hdferr, mLPNH3)
-      allocate(MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,dims3(3)),stat=istat)
-      MPDT%mLPNH = mLPNH3
-      deallocate(mLPNH3)
-    else
-      call HDF%readDatasetFloatArray(dataset, dims4, hdferr, mLPNH)
-      if (keepall) then
-        allocate(MPDT%mLPNH4(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins, dims4(4)),stat=istat)
-        MPDT%mLPNH4 = mLPNH
+    if (isEBSD.eqv..TRUE.) then 
+      if (dfMP.eqv..TRUE.) then 
+        call HDF%readDatasetFloatArray(dataset, dims3, hdferr, mLPNH3)
+        allocate(MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,dims3(3)),stat=istat)
+        MPDT%mLPNH = mLPNH3
+        deallocate(mLPNH3)
       else
-        allocate(MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins),stat=istat)
-        MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,1:MPDT%numEbins) = sum(mLPNH,4)
+        call HDF%readDatasetFloatArray(dataset, dims4, hdferr, mLPNH)
+        write (*,*) 'dims4 = ', dims4
+        if (keepall) then
+          allocate(MPDT%mLPNH4(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins, dims4(4)),stat=istat)
+          MPDT%mLPNH4 = mLPNH
+        else
+          allocate(MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins),stat=istat)
+          MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,1:MPDT%numEbins) = sum(mLPNH,4)
+        end if
+        deallocate(mLPNH)
       end if
-      deallocate(mLPNH)
-    end if
+    end if 
+    if (isECP.eqv..TRUE.) then 
+        call HDF%readDatasetFloatArray(dataset, dims3, hdferr, mLPNH3)
+        allocate(MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,dims3(3)),stat=istat)
+        MPDT%mLPNH = mLPNH3
+        deallocate(mLPNH3)
+    end if 
   end if 
 end if
 
 if (present(getmLPSH)) then 
   if (getmLPSH.eqv..TRUE.) then
     dataset = SC_mLPSH
-    if (dfMP.eqv..TRUE.) then 
-      call HDF%readDatasetFloatArray(dataset, dims3, hdferr, mLPNH3)
-      allocate(MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,dims3(3)),stat=istat)
-      MPDT%mLPSH = mLPNH3
-      deallocate(mLPNH3)
-    else
-      call HDF%readDatasetFloatArray(dataset, dims4, hdferr, mLPNH)
-      if (keepall) then
-        allocate(MPDT%mLPSH4(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins, dims4(4)),stat=istat)
-        MPDT%mLPSH4 = mLPNH
+    if (isEBSD.eqv..TRUE.) then 
+      if (dfMP.eqv..TRUE.) then 
+        call HDF%readDatasetFloatArray(dataset, dims3, hdferr, mLPNH3)
+        allocate(MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,dims3(3)),stat=istat)
+        MPDT%mLPSH = mLPNH3
+        deallocate(mLPNH3)
       else
-        allocate(MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins),stat=istat)
-        MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,1:MPDT%numEbins) = sum(mLPNH,4)
+        call HDF%readDatasetFloatArray(dataset, dims4, hdferr, mLPNH)
+        if (keepall) then
+          allocate(MPDT%mLPSH4(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins, dims4(4)),stat=istat)
+          MPDT%mLPSH4 = mLPNH
+        else
+          allocate(MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins),stat=istat)
+          MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,1:MPDT%numEbins) = sum(mLPNH,4)
+        end if
+        deallocate(mLPNH)
       end if
-      deallocate(mLPNH)
-    end if
+    end if 
+    if (isECP.eqv..TRUE.) then 
+        call HDF%readDatasetFloatArray(dataset, dims3, hdferr, mLPNH3)
+        allocate(MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,dims3(3)),stat=istat)
+        MPDT%mLPSH = mLPNH3
+        deallocate(mLPNH3)
+    end if 
   end if 
 end if
 
