@@ -26,42 +26,61 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMEBSDmaster
+program EMTKDmaster
   !! author: MDG
   !! version: 1.0 
-  !! date: 02/05/20
+  !! date: 03/18/20
   !!
-  !! EMEBSDmaster computes the energy-dependent master EBSD pattern for a given structure
+  !! TKD Energy-dependent Master Pattern Simulation 
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_EBSDmaster
+use mod_TKDmaster
 use mod_HDFnames
 use stringconstants
+use mod_EBSDmaster
 
 IMPLICIT NONE
 
-character(fnlen)       :: progname = 'EMEBSDmaster.f90'
-character(fnlen)       :: progdesc = 'EBSD Energy-dependent Master Pattern Simulation'
+character(fnlen)      :: progname = 'EMTKDmaster.f90'
+character(fnlen)      :: progdesc = 'TKD Energy-dependent Master Pattern Simulation'
 
-type(EMsoft_T)         :: EMsoft
-type(EBSDmaster_T)     :: MP 
-type(HDFnames_T)       :: HDFnames
+type(EMsoft_T)        :: EMsoft
+type(TKDmaster_T)     :: TKD 
+type(EBSDmaster_T)    :: MP 
+type(HDFnames_T)      :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 21, 0 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 29, 0 /) )
 
 ! deal with the namelist stuff
-MP = EBSDmaster_T(EMsoft%nmldeffile)
+TKD = TKDmaster_T(EMsoft%nmldeffile)
 
+! make sure we copy this name list data into the correct class variable
+call MP%set_npx(TKD%get_npx())
+call MP%set_Esel(TKD%get_Esel())
+call MP%set_nthreads(TKD%get_nthreads())
+call MP%set_dmin(TKD%get_dmin())
+call MP%set_copyfromenergyfile(TKD%get_copyfromenergyfile())
+call MP%set_h5copypath(TKD%get_h5copypath())
+call MP%set_energyfile(TKD%get_energyfile())
+call MP%set_BetheParametersFile(TKD%get_BetheParametersFile())
+call MP%set_combinesites(TKD%get_combinesites())
+call MP%set_restart(TKD%get_restart())
+call MP%set_uniform(TKD%get_uniform())
+call MP%set_Notify(TKD%get_Notify())
+call MP%set_kinematical(TKD%get_kinematical())
+
+! set the HDFnames class to TKD mode  
 HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_EBSDmaster) 
-call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+call HDFnames%set_ProgramData(SC_TKDmaster) 
+call HDFnames%set_NMLlist(SC_TKDmasterNameList) 
+call HDFnames%set_NMLfilename(SC_TKDmasterNML) 
 call HDFnames%set_Variable(SC_MCOpenCL) 
 
-! perform the computation
+! perform the computations (we use the standard EBSD routine to do this, but with 
+! altered HDFnames to make sure we generate the correct HDF5 output file)
 call MP%EBSDmaster(EMsoft, progname, HDFnames)
 
-end program EMEBSDmaster
+end program EMTKDmaster

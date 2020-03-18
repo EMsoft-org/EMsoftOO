@@ -53,12 +53,91 @@ type, public :: EBSDmaster_T
     procedure, pass(self) :: readNameList_
     procedure, pass(self) :: getNameList_
     procedure, pass(self) :: EBSDmaster_
+    procedure, pass(self) :: get_npx_
+    procedure, pass(self) :: get_Esel_
+    procedure, pass(self) :: get_nthreads_
+    procedure, pass(self) :: get_dmin_
+    procedure, pass(self) :: get_copyfromenergyfile_
+    procedure, pass(self) :: get_h5copypath_
+    procedure, pass(self) :: get_energyfile_
+    procedure, pass(self) :: get_BetheParametersFile_
+    procedure, pass(self) :: get_combinesites_
+    procedure, pass(self) :: get_restart_
+    procedure, pass(self) :: get_uniform_
+    procedure, pass(self) :: get_Notify_
+    procedure, pass(self) :: get_kinematical_
+    procedure, pass(self) :: set_npx_
+    procedure, pass(self) :: set_Esel_
+    procedure, pass(self) :: set_nthreads_
+    procedure, pass(self) :: set_dmin_
+    procedure, pass(self) :: set_copyfromenergyfile_
+    procedure, pass(self) :: set_h5copypath_
+    procedure, pass(self) :: set_energyfile_
+    procedure, pass(self) :: set_BetheParametersFile_
+    procedure, pass(self) :: set_combinesites_
+    procedure, pass(self) :: set_restart_
+    procedure, pass(self) :: set_uniform_
+    procedure, pass(self) :: set_Notify_
+    procedure, pass(self) :: set_kinematical_
+   
 
     generic, public :: getNameList => getNameList_
     generic, public :: readNameList => readNameList_
     generic, public :: EBSDmaster => EBSDmaster_
+    generic, public :: get_npx => get_npx_
+    generic, public :: get_Esel => get_Esel_
+    generic, public :: get_nthreads => get_nthreads_
+    generic, public :: get_dmin => get_dmin_
+    generic, public :: get_copyfromenergyfile => get_copyfromenergyfile_
+    generic, public :: get_h5copypath => get_h5copypath_
+    generic, public :: get_energyfile => get_energyfile_
+    generic, public :: get_BetheParametersFile => get_BetheParametersFile_
+    generic, public :: get_combinesites => get_combinesites_
+    generic, public :: get_restart => get_restart_
+    generic, public :: get_uniform => get_uniform_
+    generic, public :: get_Notify => get_Notify_
+    generic, public :: get_kinematical => get_kinematical_
+    generic, public :: set_npx => set_npx_
+    generic, public :: set_Esel => set_Esel_
+    generic, public :: set_nthreads => set_nthreads_
+    generic, public :: set_dmin => set_dmin_
+    generic, public :: set_copyfromenergyfile => set_copyfromenergyfile_
+    generic, public :: set_h5copypath => set_h5copypath_
+    generic, public :: set_energyfile => set_energyfile_
+    generic, public :: set_BetheParametersFile => set_BetheParametersFile_
+    generic, public :: set_combinesites => set_combinesites_
+    generic, public :: set_restart => set_restart_
+    generic, public :: set_uniform => set_uniform_
+    generic, public :: set_Notify => set_Notify_
+    generic, public :: set_kinematical => set_kinematical_
+ end type EBSDmaster_T
 
-end type EBSDmaster_T
+!DEC$ ATTRIBUTES DLLEXPORT :: get_npx
+!DEC$ ATTRIBUTES DLLEXPORT :: set_npx
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Esel
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Esel
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin
+!DEC$ ATTRIBUTES DLLEXPORT :: get_copyfromenergyfile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_copyfromenergyfile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_h5copypath
+!DEC$ ATTRIBUTES DLLEXPORT :: set_h5copypath
+!DEC$ ATTRIBUTES DLLEXPORT :: get_energyfile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_energyfile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_BetheParametersFile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_BetheParametersFile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_combinesites
+!DEC$ ATTRIBUTES DLLEXPORT :: set_combinesites
+!DEC$ ATTRIBUTES DLLEXPORT :: get_restart
+!DEC$ ATTRIBUTES DLLEXPORT :: set_restart
+!DEC$ ATTRIBUTES DLLEXPORT :: get_uniform
+!DEC$ ATTRIBUTES DLLEXPORT :: set_uniform
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Notify
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Notify
+!DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical
+!DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical
 
 ! the constructor routine for this class 
 interface EBSDmaster_T
@@ -188,7 +267,449 @@ nml = self%nml
 end function getNameList_
 
 !--------------------------------------------------------------------------
-subroutine EBSDmaster_(self, EMsoft, progname)
+function get_npx_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get npx from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg)                      :: out
+
+out = self%nml%npx
+
+end function get_npx_
+
+!--------------------------------------------------------------------------
+subroutine set_npx_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set npx in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)          :: inp
+
+self%nml%npx = inp
+
+end subroutine set_npx_
+
+!--------------------------------------------------------------------------
+function get_Esel_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get Esel from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg)                      :: out
+
+out = self%nml%Esel
+
+end function get_Esel_
+
+!--------------------------------------------------------------------------
+subroutine set_Esel_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set Esel in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)          :: inp
+
+self%nml%Esel = inp
+
+end subroutine set_Esel_
+
+!--------------------------------------------------------------------------
+function get_nthreads_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get nthreads from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg)                      :: out
+
+out = self%nml%nthreads
+
+end function get_nthreads_
+
+!--------------------------------------------------------------------------
+subroutine set_nthreads_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set nthreads in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)          :: inp
+
+self%nml%nthreads = inp
+
+end subroutine set_nthreads_
+
+!--------------------------------------------------------------------------
+function get_dmin_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get dmin from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                         :: out
+
+out = self%nml%dmin
+
+end function get_dmin_
+
+!--------------------------------------------------------------------------
+subroutine set_dmin_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set dmin in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)             :: inp
+
+self%nml%dmin = inp
+
+end subroutine set_dmin_
+
+!--------------------------------------------------------------------------
+function get_copyfromenergyfile_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get copyfromenergyfile from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(fnlen)                       :: out
+
+out = self%nml%copyfromenergyfile
+
+end function get_copyfromenergyfile_
+
+!--------------------------------------------------------------------------
+subroutine set_copyfromenergyfile_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set copyfromenergyfile in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)           :: inp
+
+self%nml%copyfromenergyfile = inp
+
+end subroutine set_copyfromenergyfile_
+
+!--------------------------------------------------------------------------
+function get_h5copypath_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get h5copypath from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(fnlen)                       :: out
+
+out = self%nml%h5copypath
+
+end function get_h5copypath_
+
+!--------------------------------------------------------------------------
+subroutine set_h5copypath_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set h5copypath in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)           :: inp
+
+self%nml%h5copypath = inp
+
+end subroutine set_h5copypath_
+
+!--------------------------------------------------------------------------
+function get_energyfile_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get energyfile from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(fnlen)                       :: out
+
+out = self%nml%energyfile
+
+end function get_energyfile_
+
+!--------------------------------------------------------------------------
+subroutine set_energyfile_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set energyfile in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)           :: inp
+
+self%nml%energyfile = inp
+
+end subroutine set_energyfile_
+
+!--------------------------------------------------------------------------
+function get_BetheParametersFile_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get BetheParametersFile from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(fnlen)                       :: out
+
+out = self%nml%BetheParametersFile
+
+end function get_BetheParametersFile_
+
+!--------------------------------------------------------------------------
+subroutine set_BetheParametersFile_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set BetheParametersFile in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)           :: inp
+
+self%nml%BetheParametersFile = inp
+
+end subroutine set_BetheParametersFile_
+
+!--------------------------------------------------------------------------
+function get_combinesites_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get combinesites from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical                                :: out
+
+out = self%nml%combinesites
+
+end function get_combinesites_
+
+!--------------------------------------------------------------------------
+subroutine set_combinesites_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set combinesites in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)                    :: inp
+
+self%nml%combinesites = inp
+
+end subroutine set_combinesites_
+
+!--------------------------------------------------------------------------
+function get_restart_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get restart from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical                                :: out
+
+out = self%nml%restart
+
+end function get_restart_
+
+!--------------------------------------------------------------------------
+subroutine set_restart_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set restart in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)                    :: inp
+
+self%nml%restart = inp
+
+end subroutine set_restart_
+
+!--------------------------------------------------------------------------
+function get_uniform_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get uniform from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical                                :: out
+
+out = self%nml%uniform
+
+end function get_uniform_
+
+!--------------------------------------------------------------------------
+subroutine set_uniform_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set uniform in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)                    :: inp
+
+self%nml%uniform = inp
+
+end subroutine set_uniform_
+
+!--------------------------------------------------------------------------
+function get_Notify_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get Notify from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(3)                           :: out
+
+out = self%nml%Notify
+
+end function get_Notify_
+
+!--------------------------------------------------------------------------
+subroutine set_Notify_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set Notify in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+character(3), INTENT(IN)               :: inp
+
+self%nml%Notify = inp
+
+end subroutine set_Notify_
+
+!--------------------------------------------------------------------------
+function get_kinematical_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get kinematical from the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical                                :: out
+
+out = self%nml%kinematical
+
+end function get_kinematical_
+
+!--------------------------------------------------------------------------
+subroutine set_kinematical_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set kinematical in the EBSDmaster_T class
+
+IMPLICIT NONE 
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)                    :: inp
+
+self%nml%kinematical = inp
+
+end subroutine set_kinematical_
+
+!--------------------------------------------------------------------------
+subroutine EBSDmaster_(self, EMsoft, progname, HDFnames)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/05/20
@@ -220,6 +741,7 @@ IMPLICIT NONE
 class(EBSDmaster_T), INTENT(INOUT)  :: self
 type(EMsoft_T), INTENT(INOUT)       :: EMsoft
 character(fnlen),INTENT(IN)         :: progname
+type(HDFnames_T),INTENT(INOUT)      :: HDFnames
 
 type(Cell_T)            :: cell
 type(DynType)           :: Dyn
@@ -233,7 +755,7 @@ type(MCfile_T)          :: MCFT
 type(MPfile_T)          :: MPFT
 type(kvectors_T)        :: kvec
 type(gvectors_T)        :: reflist
-type(HDFnames_T)        :: HDFnames
+type(HDFnames_T)        :: saveHDFnames
 
 real(kind=dbl)          :: ctmp(192,3), arg, Radius, xyz(3)
 integer(HSIZE_T)        :: dims4(4), cnt4(4), offset4(4)
@@ -284,14 +806,10 @@ character(100)                  :: c
 !$OMP THREADPRIVATE(rlp) 
 
 call openFortranHDFInterface()
-HDF = HDF_T() 
 
 ! set the HDF group names for this program
+HDF = HDF_T() 
 HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_EBSDmaster) 
-call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
 call MPFT%setModality('EBSD')
 
 ! simplify the notation a little
@@ -319,12 +837,21 @@ doLegendre = .FALSE.
 !=============================================
 !=============================================
 ! ---------- read Monte Carlo .h5 output file and extract necessary parameters
+! set the HDF group names for reading the MC input file 
+call HDFnames%set_ProgramData(SC_MCOpenCL) 
+call HDFnames%set_NMLlist(SC_MCCLNameList) 
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
 fname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%energyfile))
 call MCFT%setFileName(fname)
 call MCFT%readMCfile(HDF, HDFnames, getAccumz=.TRUE.)
 mcnl = MCFT%getnml()
 call MCFT%copyaccumz(accum_z)
 
+! set the HDFnames to the correct strings for this program 
+call HDFnames%set_ProgramData(SC_EBSDmaster) 
+call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
+call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+call HDFnames%set_Variable(SC_MCOpenCL) 
 
 nsx = (mcnl%numsx - 1)/2
 nsy = nsx

@@ -186,14 +186,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
   
-  # Add_EMsoftOO_Executable(TARGET EMTKDmaster 
-  #                       SOURCES ${APP_DIR}/EMTKDmaster.f90 
-  #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-  #                       TEMPLATE ${TMPLT_DIR}/EMTKDmaster.template 
-  #                       SOLUTION_FOLDER EMsoftOOPublic/SEM 
-  #                       INSTALL_PROGRAM TRUE
-  #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
-  #                       )
+  Add_EMsoftOO_Executable(TARGET EMTKDmaster 
+                        SOURCES ${APP_DIR}/EMTKDmaster.f90 
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                        TEMPLATE ${TMPLT_DIR}/EMTKDmaster.template 
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM 
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
 
   # Add_EMsoftOO_Executable(TARGET EMEBSDoverlap
   #                       SOURCES ${APP_DIR}/EMEBSDoverlap.f90 
