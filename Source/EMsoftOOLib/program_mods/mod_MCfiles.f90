@@ -375,12 +375,13 @@ class(MCfile_T), INTENT(INOUT)          :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 11, n_real_bse1 = 9, n_real_full = 7, n_real_ivol= 6
+integer(kind=irg),parameter             :: n_int = 11, n_real_bse1 = 9, n_real_full = 7, n_real_ivol = 6, &
+                                           n_real_foil = 10
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=dbl)                          :: io_real_bse1(n_real_bse1), io_real_full(n_real_full), &
-                                           io_real_ivol(n_real_ivol)
+                                           io_real_ivol(n_real_ivol), io_real_foil(n_real_foil)
 character(20)                           :: reallist_bse1(n_real_bse1), reallist_full(n_real_full), &
-                                           reallist_ivol(n_real_ivol)
+                                           reallist_ivol(n_real_ivol), reallist_foil(n_real_foil)
 character(20)                           :: intlist(n_int)
 character(fnlen)                        :: dataset, sval(1),groupname
 character(fnlen,kind=c_char)            :: line2(1)
@@ -410,7 +411,7 @@ call HDF%writeNMLintegers(io_int, intlist, n_int)
 ! write all the single doubles
 if (mcnl%mode .eq. 'bse1') then
    io_real_bse1 = (/ mcnl%sigstart, mcnl%sigend, mcnl%sigstep, mcnl%omega, mcnl%EkeV, mcnl%Ehistmin, &
-             mcnl%Ebinsize, mcnl%depthmax, mcnl%depthstep /)
+                     mcnl%Ebinsize, mcnl%depthmax, mcnl%depthstep /)
    reallist_bse1(1) = 'sigstart'
    reallist_bse1(2) = 'sigend'
    reallist_bse1(3) = 'sigstep'
@@ -423,7 +424,7 @@ if (mcnl%mode .eq. 'bse1') then
    call HDF%writeNMLdbles(io_real_bse1, reallist_bse1, n_real_bse1)
 else if (mcnl%mode .eq. 'full') then
    io_real_full = (/ mcnl%sig, mcnl%omega, mcnl%EkeV, mcnl%Ehistmin, &
-             mcnl%Ebinsize, mcnl%depthmax, mcnl%depthstep /)
+                     mcnl%Ebinsize, mcnl%depthmax, mcnl%depthstep /)
    reallist_full(1) = 'sig'
    reallist_full(2) = 'omega'
    reallist_full(3) = 'EkeV'
@@ -441,6 +442,20 @@ else if (mcnl%mode .eq. 'Ivol') then
    reallist_ivol(5) = 'ivolstepy'
    reallist_ivol(6) = 'ivolstepz'
    call HDF%writeNMLdbles(io_real_ivol, reallist_ivol, n_real_ivol)
+else if (mcnl%mode .eq. 'foil') then
+   io_real_foil = (/ mcnl%sigstart, mcnl%sigend, mcnl%sigstep, mcnl%omega, mcnl%EkeV, mcnl%Ehistmin, &
+                     mcnl%Ebinsize, mcnl%depthmax, mcnl%depthstep, mcnl%thickness /)
+   reallist_foil(1) = 'sigstart'
+   reallist_foil(2) = 'sigend'
+   reallist_foil(3) = 'sigstep'
+   reallist_foil(4) = 'omega'
+   reallist_foil(5) = 'EkeV'
+   reallist_foil(6) = 'Ehistmin'
+   reallist_foil(7) = 'Ebinsize'
+   reallist_foil(8) = 'depthmax'
+   reallist_foil(9) = 'depthstep'
+   reallist_foil(10) = 'thickness'
+   call HDF%writeNMLdbles(io_real_foil, reallist_foil, n_real_foil)
 end if
 
 ! write all the strings
@@ -666,6 +681,11 @@ if (nml%mode.eq.'full') then
       call HDF%readDatasetDouble(dataset, hdferr, nml%sig)
 end if 
 
+if (nml%mode.eq.'foil') then 
+  dataset = SC_thickness
+      call HDF%readDatasetDouble(dataset, hdferr, nml%thickness)
+end if 
+
 if (nml%mode.eq.'bse1') then 
   dataset = SC_sigstart
       call HDF%readDatasetDouble(dataset, hdferr, nml%sigstart)
@@ -674,7 +694,6 @@ if (nml%mode.eq.'bse1') then
   dataset = SC_sigstep
       call HDF%readDatasetDouble(dataset, hdferr, nml%sigstep)
 end if 
-
 
 dataset = SC_stdout
     call HDF%readDatasetInteger(dataset, hdferr, nml%stdout)
@@ -865,9 +884,6 @@ hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
 dataset = SC_numzbins
 hdferr = HDF%writeDatasetInteger(dataset, MCDT%numzbins)
 
-dataset = SC_numEbins
-hdferr = HDF%writeDatasetInteger(dataset, MCDT%numEbins)
-
 ! modified using multiplier
 dataset = SC_totnumel
 hdferr = HDF%writeDatasetInteger(dataset, nml%totnum_el)
@@ -875,7 +891,7 @@ hdferr = HDF%writeDatasetInteger(dataset, nml%totnum_el)
 dataset = SC_multiplier
 hdferr = HDF%writeDatasetInteger(dataset, nml%multiplier)
 
-if (nml%mode .eq. 'full') then
+if ( (nml%mode .eq. 'full') .or. (nml%mode .eq. 'foil') ) then
   s = shape(MCDT%accum_e)
   nx = s(2)
   
@@ -894,6 +910,10 @@ if (nml%mode .eq. 'full') then
   dataset = SC_accumz
       hdferr = HDF%writeDatasetIntegerArray(dataset, MCDT%accum_z, MCDT%numEbins, MCDT%numzbins, nx, nx)
   
+  if (nml%mode.eq.'foil') then 
+    dataset = SC_thickness
+        hdferr = HDF%writeDatasetDouble(dataset, nml%thickness)
+  end if  
 
 else if (nml%mode .eq. 'bse1') then
   s = shape(MCDT%accum_e)

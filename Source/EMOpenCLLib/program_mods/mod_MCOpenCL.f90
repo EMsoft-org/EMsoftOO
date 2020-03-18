@@ -125,6 +125,7 @@ real(kind=dbl)    :: omega
 real(kind=dbl)    :: EkeV
 real(kind=dbl)    :: Ehistmin
 real(kind=dbl)    :: Ebinsize
+real(kind=dbl)    :: thickness
 real(kind=dbl)    :: depthmax
 real(kind=dbl)    :: depthstep
 character(3)      :: Notify
@@ -135,8 +136,8 @@ character(fnlen)  :: mode
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / MCCLdata / stdout, xtalname, sigstart, numsx, num_el, globalworkgrpsz, EkeV, multiplier, &
-dataname, totnum_el, Ehistmin, Ebinsize, depthmax, depthstep, omega, MCmode, mode, devid, platid, &
-sigend, sigstep, sig, Notify, ivolx, ivoly, ivolz, ivolstepx, ivolstepy, ivolstepz
+                       dataname, totnum_el, Ehistmin, Ebinsize, depthmax, depthstep, omega, MCmode, mode, devid, platid, &
+                       sigend, sigstep, sig, Notify, ivolx, ivoly, ivolz, ivolstepx, ivolstepy, ivolstepz, thickness
 
 if (present(writetofile)) then
   if (trim(writetofile).ne.'') then 
@@ -193,6 +194,7 @@ Ehistmin = 5.D0
 Ebinsize = 0.5D0
 depthmax = 100.D0
 depthstep = 1.0D0
+thickness = 100.D0
 Notify = 'Off'
 MCmode = 'CSDA'
 xtalname = 'undefined'
@@ -238,6 +240,7 @@ self%nml%omega = omega
 self%nml%EkeV = EkeV
 self%nml%Ehistmin = Ehistmin
 self%nml%Ebinsize = Ebinsize
+self%nml%thickness = thickness
 self%nml%depthmax = depthmax
 self%nml%depthstep = depthstep
 self%nml%Notify= Notify
@@ -272,7 +275,7 @@ subroutine MCOpenCL_(self, EMsoft, progname)
 !! version: 1.0 
 !! date: 01/24/20
 !!
-!! perform the Monte Carlo computations
+!! perform the Monte Carlo computations for EBSD, ECP, TKD, or Ivol modes
 
 use mod_EMsoft
 use mod_crystallography
@@ -320,6 +323,7 @@ real(kind=4),target     :: density      ! density in g/cm^3
 real(kind=4),target     :: at_wt        ! average atomic weight in g/mole
 logical                 :: verbose
 real(kind=4)            :: dens, avA, avZ, io_real(3), dmin, Radius  ! used with CalcDensity routine
+real(kind=8)            :: io_dble(3)
 real(kind=4),target     :: EkeV, sig, omega ! input values to the kernel. Can only be real kind=4 otherwise values are not properly passed
 integer(kind=ill)       :: totnum_el, bse     ! total number of electrons to simulate and no. of backscattered electrons
 integer(kind=4)         :: prime ! input values to the kernel
@@ -339,7 +343,8 @@ integer(kind=4),allocatable,target  :: init_seeds(:)
 integer(kind=4)         :: idxy(2), iE, px, py, iz, nseeds, hdferr, tstart, tstop ! auxiliary variables
 real(kind=4)            :: cxyz(3), edis, xy(2) ! auxiliary variables
 integer(kind=irg)       :: xs, ys, zs
-real(kind=8)            :: delta,rand, xyz(3)
+real(kind=8)            :: delta,rand, xyz(3) 
+real(kind=4), target    :: thickness
 character(11)           :: dstr
 character(15)           :: tstrb
 character(15)           :: tstre
@@ -409,14 +414,14 @@ call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, noLUT=.TRUE., verbose=ve
 
 ! then calculate density, average atomic number and average atomic weight
 call cell%calcDensity()
-io_real(1:3) = cell%getDensity()
-density = io_real(1)
-at_wt = io_real(2)
-Ze = io_real(3)
-call Message%WriteValue(' Density, avA, avZ = ',io_real,3,"(/2f10.5,',',f10.5)")
+io_dble(1:3) = cell%getDensity()
+density = io_dble(1)
+at_wt = io_dble(2)
+Ze = io_dble(3)
+call Message%WriteValue(' Density, avA, avZ = ',io_dble,3,"(/2f10.5,',',f10.5)")
 mode = mcnl%mode
 
-if (mode .eq. 'full') then
+if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
     steps = 300
 else if (mode .eq. 'bse1') then
     steps = 1
@@ -428,7 +433,6 @@ end if
 
 ! various parameters
 EkeV = mcnl%EkeV
-!sig = mcnl%sig*dtor
 omega = mcnl%omega*dtor
 globalworkgrpsz = mcnl%globalworkgrpsz
 num_el = mcnl%num_el ! no. of electron simulation by one work item
@@ -440,18 +444,23 @@ globalsize = (/ mcnl%globalworkgrpsz, mcnl%globalworkgrpsz /)
 MCDT%numEbins =  int((mcnl%EkeV-mcnl%Ehistmin)/mcnl%Ebinsize)+1
 MCDT%numzbins =  int(mcnl%depthmax/mcnl%depthstep)+1
 nx = (mcnl%numsx-1)/2
+if (mode .eq. 'foil') then
+  thickness = sngl(mcnl%thickness)
+end if 
 
 ! allocate result arrays for GPU part
 if (mode.eq.'Ivol') then 
   allocate(Lamresx(num_max), Lamresy(num_max), Lamresz(num_max), stat=istat)
+  Lamresx = 0.0
+  Lamresy = 0.0
   Lamresz = 0.0
 else
   allocate(Lamresx(num_max), Lamresy(num_max), depthres(num_max), energyres(num_max), stat=istat)
+  Lamresx = 0.0
+  Lamresy = 0.0
   depthres = 0.0
   energyres = 0.0
 end if
-Lamresx = 0.0
-Lamresy = 0.0
 size_in_bytes = num_max*sizeof(EkeV)
 size_in_bytes_seeds = 4*globalworkgrpsz*globalworkgrpsz*sizeof(EkeV)
 
@@ -463,7 +472,7 @@ if (mode .eq. 'bse1') then
     end if
 end if
 
-if (mode .eq. 'full') then
+if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
    MCDT%numangle = 1
    allocate(MCDT%accum_e(MCDT%numEbins,-nx:nx,-nx:nx), & 
             MCDT%accum_z(MCDT%numEbins,MCDT%numzbins,-nx/10:nx/10,-nx/10:nx/10),stat=istat)
@@ -502,6 +511,8 @@ call CL%init_PDCCQ(platform, nump, mcnl%platid, device, numd, mcnl%devid, info, 
 ! read the source file
 if (mode .eq. 'Ivol') then 
   sourcefile = 'EMMCxyz.cl'
+else if (mode .eq. 'foil') then 
+  sourcefile = 'EMMCfoil.cl'
 else
   sourcefile = 'EMMC.cl'
 end if
@@ -517,8 +528,6 @@ prog = clCreateProgramWithSource(context, pcnt, C_LOC(psource), C_LOC(slength), 
 call CL%error_check('DoMCsimulation:clCreateProgramWithSource', ierr)
 
 ! build the program
-! progoptions = '-cl-no-signed-zeros'
-! ierr = clBuildProgram(prog, numd, C_LOC(device), C_LOC(progoptions), C_NULL_FUNPTR, C_NULL_PTR)
 ierr = clBuildProgram(prog, numd, C_LOC(device), C_NULL_PTR, C_NULL_FUNPTR, C_NULL_PTR)
 
 ! get the compilation log
@@ -606,6 +615,8 @@ else if (mode .eq. 'full') then
    call Message%printMessage(' Monte Carlo mode set to full. Performing full calculation...',frm='(/A/)')
 else if (mode .eq. 'Ivol') then 
    call Message%printMessage(' Monte Carlo mode set to Ivol. Performing full calculation...',frm='(/A/)')
+else if (mode .eq. 'foil') then 
+   call Message%printMessage(' Monte Carlo mode set to foil. Performing full calculation...',frm='(/A/)')
 else
    call Message%printError('DoMCSimulation','Unknown mode specified in namelist/json file')
 end if
@@ -618,9 +629,7 @@ angleloop: do iang = 1,MCDT%numangle
         io_int(1) = iang
         call Message%Writevalue(' Angle loop #',io_int,1,'(I3)')
         sig = (mcnl%sigstart + (iang-1)*mcnl%sigstep)*dtor
-    else if (mode .eq. 'full') then
-        sig = mcnl%sig*dtor
-    else if (mode .eq. 'Ivol') then
+    else 
         sig = mcnl%sig*dtor
     end if
 
@@ -628,6 +637,7 @@ angleloop: do iang = 1,MCDT%numangle
 
 ! set the kernel arguments
 if (mode.ne.'Ivol') then 
+  if (mode .ne. 'foil') then 
         ierr = clSetKernelArg(kernel, 0, sizeof(LamX), C_LOC(LamX))
         call CL%error_check('DoMCsimulation:clSetKernelArg:LamX', ierr)
 
@@ -669,6 +679,52 @@ if (mode.ne.'Ivol') then
 
         ierr = clSetKernelArg(kernel, 13, sizeof(steps), C_LOC(steps))
         call CL%error_check('DoMCsimulation:clSetKernelArg:steps', ierr)
+      else 
+        ierr = clSetKernelArg(kernel, 0, sizeof(EkeV), C_LOC(EkeV))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:EkeV', ierr)
+
+        ierr = clSetKernelArg(kernel, 1, sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:globalworkgrpsz', ierr)
+
+        ierr = clSetKernelArg(kernel, 2, sizeof(Ze), C_LOC(Ze))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:Ze', ierr)
+
+        ierr = clSetKernelArg(kernel, 3, sizeof(density), C_LOC(density))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:density', ierr)
+
+        ierr = clSetKernelArg(kernel, 4, sizeof(at_wt), C_LOC(at_wt))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:at_wt', ierr)
+
+        ierr = clSetKernelArg(kernel, 5, sizeof(num_el), C_LOC(num_el))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:num_el', ierr)
+
+        ierr = clSetKernelArg(kernel, 6, sizeof(seeds), C_LOC(seeds))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:seeds', ierr)
+
+        ierr = clSetKernelArg(kernel, 7, sizeof(sig), C_LOC(sig))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:sig', ierr)
+
+        ierr = clSetKernelArg(kernel, 8, sizeof(omega), C_LOC(omega))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:omega', ierr)
+
+        ierr = clSetKernelArg(kernel, 9, sizeof(depth), C_LOC(depth))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:depth', ierr)
+
+        ierr = clSetKernelArg(kernel, 10, sizeof(energy), C_LOC(energy))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:energy', ierr)
+
+        ierr = clSetKernelArg(kernel, 11, sizeof(steps), C_LOC(steps))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:steps', ierr)
+
+        ierr = clSetKernelArg(kernel, 12, sizeof(thickness), C_LOC(thickness))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:thickness', ierr)
+
+        ierr = clSetKernelArg(kernel, 13, sizeof(LamX), C_LOC(LamX))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:LamXSH', ierr)
+
+        ierr = clSetKernelArg(kernel, 14, sizeof(LamY), C_LOC(LamY))
+        call CL%error_check('DoMCsimulation:clSetKernelArg:LamYSH', ierr)
+      end if 
 else
         ierr = clSetKernelArg(kernel, 0, sizeof(LamX), C_LOC(LamX))
         call CL%error_check('DoMCsimulation:clSetKernelArg:LamX', ierr)
@@ -739,7 +795,7 @@ else
 end if
 
 !    call clEnqueueReadBuffer(command_queue, seeds, cl_bool(.true.), 0_8, size_in_bytes_seeds, init_seeds(1), ierr)
-        if (mode .eq. 'full') then
+        if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
            subloopfull: do j = 1, num_max
 
                if ((Lamresx(j) .ne. -10.0) .and. (Lamresy(j) .ne. -10.0) &
@@ -831,7 +887,7 @@ end if
             if (mode .eq. 'bse1') then
                 io_int(1) = sum(MCDT%accum_e(iang,:,:))
                 call Message%WriteValue(' Number of BSE1 electrons = ',io_int, 1, "(I15)")
-            else if(mode .eq. 'full') then
+            else if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
                 allocate(accum_e_ill(MCDT%numEbins,-nx:nx,-nx:nx),stat=istat)
                 accum_e_ill = MCDT%accum_e
                 io_int(1) = sum(accum_e_ill)
@@ -843,13 +899,7 @@ end if
             else
                 call Message%printError('DoMCSimulations','Unknown mode specified in namelist/json file')
             end if
-
-            if (i.eq.50) then
-
-            end if
-
         end if
-
 
     end do mainloop
 ! and write some infgormation to the console
@@ -863,7 +913,7 @@ end if
         bse = sum(MCDT%accum_e(iang,:,:))
         io_real(1) = dble(bse)/dble(totnum_el)
         call Message%WriteValue(' Backscatter yield = ',io_real,1,'(F15.6)')
-    else if (mode .eq. 'full') then
+    else if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
 ! note that we need to prevent integer overflows !
         allocate(accum_e_ill(MCDT%numEbins,-nx:nx,-nx:nx),stat=istat)
         accum_e_ill = MCDT%accum_e
@@ -882,7 +932,7 @@ end if
 
 end do angleloop
 
-if (mode .eq. 'full') then
+if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
 ! get stereographic projections from the accum_e array
   allocate(MCDT%accumSP(MCDT%numEbins,-nx:nx,-nx:nx))
   Radius = 1.0
