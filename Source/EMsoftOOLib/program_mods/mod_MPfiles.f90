@@ -75,6 +75,7 @@ end type ECPmasterNameListType
 type, public, extends(SEMmasterNameListType) :: TKDmasterNameListType
   integer(kind=irg) :: Esel
   logical           :: restart
+  real(kind=sgl)    :: thickness
 end type TKDmasterNameListType
 
 

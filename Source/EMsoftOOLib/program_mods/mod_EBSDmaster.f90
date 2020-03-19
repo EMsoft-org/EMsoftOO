@@ -66,6 +66,7 @@ type, public :: EBSDmaster_T
     procedure, pass(self) :: get_uniform_
     procedure, pass(self) :: get_Notify_
     procedure, pass(self) :: get_kinematical_
+    ! procedure, pass(self) :: get_thickness_
     procedure, pass(self) :: set_npx_
     procedure, pass(self) :: set_Esel_
     procedure, pass(self) :: set_nthreads_
@@ -79,6 +80,7 @@ type, public :: EBSDmaster_T
     procedure, pass(self) :: set_uniform_
     procedure, pass(self) :: set_Notify_
     procedure, pass(self) :: set_kinematical_
+    ! procedure, pass(self) :: set_thickness_
    
 
     generic, public :: getNameList => getNameList_
@@ -97,6 +99,7 @@ type, public :: EBSDmaster_T
     generic, public :: get_uniform => get_uniform_
     generic, public :: get_Notify => get_Notify_
     generic, public :: get_kinematical => get_kinematical_
+    ! generic, public :: get_thickness => get_thickness_
     generic, public :: set_npx => set_npx_
     generic, public :: set_Esel => set_Esel_
     generic, public :: set_nthreads => set_nthreads_
@@ -110,6 +113,7 @@ type, public :: EBSDmaster_T
     generic, public :: set_uniform => set_uniform_
     generic, public :: set_Notify => set_Notify_
     generic, public :: set_kinematical => set_kinematical_
+    ! generic, public :: set_thickness => set_thickness_
  end type EBSDmaster_T
 
 !DEC$ ATTRIBUTES DLLEXPORT :: get_npx
@@ -138,6 +142,8 @@ type, public :: EBSDmaster_T
 !DEC$ ATTRIBUTES DLLEXPORT :: set_Notify
 !DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical
 !DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical
+!!DEC$ ATTRIBUTES DLLEXPORT :: get_thickness
+!!DEC$ ATTRIBUTES DLLEXPORT :: set_thickness
 
 ! the constructor routine for this class 
 interface EBSDmaster_T
@@ -401,6 +407,40 @@ real(kind=sgl), INTENT(IN)             :: inp
 self%nml%dmin = inp
 
 end subroutine set_dmin_
+
+! !--------------------------------------------------------------------------
+! function get_thickness_(self) result(out)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 03/18/20
+! !!
+! !! get thickness from the EBSDmaster_T class
+
+! IMPLICIT NONE 
+
+! class(EBSDmaster_T), INTENT(INOUT)     :: self
+! real(kind=sgl)                         :: out
+
+! out = self%nml%thickness
+
+! end function get_thickness_
+
+! !--------------------------------------------------------------------------
+! subroutine set_thickness_(self,inp)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 03/18/20
+! !!
+! !! set thickness in the EBSDmaster_T class
+
+! IMPLICIT NONE 
+
+! class(EBSDmaster_T), INTENT(INOUT)     :: self
+! real(kind=sgl), INTENT(IN)             :: inp
+
+! self%nml%thickness = inp
+
+! end subroutine set_thickness_
 
 !--------------------------------------------------------------------------
 function get_copyfromenergyfile_(self) result(out)
@@ -709,12 +749,16 @@ self%nml%kinematical = inp
 end subroutine set_kinematical_
 
 !--------------------------------------------------------------------------
-subroutine EBSDmaster_(self, EMsoft, progname, HDFnames)
+subroutine EBSDmaster_(self, EMsoft, progname, HDFnames, thickness)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/05/20
 !!
-!! compute an EBSD master pattern as a function of energy
+!! compute an EBSD or TKD master pattern as a function of energy
+!!
+!! The TKD and EBSD master pattern code is pretty much identical; it is just 
+!! the Monte Carlo input data that is different, and we use the HDFnames class
+!! to differentiate the HDF5 output files (different group names)
 
 use mod_EMsoft
 use mod_initializers
@@ -742,6 +786,7 @@ class(EBSDmaster_T), INTENT(INOUT)  :: self
 type(EMsoft_T), INTENT(INOUT)       :: EMsoft
 character(fnlen),INTENT(IN)         :: progname
 type(HDFnames_T),INTENT(INOUT)      :: HDFnames
+real(kind=sgl),INTENT(IN),OPTIONAL  :: thickness  ! if present, then TKD mode
 
 type(Cell_T)            :: cell
 type(DynType)           :: Dyn
@@ -766,7 +811,7 @@ integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, ieq
                            numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, &
                            istat,gzero,ic,ip,ikk, totstrong, totweak, jh, ierr, nix, niy, nixp, niyp     ! counters
 real(kind=dbl)          :: tpi,Znsq, kkl, DBWF, kin, delta, h, lambda, omtl, srt, dc(3), xy(2), edge, scl, tmp, dx, dxm, dy, dym !
-real(kind=sgl)          :: io_real(5), selE, kn, FN(3), kkk(3), tstop, bp(4), nabsl, etotal, density, Ze, at_wt
+real(kind=sgl)          :: io_real(5), selE, kn, FN(3), kkk(3), tstop, nabsl, etotal, density, Ze, at_wt, bp(4)
 real(kind=sgl),allocatable      :: EkeVs(:), svals(:), auxNH(:,:,:,:), auxSH(:,:,:,:), Z2percent(:)  ! results
 real(kind=sgl),allocatable      :: mLPNH(:,:,:,:), mLPSH(:,:,:,:), masterSPNH(:,:,:), masterSPSH(:,:,:)
 real(kind=dbl),allocatable      :: LegendreArray(:), upd(:), diagonal(:)
@@ -785,7 +830,8 @@ character(8)            :: MCscversion
 character(11)           :: dstr
 character(15)           :: tstrb
 character(15)           :: tstre
-logical                 :: f_exists, readonly, overwrite=.TRUE., insert=.TRUE., stereog, g_exists, xtaldataread, FL, doLegendre
+logical                 :: f_exists, readonly, overwrite=.TRUE., insert=.TRUE., stereog, g_exists, xtaldataread, FL, &
+                           doLegendre, isTKD = .FALSE.
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 character(fnlen,kind=c_char)                     :: line2(1)
 
@@ -805,12 +851,21 @@ character(100)                  :: c
 
 !$OMP THREADPRIVATE(rlp) 
 
+if (present(thickness)) then 
+  isTKD = .TRUE.
+  saveHDFnames = HDFnames 
+end if 
+
 call openFortranHDFInterface()
 
 ! set the HDF group names for this program
 HDF = HDF_T() 
 HDFnames = HDFnames_T() 
-call MPFT%setModality('EBSD')
+if (isTKD.eqv..TRUE.) then
+  call MPFT%setModality('TKD')
+else 
+  call MPFT%setModality('EBSD')
+end if 
 
 ! simplify the notation a little
 associate( emnl => self%nml )
@@ -848,10 +903,14 @@ mcnl = MCFT%getnml()
 call MCFT%copyaccumz(accum_z)
 
 ! set the HDFnames to the correct strings for this program 
-call HDFnames%set_ProgramData(SC_EBSDmaster) 
-call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
+if (isTKD.eqv..TRUE.) then 
+  HDFnames = saveHDFnames
+else
+  call HDFnames%set_ProgramData(SC_EBSDmaster) 
+  call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
+  call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+  call HDFnames%set_Variable(SC_MCOpenCL) 
+end if 
 
 nsx = (mcnl%numsx - 1)/2
 nsy = nsx
@@ -992,6 +1051,7 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
 
 ! then, for each energy determine the 95% histogram thickness
 izzmax = 0
+write (*,*) nsx, nsy, numEbins
 do iE = 1,numEbins
  do ix=-nsx/10,nsx/10
   do iy=-nsy/10,nsy/10
@@ -1069,7 +1129,7 @@ end do
 
 ! force dynamical matrix routine to read new Bethe parameters from file
 ! this will all be changed with the new version of the Bethe potentials
-  call Diff%SetBetheParameters(EMsoft, .TRUE., emnl%BetheParametersFile)
+  call Diff%SetBetheParameters(EMsoft, .FALSE., emnl%BetheParametersFile)
 
 if (emnl%restart.eqv..FALSE.) then
 !=============================================
@@ -1085,23 +1145,37 @@ if (emnl%restart.eqv..FALSE.) then
   end if
 
 ! write the EMheader to the file
-  datagroupname = 'EBSDmaster'
+  datagroupname = trim(HDFnames%get_ProgramData()) 
   call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
+
+! add the Duration field to the EMheader group
+  hdferr = HDF%openGroup(HDFnames%get_EMheader())
+  hdferr = HDF%openGroup(HDFnames%get_ProgramData())
+
+dataset = SC_Duration
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  tstop = 0
+  if (g_exists) then     
+    hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
+  else
+    hdferr = HDF%writeDatasetFloat(dataset, tstop)
+  end if
+  call HDF%pop()
+  call HDF%pop()
 
 ! open or create a namelist group to write all the namelist files into
 groupname = SC_NMLfiles
-  hdferr = HDF%createGroup(groupname)
+  hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
 
 ! read the text file and write the array to the file
-dataset = SC_EBSDmasterNML
+dataset = trim(HDFnames%get_NMLlist())
   hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
 ! leave this group
   call HDF%pop()
 
 ! create a namelist group to write all the namelist files into
-groupname = SC_NMLparameters
-  hdferr = HDF%createGroup(groupname)
+  hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
 
   call MPFT%writeHDFNameList(HDF, HDFnames, emnl)
   call Diff%writeBetheparameterNameList(HDF)
@@ -1110,11 +1184,10 @@ groupname = SC_NMLparameters
   call HDF%pop()
 
 ! then the remainder of the data in a EMData group
-groupname = SC_EMData
-  hdferr = HDF%createGroup(groupname)
+  hdferr = HDF%openGroup(HDFnames%get_EMData())
+  hdferr = HDF%createGroup(HDFnames%get_ProgramData())
 
 ! create the EBSDmaster group and add a HDF_FileVersion attribbute to it 
-  hdferr = HDF%createGroup(datagroupname)
   HDF_FileVersion = '4.0'
   HDF_FileVersion = cstringify(HDF_FileVersion)
   attributename = SC_HDFFileVersion
@@ -1139,6 +1212,18 @@ dataset = SC_numset
     hdferr = HDF%writeDatasetInteger(dataset, numset, overwrite)
   else
     hdferr = HDF%writeDatasetInteger(dataset, numset)
+  end if
+
+dataset = SC_BetheParameters
+  bp(1) = Diff%getBetheParameter('c1') 
+  bp(2) = Diff%getBetheParameter('c2') 
+  bp(3) = Diff%getBetheParameter('c3') 
+  bp(4) = Diff%getBetheParameter('sg') 
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then 
+    hdferr = HDF%writeDatasetFloatArray(dataset, bp, 4, overwrite)
+  else
+    hdferr = HDF%writeDatasetFloatArray(dataset, bp, 4)
   end if
 
 dataset = SC_lastEnergy
@@ -1292,6 +1377,16 @@ energyloop: do iE=Estart,1,-1
    end if
    ! start the energy level timer
    call timer%Time_tick(1)  
+   
+! is there any intensity in the Monte Carlo lambda function ?  If not, then skip this energylevel
+   if (isTKD.eqv..TRUE.) then
+     if (sum(lambdaE(iE,:)).lt.1.0e-7) then
+       io_int(1) = iE
+       call Message%WriteValue('There are very few electrons in energy bin ',io_int,1)
+       call Message%printMessage('---> Skipping this energy level ')
+       CYCLE energyloop
+     end if
+   end if 
    
 ! print a message to indicate where we are in the computation
    io_int(1)=iE
@@ -1576,15 +1671,13 @@ energyloop: do iE=Estart,1,-1
   tstre = timer%getTimeString()
  end if  ! (emnl%uniform.eqv..FALSE.) 
 
-  datagroupname = 'EBSDmaster'
-  HDF = HDF_T() 
+  datagroupname = trim(HDFnames%get_ProgramData())
 
 ! open the existing file using the default properties.
   hdferr =  HDF%openFile(outname)
 
 ! update the time string
-groupname = SC_EMheader
-  hdferr = HDF%openGroup(groupname)
+  hdferr = HDF%openGroup(HDFnames%get_EMheader())
   hdferr = HDF%openGroup(datagroupname)
 
 dataset = SC_StopTime
@@ -1598,27 +1691,27 @@ dataset = SC_StopTime
   call Message%WriteValue(' Execution time [s]: ',io_int,1)
 
 dataset = SC_Duration
-  if (iE.eq.numEbins) then 
-    call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then     
-      hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
-    else
-      hdferr = HDF%writeDatasetFloat(dataset, tstop)
-    end if
-  else
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then     
     hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
+  else
+    hdferr = HDF%writeDatasetFloat(dataset, tstop)
   end if
 
   call HDF%pop()
   call HDF%pop()
   
-groupname = SC_EMData
-  hdferr = HDF%openGroup(groupname)
+  hdferr = HDF%openGroup(HDFnames%get_EMData())
   hdferr = HDF%openGroup(datagroupname)
 
 ! update the current energy level counter, so that the restart option will function
 dataset = SC_lastEnergy
-  hdferr = HDF%writeDataSetInteger(dataset, iE, overwrite)
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then     
+    hdferr = HDF%writeDataSetInteger(dataset, iE, overwrite)
+  else
+    hdferr = HDF%writeDataSetInteger(dataset, iE)
+  end if 
 
 ! add data to the hyperslab
 dataset = SC_mLPNH
@@ -1668,8 +1761,11 @@ if (trim(EMsoft%getConfigParameter('EMNotify')).ne.'Off') then
     allocate(MessageLines(NumLines))
 
     call hostnm(c)
- 
-    MessageLines(1) = 'EMEBSDmaster program has ended successfully'
+    if (isTKD.eqv..TRUE.) then  
+      MessageLines(1) = 'EMTKDmaster program has ended successfully'
+    else
+      MessageLines(1) = 'EMEBSDmaster program has ended successfully'
+    end if 
     MessageLines(2) = 'Master pattern data stored in '//trim(outname)
     write (exectime,"(F10.4)") timer%getInterval(2)  
     MessageLines(3) = 'Total execution time [s]: '//trim(exectime)

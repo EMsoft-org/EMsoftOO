@@ -50,6 +50,7 @@ type(EMsoft_T)        :: EMsoft
 type(TKDmaster_T)     :: TKD 
 type(EBSDmaster_T)    :: MP 
 type(HDFnames_T)      :: HDFnames
+real(kind=sgl)        :: thickness
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 29, 0 /) )
@@ -57,7 +58,9 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 29, 0 /) )
 ! deal with the namelist stuff
 TKD = TKDmaster_T(EMsoft%nmldeffile)
 
-! make sure we copy this name list data into the correct class variable
+! We will use the EBSDmaster code to compute the TKD master pattern to avoid
+! duplicating large amounts of code... So we need to copy the TKD name list
+! parameters into the EBSD master name list (they are pretty much identical)
 call MP%set_npx(TKD%get_npx())
 call MP%set_Esel(TKD%get_Esel())
 call MP%set_nthreads(TKD%get_nthreads())
@@ -71,6 +74,7 @@ call MP%set_restart(TKD%get_restart())
 call MP%set_uniform(TKD%get_uniform())
 call MP%set_Notify(TKD%get_Notify())
 call MP%set_kinematical(TKD%get_kinematical())
+thickness = TKD%get_thickness()
 
 ! set the HDFnames class to TKD mode  
 HDFnames = HDFnames_T() 
@@ -81,6 +85,6 @@ call HDFnames%set_Variable(SC_MCOpenCL)
 
 ! perform the computations (we use the standard EBSD routine to do this, but with 
 ! altered HDFnames to make sure we generate the correct HDF5 output file)
-call MP%EBSDmaster(EMsoft, progname, HDFnames)
+call MP%EBSDmaster(EMsoft, progname, HDFnames, thickness)
 
 end program EMTKDmaster

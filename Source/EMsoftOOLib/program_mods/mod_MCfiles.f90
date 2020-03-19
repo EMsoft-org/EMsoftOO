@@ -574,8 +574,7 @@ call HDF%pop()
 !====================================
 ! make sure this is a Monte Carlo file
 !====================================
-groupname = SC_NMLfiles
-    hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 dataset = 'MCOpenCLNML'
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..FALSE.) then
@@ -728,7 +727,7 @@ if (nml%multiplier.eq.1) then
   end if
 end if 
 
-if (trim(nml%mode).eq.'full') then 
+if ( (trim(nml%mode).eq.'full') .or. (trim(nml%mode).eq.'foil') ) then 
   dataset = SC_numEbins
     call HDF%readDatasetInteger(dataset, hdferr, MCDT%numEbins)
   dataset = SC_numzbins
@@ -842,18 +841,17 @@ end if
 hdferr = HDF%createFile(dataname)
 
 ! write the EMheader to the file
-datagroupname = HDFnames%get_ProgramData() ! 'MCOpenCL'
+datagroupname = trim(HDFnames%get_ProgramData()) ! 'MCOpenCL'
 call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
 
 ! add the CrystalData group at the top level of the file
 call cell%addXtalDataGroup(SG, EMsoft, HDF)
 
 ! create a namelist group to write all the namelist files into
-groupname = SC_NMLfiles
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
 
 ! read the text file and write the array to the file
-dataset = HDFnames%get_NMLfiles()    !  SC_MCOpenCLNML
+dataset = trim(HDFnames%get_NMLfilename())    !  SC_MCOpenCLNML
 hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
 ! leave this group
@@ -867,8 +865,7 @@ call self%writeHDFNameList(HDF, HDFnames)
 call HDF%pop()
 
 ! then the remainder of the data in a EMData group
-groupname = SC_EMData
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_EMData())
 
 ! here we add the data groupname MCOpenCL and we attach to it a HDF_FileVersion attribute 
 hdferr = HDF%createGroup(datagroupname)
@@ -890,6 +887,8 @@ hdferr = HDF%writeDatasetInteger(dataset, nml%totnum_el)
 
 dataset = SC_multiplier
 hdferr = HDF%writeDatasetInteger(dataset, nml%multiplier)
+
+write (*,*) 'NML%MODE = ',trim(nml%mode)
 
 if ( (nml%mode .eq. 'full') .or. (nml%mode .eq. 'foil') ) then
   s = shape(MCDT%accum_e)

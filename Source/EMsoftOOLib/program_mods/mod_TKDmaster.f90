@@ -64,6 +64,7 @@ private
   procedure, pass(self) :: get_uniform_
   procedure, pass(self) :: get_Notify_
   procedure, pass(self) :: get_kinematical_
+  procedure, pass(self) :: get_thickness_
   procedure, pass(self) :: set_npx_
   procedure, pass(self) :: set_Esel_
   procedure, pass(self) :: set_nthreads_
@@ -77,6 +78,7 @@ private
   procedure, pass(self) :: set_uniform_
   procedure, pass(self) :: set_Notify_
   procedure, pass(self) :: set_kinematical_
+  procedure, pass(self) :: set_thickness_
 
   generic, public :: getNameList => getNameList_
   ! generic, public :: writeHDFNameList => writeHDFNameList_
@@ -95,6 +97,7 @@ private
   generic, public :: get_uniform => get_uniform_
   generic, public :: get_Notify => get_Notify_
   generic, public :: get_kinematical => get_kinematical_
+  generic, public :: get_thickness => get_thickness_
   generic, public :: set_npx => set_npx_
   generic, public :: set_Esel => set_Esel_
   generic, public :: set_nthreads => set_nthreads_
@@ -108,6 +111,7 @@ private
   generic, public :: set_uniform => set_uniform_
   generic, public :: set_Notify => set_Notify_
   generic, public :: set_kinematical => set_kinematical_
+  generic, public :: set_thickness => set_thickness_
 end type TKDmaster_T
 
 !DEC$ ATTRIBUTES DLLEXPORT :: get_npx
@@ -136,6 +140,8 @@ end type TKDmaster_T
 !DEC$ ATTRIBUTES DLLEXPORT :: set_Notify
 !DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical
 !DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical
+!DEC$ ATTRIBUTES DLLEXPORT :: get_thickness
+!DEC$ ATTRIBUTES DLLEXPORT :: set_thickness
 
 ! the constructor routine for this class 
 interface TKDmaster_T
@@ -418,6 +424,40 @@ real(kind=sgl), INTENT(IN)            :: inp
 self%nml%dmin = inp
 
 end subroutine set_dmin_
+
+!--------------------------------------------------------------------------
+function get_thickness_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! get thickness from the TKDmaster_T class
+
+IMPLICIT NONE 
+
+class(TKDmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                        :: out
+
+out = self%nml%thickness
+
+end function get_thickness_
+
+!--------------------------------------------------------------------------
+subroutine set_thickness_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/18/20
+!!
+!! set thickness in the TKDmaster_T class
+
+IMPLICIT NONE 
+
+class(TKDmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)            :: inp
+
+self%nml%thickness = inp
+
+end subroutine set_thickness_
 
 !--------------------------------------------------------------------------
 function get_copyfromenergyfile_(self) result(out)
