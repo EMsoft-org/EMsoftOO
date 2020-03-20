@@ -1677,7 +1677,11 @@ do ibatch=1,totnumbatches
 ! =====================================================
 ! The following write commands constitute HDF_FileVersion = 4.0
 ! =====================================================
-dataset = SC_EBSDpatterns
+if (isTKD.eqv..TRUE.) then 
+  dataset = SC_TKDpatterns
+else
+  dataset = SC_EBSDpatterns
+end if 
  !if (outputformat.eq.'bin') then
    if (trim(bitmode).eq.'dict') then 
      offset2 = (/ 0, (ibatch-1)*ninbatch*enl%nthreads /)
@@ -2530,7 +2534,11 @@ do ibatch=1,totnumbatches
 !$OMP END PARALLEL
 
 ! here we write all the entries in the batchpatterns array to the HDF file as a hyperslab
-dataset = SC_EBSDpatterns
+if (isTKD.eqv..TRUE.) then 
+  dataset = SC_TKDpatterns
+else
+  dataset = SC_EBSDpatterns
+end if 
  !if (outputformat.eq.'bin') then
    offset = (/ 0, 0, (ibatch-1)*ninbatch*enl%nthreads /)
    hdims = (/ binx, biny, numangles /)

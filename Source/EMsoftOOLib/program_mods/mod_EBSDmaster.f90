@@ -1168,7 +1168,7 @@ groupname = SC_NMLfiles
   hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
 
 ! read the text file and write the array to the file
-dataset = trim(HDFnames%get_NMLlist())
+dataset = trim(HDFnames%get_NMLfilename())
   hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
 ! leave this group
