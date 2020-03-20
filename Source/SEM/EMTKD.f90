@@ -26,12 +26,15 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMEBSD
+program EMTKD
   !! author: MDG
   !! version: 1.0 
-  !! date: 02/17/20
+  !! date: 03/20/20
   !!
-  !! computes energy-weighted EBSD patterns (with or without deformation)
+  !! Dynamical TKD patterns, using precomputed MC and master Lambert projections
+  !!
+  !! we use the regular EBSD code to do this, since the only real difference is the 
+  !! detector geometry, and the Monte Carlo input file 
 
 use mod_kinds
 use mod_global
@@ -42,25 +45,28 @@ use mod_EBSD
 
 IMPLICIT NONE
 
-character(fnlen) :: progname = 'EMEBSD.f90'
-character(fnlen) :: progdesc = 'Dynamical EBSD patterns, using precomputed MC and master Lambert projections'
+character(fnlen)    :: progname = 'EMTKD.f90'
+character(fnlen)    :: progdesc = 'Dynamical TKD patterns, using precomputed MC and master Lambert projections'
 
-type(EMsoft_T)   :: EMsoft
-type(EBSD_T)     :: EBSD 
-type(HDFnames_T) :: HDFnames
+type(HDFnames_T)    :: HDFnames
+type(EMsoft_T)      :: EMsoft
+type(EBSD_T)        :: TKD 
+logical             :: isTKD = .TRUE.
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 22 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 75 /) )
 
-! deal with the namelist stuff
-EBSD = EBSD_T(EMsoft%nmldeffile)
+! deal with the namelist stuff; we'll use the EBSD name list for this case
+TKD = EBSD_T(EMsoft%nmldeffile, isTKD)
 
-call HDFnames%set_ProgramData(SC_EBSD) 
-call HDFnames%set_NMLlist(SC_EBSDNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDNML) 
+! set the HDFnames class to TKD mode  
+HDFnames = HDFnames_T() 
+call HDFnames%set_ProgramData(SC_TKD) 
+call HDFnames%set_NMLlist(SC_TKDNameList) 
+call HDFnames%set_NMLfilename(SC_TKDNML) 
 call HDFnames%set_Variable(SC_MCOpenCL) 
 
-! perform the pattern computations
-call EBSD%EBSD(EMsoft, progname, HDFnames)
+! perform the computations
+call TKD%EBSD(EMsoft, progname, HDFnames, TKD=.TRUE.)
 
-end program EMEBSD
+end program EMTKD

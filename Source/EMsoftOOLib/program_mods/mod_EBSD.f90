@@ -43,7 +43,6 @@ private
 
 ! namelist for the EMEBSD program
 type, public :: EBSDNameListType
-  integer(kind=irg)       :: stdout
   integer(kind=irg)       :: numsx
   integer(kind=irg)       :: numsy
   integer(kind=irg)       :: binning
@@ -118,7 +117,7 @@ private
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: EBSD_
   procedure, pass(self) :: EBSDreadorpcdef_
-  procedure, pass(self) :: GenerateEBSDDetector_
+  procedure, pass(self) :: GenerateDetector_
   procedure, pass(self) :: GeneratemyEBSDDetector_
   procedure, pass(self) :: ComputeEBSDPatterns_
   procedure, pass(self) :: ComputedeformedEBSDpatterns_
@@ -129,7 +128,7 @@ private
   generic, public :: readNameList => readNameList_
   generic, public :: EBSD => EBSD_
   generic, public :: EBSDreadorpcdef => EBSDreadorpcdef_
-  generic, public :: GenerateEBSDDetector => GenerateEBSDDetector_
+  generic, public :: GenerateDetector => GenerateDetector_
   generic, public :: GeneratemyEBSDDetector => GeneratemyEBSDDetector_
   generic, public :: ComputeEBSDPatterns => ComputeEBSDPatterns_
   generic, public :: ComputedeformedEBSDpatterns => ComputedeformedEBSDpatterns_
@@ -145,7 +144,7 @@ end interface EBSD_T
 contains
 
 !--------------------------------------------------------------------------
-type(EBSD_T) function EBSD_constructor( nmlfile ) result(EBSD)
+type(EBSD_T) function EBSD_constructor( nmlfile, isTKD ) result(EBSD)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -154,14 +153,19 @@ type(EBSD_T) function EBSD_constructor( nmlfile ) result(EBSD)
  
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen)    :: nmlfile 
+logical, OPTIONAL   :: isTKD
 
-call EBSD%readNameList(nmlfile)
+if (present(isTKD)) then 
+  call EBSD%readNameList(nmlfile, isTKD=isTKD)
+else
+  call EBSD%readNameList(nmlfile)
+end if
 
 end function EBSD_constructor
 
 !--------------------------------------------------------------------------
-subroutine readNameList_(self, nmlfile, initonly)
+subroutine readNameList_(self, nmlfile, initonly, isTKD)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -177,11 +181,11 @@ character(fnlen),INTENT(IN)                 :: nmlfile
  !! full path to namelist file 
 logical,OPTIONAL,INTENT(IN)                 :: initonly
  !! fill in the default values only; do not read the file
+logical,OPTIONAL,INTENT(IN)                 :: isTKD
 
 type(IO_T)                                  :: Message       
 logical                                     :: skipread = .FALSE.
 
-integer(kind=irg)       :: stdout
 integer(kind=irg)       :: numsx
 integer(kind=irg)       :: numsy
 integer(kind=irg)       :: binning
@@ -220,14 +224,22 @@ character(fnlen)        :: energyfile  ! removed from template file 05/16/19 [MD
 character(fnlen)        :: datafile
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / EBSDdata / stdout, L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eulerconvention, masterfile, bitdepth, &
-                        energyfile, datafile, beamcurrent, dwelltime, energymin, energymax, binning, gammavalue, alphaBD, &
-                        scalingmode, axisangle, nthreads, outputformat, maskpattern, omega, spatialaverage, &
-                        applyDeformation, Ftensor, includebackground, anglefiletype, makedictionary, hipassw, nregions, &
-                        maskradius, poisson
+namelist  / EBSDdata / L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eulerconvention, masterfile, bitdepth, &
+                       energyfile, datafile, beamcurrent, dwelltime, energymin, energymax, binning, gammavalue, alphaBD, &
+                       scalingmode, axisangle, nthreads, outputformat, maskpattern, omega, spatialaverage, &
+                       applyDeformation, Ftensor, includebackground, anglefiletype, makedictionary, hipassw, nregions, &
+                       maskradius, poisson
+
+! define the IO namelist to facilitate passing variables to the program.
+! the two name lists are currently identical, but we allow for the fact that 
+! they might diverge in the future.
+namelist  / TKDdata /  L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eulerconvention, masterfile, bitdepth, &
+                       energyfile, datafile, beamcurrent, dwelltime, energymin, energymax, binning, gammavalue, alphaBD, &
+                       scalingmode, axisangle, nthreads, outputformat, maskpattern, omega, spatialaverage, &
+                       applyDeformation, Ftensor, includebackground, anglefiletype, makedictionary, hipassw, nregions, &
+                       maskradius, poisson
 
 ! set the input parameters to default values (except for xtalname, which must be present)
-stdout          = 6
 numsx           = 0             ! [dimensionless]
 numsy           = 0             ! [dimensionless]
 binning         = 1             ! binning mode  (1, 2, 4, or 8)
@@ -275,7 +287,11 @@ end if
 if (.not.skipread) then
 ! read the namelist file
  open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
- read(UNIT=dataunit,NML=EBSDdata)
+ if (present(isTKD)) then 
+   read(UNIT=dataunit,NML=TKDdata)
+ else
+   read(UNIT=dataunit,NML=EBSDdata)
+ end if 
  close(UNIT=dataunit,STATUS='keep')
 
 ! check for required entries
@@ -308,7 +324,6 @@ if (.not.skipread) then
 end if
 
 ! if we get here, then all appears to be ok, and we need to fill in the enl fields
-self%nml%stdout = stdout
 self%nml%numsx = numsx
 self%nml%numsy = numsy
 self%nml%binning = binning
@@ -368,7 +383,7 @@ nml = self%nml
 end function getNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeHDFNameList_(self, HDF)
+recursive subroutine writeHDFNameList_(self, HDF, HDFnames, isTKD)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -376,6 +391,7 @@ recursive subroutine writeHDFNameList_(self, HDF)
 !! write namelist to HDF file
 
 use mod_HDFsupport
+use mod_HDFnames
 use stringconstants 
 
 use ISO_C_BINDING
@@ -384,8 +400,10 @@ IMPLICIT NONE
 
 class(EBSD_T), INTENT(INOUT)            :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames 
+logical,OPTIONAL,INTENT(IN)             :: isTKD
 
-integer(kind=irg),parameter             :: n_int = 7, n_real = 10
+integer(kind=irg),parameter             :: n_int = 6, n_real = 10
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real) 
 character(20)                           :: reallist(n_real)
@@ -396,18 +414,16 @@ character(fnlen,kind=c_char)            :: line2(1)
 associate( enl => self%nml )
 
 ! create the group for this namelist
-groupname = SC_EBSDNameList
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
 ! write all the single integers
-io_int = (/ enl%stdout, enl%numsx, enl%numsy, enl%binning, enl%nthreads, enl%nregions, enl%maskradius /)
-intlist(1) = 'stdout'
-intlist(2) = 'numsx'
-intlist(3) = 'numsy'
-intlist(4) = 'binning'
-intlist(5) = 'nthreads'
-intlist(6) = 'nregions'
-intlist(7) = 'maskradius'
+io_int = (/ enl%numsx, enl%numsy, enl%binning, enl%nthreads, enl%nregions, enl%maskradius /)
+intlist(1) = 'numsx'
+intlist(2) = 'numsy'
+intlist(3) = 'binning'
+intlist(4) = 'nthreads'
+intlist(5) = 'nregions'
+intlist(6) = 'maskradius'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single reals 
@@ -428,92 +444,92 @@ call HDF%writeNMLreals(io_real, reallist, n_real)
 ! a 4-vector
 dataset = SC_axisangle
 hdferr = HDF%writeDatasetFloatArray(dataset, enl%axisangle, 4)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create axisangle dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create axisangle dataset', hdferr)
 
 ! a 3x3 matrix 
 dataset = SC_Ftensor
 hdferr = HDF%writeDatasetDoubleArray(dataset, enl%Ftensor, 3, 3)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create Ftensor dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create Ftensor dataset', hdferr)
 
 ! a few doubles
 dataset = SC_beamcurrent
 hdferr = HDF%writeDatasetDouble(dataset, enl%beamcurrent)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create beamcurrent dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create beamcurrent dataset', hdferr)
 
 dataset = SC_dwelltime
 hdferr = HDF%writeDatasetDouble(dataset, enl%dwelltime)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create dwelltime dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create dwelltime dataset', hdferr)
 
 ! write all the strings
 dataset = SC_maskpattern
 line2(1) = trim(enl%maskpattern)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create maskpattern dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create maskpattern dataset', hdferr)
 
 dataset = SC_makedictionary
 line2(1) = trim(enl%makedictionary)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create makedictionary dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create makedictionary dataset', hdferr)
 
 dataset = SC_poisson
 line2(1) = trim(enl%poisson)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create poisson dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create poisson dataset', hdferr)
 
 dataset = SC_includebackground
 line2(1) = trim(enl%includebackground)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create includebackground dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create includebackground dataset', hdferr)
 
 dataset = SC_applyDeformation
 line2(1) = trim(enl%applyDeformation)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create applyDeformation dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create applyDeformation dataset', hdferr)
 
 dataset = SC_scalingmode
 line2(1) = trim(enl%scalingmode)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create scalingmode dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create scalingmode dataset', hdferr)
 
 dataset = SC_eulerconvention
 line2(1) = trim(enl%eulerconvention)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create eulerconvention dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create eulerconvention dataset', hdferr)
 
 dataset = SC_outputformat
 line2(1) = trim(enl%outputformat)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create outputformat dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create outputformat dataset', hdferr)
 
 dataset = SC_bitdepth
 line2(1) = trim(enl%bitdepth)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create bitdepth dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create bitdepth dataset', hdferr)
 
 dataset = SC_energyfile
 line2(1) = trim(enl%energyfile)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create energyfile dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create energyfile dataset', hdferr)
 
 dataset = SC_masterfile
 line2(1) = trim(enl%masterfile)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create masterfile dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create masterfile dataset', hdferr)
 
 dataset = SC_anglefile
 line2(1) = trim(enl%anglefile)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create anglefile dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create anglefile dataset', hdferr)
 
 dataset = SC_anglefiletype
 line2(1) = trim(enl%anglefiletype)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create anglefiletype dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create anglefiletype dataset', hdferr)
 
 dataset = SC_datafile
 line2(1) = trim(enl%datafile)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('HDFwriteEBSDNameList: unable to create datafile dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create datafile dataset', hdferr)
 
 ! and pop this group off the stack
 call HDF%pop()
@@ -523,7 +539,7 @@ end associate
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-subroutine EBSD_(self, EMsoft, progname, nmldeffile)
+subroutine EBSD_(self, EMsoft, progname, HDFnames, TKD)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -547,12 +563,13 @@ IMPLICIT NONE
 class(EBSD_T), INTENT(INOUT)        :: self
 type(EMsoft_T), INTENT(INOUT)       :: EMsoft
 character(fnlen), INTENT(INOUT)     :: progname 
-character(fnlen), INTENT(INOUT)     :: nmldeffile
+type(HDFnames_T), INTENT(INOUT)     :: HDFnames 
+logical, OPTIONAL, INTENT(IN)       :: TKD
 
 type(MCfile_T)                      :: MCFT
 type(MPfile_T)                      :: MPFT
 type(HDF_T)                         :: HDF
-type(HDFnames_T)                    :: HDFnames
+type(HDFnames_T)                    :: saveHDFnames
 type(so3_T)                         :: SO
 type(IO_T)                          :: Message
 type(Quaternion_T)                  :: quat 
@@ -562,22 +579,29 @@ type(EBSDmasterNameListType)        :: mpnl
 type(MCOpenCLNameListType)          :: mcnl
 type(EBSDAnglePCDefType)            :: orpcdef
 
-logical                             :: verbose 
-character(fnlen)                    :: fname 
+logical                             :: verbose, isTKD = .FALSE. 
+character(fnlen)                    :: fname, nmldeffile
 integer(kind=irg)                   :: numangles, istat 
 type(FZpointd),pointer              :: FZtmp
 type(r_T)                           :: rr
 
+if (present(TKD)) then 
+  saveHDFnames = HDFnames 
+  isTKD = .TRUE.
+  call MPFT%setModality('TKD')
+else 
+  call MPFT%setModality('EBSD')
+end if 
+nmldeffile = trim(EMsoft%nmldeffile)
+
+! open the HDF interface
 call openFortranHDFInterface()
+HDF = HDF_T() 
 
 associate( enl => self%nml, EBSDdetector => self%det, EBSDMCdata => MCFT%MCDT )
 
 ! set the HDF group names for this program
 HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_EBSD) 
-call HDFnames%set_NMLlist(SC_EBSDNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
 
 ! 1. read the angle array from file
 verbose = .TRUE.
@@ -599,19 +623,38 @@ else
   call Message%printError('EBSD','unknown anglefiletype')
 end if 
 
-! open the HDF interface
-HDF = HDF_T() 
-
 ! 2. read the Monte Carlo data file (HDF format)
+call HDFnames%set_ProgramData(SC_MCOpenCL) 
+call HDFnames%set_NMLlist(SC_MCCLNameList) 
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
 fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%energyfile))
 call MCFT%setFileName(fname)
 call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
 mcnl = MCFT%getnml()
 
 ! 3. read EBSD master pattern file (HDF format)
+if (isTKD.eqv..TRUE.) then
+  call HDFnames%set_ProgramData(SC_TKDmaster) 
+  call HDFnames%set_NMLlist(SC_TKDmasterNameList) 
+  call HDFnames%set_NMLfilename(SC_TKDmasterNML) 
+else
+  call HDFnames%set_ProgramData(SC_EBSDmaster) 
+  call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
+  call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+end if 
+call HDFnames%set_Variable(SC_MCOpenCL) 
+
 fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%masterfile))
 call MPFT%setFileName(fname)
 call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
+
+if (isTKD.eqv..TRUE.) then 
+  HDFnames = saveHDFnames
+else
+  call HDFnames%set_ProgramData(SC_EBSD) 
+  call HDFnames%set_NMLlist(SC_EBSDNameList) 
+  call HDFnames%set_NMLfilename(SC_EBSD) 
+end if 
 
 ! for a regular Euler angle file, we precompute the detector arrays here; for the 'orpcdef' mode
 ! we compute them later (for each pattern separately)
@@ -621,14 +664,14 @@ if (trim(enl%anglefiletype).eq.'orientations') then
            EBSDdetector%rgz(enl%numsx,enl%numsy), &
            EBSDdetector%accum_e_detector(EBSDMCdata%numEbins,enl%numsx,enl%numsy), stat=istat)
 ! 4. generate detector arrays
-  call self%GenerateEBSDDetector(MCFT, verbose)
+  call self%GenerateDetector(MCFT, verbose)
 
   ! perform the pattern computations
-  call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, mpnl, numangles, qAR, progname, nmldeffile)
+  call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, numangles, qAR, progname, nmldeffile)
 end if
 
 if (trim(enl%anglefiletype).eq.'orpcdef') then
-  call self%ComputedeformedEBSDPatterns(EMsoft, MCFT, MPFT, HDF, mpnl, numangles, qAR, orpcdef, progname, nmldeffile)
+  call self%ComputedeformedEBSDPatterns(EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, numangles, qAR, orpcdef, progname, nmldeffile)
 end if 
 
 end associate 
@@ -719,12 +762,12 @@ end associate
 end subroutine EBSDreadorpcdef_
 
 !--------------------------------------------------------------------------
-recursive subroutine GenerateEBSDDetector_(self, MCFT, verbose)
+recursive subroutine GenerateDetector_(self, MCFT, verbose)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/05/20
 !!
-!! generate the detector arrays
+!! generate the detector arrays for both EBSD and TKD modalities
 
 use mod_io 
 use mod_Lambert 
@@ -880,10 +923,10 @@ if (present(verbose)) call Message%printMessage(' -> completed detector generati
 
 end associate 
 
-end subroutine GenerateEBSDDetector_
+end subroutine GenerateDetector_
 
 !--------------------------------------------------------------------------
-subroutine ComputeEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, mpnl, numangles, angles, progname, nmldeffile)
+subroutine ComputeEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, numangles, angles, progname, nmldeffile)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -900,6 +943,7 @@ use mod_quaternions
 use mod_rotations
 use HDF5
 use mod_HDFsupport
+use mod_HDFnames
 use ISO_C_BINDING
 use omp_lib
 use mod_timing
@@ -916,6 +960,7 @@ type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 type(MCfile_T), INTENT(INOUT)           :: MCFT 
 type(MPfile_T), INTENT(INOUT)           :: MPFT 
 type(HDF_T),INTENT(INOUT)               :: HDF 
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 type(EBSDmasterNameListType),INTENT(INOUT) :: mpnl
 integer(kind=irg),INTENT(IN)            :: numangles
 type(QuaternionArray_T), INTENT(IN)     :: angles
@@ -992,7 +1037,9 @@ real(kind=sgl)                          :: bitrange
 ! new stuff: deformation tensor
 real(kind=dbl)                          :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3,3), quF(4), Fmatrix_inverse(3,3), &
                                            Gmatrix(3,3)
-logical                                 :: includeFmatrix=.FALSE., noise
+logical                                 :: includeFmatrix=.FALSE., noise, isTKD=.FALSE.
+
+if (trim(HDFnames%get_ProgramData()).eq.trim(SC_TKD)) isTKD = .TRUE.
 
 associate( enl => self%nml, mcnl => MCFT%nml, &
            EBSDMCdata => MCFT%MCDT, EBSDMPdata => MPFT%MPDT, EBSDdetector => self%det )
@@ -1089,42 +1136,47 @@ hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 !====================================
 
 ! write the EMheader to the file
-datagroupname = 'EBSD'
+datagroupname = trim(HDFnames%get_ProgramData()) ! 'EBSD' or 'TKD'
 call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
 
 ! add the CrystalData group at the top level of the file
 call cell%addXtalDataGroup(SG, EMsoft, HDF)
 
 ! create a namelist group to write all the namelist files into
-groupname = SC_NMLfiles
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLfiles', hdferr)
 
 ! read the text file and write the array to the file
-dataset = SC_EMEBSDNML
+if (isTKD.eqv..TRUE.) then 
+  dataset = SC_EMTKDNML
+else
+  dataset = SC_EMEBSDNML
+end if 
 hdferr = HDF%writeDatasetTextFile(dataset, nmldeffile)
-if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetTextFile EMEBSDNML', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetTextFile EMEBSDNML/EMTKDNML', hdferr)
 
 call HDF%pop()
 
 ! create a NMLparameters group to write all the namelist entries into
-groupname = SC_NMLparameters
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLparameters', hdferr)
 
-call self%writeHDFNameList_(HDF)
+if (isTKD.eqv..TRUE.) then
+  call self%writeHDFNameList_(HDF, HDFnames, isTKD)
+else
+  call self%writeHDFNameList_(HDF, HDFnames)
+end if
 
 ! and leave this group
 call HDF%pop()
 
 ! then the remainder of the data in a EMData group
-groupname = SC_EMData
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_EMData())
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EMData', hdferr)
 
 ! create the EBSD group and add a HDF_FileVersion attribute to it 
 hdferr = HDF%createGroup(datagroupname)
-if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EBSD', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EBSD/TKD', hdferr)
 ! before Feb. 19, 2019, an undetected error caused all patterns to be upside down in the Kikuchi bands only,
 ! not in the background intensity profile.  This was compensated by a pattern flip of all experimental 
 ! patterns in the dictionary indexing program, but when taking individual patterns from this program, they
@@ -1708,13 +1760,11 @@ call HDF%pop()
 timer = timing_T()
 tstre = timer%getTimeString() 
 
-groupname = SC_EMheader
-hdferr = HDF%openGroup(groupname)
+hdferr = HDF%openGroup(HDFnames%get_EMheader())
 if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EMheader', hdferr)
 
-datagroupname = "EBSD"
-hdferr = HDF%openGroup(datagroupname)
-if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EBSD', hdferr)
+hdferr = HDF%openGroup(HDFnames%get_ProgramData())
+if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EBSD/TKD', hdferr)
 
 ! stop time /EMheader/StopTime 'character'
 dataset = SC_StopTime
@@ -1883,7 +1933,8 @@ binned = binned * mask
 end subroutine CalcEBSDPatternSingleFull_
 
 !--------------------------------------------------------------------------
-subroutine ComputedeformedEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, mpnl, numangles, angles, orpcdef, progname, nmldeffile)
+subroutine ComputedeformedEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, HDFnames, &
+                                        mpnl, numangles, angles, orpcdef, progname, nmldeffile)
   !! author: MDG 
   !! version: 1.0 
   !! date: 02/18/20
@@ -1900,6 +1951,7 @@ use mod_quaternions
 use mod_rotations
 use HDF5
 use mod_HDFsupport
+use mod_HDFnames
 use ISO_C_BINDING
 use omp_lib
 use mod_timing
@@ -1916,6 +1968,7 @@ type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 type(MCfile_T), INTENT(INOUT)           :: MCFT 
 type(MPfile_T), INTENT(INOUT)           :: MPFT 
 type(HDF_T),INTENT(INOUT)               :: HDF 
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 type(EBSDmasterNameListType),INTENT(INOUT) :: mpnl
 integer(kind=irg),INTENT(IN)            :: numangles
 type(QuaternionArray_T), INTENT(IN)     :: angles
@@ -1991,7 +2044,9 @@ real(kind=sgl)                          :: bitrange
 ! new stuff: deformation tensor
 real(kind=dbl)                          :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3,3), quF(4), Fmatrix_inverse(3,3), &
                                            Gmatrix(3,3)
-logical                                 :: includeFmatrix=.FALSE.
+logical                                 :: includeFmatrix=.FALSE., isTKD=.FALSE.
+
+if (trim(HDFnames%get_ProgramData()).eq.trim(SC_TKD)) isTKD = .TRUE.
 
 associate( enl => self%nml, mcnl => MCFT%nml, &
            EBSDMCdata => MCFT%MCDT, EBSDMPdata => MPFT%MPDT, EBSDdetector => self%det )
@@ -2060,37 +2115,42 @@ if (hdferr.ne.0) call HDF%error_check('HDF_createFile ', hdferr)
 
 
 ! write the EMheader to the file
-datagroupname = 'EBSD'
+datagroupname = trim(HDFnames%get_ProgramData()) ! 'EBSD' or 'TKD'
 call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
 
 ! add the CrystalData group at the top level of the file
 call cell%addXtalDataGroup(SG, EMsoft, HDF)
 
 ! create a namelist group to write all the namelist files into
-groupname = SC_NMLfiles
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLfiles', hdferr)
 
 ! read the text file and write the array to the file
-dataset = SC_EMEBSDNML
+if (isTKD.eqv..TRUE.) then 
+  dataset = SC_EMTKDNML
+else
+  dataset = SC_EMEBSDNML
+end if 
 hdferr = HDF%writeDatasetTextFile(dataset, nmldeffile)
-if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetTextFile EMEBSDNML', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetTextFile EMEBSDNML/EMTKDNML', hdferr)
 
 call HDF%pop()
 
 ! create a NMLparameters group to write all the namelist entries into
-groupname = SC_NMLparameters
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLparameters', hdferr)
 
-call self%writeHDFNameList_(HDF)
+if (isTKD.eqv..TRUE.) then 
+  call self%writeHDFNameList_(HDF, HDFnames, isTKD)
+else 
+  call self%writeHDFNameList_(HDF, HDFnames)
+end if 
 
 ! and leave this group
 call HDF%pop()
 
 ! then the remainder of the data in a EMData group
-groupname = SC_EMData
-hdferr = HDF%createGroup(groupname)
+hdferr = HDF%createGroup(HDFnames%get_EMData())
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EMData', hdferr)
 
 ! create the EBSD group and add a HDF_FileVersion attribute to it 
@@ -2532,13 +2592,16 @@ call HDF%pop()
 timer = timing_T()
 tstre = timer%getTimeString() 
 
-groupname = SC_EMheader
-hdferr = HDF%openGroup(groupname)
+hdferr = HDF%openGroup(HDFnames%get_EMheader())
 if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EMheader', hdferr)
 
-datagroupname = "EBSD"
+if (isTKD.eqv..TRUE.) then 
+  datagroupname = "TKD"
+else
+  datagroupname = "EBSD"
+end if
 hdferr = HDF%openGroup(datagroupname)
-if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EBSD', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EBSD/TKD', hdferr)
 
 ! stop time /EMheader/StopTime 'character'
 dataset = SC_StopTime

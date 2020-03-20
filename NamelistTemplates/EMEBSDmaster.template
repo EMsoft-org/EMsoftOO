@@ -2,8 +2,6 @@
 ! smallest d-spacing to take into account [nm]
  dmin = 0.05,
 ! number of pixels along x-direction of the square master pattern  (2*npx+1 = total number)
-!   in Legendre mode (see below), this number will be the maximum band width for 
-!   the spherical harmonic transform
  npx = 500,
 ! number of OpenMP threads (0 to use the maximum available)
  nthreads = 1,
