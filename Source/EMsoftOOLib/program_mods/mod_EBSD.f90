@@ -664,7 +664,7 @@ if (trim(enl%anglefiletype).eq.'orientations') then
            EBSDdetector%rgz(enl%numsx,enl%numsy), &
            EBSDdetector%accum_e_detector(EBSDMCdata%numEbins,enl%numsx,enl%numsy), stat=istat)
 ! 4. generate detector arrays
-  call self%GenerateDetector(MCFT, verbose)
+  call self%GenerateDetector(MCFT, verbose, isTKD)
 
   ! perform the pattern computations
   call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, numangles, qAR, progname, nmldeffile)
@@ -762,7 +762,7 @@ end associate
 end subroutine EBSDreadorpcdef_
 
 !--------------------------------------------------------------------------
-recursive subroutine GenerateDetector_(self, MCFT, verbose)
+recursive subroutine GenerateDetector_(self, MCFT, verbose, isTKD)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/05/20
@@ -771,6 +771,7 @@ recursive subroutine GenerateDetector_(self, MCFT, verbose)
 
 use mod_io 
 use mod_Lambert 
+use mod_math
 use mod_MCfiles
 
 IMPLICIT NONE
@@ -778,6 +779,7 @@ IMPLICIT NONE
 class(EBSD_T), INTENT(INOUT)            :: self 
 type(MCfile_T), INTENT(INOUT)           :: MCFT 
 logical,INTENT(IN),OPTIONAL             :: verbose
+logical,INTENT(IN),OPTIONAL             :: isTKD
 
 type(IO_T)                              :: Message 
 type(Lambert_T)                         :: L
@@ -790,8 +792,11 @@ integer(kind=irg)                       :: nix, niy, binx, biny , i, j, Emin, Em
 real(kind=sgl)                          :: dc(3), scl, alpha, theta, g, pcvec(3), s, dp           ! direction cosine array
 real(kind=sgl)                          :: sx, dx, dxm, dy, dym, rhos, x, bindx         ! various parameters
 real(kind=sgl)                          :: ixy(2)
+logical                                 :: TKD = .FALSE.
 
 associate( enl => self%nml, mcnl => MCFT%nml, EBSDMCdata => MCFT%MCDT, EBSDdetector => self%det )
+
+if (present(isTKD)) TKD=.TRUE.
 
 !====================================
 ! ------ generate the detector arrays
@@ -876,7 +881,18 @@ deallocate(z)
   alpha = atan(enl%delta/enl%L/sqrt(sngl(cPi)))
   ipx = enl%numsx/2 + nint(enl%xpc)
   ipy = enl%numsy/2 + nint(enl%ypc)
-  pcvec = (/ EBSDdetector%rgx(ipx,ipy), EBSDdetector%rgy(ipx,ipy), EBSDdetector%rgz(ipx,ipy) /)
+  if (TKD.eqv..TRUE.) then 
+    if ((abs(ipy).gt.enl%numsy).or.(abs(ipx).gt.enl%numsx)) then 
+      pcvec = (/enl%ypc*enl%delta*ca + enl%xpc*enl%delta*sa*sw + enl%L*cw*sa, &
+               enl%L*sw - enl%xpc*enl%delta*cw,&
+               enl%L*ca*cw + enl%xpc*enl%delta*ca*sw - enl%ypc*enl%delta*sa/)
+      pcvec = pcvec/vecnorm(pcvec)
+    else
+      pcvec = (/ EBSDdetector%rgx(ipx,ipy), EBSDdetector%rgy(ipx,ipy), EBSDdetector%rgz(ipx,ipy) /)
+    end if
+  else 
+    pcvec = (/ EBSDdetector%rgx(ipx,ipy), EBSDdetector%rgy(ipx,ipy), EBSDdetector%rgz(ipx,ipy) /)
+  end if 
   calpha = cos(alpha)
   do i=1,enl%numsx
     do j=1,enl%numsy
@@ -905,7 +921,7 @@ deallocate(z)
         if ((i.eq.ipx).and.(j.eq.ipy)) then
           g = 0.25 
         else
-          g = ((calpha*calpha + dp*dp - 1.0)**1.5)/(calpha**3)
+          g = ((calpha*calpha + dp*dp - 1.0)**1.5)/(calpha**3) * 0.25
         end if
 ! interpolate the intensity 
         do k=Emin,Emax 
@@ -913,8 +929,13 @@ deallocate(z)
               EBSDMCdata%accum_e(k,nix+1,niy) * dx * dym + &
               EBSDMCdata%accum_e(k,nix,niy+1) * dxm * dy + &
               EBSDMCdata%accum_e(k,nix+1,niy+1) * dx * dy
-! intensities do not need to be flipped vertically
-          EBSDdetector%accum_e_detector(k,i,j) = g * s
+! EBSD intensities do not need to be flipped vertically, but TKD intensities apparently
+! do need to be flipped... we need to look into this a bit more to make sure it is correct.
+          if (TKD.eqv..TRUE.) then 
+            EBSDdetector%accum_e_detector(k,i,elp-j) = g * s
+          else
+            EBSDdetector%accum_e_detector(k,i,j) = g * s
+          end if 
         end do
     end do
   end do 
@@ -2059,7 +2080,6 @@ associate( enl => self%nml, mcnl => MCFT%nml, &
 ! max number of OpenMP threads on this platform
 maxthreads = omp_get_max_threads()
 
-
 !====================================
 ! what is the output format?  GUI or BIN ?
 outputformat = enl%outputformat
@@ -2117,7 +2137,6 @@ datafile = EMsoft%generateFilePath('EMdatapathname', enl%datafile)
 hdferr =  HDF%createFile(datafile)
 if (hdferr.ne.0) call HDF%error_check('HDF_createFile ', hdferr)
 
-
 ! write the EMheader to the file
 datagroupname = trim(HDFnames%get_ProgramData()) ! 'EBSD' or 'TKD'
 call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
@@ -2159,7 +2178,7 @@ if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EMData', hdferr)
 
 ! create the EBSD group and add a HDF_FileVersion attribute to it 
 hdferr = HDF%createGroup(datagroupname)
-if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EBSD', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EBSD/TKD', hdferr)
 ! before Feb. 19, 2019, an undetected error caused all patterns to be upside down in the Kikuchi bands only,
 ! not in the background intensity profile.  This was compensated by a pattern flip of all experimental 
 ! patterns in the dictionary indexing program, but when taking individual patterns from this program, they

@@ -84,7 +84,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ECPmaster.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ECP.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_TKDmaster.f90
-#  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_TKD.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_MPoverlap.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

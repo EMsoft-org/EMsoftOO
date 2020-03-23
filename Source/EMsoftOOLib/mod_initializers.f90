@@ -104,7 +104,7 @@ end if
 if(.not. justinit) then
 ! load the crystal structure file, which also computes all the important 
 ! matrices as well as all the symmetry arrays
- xtalname = trim(cell%getFilename())
+ xtalname = trim(cell%getFileName())
  if (present(useHDF)) then 
    call cell%getCrystalData(xtalname, SG, EMsoft, verbose, useHDF)
  else 

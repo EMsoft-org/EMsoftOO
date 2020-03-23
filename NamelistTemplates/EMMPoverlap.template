@@ -1,6 +1,8 @@
-&EBSDoverlapdata
+&MPoverlapdata
 ! template file for the EMEBSDoverlap program
 !
+! modality  'EBSD, 'TKD', or 'ECP'
+ modality = 'EBSD',
 ! overlap mode  
 !  'full' = generate a complete new master pattern file that can be used for indexing
 !  'series' = generate a series of 21 overlap patterns for a range of volume fractions

@@ -128,6 +128,7 @@ type, public :: MPfile_T
     procedure, pass(self) :: copysummLPSH_
     procedure, pass(self) :: copymasterSPNH_
     procedure, pass(self) :: copymasterSPSH_
+    procedure, pass(self) :: copyMPdata_
  
 
     generic, public :: readMPfile => readMPfile_
@@ -154,6 +155,7 @@ type, public :: MPfile_T
     generic, public :: copysummLPSH => copysummLPSH_
     generic, public :: copymasterSPNH => copymasterSPNH_
     generic, public :: copymasterSPSH => copymasterSPSH_
+    generic, public :: copyMPdata => copyMPdata_
 
 end type MPfile_T
 
@@ -802,7 +804,7 @@ recursive subroutine readMPfile_(self, HDF, HDFnames, mpnl, getkeVs, getmLPNH, g
 !! version: 1.0 
 !! date: 02/17/20
 !!
-!! read an EBSD Master Pattern file into the correct namelist and data structure
+!! read a Master Pattern file into the correct namelist and data structure
 
 use HDF5 
 use mod_HDFsupport
@@ -1099,7 +1101,6 @@ if (present(getmLPNH)) then
         deallocate(mLPNH3)
       else
         call HDF%readDatasetFloatArray(dataset, dims4, hdferr, mLPNH)
-        write (*,*) 'dims4 = ', dims4
         if (keepall) then
           allocate(MPDT%mLPNH4(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,MPDT%numEbins, dims4(4)),stat=istat)
           MPDT%mLPNH4 = mLPNH
@@ -1171,6 +1172,119 @@ call Message%printMessage(' -> completed reading master pattern data from '//tri
 end associate 
 
 end subroutine readMPfile_
+
+
+!--------------------------------------------------------------------------
+recursive subroutine copyMPdata_(self, EMsoft, HDF, HDFnames, inputfile, outputfile, h5, skipCrystalData)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 03/20/20
+  !!
+  !! copy Master Pattern data from one file to a new file using h5copy
+
+use mod_EMsoft
+use HDF5
+use mod_HDFsupport
+use mod_HDFnames
+use mod_io
+use stringconstants
+
+IMPLICIT NONE
+
+class(MPfile_T),INTENT(INOUT)     :: self
+type(EMsoft_T),INTENT(INOUT)      :: EMsoft
+type(HDF_T),INTENT(INOUT)         :: HDF 
+type(HDFnames_T),INTENT(INOUT)    :: HDFnames
+character(fnlen),INTENT(IN)       :: inputfile
+character(fnlen),INTENT(IN)       :: outputfile
+character(fnlen),INTENT(IN)       :: h5
+logical,INTENT(IN),OPTIONAL       :: skipCrystalData
+
+type(IO_T)                        :: Message
+character(fnlen)                  :: infile, outfile, h5copypath, groupname
+character(512)                    :: cmd, cmd2
+logical                           :: f_exists, readonly, developer
+integer(kind=irg)                 :: hdferr
+character(fnlen)                  :: dev
+
+! first we make sure that we actually have the h5copy program available
+! check for EMDevelop parameter 
+developer = .FALSE.
+dev = EMsoft%getConfigParameter('Develop')
+if (trim(dev).eq.'Yes') developer = .TRUE.
+
+if (developer.eqv..TRUE.) then 
+! if TRUE, use EMsoft_geth5copypath which is defined at configure time 
+  h5copypath = trim(EMsoft%getConfigParameter('h5copypath'))//' -p -v '
+  h5copypath = EMsoft%toNativePath(h5copypath)
+else 
+! if FALSE, check name list h5copypath parameter 
+  if (trim(h5).ne.'undefined') then 
+    h5copypath = trim(h5)//' -p -v '
+    h5copypath = EMsoft%toNativePath(h5copypath)
+  else 
+! if undefined, then fail
+    call Message%printError('copyMPdata','h5copypath must be set in the name list file ')
+  end if
+end if
+
+call Message%printMessage(' Using '//trim(h5copypath)//' to copy Monte Carlo data to new file')
+
+! first make sure that the input file exists and has MC data in it
+infile = trim(EMsoft%generateFilePath('EMdatapathname',inputfile))
+inquire(file=trim(infile), exist=f_exists)
+
+outfile = trim(EMsoft%generateFilePath('EMdatapathname',outputfile))
+
+! if the file does not exist, abort the program with an error message
+if (f_exists.eqv..FALSE.) then 
+  call Message%printError('copyMPdata','Master PAttern copyfromenergyfile does not exist: '//trim(infile))
+end if
+
+! make sure it has MCopenCL data in it; hdf open is done in the calling program
+readonly = .TRUE.
+hdferr =  HDF%openFile(infile, readonly)
+
+hdferr = HDF%openGroup(HDFnames%get_EMData())
+if (hdferr.eq.-1) then 
+  call Message%printError('copyMPdata','EMData group does not exist in '//trim(infile))
+end if
+
+hdferr = HDF%openGroup(HDFnames%get_ProgramData())
+if (hdferr.eq.-1) then 
+  call Message%printError('copyMPdata','master group does not exist in '//trim(infile))
+end if
+
+call HDF%pop(.TRUE.)
+
+! OK, if we get here, then the file does exist and it contains Master Pattern data, 
+! so we let the user know
+call Message%printMessage('--> Input file contains Master Pattern data')
+
+! next, we copy the necessary groups into the new Monte Carlo file
+cmd = trim(h5copypath)//' -i "'//trim(infile)
+cmd = trim(cmd)//'" -o "'//trim(outfile)
+
+if (.not.present(skipCrystalData)) then 
+  cmd2 = trim(cmd)//'" -s "/CrystalData" -d "/CrystalData"'
+  call system(trim(cmd2))
+end if 
+
+cmd2 = trim(cmd)//'" -s "/EMData" -d "/EMData"'
+call system(trim(cmd2))
+
+cmd2 = trim(cmd)//'" -s "/EMheader" -d "/EMheader"'
+call system(trim(cmd2))
+
+cmd2 = trim(cmd)//'" -s "/NMLfiles" -d "/NMLfiles"'
+call system(trim(cmd2))
+
+cmd2 = trim(cmd)//'" -s "/NMLparameters" -d "/NMLparameters"'
+call system(trim(cmd2))
+
+call Message%printMessage('--> Output file generated with Master Pattern data copied from '//trim(infile))
+
+end subroutine copyMPdata_
 
 
 
