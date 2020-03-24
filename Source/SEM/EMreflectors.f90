@@ -26,33 +26,33 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMXXX
+program EMreflectors
   !! author: MDG
   !! version: 1.0 
-  !! date: 01/24/20
+  !! date: 03/24/20
   !!
-  !! 
+  !! Determine list of most intense EBSD/ECP/TKD/... reflectors (dynamical)
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_XXX
+use mod_reflectors
 
 IMPLICIT NONE
 
-character(fnlen)                :: progname = 'EMXXX.f90'
-character(fnlen)                :: progdesc = ''
+character(fnlen)       :: progname = 'EMreflectors.f90'
+character(fnlen)       :: progdesc = 'Determine list of most intense EBSD/ECP/TKD/... reflectors (dynamical)'
 
-type(EMsoft_T)                  :: EMsoft
-type(XXX_T)     :: YYY 
+type(EMsoft_T)         :: EMsoft
+type(reflectors_T)     :: reflectors 
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 26 /) )
 
 ! deal with the namelist stuff
-YYY = XXX_T(EMsoft%nmldeffile)
+reflectors = reflectors_T(EMsoft%nmldeffile)
 
 ! perform the computations
-call YYY%XXX(EMsoft, progname)
+call reflectors%reflectors(EMsoft, progname)
 
-end program EMXXX
+end program EMreflectors

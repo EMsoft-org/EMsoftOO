@@ -40,14 +40,7 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoftOO_Executable(TARGET EMEBSDreflectors 
-  #                       SOURCES ${APP_DIR}/EMEBSDreflectors.f90 
-  #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-  #                       TEMPLATE ${TMPLT_DIR}/EMEBSDreflectors.template 
-  #                       SOLUTION_FOLDER EMsoftOOPublic/SEM 
-  #                       INSTALL_PROGRAM TRUE
-  #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
-  #                       )
+
 endif()
 
 if(EMsoftOO_ENABLE_HDF5_SUPPORT)
@@ -74,6 +67,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} 
                         )
 
+  Add_EMsoftOO_Executable(TARGET EMreflectors 
+                        SOURCES ${APP_DIR}/EMreflectors.f90 
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                        TEMPLATE ${TMPLT_DIR}/EMreflectors.template 
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM 
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
 
   # Add_EMsoftOO_Executable(TARGET EMEBSDmasterSHT 
   #                       SOURCES ${APP_DIR}/EMEBSDmasterSHT.f90 

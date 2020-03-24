@@ -97,9 +97,9 @@ end type MPdataType
 
 type, public :: MPfile_T 
   private 
-    type(MPdataType),public                :: MPDT
-    character(fnlen)                       :: MPfile
-    character(fnlen)                       :: modality
+    type(MPdataType),public       :: MPDT
+    character(fnlen)              :: MPfile
+    character(fnlen)              :: modality = 'unknown'
 
   contains
   private 
@@ -112,6 +112,7 @@ type, public :: MPfile_T
     ! procedure, pass(self) :: getnml_
     procedure, pass(self) :: set_Modality_
     procedure, pass(self) :: get_Modality_
+    procedure, pass(self) :: determine_Modality_
     procedure, pass(self) :: getlastEnergy_
     procedure, pass(self) :: getnumEbins_
     procedure, pass(self) :: getnumset_
@@ -135,6 +136,7 @@ type, public :: MPfile_T
     generic, public :: setFileName => setFileName_
     generic, public :: setModality => set_Modality_
     generic, public :: getModality => get_Modality_
+    generic, public :: determineModality => determine_Modality_
     ! generic, public :: writeMPfile => writeMPfile_
     generic, public :: writeHDFNameList => writeHDFNameList_
     ! generic, public :: copynml => copynml_
@@ -479,6 +481,78 @@ character(fnlen), INTENT(IN)            :: MPfile
 self%MPfile = trim(MPfile)
 
 end subroutine setFileName_
+
+!--------------------------------------------------------------------------
+subroutine determine_Modality_(self, HDF, MPfile)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/24/20
+!!
+!! determine what type of Master Pattern file this is 
+
+use HDF5 
+use mod_HDFsupport 
+use mod_io
+use stringconstants 
+
+IMPLICIT NONE 
+
+class(MPfile_T), INTENT(INOUT)    :: self
+type(HDF_T), INTENT(INOUT)        :: HDF
+character(fnlen), INTENT(IN)      :: MPfile 
+
+type(IO_T)                        :: Message 
+character(fnlen)                  :: groupname 
+logical                           :: f_exists, g_exists, stat 
+integer(kind=irg)                 :: hdferr
+
+! we assume that MPfile contains the full path to the master pattern file 
+inquire(file=trim(MPfile), exist=f_exists)
+
+if (.not.f_exists) then
+  call Message%printError('determineModality','Master Pattern file '//trim(MPfile)//' does not exist')
+end if
+
+! is this a proper HDF5 file ?
+call h5fis_hdf5_f(trim(MPfile), stat, hdferr)
+
+! open the file 
+hdferr =  HDF%openFile(MPfile) 
+
+! go to the NMLfiles group and see what's there ... 
+groupname = SC_NMLfiles 
+hdferr = HDF%opengroup(groupname)
+
+groupname = SC_EBSDmasterNML
+call H5Lexists_f(HDF%getobjectID(),trim(groupname),g_exists, hdferr)
+if (g_exists) then
+  call self%set_Modality_('EBSD')
+else 
+  groupname = SC_ECPmasterNML
+  call H5Lexists_f(HDF%getobjectID(),trim(groupname),g_exists, hdferr)
+  if (g_exists) then
+    call self%set_Modality_('ECP')
+  else 
+    groupname = SC_TKDmasterNML
+    call H5Lexists_f(HDF%getobjectID(),trim(groupname),g_exists, hdferr)
+    if (g_exists) then
+      call self%set_Modality_('TKD')
+    else 
+      groupname = SC_KosselmasterNML
+      call H5Lexists_f(HDF%getobjectID(),trim(groupname),g_exists, hdferr)
+      if (g_exists) then
+        call self%set_Modality_('Kossel')
+      else 
+        call self%set_Modality_('unknown')
+      end if 
+    end if 
+  end if 
+end if 
+
+! close the file 
+call HDF%pop(.TRUE.)
+
+end subroutine determine_Modality_
 
 ! !--------------------------------------------------------------------------
 ! function getnml_(self) result(nml)
