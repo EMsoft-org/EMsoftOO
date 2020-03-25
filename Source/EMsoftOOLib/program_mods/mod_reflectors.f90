@@ -637,7 +637,8 @@ mcnl = MCFT%getnml()
 !------------------------------
 ! compute the energy weight factors by integrating the lower rectangular portion
 ! of the Lambert projection; we'll take the lower quarter in vertical dimension
-! and a similar distance to left and right in the horizontal direction
+! and a similar distance to left and right in the horizontal direction for EBSD/TKD.
+! For ECP we'll need a different integration area for the weights; to be implemented.
 !------------------------------
 dims3 = shape(MCFT%MCDT%accum_e)
 allocate(Eweights(dims3(1)))

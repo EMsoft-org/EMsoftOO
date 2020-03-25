@@ -104,14 +104,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                         )
   
-  # Add_EMsoftOO_Executable(TARGET EMKosselmaster 
-  #                       SOURCES ${APP_DIR}/EMKosselmaster.f90 
-  #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-  #                       TEMPLATE ${TMPLT_DIR}/EMKosselmaster.template 
-  #                       SOLUTION_FOLDER EMsoftOOPublic/SEM 
-  #                       INSTALL_PROGRAM TRUE
-  #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
-  #                       )
+  Add_EMsoftOO_Executable(TARGET EMKosselmaster 
+                        SOURCES ${APP_DIR}/EMKosselmaster.f90 
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                        TEMPLATE ${TMPLT_DIR}/EMKosselmaster.template 
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM 
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
   
   # Add_EMsoftOO_Executable(TARGET EMMC 
   #                       SOURCES ${APP_DIR}/EMMC.f90 

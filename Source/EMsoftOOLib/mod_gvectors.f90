@@ -170,20 +170,6 @@ type(reflisttype),pointer        :: rltmpa
 
 call reportDestructor('gvectors_T')
 
-! deallocate the entire linked list before returning, to prevent memory leaks
-if (associated(self%reflist)) then 
-  self%rltail => self%reflist
-  if (associated(self%rltail%next)) then 
-    rltmpa => self%rltail%next
-    do 
-      if (associated(self%rltail)) deallocate(self%rltail)
-      if (.not. associated(rltmpa)) EXIT
-      self%rltail => rltmpa
-      rltmpa => self%rltail%next
-    end do
-  end if
-end if
-
 end subroutine gvectors_destructor
 
 !--------------------------------------------------------------------------

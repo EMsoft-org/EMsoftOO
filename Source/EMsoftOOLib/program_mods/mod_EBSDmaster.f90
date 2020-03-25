@@ -1187,7 +1187,7 @@ dataset = trim(HDFnames%get_NMLfilename())
   hdferr = HDF%openGroup(HDFnames%get_EMData())
   hdferr = HDF%createGroup(HDFnames%get_ProgramData())
 
-! create the EBSDmaster group and add a HDF_FileVersion attribbute to it 
+! create the EBSDmaster group and add a HDF_FileVersion attribute to it 
   HDF_FileVersion = '4.0'
   HDF_FileVersion = cstringify(HDF_FileVersion)
   attributename = SC_HDFFileVersion

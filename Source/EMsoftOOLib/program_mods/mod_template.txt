@@ -176,7 +176,7 @@ end associate
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-subroutine XXX_(self, EMsoft, progname, nmldeffile)
+subroutine XXX_(self, EMsoft, progname)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -190,7 +190,6 @@ IMPLICIT NONE
 class(XXX_T), INTENT(INOUT)       :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname 
-character(fnlen), INTENT(INOUT)         :: nmldeffile
 
 
 end subroutine XXX_

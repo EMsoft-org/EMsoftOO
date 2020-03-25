@@ -410,7 +410,7 @@ IMPLICIT NONE
 
 type(Diffraction_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('Diffraction_T')
+! call reportDestructor('Diffraction_T')
 
 if (allocated(self%scatfacg)) deallocate(self%scatfacg) 
 if (allocated(self%scatfac)) deallocate(self%scatfac) 
