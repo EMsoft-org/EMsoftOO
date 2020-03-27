@@ -72,6 +72,10 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_MRC.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_initializers.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_filters.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_fftw3.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_fft_wrap.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_imageOPs.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_DSHT.f90
 
   
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90

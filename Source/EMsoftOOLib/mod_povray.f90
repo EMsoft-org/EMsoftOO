@@ -147,7 +147,7 @@ end interface PoVRay_T
 contains 
 
 !--------------------------------------------------------------------------
-type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, eyepos, lightline ) result(PV)
+type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, eyepos, lightline, distance, skyline) result(PV)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/21/20
@@ -170,6 +170,9 @@ real(kind=sgl), INTENT(IN), OPTIONAL   :: eyepos(3)
  !! eye position
 character(fnlen), INTENT(IN), OPTIONAL :: lightline
  !! position of first light source (default <1, 2, -2>*50)
+real(kind=dbl), INTENT(IN), OPTIONAL   :: distance
+character(fnlen), INTENT(IN), OPTIONAL :: skyline
+ !! position of first light source (default <1, 2, -2>*50)
 
 real(kind=sgl)                         :: epos(3), dd 
 character(fnlen)                       :: locationline
@@ -183,12 +186,23 @@ else
   PV%dunit = 90 
 end if 
 
+if (present(skyline)) then 
+  PV%skyline = trim(skyline)
+else 
+  PV%skyline = 'sky < 0.0, 0.0, 1.0>'
+end if
+
 if (present(eyepos)) then 
 ! the eye location is defined to be one a circle parallel in the x-y plane 
 ! the position along the circle can be set with the PoVRay "clock" parameter
 ! [this is useful for making animations]
-  dd = sqrt( sum( eyepos*eyepos))
-  epos = eyepos/dd
+  if (present(distance)) then 
+    dd = distance
+    epos = eyepos/dsqrt( sum( eyepos*eyepos))
+  else 
+    dd = sqrt( sum( eyepos*eyepos))
+    epos = eyepos/dd
+  end if
 
   write (px,"(F5.3)") eyepos(1)
   write (py,"(F5.3)") eyepos(2)

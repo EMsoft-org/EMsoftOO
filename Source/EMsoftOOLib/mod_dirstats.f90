@@ -88,7 +88,7 @@ module mod_dirstats
  !! 
  !! end program
  !! 
- !! original history of the selfmod.f90 module (EMsoft v. 5.X and earlier)
+ !! original history of the dictmod.f90 module (EMsoft v. 5.X and earlier)
  !! @date 12/31/14 MDG 1.0 original (based on UMich Matlab code and IDL intermediate version)
  !! @date 01/02/15 MDG 1.1 debug of code; produces same result as Matlab code
  !! @date 01/04/15 MDG 1.2 trial implementation of model using hyperbolic functions instead of exponential
