@@ -146,7 +146,7 @@ nml = self%nml
 end function getNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeHDFNameList_(self, HDF)
+recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -154,6 +154,7 @@ recursive subroutine writeHDFNameList_(self, HDF)
 !! write namelist to HDF file
 
 use mod_HDFsupport
+use mod_HDFnames
 use stringconstants 
 
 use ISO_C_BINDING
@@ -162,10 +163,12 @@ IMPLICIT NONE
 
 class(XXX_T), INTENT(INOUT)        :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
 integer(kind=irg),parameter             :: n_int = 11, n_real = 9
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
-character(20)                           :: intlist(n_int)
+real(kind=sgl)                          :: io_real(n_real)
+character(20)                           :: intlist(n_int), reallist(n_real)
 character(fnlen)                        :: dataset, sval(1),groupname
 character(fnlen,kind=c_char)            :: line2(1)
 

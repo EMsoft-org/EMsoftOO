@@ -9,4 +9,8 @@
  voltage = 30., 
 ! threshold value for intensity cutoff
  thr = 1.0,
+! semi edge length for output master patern (2*nx+1)
+ nx = 500,
+! mode  =  'lines' or 'bands'
+ mode = 'lines',
  /

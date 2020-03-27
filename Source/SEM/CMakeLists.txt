@@ -177,6 +177,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                       )
 
+  Add_EMsoftOO_Executable(TARGET EMkinematical
+                        SOURCES ${APP_DIR}/EMkinematical.f90 
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                        TEMPLATE ${TMPLT_DIR}/EMkinematical.template 
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM 
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
 
   Add_EMsoftOO_Executable(TARGET EMTKD 
                         SOURCES ${APP_DIR}/EMTKD.f90 
