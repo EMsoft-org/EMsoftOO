@@ -208,12 +208,14 @@ type, public :: MRC_T
     procedure, pass(self) :: setVolumeDimensions_
     procedure, pass(self) :: setMRCheader_
     procedure, pass(self) :: setFEIheaders_
+    procedure, pass(self) :: setMRCFileName_
     final :: MRC_destructor
 
     generic, public :: write_3Dvolume => write_3Dvolume_
     generic, public :: setVolumeDimensions => setVolumeDimensions_
     generic, public :: setMRCheader => setMRCheader_ 
     generic, public :: setFEIheaders => setFEIheaders_ 
+    generic, public :: setMRCFileName => setMRCFileName_
 
 end type MRC_T 
 !DEC$ ATTRIBUTES DLLEXPORT :: write_3Dvolume
@@ -328,6 +330,18 @@ type(FEIstruct), INTENT(INOUT)    :: FEIheaders(1024)
 self%FEIheaders = FEIheaders 
 
 end subroutine setFEIheaders_ 
+
+!--------------------------------------------------------------------------
+recursive subroutine setMRCFileName_(self, mrcname)
+
+IMPLICIT NONE 
+
+class(MRC_T),INTENT(INOUT)        :: self 
+character(fnlen),INTENT(IN)       :: mrcname 
+
+self%mrcname = trim(mrcname)
+
+end subroutine setMRCFileName_
 
 !--------------------------------------------------------------------------
 recursive subroutine write_3Dvolume_(self, volume, verbose)

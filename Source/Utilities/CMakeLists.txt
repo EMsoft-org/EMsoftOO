@@ -257,6 +257,15 @@ Add_EMsoftOO_Executable(TARGET EMcuboMK
                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                               )
 
+Add_EMsoftOO_Executable(TARGET EMOrientationViz
+                              SOURCES ${APP_DIR}/EMOrientationViz.f90 
+                              LINK_LIBRARIES EMsoftOOLib
+                              TEMPLATE ${TMPLT_DIR}/EMOrientationViz.template 
+                              SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                              INSTALL_PROGRAM TRUE
+                              INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                              )
+
 
 Add_EMsoftOO_Executable(TARGET EMsoftinit 
                               SOURCES ${APP_DIR}/EMsoftinit.f90 

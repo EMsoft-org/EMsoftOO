@@ -154,6 +154,7 @@ type, public :: so3_T
     integer(kind=irg)       :: FZorder
     integer(kind=irg)       :: MFZtype 
     integer(kind=irg)       :: MFZorder
+    logical                 :: doMK = .FALSE.
     integer(kind=irg)       :: pgnum
     integer(kind=irg)       :: pgnum2
     integer(kind=irg)       :: gridtype
@@ -172,6 +173,8 @@ type, public :: so3_T
     procedure, pass(self) :: setFZtypeandorder_ 
     procedure, pass(self) :: getMFZtypeandorder_ 
     procedure, pass(self) :: setMFZtypeandorder_ 
+    procedure, pass(self) :: setMK_
+    procedure, pass(self) :: getMK_
     procedure, pass(self) :: IsinsideFZ_
     procedure, pass(self) :: IsinsideMFZ_
     procedure, pass(self) :: insideCubicMFZ_
@@ -203,6 +206,7 @@ type, public :: so3_T
     procedure, pass(self) :: getMacKenzieDistribution_
 ! some other related routines
     procedure, pass(self) :: ReducelisttoRFZ_
+    procedure, pass(self) :: ReducelisttoMFZ_
     procedure, pass(self) :: ReduceDisorientationtoMFZ_
     procedure, pass(self) :: ReduceOrientationtoCubicEFZ_
     procedure, pass(self) :: ReduceOrientationtoRFZ_
@@ -215,6 +219,8 @@ type, public :: so3_T
     generic, public :: setFZtypeandorder => setFZtypeandorder_
     generic, public :: getMFZtypeandorder => getMFZtypeandorder_
     generic, public :: setMFZtypeandorder => setMFZtypeandorder_
+    generic, public :: setMK => setMK_
+    generic, public :: getMK => getMK_
     generic, public :: IsinsideFZ => IsinsideFZ_
     generic, public :: IsinsideMFZ => IsinsideMFZ_
     generic, public :: insideCubicMFZ => insideCubicMFZ_
@@ -244,8 +250,9 @@ type, public :: so3_T
     generic, public :: writeOrientationstoFile => writeOrientationstoFile_
     generic, public :: getVertex => getVertex_
     generic, public :: getMacKenzieDistribution => getMacKenzieDistribution_
-    generic, public :: ReducelisttoRFZ => ReducelisttoRFZ_
 
+    generic, public :: ReducelisttoRFZ => ReducelisttoRFZ_
+    generic, public :: ReducelisttoMFZ => ReducelisttoMFZ_
     generic, public :: ReduceDisorientationtoMFZ => ReduceDisorientationtoMFZ_
     generic, public :: ReduceOrientationtoCubicEFZ => ReduceOrientationtoCubicEFZ_
     generic, public :: ReduceOrientationtoRFZ => ReduceOrientationtoRFZ_
@@ -540,6 +547,39 @@ MFZorder = self%MFZorder
 
 end subroutine getMFZtypeandorder_
 
+!--------------------------------------------------------------------------
+recursive subroutine setMK_(self, doMK) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/28/20
+!!
+!! set the MacKenzie cell switch
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                :: self 
+logical, INTENT(IN)                       :: doMK
+
+self%doMK = doMK
+
+end subroutine setMK_
+
+!--------------------------------------------------------------------------
+recursive function getMK_(self) result(doMK) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/28/20
+!!
+!! get the MacKenzie cell switch
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                :: self 
+logical                                   :: doMK
+
+doMK = self%doMK
+
+end function getMK_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -1487,7 +1527,8 @@ recursive subroutine getOrientationsfromFile_(self, filename)
   !! version: 1.0 
   !! date: 01/22/20
   !!
-  !! read a list of orientations from a text file and insert them in a linked list
+  !! read a list of orientations from a text file, optionally convert them to the
+  !! Rodrigues or MacKenzie Fundamental Zone and insert them in a linked list
 
 IMPLICIT NONE
 
@@ -2519,7 +2560,7 @@ recursive subroutine ReduceDisorientationtoMFZ_(self, ro, SG, roMFZ)
   !! includes mirrors and inversion symmetry, i.e., the regular (full) point group
   !! symmetry of the shape of the RFZ.  We already have those implemented in the 
   !! regular symmetry module, and we assume that those symmetry matrices have been
-  !! initialized and are present in the cell class.  Then we just call the regular
+  !! initialized and are present in the SG class.  Then we just call the regular
   !! CalcStar routine to generate the equivalents and pick the one that is inside
   !! the MFZ.
 
@@ -2648,6 +2689,38 @@ end do
 call self%QuaternionArraytolist( qAR, 'FZ')
 
 end subroutine ReducelisttoRFZ_
+
+!--------------------------------------------------------------------------
+recursive subroutine ReducelisttoMFZ_(self, SG)
+  !! author: MDG
+  !! version: 1.0 
+  !! date: 03/28/20
+  !!
+  !! takes a linked list and reduces the entire list to the selected MacKenzie FZ
+
+use mod_rotations
+use mod_symmetry
+
+IMPLICIT NONE 
+
+class(so3_T), INTENT(INOUT)             :: self 
+type(SpaceGroup_T),INTENT(INOUT)        :: SG
+
+integer(kind=irg)                       :: i, cnt 
+type(r_T)                               :: roMFZ, ro
+type(FZpointd), pointer                 :: FZtmp
+
+FZtmp => self%FZlist
+cnt = self%FZcnt 
+
+do i=1,cnt 
+  ro = FZtmp%rod
+  call self%ReduceDisorientationtoMFZ(ro, SG, roMFZ)
+  FZtmp%rod = roMFZ
+  FZtmp => FZtmp%next 
+end do
+
+end subroutine ReducelisttoMFZ_
 
 !--------------------------------------------------------------------------
 recursive subroutine ReduceOrientationtoRFZ_(self, rot, Pm, roFZ, MFZ)

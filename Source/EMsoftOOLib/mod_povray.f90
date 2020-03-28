@@ -198,7 +198,7 @@ if (present(eyepos)) then
 ! [this is useful for making animations]
   if (present(distance)) then 
     dd = distance
-    epos = eyepos/dsqrt( sum( eyepos*eyepos))
+    epos = eyepos/sqrt( sum( eyepos*eyepos))
   else 
     dd = sqrt( sum( eyepos*eyepos))
     epos = eyepos/dd
@@ -1522,7 +1522,7 @@ end if
 end subroutine getpos_FZ222_
 
 !--------------------------------------------------------------------------
-recursive subroutine drawFZ_(self, rmode, cylr, FZtype, FZorder, MFZ)
+recursive subroutine drawFZ_(self, SO, rmode, cylr)
  !! author: MDG 
  !! version: 1.0 
  !! date: 01/21/20
@@ -1530,23 +1530,19 @@ recursive subroutine drawFZ_(self, rmode, cylr, FZtype, FZorder, MFZ)
  !! initialize the PoVRay output for any rotation group
  !!
  !! This routine draws the outline of either the Rodrigues Fundamental
- !! zone, or the Mackenzie Fundamental Zone (if MFZ is set and true).
+ !! zone, or the Mackenzie Fundamental Zone (if SO%getMK() is true).
 
 use mod_rotations 
+use mod_so3
 
 IMPLICIT NONE
 
 class(PoVRay_T),INTENT(INOUT)         :: self 
+type(so3_T),INTENT(INOUT)             :: SO
 integer(kind=irg),INTENT(IN)          :: rmode
  !! 1(cubochoric)|2(homochoric)|3(stereographic)|4(Rodrigues)|5(Euler)
 real(kind=dbl),INTENT(IN)             :: cylr
  !! cylinder radius
-integer(kind=irg),INTENT(IN)          :: FZtype
- !! Fundamental zone type
-integer(kind=irg),INTENT(IN)          :: FZorder
- !! order of the FZ point group
-logical,OPTIONAL,INTENT(IN)           :: MFZ
- !! (optional) Mackenzie FZ instead of regular FZ
 
 type(e_T)                             :: eul, eu, euld, eulast 
 type(r_T)                             :: ro1, ro2, ro, rolast, ron
@@ -1565,14 +1561,14 @@ integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:)
 real(kind=dbl),allocatable            :: cpos(:,:)
 
 logical                               :: doMFZ, twostep
-integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, dims(3) 
+integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder 
 
 call setRotationPrecision('Double')
 
 tpi = 2.D0 * cPi
 hpi = 0.5D0 * cPi
-doMFZ = .FALSE.
-if(present(MFZ)) doMFZ = .TRUE.
+doMFZ = SO%getMK() 
+call SO%getFZtypeandorder(FZtype, FZorder)
 
 if (FZtype.eq.2) then
     if (FZorder.eq.6) then
@@ -1580,7 +1576,7 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
       else
         twostep = .TRUE.
         dims = (/ 24, 24, 12 /)
@@ -1593,7 +1589,7 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
       else
         twostep = .TRUE.
         dims = (/ 16, 16, 8 /)
@@ -1606,7 +1602,7 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 6, 9, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
       else
         twostep = .TRUE.
         dims = (/ 12, 12, 6 /)
@@ -1619,7 +1615,7 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
       else
         twostep = .TRUE.
         dims = (/ 8, 8, 4 /)
@@ -1635,7 +1631,7 @@ if (FZtype.eq.3) then
       twostep = .FALSE.
       dims = (/ 4, 6, 1 /)
       allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-      call self%getpos_FZ23(dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+      call self%getpos_FZ23(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
     else
       twostep = .FALSE.
       dims = (/ 6, 12, 1 /)
@@ -1650,7 +1646,7 @@ if (FZtype.eq.4) then
       twostep = .FALSE.
       dims = (/ 6, 9, 1 /)
       allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-      call self%getpos_FZ432(dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+      call self%getpos_FZ432(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
     else
       twostep = .TRUE.
       dims = (/ 24, 12, 24 /)

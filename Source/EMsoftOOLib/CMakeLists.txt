@@ -92,6 +92,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_reflectors.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Kosselmaster.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_kinematical.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_OrientationViz.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )
