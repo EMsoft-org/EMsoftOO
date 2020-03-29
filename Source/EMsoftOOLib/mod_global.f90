@@ -61,11 +61,18 @@ public
 !> There can be issues with HDF reading/writing if the interface is opened multiple times 
 !> without the corresponding close commands...
   logical                               :: HDFinterfaceOpen 
+!DEC$ ATTRIBUTES DLLEXPORT :: HDFinterfaceOpen
 
 !> Since it can be difficult to debug class destructor routines, we define a variable 
 !> that makes the destructors a little more verbose ... 
-  logical                               :: verboseClassDestructors = .TRUE. 
+  ! logical                               :: verboseClassDestructors = .TRUE. 
+  logical                               :: verboseClassDestructors = .FALSE. 
 !DEC$ ATTRIBUTES DLLEXPORT :: verboseClassDestructors
+
+!> Whenever a rotation is defined using one of the rotation classes, we carry out
+!> a range check on the input; this can be turned off with this switch 
+  logical                               :: rotationRangeCheck = .TRUE.
+!DEC$ ATTRIBUTES DLLEXPORT :: rotationRangeCheck
 
 !> standard array size for all wrapper routine calls; applies to ipar, fpar, and spar arrays
   integer(c_int32_t),parameter          :: wraparraysize = 80

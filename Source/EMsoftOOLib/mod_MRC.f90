@@ -208,6 +208,8 @@ type, public :: MRC_T
     procedure, pass(self) :: setVolumeDimensions_
     procedure, pass(self) :: setMRCheader_
     procedure, pass(self) :: setFEIheaders_
+    procedure, pass(self) :: getMRCheader_
+    procedure, pass(self) :: getFEIheaders_
     procedure, pass(self) :: setMRCFileName_
     final :: MRC_destructor
 
@@ -215,6 +217,8 @@ type, public :: MRC_T
     generic, public :: setVolumeDimensions => setVolumeDimensions_
     generic, public :: setMRCheader => setMRCheader_ 
     generic, public :: setFEIheaders => setFEIheaders_ 
+    generic, public :: getMRCheader => getMRCheader_ 
+    generic, public :: getFEIheaders => getFEIheaders_ 
     generic, public :: setMRCFileName => setMRCFileName_
 
 end type MRC_T 
@@ -222,6 +226,8 @@ end type MRC_T
 !DEC$ ATTRIBUTES DLLEXPORT :: setVolumeDimensions
 !DEC$ ATTRIBUTES DLLEXPORT :: setMRCheader
 !DEC$ ATTRIBUTES DLLEXPORT :: setFEIheaders
+!DEC$ ATTRIBUTES DLLEXPORT :: getMRCheader
+!DEC$ ATTRIBUTES DLLEXPORT :: getFEIheaders
 
 ! the constructor routine for this class 
 interface MRC_T
@@ -298,14 +304,14 @@ recursive subroutine setVolumeDimensions_(self, dims )
 
 IMPLICIT NONE 
 
-class(MRC_T),INTENT(INOUT)        :: self 
-integer(kind=irg), INTENT(INOUT)  :: dims(3)
+class(MRC_T),INTENT(INOUT)     :: self 
+integer(kind=irg), INTENT(IN)  :: dims(3)
 
 self%numx = dims(1)
 self%numy = dims(2)
 self%numz = dims(3)
 
-end subroutine setVolumeDimensions_ 
+end subroutine setVolumeDimensions_
 
 !--------------------------------------------------------------------------
 recursive subroutine setMRCheader_(self, MRCheader )
@@ -317,7 +323,7 @@ type(MRCstruct), INTENT(INOUT)    :: MRCheader
 
 self%MRCheader = MRCheader 
 
-end subroutine setMRCheader_ 
+end subroutine setMRCheader_
 
 !--------------------------------------------------------------------------
 recursive subroutine setFEIheaders_(self, FEIheaders )
@@ -329,7 +335,31 @@ type(FEIstruct), INTENT(INOUT)    :: FEIheaders(1024)
 
 self%FEIheaders = FEIheaders 
 
-end subroutine setFEIheaders_ 
+end subroutine setFEIheaders_
+
+!--------------------------------------------------------------------------
+recursive function getMRCheader_(self) result(MRCheader)
+
+IMPLICIT NONE 
+
+class(MRC_T),INTENT(INOUT)       :: self 
+type(MRCstruct)                  :: MRCheader 
+
+MRCheader = self%MRCheader 
+
+end function getMRCheader_
+
+!--------------------------------------------------------------------------
+recursive function getFEIheaders_(self) result(FEIheaders)
+
+IMPLICIT NONE 
+
+class(MRC_T),INTENT(INOUT)       :: self 
+type(FEIstruct)                  :: FEIheaders(1024)
+
+FEIheaders = self%FEIheaders 
+
+end function getFEIheaders_
 
 !--------------------------------------------------------------------------
 recursive subroutine setMRCFileName_(self, mrcname)
@@ -390,7 +420,7 @@ call self%Write_Byte_Into_Buffer(char(0))
  
 ! close and save file
  close(unit=self%Unit_No, status="KEEP")
- if (v.eqv..TRUE.) call Message%printMessage('Writing volume data to file '//trim(self%mrcname))
+ if (v.eqv..TRUE.) call Message%printMessage('File saved '//trim(self%mrcname))
 
 end subroutine write_3Dvolume_
 
@@ -406,7 +436,7 @@ IMPLICIT NONE
 
 class(MRC_T), INTENT(INOUT)  :: self 
 
-integer(kind=irg)                   :: i
+integer(kind=irg)            :: i
 
 ! this is a simple direct dump of all the structure entries into the MRC buffer
  call self%Write_Word(self%MRCheader%nx,4)
@@ -473,7 +503,7 @@ IMPLICIT NONE
 
 class(MRC_T), INTENT(INOUT)  :: self
 
-integer(kind=irg)                   :: i
+integer(kind=irg)            :: i
 
 do i=1,1024
  call self%Write_Real(self%FEIheaders(i)%a_tilt,4)

@@ -1202,12 +1202,13 @@ type(c_T)               :: cu
 
 real(kind=dbl)          :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
 integer(kind=irg)       :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
-                           ierr, ig, ix, iy, iz, num, ixyz(3), pgnum
+                           ierr, ig, ix, iy, iz, num, ixyz(3), pgnum, io_int(2)
 real(kind=dbl)          :: delta, eps = 1.0D-2
-character(fnlen)        :: locationline, fname, dataname, outname, lightline, skyline, rgbstring, colorstring, df3name, mrcname
+character(fnlen)        :: locationline, fname, dataname, outname, lightline, skyline, rgbstring, locationlineeu, &
+                           colorstring, df3name, mrcname
 character(11)           :: p0
 character(21)           :: p1, p2
-character(5)            :: px, py, pz, pd
+character(9)            :: px, py, pz, pd
 character(7)            :: pd2
 character(3)            :: gid(10)
 character(2)            :: angleformat
@@ -1228,9 +1229,11 @@ type(FZpointd),pointer  :: FZtmp
 
 associate( enl=>self%nml )
 
-call setRotationPrecision('double')
-
-EMsoft = EMsoft_T( progname, progdesc, silent = .TRUE.)
+call setRotationPrecision('Double')
+! turn off the automatic range check whenever a rotation class is instantiated;
+! in the povray module, we get a lot of out-of-range warnings for the euler mode
+! so we turn those off since they are not errors.
+rotationRangeCheck = .FALSE.
 
 ! init a few parameters and arrays
 grid3 = trilinear_splat( (/ 0.0, 0.0, 0.0/), (/ 0.0, 0.0, 0.0/), init=.TRUE.)
@@ -1245,7 +1248,7 @@ call closeFortranHDFInterface()
 pgnum = SG%getPGnumber()
 
 ! set the FZtype and FZorder parameters in the SO class 
-if (enl%overridepgnum.eq.0) then 
+if (enl%overridepgnum.ne.0) then 
   pgnum = enl%overridepgnum
 end if 
 SO = so3_T( pgnum, zerolist='FZ')
@@ -1258,6 +1261,9 @@ if (enl%MacKenzieCell.eq.1) then
   call SO%getMFZtypeandorder(FZtype, FZorder)
 end if
 
+io_int(1:2) = (/ FZtype, FZorder /)
+call Message%WriteValue(' FZtype, FZorder :', io_int, 2)
+
 ! get the symmetry operator quaternions for the point group 
 call dummy%QSym_Init(pgnum, Pm)
 
@@ -1268,6 +1274,22 @@ if ((index(trim(outname),'.').ne.0).and.(index(trim(outname),'.').gt.20)) then
 end if 
 outname = EMsoft%generateFilePath('EMdatapathname', enl%povrayfile)
 
+! generate the locationline parameters for PoVRay rendering 
+dd = enl%distance
+eyepos = (/ 0.387, 0.825, 0.412 /)
+eyepos = eyepos/sqrt( sum( eyepos*eyepos))
+write (px,"(F9.3)") eyepos(1)
+write (py,"(F9.3)") eyepos(2)
+write (pz,"(F9.3)") eyepos(3)
+write (pd,"(F9.3)") dd
+
+p0 = "location < "
+p1 = "*cos(clock*0.0174533)"
+p2 = "*sin(clock*0.0174533)"
+
+locationline = p0//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1//","//pz//">*"//pd
+locationlineeu = p0//'5.0, 1.0, 0.0>*'//pd 
+
 ! PoVRay/DF3 initializations  (this opens the file, sets the camera and light source
 ! and allocates the rendering volume)
 !===========
@@ -1275,7 +1297,7 @@ outname = EMsoft%generateFilePath('EMdatapathname', enl%povrayfile)
 !===========
 if (enl%cubochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
-    call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit )
+    call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline )
   end if
 ! create the rendering volume
   allocate(cuvol(-enl%nx:enl%nx,-enl%ny:enl%ny,-enl%nz:enl%nz),stat=istat)
@@ -1293,7 +1315,7 @@ end if
 !===========
 if (enl%homochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
-    call initFiles(EMsoft, enl, PoVcu, SO, 'ho', outname, dataunit2 )
+    call initFiles(EMsoft, enl, PoVcu, SO, 'ho', outname, dataunit2, locationline )
   end if
 ! create the rendering volume
   allocate(hovol(-enl%nx:enl%nx,-enl%ny:enl%ny,-enl%nz:enl%nz),stat=istat)
@@ -1311,7 +1333,7 @@ end if
 !===========
 if (enl%rodrigues.ne.0) then
   if (enl%mrcmode.eq.'off') then
-    call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3 )
+    call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline )
   end if
 ! create the rendering volume
   allocate(rovol(-enl%nx:enl%nx,-enl%ny:enl%ny,-enl%nz:enl%nz),stat=istat)
@@ -1321,13 +1343,9 @@ if (enl%rodrigues.ne.0) then
 ! with the exception of the cyclic groups for which we pick some value that is 
 ! reasonable.  For the dihedral groups the box should have an edge length of 2,
 ! for tetrahedral 1/3, and for octahedral sqrt(2)-1.
-  rodx = float(enl%nx) / maxRFZdis(FZtype+1)
-  rody = float(enl%nx) / maxRFZdis(FZtype+1)
-  if ((FZtype.eq.1).or.(FZtype.eq.2)) then
-    rodz = float(enl%nz) / tan(cPi*0.5/float(FZorder))
-  else
-    rodz = float(enl%nz) / maxRFZdis(FZtype+1) 
-  end if
+  rodx = float(enl%nx)
+  rody = float(enl%nx)
+  rodz = float(enl%nx)
 end if
 
 !==============
@@ -1335,7 +1353,7 @@ end if
 !==============
 if (enl%stereographic.ne.0) then
   if (enl%mrcmode.eq.'off') then
-    call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4 )
+    call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline )
   end if
 ! create the rendering volume
   allocate(spvol(-enl%nx:enl%nx,-enl%ny:enl%ny,-enl%nz:enl%nz),stat=istat)
@@ -1355,26 +1373,26 @@ if (enl%eulerspace.ne.0) then
   if (enl%mrcmode.eq.'off') then
 ! Euler space has a slightly different eye position so we need to redefine the locationline and skyline strings
     fname = trim(outname)//'-eu.pov'
-    eyepos(1:3) = (/ 1.50, 1.60, 1.60 /)
-    PoVeu = PoVRay_T( EMsoft, fname, dunit=dataunit5, nmlfile=EMsoft%nmldeffile, eyepos=eyepos,  distance = dble(enl%distance) )
-    call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5 )
+    skyline = 'sky <0.0, 1.0, 0.0>'
+    PoVeu = PoVRay_T( EMsoft, fname, dunit=dataunit5, nmlfile=EMsoft%nmldeffile, skyline = skyline, &
+                      locationline = locationlineeu )
+    call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu )
   end if
 ! create the rendering volume
   allocate(euvol(1:2*enl%nx+1,1:2*enl%ny+1,1:2*enl%nz+1),stat=istat)
   euvol = 0.0
 ! generate the x/y/z scaling factors
 ! these should be set so that the render box has the outer dimensions of the primary Euler cell
-! which has unit radius.
-  eudx = float(2*enl%nx+1) / (2.0*cPi)
-  eudy = float(2*enl%ny+1) / cPi
-  eudz = float(2*enl%nz+1) / (2.0*cPi)
+  eudx = float(2*enl%nx+1) / (2.0*cPi) 
+  eudy = float(2*enl%ny+1) / (2.0*cPi)
+  eudz = float(2*enl%nz+1) / (2.0*cPi) 
 end if
 
 ! data file of orientations, convert the orientations to the RFZ
 fname = EMsoft%generateFilePath('EMdatapathname', enl%anglefile)
 call SO%getOrientationsfromFile(fname)
 ! next, we reduce these orientations to the RFZ or MacKenzie cell
-if (enl%MacKenzieCell.eq.1) then 
+if (enl%MacKenzieCell.eq.0) then 
   call SO%ReducelisttoRFZ(Pm)
 else
   call SO%ReducelisttoMFZ(SG)  ! this requires the full crystal point group
@@ -1392,18 +1410,18 @@ pointloop: do ix = 1,numpoints
 ! cubochoric
     if (enl%cubochoric.ne.0) then
       cu = ro%rc()
-      xyz = cu%c_copy()
+      xyz = sngl(cu%c_copyd())
       write (dataunit,"('sphere { <',2(F14.6,','),F14.6,'>,',F6.4,'  }')") xyz(1:3), enl%sphrad
     end if
 ! homochoric
     if (enl%homochoric.ne.0) then
       ho = ro%rh()
-      xyz = ho%h_copy()
+      xyz = sngl(ho%h_copyd())
       write (dataunit2,"('sphere { <',2(F14.6,','),F14.6,'>,',F6.4,' }')") xyz(1:3), enl%sphrad
     end if
 ! rodrigues
     if (enl%rodrigues.ne.0) then
-      xyz4 = ro%r_copy()
+      xyz4 = sngl(ro%r_copyd())
       if (xyz4(4).le.1000.0) then 
         write (dataunit3,"('sphere { <',2(F20.6,','),F20.6,'>,',F6.4,' }')") xyz4(1:3)*xyz4(4), enl%sphrad
       end if
@@ -1411,13 +1429,13 @@ pointloop: do ix = 1,numpoints
 ! stereographic
     if (enl%stereographic.ne.0) then
       st = ro%rs()
-      xyz = st%s_copy()
+      xyz = sngl(st%s_copyd())
       write (dataunit4,"('sphere { <',2(F14.6,','),F14.6,'>,',F6.4,' }')") xyz(1:3), enl%sphrad
     end if
 ! Euler box
     if (enl%eulerspace.ne.0) then
       eu = ro%re()
-      xyz = eu%e_copy()
+      xyz = sngl(eu%e_copyd())
       write (dataunit5,"('sphere { <',2(F14.6,','),F14.6,'>,',F6.4,' }')") xyz(1:3) - sh(1:3), enl%sphrad
     end if
 
@@ -1426,7 +1444,7 @@ pointloop: do ix = 1,numpoints
 ! cubochoric rendering volume
     if (enl%cubochoric.ne.0) then
       cu = ro%rc()
-      xyz = cu%c_copy()
+      xyz = sngl(cu%c_copyd())
       grid3 = trilinear_splat( sngl(xyz(1:3)), (/ cudx, cudy, cudz /), init=.FALSE.)
       ixyz(1:3) = nint(xyz(1:3) * (/ cudx, cudy, cudz /))
       if ((abs(ixyz(1)).lt.enl%nx).and.(abs(ixyz(2)).lt.enl%ny).and.(abs(ixyz(3)).lt.enl%nz) ) then
@@ -1438,7 +1456,7 @@ pointloop: do ix = 1,numpoints
 ! homochoric rendering volume
     if (enl%homochoric.ne.0) then
       ho = ro%rh()
-      xyz = ho%h_copy()
+      xyz = sngl(ho%h_copyd())
       grid3 = trilinear_splat( sngl(xyz(1:3)), (/ hodx, hody, hodz /), init=.FALSE.)
       ixyz(1:3) = nint(xyz(1:3) * (/ hodx, hody, hodz /))
       if ((abs(ixyz(1)).lt.enl%nx).and.(abs(ixyz(2)).lt.enl%ny).and.(abs(ixyz(3)).lt.enl%nz) ) then
@@ -1449,7 +1467,7 @@ pointloop: do ix = 1,numpoints
 
 ! rodrigues rendering volume
     if (enl%rodrigues.ne.0) then
-      xyz4 = ro%r_copy()
+      xyz4 = sngl(ro%r_copyd())
       grid3 = trilinear_splat( sngl(xyz4(1:3)*xyz4(4)), (/ rodx, rody, rodz /), init=.FALSE.)
       ixyz(1:3) = nint((xyz4(1:3)*xyz4(4)) * (/ rodx, rody, rodz /))
       if ((abs(ixyz(1)).lt.enl%nx).and.(abs(ixyz(2)).lt.enl%ny).and.(abs(ixyz(3)).lt.enl%nz) ) then
@@ -1461,7 +1479,7 @@ pointloop: do ix = 1,numpoints
 ! stereographic rendering volume
     if (enl%stereographic.ne.0) then
       st = ro%rs()
-      xyz = st%s_copy()
+      xyz = sngl(st%s_copyd())
       grid3 = trilinear_splat( sngl(xyz), (/ spdx, spdy, spdz /), init=.FALSE.)
       ixyz(1:3) = nint(xyz(1:3) * (/ spdx, spdy, spdz /))
       ! in the following test, we are potentially eliminating a few points that lie on
@@ -1475,11 +1493,11 @@ pointloop: do ix = 1,numpoints
 ! Euler primary cell rendering volume  [needs to be updated with trilinear splatting]
     if (enl%eulerspace.ne.0) then
       eu = ro%re()
-      xyz = eu%e_copy()
+      xyz = sngl(eu%e_copyd())
       xyz(1) = mod(xyz(1)+10.0*cPi,2.0*cPi)
       xyz(2) = mod(xyz(2)+5.0*cPi,cPi)
       xyz(3) = mod(xyz(3)+10.0*cPi,2.0*cPi)
-      ixyz(1:3) = nint(xyz(1:3) * (/ eudx, eudy, eudz /))
+      ixyz(1:3) = nint(xyz(1:3) * (/ eudx, eudy * 2.0, eudz /))
       if ((ixyz(1).le.2*enl%nx).and.(ixyz(2).le.2*enl%ny).and.(ixyz(3).le.2*enl%nz) ) then
         euvol(ixyz(1)+1,ixyz(2)+1,ixyz(3)+1) = euvol(ixyz(1)+1,ixyz(2)+1,ixyz(3)+1) + 1.0
       end if
@@ -1543,7 +1561,7 @@ if (enl%mrcmode.eq.'off') then
 ! and close the file
     close(UNIT=dataunit,STATUS='keep')
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-cu.pov')
-    df3name = EMsoft%generateFilePath('EMdatapathname', enl%df3file//'-cu.df3')
+    df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-cu.df3'
     call PoVcu%write_DF3file(df3name, cuvol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
   end if
 
@@ -1555,7 +1573,7 @@ if (enl%mrcmode.eq.'off') then
 ! and close the file
     close(UNIT=dataunit2,STATUS='keep')
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-ho.pov')
-    df3name = EMsoft%generateFilePath('EMdatapathname', enl%df3file//'-ho.df3')
+    df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-ho.df3'
     call PoVho%write_DF3file(df3name, hovol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
   end if
 
@@ -1571,7 +1589,7 @@ if (enl%mrcmode.eq.'off') then
 ! and close the file
     close(UNIT=dataunit3,STATUS='keep')
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-ro.pov')
-    df3name = EMsoft%generateFilePath('EMdatapathname', enl%df3file//'-ro.df3')
+    df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-ro.df3'
     call PoVro%write_DF3file(df3name, rovol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
   end if
 
@@ -1583,7 +1601,7 @@ if (enl%mrcmode.eq.'off') then
 ! and close the file
     close(UNIT=dataunit4,STATUS='keep')
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-sp.pov')
-    df3name = EMsoft%generateFilePath('EMdatapathname', enl%df3file//'-sp.df3')
+    df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-sp.df3'
     call PoVst%write_DF3file(df3name, spvol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
   end if
 
@@ -1595,7 +1613,7 @@ if (enl%mrcmode.eq.'off') then
 ! and close the file
     close(UNIT=dataunit5,STATUS='keep')
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-eu.pov')
-    df3name = EMsoft%generateFilePath('EMdatapathname', enl%df3file//'-eu.df3')
+    df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-eu.df3'
     call PoVeu%write_DF3file(df3name, euvol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
   end if
  end if
@@ -1606,23 +1624,7 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
   numy = 2*enl%ny+1
   numz = 2*enl%nz+1
   allocate(volume(numx,numy,numz))
-  MRCheader%nx = numx
-  MRCheader%ny = numy
-  MRCheader%nz = numz
-  MRCheader%mode = 2    ! for floating point output
-  MRCheader%mx = numx
-  MRCheader%my = numy
-  MRCheader%mz = numz
-  MRCheader%xlen = numx
-  MRCheader%ylen = numy
-  MRCheader%zlen = numz
-  do i=1,numz
-    FEIheaders(i)%b_tilt = 0.0
-    FEIheaders(i)%defocus = 0.0
-    FEIheaders(i)%pixelsize = 1.0e-9
-    FEIheaders(i)%magnification = 1000.0
-    FEIheaders(i)%voltage = 0.0
-  end do
+
   allocate(psum(numz))
 ! write (*,*) 'dimensions :',numx, numy, numz
 
@@ -1636,6 +1638,13 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
      end do 
     end do    
 ! parameters specific to this volume
+! set the filename
+    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-cu.mrc'
+    MRC = MRC_T(mrcname)
+    MRCheader = MRC%getMRCheader()
+    FEIheaders = MRC%getFEIheaders()
+    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
+    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
     psum = sum(sum(volume,1),1)
     do iz=1,numz
       FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
@@ -1643,10 +1652,9 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
     MRCheader%amin = minval(volume)
     MRCheader%amax = maxval(volume)
     MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-! set the filename
-    mrcname = EMsoft%generateFilePath('EMdatapathname', enl%mrcfile)//'-cu.mrc'
 ! and write the volume to file
-    call MRC%setMRCFileName(mrcname)
+    call MRC%setMRCheader(MRCheader)
+    call MRC%setFEIheaders(FEIheaders)
     call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
   end if
 
@@ -1661,17 +1669,23 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
      end do 
     end do    
 ! parameters specific to this volume
+! set the filename
+    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-ho.mrc'
+    MRC = MRC_T(mrcname)
+    MRCheader = MRC%getMRCheader()
+    FEIheaders = MRC%getFEIheaders()
+    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
+    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
     psum = sum(sum(volume,1),1)
-    do iz=0,numz-1
+    do iz=1,numz-1
       FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
     end do
     MRCheader%amin = minval(volume)
     MRCheader%amax = maxval(volume)
     MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-! set the filename
-    mrcname = EMsoft%generateFilePath('EMdatapathname', enl%mrcfile)//'-ho.mrc'
 ! and write the volume to file
-    call MRC%setMRCFileName(mrcname)
+    call MRC%setMRCheader(MRCheader)
+    call MRC%setFEIheaders(FEIheaders)
     call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
   end if
 
@@ -1686,6 +1700,13 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
      end do 
     end do    
 ! parameters specific to this volume
+! set the filename
+    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-ro.mrc'
+    MRC = MRC_T(mrcname)
+    MRCheader = MRC%getMRCheader()
+    FEIheaders = MRC%getFEIheaders()
+    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
+    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
     psum = sum(sum(volume,1),1)
     do iz=1,numz
       FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
@@ -1693,10 +1714,10 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
     MRCheader%amin = minval(volume)
     MRCheader%amax = maxval(volume)
     MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-! set the filename
-    mrcname = EMsoft%generateFilePath('EMdatapathname', enl%mrcfile)//'-ro.mrc'
+    write(*,*) ' mean intensity : ',MRCheader%amean
 ! and write the volume to file
-    call MRC%setMRCFileName(mrcname)
+    call MRC%setMRCheader(MRCheader)
+    call MRC%setFEIheaders(FEIheaders)
     call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
   end if
 
@@ -1713,6 +1734,13 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
     end do    
   ! write (*,*) '  --> done'
 ! parameters specific to this volume
+! set the filename
+    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-sp.mrc'
+    MRC = MRC_T(mrcname)
+    MRCheader = MRC%getMRCheader()
+    FEIheaders = MRC%getFEIheaders()
+    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
+    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
     psum = sum(sum(volume,1),1)
     do iz=1,numz
       FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
@@ -1721,10 +1749,9 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
     MRCheader%amax = maxval(volume)
     MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
   ! write(*,*) MRCheader%amin, MRCheader%amax, MRCheader%amean
-! set the filename
-    mrcname = EMsoft%generateFilePath('EMdatapathname', enl%mrcfile)//'-sp.mrc'
 ! and write the volume to file
-    call MRC%setMRCFileName(mrcname)
+    call MRC%setMRCheader(MRCheader)
+    call MRC%setFEIheaders(FEIheaders)
     call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
   end if
 
@@ -1733,6 +1760,14 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
 ! copy the eulerspace array into the volume array
     volume = dble(euvol)
 ! parameters specific to this volume
+! set the filename
+    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-eu.mrc'
+    MRC = MRC_T(mrcname)
+    MRCheader = MRC%getMRCheader()
+    FEIheaders = MRC%getFEIheaders()
+    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
+    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
+    write (*,*) 'mrcname ====> ',trim(mrcname), minval(volume), maxval(volume)
     psum = sum(sum(volume,1),1)
     do iz=1,numz
       FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
@@ -1740,10 +1775,9 @@ else  ! we're creating an .mrc file, so we do not need any of the povray command
     MRCheader%amin = minval(volume)
     MRCheader%amax = maxval(volume)
     MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-! set the filename
-    mrcname = EMsoft%generateFilePath('EMdatapathname', enl%mrcfile)//'-eu.mrc'
 ! and write the volume to file
-    call MRC%setMRCFileName(mrcname)
+    call MRC%setMRCheader(MRCheader)
+    call MRC%setFEIheaders(FEIheaders)
     call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
   end if
 
@@ -1755,7 +1789,7 @@ end subroutine OrientationViz_
 
 
 !--------------------------------------------------------------------------
-subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit)
+subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit, locationline)
 !! author: MDG 
 !! version: 1.0 
 !! date: 03/27/20
@@ -1776,6 +1810,7 @@ character(2),INTENT(IN)                           :: rep
 type(so3_T),INTENT(INOUT)                         :: SO
 character(fnlen),INTENT(IN)                       :: outname
 integer(kind=irg),INTENT(IN)                      :: dunit
+character(fnlen),INTENT(IN)                       :: locationline
 
 type(IO_T)                                        :: Message
 character(fnlen)                                  :: fname, DF3name 
@@ -1800,7 +1835,7 @@ end select
 fname = trim(outname)//'-'//rep//'.pov'
 call Message%printMessage('opening '//trim(fname))
 if (rep.ne.'eu') then
-  PoV = PoVRay_T( EMsoft, fname, dunit=dunit, nmlfile=EMsoft%nmldeffile, distance = dble(enl%distance) )
+  PoV = PoVRay_T( EMsoft, fname, dunit=dunit, nmlfile=EMsoft%nmldeffile, locationline=locationline )
 end if 
 if (trim(enl%df3file).eq.'undefined') then 
 ! we're just going to draw a bunch of spheres, so put them together in a PoVRay union
@@ -1809,7 +1844,7 @@ if (trim(enl%df3file).eq.'undefined') then
   write (dunit,"('union { ')")
 else
 ! insert code to read in a 3D Density File (df3) containing the object to be rendered
-  df3name = EMsoft%generateFilePath('EMdatapathname',enl%df3file)//'-'//rep//'.df3'
+  df3name = trim(EMsoft%generateFilePath('EMdatapathname',enl%df3file))//'-'//rep//'.df3'
   if (enl%scalingmode.eq.'lev') then
     call PoV%declare_DF3file(df3name,levelset=.TRUE.)
   else
@@ -1819,5 +1854,38 @@ else
 end if
 
 end subroutine initFiles
+
+!--------------------------------------------------------------------------
+subroutine setMRCvals(MRCheader, FEIheaders, nums)
+
+use mod_MRC 
+
+IMPLICIT NONE 
+
+type(MRCstruct), INTENT(INOUT)    :: MRCheader 
+type(FEIstruct), INTENT(INOUT)    :: FEIheaders(1024)
+integer(kind=irg), INTENT(IN)     :: nums(3) 
+
+integer(kind=irg)                 :: i
+
+MRCheader%nx = nums(1)
+MRCheader%ny = nums(2)
+MRCheader%nz = nums(3)
+MRCheader%mode = 2    ! for floating point output
+MRCheader%mx = nums(1)
+MRCheader%my = nums(2)
+MRCheader%mz = nums(3)
+MRCheader%xlen = nums(1)
+MRCheader%ylen = nums(2)
+MRCheader%zlen = nums(3)
+do i=1,nums(3)
+  FEIheaders(i)%b_tilt = 0.0
+  FEIheaders(i)%defocus = 0.0
+  FEIheaders(i)%pixelsize = 1.0e-9
+  FEIheaders(i)%magnification = 1000.0
+  FEIheaders(i)%voltage = 0.0
+end do
+
+end subroutine setMRCvals
 
 end module mod_OrientationViz

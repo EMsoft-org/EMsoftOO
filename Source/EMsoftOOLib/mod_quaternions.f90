@@ -2197,6 +2197,7 @@ select case (prot)
                 end do
 
         case default    ! this should never happen ...
+                write (*,*) 'requested rotational point group ', prot
                 call Message%printError('QSym_Init','unknown rotational point group number')
 end select
 

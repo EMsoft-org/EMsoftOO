@@ -885,7 +885,7 @@ else
   if (present(rinp)) r%r = rinp
 end if
 
-ierr = r%r_check() 
+if (rotationRangeCheck) ierr = r%r_check()
 
 end function r_constructor
 
@@ -926,7 +926,7 @@ else
   if (present(sinp)) s%s = sinp
 end if
 
-ierr = s%s_check() 
+if (rotationRangeCheck) ierr = s%s_check()
 
 end function s_constructor
 
@@ -967,7 +967,7 @@ else
   if (present(oinp)) o%o = oinp
 end if
 
-ierr = o%o_check() 
+if (rotationRangeCheck) ierr = o%o_check()
 
 end function o_constructor
 
@@ -1008,7 +1008,7 @@ else
   if (present(hinp)) h%h = hinp
 end if
 
-ierr = h%h_check() 
+if (rotationRangeCheck) ierr = h%h_check()
 
 end function h_constructor
 
@@ -1049,7 +1049,7 @@ else
   if (present(ainp)) a%a = ainp
 end if
 
-ierr = a%a_check() 
+if (rotationRangeCheck) ierr = a%a_check()
 
 end function a_constructor
 
@@ -1090,7 +1090,7 @@ else
   if (present(vinp)) v%v = vinp
 end if
 
-ierr = v%v_check() 
+if (rotationRangeCheck) ierr = v%v_check()
 
 end function v_constructor
 
@@ -1131,7 +1131,7 @@ else
   if (present(cinp)) c%c = cinp
 end if
 
-ierr = c%c_check() 
+if (rotationRangeCheck) ierr = c%c_check()
 
 end function c_constructor
 
@@ -1172,7 +1172,7 @@ else
   if (present(einp)) e%e = einp
 end if
 
-ierr = e%e_check() 
+if (rotationRangeCheck) ierr = e%e_check()
 
 end function e_constructor
 
@@ -1213,7 +1213,7 @@ else
   if (present(qinp)) q%q = qinp
 end if
 
-ierr = q%q_check() 
+if (rotationRangeCheck) ierr = q%q_check()
 
 end function q_constructor
 

@@ -2159,7 +2159,8 @@ else
   end do
 end if
 
-pgnum = self%PGnumber 
+self%PGnumber = i 
+pgnum = i
 
 end function getPGnumber_
 
