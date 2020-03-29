@@ -3512,4 +3512,106 @@ end if
 
 end function Jaccard_Distance
 
+!----------------------------------------------------------------------------
+recursive subroutine Quicksort(Item, First, Last, Indices)
+!----------------------------------------------------------------------------
+! This routine is based on a similar routine in "Fortran 90 for Engineers & 
+! Scientists" by Nyhoff and Leestma.  I modified it to return an integer 
+! array sorted based on the relationship of the real data in "Item".
+!
+! TJH 21 Oct 1998
+! downloaded from <http://www.cgd.ucar.edu/pubsoft/TestQuicksort.html> on 3/29/2020
+! and slightly modified (i.e., integrated with EMsoft code) by MDG
+!----------------------------------------------------------------------------
+
+real(kind=sgl),INTENT(INOUT)    :: Item(:)   ! array of values
+integer(kind=irg),INTENT(IN)    :: First, Last
+integer(kind=irg),INTENT(INOUT) :: Indices(:)
+
+integer(kind=irg)               :: Mid
+  
+!--------------------------------------------------------------------
+
+if (First < Last) then                ! IF list size >= 2
+   call Split(Item, First, Last, Mid, Indices)    ! Split it
+   call Quicksort(Item, First, Mid-1, Indices)    ! Sort left  half
+   call Quicksort(Item, Mid+1, Last,  Indices)    ! Sort right half
+end if
+
+end subroutine Quicksort
+
+!-Split----------------------------------------------------------------------
+!
+! Subroutine to split a list into two sublists, using the first element 
+! as a pivot, and return the position of the element about which the 
+! list was divided. Local variables used are:
+! Left   : position of the first element
+! Right  : position of the last element
+! Pivot  : pivot element
+! Swap   : used to swap elements
+!
+! Accepts:   Array Item and positions Low and High of the first and 
+!            last elements
+! Returns:   Array Item (modified) with elements in ascending order
+!
+! Note:  Item is an assumed-shape array so a program unit that calls
+!        this subroutine must:
+!        1. contain this subroutine as an internal subprogram,
+!        2. import this subroutine from a module
+!        3. contain an interface block for this subroutine.
+!----------------------------------------------------------------------------
+recursive subroutine Split(Item, Low, High, Mid, Indices)
+
+REAL(kind=sgl), INTENT(INOUT)     :: Item(:)
+INTEGER(kind=irg), INTENT(IN)     :: Low, High
+INTEGER(kind=irg), INTENT(OUT)    :: Mid
+INTEGER(kind=irg), INTENT(INOUT)  :: Indices(:)
+
+integer(kind=irg)                 ::   Left, Right
+real(kind=sgl)                    ::  Pivot,  Swap
+integer(kind=irg)                 :: iPivot, iSwap
+
+Left   = Low
+Right  = High
+Pivot  = Item(Low)
+iPivot = Indices(Low)
+
+  ! Repeat the following while Left and Right haven't met
+do
+  if ( Left >= Right ) EXIT
+! Scan right to left to find element < Pivot
+  do
+    if ( Left >= Right .or. Item(Right) < Pivot ) EXIT
+    Right = Right - 1
+  end do
+
+! Scan left to right to find element > Pivot
+  do
+    if (Item(Left) > Pivot) EXIT
+    Left = Left + 1
+  end do
+
+! If Left and Right haven't met, exchange the items
+  if (Left < Right) THEN
+    Swap        = Item(Left)        ! EXCHANGE THE ARRAY ITEMS
+    Item(Left)  = Item(Right)
+    Item(Right) = Swap
+
+    iSwap          = Indices(Left)  ! EXCHANGE THE INDICES ITEMS
+    Indices(Left)  = Indices(Right)
+    Indices(Right) = iSwap
+  end if
+
+end do
+
+! Switch element in split position with pivot
+Item(Low)   = Item(Right)         ! SWITCH ARRAY ELEMS
+Item(Right) = Pivot
+Mid         = Right
+
+Indices(Low)   = Indices(Right)   ! SWITCH ARRAY ELEMS
+Indices(Right) = iPivot
+
+end subroutine Split
+
 end module mod_math

@@ -831,7 +831,7 @@ d = 0.610395774912
 
 if (present(MFZ)) then
   if (MFZ) then 
-
+    d = 1.0
 ! define the coordinates of the cubic Mackenzie FZ in Rodrigues Space
     cpos(1:3, 1) = (/  0.D0,  0.D0,  0.D0 /)
     cpos(1:3, 2) = (/  a,  0.D0,  0.D0 /)
@@ -841,7 +841,7 @@ if (present(MFZ)) then
     cpos(1:3, 5) = (/  f,  f,  f /)
     cpos(1:3, 6) = (/  a,  e,  e /)
 
-    cpos = cpos/d
+    ! cpos = cpos/d
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -980,6 +980,7 @@ d = 1.0
 
 if (present(MFZ)) then
   if (MFZ) then 
+    d = 1.0
 
 ! define the coordinates of the cubic Mackenzie FZ in Rodrigues Space
     cpos(1:3, 1) = (/  b,  b,  b /)
@@ -1068,6 +1069,7 @@ real(kind=dbl)  :: a = 1.0D0, b = 0.267949192431D0, c = 0.732050807569D0, &
 d = 1.0693893290743279D0
 if (present(MFZ)) then
   if (MFZ) then ! define the coordinates of the hexagonal Mackenzie FZ in Rodrigues Space
+    d = 1.0
     cpos(1:3, 1) = (/  z,  z,  z /)
     cpos(1:3, 2) = (/  z,  z,  b /)
     cpos(1:3, 3) = (/  a,  z,  z /)
@@ -1212,6 +1214,7 @@ real(kind=dbl)    :: a = 1.0D0, b = 0.41421354D0, c = 0.41421354D0, dt = 0.82842
 d = 1.158941651036677D0
 if (present(MFZ)) then
   if (MFZ) then ! define the coordinates of the tetragonal Mackenzie FZ in Rodrigues Space
+    d = 1.0
     cpos(1:3, 1) = (/  z,  z,  z /)
     cpos(1:3, 2) = (/  z,  z,  c /)
     cpos(1:3, 3) = (/  a,  z,  z /)
@@ -1329,6 +1332,7 @@ real(kind=dbl)    :: a = 0.8660254038D0, b = 0.5D0, c = 0.5773502692D0, dt = 0.3
 d = 1.1547005384D0
 if (present(MFZ)) then
   if (MFZ) then ! define the coordinates of the tetragonal Mackenzie FZ in Rodrigues Space
+    d = 1.0
     cpos(1:3, 1) = (/  z,  z,  z /)
     cpos(1:3, 2) = (/  z,  z,  c /)
     cpos(1:3, 3) = (/  a, -p,  z /)
@@ -1434,6 +1438,7 @@ real(kind=dbl)    :: a = 1.0D0, b = 1.0D0, c = 1D0, dt = 2.0D0, &
 d = 1.7320508075688772D0
 if (present(MFZ)) then
   if (MFZ) then ! define the coordinates of the tetragonal Mackenzie FZ in Rodrigues Space
+    d = 1.0
     cpos(1:3, 1) = (/  z, -a,  z /)
     cpos(1:3, 2) = (/  z, -a,  c /)
     cpos(1:3, 3) = (/  a, -a,  z /)
@@ -1979,7 +1984,7 @@ if (FZtype.eq.3) then
     call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
 end if
 
-if (FZtype.eq.4) then
+if ((FZtype.eq.4).and.(rmode.eq.5)) then
     xx = cPi/dble(4)
 ! draw four diagonal lines
     eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )

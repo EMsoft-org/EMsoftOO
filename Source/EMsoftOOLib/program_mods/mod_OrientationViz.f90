@@ -1264,6 +1264,16 @@ end if
 io_int(1:2) = (/ FZtype, FZorder /)
 call Message%WriteValue(' FZtype, FZorder :', io_int, 2)
 
+! define some FZ dimensional parameters (used for volume rendering)
+maxRFZdis = (/ 5.0, 2.5, 1.0, 1.0/3.0, sqrt(2.0)-1.0 /)
+scalefactors(1:3,1) = (/ 1.0, 1.0, 1.0 /)
+if (FZorder.ne.0) then
+  scalefactors(1:3,2) = (/ 2.0, 2.0, 2.0*tan(sngl(cPi)*0.5/float(FZorder)) /)
+  scalefactors(1:3,3) = (/ 2.0, 2.0, 2.0*tan(sngl(cPi)*0.5/float(FZorder)) /)
+end if
+scalefactors(1:3,4) = (/ 2.0/3.0, 2.0/3.0, 2.0/3.0 /)
+scalefactors(1:3,5) = (/ (sqrt(2.0)-1.0)/0.5, (sqrt(2.0)-1.0)/0.5, (sqrt(2.0)-1.0)/0.5 /)
+
 ! get the symmetry operator quaternions for the point group 
 call dummy%QSym_Init(pgnum, Pm)
 
@@ -1581,11 +1591,11 @@ if (enl%mrcmode.eq.'off') then
 ! output the final rendering commands
     write (dataunit3,"(A)") 'background { color rgb <0.2, 0.2, 0.2> }'
     write (dataunit3,"('object { renderbox translate <-0.5, -0.5, -0.5>')")
-    if (enl%overridepgnum.eq.0) then
+    ! if (enl%overridepgnum.eq.0) then
       write (dataunit3,"(' scale <',F10.6,',',F10.6,',',F10.6,' > }')") scalefactors(1:3,FZtype+1)
-    else
-      write (dataunit3,"(' scale <',F10.6,',',F10.6,',',F10.6,' > }')") scalefactors(1:3,FZtype_override+1)
-    end if
+    ! else
+    !   write (dataunit3,"(' scale <',F10.6,',',F10.6,',',F10.6,' > }')") scalefactors(1:3,FZtype_override+1)
+    ! end if
 ! and close the file
     close(UNIT=dataunit3,STATUS='keep')
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-ro.pov')

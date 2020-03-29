@@ -68,6 +68,40 @@ character(fnlen)                :: arg
 logical                         :: verbose
 
 
+ INTEGER, PARAMETER       :: GNX = 20
+ INTEGER, DIMENSION(GNX)  :: indarr
+ REAL,    DIMENSION(GNX)  :: randvals = 0.0, randcopy = 0.0
+ 
+ indarr = (/ (i,i=1,GNX) /)       ! indexical array
+
+ call RANDOM_NUMBER(randvals)
+ randcopy = randvals
+
+ print *,'   org_arr index'
+ do i = 1,GNX
+    print '(f10.4,1x,i3)',randvals(i),indarr(i)
+ enddo
+
+ call Quicksort(randvals,1,GNX,indarr)
+
+ print *,'       sorted  O_index'
+ do i = 1,GNX
+    print '(i3,1x,f10.4,1x,i3,1x,f10.4)',i,randvals(i),indarr(i),randcopy(indarr(i)) 
+ enddo
+
+ print *,'sorted - indexed original = ',SUM(randvals - randcopy(indarr))
+
+
+
+
+
+
+
+
+stop
+
+
+
 call setRotationPrecision('Double')
 
 ine = e_T( edinp = cvtoRadians( (/ 180.D0, 90.D0, 0.D0 /) ) )
