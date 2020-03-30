@@ -1174,7 +1174,6 @@ use mod_quaternions
 use mod_povray
 use mod_so3
 use mod_dirstats
-use mod_MRC
 use mod_math
 use mod_so3
 use mod_HDFsupport, only: openFortranHDFInterface, closeFortranHDFInterface
@@ -1188,7 +1187,6 @@ character(fnlen), INTENT(INOUT)         :: progdesc
 
 type(IO_T)              :: Message 
 type(PoVRay_T)          :: PoVcu, PoVho, PoVro, PoVst, PoVeu 
-type(MRC_T)             :: MRC
 type(DirStat_T)         :: dict
 type(so3_T)             :: SO
 type(SpaceGroup_T)      :: SG
@@ -1202,7 +1200,7 @@ type(c_T)               :: cu
 
 real(kind=dbl)          :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
 integer(kind=irg)       :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
-                           ierr, ig, ix, iy, iz, num, ixyz(3), pgnum, io_int(2)
+                           ierr, ig, ix, iy, iz, num, ixyz(3), pgnum, io_int(2), nums(3)
 real(kind=dbl)          :: delta, eps = 1.0D-2
 character(fnlen)        :: locationline, fname, dataname, outname, lightline, skyline, rgbstring, locationlineeu, &
                            colorstring, df3name, mrcname
@@ -1218,11 +1216,6 @@ real(kind=dbl),allocatable :: samples(:,:)
 real(kind=dbl)          :: muhat(4), kappahat
 ! rendering volumes
 real(kind=sgl),allocatable :: rovol(:,:,:), spvol(:,:,:), euvol(:,:,:), cuvol(:,:,:), hovol(:,:,:)
-type(MRCstruct)         :: MRCheader
-type(FEIstruct)         :: FEIheaders(1024)
-real(kind=dbl),allocatable :: psum(:)
-real(kind=dbl),allocatable :: volume(:,:,:)  ! you'll need to fill this array with values ... 
-integer(kind=irg)       :: numx, numy, numz       ! set these to the size of the volume array
 real(kind=sgl)          :: maxRFZdis(5), rodx, rody, rodz, eudx, eudy, eudz, spdx, spdy, spdz, cudx, cudy, cudz, &
                            hodx, hody, hodz, scalefactors(3,5), acubo, ahomo, grid3(3,3,3), eyepos(3)
 type(FZpointd),pointer  :: FZtmp 
@@ -1260,9 +1253,6 @@ if (enl%MacKenzieCell.eq.1) then
   call SO%setMFZtypeandorder(pgnum)
   call SO%getMFZtypeandorder(FZtype, FZorder)
 end if
-
-io_int(1:2) = (/ FZtype, FZorder /)
-call Message%WriteValue(' FZtype, FZorder :', io_int, 2)
 
 ! define some FZ dimensional parameters (used for volume rendering)
 maxRFZdis = (/ 5.0, 2.5, 1.0, 1.0/3.0, sqrt(2.0)-1.0 /)
@@ -1569,7 +1559,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit,"('object { renderbox translate <-0.5, -0.5, -0.5>')")
     write (dataunit,"(' scale <',F10.6,',',F10.6,',',F10.6,' > }')") 2.0 * (/ acubo, acubo, acubo /)
 ! and close the file
-    close(UNIT=dataunit,STATUS='keep')
+    call PoVcu%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-cu.pov')
     df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-cu.df3'
     call PoVcu%write_DF3file(df3name, cuvol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
@@ -1581,7 +1571,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit2,"('object { renderbox translate <-0.5, -0.5, -0.5>')")
     write (dataunit2,"(' scale <',F10.6,',',F10.6,',',F10.6,' > }')") 2.0 * (/ ahomo, ahomo, ahomo /)
 ! and close the file
-    close(UNIT=dataunit2,STATUS='keep')
+    call PoVho%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-ho.pov')
     df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-ho.df3'
     call PoVho%write_DF3file(df3name, hovol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
@@ -1597,7 +1587,7 @@ if (enl%mrcmode.eq.'off') then
     !   write (dataunit3,"(' scale <',F10.6,',',F10.6,',',F10.6,' > }')") scalefactors(1:3,FZtype_override+1)
     ! end if
 ! and close the file
-    close(UNIT=dataunit3,STATUS='keep')
+    call PoVro%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-ro.pov')
     df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-ro.df3'
     call PoVro%write_DF3file(df3name, rovol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
@@ -1609,7 +1599,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit4,"('object { renderbox translate <-0.5, -0.5, -0.5>')")
     write (dataunit4,"(' scale <',F10.6,',',F10.6,',',F10.6,' > }')") (/ 2.0, 2.0, 2.0 /)
 ! and close the file
-    close(UNIT=dataunit4,STATUS='keep')
+    call PoVst%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-sp.pov')
     df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-sp.df3'
     call PoVst%write_DF3file(df3name, spvol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
@@ -1621,174 +1611,33 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit5,"('object { renderbox scale < 6.2831855, 3.1415927, 6.2831855 > ')")
     write (dataunit5,"(' translate <  -3.1415927, -1.5707964, -3.1415927 > } ')")
 ! and close the file
-    close(UNIT=dataunit5,STATUS='keep')
+    call PoVeu%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-eu.pov')
     df3name = trim(EMsoft%generateFilePath('EMdatapathname', enl%df3file))//'-eu.df3'
     call PoVeu%write_DF3file(df3name, euvol, (/ enl%nx, enl%ny, enl%nz /), enl%scalingmode)
   end if
  end if
 else  ! we're creating an .mrc file, so we do not need any of the povray commands...
- !write(*,*) 'starting creation of .mrc file'
-! parameters that are generic to all the volumes
-  numx = 2*enl%nx+1
-  numy = 2*enl%ny+1
-  numz = 2*enl%nz+1
-  allocate(volume(numx,numy,numz))
-
-  allocate(psum(numz))
-! write (*,*) 'dimensions :',numx, numy, numz
+  nums = (/ 2*enl%nx+1, 2*enl%ny+1, 2*enl%nz+1 /)
 
   if (enl%cubochoric.ne.0) then
-! copy the cubochoric array into the volume array
-    do ix = -enl%nx,enl%nx
-     do iy = -enl%ny,enl%ny
-      do iz = -enl%nz,enl%nz
-        volume(ix+enl%nx+1, iy+enl%ny+1, iz+enl%nz+1) = dble(cuvol(ix,iy,iz))
-      end do
-     end do 
-    end do    
-! parameters specific to this volume
-! set the filename
-    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-cu.mrc'
-    MRC = MRC_T(mrcname)
-    MRCheader = MRC%getMRCheader()
-    FEIheaders = MRC%getFEIheaders()
-    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
-    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
-    psum = sum(sum(volume,1),1)
-    do iz=1,numz
-      FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
-    end do
-    MRCheader%amin = minval(volume)
-    MRCheader%amax = maxval(volume)
-    MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-! and write the volume to file
-    call MRC%setMRCheader(MRCheader)
-    call MRC%setFEIheaders(FEIheaders)
-    call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
+    call generateMRCfile(EMsoft, enl, nums, dble(cuvol), 'cu')
   end if
-
 
   if (enl%homochoric.ne.0) then
-! copy the homochoric array into the volume array
-    do ix = -enl%nx,enl%nx
-     do iy = -enl%ny,enl%ny
-      do iz = -enl%nz,enl%nz
-        volume(ix+enl%nx+1, iy+enl%ny+1, iz+enl%nz+1) = dble(hovol(ix,iy,iz))
-      end do
-     end do 
-    end do    
-! parameters specific to this volume
-! set the filename
-    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-ho.mrc'
-    MRC = MRC_T(mrcname)
-    MRCheader = MRC%getMRCheader()
-    FEIheaders = MRC%getFEIheaders()
-    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
-    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
-    psum = sum(sum(volume,1),1)
-    do iz=1,numz-1
-      FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
-    end do
-    MRCheader%amin = minval(volume)
-    MRCheader%amax = maxval(volume)
-    MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-! and write the volume to file
-    call MRC%setMRCheader(MRCheader)
-    call MRC%setFEIheaders(FEIheaders)
-    call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
+    call generateMRCfile(EMsoft, enl, nums, dble(hovol), 'ho')
   end if
-
 
   if (enl%rodrigues.ne.0) then
-! copy the rodrigues array into the volume array
-    do ix = -enl%nx,enl%nx
-     do iy = -enl%ny,enl%ny
-      do iz = -enl%nz,enl%nz
-        volume(ix+enl%nx+1, iy+enl%ny+1, iz+enl%nz+1) = dble(rovol(ix,iy,iz))
-      end do
-     end do 
-    end do    
-! parameters specific to this volume
-! set the filename
-    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-ro.mrc'
-    MRC = MRC_T(mrcname)
-    MRCheader = MRC%getMRCheader()
-    FEIheaders = MRC%getFEIheaders()
-    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
-    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
-    psum = sum(sum(volume,1),1)
-    do iz=1,numz
-      FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
-    end do
-    MRCheader%amin = minval(volume)
-    MRCheader%amax = maxval(volume)
-    MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-    write(*,*) ' mean intensity : ',MRCheader%amean
-! and write the volume to file
-    call MRC%setMRCheader(MRCheader)
-    call MRC%setFEIheaders(FEIheaders)
-    call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
+    call generateMRCfile(EMsoft, enl, nums, dble(rovol), 'ro')
   end if
-
 
   if (enl%stereographic.ne.0) then
-  ! write (*,*) 'starting volume array copy'
-! copy the stereographic array into the volume array
-    do ix = -enl%nx,enl%nx
-     do iy = -enl%ny,enl%ny
-      do iz = -enl%nz,enl%nz
-        volume(ix+enl%nx+1, iy+enl%ny+1, iz+enl%nz+1) = dble(spvol(ix,iy,iz))
-      end do
-     end do 
-    end do    
-  ! write (*,*) '  --> done'
-! parameters specific to this volume
-! set the filename
-    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-sp.mrc'
-    MRC = MRC_T(mrcname)
-    MRCheader = MRC%getMRCheader()
-    FEIheaders = MRC%getFEIheaders()
-    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
-    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
-    psum = sum(sum(volume,1),1)
-    do iz=1,numz
-      FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
-    end do
-    MRCheader%amin = minval(volume)
-    MRCheader%amax = maxval(volume)
-    MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-  ! write(*,*) MRCheader%amin, MRCheader%amax, MRCheader%amean
-! and write the volume to file
-    call MRC%setMRCheader(MRCheader)
-    call MRC%setFEIheaders(FEIheaders)
-    call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
+    call generateMRCfile(EMsoft, enl, nums, dble(spvol), 'sp')
   end if
 
-
   if (enl%eulerspace.ne.0) then
-! copy the eulerspace array into the volume array
-    volume = dble(euvol)
-! parameters specific to this volume
-! set the filename
-    mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-eu.mrc'
-    MRC = MRC_T(mrcname)
-    MRCheader = MRC%getMRCheader()
-    FEIheaders = MRC%getFEIheaders()
-    call setMRCvals(MRCheader, FEIheaders, (/ numx, numy, numz /) )
-    call MRC%setVolumeDimensions( (/ numx, numy, numz /) )
-    write (*,*) 'mrcname ====> ',trim(mrcname), minval(volume), maxval(volume)
-    psum = sum(sum(volume,1),1)
-    do iz=1,numz
-      FEIheaders(iz)%mean_int = psum(iz)/float(numx)/float(numy)
-    end do
-    MRCheader%amin = minval(volume)
-    MRCheader%amax = maxval(volume)
-    MRCheader%amean = sum(volume)/float(numx)/float(numy)/float(numz)
-! and write the volume to file
-    call MRC%setMRCheader(MRCheader)
-    call MRC%setFEIheaders(FEIheaders)
-    call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
+    call generateMRCfile(EMsoft, enl, nums, dble(euvol), 'eu')
   end if
 
 end if
@@ -1864,6 +1713,51 @@ else
 end if
 
 end subroutine initFiles
+
+!--------------------------------------------------------------------------
+subroutine generateMRCfile(EMsoft, enl, nums, volume, rep)
+
+use mod_EMsoft
+use mod_MRC 
+use mod_io
+
+IMPLICIT NONE 
+
+type(EMsoft_T),INTENT(INOUT)                      :: EMsoft
+type(OrientationVizNameListType),INTENT(INOUT)    :: enl 
+integer(kind=irg), INTENT(IN)                     :: nums(3) 
+real(kind=dbl),INTENT(IN)                         :: volume(nums(1),nums(2),nums(3))
+character(2),INTENT(IN)                           :: rep
+
+character(fnlen)                                  :: mrcname
+type(MRC_T)                                       :: MRC 
+type(MRCstruct)                                   :: MRCheader 
+type(FEIstruct)                                   :: FEIheaders(1024)
+integer(kind=irg)                                 :: iz
+real(kind=dbl)                                    :: psum(nums(3))
+type(IO_T)                                        :: Message
+
+mrcname = trim(EMsoft%generateFilePath('EMdatapathname', enl%mrcfile))//'-'//rep//'.mrc'
+MRC = MRC_T(mrcname)
+MRCheader = MRC%getMRCheader()
+FEIheaders = MRC%getFEIheaders()
+call setMRCvals(MRCheader, FEIheaders, nums )
+call MRC%setVolumeDimensions( nums )
+psum = sum(sum(volume,1),1)
+do iz=1,nums(3)
+  FEIheaders(iz)%mean_int = psum(iz)/float(nums(1))/float(nums(2))
+end do
+MRCheader%amin = minval(volume)
+MRCheader%amax = maxval(volume)
+MRCheader%amean = sum(volume)/float(nums(1))/float(nums(2))/float(nums(3))
+! and write the volume to file
+call MRC%setMRCheader(MRCheader)
+call MRC%setFEIheaders(FEIheaders)
+call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
+call MRC%closeFile()
+call Message%printMessage(' Volume data stored in '//trim(mrcname))
+
+end subroutine generateMRCfile
 
 !--------------------------------------------------------------------------
 subroutine setMRCvals(MRCheader, FEIheaders, nums)

@@ -211,6 +211,7 @@ type, public :: MRC_T
     procedure, pass(self) :: getMRCheader_
     procedure, pass(self) :: getFEIheaders_
     procedure, pass(self) :: setMRCFileName_
+    procedure, pass(self) :: closeFile_
     final :: MRC_destructor
 
     generic, public :: write_3Dvolume => write_3Dvolume_
@@ -220,6 +221,7 @@ type, public :: MRC_T
     generic, public :: getMRCheader => getMRCheader_ 
     generic, public :: getFEIheaders => getFEIheaders_ 
     generic, public :: setMRCFileName => setMRCFileName_
+    generic, public :: closeFile => closeFile_
 
 end type MRC_T 
 !DEC$ ATTRIBUTES DLLEXPORT :: write_3Dvolume
@@ -228,6 +230,7 @@ end type MRC_T
 !DEC$ ATTRIBUTES DLLEXPORT :: setFEIheaders
 !DEC$ ATTRIBUTES DLLEXPORT :: getMRCheader
 !DEC$ ATTRIBUTES DLLEXPORT :: getFEIheaders
+!DEC$ ATTRIBUTES DLLEXPORT :: closeFile
 
 ! the constructor routine for this class 
 interface MRC_T
@@ -298,6 +301,22 @@ if (itsopen.eqv..TRUE.) then
 end if 
 
 end subroutine MRC_destructor
+
+!--------------------------------------------------------------------------
+recursive subroutine closeFile_(self)
+ !! author: MDG 
+ !! version: 1.0 
+ !! date: 03/30/20
+ !!
+ !! clean up routine 
+
+IMPLICIT NONE
+
+class(MRC_T),INTENT(INOUT)         :: self 
+
+close(unit=self%Unit_No, status = 'keep')
+
+end subroutine closeFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine setVolumeDimensions_(self, dims )
@@ -399,13 +418,13 @@ if (PRESENT(verbose)) then
 end if
  
 ! first we need to write the headers
-if (v.eqv..TRUE.) call Message%printMessage('Writing headers to file '//trim(self%mrcname))
+if (v.eqv..TRUE.) call Message%printMessage(' Writing MRC headers')
 
 call self%write_MRCheader()
 call self%write_FEIheaders()
 
 ! next, write the volume
-if (v.eqv..TRUE.) call Message%printMessage('Writing volume data to file '//trim(self%mrcname))
+if (v.eqv..TRUE.) call Message%printMessage(' Writing volume data')
 do ith = 1, self%numz
   do iy = 1, self%numy
     do ix = 1, self%numx
@@ -418,10 +437,6 @@ end do
 self%L=len(self%Rekord)
 call self%Write_Byte_Into_Buffer(char(0))
  
-! close and save file
- close(unit=self%Unit_No, status="KEEP")
- if (v.eqv..TRUE.) call Message%printMessage('File saved '//trim(self%mrcname))
-
 end subroutine write_3Dvolume_
 
 !--------------------------------------------------------------------------

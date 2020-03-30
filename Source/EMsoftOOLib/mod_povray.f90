@@ -57,7 +57,7 @@ type, public :: PoVRay_T
     character(fnlen)    :: lightline       ! default <1, 2, -2>*50
     real(kind=sgl)      :: eyepos(3)
     logical             :: background
-    integer(kind=irg)   :: dunit           ! default value = 90
+    integer(kind=irg)   :: dunit = 0       ! default value = 90
     integer(kind=irg)   :: nmlunit = 88    ! default value 
     integer(kind=irg)   :: df3unit = 86    ! default value 
 
@@ -172,8 +172,6 @@ character(fnlen), INTENT(IN), OPTIONAL :: lightline
 character(fnlen), INTENT(IN), OPTIONAL :: skyline
  !! position of first light source (default <1, 2, -2>*50)
 
-real(kind=sgl)                         :: epos(3), dd 
-
 if (present(dunit)) then 
   PV%dunit = dunit 
 else 
@@ -199,6 +197,7 @@ else
 end if 
 
 PV%filename = trim(fname) 
+
 if (present(nmlfile)) then
   PV%nmlfile = trim(nmlfile)
 else 
@@ -232,12 +231,14 @@ logical                         :: itsopen
 
 call reportDestructor('PoVRay_T')
 
-! if the MRC uit is still open, close it here 
-inquire(unit=self%dunit, opened=itsopen)
+! if the file unit is still open, close it here 
+if (self%dunit.ne.0) then 
+  inquire(unit=self%dunit, opened=itsopen)
 
-if (itsopen.eqv..TRUE.) then 
-  close(unit=self%dunit, status='keep')
-  call Message%printMessage(' Closed PoVray file '//trim(self%filename))
+  if (itsopen.eqv..TRUE.) then 
+    close(unit=self%dunit, status='keep')
+    call Message%printMessage(' Closed PoVray file '//trim(self%filename))
+  end if 
 end if 
 
 end subroutine PoVRay_destructor
