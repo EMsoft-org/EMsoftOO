@@ -1014,56 +1014,56 @@ end subroutine HoughTransform
 
 ! end subroutine init_HiPassFilter
 
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: applyHiPassFilter
-! !
-! !> @author Marc De Graef, Carnegie Mellon University
-! !
-! !> @brief  Perform a high pass filter
-! !
-! !> @param rdata real data to be transformed
-! !> @param dims dimensions of rdata array
-! !> @param w width of Gaussian profile
-! ! 
-! !> @date 02/02/16 MDG 1.0 original
-! !> @date 06/03/16 MDG 1.1 modified mask to inverted Gaussian profile
-! !> @date 01/11/18 MDG 1.2 split routine from original to allow for OpenMP access
-! !--------------------------------------------------------------------------
-! recursive function applyHiPassFilter(rdata, dims, w, hpmask, inp, outp, planf, planb) result(fdata)
-! !DEC$ ATTRIBUTES DLLEXPORT :: applyHiPassFilter
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: applyHiPassFilter
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief  Perform a high pass filter
+!
+!> @param rdata real data to be transformed
+!> @param dims dimensions of rdata array
+!> @param w width of Gaussian profile
+! 
+!> @date 02/02/16 MDG 1.0 original
+!> @date 06/03/16 MDG 1.1 modified mask to inverted Gaussian profile
+!> @date 01/11/18 MDG 1.2 split routine from original to allow for OpenMP access
+!--------------------------------------------------------------------------
+recursive function applyHiPassFilter(rdata, dims, w, hpmask, inp, outp, planf, planb) result(fdata)
+!DEC$ ATTRIBUTES DLLEXPORT :: applyHiPassFilter
 
-! use FFTW3mod
+use mod_FFTW3
 
-! IMPLICIT NONE
+IMPLICIT NONE
 
-! integer(kind=irg),INTENT(IN)            :: dims(2)
-! real(kind=dbl),INTENT(IN)               :: w
-! real(kind=dbl),INTENT(IN)               :: rdata(dims(1),dims(2))
-! complex(kind=dbl),INTENT(IN)            :: hpmask(dims(1),dims(2))
-! complex(C_DOUBLE_COMPLEX),INTENT(INOUT) :: inp(dims(1),dims(2)), outp(dims(1),dims(2))
-! !f2py intent(in,out) ::  inp
-! type(C_PTR),INTENT(IN)                  :: planf, planb
-! real(kind=dbl)                          :: fdata(dims(1),dims(2))
+integer(kind=irg),INTENT(IN)            :: dims(2)
+real(kind=dbl),INTENT(IN)               :: w
+real(kind=dbl),INTENT(IN)               :: rdata(dims(1),dims(2))
+complex(kind=dbl),INTENT(IN)            :: hpmask(dims(1),dims(2))
+complex(C_DOUBLE_COMPLEX),INTENT(INOUT) :: inp(dims(1),dims(2)), outp(dims(1),dims(2))
+!f2py intent(in,out) ::  inp
+type(C_PTR),INTENT(IN)                  :: planf, planb
+real(kind=dbl)                          :: fdata(dims(1),dims(2))
 
-! complex(kind=dbl)                       :: cone = cmplx(1.D0,0.D0), czero = cmplx(0.D0,0.D0)
-! integer(kind=irg)                       :: i, j, k, ii, jj
-! real(kind=dbl)                          :: x, y, val
+complex(kind=dbl)                       :: cone = cmplx(1.D0,0.D0), czero = cmplx(0.D0,0.D0)
+integer(kind=irg)                       :: i, j, k, ii, jj
+real(kind=dbl)                          :: x, y, val
 
-! ! apply the hi-pass mask to rdata
-! do j=1,dims(1)
-!  do k=1,dims(2)
-!   inp(j,k) = cmplx(rdata(j,k),0.D0)    
-!  end do
-! end do
-! call fftw_execute_dft(planf, inp, outp)
-! inp = outp * hpmask
-! call fftw_execute_dft(planb, inp, outp) 
-! fdata(1:dims(1),1:dims(2)) = real(outp)
+! apply the hi-pass mask to rdata
+do j=1,dims(1)
+ do k=1,dims(2)
+  inp(j,k) = cmplx(rdata(j,k),0.D0)    
+ end do
+end do
+call fftw_execute_dft(planf, inp, outp)
+inp = outp * hpmask
+call fftw_execute_dft(planb, inp, outp) 
+fdata(1:dims(1),1:dims(2)) = real(outp)
 
-! call fftw_cleanup()
+call fftw_cleanup()
 
-! end function applyHiPassFilter
+end function applyHiPassFilter
 
 ! !--------------------------------------------------------------------------
 ! !

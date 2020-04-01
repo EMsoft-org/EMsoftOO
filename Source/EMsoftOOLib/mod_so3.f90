@@ -2815,7 +2815,7 @@ roFZ = rod
 end subroutine ReduceOrientationtoRFZ_
 
 !--------------------------------------------------------------------------
-recursive subroutine getDisorientation_(self, Pm, or1, or2, disax)
+recursive subroutine getDisorientation_(self, Pm, or1, or2, disax, fix1)
   !! author: MDG
   !! version: 1.0 
   !! date: 01/23/20
@@ -2839,6 +2839,7 @@ type(QuaternionArray_T),INTENT(INOUT)  :: Pm
 class(*), INTENT(INOUT)                :: or1 
 class(*), INTENT(INOUT)                :: or2 
 type(a_T), INTENT(OUT)                 :: disax
+logical,INTENT(IN),OPTIONAL            :: fix1  
 
 type(Quaternion_T)                     :: qu1, qu2, Mu, qu, Mus, qus, p 
 real(kind=dbl)                         :: a, ac, ax(3), x(4)
@@ -2860,13 +2861,13 @@ qu = Quaternion_T( qd = qu2%get_quatd() )
 call qu%quat_pos()
 
 ac = 1000.D0
-do j=1,Pmdims ! loop over the symmetric equivalents of Mu
-  Mus = Pm%getQuatfromArray(j)*Mu
-  call Mus%quat_pos()
-  do k=1,Pmdims
+if (present(fix1)) then ! keep the first orientation fixed and only symmetrize the 2nd
+
+    call Mu%quat_pos()
+    do k=1,Pmdims
     qus = Pm%getQuatfromArray(k)*qu
     call qus%quat_pos()
-    p = Mus*conjg(qus)
+    p = Mu*conjg(qus)
     call p%quat_pos()
     x = p%get_quatd()
     a = 2.0*acos(x(1))
@@ -2874,7 +2875,7 @@ do j=1,Pmdims ! loop over the symmetric equivalents of Mu
       ac = a
       ax(1:3) = x(2:4)/vecnorm(x(2:4))
     end if
-    p = qus*conjg(Mus)
+    p = qus*conjg(Mu)
     call p%quat_pos()
     x = p%get_quatd()
     a = 2.0*acos(x(1))
@@ -2882,8 +2883,36 @@ do j=1,Pmdims ! loop over the symmetric equivalents of Mu
       ac = a
       ax(1:3) = x(2:4)/vecnorm(x(2:4))
     end if
-  end do
-end do 
+    end do
+
+else ! use symmetry on both orientations 
+
+    do j=1,Pmdims ! loop over the symmetric equivalents of Mu
+      Mus = Pm%getQuatfromArray(j)*Mu
+      call Mus%quat_pos()
+      do k=1,Pmdims
+        qus = Pm%getQuatfromArray(k)*qu
+        call qus%quat_pos()
+        p = Mus*conjg(qus)
+        call p%quat_pos()
+        x = p%get_quatd()
+        a = 2.0*acos(x(1))
+        if (a.lt.ac) then
+          ac = a
+          ax(1:3) = x(2:4)/vecnorm(x(2:4))
+        end if
+        p = qus*conjg(Mus)
+        call p%quat_pos()
+        x = p%get_quatd()
+        a = 2.0*acos(x(1))
+        if (a.lt.ac) then
+          ac = a
+          ax(1:3) = x(2:4)/vecnorm(x(2:4))
+        end if
+      end do
+    end do 
+    
+end if 
 
 disax = a_T( adinp = (/ ax(1:3), ac /) )
 

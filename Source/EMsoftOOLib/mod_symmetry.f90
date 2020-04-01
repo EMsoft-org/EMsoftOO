@@ -546,6 +546,11 @@ character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  '
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 /) 
 !DEC$ ATTRIBUTES DLLEXPORT :: SHT_mirInv
 
+character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','22','22','22', &
+                                                       ' 4',' 4',' 4','42','42','42','42',' 3', &
+                                                       ' 3','32','32','32',' 6',' 6',' 6','62', &
+                                                       '62','62','62','23','23','43','43','43'/)
+!DEC$ ATTRIBUTES DLLEXPORT :: TSLsymtype
 
 
 ! here is the main symmetry class definition; this class must be able to function on its
