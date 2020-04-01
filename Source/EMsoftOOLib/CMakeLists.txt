@@ -78,6 +78,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_DSHT.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_patterns.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_vendors.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_DIsupport.f90
 
   
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
