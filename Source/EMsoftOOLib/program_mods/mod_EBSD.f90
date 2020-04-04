@@ -106,9 +106,9 @@ end type EBSDDetectorType
 ! class definition
 type, public :: EBSD_T
 private 
-  character(fnlen)        :: nmldeffile = 'EMEBSD.nml'
-  type(EBSDNameListType)  :: nml 
-  type(EBSDDetectorType)  :: det
+  character(fnlen)                :: nmldeffile = 'EMEBSD.nml'
+  type(EBSDNameListType), public  :: nml 
+  type(EBSDDetectorType), public  :: det
 
 contains
 private 

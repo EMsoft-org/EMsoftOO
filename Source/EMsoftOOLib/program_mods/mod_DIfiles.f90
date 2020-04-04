@@ -26,16 +26,26 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-module mod_DPfiles
+module mod_DIfiles
   !! author: MDG 
   !! version: 1.0 
-  !! date: 03/31/20
+  !! date: 04/03/20
   !!
-  !! class definition for Dot Product file routines; also contains
-  !! everything dealing with dictionary indexing namelists.
+  !! class definition for writing a Dictionary Indexing output file; for now
+  !! we only write the TSL format (h5ebsd), but we apply it both to EBSD and TKD.
+  !! ECP will be added at a later time, and when Oxford finally decides to release
+  !! their HDF file we will likely add that format as well. 
+  !! In the original EMsoft package, this was the EMh5ebsd module.
+  !!
+  !! Also contains everything dealing with dictionary indexing namelists.
 
 use mod_kinds
 use mod_global
+use HDF5
+use h5im
+use h5lt
+use mod_HDFsupport
+use stringconstants
 
 IMPLICIT NONE 
 
@@ -117,61 +127,115 @@ type, public :: MPdataType
 end type MPdataType
 
 ! class definition
-type, public :: DPfile_T
-  private 
-    ! type(DPdataType),public       :: DPDT
-    character(fnlen)              :: DPfile
-    character(fnlen)              :: modality = 'unknown'
-
+type, public :: DIfile_T
+private 
+  character(fnlen)                              :: DIfile
+  type(MPdatatype)                              :: DIDT
+  character(fnlen)                              :: modality = 'unknown'
+  type(DictionaryIndexingNameListType), public  :: nml
 contains
-  private 
-    procedure, pass(self) :: setFileName_
-    procedure, pass(self) :: writeHDFNameList_
-    procedure, pass(self) :: set_Modality_
-    procedure, pass(self) :: get_Modality_
-    ! procedure, pass(self) :: readDPfile_
-    final :: DPfile_destructor
+private 
 
-    generic, public :: writeHDFNameList => writeHDFNameList_
-    ! generic, public :: readDPfile => readDPfile_
-    generic, public :: setFileName => setFileName_
-    generic, public :: setModality => set_Modality_
-    generic, public :: getModality => get_Modality_
+  procedure, pass(self) :: get_filename_
+  procedure, pass(self) :: set_filename_
+  procedure, pass(self) :: get_Modality_
+  procedure, pass(self) :: set_Modality_
+  procedure, pass(self) :: readNameList_
+  procedure, pass(self) :: getNameList_
+  procedure, pass(self) :: writeHDFNameList_
 
-end type DPfile_T
+  generic, public :: getNameList => getNameList_
+  generic, public :: readNameList => readNameList_
+  generic, public :: get_filename => get_filename_
+  generic, public :: set_filename => set_filename_
+  generic, public :: get_Modality => get_Modality_
+  generic, public :: set_Modality => set_Modality_
+  generic, public :: writeHDFNameList => writeHDFNameList_
+
+end type DIfile_T
+
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: get_filename
+!DEC$ ATTRIBUTES DLLEXPORT :: set_filename
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Modality
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Modality
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
 
 ! the constructor routine for this class 
-interface DPfile_T
-  module procedure DPfile_constructor
-end interface DPfile_T
+interface DIfile_T
+  module procedure DIfile_constructor
+end interface DIfile_T
 
 contains
 
 !--------------------------------------------------------------------------
-type(DPfile_T) function DPfile_constructor( ) result(DPfile)
+type(DIfile_T) function DIfile_constructor( nmlfile, fname ) result(DIfile)
 !! author: MDG 
 !! version: 1.0 
-!! date: 03/31/20
+!! date: 04/03/20
 !!
-!! constructor for the DPfile_T Class; reads the name list 
+!! constructor for the DIfile_T Class; reads the name list 
  
 IMPLICIT NONE
 
-end function DPfile_constructor
+character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: fname
+
+if (present(nmlfile)) call DIfile%readNameList(nmlfile)
+if (present(fname)) call DIfile%set_filename(fname)
+
+end function DIfile_constructor
 
 !--------------------------------------------------------------------------
-subroutine DPfile_destructor(self) 
+subroutine DIfile_destructor(self) 
 !! author: MDG 
 !! version: 1.0 
-!! date: 03/31/20
+!! date: 04/03/20
 !!
-!! destructor for the DPfile_T Class
+!! destructor for the DIfile_T Class
  
 IMPLICIT NONE
 
-type(DPfile_T), INTENT(INOUT)  :: self 
+type(DIfile_T), INTENT(INOUT)  :: self 
 
-end subroutine DPfile_destructor
+call reportDestructor('DIfile_T')
+
+end subroutine DIfile_destructor
+
+!--------------------------------------------------------------------------
+function get_filename_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/03/20
+!!
+!! get filename from the DIfile_T class
+
+IMPLICIT NONE 
+
+class(DIfile_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = self%DIfile
+
+end function get_filename_
+
+!--------------------------------------------------------------------------
+subroutine set_filename_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/03/20
+!!
+!! set filename in the DIfile_T class
+
+IMPLICIT NONE 
+
+class(DIfile_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%DIfile = inp
+
+end subroutine set_filename_
 
 !--------------------------------------------------------------------------
 function get_Modality_(self) result(out)
@@ -183,7 +247,7 @@ function get_Modality_(self) result(out)
 
 IMPLICIT NONE 
 
-class(DPfile_T), INTENT(INOUT)     :: self
+class(DIfile_T), INTENT(INOUT)     :: self
 character(fnlen)                   :: out
 
 out = self%Modality
@@ -200,29 +264,271 @@ subroutine set_Modality_(self,inp)
 
 IMPLICIT NONE 
 
-class(DPfile_T), INTENT(INOUT)     :: self
+class(DIfile_T), INTENT(INOUT)     :: self
 character(*), INTENT(IN)           :: inp
 
 self%Modality = inp
 
 end subroutine set_Modality_
 
+
 !--------------------------------------------------------------------------
-subroutine setFileName_(self, DPfile)
+subroutine readNameList_(self, nmlfile, initonly)
 !! author: MDG 
 !! version: 1.0 
 !! date: 03/31/20
 !!
-!! set the Master Pattern file name 
+!! read the namelist from an nml file for the DI_T Class 
+
+use mod_io 
+use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(DPfile_T), INTENT(INOUT)   :: self
-character(fnlen), INTENT(IN)     :: DPfile
+class(DIfile_T), INTENT(INOUT)      :: self
+character(fnlen),INTENT(IN)         :: nmlfile
+ !! full path to namelist file 
+logical,OPTIONAL,INTENT(IN)         :: initonly
+ !! fill in the default values only; do not read the file
 
-self%DPfile = trim(DPfile)
+type(EMsoft_T)                      :: EMsoft 
+type(IO_T)                          :: Message       
+logical                             :: skipread = .FALSE.
 
-end subroutine setFileName_
+integer(kind=irg)  :: numsx
+integer(kind=irg)  :: numsy
+integer(kind=irg)  :: ROI(4)
+integer(kind=irg)  :: binning
+integer(kind=irg)  :: devid
+integer(kind=irg)  :: multidevid(8)
+integer(kind=irg)  :: usenumd
+integer(kind=irg)  :: platid
+integer(kind=irg)  :: nregions
+integer(kind=irg)  :: nlines
+integer(kind=irg)  :: nthreads
+integer(kind=irg)  :: ncubochoric
+integer(kind=irg)  :: numexptsingle
+integer(kind=irg)  :: numdictsingle
+integer(kind=irg)  :: ipf_ht
+integer(kind=irg)  :: ipf_wd
+integer(kind=irg)  :: nnk
+integer(kind=irg)  :: nnav
+integer(kind=irg)  :: nosm
+integer(kind=irg)  :: nism
+integer(kind=irg)  :: maskradius
+real(kind=sgl)     :: L
+real(kind=sgl)     :: thetac
+real(kind=sgl)     :: delta
+real(kind=sgl)     :: xpc
+real(kind=sgl)     :: ypc
+real(kind=sgl)     :: isangle
+real(kind=sgl)     :: gammavalue
+real(kind=sgl)     :: omega
+real(kind=sgl)     :: stepX
+real(kind=sgl)     :: stepY
+real(kind=sgl)     :: energymin
+real(kind=sgl)     :: energymax
+real(kind=sgl)     :: beamcurrent
+real(kind=sgl)     :: dwelltime
+real(kind=sgl)     :: hipassw
+character(1)       :: maskpattern
+character(1)       :: keeptmpfile
+character(3)       :: scalingmode
+character(3)       :: Notify
+character(fnlen)   :: dotproductfile
+character(fnlen)   :: masterfile
+character(fnlen)   :: tmpfile
+character(fnlen)   :: datafile
+character(fnlen)   :: ctffile
+character(fnlen)   :: avctffile
+character(fnlen)   :: angfile
+character(fnlen)   :: eulerfile
+character(fnlen)   :: inputtype
+character(fnlen)   :: HDFstrings(10)
+character(fnlen)   :: refinementNMLfile
+character(fnlen)   :: exptfile
+character(fnlen)   :: dictfile
+character(fnlen)   :: maskfile
+character(fnlen)   :: indexingmode
+
+! define the IO namelist to facilitate passing variables to the program.
+namelist  / EBSDIndexingdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, &
+                               beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
+                               scalingmode, maskpattern, L, omega, nthreads, energymax, datafile, angfile, ctffile, &
+                               ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
+                               dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
+                               HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile
+
+! set the input parameters to default values (except for xtalname, which must be present)
+ncubochoric     = 50
+numexptsingle   = 1024
+numdictsingle   = 1024
+platid          = 1
+devid           = 1
+usenumd         = 1
+multidevid      = (/ 0, 0, 0, 0, 0, 0, 0, 0 /)
+nregions        = 10
+nlines          = 3
+nnk             = 50
+nnav            = 20
+nosm            = 20
+nism            = 5
+exptfile        = 'undefined'
+numsx           = 0             ! [dimensionless]
+numsy           = 0             ! [dimensionless]
+ROI             = (/ 0, 0, 0, 0 /)  ! Region of interest (/ x0, y0, w, h /)
+maskradius      = 240
+binning         = 1             ! binning mode  (1, 2, 4, or 8)
+L               = 20000.0       ! [microns]
+thetac          = 0.0           ! [degrees]
+delta           = 25.0          ! [microns]
+xpc             = 0.0           ! [pixels]
+ypc             = 0.0           ! [pixels]
+gammavalue      = 1.0           ! gamma factor
+isangle         = 1.5
+beamcurrent     = 14.513        ! beam current (actually emission current) in nano ampere
+dwelltime       = 100.0         ! in microseconds
+hipassw         = 0.05          ! hi pass inverted Gaussian mask parameter
+stepX           = 1.0           ! sampling step size along X
+stepY           = 1.0           ! sampling step size along Y
+keeptmpfile     = 'n'
+maskpattern     = 'n'           ! 'y' or 'n' to include a circular mask
+Notify          = 'Off'
+scalingmode     = 'not'         ! intensity selector ('lin', 'gam', or 'not')
+masterfile      = 'undefined'   ! filename
+dotproductfile  = 'undefined'
+energymin       = 10.0
+energymax       = 20.0
+ipf_ht          = 100
+ipf_wd          = 100
+nthreads        = 1
+datafile        = 'undefined'
+ctffile         = 'undefined'
+avctffile       = 'undefined'
+angfile         = 'undefined'
+eulerfile       = 'undefined'
+omega           = 0.0
+tmpfile         = 'EMEBSDDict_tmp.data'
+dictfile        = 'undefined'
+maskfile        = 'undefined'
+refinementNMLfile = 'undefined'
+indexingmode    = 'dynamic'
+inputtype       = 'Binary'    ! Binary, EMEBSD, TSLHDF, TSLup2, OxfordHDF, OxfordBinary, BrukerHDF 
+HDFstrings      = ''
+
+if (present(initonly)) then
+  if (initonly) skipread = .TRUE.
+end if
+
+if (.not.skipread) then
+! read the namelist file
+    open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
+    read(UNIT=dataunit,NML=EBSDIndexingdata)
+    close(UNIT=dataunit,STATUS='keep')
+
+    if (trim(indexingmode) .eq. 'static') then
+        if (trim(dictfile) .eq. 'undefined') then
+            call Message%printError('readNameList:',' dictionary file name is undefined in '//nmlfile)
+        end if
+    end if
+        
+! check for required entries
+    if (trim(indexingmode) .eq. 'dynamic') then
+        if (trim(masterfile).eq.'undefined') then
+            call Message%printError('readNameList:',' master pattern file name is undefined in '//nmlfile)
+        end if
+    end if
+
+    if (trim(exptfile).eq.'undefined') then
+        call Message%printError('readNameList:',' experimental file name is undefined in '//nmlfile)
+    end if
+
+    if (numsx.eq.0) then 
+        call Message%printError('readNameList:',' pattern size numsx is zero in '//nmlfile)
+    end if
+
+    if (numsy.eq.0) then 
+        call Message%printError('readNameList:',' pattern size numsy is zero in '//nmlfile)
+    end if
+
+end if
+
+! if we get here, then all appears to be ok, and we need to fill in the enl fields
+
+self%nml%devid         = devid
+self%nml%multidevid    = multidevid
+self%nml%usenumd       = usenumd
+self%nml%platid        = platid
+self%nml%nregions      = nregions
+self%nml%nlines        = nlines
+self%nml%maskpattern   = maskpattern
+self%nml%keeptmpfile   = keeptmpfile
+self%nml%exptfile      = exptfile
+self%nml%nnk           = nnk
+self%nml%nnav          = nnav
+self%nml%nosm          = nosm
+self%nml%nism          = nism
+self%nml%isangle       = isangle
+self%nml%ipf_ht        = ipf_ht
+self%nml%ipf_wd        = ipf_wd
+self%nml%nthreads      = nthreads
+self%nml%datafile      = datafile
+self%nml%tmpfile       = tmpfile
+self%nml%ctffile       = ctffile
+self%nml%avctffile     = avctffile
+self%nml%angfile       = angfile
+self%nml%eulerfile     = eulerfile
+self%nml%maskradius    = maskradius
+self%nml%numdictsingle = numdictsingle
+self%nml%numexptsingle = numexptsingle
+self%nml%hipassw       = hipassw
+self%nml%masterfile    = masterfile
+self%nml%energyfile    = masterfile
+self%nml%maskfile      = maskfile
+self%nml%StepX         = stepX
+self%nml%StepY         = stepY
+self%nml%indexingmode  = trim(indexingmode)
+self%nml%Notify        = Notify
+self%nml%inputtype     = inputtype
+self%nml%HDFstrings    = HDFstrings
+self%nml%L             = L
+self%nml%numsx         = numsx
+self%nml%numsy         = numsy
+self%nml%ROI           = ROI
+self%nml%binning       = binning
+self%nml%thetac        = thetac
+self%nml%delta         = delta
+self%nml%xpc           = xpc
+self%nml%ypc           = ypc
+self%nml%gammavalue    = gammavalue
+self%nml%beamcurrent   = beamcurrent
+self%nml%dwelltime     = dwelltime
+self%nml%scalingmode   = scalingmode
+self%nml%ncubochoric   = ncubochoric
+self%nml%omega         = omega
+self%nml%energymin     = energymin
+self%nml%energymax     = energymax
+self%nml%dictfile      = dictfile 
+self%nml%refinementNMLfile = refinementNMLfile
+
+end subroutine readNameList_
+
+!--------------------------------------------------------------------------
+function getNameList_(self) result(nml)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/31/20
+!!
+!! pass the namelist for the DI_T Class to the calling program
+
+IMPLICIT NONE 
+
+class(DIfile_T), INTENT(INOUT)        :: self
+type(DictionaryIndexingNameListType)  :: nml
+
+nml = self%nml
+
+end function getNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames, emnl)
@@ -240,7 +546,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(DPfile_T), INTENT(INOUT)                      :: self 
+class(DIfile_T), INTENT(INOUT)                      :: self 
 type(HDF_T), INTENT(INOUT)                          :: HDF
 type(HDFnames_T), INTENT(INOUT)                     :: HDFnames
 class(DictionaryIndexingNameListType), INTENT(INOUT):: emnl 
@@ -412,27 +718,4 @@ call HDF%pop()
 end subroutine writeHDFNameList_
 
 
-
-
-!--------------------------------------------------------------------------
-subroutine DPfiles_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
-!! date: 03/31/20
-!!
-!! perform the computations
-
-use mod_EMsoft
-
-IMPLICIT NONE 
-
-class(DPfile_T), INTENT(INOUT)       :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-
-
-end subroutine DPfiles_
-
-
-
-end module mod_DPfiles
+end module mod_DIfiles

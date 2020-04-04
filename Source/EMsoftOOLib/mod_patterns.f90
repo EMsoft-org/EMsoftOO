@@ -185,7 +185,7 @@ use mod_io
 use omp_lib
 use mod_filters
 use mod_timing
-use mod_DPfiles
+use mod_DIfiles
 use mod_vendors
 use HDF5
 use ISO_C_BINDING

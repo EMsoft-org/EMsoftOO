@@ -1096,13 +1096,13 @@ select case (self%itype)
         close(unit=self%funit,status='keep')
 
     case(4, 7)  ! "TSLHDF" "EMEBSD"
-        call HDF%pop(.TRUE.)
+        if (present(HDF)) call HDF%pop(.TRUE.)
 
     case(6)  ! "OxfordHDF"
         call Message%printError("closeExpPatternFile","input format not yet implemented")
 
     case(8)  !  "BrukerHDF"
-        call HDF%pop(.TRUE.)
+        if (present(HDF)) call HDF%pop(.TRUE.)
         deallocate(semix, semiy)
 
     case default 
@@ -1129,7 +1129,7 @@ use mod_EMsoft
 use mod_crystallography
 use mod_symmetry
 use mod_io
-use mod_DPfiles
+use mod_DIfiles
 
 IMPLICIT NONE
 
@@ -1356,7 +1356,7 @@ use mod_EMsoft
 use mod_crystallography
 use mod_symmetry
 use mod_io
-use mod_DPfiles
+use mod_DIfiles
 
 IMPLICIT NONE
 
@@ -1535,7 +1535,7 @@ use mod_EMsoft
 use mod_crystallography
 use mod_symmetry
 use mod_io
-use mod_DPfiles
+use mod_DIfiles
 
 IMPLICIT NONE
 
@@ -1741,7 +1741,7 @@ use mod_EMsoft
 use mod_crystallography
 use mod_symmetry
 use mod_io
-use mod_DPfiles
+use mod_DIfiles
 
 IMPLICIT NONE
 

@@ -19,7 +19,7 @@ if( ${EMsoftOO_ENABLE_OpenCL_SUPPORT} )
 endif()
 
 set(MODALITY_DIRS
-    # DictionaryIndexing
+    DictionaryIndexing
     # GBs
     # EEC
     # OLIO
@@ -59,18 +59,18 @@ endforeach()
 # -----------------------------------------------------------------------
 # Does the developer want to compile the GUI for EMsoftOO?
 # -----------------------------------------------------------------------
-if( EMsoftOO_ENABLE_EMsoftOOWorkbench )
+# if( EMsoftOO_ENABLE_EMsoftOOWorkbench )
 
-  INCLUDE (${EMsoftOO_SOURCE_DIR}/Support/cmp/cmpCMakeMacros.cmake )
-  # --------------------------------------------------------------------
-  # Find and Use the Qt5 Libraries
-  include(${EMsoftOO_SOURCE_DIR}/Support/cmp/ExtLib/Qt5Support.cmake)
-  set(EMsoftOOWorkbench_Qt5_Components Core Widgets Network Gui Concurrent Svg Xml OpenGL PrintSupport )
-  CMP_AddQt5Support( "${EMsoftOOWorkbench_Qt5_Components}"
-                    "FALSE"
-                    "${EMsoftOO_BINARY_DIR}"
-                    "EMsoftOOWorkbench")
+#   INCLUDE (${EMsoftOO_SOURCE_DIR}/Support/cmp/cmpCMakeMacros.cmake )
+#   # --------------------------------------------------------------------
+#   # Find and Use the Qt5 Libraries
+#   include(${EMsoftOO_SOURCE_DIR}/Support/cmp/ExtLib/Qt5Support.cmake)
+#   set(EMsoftOOWorkbench_Qt5_Components Core Widgets Network Gui Concurrent Svg Xml OpenGL PrintSupport )
+#   CMP_AddQt5Support( "${EMsoftOOWorkbench_Qt5_Components}"
+#                     "FALSE"
+#                     "${EMsoftOO_BINARY_DIR}"
+#                     "EMsoftOOWorkbench")
   
-  include(${PROJECT_SOURCE_DIR}/Source/EMsoftOOWorkbench/SourceList.cmake)
-endif()
+#   include(${PROJECT_SOURCE_DIR}/Source/EMsoftOOWorkbench/SourceList.cmake)
+# endif()
 

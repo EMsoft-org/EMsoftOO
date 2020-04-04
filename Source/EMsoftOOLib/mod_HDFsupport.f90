@@ -70,8 +70,6 @@ IMPLICIT NONE
   logical, save                           :: FixedLengthflag, HDFverbose, dumpHDFstack
   logical, public, save                   :: interfaceOpen = .FALSE.
 
-  public :: cstringify
-
   type, public :: HDF_T 
    !! HDF Class definition (this class takes over from the original HDF_head structure)
    private
@@ -341,7 +339,7 @@ IMPLICIT NONE
     module procedure HDF_constructor
   end interface HDF_T
 
-public :: openFortranHDFInterface, closeFortranHDFInterface 
+public :: openFortranHDFInterface, closeFortranHDFInterface, cstringify, fstringify 
 
 contains
 
@@ -6068,6 +6066,32 @@ slen = slen+1
 cstrout(slen:slen) = C_NULL_CHAR 
 
 end function cstringify
+
+!--------------------------------------------------------------------------
+pure recursive function fstringify(strin) result(fstrout)
+!DEC$ ATTRIBUTES DLLEXPORT :: fstringify
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 04/04/20
+  !!
+  !! turn a null-terminated c-string into a fortran string
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+character(kind=c_char),INTENT(IN)         :: strin(:)
+character(fnlen)                          :: fstrout
+
+integer(kind=irg)                         :: slen, i, s(1)
+
+s = shape(strin)
+
+do i=1,s(1)-1    ! don't copy the null character...
+  fstrout(i:i) = strin(i)
+end do
+
+end function fstringify
 
 !--------------------------------------------------------------------------
 recursive subroutine writeNMLintegers_(self, io_int, intlist, n_int)
