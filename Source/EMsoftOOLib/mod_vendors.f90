@@ -196,17 +196,18 @@ type(IO_T)                              :: Message
 
 self%itype = -1
 
-if (trim(self%inputtype).eq."Binary") self%itype = 1
-if (trim(self%inputtype).eq."TSLup1") self%itype = 2
-if (trim(self%inputtype).eq."TSLup2") self%itype = 3
-if (trim(self%inputtype).eq."TSLHDF") self%itype = 4
-if (trim(self%inputtype).eq."OxfordBinary") self%itype = 5
-if (trim(self%inputtype).eq."OxfordHDF") self%itype = 6    ! to be implemented
-if (trim(self%inputtype).eq."EMEBSD") self%itype = 7
-if (trim(self%inputtype).eq."BrukerHDF") self%itype = 8
-if (trim(self%inputtype).eq."NORDIF") self%itype = 9       
+if (trim(self%inputtype).eq."Binary") call self%set_itype(1)
+if (trim(self%inputtype).eq."TSLup1") call self%set_itype(2)
+if (trim(self%inputtype).eq."TSLup2") call self%set_itype(3)
+if (trim(self%inputtype).eq."TSLHDF") call self%set_itype(4)
+if (trim(self%inputtype).eq."OxfordBinary") call self%set_itype(5)
+if (trim(self%inputtype).eq."OxfordHDF") call self%set_itype(6)    ! to be implemented
+if (trim(self%inputtype).eq."EMEBSD") call self%set_itype(7)
+if (trim(self%inputtype).eq."BrukerHDF") call self%set_itype(8)
+if (trim(self%inputtype).eq."NORDIF") call self%set_itype(9)       
 
 if (self%itype.eq.-1) call Message%printError('get_input_type','invalid file input type')
+itype = self%get_itype() 
 
 end function determine_input_type_
 
@@ -443,7 +444,6 @@ istat = 0
 if (present(HDFstrings)) then 
   hdfnumg = get_num_HDFgroups_(HDFstrings)
 end if 
-self%itype = self%determine_input_type_()
 
 if (self%filename(1:1).eq.trim(EMsoft%getConfigParameter('EMsoftnativedelimiter'))) then
   ename = trim(self%filename)

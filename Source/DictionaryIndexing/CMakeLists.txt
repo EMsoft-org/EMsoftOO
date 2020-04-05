@@ -106,14 +106,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoftOO_Executable(TARGET EMgetADP
-  #                     SOURCES ${APP_DIR}/EMgetADP.f90 
-  #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
-  #                     TEMPLATE ${TMPLT_DIR}/EMgetADP.template 
-  #                     SOLUTION_FOLDER EMsoftPublic/DictionaryIndexing 
-  #                     INSTALL_PROGRAM TRUE
-  #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
-  #                     )
+  Add_EMsoftOO_Executable(TARGET EMgetADP
+                      SOURCES ${APP_DIR}/EMgetADP.f90 
+                      LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
+                      TEMPLATE ${TMPLT_DIR}/EMgetADP.template 
+                      SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing 
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                      )
 
   # Add_EMsoftOO_Executable(TARGET EMgetOSM
   #                     SOURCES ${APP_DIR}/EMgetOSM.f90 
