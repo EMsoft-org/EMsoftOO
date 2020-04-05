@@ -41,12 +41,13 @@ IMPLICIT NONE
 
 public :: DIdriver 
 
+!DEC$ ATTRIBUTES DLLEXPORT :: DIdriver
+
 contains
 
 !--------------------------------------------------------------------------
 subroutine DIdriver(Cnmldeffile, Cprogname, cproc, ctimeproc, cerrorproc, objAddress, cancel) &
            bind(c, name='DIdriver') 
-!DEC$ ATTRIBUTES DLLEXPORT :: DIdriver
 !! author: MDG 
 !! version: 1.0 
 !! date: 04/02/20
