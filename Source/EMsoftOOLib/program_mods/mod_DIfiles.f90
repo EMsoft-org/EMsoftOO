@@ -90,7 +90,6 @@ type, public :: DictionaryIndexingNameListType
   character(3)       :: scalingmode
   character(3)       :: Notify
   character(1)       :: keeptmpfile
-  character(fnlen)   :: anglefile
   character(fnlen)   :: exptfile
   character(fnlen)   :: masterfile
   character(fnlen)   :: energyfile
@@ -106,6 +105,7 @@ type, public :: DictionaryIndexingNameListType
   character(fnlen)   :: refinementNMLfile
   character(fnlen)   :: inputtype
   character(fnlen)   :: HDFstrings(10)
+  character(fnlen)   :: DIModality
 end type DictionaryIndexingNameListType
 
 type, public, extends(DictionaryIndexingNameListType) :: EBSDDINameListType
@@ -149,7 +149,7 @@ end type DIdataType
 type, public :: DIfile_T
 private 
   character(fnlen)                              :: DIfile
-  type(DIdataType)                              :: DIDT
+  type(DIdataType),public                       :: DIDT
   character(fnlen)                              :: modality = 'unknown'
   type(DictionaryIndexingNameListType), public  :: nml
 contains
@@ -371,9 +371,10 @@ character(fnlen)   :: exptfile
 character(fnlen)   :: dictfile
 character(fnlen)   :: maskfile
 character(fnlen)   :: indexingmode
+character(fnlen)   :: DIModality
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / EBSDIndexingdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, &
+namelist  / EBSDIndexingdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
                                beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
                                scalingmode, maskpattern, L, omega, nthreads, energymax, datafile, angfile, ctffile, &
                                ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
@@ -436,6 +437,7 @@ refinementNMLfile = 'undefined'
 indexingmode    = 'dynamic'
 inputtype       = 'Binary'    ! Binary, EMEBSD, TSLHDF, TSLup2, OxfordHDF, OxfordBinary, BrukerHDF 
 HDFstrings      = ''
+DIModality      = 'EBSD'      ! EBSD, TKD, ECP, ...
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -484,7 +486,7 @@ self%nml%nregions      = nregions
 self%nml%nlines        = nlines
 self%nml%maskpattern   = maskpattern
 self%nml%keeptmpfile   = keeptmpfile
-self%nml%exptfile      = exptfile
+self%nml%exptfile      = trim(exptfile)
 self%nml%nnk           = nnk
 self%nml%nnav          = nnav
 self%nml%nosm          = nosm
@@ -493,19 +495,19 @@ self%nml%isangle       = isangle
 self%nml%ipf_ht        = ipf_ht
 self%nml%ipf_wd        = ipf_wd
 self%nml%nthreads      = nthreads
-self%nml%datafile      = datafile
-self%nml%tmpfile       = tmpfile
-self%nml%ctffile       = ctffile
-self%nml%avctffile     = avctffile
-self%nml%angfile       = angfile
-self%nml%eulerfile     = eulerfile
+self%nml%datafile      = trim(datafile)
+self%nml%tmpfile       = trim(tmpfile)
+self%nml%ctffile       = trim(ctffile)
+self%nml%avctffile     = trim(avctffile)
+self%nml%angfile       = trim(angfile)
+self%nml%eulerfile     = trim(eulerfile)
 self%nml%maskradius    = maskradius
 self%nml%numdictsingle = numdictsingle
 self%nml%numexptsingle = numexptsingle
 self%nml%hipassw       = hipassw
-self%nml%masterfile    = masterfile
-self%nml%energyfile    = masterfile
-self%nml%maskfile      = maskfile
+self%nml%masterfile    = trim(masterfile)
+self%nml%energyfile    = trim(masterfile)
+self%nml%maskfile      = trim(maskfile)
 self%nml%StepX         = stepX
 self%nml%StepY         = stepY
 self%nml%indexingmode  = trim(indexingmode)
@@ -529,7 +531,8 @@ self%nml%ncubochoric   = ncubochoric
 self%nml%omega         = omega
 self%nml%energymin     = energymin
 self%nml%energymax     = energymax
-self%nml%dictfile      = dictfile 
+self%nml%DIModality    = DIModality
+self%nml%dictfile      = trim(dictfile)
 self%nml%refinementNMLfile = refinementNMLfile
 
 end subroutine readNameList_
@@ -582,7 +585,6 @@ character(fnlen)                                    :: dataset, sval(1),groupnam
 character(fnlen,kind=c_char)                        :: line2(1), line10(10)
 logical                                             :: g_exists, overwrite=.TRUE., isEBSD=.FALSE., &
                                                        isECP=.FALSE., isTKD=.FALSE., isEBSDSHT=.FALSE.
-
 ! create the group for this namelist
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
@@ -708,11 +710,6 @@ line2(1) = emnl%angfile
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create angfile dataset', hdferr)
 
-dataset = SC_anglefile
-line2(1) = emnl%anglefile
-hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create anglefile dataset', hdferr)
-
 dataset = SC_eulerfile
 line2(1) = emnl%eulerfile
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
@@ -733,8 +730,18 @@ line10 = emnl%HDFstrings
 hdferr = HDF%writeDatasetStringArray(dataset, line10, 10)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create HDFstrings dataset', hdferr)
 
-! and pop this group off the stack
+! pop this group off the stack
 call HDF%pop()
+call HDF%pop()
+
+! and write the DIModality string at the top level (only present for EMsoft 6.X versions)
+dataset = SC_DIModality
+line2(1) = emnl%DIModality
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create DIModality dataset', hdferr)
+
+! return to the correct group
+hdferr = HDF%openGroup(HDFnames%get_NMLparameters())
 
 end subroutine writeHDFNameList_
 
@@ -788,8 +795,11 @@ logical,INTENT(IN),OPTIONAL                         :: getRefinedDotProducts
 logical,INTENT(IN),OPTIONAL                         :: getRefinedEulerAngles
 
 type(IO_T)                                          :: Message
-character(fnlen)                                    :: infile, groupname, dataset, tmpnmlname
+type(HDFnames_T)                                    :: saveHDFnames
+
+character(fnlen)                                    :: infile, groupname, dataset, tmpnmlname, Modality
 logical                                             :: stat, readonly, g_exists, h_exists
+character(3)                                        :: DIModality
 integer(kind=irg)                                   :: ii, nlines, i
 integer(kind=irg),allocatable                       :: iarray(:)
 real(kind=sgl),allocatable                          :: farray(:)
@@ -803,7 +813,7 @@ associate(DIDT=>self%DIDT, ebsdnl=>self%nml)
 ! and that it passes the full path filename to this routine.
 
 ! is this a proper HDF5 file ?
-call h5fis_hdf5_f(trim(infile), stat, hdferr)
+call h5fis_hdf5_f(trim(dpfile), stat, hdferr)
 
 !===================================================================================
 !===============read dot product file===============================================
@@ -815,28 +825,50 @@ end if
    
 ! open the dot product file 
 readonly = .TRUE.
-hdferr =  HDF%openFile(infile, readonly)
+hdferr =  HDF%openFile(dpfile, readonly)
+
+! check the modality for this DI file... 
+! Starting with EMsoft 6.X, the DIModality string is present at the top level.
+! If it is not present, then we have an older DI file, which different group names...
+DIModality = 'new'
+dataset = SC_DIModality
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists.eqv..FALSE.) then 
+    DIModality = 'old'
+    Modality = 'EBSD'
+    saveHDFnames = HDFnames
+    call HDFnames%set_NMLfiles(SC_NMLfiles)
+    call HDFnames%set_NMLfilename(SC_EBSDDictionaryIndexingNML)
+    call HDFnames%set_NMLparameters(SC_NMLparameters)
+    call HDFnames%set_NMLlist(SC_EBSDIndexingNameListType)
+  else
+! read the Modality parameter
+    dataset = SC_DIModality
+    call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
+    Modality = trim(stringarray(1))
+    deallocate(stringarray)
+  end if 
 
 ! make sure this is an EBSD dot product file
 hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 
-dataset = 'EMDINML'
-call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+dataset = trim(HDFnames%get_NMLfilename())
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
 
-dataset = 'IndexEBSD'
-call H5Lexists_f(HDF%getObjectID(),trim(dataset),h_exists, hdferr)
+dataset = SC_IndexEBSD
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),h_exists, hdferr)
 
-if ((g_exists.eqv..FALSE.).and.(h_exists.eqv..FALSE.)) then
-    call Message%printError('readDotProductFile','this is not a dot product file')
-end if
+  if ((g_exists.eqv..FALSE.).and.(h_exists.eqv..FALSE.)) then
+      call Message%printError('readDotProductFile','this is not a dot product file')
+  end if
 
-if (g_exists) then 
-  call Message%printMessage(' --> EBSD dictionary indexing file found')
-end if
+  if (g_exists) then 
+    call Message%printMessage(' --> EBSD dictionary indexing file found')
+  end if
 
-if (h_exists) then 
-  call Message%printMessage(' --> EBSD spherical indexing file found')
-end if
+  if (h_exists) then 
+    call Message%printMessage(' --> EBSD spherical indexing file found')
+  end if
 
 call HDF%pop()
 
@@ -851,6 +883,7 @@ if (g_exists.eqv..TRUE.) then
 ! large number of individual read routines, so it simplifies the code ... 
 !====================================
     hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+    dataset = trim(HDFnames%get_NMLfilename())
     call HDF%readdatasetstringarray(dataset, nlines, hdferr, stringarray)
     sz = shape(stringarray)
     tmpnmlname = trim(EMsoft%generateFilePath('EMtmppathname'))//'tmp.nml'
@@ -864,203 +897,6 @@ if (g_exists.eqv..TRUE.) then
     open(unit=65,file=trim(tmpnmlname),status='unknown',form='formatted')
     close(unit=65,status='delete')
     call HDF%pop()
-
-!     hdferr = HDF_openGroup(HDFnames%getNMLparameters())
-! groupname = SC_EBSDIndexingNameListType
-!     hdferr = HDF_openGroup(groupname)
-
-! ! we'll read these roughly in the order that the HDFView program displays them...
-! dataset = SC_HDFstrings
-!     call HDF%readdatasetstringarray(dataset, nlines, hdferr, stringarray)
-!     do ii=1,10
-!       ebsdnl%hdfstrings(ii) = trim(stringarray(ii))
-!     end do
-!     deallocate(stringarray)
-
-! dataset = SC_L
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%L)
-
-! dataset = SC_ncubochoric  
-! ! There is an issue with the capitalization on this variable; needs to be resolved 
-! ! [MDG 10/18/17]  We test to see if Ncubochoric exists; if it does not then we check
-! ! for ncubochoric ...
-!     call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-!     if (g_exists) then
-!         call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%ncubochoric)
-!     else
-!         dataset = 'ncubochoric'
-!         call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%ncubochoric)
-!     end if
-
-! dataset = SC_ROI
-!     call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-!     if (g_exists) then
-!         call HDF%readDatasetIntegerArray1D(dataset, dims, hdferr, iarray)
-!         ebsdnl%ROI(1:4) = iarray(1:4)
-!         deallocate(iarray)
-!     else
-!         ebsdnl%ROI = (/ 0, 0, 0, 0 /)
-!     end if
-
-! dataset = SC_angfile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%angfile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_anglefile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%anglefile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_axisangle
-!     call HDF%readDatasetFloatArray1D(dataset, dims, hdferr, farray)
-!     ebsdnl%axisangle(1:4) = farray(1:4)
-!     deallocate(farray)
-
-! dataset = SC_beamcurrent
-!     call HDF%readDatasetDouble(dataset, hdferr, ebsdnl%beamcurrent)
-
-! dataset = SC_binning
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%binning)
-
-! dataset = SC_ctffile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%ctffile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_datafile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%datafile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_delta
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%delta)
-
-! dataset = SC_devid
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%devid)
-
-! dataset = SC_dwelltime
-!     call HDF%readDatasetDouble(dataset, hdferr, ebsdnl%dwelltime)
-
-! dataset = SC_energyaverage
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%energyaverage)
-
-! dataset = SC_energyfile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%energyfile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_energymax
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%energymax)
-
-! dataset = SC_energymin
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%energymin)
-
-! dataset = SC_eulerfile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%eulerfile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_exptfile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%exptfile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_gammavalue
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%gammavalue)
-
-! dataset = SC_hipassw
-!     call HDF%readDatasetDouble(dataset, hdferr, ebsdnl%hipassw)
-
-! dataset = SC_inputtype
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%inputtype = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_ipfht
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%ipf_ht)
-
-! dataset = SC_ipfwd
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%ipf_wd)
-
-! dataset = SC_maskfile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%maskfile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_maskpattern
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%maskpattern = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_maskradius
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%maskradius)
-
-! dataset = SC_masterfile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%masterfile = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_nnav
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%nnav)
-
-! dataset = SC_nnk
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%nnk)
-
-! dataset = SC_nosm
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%nosm)
-
-! dataset = SC_nregions
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%nregions)
-
-! dataset = SC_nthreads
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%nthreads)
-
-! dataset = SC_numdictsingle
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%numdictsingle)
-
-! dataset = SC_numexptsingle
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%numexptsingle)
-
-! dataset = SC_numsx
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%numsx)
-
-! dataset = SC_numsy
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%numsy)
-
-! dataset = SC_omega
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%omega)
-
-! dataset = SC_platid
-!     call HDF%readDatasetInteger(dataset, hdferr, ebsdnl%platid)
-
-! dataset = SC_scalingmode
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%scalingmode = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_spatialaverage
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%spatialaverage = trim(stringarray(1))
-!     deallocate(stringarray)
-
-! dataset = SC_thetac
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%thetac)
-
-! dataset = SC_tmpfile
-!     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-!     ebsdnl%tmpfile = trim(stringarray(1))
-!     deallocate(stringarray)
-    
-! dataset = SC_xpc
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%xpc)
-
-! dataset = SC_ypc
-!     call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%ypc)
-
-! ! and close the NMLparameters group
-!     call HDF%pop(HDF_head)
-!     call HDF%pop(HDF_head)
 end if 
 !====================================
 !====================================
@@ -1378,6 +1214,8 @@ dataset = SC_StepY
 call HDF%pop(.TRUE.)
  
 end associate
+
+if (DIModality.eq.'old') HDFnames = saveHDFnames
 
 end subroutine readDotProductFile_
 

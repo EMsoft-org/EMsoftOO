@@ -17,7 +17,7 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
                       INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}  ${EMOpenCLLib_BINARY_DIR}
                       )
 
-  # Add_EMsoft_Executable(TARGET EMECPDI
+  # Add_EMsoftOO_Executable(TARGET EMECPDI
   #                     SOURCES ${APP_DIR}/EMECPDI.f90 
   #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMECPDI.template 
@@ -27,7 +27,7 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
   #                     )
 
 
-  # Add_EMsoft_Executable(TARGET EMTKDDI
+  # Add_EMsoftOO_Executable(TARGET EMTKDDI
   #                     SOURCES ${APP_DIR}/EMTKDDI.f90 
   #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMTKDDI.template 
@@ -40,10 +40,10 @@ endif()
 
 if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
-  GetHDF5LinkLibraries(EMSOFT)
-  set(EXE_LINK_LIBRARIES ${EMSOFT_hdf5LinkLibs} )
+  GetHDF5LinkLibraries(EMSOFTOO)
+  set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFTOO_hdf5LinkLibs} )
 
-  # Add_EMsoft_Executable(TARGET EMDPFit
+  # Add_EMsoftOO_Executable(TARGET EMDPFit
   #                     SOURCES ${APP_DIR}/EMDPFit.f90 
   #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
   #                     TEMPLATE ${TMPLT_DIR}/EMDPFit.template 
@@ -52,7 +52,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoft_Executable(TARGET EMFitOrientation
+  # Add_EMsoftOO_Executable(TARGET EMFitOrientation
   #                     SOURCES ${APP_DIR}/EMFitOrientation.f90 
   #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMFitOrientation.template 
@@ -61,7 +61,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
  
-  # Add_EMsoft_Executable(TARGET EMgetCTF
+  # Add_EMsoftOO_Executable(TARGET EMgetCTF
   #                     SOURCES ${APP_DIR}/EMgetCTF.f90 
   #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMgetCTF.template 
@@ -70,7 +70,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoft_Executable(TARGET EMgetANG
+  # Add_EMsoftOO_Executable(TARGET EMgetANG
   #                     SOURCES ${APP_DIR}/EMgetANG.f90 
   #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMgetANG.template 
@@ -79,7 +79,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoft_Executable(TARGET EMgetEulers
+  # Add_EMsoftOO_Executable(TARGET EMgetEulers
   #                     SOURCES ${APP_DIR}/EMgetEulers.f90 
   #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMgetEulers.template 
@@ -88,7 +88,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
  
-  # Add_EMsoft_Executable(TARGET EMEBSDDIpreview
+  # Add_EMsoftOO_Executable(TARGET EMEBSDDIpreview
   #                     SOURCES ${APP_DIR}/EMEBSDDIpreview.f90 
   #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES}  
   #                     TEMPLATE ${TMPLT_DIR}/EMEBSDDIpreview.template 
@@ -97,7 +97,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoft_Executable(TARGET EMEBSDDIchangesetting
+  # Add_EMsoftOO_Executable(TARGET EMEBSDDIchangesetting
   #                     SOURCES ${APP_DIR}/EMEBSDDIchangesetting.f90 
   #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMEBSDDIchangesetting.template 
@@ -106,7 +106,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoft_Executable(TARGET EMgetADP
+  # Add_EMsoftOO_Executable(TARGET EMgetADP
   #                     SOURCES ${APP_DIR}/EMgetADP.f90 
   #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMgetADP.template 
@@ -115,7 +115,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoft_Executable(TARGET EMgetOSM
+  # Add_EMsoftOO_Executable(TARGET EMgetOSM
   #                     SOURCES ${APP_DIR}/EMgetOSM.f90 
   #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMgetOSM.template 
@@ -124,7 +124,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoft_Executable(TARGET EMdpmerge
+  # Add_EMsoftOO_Executable(TARGET EMdpmerge
   #                     SOURCES ${APP_DIR}/EMdpmerge.f90 
   #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
   #                     TEMPLATE ${TMPLT_DIR}/EMdpmerge.template 
@@ -133,12 +133,12 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoft_Executable(TARGET EMdpextract
-  #                     SOURCES ${APP_DIR}/EMdpextract.f90 
-  #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
-  #                     SOLUTION_FOLDER EMsoftPublic/DictionaryIndexing 
-  #                     INSTALL_PROGRAM TRUE
-  #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
-  #                     )
+  Add_EMsoftOO_Executable(TARGET EMdpextract
+                      SOURCES ${APP_DIR}/EMdpextract.f90 
+                      LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
+                      SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing 
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                      )
 
 endif()
