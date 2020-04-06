@@ -98,6 +98,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_OrientationViz.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_DIfiles.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ADP.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ANG.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_CTF.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

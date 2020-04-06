@@ -122,6 +122,7 @@ type, public :: DIdataType
   integer(kind=irg)             :: FZcnt
   integer(kind=irg)             :: Nexp
   integer(kind=irg)             :: pgnum
+  real(kind=sgl)                :: MCsig
   integer(kind=sgl),allocatable :: ADP(:,:)
   real(kind=sgl),allocatable    :: AverageOrientations(:,:)
   real(kind=sgl),allocatable    :: CI(:)
@@ -150,8 +151,9 @@ type, public :: DIfile_T
 private 
   character(fnlen)                              :: DIfile
   type(DIdataType),public                       :: DIDT
-  character(fnlen)                              :: modality = 'unknown'
+  character(fnlen)                              :: Modality = 'unknown'
   type(DictionaryIndexingNameListType), public  :: nml
+
 contains
 private 
 
@@ -291,7 +293,6 @@ character(*), INTENT(IN)           :: inp
 self%Modality = inp
 
 end subroutine set_Modality_
-
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
@@ -901,11 +902,26 @@ end if
 !====================================
 !====================================
 
-! open the Scan 1/EBSD/Data group; dictionary indexing files only have one "scan" in them...
+! for .ctf files we also will need the sample tilt, which we can get from
+! the 'Scan 1/EBSD/Header/Sample Tilt' data set 
+
 groupname = 'Scan 1'
     hdferr = HDF%openGroup(groupname)
 groupname = SC_EBSD
     hdferr = HDF%openGroup(groupname)
+groupname = 'Header'
+    hdferr = HDF%openGroup(groupname)
+
+dataset = 'Sample Tilt'
+    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloat(dataset, hdferr, DIDT%MCsig)
+    else
+      call Message%printMessage('  --> no Sample Tilt data set found ... continuing ... ')
+    end if
+    call HDF%pop()
+
+! open the Scan 1/EBSD/Data group; dictionary indexing files only have one "scan" in them...
 groupname = SC_Data
     hdferr = HDF%openGroup(groupname)
 

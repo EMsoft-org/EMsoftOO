@@ -64,6 +64,7 @@ type, public :: Vendor_T
     character(fnlen)                  :: inputtype
     integer(kind=irg)                 :: itype
     character(fnlen)                  :: filename
+    character(fnlen)                  :: Modality
     integer(kind=irg)                 :: funit = 55
 
 contains
@@ -74,6 +75,8 @@ contains
     procedure, pass(self) :: getExpPatternRow_
     procedure, pass(self) :: getSingleExpPattern_
     procedure, pass(self) :: closeExpPatternFile_
+    procedure, pass(self) :: get_Modality_
+    procedure, pass(self) :: set_Modality_
     procedure, pass(self) :: get_inputtype_
     procedure, pass(self) :: get_itype_
     procedure, pass(self) :: get_filename_
@@ -92,6 +95,8 @@ contains
     generic, public :: getExpPatternRow => getExpPatternRow_
     generic, public :: getSingleExpPattern => getSingleExpPattern_
     generic, public :: closeExpPatternFile => closeExpPatternFile_
+    generic, public :: get_Modality => get_Modality_
+    generic, public :: set_Modality => set_Modality_
     generic, public :: get_inputtype => get_inputtype_
     generic, public :: get_itype => get_itype_
     generic, public :: get_filename => get_filename_
@@ -111,6 +116,8 @@ end type Vendor_T
 !DEC$ ATTRIBUTES DLLEXPORT :: getExpPatternRow
 !DEC$ ATTRIBUTES DLLEXPORT :: getSingleExpPattern
 !DEC$ ATTRIBUTES DLLEXPORT :: closeExpPatternFile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Modality
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Modality
 !DEC$ ATTRIBUTES DLLEXPORT :: get_inputtype
 !DEC$ ATTRIBUTES DLLEXPORT :: set_inputtype
 !DEC$ ATTRIBUTES DLLEXPORT :: get_itype
@@ -272,6 +279,40 @@ semiy = semiynew
 deallocate(semixnew, semiynew)
 
 end subroutine invert_ordering_arrays_
+
+!--------------------------------------------------------------------------
+function get_Modality_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/06/20
+!!
+!! get Modality from the Vendor_T class
+
+IMPLICIT NONE 
+
+class(Vendor_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = self%Modality
+
+end function get_Modality_
+
+!--------------------------------------------------------------------------
+subroutine set_Modality_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/06/20
+!!
+!! set Modality in the Vendor_T class
+
+IMPLICIT NONE 
+
+class(Vendor_T), INTENT(INOUT)     :: self
+character(*), INTENT(IN)           :: inp
+
+self%Modality = inp
+
+end subroutine set_Modality_
 
 !--------------------------------------------------------------------------
 function get_inputtype_(self) result(out)
@@ -1150,7 +1191,7 @@ logical,INTENT(IN),OPTIONAL                         :: noindex
 
 type(IO_T)                                          :: Message
 integer(kind=irg)                                   :: ierr, i, ii, indx, hdferr, SGnum, LaueGroup, BCval, BSval
-character(fnlen)                                    :: ctfname, xtalname
+character(fnlen)                                    :: ctfname, xtalname, modality
 character                                           :: TAB = CHAR(9)
 character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
 real(kind=sgl)                                      :: euler(3), eu, mi, ma
@@ -1165,13 +1206,15 @@ if (present(noindex)) then
   end if
 end if
 
-select type(nml) 
-  type is (EBSDDINameListType)
+modality = trim(self%get_Modality())
+
+select case(modality)
+  case('EBSD')
     isEBSD = .TRUE.
-  type is (TKDDINameListType)
+  case('TKD')
     isTKD = .TRUE.
-  class default 
-    call Message%printError('ctf_writeFile', 'unknown name list type requested')
+  case default 
+    call Message%printError('ang_writeFile', 'unknown name list type requested')
 end select
 
 
@@ -1375,7 +1418,7 @@ logical,INTENT(IN),OPTIONAL                         :: noindex
 
 type(IO_T)                                          :: Message
 integer(kind=irg)                                   :: ierr, ii, indx, SGnum
-character(fnlen)                                    :: angname, xtalname
+character(fnlen)                                    :: angname, xtalname, modality
 character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
 character                                           :: TAB = CHAR(9)
 character(2)                                        :: TSLsymmetry
@@ -1390,13 +1433,15 @@ if (present(noindex)) then
   end if
 end if
 
-select type(nml) 
-  type is (EBSDDINameListType)
+modality = trim(self%get_Modality())
+
+select case(modality)
+  case('EBSD')
     isEBSD = .TRUE.
-  type is (TKDDINameListType)
+  case('TKD')
     isTKD = .TRUE.
-  class default 
-    call Message%printError('ctf_writeFile', 'unknown name list type requested')
+  case default 
+    call Message%printError('ang_writeFile', 'unknown name list type requested')
 end select
 
 ! open the file (overwrite old one if it exists)

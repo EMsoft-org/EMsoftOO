@@ -1230,7 +1230,6 @@ if (f_exists) then
   end if
 end if
 
-
 if (adpnl%usetmpfile.eq.'n') then
 
 ! copy the relevant adpnl parameters into the dinl structure
