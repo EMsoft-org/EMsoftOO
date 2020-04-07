@@ -555,8 +555,6 @@ end if
 fpar(1) = dinl%energymax
 fpar(2) = DIDT%MCsig 
 
-write (*,*) 'fpar = ', fpar 
-
 allocate(indexmain(ipar(1),1:ipar(2)),resultmain(ipar(1),1:ipar(2)))
 indexmain = 0
 resultmain(1,1:ipar(2)) = CIlist(1:Nexp)

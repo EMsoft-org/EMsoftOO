@@ -1644,7 +1644,7 @@ type(cell_T),INTENT(INOUT)                          :: cells(ipar(2))
 type(SpaceGroup_T),INTENT(INOUT)                    :: SGs(ipar(2))
 class(DictionaryIndexingNameListType),INTENT(INOUT) :: nml
 !f2py intent(in,out) ::  nml
-real(kind=sgl),INTENT(IN)                           :: fpar(3)
+real(kind=sgl),INTENT(IN)                           :: fpar(2)
 real(kind=sgl),INTENT(INOUT)                        :: eangles(3,ipar(1),ipar(2))
 !f2py intent(in,out) ::  eangles
 integer(kind=irg),INTENT(IN)                        :: phaseID(ipar(1))
@@ -1653,9 +1653,9 @@ real(kind=sgl),INTENT(IN)                           :: OSMlist(ipar(1),ipar(2))
 real(kind=sgl),INTENT(IN)                           :: IQmap(ipar(1))
 
 type(IO_T)                                          :: Message
-integer(kind=irg)                                   :: ierr, i, ii, indx, hdferr, SGnum, LaueGroup(5), BCval, BSval, &
+integer(kind=irg)                                   :: ierr, i, ii, indx, hdferr, SGnum(5), LaueGroup(5), BCval, BSval, &
                                                        iph, numph
-character(fnlen)                                    :: ctfname, xtalname
+character(fnlen)                                    :: ctfname, xtalname, modality
 character                                           :: TAB = CHAR(9)
 character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
 character(1)                                        :: np
@@ -1665,13 +1665,15 @@ real(kind=dbl)                                      :: cellparams(6)
 integer(kind=irg),allocatable                       :: osm(:), iq(:)
 real(kind=sgl),allocatable                          :: osmr(:)
 
-select type(nml) 
-  type is (EBSDDINameListType)
+modality = trim(self%get_Modality())
+
+select case(modality)
+  case('EBSD')
     isEBSD = .TRUE.
-  type is (TKDDINameListType)
+  case('TKD')
     isTKD = .TRUE.
-  class default 
-    call Message%printError('ctfmerge_writeFile', 'unknown name list type requested')
+  case default 
+    call Message%printError('ang_writeFile', 'unknown name list type requested')
 end select
 
 numph = ipar(2)
@@ -1719,7 +1721,7 @@ write(dataunit2,'(A)') 'Phases'//TAB//np
 
 do iph=1,numph
   cellparams = cells(iph)%getLatParm()
-  SGnum = SGs(iph)%getSpaceGroupNumber()
+  SGnum(iph) = SGs(iph)%getSpaceGroupNumber()
   xtalname = trim(cells(iph)%getFileName())
 
   ! unit cell size
@@ -1751,13 +1753,13 @@ do iph=1,numph
 
   ! rotational symmetry group
   str4 = ''
-  LaueGroup = SGs(iph)%getLaueGroupNumber()
-  write(str4,'(I2)') LaueGroup
+  LaueGroup(iph) = SGs(iph)%getLaueGroupNumber()
+  write(str4,'(I2)') LaueGroup(iph)
   str1 = trim(str1)//TAB//trim(adjustl(str4))
 
   ! space group
   str2 = ''
-  write(str2,'(I3)') SGnum
+  write(str2,'(I3)') SGnum(iph)
   str1 = trim(str1)//TAB//trim(adjustl(str2))
 
   ! and now collect them all into a single string
@@ -1849,7 +1851,7 @@ integer(kind=irg),INTENT(IN)                        :: ipar(4)
 type(cell_T),INTENT(INOUT)                          :: cells(ipar(2)) 
 type(SpaceGroup_T),INTENT(INOUT)                    :: SGs(ipar(2))
 class(DictionaryIndexingNameListType),INTENT(INOUT) :: nml
-real(kind=sgl),INTENT(INOUT)                        :: fpar(2)
+real(kind=sgl),INTENT(INOUT)                        :: fpar(1)
 real(kind=sgl),INTENT(IN)                           :: eangles(3,ipar(1),ipar(2))
 integer(kind=irg),INTENT(IN)                        :: phaseID(ipar(1))
 real(kind=sgl),INTENT(IN)                           :: dplist(ipar(1),ipar(2))
@@ -1857,7 +1859,7 @@ real(kind=sgl),INTENT(IN)                           :: IQmap(ipar(1))
 
 type(IO_T)                                          :: Message
 integer(kind=irg)                                   :: ierr, ii, indx, SGnum, iph, numph
-character(fnlen)                                    :: angname, xtalname
+character(fnlen)                                    :: angname, xtalname, modality
 character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
 character                                           :: TAB = CHAR(9)
 character(2)                                        :: TSLsymmetry
@@ -1866,13 +1868,15 @@ real(kind=sgl)                                      :: euler(3), s, BSval
 real(kind=dbl)                                      :: cellparams(6)
 logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE.
 
-select type(nml) 
-  type is (EBSDDINameListType)
+modality = trim(self%get_Modality())
+
+select case(modality)
+  case('EBSD')
     isEBSD = .TRUE.
-  type is (TKDDINameListType)
+  case('TKD')
     isTKD = .TRUE.
-  class default 
-    call Message%printError('ctf_writeFile', 'unknown name list type requested')
+  case default 
+    call Message%printError('ang_writeFile', 'unknown name list type requested')
 end select
 
 numph = ipar(2)
@@ -1968,13 +1972,13 @@ write(dataunit2,'(A)') '#'
 ! these 8 entries must be present...
 
 ! go through the entire array and write one line per sampling point
-do ii = 1,ipar(3)
+do ii = 1,ipar(3)*ipar(4)
     write (np,"(I1)") phaseID(ii)
     BSval = 255.0 * IQmap(ii)
     euler = eangles(1:3,ii,phaseID(ii))
-    write(str1,'(A,F8.5)') ' ',euler(1)*dtor
-    write(str2,'(A,F8.5)') ' ',euler(2)*dtor
-    write(str3,'(A,F8.5)') ' ',euler(3)*dtor
+    write(str1,'(A,F8.5)') ' ',euler(1)
+    write(str2,'(A,F8.5)') ' ',euler(2)
+    write(str3,'(A,F8.5)') ' ',euler(3)
 ! sampling coordinates [interchanged x and y on 05/28/19, MDG] 
     if (sum(nml%ROI).ne.0) then
       write(str4,'(A,F12.5)') ' ',float(MODULO(ii-1,nml%ROI(3)))*nml%StepX

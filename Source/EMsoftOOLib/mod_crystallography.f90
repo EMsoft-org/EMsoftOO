@@ -2659,7 +2659,7 @@ if (d_exists) then
   deallocate(stringarray)
 else
   self%source = 'undefined'
-  call Message%printMessage('readDataHDF: There is no Source data set in this structure file')
+  call Message%printMessage('readDataHDF Warning: there is no Source dataset in '//trim(xtalname))
 end if
 
 if (openHDFfile) then

@@ -1252,7 +1252,7 @@ end if
 ! and close the HDF5 Master Pattern file
 call HDF%pop(.TRUE.)
 
-call Message%printMessage(' -> completed reading master pattern data from '//trim(self%MPfile), frm = "(A/)")
+call Message%printMessage(' --> Completed reading master pattern data from '//trim(self%MPfile), frm = "(A/)")
 
 end associate 
 

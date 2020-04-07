@@ -124,14 +124,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                       )
 
-  # Add_EMsoftOO_Executable(TARGET EMdpmerge
-  #                     SOURCES ${APP_DIR}/EMdpmerge.f90 
-  #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
-  #                     TEMPLATE ${TMPLT_DIR}/EMdpmerge.template 
-  #                     SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing 
-  #                     INSTALL_PROGRAM TRUE
-  #                     INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-  #                     )
+  Add_EMsoftOO_Executable(TARGET EMdpmerge
+                      SOURCES ${APP_DIR}/EMdpmerge.f90 
+                      LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
+                      TEMPLATE ${TMPLT_DIR}/EMdpmerge.template 
+                      SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing 
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                      )
 
   Add_EMsoftOO_Executable(TARGET EMdpextract
                       SOURCES ${APP_DIR}/EMdpextract.f90 
