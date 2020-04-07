@@ -212,6 +212,8 @@ if (trim(self%inputtype).eq."OxfordHDF") call self%set_itype(6)    ! to be imple
 if (trim(self%inputtype).eq."EMEBSD") call self%set_itype(7)
 if (trim(self%inputtype).eq."BrukerHDF") call self%set_itype(8)
 if (trim(self%inputtype).eq."NORDIF") call self%set_itype(9)       
+if (trim(self%inputtype).eq."EMEBSD32i") call self%set_itype(10) ! for 32-bit integer pattern files
+if (trim(self%inputtype).eq."EMEBSD32f") call self%set_itype(11) ! for 32-bit float pattern files
 
 if (self%itype.eq.-1) call Message%printError('get_input_type','invalid file input type')
 itype = self%get_itype() 
@@ -552,7 +554,7 @@ select case (self%itype)
 ! at this point in time (March 2020) it does not appear that the Oxford HDF5 format has the 
 ! patterns stored in it... Hence this option is currently non-existent.
 
-    case(4, 7)  ! "TSLHDF", "EMEBSD"
+    case(4, 7, 10, 11)  ! "TSLHDF", "EMEBSD", "EMEBSD32i", "EMEBSD32f"
         ! HDF = HDF_T()   this needs to be done in the calling program !
         ! open the file
         hdferr =  HDF%openFile(ename, readonly=.TRUE.)
@@ -640,6 +642,8 @@ integer(kind=irg)                       :: hdfnumg, ierr, ios
 real(kind=sgl)                          :: imageexpt(L), z
 character(fnlen)                        :: dataset
 character(kind=c_char),allocatable      :: EBSDpat(:,:,:)
+integer(kind=irg),allocatable           :: EBSDpat32i(:,:,:)
+real(kind=sgl),allocatable              :: EBSDpat32f(:,:,:)
 integer(kind=C_INT16_T),allocatable     :: EBSDpatint(:,:,:)
 character(1),allocatable                :: buffer(:)
 integer(kind=ish),allocatable           :: pairs(:)
@@ -822,6 +826,29 @@ select case (self%itype)
             end do 
         end do 
 
+    case(10)  ! "EMEBSD32i" 
+! read a hyperslab section from the HDF5 input file
+        EBSDpat32i = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3) 
+        exppatarray = 0.0
+        do kk=kkstart,kkend
+            do jj=1,dims3(2)
+                do ii=1,dims3(1)
+                      exppatarray((kk-kkstart)*patsz+(jj-1)*dims3(1)+ii) = float(EBSDpat32i(ii,jj,kk))
+                end do 
+            end do 
+        end do 
+
+    case(11)  ! "EMEBSD32f" passed tests on 2/14/18 by MDG
+! read a hyperslab section from the HDF5 input file
+        EBSDpat32f = HDF%readHyperslabFloatArray3D(dataset, offset3, dims3) 
+        exppatarray = 0.0
+        do kk=kkstart,kkend
+            do jj=1,dims3(2)
+                do ii=1,dims3(1)
+                      exppatarray((kk-kkstart)*patsz+(jj-1)*dims3(1)+ii) = EBSDpat32f(ii,jj,kk)
+                end do 
+            end do 
+        end do 
 
     case(8)  ! "BrukerHDF"  passed tests on 2/16/18 by MDG
 ! since the pattern order in the Bruker data file is not necessarily the order in which the patterns
@@ -911,6 +938,8 @@ integer(kind=irg)                       :: hdfnumg, ierr, ios, itype
 real(kind=sgl)                          :: imageexpt(L), z
 character(fnlen)                        :: dataset
 character(kind=c_char),allocatable      :: EBSDpat(:,:,:)
+integer(kind=irg),allocatable           :: EBSDpat32i(:,:,:)
+real(kind=sgl),allocatable              :: EBSDpat32f(:,:,:)
 integer(kind=C_INT16_T),allocatable     :: EBSDpatint(:,:,:)
 character(1),allocatable                :: buffer(:)
 integer(kind=ish),allocatable           :: pairs(:)
@@ -1059,6 +1088,30 @@ select case (self%itype)
         end do 
 
 
+    case(10)  ! "EMEBSD32i"
+! read a hyperslab single pattern section from the HDF5 input file
+! dims3 should have the pattern dimensions and then 1_HSIZE_T for the third dimension
+! offset3 should have (0,0) and then the offset of the pattern (0-based)
+        EBSDpat32i = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3) 
+        exppat = 0.0
+        do jj=1,dims3(2)
+            do ii=1,dims3(1)
+                  exppat((jj-1)*dims3(1)+ii) = float(EBSDpat32i(ii,jj,1))
+            end do 
+        end do 
+
+    case(11)  ! "EMEBSD32f"
+! read a hyperslab single pattern section from the HDF5 input file
+! dims3 should have the pattern dimensions and then 1_HSIZE_T for the third dimension
+! offset3 should have (0,0) and then the offset of the pattern (0-based)
+        EBSDpat32f = HDF%readHyperslabFloatArray3D(dataset, offset3, dims3) 
+        exppat = 0.0
+        do jj=1,dims3(2)
+            do ii=1,dims3(1)
+                  exppat((jj-1)*dims3(1)+ii) = EBSDpat32f(ii,jj,1)
+            end do 
+        end do         
+
     case(8)  ! "BrukerHDF"  to be tested
 ! since the pattern order in the Bruker data file is not necessarily the order in which the patterns
 ! were acquired, we need to read each patttern separately from the file using the appropriate offset, which 
@@ -1136,7 +1189,7 @@ select case (self%itype)
     case(1, 2, 3, 5, 9)  ! "Binary" "TSLup1" "TSLup2" "OxfordBinary" "NORDIF"
         close(unit=self%funit,status='keep')
 
-    case(4, 7)  ! "TSLHDF" "EMEBSD"
+    case(4, 7, 10, 11)  ! "TSLHDF" "EMEBSD"
         if (present(HDF)) call HDF%pop(.TRUE.)
 
     case(6)  ! "OxfordHDF"
