@@ -37,8 +37,8 @@
 044EMMCsphere
 045EMMCfoil
 046EMEBSDFull
-047EMEBSDDIpreview
-048EMEBSDDIchangesetting
+047EMDIpreview
+048EMDIchangesetting
 049EMEBSDSGtest
 050EMoverlap
 060EMsampleRFZ
@@ -51,7 +51,7 @@
 076EMLorentz
 077EMTKDoverlap
 078EMTKDspots
-080EMEBSDDI
+080EMDI
 081EMAverageOrient
 082EMDisorientations
 083EMOrientationSimilarity
