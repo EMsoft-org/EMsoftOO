@@ -26,43 +26,33 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMDI
+program EMDIChangeSetting
   !! author: MDG
   !! version: 1.0 
-  !! date: 04/02/20
+  !! date: 04/07/20
   !!
-  !! Indexing of EBSD/ECP/TKD patterns using a dynamically generated pattern dictionary
-  !!
-  !! This program has a different structure from most other programs because the indexing
-  !! routine must be callable from C++ (EMsoftWorkBench).  So the regular class structure
-  !! is handled a bit differently, and the name list is not initialized in the main program
-  !! at all. The DIdriver routine is also not part of a class, but is called as a regular 
-  !! routine. 
+  !! Changes the orthorhombic space group setting in an indexing dot product file
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_DI
-use mod_HDFsupport
-use ISO_C_BINDING
+use mod_DIsetting
 
 IMPLICIT NONE
 
-character(fnlen)        :: progname
-character(fnlen)        :: progdesc = 'Indexing of EBSD/ECP/TKD patterns using a dynamically calculated pattern dictionary'
+character(fnlen)    :: progname = 'EMDIchangesetting.f90'
+character(fnlen)    :: progdesc = 'Changes the orthorhombic space group setting in an indexing dot product file'
 
-type(EMsoft_T)          :: EMsoft
-character(kind=c_char)  :: Cprogname(fnlen)
-character(kind=c_char)  :: Cnmldeffile(fnlen)
-
-progname = 'EMDI.f90'
+type(EMsoft_T)      :: EMsoft
+type(DIsetting_T)   :: DISet 
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 48 /) )
 
-! call the DIdriver routine to take care of the entire indexing process 
-Cnmldeffile = carstringify(EMsoft%nmldeffile)
-Cprogname = carstringify(progname)
-call DIdriver(Cnmldeffile, Cprogname, C_NULL_FUNPTR, C_NULL_FUNPTR, C_NULL_FUNPTR, 0_ill)
+! deal with the namelist stuff
+DISet = DIsetting_T(EMsoft%nmldeffile)
 
-end program EMDI
+! perform the computations
+call DISet%DIsetting(EMsoft, progname)
+
+end program EMDIChangeSetting

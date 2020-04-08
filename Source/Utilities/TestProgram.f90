@@ -92,10 +92,16 @@ use modB
 ! use mod_timing
 ! use mod_quaternions 
 ! use mod_rng
-
+use mod_HDFsupport
+use ISO_C_BINDING
 IMPLICIT NONE
 
-! character(fnlen)        :: progname = 'this is the program name'
+type(type1)  :: t1 
+type(type2)  :: t2 
+
+character(fnlen)        :: progname = 'this is the program name'
+character(kind=c_char)  :: Cprogname(fnlen)
+integer(kind=irg)       :: i, slen
 ! character(fnlen)        :: progdesc = 'and this is the descriptor'
 ! character(fnlen)        :: m
 
@@ -108,8 +114,29 @@ IMPLICIT NONE
 ! type(QuaternionArray_T) :: qra , qrb
 
 
-type(type1)  :: t1 
-type(type2)  :: t2 
+write (*,*) '->'//trim(progname)//'<-', len_trim(progname)
+
+Cprogname = carstringify(progname)
+
+do i=1,len_trim(progname) 
+    write (*,"(A1$)") Cprogname(i:i)
+end do 
+write (*,*) ''
+
+progname = ''
+i=1
+do while(Cprogname(i).ne.C_NULL_CHAR) 
+  progname(i:i) = Cprogname(i)
+  i = i+1
+end do
+
+write (*,*) '->'//trim(progname)//'<-', len_trim(progname)
+
+
+
+
+
+stop
 
 t1%a = 10
 call t1%writeHDFnamelist(40)

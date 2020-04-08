@@ -295,7 +295,7 @@ if (present(noCLA)) then
 else 
   call EMsoft % init()
 
-  if (present(tpl)) then 
+  if (present(tpl).and.(.not.present(silent))) then 
     call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl)
   else 
     if (PRESENT(makeconfig)) then 

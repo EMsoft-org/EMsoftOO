@@ -260,9 +260,12 @@ character(1000)                                     :: charline
 character(3)                                        :: stratt
 character(fnlen)                                    :: progdesc 
 
+isEBSD = .TRUE. 
+isTKD = .FALSE.
+
 ! convert the input strings from C to fortran format
-nmldeffile = fstringify(Cnmldeffile)
-progname = fstringify(Cprogname)
+nmldeffile = trim(fstringify(Cnmldeffile))
+progname = trim(fstringify(Cprogname))
 progdesc = 'Indexing of EBSD/ECP/TKD patterns using a dynamically calculated pattern dictionary'
 
 ! open the HDF interface

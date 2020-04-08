@@ -97,14 +97,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoftOO_Executable(TARGET EMEBSDDIchangesetting
-  #                     SOURCES ${APP_DIR}/EMEBSDDIchangesetting.f90 
-  #                     LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
-  #                     TEMPLATE ${TMPLT_DIR}/EMEBSDDIchangesetting.template 
-  #                     SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
-  #                     INSTALL_PROGRAM TRUE
-  #                     INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-  #                     )
+  Add_EMsoftOO_Executable(TARGET EMDIchangesetting
+                      SOURCES ${APP_DIR}/EMDIchangesetting.f90 
+                      LINK_LIBRARIES jsonfortran ${EXE_LINK_LIBRARIES} 
+                      TEMPLATE ${TMPLT_DIR}/EMDIchangesetting.template 
+                      SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                      )
 
   Add_EMsoftOO_Executable(TARGET EMgetADP
                       SOURCES ${APP_DIR}/EMgetADP.f90 

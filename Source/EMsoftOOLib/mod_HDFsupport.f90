@@ -339,7 +339,7 @@ IMPLICIT NONE
     module procedure HDF_constructor
   end interface HDF_T
 
-public :: openFortranHDFInterface, closeFortranHDFInterface, cstringify, fstringify 
+public :: openFortranHDFInterface, closeFortranHDFInterface, cstringify, carstringify, fstringify 
 
 contains
 
@@ -6058,6 +6058,8 @@ character(len=len_trim(strin)+1,kind=c_char)  :: cstrout
 
 integer(kind=irg)                             :: slen, i
 
+cstrout=''
+
 slen = len_trim(strin)
 do i=1,slen
   cstrout(i:i) = strin(i:i)
@@ -6068,11 +6070,38 @@ cstrout(slen:slen) = C_NULL_CHAR
 end function cstringify
 
 !--------------------------------------------------------------------------
+pure recursive function carstringify(strin) result(cstrout)
+!DEC$ ATTRIBUTES DLLEXPORT :: carstringify
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 04/07/20
+  !!
+  !! turn a fortran string into a null-terminated c-string character array
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+character(fnlen),INTENT(IN)                 :: strin
+character(kind=c_char)                      :: cstrout(len_trim(strin)+1)
+
+integer(kind=irg)                           :: slen, i
+
+slen = len_trim(strin)
+do i=1,slen
+  cstrout(i) = strin(i:i)
+end do
+slen = slen+1
+cstrout(slen) = C_NULL_CHAR 
+
+end function carstringify
+
+!--------------------------------------------------------------------------
 pure recursive function fstringify(strin) result(fstrout)
 !DEC$ ATTRIBUTES DLLEXPORT :: fstringify
   !! author: MDG 
   !! version: 1.0 
-  !! date: 04/04/20
+  !! date: 04/07/20
   !!
   !! turn a null-terminated c-string into a fortran string
 
@@ -6083,12 +6112,13 @@ IMPLICIT NONE
 character(kind=c_char),INTENT(IN)         :: strin(:)
 character(fnlen)                          :: fstrout
 
-integer(kind=irg)                         :: slen, i, s(1)
+integer(kind=irg)                         :: i
 
-s = shape(strin)
-
-do i=1,s(1)-1    ! don't copy the null character...
+fstrout = ''
+i=1
+do while(strin(i).ne.C_NULL_CHAR) 
   fstrout(i:i) = strin(i)
+  i = i+1
 end do
 
 end function fstringify
