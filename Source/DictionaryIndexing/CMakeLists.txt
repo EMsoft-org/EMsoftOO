@@ -79,14 +79,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                       )
 
-  # Add_EMsoftOO_Executable(TARGET EMgetEulers
-  #                     SOURCES ${APP_DIR}/EMgetEulers.f90 
-  #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-  #                     TEMPLATE ${TMPLT_DIR}/EMgetEulers.template 
-  #                     SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
-  #                     INSTALL_PROGRAM TRUE
-  #                     INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-  #                     )
+  Add_EMsoftOO_Executable(TARGET EMgetEulers
+                      SOURCES ${APP_DIR}/EMgetEulers.f90 
+                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                      TEMPLATE ${TMPLT_DIR}/EMgetEulers.template 
+                      SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                      )
  
   # Add_EMsoftOO_Executable(TARGET EMEBSDDIpreview
   #                     SOURCES ${APP_DIR}/EMEBSDDIpreview.f90 
