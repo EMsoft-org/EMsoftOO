@@ -452,10 +452,10 @@ integer(kind=irg)                       :: numk, nix, niy, nixp, niyp, i, j, ier
 real(kind=dbl)                          :: scl, x, dx, dy, dxm, dym, wf
 real(kind=dbl)                          :: dc(3), ixy(2), qu(4)
 integer(kind=irg),allocatable           :: kij(:,:)
-real(kind=sgl),allocatable              :: ECPpattern(:,:), ECPpatternintd(:,:)
+real(kind=sgl),allocatable              :: ECPpattern(:,:), ECPpatternintd(:,:), ECP_tmp(:,:,:)
 integer(kind=irg),allocatable           :: ECPpatterninteger(:,:), ECPpatternad(:,:)
 real(kind=sgl)                          :: time_start, time_end, ma, mi
-character(len=1),allocatable            :: bpat(:,:)
+character(len=1),allocatable            :: bpat(:,:), bpat_tmp(:,:,:)
 integer(kind=irg)                       :: TID, nthreads
 real(kind=dbl)                          :: dp, MCangle
 logical                                 :: switchwfoff = .FALSE.
@@ -698,22 +698,23 @@ ECPpatternad = 0
 dataset = SC_ECpatterns
 
 if (enl%outputformat .eq. 'bin') then
-    allocate(bpat(1:enl%npix,1:enl%npix),stat=istat)
-    if (istat .ne. 0) call Message%printError('ECpatter','cannot allocate bpat array')
+    allocate(bpat(1:enl%npix,1:enl%npix),bpat_tmp(1:enl%npix,1:enl%npix,1),stat=istat)
+    if (istat .ne. 0) call Message%printError('ECpattern','cannot allocate bpat array')
     bpat = char(nint(255.0*ECPpattern))
 
 ! write dictionary pattern to h5 file
     offset = (/ 0, 0, 0 /)
     hdims = (/ enl%npix, enl%npix, numangles /)
     dims3 = (/ enl%npix, enl%npix, 1 /)
-    hdferr = HDF%writeHyperslabCharArray(dataset, bpat, hdims, offset, dims3)
+    hdferr = HDF%writeHyperslabCharArray(dataset, bpat_tmp, hdims, offset, dims3)
 end if
 
 if (enl%outputformat .eq. 'gui') then
+    allocate(ECP_tmp(enl%npix, enl%npix, 1),stat=istat)
     offset = (/ 0, 0, 0 /)
     hdims = (/ enl%npix, enl%npix, numangles /)
     dims3 = (/ enl%npix, enl%npix, 1 /)
-    hdferr = HDF%writeHyperslabFloatArray(dataset, ECPpattern, hdims, offset, dims3)
+    hdferr = HDF%writeHyperslabFloatArray(dataset, ECP_tmp, hdims, offset, dims3)
 end if
 
 ! set the number of OpenMP threads
@@ -817,19 +818,21 @@ angleloop: do iang = 1,numangles
         bpat = char(nint(255.0*ECPpatternintd))
 
 ! write dictionary pattern to h5 file
+        bpat_tmp(:,:,1) = bpat
         offset = (/ 0, 0, iang-1 /)
         hdims = (/ enl%npix, enl%npix, numangles /)
         dims3 = (/ enl%npix, enl%npix, 1 /)
-        hdferr = HDF%writeHyperslabCharArray(dataset, bpat, hdims, offset, dims3, insert)
+        hdferr = HDF%writeHyperslabCharArray(dataset, bpat_tmp, hdims, offset, dims3, insert)
  
     end if
 
     if (enl%outputformat .eq. 'gui') then
           if (enl%maskpattern.eq.'y')  ECPpattern = ECPpattern * mask
+          ECP_tmp(:,:,1) = ECPpattern
           offset = (/ 0, 0, iang-1 /)
           hdims = (/ enl%npix, enl%npix, numangles /)
           dims3 = (/ enl%npix, enl%npix, 1 /)
-          hdferr = HDF%writeHyperslabFloatArray(dataset, ECPpattern, hdims, offset, dims3, insert)
+          hdferr = HDF%writeHyperslabFloatArray(dataset, ECP_tmp, hdims, offset, dims3, insert)
     end if
 !$OMP END CRITICAL
 

@@ -28,5 +28,5 @@
  uniform = .FALSE.,
 ! ===============================
 ! for the EMEBSDdepthmaster program only, set the following parameter
- useEnergyWeighting = .FALSE.,
+! useEnergyWeighting = .FALSE.,
  /
