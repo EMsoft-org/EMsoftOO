@@ -1298,7 +1298,7 @@ open(unit=dataunit2,file=trim(ctfname),status='unknown',action='write',iostat=ie
 write(dataunit2,'(A)') 'Channel Text File'
 write(dataunit2,'(A)') 'EMsoft v. '//trim(EMsoft%getConfigParameter('EMsoftversion'))// &
                        '; BANDS=pattern index, MAD=CI, BC=OSM, BS=IQ'
-write(dataunit2,'(A)') 'Author  '//trim(EMsoft%getConfigParameter('Username'))
+write(dataunit2,'(A)') 'Author  '//trim(EMsoft%getConfigParameter('UserName'))
 write(dataunit2,'(A)') 'JobMode Grid'
 write(dataunit2,'(2A,I5)') 'XCells',TAB, ipar(7)
 write(dataunit2,'(2A,I5)') 'YCells',TAB, ipar(8)
@@ -1425,7 +1425,7 @@ end subroutine ctf_writeFile_
 
 !--------------------------------------------------------------------------
 !
-! SUBROUTINE:angebsd_writeFile
+! SUBROUTINE:ang_writeFile_
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -1521,7 +1521,7 @@ ii = scan(trim(xtalname),'.')
 angname = xtalname(1:ii-1)
 write(dataunit2,'(A)') '# MaterialName    '//trim(angname)
 write(dataunit2,'(A)') '# Formula       '//trim(angname)
-write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMEBSDDI'
+write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMDI'
 
 ! and get the TSL symmetry string from the TSLsymtype array
 TSLsymmetry = TSLsymtype(SG%getPGnumber())
@@ -1565,7 +1565,7 @@ write(dataunit2,'(A,I5)') '# NCOLS_ODD: ',ipar(7)
 write(dataunit2,'(A,I5)') '# NCOLS_EVEN: ',ipar(7)
 write(dataunit2,'(A,I5)') '# NROWS: ', ipar(8)
 write(dataunit2,'(A)') '#'
-write(dataunit2,'(A,A)') '# OPERATOR:   ', trim(EMsoft%getConfigParameter('Username'))
+write(dataunit2,'(A,A)') '# OPERATOR:   ', trim(EMsoft%getConfigParameter('UserName'))
 write(dataunit2,'(A)') '#'
 write(dataunit2,'(A)') '# SAMPLEID:'
 write(dataunit2,'(A)') '#'

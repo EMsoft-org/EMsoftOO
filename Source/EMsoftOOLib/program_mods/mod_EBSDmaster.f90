@@ -1146,7 +1146,7 @@ if (emnl%restart.eqv..FALSE.) then
 
 ! write the EMheader to the file
   datagroupname = trim(HDFnames%get_ProgramData()) 
-  call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
+  call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, datagroupname)
 
 ! add the Duration field to the EMheader group
   hdferr = HDF%openGroup(HDFnames%get_EMheader())

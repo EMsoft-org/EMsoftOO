@@ -229,14 +229,13 @@ logical                                           :: isEBSD = .FALSE., isTKD = .
 
 call Message%printMessage(' Preprocessing experimental patterns')
 
-select type(nml) 
-  type is (EBSDDINameListType)
-    isEBSD = .TRUE.
-  type is (TKDDINameListType)
+if (nml%DIModality.eq.'EBSD') then 
+  isEBSD = .TRUE.
+  else if (nml%DIModality.eq.'TKD') then 
     isTKD = .TRUE.
-  class default 
+  else
     call Message%printError('PreProcessPatterns', 'unknown name list type requested')
-end select
+  end if 
 
 !===================================================================================
 ! define a bunch of mostly integer parameters

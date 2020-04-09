@@ -100,7 +100,9 @@ endif()
 include (${CMP_SOURCE_DIR}/cmpCMakeMacros.cmake )
 
 # Next up, Set the version of EMsoftOO that is used through out the project.
-set(EMsoftOO_VER_MAJOR "1")
+# we continue the numbering from the original EMsoft package, so 6.0.0 is the 
+# first version of the object oriented code.
+set(EMsoftOO_VER_MAJOR "6")
 set(EMsoftOO_VER_MINOR "0")
 set(EMsoftOO_VER_PATCH "0")
 

@@ -1001,7 +1001,7 @@ patsz = L
 ! pattern into the expt variable ...  at the end, we use closeExpPatternFile() to
 ! properly close the experimental pattern file
 VT = Vendor_T(enl%inputtype)
-fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(enl%exptfile)
+fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(enl%exptfile)
 call VT%set_filename(fname)
 istat = VT%openExpPatternFile(EMsoft, enl%ipf_wd, L, recordsize, enl%HDFstrings, HDF)
 if (istat.ne.0) then
@@ -1059,7 +1059,7 @@ end if
 if (trim(enl%patternfile).ne.'undefined') then
 ! allocate a byte array for the final output TIFF image that will contain all individual images
   allocate(output_image(binx,biny))
-  image_filename = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(enl%patternfile)
+  image_filename = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(enl%patternfile)
 
   ma = maxval(pcopy)
   mi = minval(pcopy)
@@ -1101,7 +1101,7 @@ end do
 nx = numw * binx
 ny = numr * biny
 allocate(output_image(nx,ny))
-image_filename = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(enl%tifffile)
+image_filename = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(enl%tifffile)
 
 ! next we need to set up the high-pass filter fftw plans
 allocate(hpmask(binx,biny),inp(binx,biny),outp(binx,biny),stat=istat)

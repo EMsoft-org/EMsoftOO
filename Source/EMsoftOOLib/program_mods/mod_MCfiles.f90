@@ -842,7 +842,7 @@ hdferr = HDF%createFile(dataname)
 
 ! write the EMheader to the file
 datagroupname = trim(HDFnames%get_ProgramData()) ! 'MCOpenCL'
-call HDF%writeEMheader(dstr, tstrb, tstre, progname, datagroupname)
+call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, datagroupname)
 
 ! add the CrystalData group at the top level of the file
 call cell%addXtalDataGroup(SG, EMsoft, HDF)

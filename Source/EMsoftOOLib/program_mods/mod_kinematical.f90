@@ -897,7 +897,7 @@ hdferr =  HDF%createFile(datafile)
 
 ! write the EMheader to the file
 groupname = trim(HDFnames%get_ProgramData())
-call HDF%writeEMheader(dstr, tstrb, tstre, progname, groupname)
+call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, groupname)
 
 ! add the CrystalData group at the top level of the file
 call cell%addXtalDataGroup(SG, EMsoft, HDF)
@@ -1266,7 +1266,7 @@ hdferr =  HDF%createFile(datafile)
 
 ! write the EMheader to the file
 groupname = trim(HDFnames%get_ProgramData())
-call HDF%writeEMheader(dstr, tstrb, tstre, progname, groupname)
+call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, groupname)
 
 ! add the CrystalData group at the top level of the file
 call cell%addXtalDataGroup(SG, EMsoft, HDF)

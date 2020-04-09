@@ -5787,7 +5787,7 @@ end if
 end subroutine error_check_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeEMheader_(self, dstr, tstrb, tstre, prn, dataname)
+recursive subroutine writeEMheader_(self, EMsoft, dstr, tstrb, tstre, prn, dataname)
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/09/20
@@ -5811,16 +5811,16 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)               :: self
+type(EMsoft_T),INTENT(INOUT)             :: EMsoft 
 character(11),INTENT(INOUT)              :: dstr
 character(15),INTENT(IN)                 :: tstrb
 character(15),INTENT(IN)                 :: tstre
 character(fnlen),INTENT(IN)              :: prn
 character(fnlen),INTENT(IN),OPTIONAL     :: dataname
 
-type(EMsoft_T)                           :: EMsoft 
-type(Timing_T)                           :: Timing
+type(Timing_T)                           :: timer
 integer                                  :: hdferr ! error flag
-integer                                  :: i,ic,nlen 
+integer                                  :: i, ic, nlen 
 character(100)                           :: c
 character(fnlen)                         :: line, groupname
 character(fnlen,kind=c_char)             :: line2(1)
@@ -5874,16 +5874,16 @@ call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
 if (g_exists) then 
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
-
+  call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
   hdferr = self%writeDatasetStringArray(line, line2, 1)
-
+  call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
-! stop time /EMheader/StopTime 'character'; this is often updated at the end of a run
-! since the end date can be different from the start date, especially for long runs, we get a new dstr string
-dstr = Timing%getDateString()
+! stop time /EMheader/StopTime 
 line = 'StopTime'
+call timer%makeTimeStamp()
+dstr = timer%getDateString()  ! for long runs, the date could be different from the start date !!!
 line2(1) = dstr//', '//tstre
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
@@ -6083,7 +6083,8 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 character(fnlen),INTENT(IN)                 :: strin
-character(kind=c_char)                      :: cstrout(len_trim(strin)+1)
+! character(kind=c_char)                      :: cstrout(len_trim(strin)+1)
+character(kind=c_char)                      :: cstrout(fnlen)
 
 integer(kind=irg)                           :: slen, i
 

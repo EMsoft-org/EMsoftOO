@@ -591,7 +591,7 @@ hdferr =  HDF%createFile(datafile)
 
 ! write the EMheader to the file
 groupname = trim(HDFnames%get_ProgramData())
-call HDF%writeEMheader(dstr, tstrb, tstre, progname, groupname)
+call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, groupname)
 
 ! create a namelist group to write all the namelist files into
 groupname = trim(HDFnames%get_NMLfiles())

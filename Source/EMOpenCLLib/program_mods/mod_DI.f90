@@ -157,7 +157,7 @@ type(Quaternion_T)                                  :: qu
 
 type(MCOpenCLNameListType)                          :: mcnl
 type(SEMmasterNameListType)                         :: mpnl
-type(EBSDNameListType)                              :: enl
+! type(EBSDNameListType)                              :: enl
         
 logical                                             :: verbose
 
@@ -190,7 +190,7 @@ character(fnlen)                                    :: info ! info about the GPU
 real(kind=dbl),parameter                            :: nAmpere = 6.241D+18   ! Coulomb per second
 
 
-integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk, &
+integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
                                                        recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr,&
                                                        recordsize_correct, patsz, tickstart, tickstart2, tock, npy, sz(3), jjj
 integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt
@@ -260,9 +260,6 @@ character(1000)                                     :: charline
 character(3)                                        :: stratt
 character(fnlen)                                    :: progdesc 
 
-isEBSD = .TRUE. 
-isTKD = .FALSE.
-
 ! convert the input strings from C to fortran format
 nmldeffile = trim(fstringify(Cnmldeffile))
 progname = trim(fstringify(Cprogname))
@@ -288,12 +285,24 @@ end if
 ! deal with the namelist stuff
 DIFT = DIfile_T(nmldeffile)
 
+
 ! set the HDF group names for this program
 HDFnames = HDFnames_T() 
 
 call setRotationPrecision('d')
 
-associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det )
+associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml )
+
+! make sure that nthreads is at least 2 
+if (dinl%nthreads.lt.2) then 
+  call Message%printError('DIdriver:', 'Dictionary Indexing requires at least 2 compute threads')
+end if 
+
+! determine the modality from the master pattern file, and also set it in the dinl name list
+fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
+call MPFT%determineModality(HDF, fname)
+call Message%printMessage(' Master Pattern modality : '//trim(MPFT%getModality()))
+call DIFT%setModality(MPFT%getModality())
 
 ! is this a dynamic calculation (i.e., do we actually compute the EBSD patterns)?
 if (trim(dinl%indexingmode).eq.'dynamic') then 
@@ -306,6 +315,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     call MCFT%setFileName(fname)
     call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
     mcnl = MCFT%getnml()
+    xtalname = trim(mcnl%xtalname)
 
     ! 2. read EBSD master pattern file
     if (isTKD.eqv..TRUE.) then
@@ -331,7 +341,8 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
 ! we know that the master pattern file exists, and it also has all the 
 ! crystallographic data in it, so we read that here instead of assuming 
 ! that the actual .xtal file exists on this system ...
-    call cell%readDataHDF(SG, EMsoft, useXtalName=dinl%masterfile)
+    call cell%setFileName(xtalname)
+    call cell%readDataHDF(SG, EMsoft, useXtalName=fname)
 ! extract the point group number 
     pgnum = SG%getPGnumber()
     io_int = pgnum 
@@ -363,11 +374,14 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
 
     ! also copy the sample tilt angle into the correct variable for writing to the dot product file
     MCsig = mcnl%sig
+
+    call Message%printMessage(' Completed reading all MC/MP input data; generated detector ')
 end if
 
 ! set the timer 
 timer = Timing_T()
 tstrb = timer%getTimeString()
+tstre = ''
 dstr = timer%getDateString()
 
 if (trim(dinl%indexingmode).eq.'static') then
@@ -529,7 +543,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     if (Emax .gt. MCDT%numEbins) Emax = MCDT%numEbins
 
     sz = shape(MPDT%mLPNH)
-    nE = sz(3)
+    numE = sz(3)
 
     ! intensity prefactor
     nel = float(mcnl%totnum_el) * float(mcnl%multiplier)
@@ -918,7 +932,7 @@ jpar(3) = dinl%numsy
 jpar(4) = mpnl%npx
 jpar(5) = npy
 jpar(6) = MCDT%numEbins
-jpar(7) = nE
+jpar(7) = numE
 
 ! do we need to allocate arrays for the cproc callback routine ?
 if (Clinked.eqv..TRUE.) then 
@@ -1005,7 +1019,7 @@ dictionaryloop: do ii = 1,cratio+1
                                     0, C_NULL_PTR, C_NULL_PTR)
         call CL%error_check('EBSDDISubroutine:clEnqueueWriteBuffer', ierr)
 
-        call InnerProdGPU(cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,dinl%devid,kernel,context,command_queue)
+        call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,dinl%devid,kernel,context,command_queue)
 
         dp =  maxval(results)
         if (dp.gt.mvres) mvres = dp
@@ -1051,7 +1065,8 @@ dictionaryloop: do ii = 1,cratio+1
 ! and print information
           if (iii.eq.10) then
               call timer%Time_tock(1)
-              ttime = timer%getInterval(1)
+              tock = timer%getInterval(1)
+              ttime = float(tock) * float(cratio) / float(iii)
               tstop = ttime
               io_int(1:4) = (/iii,cratio, int(ttime/3600.0), int(mod(ttime,3600.0)/60.0)/)
               call Message%WriteValue('',io_int,4,"(' -> Completed cycle ',I5,' out of ',I5,'; est. total time ', &
@@ -1243,16 +1258,20 @@ if (cancelled.eqv..FALSE.) then
 
   allocate(OSMmap(jjend, iiiend))
 
+  call timer%makeTimeStamp()
+  tstre = timer%getTimeString()
+
   if (dinl%datafile.ne.'undefined') then 
     vendor = 'TSL'
     fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dinl%datafile)
-    DIFT = DIfile_T( fname=fname )
-    call h5_writeFile(EMsoft, HDF, HDFnames, vendor, dinl, mcnl, xtalname, dstr, tstrb, ipar, resultmain, exptIQ, &
-                      indexmain, eulerarray, dpmap, progname, nmldeffile, OSMmap)
+    call DIFT%setfilename(fname) 
+    call DIFT%h5_writeFile(EMsoft, HDF, HDFnames, vendor, mcnl, xtalname, dstr, tstrb, tstre, ipar, resultmain, &
+                           exptIQ, indexmain, eulerarray, dpmap, progname, nmldeffile, OSMmap)
     call Message%printMessage('Data stored in h5 file : '//trim(dinl%datafile))
   end if
 
   VT = Vendor_T()
+  call VT%set_Modality(MPFT%getModality())
   if (dinl%ctffile.ne.'undefined') then 
     fpar2(1) = mcnl%EkeV
     fpar2(2) = MCsig
@@ -1317,7 +1336,7 @@ end subroutine DIdriver
 !> @date 06/07/17 MDG 1.4 removed progoptions from Build Program call; caused some issues on Linux in Release mode
 !> @date 11/13/17 MDG 2.0 moved several OpenCL init statements to main calling program
 !--------------------------------------------------------------------------
-recursive subroutine InnerProdGPU(cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,selnumd,kernel,context,command_queue)
+recursive subroutine InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,selnumd,kernel,context,command_queue)
 !DEC$ ATTRIBUTES DLLEXPORT :: InnerProdGPU
 
 use clfortran
@@ -1327,15 +1346,15 @@ use mod_io
 
 IMPLICIT NONE
 
-integer(kind=4),INTENT(IN)                          :: Ne
-integer(kind=4),INTENT(IN)                          :: Nd
-real(kind=4),INTENT(OUT),target                     :: results(Ne*Nd)
+type(OpenCL_T),INTENT(INOUT)                        :: CL
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_expt
 !f2py intent(in,out) ::  cl_expt
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_dict
 !f2py intent(in,out) ::  cl_dict
+integer(kind=4),INTENT(IN)                          :: Ne
+integer(kind=4),INTENT(IN)                          :: Nd
+real(kind=4),INTENT(OUT),target                     :: results(Ne*Nd)
 
-type(OpenCL_T)                                      :: CL
 integer(kind=4),INTENT(IN)                          :: correctsize
 integer(kind=irg),INTENT(IN)                        :: numd, selnumd
 integer(c_intptr_t),target,INTENT(INOUT)            :: context

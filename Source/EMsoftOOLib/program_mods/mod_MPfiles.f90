@@ -926,16 +926,16 @@ if (present(keep4)) then
 end if
 
 ! next determine what kind of namelist we are dealing with (EBSD, ECP, or TKD)
-select type (mpnl)
-  class is (EBSDmasterNameListType)
-    isEBSD = .TRUE. 
-  class is (ECPmasterNameListType)  ! this class has a different MP array size !!!
-    isECP = .TRUE. 
-  class is (TKDmasterNameListType)
-    isTKD = .TRUE. 
-  class default 
-    call Message%printError('readMPfile', 'unknown master pattern type requested')
-end select
+modality = trim(self%getModality())
+if (trim(modality).eq.'EBSD') then 
+  isEBSD = .TRUE. 
+  else if (trim(modality).eq.'TKD') then 
+    isTKD = .TRUE.
+    else if (trim(modality).eq.'ECP') then 
+      isECP = .TRUE.
+    else 
+      call Message%printError('readMPfile', 'unknown master pattern type requested')
+    end if
 
 associate( MPDT => self%MPDT )
 
