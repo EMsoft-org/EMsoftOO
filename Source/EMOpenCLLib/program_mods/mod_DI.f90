@@ -380,9 +380,9 @@ end if
 
 ! set the timer 
 timer = Timing_T()
+dstr = timer%getDateString()
 tstrb = timer%getTimeString()
 tstre = ''
-dstr = timer%getDateString()
 
 if (trim(dinl%indexingmode).eq.'static') then
 

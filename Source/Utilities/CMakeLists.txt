@@ -275,3 +275,10 @@ Add_EMsoftOO_Executable(TARGET EMsoftinit
                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                               )
 
+Add_EMsoftOO_Executable(TARGET EMsoftConfigTest
+                              SOURCES ${APP_DIR}/EMsoftConfigTest.f90 
+                              LINK_LIBRARIES EMsoftOOLib
+                              SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                              INSTALL_PROGRAM TRUE
+                              INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                              )

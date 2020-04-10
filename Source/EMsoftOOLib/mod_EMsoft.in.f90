@@ -533,6 +533,9 @@ function getConfigParameter(self, inp) result(cp)
       cp = 'unknown configuration parameter'
   end select 
 
+! and use the correct delimiter for this platform 
+  if (trim(inp).ne.'SlackWebHookURL') cp = toNativePath_(self, cp)
+
 end function getConfigParameter
 
 !--------------------------------------------------------------------------
@@ -687,11 +690,11 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),intent(inout)     :: self
 
-character(fnlen)                   :: EMsoftpathname, ep, envParam, envReturn, m
-integer                            :: l, status
-type(IO_T)                    :: Message 
+character(fnlen)                  :: EMsoftpathname, ep, envParam, envReturn, m
+integer                           :: l, status
+type(IO_T)                        :: Message 
 
 
 ep = SC_EMsoftpathname
@@ -703,7 +706,9 @@ if (trim(self%EMsoftpathname).eq.'tryEnvironmentVariable') then
   if (trim(envReturn).ne.'') then 
     self%EMsoftpathname = trim(envReturn)
     l = len(trim(self%EMsoftpathname))
-    if (self%EMsoftpathname(l:l).ne.'/') self%EMsoftpathname = trim(self%EMsoftpathname)//'/'
+    if ( (self%EMsoftpathname(l:l).ne.'/') .and. (self%EMsoftpathname(l:l).ne.'\') ) then  !'
+      self%EMsoftpathname = trim(self%EMsoftpathname)//'/'
+    end if 
   else
     Message = IO_T()
     status = 999001
@@ -731,8 +736,8 @@ IMPLICIT NONE
 class(EMsoft_T),intent(inout)      :: self
 
 type(IO_T)                         :: Message
-character(fnlen)                        :: ep, envParam, envReturn
-integer                                 :: l
+character(fnlen)                   :: ep, envParam, envReturn
+integer                            :: l
 
 ep = SC_EMXtalFolderpathname
 self%EMXtalFolderpathname = getJSONparameter(self, ep)
@@ -743,7 +748,9 @@ if (trim(self%EMXtalFolderpathname).eq.'tryEnvironmentVariable') then
   if (trim(envReturn).ne.'') then 
     self%EMXtalFolderpathname = trim(envReturn)
     l = len(trim(self%EMXtalFolderpathname))
-    if (self%EMXtalFolderpathname(l:l).ne.'/') self%EMXtalFolderpathname = trim(self%EMXtalFolderpathname)//'/'
+    if ( (self%EMXtalFolderpathname(l:l).ne.'/') .and. (self%EMXtalFolderpathname(l:l).ne.'\') ) then !'
+      self%EMXtalFolderpathname = trim(self%EMXtalFolderpathname)//'/'
+    end if 
   else
     if (displayEMsoftWarningMessages.eq.0) then 
       Message = IO_T()
@@ -787,11 +794,11 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),intent(inout)     :: self
 
-type(IO_T)                    :: Message
-character(fnlen)                   :: ep, envParam, envReturn
-integer                            :: l
+type(IO_T)                        :: Message
+character(fnlen)                  :: ep, envParam, envReturn
+integer                           :: l
 
 ep = SC_EMdatapathname
 self%EMdatapathname = getJSONparameter(self, ep)
@@ -802,7 +809,9 @@ if (trim(self%EMdatapathname).eq.'tryEnvironmentVariable') then
   if (trim(envReturn).ne.'') then 
     self%EMdatapathname = trim(envReturn)
     l = len(trim(self%EMdatapathname))
-    if (self%EMdatapathname(l:l).ne.'/') self%EMdatapathname = trim(self%EMdatapathname)//'/'
+    if ( (self%EMdatapathname(l:l).ne.'/') .and. (self%EMdatapathname(l:l).ne.'\') ) then !'
+      self%EMdatapathname = trim(self%EMdatapathname)//'/'
+    end if
   else
     if (displayEMsoftWarningMessages.eq.0) then 
       Message = IO_T()
@@ -846,7 +855,9 @@ if (trim(self%EMtmppathname).eq.'tryEnvironmentVariable') then
   if (trim(envReturn).ne.'') then 
     self%EMtmppathname = trim(envReturn)
     l = len(trim(self%EMtmppathname))
-    if (self%EMtmppathname(l:l).ne.'/') self%EMtmppathname = trim(self%EMtmppathname)//'/'
+    if ( (self%EMtmppathname(l:l).ne.'/') .and. (self%EMtmppathname(l:l).ne.'\')) then !'
+      self%EMtmppathname = trim(self%EMtmppathname)//'/'
+    end if
   else
     if (displayEMsoftWarningMessages.eq.0) then 
       Message = IO_T()
