@@ -248,7 +248,7 @@ real(kind=sgl)                                      :: euler(3)
 integer(kind=irg)                                   :: indx
 integer(kind=irg)                                   :: correctsize
 logical                                             :: f_exists, init, ROIselected, Clinked, cancelled, isTKD = .FALSE., &
-                                                       isEBSD = .FALSE.
+                                                       isEBSD = .FALSE., isECP = .FALSE.
 
 integer(kind=irg)                                   :: ipar(10)
 
@@ -304,6 +304,14 @@ call MPFT%determineModality(HDF, fname)
 call Message%printMessage(' Master Pattern modality : '//trim(MPFT%getModality()))
 call DIFT%setModality(MPFT%getModality())
 
+if (trim(MPFT%getModality()).eq.'EBSD') then 
+  isEBSD = .TRUE.
+else if (trim(MPFT%getModality()).eq.'TKD') then 
+  isTKD = .TRUE.
+else if (trim(MPFT%getModality()).eq.'ECP') then
+  isECP = .TRUE.
+  end if  
+
 ! is this a dynamic calculation (i.e., do we actually compute the EBSD patterns)?
 if (trim(dinl%indexingmode).eq.'dynamic') then 
 
@@ -322,10 +330,16 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
       call HDFnames%set_ProgramData(SC_TKDmaster) 
       call HDFnames%set_NMLlist(SC_TKDmasterNameList) 
       call HDFnames%set_NMLfilename(SC_TKDmasterNML) 
-    else
+    end if 
+    if (isEBSD.eqv..TRUE.) then
       call HDFnames%set_ProgramData(SC_EBSDmaster) 
       call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
       call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+    end if 
+    if (isECP.eqv..TRUE.) then
+      call HDFnames%set_ProgramData(SC_ECPmaster) 
+      call HDFnames%set_NMLlist(SC_ECPmasterNameList) 
+      call HDFnames%set_NMLfilename(SC_ECPmasterNML) 
     end if 
     call HDFnames%set_Variable(SC_MCOpenCL) 
 

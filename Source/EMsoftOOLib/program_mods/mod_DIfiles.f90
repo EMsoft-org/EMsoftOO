@@ -599,7 +599,7 @@ logical                                             :: g_exists, overwrite=.TRUE
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
 modality = trim(self%getModality())
-write(*,*) 'modality inside writeHDFNameList : ', trim(modality)
+! write(*,*) 'modality inside writeHDFNameList : ', trim(modality)
 
 select case(trim(modality)) 
   case('EBSD')
@@ -609,6 +609,11 @@ select case(trim(modality))
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
     isECP = .TRUE.
+    n_int = 19
+    n_real = 15
+    allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
+  case('TKD')
+    isTKD = .TRUE.
     n_int = 19
     n_real = 15
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
