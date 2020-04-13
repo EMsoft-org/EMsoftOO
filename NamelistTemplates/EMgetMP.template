@@ -1,0 +1,8 @@
+ &getMPlist
+! master pattern filename (available modalities: EBSD/TKD/ECP/Laue)
+ masterfile = 'undefined'
+! which projection is requested ?  ('stereographic','Lambert','modifiedLambert')
+ projectionmode = 'stereographic',
+! name of tiff output image file WITHOUT EXTENSION (i.e., no .tiff) (relative to EMdatapathname)
+ outputfile = 'undefined',
+ /

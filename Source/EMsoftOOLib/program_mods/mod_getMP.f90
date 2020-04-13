@@ -458,19 +458,21 @@ else
   allocate(masterSPNH(-d:d,-d:d),masterSPSH(-d:d,-d:d))
   do i=-d,d 
     do j=-d,d 
-      L = Lambert_T( xyd = (/ dble(i), dble(j) /) / dble(d) )
-      if (trim(enl%projectionmode).eq.'stereographic') then 
-        ierr = L%StereoGraphicInverse( xyz, Radius )
-      else
-        ierr = L%LambertInverse( xyz, Radius )
-      end if 
-      xyzs = sngl(xyz/vecnorm(xyz))
-      if ( (ierr.ne.0).or.((i*i+j*j).gt.d*d) ) then 
+      if ((i*i+j*j).gt.d*d) then 
         masterSPNH(i,j) = avNH
         masterSPSH(i,j) = avSH
       else
-        masterSPNH(i,j) = InterpolateLambert(xyzs, mLPNH, d)
-        masterSPSH(i,j) = InterpolateLambert(xyzs, mLPSH, d)
+        L = Lambert_T( xyd = (/ dble(i), dble(j) /) / dble(d) )
+        if (trim(enl%projectionmode).eq.'stereographic') then 
+          ierr = L%StereoGraphicInverse( xyz, Radius )
+        else
+          ierr = L%LambertInverse( xyz, Radius )
+        end if 
+        if (ierr.eq.0) then 
+          xyzs = sngl(xyz/vecnorm(xyz))
+          masterSPNH(i,j) = InterpolateLambert(xyzs, mLPNH, d)
+          masterSPSH(i,j) = InterpolateLambert(xyzs, mLPSH, d)
+        end if 
       end if
     end do
   end do
