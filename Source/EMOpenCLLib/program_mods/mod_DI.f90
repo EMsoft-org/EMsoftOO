@@ -90,6 +90,7 @@ use mod_DIfiles
 use mod_DIsupport
 use mod_HDFnames
 use mod_EBSD
+use mod_ECP
 use mod_so3
 use mod_vendors
 
@@ -144,6 +145,7 @@ type(cell_T)                                        :: cell
 type(HDF_T)                                         :: HDF
 type(HDFnames_T)                                    :: HDFnames
 type(EBSD_T)                                        :: EBSD
+type(ECP_T)                                         :: ECP
 type(Timing_T)                                      :: timer 
 type(IO_T)                                          :: Message
 type(OpenCL_T)                                      :: CL
@@ -157,7 +159,6 @@ type(Quaternion_T)                                  :: qu
 
 type(MCOpenCLNameListType)                          :: mcnl
 type(SEMmasterNameListType)                         :: mpnl
-! type(EBSDNameListType)                              :: enl
         
 logical                                             :: verbose
 
@@ -233,7 +234,7 @@ type(C_PTR)                                         :: planf, HPplanf, HPplanb
 integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3)
 
 integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn
-integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc
+integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(3)
 type(FZpointd),pointer                              :: FZlist, FZtmp
 integer(kind=irg),allocatable                       :: indexlist(:),indexarray(:),indexmain(:,:),indextmp(:,:)
 real(kind=sgl)                                      :: dmin,voltage,scl,ratio, mi, ma, ratioE, io_real(2), tstart, tmp, &
@@ -291,7 +292,7 @@ HDFnames = HDFnames_T()
 
 call setRotationPrecision('d')
 
-associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml )
+associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
 
 ! make sure that nthreads is at least 2 
 if (dinl%nthreads.lt.2) then 
@@ -312,7 +313,7 @@ else if (trim(MPFT%getModality()).eq.'ECP') then
   isECP = .TRUE.
   end if  
 
-! is this a dynamic calculation (i.e., do we actually compute the EBSD patterns)?
+! is this a dynamic calculation (i.e., do we actually compute the diffraction patterns)?
 if (trim(dinl%indexingmode).eq.'dynamic') then 
 
     ! 1. read the Monte Carlo data file
@@ -325,7 +326,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     mcnl = MCFT%getnml()
     xtalname = trim(mcnl%xtalname)
 
-    ! 2. read EBSD master pattern file
+    ! 2. read the master pattern file
     if (isTKD.eqv..TRUE.) then
       call HDFnames%set_ProgramData(SC_TKDmaster) 
       call HDFnames%set_NMLlist(SC_TKDmasterNameList) 
@@ -347,7 +348,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     call MPFT%setFileName(fname)
     call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
 
-! set the HDFnames for this program
+! set the HDFnames for the current program (same for all modalities)
     call HDFnames%set_ProgramData(SC_EMDI) 
     call HDFnames%set_NMLlist(SC_EMDINameList) 
     call HDFnames%set_NMLfilename(SC_EMDI) 
@@ -362,28 +363,75 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     io_int = pgnum 
     call Message%WriteValue(' Setting point group number to ',io_int,1)
 
-    ! 3. allocate detector arrays
-    allocate(det%rgx(dinl%numsx,dinl%numsy), &
-             det%rgy(dinl%numsx,dinl%numsy), &
-             det%rgz(dinl%numsx,dinl%numsy), &
-             det%accum_e_detector(MCDT%numEbins,dinl%numsx,dinl%numsy), stat=istat)
-
-    ! 4. copy a few parameters from dinl to enl, which is the regular EBSDNameListType structure
+    ! 3. for EBSD/TKD copy a few parameters from dinl to enl
     ! and then generate the detector arrays
-    enl%numsx = dinl%numsx
-    enl%numsy = dinl%numsy
-    enl%xpc = dinl%xpc
-    enl%ypc = dinl%ypc
-    enl%delta = dinl%delta
-    enl%thetac = dinl%thetac
-    enl%L = dinl%L
-    enl%energymin = dinl%energymin
-    enl%energymax = dinl%energymax
+    if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.)) then 
+      allocate(det%rgx(dinl%numsx,dinl%numsy), &
+               det%rgy(dinl%numsx,dinl%numsy), &
+               det%rgz(dinl%numsx,dinl%numsy), &
+               det%accum_e_detector(MCDT%numEbins,dinl%numsx,dinl%numsy), stat=istat)
+      enl%numsx = dinl%numsx
+      enl%numsy = dinl%numsy
+      enl%xpc = dinl%xpc
+      enl%ypc = dinl%ypc
+      enl%delta = dinl%delta
+      enl%thetac = dinl%thetac
+      enl%L = dinl%L
+      enl%energymin = dinl%energymin
+      enl%energymax = dinl%energymax
 
-    if (isTKD.eqv..TRUE.) then 
-      call EBSD%GenerateDetector(MCFT, verbose, isTKD)
-    else 
-      call EBSD%GenerateDetector(MCFT, verbose)
+      if (isTKD.eqv..TRUE.) then 
+        call EBSD%GenerateDetector(MCFT, verbose, isTKD)
+      end if 
+      if (isEBSD.eqv..TRUE.) then 
+        call EBSD%GenerateDetector(MCFT, verbose)
+      end if 
+    else  ! this must be an ECP indexing run so we initialize the appropriate detector arrays
+      ! if (isECP.eqv..TRUE.) then 
+      !   call ECP%ECPGenerateDetector(verbose=.TRUE.)
+      !   nsig = nint((ecpnl%thetac) + abs(ecpnl%sampletilt)) + 1
+      !   allocate(anglewf(1:nsig),stat=istat)
+
+      !   call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
+      !   call ECP%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
+
+      !   !=================================================================
+      !   ! check if there are enough angles in MC for detector geometry
+      !   !=================================================================
+      !   if (mcnl%sigend .lt. (abs(ecpnl%sampletilt) + ecpnl%thetac)) then
+      !     call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
+      !     appropriate weight factors',frm = "(A)")
+      !     switchwfoff = .TRUE.
+      !   end if
+
+      !   if ((-mcnl%sigend .gt. (ecpnl%thetac - abs(ecpnl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
+      !     call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
+      !     appropriate weight factors',frm = "(A)")
+      !     switchwfoff = .TRUE.
+      !   end if
+
+      !   !=================================================================
+      !   ! generate list of incident vectors
+      !   !=================================================================
+      !   numk = 0
+      !   call ECP%GetVectorsCone()
+      !   numk = ECP%get_numk()
+      !   allocate(kij(2,numk),klist(3,numk),stat=istat)
+
+      !   io_int(1) = numk
+      !   call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1) 
+
+      !   ktmp => ECP%klist
+      !   ! converting to array for OpenMP parallelization
+      !   do i = 1,numk
+      !      klist(1:3,i) = ktmp%k(1:3)
+      !      kij(1:2,i) = (/ktmp%i,ktmp%j/)
+      !      ktmp => ktmp%next
+      !   end do
+      !   ecpipar(1) = nsig 
+      !   ecpipar(2) = numk 
+      !   ecpipar(3) = ecpnl%npix
+      ! end if 
     end if 
 
     ! also copy the sample tilt angle into the correct variable for writing to the dot product file
@@ -1140,8 +1188,12 @@ dictionaryloop: do ii = 1,cratio+1
          quat = ro%rq()
          qu = Quaternion_T( qd = quat%q_copyd() )
 
-         call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,det%rgx,&
-                                             det%rgy,det%rgz,binned,Emin,Emax,mask,prefactor)
+         ! if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.) ) then 
+           call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,det%rgx,&
+                                               det%rgy,det%rgz,binned,Emin,Emax,mask,prefactor)
+         ! else  ! ECP modality 
+         !   call ECP%CalcECPatternSingle(ecpipar, qu, anglewf, master, kij, klist, binned)
+         ! end if 
 
          if (dinl%scalingmode .eq. 'gam') then
            binned = binned**dinl%gammavalue
