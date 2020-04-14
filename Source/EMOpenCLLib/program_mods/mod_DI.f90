@@ -156,6 +156,7 @@ type(e_T)                                           :: eu
 type(r_T)                                           :: ro
 type(Vendor_T)                                      :: VT
 type(Quaternion_T)                                  :: qu 
+type(IncidentListECP),pointer                       :: ktmp
 
 type(MCOpenCLNameListType)                          :: mcnl
 type(SEMmasterNameListType)                         :: mpnl
@@ -192,8 +193,9 @@ real(kind=dbl),parameter                            :: nAmpere = 6.241D+18   ! C
 
 
 integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
-                                                       recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr,&
-                                                       recordsize_correct, patsz, tickstart, tickstart2, tock, npy, sz(3), jjj
+                                                       recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr, &
+                                                       nsig, numk, recordsize_correct, patsz, tickstart, tickstart2, tock, &
+                                                       npy, sz(3), jjj
 integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt
 real(kind=sgl),pointer                              :: dict(:), T0dict(:)
 real(kind=sgl),allocatable,TARGET                   :: dict1(:), dict2(:), eudictarray(:)
@@ -208,12 +210,12 @@ integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:),
 integer(kind=irg),allocatable,target                :: indarray(:) 
 integer*4,allocatable                               :: iexptCI(:,:), iexptIQ(:,:)
 real(kind=sgl),allocatable                          :: meandict(:),meanexpt(:),wf(:),mLPNH(:,:,:),mLPSH(:,:,:),accum_e_MC(:,:,:)
-real(kind=sgl),allocatable                          :: mLPNH_simple(:,:), mLPSH_simple(:,:), eangle(:)
+real(kind=sgl),allocatable                          :: mLPNH_simple(:,:), mLPSH_simple(:,:), eangle(:), mLPNH2D(:,:), mLPSH2D(:,:)
 real(kind=sgl),allocatable                          :: pattern(:,:), FZarray(:,:), dpmap(:), lstore(:,:), pstore(:,:)
 real(kind=sgl),allocatable                          :: patternintd(:,:), lp(:), cp(:), EBSDpat(:,:)
-integer(kind=irg),allocatable                       :: patterninteger(:,:), patternad(:,:), EBSDpint(:,:)
+integer(kind=irg),allocatable                       :: patterninteger(:,:), patternad(:,:), EBSDpint(:,:), kij(:,:)
 character(kind=c_char),allocatable                  :: EBSDdictpat(:,:,:)
-real(kind=sgl),allocatable                          :: EBSDdictpatflt(:,:)
+real(kind=sgl),allocatable                          :: EBSDdictpatflt(:,:), anglewf(:), klist(:,:)
 real(kind=dbl),allocatable                          :: rdata(:,:), fdata(:,:), rrdata(:,:), ffdata(:,:), ksqarray(:,:)
 complex(kind=dbl),allocatable                       :: hpmask(:,:)
 complex(C_DOUBLE_COMPLEX),allocatable               :: inp(:,:), outp(:,:)
@@ -234,7 +236,7 @@ type(C_PTR)                                         :: planf, HPplanf, HPplanb
 integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3)
 
 integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn
-integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(3)
+integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(4)
 type(FZpointd),pointer                              :: FZlist, FZtmp
 integer(kind=irg),allocatable                       :: indexlist(:),indexarray(:),indexmain(:,:),indextmp(:,:)
 real(kind=sgl)                                      :: dmin,voltage,scl,ratio, mi, ma, ratioE, io_real(2), tstart, tmp, &
@@ -249,7 +251,7 @@ real(kind=sgl)                                      :: euler(3)
 integer(kind=irg)                                   :: indx
 integer(kind=irg)                                   :: correctsize
 logical                                             :: f_exists, init, ROIselected, Clinked, cancelled, isTKD = .FALSE., &
-                                                       isEBSD = .FALSE., isECP = .FALSE.
+                                                       isEBSD = .FALSE., isECP = .FALSE., switchwfoff
 
 integer(kind=irg)                                   :: ipar(10)
 
@@ -387,51 +389,52 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
         call EBSD%GenerateDetector(MCFT, verbose)
       end if 
     else  ! this must be an ECP indexing run so we initialize the appropriate detector arrays
-      ! if (isECP.eqv..TRUE.) then 
-      !   call ECP%ECPGenerateDetector(verbose=.TRUE.)
-      !   nsig = nint((ecpnl%thetac) + abs(ecpnl%sampletilt)) + 1
-      !   allocate(anglewf(1:nsig),stat=istat)
+      if (isECP.eqv..TRUE.) then 
+        call ECP%ECPGenerateDetector(verbose=.TRUE.)
+        nsig = nint((ecpnl%thetac) + abs(ecpnl%sampletilt)) + 1
+        allocate(anglewf(1:nsig),stat=istat)
 
-      !   call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
-      !   call ECP%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
+        call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
+        call ECP%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
 
-      !   !=================================================================
-      !   ! check if there are enough angles in MC for detector geometry
-      !   !=================================================================
-      !   if (mcnl%sigend .lt. (abs(ecpnl%sampletilt) + ecpnl%thetac)) then
-      !     call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
-      !     appropriate weight factors',frm = "(A)")
-      !     switchwfoff = .TRUE.
-      !   end if
+        !=================================================================
+        ! check if there are enough angles in MC for detector geometry
+        !=================================================================
+        if (mcnl%sigend .lt. (abs(ecpnl%sampletilt) + ecpnl%thetac)) then
+          call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
+          appropriate weight factors',frm = "(A)")
+          switchwfoff = .TRUE.
+        end if
 
-      !   if ((-mcnl%sigend .gt. (ecpnl%thetac - abs(ecpnl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
-      !     call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
-      !     appropriate weight factors',frm = "(A)")
-      !     switchwfoff = .TRUE.
-      !   end if
+        if ((-mcnl%sigend .gt. (ecpnl%thetac - abs(ecpnl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
+          call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
+          appropriate weight factors',frm = "(A)")
+          switchwfoff = .TRUE.
+        end if
 
-      !   !=================================================================
-      !   ! generate list of incident vectors
-      !   !=================================================================
-      !   numk = 0
-      !   call ECP%GetVectorsCone()
-      !   numk = ECP%get_numk()
-      !   allocate(kij(2,numk),klist(3,numk),stat=istat)
+        !=================================================================
+        ! generate list of incident vectors
+        !=================================================================
+        numk = 0
+        call ECP%GetVectorsCone()
+        numk = ECP%get_numk()
+        allocate(kij(2,numk),klist(3,numk),stat=istat)
 
-      !   io_int(1) = numk
-      !   call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1) 
+        io_int(1) = numk
+        call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1) 
 
-      !   ktmp => ECP%klist
-      !   ! converting to array for OpenMP parallelization
-      !   do i = 1,numk
-      !      klist(1:3,i) = ktmp%k(1:3)
-      !      kij(1:2,i) = (/ktmp%i,ktmp%j/)
-      !      ktmp => ktmp%next
-      !   end do
-      !   ecpipar(1) = nsig 
-      !   ecpipar(2) = numk 
-      !   ecpipar(3) = ecpnl%npix
-      ! end if 
+        ktmp => ECP%get_ListHead()
+        ! converting to array for OpenMP parallelization
+        do i = 1,numk
+           klist(1:3,i) = ktmp%k(1:3)
+           kij(1:2,i) = (/ktmp%i,ktmp%j/)
+           ktmp => ktmp%next
+        end do
+        ecpipar(1) = nsig 
+        ecpipar(2) = numk 
+        ecpipar(3) = ecpnl%npix
+        ecpipar(4) = mpnl%npx
+      end if 
     end if 
 
     ! also copy the sample tilt angle into the correct variable for writing to the dot product file
@@ -625,12 +628,19 @@ bindx = 1.0/float(dinl%binning)**2
 ! allocate the square-Lambert arrays
 npy = mpnl%npx
 if (trim(dinl%indexingmode).eq.'dynamic') then
-  allocate(mLPNH(-mpnl%npx:mpnl%npx,-npy:npy,MCDT%numEbins))
-  allocate(mLPSH(-mpnl%npx:mpnl%npx,-npy:npy,MCDT%numEbins))
-  allocate(accum_e_MC(MCDT%numEbins,dinl%numsx,dinl%numsy),stat=istat)
-  accum_e_MC = det%accum_e_detector
-  mLPNH = MPDT%mLPNH
-  mLPSH = MPDT%mLPSH
+  if (isECP.eqv..TRUE.) then 
+    allocate(mLPNH2D(-mpnl%npx:mpnl%npx,-npy:npy))
+    allocate(mLPSH2D(-mpnl%npx:mpnl%npx,-npy:npy))
+    mLPNH2D = sum(MPDT%mLPNH,3)
+    mLPSH2D = sum(MPDT%mLPSH,3)
+  else
+    allocate(mLPNH(-mpnl%npx:mpnl%npx,-npy:npy,MCDT%numEbins))
+    allocate(mLPSH(-mpnl%npx:mpnl%npx,-npy:npy,MCDT%numEbins))
+    allocate(accum_e_MC(MCDT%numEbins,dinl%numsx,dinl%numsy),stat=istat)
+    accum_e_MC = det%accum_e_detector
+    mLPNH = MPDT%mLPNH
+    mLPSH = MPDT%mLPSH
+  end if 
 end if
 
 !=====================================================
@@ -1188,12 +1198,12 @@ dictionaryloop: do ii = 1,cratio+1
          quat = ro%rq()
          qu = Quaternion_T( qd = quat%q_copyd() )
 
-         ! if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.) ) then 
+         if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.) ) then 
            call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,det%rgx,&
                                                det%rgy,det%rgz,binned,Emin,Emax,mask,prefactor)
-         ! else  ! ECP modality 
-         !   call ECP%CalcECPatternSingle(ecpipar, qu, anglewf, master, kij, klist, binned)
-         ! end if 
+         else  ! ECP modality 
+           call ECP%CalcECPatternSingle(ecpipar, qu, anglewf, mLPNH2D, mLPSH2D, kij, klist, binned)
+         end if 
 
          if (dinl%scalingmode .eq. 'gam') then
            binned = binned**dinl%gammavalue

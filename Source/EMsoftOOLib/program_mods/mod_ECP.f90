@@ -84,22 +84,26 @@ private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
+  procedure, pass(self) :: get_ListHead_
   procedure, pass(self) :: ECP_
   procedure, pass(self) :: ECPGenerateDetector_
   procedure, pass(self) :: ECPGetWeightFactors_
   procedure, pass(self) :: GetVectorsCone_
   procedure, pass(self) :: get_numk_
   procedure, pass(self) :: set_numk_
+  procedure, pass(self) :: CalcECPatternSingle_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
+  generic, public :: get_ListHead => get_ListHead_
   generic, public :: ECP => ECP_
   generic, public :: ECPGenerateDetector => ECPGenerateDetector_
   generic, public :: ECPGetWeightFactors => ECPGetWeightFactors_
   generic, public :: GetVectorsCone => GetVectorsCone_
   generic, public :: get_numk => get_numk_
   generic, public :: set_numk => set_numk_
+  generic, public :: CalcECPatternSingle => CalcECPatternSingle_
 
 end type ECP_T
 
@@ -290,6 +294,23 @@ integer(kind=irg),INTENT(OUT) :: numk
 self%klist%numk = numk
 
 end subroutine set_numk_
+
+!--------------------------------------------------------------------------
+recursive function get_ListHead_(self) result(klist)
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/12/20
+!!
+!! return a pointer ot the head of the list 
+
+IMPLICIT NONE
+
+class(ECP_T), INTENT(INOUT)     :: self
+type(IncidentListECP), pointer  :: klist
+
+klist => self%klist 
+
+end function get_ListHead_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
@@ -1106,106 +1127,92 @@ call self%set_numk(numk)
 
 end subroutine GetVectorsCone_
 
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE:CalcECPatternSingle
-! !
-! !> @author Saransh Singh, Carnegie Mellon University
-! !
-! !> @brief Calculate a single EC pattern for a given euler angle
-! !
-! !> @param ecpnl namelist file for ebsd
-! !> @param qu quaternion for the pattern
-! !> @param acc accumulator array from MC simulation
-! !> @param master master pattern
-! !> @param ECPattern output array
-! !
-! !> @date 05/07/15  SS 1.0 original
-! !--------------------------------------------------------------------------
-! recursive subroutine CalcECPatternSingle(self, ipar, qu, anglewf, master, kij, klist, ECPattern)
-! !! author: MDG 
-! !! version: 1.0 
-! !! date: 03/15/20
-! !!
-! !! Calculate a single EC pattern for a given orientation 
+!--------------------------------------------------------------------------
+recursive subroutine CalcECPatternSingle_(self, ipar, qu, anglewf, mLPNH, mLPSH, kij, klist, ECPattern)
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/15/20
+!!
+!! Calculate a single EC pattern for a given orientation 
 
-! use mod_io 
-! use mod_quaternions 
-! use mod_Lambert 
+use mod_io 
+use mod_quaternions 
+use mod_Lambert 
 
-! IMPLICIT NONE
+IMPLICIT NONE
 
-! class(ECP_T), INTENT(INOUT)                     :: self
-! integer(kind=irg), INTENT(IN)                   :: ipar(3)
-! type(Quaternion_T),INTENT(INOUT)                :: qu
-! real(kind=sgl),INTENT(IN)                       :: anglewf(ipar(1))
-! type(ECPMasterType),pointer                     :: master
-! integer(kind=irg),INTENT(IN)                    :: kij(2,ipar(2))
-! real(kind=sgl),INTENT(IN)                       :: klist(3,ipar(2))
-! real(kind=sgl),INTENT(OUT)                      :: ECPattern(1:ipar(3),1:ipar(3))
+class(ECP_T), INTENT(INOUT)                     :: self
+integer(kind=irg), INTENT(IN)                   :: ipar(4)
+type(Quaternion_T),INTENT(INOUT)                :: qu
+real(kind=sgl),INTENT(IN)                       :: anglewf(ipar(1))
+real(kind=sgl),INTENT(IN)                       :: mLPNH(-ipar(4):ipar(4),-ipar(4):ipar(4))
+real(kind=sgl),INTENT(IN)                       :: mLPSH(-ipar(4):ipar(4),-ipar(4):ipar(4))
+integer(kind=irg),INTENT(IN)                    :: kij(2,ipar(2))
+real(kind=sgl),INTENT(IN)                       :: klist(3,ipar(2))
+real(kind=sgl),INTENT(OUT)                      :: ECPattern(1:ipar(3),1:ipar(3))
 
-! integer(kind=irg)                               :: numk, idir, isig, isigp, nsig, istat
-! real(kind=sgl)                                  :: dc(3), dc2(3), dp, MCangle, scl, ixy(2)
-! real(kind=sgl)                                  :: wf, dx, dy, dxm, dym
-! integer(kind=irg)                               :: nix, niy, nixp, niyp, ipx, ipy
+integer(kind=irg)                               :: numk, idir, isig, isigp, nsig, istat
+real(kind=sgl)                                  :: dc(3), dc2(3), dp, MCangle, scl, ixy(2)
+real(kind=sgl)                                  :: wf, dx, dy, dxm, dym
+integer(kind=irg)                               :: nix, niy, nixp, niyp, ipx, ipy
 
-! associate(ecpnl=>self%nml)
+associate(ecpnl=>self%nml)
 
-! numk = ipar(2)
-! nsig = ipar(1)
-! scl = dble(ipar(3))
+numk = ipar(2)
+nsig = ipar(1)
+scl = dble(ipar(3))
 
-! do idir = 1,numk
+do idir = 1,numk
 
-! ! do the active coordinate transformation for this euler angle
-!     dc = klist(1:3,idir)
-!     dp = DOT_PRODUCT(dc(1:3),(/dsin(ecpnl%sampletilt*dtor),0.D0,dcos(ecpnl%sampletilt*dtor)/))        
+! do the active coordinate transformation for this euler angle
+    dc = klist(1:3,idir)
+    dp = DOT_PRODUCT(dc(1:3),(/dsin(ecpnl%sampletilt*dtor),0.D0,dcos(ecpnl%sampletilt*dtor)/))        
       
-!     MCangle = acos(dp)*rtod
-! ! find index closest to the list of MC runs we already have and interpolate the weight factor
-!     isig = int(MCangle) + 1
-!     if (isig .gt. nsig) isig = nsig
+    MCangle = acos(dp)*rtod
+! find index closest to the list of MC runs we already have and interpolate the weight factor
+    isig = int(MCangle) + 1
+    if (isig .gt. nsig) isig = nsig
 
-!     isigp = isig + 1
-!     if (isigp .gt. nsig) isigp = nsig
+    isigp = isig + 1
+    if (isigp .gt. nsig) isigp = nsig
 
-!     dx = MCangle - int(MCangle)
-!     dxm =  1.0 - dx
+    dx = MCangle - int(MCangle)
+    dxm =  1.0 - dx
  
-!     wf = anglewf(isig) * dxm + anglewf(isigp) * dx
+    wf = anglewf(isig) * dxm + anglewf(isigp) * dx
         
-!     dc2 = qu%quat_Lp(dc)
-!     dc = dc2/sqrt(sum(dc2*dc2))
+    dc2 = qu%quat_Lp(dc)
+    dc = dc2/sqrt(sum(dc2*dc2))
 
-! ! convert these direction cosines to coordinates in the Rosca-Lambert projection
-!     call LambertgetInterpolation(dc, scl, ecpnl%npx, ecpnl%npy, nix, niy, nixp, niyp, dx, dy, dxm, dym)
+! convert these direction cosines to coordinates in the Rosca-Lambert projection
+    call LambertgetInterpolation(dc, scl, ecpnl%npix, ecpnl%npix, nix, niy, nixp, niyp, dx, dy, dxm, dym)
 
-! ! interpolate the intensity
-!     ipx = kij(1,idir)
-!     ipy = kij(2,idir)
+! interpolate the intensity
+    ipx = kij(1,idir)
+    ipy = kij(2,idir)
         
-! ! including the detector model with some sample tilt
-!     if (dc(3) .gt. 0.0) then 
+! including the detector model with some sample tilt
+    if (dc(3) .gt. 0.0) then 
 
-!         ECPattern(ipx,ipy) = wf * (master%mLPNH(nix,niy) * dxm * dym + &
-!                           master%mLPNH(nixp,niy) * dx * dym + &
-!                           master%mLPNH(nix,niyp) * dxm * dy + &
-!                           master%mLPNH(nixp,niyp) * dx * dy)
+        ECPattern(ipx,ipy) = wf * (mLPNH(nix,niy) * dxm * dym + &
+                                   mLPNH(nixp,niy) * dx * dym + &
+                                   mLPNH(nix,niyp) * dxm * dy + &
+                                   mLPNH(nixp,niyp) * dx * dy)
 
-!     else
+    else
 
-!         ECPattern(ipx,ipy) =  wf * (master%mLPSH(nix,niy) * dxm * dym + &
-!                           master%mLPSH(nixp,niy) * dx * dym + &
-!                           master%mLPSH(nix,niyp) * dxm * dy + &
-!                           master%mLPSH(nixp,niyp) * dx * dy)
+        ECPattern(ipx,ipy) = wf * (mLPSH(nix,niy) * dxm * dym + &
+                                   mLPSH(nixp,niy) * dx * dym + &
+                                   mLPSH(nix,niyp) * dxm * dy + &
+                                   mLPSH(nixp,niyp) * dx * dy)
 
-!     end if
+    end if
 
-! end do 
+end do 
 
-! end associate 
+end associate 
 
-! end subroutine CalcECPatternSingle
+end subroutine CalcECPatternSingle_
 
 
 
