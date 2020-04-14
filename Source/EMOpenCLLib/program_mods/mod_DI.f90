@@ -213,8 +213,8 @@ real(kind=sgl),allocatable                          :: pattern(:,:), FZarray(:,:
 real(kind=sgl),allocatable                          :: patternintd(:,:), lp(:), cp(:), EBSDpat(:,:)
 integer(kind=irg),allocatable                       :: patterninteger(:,:), patternad(:,:), EBSDpint(:,:), kij(:,:)
 character(kind=c_char),allocatable                  :: EBSDdictpat(:,:,:)
-real(kind=sgl),allocatable                          :: EBSDdictpatflt(:,:), anglewf(:), klist(:,:)
-real(kind=dbl),allocatable                          :: rdata(:,:), fdata(:,:), rrdata(:,:), ffdata(:,:), ksqarray(:,:)
+real(kind=sgl),allocatable                          :: EBSDdictpatflt(:,:), anglewf(:)
+real(kind=dbl),allocatable                          :: rdata(:,:), fdata(:,:), rrdata(:,:), ffdata(:,:), ksqarray(:,:), klist(:,:)
 complex(kind=dbl),allocatable                       :: hpmask(:,:)
 complex(C_DOUBLE_COMPLEX),allocatable               :: inp(:,:), outp(:,:)
 real(kind=dbl)                                      :: w, Jres
@@ -1208,7 +1208,7 @@ dictionaryloop: do ii = 1,cratio+1
            call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,det%rgx,&
                                                det%rgy,det%rgz,binned,Emin,Emax,mask,prefactor)
          else  ! ECP modality 
-           call ECP%CalcECPatternSingle(ecpipar, qu, anglewf, mLPNH2D, mLPSH2D, kij, klist, binned)
+           call ECP%CalcECPatternSingle(ecpipar, qu, anglewf, mLPNH2D, mLPSH2D, kij, klist, binned, .FALSE.)
          end if 
 
          if (dinl%scalingmode .eq. 'gam') then

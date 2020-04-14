@@ -1916,7 +1916,7 @@ do iph=1,ipar(2)
   angname = xtalname(1:ii-1)
   write(dataunit2,'(A)') '# MaterialName    '//trim(angname)
   write(dataunit2,'(A)') '# Formula       '//trim(angname)
-  write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMEBSDDI; Diffraction Modality: '//trim(modality)
+  write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMDI; Diffraction Modality: '//trim(modality)
 
   ! and get the TSL symmetry string from the TSLsymtype array
   TSLsymmetry = TSLsymtype(SGs(iph)%getPGnumber())

@@ -465,7 +465,7 @@ integer(kind=irg),allocatable           :: ATOM_type(:)
 real(kind=dbl)                          :: EkeV
 real(kind=sgl)                          :: dmin, FN(3), tstop
 real(kind=sgl),allocatable              :: mask(:,:), lx(:), ly(:)
-integer(kind=irg)                       :: maskradius, io_int(1), hdferr
+integer(kind=irg)                       :: maskradius, io_int(1), hdferr, iparecp(4)
 logical                                 :: verbose
 real(kind=sgl),allocatable              :: anglewf(:)
 integer(kind=irg)                       :: nsig, isig, isigp
@@ -717,7 +717,7 @@ ECPpatterninteger = 0
 ECPpatternad = 0
 
 ! create the pattern data set in the output file 
-dataset = SC_ECpatterns
+dataset = SC_ECPpatterns
 
 if (enl%outputformat .eq. 'bin') then
     allocate(bpat(1:enl%npix,1:enl%npix),bpat_tmp(1:enl%npix,1:enl%npix,1),stat=istat)
@@ -739,6 +739,8 @@ if (enl%outputformat .eq. 'gui') then
     hdferr = HDF%writeHyperslabFloatArray(dataset, ECP_tmp, hdims, offset, dims3)
 end if
 
+iparecp = (/ nsig, numk, enl%npix, mpnl%npx /) 
+
 ! set the number of OpenMP threads
 io_int(1) = enl%nthreads
 call Message%WriteValue(' Attempting to set number of threads to ',io_int,1,"(I4)")
@@ -758,64 +760,8 @@ angleloop: do iang = 1,numangles
     qq = qAR%getQuatfromArray(iang)
     ! qu = qq%get_quatd()
 
-    imageloop: do idir = 1,numk
+    call self%CalcECPatternSingle(iparecp, qq, anglewf, mLPNH, mLPSH, kij, klist, ECPpattern, switchwfoff)
 
-! do the active coordinate transformation for this euler angle
-
-        dc = klist(1:3,idir)
-        dp = DOT_PRODUCT(dc(1:3),(/dsin(enl%sampletilt*dtor),0.D0,dcos(enl%sampletilt*dtor)/))        
-        MCangle = acos(dp)*rtod
-      
-! find index closest to the list of MC runs we already have and interpolate the weight factor
-        isig = int(MCangle) + 1
-        if (isig .gt. nsig) isig = nsig
-
-        isigp = isig + 1
-        if (isigp .gt. nsig) isigp = nsig
-
-        dx = MCangle - int(MCangle)
-        dxm =  1.0 - dx
- 
-        wf = anglewf(isig) * dxm + anglewf(isigp) * dx
-        
-        dc = qq%quat_LP(dc)
-        dc = dc/dsqrt(sum(dc*dc))
-
-! convert these direction cosines to coordinates in the Rosca-Lambert projection
-        call LambertgetInterpolation(dc, scl, enl%npix, enl%npix, nix, niy, nixp, niyp, dx, dy, dxm, dym)
-
-! interpolate the intensity
-        ipx = kij(1,idir)
-        ipy = kij(2,idir)
-        
-! including the detector model with some sample tilt
-        if (switchwfoff .eqv. .FALSE.) then
-            if (dc(3) .ge. 0.0) then 
-                ECPpattern(ipx,ipy) = wf * ( mLPNH(nix,niy) * dxm * dym + &
-                                             mLPNH(nixp,niy) * dx * dym + &
-                                             mLPNH(nix,niyp) * dxm * dy + &
-                                             mLPNH(nixp,niyp) * dx * dy )
-            else
-                ECPpattern(ipx,ipy) =  wf * ( mLPSH(nix,niy) * dxm * dym + &
-                                              mLPSH(nixp,niy) * dx * dym + &
-                                              mLPSH(nix,niyp) * dxm * dy + &
-                                              mLPSH(nixp,niyp) * dx * dy )
-            end if
-        else
-            if (dc(3) .ge. 0.0) then 
-                ECPpattern(ipx,ipy) =  mLPNH(nix,niy) * dxm * dym + &
-                                       mLPNH(nixp,niy) * dx * dym + &
-                                       mLPNH(nix,niyp) * dxm * dy + &
-                                       mLPNH(nixp,niyp) * dx * dy 
-            else
-                ECPpattern(ipx,ipy) =  mLPSH(nix,niy) * dxm * dym + &
-                                       mLPSH(nixp,niy) * dx * dym + &
-                                       mLPSH(nix,niyp) * dxm * dy + &
-                                       mLPSH(nixp,niyp) * dx * dy 
-            end if
-        end if
-    end do imageloop
-    
     !call BarrelDistortion(D,ECPpattern,enl%npix,enl%npix)
     !ma = maxval(ECPpattern)
     !mi = minval(ECPpattern)
@@ -1129,7 +1075,7 @@ call self%set_numk(numk)
 end subroutine GetVectorsCone_
 
 !--------------------------------------------------------------------------
-recursive subroutine CalcECPatternSingle_(self, ipar, qu, anglewf, mLPNH, mLPSH, kij, klist, ECPattern)
+recursive subroutine CalcECPatternSingle_(self, ipar, qu, anglewf, mLPNH, mLPSH, kij, klist, ECPpattern, switchwfoff)
 !! author: MDG 
 !! version: 1.0 
 !! date: 03/15/20
@@ -1149,8 +1095,9 @@ real(kind=sgl),INTENT(IN)                       :: anglewf(ipar(1))
 real(kind=sgl),INTENT(IN)                       :: mLPNH(-ipar(4):ipar(4),-ipar(4):ipar(4))
 real(kind=sgl),INTENT(IN)                       :: mLPSH(-ipar(4):ipar(4),-ipar(4):ipar(4))
 integer(kind=irg),INTENT(IN)                    :: kij(2,ipar(2))
-real(kind=sgl),INTENT(IN)                       :: klist(3,ipar(2))
-real(kind=sgl),INTENT(OUT)                      :: ECPattern(1:ipar(3),1:ipar(3))
+real(kind=dbl),INTENT(IN)                       :: klist(3,ipar(2))
+real(kind=sgl),INTENT(OUT)                      :: ECPpattern(1:ipar(3),1:ipar(3))
+logical, INTENT(IN)                             :: switchwfoff
 
 integer(kind=irg)                               :: numk, idir, isig, isigp, nsig, istat
 real(kind=dbl)                                  :: dc(3), dc2(3), dp, MCangle, scl, ixy(2)
@@ -1161,7 +1108,7 @@ associate(ecpnl=>self%nml)
 
 numk = ipar(2)
 nsig = ipar(1)
-scl = dble(ipar(3))
+scl = dble(ipar(4))
 
 do idir = 1,numk
 
@@ -1194,20 +1141,30 @@ do idir = 1,numk
     ipy = kij(2,idir)
         
 ! including the detector model with some sample tilt
-    if (dc(3) .gt. 0.0) then 
-
-        ECPattern(ipx,ipy) = wf * (mLPNH(nix,niy) * dxm * dym + &
+    if (switchwfoff .eqv. .FALSE.) then
+        if (dc(3) .ge. 0.0) then 
+            ECPpattern(ipx,ipy) = wf * ( mLPNH(nix,niy) * dxm * dym + &
+                                         mLPNH(nixp,niy) * dx * dym + &
+                                         mLPNH(nix,niyp) * dxm * dy + &
+                                         mLPNH(nixp,niyp) * dx * dy )
+        else
+            ECPpattern(ipx,ipy) =  wf * ( mLPSH(nix,niy) * dxm * dym + &
+                                          mLPSH(nixp,niy) * dx * dym + &
+                                          mLPSH(nix,niyp) * dxm * dy + &
+                                          mLPSH(nixp,niyp) * dx * dy )
+        end if
+    else
+        if (dc(3) .ge. 0.0) then 
+            ECPpattern(ipx,ipy) =  mLPNH(nix,niy) * dxm * dym + &
                                    mLPNH(nixp,niy) * dx * dym + &
                                    mLPNH(nix,niyp) * dxm * dy + &
-                                   mLPNH(nixp,niyp) * dx * dy)
-
-    else
-
-        ECPattern(ipx,ipy) = wf * (mLPSH(nix,niy) * dxm * dym + &
+                                   mLPNH(nixp,niyp) * dx * dy 
+        else
+            ECPpattern(ipx,ipy) =  mLPSH(nix,niy) * dxm * dym + &
                                    mLPSH(nixp,niy) * dx * dym + &
                                    mLPSH(nix,niyp) * dxm * dy + &
-                                   mLPSH(nixp,niyp) * dx * dy)
-
+                                   mLPSH(nixp,niyp) * dx * dy 
+        end if
     end if
 
 end do 
