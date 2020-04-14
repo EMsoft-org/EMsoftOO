@@ -42,7 +42,7 @@ IMPLICIT NONE
 type, public :: ECPNameListType
   integer(kind=irg)       :: nthreads
   integer(kind=irg)       :: npix
-  real(kind=sgl)          :: thetac
+  real(kind=sgl)          :: conesemiangle
   character(1)            :: maskpattern
   character(fnlen)        :: xtalname
   character(fnlen)        :: energyfile
@@ -127,7 +127,8 @@ IMPLICIT NONE
 character(fnlen), OPTIONAL   :: nmlfile 
 integer(kind=irg)            :: istat 
 
-call ECP%readNameList(nmlfile)
+if (present(nmlfile)) call ECP%readNameList(nmlfile)
+
 allocate(ECP%klist,stat=istat)
 nullify(ECP%klist%next)
 
@@ -175,7 +176,7 @@ logical                          :: skipread = .FALSE.
 ! parameters for the standard ECP program
 integer(kind=irg)       :: nthreads
 integer(kind=irg)       :: npix
-real(kind=sgl)          :: thetac
+real(kind=sgl)          :: conesemiangle
 character(fnlen)        :: xtalname
 character(fnlen)        :: energyfile
 character(fnlen)        :: masterfile
@@ -191,13 +192,13 @@ real(kind=sgl)          :: Rin
 real(kind=sgl)          :: Rout
 
 
-namelist /ECPlist/ xtalname, anglefile, nthreads, thetac, npix, maskpattern, eulerconvention, Rin, Rout, &
+namelist /ECPlist/ xtalname, anglefile, nthreads, conesemiangle, npix, maskpattern, eulerconvention, Rin, Rout, &
                    energyfile, masterfile, datafile, gammavalue, outputformat, sampletilt, workingdistance
 
 ! set the common default parameters 
 npix = 200                              ! number of pixels in final image (npix x npix)
 nthreads = 1                            ! number of OpenMP threads
-thetac = 0.0                            ! beam convergence in mrad (either ktmax or thetac must be given)
+conesemiangle = 0.0                     ! beam convergence in mrad (either ktmax or thetac must be given)
 xtalname = 'undefined'                  ! initial value to check that the keyword is present in the nml file
 energyfile = 'undefined'
 masterfile = 'undefined'
@@ -227,7 +228,7 @@ end if
 
 self%nml%npix = npix
 self%nml%nthreads = nthreads
-self%nml%thetac = thetac
+self%nml%conesemiangle = conesemiangle
 self%nml%datafile = datafile
 self%nml%xtalname = xtalname
 self%nml%energyfile = energyfile
@@ -351,9 +352,9 @@ intlist(2) = 'npix'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single reals
-io_real = (/ ecpnl%thetac, sngl(ecpnl%sampletilt), &
+io_real = (/ ecpnl%conesemiangle, sngl(ecpnl%sampletilt), &
              ecpnl%gammavalue, ecpnl%workingdistance, ecpnl%Rin, ecpnl%Rout /)
-reallist(1) = 'thetac'
+reallist(1) = 'conesemiangle'
 reallist(2) = 'sampletilt'
 reallist(3) = 'gammavalue'
 reallist(4) = 'workingdistance'
@@ -543,7 +544,7 @@ call MPFT%copysummLPNH(mLPNH)
 call MPFT%copysummLPSH(mLPSH)
 
 ! reset the HDFnames to the ones needed by the EMECP program
-call HDFnames%set_ProgramData(SC_EMECP) 
+call HDFnames%set_ProgramData(SC_ECP) 
 call HDFnames%set_NMLlist(SC_ECPNameList) 
 call HDFnames%set_NMLfilename(SC_EMECPNML) 
 ! call HDFnames%get_AllNames()
@@ -556,7 +557,7 @@ call self%ECPGenerateDetector(verbose)
 !=================================================================
 ! get the weight factors 
 !=================================================================
-nsig = nint((enl%thetac) + abs(enl%sampletilt)) + 1
+nsig = nint((enl%conesemiangle) + abs(enl%sampletilt)) + 1
 allocate(anglewf(1:nsig),stat=istat)
 
 call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
@@ -565,13 +566,13 @@ call self%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
 !=================================================================
 ! check if there are enough angles in MC for detector geometry
 !=================================================================
-if (mcnl%sigend .lt. (abs(enl%sampletilt) + enl%thetac)) then
+if (mcnl%sigend .lt. (abs(enl%sampletilt) + enl%conesemiangle)) then
   call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
   appropriate weight factors',frm = "(A)")
   switchwfoff = .TRUE.
 end if
 
-if ((-mcnl%sigend .gt. (enl%thetac - abs(enl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
+if ((-mcnl%sigend .gt. (enl%conesemiangle - abs(enl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
   call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
   appropriate weight factors',frm = "(A)")
   switchwfoff = .TRUE.
@@ -1032,7 +1033,7 @@ associate( ecpnl => self%nml, det => self%det )
 scl = mcnl%numsx
 call MCFT%copyaccume(acc)
 
-thetac = ecpnl%thetac
+thetac = ecpnl%conesemiangle
 deltheta = (thetac+abs(ecpnl%sampletilt))/float(nsig-1)
 
 weightfact = 0.0
@@ -1097,7 +1098,7 @@ associate( ecpnl => self%nml, klist => self%klist )
 
 numk = 0
 kk = (/0.D0,0.D0,1.D0/)
-thetacr = dtor*ecpnl%thetac
+thetacr = dtor*ecpnl%conesemiangle
 ktmax = tan(thetacr)
 delta = 2.0*ktmax/(float(ecpnl%npix)-1.0)
 
@@ -1106,7 +1107,7 @@ imax = ecpnl%npix
 jmin = 1
 jmax = ecpnl%npix
 
-ktmp => klist
+ktmp => self%get_ListHead()
 
 do ii = imin, imax
     do jj = jmin, jmax
@@ -1152,8 +1153,8 @@ real(kind=sgl),INTENT(IN)                       :: klist(3,ipar(2))
 real(kind=sgl),INTENT(OUT)                      :: ECPattern(1:ipar(3),1:ipar(3))
 
 integer(kind=irg)                               :: numk, idir, isig, isigp, nsig, istat
-real(kind=sgl)                                  :: dc(3), dc2(3), dp, MCangle, scl, ixy(2)
-real(kind=sgl)                                  :: wf, dx, dy, dxm, dym
+real(kind=dbl)                                  :: dc(3), dc2(3), dp, MCangle, scl, ixy(2)
+real(kind=dbl)                                  :: wf, dx, dy, dxm, dym
 integer(kind=irg)                               :: nix, niy, nixp, niyp, ipx, ipy
 
 associate(ecpnl=>self%nml)
@@ -1168,6 +1169,7 @@ do idir = 1,numk
     dc = klist(1:3,idir)
     dp = DOT_PRODUCT(dc(1:3),(/dsin(ecpnl%sampletilt*dtor),0.D0,dcos(ecpnl%sampletilt*dtor)/))        
       
+
     MCangle = acos(dp)*rtod
 ! find index closest to the list of MC runs we already have and interpolate the weight factor
     isig = int(MCangle) + 1
@@ -1180,7 +1182,7 @@ do idir = 1,numk
     dxm =  1.0 - dx
  
     wf = anglewf(isig) * dxm + anglewf(isigp) * dx
-        
+
     dc2 = qu%quat_Lp(dc)
     dc = dc2/sqrt(sum(dc2*dc2))
 

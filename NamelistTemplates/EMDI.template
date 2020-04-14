@@ -52,8 +52,17 @@
 ! ONLY SPECIFY WHEN INDEXINGMODE IS 'DYNAMIC'
 !###################################################################
 !
+! =============================
+! ==== FOR ALL MODALITIES 
 ! number of cubochoric points to generate list of orientations
  ncubochoric = 100,
+! intensity scaling mode 'not' = no scaling, 'lin' = linear, 'gam' = gamma correction
+ scalingmode = 'not',
+! gamma correction factor
+ gammavalue = 1.0,
+
+! =============================
+! ==== FOR EBSD/TKD MODALITIES 
 ! distance between scintillator and illumination point [microns]
  L = 15000.0,
 ! tilt angle of the camera (positive below horizontal, [degrees])
@@ -71,19 +80,25 @@
 ! minimum and maximum energy to use for interpolation [keV]
  energymin = 10.0,
  energymax = 20.0,
-! the following option has been disabled starting version 4.3
-! spatial averaging method ('y' or 'n' ;can't be used with approximate energy average)
-! spatialaverage = 'n',
 ! incident beam current [nA]
  beamcurrent = 150.0,
 ! beam dwell time [micro s]
  dwelltime = 100.0,
 ! binning mode (1, 2, 4, or 8)
  binning = 1,
-! intensity scaling mode 'not' = no scaling, 'lin' = linear, 'gam' = gamma correction
- scalingmode = 'not',
-! gamma correction factor
- gammavalue = 1.0,
+
+! =============================
+! ==== FOR ECP MODALITY 
+! size of output pattern in pixels (image is always square npix x npix)
+ npix = 256,
+! half angle of cone for incident beams (degrees)
+ conesemiangle = 5.0,
+! working distance [in mm]
+ workingdistance = 13.0,
+! inner radius of annular detector [in mm]
+ Rin = 2.0,
+! outer radius of annular detector [in mm]
+ Rout = 6.0,
 !
 !###################################################################
 ! INPUT FILE PARAMETERS: COMMON TO 'STATIC' AND 'DYNAMIC'
@@ -152,7 +167,7 @@
  platid = 1,
 ! if you are running EMEBSDDI, EMECPDI, EMTKDDI, then define the device you wish to use 
  devid = 1,
-! if you are running EMEBSDDImem on multiple GPUs, enter their device ids (up to eight) here; leave others at zero
+! if you are running EMEBSDDImem on multiple GPUs, enter their device ids (up to eight) here; leave others at zero  [under development !!!]
  multidevid = 0 0 0 0 0 0 0 0,
 ! how many GPU devices do you want to use?
  usenumd = 0,

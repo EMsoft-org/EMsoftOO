@@ -56,8 +56,7 @@ subroutine DIdriver(Cnmldeffile, Cprogname, cproc, ctimeproc, cerrorproc, objAdd
 !!
 !! this routine must be callable from C++ as well, so the parameter list 
 !! is a bit different from that of the most other programs.  Furthermore, this 
-!! driver routine must be able to handle EBSD, ECP, and TKD patterns (at least),
-!! so we'll use polymorphic classes to handle that.
+!! driver routine must be able to handle EBSD, ECP, and TKD patterns (at least).
 
 use mod_EMsoft
 use mod_io
@@ -199,7 +198,6 @@ integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdic
 integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt
 real(kind=sgl),pointer                              :: dict(:), T0dict(:)
 real(kind=sgl),allocatable,TARGET                   :: dict1(:), dict2(:), eudictarray(:)
-!integer(kind=1),allocatable                         :: imageexpt(:),imagedict(:)
 real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:), mask(:,:),masklin(:), exptIQ(:), &
                                                        exptCI(:), exptFit(:), exppatarray(:), tmpexppatarray(:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:), &
@@ -287,7 +285,6 @@ end if
 
 ! deal with the namelist stuff
 DIFT = DIfile_T(nmldeffile)
-
 
 ! set the HDF group names for this program
 HDFnames = HDFnames_T() 
@@ -390,8 +387,17 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
       end if 
     else  ! this must be an ECP indexing run so we initialize the appropriate detector arrays
       if (isECP.eqv..TRUE.) then 
+        ECP = ECP_T()
+      ! copy a few parameters
+        ecpnl%conesemiangle = dinl%conesemiangle
+        ecpnl%sampletilt = dinl%sampletilt
+        ecpnl%npix = dinl%npix 
+        ecpnl%workingdistance = dinl%workingdistance
+        ecpnl%Rin = dinl%Rin 
+        ecpnl%Rout = dinl%Rout
+
         call ECP%ECPGenerateDetector(verbose=.TRUE.)
-        nsig = nint((ecpnl%thetac) + abs(ecpnl%sampletilt)) + 1
+        nsig = nint((ecpnl%conesemiangle) + abs(ecpnl%sampletilt)) + 1
         allocate(anglewf(1:nsig),stat=istat)
 
         call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
@@ -400,13 +406,13 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
         !=================================================================
         ! check if there are enough angles in MC for detector geometry
         !=================================================================
-        if (mcnl%sigend .lt. (abs(ecpnl%sampletilt) + ecpnl%thetac)) then
+        if (mcnl%sigend .lt. (abs(ecpnl%sampletilt) + ecpnl%conesemiangle)) then
           call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
           appropriate weight factors',frm = "(A)")
           switchwfoff = .TRUE.
         end if
 
-        if ((-mcnl%sigend .gt. (ecpnl%thetac - abs(ecpnl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
+        if ((-mcnl%sigend .gt. (ecpnl%conesemiangle - abs(ecpnl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
           call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
           appropriate weight factors',frm = "(A)")
           switchwfoff = .TRUE.
@@ -1043,7 +1049,7 @@ dictionaryloop: do ii = 1,cratio+1
     end if
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, tock, ttime) &
-!$OMP& PRIVATE(binned, ma, mi, patternintd, patterninteger, patternad, quat, imagedictflt,imagedictfltflip)
+!$OMP& PRIVATE(binned, ma, mi, patternintd, patterninteger, patternad, qu, ro, quat, imagedictflt,imagedictfltflip)
 
         TID = OMP_GET_THREAD_NUM()
 

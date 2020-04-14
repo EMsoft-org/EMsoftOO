@@ -1248,7 +1248,7 @@ character(fnlen)                                    :: ctfname, xtalname, modali
 character                                           :: TAB = CHAR(9)
 character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
 real(kind=sgl)                                      :: euler(3), eu, mi, ma
-logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE.
+logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE., isECP=.FALSE.
 real(kind=dbl)                                      :: cellparams(6)
 integer(kind=irg),allocatable                       :: osm(:), iq(:)
 
@@ -1266,8 +1266,10 @@ select case(modality)
     isEBSD = .TRUE.
   case('TKD')
     isTKD = .TRUE.
+  case('ECP')
+    isECP = .TRUE.
   case default 
-    call Message%printError('ang_writeFile', 'unknown name list type requested')
+    call Message%printError('ctf_writeFile_', 'unknown name list type requested')
 end select
 
 
@@ -1297,7 +1299,7 @@ open(unit=dataunit2,file=trim(ctfname),status='unknown',action='write',iostat=ie
 
 write(dataunit2,'(A)') 'Channel Text File'
 write(dataunit2,'(A)') 'EMsoft v. '//trim(EMsoft%getConfigParameter('EMsoftversion'))// &
-                       '; BANDS=pattern index, MAD=CI, BC=OSM, BS=IQ'
+                       '; BANDS=pattern index, MAD=CI, BC=OSM, BS=IQ; Diffraction Modality: '//trim(modality)
 write(dataunit2,'(A)') 'Author  '//trim(EMsoft%getConfigParameter('UserName'))
 write(dataunit2,'(A)') 'JobMode Grid'
 write(dataunit2,'(2A,I5)') 'XCells',TAB, ipar(7)
@@ -1477,7 +1479,7 @@ character                                           :: TAB = CHAR(9)
 character(2)                                        :: TSLsymmetry
 real(kind=sgl)                                      :: euler(3), s, BSval
 real(kind=dbl)                                      :: cellparams(6)
-logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE.
+logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE., isECP=.FALSE.
 
 donotuseindexarray = .FALSE.
 if (present(noindex)) then
@@ -1493,6 +1495,8 @@ select case(modality)
     isEBSD = .TRUE.
   case('TKD')
     isTKD = .TRUE.
+  case('ECP')
+    isECP = .TRUE.
   case default 
     call Message%printError('ang_writeFile', 'unknown name list type requested')
 end select
@@ -1521,7 +1525,7 @@ ii = scan(trim(xtalname),'.')
 angname = xtalname(1:ii-1)
 write(dataunit2,'(A)') '# MaterialName    '//trim(angname)
 write(dataunit2,'(A)') '# Formula       '//trim(angname)
-write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMDI'
+write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMDI; Diffraction Modality: '//trim(modality)
 
 ! and get the TSL symmetry string from the TSLsymtype array
 TSLsymmetry = TSLsymtype(SG%getPGnumber())
@@ -1660,7 +1664,7 @@ character                                           :: TAB = CHAR(9)
 character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
 character(1)                                        :: np
 real(kind=sgl)                                      :: euler(3), eu, mi, ma
-logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE.
+logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE., isECP=.FALSE.
 real(kind=dbl)                                      :: cellparams(6)
 integer(kind=irg),allocatable                       :: osm(:), iq(:)
 real(kind=sgl),allocatable                          :: osmr(:)
@@ -1672,8 +1676,10 @@ select case(modality)
     isEBSD = .TRUE.
   case('TKD')
     isTKD = .TRUE.
+  case('ECP')
+    isECP = .TRUE.
   case default 
-    call Message%printError('ang_writeFile', 'unknown name list type requested')
+    call Message%printError('ctfmerge_writeFile_', 'unknown name list type requested')
 end select
 
 numph = ipar(2)
@@ -1698,7 +1704,7 @@ open(unit=dataunit2,file=trim(ctfname),status='unknown',action='write',iostat=ie
 
 write(dataunit2,'(A)') 'Channel Text File'
 write(dataunit2,'(A)') 'EMsoft v. '//trim(EMsoft%getConfigParameter('EMsoftversion'))// &
-                       '; BANDS=pattern index, MAD=CI, BC=OSM, BS=IQ'
+                       '; BANDS=pattern index, MAD=CI, BC=OSM, BS=IQ; Diffraction Modality: '//trim(modality)
 write(dataunit2,'(A)') 'Author  '//trim(EMsoft%getConfigParameter('Username'))
 write(dataunit2,'(A)') 'JobMode Grid'
 write(dataunit2,'(2A,I5)') 'XCells',TAB, ipar(3)
@@ -1866,7 +1872,7 @@ character(2)                                        :: TSLsymmetry
 character(1)                                        :: np
 real(kind=sgl)                                      :: euler(3), s, BSval
 real(kind=dbl)                                      :: cellparams(6)
-logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE.
+logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE., isECP=.FALSE.
 
 modality = trim(self%get_Modality())
 
@@ -1875,8 +1881,10 @@ select case(modality)
     isEBSD = .TRUE.
   case('TKD')
     isTKD = .TRUE.
+  case('ECP')
+    isECP = .TRUE.
   case default 
-    call Message%printError('ang_writeFile', 'unknown name list type requested')
+    call Message%printError('angmerge_writeFile_', 'unknown name list type requested')
 end select
 
 numph = ipar(2)
@@ -1908,7 +1916,7 @@ do iph=1,ipar(2)
   angname = xtalname(1:ii-1)
   write(dataunit2,'(A)') '# MaterialName    '//trim(angname)
   write(dataunit2,'(A)') '# Formula       '//trim(angname)
-  write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMEBSDDI'
+  write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMEBSDDI; Diffraction Modality: '//trim(modality)
 
   ! and get the TSL symmetry string from the TSLsymtype array
   TSLsymmetry = TSLsymtype(SGs(iph)%getPGnumber())

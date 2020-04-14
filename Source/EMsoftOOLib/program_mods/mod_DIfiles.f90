@@ -106,6 +106,13 @@ type, public :: DictionaryIndexingNameListType
   character(fnlen)   :: inputtype
   character(fnlen)   :: HDFstrings(10)
   character(fnlen)   :: DIModality
+  ! ECP parameters
+  real(kind=sgl)     :: workingdistance
+  real(kind=sgl)     :: Rin
+  real(kind=sgl)     :: Rout
+  real(kind=sgl)     :: conesemiangle
+  real(kind=sgl)     :: sampletilt 
+  integer(kind=irg)  :: npix
 end type DictionaryIndexingNameListType
 
 type, public, extends(DictionaryIndexingNameListType) :: EBSDDINameListType
@@ -292,14 +299,17 @@ subroutine setModality_(self,inp)
 !!
 !! set Modality in the DIfile_T class
 
+use mod_io 
+
 IMPLICIT NONE 
 
 class(DIfile_T), INTENT(INOUT)     :: self
 character(*), INTENT(IN)           :: inp
 
+type(IO_T)                         :: Message 
 self%Modality = trim(inp)
 
-write (*,*) 'DIFT%setModality: setting modality to '//trim(inp)//trim(self%Modality)
+call Message%printMessage('DIFT%setModality: setting modality to '//trim(inp)//trim(self%Modality))
 
 end subroutine setModality_
 
@@ -382,14 +392,23 @@ character(fnlen)   :: dictfile
 character(fnlen)   :: maskfile
 character(fnlen)   :: indexingmode
 character(fnlen)   :: DIModality
+! ECP parameters
+real(kind=sgl)     :: workingdistance
+real(kind=sgl)     :: Rin
+real(kind=sgl)     :: Rout
+real(kind=sgl)     :: conesemiangle
+real(kind=sgl)     :: sampletilt 
+integer(kind=irg)  :: npix
+
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
-                               beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
-                               scalingmode, maskpattern, L, omega, nthreads, energymax, datafile, angfile, ctffile, &
-                               ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
-                               dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
-                               HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile
+                     beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
+                     scalingmode, maskpattern, L, omega, nthreads, energymax, datafile, angfile, ctffile, &
+                     ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
+                     dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
+                     HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
+                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 ncubochoric     = 50
@@ -448,6 +467,12 @@ indexingmode    = 'dynamic'
 inputtype       = 'Binary'    ! Binary, EMEBSD, TSLHDF, TSLup2, OxfordHDF, OxfordBinary, BrukerHDF 
 HDFstrings      = ''
 DIModality      = 'EBSD'      ! EBSD, TKD, ECP, ...
+! ECP 
+npix            = 256
+conesemiangle   = 5.0
+workingdistance = 13.0
+Rin             = 2.0
+Rout            = 6.0
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -544,6 +569,12 @@ self%nml%energymax     = energymax
 self%nml%DIModality    = DIModality
 self%nml%dictfile      = trim(dictfile)
 self%nml%refinementNMLfile = refinementNMLfile
+! ECP
+self%nml%npix            = npix
+self%nml%conesemiangle   = conesemiangle
+self%nml%workingdistance = workingdistance
+self%nml%Rin             = Rin
+self%nml%Rout            = Rout
 
 end subroutine readNameList_
 
@@ -598,24 +629,25 @@ logical                                             :: g_exists, overwrite=.TRUE
 ! create the group for this namelist
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
+! in the future we might decide to use inherited classes for the different 
+! modalities but for now we don't; but we leave appropriate code in place...
 modality = trim(self%getModality())
-! write(*,*) 'modality inside writeHDFNameList : ', trim(modality)
 
 select case(trim(modality)) 
   case('EBSD')
     isEBSD = .TRUE.
-    n_int = 19
-    n_real = 15
+    n_int = 20
+    n_real = 19
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
     isECP = .TRUE.
-    n_int = 19
-    n_real = 15
+    n_int = 20
+    n_real = 19
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('TKD')
     isTKD = .TRUE.
-    n_int = 19
-    n_real = 15
+    n_int = 20
+    n_real = 19
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case default 
     call Message%printError('writeHDFNameList', 'unknown name list type requested')
@@ -625,7 +657,7 @@ end select
 io_int = (/ emnl%ncubochoric, emnl%numexptsingle, emnl%numdictsingle, emnl%ipf_ht, &
             emnl%ipf_wd, emnl%nnk, emnl%maskradius, emnl%numsx, emnl%numsy, emnl%binning, &
             emnl%nthreads, emnl%devid, emnl%platid, emnl%nregions, emnl%nnav, &
-            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism /)
+            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix /)
 intlist(1) = 'Ncubochoric'
 intlist(2) = 'numexptsingle'
 intlist(3) = 'numdictsingle'
@@ -645,11 +677,13 @@ intlist(16) = 'nosm'
 intlist(17) = 'nlines'
 intlist(18) = 'usenumd'
 intlist(19) = 'nism'
+intlist(20) = 'npix'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 io_real = (/ emnl%L, emnl%thetac, emnl%delta, emnl%omega, emnl%xpc, &
              emnl%ypc, emnl%energymin, emnl%energymax, emnl%gammavalue, emnl%StepX, &
-             emnl%stepY, emnl%isangle, emnl%beamcurrent, emnl%dwelltime, emnl%hipassw /)
+             emnl%stepY, emnl%isangle, emnl%beamcurrent, emnl%dwelltime, emnl%hipassw, &
+             emnl%workingdistance, emnl%conesemiangle, emnl%Rin, emnl%Rout /)
 reallist(1) = 'L'
 reallist(2) = 'thetac'
 reallist(3) = 'delta'
@@ -665,6 +699,10 @@ reallist(12) = 'isangle'
 reallist(13) = 'beamcurrent'
 reallist(14) = 'dwelltime'
 reallist(15) = 'hipassw'
+reallist(16) = 'workingdistance'
+reallist(17) = 'conesemiangle'
+reallist(18) = 'Rin'
+reallist(19) = 'Rout'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! a 4-vector
