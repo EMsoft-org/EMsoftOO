@@ -431,6 +431,7 @@ use mod_HDFsupport
 use mod_HDFnames
 use ISO_C_BINDING
 use omp_lib
+use mod_OMPsupport
 ! use distortion
 use mod_filters 
 use stringconstants
@@ -742,10 +743,7 @@ end if
 iparecp = (/ nsig, numk, enl%npix, mpnl%npx /) 
 
 ! set the number of OpenMP threads
-io_int(1) = enl%nthreads
-call Message%WriteValue(' Attempting to set number of threads to ',io_int,1,"(I4)")
-
-call OMP_SET_NUM_THREADS(enl%nthreads)
+call OMP_setNThreads(enl%nthreads)
 
 ! use OpenMP to run on multiple cores
 !$OMP PARALLEL DEFAULT(SHARED) &

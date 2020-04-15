@@ -901,6 +901,7 @@ recursive function quatarraymult(self, y) result(qres)
 
 use mod_io
 use omp_lib
+use mod_OMPsupport
 
 IMPLICIT NONE
 
@@ -910,7 +911,7 @@ IMPLICIT NONE
    !! output quaternion array
 
   type(IO_T)                          :: Message 
-  integer(kind=irg)                   :: i, maxthreads, ompthreads, sz(2) 
+  integer(kind=irg)                   :: i, sz(2) 
 
 ! test to make sure that both arrays have the same number of quaternions 
   if (self%n.ne.y%n) then 
@@ -926,16 +927,8 @@ IMPLICIT NONE
   qres%nthreads = self%nthreads
 
 ! set the number of OpenMP threads
-  maxthreads = OMP_GET_MAX_THREADS()
-  if (self%nthreads.eq.0) then ! use the maximum number of threads unless self%n is less than that
-    ompthreads = maxthreads
-    if (self%n.lt.ompthreads) ompthreads = self%n 
-  else
-    ompthreads = self%nthreads
-    if (self%nthreads.gt.maxthreads) ompthreads = maxthreads
-  end if 
-  call OMP_SET_NUM_THREADS(ompthreads)
-
+  call OMP_setNThreads(qres%nthreads)
+ 
   if (self%s.eq.'s') then 
 ! if the quaternion array is already allocated, check to make sure it has the right dimensions
     if (allocated(qres%q)) then 

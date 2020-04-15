@@ -403,6 +403,7 @@ use HDF5
 use mod_HDFsupport
 use mod_rotations
 use omp_lib
+use mod_OMPsupport
 use mod_HDFnames
 use ISO_C_BINDING
 
@@ -547,7 +548,8 @@ qr = Quaternion_T( qd = qrot%q_copyd() )
 qr = conjg(qr)
 
 ! parallel section starts here
-call OMP_SET_NUM_THREADS(csnl%nthreads)
+call OMP_setNThreads(csnl%nthreads)
+
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, i, qin, eu, qrin, qnew)
 TID = OMP_GET_THREAD_NUM()
 

@@ -78,6 +78,7 @@ use mod_math
 use clfortran
 use mod_CLsupport
 use omp_lib
+use mod_OMPsupport
 use h5im
 use h5lt
 use ISO_C_BINDING
@@ -995,13 +996,10 @@ call timer%Time_tick(1)
 call timer%Time_tick(2)
 
 if (trim(dinl%indexingmode).eq.'dynamic') then
-    call OMP_SET_NUM_THREADS(dinl%nthreads)
-    io_int(1) = dinl%nthreads
+  call OMP_setNThreads(dinl%nthreads)
 else
-    call OMP_SET_NUM_THREADS(2)
-    io_int(1) = 2
+  call OMP_setNThreads(2)
 end if
-call Message%WriteValue(' -> Number of threads set to ',io_int,1,"(I3)")
 
 ! define the jpar array of integer parameters
 jpar(1) = dinl%binning

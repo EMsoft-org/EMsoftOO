@@ -551,6 +551,7 @@ use mod_HDFnames
 use ISO_C_BINDING
 use stringconstants
 use omp_lib
+use mod_OMPsupport
 
 IMPLICIT NONE 
 
@@ -900,11 +901,9 @@ incrad = enl%increment * sngl(cPi)/180.0
 scl = float(nx)
 
 ! set the number of OpenMP threads 
-call OMP_SET_NUM_THREADS(enl%nthreads)
+call OMP_setNThreads(enl%nthreads)
 io_int(1) = nkeep
 call Message%WriteValue(' Total number of integrations to be carried out ', io_int, 1)
-io_int(1) = enl%nthreads
-call Message%WriteValue(' Number of compute threads : ', io_int, 1)
 
 if (enl%kinematical.eqv..TRUE.) then 
   call Message%printMessage(' Computation of symmetrized kinematical pattern will slow things down a bit ... ')

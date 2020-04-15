@@ -967,6 +967,7 @@ use mod_HDFsupport
 use mod_HDFnames
 use ISO_C_BINDING
 use omp_lib
+use mod_OMPsupport
 use mod_timing
 use stringconstants
 use mod_math
@@ -1436,9 +1437,7 @@ ipar(7) = EBSDMCdata%numEbins
 
 !====================================
 ! set the number of OpenMP threads 
-io_int(1) = nthreads
-call Message%WriteValue(' Setting number of threads to ',io_int,1,"(I4)")
-call OMP_SET_NUM_THREADS(nthreads)
+call OMP_setNThreads(nthreads)
 
 call timer%Time_tick()
 
@@ -1979,6 +1978,7 @@ use mod_HDFsupport
 use mod_HDFnames
 use ISO_C_BINDING
 use omp_lib
+use mod_OMPsupport
 use mod_timing
 use stringconstants
 use mod_math
@@ -2348,9 +2348,7 @@ ipar(7) = EBSDMCdata%numEbins
 
 !====================================
 ! set the number of OpenMP threads 
-io_int(1) = nthreads
-call Message%WriteValue(' Setting number of threads to ',io_int,1,"(I4)")
-call OMP_SET_NUM_THREADS(nthreads)
+call OMP_setNThreads(nthreads)
 
 call timer%Time_tick()
 

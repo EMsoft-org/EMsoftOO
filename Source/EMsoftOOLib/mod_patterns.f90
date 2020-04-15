@@ -188,6 +188,7 @@ use mod_timing
 use mod_DIfiles
 use mod_vendors
 use HDF5
+use mod_OMPsupport
 use ISO_C_BINDING
 
 IMPLICIT NONE
@@ -305,10 +306,7 @@ end if
 ! this next part is done with OpenMP, with only thread 0 doing the reading;
 ! Thread 0 reads one line worth of patterns from the input file, then all threads do 
 ! the work, and thread 0 adds them to the epatterns array in RAM; repeat until all patterns have been processed.
-
-call OMP_SET_NUM_THREADS(nml%nthreads)
-io_int(1) = nml%nthreads
-call Message%WriteValue(' -> Number of threads set to ',io_int,1,"(I3)")
+call OMP_setNThreads(nml%nthreads)
 
 ! allocate the arrays that holds the experimental patterns from a single row of the region of interest
 allocate(exppatarray(patsz * nml%ipf_wd),stat=istat)

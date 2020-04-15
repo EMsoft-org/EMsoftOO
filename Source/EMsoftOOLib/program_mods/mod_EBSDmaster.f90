@@ -776,6 +776,7 @@ use mod_HDFsupport
 use mod_HDFnames
 use ISO_C_BINDING
 use omp_lib
+use mod_OMPsupport
 use mod_notifications
 use stringconstants
 use mod_MCfiles
@@ -1463,14 +1464,7 @@ energyloop: do iE=Estart,1,-1
 ! here's where we introduce the OpenMP calls, to speed up the overall calculations...
 
 ! set the number of OpenMP threads 
-  if (emnl%nthreads.eq.0) then 
-    nthreads = OMP_GET_MAX_THREADS()
-  else
-    nthreads = emnl%nthreads
-  end if
-  call OMP_SET_NUM_THREADS(nthreads)
-  io_int(1) = nthreads
-  call Message%WriteValue(' Attempting to set number of threads to ',io_int, 1, frm = "(I4)")
+  call OMP_setNThreads(emnl%nthreads)
 
 ! use OpenMP to run on multiple cores ... 
 !$OMP PARALLEL COPYIN(rlp) &

@@ -795,6 +795,7 @@ use mod_HDFsupport
 use mod_HDFnames
 use ISO_C_BINDING
 use omp_lib
+use mod_OMPsupport
 use stringconstants
 
 IMPLICIT NONE 
@@ -1147,14 +1148,7 @@ totweak = 0
 call timer%Time_tick(1)
 
 ! set the number of OpenMP threads 
-if (kmnl%nthreads.eq.0) then 
-  nthreads = OMP_GET_MAX_THREADS()
-else
-  nthreads = kmnl%nthreads
-end if
-call OMP_SET_NUM_THREADS(nthreads)
-io_int(1) = nthreads
-call Message%WriteValue(' Attempting to set number of threads to ',io_int, 1, frm = "(I4)")
+call OMP_setNThreads(kmnl%nthreads)
 
 ! use OpenMP to run on multiple cores ... 
 !$OMP PARALLEL COPYIN(rlp) &

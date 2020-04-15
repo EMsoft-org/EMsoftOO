@@ -291,6 +291,7 @@ use mod_io
 use mod_quaternions 
 use mod_rotations
 use mod_so3
+use mod_OMPsupport
 
 IMPLICIT NONE
 
@@ -333,7 +334,7 @@ call dummy%QSym_Init(ipar(6), Pm)
 ! for the best match with respect to the next nism matches
 
 ! this should be done in parallel ... 
-call OMP_SET_NUM_THREADS(nt)
+call OMP_setNThreads(nt)
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,angles,angle)
 allocate(angles(lnism))
 !$OMP DO SCHEDULE(DYNAMIC)
