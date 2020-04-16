@@ -1146,7 +1146,7 @@ end if
  if (inspace.eq.'c') then
 ! Cartesian to direct (post-multiplication)
   if (outspace.eq.'d') then
-   d = matmul(self%rsm,t)
+   d = matmul(t,self%rsm)
    return
   end if
 ! Cartesian to reciprocal (post-multiplication)
@@ -1213,7 +1213,7 @@ end if
  if (inspace.eq.'c') then
 ! Cartesian to direct (post-multiplication)
   if (outspace.eq.'d') then
-   d = matmul(self%rsm,t)
+   d = matmul(t,self%rsm)
    return
   end if
 ! Cartesian to reciprocal (post-multiplication)
