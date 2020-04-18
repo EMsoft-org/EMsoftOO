@@ -2146,7 +2146,7 @@ nmlfile = trim(nmldefault)
 
 if (numarg.gt.0) then
   io_int(1) = numarg
-  call Message%WriteValue('Number of command line arguments detected: ',io_int,1)
+  call Message%WriteValue(' Number of command line arguments detected: ',io_int,1)
 end if
 
 haltprogram = .FALSE.

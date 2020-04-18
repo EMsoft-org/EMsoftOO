@@ -36,6 +36,7 @@ module mod_MCfiles
 use mod_kinds
 use mod_global
 use stringconstants
+use ISO_C_BINDING
 
 IMPLICIT NONE 
 private
@@ -92,11 +93,13 @@ type, public :: MCfile_T
     type(MCdataType),public             :: MCDT
     type(MCOpenCLNameListType),public   :: nml 
     character(fnlen)                    :: MCfile
+    character(fnlen, KIND=c_char),allocatable   :: nmlstrings(:)
 
   contains
   private 
 
     procedure, pass(self) :: readMCfile_
+    procedure, pass(self) :: getFileInfo_
     procedure, pass(self) :: writeMCfile_
     procedure, pass(self) :: writeHDFNameList_
     procedure, pass(self) :: copynml_
@@ -112,6 +115,7 @@ type, public :: MCfile_T
     procedure, pass(self) :: copyMCdata_
 
     generic, public :: readMCfile => readMCfile_
+    generic, public :: getFileInfo =>getFileInfo_
     generic, public :: writeHDFNameList => writeHDFNameList_
     generic, public :: writeMCfile => writeMCfile_
     generic, public :: copynml => copynml_
@@ -487,7 +491,7 @@ end associate
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine readMCfile_(self, HDF, HDFnames, getAccume, getAccumz, getAccumSP, getAccumxyz) 
+recursive subroutine readMCfile_(self, HDF, HDFnames, getAccume, getAccumz, getAccumSP, getAccumxyz, getstrings, silent) 
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/05/20
@@ -514,6 +518,8 @@ logical,INTENT(IN),OPTIONAL     :: getAccumSP
  !! stereographic accumulator array switch
 logical,INTENT(IN),OPTIONAL     :: getAccumxyz   
  !! interaction volume array switch
+logical,INTENT(IN),OPTIONAL     :: getstrings
+logical,INTENT(IN),OPTIONAL     :: silent
 
 type(IO_T)                                          :: Message
 character(fnlen)                                    :: groupname, datagroupname, dataset
@@ -582,6 +588,16 @@ if (g_exists.eqv..FALSE.) then
     call Message%printError('readMCfile','this is not an EBSD Monte Carlo file')
 end if
 call HDF%pop()
+
+! get the name list strings if requested 
+if (present(getstrings)) then 
+  if (getstrings.eqv..TRUE.) then 
+    hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+    dataset = trim(HDFnames%get_NMLfilename())
+    call HDF%readdatasetstringarray(dataset, nlines, hdferr, self%nmlstrings)
+    call HDF%pop()
+  end if 
+end if 
 
 !====================================
 ! read all NMLparameters group datasets
@@ -763,10 +779,16 @@ if (present(getAccumz)) then
   end if 
 end if
 
+! the following dataset may not be present in all MC files
 if (present(getAccumSP)) then 
   if (getAccumSP.eqv..TRUE.) then
     dataset = SC_accumSP
-    call HDF%readDatasetFloatArray(dataset, dims3, hdferr, MCDT%accumSP)
+    call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists) then
+      call HDF%readDatasetFloatArray(dataset, dims3, hdferr, MCDT%accumSP)
+    else 
+      allocate( MCDT%accumSP(1,1,1) )
+    end if 
   end if 
 end if
 
@@ -783,14 +805,87 @@ if (present(getAccumxyz)) then
   end if 
 end if
 
-! and close the HDF5 Monte Carloe file
+! and close the HDF5 Monte Carlo file
 call HDF%pop(.TRUE.)
 
-call Message%printMessage(' -> completed reading Monte Carlo data from '//trim(self%MCfile), frm = "(A/)")
+if (.not.present(silent)) then 
+  call Message%printMessage(' --> Completed reading Monte Carlo data from '//trim(self%MCfile), frm = "(A/)")
+end if 
 
 end associate 
 
 end subroutine readMCfile_
+
+!--------------------------------------------------------------------------
+recursive subroutine getFileInfo_(self)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/17/20
+!!
+!! provide a bit of file information for the EMHDFFileInfo program 
+
+use HDF5 
+use mod_HDFsupport
+use mod_HDFnames
+use mod_io
+use stringconstants
+use ISO_C_BINDING 
+
+IMPLICIT NONE
+
+class(MCfile_T), INTENT(INOUT)            :: self 
+
+type(HDF_T)                               :: localHDF
+type(HDFnames_T)                          :: localHDFnames
+
+type(IO_T)                                :: Message
+integer(kind=irg)                         :: i, sz1(1), sz2(2), sz3(3), sz4(4)
+
+localHDFnames = HDFnames_T()
+call localHDFnames%set_ProgramData(SC_MCOpenCL) 
+call localHDFnames%set_NMLlist(SC_MCCLNameList) 
+call localHDFnames%set_NMLfilename(SC_MCOpenCLNML)
+
+localHDF = HDF_T()
+
+  call self%readMCfile_(localHDF, localHDFnames, &
+                        getAccume=.TRUE., & 
+                        getAccumz=.TRUE., &
+                        getAccumSP=.TRUE., &
+                        getstrings=.TRUE., &
+                        silent=.TRUE.) 
+
+! then generate some output; first the entire namelist minus the comment lines 
+call Message%printMessage( (/ ' Monte Carlo namelist entries', &
+                              ' ----------------------------' /))
+sz1 = shape(self%nmlstrings)
+do i=1,sz1(1)
+  if (self%nmlstrings(i)(1:1).ne.'!') then 
+    call Message%printMessage(self%nmlstrings(i))
+  end if 
+end do 
+deallocate(self%nmlstrings)
+
+associate(MCDT=>self%MCDT)
+
+call Message%printMessage( (/ ' Monte Carlo array sizes', &
+                              ' -----------------------' /) )
+sz3 = shape(MCDT%accum_e)
+call Message%WriteValue('accum_e     : ', sz3, 3, "(I4,' x ',I4,' x ',I4)" )
+sz4 = shape(MCDT%accum_z)
+call Message%WriteValue('accum_z     : ', sz4, 4, "(I4,' x ',I4,' x ',I4,' x ',I4)" )
+sz3 = shape(MCDT%accumSP)
+if (sum(sz3).gt.3) then 
+  call Message%WriteValue('accumSP     : ', sz3, 3, "(I4,' x ',I4,' x ',I4)" )
+end if
+
+deallocate(MCDT%accum_e, MCDT%accum_z, MCDT%accumSP)
+
+end associate 
+
+call localHDF%pop(.TRUE.)
+
+end subroutine getFileInfo_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeMCfile_(self, EMsoft, cell, SG, HDF, HDFnames, progname, dstr, tstrb, tstre)

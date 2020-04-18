@@ -196,7 +196,7 @@ integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdic
                                                        recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr, &
                                                        nsig, numk, recordsize_correct, patsz, tickstart, tickstart2, tock, &
                                                        npy, sz(3), jjj
-integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt
+integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt, Nres
 real(kind=sgl),pointer                              :: dict(:), T0dict(:)
 real(kind=sgl),allocatable,TARGET                   :: dict1(:), dict2(:), eudictarray(:)
 real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:), mask(:,:),masklin(:), exptIQ(:), &
@@ -401,20 +401,20 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
         nsig = nint((ecpnl%conesemiangle) + abs(ecpnl%sampletilt)) + 1
         allocate(anglewf(1:nsig),stat=istat)
 
-        call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
+        call Message%printMessage(' --> Calculating weight factors', frm = "(A)" )
         call ECP%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
 
         !=================================================================
         ! check if there are enough angles in MC for detector geometry
         !=================================================================
         if (mcnl%sigend .lt. (abs(ecpnl%sampletilt) + ecpnl%conesemiangle)) then
-          call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
+          call Message%printMessage(' Not enough angles in Monte carlo file...interpolation will be done without &
           appropriate weight factors',frm = "(A)")
           switchwfoff = .TRUE.
         end if
 
         if ((-mcnl%sigend .gt. (ecpnl%conesemiangle - abs(ecpnl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
-          call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
+          call Message%printMessage(' Not enough angles in Monte carlo file...interpolation will be done without &
           appropriate weight factors',frm = "(A)")
           switchwfoff = .TRUE.
         end if
@@ -428,7 +428,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
         allocate(kij(2,numk),klist(3,numk),stat=istat)
 
         io_int(1) = numk
-        call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1) 
+        call Message%WriteValue(' Number of beams for which interpolation will be done = ',io_int,1) 
 
         ktmp => ECP%get_ListHead()
         ! converting to array for OpenMP parallelization
@@ -589,6 +589,13 @@ size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
 recordsize_correct = correctsize*4
 patsz              = correctsize
 
+! do a quick sanity check for the requested GPU memory 
+call Message%printMessage(' --> Initializing OpenCL device')
+CL = OpenCL_T()
+Nres = Ne*Nd*4
+call CL%query_platform_info(dinl%platid)
+call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
+
 if (trim(dinl%indexingmode).eq.'dynamic') then 
 ! override the point group number if this is an overlap master pattern
     if (MPDT%AveragedMP.eqv..TRUE.) then 
@@ -599,7 +606,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     ! make sure the minimum energy is set smaller than the maximum
     !=====================================================
     if (dinl%energymin.gt.dinl%energymax) then
-        call Message%printMessage('Minimum energy is larger than maximum energy; please correct input file')
+        call Message%printMessage(' Minimum energy is larger than maximum energy; please correct input file')
         stop
     end if
 
@@ -709,8 +716,7 @@ end if
 !================================
 ! INITIALIZATION OF OpenCL DEVICE
 !================================
-call Message%printMessage(' --> Initializing OpenCL device')
-CL = OpenCL_T()
+
 call CL%init_PDCCQ(platform, nump, dinl%platid, device, numd, dinl%devid, info, context, command_queue)
 
 ! read the cl source file
@@ -761,7 +767,7 @@ call CL%error_check('InnerProdGPU:clReleaseProgram', ierr)
 !=========================================
 ! ALLOCATION AND INITIALIZATION OF ARRAYS
 !=========================================
-call Message%printMessage('--> Allocating various arrays for indexing')
+call Message%printMessage(' --> Allocating various arrays for indexing')
 
 allocate(expt(Ne*correctsize),stat=istat)
 if (istat .ne. 0) stop 'Could not allocate array for experimental patterns'
@@ -938,7 +944,7 @@ end do
 call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
 
 !=====================================================
-call Message%printMessage(' -> computing Average Dot Product map (ADP)')
+call Message%printMessage(' --> computing Average Dot Product map (ADP)')
 call Message%printMessage(' ')
 
 ! re-open the temporary file
@@ -1043,7 +1049,7 @@ dictionaryloop: do ii = 1,cratio+1
 
     if (verbose.eqv..TRUE.) then
       io_int(1) = ii
-      call Message%WriteValue('Dictionaryloop index = ',io_int,1)
+      call Message%WriteValue(' Dictionaryloop index = ',io_int,1)
     end if
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, tock, ttime) &
@@ -1309,11 +1315,11 @@ if (cancelled.eqv..FALSE.) then
   call timer%Time_tock(2)
   tstop = timer%getInterval(2)
   io_real(1) = tstop
-  call Message%WriteValue('Indexing duration (system_clock, s)                : ',io_real,1,"(/,F14.3)")
+  call Message%WriteValue(' Indexing duration (system_clock, s)                : ',io_real,1,"(/,F14.3)")
   io_real(1) = float(totnumexpt)*float(FZcnt) / tstop
-  call Message%WriteValue('Number of pattern comparisons per second           : ',io_real,1,"(/,F14.3)")
+  call Message%WriteValue(' Number of pattern comparisons per second           : ',io_real,1,"(/,F14.3)")
   io_real(1) = float(totnumexpt) / tstop
-  call Message%WriteValue('Number of experimental patterns indexed per second : ',io_real,1,"(/,F14.3,/)")
+  call Message%WriteValue(' Number of experimental patterns indexed per second : ',io_real,1,"(/,F14.3,/)")
 
 ! ===================
 ! MAIN OUTPUT SECTION
@@ -1347,7 +1353,7 @@ if (cancelled.eqv..FALSE.) then
     call DIFT%setfilename(fname) 
     call DIFT%h5_writeFile(EMsoft, HDF, HDFnames, vendor, mcnl, xtalname, dstr, tstrb, tstre, ipar, resultmain, &
                            exptIQ, indexmain, eulerarray, dpmap, progname, nmldeffile, OSMmap)
-    call Message%printMessage('Data stored in h5 file : '//trim(dinl%datafile))
+    call Message%printMessage(' Data stored in h5 file : '//trim(dinl%datafile))
   end if
 
   VT = Vendor_T()
@@ -1362,7 +1368,7 @@ if (cancelled.eqv..FALSE.) then
   if (dinl%angfile.ne.'undefined') then 
       fpar1(1) = WD
       call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,eulerarray,resultmain,exptIQ)
-      call Message%printMessage('Data stored in ang file : '//trim(dinl%angfile))
+      call Message%printMessage(' Data stored in ang file : '//trim(dinl%angfile))
   end if
 
 ! close the fortran HDF5 interface
@@ -1376,11 +1382,11 @@ if (cancelled.eqv..FALSE.) then
   
       call hostnm(c)
    
-      MessageLines(1) = 'EMDI program has ended successfully'
-      MessageLines(2) = 'Indexed data stored in '//trim(dinl%datafile)
+      MessageLines(1) = ' EMDI program has ended successfully'
+      MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)
       write (exectime,"(F15.0)") tstop  
-      MessageLines(3) = 'Total execution time [s]: '//trim(exectime)
-      TitleMessage = 'EMsoft on '//trim(c)
+      MessageLines(3) = ' Total execution time [s]: '//trim(exectime)
+      TitleMessage = ' EMsoft on '//trim(c)
       i = PostMessage(EMsoft, MessageLines, NumLines, TitleMessage)
     end if
   end if

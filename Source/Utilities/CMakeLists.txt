@@ -28,7 +28,15 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
       GetHDF5LinkLibraries(EMSOFTOO)
       set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFTOO_hdf5LinkLibs})
-    
+ 
+       Add_EMsoftOO_Executable(TARGET EMHDFFileInfo
+                                    SOURCES ${APP_DIR}/EMHDFFileInfo.f90 
+                                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                                    SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+                                    INSTALL_PROGRAM TRUE
+                                    INCLUDE_DIRS ${EMsoftOOHDFLib_BINARY_DIR}
+                                    )
+   
       Add_EMsoftOO_Executable(TARGET EMsoftSlackTest
                                     SOURCES ${APP_DIR}/EMsoftSlackTest.f90 
                                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES}

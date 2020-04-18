@@ -157,6 +157,7 @@ IMPLICIT NONE
       integer(c_size_t), allocatable            :: d_CPUmaxalloc(:,:)
       integer(c_int32_t), allocatable           :: d_CPUcu(:,:)
       integer(c_int64_t), allocatable           :: d_CPUgms(:,:) 
+      integer(c_int64_t), allocatable           :: d_CPUlms(:,:) 
       integer(c_int64_t), allocatable           :: d_CPUmmas(:,:)
       character(fnlen), allocatable             :: d_CPUname(:,:)
 ! GPU information 
@@ -166,6 +167,7 @@ IMPLICIT NONE
       integer(c_size_t), allocatable            :: d_GPUmaxalloc(:,:)
       integer(c_int32_t), allocatable           :: d_GPUcu(:,:)
       integer(c_int64_t), allocatable           :: d_GPUgms(:,:) 
+      integer(c_int64_t), allocatable           :: d_GPUlms(:,:) 
       integer(c_int64_t), allocatable           :: d_GPUmmas(:,:)
       character(fnlen), allocatable             :: d_GPUname(:,:)
 ! other parameters
@@ -186,6 +188,7 @@ IMPLICIT NONE
         procedure, pass(self) :: read_source_file_wrapper_
         procedure, pass(self) :: init_PDCCQ_
         procedure, pass(self) :: init_multiPDCCQ_
+        procedure, pass(self) :: DI_memory_estimate_
         final :: CL_destructor 
 
         generic, public :: error_check => error_check_
@@ -194,6 +197,7 @@ IMPLICIT NONE
         generic, public :: read_source_file => read_source_file_
         generic, public :: read_source_file_wrapper => read_source_file_wrapper_
         generic, public :: init_PDCCQ => init_PDCCQ_, init_multiPDCCQ_
+        generic, public :: DI_memory_estimate => DI_memory_estimate_
 
   end type OpenCL_T
 
@@ -282,6 +286,7 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
     allocate(CL%d_CPUmaxalloc(CL%num_platforms, CL%maxCPUdev))
     allocate(CL%d_CPUcu(CL%num_platforms, CL%maxCPUdev))
     allocate(CL%d_CPUgms(CL%num_platforms, CL%maxCPUdev))
+    allocate(CL%d_CPUlms(CL%num_platforms, CL%maxCPUdev))
     allocate(CL%d_CPUmmas(CL%num_platforms, CL%maxCPUdev))
     allocate(CL%d_CPUname(CL%num_platforms, CL%maxCPUdev))
     allocate(CL%d_GPUids(CL%num_platforms, CL%maxGPUdev))
@@ -290,6 +295,7 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
     allocate(CL%d_GPUmaxalloc(CL%num_platforms, CL%maxGPUdev))
     allocate(CL%d_GPUcu(CL%num_platforms, CL%maxGPUdev))
     allocate(CL%d_GPUgms(CL%num_platforms, CL%maxGPUdev)) 
+    allocate(CL%d_GPUlms(CL%num_platforms, CL%maxGPUdev)) 
     allocate(CL%d_GPUmmas(CL%num_platforms, CL%maxGPUdev))
     allocate(CL%d_GPUname(CL%num_platforms, CL%maxGPUdev))
 
@@ -333,14 +339,23 @@ type(OpenCL_T),INTENT(INOUT)  :: CL
   deallocate(CL%noCPUdevices)
   deallocate(CL%noGPUdevices)
   deallocate(CL%d_CPUids)
-  deallocate(CL%d_GPUids)
   deallocate(CL%d_CPUmwgs)
   deallocate(CL%d_CPUmwis)
   deallocate(CL%d_CPUmaxalloc)
   deallocate(CL%d_CPUcu)
   deallocate(CL%d_CPUgms)
+  deallocate(CL%d_CPUlms)
   deallocate(CL%d_CPUmmas)
   deallocate(CL%d_CPUname)
+  deallocate(CL%d_GPUids)
+  deallocate(CL%d_GPUmwgs)
+  deallocate(CL%d_GPUmwis)
+  deallocate(CL%d_GPUmaxalloc)
+  deallocate(CL%d_GPUcu)
+  deallocate(CL%d_GPUgms)
+  deallocate(CL%d_GPUlms)
+  deallocate(CL%d_GPUmmas)
+  deallocate(CL%d_GPUname)
 
 end subroutine CL_destructor
 ! -----------------------------------------------------------------------------
@@ -386,7 +401,7 @@ character, allocatable, target :: device_name(:)
 integer(c_size_t), target      :: device_mwgs, device_mwis(3), device_maxalloc
 integer(c_int32_t), target     :: device_cu
 
-integer(c_int64_t), target     :: device_gms, device_mmas
+integer(c_int64_t), target     :: device_gms, device_mmas, device_lms
 
 platform_id = self%p_ids(p_id)
 
@@ -469,6 +484,12 @@ else
     device_gms = device_gms/1024/1024/1024
     self%d_CPUgms(p_id, i) = device_gms
 
+    temp_size = 8
+    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    device_lms = device_lms/1024
+    self%d_CPUlms(p_id, i) = device_lms
+
 ! CL_DEVICE_MAX_WORK_GROUP_SIZE
     temp_size = 8 
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
@@ -526,6 +547,12 @@ else
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     device_gms = device_gms/1024/1024/1024
     self%d_GPUgms(p_id, i) = device_gms 
+
+    temp_size = 8
+    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+    device_lms = device_lms/1024
+    self%d_GPUlms(p_id, i) = device_lms 
 
 ! CL_DEVICE_MAX_WORK_GROUP_SIZE
     temp_size = 8 
@@ -603,7 +630,7 @@ IMPLICIT NONE
 class(OpenCL_T),INTENT(IN)     :: self 
 
 type(IO_T)                     :: Message
-integer(kind=irg)              :: io_int(8), i, j
+integer(kind=irg)              :: io_int(9), i, j
 
 io_int(1) = self%num_platforms
 call Message%WriteValue('Number of Platforms: ',io_int,1,"(I2)") 
@@ -637,10 +664,10 @@ do i = 1, self%num_platforms
 
 ! Loop over devices and print information.
     do j = 1, self%num_CPUdevices(i)
-      io_int(1:7) = (/ j, self%d_CPUcu(i,j), int(self%d_CPUmwgs(i,j)), int(self%d_CPUmwis(i,j,1)), &
-        int(self%d_CPUmwis(i,j,2)),int(self%d_CPUmwis(i,j,3)),int(self%d_CPUgms(i,j))  /)
-      call Message%WriteValue('', io_int, 7, &
-            "(' Device (#',I2,', CU/MWGS/MWIS/GMS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,$)") 
+      io_int(1:8) = (/ j, self%d_CPUcu(i,j), int(self%d_CPUmwgs(i,j)), int(self%d_CPUmwis(i,j,1)), &
+        int(self%d_CPUmwis(i,j,2)),int(self%d_CPUmwis(i,j,3)),int(self%d_CPUgms(i,j)), int(self%d_CPUlms(i,j)) /)
+      call Message%WriteValue('', io_int, 8, &
+            "(' Device (#',I2,', CU/MWGS/MWIS/GMS/LMS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I4,'/',I4,$)") 
       call Message%printMessage(') - '//trim(self%d_CPUname(i,j)), frm="(A)" )
     end do
   end if
@@ -657,9 +684,10 @@ do i = 1, self%num_platforms
 ! Loop over devices and print information.
     do j = 1, self%num_GPUdevices(i)
       io_int = (/ j, self%d_GPUcu(i,j), int(self%d_GPUmwgs(i,j)), int(self%d_GPUmwis(i,j,1)), &
-        int(self%d_GPUmwis(i,j,2)),int(self%d_GPUmwis(i,j,3)),int(self%d_GPUgms(i,j)), int(self%d_GPUmaxalloc(i,j))  /)
-      call Message%WriteValue('', io_int, 8, &
-            "(' Device (#',I2,', CU/MWGS/MWIS/GMS/MAS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,',',I4,$)") 
+        int(self%d_GPUmwis(i,j,2)),int(self%d_GPUmwis(i,j,3)),int(self%d_GPUgms(i,j)), int(self%d_GPUlms(i,j)), &
+        int(self%d_GPUmaxalloc(i,j))  /)
+      call Message%WriteValue('', io_int, 9, &
+            "(' Device (#',I2,', CU/MWGS/MWIS/GMS/LMS/MAS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,'/',I4,'/',I4,$)") 
       call Message%printMessage(') - '//trim(self%d_GPUname(i,j)), frm="(A)" )
     end do
 
@@ -674,9 +702,56 @@ call Message%printMessage( &
      ' MWGS = Maximum Work Group Size;            ', &
      ' MWIS = Maximum Work Item Sizes (3D);       ', &
      ' GMS = Global Memory Size (Gb);             ', &
+     ' LMS = Local Memory Size (Mb);              ', &
      ' MAS = Maximum Allocatable Memory Size (Mb) '/) )
 
 end subroutine print_platform_info_
+
+!--------------------------------------------------------------------------
+recursive subroutine DI_memory_estimate_(self, Nr, Nd, Ne, pl, gpu)
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 04/16/20
+  !!
+  !! compute an estimate of the memory needed by the DI program... and 
+  !! compare this to the maximum allocatable memory for that device to 
+  !! make sure it is smaller ... This is known to not quite work right on 
+  !! Windows 10.
+
+use mod_io
+
+IMPLICIT NONE 
+
+class(OpenCL_T),INTENT(INOUT)   :: self 
+integer(kind=8),INTENT(IN)      :: Nr
+integer(kind=8),INTENT(IN)      :: Nd
+integer(kind=8),INTENT(IN)      :: Ne
+integer(kind=4),INTENT(IN)      :: pl
+integer(kind=4),INTENT(IN)      :: gpu
+
+integer(kind=irg)               :: io_int(2)
+type(IO_T)                      :: Message 
+integer(kind=irg)               :: alloc, malloc  
+
+! estimated allocation on the GPU
+alloc = int( maxval( (/ Nr, Nd, Ne /) ) / 1024_8 / 1024_8 ) 
+
+! max allocatable size for the selected device 
+malloc = self%d_GPUmaxalloc(pl,gpu)
+
+if (alloc .gt. malloc ) then 
+  io_int(1) = alloc 
+  io_int(2) = malloc
+  call Message%printMessage('')
+  call Message%printMessage('======================')
+  call Message%WriteValue(' Requested memory chunk > max allocatable memory chunk ', io_int, 2, "(I5,'/',I5,' Mb')")
+  call Message%printMessage(' The OpenCL portion of this program may crash; if it does,')
+  call Message%printMessage(' please reduce the values of the numexptsingle and numdictsingle parameters...')
+  call Message%printMessage('======================')
+  call Message%printMessage('')
+end if 
+
+end subroutine DI_memory_estimate_
 
 !--------------------------------------------------------------------------
 recursive subroutine read_source_file_(self, EMsoft, sourcefile, csource, slength)

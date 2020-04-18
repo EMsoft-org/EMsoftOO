@@ -309,7 +309,7 @@ character(*), INTENT(IN)           :: inp
 type(IO_T)                         :: Message 
 self%Modality = trim(inp)
 
-call Message%printMessage('DIFT%setModality: setting modality to '//trim(inp)//trim(self%Modality))
+! call Message%printMessage('DIFT%setModality: setting modality to '//trim(inp)//trim(self%Modality))
 
 end subroutine setModality_
 

@@ -38,6 +38,7 @@ module mod_MPfiles
 use mod_kinds
 use mod_global
 use stringconstants
+use ISO_C_BINDING
 
 IMPLICIT NONE 
 private
@@ -100,11 +101,13 @@ type, public :: MPfile_T
     type(MPdataType),public       :: MPDT
     character(fnlen)              :: MPfile
     character(fnlen)              :: modality = 'unknown'
+    character(fnlen, KIND=c_char),allocatable   :: nmlstrings(:)
 
   contains
   private 
 
     procedure, pass(self) :: readMPfile_
+    procedure, pass(self) :: getFileInfo_
     procedure, pass(self) :: setFileName_
     ! procedure, pass(self) :: writeMPfile_
     procedure, pass(self) :: writeHDFNameList_
@@ -133,6 +136,7 @@ type, public :: MPfile_T
     procedure, pass(self) :: copyMPoverlapdata_ 
 
     generic, public :: readMPfile => readMPfile_
+    generic, public :: getFileInfo =>getFileInfo_
     generic, public :: setFileName => setFileName_
     generic, public :: setModality => set_Modality_
     generic, public :: getModality => get_Modality_
@@ -874,7 +878,7 @@ end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine readMPfile_(self, HDF, HDFnames, mpnl, getkeVs, getmLPNH, getmLPSH, &
-                                 getmasterSPNH, getmasterSPSH, keep4, defectMP)
+                                 getmasterSPNH, getmasterSPSH, keep4, defectMP, getstrings, silent)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/20
@@ -901,6 +905,8 @@ logical,INTENT(IN),OPTIONAL                      :: getmasterSPNH
 logical,INTENT(IN),OPTIONAL                      :: getmasterSPSH
 logical,INTENT(IN),OPTIONAL                      :: keep4
 logical,INTENT(IN),OPTIONAL                      :: defectMP
+logical,INTENT(IN),OPTIONAL                      :: getstrings
+logical,INTENT(IN),OPTIONAL                      :: silent
 
 type(IO_T)                                       :: Message
 character(fnlen)                                 :: infile, groupname, datagroupname, dataset
@@ -1016,6 +1022,16 @@ if (MPDT%AveragedMP.eqv..TRUE.) then
   call HDF%pop()
   call HDF%pop()
 end if
+
+! get the name list strings if requested 
+if (present(getstrings)) then 
+  if (getstrings.eqv..TRUE.) then 
+    hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+    dataset = trim(HDFnames%get_NMLfilename())
+    call HDF%readdatasetstringarray(dataset, nlines, hdferr, self%nmlstrings)
+    call HDF%pop()
+  end if 
+end if 
 
 !====================================
 ! read all NMLparameters group datasets
@@ -1252,12 +1268,99 @@ end if
 ! and close the HDF5 Master Pattern file
 call HDF%pop(.TRUE.)
 
-call Message%printMessage(' --> Completed reading master pattern data from '//trim(self%MPfile), frm = "(A/)")
+if (.not.present(silent)) then 
+  call Message%printMessage(' --> Completed reading master pattern data from '//trim(self%MPfile), frm = "(A/)")
+end if 
 
 end associate 
 
 end subroutine readMPfile_
 
+
+!--------------------------------------------------------------------------
+recursive subroutine getFileInfo_(self, modality)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/17/20
+!!
+!! provide a bit of file information for the EMHDFFileInfo program 
+
+use HDF5 
+use mod_HDFsupport
+use mod_HDFnames
+use mod_io
+use stringconstants
+use ISO_C_BINDING 
+
+IMPLICIT NONE
+
+class(MPfile_T), INTENT(INOUT)            :: self 
+character(*)                              :: modality 
+
+type(HDF_T)                               :: localHDF
+type(HDFnames_T)                          :: localHDFnames
+type(EBSDmasterNameListType)              :: mpnl
+
+type(IO_T)                                :: Message
+integer(kind=irg)                         :: i, sz1(1), sz2(2), sz3(3), sz4(4)
+
+localHDFnames = HDFnames_T()
+
+if (trim(modality).eq.'EBSD') then 
+  call localHDFnames%set_ProgramData(SC_EBSDmaster) 
+  call localHDFnames%set_NMLlist(SC_EBSDmasterNameList) 
+  call localHDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+else if (trim(modality).eq.'TKD') then 
+    call localHDFnames%set_ProgramData(SC_TKDmaster) 
+    call localHDFnames%set_NMLlist(SC_TKDmasterNameList) 
+    call localHDFnames%set_NMLfilename(SC_TKDmasterNML) 
+  else if (trim(modality).eq.'ECP') then 
+      call localHDFnames%set_ProgramData(SC_ECPmaster) 
+      call localHDFnames%set_NMLlist(SC_ECPmasterNameList) 
+      call localHDFnames%set_NMLfilename(SC_ECPmasterNML) 
+  end if
+
+localHDF = HDF_T()
+
+call self%readMPfile(localHDF, localHDFnames, mpnl, &
+                     getmLPNH=.TRUE., &
+                     getmLPSH=.TRUE., &
+                     getmasterSPNH=.TRUE., &
+                     getmasterSPSH=.TRUE., &
+                     keep4=.TRUE., &
+                     getstrings=.TRUE., &
+                     silent=.TRUE.) 
+
+! then generate some output; first the entire namelist minus the comment lines 
+call Message%printMessage( (/ ' Master Pattern namelist entries', &
+                              ' -------------------------------' /))
+sz1 = shape(self%nmlstrings)
+do i=1,sz1(1)
+  if (self%nmlstrings(i)(1:1).ne.'!') then 
+    call Message%printMessage(self%nmlstrings(i))
+  end if 
+end do 
+deallocate(self%nmlstrings)
+
+associate(MPDT=>self%MPDT)
+
+call Message%printMessage( (/ ' Master Pattern array sizes', &
+                              ' --------------------------' /) )
+sz4 = shape(MPDT%mLPNH4)
+call Message%WriteValue(' mLPNH      : ', sz4, 4, "(I4,' x ',I4,' x ',I4,' x ',I4)" )
+call Message%WriteValue(' mLPSH      : ', sz4, 4, "(I4,' x ',I4,' x ',I4,' x ',I4)" )
+deallocate(MPDT%mLPNH4, MPDT%mLPSH4)
+
+sz3 = shape(MPDT%masterSPNH)
+call Message%WriteValue(' masterSPNH : ', sz3, 3, "(I4,' x ',I4,' x ',I4)" )
+call Message%WriteValue(' masterSPSH : ', sz3, 3, "(I4,' x ',I4,' x ',I4)" )
+deallocate(MPDT%masterSPNH, MPDT%masterSPSH)
+
+end associate 
+
+call localHDF%pop(.TRUE.)
+
+end subroutine getFileInfo_
 
 !--------------------------------------------------------------------------
 recursive subroutine copyMPdata_(self, EMsoft, HDF, HDFnames, inputfile, outputfile, h5, skipCrystalData)
