@@ -1,0 +1,1742 @@
+! ###################################################################
+! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
+! All rights reserved.
+!
+! Redistribution and use in source and binary forms, with or without modification, are 
+! permitted provided that the following conditions are met:
+!
+!     - Redistributions of source code must retain the above copyright notice, this list 
+!        of conditions and the following disclaimer.
+!     - Redistributions in binary form must reproduce the above copyright notice, this 
+!        list of conditions and the following disclaimer in the documentation and/or 
+!        other materials provided with the distribution.
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
+!        of its contributors may be used to endorse or promote products derived from 
+!        this software without specific prior written permission.
+!
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+! ###################################################################
+
+module mod_FitOrientation
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 04/08/20
+  !!
+  !! class definition for the EMFitOrientation program
+
+use mod_kinds
+use mod_global
+
+IMPLICIT NONE 
+
+! namelist for the EMFitOrientation program
+type, public :: FitOrientationNameListType
+  integer(kind=irg) :: nthreads
+  integer(kind=irg) :: matchdepth
+  character(fnlen)  :: dotproductfile
+  character(fnlen)  :: ctffile
+  character(fnlen)  :: angfile
+  character(fnlen)  :: tmpfile
+  character(fnlen)  :: PSvariantfile
+  character(fnlen)  :: method
+  character(4)      :: modality
+  logical           :: inRAM
+  real(kind=sgl)    :: step
+  integer(kind=irg) :: nmis
+  integer(kind=irg) :: niter
+end type FitOrientationNameListType
+
+! class definition
+type, public :: FitOrientation_T
+private 
+  character(fnlen)                  :: nmldeffile = 'EMFitOrientation.nml'
+  type(FitOrientationNameListType)  :: nml 
+
+contains
+private 
+  procedure, pass(self) :: readNameList_
+  procedure, pass(self) :: writeHDFNameList_
+  procedure, pass(self) :: getNameList_
+  procedure, pass(self) :: FitOrientation_
+  procedure, pass(self) :: get_nthreads_
+  procedure, pass(self) :: get_matchdepth_
+  procedure, pass(self) :: get_dotproductfile_
+  procedure, pass(self) :: get_ctffile_
+  procedure, pass(self) :: get_angfile_
+  procedure, pass(self) :: get_tmpfile_
+  procedure, pass(self) :: get_PSvariantfile_
+  procedure, pass(self) :: get_method_
+  procedure, pass(self) :: get_modality_
+  procedure, pass(self) :: get_inRAM_
+  procedure, pass(self) :: get_step_
+  procedure, pass(self) :: get_nmis_
+  procedure, pass(self) :: get_niter_
+  procedure, pass(self) :: set_nthreads_
+  procedure, pass(self) :: set_matchdepth_
+  procedure, pass(self) :: set_dotproductfile_
+  procedure, pass(self) :: set_ctffile_
+  procedure, pass(self) :: set_angfile_
+  procedure, pass(self) :: set_tmpfile_
+  procedure, pass(self) :: set_PSvariantfile_
+  procedure, pass(self) :: set_method_
+  procedure, pass(self) :: set_modality_
+  procedure, pass(self) :: set_inRAM_
+  procedure, pass(self) :: set_step_
+  procedure, pass(self) :: set_nmis_
+  procedure, pass(self) :: set_niter_
+
+  generic, public :: getNameList => getNameList_
+  generic, public :: writeHDFNameList => writeHDFNameList_
+  generic, public :: readNameList => readNameList_
+  generic, public :: FitOrientation => FitOrientation_
+  generic, public :: get_nthreads => get_nthreads_
+  generic, public :: get_matchdepth => get_matchdepth_
+  generic, public :: get_dotproductfile => get_dotproductfile_
+  generic, public :: get_ctffile => get_ctffile_
+  generic, public :: get_angfile => get_angfile_
+  generic, public :: get_tmpfile => get_tmpfile_
+  generic, public :: get_PSvariantfile => get_PSvariantfile_
+  generic, public :: get_method => get_method_
+  generic, public :: get_modality => get_modality_
+  generic, public :: get_inRAM => get_inRAM_
+  generic, public :: get_step => get_step_
+  generic, public :: get_nmis => get_nmis_
+  generic, public :: get_niter => get_niter_
+  generic, public :: set_nthreads => set_nthreads_
+  generic, public :: set_matchdepth => set_matchdepth_
+  generic, public :: set_dotproductfile => set_dotproductfile_
+  generic, public :: set_ctffile => set_ctffile_
+  generic, public :: set_angfile => set_angfile_
+  generic, public :: set_tmpfile => set_tmpfile_
+  generic, public :: set_PSvariantfile => set_PSvariantfile_
+  generic, public :: set_method => set_method_
+  generic, public :: set_modality => set_modality_
+  generic, public :: set_inRAM => set_inRAM_
+  generic, public :: set_step => set_step_
+  generic, public :: set_nmis => set_nmis_
+  generic, public :: set_niter => set_niter_
+end type FitOrientation_T
+
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: FitOrientation
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads
+!DEC$ ATTRIBUTES DLLEXPORT :: get_matchdepth
+!DEC$ ATTRIBUTES DLLEXPORT :: set_matchdepth
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dotproductfile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dotproductfile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ctffile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ctffile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_angfile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_angfile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_tmpfile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_tmpfile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_PSvariantfile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_PSvariantfile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_method
+!DEC$ ATTRIBUTES DLLEXPORT :: set_method
+!DEC$ ATTRIBUTES DLLEXPORT :: get_modality
+!DEC$ ATTRIBUTES DLLEXPORT :: set_modality
+!DEC$ ATTRIBUTES DLLEXPORT :: get_inRAM
+!DEC$ ATTRIBUTES DLLEXPORT :: set_inRAM
+!DEC$ ATTRIBUTES DLLEXPORT :: get_step
+!DEC$ ATTRIBUTES DLLEXPORT :: set_step
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nmis
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nmis
+!DEC$ ATTRIBUTES DLLEXPORT :: get_niter
+!DEC$ ATTRIBUTES DLLEXPORT :: set_niter
+
+! the constructor routine for this class 
+interface FitOrientation_T
+  module procedure FitOrientation_constructor
+end interface FitOrientation_T
+
+contains
+
+!--------------------------------------------------------------------------
+type(FitOrientation_T) function FitOrientation_constructor( nmlfile ) result(FitOrientation)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! constructor for the FitOrientation_T Class; reads the name list 
+ 
+IMPLICIT NONE
+
+character(fnlen), OPTIONAL   :: nmlfile 
+
+call FitOrientation%readNameList(nmlfile)
+
+end function FitOrientation_constructor
+
+!--------------------------------------------------------------------------
+subroutine FitOrientation_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! destructor for the FitOrientation_T Class
+ 
+IMPLICIT NONE
+
+type(FitOrientation_T), INTENT(INOUT)  :: self 
+
+call reportDestructor('FitOrientation_T')
+
+end subroutine FitOrientation_destructor
+
+!--------------------------------------------------------------------------
+subroutine readNameList_(self, nmlfile, initonly)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! read the namelist from an nml file for the FitOrientation_T Class 
+
+use mod_io 
+use mod_EMsoft
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)          :: self
+character(fnlen),INTENT(IN)          :: nmlfile
+ !! full path to namelist file 
+logical,OPTIONAL,INTENT(IN)          :: initonly
+ !! fill in the default values only; do not read the file
+
+type(EMsoft_T)                       :: EMsoft 
+type(IO_T)                           :: Message       
+logical                              :: skipread = .FALSE.
+
+
+integer(kind=irg)   :: nthreads
+integer(kind=irg)   :: matchdepth
+character(fnlen)    :: dotproductfile
+character(fnlen)    :: ctffile
+character(fnlen)    :: angfile
+character(fnlen)    :: tmpfile
+character(fnlen)    :: PSvariantfile
+character(fnlen)    :: method
+character(4)        :: modality
+logical             :: inRAM
+integer(kind=irg)   :: nmis
+integer(kind=irg)   :: niter
+real(kind=sgl)      :: step
+
+
+namelist / RefineOrientations / nthreads, dotproductfile, ctffile, modality, nmis, niter, step, inRAM, method, &
+                                matchdepth, PSvariantfile, tmpfile, angfile
+
+nthreads = 1
+matchdepth = 1
+dotproductfile = 'undefined'
+ctffile = 'undefined'
+angfile = 'undefined'
+tmpfile = 'undefined'
+PSvariantfile = 'undefined'
+method = 'FIT'
+inRAM = .FALSE.
+nmis = 1
+niter = 1
+step = 1.0
+modality = 'EBSD'
+
+if (present(initonly)) then
+  if (initonly) skipread = .TRUE.
+end if
+
+if (.not.skipread) then
+! read the namelist file
+    open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
+    read(UNIT=dataunit,NML=RefineOrientations)
+    close(UNIT=dataunit,STATUS='keep')
+
+! check for required entries
+    if (trim(dotproductfile).eq.'undefined') then
+        call Message%printError('readNameList:',' dotproduct file name is undefined in '//nmlfile)
+    end if
+
+    if (trim(ctffile).eq.'undefined') then
+        call Message%printError('readNameList:',' ctf file name is undefined in '//nmlfile)
+    end if
+
+    if (trim(tmpfile).eq.'undefined') then
+        call Message%printError('readNameList:',' tmp file name is undefined in '//nmlfile)
+    end if
+end if
+
+self%nml%nthreads = nthreads
+self%nml%matchdepth = matchdepth
+self%nml%dotproductfile = dotproductfile
+self%nml%ctffile = ctffile
+self%nml%angfile = angfile
+self%nml%tmpfile = tmpfile
+self%nml%PSvariantfile = PSvariantfile
+self%nml%method = method
+self%nml%inRAM = inRAM
+self%nml%nmis = nmis
+self%nml%niter = niter
+self%nml%step = step
+self%nml%modality = modality
+
+end subroutine readNameList_
+
+!--------------------------------------------------------------------------
+function getNameList_(self) result(nml)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! pass the namelist for the FitOrientation_T Class to the calling program
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)          :: self
+type(FitOrientationNameListType)                :: nml
+
+nml = self%nml
+
+end function getNameList_
+
+!--------------------------------------------------------------------------
+recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! write namelist to HDF file
+
+use mod_HDFsupport
+use mod_HDFnames
+use stringconstants 
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(FitOrientation_T), INTENT(INOUT)  :: self 
+type(HDF_T), INTENT(INOUT)              :: HDF
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+
+integer(kind=irg),parameter             :: n_int = 11, n_real = 9
+integer(kind=irg)                       :: hdferr,  io_int(n_int)
+real(kind=sgl)                          :: io_real(n_real)
+character(20)                           :: intlist(n_int), reallist(n_real)
+character(fnlen)                        :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)            :: line2(1)
+
+associate( mcnl => self%nml )
+
+! to be written (add name list to existing DI file)
+end associate
+
+end subroutine writeHDFNameList_
+
+
+!--------------------------------------------------------------------------
+function get_nthreads_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get nthreads from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+integer(kind=irg)                          :: out
+
+out = self%nml%nthreads
+
+end function get_nthreads_
+
+!--------------------------------------------------------------------------
+subroutine set_nthreads_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set nthreads in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)              :: inp
+
+self%nml%nthreads = inp
+
+end subroutine set_nthreads_
+
+!--------------------------------------------------------------------------
+function get_matchdepth_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get matchdepth from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+integer(kind=irg)                          :: out
+
+out = self%nml%matchdepth
+
+end function get_matchdepth_
+
+!--------------------------------------------------------------------------
+subroutine set_matchdepth_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set matchdepth in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)              :: inp
+
+self%nml%matchdepth = inp
+
+end subroutine set_matchdepth_
+
+!--------------------------------------------------------------------------
+function get_dotproductfile_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get dotproductfile from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%dotproductfile
+
+end function get_dotproductfile_
+
+!--------------------------------------------------------------------------
+subroutine set_dotproductfile_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set dotproductfile in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%dotproductfile = inp
+
+end subroutine set_dotproductfile_
+
+!--------------------------------------------------------------------------
+function get_ctffile_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get ctffile from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%ctffile
+
+end function get_ctffile_
+
+!--------------------------------------------------------------------------
+subroutine set_ctffile_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set ctffile in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%ctffile = inp
+
+end subroutine set_ctffile_
+
+!--------------------------------------------------------------------------
+function get_angfile_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/20/20
+!!
+!! get angfile from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%angfile
+
+end function get_angfile_
+
+!--------------------------------------------------------------------------
+subroutine set_angfile_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/20/20
+!!
+!! set angfile in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%angfile = inp
+
+end subroutine set_angfile_
+
+!--------------------------------------------------------------------------
+function get_tmpfile_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get tmpfile from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%tmpfile
+
+end function get_tmpfile_
+
+!--------------------------------------------------------------------------
+subroutine set_tmpfile_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set tmpfile in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%tmpfile = inp
+
+end subroutine set_tmpfile_
+
+!--------------------------------------------------------------------------
+function get_PSvariantfile_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get PSvariantfile from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%PSvariantfile
+
+end function get_PSvariantfile_
+
+!--------------------------------------------------------------------------
+subroutine set_PSvariantfile_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set PSvariantfile in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%PSvariantfile = inp
+
+end subroutine set_PSvariantfile_
+
+!--------------------------------------------------------------------------
+function get_method_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get method from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%method
+
+end function get_method_
+
+!--------------------------------------------------------------------------
+subroutine set_method_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set method in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%method = inp
+
+end subroutine set_method_
+
+!--------------------------------------------------------------------------
+function get_modality_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get modality from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(4)                               :: out
+
+out = self%nml%modality
+
+end function get_modality_
+
+!--------------------------------------------------------------------------
+subroutine set_modality_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set modality in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(4), INTENT(IN)                   :: inp
+
+self%nml%modality = inp
+
+end subroutine set_modality_
+
+!--------------------------------------------------------------------------
+function get_inRAM_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get inRAM from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+logical                                    :: out
+
+out = self%nml%inRAM
+
+end function get_inRAM_
+
+!--------------------------------------------------------------------------
+subroutine set_inRAM_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set inRAM in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)                        :: inp
+
+self%nml%inRAM = inp
+
+end subroutine set_inRAM_
+
+!--------------------------------------------------------------------------
+function get_step_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get step from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+real(kind=sgl)                             :: out
+
+out = self%nml%step
+
+end function get_step_
+
+!--------------------------------------------------------------------------
+subroutine set_step_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set step in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)                 :: inp
+
+self%nml%step = inp
+
+end subroutine set_step_
+
+!--------------------------------------------------------------------------
+function get_nmis_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get nmis from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+integer(kind=irg)                          :: out
+
+out = self%nml%nmis
+
+end function get_nmis_
+
+!--------------------------------------------------------------------------
+subroutine set_nmis_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set nmis in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)              :: inp
+
+self%nml%nmis = inp
+
+end subroutine set_nmis_
+
+!--------------------------------------------------------------------------
+function get_niter_(self) result(out)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! get niter from the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+integer(kind=irg)                          :: out
+
+out = self%nml%niter
+
+end function get_niter_
+
+!--------------------------------------------------------------------------
+subroutine set_niter_(self,inp)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! set niter in the FitOrientation_T class
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)              :: inp
+
+self%nml%niter = inp
+
+end subroutine set_niter_
+
+!--------------------------------------------------------------------------
+subroutine FitOrientation_(self, EMsoft, progname)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/08/20
+!!
+!! perform the computations
+
+use mod_EMsoft
+use mod_crystallography
+use mod_symmetry
+use mod_patterns
+use mod_vendors
+use HDF5
+use h5im
+use h5lt
+use mod_HDFsupport
+use mod_HDFnames
+use mod_math
+use mod_MCfiles
+use mod_MPfiles
+use mod_DIfiles
+use mod_EBSD
+use mod_ECP
+use mod_timing
+use mod_rotations
+use mod_quaternions
+use mod_so3
+use omp_lib
+use mod_filters
+use mod_timing
+use mod_io
+use omp_lib
+use mod_OMPsupport
+use mod_bobyqa_refinement,only:bobyqa
+use mod_FitOrientations,only:EMFitOrientationcalfunEBSD
+use stringconstants
+
+IMPLICIT NONE 
+
+class(FitOrientation_T), INTENT(INOUT)  :: self
+type(EMsoft_T), INTENT(INOUT)           :: EMsoft
+character(fnlen), INTENT(INOUT)         :: progname 
+
+type(IO_T)                              :: Message 
+type(HDF_T)                             :: HDF 
+type(HDFnames_T)                        :: HDFnames
+type(Cell_T)                            :: cell 
+type(SpaceGroup_T)                      :: SG
+type(q_T)                               :: qu 
+type(Quaternion_T)                      :: qq, quat, quat2, qq2 
+type(QuaternionArray_T)                 :: quPS 
+type(e_T)                               :: eu 
+type(a_T)                               :: ax 
+type(r_T)                               :: rfz
+type(h_T)                               :: ho
+type(c_T)                               :: cu
+type(MCfile_T)                          :: MCFT 
+type(MPfile_T)                          :: MPFT 
+type(DIfile_T)                          :: DIFT
+type(so3_T)                             :: SO
+type(QuaternionArray_T)                 :: qdummy, qAR
+type(Timing_T)                          :: timer 
+type(EBSD_T)                            :: EBSD 
+type(ECP_T)                             :: ECP
+type(Vendor_T)                          :: VT
+
+! type(EBSDIndexingNameListType)          :: dinl
+type(MCOpenCLNameListType)              :: mcnl
+type(EBSDMasterNameListType)            :: mpnl
+! type(EBSDNameListType)                  :: ebsdnl
+
+
+logical                                 :: stat, readonly, noindex, ROIselected
+character(fnlen)                        :: dpfile, masterfile, energyfile
+integer(kind=irg)                       :: hdferr, ii, jj, kk, iii, istat, npy, jjj, iparecp(4)
+
+real(kind=dbl)                          :: misang       ! desired misorientation angle (degrees)
+integer(kind=irg)                       :: Nmis         ! desired number of sampling points along cube edge
+integer(kind=irg)                       :: CMcnt        ! number of entries in linked list
+type(FZpointd),pointer                  :: CMlist, CMtmp       ! pointer to start of linked list and temporary one
+real(kind=dbl)                          :: rhozero(4), hipassw
+
+real(kind=sgl),allocatable              :: euPS(:,:), euler_bestmatch(:,:,:), CIlist(:), CMarray(:,:,:)
+integer(kind=irg),allocatable           :: indexmain(:,:) 
+real(kind=sgl),allocatable              :: resultmain(:,:)                                         
+integer(HSIZE_T)                        :: dims(1),dims2D(2),dims3(3),offset3(3) 
+
+character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(fnlen)                        :: dataset, groupname  
+character(fnlen)                        :: ename, fname    
+character(2)                            :: anglemode
+real(kind=dbl),parameter                :: nAmpere = 6.241D+18   ! Coulomb per second
+
+integer(c_size_t),allocatable           :: IPAR2(:)
+real(kind=dbl),allocatable              :: X(:), XL(:), XU(:)
+real(kind=sgl),allocatable              :: INITMEANVAL(:)
+real(kind=dbl)                          :: RHOBEG, RHOEND
+integer(kind=irg)                       :: NPT, N, IPRINT, NSTEP, NINIT
+integer(kind=irg),parameter             :: MAXFUN = 10000
+logical                                 :: verbose
+
+logical                                 :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
+                                           isECP=.FALSE., switchwfoff
+integer(kind=irg),parameter             :: iunitexpt = 41, itmpexpt = 42
+integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk 
+real(kind=sgl),allocatable              :: tmpimageexpt(:), EBSDPattern(:,:), imageexpt(:), mask(:,:), masklin(:)
+real(kind=sgl),allocatable              :: imagedictflt(:), exppatarray(:)
+real(kind=sgl),allocatable              :: EBSDpatternintd(:,:), binned(:,:), euler_best(:,:)
+real(kind=sgl),allocatable              :: epatterns(:,:)
+real(kind=sgl),allocatable              :: anglewf(:)
+integer(kind=irg),allocatable           :: kij(:,:)
+integer(kind=irg),allocatable           :: EBSDpatterninteger(:,:), EBSDpatternad(:,:), EBSDpint(:,:), Rvar(:)
+type(C_PTR)                             :: planf, HPplanf, HPplanb
+integer(kind=8)                         :: size_in_bytes_dict,size_in_bytes_expt
+type(IncidentListECP),pointer           :: ktmp
+real(kind=dbl),allocatable              :: klist(:,:)
+
+real(kind=dbl)                          :: w, Jres, nel, emult, MCsig
+real(kind=dbl)                          :: stpsz, cu0(3)
+real(kind=dbl),allocatable              :: cubneighbor(:,:)
+real(kind=sgl)                          :: ma, mi, dp, tstart, tstop, io_real(4), tmp, &
+                                           vlen, avec(3), fpar1(1), fpar2(2), WD
+integer(kind=irg)                       :: ipar(10), Emin, Emax, nthreads, TID, io_int(2), tickstart, ierr, L, nvar, niter
+integer(kind=irg)                       :: ll, mm, jpar(7), Nexp, pgnum, FZcnt, nlines, dims2(2), correctsize, totnumexpt
+
+real(kind=dbl)                          :: prefactor, F, angleaxis(4)
+real(kind=sgl),allocatable              :: axPS(:,:), dpPS(:,:), eulerPS(:,:,:)
+real(kind=dbl)                          :: ratioE, euinp(3)
+integer(kind=irg)                       :: i, cratioE, fratioE, eindex, jjend, iiistart, iiiend, Nd, Ne, patsz, pp
+integer(kind=irg),allocatable           :: ppendE(:)
+real(kind=sgl),allocatable              :: exptpatterns(:,:)
+
+real(kind=sgl),allocatable              :: STEPSIZE(:), OSMmap(:,:), IQmap(:)
+character(fnlen)                        :: modalityname, DIfile, xtalname
+
+
+call setRotationPrecision('d')
+
+associate(ronl=>self%nml, dinl=>DIFT%nml, DIDT=>DIFT%DIDT, MCDT=>MCFT%MCDT, &
+          MPDT=>MPFT%MPDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml)
+
+init = .TRUE.
+overwrite = .TRUE.
+verbose = .FALSE.
+
+modalityname = trim(ronl%modality)
+
+!====================================
+! read the relevant fields from the dot product HDF5 file
+
+! open the HDF interface
+call openFortranHDFInterface()
+HDF = HDF_T() 
+
+HDFnames = HDFnames_T() 
+
+call HDFnames%set_NMLfiles(SC_NMLfiles)
+call HDFnames%set_NMLfilename(SC_DictionaryIndexingNML)
+call HDFnames%set_NMLparameters(SC_NMLparameters)
+call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
+
+!====================================
+! read the relevant fields from the dot product HDF5 file
+!====================================
+DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%dotproductfile)
+if (trim(modalityname) .eq. 'EBSD') then
+  if ( (ronl%matchdepth.eq.1).or.(trim(ronl%method).eq.'SUB') ) then 
+    call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
+                                 getCI=.TRUE., &
+                                 getIQ=.TRUE., & 
+                                 getOSM=.TRUE., & 
+                                 getPhi1=.TRUE., &
+                                 getPhi=.TRUE., &
+                                 getPhi2=.TRUE.) 
+
+    w = dinl%hipassw
+    Nexp = DIDT%Nexp
+    allocate(euler_bestmatch(3,1,Nexp),stat=istat)
+    allocate(euler_best(3,Nexp),CIlist(Nexp),stat=istat)
+    if (istat .ne. 0) then
+        call Message%printError('FitOrientation','Failed to allocate euler_bestmatch array')
+    end if 
+    euler_bestmatch = 0.0
+    euler_best = 0.0
+    CIlist = 0.0
+    euler_bestmatch(1,1,1:Nexp) = DIDT%Phi1(1:Nexp)
+    euler_bestmatch(2,1,1:Nexp) = DIDT%Phi(1:Nexp)
+    euler_bestmatch(3,1,1:Nexp) = DIDT%Phi2(1:Nexp)
+    deallocate(DIDT%Phi1,DIDT%Phi,DIDT%Phi2)
+  else
+    call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
+                                 getCI=.TRUE., &
+                                 getIQ=.TRUE., & 
+                                 getOSM=.TRUE., & 
+                                 getEulerAngles=.TRUE., &
+                                 getTopMatchIndices=.TRUE.) 
+
+    w = dinl%hipassw
+    Nexp = DIDT%Nexp
+    allocate(euler_bestmatch(3,ronl%matchdepth,Nexp),stat=istat)
+    allocate(euler_best(3,Nexp),CIlist(Nexp),stat=istat)
+    if (istat .ne. 0) then
+        call Message%printError('FitOrientation','Failed to allocate euler_bestmatch array')
+    end if 
+    euler_bestmatch = 0.0
+    euler_best = 0.0
+    CIlist = 0.0
+! read the appropriate set of Euler angles from the array of near matches 
+    do ii=1,ronl%matchdepth
+      do jj=1,Nexp
+        euler_bestmatch(1:3,ii,jj) = DIDT%EulerAngles(1:3,DIDT%TopMatchIndices(ii,jj))
+      end do 
+    end do 
+    euler_bestmatch = euler_bestmatch * dtor
+    deallocate(DIDT%EulerAngles, DIDT%TopMatchIndices)
+  end if
+
+  CIlist(1:Nexp) = DIDT%CI(1:Nexp)
+
+  deallocate(DIDT%CI)
+
+! the following arrays are kept in the EBSDDIdata structure
+!   OSMmap = EBSDDIdata%OSM
+!   IQmap = EBSDDIdata%IQ
+
+    call Message%printMessage(' -> completed reading of dot product file')
+else
+   call Message%printError('FitOrientation','This program only handles EBSPs; use EMECPDIrefine for ECPs') 
+end if
+
+Ne = dinl%numexptsingle
+Nd = dinl%numdictsingle
+nthreads = ronl%nthreads
+
+if (sum(dinl%ROI).ne.0) then
+  ROIselected = .TRUE.
+  iiistart = dinl%ROI(2)
+  iiiend = dinl%ROI(2)+dinl%ROI(4)-1
+  jjend = dinl%ROI(3)
+else
+  ROIselected = .FALSE.
+  iiistart = 1
+  iiiend = dinl%ipf_ht
+  jjend = dinl%ipf_wd
+end if
+
+if (ROIselected.eqv..TRUE.) then 
+    totnumexpt = dinl%ROI(3)*dinl%ROI(4)
+else
+    totnumexpt = dinl%ipf_wd*dinl%ipf_ht
+end if
+
+!===================================================================================
+!===============READ MASTER AND MC FILE=============================================
+!===================================================================================
+!
+! determine the modality from the master pattern file, and also set it in the dinl name list
+fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
+call MPFT%determineModality(HDF, fname)
+call Message%printMessage(' Master Pattern modality : '//trim(MPFT%getModality()))
+call DIFT%setModality(MPFT%getModality())
+
+if (trim(MPFT%getModality()).eq.'EBSD') then 
+  isEBSD = .TRUE.
+else if (trim(MPFT%getModality()).eq.'TKD') then 
+  isTKD = .TRUE.
+else if (trim(MPFT%getModality()).eq.'ECP') then
+  isECP = .TRUE.
+  end if  
+
+! 1. read the Monte Carlo data file
+call HDFnames%set_ProgramData(SC_MCOpenCL) 
+call HDFnames%set_NMLlist(SC_MCCLNameList) 
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
+fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
+call MCFT%setFileName(fname)
+call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
+mcnl = MCFT%getnml()
+xtalname = trim(mcnl%xtalname)
+
+! 2. read the master pattern file
+if (isTKD.eqv..TRUE.) then
+  call HDFnames%set_ProgramData(SC_TKDmaster) 
+  call HDFnames%set_NMLlist(SC_TKDmasterNameList) 
+  call HDFnames%set_NMLfilename(SC_TKDmasterNML) 
+end if 
+if (isEBSD.eqv..TRUE.) then
+  call HDFnames%set_ProgramData(SC_EBSDmaster) 
+  call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
+  call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+end if 
+if (isECP.eqv..TRUE.) then
+  call HDFnames%set_ProgramData(SC_ECPmaster) 
+  call HDFnames%set_NMLlist(SC_ECPmasterNameList) 
+  call HDFnames%set_NMLfilename(SC_ECPmasterNML) 
+end if 
+call HDFnames%set_Variable(SC_MCOpenCL) 
+
+fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
+call MPFT%setFileName(fname)
+call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
+
+! set the HDFnames for the current program (same for all modalities)
+call HDFnames%set_ProgramData(SC_EMDI) 
+call HDFnames%set_NMLlist(SC_EMDINameList) 
+call HDFnames%set_NMLfilename(SC_EMDI) 
+
+! we know that the master pattern file exists, and it also has all the 
+! crystallographic data in it, so we read that here instead of assuming 
+! that the actual .xtal file exists on this system ...
+call cell%setFileName(xtalname)
+call cell%readDataHDF(SG, EMsoft, useXtalName=fname)
+! extract the point group number 
+pgnum = SG%getPGnumber()
+io_int = pgnum 
+call Message%WriteValue(' Setting point group number to ',io_int,1)
+
+! 3. for EBSD/TKD copy a few parameters from dinl to enl
+! and then generate the detector arrays
+if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.)) then 
+  allocate(det%rgx(dinl%numsx,dinl%numsy), &
+           det%rgy(dinl%numsx,dinl%numsy), &
+           det%rgz(dinl%numsx,dinl%numsy), &
+           det%accum_e_detector(MCDT%numEbins,dinl%numsx,dinl%numsy), stat=istat)
+  enl%numsx = dinl%numsx
+  enl%numsy = dinl%numsy
+  enl%xpc = dinl%xpc
+  enl%ypc = dinl%ypc
+  enl%delta = dinl%delta
+  enl%thetac = dinl%thetac
+  enl%L = dinl%L
+  enl%energymin = dinl%energymin
+  enl%energymax = dinl%energymax
+
+  if (isTKD.eqv..TRUE.) then 
+    call EBSD%GenerateDetector(MCFT, verbose, isTKD)
+  end if 
+  if (isEBSD.eqv..TRUE.) then 
+    call EBSD%GenerateDetector(MCFT, verbose)
+  end if 
+else  ! this must be an ECP indexing run so we initialize the appropriate detector arrays
+  if (isECP.eqv..TRUE.) then 
+    ECP = ECP_T()
+  ! copy a few parameters
+    ecpnl%conesemiangle = dinl%conesemiangle
+    ecpnl%sampletilt = dinl%sampletilt
+    ecpnl%npix = dinl%npix 
+    ecpnl%workingdistance = dinl%workingdistance
+    ecpnl%Rin = dinl%Rin 
+    ecpnl%Rout = dinl%Rout
+
+    call ECP%ECPGenerateDetector(verbose=.TRUE.)
+    nsig = nint((ecpnl%conesemiangle) + abs(ecpnl%sampletilt)) + 1
+    allocate(anglewf(1:nsig),stat=istat)
+
+    call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
+    call ECP%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
+
+    !=================================================================
+    ! check if there are enough angles in MC for detector geometry
+    !=================================================================
+    if (mcnl%sigend .lt. (abs(ecpnl%sampletilt) + ecpnl%conesemiangle)) then
+      call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
+      appropriate weight factors',frm = "(A)")
+      switchwfoff = .TRUE.
+    end if
+
+    if ((-mcnl%sigend .gt. (ecpnl%conesemiangle - abs(ecpnl%sampletilt))) .and. (switchwfoff .eqv. .FALSE.)) then
+      call Message%printMessage('Not enough angles in Monte carlo file...interpolation will be done without &
+      appropriate weight factors',frm = "(A)")
+      switchwfoff = .TRUE.
+    end if
+
+    !=================================================================
+    ! generate list of incident vectors
+    !=================================================================
+    numk = 0
+    call ECP%GetVectorsCone()
+    numk = ECP%get_numk()
+    allocate(kij(2,numk),klist(3,numk),stat=istat)
+
+    io_int(1) = numk
+    call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1) 
+
+    ktmp => ECP%get_ListHead()
+    ! converting to array for OpenMP parallelization
+    do i = 1,numk
+       klist(1:3,i) = ktmp%k(1:3)
+       kij(1:2,i) = (/ktmp%i,ktmp%j/)
+       ktmp => ktmp%next
+    end do
+    iparecp(1) = nsig 
+    iparecp(2) = numk 
+    iparecp(3) = ecpnl%npix
+    iparecp(4) = mpnl%npx
+  end if 
+end if 
+
+! also copy the sample tilt angle into the correct variable for writing to the dot product file
+MCsig = mcnl%sig
+
+call Message%printMessage(' Completed reading all MC/MP input data; generated detector ')
+
+!=====================================================
+! get the indices of the minimum and maximum energy
+!=====================================================
+Emin = nint((dinl%energymin - mcnl%Ehistmin)/mcnl%Ebinsize) +1
+if (Emin.lt.1)  Emin=1
+if (Emin.gt.MCDT%numEbins)  Emin=MCDT%numEbins
+
+Emax = nint((dinl%energymax - mcnl%Ehistmin)/mcnl%Ebinsize) + 1
+if (Emax .lt. 1) Emax = 1
+if (Emax .gt. MCDT%numEbins) Emax = MCDT%numEbins
+
+!=====================================================
+!==========fill important parameters in namelist======
+!=====================================================
+
+binx = dinl%numsx/dinl%binning
+biny = dinl%numsy/dinl%binning
+recordsize = binx*biny*4
+L = binx*biny
+npy = mpnl%npx
+
+! make sure that correctsize is a multiple of 16; if not, make it so
+if (mod(L,16) .ne. 0) then
+    correctsize = 16*ceiling(float(L)/16.0)
+else
+    correctsize = L
+end if
+
+! determine the experimental and dictionary sizes in bytes
+size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
+size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
+patsz              = correctsize
+
+allocate(IPAR2(10))
+IPAR2 = 0
+
+! define the jpar array
+jpar(1) = dinl%binning
+jpar(2) = dinl%numsx
+jpar(3) = dinl%numsy
+jpar(4) = mpnl%npx
+jpar(5) = npy
+jpar(6) = MCDT%numEbins
+jpar(7) = MCDT%numEbins
+!jpar(7) = dinl%nE
+
+IPAR2(1:7) = jpar(1:7)
+IPAR2(8) = Emin
+IPAR2(9) = Emax
+IPAR2(10)= dinl%nregions
+
+dims2 = (/binx, biny/)
+
+! intensity prefactor
+! modified by MDG, 03/26/18
+nel = float(mcnl%totnum_el) * float(mcnl%multiplier)
+emult = nAmpere * 1e-9 / nel  ! multiplicative factor to convert MC data to an equivalent incident beam of 1 nanoCoulomb
+! intensity prefactor  (redefined by MDG, 3/23/18)
+prefactor = emult * dinl%beamcurrent * dinl%dwelltime * 1.0D-6
+
+!=====================================================
+!=====================================================
+! set up the equivalent pseudo-symmetric orientation quaternions
+!=====================================================
+!=====================================================
+! do we have a PS variant file ?
+if (trim(ronl%PSvariantfile).ne.'undefined') then
+    ! we need to get the direct structure matrix to convert the axis-angle pair
+    ! to the correct reference frame, so we'll read the complete xtal file
+    ! and initialize all matrices as usual
+    ! allocate (cell)
+    call cell%getCrystalData(xtalname, SG, EMsoft)
+
+    call Message%printMessage('Reading pseudo-symmetry variant operators: ')
+    dpfile = trim(EMsoft%getConfigParameter('EMdatapathname'))//trim(ronl%PSvariantfile)
+
+    ! this is a simple text file, similar to an euler angle file; the input should
+    ! be in quaternion format, so abort when the file does not have quaternions...
+    open(unit=53,file=trim(dpfile),status='old',action='read')
+    read (53,*) anglemode
+    if ((anglemode.ne.'ax').and.(anglemode.ne.'eu')) call Message%printError('EMFitOrientationPS','angle type must be eu or ax')
+    read (53,*) nvar
+    nvar = nvar + 1     ! identity operation is first entry
+    allocate(dpPS(ronl%matchdepth, nvar),eulerPS(3, ronl%matchdepth, nvar))
+    quPS = QuaternionArray_T(nvar, s='d')
+
+    if (anglemode.eq.'ax') then 
+    ! allocate some arrays
+        allocate(axPS(4,nvar))
+        axPS = 0.0
+        axPS(1:4,1) = (/ 0.0, 0.0, 1.0, 0.0 /)
+
+        do ii = 2,nvar
+            read(53,"(4F12.9)") axPS(1:4,ii)
+        end do
+    ! the axis should be given in crystal coordinates as a direction, so 
+    ! we need to transform the axis first to the crystal cartesian frame
+    ! using the direct structure matrix, and then normalize it...
+        call Message%printMessage(' -> Converting operators to cartesian reference frame...')
+        do ii=1,nvar
+            call cell%TransSpace(axPS(1:3,ii),avec,'d','c')
+            avec = avec/vecnorm(avec)
+
+            axPS(1:3,ii) = avec(1:3)
+            axPS(4,ii) = axPS(4,ii) * dtor
+        end do
+
+        call Message%printMessage(' -> Final pseudo-symmetric quaternion operator(s): ')
+        do ii = 1,nvar
+          ax = a_T( adinp = dble(axPS(1:4,ii)) )
+          qu = ax%aq()
+          qq = Quaternion_T( qd = qu%q_copyd() )
+          call qq%quat_pos()
+          call quPS%insertQuatinArray(ii, qq)
+          io_real(1:4) = qq%get_quatd()
+          call Message%WriteValue('',io_real,4)
+        end do
+        deallocate(axPS)
+    else
+        ! allocate some arrays
+        allocate(euPS(3,nvar))
+        euPS = 0.0
+        euPS(1:3,1) = (/ 0.0, 0.0, 0.0 /)
+
+        do ii = 2,nvar
+            read(53,"(3F12.9)") euPS(1:3,ii)
+        end do
+
+        call Message%printMessage(' -> Final pseudo-symmetric quaternion operator(s): ')
+        do ii = 1,nvar
+          eu = e_T( edinp = dble(euPS(1:3,ii)) )
+          qu = eu%eq()
+          qq = Quaternion_T( qd = qu%q_copyd() )
+          call qq%quat_pos()
+          call quPS%insertQuatinArray(ii, qq)
+          io_real(1:4) = qq%get_quatd()
+          call Message%WriteValue('',io_real,4)
+        end do 
+        deallocate(euPS)
+    end if
+    close(52,status='keep')
+    call Message%printMessage('--------')
+else  ! there are no pseudo-symmetric variants in this run
+  nvar = 1     ! identity operation is the only entry
+  allocate(dpPS(ronl%matchdepth, nvar),eulerPS(3, ronl%matchdepth, nvar))
+  quPS = QuaternionArray_T(nvar, s='d')
+  call quPS%insertQuatinArray(1, Quaternion_T( qd = (/ 1.D0, 0.D0, 0.D0, 0.D0 /) ))
+end if 
+
+!=====================================================
+!=====================================================
+! set up the correct fundamental zone and symmetry operators
+SO = so3_T(pgnum, zerolist='FZ') 
+call qdummy%QSym_Init( pgnum, qAR )
+
+!=====================================================
+!==========ALLOCATE ALL ARRAYS HERE=================== 
+!=====================================================
+allocate(mask(binx,biny),masklin(binx*biny))
+mask = 1.0
+masklin = 0.0
+
+allocate(EBSDPattern(binx,biny),tmpimageexpt(binx*biny),imageexpt(binx*biny),binned(binx,biny))
+EBSDPattern = 0.0
+tmpimageexpt = 0.0
+imageexpt = 0.0
+binned = 0.0
+
+
+allocate(EBSDpatternintd(binx,biny),EBSDpatterninteger(binx,biny),EBSDpatternad(binx,biny))
+EBSDpatternintd = 0.0
+EBSDpatterninteger = 0
+EBSDpatternad = 0.0
+
+allocate(imagedictflt(binx*biny))
+imagedictflt = 0.0
+
+!===============================================================
+! define the circular mask if necessary and convert to 1D vector
+!===============================================================
+if (dinl%maskpattern.eq.'y') then
+  do ii = 1,biny
+      do jj = 1,binx
+          if((ii-biny/2)**2 + (jj-binx/2)**2 .ge. dinl%maskradius**2) then
+              mask(jj,ii) = 0.0
+          end if
+      end do
+  end do
+end if
+  
+do ii = 1,biny
+    do jj = 1,binx
+        masklin((ii-1)*binx+jj) = mask(jj,ii)
+    end do
+end do
+
+!===============================================================
+!======== pre-process the experimental patterns=================
+!===============================================================
+! is the output to a temporary file or will it be kept in memory?
+if (ronl%inRAM.eqv..TRUE.) then 
+! allocate the array that will hold all the processed experimental patterns
+  allocate(epatterns(correctsize,totnumexpt),stat=istat)
+  if (istat .ne. 0) stop 'could not allocate array to hold processed experimental patterns'
+  call PreProcessPatterns(EMsoft, HDF, .TRUE., dinl, binx, biny, masklin, correctsize, totnumexpt, epatterns=epatterns)
+  io_real(1) = minval(epatterns)
+  io_real(2) = maxval(epatterns)
+  call Message%WriteValue(' --> preprocessed patterns intensity range (kept in RAM) = ',io_real,2)
+else
+  ! get the tmp file name from the input name list instead of the dot product file
+  ! to allow for multiple instantiations of this program to run simultaneously
+  dinl%tmpfile = trim(ronl%tmpfile)
+  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
+end if
+
+!=================================
+!========LOOP VARIABLES===========
+!=================================
+
+ratioE = float(Nexp)/float(dinl%numexptsingle)
+cratioE = ceiling(ratioE)
+fratioE = floor(ratioE)
+
+ppendE = (/ (dinl%numexptsingle, ii=1,cratioE) /)
+if (fratioE.lt.cratioE) then
+  ppendE(cratioE) = MODULO(Nexp,dinl%numexptsingle)
+end if
+
+!===================================================================================
+! method = 'SUB' ... define necessary parameters
+!===================================================================================
+if (ronl%method.eq.'SUB') then 
+    Nmis = ronl%nmis 
+    niter = ronl%niter
+    allocate(cubneighbor(1:3,(2*Nmis + 1)**3),stat=istat)
+    if (istat.ne.0) then
+        call Message%printError('FitOrientation','Failed to allocate cubneighbor array')
+    end if
+end if 
+
+!===================================================================================
+!===============BOBYQA VARIABLES====================================================
+!===================================================================================
+N = 3
+allocate(X(N),XL(N),XU(N),INITMEANVAL(N),STEPSIZE(N))
+
+XL = 0.D0
+XU = 1.D0
+RHOBEG = 0.1D0
+RHOEND = 0.0001D0
+IPRINT = 0
+NPT = N + 6
+STEPSIZE = ronl%step
+verbose = .FALSE.
+
+if (ronl%inRAM.eqv..FALSE.) then
+   fname = trim(EMsoft%getConfigParameter('EMtmppathname'))//trim(dinl%tmpfile)
+   open(unit=itmpexpt,file=trim(fname),&
+   status='unknown',form='unformatted',access='direct',recl=correctsize*4,iostat=ierr)
+end if
+
+!===================================================================================
+!===============MAIN COMPUTATION LOOP===============================================
+!===================================================================================
+
+io_int(1) = ronl%nthreads
+call Message%WriteValue(' Attempting to set number of threads to ',io_int,1,"(I4)")
+call OMP_setNThreads(ronl%nthreads)
+
+timer = Timing_T()
+call timer%Time_tick()
+
+allocate(exptpatterns(binx*biny,dinl%numexptsingle),stat=istat)
+
+! depending on the ronl%method, we perform the optimization with different routines...
+if (ronl%method.eq.'FIT') then 
+
+    do iii = 1,cratioE
+        if (ronl%inRAM.eqv..FALSE.) then
+            do jj = 1,ppendE(iii)
+                eindex = (iii - 1)*Ne + jj
+                read(itmpexpt,rec=eindex) tmpimageexpt
+                exptpatterns(1:binx*biny,jj) = tmpimageexpt(1:binx*biny)
+            end do
+        end if
+
+        
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex) &
+!$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,kk,ll,mm) &
+!$OMP& PRIVATE(X,INITMEANVAL,dpPS,eulerPS,rfz,euinp,pos, qq2, qq, eu, ho)
+         
+          TID = OMP_GET_THREAD_NUM()
+
+!$OMP DO SCHEDULE(DYNAMIC)
+          do jj = 1,ppendE(iii)
+
+            eindex = (iii - 1)*Ne + jj
+            if (ronl%inRAM.eqv..TRUE.) then
+                tmpimageexpt(1:correctsize) = epatterns(1:correctsize,eindex)
+                tmpimageexpt = tmpimageexpt/vecnorm(tmpimageexpt)
+            else
+                tmpimageexpt = exptpatterns(:,jj)
+            end if
+
+    ! calculate the dot product for each of the orientations in the neighborhood of the best match
+    ! including the pseudosymmetric variant; do this for all the selected top matches (matchdepth)
+            do kk = 1, ronl%matchdepth    
+
+                eu = e_T( edinp = dble(euler_bestmatch(1:3,kk,eindex)) )
+                qu = eu%eq()
+                quat = Quaternion_T( qd = qu%q_copyd() )
+
+                do ll = 1,nvar
+                    qq2 = quPS%getQuatfromArray(ll)
+                    quat2 = qq2 * quat
+
+                    call SO%ReduceOrientationtoRFZ(quat2, qAR, rfz)
+
+                    ho = rfz%rh()
+                    INITMEANVAL(1:3) = ho%h_copyd() 
+                    
+                    X(1:3) = 0.5D0
+                    call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
+                                 XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, det%accum_e_detector,&
+                                 MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, det%rgx, det%rgy, &
+                                 det%rgz, STEPSIZE, dinl%gammavalue, verbose)
+                
+                    ho = h_T( hdinp = dble(X*2.0*STEPSIZE - STEPSIZE + INITMEANVAL) )
+                    eu = ho%he()  
+                    eulerPS(1:3,kk,ll) = eu%e_copyd() * rtod
+
+                    call EMFitOrientationcalfunEBSD(IPAR2, INITMEANVAL, tmpimageexpt, det%accum_e_detector, &
+                                                    MPDT%mLPNH, MPDT%mLPSH, N, X, F, mask, prefactor, &
+                                                    det%rgx, det%rgy, det%rgz, STEPSIZE, dinl%gammavalue, verbose)
+
+                    dpPS(kk,ll) = 1.D0 - F
+                end do
+            end do
+
+! updating the confidence index only if a better match is found
+            dp = maxval(dpPS)
+            if (dp .gt. CIlist(eindex)) then
+              CIlist(eindex) = dp
+              pos = maxloc(dpPS)
+              euler_best(1:3,eindex) = eulerPS(1:3,pos(1),pos(2))
+            else
+              euler_best(1:3,eindex) = euler_bestmatch(1:3,1,eindex) * rtod 
+            end if
+            
+            if (mod(eindex,250) .eq. 0) then
+                io_int(1) = eindex
+                io_int(2) = totnumexpt
+                call Message%Writevalue('completed refining pattern #',io_int,2,'(I8,'' of '',I8)')
+            end if
+
+        end do
+    !$OMP END DO
+    !$OMP END PARALLEL
+     
+    end do
+else  ! sub-divide the cubochoric grid in half steps and determine for which gridpoint the dot product is largest
+    do iii = 1,cratioE
+        
+        exptpatterns = 0.0
+        stpsz = LPs%ap/2.D0/dinl%ncubochoric/2.D0
+
+        if (ronl%inRAM.eqv..FALSE.) then
+            do jj = 1,ppendE(iii)
+                eindex = (iii - 1)*dinl%numexptsingle + jj
+                read(itmpexpt,rec=eindex) tmpimageexpt
+                exptpatterns(1:binx*biny,jj) = tmpimageexpt(1:binx*biny)
+            end do
+        end if
+
+        do kk = 1,niter
+
+            io_int(1) = kk
+            io_int(2) = niter
+            call Message%Writevalue(' --> Starting cubochoric grid refinement ',io_int,2,'(I3,'' of '',I3)')
+
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ii,tmpimageexpt,jj,quat,binned,ma,mi,eindex) &
+    !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,ll,mm,dp) &
+    !$OMP& PRIVATE(cubneighbor,cu0, cu, eu)
+    !$OMP DO SCHEDULE(DYNAMIC)
+
+            do ii = 1,ppendE(iii)
+
+               eindex = (iii - 1)*dinl%numexptsingle + ii
+               if (ronl%inRAM.eqv..TRUE.) then
+                    tmpimageexpt(1:correctsize) = epatterns(1:correctsize,eindex)
+                    tmpimageexpt = tmpimageexpt/vecnorm(tmpimageexpt)
+                else
+                    tmpimageexpt = exptpatterns(:, ii)
+                end if
+                eu = e_T( edinp = dble(euler_bestmatch(1:3,1,eindex)) )
+                cu = eu%ec()
+                cu0 = cu%c_copyd()
+
+                call CubochoricNeighbors(cubneighbor,Nmis,cu0,stpsz)
+
+    ! calculate the dot product for each of the orientations in the neighborhood of the best match    
+                do jj = 1,(2*Nmis + 1)**3
+                    cu = c_T( cdinp = dble(cubneighbor(1:3,jj)) )
+                    quat = Quaternion_T( qd = cu%c_copyd() )
+            
+                    call CalcEBSDPatternSingleFull(jpar,quat,det%accum_e_detector,MPDT%mLPNH,MPDT%mLPSH,&
+                                                   det%rgx, det%rgy,det%rgz,binned,Emin,Emax,mask,&
+                                                   prefactor)
+
+                    ma = maxval(binned)
+                    mi = minval(binned)
+                  
+                    EBSDpatternintd = ((binned - mi)/ (ma-mi))
+                    EBSDpatterninteger = nint(EBSDpatternintd*255.0)
+                    EBSDpatternad =  adhisteq(dinl%nregions,binx,biny,EBSDpatterninteger)
+                    binned = float(EBSDpatternad)
+
+                    imagedictflt = 0.0
+
+                    do ll = 1,biny
+                        do mm = 1,binx
+                            imagedictflt((ll-1)*binx+mm) = binned(mm,ll)
+                        end do
+                    end do
+
+                    imagedictflt = imagedictflt/vecnorm(imagedictflt)
+
+                    dp = DOT_PRODUCT(tmpimageexpt,imagedictflt)
+
+    ! updating the confidence index if a better match is found
+                    if(dp .gt. CIlist(eindex)) then
+                        CIlist(eindex) = dp
+                        qu = q_T( qdinp = quat%get_quatd() )
+                        eu = qu%qe()
+                        euler_best(1:3,eindex) = eu%e_copyd()
+                    end if
+
+                end do
+
+                if (mod(eindex,250) .eq. 0) then
+                    io_int(1) = eindex
+                    io_int(2) = totnumexpt
+                    call Message%Writevalue('      completed refining pattern #',io_int,2,'(I8,'' of '',I8)')
+                end if
+            end do
+
+    !$OMP END DO
+    !$OMP END PARALLEL
+
+        stpsz = stpsz/2.D0
+        end do
+        
+    end do
+
+end if
+
+if (ronl%inRAM.eqv..FALSE.) then
+   close(unit=itmpexpt, status='delete')
+end if
+
+!===========================================
+! output section
+!===========================================
+
+! add fitted dot product values to HDF5 file
+! open the fortran HDF interface
+dpfile = trim(EMsoft%getConfigParameter('EMdatapathname'))//trim(ronl%dotproductfile)
+
+! open the fortran HDF interface
+hdferr =  HDF%openFile(dpfile)
+
+! open the Scan 1/EBSD/Data group
+groupname = 'Scan 1'
+hdferr = HDF%openGroup(groupname)
+groupname = SC_EBSD
+hdferr = HDF%openGroup(groupname)
+groupname = SC_Data
+hdferr = HDF%openGroup(groupname)
+
+dataset = SC_RefinedDotProducts
+call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetFloatArray(dataset, CIlist, Nexp, overwrite)
+else
+  hdferr = HDF%writeDatasetFloatArray(dataset, CIlist, Nexp)
+end if
+ 
+dataset = SC_RefinedEulerAngles
+call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best*dtor), 3, Nexp, overwrite)
+else
+  hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best*dtor), 3, Nexp)
+end if
+ 
+call HDF%pop(.TRUE.) 
+
+!===========================================
+! and generate the ctf output file as well... [.ang output to be added]
+dinl%ctffile = ronl%ctffile
+
+ipar = 0
+ipar(1) = 1
+ipar(2) = Nexp
+ipar(3) = Nexp
+ipar(4) = Nexp 
+ipar(5) = DIDT%FZcnt
+ipar(6) = pgnum
+if (sum(dinl%ROI).ne.0) then
+    ipar(7) = dinl%ROI(3)
+    ipar(8) = dinl%ROI(4)
+else
+    ipar(7) = dinl%ipf_wd
+    ipar(8) = dinl%ipf_ht
+end if
+
+allocate(indexmain(ipar(1),1:ipar(2)),resultmain(ipar(1),1:ipar(2)))
+indexmain = 0
+resultmain(1,1:ipar(2)) = CIlist(1:Nexp)
+
+VT = Vendor_T()
+call VT%set_Modality(MPFT%getModality())
+if (ronl%ctffile.ne.'undefined') then 
+  fpar2(1) = mcnl%EkeV
+  fpar2(2) = MCsig
+  call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,indexmain,euler_best,resultmain, DIDT%OSM, DIDT%IQ, noindex=.TRUE.)
+  call Message%printMessage(' Data stored in ctf file : '//trim(ronl%ctffile))
+end if
+
+if (ronl%angfile.ne.'undefined') then 
+    fpar1(1) = WD
+    call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,euler_best,resultmain,DIDT%IQ)
+    call Message%printMessage(' Data stored in ang file : '//trim(ronl%angfile))
+end if
+
+! close the fortran HDF5 interface
+call closeFortranHDFInterface()
+
+call timer%Time_tock() 
+tstop = timer%getInterval()
+
+io_real(1) = tstop
+call Message%WriteValue('Execution time [system_clock()] = ',io_int,1,"(I8,' [s]')")
+
+
+end associate 
+
+end subroutine FitOrientation_
+
+end module mod_FitOrientation

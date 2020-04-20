@@ -80,7 +80,9 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_vendors.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_DIsupport.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_OMPsupport.f90
-
+  ${EMsoftOOLib_SOURCE_DIR}/mod_bobyqa.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_bobyqa_refinement.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_FitOrientations.f90
   
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90
@@ -108,6 +110,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_DIpreview.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_getMP.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_HDFFileInfo.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_FitOrientation.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

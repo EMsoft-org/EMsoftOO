@@ -52,14 +52,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoftOO_Executable(TARGET EMFitOrientation
-  #                     SOURCES ${APP_DIR}/EMFitOrientation.f90 
-  #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-  #                     TEMPLATE ${TMPLT_DIR}/EMFitOrientation.template 
-  #                     SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
-  #                     INSTALL_PROGRAM TRUE
-  #                     INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-  #                     )
+  Add_EMsoftOO_Executable(TARGET EMFitOrientation
+                      SOURCES ${APP_DIR}/EMFitOrientation.f90 
+                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                      TEMPLATE ${TMPLT_DIR}/EMFitOrientation.template 
+                      SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                      )
  
   Add_EMsoftOO_Executable(TARGET EMgetCTF
                       SOURCES ${APP_DIR}/EMgetCTF.f90 
