@@ -214,7 +214,7 @@ real(kind=sgl),allocatable                          :: pattern(:,:), FZarray(:,:
 real(kind=sgl),allocatable                          :: patternintd(:,:), lp(:), cp(:), EBSDpat(:,:)
 integer(kind=irg),allocatable                       :: patterninteger(:,:), patternad(:,:), EBSDpint(:,:), kij(:,:)
 character(kind=c_char),allocatable                  :: EBSDdictpat(:,:,:)
-real(kind=sgl),allocatable                          :: EBSDdictpatflt(:,:), anglewf(:)
+real(kind=sgl),allocatable                          :: dictpatflt(:,:), anglewf(:)
 real(kind=dbl),allocatable                          :: rdata(:,:), fdata(:,:), rrdata(:,:), ffdata(:,:), ksqarray(:,:), klist(:,:)
 complex(kind=dbl),allocatable                       :: hpmask(:,:)
 complex(C_DOUBLE_COMPLEX),allocatable               :: inp(:,:), outp(:,:)
@@ -725,10 +725,10 @@ call CL%read_source_file(EMsoft, sourcefile, csource, slength)
 
 ! allocate device memory for experimental and dictionary patterns
 cl_expt = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_expt, C_NULL_PTR, ierr)
-call CL%error_check('EBSDDISubroutine:clCreateBuffer', ierr)
+call CL%error_check('DIdriver:clCreateBuffer', ierr)
 
 cl_dict = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_dict, C_NULL_PTR, ierr)
-call CL%error_check('EBSDDISubroutine:clCreateBuffer', ierr)
+call CL%error_check('DIdriver:clCreateBuffer', ierr)
 
 !================================
 ! the following lines were originally in the InnerProdGPU routine, but there is no need
@@ -773,7 +773,7 @@ allocate(expt(Ne*correctsize),stat=istat)
 if (istat .ne. 0) stop 'Could not allocate array for experimental patterns'
 expt = 0.0
 
-allocate(dict1(Nd*correctsize),dict2(Nd*correctsize),dicttranspose(Nd*correctsize),stat=istat)
+allocate(dict1(Nd*correctsize),dict2(Nd*correctsize),stat=istat)
 if (istat .ne. 0) stop 'Could not allocate array for dictionary patterns'
 dict1 = 0.0
 dict2 = 0.0
@@ -789,7 +789,7 @@ if (istat .ne. 0) stop 'Could not allocate arrays for masks'
 mask = 1.0
 masklin = 0.0
 
-allocate(imageexpt(L),imageexptflt(correctsize),imagedictflt(correctsize),imagedictfltflip(correctsize),stat=istat)
+allocate(imageexpt(L),imageexptflt(correctsize),stat=istat)
 allocate(tmpimageexpt(correctsize),stat=istat)
 if (istat .ne. 0) stop 'Could not allocate array for reading experimental image patterns'
 imageexpt = 0.0
@@ -801,10 +801,9 @@ meandict = 0.0
 meanexpt = 0.0
 
 ! allocate(pattern(dinl%numsx,dinl%numsy),binned(binx,biny),stat=istat)
-allocate(pattern(binx,biny),binned(binx,biny),stat=istat)
+allocate(pattern(binx,biny),stat=istat)
 if (istat .ne. 0) stop 'Could not allocate array for EBSD pattern'
 pattern = 0.0
-binned = 0.0
 
 allocate(resultarray(1:Nd),stat=istat)
 if (istat .ne. 0) stop 'could not allocate result arrays'
@@ -851,17 +850,6 @@ allocate(rdata(binx,biny),fdata(binx,biny),stat=istat)
 if (istat .ne. 0) stop 'could not allocate arrays for Hi-Pass filter'
 rdata = 0.D0
 fdata = 0.D0
-
-! also, allocate the arrays used to create the average dot product map; this will require 
-! reading the actual EBSD HDF5 file to figure out how many rows and columns there
-! are in the region of interest.  For now we get those from the nml until we actually 
-! implement the HDF5 reading bit
-! this portion of code was first tested in IDL.
-allocate(patterninteger(binx,biny))
-patterninteger = 0
-allocate(patternad(binx,biny),patternintd(binx,biny))
-patternad = 0.0
-patternintd = 0.0
 
 !=====================================================
 ! determine loop variables to avoid having to duplicate 
@@ -1052,15 +1040,23 @@ dictionaryloop: do ii = 1,cratio+1
       call Message%WriteValue(' Dictionaryloop index = ',io_int,1)
     end if
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, tock, ttime) &
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, vlen, tock, ttime, dicttranspose, dictpatflt) &
 !$OMP& PRIVATE(binned, ma, mi, patternintd, patterninteger, patternad, qu, ro, quat, imagedictflt,imagedictfltflip)
 
-        TID = OMP_GET_THREAD_NUM()
+! allocate the local arrays that are used by each thread
+    allocate(patterninteger(binx,biny))
+    patterninteger = 0
+    allocate(patternad(binx,biny),patternintd(binx,biny))
+    patternad = 0.0
+    patternintd = 0.0
+    allocate(imagedictflt(correctsize),imagedictfltflip(correctsize))
 
-      if ((ii.eq.1).and.(TID.eq.0)) then 
-        io_int(1) = OMP_GET_NUM_THREADS()
-        call Message%WriteValue(' actual number of OpenMP threads  = ', io_int, 1)
-      end if 
+    TID = OMP_GET_THREAD_NUM()
+
+    if ((ii.eq.1).and.(TID.eq.0)) then 
+      io_int(1) = OMP_GET_NUM_THREADS()
+      call Message%WriteValue(' actual number of OpenMP threads  = ', io_int, 1)
+    end if 
 
 ! the master thread should be the one working on the GPU computation
 !$OMP MASTER
@@ -1074,6 +1070,7 @@ dictionaryloop: do ii = 1,cratio+1
         end if
       end if
 
+      allocate(dicttranspose(Nd*correctsize))
       dicttranspose = 0.0
 
       do ll = 1,correctsize
@@ -1084,7 +1081,7 @@ dictionaryloop: do ii = 1,cratio+1
 
       ierr = clEnqueueWriteBuffer(command_queue, cl_dict, CL_TRUE, 0_8, size_in_bytes_dict, C_LOC(dicttranspose(1)), &
                                   0, C_NULL_PTR, C_NULL_PTR)
-      call CL%error_check('EBSDDISubroutine:clEnqueueWriteBuffer', ierr)
+      call CL%error_check('DIdriver:clEnqueueWriteBuffer', ierr)
 
       mvres = 0.0
 
@@ -1099,7 +1096,7 @@ dictionaryloop: do ii = 1,cratio+1
 
         ierr = clEnqueueWriteBuffer(command_queue, cl_expt, CL_TRUE, 0_8, size_in_bytes_expt, C_LOC(expt(1)), &
                                     0, C_NULL_PTR, C_NULL_PTR)
-        call CL%error_check('EBSDDISubroutine:clEnqueueWriteBuffer', ierr)
+        call CL%error_check('DIdriver:clEnqueueWriteBuffer', ierr)
 
         call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,dinl%devid,kernel,context,command_queue)
 
@@ -1136,6 +1133,8 @@ dictionaryloop: do ii = 1,cratio+1
         end if
 
       end do experimentalloop
+
+      deallocate(dicttranspose)
 
       io_real(1) = mvres
       io_real(2) = float(iii)/float(cratio)*100.0
@@ -1199,6 +1198,7 @@ dictionaryloop: do ii = 1,cratio+1
      end if
 
      if (trim(dinl%indexingmode).eq.'dynamic') then
+      allocate(binned(binx,biny))
 !$OMP DO SCHEDULE(DYNAMIC)
 
       do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
@@ -1257,6 +1257,7 @@ dictionaryloop: do ii = 1,cratio+1
        end if
       end do
 !$OMP END DO
+      deallocate(binned)
     else  ! we are doing static indexing, so only 2 threads in total
 
 ! get a set of patterns from the precomputed dictionary file... 
@@ -1268,11 +1269,11 @@ dictionaryloop: do ii = 1,cratio+1
        dims2 = (/ correctsize, ppend(ii) /)
        offset2 = (/ 0, (ii-1)*Nd /)
 
-       if(allocated(EBSDdictpatflt)) deallocate(EBSDdictpatflt)
-       EBSDdictpatflt = HDF%readHyperslabFloatArray2D(dataset, offset2, dims2)
+       if(allocated(dictpatflt)) deallocate(dictpatflt)
+       dictpatflt = HDF%readHyperslabFloatArray2D(dataset, offset2, dims2)
       
        do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
-         dict((pp-1)*correctsize+1:pp*correctsize) = EBSDdictpatflt(1:correctsize,pp)
+         dict((pp-1)*correctsize+1:pp*correctsize) = dictpatflt(1:correctsize,pp)
        end do
      end if   
     end if
@@ -1288,12 +1289,22 @@ dictionaryloop: do ii = 1,cratio+1
     end if
    end if
 
+   deallocate(patterninteger,patternad,patternintd,imagedictflt,imagedictfltflip)
+
 ! and we end the parallel section here (all threads will synchronize).
 !$OMP END PARALLEL
 
 if (cancelled.eqv..TRUE.) EXIT dictionaryloop
 
 end do dictionaryloop
+
+!-----
+ierr = clReleaseMemObject(cl_dict)
+call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
+
+!-----
+ierr = clReleaseMemObject(cl_expt)
+call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
 
 if (cancelled.eqv..FALSE.) then
 
@@ -1305,7 +1316,7 @@ if (cancelled.eqv..FALSE.) then
 
 ! release the OpenCL kernel
   ierr = clReleaseKernel(kernel)
-  call CL%error_check('InnerProdGPU:clReleaseKernel', ierr)
+  call CL%error_check('DIdriver:clReleaseKernel', ierr)
 
   if (trim(dinl%indexingmode).eq.'static') then
     call HDF%pop(.TRUE.)

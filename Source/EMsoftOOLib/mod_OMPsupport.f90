@@ -40,6 +40,8 @@ use mod_io
 
 IMPLICIT NONE 
 
+integer(kind=irg), private :: maxOMPthreads
+
 contains
 
 !--------------------------------------------------------------------------
@@ -55,7 +57,8 @@ IMPLICIT NONE
 type(IO_T)        :: Message 
 integer(kind=irg) :: io_int(1) 
 
-io_int(1) = OMP_GET_MAX_THREADS()
+maxOMPthreads = OMP_GET_MAX_THREADS()
+io_int(1) = maxOMPthreads
 call Message%WriteValue(' Maximum available number of OpenMP threads : ', io_int, 1)
 
 end subroutine OMP_showAvailableThreads
@@ -91,21 +94,20 @@ IMPLICIT NONE
 integer(kind=irg),INTENT(IN)  :: n
 
 type(IO_T)                    :: Message 
-integer(kind=irg)             :: maxt, io_int(1) 
+integer(kind=irg)             :: io_int(1) 
 
-maxt = OMP_GET_MAX_THREADS()
 if (n.eq.0) then 
-  io_int(1) = maxt
+  io_int(1) = maxOMPthreads
   call Message%WriteValue(' Number of OpenMP threads set to maximum available : ', io_int, 1)
   call OMP_SET_NUM_THREADS(n) 
 else
-  if (maxt.lt.n) then 
+  if (maxOMPthreads.lt.n) then 
     io_int(1) = n 
     call Message%WriteValue(' Number of OpenMP threads requested : ', io_int, 1)
-    io_int(1) =  maxt
+    io_int(1) =  maxOMPthreads
     call Message%WriteValue(' Number of OpenMP threads available : ', io_int, 1)
     call Message%printMessage(' --> Setting number of threads to maximum available ')
-    call OMP_SET_NUM_THREADS(maxt) 
+    call OMP_SET_NUM_THREADS(maxOMPthreads) 
   else
     io_int(1) = n 
     call Message%WriteValue(' Number of OpenMP threads set to ', io_int, 1)

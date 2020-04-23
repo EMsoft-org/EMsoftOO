@@ -64,7 +64,7 @@ private
 contains
 private 
   procedure, pass(self) :: readNameList_
-  procedure, pass(self) :: writeHDFNameList_
+  procedure, pass(self) :: writeFitHDFNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: FitOrientation_
   procedure, pass(self) :: get_nthreads_
@@ -95,7 +95,7 @@ private
   procedure, pass(self) :: set_niter_
 
   generic, public :: getNameList => getNameList_
-  generic, public :: writeHDFNameList => writeHDFNameList_
+  ! generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: FitOrientation => FitOrientation_
   generic, public :: get_nthreads => get_nthreads_
@@ -127,7 +127,7 @@ private
 end type FitOrientation_T
 
 !DEC$ ATTRIBUTES DLLEXPORT :: getNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
+!! DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
 !DEC$ ATTRIBUTES DLLEXPORT :: readNameList
 !DEC$ ATTRIBUTES DLLEXPORT :: FitOrientation
 !DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
@@ -310,13 +310,14 @@ nml = self%nml
 end function getNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
+recursive subroutine writeFitHDFNameList_(self, HDF, HDFnames)
 !! author: MDG 
 !! version: 1.0 
-!! date: 04/08/20
+!! date: 04/22/20
 !!
 !! write namelist to HDF file
 
+use HDF5
 use mod_HDFsupport
 use mod_HDFnames
 use stringconstants 
@@ -329,19 +330,116 @@ class(FitOrientation_T), INTENT(INOUT)  :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
+integer(kind=irg),parameter             :: n_int = 5, n_real = 1
+integer(kind=irg)                       :: hdferr,  io_int(n_int), inRAMi
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
 character(fnlen)                        :: dataset, sval(1),groupname
 character(fnlen,kind=c_char)            :: line2(1)
+logical                                 :: g_exists, overwrite = .TRUE.
 
-associate( mcnl => self%nml )
+associate( ronl => self%nml )
 
-! to be written (add name list to existing DI file)
+! create the group for this namelist
+hdferr = HDF%createGroup(HDFnames%get_NMLlist())
+
+! integers 
+io_int = (/ ronl%nthreads, ronl%matchdepth, ronl%nmis, ronl%niter, 0 /)
+if (ronl%inRAM.eqv..TRUE.) then 
+  io_int(5) = 1
+end if 
+intlist(1) = 'nthreads'
+intlist(2) = 'matchdepth'
+intlist(3) = 'nmis'
+intlist(4) = 'niter'
+intlist(5) = 'inRAM'
+
+! and write them to the HDF file
+call HDF%writeNMLintegers(io_int, intlist, n_int)
+
+! floats
+reallist = (/ 'step' /)
+io_real(1) = ronl%step 
+call HDF%writeNMLreals(io_real, reallist, n_real)
+
+! strings 
+
+dataset = 'modality'
+line2(1) = ronl%modality
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create modality dataset',hdferr)
+
+dataset = 'dotproductfile'
+line2(1) = ronl%dotproductfile
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create dotproductfile dataset',hdferr)
+
+dataset = 'ctffile'
+line2(1) = ronl%ctffile
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create ctffile dataset',hdferr)
+
+dataset = 'angfile'
+line2(1) = ronl%angfile
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create angfile dataset',hdferr)
+
+dataset = 'tmpfile'
+line2(1) = ronl%tmpfile
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tmpfile dataset',hdferr)
+
+dataset = 'PSvariantfile'
+line2(1) = ronl%PSvariantfile
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create PSvariantfile dataset',hdferr)
+
+dataset = 'method'
+line2(1) = ronl%method
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then 
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create method dataset',hdferr)
+
+! and pop this group off the stack
+call HDF%pop()
+
 end associate
 
-end subroutine writeHDFNameList_
+end subroutine writeFitHDFNameList_
 
 
 !--------------------------------------------------------------------------
@@ -835,7 +933,7 @@ type(HDF_T)                             :: HDF
 type(HDFnames_T)                        :: HDFnames
 type(Cell_T)                            :: cell 
 type(SpaceGroup_T)                      :: SG
-type(q_T)                               :: qu 
+type(q_T)                               :: qu, q 
 type(Quaternion_T)                      :: qq, quat, quat2, qq2 
 type(QuaternionArray_T)                 :: quPS 
 type(e_T)                               :: eu 
@@ -891,7 +989,7 @@ logical                                 :: verbose
 logical                                 :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
                                            isECP=.FALSE., switchwfoff
 integer(kind=irg),parameter             :: iunitexpt = 41, itmpexpt = 42
-integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk 
+integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo 
 real(kind=sgl),allocatable              :: tmpimageexpt(:), EBSDPattern(:,:), imageexpt(:), mask(:,:), masklin(:)
 real(kind=sgl),allocatable              :: imagedictflt(:), exppatarray(:)
 real(kind=sgl),allocatable              :: EBSDpatternintd(:,:), binned(:,:), euler_best(:,:)
@@ -924,6 +1022,7 @@ character(fnlen)                        :: modalityname, DIfile, xtalname
 
 
 call setRotationPrecision('d')
+call OMP_showAvailableThreads()
 
 associate(ronl=>self%nml, dinl=>DIFT%nml, DIDT=>DIFT%DIDT, MCDT=>MCFT%MCDT, &
           MPDT=>MPFT%MPDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml)
@@ -932,7 +1031,6 @@ init = .TRUE.
 overwrite = .TRUE.
 verbose = .FALSE.
 
-modalityname = trim(ronl%modality)
 
 !====================================
 ! read the relevant fields from the dot product HDF5 file
@@ -940,6 +1038,19 @@ modalityname = trim(ronl%modality)
 ! open the HDF interface
 call openFortranHDFInterface()
 HDF = HDF_T() 
+
+! first we need to get the DIModality from the dot product file; this then 
+! determines a number of other parameters, including the HDFnames as well 
+! as the various arrays that we can read from the DI file 
+DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%dotproductfile)
+DIFT = DIfile_T()
+call DIFT%readDIModality(HDF, DIfile)
+modalityname = DIFT%getModality()
+! maybe this is an old dot product file so we use the modality switch in the 
+! namelist for this program to set the modality 
+if (trim(modalityname).eq.'unknown') then    
+  modalityname = trim(ronl%modality)
+end if 
 
 HDFnames = HDFnames_T() 
 
@@ -951,7 +1062,6 @@ call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 !====================================
 ! read the relevant fields from the dot product HDF5 file
 !====================================
-DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%dotproductfile)
 if (trim(modalityname) .eq. 'EBSD') then
   if ( (ronl%matchdepth.eq.1).or.(trim(ronl%method).eq.'SUB') ) then 
     call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
@@ -1020,6 +1130,7 @@ end if
 Ne = dinl%numexptsingle
 Nd = dinl%numdictsingle
 nthreads = ronl%nthreads
+dinl%nthreads = ronl%nthreads
 
 if (sum(dinl%ROI).ne.0) then
   ROIselected = .TRUE.
@@ -1190,6 +1301,12 @@ MCsig = mcnl%sig
 
 call Message%printMessage(' Completed reading all MC/MP input data; generated detector ')
 
+! reset the HDFnames fields to the correct values for the present program
+call HDFnames%set_NMLfiles(SC_NMLfiles)
+call HDFnames%set_NMLfilename(SC_FitOrientationNML)
+call HDFnames%set_NMLparameters(SC_NMLparameters)
+call HDFnames%set_NMLlist(SC_FitOrientationNameListType)
+
 !=====================================================
 ! get the indices of the minimum and maximum energy
 !=====================================================
@@ -1343,7 +1460,12 @@ end if
 !=====================================================
 ! set up the correct fundamental zone and symmetry operators
 SO = so3_T(pgnum, zerolist='FZ') 
+call SO%getFZtypeandorder(FZt, FZo)
+io_int(1:2) = (/ FZt, FZo /)
+call Message%WriteValue('FZt, FZo : ',io_int, 2)
 call qdummy%QSym_Init( pgnum, qAR )
+! print out the symmetry array qAR 
+call qAR%quat_print()
 
 !=====================================================
 !==========ALLOCATE ALL ARRAYS HERE=================== 
@@ -1454,10 +1576,8 @@ end if
 !===================================================================================
 !===============MAIN COMPUTATION LOOP===============================================
 !===================================================================================
-
-io_int(1) = ronl%nthreads
-call Message%WriteValue(' Attempting to set number of threads to ',io_int,1,"(I4)")
 call OMP_setNThreads(ronl%nthreads)
+
 
 timer = Timing_T()
 call timer%Time_tick()
@@ -1476,10 +1596,9 @@ if (ronl%method.eq.'FIT') then
             end do
         end if
 
-        
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex) &
 !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,kk,ll,mm) &
-!$OMP& PRIVATE(X,INITMEANVAL,dpPS,eulerPS,rfz,euinp,pos, qq2, qq, eu, ho)
+!$OMP& PRIVATE(X,INITMEANVAL,dpPS,eulerPS,rfz,euinp,pos, q, qu, qq2, qq, eu, ho)
          
           TID = OMP_GET_THREAD_NUM()
 
@@ -1501,12 +1620,14 @@ if (ronl%method.eq.'FIT') then
                 eu = e_T( edinp = dble(euler_bestmatch(1:3,kk,eindex)) )
                 qu = eu%eq()
                 quat = Quaternion_T( qd = qu%q_copyd() )
+                call quat%quat_normalize()
 
                 do ll = 1,nvar
                     qq2 = quPS%getQuatfromArray(ll)
                     quat2 = qq2 * quat
-
-                    call SO%ReduceOrientationtoRFZ(quat2, qAR, rfz)
+                    call quat2%quat_normalize()
+                    q = q_T( qdinp = quat2%get_quatd())  ! RFZ reduction requires q_T class 
+                    call SO%ReduceOrientationtoRFZ(q, qAR, rfz)
 
                     ho = rfz%rh()
                     INITMEANVAL(1:3) = ho%h_copyd() 
@@ -1588,16 +1709,16 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
                 cu = eu%ec()
                 cu0 = cu%c_copyd()
 
-                call CubochoricNeighbors(cubneighbor,Nmis,cu0,stpsz)
+                call SO%CubochoricNeighbors(cubneighbor,Nmis,cu0,stpsz)
 
     ! calculate the dot product for each of the orientations in the neighborhood of the best match    
                 do jj = 1,(2*Nmis + 1)**3
                     cu = c_T( cdinp = dble(cubneighbor(1:3,jj)) )
                     quat = Quaternion_T( qd = cu%c_copyd() )
             
-                    call CalcEBSDPatternSingleFull(jpar,quat,det%accum_e_detector,MPDT%mLPNH,MPDT%mLPSH,&
-                                                   det%rgx, det%rgy,det%rgz,binned,Emin,Emax,mask,&
-                                                   prefactor)
+                    call EBSD%CalcEBSDPatternSingleFull(jpar,quat,det%accum_e_detector,MPDT%mLPNH,MPDT%mLPSH,&
+                                                        det%rgx, det%rgy,det%rgz,binned,Emin,Emax,mask,&
+                                                        prefactor)
 
                     ma = maxval(binned)
                     mi = minval(binned)
@@ -1653,13 +1774,27 @@ end if
 !===========================================
 ! output section
 !===========================================
-
 ! add fitted dot product values to HDF5 file
 ! open the fortran HDF interface
 dpfile = trim(EMsoft%getConfigParameter('EMdatapathname'))//trim(ronl%dotproductfile)
 
 ! open the fortran HDF interface
 hdferr =  HDF%openFile(dpfile)
+
+! add the name list file and the parsed name list for the refinement program 
+groupname = trim(HDFnames%get_NMLfiles())
+hdferr = HDF%createGroup(groupname)
+
+dataset = trim(HDFnames%get_NMLfilename())
+hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
+
+! leave this group
+call HDF%pop()
+
+! open the NMLparameters group to write all the namelist parameters into 
+hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
+call self%writeFitHDFNameList_(HDF, HDFnames)
+call HDF%pop()
 
 ! open the Scan 1/EBSD/Data group
 groupname = 'Scan 1'
@@ -1688,8 +1823,9 @@ end if
 call HDF%pop(.TRUE.) 
 
 !===========================================
-! and generate the ctf output file as well... [.ang output to be added]
+! and generate the ctf/ang output file as well... 
 dinl%ctffile = ronl%ctffile
+dinl%angfile = ronl%angfile
 
 ipar = 0
 ipar(1) = 1
@@ -1732,7 +1868,7 @@ call timer%Time_tock()
 tstop = timer%getInterval()
 
 io_real(1) = tstop
-call Message%WriteValue('Execution time [system_clock()] = ',io_int,1,"(I8,' [s]')")
+call Message%WriteValue('Execution time [system_clock()] = ',io_real,1,"(I8,' [s]')")
 
 
 end associate 

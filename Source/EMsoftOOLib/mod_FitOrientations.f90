@@ -121,6 +121,7 @@ real(dbl),intent(out)                   :: f
 real(kind=sgl),intent(IN)               :: gammaval
 logical,intent(in),optional             :: verbose
 
+type(EBSD_T)                            :: EBSD
 type(IO_T)                              :: Message 
 type(Quaternion_T)                      :: quat
 type(q_T)                               :: qu
@@ -177,8 +178,8 @@ Emin        = ipar(8)
 Emax        = ipar(9)
 nregions    = ipar(10)
 
-call CalcEBSDPatternSingleFull(jpar,quat,accum,mLPNH,mLPSH,rgx,&
-                               rgy,rgz,binned,Emin,Emax,mask,prefactor)
+call EBSD%CalcEBSDPatternSingleFull(jpar,quat,accum,mLPNH,mLPSH,rgx,&
+                                    rgy,rgz,binned,Emin,Emax,mask,prefactor)
 
 binned = binned**gammaval
 
@@ -348,6 +349,7 @@ real(dbl),intent(out)                   :: f
 real(kind=sgl),intent(IN)               :: gammaval
 logical,intent(in),optional             :: verbose
 
+type(ECP_T)                             :: ECP
 type(IO_T)                              :: Message 
 type(Quaternion_T)                      :: quat
 type(q_T)                               :: qu
@@ -399,7 +401,7 @@ ECPpatternad = 0
 !==============================================================================
 jpar(1:7) = ipar(1:7)
 
-call CalcECPatternSingleFull(jpar,quat,accum,mLPNH,mLPSH,rgx,rgy,rgz,binned,mask)
+call ECP%CalcECPatternSingleFull(jpar,quat,accum,mLPNH,mLPSH,rgx,rgy,rgz,binned,mask)
 
 binned = binned**gammaval
 

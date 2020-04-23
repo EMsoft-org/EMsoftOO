@@ -2753,12 +2753,11 @@ type(q_T)                              :: qq
 type(r_T)                              :: rod      
 real(kind=dbl)                         :: x(4), y(3)
 integer(kind=irg)                      :: i, j, Pmdims
-logical                                :: useMFZ
+logical                                :: useMFZ = .FALSE.
 real(kind=dbl)                         :: tol
 
 tol = 1.0D+5
 
-useMFZ = .FALSE.
 if (present(MFZ)) then 
   if (MFZ.eqv..TRUE.) useMFZ = .TRUE.
 endif
@@ -2794,8 +2793,8 @@ call Mu%quat_pos()
 
 FZloop: do j=1,Pmdims
   qu = Pm%getQuatfromArray(j)*Mu
+  call qu%quat_pos()
   x = qu%get_quatd()
-  if (x(1).lt.0D0) x = -x 
   qq = q_T( qdinp = x )
   rod = qq%qr()
   x = rod%r_copyd()

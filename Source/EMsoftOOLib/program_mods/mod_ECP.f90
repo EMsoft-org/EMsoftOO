@@ -92,6 +92,7 @@ private
   procedure, pass(self) :: get_numk_
   procedure, pass(self) :: set_numk_
   procedure, pass(self) :: CalcECPatternSingle_
+  procedure, pass(self) :: CalcECPatternSingleFull_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -104,6 +105,7 @@ private
   generic, public :: get_numk => get_numk_
   generic, public :: set_numk => set_numk_
   generic, public :: CalcECPatternSingle => CalcECPatternSingle_
+  generic, public :: CalcECPatternSingleFull => CalcECPatternSingleFull_
 
 end type ECP_T
 
@@ -1170,6 +1172,85 @@ end do
 end associate 
 
 end subroutine CalcECPatternSingle_
+
+!--------------------------------------------------------------------------
+recursive subroutine CalcECPatternSingleFull_(self,ipar,qu,accum,mLPNH,mLPSH,rgx,rgy,rgz,binned,mask)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/21/20
+!!
+!! compute a single ECP pattern, used in EMFitOrientations
+
+use mod_Lambert
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(ECP_T), INTENT(INOUT)         :: self
+integer(kind=irg),INTENT(IN)        :: ipar(7)
+type(Quaternion_T),INTENT(IN)       :: qu
+real(kind=sgl),INTENT(IN)           :: accum(ipar(6),ipar(2),ipar(3))
+real(kind=sgl),INTENT(IN)           :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
+real(kind=sgl),INTENT(IN)           :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
+real(kind=sgl),INTENT(IN)           :: rgx(ipar(2),ipar(3))
+real(kind=sgl),INTENT(IN)           :: rgy(ipar(2),ipar(3))
+real(kind=sgl),INTENT(IN)           :: rgz(ipar(2),ipar(3))
+real(kind=sgl),INTENT(OUT)          :: binned(ipar(2),ipar(3))
+real(kind=sgl),INTENT(IN)           :: mask(ipar(2),ipar(3))
+      
+real(kind=sgl),allocatable          :: ECpattern(:,:)
+real(kind=sgl),allocatable          :: wf(:)
+real(kind=sgl)                      :: dc(3),ixy(2),scl,bindx
+real(kind=sgl)                      :: dx,dy,dxm,dym
+real(kind=dbl)                      :: dcd(3)
+integer(kind=irg)                   :: ii,jj,kk,istat
+integer(kind=irg)                   :: nix,niy,nixp,niyp
+
+
+! ipar(1) = binning (== 1)
+! ipar(2) = ecpnl%npix
+! ipar(3) = ecpnl%npix
+! ipar(4) = ecpnl%npx
+! ipar(5) = ecpnl%npy
+! ipar(6) = 1
+! ipar(7) = 1
+
+
+allocate(ECpattern(ipar(2),ipar(3)),stat=istat)
+
+binned = 0.0
+ECpattern = 0.0
+
+scl = float(ipar(4))
+
+do ii = 1,ipar(2)
+  do jj = 1,ipar(3)
+    dcd = qu%quat_Lp( dble((/ rgx(ii,jj),rgy(ii,jj),rgz(ii,jj) /)) )
+    dc = sngl(dcd)
+
+    dc = dc/sqrt(sum(dc**2))
+
+! convert these direction cosines to coordinates in the Rosca-Lambert projection
+    call LambertgetInterpolation(dc, scl, ipar(4), ipar(5), nix, niy, nixp, niyp, dx, dy, dxm, dym)
+
+! interpolate the intensity
+    if (dc(3) .ge. 0.0) then
+      ECpattern(ii,jj) = ECpattern(ii,jj) + accum(1,ii,jj) * ( mLPNH(nix,niy,1) * dxm * dym + &
+                                           mLPNH(nixp,niy,1) * dx * dym + mLPNH(nix,niyp,1) * dxm * dy + &
+                                           mLPNH(nixp,niyp,1) * dx * dy )
+    else
+      ECpattern(ii,jj) = ECpattern(ii,jj) + accum(1,ii,jj) * ( mLPSH(nix,niy,1) * dxm * dym + &
+                                           mLPSH(nixp,niy,1) * dx * dym + mLPSH(nix,niyp,1) * dxm * dy + &
+                                           mLPSH(nixp,niyp,1) * dx * dy )
+    end if
+  end do
+end do
+
+binned = ECpattern * mask
+
+end subroutine CalcECPatternSingleFull_
+
 
 
 

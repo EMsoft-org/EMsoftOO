@@ -282,7 +282,6 @@ use mod_crystallography
 use mod_symmetry
 use mod_io
 use stringconstants
-! use initializersHDF
 use mod_initializers
 use mod_timing
 use mod_diffraction

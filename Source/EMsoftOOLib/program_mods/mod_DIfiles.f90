@@ -168,6 +168,7 @@ private
   procedure, pass(self) :: setfilename_
   procedure, pass(self) :: getModality_
   procedure, pass(self) :: setModality_
+  procedure, pass(self) :: readDIModality_
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: writeHDFNameList_
@@ -181,6 +182,7 @@ private
   generic, public :: setfilename => setfilename_
   generic, public :: getModality => getModality_
   generic, public :: setModality => setModality_
+  generic, public :: readDIModality => readDIModality_
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readDotProductFile => readDotProductFile_
   generic, public :: h5_writeFile => h5_writeFile_
@@ -194,6 +196,7 @@ end type DIfile_T
 !DEC$ ATTRIBUTES DLLEXPORT :: setfilename
 !DEC$ ATTRIBUTES DLLEXPORT :: getModality
 !DEC$ ATTRIBUTES DLLEXPORT :: setModality
+!DEC$ ATTRIBUTES DLLEXPORT :: readDIModality
 !DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
 
 private :: h5_writePhaseGroup, h5_write2DImageFromVector, h5_writeCoordinateSystemGroup, &
@@ -312,6 +315,69 @@ self%Modality = trim(inp)
 ! call Message%printMessage('DIFT%setModality: setting modality to '//trim(inp)//trim(self%Modality))
 
 end subroutine setModality_
+
+!--------------------------------------------------------------------------
+subroutine readDIModality_(self, HDF, DIfile)
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/21/20
+!!
+!! read the DIModality parameter from the DI file and set it in the DIfile_T class
+
+use HDF5 
+use mod_HDFsupport 
+use mod_io
+use stringconstants 
+use ISO_C_BINDING 
+
+IMPLICIT NONE 
+
+class(DIfile_T), INTENT(INOUT)    :: self
+type(HDF_T), INTENT(INOUT)        :: HDF
+character(fnlen), INTENT(IN)      :: DIfile 
+
+type(IO_T)                        :: Message 
+character(fnlen)                  :: dataset
+logical                           :: f_exists, g_exists, stat 
+integer(kind=irg)                 :: hdferr, nlines
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+
+! we assume that DIfile contains the full path to the master pattern file 
+inquire(file=trim(DIfile), exist=f_exists)
+
+if (.not.f_exists) then
+  call Message%printError('readDIModality','Dot product file '//trim(DIfile)//' does not exist')
+end if
+
+! is this a proper HDF5 file ?
+call h5fis_hdf5_f(trim(DIfile), stat, hdferr)
+if (stat.eqv..FALSE.) then 
+  call Message%printError('readDIModality','This is not an HDF5 file.')
+end if 
+
+! open the file 
+hdferr =  HDF%openFile(DIfile) 
+
+! check whether or not the DIModality data set exists at the top level 
+dataset = SC_DIModality
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then
+! read the DIModality string from the top level (only present for EMsoft 6.X versions)
+  call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
+  if (hdferr.ne.0) call HDF%error_check('readDIModality: unable to read DIModality dataset', hdferr)
+  self%nml%DIModality = trim(stringarray(1))
+  self%Modality = trim(stringarray(1))
+  deallocate(stringarray)
+else 
+  call Message%printMessage(' readDIModality: this file does not contain a DIModality data set.',"(/A)")
+  call Message%printMessage('  --> program will continue assuming this is an old dot product file',"(A/)")
+end if 
+
+! close the file 
+call HDF%pop(.TRUE.)
+
+end subroutine readDIModality_
+
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
@@ -903,30 +969,31 @@ dataset = SC_DIModality
     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
     Modality = trim(stringarray(1))
     deallocate(stringarray)
+    call Message%printMessage(' This file has the '//trim(Modality)//' modality.')
   end if 
 
-! make sure this is an EBSD dot product file
-hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+! ! make sure this is an EBSD dot product file
+! hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 
-dataset = trim(HDFnames%get_NMLfilename())
-  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+! dataset = trim(HDFnames%get_NMLfilename())
+!   call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
 
-dataset = SC_IndexEBSD
-  call H5Lexists_f(HDF%getObjectID(),trim(dataset),h_exists, hdferr)
+! dataset = SC_IndexEBSD
+!   call H5Lexists_f(HDF%getObjectID(),trim(dataset),h_exists, hdferr)
 
-  if ((g_exists.eqv..FALSE.).and.(h_exists.eqv..FALSE.)) then
-      call Message%printError('readDotProductFile','this is not a dot product file')
-  end if
+!   if ((g_exists.eqv..FALSE.).and.(h_exists.eqv..FALSE.)) then
+!       call Message%printError('readDotProductFile','this is not a dot product file')
+!   end if
 
-  if (g_exists) then 
-    call Message%printMessage(' --> EBSD dictionary indexing file found')
-  end if
+!   if (g_exists) then 
+!     call Message%printMessage(' --> EBSD dictionary indexing file found')
+!   end if
 
-  if (h_exists) then 
-    call Message%printMessage(' --> EBSD spherical indexing file found')
-  end if
+!   if (h_exists) then 
+!     call Message%printMessage(' --> EBSD spherical indexing file found')
+!   end if
 
-call HDF%pop()
+! call HDF%pop()
 
 ! set this value to -1 initially to trigger steps in the calling routine 
 
@@ -1867,7 +1934,7 @@ integer(kind=irg)                                   :: hdferr
 ! to be replaced by HDFnames code
 if (filetype.eq.1) then ! EBSDDictionarIndexing file
   manufacturer = 'EMDI.f90'
-  nmlname = 'EBSDDictionaryIndexingNML'
+  nmlname = 'DictionaryIndexingNML'
 else
   manufacturer = ''
   nmlname = ''
