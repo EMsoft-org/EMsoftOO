@@ -1535,7 +1535,7 @@ type(a_T)                             :: axang
 type(orientation_T)                   :: ot
 
 real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, d, dd, &
-                                         tpi, hpi, aux(4), aux4a(4), aux4b(4)
+                                         tpi, hpi, aux3(3), aux(4), aux4a(4), aux4b(4)
 
 integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:)
 real(kind=dbl),allocatable            :: cpos(:,:)
@@ -1778,24 +1778,24 @@ if (rmode.eq.5) then
   ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d /) )
   ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d /) )
   eulast = ro1%re()
-  aux = eulast%e_copyd()
-  aux(1) = mod(aux(1)+10.D0*cPi,2.D0*cPi)
-  aux(2) = mod(aux(2)+10.D0*cPi,cPi)
-  aux(3) = mod(aux(3)+10.D0*cPi,2.D0*cPi)
-  eulast = e_T( edinp = aux - sh )
+  aux3 = eulast%e_copyd()
+  aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
+  aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
+  aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
+  eulast = e_T( edinp = aux3 - sh )
   do j=1,ns+1
     aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
     eu = ro%re()
-    aux = eu%e_copyd()
-    aux(1) = mod(aux(1)+10.D0*cPi,2.D0*cPi)
-    aux(2) = mod(aux(2)+10.D0*cPi,cPi)
-    aux(3) = mod(aux(3)+10.D0*cPi,2.D0*cPi)
-    eu = e_T( edinp = aux - sh )
+    aux3 = eu%e_copyd()
+    aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
+    aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
+    aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
+    eu = e_T( edinp = aux3 - sh )
 ! and create a cylinder with these points
-    aux = eulast%e_copyd() - eu%e_copyd()
-    if (maxval(abs(aux)).lt.cPi) then 
+    aux3 = eulast%e_copyd() - eu%e_copyd()
+    if (maxval(abs(aux3)).lt.cPi) then 
       call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
     end if
     eulast = eu
@@ -1808,24 +1808,24 @@ if (rmode.eq.5) then
     ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d /) )
     ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d /) )
     eulast = ro1%re()
-    aux = eulast%e_copyd()
-    aux(1) = mod(aux(1)+10.D0*cPi,2.D0*cPi)
-    aux(2) = mod(aux(2)+10.D0*cPi,cPi)
-    aux(3) = mod(aux(3)+10.D0*cPi,2.D0*cPi)
+    aux3 = eulast%e_copyd()
+    aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
+    aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
+    aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
     eulast = e_T( edinp = aux - sh )
     do j=1,nt+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
       eu = ro%re()
-      aux = eu%e_copyd()
-      aux(1) = mod(aux(1)+10.D0*cPi,2.D0*cPi)
-      aux(2) = mod(aux(2)+10.D0*cPi,cPi)
-      aux(3) = mod(aux(3)+10.D0*cPi,2.D0*cPi)
-      eu = e_T( edinp = aux - sh )
+      aux3 = eu%e_copyd()
+      aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
+      aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
+      aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
+      eu = e_T( edinp = aux3 - sh )
   ! and create a cylinder with these points
-      aux = eulast%e_copyd() - eu%e_copyd()
-      if (maxval(abs(aux)).lt.cPi) then 
+      aux3 = eulast%e_copyd() - eu%e_copyd()
+      if (maxval(abs(aux3)).lt.cPi) then 
         call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
       end if
       eulast = eu
