@@ -1812,7 +1812,7 @@ if (rmode.eq.5) then
     aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
     aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
     aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
-    eulast = e_T( edinp = aux - sh )
+    eulast = e_T( edinp = aux3 - sh )
     do j=1,nt+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
