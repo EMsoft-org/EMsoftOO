@@ -1535,7 +1535,7 @@ type(a_T)                             :: axang
 type(orientation_T)                   :: ot
 
 real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, d, dd, &
-                                         tpi, hpi, aux(3), aux4a(4), aux4b(4)
+                                         tpi, hpi, aux(4), aux4a(4), aux4b(4)
 
 integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:)
 real(kind=dbl),allocatable            :: cpos(:,:)
