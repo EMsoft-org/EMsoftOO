@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_dpmerge
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 04/07/20
   !!
   !! class definition for the EMdpmerge program
@@ -36,7 +36,7 @@ module mod_dpmerge
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMdpmerge program
 type, public :: dpmergeNameListType
@@ -51,12 +51,12 @@ end type dpmergeNameListType
 
 ! class definition
 type, public :: dpmerge_T
-private 
+private
   character(fnlen)            :: nmldeffile = 'EMdpmerge.nml'
-  type(dpmergeNameListType)   :: nml 
+  type(dpmergeNameListType)   :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: dpmerge_
@@ -95,25 +95,7 @@ private
 
 end type dpmerge_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: dpmerge
-!DEC$ ATTRIBUTES DLLEXPORT :: get_dotproductfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dotproductfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ctfname
-!DEC$ ATTRIBUTES DLLEXPORT :: set_ctfname
-!DEC$ ATTRIBUTES DLLEXPORT :: get_angname
-!DEC$ ATTRIBUTES DLLEXPORT :: set_angname
-!DEC$ ATTRIBUTES DLLEXPORT :: get_phasemapname
-!DEC$ ATTRIBUTES DLLEXPORT :: set_phasemapname
-!DEC$ ATTRIBUTES DLLEXPORT :: get_phasecolors
-!DEC$ ATTRIBUTES DLLEXPORT :: set_phasecolors
-!DEC$ ATTRIBUTES DLLEXPORT :: get_usedp
-!DEC$ ATTRIBUTES DLLEXPORT :: set_usedp
-!DEC$ ATTRIBUTES DLLEXPORT :: get_indexingmode
-!DEC$ ATTRIBUTES DLLEXPORT :: set_indexingmode
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface dpmerge_T
   module procedure dpmerge_constructor
 end interface dpmerge_T
@@ -122,31 +104,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(dpmerge_T) function dpmerge_constructor( nmlfile ) result(dpmerge)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: dpmerge_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
-!! constructor for the dpmerge_T Class; reads the name list 
- 
+!! constructor for the dpmerge_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call dpmerge%readNameList(nmlfile)
 
 end function dpmerge_constructor
 
 !--------------------------------------------------------------------------
-subroutine dpmerge_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine dpmerge_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: dpmerge_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! destructor for the dpmerge_T Class
- 
+
 IMPLICIT NONE
 
-type(dpmerge_T), INTENT(INOUT)  :: self 
+type(dpmerge_T), INTENT(INOUT)  :: self
 
 call reportDestructor('dpmerge_T')
 
@@ -154,25 +138,26 @@ end subroutine dpmerge_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
-!! read the namelist from an nml file for the dpmerge_T Class 
+!! read the namelist from an nml file for the dpmerge_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)      :: self
 character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
+type(EMsoft_T)                       :: EMsoft
+type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 character(fnlen)        :: dotproductfile(5)
@@ -217,9 +202,9 @@ if (.not.skipread) then
 
 ! if we get here, then all appears to be ok, and we need to fill in the dpmnl fields
 self%nml%dotproductfile = dotproductfile
-self%nml%ctfname = ctfname 
-self%nml%angname = angname 
-self%nml%phasemapname = phasemapname 
+self%nml%ctfname = ctfname
+self%nml%angname = angname
+self%nml%phasemapname = phasemapname
 self%nml%phasecolors = phasecolors
 self%nml%indexingmode = indexingmode
 self%nml%usedp = usedp
@@ -228,13 +213,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! pass the namelist for the dpmerge_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)          :: self
 type(dpmergeNameListType)                :: nml
@@ -245,13 +231,14 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 function get_dotproductfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dotproductfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! get dotproductfile from the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(fnlen)                    :: out(5)
@@ -262,13 +249,14 @@ end function get_dotproductfile_
 
 !--------------------------------------------------------------------------
 subroutine set_dotproductfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dotproductfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! set dotproductfile in the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)        :: inp(5)
@@ -279,13 +267,14 @@ end subroutine set_dotproductfile_
 
 !--------------------------------------------------------------------------
 function get_ctfname_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ctfname_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! get ctfname from the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(fnlen)                    :: out
@@ -296,13 +285,14 @@ end function get_ctfname_
 
 !--------------------------------------------------------------------------
 subroutine set_ctfname_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ctfname_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! set ctfname in the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)        :: inp
@@ -313,13 +303,14 @@ end subroutine set_ctfname_
 
 !--------------------------------------------------------------------------
 function get_angname_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_angname_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! get angname from the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(fnlen)                    :: out
@@ -330,13 +321,14 @@ end function get_angname_
 
 !--------------------------------------------------------------------------
 subroutine set_angname_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_angname_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! set angname in the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)        :: inp
@@ -347,13 +339,14 @@ end subroutine set_angname_
 
 !--------------------------------------------------------------------------
 function get_phasemapname_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_phasemapname_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! get phasemapname from the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(fnlen)                    :: out
@@ -364,13 +357,14 @@ end function get_phasemapname_
 
 !--------------------------------------------------------------------------
 subroutine set_phasemapname_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_phasemapname_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! set phasemapname in the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)        :: inp
@@ -381,13 +375,14 @@ end subroutine set_phasemapname_
 
 !--------------------------------------------------------------------------
 function get_phasecolors_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_phasecolors_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! get phasecolors from the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 integer(kind=irg)                   :: out(5)
@@ -398,13 +393,14 @@ end function get_phasecolors_
 
 !--------------------------------------------------------------------------
 subroutine set_phasecolors_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_phasecolors_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! set phasecolors in the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)       :: inp(5)
@@ -415,13 +411,14 @@ end subroutine set_phasecolors_
 
 !--------------------------------------------------------------------------
 function get_usedp_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_usedp_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! get usedp from the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(8)                        :: out
@@ -432,13 +429,14 @@ end function get_usedp_
 
 !--------------------------------------------------------------------------
 subroutine set_usedp_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_usedp_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! set usedp in the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(8), INTENT(IN)            :: inp
@@ -449,13 +447,14 @@ end subroutine set_usedp_
 
 !--------------------------------------------------------------------------
 function get_indexingmode_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_indexingmode_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! get indexingmode from the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(2)                        :: out
@@ -466,13 +465,14 @@ end function get_indexingmode_
 
 !--------------------------------------------------------------------------
 subroutine set_indexingmode_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_indexingmode_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! set indexingmode in the dpmerge_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)     :: self
 character(2), INTENT(IN)            :: inp
@@ -483,8 +483,9 @@ end subroutine set_indexingmode_
 
 !--------------------------------------------------------------------------
 subroutine dpmerge_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: dpmerge_
+!! author: MDG
+!! version: 1.0
 !! date: 04/07/20
 !!
 !! perform the computations
@@ -500,20 +501,21 @@ use mod_MPfiles
 use mod_vendors
 use ISO_C_BINDING
 use mod_image
+
 use, intrinsic :: iso_fortran_env
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(dpmerge_T), INTENT(INOUT)         :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+character(fnlen), INTENT(INOUT)         :: progname
 
-type(HDF_T)                             :: HDF 
-type(HDFnames_T)                        :: HDFnames, MPHDFnames 
-type(IO_T)                              :: Message 
+type(HDF_T)                             :: HDF
+type(HDFnames_T)                        :: HDFnames, MPHDFnames
+type(IO_T)                              :: Message
 type(DIfile_T)                          :: DIFT
 type(MPfile_T)                          :: MPFT
-type(DictionaryIndexingNameListType)    :: dinl 
+type(DictionaryIndexingNameListType)    :: dinl
 type(Vendor_T)                          :: VT
 type(cell_T),allocatable                :: cells(:)
 type(SpaceGroup_T),allocatable          :: SGs(:)
@@ -525,7 +527,7 @@ integer(kind=irg)                       :: ipf_wd, ipf_ht, irow, numpat, ml(1), 
 integer(kind=irg)                       :: dims(1), hdferr, io_int(2), i, j, ii, numdp
 real(kind=sgl)                          :: io_real(1), mi, ma, fpar1(1), fpar2(2)
 character(fnlen)                        :: fname, xtalname(5), infile, rdxtalname, TIFF_filename, DIfile, modality
-logical                                 :: f_exists 
+logical                                 :: f_exists
 
 ! declare variables for use in object oriented image module
 integer                                 :: iostat
@@ -543,16 +545,16 @@ associate(dpmnl=>self%nml, DIDT=>DIFT%DIDT, MPDT=>MPFT%MPDT)
 numdp = 0
 do i=1,5
   if (trim(dpmnl%dotproductfile(i)).ne.'') numdp = numdp + 1
-end do 
+end do
 io_int(1) = numdp
 call Message%WriteValue('',io_int,1,"(' Found ',I2,' dot product file names'/)")
 
 ! open the HDF interface
 call openFortranHDFInterface()
-HDF = HDF_T() 
+HDF = HDF_T()
 
-HDFnames = HDFnames_T() 
-MPHDFnames = HDFnames_T() 
+HDFnames = HDFnames_T()
+MPHDFnames = HDFnames_T()
 
 call HDFnames%set_NMLfiles(SC_NMLfiles)
 call HDFnames%set_NMLfilename(SC_DictionaryIndexingNML)
@@ -560,15 +562,15 @@ call HDFnames%set_NMLparameters(SC_NMLparameters)
 call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 
 call MPHDFnames%set_NMLfiles(SC_NMLfiles)
-call MPHDFnames%set_ProgramData(SC_EBSDmaster) 
+call MPHDFnames%set_ProgramData(SC_EBSDmaster)
 call MPHDFnames%set_NMLfilename(SC_EBSDmasterNML)
 call MPHDFnames%set_NMLparameters(SC_NMLparameters)
 call MPHDFnames%set_NMLlist(SC_EBSDmasterNameList)
 modality = 'EBSD'
 
-! if (dpmnl%indexingmode.eq.'DI') then 
-! loop over the input files and extract all the necessary data; at the same time, check to make 
-! sure that they cover the same data (after the first one has been read, allocate the data arrays) 
+! if (dpmnl%indexingmode.eq.'DI') then
+! loop over the input files and extract all the necessary data; at the same time, check to make
+! sure that they cover the same data (after the first one has been read, allocate the data arrays)
   do i=1,numdp
     call Message%printMessage(' Reading data from '//trim(dpmnl%dotproductfile(i)) )
     DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dpmnl%dotproductfile(i))
@@ -586,44 +588,44 @@ modality = 'EBSD'
                                    getRefinedDotProducts = .TRUE., &
                                    getCI = .TRUE.)
     end if
-    dinl = DIFT%getNameList() 
+    dinl = DIFT%getNameList()
 
-    if (i.eq.1) then 
-  ! get the ROI dimensions and allocate the arrays 
-      if (sum(dinl%ROI).ne.0) then 
+    if (i.eq.1) then
+  ! get the ROI dimensions and allocate the arrays
+      if (sum(dinl%ROI).ne.0) then
         ipf_wd = dinl%ROI(3)
         ipf_ht = dinl%ROI(4)
       else
         ipf_wd = dinl%ipf_wd
         ipf_ht = dinl%ipf_ht
       end if
-      numpat = ipf_wd * ipf_ht 
-      allocate( dplist(numpat,numdp), OSMlist(numpat, numdp), exptIQ(numpat), eangles(3,numpat,numdp) ) 
-    else 
+      numpat = ipf_wd * ipf_ht
+      allocate( dplist(numpat,numdp), OSMlist(numpat, numdp), exptIQ(numpat), eangles(3,numpat,numdp) )
+    else
   ! check dimensions of the ROI; they must be the same.  if they are, then add the data to the various arrays
       dims = shape(DIDT%CI)
-      if (dims(1).ne.numpat) then 
+      if (dims(1).ne.numpat) then
         call Message%printError('EMdpmerge','inconsistent ROI dimensions in dot product input files ' )
-      end if 
-    end if 
+      end if
+    end if
 ! copy the data
     do irow = 1, ipf_ht
       OSMlist( (irow-1)*ipf_wd+1:irow*ipf_wd,i) = DIDT%OSM(1:ipf_wd,irow)
     end do
     exptIQ(:) = DIDT%IQ(:)
     deallocate( DIDT%OSM, DIDT%IQ )
-    if (trim(dpmnl%usedp).eq.'original') then 
+    if (trim(dpmnl%usedp).eq.'original') then
       eangles(1:3,1:numpat,i) = DIDT%EulerAngles(1:3,1:numpat)
       dplist(1:numpat,i) = DIDT%CI(1:numpat)
       deallocate( DIDT%EulerAngles, DIDT%CI )
-    else 
-      eangles(1:3,1:numpat,i) = DIDT%RefinedEulerAngles(1:3,1:numpat) 
+    else
+      eangles(1:3,1:numpat,i) = DIDT%RefinedEulerAngles(1:3,1:numpat)
       dplist(1:numpat,i) = DIDT%RefinedDotProducts(1:numpat)
       deallocate( DIDT%RefinedEulerAngles, DIDT%RefinedDotProducts )
-    end if 
+    end if
 
 ! finally, get the name of the xtal file from the master pattern file
-! if that file can not be found, ask the user interactively to enter the xtalname parameter 
+! if that file can not be found, ask the user interactively to enter the xtalname parameter
     infile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dinl%masterfile)
     inquire(file=trim(infile), exist=f_exists)
 
@@ -631,7 +633,7 @@ modality = 'EBSD'
       call MPFT%setFileName(infile)
       call MPFT%readMPfile(HDF, MPHDFnames, mpnl)
       xtalname(i) = trim(MPDT%xtalname)
-    else 
+    else
       call Message%printMessage('***************************')
       call Message%printMessage('Master pattern file '//trim(infile)//' can not be found')
       call Message%printMessage('***************************')
@@ -640,27 +642,27 @@ modality = 'EBSD'
       xtalname(i) = trim(rdxtalname)
     end if
 
-  end do 
+  end do
 
   ! determine which phase has the largest confidence index for each ROI sampling point
   allocate(phaseID(numpat), pID(numdp))
-  do i=1,numpat 
+  do i=1,numpat
     pID(1:numdp) = dplist(i,1:numdp)
     ml = maxloc(pID)
     phaseID(i) = ml(1)
   end do
   deallocate(pID)
 
-  ! determine the phase fractions and print that information 
+  ! determine the phase fractions and print that information
   allocate(pnum(numdp),pfrac(numdp))
   pnum = 0
   do i=1,numpat
     pnum(phaseID(i)) = pnum(phaseID(i)) + 1
   end do
-  pfrac = float(pnum)/float(numpat) * 100.0 
+  pfrac = float(pnum)/float(numpat) * 100.0
   call Message%printMessage(' Phase fractions :',"(/A)")
   call Message%printMessage(' -----------------')
-  do i=1,numdp 
+  do i=1,numdp
     io_real(1) = pfrac(i)
     call Message%WriteValue('  Phase '//trim(xtalname(i)), io_real, 1, "(F6.2)")
   end do
@@ -670,41 +672,41 @@ modality = 'EBSD'
   do i=1,numdp
     call cells(i)%setFileName(xtalname(i))
     call cells(i)%readDataHDF(SGs(i), EMsoft, HDF)
-  end do 
+  end do
 
-! write a new .ctf or .ang file, if requested  
+! write a new .ctf or .ang file, if requested
   ipar(1) = numpat
-  ipar(2) = numdp 
-  ipar(3) = ipf_wd 
-  ipar(4) = ipf_ht 
+  ipar(2) = numdp
+  ipar(3) = ipf_wd
+  ipar(4) = ipf_ht
   fpar1(1) = 10.0
   fpar2(1) = dinl%energymax
   fpar2(2) = DIDT%MCsig
   VT = Vendor_T()
   call VT%set_Modality(modality)
 
-  if (trim(dpmnl%ctfname).ne.'undefined') then 
+  if (trim(dpmnl%ctfname).ne.'undefined') then
     dinl%ctffile = trim(dpmnl%ctfname)
     call VT%ctfmerge_writeFile(EMsoft,cells,SGs,dinl,ipar,fpar2,eangles, phaseID, dplist, OSMlist, exptIQ)
     call Message%printMessage(' Merged orientation data stored in ctf file : '//trim(dpmnl%ctfname),"(/A)")
-  end if 
+  end if
 
-! write a new .ang file, if requested 
-  if (trim(dpmnl%angname).ne.'undefined') then 
+! write a new .ang file, if requested
+  if (trim(dpmnl%angname).ne.'undefined') then
     dinl%angfile = trim(dpmnl%angname)
     call VT%angmerge_writeFile(EMsoft,cells,SGs,dinl,ipar,fpar1,eangles, phaseID, dplist, exptIQ)
     call Message%printMessage(' Merged orientation data stored in ang file : '//trim(dpmnl%angname),"(/A)")
-  end if 
+  end if
 
 ! else ! indexing mode must be SI
 ! ! the files are Spherical Indexing files, so they do not have an OSM map in them, and some other
 ! ! things are different, so we need a somewhat different approach.
 
 
-! end if 
+! end if
 
-if (trim(dpmnl%phasemapname).ne.'undefined') then 
-  ! output the phase map as a tiff/bmp/ file 
+if (trim(dpmnl%phasemapname).ne.'undefined') then
+  ! output the phase map as a tiff/bmp/ file
   fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dpmnl%phasemapname)
   TIFF_filename = trim(fname)
 
@@ -716,47 +718,47 @@ if (trim(dpmnl%phasemapname).ne.'undefined') then
   allocate( dpmap(ipf_wd, ipf_ht) )
   do j=1,ipf_ht
    do i=1,ipf_wd
-    ii = (j-1) * ipf_wd + i 
+    ii = (j-1) * ipf_wd + i
     dpmap(i,j) = dplist(ii,phaseID(ii))
-   end do 
-  end do 
+   end do
+  end do
 
   ma = maxval(dpmap)
   mi = minval(dpmap)
   dpmap = 255*(dpmap-mi)/(ma-mi)
 
-! the pre-defined colors are red, green, blue, yellow, cyan, fushia, and white 
+! the pre-defined colors are red, green, blue, yellow, cyan, fushia, and white
 ! each color is weighted by the maximum dot product value to make the image a bit more realistic
   do j=1,ipf_ht
    do i=1,ipf_wd
-    ii = (j-1) * ipf_wd + i 
+    ii = (j-1) * ipf_wd + i
     select case(dpmnl%phasecolors(phaseID(ii)))
-      case(1) 
+      case(1)
         TIFF_image(1+3*(i-1),j) = dpmap(i,j)
 
-      case(2) 
+      case(2)
         TIFF_image(2+3*(i-1),j) = dpmap(i,j)
 
-      case(3) 
+      case(3)
         TIFF_image(3+3*(i-1),j) = dpmap(i,j)
 
-      case(4) 
+      case(4)
         TIFF_image(1+3*(i-1),j) = dpmap(i,j)
         TIFF_image(2+3*(i-1),j) = dpmap(i,j)
 
-      case(5) 
+      case(5)
         TIFF_image(2+3*(i-1),j) = dpmap(i,j)
         TIFF_image(3+3*(i-1),j) = dpmap(i,j)
 
-      case(6) 
+      case(6)
         TIFF_image(1+3*(i-1),j) = dpmap(i,j)
         TIFF_image(3+3*(i-1),j) = dpmap(i,j)
 
-      case(7) 
+      case(7)
         TIFF_image(1+3*(i-1),j) = dpmap(i,j)
         TIFF_image(2+3*(i-1),j) = dpmap(i,j)
         TIFF_image(3+3*(i-1),j) = dpmap(i,j)
-     end select 
+     end select
    end do
   end do
 
@@ -770,16 +772,16 @@ if (trim(dpmnl%phasemapname).ne.'undefined') then
   call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
   if(0.ne.iostat) then
     call Message%printMessage(" Failed to write image to file : "//iomsg)
-  else  
+  else
     call Message%printMessage(' Color phase map written to '//trim(TIFF_filename),"(/A)")
-  end if 
+  end if
 deallocate(TIFF_image)
-end if 
+end if
 
 ! close the fortran HDF interface
 call closeFortranHDFInterface()
 
-end associate 
+end associate
 
 end subroutine dpmerge_
 

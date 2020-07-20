@@ -2,32 +2,32 @@
 ! Copyright (c) 2018-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 module mod_vendors
-!! author: MDG 
-!! version: 1.0 
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! a class to read and write various vendor file formats (used to be called "patternmod.f90")
@@ -45,7 +45,7 @@ use mod_math
 
 IMPLICIT NONE
 
-! the following arrays are only used for the Bruker HDF5 format, since the order of the 
+! the following arrays are only used for the Bruker HDF5 format, since the order of the
 ! EBSD patterns in the RawPatterns array is not necessarily the correct order !  We use these
 ! two index arrays to obtain the correct order ...
 integer(kind=irg),allocatable,save    :: semix(:)
@@ -57,10 +57,10 @@ logical,save                          :: up1wdLeven, up1halfshift
 logical,save                          :: up2wdLeven, up2halfshift
 integer(kind=ill),save                :: offset
 
-private :: get_num_HDFgroups_ 
+private :: get_num_HDFgroups_
 
 type, public :: Vendor_T
-  private 
+  private
     character(fnlen)                  :: inputtype
     integer(kind=irg)                 :: itype
     character(fnlen)                  :: filename
@@ -112,26 +112,7 @@ contains
 
 end type Vendor_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: openExpPatternFile
-!DEC$ ATTRIBUTES DLLEXPORT :: getExpPatternRow
-!DEC$ ATTRIBUTES DLLEXPORT :: getSingleExpPattern
-!DEC$ ATTRIBUTES DLLEXPORT :: closeExpPatternFile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_Modality
-!DEC$ ATTRIBUTES DLLEXPORT :: set_Modality
-!DEC$ ATTRIBUTES DLLEXPORT :: get_inputtype
-!DEC$ ATTRIBUTES DLLEXPORT :: set_inputtype
-!DEC$ ATTRIBUTES DLLEXPORT :: get_itype
-!DEC$ ATTRIBUTES DLLEXPORT :: set_itype
-!DEC$ ATTRIBUTES DLLEXPORT :: get_filename
-!DEC$ ATTRIBUTES DLLEXPORT :: set_filename
-!DEC$ ATTRIBUTES DLLEXPORT :: get_funit
-!DEC$ ATTRIBUTES DLLEXPORT :: set_funit
-!DEC$ ATTRIBUTES DLLEXPORT :: ctf_writeFile
-!DEC$ ATTRIBUTES DLLEXPORT :: ang_writeFile
-!DEC$ ATTRIBUTES DLLEXPORT :: ctfmerge_writeFile
-!DEC$ ATTRIBUTES DLLEXPORT :: angmerge_writeFile
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface Vendor_T
   module procedure Vendor_constructor
 end interface Vendor_T
@@ -140,33 +121,35 @@ contains
 
 !--------------------------------------------------------------------------
 type(Vendor_T) function Vendor_constructor( inputtype ) result(VT)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Vendor_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! constructor for the Vendor_T Class
- 
+
 IMPLICIT NONE
 
 character(fnlen), INTENT(IN), OPTIONAL  :: inputtype
 
-if (present(inputtype)) then 
+if (present(inputtype)) then
   call VT%set_inputtype( inputtype )
-end if 
+end if
 
 end function Vendor_constructor
 
 !--------------------------------------------------------------------------
-subroutine Vendor_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine Vendor_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: Vendor_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the MRC_T Class
 
 IMPLICIT NONE
 
-type(Vendor_T), INTENT(INOUT)   :: self 
+type(Vendor_T), INTENT(INOUT)   :: self
 
 call reportDestructor('Vendor_T')
 
@@ -183,13 +166,14 @@ end subroutine Vendor_destructor
 !
 !> @brief convert inputtype string to integer value
 !
-!> @param inputtype 
+!> @param inputtype
 !
 !> @date 02/13/18 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function determine_input_type_(self) result(itype)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: determine_input_type_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! convert inputtype string to integer value
@@ -197,7 +181,7 @@ recursive function determine_input_type_(self) result(itype)
 IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)          :: self
-integer(kind=irg)                       :: itype 
+integer(kind=irg)                       :: itype
 
 type(IO_T)                              :: Message
 
@@ -211,19 +195,20 @@ if (trim(self%inputtype).eq."OxfordBinary") call self%set_itype(5)
 if (trim(self%inputtype).eq."OxfordHDF") call self%set_itype(6)    ! to be implemented
 if (trim(self%inputtype).eq."EMEBSD") call self%set_itype(7)
 if (trim(self%inputtype).eq."BrukerHDF") call self%set_itype(8)
-if (trim(self%inputtype).eq."NORDIF") call self%set_itype(9)       
+if (trim(self%inputtype).eq."NORDIF") call self%set_itype(9)
 if (trim(self%inputtype).eq."EMEBSD32i") call self%set_itype(10) ! for 32-bit integer pattern files
 if (trim(self%inputtype).eq."EMEBSD32f") call self%set_itype(11) ! for 32-bit float pattern files
 
 if (self%itype.eq.-1) call Message%printError('get_input_type','invalid file input type')
-itype = self%get_itype() 
+itype = self%get_itype()
 
 end function determine_input_type_
 
 !--------------------------------------------------------------------------
 recursive function get_num_HDFgroups_(HDFstrings) result(numg)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_num_HDFgroups_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! extract the number of HDF groups from the HDFstrings array
@@ -233,10 +218,10 @@ IMPLICIT NONE
 character(fnlen),INTENT(IN)             :: HDFstrings(10)
 integer(kind=irg)                       :: numg
 
-integer(kind=irg)                       :: i 
+integer(kind=irg)                       :: i
 
 numg = 0
-do i=1,10 
+do i=1,10
   if (len(trim(HDFstrings(i))).gt.0) numg = numg+1
 end do
 numg = numg-1   ! the last one should be a data set name
@@ -244,9 +229,10 @@ numg = numg-1   ! the last one should be a data set name
 end function get_num_HDFgroups_
 
 !--------------------------------------------------------------------------
-recursive subroutine invert_ordering_arrays_(self, npat) 
-!! author: MDG 
-!! version: 1.0 
+recursive subroutine invert_ordering_arrays_(self, npat)
+!DEC$ ATTRIBUTES DLLEXPORT :: invert_ordering_arrays_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! invert the pattern reordering arrays for Bruker HDF5 format
@@ -273,7 +259,7 @@ do i=1,semixydims(1)
   ipos = semiy(i) * npat + semix(i) + 1
   semixnew(ipos) = ix
   semiynew(ipos) = iy
-end do 
+end do
 
 ! copy the new arrays over the old ones
 semix = semixnew
@@ -284,13 +270,14 @@ end subroutine invert_ordering_arrays_
 
 !--------------------------------------------------------------------------
 function get_Modality_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Modality_
+!! author: MDG
+!! version: 1.0
 !! date: 04/06/20
 !!
 !! get Modality from the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 character(fnlen)                   :: out
@@ -301,13 +288,14 @@ end function get_Modality_
 
 !--------------------------------------------------------------------------
 subroutine set_Modality_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Modality_
+!! author: MDG
+!! version: 1.0
 !! date: 04/06/20
 !!
 !! set Modality in the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 character(*), INTENT(IN)           :: inp
@@ -318,13 +306,14 @@ end subroutine set_Modality_
 
 !--------------------------------------------------------------------------
 function get_inputtype_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_inputtype_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! get inputtype from the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 character(fnlen)                   :: out
@@ -335,13 +324,14 @@ end function get_inputtype_
 
 !--------------------------------------------------------------------------
 subroutine set_inputtype_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_inputtype_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! set inputtype in the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)       :: inp
@@ -353,13 +343,14 @@ end subroutine set_inputtype_
 
 !--------------------------------------------------------------------------
 function get_itype_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_itype_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! get itype from the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 integer(kind=irg)                  :: out
@@ -370,13 +361,14 @@ end function get_itype_
 
 !--------------------------------------------------------------------------
 subroutine set_itype_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_itype_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! set itype in the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)      :: inp
@@ -387,13 +379,14 @@ end subroutine set_itype_
 
 !--------------------------------------------------------------------------
 function get_filename_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_filename_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! get filename from the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 character(fnlen)                   :: out
@@ -404,13 +397,14 @@ end function get_filename_
 
 !--------------------------------------------------------------------------
 subroutine set_filename_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_filename_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! set filename in the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)       :: inp
@@ -421,13 +415,14 @@ end subroutine set_filename_
 
 !--------------------------------------------------------------------------
 function get_funit_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_funit_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! get funit from the Vendor_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 integer(kind=irg)                  :: out
@@ -438,13 +433,14 @@ end function get_funit_
 
 !--------------------------------------------------------------------------
 subroutine set_funit_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_funit_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! set funit in the Vendor_T class (defaults to 55)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)      :: inp
@@ -455,8 +451,9 @@ end subroutine set_funit_
 
 !--------------------------------------------------------------------------
 recursive function openExpPatternFile_(self, EMsoft, npat, L, recsize, HDFstrings, HDF) result(istat)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: openExpPatternFile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! open a file with experimental patterns for a given input file type
@@ -484,14 +481,15 @@ logical                               :: f_exists
 istat = 0
 
 ! for HDF mode, determine how many HDFgroups there are; the last entry in HDFstrings should be the data set name
-if (present(HDFstrings)) then 
+if (present(HDFstrings)) then
   hdfnumg = get_num_HDFgroups_(HDFstrings)
-end if 
+end if
 
 if (self%filename(1:1).eq.trim(EMsoft%getConfigParameter('EMsoftnativedelimiter'))) then
   ename = trim(self%filename)
 else
-  ename = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(self%filename)
+  ename = trim(self%filename)
+  !ename = trim(self%filename)
 end if
 
 f_exists = .FALSE.
@@ -529,7 +527,7 @@ select case (self%itype)
             call Message%WriteValue("File open error; error type ",io_int,1)
             call Message%printError("openExpPatternFile","Cannot continue program")
         end if
-        ! the first four 4-byte entries form a header with a version number (unimportant), then 
+        ! the first four 4-byte entries form a header with a version number (unimportant), then
         ! the two dimensions of patterns, and finally an offset parameter indicating at which byte
         ! the first pattern starts.  We don't really need the other parameters, but we'll read them anyway.
         read(unit=self%funit, iostat=ios) version, patx, paty, myoffset
@@ -551,7 +549,7 @@ select case (self%itype)
 
     case(6)  ! "OxfordHDF"
         call Message%printError("openExpPatternFile","OxfordHDF input format not yet implemented")
-! at this point in time (March 2020) it does not appear that the Oxford HDF5 format has the 
+! at this point in time (March 2020) it does not appear that the Oxford HDF5 format has the
 ! patterns stored in it... Hence this option is currently non-existent.
 
     case(4, 7, 10, 11)  ! "TSLHDF", "EMEBSD", "EMEBSD32i", "EMEBSD32f"
@@ -578,10 +576,10 @@ select case (self%itype)
             groupname = trim(HDFstrings(i))
             hdferr = HDF%openGroup(groupname)
              if (hdferr.ne.0) call HDF%error_check('openExpPatternFile:HDF%openGroup: groupname issue, check for typos.', hdferr)
-            !  this part is different from the other vendors: the patterns are not necessarily in the correct order 
+            !  this part is different from the other vendors: the patterns are not necessarily in the correct order
             !  so we need to read the reordering arrays here...  The reordering arrays are always in the SEM group,
             !  which is one level down from the top (i.e., where we are right now).  Both arrays have the SAVE attribute.
-            if (i.eq.1) then 
+            if (i.eq.1) then
                groupname = 'SEM'
                hdferr = HDF%openGroup(groupname)
                dataset = 'SEM IX'
@@ -608,7 +606,7 @@ select case (self%itype)
             call Message%printError("openExpPatternFile", "Cannot continue program")
         end if
 
-    case default 
+    case default
         istat = -1
 end select
 
@@ -616,8 +614,9 @@ end function openExpPatternFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine getExpPatternRow_(self, iii, wd, patsz, L, dims3, offset3, exppatarray, ROI, flipy, HDFstrings, HDF)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getExpPatternRow_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! read a single row of patterns from the input file(s)
@@ -653,17 +652,17 @@ integer(HSIZE_T)                        :: dims3new(3), offset3new(3), newspot
 integer(kind=ill)                       :: recpos, ii, jj, kk, ispot, liii, lpatsz, lwd, lL, buffersize, kspot, jspot, &
                                            kkstart, kkend, multfactor
 integer(kind=8)                         :: patoffsets(wd)
-logical                                 :: flip 
+logical                                 :: flip
 
 flip = .FALSE.
-if (present(flipy)) then 
+if (present(flipy)) then
   if (flipy.eqv..TRUE.) flip = .TRUE.
-end if 
+end if
 
-if (present(HDFstrings)) then 
+if (present(HDFstrings)) then
   hdfnumg = get_num_HDFgroups_(HDFstrings)
   if (hdfnumg.gt.0) dataset = trim(HDFstrings(hdfnumg+1))
-end if 
+end if
 
 ! are we dealing with a smaller ROI or the full field view ?
 ! we need to use ill-type integers since the numbers can get pretty large...
@@ -674,11 +673,11 @@ lL = L
 if (self%itype.eq.2) multfactor = 1_ill
 if (self%itype.eq.3) multfactor = 2_ill
 
-if (present(ROI)) then 
+if (present(ROI)) then
  kkstart = ROI(1)
- kkend = kkstart + ROI(3) - 1_ill 
-! for the TSL up1 and up2 formats we need to skip the first ROI(2)-1 
-! rows and set the correct offset value (in bytes) 
+ kkend = kkstart + ROI(3) - 1_ill
+! for the TSL up1 and up2 formats we need to skip the first ROI(2)-1
+! rows and set the correct offset value (in bytes)
  if (((self%itype.eq.2).or.(self%itype.eq.3)).and.(iii.eq.ROI(2))) then   ! make sure we do this only once ...
    do ii=1,ROI(2)-1
      offset = offset + (lwd * lL) * multfactor   ! this is in units of bytes
@@ -690,10 +689,10 @@ else
 end if
 
 select case (self%itype)
-    case(1)  ! "Binary"  
-! This is the original EMsoft binary format that we used initially for indexing runs 
-! when the experimental patterns were only available in individual image file format. 
-! This file would have been created using a Matlab or IDL routine.  We anticipate that 
+    case(1)  ! "Binary"
+! This is the original EMsoft binary format that we used initially for indexing runs
+! when the experimental patterns were only available in individual image file format.
+! This file would have been created using a Matlab or IDL routine.  We anticipate that
 ! this format will not be used for much longer.
 ! In view of the pattern flip resolution, the user must ensure that the Matlab script
 !  DOES NOT flip the pattern upside down !
@@ -702,43 +701,43 @@ select case (self%itype)
         exppatarray((jj-kkstart)*patsz+1:(jj-1)*patsz+L) = imageexpt(1:L)
       end do
 
-    case(2,3)  ! "TSLup1", TSLup2"  
+    case(2,3)  ! "TSLup1", TSLup2"
 ! up1 file has single bytes as entries, up2 has 2-byte unsigned integers
-      ! generate a buffer of the correct size ... 
+      ! generate a buffer of the correct size ...
       buffersize = (lwd * lL) * multfactor
       allocate(buffer(buffersize))
 ! first we read the entire buffer as bytes
       read(unit=self%funit, pos=offset, iostat=ios) buffer
 
-! then we convert the byte values into single byte or 2-byte integers 
+! then we convert the byte values into single byte or 2-byte integers
       if (multfactor.eq.2_ill) then ! .up2 format
         allocate(pairs(buffersize/2_ill))
         pairs = transfer(buffer,pairs)
       else ! .up1 format
         allocate(pairs(buffersize))
         do jj=1_ill,buffersize
-         pairs(jj) = ichar(buffer(jj)) 
+         pairs(jj) = ichar(buffer(jj))
         end do
       end if
       deallocate(buffer)
 
-! then we need to place them in the exppatarray array 
+! then we need to place them in the exppatarray array
       exppatarray = 0.0
       pixcnt = (kkstart-1)*dims3(1)*dims3(2)+1
       do kk=kkstart,kkend   ! loop over all the patterns in this row/ROI
         kspot = (kk-kkstart)*patsz
         do jj=1,dims3(2)
           if (flip.eqv..TRUE.) then
-            jspot = (dims3(2)-jj)*dims3(1) 
+            jspot = (dims3(2)-jj)*dims3(1)
           else
-            jspot = (jj-1)*dims3(1) 
-          end if 
+            jspot = (jj-1)*dims3(1)
+          end if
           do ii=1,dims3(1)
             exppatarray(kspot+jspot+ii) = float(pairs(pixcnt))
             pixcnt = pixcnt + 1
-          end do 
-        end do 
-      end do 
+          end do
+        end do
+      end do
 
 ! increment the row offset parameter (in bytes)
       offset = offset + (lwd * lL) * multfactor
@@ -770,25 +769,25 @@ select case (self%itype)
 
 ! loop over pixels and convert the byte values into single byte integers
         do jj=1_ill,lL
-          pairs((ii - 1)*lL + jj) = ichar(buffer(jj)) 
+          pairs((ii - 1)*lL + jj) = ichar(buffer(jj))
         enddo
       end do
 
       deallocate(buffer)
 
- ! then we need to place them in the exppatarray array 
+ ! then we need to place them in the exppatarray array
       exppatarray = 0.0
       pixcnt = (kkstart-1)*dims3(1)*dims3(2)+1
       do kk=kkstart,kkend   ! loop over all the patterns in this row/ROI
         kspot = (kk-kkstart)*patsz
         do jj=1,dims3(2)
-          jspot = (jj-1)*dims3(1) 
+          jspot = (jj-1)*dims3(1)
           do ii=1,dims3(1)
             exppatarray(kspot+jspot+ii) = float(pairs(pixcnt))
             pixcnt = pixcnt + 1
-          end do 
-        end do 
-      end do 
+          end do
+        end do
+      end do
 
       deallocate(pairs)
 
@@ -796,12 +795,12 @@ select case (self%itype)
       where(exppatarray.lt.0.0) exppatarray = exppatarray + 256.0
 
     case(6)  ! "OxfordHDF"
-! at this point in time (Feb. 2018) it does not appear that the Oxford HDF5 format has the 
+! at this point in time (Feb. 2018) it does not appear that the Oxford HDF5 format has the
 ! patterns stored in it... Hence this option is currently non-existent.
 
     case(4)  ! "TSLHDF" passed tests on 2/14/18 by MDG
 ! read a hyperslab section from the HDF5 input file
-        EBSDpatint = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3) 
+        EBSDpatint = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3)
         exppatarray = 0.0
         do kk=kkstart,kkend
             do jj=1,dims3(2)
@@ -809,50 +808,50 @@ select case (self%itype)
                    z = float(EBSDpatint(ii,jj,kk))
                    if (z.lt.0.0) z = z+2.0**16
                    exppatarray((kk-kkstart)*patsz+(jj-1)*dims3(1)+ii) = z
-                end do 
-            end do 
-        end do 
+                end do
+            end do
+        end do
 
 
     case(7)  ! "EMEBSD" passed tests on 2/14/18 by MDG
 ! read a hyperslab section from the HDF5 input file
-        EBSDpat = HDF%readHyperslabCharArray3D(dataset, offset3, dims3) 
+        EBSDpat = HDF%readHyperslabCharArray3D(dataset, offset3, dims3)
         exppatarray = 0.0
         do kk=kkstart,kkend
             do jj=1,dims3(2)
                 do ii=1,dims3(1)
                       exppatarray((kk-kkstart)*patsz+(jj-1)*dims3(1)+ii) = float(ichar(EBSDpat(ii,jj,kk)))
-                end do 
-            end do 
-        end do 
+                end do
+            end do
+        end do
 
-    case(10)  ! "EMEBSD32i" 
+    case(10)  ! "EMEBSD32i"
 ! read a hyperslab section from the HDF5 input file
-        EBSDpat32i = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3) 
+        EBSDpat32i = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3)
         exppatarray = 0.0
         do kk=kkstart,kkend
             do jj=1,dims3(2)
                 do ii=1,dims3(1)
                       exppatarray((kk-kkstart)*patsz+(jj-1)*dims3(1)+ii) = float(EBSDpat32i(ii,jj,kk))
-                end do 
-            end do 
-        end do 
+                end do
+            end do
+        end do
 
     case(11)  ! "EMEBSD32f" passed tests on 2/14/18 by MDG
 ! read a hyperslab section from the HDF5 input file
-        EBSDpat32f = HDF%readHyperslabFloatArray3D(dataset, offset3, dims3) 
+        EBSDpat32f = HDF%readHyperslabFloatArray3D(dataset, offset3, dims3)
         exppatarray = 0.0
         do kk=kkstart,kkend
             do jj=1,dims3(2)
                 do ii=1,dims3(1)
                       exppatarray((kk-kkstart)*patsz+(jj-1)*dims3(1)+ii) = EBSDpat32f(ii,jj,kk)
-                end do 
-            end do 
-        end do 
+                end do
+            end do
+        end do
 
     case(8)  ! "BrukerHDF"  passed tests on 2/16/18 by MDG
 ! since the pattern order in the Bruker data file is not necessarily the order in which the patterns
-! were acquired, we need to read each patttern separately from the file using the appropriate offset, which 
+! were acquired, we need to read each patttern separately from the file using the appropriate offset, which
 ! is calculated using the semix and semiy arrays.  That means that we have to redefine both dims3 and offset3
 ! and loop over an entire row using the original pattern coordinate (ispot) as an index into the reordering arrays.
         exppatarray = 0.0
@@ -861,13 +860,13 @@ select case (self%itype)
             ispot = (iii-1)*wd + kk
             newspot = semiy(ispot) * wd + semix(ispot)
             offset3new = (/ offset3(1), offset3(2),  newspot /)
-            EBSDpat = HDF%readHyperslabCharArray3D(dataset, offset3new, dims3new) 
+            EBSDpat = HDF%readHyperslabCharArray3D(dataset, offset3new, dims3new)
             do jj=1,dims3(2)
-                do ii=1,dims3(1) 
+                do ii=1,dims3(1)
                     exppatarray((kk-kkstart)*patsz+(jj-1)*dims3(1)+ii) = float(ichar(EBSDpat(ii,jj,1)))
-                end do 
-            end do 
-        end do 
+                end do
+            end do
+        end do
 
     case(9)  !  "NORDIF"
         ! Buffer for single patterns
@@ -888,7 +887,7 @@ select case (self%itype)
         end do
         deallocate(buffer)
 
-        ! Place patterns in experimental pattern array 
+        ! Place patterns in experimental pattern array
         exppatarray = 0.0
         ! Pattern pixels to read (might not be full pattern, depending on ROI)
         pixcnt = (kkstart-1)*dims3(1)*dims3(2) + 1
@@ -913,9 +912,10 @@ end select
 end subroutine getExpPatternRow_
 
 !--------------------------------------------------------------------------
-recursive subroutine getSingleExpPattern_(self, iii, wd, patsz, L, dims3, offset3, exppat, HDFstrings, HDF) 
-!! author: MDG 
-!! version: 1.0 
+recursive subroutine getSingleExpPattern_(self, iii, wd, patsz, L, dims3, offset3, exppat, HDFstrings, HDF)
+!DEC$ ATTRIBUTES DLLEXPORT :: getSingleExpPattern_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! read a single experimental pattern from the input file
@@ -950,26 +950,26 @@ integer(kind=ill)                       :: recpos, ii, jj, kk, ispot, liii, lpat
                                            l1, l2, multfactor
 integer(kind=8)                         :: patoffsets(wd)
 
-if (present(HDFstrings)) then 
+if (present(HDFstrings)) then
   hdfnumg = get_num_HDFgroups_(HDFstrings)
   if (hdfnumg.gt.0) dataset = trim(HDFstrings(hdfnumg+1))
-end if 
+end if
 
 if (itype.eq.2) multfactor = 1_ill
 if (itype.eq.3) multfactor = 2_ill
 
 select case (self%itype)
-    case(1)  ! "Binary"  
-! This is the original EMsoft binary format that we used initially for indexing runs 
-! when the experimental patterns were only available in individual image file format. 
-! This file would have been created using a Matlab or IDL routine.  We anticipate that 
+    case(1)  ! "Binary"
+! This is the original EMsoft binary format that we used initially for indexing runs
+! when the experimental patterns were only available in individual image file format.
+! This file would have been created using a Matlab or IDL routine.  We anticipate that
 ! this format will not be used for much longer.  To call the routine for a single pattern,
 ! simply place y*wd+x in the third entry of the offset3 array.
         read(self%funit,rec=offset3(3)) imageexpt
         exppat(1:L) = imageexpt(1:L)
 
 
-    case(2,3)  ! "TSL_up1", TSLup2" 
+    case(2,3)  ! "TSL_up1", TSLup2"
 ! tested and compared to IDL version of read_up2 routine on 2/20/18, MDG.
 ! the requested pattern should be in the encoded in the third entry of the offset3 array.
 ! we need to use ill-type integers since the numbers can get pretty large...
@@ -988,28 +988,28 @@ select case (self%itype)
         allocate(buffer(buffersize))
         read(unit=self%funit, pos=offset, iostat=ios) buffer
 
-! then we convert the byte values into single byte or 2-byte integers 
+! then we convert the byte values into single byte or 2-byte integers
         if (multfactor.eq.2_ill) then ! .up2 format
           allocate(pairs(buffersize/2_ill))
           pairs = transfer(buffer,pairs)
         else ! .up1 format
           allocate(pairs(buffersize))
           do jj=1_ill,buffersize
-           pairs(jj) = ichar(buffer(jj)) 
+           pairs(jj) = ichar(buffer(jj))
           end do
         end if
         deallocate(buffer)
 
-! ! then we need to place them in the exppatarray array with the proper offsets if patsz ne L 
+! ! then we need to place them in the exppatarray array with the proper offsets if patsz ne L
         exppat = 0.0
         pixcnt = 1
         do jj=1,dims3(2)
-          jspot = (jj-1)*dims3(1) 
+          jspot = (jj-1)*dims3(1)
           do ii=1,dims3(1)
             exppat(jspot+ii) = float(pairs(pixcnt))
             pixcnt = pixcnt + 1
-          end do 
-        end do 
+          end do
+        end do
         deallocate(pairs)
 
 ! finally, correct for the fact that the original values were unsigned integers
@@ -1035,26 +1035,26 @@ select case (self%itype)
       read(unit=self%funit, pos=patoffsets(l1)+17_8, iostat=ios) buffer
 
 ! convert the byte values into single byte integers
-      pairs = ichar(buffer) 
+      pairs = ichar(buffer)
       deallocate(buffer)
 
- ! then we need to place it in the exppat array 
+ ! then we need to place it in the exppat array
       exppat = 0.0
       pixcnt = 1
       do jj=1,dims3(2)
-        jspot = (jj-1)*dims3(1) 
+        jspot = (jj-1)*dims3(1)
         do ii=1,dims3(1)
           exppat(jspot+ii) = float(pairs(pixcnt))
           pixcnt = pixcnt + 1
-        end do 
-      end do 
+        end do
+      end do
       deallocate(pairs)
 
 ! finally, correct for the fact that the original values were unsigned integers
       where(exppat.lt.0.0) exppat = exppat + 256.0
 
     case(6)  ! "OxfordHDF"
-! at this point in time (Feb. 2018) it does not appear that the Oxford HDF5 format has the 
+! at this point in time (Feb. 2018) it does not appear that the Oxford HDF5 format has the
 ! patterns stored in it... Hence this option is currently non-existent.
 
 ! Update 07/13/19: after talking with Phillipe Pinard (Oxford) at the EMAS 2019 conference
@@ -1065,56 +1065,56 @@ select case (self%itype)
 ! read a hyperslab single pattern section from the HDF5 input file
 ! dims3 should have the pattern dimensions and then 1_HSIZE_T for the third dimension
 ! offset3 should have (0,0) and then the offset of the pattern (0-based)
-        EBSDpatint = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3) 
+        EBSDpatint = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3)
         exppat = 0.0
         do jj=1,dims3(2)
             do ii=1,dims3(1)
                   z = float(EBSDpatint(ii,jj,1))
                   if (z.lt.0.0) z = z+2.0**16
                   exppat((jj-1)*dims3(1)+ii) = z
-            end do 
-        end do 
+            end do
+        end do
 
     case(7)  ! "EMEBSD" passed tests on 2/20/18 by MDG
 ! read a hyperslab single pattern section from the HDF5 input file
 ! dims3 should have the pattern dimensions and then 1_HSIZE_T for the third dimension
 ! offset3 should have (0,0) and then the offset of the pattern (0-based)
-        EBSDpat = HDF%readHyperslabCharArray3D(dataset, offset3, dims3) 
+        EBSDpat = HDF%readHyperslabCharArray3D(dataset, offset3, dims3)
         exppat = 0.0
         do jj=1,dims3(2)
             do ii=1,dims3(1)
                   exppat((jj-1)*dims3(1)+ii) = float(ichar(EBSDpat(ii,jj,1)))
-            end do 
-        end do 
+            end do
+        end do
 
 
     case(10)  ! "EMEBSD32i"
 ! read a hyperslab single pattern section from the HDF5 input file
 ! dims3 should have the pattern dimensions and then 1_HSIZE_T for the third dimension
 ! offset3 should have (0,0) and then the offset of the pattern (0-based)
-        EBSDpat32i = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3) 
+        EBSDpat32i = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3)
         exppat = 0.0
         do jj=1,dims3(2)
             do ii=1,dims3(1)
                   exppat((jj-1)*dims3(1)+ii) = float(EBSDpat32i(ii,jj,1))
-            end do 
-        end do 
+            end do
+        end do
 
     case(11)  ! "EMEBSD32f"
 ! read a hyperslab single pattern section from the HDF5 input file
 ! dims3 should have the pattern dimensions and then 1_HSIZE_T for the third dimension
 ! offset3 should have (0,0) and then the offset of the pattern (0-based)
-        EBSDpat32f = HDF%readHyperslabFloatArray3D(dataset, offset3, dims3) 
+        EBSDpat32f = HDF%readHyperslabFloatArray3D(dataset, offset3, dims3)
         exppat = 0.0
         do jj=1,dims3(2)
             do ii=1,dims3(1)
                   exppat((jj-1)*dims3(1)+ii) = EBSDpat32f(ii,jj,1)
-            end do 
-        end do         
+            end do
+        end do
 
     case(8)  ! "BrukerHDF"  to be tested
 ! since the pattern order in the Bruker data file is not necessarily the order in which the patterns
-! were acquired, we need to read each patttern separately from the file using the appropriate offset, which 
+! were acquired, we need to read each patttern separately from the file using the appropriate offset, which
 ! is calculated using the semix and semiy arrays.  That means that we have to redefine both dims3 and offset3
 ! and use the original pattern coordinate (ispot) as an index into the reordering arrays.
         exppat = 0.0
@@ -1122,12 +1122,12 @@ select case (self%itype)
         ispot = offset3(3)
         newspot = semiy(ispot) * wd + semix(ispot)
         offset3new = (/ offset3(1), offset3(2),  newspot /)
-        EBSDpat = HDF%readHyperslabCharArray3D(dataset, offset3new, dims3new) 
+        EBSDpat = HDF%readHyperslabCharArray3D(dataset, offset3new, dims3new)
         do jj=1,dims3(2)
-            do ii=1,dims3(1) 
+            do ii=1,dims3(1)
                 exppat((jj-1)*dims3(1)+ii) = float(ichar(EBSDpat(ii,jj,1)))
-            end do 
-        end do 
+            end do
+        end do
 
     case(9)  !  "NORDIF"
         ! Use ill-type integers
@@ -1167,9 +1167,10 @@ end select
 end subroutine getSingleExpPattern_
 
 !--------------------------------------------------------------------------
-recursive subroutine closeExpPatternFile_(self, HDF) 
-!! author: MDG 
-!! version: 1.0 
+recursive subroutine closeExpPatternFile_(self, HDF)
+!DEC$ ATTRIBUTES DLLEXPORT :: closeExpPatternFile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! close a file with experimental patterns for a given input file type
@@ -1199,7 +1200,7 @@ select case (self%itype)
         if (present(HDF)) call HDF%pop(.TRUE.)
         deallocate(semix, semiy)
 
-    case default 
+    case default
         call Message%printError("closeExpPatternFile","unknown input format")
 end select
 
@@ -1207,14 +1208,15 @@ end subroutine closeExpPatternFile_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! the following 4 routines replace the old EBSDiomod module 
+! the following 4 routines replace the old EBSDiomod module
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive subroutine ctf_writeFile_(self,EMsoft,cell,SG,nml,ipar,fpar,indexmain,eulerarray,resultmain,OSMmap,IQmap,noindex)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ctf_writeFile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/01/20
 !!
 !! Write a *.ctf output file with EBSD/TKD data (HKL format)
@@ -1229,7 +1231,7 @@ IMPLICIT NONE
 
 class(Vendor_T),INTENT(INOUT)                       :: self
 type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
-type(cell_T),INTENT(INOUT)                          :: cell 
+type(cell_T),INTENT(INOUT)                          :: cell
 type(SpaceGroup_T),INTENT(INOUT)                    :: SG
 class(DictionaryIndexingNameListType),INTENT(INOUT) :: nml
 !f2py intent(in,out) ::  nml
@@ -1254,7 +1256,7 @@ integer(kind=irg),allocatable                       :: osm(:), iq(:)
 
 donotuseindexarray = .FALSE.
 if (present(noindex)) then
-  if (noindex.eqv..TRUE.) then 
+  if (noindex.eqv..TRUE.) then
     donotuseindexarray = .TRUE.
   end if
 end if
@@ -1268,7 +1270,7 @@ select case(modality)
     isTKD = .TRUE.
   case('ECP')
     isECP = .TRUE.
-  case default 
+  case default
     call Message%printError('ctf_writeFile_', 'unknown name list type requested')
 end select
 
@@ -1285,10 +1287,10 @@ else
     do ii=1,ipar(7)
       osm(indx) = nint(255.0 * (OSMmap(ii,i)-mi)/(ma-mi))
       indx = indx+1
-    end do 
+    end do
   end do
 end if
-  
+
 ! scale the IQmap to the range [0..255]
 allocate(iq(ipar(3)))
 iq = nint(255.0 * IQmap)
@@ -1386,18 +1388,18 @@ do ii = 1,ipar(3)
     else
       write(str2,'(F12.3)') float(floor(float(ii-1)/float(nml%ipf_wd)))*nml%StepY
       write(str1,'(F12.3)') float(MODULO(ii-1,nml%ipf_wd))*nml%StepX
-    end if 
+    end if
 
     write(str3,'(I8)') indx  ! pattern index into dictionary list of discrete orientations
     write(str8,'(I8)') 0 ! integer zero error; was indx, which is now moved to BANDS
     eu = euler(1) - 90.0 ! conversion from TSL to Oxford convention
     if (eu.lt.0) eu = eu + 360.0
-    write(str5,'(F12.3)') eu  
+    write(str5,'(F12.3)') eu
     eu = euler(2)
     if (eu.lt.0) eu = eu + 360.0
     write(str6,'(F12.3)') eu
 ! intercept the hexagonal case, for which we need to subtract 30° from the third Euler angle
-! Note: after working with Lionel Germain, we concluded that we do not need to subtract 30° 
+! Note: after working with Lionel Germain, we concluded that we do not need to subtract 30°
 ! in the ctf file, because the fundamental zone is already oriented according to the Oxford
 ! convention... That means that we need to subtract the angle for the .ang file (to be implemented)
 ! [modified by MDG on 3/5/18]
@@ -1431,7 +1433,7 @@ end subroutine ctf_writeFile_
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief 
+!> @brief
 !
 !> @param nml namelist
 !> @param ipar  series of integer dimensions
@@ -1444,8 +1446,9 @@ end subroutine ctf_writeFile_
 !> @date 11/08/18 MDG 2.0 rewrite and testing
 !--------------------------------------------------------------------------
 recursive subroutine ang_writeFile_(self,EMsoft,cell,SG,nml,ipar,fpar,indexmain,eulerarray,resultmain,IQmap,noindex)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ang_writeFile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/01/20
 !!
 !! Write a *.ang output file with EBSD data (TSL format)
@@ -1460,7 +1463,7 @@ IMPLICIT NONE
 
 class(Vendor_T),INTENT(INOUT)                       :: self
 type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
-type(cell_T),INTENT(INOUT)                          :: cell 
+type(cell_T),INTENT(INOUT)                          :: cell
 type(SpaceGroup_T),INTENT(INOUT)                    :: SG
 class(DictionaryIndexingNameListType),INTENT(INOUT) :: nml
 integer(kind=irg),INTENT(IN)                        :: ipar(10)
@@ -1483,7 +1486,7 @@ logical                                             :: donotuseindexarray, isEBS
 
 donotuseindexarray = .FALSE.
 if (present(noindex)) then
-  if (noindex.eqv..TRUE.) then 
+  if (noindex.eqv..TRUE.) then
     donotuseindexarray = .TRUE.
   end if
 end if
@@ -1497,7 +1500,7 @@ select case(modality)
     isTKD = .TRUE.
   case('ECP')
     isECP = .TRUE.
-  case default 
+  case default
     call Message%printError('ang_writeFile', 'unknown name list type requested')
 end select
 
@@ -1512,7 +1515,7 @@ write(dataunit2,'(A,F9.6)') '# x-star                ', s
 s = ( float(nml%numsy)*0.5 + nml%ypc ) / float(nml%numsy)      ! y-star
 write(dataunit2,'(A,F9.6)') '# y-star                ', s
 s = nml%L / ( nml%delta * float(nml%numsx) )                   ! z-star
-write(dataunit2,'(A,F9.6)') '# z-star                ', s 
+write(dataunit2,'(A,F9.6)') '# z-star                ', s
 write(dataunit2,'(A,F9.6)') '# WorkingDistance       ', fpar(1)  ! WD ! this quantity is not used in EMsoft
 write(dataunit2,'(A)') '#'
 write(dataunit2,'(A)') '# Phase 1'
@@ -1602,18 +1605,18 @@ do ii = 1,ipar(3)
     write(str1,'(A,F8.5)') ' ',euler(1)*dtor
     write(str2,'(A,F8.5)') ' ',euler(2)*dtor
     write(str3,'(A,F8.5)') ' ',euler(3)*dtor
-! sampling coordinates [interchanged x and y on 05/28/19, MDG] 
+! sampling coordinates [interchanged x and y on 05/28/19, MDG]
     if (sum(nml%ROI).ne.0) then
       write(str4,'(A,F12.5)') ' ',float(MODULO(ii-1,nml%ROI(3)))*nml%StepX
       write(str5,'(A,F12.5)') ' ',float(floor(float(ii-1)/float(nml%ROI(3))))*nml%StepY
     else
       write(str4,'(A,F12.5)') ' ',float(MODULO(ii-1,nml%ipf_wd))*nml%StepX
       write(str5,'(A,F12.5)') ' ',float(floor(float(ii-1)/float(nml%ipf_wd)))*nml%StepY
-    end if 
+    end if
 ! Image Quality (using the Krieger Lassen pattern sharpness parameter iq)
     write(str6,'(A,F6.1)') ' ',BSval  !  IQ value in range [0.0 .. 255.0]
     write(str7,'(A,F6.3)') ' ',resultmain(1,ii)   ! this replaces MAD
-    write(str8,'(A,I1)') '  ',1 
+    write(str8,'(A,I1)') '  ',1
 !
     write(dataunit2,"(A,' ',A,' ',A,' ',A,' ',A,' ',A,' ',A,' ',A)") trim(adjustl(str1)),trim(adjustl(str2)),&
                                             trim(adjustl(str3)),trim(adjustl(str4)),trim(adjustl(str5)),&
@@ -1627,8 +1630,9 @@ end subroutine ang_writeFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine ctfmerge_writeFile_(self,EMsoft,cells,SGs,nml,ipar,fpar,eangles,phaseID,dplist,OSMlist,IQmap)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ctfmerge_writeFile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/01/20
 !!
 !! Write a *.ctf output file with multiphase EBSD/TKD data (HKL format)
@@ -1644,7 +1648,7 @@ IMPLICIT NONE
 class(Vendor_T),INTENT(INOUT)                       :: self
 type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
 integer(kind=irg),INTENT(IN)                        :: ipar(4)
-type(cell_T),INTENT(INOUT)                          :: cells(ipar(2)) 
+type(cell_T),INTENT(INOUT)                          :: cells(ipar(2))
 type(SpaceGroup_T),INTENT(INOUT)                    :: SGs(ipar(2))
 class(DictionaryIndexingNameListType),INTENT(INOUT) :: nml
 !f2py intent(in,out) ::  nml
@@ -1678,7 +1682,7 @@ select case(modality)
     isTKD = .TRUE.
   case('ECP')
     isECP = .TRUE.
-  case default 
+  case default
     call Message%printError('ctfmerge_writeFile_', 'unknown name list type requested')
 end select
 
@@ -1693,7 +1697,7 @@ mi = minval(osmr)
 ma = maxval(osmr)
 osm = nint(255.0 * (osmr-mi)/(ma-mi))
 deallocate(osmr)
-  
+
 ! scale the IQmap to the range [0..255]
 allocate(iq(ipar(1)))
 iq = nint(255.0 * IQmap)
@@ -1776,8 +1780,8 @@ end do
 write(dataunit2,'(A)') 'Phase'//TAB//'X'//TAB//'Y'//TAB//'Bands'//TAB//'Error'//TAB//'Euler1'//TAB//'Euler2'//TAB//'Euler3' &
                       //TAB//'MAD'//TAB//'BC'//TAB//'BS'
 
-! Euler angles are always in degrees 
-eangles = eangles * rtod 
+! Euler angles are always in degrees
+eangles = eangles * rtod
 
 ! go through the entire array and write one line per sampling point
 do ii = 1,ipar(1)
@@ -1792,18 +1796,18 @@ do ii = 1,ipar(1)
     else
       write(str2,'(F12.3)') float(floor(float(ii-1)/float(nml%ipf_wd)))*nml%StepY
       write(str1,'(F12.3)') float(MODULO(ii-1,nml%ipf_wd))*nml%StepX
-    end if 
+    end if
 
-    write(str3,'(I8)') 0 
+    write(str3,'(I8)') 0
     write(str8,'(I8)') 0 ! integer zero error; was indx, which is now moved to BANDS
     eu = euler(1) - 90.0 ! conversion from TSL to Oxford convention
     if (eu.lt.0) eu = eu + 360.0
-    write(str5,'(F12.3)') eu  
+    write(str5,'(F12.3)') eu
     eu = euler(2)
     if (eu.lt.0) eu = eu + 360.0
     write(str6,'(F12.3)') eu
 ! intercept the hexagonal case, for which we need to subtract 30° from the third Euler angle
-! Note: after working with Lionel Germain, we concluded that we do not need to subtract 30° 
+! Note: after working with Lionel Germain, we concluded that we do not need to subtract 30°
 ! in the ctf file, because the fundamental zone is already oriented according to the Oxford
 ! convention... That means that we need to subtract the angle for the .ang file (to be implemented)
 ! [modified by MDG on 3/5/18]
@@ -1837,8 +1841,9 @@ end subroutine ctfmerge_writeFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine angmerge_writeFile_(self,EMsoft,cells,SGs,nml,ipar,fpar,eangles,phaseID,dplist,IQmap)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: angmerge_writeFile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/01/20
 !!
 !! Write a *.ang output file with multiphase EBSD/TKD data (TSL format)
@@ -1854,7 +1859,7 @@ IMPLICIT NONE
 class(Vendor_T),INTENT(INOUT)                       :: self
 type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
 integer(kind=irg),INTENT(IN)                        :: ipar(4)
-type(cell_T),INTENT(INOUT)                          :: cells(ipar(2)) 
+type(cell_T),INTENT(INOUT)                          :: cells(ipar(2))
 type(SpaceGroup_T),INTENT(INOUT)                    :: SGs(ipar(2))
 class(DictionaryIndexingNameListType),INTENT(INOUT) :: nml
 real(kind=sgl),INTENT(INOUT)                        :: fpar(1)
@@ -1883,7 +1888,7 @@ select case(modality)
     isTKD = .TRUE.
   case('ECP')
     isECP = .TRUE.
-  case default 
+  case default
     call Message%printError('angmerge_writeFile_', 'unknown name list type requested')
 end select
 
@@ -1900,7 +1905,7 @@ write(dataunit2,'(A,F9.6)') '# x-star                ', s
 s = ( float(nml%numsy)*0.5 + nml%ypc ) / float(nml%numsy)      ! y-star
 write(dataunit2,'(A,F9.6)') '# y-star                ', s
 s = nml%L / ( nml%delta * float(nml%numsx) )                   ! z-star
-write(dataunit2,'(A,F9.6)') '# z-star                ', s 
+write(dataunit2,'(A,F9.6)') '# z-star                ', s
 write(dataunit2,'(A,F9.6)') '# WorkingDistance       ', fpar(1) ! WD ! this quantity is not used in EMsoft
 write(dataunit2,'(A)') '#'
 
@@ -1949,7 +1954,7 @@ do iph=1,ipar(2)
   ! next we need to get the hklFamilies ranked by kinematical intensity, going out to some value
   ! this is probably not necessary [based on Stuart's feedback]
   write(dataunit2,'(A)') '# NumberFamilies        0'
-end do 
+end do
 !==========================
 ! write(dataunit2,'(A)') '# Categories 0 0 0 0 0'
 ! write(dataunit2,'(A)') '#'
@@ -1987,14 +1992,14 @@ do ii = 1,ipar(3)*ipar(4)
     write(str1,'(A,F8.5)') ' ',euler(1)
     write(str2,'(A,F8.5)') ' ',euler(2)
     write(str3,'(A,F8.5)') ' ',euler(3)
-! sampling coordinates [interchanged x and y on 05/28/19, MDG] 
+! sampling coordinates [interchanged x and y on 05/28/19, MDG]
     if (sum(nml%ROI).ne.0) then
       write(str4,'(A,F12.5)') ' ',float(MODULO(ii-1,nml%ROI(3)))*nml%StepX
       write(str5,'(A,F12.5)') ' ',float(floor(float(ii-1)/float(nml%ROI(3))))*nml%StepY
     else
       write(str4,'(A,F12.5)') ' ',float(MODULO(ii-1,nml%ipf_wd))*nml%StepX
       write(str5,'(A,F12.5)') ' ',float(floor(float(ii-1)/float(nml%ipf_wd)))*nml%StepY
-    end if 
+    end if
 ! Image Quality (using the Krieger Lassen pattern sharpness parameter iq)
     write(str6,'(A,F6.1)') ' ',BSval  !  IQ value in range [0.0 .. 255.0]
     write(str7,'(A,F6.3)') ' ',dplist(ii,phaseID(ii))   ! this replaces MAD

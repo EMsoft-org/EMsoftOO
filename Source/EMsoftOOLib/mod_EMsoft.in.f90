@@ -34,8 +34,8 @@
 !---------------------------
 
 module mod_EMsoft
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/30/19
   !!
   !! This class provides access to all the configuration parameters from the config file,
@@ -50,26 +50,26 @@ module mod_EMsoft
   !!
   !!   character(fnlen)        :: progdesc = 'and this is the descriptor'
   !!
-  !!   type(EMsoft_T)     :: EMsoft 
+  !!   type(EMsoft_T)     :: EMsoft
   !!
   !!   ! this is a call to the constructor routine
   !!
-  !!   EMsoft = EMsoft_T(progname, progdesc[,makeconfig][,showconfig])    
+  !!   EMsoft = EMsoft_T(progname, progdesc[,makeconfig][,showconfig])
   !!
   !! This will print the usual start up message with copyright, build date, version, etc. info.
-  !! It will also initialize all the configuration parameters; these are then available to the 
+  !! It will also initialize all the configuration parameters; these are then available to the
   !! calling program by means of the getConfigParameter method. The setConfigParameter method can
-  !! be used to explicitly override any of the config parameters in this class. 
+  !! be used to explicitly override any of the config parameters in this class.
   !!
-  !! The optional arguments to the constructor can be used to create the EMsoftConfig.json file 
-  !! (using makeconfig=.TRUE.), or to simply print out all the configuration parameters (using 
+  !! The optional arguments to the constructor can be used to create the EMsoftConfig.json file
+  !! (using makeconfig=.TRUE.), or to simply print out all the configuration parameters (using
   !! showconfig=.TRUE.).
   !!
-  !! Finally, the method generateFilePath can be used to complete any given file path; in the old 
+  !! Finally, the method generateFilePath can be used to complete any given file path; in the old
   !! f90 code this was done in three consecutive lines that were always basically the same, and here
-  !! we provide a method to simply return the file name completed with the full path. 
-  !! 
-  !! This class also deals with the command line arguments and the generation of 
+  !! we provide a method to simply return the file name completed with the full path.
+  !!
+  !! This class also deals with the command line arguments and the generation of
   !! template files (this used to be part of the files.f90 module).
 
 
@@ -90,22 +90,22 @@ private
 !--------------------------------------------------------------------------
 
   type, public   ::  EMsoft_T
-    !! EMsoft Class definition 
-    private 
+    !! EMsoft Class definition
+    private
      character(fnlen)  :: EMsoftpathname
       !! path to the top of the EMsoft distribution
      character(fnlen)  :: EMXtalFolderpathname
-      !! path to the location of the .xtal file folder 
+      !! path to the location of the .xtal file folder
      character(fnlen)  :: EMdatapathname
-      !! path to the location of all data files 
+      !! path to the location of all data files
      character(fnlen)  :: EMtmppathname
-      !! path to a temporary folder 
+      !! path to a temporary folder
      character(fnlen)  :: EMsoftLibraryLocation
       !! location of the main dylib/dll file, used only for IDL applications
      character(fnlen)  :: UserName
-      !! user name 
+      !! user name
      character(fnlen)  :: UserLocation
-      !! user location 
+      !! user location
      character(fnlen)  :: UserEmail
       !! user email (used for messaging)
      character(5)      :: EMNotify
@@ -116,45 +116,45 @@ private
       !! is this a release version (Yes/No)
 ! other configuration parameters that may be needed in various programs but are not in the EMsoftConfig.json file
      character(fnlen)  :: h5copypath
-      !! location of the HDF5 h5copy program 
+      !! location of the HDF5 h5copy program
      character(fnlen)  :: EMsoftplatform
       !! platform label (Darwin, Linux, Windows ... )
      character(fnlen)  :: EMsofttestpath
-      !! path for test programs 
+      !! path for test programs
      character(fnlen)  :: EMsoftTestingPath
-      !! another path for test programs 
+      !! another path for test programs
      character(fnlen)  :: EMsoftversion
-      !! EMsoft version string 
+      !! EMsoft version string
      character(fnlen)  :: Configpath
-      !! location of the EMsoftConfig.json file 
+      !! location of the EMsoftConfig.json file
      character(fnlen)  :: Templatepathname
-      !! location of the name list template files 
+      !! location of the name list template files
      character(fnlen)  :: Resourcepathname
-      !! location the resources folder 
+      !! location the resources folder
      character(fnlen)  :: Xtalpathname
-      !! path to the location of the .xtal file folder 
+      !! path to the location of the .xtal file folder
      character(fnlen)  :: userHomepathname
-      !! user home folder 
+      !! user home folder
      character(fnlen)  :: OpenCLpathname
-      !! path to the OpenCL script folder 
+      !! path to the OpenCL script folder
      character(fnlen)  :: Templatecodefilename
-      !! name of the file that contains the template codes 
+      !! name of the file that contains the template codes
      character(fnlen)  :: WyckoffPositionsfilename
-      !! name of the file that encodes the Wyckoff positions 
+      !! name of the file that encodes the Wyckoff positions
      character(fnlen)  :: Randomseedfilename
       !! name of the file that has random number seeds in it
      character(1)      :: EMsoftnativedelimiter
      ! character(fnlen)  :: strvals(wraparraysize)
      character(fnlen)  :: EMsoftRevision
-      !! Git short hash 
+      !! Git short hash
      character(fnlen)  :: EMsoftBuildDate
-      !! Latest build date 
+      !! Latest build date
      character(fnlen)  :: wikipathname
-      !! path to the wiki resources 
+      !! path to the wiki resources
      character(fnlen)  :: User
-      !! local system user name 
+      !! local system user name
      character(fnlen)  :: fftwWisdomfilename
-      !! name of the fftw wisdom file 
+      !! name of the fftw wisdom file
      character(fnlen)  :: wikicodefilename
       !! name of the files that contains the wiki file codes
      character(3)      :: EMsoftHDFtest
@@ -162,13 +162,13 @@ private
      character(fnlen)  :: SlackWebHookURL
       !! URL for Slack messaging
      character(fnlen)  :: SlackChannel
-      !! channel for Slack messaging 
+      !! channel for Slack messaging
      character(fnlen), public  :: flagset = ''
       !! parameter used to communicate flags to the Interpret_Program_Arguments routines
      character(fnlen), public  :: nmldeffile
 
     contains
-    private 
+    private
 
 ! private methods
       procedure, pass(self) :: init
@@ -210,7 +210,7 @@ private
       procedure, pass(self) :: getEMsoftHDFtest
       procedure, pass(self) :: path_init
       procedure, pass(self) :: toNativePath_
-      procedure, pass(self) :: fromNativePath_ 
+      procedure, pass(self) :: fromNativePath_
       procedure, pass(self) :: ConvertWiki2PDF_
       procedure, pass(self) :: CopyTemplateFiles_
       procedure, pass(self) :: Interpret_Program_Arguments_with_nml_
@@ -220,24 +220,24 @@ private
 ! [there aren't many... just one to set each parameter, and one to get each parameter;
 !  in addition there is one to init the EMsoft configuration file (used by the EMsoftinit program) ]
       procedure, pass(self), public :: getConfigParameter
-      !DEC$ ATTRIBUTES DLLEXPORT :: getConfigParameter
+
       procedure, pass(self), public :: setConfigParameter
-     ! !DEC$ ATTRIBUTES DLLEXPORT :: setConfigParameter
+
       procedure, pass(self), public :: printConfigParameters
-      !DEC$ ATTRIBUTES DLLEXPORT :: printConfigParameters
+
       procedure, pass(self), public :: generateFilePath
-      !DEC$ ATTRIBUTES DLLEXPORT :: generateFilePath
+
       procedure, pass(self), public :: toNativePath => toNativePath_
-      !DEC$ ATTRIBUTES DLLEXPORT :: toNativePath
+
       procedure, pass(self), public :: fromNativePath => fromNativePath_
-      !DEC$ ATTRIBUTES DLLEXPORT :: fromNativePath
+
 
   end type EMsoft_T
+! !DEC$ ATTRIBUTES DLLEXPORT :: setConfigParameter
 
-! the constructor routine for this class 
+! the constructor routine for this class
   interface EMsoft_T
     module procedure :: constructor
-    !DEC$ ATTRIBUTES DLLEXPORT :: constructor
   end interface EMsoft_T
 
 contains
@@ -250,32 +250,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, silent, tpl, noCLA) result(EMsoft)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: constructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/30/19
   !!
-  !! constructor for the EMsoft Class 
+  !! constructor for the EMsoft Class
   !!
   !! if 'makeconfig' is present, a new EMsoftConfig.json file will be created in $HOME/.config/EMsoft
-  !! 
-  !! if 'showconfig' is present, a list of all configuration parameters will be shown 
   !!
-  !! if 'silent' is present, no output will be shown 
+  !! if 'showconfig' is present, a list of all configuration parameters will be shown
+  !!
+  !! if 'silent' is present, no output will be shown
   !!
   !! if 'tpl' is present, and the -t option is given to the calling program, then the
   !! template files listed in the tpl integer array will be copied to the user's working
   !! folder.  The codes can be found in the templatecodes.txt file in the resources folder.
   !!
-  !! if 'flagset' is present, that means that additional command line argument tests need 
-  !! to be carried out, in particular a test to see if Wyckoff positions need to be used 
+  !! if 'flagset' is present, that means that additional command line argument tests need
+  !! to be carried out, in particular a test to see if Wyckoff positions need to be used
   !! for the EMmkxtal program.  Other options may be added in the future.
-  
+
 IMPLICIT NONE
 
 character(fnlen), INTENT(IN)      :: progname
  !! program name string
 character(fnlen), INTENT(IN)      :: progdesc
- !! program descriptor string 
+ !! program descriptor string
 logical, INTENT(IN), OPTIONAL     :: makeconfig
  !! optionally, generate the JSON configuration file
 logical, INTENT(IN), OPTIONAL     :: showconfig
@@ -283,56 +284,57 @@ logical, INTENT(IN), OPTIONAL     :: showconfig
 logical, INTENT(IN), OPTIONAL     :: silent
  !! optionally, don't show any output
 integer(kind=irg), INTENT(IN), OPTIONAL :: tpl(:)
- !! list of template files to be created 
-logical, INTENT(IN), OPTIONAL     :: noCLA 
- !! turn off Command Line Argument handling 
+ !! list of template files to be created
+logical, INTENT(IN), OPTIONAL     :: noCLA
+ !! turn off Command Line Argument handling
 
-if (present(noCLA)) then 
-  if (noCLA.eqv..TRUE.) then ! we do not want command line argument handling 
+if (present(noCLA)) then
+  if (noCLA.eqv..TRUE.) then ! we do not want command line argument handling
     call EMsoft % init()
     call EMsoft % printEMsoftHeader(progname, progdesc)
-  end if 
-else 
+  end if
+else
   call EMsoft % init()
 
-  if (present(tpl).and.(.not.present(silent))) then 
+  if (present(tpl).and.(.not.present(silent))) then
     call EMsoft % printEMsoftHeader(progname, progdesc, templatelist=tpl)
-  else 
-    if (PRESENT(makeconfig)) then 
-      if (makeconfig) then 
+  else
+    if (PRESENT(makeconfig)) then
+      if (makeconfig) then
         call EMsoft % printEMsoftHeader(progname, progdesc, makeconfig)
       else
-        if (.not.present(silent)) then 
+        if (.not.present(silent)) then
           call EMsoft % printEMsoftHeader(progname, progdesc)
-        end if 
+        end if
       endif
-    else 
-      if (.not.present(silent)) then 
+    else
+      if (.not.present(silent)) then
         call EMsoft % printEMsoftHeader(progname, progdesc)
       end if
     end if
   end if
 
-  if (PRESENT(showconfig)) then 
-    if (showconfig) then 
+  if (PRESENT(showconfig)) then
+    if (showconfig) then
       call EMsoft % printConfigParameters
     endif
   end if
-end if 
+end if
 
 end function constructor
 
 !--------------------------------------------------------------------------
-subroutine EMsoft_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine EMsoft_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: EMsoft_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the kvectors_T Class
- 
+
 IMPLICIT NONE
 
-type(EMsoft_T), INTENT(INOUT)  :: self 
+type(EMsoft_T), INTENT(INOUT)  :: self
 
 call reportDestructor('EMsoft_T')
 
@@ -340,15 +342,16 @@ end subroutine EMsoft_destructor
 
 !--------------------------------------------------------------------------
 subroutine init(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: init
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/30/19
   !!
   !! initializes all the components of EMsoftClass
 
   class(EMsoft_T),intent(inout) :: self
 
-! fill in all the values; the first set MUST be done in this order ... 
+! fill in all the values; the first set MUST be done in this order ...
   call self % getEMsoftplatform()
   call self % getEMsoftnativedelimiter()
   call self % getUser()
@@ -392,18 +395,20 @@ end subroutine init
 
 !--------------------------------------------------------------------------
 subroutine printConfigParameters(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: printConfigParameters
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! prints all the components of EMsoftClass
 
-  use mod_io 
+  use mod_io
 
-  IMPLICIT NONE 
+  IMPLICIT NONE
 
   class(EMsoft_T),intent(inout) :: self
-  type(IO_T)               :: Message 
+  type(IO_T)               :: Message
 
   character(fnlen)              :: m
 
@@ -448,15 +453,17 @@ end subroutine printConfigParameters
 
 !--------------------------------------------------------------------------
 function getConfigParameter(self, inp) result(cp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getConfigParameter
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! get a particular component of EMsoftClass
 
   class(EMsoft_T),intent(inout) :: self
   character(*),INTENT(IN)       :: inp
-   !! string describing the requested configuration parameter 
+   !! string describing the requested configuration parameter
 
   character(fnlen)              :: cp
 
@@ -531,25 +538,26 @@ function getConfigParameter(self, inp) result(cp)
       cp = trim( self % EMsoftHDFtest )
     case default
       cp = 'unknown configuration parameter'
-  end select 
+  end select
 
-! and use the correct delimiter for this platform 
+! and use the correct delimiter for this platform
   if (trim(inp).ne.'SlackWebHookURL') cp = toNativePath_(self, cp)
 
 end function getConfigParameter
 
 !--------------------------------------------------------------------------
 subroutine setConfigParameter(self, inp, value)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setConfigParameter
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/05/20
   !!
   !! set a particular component of EMsoft_T
 
   class(EMsoft_T),intent(inout) :: self
   character(*),INTENT(IN)       :: inp
-   !! string describing the requested configuration parameter 
-  character(*),INTENT(IN)       :: value 
+   !! string describing the requested configuration parameter
+  character(*),INTENT(IN)       :: value
    !! string with the new value
 
   character(fnlen)              :: cp
@@ -625,68 +633,71 @@ subroutine setConfigParameter(self, inp, value)
       self % EMsoftHDFtest = trim(value)
     case default
       cp = 'unknown configuration parameter'
-  end select 
+  end select
 
 end subroutine setConfigParameter
 
 !--------------------------------------------------------------------------
 function generateFilePath(self, cp, fn) result(fp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: generateFilePath
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! complete a file path
 
-  use mod_io 
+  use mod_io
 
-  IMPLICIT NONE 
+  IMPLICIT NONE
 
   class(EMsoft_T),intent(inout)      :: self
-  character(*),INTENT(IN)            :: cp    
-   !! configuration parameter string 
-  character(*),INTENT(IN),OPTIONAL   :: fn    
-   !! optional file name with incomplete path 
-  character(fnlen)                   :: fp    
+  character(*),INTENT(IN)            :: cp
+   !! configuration parameter string
+  character(*),INTENT(IN),OPTIONAL   :: fn
+   !! optional file name with incomplete path
+  character(fnlen)                   :: fp
    !! completed file name (returned)
 
-  character(fnlen)                   :: path 
+  character(fnlen)                   :: path
 
   type(IO_T)                    :: Message
 
   path = trim(self % getConfigParameter(cp))
 
-  if (trim(path).eq.'unknown configuration parameter') then    ! report error and exit 
+  if (trim(path).eq.'unknown configuration parameter') then    ! report error and exit
     Message = IO_T()
     call Message % printError('generateFilePath',' unknown configuration parameter')
-  else 
-    if (present(fn)) then 
-      fp = trim(path)//trim(fn)           ! prepend the path 
-    else 
-      fp = trim(path)                     ! this is already a complete file name ... 
-    end if 
-    fp = toNativePath_(self, fp)  ! and use the correct delimiter for this platform 
+  else
+    if (present(fn)) then
+      fp = trim(path)//trim(fn)           ! prepend the path
+    else
+      fp = trim(path)                     ! this is already a complete file name ...
+    end if
+    fp = toNativePath_(self, fp)  ! and use the correct delimiter for this platform
   end if
 
 end function generateFilePath
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! from here on, we have the older functions (all private) that are called 
-! by the new class functions 
+! from here on, we have the older functions (all private) that are called
+! by the new class functions
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 
 !--------------------------------------------------------------------------
-subroutine getEMsoftpathname(self) 
-  !! author: MDG 
-  !! version: 1.0 
+subroutine getEMsoftpathname(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftpathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the EMsoftpathname variable from the EMsoftconfig.json file
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
@@ -694,36 +705,37 @@ class(EMsoft_T),intent(inout)     :: self
 
 character(fnlen)                  :: EMsoftpathname, ep, envParam, envReturn, m
 integer                           :: l, status
-type(IO_T)                        :: Message 
+type(IO_T)                        :: Message
 
 
 ep = SC_EMsoftpathname
 self % EMsoftpathname = getJSONparameter(self, ep)
 
-if (trim(self%EMsoftpathname).eq.'tryEnvironmentVariable') then 
+if (trim(self%EMsoftpathname).eq.'tryEnvironmentVariable') then
   envParam = 'EMSOFTPATHNAME'
   call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
+  if (trim(envReturn).ne.'') then
     self%EMsoftpathname = trim(envReturn)
     l = len(trim(self%EMsoftpathname))
     if ( (self%EMsoftpathname(l:l).ne.'/') .and. (self%EMsoftpathname(l:l).ne.'\') ) then  !'
       self%EMsoftpathname = trim(self%EMsoftpathname)//'/'
-    end if 
+    end if
   else
     Message = IO_T()
     status = 999001
     call Message % printError('EMsoftpathname was not defined in the json file', &
                    status, (/ 'EMSOFTPATHNAME environment variable was NOT defined as a backup.'/))
   end if
-end if 
+end if
 
 end subroutine getEMsoftpathname
 
 
 !--------------------------------------------------------------------------
 subroutine getEMXtalFolderpathname(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMXtalFolderpathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the EMXtalFolderpathname variable from the EMsoftconfig.json file
@@ -742,17 +754,17 @@ integer                            :: l
 ep = SC_EMXtalFolderpathname
 self%EMXtalFolderpathname = getJSONparameter(self, ep)
 
-if (trim(self%EMXtalFolderpathname).eq.'tryEnvironmentVariable') then 
+if (trim(self%EMXtalFolderpathname).eq.'tryEnvironmentVariable') then
   envParam = 'EMXTALFOLDERPATHNAME'
   call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
+  if (trim(envReturn).ne.'') then
     self%EMXtalFolderpathname = trim(envReturn)
     l = len(trim(self%EMXtalFolderpathname))
     if ( (self%EMXtalFolderpathname(l:l).ne.'/') .and. (self%EMXtalFolderpathname(l:l).ne.'\') ) then !'
       self%EMXtalFolderpathname = trim(self%EMXtalFolderpathname)//'/'
-    end if 
+    end if
   else
-    if (displayEMsoftWarningMessages.eq.0) then 
+    if (displayEMsoftWarningMessages.eq.0) then
       Message = IO_T()
       call Message % printWarning('EMXtalFolderpathname was not defined in the json file', &
                      (/ 'EMXTALFOLDERPATHNAME environment variable was NOT defined as a backup.', &
@@ -761,14 +773,15 @@ if (trim(self%EMXtalFolderpathname).eq.'tryEnvironmentVariable') then
     end if
     self%EMXtalFolderpathname = ''
   end if
-end if 
+end if
 
 end subroutine getEMXtalFolderpathname
 
 !--------------------------------------------------------------------------
 subroutine getXtalpathname(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getXtalpathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the xtalpathname
@@ -783,8 +796,9 @@ end subroutine getXtalpathname
 
 !--------------------------------------------------------------------------
 subroutine getEMdatapathname(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMdatapathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the EMdatapathname variable from the EMsoftconfig.json file
@@ -803,17 +817,17 @@ integer                           :: l
 ep = SC_EMdatapathname
 self%EMdatapathname = getJSONparameter(self, ep)
 
-if (trim(self%EMdatapathname).eq.'tryEnvironmentVariable') then 
+if (trim(self%EMdatapathname).eq.'tryEnvironmentVariable') then
   envParam = 'EMDATAPATHNAME'
   call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
+  if (trim(envReturn).ne.'') then
     self%EMdatapathname = trim(envReturn)
     l = len(trim(self%EMdatapathname))
     if ( (self%EMdatapathname(l:l).ne.'/') .and. (self%EMdatapathname(l:l).ne.'\') ) then !'
       self%EMdatapathname = trim(self%EMdatapathname)//'/'
     end if
   else
-    if (displayEMsoftWarningMessages.eq.0) then 
+    if (displayEMsoftWarningMessages.eq.0) then
       Message = IO_T()
       call Message % printWarning('EMdatapathname was not defined in the json file', &
                      (/ 'EMDATAPATHNAME environment variable was NOT defined as a backup.', &
@@ -822,15 +836,16 @@ if (trim(self%EMdatapathname).eq.'tryEnvironmentVariable') then
     end if
     self%EMdatapathname = ''
   end if
-end if 
+end if
 
 end subroutine getEMdatapathname
 
 
 !--------------------------------------------------------------------------
 subroutine getEMtmppathname(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMtmppathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the EMtmppathname variable from the EMsoftconfig.json file
@@ -849,17 +864,17 @@ integer                            :: l
 ep = SC_EMtmppathname
 self%EMtmppathname = getJSONparameter(self, ep)
 
-if (trim(self%EMtmppathname).eq.'tryEnvironmentVariable') then 
+if (trim(self%EMtmppathname).eq.'tryEnvironmentVariable') then
   envParam = 'EMTMPPATHNAME'
   call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
+  if (trim(envReturn).ne.'') then
     self%EMtmppathname = trim(envReturn)
     l = len(trim(self%EMtmppathname))
     if ( (self%EMtmppathname(l:l).ne.'/') .and. (self%EMtmppathname(l:l).ne.'\')) then !'
       self%EMtmppathname = trim(self%EMtmppathname)//'/'
     end if
   else
-    if (displayEMsoftWarningMessages.eq.0) then 
+    if (displayEMsoftWarningMessages.eq.0) then
       Message = IO_T()
       call Message % printWarning('EMtmppathname was not defined in the json file', &
                      (/ 'EMTMPPATHNAME environment variable was NOT defined as a backup.', &
@@ -868,14 +883,15 @@ if (trim(self%EMtmppathname).eq.'tryEnvironmentVariable') then
     end if
     self%EMtmppathname = ''
   end if
-end if 
+end if
 
 end subroutine getEMtmppathname
 
 !--------------------------------------------------------------------------
 subroutine getSlackWebHookURL(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSlackWebHookURL
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the URL for the Slack Webhook to send message to the user
@@ -893,8 +909,9 @@ end subroutine getSlackWebHookURL
 
 !--------------------------------------------------------------------------
 subroutine getSlackChannel(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSlackChannel
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the Slack Channel to send message to the user
@@ -912,8 +929,9 @@ end subroutine getSlackChannel
 
 !--------------------------------------------------------------------------
 subroutine getUsername(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getUsername
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the Username variable from the EMsoftconfig.json file
@@ -927,23 +945,24 @@ character(fnlen)                   :: ep, envParam, envReturn, loginname
 ep = SC_UserName
 self%username = getJSONparameter(self, ep, nobackslash=.TRUE.)
 
-if (trim(self%username).eq.'tryEnvironmentVariable') then 
+if (trim(self%username).eq.'tryEnvironmentVariable') then
   envParam = 'USERNAME'
   call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
+  if (trim(envReturn).ne.'') then
     self%username = trim(envReturn)
   else
     call getlog(loginname)
     self%username = trim(loginname)
   end if
-end if 
+end if
 
 end subroutine getUsername
 
 !--------------------------------------------------------------------------
 subroutine getUserlocation(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getUserlocation
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the userlocation variable from the EMsoftconfig.json file
@@ -957,23 +976,24 @@ character(fnlen)                   :: ep, envParam, envReturn, hostname
 ep = SC_UserLocation
 self%userlocation = getJSONparameter(self, ep, nobackslash=.TRUE.)
 
-if (trim(self%userlocation).eq.'tryEnvironmentVariable') then 
+if (trim(self%userlocation).eq.'tryEnvironmentVariable') then
   envParam = 'USERlocation'
   call getenv(trim(envParam),envReturn)
-  if (trim(envReturn).ne.'') then 
+  if (trim(envReturn).ne.'') then
     self%userlocation = trim(envReturn)
   else
     call hostnm(hostname)
     self%userlocation = trim(hostname)
   end if
-end if 
+end if
 
 end subroutine getUserlocation
 
 !--------------------------------------------------------------------------
 subroutine getUseremail(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getUseremail
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the useremail variable from the EMsoftconfig.json file
@@ -987,16 +1007,17 @@ character(fnlen)                   :: ep, envParam, envReturn, hostname
 ep = SC_UserEmail
 self%useremail = getJSONparameter(self, ep, nobackslash=.TRUE.)
 
-if (trim(self%useremail).eq.'tryEnvironmentVariable') then 
+if (trim(self%useremail).eq.'tryEnvironmentVariable') then
   self%useremail = 'undefined'
 end if
 
 end subroutine getUseremail
 
 !--------------------------------------------------------------------------
-subroutine getNotify(self) 
-  !! author: MDG 
-  !! version: 1.0 
+subroutine getNotify(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: getNotify
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the EMNotify variable from the EMsoftconfig.json file
@@ -1014,8 +1035,9 @@ end subroutine getNotify
 
 !--------------------------------------------------------------------------
 subroutine getEMdevelop(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMdevelop
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! check whether or not the Develop keyword is present in the config file
@@ -1033,7 +1055,7 @@ EMdevelop = .FALSE.
 ep = SC_Develop
 EMstring = getJSONparameter(self, ep, nobackslash=.TRUE.)
 
-if (trim(EMstring).eq.'Yes') then 
+if (trim(EMstring).eq.'Yes') then
   EMdevelop = .TRUE.
 else if (trim(EMstring).eq.'tryEnvironmentVariable') then
        envParam = 'EMdevelop'
@@ -1041,18 +1063,19 @@ else if (trim(EMstring).eq.'tryEnvironmentVariable') then
        if (trim(envReturn).eq.'Yes') EMdevelop = .TRUE.
      end if
 
-if (EMdevelop.eqv..TRUE.) then 
+if (EMdevelop.eqv..TRUE.) then
   self%EMdevelop = 'Yes'
 else
   self%EMdevelop = 'No'
-end if 
+end if
 
 end subroutine getEMdevelop
 
 !--------------------------------------------------------------------------
 subroutine getRelease(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getRelease
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! check whether or not the Release keyword is present in the config file
@@ -1070,8 +1093,9 @@ end subroutine getRelease
 
 !--------------------------------------------------------------------------
 subroutine getEMsoftplatform(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftplatform
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the EMsoftplatform
@@ -1086,8 +1110,9 @@ end subroutine getEMsoftplatform
 
 !--------------------------------------------------------------------------
 subroutine geth5copypath(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: geth5copypath
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the location of the h5copy program
@@ -1106,8 +1131,9 @@ end subroutine geth5copypath
 
 !--------------------------------------------------------------------------
 subroutine getEMsofttestpath(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsofttestpath
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the EMsofttestpath variable
@@ -1128,8 +1154,9 @@ end subroutine getEMsofttestpath
 
 !--------------------------------------------------------------------------
 subroutine getEMsoftTestingPath(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftTestingPath
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! Returns the path to the EMsoft binary directory
@@ -1144,8 +1171,9 @@ end subroutine getEMsoftTestingPath
 
 !--------------------------------------------------------------------------
 subroutine getEMsoftversion(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftversion
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the Version Information
@@ -1160,8 +1188,9 @@ end subroutine getEMsoftversion
 
 !--------------------------------------------------------------------------
 subroutine getConfigpath(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getConfigpath
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the path for the configuration file
@@ -1177,8 +1206,9 @@ end subroutine getConfigpath
 
 !--------------------------------------------------------------------------
 subroutine getTemplatepathname(self, json)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getTemplatepathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the templatepathname
@@ -1203,8 +1233,9 @@ end subroutine getTemplatepathname
 
 !--------------------------------------------------------------------------
 subroutine getResourcepathname(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getResourcepathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the resourcepathname
@@ -1219,11 +1250,12 @@ end subroutine getResourcepathname
 
 !--------------------------------------------------------------------------
 subroutine getUserHomePath(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getUserHomePath
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
-  !! returns the user home folder 
+  !! returns the user home folder
 
 IMPLICIT NONE
 
@@ -1247,8 +1279,9 @@ end subroutine getUserHomePath
 
 !--------------------------------------------------------------------------
 subroutine getOpenCLpathname(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getOpenCLpathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the openclpathname
@@ -1263,8 +1296,9 @@ end subroutine getOpenCLpathname
 
 !--------------------------------------------------------------------------
 subroutine getTemplatecodefilename(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getTemplatecodefilename
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the templatecodefilename
@@ -1279,8 +1313,9 @@ end subroutine getTemplatecodefilename
 
 !--------------------------------------------------------------------------
 subroutine getWyckoffPositionsfilename(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getWyckoffPositionsfilename
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the Wyckoff Positions filename
@@ -1295,8 +1330,9 @@ end subroutine getWyckoffPositionsfilename
 
 !--------------------------------------------------------------------------
 subroutine getRandomseedfilename(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getRandomseedfilename
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the randomseedfilename
@@ -1311,8 +1347,9 @@ end subroutine getRandomseedfilename
 
 !--------------------------------------------------------------------------
 subroutine getEMsoftnativedelimiter(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftnativedelimiter
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the native delimiter for file paths
@@ -1322,7 +1359,7 @@ IMPLICIT NONE
 class(EMsoft_T),intent(inout)      :: self
 
 if (trim(self%EMsoftplatform).eq.SC_Windows) then
-  self%EMsoftnativedelimiter = '\'  ! ' <- this single prime inside a comment prevents syntax issues with some source code editors 
+  self%EMsoftnativedelimiter = '\'  ! ' <- this single prime inside a comment prevents syntax issues with some source code editors
 else
   self%EMsoftnativedelimiter = '/'
 end if
@@ -1331,8 +1368,9 @@ end subroutine getEMsoftnativedelimiter
 
 !--------------------------------------------------------------------------
 subroutine getEMsoftRevision(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftRevision
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the Git Hash of the current commit.
@@ -1347,8 +1385,9 @@ end subroutine getEMsoftRevision
 
 !--------------------------------------------------------------------------
 subroutine getEMsoftBuildDate(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftBuildDate
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the build time stamp
@@ -1363,8 +1402,9 @@ end subroutine getEMsoftBuildDate
 
 !--------------------------------------------------------------------------
 subroutine getwikipathname(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getwikipathname
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the wikipathname
@@ -1379,8 +1419,9 @@ end subroutine getwikipathname
 
 !--------------------------------------------------------------------------
 subroutine getUser(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getUser
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the system user name
@@ -1401,8 +1442,9 @@ end subroutine getUser
 
 !--------------------------------------------------------------------------
 subroutine getfftwWisdomfilename(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getfftwWisdomfilename
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the filename of the fftw wisdom file
@@ -1417,8 +1459,9 @@ end subroutine getfftwWisdomfilename
 
 !--------------------------------------------------------------------------
 subroutine getwikicodefilename(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getwikicodefilename
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the wikicodefilename
@@ -1433,11 +1476,12 @@ end subroutine getwikicodefilename
 
 !--------------------------------------------------------------------------
 subroutine getEMsoftHDFtest(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftHDFtest
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
-  !! returns the EMsoftHDFtest environment variable 
+  !! returns the EMsoftHDFtest environment variable
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
@@ -1450,16 +1494,17 @@ character(fnlen)                   :: envParam, envReturn
 envParam = 'EMsoftHDFtest'
 call getenv(trim(envParam),envReturn)
 self%EMsoftHDFtest = 'No'
-if (trim(envReturn).ne.'') then 
+if (trim(envReturn).ne.'') then
   self%EMsoftHDFtest = 'Yes'
-end if 
+end if
 
 end subroutine getEMsoftHDFtest
 
 !--------------------------------------------------------------------------
 function getJSONparameter(self, ep, nobackslash) result(param)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getJSONparameter
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! returns the ep variable from the EMsoftconfig.json file
@@ -1467,7 +1512,7 @@ function getJSONparameter(self, ep, nobackslash) result(param)
 use json_module
 
 use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
@@ -1492,7 +1537,7 @@ Message = IO_T()
 bs = .TRUE.
 if (present(nobackslash)) then
   if (nobackslash.eqv..TRUE.) bs = .FALSE.
-end if 
+end if
 
 jsonfilename = SC_jsonfilename
 jsonname =  trim(self%Configpath)//self%EMsoftnativedelimiter//trim(jsonfilename)
@@ -1522,7 +1567,7 @@ if (jexists) then
      param = trim(ep)
    else
      mm(1) = 'field '//trim(ep)//' not found in json file: '//trim(jsonname)
-     mm(2) = 'continuing with empty parameter value for '//trim(ep) 
+     mm(2) = 'continuing with empty parameter value for '//trim(ep)
      call Message % printWarning('USER='//trim(self%User), mm)
      param = ''
    end if
@@ -1530,19 +1575,19 @@ if (jexists) then
     param = trim(cval)
   end if
 
-! and make sure there is a terminating EMsoftnativedeliter character, except when the 
-! field has zero length, in which case some other default behavior will be assumed; this 
+! and make sure there is a terminating EMsoftnativedeliter character, except when the
+! field has zero length, in which case some other default behavior will be assumed; this
 ! last case was added on 08/15/17 to offer an alternative file location mechanism to the user, namely
 ! either a full path declaration or the current working folder, to complement the default
 ! behavior which is to prepend the contents of the datapathname configuration variable.
   slen = len(trim(cval))
-  if ((slen.ne.0).and.(bs.eqv..TRUE.)) then 
+  if ((slen.ne.0).and.(bs.eqv..TRUE.)) then
     if (cval(slen:slen).ne.self%EMsoftnativedelimiter) then
       param = trim(cval)//self%EMsoftnativedelimiter
     end if
   end if
 else
-  if (displayConfigFileMissingMessage.eq.0) then 
+  if (displayConfigFileMissingMessage.eq.0) then
     mm(1) = 'file '//trim(jsonname)//' not found '
     mm(2) = '  -----> Trying environment variables next ... '
     call Message % printWarning('  WARNING: USER='//trim(self%User), mm)
@@ -1556,8 +1601,9 @@ end function getJSONparameter
 
 !--------------------------------------------------------------------------
 subroutine printEMsoftHeader(self, progname, progdesc, makeconfig, templatelist)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: printEMsoftHeader
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! prints a copyright statement as well as where the user can find the license information
@@ -1565,8 +1611,8 @@ subroutine printEMsoftHeader(self, progname, progdesc, makeconfig, templatelist)
   !!
   !! 01/13/20: added templatelist optional parameter
 
-use mod_io 
-use mod_timing 
+use mod_io
+use mod_timing
 
 IMPLICIT NONE
 
@@ -1581,10 +1627,10 @@ integer(kind=irg),INTENT(IN),OPTIONAL   :: templatelist(:)
 
 type(IO_T)                              :: Message
 type(Timing_T)                          :: Timing
-integer(kind=irg)                       :: sz(1), slen 
+integer(kind=irg)                       :: sz(1), slen
 character(fnlen)                        :: nmldefault
 
- Message = IO_T() 
+ Message = IO_T()
 
  call Message % printMessage('<EMsoftHeader>',frm="(/A/)")
  call Message % printMessage('Copyright (C) 2001-2020 Marc De Graef Research Group/CMU',frm="(A)")
@@ -1611,11 +1657,11 @@ character(fnlen)                        :: nmldefault
     end if
  end if
 
- if (present(templatelist)) then 
+ if (present(templatelist)) then
     sz = shape(templatelist)
-    if (trim(self%flagset).ne.'') then 
+    if (trim(self%flagset).ne.'') then
       call Interpret_Program_Arguments_no_nml_(self, sz(1), templatelist, progname)
-    else 
+    else
       slen = len(trim(progname))
       nmldefault = trim(progname)
 ! replace .f90 by .nml
@@ -1624,15 +1670,17 @@ character(fnlen)                        :: nmldefault
       nmldefault(slen  :slen  ) = 'l'
       call Interpret_Program_Arguments_with_nml_(self, nmldefault, sz(1), templatelist, progname)
       self%nmldeffile = trim(nmldefault)
-    end if 
- end if 
+    end if
+ end if
 
 end subroutine printEMsoftHeader
 
 !--------------------------------------------------------------------------
 function toNativePath_(self, inpath) result(outpath)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: toNativePath_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! convert a path string from the native format to the other one
@@ -1642,7 +1690,7 @@ IMPLICIT NONE
 class(EMsoft_T),intent(inout)    :: self
 
 character(fnlen),INTENT(IN)           :: inpath
- !! path to be converted 
+ !! path to be converted
 character(fnlen)                      :: outpath
  !! output path
 
@@ -1653,7 +1701,7 @@ slen = len(inpath)
 outpath = ''
 todelim = self%EMsoftnativedelimiter
 
-if (todelim.eq.'\') then    ! ' 
+if (todelim.eq.'\') then    ! '
   fromdelim = '/'
 else
   fromdelim = '\'           ! '
@@ -1669,8 +1717,10 @@ end function toNativePath_
 
 !--------------------------------------------------------------------------
 function fromNativePath_(self, inpath) result(outpath)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: fromNativePath_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! convert a path string to the native format on this platform
@@ -1692,7 +1742,7 @@ outpath = ''
 fromdelim = self%EMsoftnativedelimiter
 
 if (fromdelim.eq.'/') then
-  todelim = '\'      ! ' 
+  todelim = '\'      ! '
 else
   todelim = '/'
 end if
@@ -1707,8 +1757,9 @@ end function fromNativePath_
 
 !--------------------------------------------------------------------------
 subroutine path_init(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: path_init
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/31/19
   !!
   !! This routine is called at the start of every EMsoft program; first,
@@ -1716,14 +1767,14 @@ subroutine path_init(self)
   !! If it exists, we copy it to a different file name so that we can create a new one.
   !! If it does not exist, then we create it with some default parameters and ask the
   !! user for some others.
- 
+
 use mod_io
 
 IMPLICIT NONE
 
 class(EMsoft_T),intent(inout)           :: self
 
-type(IO_T)                         :: Message 
+type(IO_T)                         :: Message
 character(fnlen)                        :: pathstring, dirstring, ep, EMsoftpathname, EMdatapathname, &
                                            username, userlocn, useremail, m
 integer(kind=irg)                       :: i, error_cnt
@@ -1731,7 +1782,7 @@ logical                                 :: found, fexists, jexists
 character(fnlen)                        :: confname, emsoftname, jsonname, jsonfilename, fname, cwd, &
                                            dirname, library, dataname, xtalname
 character(3)                            :: release, develop
-character(len=1)                        :: edp, tab, yesno 
+character(len=1)                        :: edp, tab, yesno
 
 edp = '"'
 tab = CHAR(9)
@@ -1810,7 +1861,7 @@ release = 'No'
 develop = 'No'
 
 ! generate the json file; in principle we can replace all of these with Message class statements,
-! but there's really no reason to do so ... 
+! but there's really no reason to do so ...
 open(unit=dataunit,file=trim(jsonname),status='new',form='formatted')
 call Message % printMessage('{',redirect=dataunit)
 write (dataunit,"(A,A,'EMsoftpathname',A,': ',A,A,A,',')") tab, edp, edp, edp, &
@@ -1868,8 +1919,9 @@ end subroutine path_init
 
 !--------------------------------------------------------------------------
 recursive subroutine ConvertWiki2PDF_(self, nt, wikilist)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ConvertWiki2PDF_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
   !! programs that do not have a template file will have wiki codes starting at 900
@@ -1894,20 +1946,20 @@ character(4)                            :: pdfextension = '.pdf'
 
 ! first make sure that pandoc is available on this platform
 ! we'll ask for the version number, and if the returned output contains more than one line
-! then the program is available; this will work on UNIX platforms but will need to be 
+! then the program is available; this will work on UNIX platforms but will need to be
 ! modified for Windows.
-pandoc_found = .FALSE. 
+pandoc_found = .FALSE.
 call system('pandoc -v | wc -l > linecount')
 open(unit=dataunit,file='linecount',status='old',form='formatted')
 read(dataunit,"(I10)") nlines
 close(unit=dataunit,status='delete')
 if (nlines.gt.1) pandoc_found=.TRUE.
 
-if (pandoc_found.eqv..TRUE.) then 
-! read the wikifile resources file to get all relevant file names 
+if (pandoc_found.eqv..TRUE.) then
+! read the wikifile resources file to get all relevant file names
   wcf = trim(generateFilePath(self, 'wikicodefilename' ))
   inquire(file=trim(wcf),exist=fexist)
-  if (.not.fexist) then 
+  if (.not.fexist) then
     call Message%printError('ConvertWiki2PDF','wiki code file not found: '//wcf)
   end if
 
@@ -1916,21 +1968,21 @@ if (pandoc_found.eqv..TRUE.) then
   wikifiles = ''
   do
    read(dataunit,'(I3.3,A)',iostat=ios) j, line
-   if (ios.ne.0) then 
+   if (ios.ne.0) then
     exit
    end if
    wikifiles(j+1) = trim(line)
   end do
   CLOSE(UNIT=dataunit, STATUS='keep')
 
-! get the correct path for the wiki files 
+! get the correct path for the wiki files
   wikipath = trim(generateFilePath(self, 'wikipathname' ))
 
 ! then get the pandoc default.latex location (in the resources folder)
   pandoc_tpl = trim(generateFilePath(self, 'Resourcepathname', 'default.latex' ) )
   inquire(file=trim(pandoc_tpl),exist=fexist)
 
-  if (fexist.eqv..TRUE.) then 
+  if (fexist.eqv..TRUE.) then
     defcmd = '-V fontsize=10pt --template '//trim(pandoc_tpl)
   else
     defcmd = ''
@@ -1945,7 +1997,7 @@ if (pandoc_found.eqv..TRUE.) then
 
     inquire(file=trim(input_name),exist=fexist)
 
-    if (fexist.eqv..TRUE.) then  ! create a shell script that will call pandoc and generate the PDF file 
+    if (fexist.eqv..TRUE.) then  ! create a shell script that will call pandoc and generate the PDF file
       output_name = trim(tpl)//pdfextension
 ! example command string:
 !  pandoc -V fontsize=10pt --template EMsoftResourcesFolder/default.latex -s EMGBOdm.md -o EMGBOdm.pdf
@@ -1963,27 +2015,28 @@ if (pandoc_found.eqv..TRUE.) then
       open(unit=dataunit,file='wiki2pdf',status='unknown',form='formatted')
       close(unit=dataunit, status='delete')
       call Message%printMessage(' wiki file converted to PDF: '//trim(output_name))
-    else 
+    else
       call Message%printMessage(' wiki file '//trim(input_name)//' not found; continuing ...')
-    end if 
+    end if
   end do
-else 
+else
   call Message%printError('ConvertWiki2PDF',' pandoc program not found in search PATH')
-end if 
+end if
 
 end subroutine ConvertWiki2PDF_
 
 !--------------------------------------------------------------------------
 recursive subroutine CopyTemplateFiles_(self, nt, templatelist, json)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CopyTemplateFiles_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! copy template files into local folder
   !!
   !! In the resources folder, there is a text file called templatecodes.txt
   !! in which each template file is given a unique ID number.  The present routine
-  !! receives the requested numbers and then looks at that file to figure out 
+  !! receives the requested numbers and then looks at that file to figure out
   !! which template files need to be copied into the user's working directory.
 
 use mod_io
@@ -2001,14 +2054,14 @@ character(fnlen)                        :: templates(maxnumtemplates)
 character(fnlen)                        :: input_name, output_name, tcf, tppath1, tppath2, tpl, tplextension
 integer(kind=irg)                       :: ios, i, j, ipos
 character(255)                          :: line
-logical                                 :: fexist 
+logical                                 :: fexist
 character(3)                            :: develop
 
 ! first open and read the resources/templatecodes.txt file
 
 tcf = trim(generateFilePath(self, 'Templatecodefilename') )
 inquire(file=trim(tcf),exist=fexist)
-if (.not.fexist) then 
+if (.not.fexist) then
   call Message%printError('CopyTemplateFiles','template code file not found:'//tcf)
 end if
 
@@ -2017,7 +2070,7 @@ open(UNIT=dataunit,FILE=trim(tcf), STATUS='old', FORM='formatted',ACCESS='sequen
 templates = ''
 do
  read(dataunit,'(I3.3,A)',iostat=ios) j, line
- if (ios.ne.0) then 
+ if (ios.ne.0) then
   exit
  end if
  templates(j+1) = trim(line)
@@ -2026,7 +2079,7 @@ CLOSE(UNIT=dataunit, STATUS='keep')
 
 tplextension = '.template'
 if (present(json)) then
-  if (json.eqv..TRUE.) then 
+  if (json.eqv..TRUE.) then
     tppath1 = trim(getConfigParameter(self, 'Templatepathname' ) ) !  (json))
     tplextension = '.jtemplate'
   else
@@ -2036,7 +2089,7 @@ else
   tppath1 = trim(getConfigParameter(self, 'Templatepathname' ) )
 end if
 
-! then, determine whether or not the user is working in develop mode by checking for the 
+! then, determine whether or not the user is working in develop mode by checking for the
 ! Develop keyword in the EMsoftconfig.json file... Regular users will only have a single
 ! NameListTemplates folder, but developers have two, so we need to make sure we check both
 ! locations.  The second location is the private folder...
@@ -2048,7 +2101,7 @@ if (develop.eq.'Yes') then
     tppath2(i:i) = tppath1(i:i)
   end do
   if (present(json)) then
-    if (json.eqv..TRUE.) then 
+    if (json.eqv..TRUE.) then
       tcf = 'Private/JSONTemplates/'
     else
       tcf = 'Private/NamelistTemplates/'
@@ -2069,12 +2122,12 @@ do i=1,nt
    input_name = toNativePath_(self, input_name)
 
    inquire(file=trim(input_name),exist=fexist)
-   if (.not.fexist) then 
+   if (.not.fexist) then
     if (develop.eq.'Yes') then
      input_name = trim(tppath2)//trim(tpl)//trim(tplextension)
      input_name = toNativePath_(self, input_name)
      inquire(file=trim(input_name),exist=fexist)
-     if (.not.fexist) then 
+     if (.not.fexist) then
        call Message%printError('CopyTemplateFiles','template file '//trim(templates(templatelist(i)+1))// &
                                trim(tplextension)//' not found in either template folder')
      end if
@@ -2089,7 +2142,7 @@ do i=1,nt
    open(UNIT=dataunit2,FILE=trim(output_name), STATUS='unknown', FORM='formatted',ACCESS='sequential')
    do
           read(dataunit,'(A)',iostat=ios) line
-          if (ios.ne.0) then 
+          if (ios.ne.0) then
             exit
           end if
           write(dataunit2,'(A)') trim(line)
@@ -2100,13 +2153,14 @@ do i=1,nt
                              trim(tplextension), frm = "(A)")
  end if
 end do
- 
+
 end subroutine CopyTemplateFiles_
 
 !--------------------------------------------------------------------------
 recursive subroutine Interpret_Program_Arguments_with_nml_(self, nmldefault, numt, templatelist, progname)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Interpret_Program_Arguments_with_nml_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! copy template files into local folder
@@ -2115,7 +2169,7 @@ recursive subroutine Interpret_Program_Arguments_with_nml_(self, nmldefault, num
   !!
   !! In the resources folder, there is a text file called templatecodes.txt
   !! in which each template file is given a unique ID number.  The present routine
-  !! receives the requested numbers and then looks into the file to figure out 
+  !! receives the requested numbers and then looks into the file to figure out
   !! which ones need to be copied.
 
 use mod_io
@@ -2157,7 +2211,7 @@ if (numarg.gt.0) then ! there is at least one argument
 !   call getarg(i,arg)
     call get_command_argument(i,arg)
 !    mess = 'Found the following argument: '//trim(arg); call Message("(/A/)")
-! does the argument start with a '-' character?    
+! does the argument start with a '-' character?
     if (arg(1:1).eq.'-') then
       if (trim(arg).eq.'-h') then
         call Message%printMessage(' Program should be called as follows: ', frm = "(/A)")
@@ -2170,12 +2224,12 @@ if (numarg.gt.0) then ! there is at least one argument
         call Message%printMessage(' the argument without - will be interpreted as the input file name.', frm = "(A/)")
       end if
       if (trim(arg).eq.'-t') then
-! with this option the program creates template namelist files in the current folder so that the 
+! with this option the program creates template namelist files in the current folder so that the
 ! user can edit them (file extension will be .template; should be changed by user to .nml)
         call Message%printMessage('Creating program name list template files:', frm = "(/A)")
         call CopyTemplateFiles_(self, numt, templatelist)
       end if
-      if (trim(arg).eq.'-pdf') then 
+      if (trim(arg).eq.'-pdf') then
 ! if the pandoc program is installed (for instance within the anaconda distribution)
 ! then the user can ask for the wiki manual page (if it exists) to be converted into a pdf
 ! file that will be placed in the current folder.
@@ -2188,14 +2242,14 @@ if (numarg.gt.0) then ! there is at least one argument
 !
         call Message%printMessage(' User requested wiki-to-pdf conversion', frm = "(/A)")
         call ConvertWiki2PDF_(self, numt, templatelist)
-      end if 
+      end if
       if (trim(arg).eq.'-j') then
         json = .TRUE.
-! with this option the program creates template JSON files in the current folder so that the 
+! with this option the program creates template JSON files in the current folder so that the
 ! user can edit them (file extension will be .jsontemplate; should be changed by user to .json)
 !
 ! It should be noted that the template files contain comment lines starting with the "!" character;
-! this is not standard JSON (which does not allow for comment lines).  The EMsoft JSON files will 
+! this is not standard JSON (which does not allow for comment lines).  The EMsoft JSON files will
 ! first be filtered to remove all the comment lines before being passed to the json parser routine.
         call Message%printMessage('Creating program JSON template files:', frm = "(/A)")
         call CopyTemplateFiles_(self, numt,templatelist,json=json)
@@ -2203,7 +2257,7 @@ if (numarg.gt.0) then ! there is at least one argument
     else
 ! no, the first character is not '-', so this argument must be the filename
 ! If it is present, but any of the other arguments were present as well, then
-! we stop the program. 
+! we stop the program.
       nmldefault = arg
       if (numarg.eq.1) haltprogram = .FALSE.
     end if
@@ -2220,14 +2274,15 @@ end subroutine Interpret_Program_Arguments_with_nml_
 
 !--------------------------------------------------------------------------
 recursive subroutine Interpret_Program_Arguments_no_nml_(self, numt, templatelist, progname)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Interpret_Program_Arguments_no_nml_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! interpret the command line arguments
   !!
-  !! This routine assumes that there is no template file, but there 
-  !! could still be a wiki file... 
+  !! This routine assumes that there is no template file, but there
+  !! could still be a wiki file...
 
 use mod_io
 
@@ -2248,9 +2303,9 @@ logical                                 :: haltprogram, json, flags
 
 json = .FALSE.
 
-flags = .FALSE. 
+flags = .FALSE.
 if (trim(self%flagset).ne.'') then
-  flags = .TRUE. 
+  flags = .TRUE.
 end if
 
 numarg = command_argument_count()
@@ -2267,7 +2322,7 @@ if (numarg.gt.0) then ! there is at least one argument
   do i=1,numarg
 !   call getarg(i,arg)
     call get_command_argument(i,arg)
-! does the argument start with a '-' character?    
+! does the argument start with a '-' character?
     if (arg(1:1).eq.'-') then
       if (trim(arg).eq.'-h') then
         call Message%printMessage(' Program should be called as follows: ', frm = "(/A)")
@@ -2275,7 +2330,7 @@ if (numarg.gt.0) then ! there is at least one argument
         call Message%printMessage(' To produce this message, type '//trim(progname)//' -h', frm = "(A)")
         call Message%printMessage(' use -pdf to produce a PDF help file if the corresponding wiki file exists ', frm = "(A)")
       end if
-      if (trim(arg).eq.'-pdf') then 
+      if (trim(arg).eq.'-pdf') then
 ! if the pandoc program is installed (for instance within the anaconda distribution)
 ! then the user can ask for the wiki manual page (if it exists) to be converted into a pdf
 ! file that will be placed in the current folder.
@@ -2288,17 +2343,17 @@ if (numarg.gt.0) then ! there is at least one argument
 !
         call Message%printMessage(' User requested wiki-to-pdf conversion', frm = "(/A)")
         call ConvertWiki2PDF_(self, numt, templatelist)
-      end if 
+      end if
       if (flags.eqv..TRUE.) then
-        if (trim(arg).eq.trim(self%flagset)) then 
+        if (trim(arg).eq.trim(self%flagset)) then
           self % flagset = 'yes'
           haltprogram = .FALSE.
         end if
-      end if 
+      end if
     else
 ! no, the first character is not '-', so this argument must be the filename
 ! If it is present, but any of the other arguments were present as well, then
-! we stop the program. 
+! we stop the program.
       nmlfile = arg
       if (numarg.eq.1) haltprogram = .FALSE.
     end if

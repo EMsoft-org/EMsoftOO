@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_misc
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! a collection of miscellaneous useful routines (no class definitions, just routines)
@@ -36,7 +36,7 @@ module mod_misc
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 !> this type is used to define an orientation relation, i.e., two parallel
 !> directions and two parallel planes
@@ -49,15 +49,16 @@ contains
 
 !--------------------------------------------------------------------------
 recursive subroutine IndexReduce(hkl)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: IndexReduce
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! Reduce an index triplet to smallest integers 
+  !! Reduce an index triplet to smallest integers
 
 IMPLICIT NONE
 
-integer(kind=irg),INTENT(INOUT)      :: hkl(3)      
+integer(kind=irg),INTENT(INOUT)      :: hkl(3)
  !! indices
 
 integer(kind=irg)                        :: mi,i,j
@@ -67,7 +68,7 @@ real(kind=sgl)                           :: rhkl(3),ir
  do i=1,3
   if ((abs(hkl(i)).lt.mi).and.(hkl(i).ne.0)) mi=abs(hkl(i))
  end do
- 
+
 ! then check if this index is a common divider of the others
  j = 0
  do i=1,3
@@ -75,7 +76,7 @@ real(kind=sgl)                           :: rhkl(3),ir
   ir = abs(rhkl(i))-float(int(abs(rhkl(i))))
   if (ir.eq.0.0) j=j+1
  end do
- 
+
  if (j.eq.3) mi=1
  hkl = int(rhkl*mi)
 
@@ -83,8 +84,9 @@ end subroutine IndexReduce
 
 !--------------------------------------------------------------------------
 recursive subroutine IndexReduceMB(hkl)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: IndexReduceMB
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! Reduce a Miller-Bravais index quartet to smallest integers
@@ -92,7 +94,7 @@ recursive subroutine IndexReduceMB(hkl)
 IMPLICIT NONE
 
 
-integer(kind=irg),INTENT(INOUT)      :: hkl(4)      
+integer(kind=irg),INTENT(INOUT)      :: hkl(4)
  !! indices
 
 integer(kind=irg)                        :: mi,i,j
@@ -118,8 +120,9 @@ end subroutine
 
 !--------------------------------------------------------------------------
 recursive subroutine IndexString(hexset,st,hkl,sp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: IndexString
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! Return a string of indices for printing (only deals with indices up to 9)
@@ -127,11 +130,11 @@ recursive subroutine IndexString(hexset,st,hkl,sp)
 IMPLICIT NONE
 
 logical,INTENT(IN)                      :: hexset
-character(12),INTENT(OUT)                   :: st         
+character(12),INTENT(OUT)                   :: st
  !! output string
-integer(kind=irg),INTENT(INOUT)         :: hkl(3)   
+integer(kind=irg),INTENT(INOUT)         :: hkl(3)
  !! index triplet
-character(1),INTENT(IN)                     :: sp         
+character(1),INTENT(IN)                     :: sp
  !! space character 'd' or 'r'
 
 integer(kind=irg)                             :: l,hkil(4),i
@@ -151,7 +154,7 @@ character(1),parameter                  :: numbers(0:9) = (/'0','1','2','3','4',
   l=l+1
  end if
 
- if (hexset.eqv..FALSE.) then 
+ if (hexset.eqv..FALSE.) then
   do i=1,3
    if (hkl(i).lt.0) then
     st(l:l)='-'
@@ -163,7 +166,7 @@ character(1),parameter                  :: numbers(0:9) = (/'0','1','2','3','4',
    l=l+1
   end do
  else
-  if (sp.eq.'d') then 
+  if (sp.eq.'d') then
     call MilBrav(hkl,hkil,'34')
     call IndexReduceMB(hkil)
   else
@@ -178,7 +181,7 @@ character(1),parameter                  :: numbers(0:9) = (/'0','1','2','3','4',
     st(l:l)=' '
    end if
    l=l+1
-   if (i.eq.3) then 
+   if (i.eq.3) then
     st(l:l)='.'
    else
     st(l:l)=numbers(abs(hkil(i)))
@@ -202,29 +205,30 @@ end subroutine IndexString
 
 !--------------------------------------------------------------------------
 recursive subroutine MilBrav(p,q,d)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: MilBrav
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! conversion from Miller to Miller-Bravais indices for
   !! directions.  The switch d is either '34' or '43'.
-  !! implements equations 1.31 and 1.32, pages 24-25. 
+  !! implements equations 1.31 and 1.32, pages 24-25.
 
 IMPLICIT NONE
 
-integer(kind=irg),INTENT(INOUT)         :: p(3)         
+integer(kind=irg),INTENT(INOUT)         :: p(3)
  !! input/output vector
 !f2py intent(in,out) ::  p
-integer(kind=irg),INTENT(INOUT)         :: q(4)         
+integer(kind=irg),INTENT(INOUT)         :: q(4)
  !! input/output vector
 !f2py intent(in,out) ::  q
-character(2),INTENT(IN)                 :: d            
+character(2),INTENT(IN)                 :: d
  !! direction string ('34' or '43')
 
-integer(kind=irg)                       :: i, j         
-real(kind=sgl)                          :: r(4), rm, tmp(4)     
+integer(kind=irg)                       :: i, j
+real(kind=sgl)                          :: r(4), rm, tmp(4)
 
- if (d.eq.'43') then 
+ if (d.eq.'43') then
 ! equation 1.31
 ! these will always be integers, so no reduction is required
   p(1) = q(1)-q(3)
@@ -232,7 +236,7 @@ real(kind=sgl)                          :: r(4), rm, tmp(4)
   p(3) = q(4)
  else
 ! equation 1.32
-! there is no need to divide by 3, since that would be taken out 
+! there is no need to divide by 3, since that would be taken out
 ! by the reduction to integers in the next step
   r(1) = float(2*p(1)-p(2))
   r(2) = float(2*p(2)-p(1))
@@ -242,7 +246,7 @@ real(kind=sgl)                          :: r(4), rm, tmp(4)
 ! next reduce to common integers
 ! first, find the non-zero minimum index
   rm = 100.0
-  do i=1,4 
+  do i=1,4
    if ((abs(r(i)).lt.rm).and.(r(i).ne.0.0)) rm = abs(r(i))
   end do
 
@@ -254,7 +258,7 @@ real(kind=sgl)                          :: r(4), rm, tmp(4)
   end do
   if (j.eq.4) then
     q = tmp
-  else  
+  else
     q = r
   end if
  end if
@@ -263,8 +267,9 @@ end subroutine MilBrav
 
 !--------------------------------------------------------------------------
 recursive subroutine ProjectionMatrix(cell,iview,M)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ProjectionMatrix
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! construct a projection matrix for a given direct space viewing direction
@@ -274,9 +279,9 @@ use mod_crystallography
 IMPLICIT NONE
 
 type(Cell_T),INTENT(INOUT)      :: cell
-real(kind=sgl),INTENT(OUT)      :: M(3,3)               
+real(kind=sgl),INTENT(OUT)      :: M(3,3)
  !! output transformation matrix
-integer(kind=irg),INTENT(IN)    :: iview(3)             
+integer(kind=irg),INTENT(IN)    :: iview(3)
  !! input viewing direction indices
 
 real(kind=sgl)                  :: g(3),r(3),q(3),qmin  ! auxiliary variables
@@ -315,18 +320,19 @@ end subroutine ProjectionMatrix
 
 !--------------------------------------------------------------------------
 recursive subroutine GetViewingDirection(hexset,iview)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetViewingDirection
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! get the direct space indices of the viewing direction 
+  !! get the direct space indices of the viewing direction
 
 use mod_io
 
 IMPLICIT NONE
 
 logical,INTENT(IN)              :: hexset
-integer(kind=irg),INTENT(OUT)   :: iview(3) 
+integer(kind=irg),INTENT(OUT)   :: iview(3)
  !! direction indices in three index notation
 
 type(IO_T)                      :: Message
@@ -348,13 +354,14 @@ end subroutine GetViewingDirection
 
 !--------------------------------------------------------------------------
 recursive function ComputeViewTrans(cell, iview, VD) result(M)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ComputeViewTrans
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/25/20
   !!
   !! compute the viewing transformation matrix
   !!
-  !! Based on sections 13.5.1-5 in "Computer Graphics: Systems and Concepts", by R. Salmon and M. Slater, 
+  !! Based on sections 13.5.1-5 in "Computer Graphics: Systems and Concepts", by R. Salmon and M. Slater,
   !! pp. 397-408, Addison-Wesley 1987
 
 use mod_crystallography
@@ -362,20 +369,20 @@ use mod_crystallography
 IMPLICIT NONE
 
 type(Cell_T), INTENT(IN)        :: cell
-integer(kind=irg),INTENT(IN)    :: iview(3)     
+integer(kind=irg),INTENT(IN)    :: iview(3)
  !! viewing direction indices
-real(kind=sgl),INTENT(IN)       :: VD           
+real(kind=sgl),INTENT(IN)       :: VD
  !! viewing distance in [nm]
-real(kind=sgl)                  :: M(4,4)       
+real(kind=sgl)                  :: M(4,4)
  !! transformation matrix
 
-real(kind=sgl)                  :: p(3),n(3),u(3),v(3),pmin   
-integer(kind=irg)               :: i,j,imin  
+real(kind=sgl)                  :: p(3),n(3),u(3),v(3),pmin
+integer(kind=irg)               :: i,j,imin
 
 n=float(iview)                         ! VPN View Plane Normal
 call cell%TransSpace(n,p,'d','c')       ! convert to cartesian
 call cell%NormVec(p,'c')               ! and normalize
- 
+
 pmin=1.1                               ! select vector v normal to VPN in projection
  do i=1,3
   if (abs(p(i)).lt.pmin) then
@@ -407,13 +414,14 @@ pmin=1.1                               ! select vector v normal to VPN in projec
   M(4,2)=M(4,2)-p(j)*v(j)*VD
   M(4,3)=M(4,3)-p(j)*n(j)*VD
  end do
- 
+
 end function ComputeViewTrans
 
 !--------------------------------------------------------------------------
 recursive subroutine GetDrawingSpace(sp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetDrawingSpace
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! real space or reciprocal space drawing
@@ -422,10 +430,10 @@ use mod_io
 
 IMPLICIT NONE
 
-character(1),INTENT(OUT)    :: sp        
+character(1),INTENT(OUT)    :: sp
  !! character 'd' or 'r'
 
-type(IO_T)                  :: Message 
+type(IO_T)                  :: Message
 
 call Message%ReadValue('Real Space (d) or reciprocal space (r) : ', sp,'(A1)')
 
@@ -433,8 +441,9 @@ end subroutine GetDrawingSpace
 
 !--------------------------------------------------------------------------
 recursive subroutine GetIndex(hexset,ind,sp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetIndex
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! get the u,v,w or h,k,l indices
@@ -444,15 +453,15 @@ use mod_io
 IMPLICIT NONE
 
 logical,INTENT(IN)            :: hexset
-integer(kind=irg),INTENT(OUT) :: ind(3) 
+integer(kind=irg),INTENT(OUT) :: ind(3)
  !! indices
-character(1),INTENT(IN)       :: sp         
+character(1),INTENT(IN)       :: sp
  !! space 'd' or 'r'
 
 type(IO_T)                    :: Message
 integer(kind=irg)               :: jnd(4)
 
- if (sp.eq.'d') then 
+ if (sp.eq.'d') then
   if (hexset.eqv..FALSE.) then
    call Message%ReadValue('Enter u,v,w :', ind,3)
   else
@@ -468,22 +477,23 @@ end subroutine GetIndex
 
 !--------------------------------------------------------------------------
 recursive subroutine GetOR(orel)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetOR
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/26/20
   !!
   !! ask for orientation relation between two crystals in terms of parallel planes
-  !! and parallel directions; 
+  !! and parallel directions;
 
 use mod_io
 
 IMPLICIT NONE
 
-type(OrientationRelation),INTENT(OUT)  :: orel  
+type(OrientationRelation),INTENT(OUT)  :: orel
 
-type(IO_T)                             :: Message 
-real(kind=sgl)                         :: c1,c2 
-integer(kind=irg)                      :: io_int(6) 
+type(IO_T)                             :: Message
+real(kind=sgl)                         :: c1,c2
+integer(kind=irg)                      :: io_int(6)
 
  c1 = 1.0_sgl
  c2 = 1.0_sgl
@@ -491,10 +501,10 @@ integer(kind=irg)                      :: io_int(6)
   call Message%printMessage('Enter orientation relation in following form:', frm = "(A)")
   call Message%printMessage('planes:     h_A,k_A,l_A,h_B,k_B,l_B ', frm = "(A)")
   call Message%printMessage('directions: u_A,v_A,w_A,u_B,v_B,w_B ', frm = "(A)")
-  call Message%ReadValue('Plane normals :', io_int, 6) 
+  call Message%ReadValue('Plane normals :', io_int, 6)
   orel%gA(1:3) = float(io_int(1:3))
   orel%gB(1:3) = float(io_int(4:6))
-  call Message%ReadValue('Directions    :', io_int, 6) 
+  call Message%ReadValue('Directions    :', io_int, 6)
   orel%tA(1:3) = float(io_int(1:3))
   orel%tB(1:3) = float(io_int(4:6))
 
@@ -513,8 +523,9 @@ end subroutine GetOR
 
 !--------------------------------------------------------------------------
 recursive function ComputeOR(orel, cellA, cellB, direction) result(TT)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ComputeOR
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/26/20
   !!
   !! compute the orientation relation transformation matrix
@@ -525,10 +536,10 @@ use mod_crystallography
 
 IMPLICIT NONE
 
-type(OrientationRelation),INTENT(INOUT)  :: orel  
+type(OrientationRelation),INTENT(INOUT)  :: orel
 type(Cell_T),INTENT(INOUT)               :: cellA
-type(Cell_T),INTENT(INOUT)               :: cellB 
-character(2),INTENT(IN)                  :: direction  
+type(Cell_T),INTENT(INOUT)               :: cellB
+character(2),INTENT(IN)                  :: direction
  !! direction of transformation (AB or BA)
 real(kind=sgl)                           :: TT(3,3)
 
@@ -555,7 +566,7 @@ integer(kind=irg)                        :: i
   call Message%WriteValue('', io_real, 3)
  end do
 
-! compute E-prime matrix 
+! compute E-prime matrix
  call cellB%TransSpace(orel % gB,r,'r','d')
  call cellB%NormVec(r,'d')
  call cellB%NormVec(orel % tB,'d')

@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_timing
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! Provides a timing class with a few simple timing routines
@@ -43,7 +43,6 @@ use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
 IMPLICIT NONE
 
 private
-public :: Timing_T
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -53,24 +52,24 @@ public :: Timing_T
 
   type, public   ::  Timing_T
     !! Timing Class definition
-    private 
+    private
       integer(kind=irg)             :: numT
        !! number of time slots (multiple overlapping timers)
       integer(kind=irg),allocatable :: Tstart(:)
-       !! array of start times 
+       !! array of start times
       integer(kind=irg),allocatable :: Tstop(:)
-       !! array of stop times 
+       !! array of stop times
       real(kind=sgl),allocatable    :: Tinterval(:)
        !! array of intervals
       character(len = 11)           :: datestring
        !! a simple date string
       character(len = 15)           :: timestring
-       !! a time string 
+       !! a time string
       character(len = 27)           :: timestamp
        !! a combined date-time string
 
     contains
-      private 
+      private
 
         procedure, pass(self), public :: Time_tick
         procedure, pass(self), public :: Time_tock
@@ -80,13 +79,13 @@ public :: Timing_T
         procedure, pass(self), public :: getTimeString
         procedure, pass(self), public :: printTimeStamp
         procedure, pass(self), public :: makeTimeStamp
- 
+
    end type Timing_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
    interface Timing_T
      module procedure :: Timing_constructor
-   end interface Timing_T        
+   end interface Timing_T
 
 contains
 
@@ -98,13 +97,14 @@ contains
 
 !--------------------------------------------------------------------------
 type(Timing_T) function Timing_constructor( showDateTime, nCounters ) result(Timing)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Timing_constructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! constructor for the Timing Class
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
@@ -116,96 +116,99 @@ IMPLICIT NONE
   type(IO_T)                               :: Message
 
 ! set the maximum number of time intervals to be stored
-  if (present(nCounters)) then 
+  if (present(nCounters)) then
     Timing % numT = nCounters
   else
     Timing % numT = 10   ! 10 is the default number of timer slots
-  end if 
+  end if
   allocate( Timing % Tstart(Timing % numT), Timing % Tstop(Timing % numT), &
             Timing % Tinterval(Timing % numT) )
 
 ! initialize date and time strings
-  call Timing % makeTimeStamp() 
+  call Timing % makeTimeStamp()
 
-! and print them if requested 
+! and print them if requested
   if (present(showDateTime)) then
-    if (showDateTime) then 
+    if (showDateTime) then
       Message = IO_T()
       call Message % printMessage( Timing % timestamp, frm="(A/)")
-    end if 
+    end if
   end if
 
 end function Timing_constructor
 
 !--------------------------------------------------------------------------
 recursive subroutine Time_tick(self, n)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Time_tick
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! start one of the nCounters clocks
 
 IMPLICIT NONE
 
-class(Timing_T)                         :: self 
+class(Timing_T)                         :: self
 integer(kind=irg), intent(IN), OPTIONAL :: n
- !! integer labeling the counter to be used 
+ !! integer labeling the counter to be used
 
 integer(kind=irg)                       :: i, t
 
 i = 1
-if (present(n)) i = n 
+if (present(n)) i = n
 
 call system_clock(t)
 
-self % Tstart(i) = t 
+self % Tstart(i) = t
 
 end subroutine Time_tick
 
 !--------------------------------------------------------------------------
-recursive subroutine Time_tock(self, n) 
-  !! author: MDG 
-  !! version: 1.0 
+recursive subroutine Time_tock(self, n)
+!DEC$ ATTRIBUTES DLLEXPORT :: Time_tock
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! stop one of the nCounters clocks, and compute the interval
 
 IMPLICIT NONE
 
-class(Timing_T)                         :: self 
+class(Timing_T)                         :: self
 integer(kind=irg), intent(in), OPTIONAL :: n
- !! integer labeling the counter to be used 
+ !! integer labeling the counter to be used
 
 integer(kind=irg)                       :: i, now, clock_rate
 
 i = 1
-if (present(n)) i = n 
+if (present(n)) i = n
 
 call system_clock(now,clock_rate)
-self % Tstop(i) = now 
+self % Tstop(i) = now
 
 self % Tinterval(i) = real(now - self % Tstart(i))/real(clock_rate)
 
 end subroutine Time_tock
 
 !--------------------------------------------------------------------------
-recursive subroutine Time_reset(self, n) 
-  !! author: MDG 
-  !! version: 1.0 
+recursive subroutine Time_reset(self, n)
+!DEC$ ATTRIBUTES DLLEXPORT :: Time_reset
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! reset one or all of the nCounters clocks
 
 IMPLICIT NONE
 
-class(Timing_T)                         :: self 
+class(Timing_T)                         :: self
 integer(kind=irg), intent(in), OPTIONAL :: n
- !! selects which clock to reset; if absent, reset all 
+ !! selects which clock to reset; if absent, reset all
 
 integer(kind=irg)                       :: i
 
-if (present(n)) then 
-  i = n 
+if (present(n)) then
+  i = n
   self % Tstart(i) = 0
   self % Tstop(i) = 0
   self % Tinterval(i) = 0
@@ -213,21 +216,22 @@ else
   self % Tstart = 0
   self % Tstop = 0
   self % Tinterval = 0
-end if 
+end if
 
 end subroutine Time_reset
 
 !--------------------------------------------------------------------------
 recursive function getInterval(self, n) result(t)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getInterval
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! return one of the timer intervals (first one if not specified)
 
 IMPLICIT NONE
 
-class(Timing_T)                         :: self 
+class(Timing_T)                         :: self
 integer(kind=irg), intent(in), OPTIONAL :: n
  !! optional selected timer
 
@@ -236,7 +240,7 @@ real(kind=sgl)                          :: t
 integer(kind=irg)                       :: i
 
 i = 1
-if (present(n)) i = n 
+if (present(n)) i = n
 
 t = self % Tinterval(i)
 
@@ -244,15 +248,16 @@ end function getInterval
 
 !--------------------------------------------------------------------------
 function getDateString(self) result(t)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getDateString
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
-  !! return the date string 
+  !! return the date string
 
 IMPLICIT NONE
 
-class(Timing_T)                         :: self 
+class(Timing_T)                         :: self
 
 character(len=11)                       :: t
 
@@ -262,15 +267,16 @@ end function getDateString
 
 !--------------------------------------------------------------------------
 function getTimeString(self) result(t)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getTimeString
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! return the time string
 
 IMPLICIT NONE
 
-class(Timing_T)                         :: self 
+class(Timing_T)                         :: self
 
 character(len=15)                       :: t
 
@@ -279,9 +285,10 @@ t = self % timestring
 end function getTimeString
 
 !--------------------------------------------------------------------------
-subroutine printTimeStamp(self, redirect) 
-  !! author: MDG 
-  !! version: 1.0 
+subroutine printTimeStamp(self, redirect)
+!DEC$ ATTRIBUTES DLLEXPORT :: printTimeStamp
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! print the timestamp string
@@ -290,7 +297,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(Timing_T)                         :: self 
+class(Timing_T)                         :: self
 integer(kind=irg),INTENT(IN),OPTIONAL   :: redirect
  !! optional redirect to another output unit
 
@@ -302,9 +309,9 @@ Message = IO_T()
 unit = stdout
 if (present(redirect)) unit = redirect
 
-call self % makeTimeStamp() 
+call self % makeTimeStamp()
 
-if (unit.eq.stdout) then 
+if (unit.eq.stdout) then
   call Message % printMessage( self % timestamp, frm="(/A/)")
 else
   call Message % printMessage( self % timestamp, frm="(/A/)", redirect = unit)
@@ -314,8 +321,9 @@ end subroutine printTimeStamp
 
 !--------------------------------------------------------------------------
 subroutine makeTimeStamp (self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: makeTimeStamp
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/01/20
   !!
   !! generate the date and time strings as well as the combined timestamp
@@ -331,7 +339,7 @@ subroutine makeTimeStamp (self)
   character ( len = 10 )                :: time
   character ( len = 5 )                 :: zone
 
-! call the intrinsic routine 
+! call the intrinsic routine
   call date_and_time ( date, time, zone, v)
 
   y = v(1)
@@ -497,7 +505,7 @@ end subroutine makeTimeStamp
 !  call WriteValue(' Time for first computation step [s, typically overestimate] :', io_real, 1, frm = "(F10.5)")
 !  call Message('  Anticipated total computation time :', frm = "(A)",advance="no")
 !  call PrintTime(TT%TIME_unit_count*float(numk))
- 
+
 ! end subroutine Time_estimate
 
 ! !--------------------------------------------------------------------------
@@ -539,7 +547,7 @@ end subroutine makeTimeStamp
 !  if (TIME_nc.lt.TT%TIME_newcount) then     ! we've looped through the entire cycle
 !    TT%TIME_loops = TT%TIME_loops+1
 !    TT%TIME_count = 0
-!  end if 
+!  end if
 !  TT%TIME_newcount = TIME_nc
 
 ! ! and print it
@@ -550,7 +558,7 @@ end subroutine makeTimeStamp
 
 ! ! print estimated remaining time
 !  io_int(1) = nint(100.0*TT%TIME_t_count/(TT%TIME_t_count+TT%TIME_unit_count*(float(numk)-float(ik))))
-!  call WriteValue (' ',io_int, 1, frm = "(1x,I3,' % completed; ')",advance="no") 
+!  call WriteValue (' ',io_int, 1, frm = "(1x,I3,' % completed; ')",advance="no")
 !  io_real(1) = TT%TIME_t_count
 !  call WriteValue(' Total computation time [s] ', io_real, 1, frm = "(F)",advance="no")
 !  call Message(';  Estimated remaining time : ', frm = "(A)",advance="no")

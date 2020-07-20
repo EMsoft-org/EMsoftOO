@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_ADP
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 04/05/20
   !!
   !! class definition for the EMgetADP program
@@ -36,7 +36,7 @@ module mod_ADP
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMgetADP program
 type, public :: ADPNameListType
@@ -63,12 +63,12 @@ end type ADPNameListType
 
 ! class definition
 type, public :: ADP_T
-private 
+private
   character(fnlen)       :: nmldeffile = 'EMgetADP.nml'
-  type(ADPNameListType)  :: nml 
+  type(ADPNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: ADP_
@@ -154,82 +154,42 @@ private
   generic, public :: set_HDFstrings => set_HDFstrings_
 end type ADP_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface ADP_T
   module procedure ADP_constructor
 end interface ADP_T
-
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: ADP
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_ht
-!DEC$ ATTRIBUTES DLLEXPORT :: set_ipf_ht
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_wd
-!DEC$ ATTRIBUTES DLLEXPORT :: set_ipf_wd
-!DEC$ ATTRIBUTES DLLEXPORT :: get_maskradius
-!DEC$ ATTRIBUTES DLLEXPORT :: set_maskradius
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numsx
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numsx
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numsy
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numsy
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nregions
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nregions
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ROI
-!DEC$ ATTRIBUTES DLLEXPORT :: set_ROI
-!DEC$ ATTRIBUTES DLLEXPORT :: get_hipassw
-!DEC$ ATTRIBUTES DLLEXPORT :: set_hipassw
-!DEC$ ATTRIBUTES DLLEXPORT :: get_maskpattern
-!DEC$ ATTRIBUTES DLLEXPORT :: set_maskpattern
-!DEC$ ATTRIBUTES DLLEXPORT :: get_filterpattern
-!DEC$ ATTRIBUTES DLLEXPORT :: set_filterpattern
-!DEC$ ATTRIBUTES DLLEXPORT :: get_keeptmpfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_keeptmpfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_usetmpfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_usetmpfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_exptfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_exptfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_tmpfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_tmpfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_tiffname
-!DEC$ ATTRIBUTES DLLEXPORT :: set_tiffname
-!DEC$ ATTRIBUTES DLLEXPORT :: get_maskfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_maskfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_inputtype
-!DEC$ ATTRIBUTES DLLEXPORT :: set_inputtype
-!DEC$ ATTRIBUTES DLLEXPORT :: get_HDFstrings
-!DEC$ ATTRIBUTES DLLEXPORT :: set_HDFstrings
 
 contains
 
 !--------------------------------------------------------------------------
 type(ADP_T) function ADP_constructor( nmlfile ) result(ADP)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ADP_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
-!! constructor for the ADP_T Class; reads the name list 
- 
+!! constructor for the ADP_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call ADP%readNameList(nmlfile)
 
 end function ADP_constructor
 
 !--------------------------------------------------------------------------
-subroutine ADP_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine ADP_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: ADP_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! destructor for the ADP_T Class
- 
+
 IMPLICIT NONE
 
-type(ADP_T), INTENT(INOUT)  :: self 
+type(ADP_T), INTENT(INOUT)  :: self
 
 call reportDestructor('ADP_T')
 
@@ -238,13 +198,14 @@ end subroutine ADP_destructor
 
 !--------------------------------------------------------------------------
 function get_ipf_ht_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_ht_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get ipf_ht from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg)               :: out
@@ -255,13 +216,14 @@ end function get_ipf_ht_
 
 !--------------------------------------------------------------------------
 subroutine set_ipf_ht_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ipf_ht_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set ipf_ht in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)   :: inp
@@ -272,13 +234,14 @@ end subroutine set_ipf_ht_
 
 !--------------------------------------------------------------------------
 function get_ipf_wd_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_wd_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get ipf_wd from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg)               :: out
@@ -289,13 +252,14 @@ end function get_ipf_wd_
 
 !--------------------------------------------------------------------------
 subroutine set_ipf_wd_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ipf_wd_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set ipf_wd in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)   :: inp
@@ -306,13 +270,14 @@ end subroutine set_ipf_wd_
 
 !--------------------------------------------------------------------------
 function get_maskradius_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_maskradius_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get maskradius from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg)               :: out
@@ -323,13 +288,14 @@ end function get_maskradius_
 
 !--------------------------------------------------------------------------
 subroutine set_maskradius_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_maskradius_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set maskradius in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)   :: inp
@@ -340,13 +306,14 @@ end subroutine set_maskradius_
 
 !--------------------------------------------------------------------------
 function get_numsx_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numsx_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get numsx from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg)               :: out
@@ -357,13 +324,14 @@ end function get_numsx_
 
 !--------------------------------------------------------------------------
 subroutine set_numsx_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numsx_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set numsx in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)   :: inp
@@ -374,13 +342,14 @@ end subroutine set_numsx_
 
 !--------------------------------------------------------------------------
 function get_numsy_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numsy_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get numsy from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg)               :: out
@@ -391,13 +360,14 @@ end function get_numsy_
 
 !--------------------------------------------------------------------------
 subroutine set_numsy_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numsy_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set numsy in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)   :: inp
@@ -408,13 +378,14 @@ end subroutine set_numsy_
 
 !--------------------------------------------------------------------------
 function get_nthreads_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get nthreads from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg)               :: out
@@ -425,13 +396,14 @@ end function get_nthreads_
 
 !--------------------------------------------------------------------------
 subroutine set_nthreads_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set nthreads in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)   :: inp
@@ -442,13 +414,14 @@ end subroutine set_nthreads_
 
 !--------------------------------------------------------------------------
 function get_nregions_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nregions_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get nregions from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg)               :: out
@@ -459,13 +432,14 @@ end function get_nregions_
 
 !--------------------------------------------------------------------------
 subroutine set_nregions_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nregions_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set nregions in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)   :: inp
@@ -476,13 +450,14 @@ end subroutine set_nregions_
 
 !--------------------------------------------------------------------------
 function get_ROI_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ROI_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get ROI from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg)               :: out(4)
@@ -493,13 +468,14 @@ end function get_ROI_
 
 !--------------------------------------------------------------------------
 subroutine set_ROI_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ROI_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set ROI in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)   :: inp(4)
@@ -510,13 +486,14 @@ end subroutine set_ROI_
 
 !--------------------------------------------------------------------------
 function get_hipassw_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_hipassw_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get hipassw from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 real(kind=dbl)                  :: out
@@ -527,13 +504,14 @@ end function get_hipassw_
 
 !--------------------------------------------------------------------------
 subroutine set_hipassw_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_hipassw_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set hipassw in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 real(kind=dbl), INTENT(IN)      :: inp
@@ -544,13 +522,14 @@ end subroutine set_hipassw_
 
 !--------------------------------------------------------------------------
 function get_maskpattern_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_maskpattern_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get maskpattern from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(1)                    :: out
@@ -561,13 +540,14 @@ end function get_maskpattern_
 
 !--------------------------------------------------------------------------
 subroutine set_maskpattern_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_maskpattern_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set maskpattern in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(1), INTENT(IN)        :: inp
@@ -578,13 +558,14 @@ end subroutine set_maskpattern_
 
 !--------------------------------------------------------------------------
 function get_filterpattern_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_filterpattern_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get filterpattern from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(1)                    :: out
@@ -595,13 +576,14 @@ end function get_filterpattern_
 
 !--------------------------------------------------------------------------
 subroutine set_filterpattern_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_filterpattern_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set filterpattern in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(1), INTENT(IN)        :: inp
@@ -612,13 +594,14 @@ end subroutine set_filterpattern_
 
 !--------------------------------------------------------------------------
 function get_keeptmpfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_keeptmpfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get keeptmpfile from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(1)                    :: out
@@ -629,13 +612,14 @@ end function get_keeptmpfile_
 
 !--------------------------------------------------------------------------
 subroutine set_keeptmpfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_keeptmpfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set keeptmpfile in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(1), INTENT(IN)        :: inp
@@ -646,13 +630,14 @@ end subroutine set_keeptmpfile_
 
 !--------------------------------------------------------------------------
 function get_usetmpfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_usetmpfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get usetmpfile from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(1)                    :: out
@@ -663,13 +648,14 @@ end function get_usetmpfile_
 
 !--------------------------------------------------------------------------
 subroutine set_usetmpfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_usetmpfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set usetmpfile in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(1), INTENT(IN)        :: inp
@@ -680,13 +666,14 @@ end subroutine set_usetmpfile_
 
 !--------------------------------------------------------------------------
 function get_exptfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_exptfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get exptfile from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen)                :: out
@@ -697,13 +684,14 @@ end function get_exptfile_
 
 !--------------------------------------------------------------------------
 subroutine set_exptfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_exptfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set exptfile in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)    :: inp
@@ -714,13 +702,14 @@ end subroutine set_exptfile_
 
 !--------------------------------------------------------------------------
 function get_tmpfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_tmpfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get tmpfile from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen)                :: out
@@ -731,13 +720,14 @@ end function get_tmpfile_
 
 !--------------------------------------------------------------------------
 subroutine set_tmpfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_tmpfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set tmpfile in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)    :: inp
@@ -748,13 +738,14 @@ end subroutine set_tmpfile_
 
 !--------------------------------------------------------------------------
 function get_tiffname_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_tiffname_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get tiffname from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen)                :: out
@@ -765,13 +756,14 @@ end function get_tiffname_
 
 !--------------------------------------------------------------------------
 subroutine set_tiffname_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_tiffname_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set tiffname in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)    :: inp
@@ -782,13 +774,14 @@ end subroutine set_tiffname_
 
 !--------------------------------------------------------------------------
 function get_maskfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_maskfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get maskfile from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen)                :: out
@@ -799,13 +792,14 @@ end function get_maskfile_
 
 !--------------------------------------------------------------------------
 subroutine set_maskfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_maskfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set maskfile in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)    :: inp
@@ -816,13 +810,14 @@ end subroutine set_maskfile_
 
 !--------------------------------------------------------------------------
 function get_inputtype_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_inputtype_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get inputtype from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen)                :: out
@@ -833,13 +828,14 @@ end function get_inputtype_
 
 !--------------------------------------------------------------------------
 subroutine set_inputtype_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_inputtype_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set inputtype in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)    :: inp
@@ -850,13 +846,14 @@ end subroutine set_inputtype_
 
 !--------------------------------------------------------------------------
 function get_HDFstrings_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_HDFstrings_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! get HDFstrings from the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen)                :: out(10)
@@ -867,13 +864,14 @@ end function get_HDFstrings_
 
 !--------------------------------------------------------------------------
 subroutine set_HDFstrings_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_HDFstrings_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! set HDFstrings in the ADP_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)    :: inp(10)
@@ -884,27 +882,28 @@ end subroutine set_HDFstrings_
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
-!! read the namelist from an nml file for the ADP_T Class 
+!! read the namelist from an nml file for the ADP_T Class
 
-use mod_io 
+use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)          :: self
 character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                           :: Message       
+type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 integer(kind=irg)       :: ipf_ht
-integer(kind=irg)       :: ipf_wd 
+integer(kind=irg)       :: ipf_wd
 integer(kind=irg)       :: maskradius
 integer(kind=irg)       :: numsx
 integer(kind=irg)       :: numsy
@@ -916,7 +915,7 @@ character(1)            :: maskpattern
 character(1)            :: filterpattern
 character(1)            :: keeptmpfile
 character(1)            :: usetmpfile
-character(fnlen)        :: exptfile 
+character(fnlen)        :: exptfile
 character(fnlen)        :: tmpfile
 character(fnlen)        :: tiffname
 character(fnlen)        :: maskfile
@@ -1001,13 +1000,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! pass the namelist for the ADP_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)          :: self
 type(ADPNameListType)                :: nml
@@ -1018,8 +1018,9 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 subroutine ADP_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ADP_
+!! author: MDG
+!! version: 1.0
 !! date: 04/05/20
 !!
 !! perform the computations
@@ -1041,15 +1042,15 @@ use mod_image
 
 use, intrinsic :: iso_fortran_env
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ADP_T), INTENT(INOUT)                         :: self
 type(EMsoft_T), INTENT(INOUT)                       :: EMsoft
-character(fnlen), INTENT(INOUT)                     :: progname 
+character(fnlen), INTENT(INOUT)                     :: progname
 
-type(IO_T)                                          :: Message 
+type(IO_T)                                          :: Message
 type(HDF_T)                                         :: HDF
-type(timing_T)                                      :: timer 
+type(timing_T)                                      :: timer
 
 integer(kind=irg)                                   :: num,ierr,irec,istat
 integer(kind=irg),parameter                         :: iunit = 40
@@ -1106,7 +1107,7 @@ associate(adpnl=>self%nml)
 timer = Timing_T()
 tstrb = timer%getTimeString()
 
-! copy various constants from the namelist 
+! copy various constants from the namelist
 L = adpnl%numsx*adpnl%numsy
 totnumexpt = adpnl%ipf_wd*adpnl%ipf_ht
 imght = adpnl%numsx
@@ -1161,7 +1162,7 @@ fdata = 0.D0
 
 if (trim(adpnl%maskfile).ne.'undefined') then
 ! read the mask from file; the mask can be defined by a 2D array of 0 and 1 values
-! that is stored in row form as strings, e.g.    
+! that is stored in row form as strings, e.g.
 !    0000001110000000
 !    0000011111000000
 ! ... etc
@@ -1204,7 +1205,7 @@ end do
 
 !=====================================================
 ! Preprocess all the experimental patterns and store
-! them in a temporary file as vectors; also, create 
+! them in a temporary file as vectors; also, create
 ! an average dot product map to be stored in the h5ebsd output file
 !
 ! this could become a separate routine in the EMEBSDmod module ...
@@ -1268,7 +1269,7 @@ else
   TIFF_ny = adpnl%ipf_ht
 end if
 
-! output the ADP map as a tiff file 
+! output the ADP map as a tiff file
 fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(adpnl%tiffname)//'_ADP.tiff'
 TIFF_filename = trim(fname)
 
@@ -1281,7 +1282,7 @@ mi = minval(dpmap)
 
 do j=1,TIFF_ny
  do i=1,TIFF_nx
-  ii = (j-1) * TIFF_nx + i 
+  ii = (j-1) * TIFF_nx + i
   TIFF_image(i,j) = int(255 * (dpmap(ii)-mi)/(ma-mi))
  end do
 end do
@@ -1294,9 +1295,9 @@ if(im%empty()) call Message%printMessage("EMgetADP","failed to convert array to 
 call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
 if(0.ne.iostat) then
   call Message%printMessage("failed to write image to file : "//iomsg)
-else  
+else
   call Message%printMessage('ADP map written to '//trim(TIFF_filename))
-end if 
+end if
 deallocate(TIFF_image)
 
 if (adpnl%keeptmpfile.eq.'n') then
@@ -1304,9 +1305,9 @@ if (adpnl%keeptmpfile.eq.'n') then
   call Message%printMessage(' -> tmp file deleted')
 else
   call Message%printMessage(' -> keeping tmp file')
-end if 
+end if
 
-! close the fortran HDF5 interface 
+! close the fortran HDF5 interface
 call closeFortranHDFInterface()
 
 end associate

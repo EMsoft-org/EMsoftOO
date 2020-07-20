@@ -1,32 +1,17 @@
-include(${PROJECT_SOURCE_DIR}/Source/EMsoftOO_Functions.cmake)
-
 project(EMsoftOOLib)
 
-set(install_dir "bin")
-set(lib_install_dir "lib")
-
-if(APPLE)
-  get_property(EMsoftOO_PACKAGE_DEST_PREFIX GLOBAL PROPERTY EMsoftOO_PACKAGE_DEST_PREFIX)
-  set(install_dir "${EMsoftOO_PACKAGE_DEST_PREFIX}/bin")
-  set(lib_install_dir "${EMsoftOO_PACKAGE_DEST_PREFIX}/lib")
-elseif(WIN32)
-  set(install_dir ".")
-  set(lib_install_dir ".")
-endif()
-
-
-include (${CMP_SOURCE_DIR}/cmpCMakeMacros.cmake 
+include (${CMP_SOURCE_DIR}/cmpCMakeMacros.cmake
 ${EMsoftOOLib_BINARY_DIR}/StringConstants.cmake)
 
-# configure_file(${EMsoftOOLib_SOURCE_DIR}/StringConstants.cmake
-#                ${EMsoftOOLib_BINARY_DIR}/StringConstants.cmake @ONLY)
+# configure_file(${EMsoftLib_SOURCE_DIR}/StringConstants.cmake
+#                ${EMsoftLib_BINARY_DIR}/StringConstants.cmake @ONLY)
 
 cmpConfigureFileWithMD5Check( GENERATED_FILE_PATH        ${EMsoftOOLib_BINARY_DIR}/StringConstants.cmake
-                             CONFIGURED_TEMPLATE_PATH   ${EMsoftOOLib_SOURCE_DIR}/StringConstants.cmake )
+CONFIGURED_TEMPLATE_PATH   ${EMsoftOOLib_SOURCE_DIR}/StringConstants.cmake )
 
 
-add_custom_target(EMsoftOOLib_Generate_StringConstants ALL 
-                  "${CMAKE_COMMAND}" -P "${EMsoftOOLib_BINARY_DIR}/StringConstants.cmake" 
+add_custom_target(EMsoftOOLib_Generate_StringConstants ALL
+                  "${CMAKE_COMMAND}" -P "${EMsoftOOLib_BINARY_DIR}/StringConstants.cmake"
                   COMMENT "Generating StringConstants files...."
                   )
 
@@ -75,7 +60,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_fftw3.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_fft_wrap.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_imageOPs.f90
-  ${EMsoftOOLib_SOURCE_DIR}/mod_DSHT.f90
+  #${EMsoftOOLib_SOURCE_DIR}/mod_DSHT.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_patterns.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_vendors.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_DIsupport.f90
@@ -83,7 +68,9 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_bobyqa.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_bobyqa_refinement.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_FitOrientations.f90
-  
+  ${EMsoftOOLib_SOURCE_DIR}/mod_JSONsupport.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_defect.f90
+
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Disorientations.f90
@@ -111,6 +98,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_getMP.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_HDFFileInfo.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_FitOrientation.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ECCI.f90
+  #${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ECCI_Bethe.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )
@@ -140,15 +129,28 @@ if(EMsoftOO_ENABLE_TESTING)
   set(EMsoftOO_TESTING_DIR "${EMsoftOO_BINARY_DIR}/Testing")
   file(MAKE_DIRECTORY ${EMsoftOO_TESTING_DIR})
 endif()
-         
+
+message(STATUS "HDF5_VERSION_MAJOR: ${HDF5_VERSION_MAJOR}")
+
+if(${HDF5_VERSION_MAJOR} EQUAL 1.10)
+set(EMsoft_HDF5_110_DEFINES "
+! For HDF5 1.10, these are needed
+! Define the \"kind\" parameters for Fortran_REAL_4
+  integer,parameter                     :: Fortran_REAL_4 = 4
+
+! Define the \"kind\" parameters for Fortran_REAL_4
+  integer,parameter                     :: Fortran_REAL_8 = 8
+")
+endif()
+
 cmpConfigureFileWithMD5Check( GENERATED_FILE_PATH        ${EMsoftOOLib_BINARY_DIR}/mod_EMsoft.f90
                               CONFIGURED_TEMPLATE_PATH   ${EMsoftOOLib_SOURCE_DIR}/mod_EMsoft.in.f90 )
 # -------------------------------------------------------------------------------
 # Add files GENERATED DURING CMAKE TIME
 set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SRCS}
-  ${EMsoftOOLib_BINARY_DIR}/mod_EMsoft.f90  
-  ${EMsoftOOLib_BINARY_DIR}/stringconstants.f90 
+  ${EMsoftOOLib_BINARY_DIR}/mod_EMsoft.f90
+  ${EMsoftOOLib_BINARY_DIR}/stringconstants.f90
 )
 
 #-------------------------------------------------------------------------------
@@ -173,12 +175,11 @@ GetHDF5LinkLibraries(EMSOFTOO)
 add_library(EMsoftOOLib ${LIB_TYPE} ${EMsoftOOLib_SRCS})
 
 target_link_libraries(EMsoftOOLib
-                # EMsoftOOLib_C 
-                # EMsoftOOLib_Cpp 
-                ${EMSOFTOO_hdf5LinkLibs} 
-                jsonfortran 
+                # EMsoftOOLib_C
+                # EMsoftOOLib_Cpp
+                ${EMSOFTOO_hdf5LinkLibs}
+                jsonfortran
                 bcls::bcls
-                gomp       
 )
 
 if (Fortran_COMPILER_NAME MATCHES "ifort.*")
@@ -189,20 +190,21 @@ endif()
 
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   target_link_libraries(EMsoftOOLib
-                  ${FFTW3_LIBRARY} 
+                  ${FFTW3_LIBRARY}
                   ${EMsoftOO_BLAS_LAPACK_LIBS}
                   ${EMsoftOO_FORTRAN_SUPPORT_LIBS}
+                  gomp
   )
 endif()
 
-target_include_directories(EMsoftOOLib 
-                          PUBLIC 
-                            ${CLFortran_INCLUDE_DIRS} 
+target_include_directories(EMsoftOOLib
+                          PUBLIC
+                            ${CLFortran_INCLUDE_DIRS}
                             ${FFTW3_INCLUDE_DIR}
                             ${HDF5_INCLUDE_DIR}
                             ${HDF5_INCLUDE_DIR_FORTRAN}
                           PRIVATE
-                            "${EMsoftOO_SOURCE_DIR}/Source"                            
+                            "${EMsoftOO_SOURCE_DIR}/Source"
                           )
 
 set_target_properties (EMsoftOOLib PROPERTIES
@@ -216,24 +218,28 @@ add_dependencies(EMsoftOOLib EMsoftOOLib_Generate_StringConstants)
 
 
 # On Windows we need a few extra compile and linker flags. By making these PUBLIC they should
-# flow down to every dependent target 
-# if(WIN32)
-#   target_compile_options(EMsoftOOLib PUBLIC 
-#                           $<$<COMPILE_LANGUAGE:Fortran>:/assume:byterecl>
-#                           $<$<COMPILE_LANGUAGE:Fortran>:/Qopenmp>
-#                           $<$<COMPILE_LANGUAGE:Fortran>:/Qdiag-disable:11082>
-#                           $<$<COMPILE_LANGUAGE:Fortran>:/Qdiag-disable:7025>
-#                           $<$<COMPILE_LANGUAGE:Fortran>:/Qip>
-#                         #  $<$<COMPILE_LANGUAGE:Fortran>:/heap-arrays>
-#                           )
-#   target_link_options(EMsoftOOLib PUBLIC /STACK:2000000000 /machine:x64)
-# else()
+# flow down to every dependent target
+if(WIN32)
+  target_compile_options(EMsoftOOLib PUBLIC
+                          $<$<COMPILE_LANGUAGE:Fortran>:/assume:byterecl>
+                          $<$<COMPILE_LANGUAGE:Fortran>:/assume:nounderscore>
+                          $<$<COMPILE_LANGUAGE:Fortran>:/Qopenmp>
+                          $<$<COMPILE_LANGUAGE:Fortran>:/Qdiag-disable:11082>
+                          $<$<COMPILE_LANGUAGE:Fortran>:/Qdiag-disable:7025>
+                          $<$<COMPILE_LANGUAGE:Fortran>:/Qip>
+                          $<$<COMPILE_LANGUAGE:Fortran>:/traceback>
+                          #$<$<COMPILE_LANGUAGE:Fortran>:/warn:all>
+                        #  $<$<COMPILE_LANGUAGE:Fortran>:/heap-arrays>
+                          )
+  target_link_options(EMsoftOOLib PUBLIC /STACK:2000000000 /machine:x64)
+else()
   if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
     # First, Flags that should be used under any build condition
     target_compile_options(EMsoftOOLib PUBLIC $<$<COMPILE_LANGUAGE:Fortran>:-fopenmp>
         $<$<COMPILE_LANGUAGE:Fortran>:-fno-sign-zero>
         $<$<COMPILE_LANGUAGE:Fortran>:-fno-f2c>
         $<$<COMPILE_LANGUAGE:Fortran>:-std=gnu>
+        $<$<COMPILE_LANGUAGE:Fortran>:-fbacktrace>
     )
     # Next, DEBUG compiler options.
     target_compile_options(EMsoftOOLib PUBLIC $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Debug>>:-g>
@@ -247,22 +253,25 @@ add_dependencies(EMsoftOOLib EMsoftOOLib_Generate_StringConstants)
 
   elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
   # First, Flags that should be used under any build condition
-    target_compile_options(EMsoftOOLib PUBLIC $<$<COMPILE_LANGUAGE:Fortran>:-heap-arrays>
+    target_compile_options(EMsoftOOLib PUBLIC
+                                            #$<$<COMPILE_LANGUAGE:Fortran>:-heap-arrays>
                                             $<$<COMPILE_LANGUAGE:Fortran>:-qopenmp>
                                             $<$<COMPILE_LANGUAGE:Fortran>:-assume byterecl>
+                                            $<$<COMPILE_LANGUAGE:Fortran>:/assume:nounderscore>
                                             $<$<COMPILE_LANGUAGE:Fortran>:-stand f08 -diag-disable=7025>
+                                            $<$<COMPILE_LANGUAGE:Fortran>:/traceback>
     )
     # Next, DEBUG compiler options.
-    target_compile_options(EMsoftOOLib PUBLIC $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Debug>>:-debug all> 
-                                            $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Debug>>:-O0> 
+    target_compile_options(EMsoftOOLib PUBLIC $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Debug>>:-debug all>
+                                            $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Debug>>:-O0>
                                             $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Debug>>:-g>
     )
-    # Next, RELEASE compiler options. 
+    # Next, RELEASE compiler options.
     target_compile_options(EMsoftOOLib PUBLIC $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Release>>:-O3>)
   else()
     message(WARNING "Fortran compiler not recognized. ${Fortran_COMPILER_NAME}")
   endif()
-# endif()
+endif()
 
 
 #-------------------------------------------------------------------------------
@@ -343,7 +352,3 @@ install(
   COMPONENT
     Devel
 )
-
-
-
-

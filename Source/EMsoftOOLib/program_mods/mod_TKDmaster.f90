@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_TKDmaster
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/18/20
   !!
   !! class definition for the EMTKDmaster program
@@ -37,16 +37,16 @@ use mod_kinds
 use mod_global
 use mod_MPfiles
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! class definition
 type, public :: TKDmaster_T
-private 
+private
   character(fnlen)              :: nmldeffile = 'EMTKDmaster.nml'
-  type(TKDmasterNameListType)   :: nml 
+  type(TKDmasterNameListType)   :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   ! procedure, pass(self) :: writeHDFNameList_    replaced by routine in mod_MPfiles
   procedure, pass(self) :: getNameList_
@@ -114,36 +114,7 @@ private
   generic, public :: set_thickness => set_thickness_
 end type TKDmaster_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: get_npx
-!DEC$ ATTRIBUTES DLLEXPORT :: set_npx
-!DEC$ ATTRIBUTES DLLEXPORT :: get_Esel
-!DEC$ ATTRIBUTES DLLEXPORT :: set_Esel
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: get_copyfromenergyfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_copyfromenergyfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_h5copypath
-!DEC$ ATTRIBUTES DLLEXPORT :: set_h5copypath
-!DEC$ ATTRIBUTES DLLEXPORT :: get_energyfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_energyfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_BetheParametersFile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_BetheParametersFile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_combinesites
-!DEC$ ATTRIBUTES DLLEXPORT :: set_combinesites
-!DEC$ ATTRIBUTES DLLEXPORT :: get_restart
-!DEC$ ATTRIBUTES DLLEXPORT :: set_restart
-!DEC$ ATTRIBUTES DLLEXPORT :: get_uniform
-!DEC$ ATTRIBUTES DLLEXPORT :: set_uniform
-!DEC$ ATTRIBUTES DLLEXPORT :: get_Notify
-!DEC$ ATTRIBUTES DLLEXPORT :: set_Notify
-!DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical
-!DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical
-!DEC$ ATTRIBUTES DLLEXPORT :: get_thickness
-!DEC$ ATTRIBUTES DLLEXPORT :: set_thickness
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface TKDmaster_T
   module procedure TKDmaster_constructor
 end interface TKDmaster_T
@@ -152,31 +123,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(TKDmaster_T) function TKDmaster_constructor( nmlfile ) result(TKDmaster)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: TKDmaster_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
-!! constructor for the TKDmaster_T Class; reads the name list 
- 
+!! constructor for the TKDmaster_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call TKDmaster%readNameList(nmlfile)
 
 end function TKDmaster_constructor
 
 !--------------------------------------------------------------------------
-subroutine TKDmaster_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine TKDmaster_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: TKDmaster_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! destructor for the TKDmaster_T Class
- 
+
 IMPLICIT NONE
 
-type(TKDmaster_T), INTENT(INOUT)  :: self 
+type(TKDmaster_T), INTENT(INOUT)  :: self
 
 call reportDestructor('TKDmaster_T')
 
@@ -184,25 +157,26 @@ end subroutine TKDmaster_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
-!! read the namelist from an nml file for the TKDmaster_T Class 
+!! read the namelist from an nml file for the TKDmaster_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)    :: self
 character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
+type(EMsoft_T)                       :: EMsoft
+type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 integer(kind=irg)  :: npx
@@ -217,7 +191,7 @@ logical            :: combinesites
 logical            :: restart
 logical            :: uniform
 character(3)       :: Notify
-logical            :: kinematical 
+logical            :: kinematical
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist /TKDmastervars/ dmin,npx,nthreads,energyfile,Esel,restart,uniform,combinesites, &
@@ -231,7 +205,7 @@ Esel = -1                       ! selected energy value for single energy run
 dmin = 0.025                    ! smallest d-spacing to include in dynamical matrix [nm]
 energyfile = 'undefined'        ! default filename for z_0(E_e) data from EMMC Monte Carlo simulations
 combinesites = .FALSE.          ! keep asymmetric unit sites separate or not
-restart = .FALSE.               ! when .TRUE. an existing file will be assumed 
+restart = .FALSE.               ! when .TRUE. an existing file will be assumed
 uniform = .FALSE.               ! when .TRUE., the output master patterns will contain 1.0 everywhere
 copyfromenergyfile = 'undefined'
 kinematical = .FALSE.
@@ -266,21 +240,22 @@ self%nml%restart = restart
 self%nml%uniform = uniform
 self%nml%BetheParametersFile = BetheParametersFile
 self%nml%h5copypath = h5copypath
-self%nml%Notify = Notify 
+self%nml%Notify = Notify
 self%nml%kinematical = kinematical
-self%nml%copyfromenergyfile = copyfromenergyfile 
+self%nml%copyfromenergyfile = copyfromenergyfile
 
 end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! pass the namelist for the TKDmaster_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)          :: self
 type(TKDmasterNameListType)                :: nml
@@ -291,13 +266,14 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 function get_npx_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_npx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get npx from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -308,13 +284,14 @@ end function get_npx_
 
 !--------------------------------------------------------------------------
 subroutine set_npx_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_npx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set npx in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -325,13 +302,14 @@ end subroutine set_npx_
 
 !--------------------------------------------------------------------------
 function get_Esel_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Esel_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get Esel from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -342,13 +320,14 @@ end function get_Esel_
 
 !--------------------------------------------------------------------------
 subroutine set_Esel_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Esel_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set Esel in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -359,13 +338,14 @@ end subroutine set_Esel_
 
 !--------------------------------------------------------------------------
 function get_nthreads_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get nthreads from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -376,13 +356,14 @@ end function get_nthreads_
 
 !--------------------------------------------------------------------------
 subroutine set_nthreads_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set nthreads in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -393,13 +374,14 @@ end subroutine set_nthreads_
 
 !--------------------------------------------------------------------------
 function get_dmin_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get dmin from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl)                        :: out
@@ -410,13 +392,14 @@ end function get_dmin_
 
 !--------------------------------------------------------------------------
 subroutine set_dmin_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set dmin in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)            :: inp
@@ -427,13 +410,14 @@ end subroutine set_dmin_
 
 !--------------------------------------------------------------------------
 function get_thickness_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_thickness_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get thickness from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl)                        :: out
@@ -444,13 +428,14 @@ end function get_thickness_
 
 !--------------------------------------------------------------------------
 subroutine set_thickness_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_thickness_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set thickness in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)            :: inp
@@ -461,13 +446,14 @@ end subroutine set_thickness_
 
 !--------------------------------------------------------------------------
 function get_copyfromenergyfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_copyfromenergyfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get copyfromenergyfile from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -478,13 +464,14 @@ end function get_copyfromenergyfile_
 
 !--------------------------------------------------------------------------
 subroutine set_copyfromenergyfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_copyfromenergyfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set copyfromenergyfile in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -495,13 +482,14 @@ end subroutine set_copyfromenergyfile_
 
 !--------------------------------------------------------------------------
 function get_h5copypath_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_h5copypath_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get h5copypath from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -512,13 +500,14 @@ end function get_h5copypath_
 
 !--------------------------------------------------------------------------
 subroutine set_h5copypath_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_h5copypath_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set h5copypath in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -529,13 +518,14 @@ end subroutine set_h5copypath_
 
 !--------------------------------------------------------------------------
 function get_energyfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_energyfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get energyfile from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -546,13 +536,14 @@ end function get_energyfile_
 
 !--------------------------------------------------------------------------
 subroutine set_energyfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_energyfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set energyfile in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -563,13 +554,14 @@ end subroutine set_energyfile_
 
 !--------------------------------------------------------------------------
 function get_BetheParametersFile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_BetheParametersFile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get BetheParametersFile from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -580,13 +572,14 @@ end function get_BetheParametersFile_
 
 !--------------------------------------------------------------------------
 subroutine set_BetheParametersFile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_BetheParametersFile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set BetheParametersFile in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -597,13 +590,14 @@ end subroutine set_BetheParametersFile_
 
 !--------------------------------------------------------------------------
 function get_combinesites_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_combinesites_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get combinesites from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 logical                               :: out
@@ -614,13 +608,14 @@ end function get_combinesites_
 
 !--------------------------------------------------------------------------
 subroutine set_combinesites_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_combinesites_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set combinesites in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                   :: inp
@@ -631,13 +626,14 @@ end subroutine set_combinesites_
 
 !--------------------------------------------------------------------------
 function get_restart_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_restart_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get restart from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 logical                               :: out
@@ -648,13 +644,14 @@ end function get_restart_
 
 !--------------------------------------------------------------------------
 subroutine set_restart_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_restart_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set restart in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                   :: inp
@@ -665,13 +662,14 @@ end subroutine set_restart_
 
 !--------------------------------------------------------------------------
 function get_uniform_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_uniform_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get uniform from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 logical                               :: out
@@ -682,13 +680,14 @@ end function get_uniform_
 
 !--------------------------------------------------------------------------
 subroutine set_uniform_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_uniform_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set uniform in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                   :: inp
@@ -699,13 +698,14 @@ end subroutine set_uniform_
 
 !--------------------------------------------------------------------------
 function get_Notify_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Notify_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get Notify from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(3)                          :: out
@@ -716,13 +716,14 @@ end function get_Notify_
 
 !--------------------------------------------------------------------------
 subroutine set_Notify_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Notify_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set Notify in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 character(3), INTENT(IN)              :: inp
@@ -733,13 +734,14 @@ end subroutine set_Notify_
 
 !--------------------------------------------------------------------------
 function get_kinematical_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get kinematical from the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 logical                               :: out
@@ -750,13 +752,14 @@ end function get_kinematical_
 
 !--------------------------------------------------------------------------
 subroutine set_kinematical_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set kinematical in the TKDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(TKDmaster_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                   :: inp
@@ -767,8 +770,8 @@ end subroutine set_kinematical_
 
 ! !--------------------------------------------------------------------------
 ! subroutine TKDmaster_(self, EMsoft, progname)
-! !! author: MDG 
-! !! version: 1.0 
+! !! author: MDG
+! !! version: 1.0
 ! !! date: 03/18/20
 ! !!
 ! !! perform the computations
@@ -793,11 +796,11 @@ end subroutine set_kinematical_
 ! use stringconstants
 ! use mod_MCfiles
 
-! IMPLICIT NONE 
+! IMPLICIT NONE
 
 ! class(TKDmaster_T), INTENT(INOUT)       :: self
 ! type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-! character(fnlen), INTENT(INOUT)         :: progname 
+! character(fnlen), INTENT(INOUT)         :: progname
 
 ! type(Cell_T)            :: cell
 ! type(DynType)           :: Dyn
@@ -860,13 +863,13 @@ end subroutine set_kinematical_
 ! character(100)                  :: c
 
 
-! !$OMP THREADPRIVATE(rlp) 
+! !$OMP THREADPRIVATE(rlp)
 
 ! call openFortranHDFInterface()
 
 ! ! set the HDF group names for this program
-! HDF = HDF_T() 
-! HDFnames = HDFnames_T() 
+! HDF = HDF_T()
+! HDFnames = HDFnames_T()
 ! call MPFT%setModality('TKD')
 
 ! ! simplify the notation a little
@@ -876,8 +879,8 @@ end subroutine set_kinematical_
 ! timer = Timing_T()
 ! tstrb = timer%getTimeString()
 
-! ! if copyfromenergyfile is different from 'undefined', then we need to 
-! ! copy all the Monte Carlo data from that file into a new file, which 
+! ! if copyfromenergyfile is different from 'undefined', then we need to
+! ! copy all the Monte Carlo data from that file into a new file, which
 ! ! will then be read from and written to by the ComputeMasterPattern routine.
 ! if (emnl%copyfromenergyfile.ne.'undefined') then
 !   call MCFT%copyMCdata(EMsoft, HDF, emnl%copyfromenergyfile, emnl%energyfile, emnl%h5copypath)
@@ -894,9 +897,9 @@ end subroutine set_kinematical_
 ! !=============================================
 ! !=============================================
 ! ! ---------- read Monte Carlo .h5 output file and extract necessary parameters
-! ! set the HDF group names for reading the MC input file 
-! call HDFnames%set_ProgramData(SC_MCOpenCL) 
-! call HDFnames%set_NMLlist(SC_MCCLNameList) 
+! ! set the HDF group names for reading the MC input file
+! call HDFnames%set_ProgramData(SC_MCOpenCL)
+! call HDFnames%set_NMLlist(SC_MCCLNameList)
 ! call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
 ! fname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%energyfile))
 ! call MCFT%setFileName(fname)
@@ -920,26 +923,26 @@ end subroutine set_kinematical_
 !   energyfile = trim(EMsoft%generateFilePath('EMdatapathname',emnl%energyfile))
 !   outname = trim(energyfile)
 
-! ! set the HDFnames to the correct strings for this program 
-! call HDFnames%set_ProgramData(SC_TKDmaster) 
-! call HDFnames%set_NMLlist(SC_TKDmasterNameList) 
-! call HDFnames%set_NMLfilename(SC_TKDmasterNML) 
-! call HDFnames%set_Variable(SC_MCOpenCL) 
+! ! set the HDFnames to the correct strings for this program
+! call HDFnames%set_ProgramData(SC_TKDmaster)
+! call HDFnames%set_NMLlist(SC_TKDmasterNameList)
+! call HDFnames%set_NMLfilename(SC_TKDmasterNML)
+! call HDFnames%set_Variable(SC_MCOpenCL)
 
 ! if (emnl%restart.eqv..TRUE.) then
 ! ! in this case we need to check whether or not the file exists, then open
 ! ! it and read the value of the last energy level that was simulated and written
-! ! to that file; if this level is different from the lowest energy level we 
+! ! to that file; if this level is different from the lowest energy level we
 ! ! know that there is at least one more level to be simulated.  If it is equal,
 ! ! then we can abort the program here.
 
 !   inquire(file=trim(outname), exist=f_exists)
-!   if (.not.f_exists) then 
+!   if (.not.f_exists) then
 !     call Message%printError('TKDmaster','restart HDF5 file does not exist')
 !   end if
-  
+
 ! !=============================================
-! ! open the existing HDF5 file 
+! ! open the existing HDF5 file
 ! !=============================================
 !   datagroupname = trim(HDFnames%get_ProgramData())
 
@@ -958,13 +961,13 @@ end subroutine set_kinematical_
 ! end if
 ! !=============================================
 ! !=============================================
-! ! crystallography section; 
+! ! crystallography section;
 ! verbose = .TRUE.
 
 ! call cell%setFileName(mcnl%xtalname)
 ! call Diff%setrlpmethod('WK')
 
-! if (emnl%restart.eqv..TRUE.) then 
+! if (emnl%restart.eqv..TRUE.) then
 !   call Diff%setV(dble(EkeVs(lastEnergy-1)))
 !   call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, emnl%dmin, verbose, useHDF=HDF)
 ! else
@@ -975,7 +978,7 @@ end subroutine set_kinematical_
 ! ! check the crystal system and setting; abort the program for trigonal with rhombohedral setting with
 ! ! an explanation for the user
 
-! if ((SG%getSpaceGroupXtalSystem().eq.5).and.(cell%getLatParm('b').eq.cell%getLatParm('c'))) then 
+! if ((SG%getSpaceGroupXtalSystem().eq.5).and.(cell%getLatParm('b').eq.cell%getLatParm('c'))) then
 !     call Message%printMessage( (/ &
 !     '                                                                         ', &
 !     ' ========Program Aborted========                                         ', &
@@ -995,7 +998,7 @@ end subroutine set_kinematical_
 ! call Message%WriteValue('Density, avA, avZ = ',io_real,3,"(2f10.5,',',f10.5)")
 
 ! ! allocate and compute the Sgh loop-up table
-!  numset = cell%getNatomtype()  
+!  numset = cell%getNatomtype()
 !  call Diff%Initialize_SghLUT(cell, SG, emnl%dmin, numset, nat, verbose)
 
 ! ! determine the point group number
@@ -1005,24 +1008,24 @@ end subroutine set_kinematical_
 !  end do
 !  isym = j
 
-! ! here is new code dealing with all the special cases (quite a few more compared to the 
+! ! here is new code dealing with all the special cases (quite a few more compared to the
 ! ! Laue group case)...  isym is the point group number. Once the symmetry case has been
 ! ! fully determined (taking into account things like 31m and 3m1 an such), then the only places
 ! ! that symmetry is handled are the modified Calckvectors routine, and the filling of the modified
-! ! Lambert projections after the dynamical simulation step.  We are also changing the name of the 
+! ! Lambert projections after the dynamical simulation step.  We are also changing the name of the
 ! ! sr array (or srhex) to mLPNH and mLPSH (modified Lambert Projection Northern/Southern Hemisphere),
 ! ! and we change the output HDF5 file a little as well. We need to make sure that the EMEBSD program
-! ! issues a warning when an old format HDF5 file is read.  
+! ! issues a warning when an old format HDF5 file is read.
 
-! ! Here, we encode isym into a new number that describes the sampling scheme; the new schemes are 
+! ! Here, we encode isym into a new number that describes the sampling scheme; the new schemes are
 ! ! described in detail in the EBSD manual pdf file.
 
 ! SamplingType = PGSamplingType(isym)
 
 ! ! next, intercept the special cases (hexagonal vs. rhombohedral cases that require special treatment)
-! if ((SamplingType.eq.-1).or.(isym.eq.14).or.(isym.eq.26)) then 
+! if ((SamplingType.eq.-1).or.(isym.eq.14).or.(isym.eq.26)) then
 !   SamplingType = SG%getHexvsRho(isym)
-! end if 
+! end if
 
 ! ! if the point group is trigonal or hexagonal, we need to switch usehex to .TRUE. so that
 ! ! the program will use the hexagonal sampling method
@@ -1032,7 +1035,7 @@ end subroutine set_kinematical_
 ! ! ---------- end of symmetry and crystallography section
 ! !=============================================
 ! !=============================================
-! numEbins = MCFT%getnumEbins() 
+! numEbins = MCFT%getnumEbins()
 
 ! allocate(EkeVs(numEbins),thick(numEbins))
 
@@ -1047,7 +1050,7 @@ end subroutine set_kinematical_
 !   do iy=-nsy/10,nsy/10
 !    istat = sum(accum_z(iE,:,ix,iy))
 !    izz = 1
-!    do while (sum(accum_z(iE,1:izz,ix,iy)).lt.(0.99*istat)) 
+!    do while (sum(accum_z(iE,1:izz,ix,iy)).lt.(0.99*istat))
 !     izz = izz+1
 !    end do
 !    if (izz.gt.izzmax) izzmax = izz

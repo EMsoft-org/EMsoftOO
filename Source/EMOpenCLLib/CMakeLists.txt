@@ -29,18 +29,18 @@ GetHDF5LinkLibraries(EMSOFTOO)
 
 add_library(EMOpenCLLib ${LIB_TYPE} ${EMOpenCLLib_SRCS})
 
-target_include_directories(EMOpenCLLib 
-                          PUBLIC 
+target_include_directories(EMOpenCLLib
+                          PUBLIC
                             ${CLFortran_INSTALL}/include
                             $<BUILD_INTERFACE:${EMsoftOOLib_BINARY_DIR}>
                           PRIVATE
-                            "${EMsoftOO_SOURCE_DIR}/Source"                            
+                            "${EMsoftOO_SOURCE_DIR}/Source"
                     )
 
-target_link_libraries(EMOpenCLLib 
+target_link_libraries(EMOpenCLLib
                           ${OpenCL_LIBRARY}
                           clfortran
-                          EMsoftOOLib 
+                          EMsoftOOLib
 )
 
 
@@ -105,4 +105,3 @@ set(ConfigPackageLocation ${lib_install_dir}/cmake/EMsoftOO)
       ${ConfigPackageLocation}
   )
 #endif()
-

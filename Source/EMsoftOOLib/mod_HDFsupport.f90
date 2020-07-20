@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_HDFsupport
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! EMsoft HDF5 helper routines
@@ -47,8 +47,8 @@ module mod_HDFsupport
   !! 12/14/16 MDG 2.0 added logical switch to flag DREAM.3D-generated files which require different string handling (fixed length vs variable length)
   !! 12/16/16 MDG 3.0 completely reworked HDF error handling; introduced h5open_EMsoft to initialize the fortran HDF interface
   !! 08/30/19 MDG 4.0 modified HDF_head definition for python f90wrap compatibility
-  !! 09/30/19 MAJ 4.1 initial mods of allocations that caused Mac OSX/ifort issues in write routines 
-  !! 10/01/19 MDG 4.2 additional mods to make ifort work on Mac OS X 
+  !! 09/30/19 MAJ 4.1 initial mods of allocations that caused Mac OSX/ifort issues in write routines
+  !! 10/01/19 MDG 4.2 additional mods to make ifort work on Mac OS X
   !! 11/08/19 MDG 4.3 replaced individual dims parameters by single dims array in multiple routines
 
 use mod_kinds
@@ -56,11 +56,11 @@ use mod_global
 use HDF5
 use stringconstants
 
-IMPLICIT NONE 
+IMPLICIT NONE
   private
 
 ! type definition for HDF push-pop stack to keep track of open objects
-  type HDFobjectStackType   
+  type HDFobjectStackType
     character(LEN=1)                      :: objectType
     character(fnlen)                      :: objectName
     integer(HID_T)                        :: objectID
@@ -70,22 +70,22 @@ IMPLICIT NONE
   logical, save                           :: FixedLengthflag, HDFverbose, dumpHDFstack
   logical, public, save                   :: interfaceOpen = .FALSE.
 
-  type, public :: HDF_T 
+  type, public :: HDF_T
    !! HDF Class definition (this class takes over from the original HDF_head structure)
    private
-     type(HDFobjectStackType)             :: head 
+     type(HDFobjectStackType)             :: head
 
-   contains 
-   private 
-! to simplify calling these routines as class methods, and simultaneously minimize the 
+   contains
+   private
+! to simplify calling these routines as class methods, and simultaneously minimize the
 ! amount of work involved in making these changes everywhere, we add an underscore to the name
 ! of the routine if there is no overload of the generic name; that then allows us to continue
 ! using the normal call scheme, but with HDF_foo replaced by HDF%foo everywhere. In the absence
-! of procedure overload, the internal name of that routine will then be foo_. In cases where 
-! there are several overloaded options, the 1D, 2D, etc portions of the routine names will 
+! of procedure overload, the internal name of that routine will then be foo_. In cases where
+! there are several overloaded options, the 1D, 2D, etc portions of the routine names will
 ! serve the role of the underscore.
 
-! we start with the push-pop-stack management stuff and error handling routines 
+! we start with the push-pop-stack management stuff and error handling routines
      procedure, pass(self) :: push_
      procedure, pass(self) :: pop_
      procedure, pass(self) :: stackdump_
@@ -93,13 +93,13 @@ IMPLICIT NONE
      ! procedure, pass(self) :: toggleStackDump_
      procedure, pass(self) :: error_check_
      procedure, pass(self) :: associatedHead_
-! open and closing routines for files, groups, and datasets  
+! open and closing routines for files, groups, and datasets
      procedure, pass(self) :: createFile_
      procedure, pass(self) :: openFile_
      procedure, pass(self) :: createGroup_
      procedure, pass(self) :: openGroup_
      procedure, pass(self) :: openDataset_
-! general purpose dataset writing routines 
+! general purpose dataset writing routines
      procedure, pass(self) :: writeNMLintegers_
      procedure, pass(self) :: writeNMLreals_
      procedure, pass(self) :: writeNMLdbles_
@@ -174,7 +174,7 @@ IMPLICIT NONE
      procedure, pass(self) :: readHyperslabDoubleArray2D_
      procedure, pass(self) :: readHyperslabDoubleArray3D_
      procedure, pass(self) :: readHyperslabDoubleArray4D_
-! general purpose attribute reading and writing routines 
+! general purpose attribute reading and writing routines
      procedure, pass(self) :: addStringAttributeToGroup_
      procedure, pass(self) :: getStringAttributeFromGroup_
 ! EMsoft-specific predefined routines (e.g., writing the EMheader)
@@ -184,11 +184,11 @@ IMPLICIT NONE
      procedure, pass(self) :: h5_write_pseudo_bse_image_
      procedure, pass(self) :: h5_tsl_read_ebsd_pattern_
      procedure, pass(self) :: h5_read_integer_dataset_
-! miscellaneous auxiliary routines 
+! miscellaneous auxiliary routines
      procedure, pass(self) :: read2DImage_
      procedure, pass(self) :: CheckFixedLengthflag_
      procedure, pass(self) :: resetFixedLengthflag_
-! finally, define the destructor routine 
+! finally, define the destructor routine
      final :: HDF_destructor
 
 ! generic (public) function definitions and overloads
@@ -199,14 +199,14 @@ IMPLICIT NONE
      generic, public :: getObjectID => getObjectID_
      generic, public :: associatedHead => associatedHead_
      ! generic, public :: togglestackdump => togglestackdump_
- 
+
      generic, public :: createFile => createFile_
      generic, public :: openFile => openFile_
      generic, public :: createGroup => createGroup_
      generic, public :: openGroup => openGroup_
      generic, public :: openDataset => openDataset_
      generic, public :: error_check => error_check_
- 
+
      generic, public :: writeNMLintegers => writeNMLintegers_
      generic, public :: writeNMLreals => writeNMLreals_
      generic, public :: writeNMLdbles => writeNMLdbles_
@@ -248,7 +248,7 @@ IMPLICIT NONE
      generic, public :: readDatasetDouble => readDatasetDouble_
      generic, public :: readDatasetDoubleArray => readDatasetDoubleArray1D, readDatasetDoubleArray2D, &
                                                   readDatasetDoubleArray3D, readDatasetDoubleArray4D
-     generic, public :: readHyperslabCharArray2D => readHyperslabCharArray2D_ 
+     generic, public :: readHyperslabCharArray2D => readHyperslabCharArray2D_
      generic, public :: readHyperslabCharArray3D => readHyperslabCharArray3D_
      generic, public :: readHyperslabCharArray4D => readHyperslabCharArray4D_
      generic, public :: readHyperslabIntegerArray2D => readHyperslabIntegerArray2D_
@@ -262,7 +262,7 @@ IMPLICIT NONE
      generic, public :: readHyperslabDoubleArray4D => readHyperslabDoubleArray4D_
      generic, public :: addStringAttributeToGroup => addStringAttributeToGroup_
      generic, public :: getStringAttributeFromGroup => getStringAttributeFromGroup_
-     generic, public :: read2DImage => read2DImage_ 
+     generic, public :: read2DImage => read2DImage_
      ! generic, public :: CrystalData => CrystalData_
      ! generic, public :: SaveDataHDF => SaveDataHDF_
      ! generic, public :: ReadDataHDF => ReadDataHDF_
@@ -274,72 +274,12 @@ IMPLICIT NONE
 
   end type HDF_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: push
-!DEC$ ATTRIBUTES DLLEXPORT :: pop
-!DEC$ ATTRIBUTES DLLEXPORT :: stackdump
-!DEC$ ATTRIBUTES DLLEXPORT :: getObjectID
-! !DEC$ ATTRIBUTES DLLEXPORT :: togglestackdump
-!DEC$ ATTRIBUTES DLLEXPORT :: error_check
-!DEC$ ATTRIBUTES DLLEXPORT :: createFile
-!DEC$ ATTRIBUTES DLLEXPORT :: openFile
-!DEC$ ATTRIBUTES DLLEXPORT :: openFortranHDFInterface
-!DEC$ ATTRIBUTES DLLEXPORT :: closeFortranHDFInterface
-!DEC$ ATTRIBUTES DLLEXPORT :: createGroup
-!DEC$ ATTRIBUTES DLLEXPORT :: openGroup
-!DEC$ ATTRIBUTES DLLEXPORT :: openDataset
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetTextFile
-!DEC$ ATTRIBUTES DLLEXPORT :: extractDatasetTextfile
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetStringArray
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetCharArray
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger1byteArray1D
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetIntegerArray
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetFloat
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetDouble
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetFloatArray
-!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetDoubleArray
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabCharArray
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabIntegerArray
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabFloatArray
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabDoubleArray
-!DEC$ ATTRIBUTES DLLEXPORT :: readfromTextfile
-!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetStringArray
-!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetCharArray
-!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetInteger
-!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetIntegerArray
-!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetFloat
-!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetFloatArray
-!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetDouble
-!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetDoubleArray
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabCharArray2D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabCharArray3D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabCharArray4D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabIntegerArray2D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabIntegerArray3D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabIntegerArray4D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabFloatArray2D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabFloatArray3D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabFloatArray4D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabDoubleArray2D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabDoubleArray3D
-!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabDoubleArray4D
-!DEC$ ATTRIBUTES DLLEXPORT :: addStringAttributeToGroup
-!DEC$ ATTRIBUTES DLLEXPORT :: getStringAttributeFromGroup
-! !DEC$ ATTRIBUTES DLLEXPORT :: CrystalData
-! !DEC$ ATTRIBUTES DLLEXPORT :: SaveDataHDF
-! !DEC$ ATTRIBUTES DLLEXPORT :: ReadDataHDF
-!DEC$ ATTRIBUTES DLLEXPORT :: h5_write_pseudo_bse_image
-!DEC$ ATTRIBUTES DLLEXPORT :: h5_tsl_read_ebsd_pattern
-!DEC$ ATTRIBUTES DLLEXPORT :: h5_read_integer_dataset
-!DEC$ ATTRIBUTES DLLEXPORT :: CheckFixedLengthflag
-!DEC$ ATTRIBUTES DLLEXPORT :: resetFixedLengthflag
-
-! the constructor routine for this class 
+! the constructor routine for this class
   interface HDF_T
     module procedure HDF_constructor
   end interface HDF_T
 
-public :: openFortranHDFInterface, closeFortranHDFInterface, cstringify, carstringify, fstringify 
+public :: openFortranHDFInterface, closeFortranHDFInterface, cstringify, carstringify, fstringify
 
 contains
 
@@ -351,13 +291,14 @@ contains
 
 !--------------------------------------------------------------------------
 type(HDF_T) function HDF_constructor( ) result(HDF)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: HDF_constructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
-  !! constructor for the HDF Class 
+  !! constructor for the HDF Class
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
@@ -366,29 +307,30 @@ IMPLICIT NONE
   integer(kind=irg)             :: printonoff
 
 ! silent HDF operation or somewhat verbose ?
-  HDFverbose = .FALSE. 
+  HDFverbose = .FALSE.
   dumpHDFstack = .FALSE.     ! set with the switchStackDump method
 
-! make sure that the fortran HDF interface is open; if not call an error 
-  if (HDFinterfaceOpen.eqv..FALSE.) then 
+! make sure that the fortran HDF interface is open; if not call an error
+  if (HDFinterfaceOpen.eqv..FALSE.) then
     call Message%printError('HDF_constructor', 'The HDF fortran interface is closed; must be opened in calling program')
-  end if 
+  end if
 
 ! then we nullify the HDF%head private variable (again, the user does not get direct access
 ! to this linked list... it is used internally and for debugging purposes).
   nullify(HDF%head%next)
 
 end function HDF_constructor
-  
+
 !--------------------------------------------------------------------------
 subroutine HDF_destructor(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: HDF_destructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
-  !! destructor (final) for the HDF Class 
+  !! destructor (final) for the HDF Class
 
-  type(HDF_T)                         :: self 
+  type(HDF_T)                         :: self
 
   integer(kind=irg)                   :: hdferr
   integer(kind=irg)                   :: printonoff
@@ -396,50 +338,52 @@ subroutine HDF_destructor(self)
 
   call reportDestructor('HDF_T')
 
-! for now, there is nothing to destruct since the push-pop stack has already been 
+! for now, there is nothing to destruct since the push-pop stack has already been
 ! nullified in the pop(.TRUE.) call.
 
 end subroutine HDF_destructor
 
 !--------------------------------------------------------------------------
 subroutine openFortranHDFInterface(verbose)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: openFortranHDFInterface
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/13/20
   !!
-  !! open the HDF interface 
+  !! open the HDF interface
 
-use mod_io 
+use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
   logical, INTENT(IN), OPTIONAL       :: verbose
 
-  type(IO_T)                          :: Message 
+  type(IO_T)                          :: Message
   integer(kind=irg)                   :: hdferr, io_int(1)
   integer(kind=irg)                   :: printonoff
 
 ! open the interface; note that we can not use the error_check routine here
 ! because the HDF_T class has not been instantiated yet !!!
     call h5open_f(hdferr)
-    if (hdferr.lt.0) then 
-      io_int(1) = hdferr 
+    if (hdferr.lt.0) then
+      io_int(1) = hdferr
       call Message%WriteValue('Error code : ',io_int,1)
       call Message%printMessage('   returned by routine h5open_f',frm="(A)")
-    end if 
+    end if
 
 ! and turn standard error reporting off; we'll handle errors our way...
     ! printonoff = 0
     ! call h5eset_auto_f(printonoff,hdferr)
-    ! if (hdferr.lt.0) then 
-    !   io_int(1) = hdferr 
+    ! if (hdferr.lt.0) then
+    !   io_int(1) = hdferr
     !   call Message%WriteValue('Error code : ',io_int,1)
     !   call Message%printMessage('   returned by routine h5eset_auto_f',frm="(A)")
-    ! end if 
+    ! end if
 
     HDFinterfaceOpen = .TRUE.
 
-    if (present(verbose)) then 
+    if (present(verbose)) then
         if (verbose.eqv..TRUE.) call Message%printMessage(' *** Fortran HDF interface OPEN *** ')
     end if
 
@@ -447,43 +391,45 @@ end subroutine openFortranHDFInterface
 
 !--------------------------------------------------------------------------
 subroutine closeFortranHDFInterface(verbose)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: closeFortranHDFInterface
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/13/20
   !!
-  !! close the HDF interface 
+  !! close the HDF interface
 
-use mod_io 
+use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
   logical, INTENT(IN), OPTIONAL       :: verbose
 
-  type(IO_T)                          :: Message 
+  type(IO_T)                          :: Message
   integer(kind=irg)                   :: hdferr, io_int(1)
   integer(kind=irg)                   :: printonoff
 
 ! turn standard error reporting back on; note that we can not use the error_check routine here
-! because the HDF_T class has not been instantiated yet !!! 
+! because the HDF_T class has not been instantiated yet !!!
     printonoff = 1
     call h5eset_auto_f(printonoff, hdferr)
-    if (hdferr.lt.0) then 
-      io_int(1) = hdferr 
+    if (hdferr.lt.0) then
+      io_int(1) = hdferr
       call Message%WriteValue('Error code : ',io_int,1)
       call Message%printMessage('   returned by routine h5eset_auto_f',frm="(A)")
-    end if 
+    end if
 
 ! close the HDF fortran interface
     call h5close_f(hdferr)
-     if (hdferr.lt.0) then 
-      io_int(1) = hdferr 
+     if (hdferr.lt.0) then
+      io_int(1) = hdferr
       call Message%WriteValue('Error code : ',io_int,1)
       call Message%printMessage('   returned by routine h5close_f',frm="(A)")
-    end if 
+    end if
 
     HDFinterfaceOpen = .FALSE.
 
-    if (present(verbose)) then 
+    if (present(verbose)) then
         if (verbose.eqv..TRUE.) call Message%printMessage(' *** Fortran HDF interface CLOSED *** ')
     end if
 
@@ -493,27 +439,28 @@ end subroutine closeFortranHDFInterface
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 ! to avoid user usage of file, group, dataset, etc, IDs, we use a push-pop
-! stack to keep track of the open items and close them again.  
+! stack to keep track of the open items and close them again.
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive subroutine push_(self, oT, oID, oName)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: push_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! push_ an HDF object to the stack
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
 class(HDF_T), INTENT(INOUT)              :: self
 character(LEN=1),INTENT(IN)             :: oT
  !! object type character
-integer(HID_T),INTENT(IN)               :: oID 
+integer(HID_T),INTENT(IN)               :: oID
  !! oID object identifier
 character(fnlen),INTENT(IN)             :: oName
  !! oName name
@@ -523,7 +470,7 @@ integer(kind=irg)                       :: istat
 type(IO_T)                              :: Message
 
 ! the stack always exists but we never use the top level
-if (.not.associated(self%head%next)) then 
+if (.not.associated(self%head%next)) then
    allocate(self%head%next,stat=istat)     ! allocate new value
    call error_check_(self, 'push_: unable to allocate self pointer', istat, .TRUE.)
 
@@ -548,8 +495,9 @@ end subroutine push_
 
 !--------------------------------------------------------------------------
 recursive subroutine pop_(self, closeall)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: pop_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! pop_ an HDF object from the stack and close it
@@ -567,10 +515,10 @@ type(HDFobjectStackType),pointer           :: tmp
 
 nullify(tmp)
 
-if (PRESENT(closeall)) then  
+if (PRESENT(closeall)) then
 ! this would be called if an error arises that forces a complete shutdown of the program, or at the end of a regular program
-  do while (associated(self%head%next)) 
-! close the current object 
+  do while (associated(self%head%next))
+! close the current object
     error = HDF_close_level(self%head%next%objectType, self%head%next%objectID)
     call error_check_(self, 'pop_:unable to close requested level for object type '//self%head%next%objectType, error,.TRUE.)
 
@@ -582,7 +530,7 @@ if (PRESENT(closeall)) then
   end do
   nullify(self%head%next)
 else
-! close the current object 
+! close the current object
   error = HDF_close_level(self%head%next%objectType, self%head%next%objectID)
   call error_check_(self, 'pop_:unable to close requested level for object type '//self%head%next%objectType, error,.TRUE.)
 
@@ -598,40 +546,40 @@ end if
 contains
 
   recursive function HDF_close_level(oT, oID) result(error)
-  
+
   IMPLICIT NONE
 
   character(LEN=1),INTENT(IN)   :: oT
-  integer(HID_T),INTENT(IN)     :: oID 
+  integer(HID_T),INTENT(IN)     :: oID
   integer(kind=irg)             :: error
 
   select case(oT)
-  case ('f') 
+  case ('f')
     call h5fclose_f(oID, error)  ! close the file
     call error_check_(self, 'pop_:h5fclose_f', error)
 
 
-  case ('g') 
+  case ('g')
     call h5gclose_f(oID, error)  ! close the group
     call error_check_(self, 'pop_:h5gclose_f', error)
 
 
-  case ('d') 
+  case ('d')
     call h5dclose_f(oID, error)  ! close the data set
     call error_check_(self, 'pop_:h5dclose_f', error)
 
 
-  case ('a') 
+  case ('a')
     call h5aclose_f(oID, error)  ! close the attribute
     call error_check_(self, 'pop_:h5aclose_f', error)
 
 
-  case ('t') 
+  case ('t')
     call h5tclose_f(oID, error)  ! close the data type
     call error_check_(self, 'pop_:h5tclose_f', error)
 
 
-  case ('s') 
+  case ('s')
     call h5sclose_f(oID, error)  ! close the data space
     call error_check_(self, 'pop_:h5sclose_f', error)
 
@@ -645,8 +593,10 @@ end subroutine pop_
 
 !--------------------------------------------------------------------------
 recursive subroutine stackdump_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: stackdump_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! print out the entire stack for debugging purposes
@@ -670,7 +620,7 @@ else
 
   do
     if (.not.associated(tmp)) EXIT
-    call Message%WriteValue('','>'//tmp%objectType//'<  >'//trim(tmp%objectName)//'<', frm = "(A)",advance="no") 
+    call Message%WriteValue('','>'//tmp%objectType//'<  >'//trim(tmp%objectName)//'<', frm = "(A)",advance="no")
 
     io_int(1) = tmp%objectID
     call Message%WriteValue('',io_int,1,frm="(I12)")
@@ -683,37 +633,39 @@ end subroutine stackdump_
 
 !--------------------------------------------------------------------------
 recursive function associatedHead_(self) result(assoc)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: associatedHead_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/14/20
   !!
   !! check whether or not the head pointer is associated
 
-class(HDF_T), INTENT(INOUT)     :: self 
+class(HDF_T), INTENT(INOUT)     :: self
 logical                         :: assoc
 
 assoc = .FALSE.
-if (associated(self%head%next)) then 
+if (associated(self%head%next)) then
   assoc = .TRUE.
-end if 
+end if
 
 end function associatedHead_
 
 !--------------------------------------------------------------------------
 recursive function getObjectID_(self) result(ObjID)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getObjectID_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! returns an object identifier
 
-class(HDF_T), INTENT(INOUT)     :: self 
+class(HDF_T), INTENT(INOUT)     :: self
 integer(HID_T)                  :: ObjID
 
 ObjID = 0
-if (associated(self%head%next)) then 
+if (associated(self%head%next)) then
   ObjID = self%head%next%ObjectID
-end if 
+end if
 
 end function getObjectID_
 
@@ -728,8 +680,10 @@ end function getObjectID_
 
 !--------------------------------------------------------------------------
 recursive function createFile_(self, HDFname) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: createFile_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! Create a new HDF file (this also opens the file)
@@ -763,8 +717,10 @@ end function createFile_
 
 !--------------------------------------------------------------------------
 recursive function openFile_(self, HDFname, readonly) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: openFile_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! Open an HDF file
@@ -783,7 +739,7 @@ integer(HID_T)                             :: file_id ! file identifier
 integer                                    :: hdferr  ! hdferr flag
 
 success = 0
-if (present(readonly)) then 
+if (present(readonly)) then
   call H5Fopen_f(cstringify(HDFname), H5F_ACC_RDONLY_F, file_id, hdferr)
   call error_check_(self, 'openFile_:H5Fopen_f:'//trim(HDFname)//':readonly', hdferr)
 else
@@ -791,7 +747,7 @@ else
   call error_check_(self, 'openFile_:H5Fopen_f:'//trim(HDFname), hdferr)
 end if
 
-if (hdferr.lt.0) then 
+if (hdferr.lt.0) then
   success = -1
 else
   call self%push_('f', file_id, HDFname)
@@ -803,8 +759,10 @@ end function openFile_
 
 !--------------------------------------------------------------------------
 recursive function createGroup_(self, groupname) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: createGroup_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! create and open a new group; if it already exists, just open it
@@ -826,7 +784,7 @@ success = 0
 call H5Lexists_f(self%head%next%objectID,cstringify(groupname),g_exists, hdferr)
 call error_check_(self, 'createGroup_:H5Lexists_f:'//trim(groupname), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   call H5Gopen_f(self%head%next%objectID, cstringify(groupname), group_id, hdferr)
   call error_check_(self, 'createGroup_:H5Gopen_f:'//trim(groupname), hdferr)
 
@@ -836,7 +794,7 @@ if (g_exists) then
   ! put the group_id onto the HDF_stack
     call self%push_('g', group_id, groupname)
   end if
-else 
+else
   call H5Gcreate_f(self%head%next%objectID, cstringify(groupname), group_id, hdferr)
   call error_check_(self, 'createGroup_:H5Gcreate_f:'//trim(groupname), hdferr)
 
@@ -852,8 +810,9 @@ end function createGroup_
 
 !--------------------------------------------------------------------------
 recursive function openGroup_(self, groupname) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: openGroup_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! open an existing group
@@ -885,8 +844,9 @@ end function openGroup_
 
 !--------------------------------------------------------------------------
 recursive function openDataset_(self, dataname) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: openDataset_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! open an existing dataset
@@ -919,15 +879,17 @@ end function openDataset_
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! various text writing routines 
+! various text writing routines
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetTextFile_(self, dataname, filename) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetTextFile_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! write a text file data set to the current file or group ID
@@ -942,11 +904,11 @@ character(fnlen),INTENT(IN)                             :: filename
 
 integer(kind=irg)                                       :: success
 
-character(len=fnlen, KIND=c_char),allocatable, TARGET   :: stringarray(:) 
+character(len=fnlen, KIND=c_char),allocatable, TARGET   :: stringarray(:)
 integer(kind=irg)                                       :: nlines
 
-integer(HSIZE_T)                                        :: dim0 
-integer(SIZE_T)                                         :: sdim 
+integer(HSIZE_T)                                        :: dim0
+integer(SIZE_T)                                         :: sdim
 integer(HID_T)                                          :: filetype, space, dset ! Handles
 integer                                                 :: hdferr, i, rnk
 integer(HSIZE_T), DIMENSION(1:1)                        :: dims
@@ -958,7 +920,7 @@ TYPE(C_PTR)                                             :: f_ptr
 
 success = 0
 
-stringarray = readfromTextfile_(self, filename, nlines) 
+stringarray = readfromTextfile_(self, filename, nlines)
 
 ! first, convert the stringarray to an array of C-pointers, with each string
 ! terminated by a C_NULL_CHAR.
@@ -990,7 +952,7 @@ call error_check_(self, 'writeDatasetTextFile_:h5screate_simple_f:'//trim(datana
 call H5Lexists_f(self%head%next%objectID,cstringify(dataname),g_exists, hdferr)
 call error_check_(self, 'writeDatasetTextFile_:H5Lexists_f:'//trim(dataname), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
   call error_check_(self, 'writeDatasetTextFile_:h5dopen_f:'//trim(dataname), hdferr)
 else
@@ -1029,8 +991,9 @@ end function writeDatasetTextFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetStringArray_(self, dataname, nlines, hdferr, stringarray)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetStringArray_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! read a string array from a data set
@@ -1044,7 +1007,7 @@ character(fnlen),INTENT(IN)                             :: dataname
 integer(kind=irg),INTENT(OUT)                           :: nlines
 
 integer(kind=irg),INTENT(OUT)                           :: hdferr
-character(len=fnlen, KIND=c_char),allocatable, TARGET, INTENT(OUT)   :: stringarray(:) 
+character(len=fnlen, KIND=c_char),allocatable, TARGET, INTENT(OUT)   :: stringarray(:)
 
 integer(HID_T)                                          :: filetype, space, memtype ! Handles
 integer                                                 :: i, length
@@ -1054,7 +1017,7 @@ integer(SIZE_T)                                         :: size
 
 character(len = fnlen, kind=c_char),  POINTER           :: pfstr ! A pointer to a Fortran string
 TYPE(C_PTR), DIMENSION(:), ALLOCATABLE, TARGET          :: rdata ! Read buffer
-character(len=fnlen), TARGET                            :: fl_rdata 
+character(len=fnlen), TARGET                            :: fl_rdata
 TYPE(C_PTR)                                             :: f_ptr
 
 ! Open dataset.
@@ -1074,10 +1037,10 @@ if (FixedLengthflag.eqv..TRUE.) then ! this option is only set up to read one si
 !
   call H5Dget_space_f(self%head%next%objectID, space, hdferr)
   call error_check_(self, 'readDatasetStringArray_:H5Dget_space_f:'//trim(dataname), hdferr)
- 
+
   call H5Tcopy_f(H5T_FORTRAN_S1, memtype, hdferr)
   call error_check_(self, 'readDatasetStringArray_:H5Tcopy_f:'//trim(dataname), hdferr)
-  
+
   call H5Tset_size_f(memtype, size-1, hdferr)
   call error_check_(self, 'readDatasetStringArray_:H5Tset_size_f:'//trim(dataname), hdferr)
 
@@ -1100,7 +1063,7 @@ else ! there could be multiple variable length strings to be read...
 
   ! this routine returns the rank of the data set in the hdferr variable when successful, otherwise -1
   call H5Sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
-  if (hdferr.lt.0) then 
+  if (hdferr.lt.0) then
     call error_check_(self, 'readDatasetStringArray_:H5Sget_simple_extent_dims_f:'//trim(dataname), hdferr)
   end if
 
@@ -1144,8 +1107,9 @@ end subroutine readDatasetStringArray_
 
 !--------------------------------------------------------------------------
 recursive function extractDatasetTextfile_(self, dataname, textfile) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: extractDatasetTextfile_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! read a string array from a data set and stores it as a text file
@@ -1184,7 +1148,7 @@ call H5Dget_space_f(self%head%next%objectID, space, hdferr)
 call error_check_(self, 'extractDatasetTextfile_:H5Dget_space_f:'//trim(dataname), hdferr)
 
 call H5Sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
-if (hdferr.lt.0) then 
+if (hdferr.lt.0) then
   call error_check_(self, 'extractDatasetTextfile_:H5Sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 end if
 
@@ -1230,8 +1194,10 @@ end function extractDatasetTextfile_
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetStringArray_(self, dataname, inputarray, nlines, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetStringArray_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/08/20
   !!
   !! write a string array
@@ -1243,15 +1209,15 @@ IMPLICIT NONE
 class(HDF_T),INTENT(INOUT)                 :: self
 character(fnlen),INTENT(IN)                :: dataname
 integer(kind=irg),INTENT(IN)               :: nlines
-character(len=fnlen),INTENT(IN)            :: inputarray(nlines) 
+character(len=fnlen),INTENT(IN)            :: inputarray(nlines)
 
 logical,INTENT(IN),OPTIONAL                :: overwrite
 integer(kind=irg)                          :: success
 
 integer(kind=irg),parameter                :: fnlenp = fnlen+1
-character(len=fnlenp, KIND=c_char),TARGET  :: stringarray(nlines) 
-integer(HSIZE_T)                           :: dim0 
-integer(SIZE_T)                            :: sdim 
+character(len=fnlenp, KIND=c_char),TARGET  :: stringarray(nlines)
+integer(HSIZE_T)                           :: dim0
+integer(SIZE_T)                            :: sdim
 integer(HID_T)                             :: filetype, space, dset ! Handles
 integer                                    :: hdferr, i, rnk, l
 integer(HSIZE_T), DIMENSION(1:1)           :: dims
@@ -1296,7 +1262,7 @@ end if
 !
 ! Create the dataset and write the variable-length string data to it.
 !
-if (present(overwrite)) then 
+if (present(overwrite)) then
   call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
   call error_check_(self, 'writeDatasetStringArray_:h5dopen_f:'//trim(dataname)//':overwrite', hdferr)
 else
@@ -1335,11 +1301,12 @@ end function writeDatasetStringArray_
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetCharArray1D(self, dataname, chararray, dims, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetCharArray1D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 1D array of c_chars    [variable type H5T_STD_U8LE] 
+  !! write a 1D array of c_chars    [variable type H5T_STD_U8LE]
 
 use ISO_C_BINDING
 
@@ -1348,7 +1315,7 @@ IMPLICIT NONE
 class(HDF_T),INTENT(INOUT)                 :: self
 character(fnlen),INTENT(IN)                :: dataname
 integer(HSIZE_T), INTENT(IN)               :: dims(1)
-character(len=1),TARGET                    :: chararray(dims(1)) 
+character(len=1),TARGET                    :: chararray(dims(1))
 logical,INTENT(IN),OPTIONAL                :: overwrite
 integer(kind=irg)                          :: success
 
@@ -1372,7 +1339,7 @@ call error_check_(self, 'writeDatasetCharArray1D:h5screate_simple_f:'//trim(data
 !
 ! Create the dataset and write the c_char data to it.
 !
-if (present(overwrite)) then 
+if (present(overwrite)) then
   call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
   call error_check_(self, 'writeDatasetCharArray1D:h5dopen_f:'//trim(dataname), hdferr)
 else
@@ -1405,11 +1372,12 @@ end function writeDatasetCharArray1D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetCharArray2D(self, dataname, chararray, dims, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetCharArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 2D array of c_chars    [variable type H5T_STD_U8LE] 
+  !! write a 2D array of c_chars    [variable type H5T_STD_U8LE]
 
 
 use ISO_C_BINDING
@@ -1419,7 +1387,7 @@ IMPLICIT NONE
 class(HDF_T),INTENT(INOUT)                 :: self
 character(fnlen),INTENT(IN)                :: dataname
 integer(HSIZE_T), INTENT(IN)               :: dims(2)
-character(len=1),TARGET                    :: chararray(dims(1), dims(2)) 
+character(len=1),TARGET                    :: chararray(dims(1), dims(2))
 logical,INTENT(IN),OPTIONAL                :: overwrite
 integer(kind=irg)                          :: success
 
@@ -1441,13 +1409,13 @@ call error_check_(self, 'writeDatasetCharArray2D:h5screate_simple_f:'//trim(data
 !
 ! Create the dataset and write the c_char data to it.
 !
-if (present(overwrite)) then 
+if (present(overwrite)) then
   call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
   call error_check_(self, 'writeDatasetCharArray2D:h5dopen_f:'//trim(dataname), hdferr)
 else
   call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_U8LE, space, dset, hdferr)
   call error_check_(self, 'writeDatasetCharArray2D:h5dcreate_f:'//trim(dataname), hdferr)
-end if 
+end if
 
 if (hdferr.lt.0) then
   success = -1
@@ -1474,11 +1442,12 @@ end function writeDatasetCharArray2D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetCharArray3D(self, dataname, chararray, dims, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetCharArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 3D array of c_chars    [variable type H5T_STD_U8LE] 
+  !! write a 3D array of c_chars    [variable type H5T_STD_U8LE]
 
 use ISO_C_BINDING
 
@@ -1487,7 +1456,7 @@ IMPLICIT NONE
 class(HDF_T),INTENT(INOUT)                 :: self
 character(fnlen),INTENT(IN)                :: dataname
 integer(HSIZE_T), INTENT(IN)               :: dims(3)
-character(len=1),TARGET                    :: chararray(dims(1), dims(2), dims(3)) 
+character(len=1),TARGET                    :: chararray(dims(1), dims(2), dims(3))
 logical,INTENT(IN),OPTIONAL                :: overwrite
 integer(kind=irg)                          :: success
 
@@ -1542,11 +1511,12 @@ end function writeDatasetCharArray3D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetCharArray4D(self, dataname, chararray, dims, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetCharArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 4D array of c_chars    [variable type H5T_STD_U8LE] 
+  !! write a 4D array of c_chars    [variable type H5T_STD_U8LE]
 
 use ISO_C_BINDING
 
@@ -1555,7 +1525,7 @@ IMPLICIT NONE
 class(HDF_T),INTENT(INOUT)                 :: self
 character(fnlen),INTENT(IN)                :: dataname
 integer(HSIZE_T), INTENT(IN)               :: dims(4)
-character(len=1),TARGET                    :: chararray(dims(1), dims(2), dims(3), dims(4)) 
+character(len=1),TARGET                    :: chararray(dims(1), dims(2), dims(3), dims(4))
 logical,INTENT(IN),OPTIONAL                :: overwrite
 integer(kind=irg)                          :: success
 
@@ -1584,7 +1554,7 @@ if (present(overwrite)) then
 else
   call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_U8LE, space, dset, hdferr)
   call error_check_(self, 'writeDatasetCharArray4D:h5dcreate_f:'//trim(dataname), hdferr)
-end if 
+end if
 
 if (hdferr.lt.0) then
   success = -1
@@ -1611,8 +1581,10 @@ end function writeDatasetCharArray4D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetInteger_(self, dataname, intval, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! write an integer data set to the current file or group ID
@@ -1658,7 +1630,7 @@ if (present(overwrite)) then
 else
   call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_I32LE, space, dset, hdferr)
   call error_check_(self, 'writeDatasetInteger_:h5dcreate_f:'//trim(dataname), hdferr)
-end if 
+end if
 
 if (hdferr.lt.0) then
   success = -1
@@ -1685,11 +1657,12 @@ end function writeDatasetInteger_
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetInteger1byteArray1D_(self, dataname, intarr, dim0, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger1byteArray1D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 1D integer array data set to the current file or group ID 
+  !! write a 1D integer array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -1759,11 +1732,12 @@ end function writeDatasetInteger1byteArray1D_
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetIntegerArray1D(self, dataname, intarr, dim0, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetIntegerArray1D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 1D integer array data set to the current file or group ID  
+  !! write a 1D integer array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -1837,11 +1811,12 @@ end function writeDatasetIntegerArray1D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetIntegerArray2D(self, dataname, intarr, dim0, dim1, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetIntegerArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 2D integer array data set to the current file or group ID 
+  !! write a 2D integer array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -1918,11 +1893,12 @@ end function writeDatasetIntegerArray2D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetIntegerArray3D(self, dataname, intarr, dim0, dim1, dim2, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetIntegerArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 3D integer array data set to the current file or group ID 
+  !! write a 3D integer array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -1998,11 +1974,12 @@ end function writeDatasetIntegerArray3D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetIntegerArray4D(self, dataname, intarr, dim0, dim1, dim2, dim3, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetIntegerArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 4D integer array data set to the current file or group ID 
+  !! write a 4D integer array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2051,7 +2028,7 @@ if (present(overwrite)) then
 else
   call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_I32LE, space, dset, hdferr)
   call error_check_(self, 'writeDatasetIntegerArray4D:h5dcreate_f:'//trim(dataname), hdferr)
-end if 
+end if
 
 if (hdferr.lt.0) then
   success = -1
@@ -2080,11 +2057,12 @@ end function writeDatasetIntegerArray4D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetFloat_(self, dataname, fltval, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetFloat_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a single precision float data set to the current file or group ID 
+  !! write a single precision float data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2155,11 +2133,12 @@ end function writeDatasetFloat_
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetDouble_(self, dataname, dblval, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetDouble_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a double precision float data set to the current file or group ID 
+  !! write a double precision float data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2230,11 +2209,12 @@ end function writeDatasetDouble_
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetFloatArray1D(self, dataname, fltarr, dim0, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetFloatArray1D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 1D single precision float array data set to the current file or group ID  
+  !! write a 1D single precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2309,11 +2289,12 @@ end function writeDatasetFloatArray1D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetFloatArray2D(self, dataname, fltarr, dim0, dim1, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetFloatArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 2D single precision float array data set to the current file or group ID  
+  !! write a 2D single precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2390,11 +2371,12 @@ end function writeDatasetFloatArray2D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetFloatArray3D(self, dataname, fltarr, dim0, dim1, dim2, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetFloatArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 3D single precision float array data set to the current file or group ID 
+  !! write a 3D single precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2472,11 +2454,12 @@ end function writeDatasetFloatArray3D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetFloatArray4D(self, dataname, fltarr, dim0, dim1, dim2, dim3, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetFloatArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 4D single precision float array data set to the current file or group ID  
+  !! write a 4D single precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2556,11 +2539,12 @@ end function writeDatasetFloatArray4D
 !--------------------------------------------------------------------------
 recursive function writeDatasetFloatArray6D(self, dataname, fltarr, dim0, dim1, dim2, dim3, dim4, dim5, &
                                             overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetFloatArray6D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 6D single precision float array data set to the current file or group ID 
+  !! write a 6D single precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2637,11 +2621,12 @@ end function writeDatasetFloatArray6D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetDoubleArray1D(self, dataname, dblarr, dim0, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetDoubleArray1D
+!! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 1D double precision float array data set to the current file or group ID 
+  !! write a 1D double precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2687,7 +2672,7 @@ if (present(overwrite)) then
 else
   call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_IEEE_F64LE, space, dset, hdferr)
   call error_check_(self, 'writeDatasetDoubleArray1D:h5dcreate_f:'//trim(dataname), hdferr)
-end if 
+end if
 
 if (hdferr.lt.0) then
   success = -1
@@ -2714,11 +2699,12 @@ end function writeDatasetDoubleArray1D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetDoubleArray2D(self, dataname, dblarr, dim0, dim1, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetDoubleArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 2D double precision float array data set to the current file or group ID  
+  !! write a 2D double precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2791,11 +2777,12 @@ end function writeDatasetDoubleArray2D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetDoubleArray3D(self, dataname, dblarr, dim0, dim1, dim2, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetDoubleArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 3D double precision float array data set to the current file or group ID  
+  !! write a 3D double precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2870,11 +2857,12 @@ end function writeDatasetDoubleArray3D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetDoubleArray4D(self, dataname, dblarr, dim0, dim1, dim2, dim3, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetDoubleArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! write a 4D double precision float array data set to the current file or group ID 
+  !! write a 4D double precision float array data set to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2957,11 +2945,12 @@ end function writeDatasetDoubleArray4D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetCharArray1D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetCharArray1D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 1D char array data set from the current file or group ID 
+  !! reads and returns a 1D char array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -2983,7 +2972,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetCharArray1D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetCharArray1D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3015,11 +3004,12 @@ end subroutine readDatasetCharArray1D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetCharArray2D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetCharArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 2D char array data set from the current file or group ID 
+  !! reads and returns a 2D char array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3041,7 +3031,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetCharArray2D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetCharArray2D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3073,11 +3063,12 @@ end subroutine readDatasetCharArray2D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetCharArray3D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetCharArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 3D char array data set from the current file or group ID  
+  !! reads and returns a 3D char array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3099,7 +3090,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetCharArray3D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetCharArray3D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3131,11 +3122,12 @@ end subroutine readDatasetCharArray3D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetCharArray4D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetCharArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 4D char array data set from the current file or group ID  
+  !! reads and returns a 4D char array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3157,7 +3149,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetCharArray4D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetCharArray4D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3189,11 +3181,12 @@ end subroutine readDatasetCharArray4D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetInteger_(self, dataname, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetInteger_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns an integer data set from the current file or group ID 
+  !! reads and returns an integer data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3212,7 +3205,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetInteger_:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetInteger_:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3238,11 +3231,12 @@ end subroutine readDatasetInteger_
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetIntegerArray1D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetIntegerArray1D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 1D integer array data set from the current file or group ID  
+  !! reads and returns a 1D integer array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3264,7 +3258,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetIntegerArray1D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetIntegerArray1D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3296,11 +3290,12 @@ end subroutine readDatasetIntegerArray1D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetIntegerArray2D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetIntegerArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 2D integer array data set from the current file or group ID 
+  !! reads and returns a 2D integer array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3322,7 +3317,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetIntegerArray2D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetIntegerArray2D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3354,11 +3349,12 @@ end subroutine readDatasetIntegerArray2D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetIntegerArray3D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetIntegerArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 3D integer array data set from the current file or group ID  
+  !! reads and returns a 3D integer array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3380,7 +3376,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetIntegerArray3D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetIntegerArray3D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3412,11 +3408,12 @@ end subroutine readDatasetIntegerArray3D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetIntegerArray4D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetIntegerArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 4D integer array data set from the current file or group ID  
+  !! reads and returns a 4D integer array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3439,7 +3436,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetIntegerArray4D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetIntegerArray4D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3472,11 +3469,12 @@ end subroutine readDatasetIntegerArray4D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetFloat_(self, dataname, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+  !DEC$ ATTRIBUTES DLLEXPORT :: readDatasetFloat_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a float data set from the current file or group ID 
+  !! reads and returns a float data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3497,7 +3495,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetFloat_:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetFloat_:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3523,11 +3521,12 @@ end subroutine readDatasetFloat_
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetFloatArray1D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetFloatArray1D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 1D float array data set from the current file or group ID  
+  !! reads and returns a 1D float array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3551,7 +3550,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetFloatArray1D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetFloatArray1D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3583,11 +3582,12 @@ end subroutine readDatasetFloatArray1D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetFloatArray2D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetFloatArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 2D float array data set from the current file or group ID 
+  !! reads and returns a 2D float array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3611,7 +3611,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetFloatArray2D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetFloatArray2D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3643,11 +3643,12 @@ end subroutine readDatasetFloatArray2D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetFloatArray3D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetFloatArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 3D float array data set from the current file or group ID  
+  !! reads and returns a 3D float array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3671,7 +3672,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetFloatArray3D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetFloatArray3D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3703,11 +3704,12 @@ end subroutine readDatasetFloatArray3D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetFloatArray4D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetFloatArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 4D float array data set from the current file or group ID 
+  !! reads and returns a 4D float array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3731,7 +3733,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetFloatArray4D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetFloatArray4D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3762,11 +3764,12 @@ end subroutine readDatasetFloatArray4D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetDouble_(self, dataname, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+  !DEC$ ATTRIBUTES DLLEXPORT :: readDatasetDouble_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a double data set from the current file or group ID 
+  !! reads and returns a double data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3787,7 +3790,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetDouble_:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetDouble_:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3813,11 +3816,12 @@ end subroutine readDatasetDouble_
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetDoubleArray1D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetDoubleArray1D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 1D double array data set from the current file or group ID  
+  !! reads and returns a 1D double array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3841,7 +3845,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetDoubleArray1D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetDoubleArray1D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3872,11 +3876,12 @@ end subroutine readDatasetDoubleArray1D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetDoubleArray2D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetDoubleArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 2D double array data set from the current file or group ID 
+  !! reads and returns a 2D double array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3900,7 +3905,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetDoubleArray2D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetDoubleArray2D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3932,11 +3937,12 @@ end subroutine readDatasetDoubleArray2D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetDoubleArray3D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetDoubleArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 3D double array data set from the current file or group ID 
+  !! reads and returns a 3D double array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -3960,7 +3966,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetDoubleArray3D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetDoubleArray3D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -3993,11 +3999,12 @@ end subroutine readDatasetDoubleArray3D
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetDoubleArray4D(self, dataname, dims, hdferr, rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetDoubleArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 4D double array data set from the current file or group ID 
+  !! reads and returns a 4D double array data set from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -4021,7 +4028,7 @@ TYPE(C_PTR)                                :: f_ptr
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readDatasetDoubleArray4D:h5dopen_f:'//trim(dataname), hdferr)
 
-! get dataspace and allocate memory for read buffer 
+! get dataspace and allocate memory for read buffer
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetDoubleArray4D:h5dget_space_f:'//trim(dataname), hdferr)
 
@@ -4062,11 +4069,12 @@ end subroutine readDatasetDoubleArray4D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabCharArray2D(self, dataname, wdata, hdims, offset, &
                                        dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabCharArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 2D hyperslab to the current file or group ID  
+  !! writes a 2D hyperslab to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -4121,11 +4129,12 @@ end function writeHyperslabCharArray2D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabCharArray3D(self, dataname, wdata, hdims, offset, &
                                                  dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabCharArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 3D hyperslab to the current file or group ID  
+  !! writes a 3D hyperslab to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -4175,11 +4184,12 @@ end function writeHyperslabCharArray3D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabCharArray4D(self, dataname, wdata, hdims, offset, &
                                                  dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabCharArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 4D hyperslab to the current file or group ID  
+  !! writes a 4D hyperslab to the current file or group ID
 
 use ISO_C_BINDING
 
@@ -4229,11 +4239,12 @@ end function writeHyperslabCharArray4D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabIntegerArray2D(self, dataname, wdata, hdims, offset, &
                                                     dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabIntegerArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 2D hyperslab to the current file or group ID 
+  !! writes a 2D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4281,11 +4292,12 @@ end function writeHyperslabIntegerArray2D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabIntegerArray3D(self, dataname, wdata, hdims, offset, &
                                                     dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabIntegerArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 3D hyperslab to the current file or group ID  
+  !! writes a 3D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4333,11 +4345,12 @@ end function writeHyperslabIntegerArray3D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabIntegerArray4D(self, dataname, wdata, hdims, offset, &
                                                     dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabIntegerArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 4D hyperslab to the current file or group ID  
+  !! writes a 4D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4385,11 +4398,12 @@ end function writeHyperslabIntegerArray4D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabFloatArray2D(self, dataname, wdata, hdims, offset, &
                                                   dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabFloatArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !!  writes a 2D hyperslab to the current file or group ID  
+  !!  writes a 2D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4439,11 +4453,12 @@ end function writeHyperslabFloatArray2D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabFloatArray3D(self, dataname, wdata, hdims, offset, &
                                                   dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabFloatArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 3D hyperslab to the current file or group ID  
+  !! writes a 3D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4493,11 +4508,12 @@ end function writeHyperslabFloatArray3D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabFloatArray4D(self, dataname, wdata, hdims, offset, &
                                                   dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabFloatArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 4D hyperslab to the current file or group ID  
+  !! writes a 4D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4547,11 +4563,12 @@ end function writeHyperslabFloatArray4D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabDoubleArray2D(self, dataname, wdata, hdims, offset, &
                                                    dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabDoubleArray2D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !!  writes a 2D hyperslab to the current file or group ID  
+  !!  writes a 2D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4601,11 +4618,12 @@ end function writeHyperslabDoubleArray2D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabDoubleArray3D(self, dataname, wdata, hdims, offset, &
                                                    dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabDoubleArray3D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 3D hyperslab to the current file or group ID  
+  !! writes a 3D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4655,11 +4673,12 @@ end function writeHyperslabDoubleArray3D
 !--------------------------------------------------------------------------
 recursive function writeHyperslabDoubleArray4D(self, dataname, wdata, hdims, offset, &
                                                    dims, insert) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHyperslabDoubleArray4D
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! writes a 4D hyperslab to the current file or group ID  
+  !! writes a 4D hyperslab to the current file or group ID
 
 IMPLICIT NONE
 
@@ -4708,11 +4727,12 @@ end function writeHyperslabDoubleArray4D
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabCharArray2D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+  !DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabCharArray2D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 2D hyperslab from the current file or group ID  
+  !! reads and returns a 2D hyperslab from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -4742,7 +4762,7 @@ call error_check_(self, 'readHyperslabCharArray2D:h5sget_simple_extent_dims_f:'/
 
 
 rnk = 2
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabCharArray2D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -4764,11 +4784,12 @@ end function readHyperslabCharArray2D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabCharArray3D_(self, dataname3, offset3, dims3) result(rdata3)
-  !! author: MDG 
-  !! version: 1.0 
+  !DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabCharArray3D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 3D hyperslab from the current file or group ID 
+  !! reads and returns a 3D hyperslab from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -4796,7 +4817,7 @@ call h5sget_simple_extent_dims_f(space, hdims, max_dims, hdferr)
 call error_check_(self, 'readHyperslabCharArray3D:h5sget_simple_extent_dims_f:'//trim(dataname3), hdferr)
 
 rnk = 3
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset3, dims3, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset3, dims3, hdferr)
 call error_check_(self, 'readHyperslabCharArray3D:h5sselect_hyperslab_f:'//trim(dataname3), hdferr)
 
 call h5screate_simple_f(rnk, dims3, memspace, hdferr)
@@ -4815,11 +4836,12 @@ end function readHyperslabCharArray3D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabCharArray4D_(self, dataname4, offset4, dims4) result(rdata4)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabCharArray4D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 4D hyperslab from the current file or group ID  
+  !! reads and returns a 4D hyperslab from the current file or group ID
 
 use ISO_C_BINDING
 
@@ -4849,7 +4871,7 @@ call error_check_(self, 'readHyperslabCharArray4D:h5sget_simple_extent_dims_f:'/
 
 
 rnk = 4
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset4, dims4, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset4, dims4, hdferr)
 call error_check_(self, 'readHyperslabCharArray4D:h5sselect_hyperslab_f:'//trim(dataname4), hdferr)
 
 call h5screate_simple_f(rnk, dims4, memspace, hdferr)
@@ -4871,11 +4893,12 @@ end function readHyperslabCharArray4D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabIntegerArray2D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabIntegerArray2D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 2D hyperslab from the current file or group ID  
+  !! reads and returns a 2D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -4900,7 +4923,7 @@ call error_check_(self, 'readHyperslabIntegerArray2D:h5sget_simple_extent_dims_f
 
 
 rnk = 2
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray2D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -4923,11 +4946,12 @@ end function readHyperslabIntegerArray2D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabIntegerArray3D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabIntegerArray3D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 3D hyperslab from the current file or group ID  
+  !! reads and returns a 3D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -4952,7 +4976,7 @@ call error_check_(self, 'readHyperslabIntegerArray3D:h5sget_simple_extent_dims_f
 
 
 rnk = 3
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray3D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -4975,11 +4999,12 @@ end function readHyperslabIntegerArray3D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabIntegerArray4D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabIntegerArray4D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 4D hyperslab from the current file or group ID  
+  !! reads and returns a 4D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -5004,7 +5029,7 @@ call error_check_(self, 'readHyperslabIntegerArray4D:h5sget_simple_extent_dims_f
 
 
 rnk = 4
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray4D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -5027,11 +5052,12 @@ end function readHyperslabIntegerArray4D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabFloatArray2D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabFloatArray2D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 2D hyperslab from the current file or group ID  
+  !! reads and returns a 2D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -5058,7 +5084,7 @@ call error_check_(self, 'readHyperslabFloatArray2D:h5sget_simple_extent_dims_f:'
 
 
 rnk = 2
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabFloatArray2D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -5081,11 +5107,12 @@ end function readHyperslabFloatArray2D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabFloatArray3D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabFloatArray3D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 3D hyperslab from the current file or group ID 
+  !! reads and returns a 3D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -5112,7 +5139,7 @@ call error_check_(self, 'readHyperslabFloatArray3D:h5sget_simple_extent_dims_f:'
 
 
 rnk = 3
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabFloatArray3D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -5135,11 +5162,12 @@ end function readHyperslabFloatArray3D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabFloatArray4D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabFloatArray4D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !!  reads and returns a 4D hyperslab from the current file or group ID  
+  !!  reads and returns a 4D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -5166,7 +5194,7 @@ call error_check_(self, 'readHyperslabFloatArray4D:h5sget_simple_extent_dims_f:'
 
 
 rnk = 4
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabFloatArray4D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -5189,11 +5217,12 @@ end function readHyperslabFloatArray4D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabDoubleArray2D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+  !DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabDoubleArray2D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 2D hyperslab from the current file or group ID  
+  !! reads and returns a 2D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -5220,7 +5249,7 @@ call error_check_(self, 'readHyperslabDoubleArray2D:h5sget_simple_extent_dims_f:
 
 
 rnk = 2
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabDoubleArray2D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -5243,11 +5272,12 @@ end function readHyperslabDoubleArray2D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabDoubleArray3D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabDoubleArray3D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 3D hyperslab from the current file or group ID  
+  !! reads and returns a 3D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -5274,7 +5304,7 @@ call error_check_(self, 'readHyperslabDoubleArray3D:h5sget_simple_extent_dims_f:
 
 
 rnk = 3
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'readHyperslabDoubleArray3D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -5297,11 +5327,12 @@ end function readHyperslabDoubleArray3D_
 
 !--------------------------------------------------------------------------
 recursive function readHyperslabDoubleArray4D_(self, dataname, offset, dims) result(rdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readHyperslabDoubleArray4D_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! reads and returns a 4D hyperslab from the current file or group ID  
+  !! reads and returns a 4D hyperslab from the current file or group ID
 
 IMPLICIT NONE
 
@@ -5328,7 +5359,7 @@ call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5sget_simple_extent_dim
 
 
 rnk = 4
-call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr) 
+call h5sselect_hyperslab_f(space, H5S_SELECT_SET_F, offset, dims, hdferr)
 call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5sselect_hyperslab_f:'//trim(dataname), hdferr)
 
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
@@ -5352,15 +5383,16 @@ end function readHyperslabDoubleArray4D_
 
 !--------------------------------------------------------------------------
 recursive function CheckFixedLengthflag_(self, dataset) result(itis)
-  !! author: MDG 
-  !! version: 1.0 
+  !DEC$ ATTRIBUTES DLLEXPORT :: CheckFixedLengthflag_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! returns TRUE if there is a FixedLength=1 data set in the current EMheader 
+  !! returns TRUE if there is a FixedLength=1 data set in the current EMheader
 
 use HDF5
 use h5lt
- 
+
 IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)                      :: self
@@ -5376,11 +5408,11 @@ itis = .FALSE.
 ! look for the data set
 i = h5ltfind_dataset_f(self%head%next%ObjectID, trim(dataset))
 
-if (i.eq.1) then 
+if (i.eq.1) then
   call readDatasetInteger_(self, dataset, hdferr, FL)
   call error_check_(self, 'CheckFixedLengthflag:readDatasetInteger:'//trim(dataset), hdferr)
 
-  if (FL.eq.1) then 
+  if (FL.eq.1) then
     itis = .TRUE.
   end if
 end if
@@ -5392,11 +5424,12 @@ end function CheckFixedLengthflag_
 
 !--------------------------------------------------------------------------
 recursive subroutine resetFixedLengthflag_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: resetFixedLengthflag_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! sets the FixedLengthflag to .FALSE. 
+  !! sets the FixedLengthflag to .FALSE.
 
 IMPLICIT NONE
 
@@ -5408,11 +5441,12 @@ end subroutine resetFixedLengthflag_
 
 !--------------------------------------------------------------------------
 recursive SUBROUTINE h5_write_pseudo_bse_image_(self, fname, dsetnm, hdferr, wdata)
-  !! author: Patrick G. Callahan, UCSB 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h5_write_pseudo_bse_image_
+  !! author: Patrick G. Callahan, UCSB
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! Write an hdf5 file containing psuedo/virtual bse images 
+  !! Write an hdf5 file containing psuedo/virtual bse images
 
   USE ISO_C_BINDING
   IMPLICIT NONE
@@ -5425,10 +5459,10 @@ recursive SUBROUTINE h5_write_pseudo_bse_image_(self, fname, dsetnm, hdferr, wda
   REAL(KIND=4), DIMENSION(:,:,:),  TARGET, INTENT(INOUT)  :: wdata
 
   INTEGER                                                 :: rnk
-                          
-  INTEGER,INTENT(OUT)                                     :: hdferr   !hdferr flag    
+
+  INTEGER,INTENT(OUT)                                     :: hdferr   !hdferr flag
   INTEGER(HID_T)                                          :: fid, dsetid, spaceid, memspace !FILE ID, DATASET ID, DATASPACE ID, MEMORY SPACE
-  INTEGER(HSIZE_T), ALLOCATABLE                           :: dims(:)!, max_dims(2)    
+  INTEGER(HSIZE_T), ALLOCATABLE                           :: dims(:)!, max_dims(2)
   TYPE(C_PTR)                                             :: buff
 
   buff = C_LOC(wdata(1,1,1))
@@ -5444,7 +5478,7 @@ recursive SUBROUTINE h5_write_pseudo_bse_image_(self, fname, dsetnm, hdferr, wda
   CALL h5dcreate_f(fid, dsetnm, H5T_IEEE_F32LE, spaceid, dsetid, hdferr)
   !WRITE THE DATASET
   CALL h5dwrite_f(dsetid, H5T_NATIVE_REAL, buff, hdferr)
-  
+
 
   !CLEANUP
   !CLOSE THE DATASPACE
@@ -5460,8 +5494,9 @@ END SUBROUTINE h5_write_pseudo_bse_image_
 
 !--------------------------------------------------------------------------
 recursive SUBROUTINE h5_tsl_read_ebsd_pattern_(self, fname, dsetnm, hdferr, rdata, offset, szx, szy)
-  !! author: Patrick G. Callahan, UCSB 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h5_tsl_read_ebsd_pattern_
+  !! author: Patrick G. Callahan, UCSB
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! Read a single EBSD pattern from a TSL hdf5 file
@@ -5469,7 +5504,7 @@ recursive SUBROUTINE h5_tsl_read_ebsd_pattern_(self, fname, dsetnm, hdferr, rdat
   !! Helper routine for h5tslpbse. Reads a single pattern because
   !! many of our datasets are 100s of GB so can't load them all in memory.
   !! This will also be useful for dictionary indexing of our scans that are
-  !! large. In the future we should read a number of patterns at once depending 
+  !! large. In the future we should read a number of patterns at once depending
   !! on memory limits and work with them, then move to the next set of patterns.
 
   USE ISO_C_BINDING
@@ -5485,8 +5520,8 @@ recursive SUBROUTINE h5_tsl_read_ebsd_pattern_(self, fname, dsetnm, hdferr, rdat
   INTEGER,INTENT(IN)                                :: szx, szy ! nColumns, nRows in the scan
 
   TYPE(C_PTR)                                       :: buff
-  INTEGER(KIND=8)                                   :: start(3), cnt(3) 
-  INTEGER(KIND=4)                                   :: rnk 
+  INTEGER(KIND=8)                                   :: start(3), cnt(3)
+  INTEGER(KIND=4)                                   :: rnk
 
   !! start is the offset of the starting element of the specificied hyperslab
   start(1) = 0
@@ -5501,22 +5536,22 @@ recursive SUBROUTINE h5_tsl_read_ebsd_pattern_(self, fname, dsetnm, hdferr, rdat
   !Open the hdf5 file
   CALL h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
   !Open an existing dataset
-  CALL h5dopen_f(fid, dsetnm, dsetid, hdferr)  
+  CALL h5dopen_f(fid, dsetnm, dsetid, hdferr)
   !GET DATASPACE AND ALLOCATE MEMORY FOR READ BUFFER
   CALL h5dget_space_f(dsetid, spaceid, hdferr)
   !READ THE DATA
   buff = C_LOC(rdata)
-  ! Select the region in the hyperslab 
+  ! Select the region in the hyperslab
   CALL h5sselect_hyperslab_f( spaceid, H5S_SELECT_SET_F, start, cnt, hdferr)
   rnk=3
   !CREATE A SIMPLE DATASPACE AND OPEN IT FOR ACCESS
   CALL h5screate_simple_f( rnk, cnt, memspace, hdferr)
   CALL h5dread_f(dsetid, H5T_NATIVE_INTEGER, rdata, cnt, hdferr, memspace, spaceid)
-  
+
   !CLOSE MEMSPACE
   CALL h5sclose_f(memspace,hdferr)
   !CLOSE THE DATASPACE
-  CALL h5sclose_f(spaceid,hdferr) 
+  CALL h5sclose_f(spaceid,hdferr)
   !CLOSE THE DATASET
   CALL h5dclose_f(dsetid,hdferr)
 
@@ -5524,11 +5559,12 @@ END SUBROUTINE h5_tsl_read_ebsd_pattern_
 
 !--------------------------------------------------------------------------
 recursive SUBROUTINE h5_read_integer_dataset_(self, fname, dsetnm, hdferr, rdata)
-  !! author: Patrick G. Callahan, UCSB 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h5_read_integer_dataset_
+  !! author: Patrick G. Callahan, UCSB
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! Read a single EBSD pattern from a TSL hdf5 file 
+  !! Read a single EBSD pattern from a TSL hdf5 file
 
   USE ISO_C_BINDING
   IMPLICIT NONE
@@ -5547,7 +5583,7 @@ recursive SUBROUTINE h5_read_integer_dataset_(self, fname, dsetnm, hdferr, rdata
   CALL h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
 
   !Open an existing dataset
-  CALL h5dopen_f(fid, dsetnm, dsetid, hdferr)  
+  CALL h5dopen_f(fid, dsetnm, dsetid, hdferr)
 
   !GET DATASPACE AND ALLOCATE MEMORY FOR READ BUFFER
   CALL h5dget_space_f(dsetid, spaceid, hdferr)
@@ -5556,7 +5592,7 @@ recursive SUBROUTINE h5_read_integer_dataset_(self, fname, dsetnm, hdferr, rdata
   buff = C_LOC(rdata)
   CALL h5dread_f(dsetid,H5T_NATIVE_INTEGER, buff, hdferr)
   !CLOSE THE DATASPACE
-  CALL h5sclose_f(spaceid,hdferr)     
+  CALL h5sclose_f(spaceid,hdferr)
   !CLOSE THE DATASET
   CALL h5dclose_f(dsetid,hdferr)
 
@@ -5564,11 +5600,12 @@ END SUBROUTINE h5_read_integer_dataset_
 
 !--------------------------------------------------------------------------
 recursive function addStringAttributeToGroup_(self, dataname, stratt, overwrite) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: addStringAttributeToGroup_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! add a string attribute to the current level in the HDF file 
+  !! add a string attribute to the current level in the HDF file
 
 use ISO_C_BINDING
 
@@ -5576,7 +5613,7 @@ IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)                              :: self
 character(fnlen),INTENT(IN)                             :: dataname
-character(len=fnlen, KIND=c_char),INTENT(INOUT)         :: stratt 
+character(len=fnlen, KIND=c_char),INTENT(INOUT)         :: stratt
 logical,INTENT(IN),OPTIONAL                             :: overwrite
 integer(kind=irg)                                       :: success
 
@@ -5644,18 +5681,19 @@ end function addStringAttributeToGroup_
 
 !--------------------------------------------------------------------------
 recursive function getStringAttributeFromGroup_(self, dataname, stratt, slen) result(success)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getStringAttributeFromGroup_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! read a string attribute from the current level in the HDF file 
+  !! read a string attribute from the current level in the HDF file
 
 use ISO_C_BINDING
 
 class(HDF_T),INTENT(INOUT)                              :: self
 character(fnlen),INTENT(IN)                             :: dataname
 integer(SIZE_T),INTENT(IN)                              :: slen
-character(len=slen, KIND=c_char),INTENT(INOUT)          :: stratt 
+character(len=slen, KIND=c_char),INTENT(INOUT)          :: stratt
 integer(kind=irg)                                       :: success
 
 integer(HID_T)                                          :: aspace_id, filetype, atype_id, attr_id, memtype ! Handles
@@ -5666,9 +5704,9 @@ INTEGER(hsize_t), DIMENSION(1:1)                        :: dims
 CHARACTER(LEN=slen), DIMENSION(:), ALLOCATABLE, TARGET  :: rdata
 INTEGER(SIZE_T)                                         :: size
 
-INTEGER, DIMENSION(:), POINTER                          :: ptr_r 
+INTEGER, DIMENSION(:), POINTER                          :: ptr_r
 TYPE(C_PTR)                                             :: f_ptr
-  
+
 
 dims(1) = slen
 
@@ -5690,7 +5728,7 @@ success = 0
   ENDIF
   !
   ! Get dataspace and allocate memory for read buffer.
-  ! 
+  !
   CALL H5Aget_space_f(attr_id, aspace_id, hdferr)
   CALL H5Sget_simple_extent_dims_f(aspace_id, dims, maxdims, hdferr)
 
@@ -5717,11 +5755,12 @@ end function getStringAttributeFromGroup_
 
 !--------------------------------------------------------------------------
 subroutine read2DImage_(self, dataset, image, numx, numy)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: read2DImage_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! read a gray scale image from the HDF5 file  
+  !! read a gray scale image from the HDF5 file
 
 use h5im
 use h5lt
@@ -5749,17 +5788,19 @@ end subroutine read2DImage_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! EMsoft-specific procedures 
+! EMsoft-specific procedures
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive subroutine error_check_(self, OffendingRoutine, error, Fatal)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: error_check_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! deal with an HDF error 
+  !! deal with an HDF error
 
 use mod_io
 
@@ -5770,15 +5811,15 @@ character(LEN=*),INTENT(IN)  :: OffendingRoutine   ! name of offending routine +
 integer(kind=irg),INTENT(IN) :: error              ! returned error code
 logical,OPTIONAL,INTENT(IN)  :: Fatal              ! if true, then report the error and stop the program
 
-type(IO_T)                   :: Message 
+type(IO_T)                   :: Message
 integer(kind=irg)            :: io_int(1)
 
-if (error.lt.0) then 
+if (error.lt.0) then
   io_int(1) = error
   call Message%WriteValue('Error code : ',io_int,1)
-  
+
   call Message%printMessage('   returned by routine '//OffendingRoutine,frm="(A)")
-  
+
   if (present(Fatal)) then
     if (Fatal.eqv..TRUE.) STOP 'Unrecoverable Error' ! this is not very graceful, but it'll do the job for now ...
   end if
@@ -5788,8 +5829,9 @@ end subroutine error_check_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeEMheader_(self, EMsoft, dstr, tstrb, tstre, prn, dataname)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeEMheader_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! The EMheader is an HDF group that contains the following basic dataset strings
@@ -5799,10 +5841,10 @@ recursive subroutine writeEMheader_(self, EMsoft, dstr, tstrb, tstre, prn, datan
   !! start time           : tstr1
   !! end time             : tstr2
   !! program name         : prn
-  !! user name            : EMsoft%getConfigParameter('Username') 
-  !! user location        : EMsoft%getConfigParameter('Userlocation') 
-  !! user email           : EMsoft%getConfigParameter('Useremail') 
-  !! computer name        : read via system call hostnm() 
+  !! user name            : EMsoft%getConfigParameter('Username')
+  !! user location        : EMsoft%getConfigParameter('Userlocation')
+  !! user email           : EMsoft%getConfigParameter('Useremail')
+  !! computer name        : read via system call hostnm()
 
 use mod_EMsoft
 use mod_timing
@@ -5811,7 +5853,7 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)               :: self
-type(EMsoft_T),INTENT(INOUT)             :: EMsoft 
+type(EMsoft_T),INTENT(INOUT)             :: EMsoft
 character(11),INTENT(INOUT)              :: dstr
 character(15),INTENT(IN)                 :: tstrb
 character(15),INTENT(IN)                 :: tstre
@@ -5820,7 +5862,7 @@ character(fnlen),INTENT(IN),OPTIONAL     :: dataname
 
 type(Timing_T)                           :: timer
 integer                                  :: hdferr ! error flag
-integer                                  :: i, ic, nlen 
+integer                                  :: i, ic, nlen
 character(100)                           :: c
 character(fnlen)                         :: line, groupname
 character(fnlen,kind=c_char)             :: line2(1)
@@ -5832,7 +5874,7 @@ hdferr = self%createGroup_(groupname)
 call error_check_(self, 'writeEMheader_:HDF_createGroup_:'//trim(groupname), hdferr)
 
 ! create and open the dataname group to allow for different data sets in the same file
-if (PRESENT(dataname).eqv..TRUE.) then 
+if (PRESENT(dataname).eqv..TRUE.) then
   groupname = trim(dataname)
   hdferr = self%createGroup_(groupname)
   call error_check_(self, 'writeEMheader_:HDF_createGroup_:'//trim(groupname), hdferr)
@@ -5844,7 +5886,7 @@ line2(1) = trim(EMsoft%getConfigParameter('EMsoftversion'))
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5858,7 +5900,7 @@ line2(1) = dstr
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5872,7 +5914,7 @@ line2(1) = dstr//', '//tstrb
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5880,7 +5922,7 @@ else
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line), hdferr)
 end if
 
-! stop time /EMheader/StopTime 
+! stop time /EMheader/StopTime
 line = 'StopTime'
 call timer%makeTimeStamp()
 dstr = timer%getDateString()  ! for long runs, the date could be different from the start date !!!
@@ -5888,7 +5930,7 @@ line2(1) = dstr//', '//tstre
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5898,11 +5940,11 @@ end if
 
 ! program name /EMheader/ProgramName 'character'
 line = 'ProgramName'
-line2(1) = prn 
+line2(1) = prn
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5916,7 +5958,7 @@ line2(1) = trim(EMsoft%getConfigParameter('UserName'))
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5930,7 +5972,7 @@ line2(1) = trim(EMsoft%getConfigParameter('UserLocation'))
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5944,7 +5986,7 @@ line2(1) = trim(EMsoft%getConfigParameter('UserEmail'))
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5956,17 +5998,17 @@ end if
 call hostnm(c)
 
 ! lowercase it
-nlen = len(c) 
-do i=1,nlen 
-   ic = ichar(c(i:i)) 
-   if (ic >= 65 .and. ic < 90) c(i:i) = char(ic+32) 
-end do 
+nlen = len(c)
+do i=1,nlen
+   ic = ichar(c(i:i))
+   if (ic >= 65 .and. ic < 90) c(i:i) = char(ic+32)
+end do
 line = 'HostName'
 line2(1) = c
 call H5Lexists_f(self%head%next%objectID,trim(line),g_exists, hdferr)
 call error_check_(self, 'writeEMheader_:H5Lexists_f:'//trim(line), hdferr)
 
-if (g_exists) then 
+if (g_exists) then
   hdferr = self%writeDatasetStringArray(line, line2, 1, overwrite)
   call error_check_(self, 'writeEMheader_:writeDatasetStringArray_:'//trim(line)//':overwrite', hdferr)
 else
@@ -5985,17 +6027,18 @@ end subroutine writeEMheader_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! utility functions and subroutines 
+! utility functions and subroutines
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive function readfromTextfile_(self, filename, nlines) result(stringarray)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readfromTextfile_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! read a text file and return it in a C_NULL_CHAR terminated string array 
+  !! read a text file and return it in a C_NULL_CHAR terminated string array
 
 use ISO_C_BINDING
 
@@ -6004,10 +6047,10 @@ IMPLICIT NONE
 class(HDF_T),INTENT(INOUT)                                   :: self
 character(fnlen),INTENT(IN)                                  :: filename
 integer(kind=irg),INTENT(OUT)                                :: nlines
-character(len=fnlen, KIND=c_char), allocatable               :: stringarray(:) 
+character(len=fnlen, KIND=c_char), allocatable               :: stringarray(:)
 
 integer(kind=irg)                                            :: i, j, dt
-character(len=fnlen, KIND=c_char), DIMENSION(1)              :: line 
+character(len=fnlen, KIND=c_char), DIMENSION(1)              :: line
 
 dt = 55
 ! read the file first to determine the number of lines
@@ -6043,11 +6086,12 @@ end function readfromTextfile_
 
 !--------------------------------------------------------------------------
 pure recursive function cstringify(strin) result(cstrout)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: cstringify
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! turn a fortran string into a null-terminated c-string 
+  !! turn a fortran string into a null-terminated c-string
 
 use ISO_C_BINDING
 
@@ -6065,15 +6109,15 @@ do i=1,slen
   cstrout(i:i) = strin(i:i)
 end do
 slen = slen+1
-cstrout(slen:slen) = C_NULL_CHAR 
+cstrout(slen:slen) = C_NULL_CHAR
 
 end function cstringify
 
 !--------------------------------------------------------------------------
 pure recursive function carstringify(strin) result(cstrout)
 !DEC$ ATTRIBUTES DLLEXPORT :: carstringify
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 04/07/20
   !!
   !! turn a fortran string into a null-terminated c-string character array
@@ -6093,15 +6137,15 @@ do i=1,slen
   cstrout(i) = strin(i:i)
 end do
 slen = slen+1
-cstrout(slen) = C_NULL_CHAR 
+cstrout(slen) = C_NULL_CHAR
 
 end function carstringify
 
 !--------------------------------------------------------------------------
 pure recursive function fstringify(strin) result(fstrout)
 !DEC$ ATTRIBUTES DLLEXPORT :: fstringify
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 04/07/20
   !!
   !! turn a null-terminated c-string into a fortran string
@@ -6117,7 +6161,7 @@ integer(kind=irg)                         :: i
 
 fstrout = ''
 i=1
-do while(strin(i).ne.C_NULL_CHAR) 
+do while(strin(i).ne.C_NULL_CHAR)
   fstrout(i:i) = strin(i)
   i = i+1
 end do
@@ -6126,9 +6170,9 @@ end function fstringify
 
 !--------------------------------------------------------------------------
 recursive subroutine writeNMLintegers_(self, io_int, intlist, n_int)
-!DEC$ ATTRIBUTES DLLEXPORT :: HDF_writeNMLintegers
+!DEC$ ATTRIBUTES DLLEXPORT :: writeNMLintegers_
  !! author: MDG
- !! version: 1.0 
+ !! version: 1.0
  !! date: 02/04/20
  !!
  !! write a series of integer namelist entries to an HDF file
@@ -6147,7 +6191,7 @@ logical                                   :: g_exists, overwrite=.TRUE.
 do i=1,n_int
   dataset = intlist(i)
   call H5Lexists_f(self%head%next%objectID,trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = self%writeDatasetInteger(dataset, io_int(i), overwrite)
    else
     hdferr = self%writeDatasetInteger(dataset, io_int(i))
@@ -6159,8 +6203,9 @@ end subroutine writeNMLintegers_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeNMLreals_(self, io_real, reallist, n_real)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeNMLreals_
  !! author: MDG
- !! version: 1.0 
+ !! version: 1.0
  !! date: 02/04/20
  !!
  !! write a series of real namelist entries to an HDF file
@@ -6179,7 +6224,7 @@ logical                                   :: g_exists, overwrite=.TRUE.
 do i=1,n_real
   dataset = reallist(i)
   call H5Lexists_f(self%head%next%objectID,trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = self%writeDatasetFloat(dataset, io_real(i), overwrite)
   else
     hdferr = self%writeDatasetFloat(dataset, io_real(i))
@@ -6191,8 +6236,9 @@ end subroutine writeNMLreals_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeNMLdbles_(self, io_real, reallist, n_real)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeNMLdbles_
  !! author: MDG
- !! version: 1.0 
+ !! version: 1.0
  !! date: 02/04/20
  !!
  !! write a series of double precision namelist entries to an HDF file
@@ -6211,7 +6257,7 @@ logical                                   :: g_exists, overwrite=.TRUE.
 do i=1,n_real
   dataset = reallist(i)
   call H5Lexists_f(self%head%next%objectID,trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = self%writeDatasetDouble(dataset, io_real(i), overwrite)
   else
     hdferr = self%writeDatasetDouble(dataset, io_real(i))

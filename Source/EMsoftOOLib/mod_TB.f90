@@ -2,38 +2,38 @@
 ! Copyright (c) 2014-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_TB
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
-  !! Everything that has to do with analytical two-beam solutions 
+  !! Everything that has to do with analytical two-beam solutions
 
-use mod_kinds 
+use mod_kinds
 use mod_global
 use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
                                           stdout=>output_unit, &
@@ -41,45 +41,44 @@ use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
 
 IMPLICIT NONE
 
-contains 
+contains
 
 !--------------------------------------------------------------------------
 recursive subroutine TBCalcSM(Ar,Ai,sg,z,xig,xigp,xizero,betag)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: TBCalcSM
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! 2-beam scattering matrix implementation
   !!
   !! compute crystal scattering matrix (real and imaginary
-  !! part) for a given set of parameters. Optimized to minimize the 
+  !! part) for a given set of parameters. Optimized to minimize the
   !! total number of function evaluations and multiplications/divisions
   !!
-!DEC$ ATTRIBUTES DLLEXPORT :: TBCalcSM
-
 
 IMPLICIT NONE
 
-real(kind=sgl),INTENT(IN)       :: sg                   
+real(kind=sgl),INTENT(IN)       :: sg
  !! excitation error
-real(kind=sgl),INTENT(IN)       :: z                    
+real(kind=sgl),INTENT(IN)       :: z
  !! thickness
-real(kind=sgl),INTENT(IN)       :: xig                  
+real(kind=sgl),INTENT(IN)       :: xig
  !! extinction distance
-real(kind=sgl),INTENT(IN)       :: xigp                 
+real(kind=sgl),INTENT(IN)       :: xigp
  !! anomalous absorption length
-real(kind=sgl),INTENT(IN)       :: xizero               
+real(kind=sgl),INTENT(IN)       :: xizero
  !! normal absorption length
-real(kind=sgl),INTENT(IN)       :: betag                
+real(kind=sgl),INTENT(IN)       :: betag
  !! phase parameter
-real(kind=sgl),INTENT(OUT)      :: Ar(2,2)              
- !! real part of result 
-real(kind=sgl),INTENT(OUT)      :: Ai(2,2)              
- !! imaginary part of result 
+real(kind=sgl),INTENT(OUT)      :: Ar(2,2)
+ !! real part of result
+real(kind=sgl),INTENT(OUT)      :: Ai(2,2)
+ !! imaginary part of result
 
 real(kind=sgl)  :: pr, pi, cs, ss, ch, sh, q, q1, q2, sgs, sr, si, o , p, sb, cb, e, r, sq, xigi, xigpi
 
-! setup auxiliary variables 
+! setup auxiliary variables
  xigi = 1.00/xig
  xigpi = 1.00/xigp
 
@@ -137,42 +136,42 @@ end subroutine TBCalcSM
 
 !--------------------------------------------------------------------------
 recursive subroutine TBCalcInten(It,Is,sg,z,xig,xigp,xizero,betag)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: TBCalcInten
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! 2-beam transmitted and scattered intensities
   !!
   !! compute transmitted and scattered intensities for
-  !! the perfect crystal case.   This routine does not make use of 
-  !! complex number arithmetic, but instead uses the analytical 
-  !! expressions for the two-beam intensities derived in section 
+  !! the perfect crystal case.   This routine does not make use of
+  !! complex number arithmetic, but instead uses the analytical
+  !! expressions for the two-beam intensities derived in section
   !! 6.3.3.4 on page 356-357.
   !!
-!DEC$ ATTRIBUTES DLLEXPORT :: TBCalcInten
 
 IMPLICIT NONE
 
-real(kind=sgl),INTENT(IN)       :: sg                   
+real(kind=sgl),INTENT(IN)       :: sg
  !! excitation error
-real(kind=sgl),INTENT(IN)       :: z                    
+real(kind=sgl),INTENT(IN)       :: z
  !! thickness
-real(kind=sgl),INTENT(IN)       :: xig                  
+real(kind=sgl),INTENT(IN)       :: xig
  !! extinction distance
-real(kind=sgl),INTENT(IN)       :: xigp                 
+real(kind=sgl),INTENT(IN)       :: xigp
  !! anomalous absorption length
-real(kind=sgl),INTENT(IN)       :: xizero               
+real(kind=sgl),INTENT(IN)       :: xizero
  !! normal absorption length
-real(kind=sgl),INTENT(IN)       :: betag                
+real(kind=sgl),INTENT(IN)       :: betag
  !! phase parameter
-real(kind=sgl),INTENT(OUT)      :: It                   
- !! real part of result 
-real(kind=sgl),INTENT(OUT)      :: Is                   
- !! imaginary part of result 
+real(kind=sgl),INTENT(OUT)      :: It
+ !! real part of result
+real(kind=sgl),INTENT(OUT)      :: Is
+ !! imaginary part of result
 
 real(kind=sgl) :: q, r, sq, qgsi, e, sr, si, cp, ch, pr, pi, xigi, xigpi, sgs
-     
-! setup auxiliary variables 
+
+! setup auxiliary variables
  xigi = 1.0/xig
  xigpi = 1.0/xigp
 
@@ -200,7 +199,7 @@ real(kind=sgl) :: q, r, sq, qgsi, e, sr, si, cp, ch, pr, pi, xigi, xigpi, sgs
  pi = e*si
  e = exp(-e/xizero)
 
-! trigonometric functions 
+! trigonometric functions
  cp = cos(pr)
  ch = cosh(pi)
 

@@ -2,7 +2,7 @@
 
 set_property(GLOBAL PROPERTY EMsoftOO_PACKAGE_DEST_PREFIX ".")
 # -----------------------------------------------------------------------
-# 
+#
 # -----------------------------------------------------------------------
 
 get_property(EMsoftOO_PACKAGE_DEST_PREFIX GLOBAL PROPERTY EMsoftOO_PACKAGE_DEST_PREFIX)
@@ -70,7 +70,6 @@ endforeach()
 #                     "FALSE"
 #                     "${EMsoftOO_BINARY_DIR}"
 #                     "EMsoftOOWorkbench")
-  
+
 #   include(${PROJECT_SOURCE_DIR}/Source/EMsoftOOWorkbench/SourceList.cmake)
 # endif()
-

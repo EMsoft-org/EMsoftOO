@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_DI
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/31/20
   !!
   !! routines for the EMDI program
@@ -37,25 +37,26 @@ use mod_kinds
 use mod_global
 use mod_DIfiles
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-public :: DIdriver 
+public :: DIdriver
 
-!DEC$ ATTRIBUTES DLLEXPORT :: DIdriver
+
 
 contains
 
 !--------------------------------------------------------------------------
 subroutine DIdriver(Cnmldeffile, Cprogname, cproc, ctimeproc, cerrorproc, objAddress, cancel) &
-           bind(c, name='DIdriver') 
-!! author: MDG 
-!! version: 1.0 
+           bind(c, name='DIdriver')
+!DEC$ ATTRIBUTES DLLEXPORT :: DIdriver
+!! author: MDG
+!! version: 1.0
 !! date: 04/02/20
 !!
 !! perform the DI computations.
 !!
-!! this routine must be callable from C++ as well, so the parameter list 
-!! is a bit different from that of the most other programs.  Furthermore, this 
+!! this routine must be callable from C++ as well, so the parameter list
+!! is a bit different from that of the most other programs.  Furthermore, this
 !! driver routine must be able to handle EBSD, ECP, and TKD patterns (at least).
 
 use mod_EMsoft
@@ -94,7 +95,7 @@ use mod_ECP
 use mod_so3
 use mod_vendors
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! interface for the callback routines
 ABSTRACT INTERFACE
@@ -109,7 +110,7 @@ ABSTRACT INTERFACE
    SUBROUTINE ProgCallBackTypeDIdriver(objAddress, Ndict, euarr_cptr, dparr_cptr, indarr_cptr) bind(C)
     USE, INTRINSIC :: ISO_C_BINDING
     INTEGER(c_size_t),INTENT(IN), VALUE             :: objAddress
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: Ndict 
+    INTEGER(KIND=4), INTENT(IN), VALUE              :: Ndict
     type(c_ptr), INTENT(OUT)                        :: euarr_cptr
     type(c_ptr), INTENT(OUT)                        :: dparr_cptr
     type(c_ptr), INTENT(OUT)                        :: indarr_cptr
@@ -137,30 +138,30 @@ PROCEDURE(ProgCallBackTypeTimingdriver), POINTER    :: timeproc
 PROCEDURE(ProgCallBackTypeErrorDIdriver), POINTER   :: errorproc
 type(c_ptr)                                         :: dparr_cptr=c_null_ptr, euarr_cptr=c_null_ptr, indarr_cptr=c_null_ptr
 
-type(MCfile_T)                                      :: MCFT 
-type(MPfile_T)                                      :: MPFT 
-type(DIfile_T)                                      :: DIFT 
-type(EMsoft_T)                                      :: EMsoft 
-type(cell_T)                                        :: cell 
+type(MCfile_T)                                      :: MCFT
+type(MPfile_T)                                      :: MPFT
+type(DIfile_T)                                      :: DIFT
+type(EMsoft_T)                                      :: EMsoft
+type(cell_T)                                        :: cell
 type(HDF_T)                                         :: HDF
 type(HDFnames_T)                                    :: HDFnames
 type(EBSD_T)                                        :: EBSD
 type(ECP_T)                                         :: ECP
-type(Timing_T)                                      :: timer 
+type(Timing_T)                                      :: timer
 type(IO_T)                                          :: Message
 type(OpenCL_T)                                      :: CL
 type(SpaceGroup_T)                                  :: SG
-type(so3_T)                                         :: SO 
+type(so3_T)                                         :: SO
 type(q_T)                                           :: quat
-type(e_T)                                           :: eu 
+type(e_T)                                           :: eu
 type(r_T)                                           :: ro
 type(Vendor_T)                                      :: VT
-type(Quaternion_T)                                  :: qu 
+type(Quaternion_T)                                  :: qu
 type(IncidentListECP),pointer                       :: ktmp
 
 type(MCOpenCLNameListType)                          :: mcnl
 type(SEMmasterNameListType)                         :: mpnl
-        
+
 logical                                             :: verbose
 
 type(DynType)                                       :: Dyn
@@ -206,7 +207,7 @@ real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,
 real(kind=sgl),allocatable, target                  :: results(:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
                                                        eulerarray(:,:),eulerarray2(:,:),resultmain(:,:),resulttmp(:,:)
 integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:)
-integer(kind=irg),allocatable,target                :: indarray(:) 
+integer(kind=irg),allocatable,target                :: indarray(:)
 integer*4,allocatable                               :: iexptCI(:,:), iexptIQ(:,:)
 real(kind=sgl),allocatable                          :: meandict(:),meanexpt(:),wf(:),mLPNH(:,:,:),mLPSH(:,:,:),accum_e_MC(:,:,:)
 real(kind=sgl),allocatable                          :: mLPNH_simple(:,:), mLPSH_simple(:,:), eangle(:), mLPNH2D(:,:), mLPSH2D(:,:)
@@ -260,7 +261,7 @@ character(fnlen)                                    :: TitleMessage, exectime, p
 character(100)                                      :: c
 character(1000)                                     :: charline
 character(3)                                        :: stratt
-character(fnlen)                                    :: progdesc 
+character(fnlen)                                    :: progdesc
 
 ! convert the input strings from C to fortran format
 nmldeffile = trim(fstringify(Cnmldeffile))
@@ -269,14 +270,14 @@ progdesc = 'Indexing of EBSD/ECP/TKD patterns using a dynamically calculated pat
 
 ! open the HDF interface
 call openFortranHDFInterface()
-HDF = HDF_T() 
+HDF = HDF_T()
 
 ! we've already shown the standard splash screen, so we do this one silently
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /), silent=.TRUE.)
 
 ! link the proc procedure to the cproc argument
 Clinked = .FALSE.
-if (present(cancel)) then 
+if (present(cancel)) then
   Clinked = .TRUE.
   nullify(proc, errorproc, timeproc)
   CALL C_F_PROCPOINTER (cproc, proc)
@@ -288,16 +289,16 @@ end if
 DIFT = DIfile_T(nmldeffile)
 
 ! set the HDF group names for this program
-HDFnames = HDFnames_T() 
+HDFnames = HDFnames_T()
 
 call setRotationPrecision('d')
 
 associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
 
-! make sure that nthreads is at least 2 
-if (dinl%nthreads.lt.2) then 
+! make sure that nthreads is at least 2
+if (dinl%nthreads.lt.2) then
   call Message%printError('DIdriver:', 'Dictionary Indexing requires at least 2 compute threads')
-end if 
+end if
 
 ! determine the modality from the master pattern file, and also set it in the dinl name list
 fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
@@ -305,20 +306,20 @@ call MPFT%determineModality(HDF, fname)
 call Message%printMessage(' Master Pattern modality : '//trim(MPFT%getModality()))
 call DIFT%setModality(MPFT%getModality())
 
-if (trim(MPFT%getModality()).eq.'EBSD') then 
+if (trim(MPFT%getModality()).eq.'EBSD') then
   isEBSD = .TRUE.
-else if (trim(MPFT%getModality()).eq.'TKD') then 
+else if (trim(MPFT%getModality()).eq.'TKD') then
   isTKD = .TRUE.
 else if (trim(MPFT%getModality()).eq.'ECP') then
   isECP = .TRUE.
-  end if  
+  end if
 
 ! is this a dynamic calculation (i.e., do we actually compute the diffraction patterns)?
-if (trim(dinl%indexingmode).eq.'dynamic') then 
+if (trim(dinl%indexingmode).eq.'dynamic') then
 
     ! 1. read the Monte Carlo data file
-    call HDFnames%set_ProgramData(SC_MCOpenCL) 
-    call HDFnames%set_NMLlist(SC_MCCLNameList) 
+    call HDFnames%set_ProgramData(SC_MCOpenCL)
+    call HDFnames%set_NMLlist(SC_MCCLNameList)
     call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
     fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
     call MCFT%setFileName(fname)
@@ -328,44 +329,44 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
 
     ! 2. read the master pattern file
     if (isTKD.eqv..TRUE.) then
-      call HDFnames%set_ProgramData(SC_TKDmaster) 
-      call HDFnames%set_NMLlist(SC_TKDmasterNameList) 
-      call HDFnames%set_NMLfilename(SC_TKDmasterNML) 
-    end if 
+      call HDFnames%set_ProgramData(SC_TKDmaster)
+      call HDFnames%set_NMLlist(SC_TKDmasterNameList)
+      call HDFnames%set_NMLfilename(SC_TKDmasterNML)
+    end if
     if (isEBSD.eqv..TRUE.) then
-      call HDFnames%set_ProgramData(SC_EBSDmaster) 
-      call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-      call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-    end if 
+      call HDFnames%set_ProgramData(SC_EBSDmaster)
+      call HDFnames%set_NMLlist(SC_EBSDmasterNameList)
+      call HDFnames%set_NMLfilename(SC_EBSDmasterNML)
+    end if
     if (isECP.eqv..TRUE.) then
-      call HDFnames%set_ProgramData(SC_ECPmaster) 
-      call HDFnames%set_NMLlist(SC_ECPmasterNameList) 
-      call HDFnames%set_NMLfilename(SC_ECPmasterNML) 
-    end if 
-    call HDFnames%set_Variable(SC_MCOpenCL) 
+      call HDFnames%set_ProgramData(SC_ECPmaster)
+      call HDFnames%set_NMLlist(SC_ECPmasterNameList)
+      call HDFnames%set_NMLfilename(SC_ECPmasterNML)
+    end if
+    call HDFnames%set_Variable(SC_MCOpenCL)
 
     fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
     call MPFT%setFileName(fname)
     call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
 
 ! set the HDFnames for the current program (same for all modalities)
-    call HDFnames%set_ProgramData(SC_EMDI) 
-    call HDFnames%set_NMLlist(SC_EMDINameList) 
-    call HDFnames%set_NMLfilename(SC_EMDI) 
+    call HDFnames%set_ProgramData(SC_EMDI)
+    call HDFnames%set_NMLlist(SC_EMDINameList)
+    call HDFnames%set_NMLfilename(SC_EMDI)
 
-! we know that the master pattern file exists, and it also has all the 
-! crystallographic data in it, so we read that here instead of assuming 
+! we know that the master pattern file exists, and it also has all the
+! crystallographic data in it, so we read that here instead of assuming
 ! that the actual .xtal file exists on this system ...
     call cell%setFileName(xtalname)
     call cell%readDataHDF(SG, EMsoft, useXtalName=fname)
-! extract the point group number 
+! extract the point group number
     pgnum = SG%getPGnumber()
-    io_int = pgnum 
+    io_int = pgnum
     call Message%WriteValue(' Setting point group number to ',io_int,1)
 
     ! 3. for EBSD/TKD copy a few parameters from dinl to enl
     ! and then generate the detector arrays
-    if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.)) then 
+    if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.)) then
       allocate(det%rgx(dinl%numsx,dinl%numsy), &
                det%rgy(dinl%numsx,dinl%numsy), &
                det%rgz(dinl%numsx,dinl%numsy), &
@@ -380,21 +381,21 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
       enl%energymin = dinl%energymin
       enl%energymax = dinl%energymax
 
-      if (isTKD.eqv..TRUE.) then 
+      if (isTKD.eqv..TRUE.) then
         call EBSD%GenerateDetector(MCFT, verbose, isTKD)
-      end if 
-      if (isEBSD.eqv..TRUE.) then 
+      end if
+      if (isEBSD.eqv..TRUE.) then
         call EBSD%GenerateDetector(MCFT, verbose)
-      end if 
+      end if
     else  ! this must be an ECP indexing run so we initialize the appropriate detector arrays
-      if (isECP.eqv..TRUE.) then 
+      if (isECP.eqv..TRUE.) then
         ECP = ECP_T()
       ! copy a few parameters
         ecpnl%conesemiangle = dinl%conesemiangle
         ecpnl%sampletilt = dinl%sampletilt
-        ecpnl%npix = dinl%npix 
+        ecpnl%npix = dinl%npix
         ecpnl%workingdistance = dinl%workingdistance
-        ecpnl%Rin = dinl%Rin 
+        ecpnl%Rin = dinl%Rin
         ecpnl%Rout = dinl%Rout
 
         call ECP%ECPGenerateDetector(verbose=.TRUE.)
@@ -428,7 +429,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
         allocate(kij(2,numk),klist(3,numk),stat=istat)
 
         io_int(1) = numk
-        call Message%WriteValue(' Number of beams for which interpolation will be done = ',io_int,1) 
+        call Message%WriteValue(' Number of beams for which interpolation will be done = ',io_int,1)
 
         ktmp => ECP%get_ListHead()
         ! converting to array for OpenMP parallelization
@@ -437,12 +438,12 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
            kij(1:2,i) = (/ktmp%i,ktmp%j/)
            ktmp => ktmp%next
         end do
-        ecpipar(1) = nsig 
-        ecpipar(2) = numk 
+        ecpipar(1) = nsig
+        ecpipar(2) = numk
         ecpipar(3) = ecpnl%npix
         ecpipar(4) = mpnl%npx
-      end if 
-    end if 
+      end if
+    end if
 
     ! also copy the sample tilt angle into the correct variable for writing to the dot product file
     MCsig = mcnl%sig
@@ -450,7 +451,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     call Message%printMessage(' Completed reading all MC/MP input data; generated detector ')
 end if
 
-! set the timer 
+! set the timer
 timer = Timing_T()
 dstr = timer%getDateString()
 tstrb = timer%getTimeString()
@@ -459,11 +460,11 @@ tstre = ''
 if (trim(dinl%indexingmode).eq.'static') then
 
     ! get the full filename
-    if (dinl%dictfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then 
+    if (dinl%dictfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
       dictfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dinl%dictfile)
-    else 
+    else
       dictfile = trim(dinl%dictfile)
-    end if 
+    end if
 
     call Message%printMessage('-->  '//'Opening HDF5 dictionary file '//trim(dinl%dictfile))
 
@@ -471,11 +472,11 @@ if (trim(dinl%indexingmode).eq.'static') then
     if (hdferr.ne.0) call HDF%error_check('HDF_openFile ', hdferr)
 
     ! we need the point group number (derived from the space group number)
-    ! if MPDT%newSGnumber is set to 2, then pgnum must be set to 1 for 
+    ! if MPDT%newSGnumber is set to 2, then pgnum must be set to 1 for
     ! overlap master patterns  [ added by MDG, 06/19/19 ]
-    if (MPDT%AveragedMP.eqv..TRUE.) then 
+    if (MPDT%AveragedMP.eqv..TRUE.) then
         pgnum = MPDT%newPGnumber
-        io_int = pgnum 
+        io_int = pgnum
         call Message%WriteValue(' Setting point group number to ',io_int,1)
     else
         groupname = SC_CrystalData
@@ -486,17 +487,17 @@ if (trim(dinl%indexingmode).eq.'static') then
         call HDF%readDatasetInteger(dataset, hdferr, SGnum)
         if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetInteger:SpaceGroupNumber', hdferr)
         call HDF%pop()
-    ! get the point group number    
+    ! get the point group number
         if (SGnum.ge.221) then
           pgnum = 32
         else
           i=0
-          do while (SGPG(i+1).le.SGnum) 
+          do while (SGPG(i+1).le.SGnum)
             i = i+1
           end do
           pgnum = i
         end if
-        io_int = pgnum 
+        io_int = pgnum
         call Message%WriteValue(' Setting point group number to ',io_int,1)
     end if
 
@@ -555,7 +556,7 @@ init = .TRUE.
 Ne = dinl%numexptsingle
 Nd = dinl%numdictsingle
 L = dinl%numsx*dinl%numsy/dinl%binning**2
-if (ROIselected.eqv..TRUE.) then 
+if (ROIselected.eqv..TRUE.) then
     totnumexpt = dinl%ROI(3)*dinl%ROI(4)
 else
     totnumexpt = dinl%ipf_wd*dinl%ipf_ht
@@ -589,16 +590,16 @@ size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
 recordsize_correct = correctsize*4
 patsz              = correctsize
 
-! do a quick sanity check for the requested GPU memory 
+! do a quick sanity check for the requested GPU memory
 call Message%printMessage(' --> Initializing OpenCL device')
 CL = OpenCL_T()
 Nres = Ne*Nd*4
 call CL%query_platform_info(dinl%platid)
 call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
 
-if (trim(dinl%indexingmode).eq.'dynamic') then 
+if (trim(dinl%indexingmode).eq.'dynamic') then
 ! override the point group number if this is an overlap master pattern
-    if (MPDT%AveragedMP.eqv..TRUE.) then 
+    if (MPDT%AveragedMP.eqv..TRUE.) then
         pgnum = MPDT%newPGnumber
     end if
 
@@ -642,7 +643,7 @@ bindx = 1.0/float(dinl%binning)**2
 ! allocate the square-Lambert arrays
 npy = mpnl%npx
 if (trim(dinl%indexingmode).eq.'dynamic') then
-  if (isECP.eqv..TRUE.) then 
+  if (isECP.eqv..TRUE.) then
     allocate(mLPNH2D(-mpnl%npx:mpnl%npx,-npy:npy))
     allocate(mLPSH2D(-mpnl%npx:mpnl%npx,-npy:npy))
     mLPNH2D = sum(MPDT%mLPNH,3)
@@ -654,7 +655,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     accum_e_MC = det%accum_e_detector
     mLPNH = MPDT%mLPNH
     mLPSH = MPDT%mLPSH
-  end if 
+  end if
 end if
 
 !=====================================================
@@ -666,7 +667,7 @@ end if
 ! have only a small misorientation range with respect to a known orientation,
 ! so that it is not necessary to scan all of orientation space.
 if (trim(dinl%indexingmode).eq.'dynamic') then
-    SO = so3_T(pgnum, zerolist='FZ') 
+    SO = so3_T(pgnum, zerolist='FZ')
 
     if (trim(dinl%eulerfile).eq.'undefined') then
       call Message%printMessage(' Orientation space sampling mode set to RFZ')
@@ -677,7 +678,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
       call SO%sampleRFZ(ncubochoric)
       FZcnt = SO%getListCount('FZ')
 
-      if (Clinked.eqv..TRUE.) then 
+      if (Clinked.eqv..TRUE.) then
 ! generate the Euler dictionary array needed by the EMsoftWorkbench
         allocate(eudictarray(3*FZcnt))
         FZtmp => SO%getListHead('FZ')
@@ -685,7 +686,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
           eu = FZtmp%rod%re()
           eudictarray((ii-1)*3+1:(ii-1)*3+3) = eu%e_copyd()
           FZtmp => FZtmp%next
-        end do 
+        end do
       end if
     else
     ! read the euler angle file and create the linked list
@@ -710,7 +711,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     call Message%WriteValue(' Number of unique orientations sampled :        : ', io_int, 1, "(I8)")
 ! we can now delete the linked list since we have the FZarray
     call SO%delete_FZlist()
-end if 
+end if
 
 
 !================================
@@ -852,7 +853,7 @@ rdata = 0.D0
 fdata = 0.D0
 
 !=====================================================
-! determine loop variables to avoid having to duplicate 
+! determine loop variables to avoid having to duplicate
 ! large sections of mostly identical code
 !=====================================================
 ratio = float(FZcnt)/float(Nd)
@@ -880,7 +881,7 @@ end if
 
 if (trim(dinl%maskfile).ne.'undefined') then
 ! read the mask from file; the mask can be defined by a 2D array of 0 and 1 values
-! that is stored in row form as strings, e.g.    
+! that is stored in row form as strings, e.g.
 !    0000001110000000
 !    0000011111000000
 ! ... etc
@@ -890,7 +891,7 @@ if (trim(dinl%maskfile).ne.'undefined') then
       fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dinl%maskfile)
     else
       fname = trim(dinl%maskfile)
-    end if 
+    end if
     inquire(file=trim(fname), exist=f_exists)
     if (f_exists.eqv..TRUE.) then
       mask = 0.0
@@ -926,7 +927,7 @@ end do
 
 !=====================================================
 ! Preprocess all the experimental patterns and store
-! them in a temporary file as vectors; also, create 
+! them in a temporary file as vectors; also, create
 ! an average dot product map to be stored in the h5ebsd output file
 !=====================================================
 call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
@@ -936,7 +937,7 @@ call Message%printMessage(' --> computing Average Dot Product map (ADP)')
 call Message%printMessage(' ')
 
 ! re-open the temporary file
-if (dinl%tmpfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then 
+if (dinl%tmpfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
   fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(dinl%tmpfile)
 else
   fname = trim(dinl%tmpfile)
@@ -959,33 +960,33 @@ end if
 !=====================================================
 ! MAIN COMPUTATIONAL LOOP (finally...)
 !
-! Some explanation is necessary here... the bulk of this code is 
+! Some explanation is necessary here... the bulk of this code is
 ! executed in OpenMP multithreaded mode, with nthreads threads.
 ! Thread 0 has a special role described below; threads 1 ... nthreads-1
-! share the computation of the dictionary patterns, and wait for 
+! share the computation of the dictionary patterns, and wait for
 ! thread 0 to finish, if necessary.
 !
 ! Thread 0 takes the dictionary patterns computed by the other threads
 ! in the previous step in the dictionaryloop and sends them to the GPU,
 ! along with as many chunks of experimental data are to be handled (experimentalloop
-! inside the thread 0 portion of the code); the experimental patterns 
+! inside the thread 0 portion of the code); the experimental patterns
 ! are then read from the temporary file (unit itmpexpt).  Once all dot
 ! products have been computed by the GPU, thread 0 will rank them largest
-! to smallest and keep only the top nnk values along with their indices 
+! to smallest and keep only the top nnk values along with their indices
 ! into the array of Euler angle triplets.  If the other threads are still
 ! computing dictionary patterns, thread 0 will join them; otherwise
-! thread 0 will immediately take the next batch of dictionary patterns 
+! thread 0 will immediately take the next batch of dictionary patterns
 ! and start all over.
 !
-! The trick is for the user to determine the array chunk sizes so that 
+! The trick is for the user to determine the array chunk sizes so that
 ! threads 1 ... nthreads-1 do not have to wait long for thread 0 to finish;
-! this requires a bit of experimenting and observing the load on all the 
+! this requires a bit of experimenting and observing the load on all the
 ! system cores.  The load should always be approximately 100% x nthreads-1
 ! for an efficient execution.  The appropriate number of threads will depend
 ! on how powerful the GPU card is...
 !=====================================================
 
-call timer%makeTimeStamp() 
+call timer%makeTimeStamp()
 call timer%Time_tick(1)
 call timer%Time_tick(2)
 
@@ -1005,24 +1006,24 @@ jpar(6) = MCDT%numEbins
 jpar(7) = numE
 
 ! do we need to allocate arrays for the cproc callback routine ?
-if (Clinked.eqv..TRUE.) then 
+if (Clinked.eqv..TRUE.) then
   allocate(dparray(totnumexpt), indarray(totnumexpt))
-! and get the C_LOC pointers to those arrays 
+! and get the C_LOC pointers to those arrays
   dparr_cptr = C_LOC(dparray)
   indarr_cptr = C_LOC(indarray)
   euarr_cptr = C_LOC(eudictarray)
 ! and set the callback counters
-  totn = cratio+1 
+  totn = cratio+1
   dn = 1
-  cn = 1 
+  cn = 1
   cancelled = .FALSE.
-end if 
+end if
 
 dictionaryloop: do ii = 1,cratio+1
     results = 0.0
 
 ! if ii is odd, then we use dict1 for the dictionary computation, and dict2 for the GPU
-! (assuming ii>1); when ii is even we switch the two pointers 
+! (assuming ii>1); when ii is even we switch the two pointers
     if (mod(ii,2).eq.1) then
       dict => dict1
       dict1 = 0.0
@@ -1053,17 +1054,17 @@ dictionaryloop: do ii = 1,cratio+1
 
     TID = OMP_GET_THREAD_NUM()
 
-    if ((ii.eq.1).and.(TID.eq.0)) then 
+    if ((ii.eq.1).and.(TID.eq.0)) then
       io_int(1) = OMP_GET_NUM_THREADS()
       call Message%WriteValue(' actual number of OpenMP threads  = ', io_int, 1)
-    end if 
+    end if
 
 ! the master thread should be the one working on the GPU computation
 !$OMP MASTER
     if (ii.gt.1) then
       iii = ii-1        ! the index ii is already one ahead, since the GPU thread lags one cycle behind the others...
-      if (verbose.eqv..TRUE.) then 
-        if (associated(T0dict,dict1)) then 
+      if (verbose.eqv..TRUE.) then
+        if (associated(T0dict,dict1)) then
           call Message%printMessage('   GPU thread is working on dict1')
         else
           call Message%printMessage('   GPU thread is working on dict2')
@@ -1098,7 +1099,7 @@ dictionaryloop: do ii = 1,cratio+1
                                     0, C_NULL_PTR, C_NULL_PTR)
         call CL%error_check('DIdriver:clEnqueueWriteBuffer', ierr)
 
-        call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,dinl%devid,kernel,context,command_queue)
+        call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,DIFT%nml%devid,kernel,context,command_queue)
 
         dp =  maxval(results)
         if (dp.gt.mvres) mvres = dp
@@ -1119,15 +1120,15 @@ dictionaryloop: do ii = 1,cratio+1
             indexmain(1:nnk,jjj) = indextmp(1:nnk,jjj)
         end do
 
-! handle the callback routines if requested 
-        if (Clinked.eqv..TRUE.) then 
+! handle the callback routines if requested
+        if (Clinked.eqv..TRUE.) then
 ! has the cancel flag been set by the calling program ?
           if (cancel.ne.char(0)) cancelled = .TRUE.
-! extract the first row from the indexmain and resultmain arrays, put them in 
-! 1D arrays, and return the C-pointer to those arrays via the cproc callback routine 
-          dparray(1:totnumexpt) = resultmain(1,1:totnumexpt) 
+! extract the first row from the indexmain and resultmain arrays, put them in
+! 1D arrays, and return the C-pointer to those arrays via the cproc callback routine
+          dparray(1:totnumexpt) = resultmain(1,1:totnumexpt)
           indarray(1:totnumexpt) = indexmain(1,1:totnumexpt)
-! and call the callback routine ... 
+! and call the callback routine ...
 ! callback arguments:  objAddress, loopCompleted, totalLoops, timeRemaining, dparray, indarray
           call proc(objAddress, FZcnt, euarr_cptr, dparr_cptr, indarr_cptr)
         end if
@@ -1164,23 +1165,23 @@ dictionaryloop: do ii = 1,cratio+1
        if (verbose.eqv..TRUE.) call Message%WriteValue('','        GPU thread is idling')
     end if  ! ii.gt.1
 
-    if (Clinked.eqv..TRUE.) then 
+    if (Clinked.eqv..TRUE.) then
 ! has the cancel flag been set by the calling program ?
       if (cancel.ne.char(0)) cancelled = .TRUE.
-      ! get the timer value 
-      if (iii.lt.5) then 
+      ! get the timer value
+      if (iii.lt.5) then
         ttime = 0.0
-      else 
-        if (iii.eq.5) then 
+      else
+        if (iii.eq.5) then
           call timer%Time_tock(1)
           tock = timer%getInterval(1)
           ttime = float(tock) * float(cratio) / float(iii)
           tstop = ttime
-        else 
+        else
           ttime = tstop * float(cratio-iii) / float(cratio)
-        end if 
-      end if 
-      call timeproc(objAddress, cn, totn, ttime) 
+        end if
+      end if
+      call timeproc(objAddress, cn, totn, ttime)
       cn = cn + dn
     end if
 !$OMP END MASTER
@@ -1189,15 +1190,15 @@ dictionaryloop: do ii = 1,cratio+1
 ! here we carry out the dictionary pattern computation, unless we are in the ii=cratio+1 step
     if (ii.lt.cratio+1) then
      if (verbose.eqv..TRUE.) then
-       if (associated(dict,dict1)) then 
-         io_int(1) = TID 
+       if (associated(dict,dict1)) then
+         io_int(1) = TID
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict1')")
        else
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict2')")
        end if
      end if
 
-     if (trim(dinl%indexingmode).eq.'dynamic') then
+     if (trim(DIFT%nml%indexingmode).eq.'dynamic') then
       allocate(binned(binx,biny))
 !$OMP DO SCHEDULE(DYNAMIC)
 
@@ -1208,15 +1209,15 @@ dictionaryloop: do ii = 1,cratio+1
          quat = ro%rq()
          qu = Quaternion_T( qd = quat%q_copyd() )
 
-         if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.) ) then 
-           call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,det%rgx,&
-                                               det%rgy,det%rgz,binned,Emin,Emax,mask,prefactor)
-         else  ! ECP modality 
+         if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.) ) then
+           call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,EBSD%det%rgx,&
+                                               EBSD%det%rgy,EBSD%det%rgz,binned,Emin,Emax,mask,prefactor)
+         else  ! ECP modality
            call ECP%CalcECPatternSingle(ecpipar, qu, anglewf, mLPNH2D, mLPSH2D, kij, klist, binned, .FALSE.)
-         end if 
+         end if
 
-         if (dinl%scalingmode .eq. 'gam') then
-           binned = binned**dinl%gammavalue
+         if (DIFT%nml%scalingmode .eq. 'gam') then
+           binned = binned**DIFT%nml%gammavalue
          end if
 
 ! hi pass filtering
@@ -1227,10 +1228,10 @@ dictionaryloop: do ii = 1,cratio+1
 ! adaptive histogram equalization
          ma = maxval(binned)
          mi = minval(binned)
-         
+
          patternintd = ((binned - mi)/ (ma-mi))
          patterninteger = nint(patternintd*255.0)
-         patternad =  adhisteq(dinl%nregions,binx,biny,patterninteger)
+         patternad =  adhisteq(DIFT%nml%nregions,binx,biny,patterninteger)
          binned = float(patternad)
 
          imagedictflt = 0.0
@@ -1241,7 +1242,7 @@ dictionaryloop: do ii = 1,cratio+1
            end do
          end do
 
-! normalize and apply circular mask 
+! normalize and apply circular mask
          imagedictflt(1:L) = imagedictflt(1:L) * masklin(1:L)
          vlen = vecnorm(imagedictflt(1:correctsize))
          if (vlen.ne.0.0) then
@@ -1249,9 +1250,9 @@ dictionaryloop: do ii = 1,cratio+1
          else
            imagedictflt(1:correctsize) = 0.0
          end if
-         
+
          dict((pp-1)*correctsize+1:pp*correctsize) = imagedictflt(1:correctsize)
-         ro = r_T( rdinp = dble(FZarray(1:4,(ii-1)*Nd+pp)) ) 
+         ro = r_T( rdinp = dble(FZarray(1:4,(ii-1)*Nd+pp)) )
          eu = ro%re()
          eulerarray(1:3,(ii-1)*Nd+pp) = rtod * eu%e_copyd()
        end if
@@ -1260,8 +1261,8 @@ dictionaryloop: do ii = 1,cratio+1
       deallocate(binned)
     else  ! we are doing static indexing, so only 2 threads in total
 
-! get a set of patterns from the precomputed dictionary file... 
-! we'll use a hyperslab to read a block of preprocessed patterns from file 
+! get a set of patterns from the precomputed dictionary file...
+! we'll use a hyperslab to read a block of preprocessed patterns from file
 
       if (TID .ne. 0) then
 ! read data from the hyperslab
@@ -1271,11 +1272,11 @@ dictionaryloop: do ii = 1,cratio+1
 
        if(allocated(dictpatflt)) deallocate(dictpatflt)
        dictpatflt = HDF%readHyperslabFloatArray2D(dataset, offset2, dims2)
-      
+
        do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
          dict((pp-1)*correctsize+1:pp*correctsize) = dictpatflt(1:correctsize,pp)
        end do
-     end if   
+     end if
     end if
 
     if (verbose.eqv..TRUE.) then
@@ -1351,17 +1352,17 @@ if (cancelled.eqv..FALSE.) then
   else
     ipar(7) = dinl%ipf_wd
     ipar(8) = dinl%ipf_ht
-  end if 
+  end if
 
   allocate(OSMmap(jjend, iiiend))
 
   call timer%makeTimeStamp()
   tstre = timer%getTimeString()
 
-  if (dinl%datafile.ne.'undefined') then 
+  if (dinl%datafile.ne.'undefined') then
     vendor = 'TSL'
     fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dinl%datafile)
-    call DIFT%setfilename(fname) 
+    call DIFT%setfilename(fname)
     call DIFT%h5_writeFile(EMsoft, HDF, HDFnames, vendor, mcnl, xtalname, dstr, tstrb, tstre, ipar, resultmain, &
                            exptIQ, indexmain, eulerarray, dpmap, progname, nmldeffile, OSMmap)
     call Message%printMessage(' Data stored in h5 file : '//trim(dinl%datafile))
@@ -1369,14 +1370,14 @@ if (cancelled.eqv..FALSE.) then
 
   VT = Vendor_T()
   call VT%set_Modality(MPFT%getModality())
-  if (dinl%ctffile.ne.'undefined') then 
+  if (dinl%ctffile.ne.'undefined') then
     fpar2(1) = mcnl%EkeV
     fpar2(2) = MCsig
     call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,indexmain,eulerarray,resultmain, OSMmap, exptIQ)
     call Message%printMessage('Data stored in ctf file : '//trim(dinl%ctffile))
   end if
-  
-  if (dinl%angfile.ne.'undefined') then 
+
+  if (dinl%angfile.ne.'undefined') then
       fpar1(1) = WD
       call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,eulerarray,resultmain,exptIQ)
       call Message%printMessage(' Data stored in ang file : '//trim(dinl%angfile))
@@ -1387,22 +1388,22 @@ if (cancelled.eqv..FALSE.) then
 
 ! if requested, we notify the user that this program has completed its run
   if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
-    if (trim(dinl%Notify).eq.'On') then 
+    if (trim(dinl%Notify).eq.'On') then
       NumLines = 3
       allocate(MessageLines(NumLines))
-  
+
       call hostnm(c)
-   
+
       MessageLines(1) = ' EMDI program has ended successfully'
       MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)
-      write (exectime,"(F15.0)") tstop  
+      write (exectime,"(F15.0)") tstop
       MessageLines(3) = ' Total execution time [s]: '//trim(exectime)
       TitleMessage = ' EMsoft on '//trim(c)
       i = PostMessage(EMsoft, MessageLines, NumLines, TitleMessage)
     end if
   end if
-end if 
-  
+end if
+
 end associate
 
 end subroutine DIdriver
@@ -1487,7 +1488,7 @@ globalsize = (/Ne,Nd/)
 cl_result = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_result, C_NULL_PTR, ierr)
 call CL%error_check('InnerProdGPU:clCreateBuffer', ierr)
 
-! ---- 
+! ----
 
 ! set kernel arguments
 ierr =  clSetKernelArg(kernel, 0, sizeof(cl_expt), C_LOC(cl_expt))

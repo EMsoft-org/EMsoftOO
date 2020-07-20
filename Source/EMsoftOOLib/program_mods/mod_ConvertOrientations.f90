@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_ConvertOrientations
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/24/20
   !!
   !! class definition for the EMConvertOrientations program
@@ -36,7 +36,7 @@ module mod_ConvertOrientations
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMConvertOrientations program
 type, public :: ConvertOrientationsNameListType
@@ -49,12 +49,12 @@ end type ConvertOrientationsNameListType
 
 ! class definition
 type, public :: ConvertOrientations_T
-private 
+private
   character(fnlen)                       :: nmldeffile = 'EMConvertOrientations.nml'
-  type(ConvertOrientationsNameListType)  :: nml 
+  type(ConvertOrientationsNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: ConvertOrientations_
@@ -65,7 +65,7 @@ private
 
 end type ConvertOrientations_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface ConvertOrientations_T
   module procedure ConvertOrientations_constructor
 end interface ConvertOrientations_T
@@ -74,15 +74,16 @@ contains
 
 !--------------------------------------------------------------------------
 type(ConvertOrientations_T) function ConvertOrientations_constructor( nmlfile ) result(ConvertOrientations)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ConvertOrientations_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
-!! constructor for the ConvertOrientations_T Class; reads the name list 
- 
+!! constructor for the ConvertOrientations_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call ConvertOrientations%readNameList_(nmlfile)
 
@@ -90,23 +91,24 @@ end function ConvertOrientations_constructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 01/24/20
 !!
-!! read the namelist from an nml file for the ConvertOrientations_T Class 
+!! read the namelist from an nml file for the ConvertOrientations_T Class
 
-use mod_io 
+use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ConvertOrientations_T), INTENT(INOUT) :: self
 character(fnlen),INTENT(IN)                 :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)                 :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                                  :: Message       
+type(IO_T)                                  :: Message
 logical                                     :: skipread = .FALSE.
 integer(kind=irg)                           :: cnt
 
@@ -147,7 +149,7 @@ if (.not.skipread) then
  if (trim(outputfile).eq.'undefined') then
   call Message%printError('readNameList:',' output file name is undefined in '//nmlfile)
  end if
- if (outputrepresentation.eq.'xx') then 
+ if (outputrepresentation.eq.'xx') then
   call Message%printError('readNameList:',' output representation is undefined in '//nmlfile)
  end if
 end if
@@ -162,13 +164,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 01/24/20
 !!
 !! pass the namelist for the ConvertOrientations_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ConvertOrientations_T), INTENT(INOUT)          :: self
 type(ConvertOrientationsNameListType)                :: nml
@@ -179,8 +182,9 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 subroutine ConvertOrientations_(self, EMsoft)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ConvertOrientations_
+!! author: MDG
+!! version: 1.0
 !! date: 01/24/20
 !!
 !! perform the computations
@@ -193,54 +197,54 @@ use mod_crystallography
 use mod_quaternions
 use mod_rotations
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ConvertOrientations_T), INTENT(INOUT)       :: self
 type(EMsoft_T), INTENT(INOUT)                     :: EMsoft
 
-type(Cell_T)            :: cell   
-type(SpaceGroup_T)      :: SG 
+type(Cell_T)            :: cell
+type(SpaceGroup_T)      :: SG
 type(so3_T)             :: SO
-type(QuaternionArray_T) :: QA, qsym, qAR  
-type(IO_T)              :: Message 
+type(QuaternionArray_T) :: QA, qsym, qAR
+type(IO_T)              :: Message
 type(q_T)               :: qu
-type(Quaternion_T)      :: qq 
+type(Quaternion_T)      :: qq
 type(r_T)               :: roFZ
 
 integer(kind=irg)       :: i,j,k, ierr, io_int(3), pgnum
 character(fnlen)        :: fname
 integer(kind=irg)       :: FZtype, FZorder
 
-! get the point group number from the crystal file 
+! get the point group number from the crystal file
 call cell%getCrystalData(self%nml%xtalname, SG, EMsoft)
 
 ! define the symmetry operators
 pgnum = SG%getPGnumber()
 call QA%QSym_init( pgnum, qsym )
 
-! define the fundamental zone class 
+! define the fundamental zone class
 SO = so3_T( pgnum )
 
-! print some output 
+! print some output
 call SO%getFZtypeandorder(FZtype, FZorder)
 io_int = (/ pgnum, FZtype, FZorder /)
 call Message%WriteValue('  Point group, type, and order: ',io_int,3)
 
-! read the input orientations 
+! read the input orientations
 fname = EMsoft%generateFilePath('EMdatapathname',self%nml%inputfile)
 call SO%getOrientationsfromFile(fname)
 call Message%printMessage(' - read orientation data from file '//trim(fname), frm="(/A)")
 
 ! apply the reduction to the RFZ ?
-if (self%nml%reducetoRFZ.eq.1) then 
+if (self%nml%reducetoRFZ.eq.1) then
   call SO%ReducelisttoRFZ( qsym )
-end if 
+end if
 
-! and write the results to an output file 
+! and write the results to an output file
 fname = EMsoft%generateFilePath('EMdatapathname',self%nml%outputfile)
 call SO%writeOrientationstoFile( fname, self%nml%outputrepresentation )
 
-! print a final message 
+! print a final message
 call Message%printMessage(' - wrote orientation data to file :'//trim(fname),"(/A/)")
 
 end subroutine ConvertOrientations_

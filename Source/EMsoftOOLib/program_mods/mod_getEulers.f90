@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_getEulers
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 04/08/20
   !!
   !! class definition for the EMgetEulers program
@@ -36,7 +36,7 @@ module mod_getEulers
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMgetEulers program
 type, public :: getEulersNameListType
@@ -50,12 +50,12 @@ end type getEulersNameListType
 
 ! class definition
 type, public :: getEulers_T
-private 
+private
   character(fnlen)       :: nmldeffile = 'EMgetEulers.nml'
-  type(getEulersNameListType)  :: nml 
+  type(getEulersNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: getEulers_
@@ -90,23 +90,7 @@ private
 
 end type getEulers_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: getEulers
-!DEC$ ATTRIBUTES DLLEXPORT :: get_angledataset
-!DEC$ ATTRIBUTES DLLEXPORT :: set_angledataset
-!DEC$ ATTRIBUTES DLLEXPORT :: get_raddeg
-!DEC$ ATTRIBUTES DLLEXPORT :: set_raddeg
-!DEC$ ATTRIBUTES DLLEXPORT :: get_txtfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_txtfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_datafile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_datafile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_EMEBSDnmlfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_EMEBSDnmlfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_dotproductfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dotproductfile
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface getEulers_T
   module procedure getEulers_constructor
 end interface getEulers_T
@@ -115,31 +99,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(getEulers_T) function getEulers_constructor( nmlfile ) result(getEulers)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEulers_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
-!! constructor for the getEulers_T Class; reads the name list 
- 
+!! constructor for the getEulers_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call getEulers%readNameList(nmlfile)
 
 end function getEulers_constructor
 
 !--------------------------------------------------------------------------
-subroutine getEulers_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine getEulers_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: getEulers_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! destructor for the getEulers_T Class
- 
+
 IMPLICIT NONE
 
-type(getEulers_T), INTENT(INOUT)  :: self 
+type(getEulers_T), INTENT(INOUT)  :: self
 
 call reportDestructor('getEulers_T')
 
@@ -147,25 +133,26 @@ end subroutine getEulers_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
-!! read the namelist from an nml file for the getEulers_T Class 
+!! read the namelist from an nml file for the getEulers_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)    :: self
 character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
+type(EMsoft_T)                       :: EMsoft
+type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 character(8)            :: angledataset   ! 'original' or 'refined'
@@ -208,24 +195,25 @@ if (.not.skipread) then
  end if
 end if
 
-self%nml%dotproductfile = dotproductfile 
+self%nml%dotproductfile = dotproductfile
 self%nml%txtfile = txtfile
 self%nml%datafile = datafile
 self%nml%EMEBSDnmlfile = EMEBSDnmlfile
-self%nml%angledataset = trim(angledataset) 
+self%nml%angledataset = trim(angledataset)
 self%nml%raddeg = raddeg
 
 end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! pass the namelist for the getEulers_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)          :: self
 type(getEulersNameListType)                :: nml
@@ -237,13 +225,14 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 function get_angledataset_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_angledataset_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get angledataset from the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(8)                          :: out
@@ -254,13 +243,14 @@ end function get_angledataset_
 
 !--------------------------------------------------------------------------
 subroutine set_angledataset_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_angledataset_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set angledataset in the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(8), INTENT(IN)              :: inp
@@ -271,13 +261,14 @@ end subroutine set_angledataset_
 
 !--------------------------------------------------------------------------
 function get_raddeg_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_raddeg_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get raddeg from the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(3)                          :: out
@@ -288,13 +279,14 @@ end function get_raddeg_
 
 !--------------------------------------------------------------------------
 subroutine set_raddeg_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_raddeg_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set raddeg in the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(3), INTENT(IN)              :: inp
@@ -305,13 +297,14 @@ end subroutine set_raddeg_
 
 !--------------------------------------------------------------------------
 function get_txtfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_txtfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get txtfile from the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -322,13 +315,14 @@ end function get_txtfile_
 
 !--------------------------------------------------------------------------
 subroutine set_txtfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_txtfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set txtfile in the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -339,13 +333,14 @@ end subroutine set_txtfile_
 
 !--------------------------------------------------------------------------
 function get_datafile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_datafile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get datafile from the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -356,13 +351,14 @@ end function get_datafile_
 
 !--------------------------------------------------------------------------
 subroutine set_datafile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_datafile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set datafile in the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -373,13 +369,14 @@ end subroutine set_datafile_
 
 !--------------------------------------------------------------------------
 function get_EMEBSDnmlfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_EMEBSDnmlfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get EMEBSDnmlfile from the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -390,13 +387,14 @@ end function get_EMEBSDnmlfile_
 
 !--------------------------------------------------------------------------
 subroutine set_EMEBSDnmlfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_EMEBSDnmlfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set EMEBSDnmlfile in the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -407,13 +405,14 @@ end subroutine set_EMEBSDnmlfile_
 
 !--------------------------------------------------------------------------
 function get_dotproductfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dotproductfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get dotproductfile from the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -424,13 +423,14 @@ end function get_dotproductfile_
 
 !--------------------------------------------------------------------------
 subroutine set_dotproductfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dotproductfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set dotproductfile in the getEulers_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -441,8 +441,9 @@ end subroutine set_dotproductfile_
 
 !--------------------------------------------------------------------------
 subroutine getEulers_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEulers_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! perform the computations
@@ -457,33 +458,33 @@ use mod_DIfiles
 use mod_crystallography
 use mod_symmetry
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(getEulers_T), INTENT(INOUT)       :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+character(fnlen), INTENT(INOUT)         :: progname
 
-type(HDF_T)                             :: HDF 
-type(HDFnames_T)                        :: HDFnames 
-type(IO_T)                              :: Message 
+type(HDF_T)                             :: HDF
+type(HDFnames_T)                        :: HDFnames
+type(IO_T)                              :: Message
 type(DIfile_T)                          :: DIFT
 type(cell_T)                            :: cell
 type(SpaceGroup_T)                      :: SG
-type(DictionaryIndexingNameListType)    :: dinl 
+type(DictionaryIndexingNameListType)    :: dinl
 
-logical                                 :: refined 
+logical                                 :: refined
 character(fnlen)                        :: ename, nmlname, DIfile
 integer(kind=irg)                       :: hdferr, j, istat, Nexp
 
-real(kind=sgl),allocatable              :: euler_best(:,:)                                   
+real(kind=sgl),allocatable              :: euler_best(:,:)
 
 associate(eunl=>self%nml, DIDT=>DIFT%DIDT)
 
 ! open the HDF interface
 call openFortranHDFInterface()
-HDF = HDF_T() 
+HDF = HDF_T()
 
-HDFnames = HDFnames_T() 
+HDFnames = HDFnames_T()
 
 call HDFnames%set_NMLfiles(SC_NMLfiles)
 call HDFnames%set_NMLfilename(SC_DictionaryIndexingNML)
@@ -492,7 +493,7 @@ call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 
 refined = .FALSE.
 DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(eunl%dotproductfile)
-if (trim(eunl%angledataset).eq.'refined') then 
+if (trim(eunl%angledataset).eq.'refined') then
     call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
                                 getRefinedEulerAngles=.TRUE.)
     refined = .TRUE.
@@ -505,30 +506,30 @@ Nexp = DIDT%Nexp
 allocate(euler_best(3,Nexp),stat=istat)
 if (istat .ne. 0) then
     call Message%printError('EMgetEulers','Failed to allocate euler angle array')
-end if 
+end if
 euler_best = 0.0
 if (refined.eqv..TRUE.) then
-  if (eunl%raddeg.eq.'deg') then 
+  if (eunl%raddeg.eq.'deg') then
     euler_best(1:3,1:Nexp) = DIDT%RefinedEulerAngles(1:3,1:Nexp)*180.0/cPi
-  else 
+  else
     euler_best(1:3,1:Nexp) = DIDT%RefinedEulerAngles(1:3,1:Nexp)
-  end if 
+  end if
   deallocate(DIDT%RefinedEulerAngles)
   call Message%printMessage(' Extracting refined Euler angles from dot product file')
 else
-  if (eunl%raddeg.eq.'deg') then 
+  if (eunl%raddeg.eq.'deg') then
     euler_best(1:3,1:Nexp) = DIDT%EulerAngles(1:3,1:Nexp)*180.0/cPi
   else
     euler_best(1:3,1:Nexp) = DIDT%EulerAngles(1:3,1:Nexp)
-  end if 
+  end if
   deallocate(DIDT%EulerAngles)
   call Message%printMessage(' Extracting Euler angles from dot product file')
-end if 
+end if
 
 call Message%printMessage('  --> dot product EBSD HDF5 file read')
 
 !==============================
-! and prepare the Euler angle text file 
+! and prepare the Euler angle text file
 ename = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(eunl%txtfile)
 
 open(unit=dataunit,file=trim(ename),status='unknown',action='write')

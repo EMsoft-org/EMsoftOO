@@ -43,7 +43,7 @@ else()
   message(STATUS "You have elected to NOT set a EMsoft_SDK CMake variable. You will")
   message(STATUS "need to point to the various dependecies that EMsoftOO requires for")
   message(STATUS "building. Those that are undefined are listed next:")
-  
+
   if(NOT DEFINED bcls_DIR)
       message(STATUS "Set bcls_DIR variable to the directory where bclsConfig.cmake is located.")
   endif()
@@ -55,7 +55,7 @@ else()
   if(NOT DEFINED EIGEN_INSTALL)
       message(STATUS "Set EIGEN_INSTALL variable to the root directory of the Eigen installation.")
   endif()
- 
+
   if(NOT DEFINED FFTW3_INSTALL)
       message(STATUS "Set FFTW3_INSTALL variable to the root directory of the FFTW installation.")
   endif()
@@ -100,7 +100,7 @@ endif()
 include (${CMP_SOURCE_DIR}/cmpCMakeMacros.cmake )
 
 # Next up, Set the version of EMsoftOO that is used through out the project.
-# we continue the numbering from the original EMsoft package, so 6.0.0 is the 
+# we continue the numbering from the original EMsoft package, so 6.0.0 is the
 # first version of the object oriented code.
 set(EMsoftOO_VER_MAJOR "6")
 set(EMsoftOO_VER_MINOR "0")
@@ -137,7 +137,7 @@ execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty='%cd' --date=format:%Y
                 OUTPUT_VARIABLE GVS_GIT_COMMIT_DATE
                 RESULT_VARIABLE did_run
                 ERROR_VARIABLE git_error
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 string(REPLACE "\n" "" GVS_GIT_COMMIT_DATE "${GVS_GIT_COMMIT_DATE}")
 message(STATUS "${PROJECT_NAME}   Git Hash:${EMsoftOO_GIT_HASH} committed on ${GVS_GIT_COMMIT_DATE}")
@@ -280,7 +280,7 @@ SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 
 # when building, don't use the install RPATH already
 # (but later on when installing)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
@@ -297,7 +297,7 @@ ENDIF("${isSystemDir}" STREQUAL "-1")
 
 include (${PROJECT_SOURCE_DIR}/Support/ExtLib/ExtLibraries.cmake)
 
-OPTION(EMsoftOO_ENABLE_TESTING "Compile the test programs" ON)
+OPTION(EMsoftOO_ENABLE_TESTING "Compile the test programs" OFF)
 set(EMsoftOO_TESTING_DIR "${EMsoftOO_BINARY_DIR}/Testing")
 
 
@@ -340,14 +340,14 @@ include(${PROJECT_SOURCE_DIR}/Source/Source.cmake)
 # Generate our ReadMe and License Files
 configure_file(${PROJECT_SOURCE_DIR}/License.txt
                 ${PROJECT_BINARY_DIR}/License.txt )
-configure_file(${PROJECT_SOURCE_DIR}/ReadMe.md
-                ${PROJECT_BINARY_DIR}/ReadMe.md )
+configure_file(${PROJECT_SOURCE_DIR}/README.md
+                ${PROJECT_BINARY_DIR}/README.md )
 
 #---------------------------------------------------------------------
 # This sets up the two variables install_dir and lib_install_dir
 EMsoftOO_SetupInstallDirs()
 
-install(FILES ${PROJECT_SOURCE_DIR}/ReadMe.md ${PROJECT_SOURCE_DIR}/License.txt
+install(FILES ${PROJECT_SOURCE_DIR}/README.md ${PROJECT_SOURCE_DIR}/License.txt
         DESTINATION ${install_dir}/Documentation
         COMPONENT Applications)
 
@@ -363,5 +363,3 @@ if(EMsoftOO_ENABLE_TESTING)
   include(CTest)
   add_subdirectory(${EMsoftOO_SOURCE_DIR}/Source/Test ${PROJECT_BINARY_DIR}/Test)
 endif()
-
-

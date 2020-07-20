@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-module mod_rotations 
-  !! author: MDG 
-  !! version: 1.0 
+module mod_rotations
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/16/20
   !!
   !! everything that has to do with rotations and conversions between rotations
@@ -36,10 +36,10 @@ module mod_rotations
   !! <start of original comments for EMsoft version 5.X and earlier>
   !! This module relies a lot on the relations listed in the book "Orientations
   !! and Rotations" by Adam Morawiec [Springer 2004].  I've tried to implement every
-  !! available representation for rotations in a way that makes it easy to convert 
+  !! available representation for rotations in a way that makes it easy to convert
   !! between any pair.  Needless to say, this needs extensive testing and debugging...
   !!
-  !! Instead of converting all the time between representations, I've opted to 
+  !! Instead of converting all the time between representations, I've opted to
   !! "waste" a little more memory and time and provide the option to precompute all the representations.
   !! This way all representations are available via a single data structure.
   !!
@@ -47,7 +47,7 @@ module mod_rotations
   !! single or in double precision (using a function interface for each call, so that only
   !! one function name is used).  The conversion routines use the following format for their
   !! call name:  ab2cd, where (ab and cd are two-characters strings selected from the following
-  !! possibilities: [the number in parenthesis lists the number of entries that need to be provided] 
+  !! possibilities: [the number in parenthesis lists the number of entries that need to be provided]
   !!
   !! eu : euler angle representation (3)
   !! om : orientation matrix representation (3x3)
@@ -59,20 +59,20 @@ module mod_rotations
   !! st : 3D stereographic representation (3)  [added in October 2017]
   !! rv : rotation vector representation (3)  [added in Fall 2019]
   !!
-  !! hence, conversion from homochoric to euler angle is called as ho2eu(); the argument of 
+  !! hence, conversion from homochoric to euler angle is called as ho2eu(); the argument of
   !! each routine must have the correct number of dimensions and entries.
   !! All 42 conversion routines exist in both single and double precision.
   !!
   !! Some routines were modified in July 2014, to simplify the paths in case the direct conversion
   !! routine does not exist.  Given the complexity of the cubochoric transformations, all routines
   !! going to and from this representation will require at least one and sometimes two or three
-  !! intermediate representations.  cu2eu and qu2cu currently represent the longest computation 
+  !! intermediate representations.  cu2eu and qu2cu currently represent the longest computation
   !! paths with three intermediate steps each.
   !!
   !! In August 2014, all routines were modified to account for active vs. passive rotations,
   !! after some inconsistencies were discovered that could be traced back to that distinction.
   !! The default is for a rotation to be passive, and only those transformation rules have been
-  !! implemented.  For active rotations, the user needs to explicitly take action in the calling 
+  !! implemented.  For active rotations, the user needs to explicitly take action in the calling
   !! program.
   !!
   !! Testing: the program rotationtest.f90 was generated by an IDL script and contains all possible
@@ -86,8 +86,8 @@ module mod_rotations
   !! - all rotations are interpreted in the passive way
   !! - Euler angles follow the Bunge convention, with phi1 in [0,2pi], Phi in [0,pi], and phi2 in [0,2pi]
   !! - rotation angles (in axis-angle derived representations) are limited to the range [0,pi]
-  !! 
-  !! To make things easier for the user, this module provides a routine to create a rotation 
+  !!
+  !! To make things easier for the user, this module provides a routine to create a rotation
   !! representation starting from an axis, described by a unit axis vector, and a rotation angle.
   !! This routine properly takes the sign of epsijk into account, and always produces a passive rotation.
   !! The user must explicitly take action to interpret a rotation as being active.
@@ -115,48 +115,48 @@ module mod_rotations
   !!
   !! @date  Jan 20  MDG 6.0 conversion of module to class structures
   !!
-  !! Here is an example program using the rotation classes 
+  !! Here is an example program using the rotation classes
   !!
-  !!     program rtest 
-  !!    
+  !!     program rtest
+  !!
   !!     use mod_rotations
-  !!    
-  !!     type(r_T)        :: r     ! define a Rodrigues vector 
-  !!     type(q_T)        :: q     ! define a quaternion 
+  !!
+  !!     type(r_T)        :: r     ! define a Rodrigues vector
+  !!     type(q_T)        :: q     ! define a quaternion
   !!     type(a_T)        :: a     ! define an axis-angle pair
-  !!    
-  !!     real(kind=dbl)   :: x =  1.D0/dsqrt(3.D0)    ! auxiliary parameter 
-  !!     
+  !!
+  !!     real(kind=dbl)   :: x =  1.D0/dsqrt(3.D0)    ! auxiliary parameter
+  !!
   !!     ! set the computational precision to Double
   !!     call setRotationPrecision('Double')
-  !!    
-  !!     ! define an axis angle pair 
+  !!
+  !!     ! define an axis angle pair
   !!     a = a_T( adinp = (/ 0.D0, 0.D0, -1.D0, cvtoRadians(45.D0) /) )
   !!     ! generate all equivalent rotation representations
   !!     oo = orientation_T( a )
-  !!     ! and print them, converting angles to degrees 
+  !!     ! and print them, converting angles to degrees
   !!     call oo%print_orientation('d')
   !!
   !!     ! let's do a 45° rotation around [111], and start with an axis angle pair, also print it
   !!     a = a_T( adinp = (/ x, x, x, cvtoRadians(45.D0) /) )
   !!     call a%a_print('Input axis angle pair : ')
-  !!    
+  !!
   !!     ! convert this to a quaternion and print it
   !!     q = a%aq()
   !!     call q%q_print('Quaternion            : ')
-  !!    
-  !!     ! convert this quaternion to a Rodrigues vector 
-  !!     r = q%qr() 
+  !!
+  !!     ! convert this quaternion to a Rodrigues vector
+  !!     r = q%qr()
   !!     call r%r_print('Rodrigues vector      : ')
-  !!    
-  !!     ! and back to an axis angle pair 
-  !!     a = r%ra() 
+  !!
+  !!     ! and back to an axis angle pair
+  !!     a = r%ra()
   !!     call a%a_print('Resulting axis-angle  : ')
-  !!    
-  !!     end program rtest 
-  !!     
+  !!
+  !!     end program rtest
+  !!
   !! The output of this program should be :
-  !! 
+  !!
   !! Angles in degrees
   !! Euler angles                     :   45.0000000000     0.0000000000     0.0000000000
   !! Axis angle pair [n; angle]       :    0.0000000000     0.0000000000    -1.0000000000    45.0000000000
@@ -181,9 +181,9 @@ use mod_kinds
 use mod_global
 use mod_quaternions
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-private 
+private
 
 ! we use a private parameter and a pair of get/set methods to control the precision (single or double);
 ! by default, all rotation operations are performed in double precision
@@ -191,9 +191,9 @@ logical :: rotdoubleprecision = .TRUE.
 public :: setRotationPrecision, getRotationPrecision, toRadians, toDegrees, cvtoRadians, cvtoDegrees, &
           RodriguesProduct, quat_average
 
-interface quat_average 
-  module procedure quat_average 
-  module procedure quat_average_d 
+interface quat_average
+  module procedure quat_average
+  module procedure quat_average_d
 end interface
 
 interface cvtoRadians
@@ -211,20 +211,20 @@ interface cvtoDegrees
 end interface
 
 ! In addition, we define nine classes, each with 8 conversion routines to other representations.
-! Each class has a single and a double precision variable that must be 'set'-ed or 'get'-ed 
-! with a specific method. The precision is set by a setRotationPrecision call. The conversion 
+! Each class has a single and a double precision variable that must be 'set'-ed or 'get'-ed
+! with a specific method. The precision is set by a setRotationPrecision call. The conversion
 ! routines are named with a single origin letter and a single destination letter (different from
 ! the original version in EMsoft 5.X and earlier !!! ).
 !
 ! r: Rodrigues vector
-! s: Stereographic vector 
+! s: Stereographic vector
 ! o: rotation/orientation matrix
-! h: homochoric vector 
+! h: homochoric vector
 ! a: axis angle pair
-! v: rotation vector 
-! c: cubochoric vector 
-! e: Euler angles 
-! q: quaternion 
+! v: rotation vector
+! c: cubochoric vector
+! e: Euler angles
+! q: quaternion
 !
 ! each class also has a constructor, and print routine and a validation routine.
 
@@ -269,7 +269,7 @@ private
 
 end type r_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface r_T
   module procedure r_constructor
 end interface r_T
@@ -315,7 +315,7 @@ private
 
 end type s_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface s_T
   module procedure s_constructor
 end interface s_T
@@ -361,7 +361,7 @@ private
 
 end type o_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface o_T
   module procedure o_constructor
 end interface o_T
@@ -407,7 +407,7 @@ private
 
 end type h_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface h_T
   module procedure h_constructor
 end interface h_T
@@ -453,7 +453,7 @@ private
 
 end type a_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface a_T
   module procedure a_constructor
 end interface a_T
@@ -499,7 +499,7 @@ private
 
 end type v_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface v_T
   module procedure v_constructor
 end interface v_T
@@ -545,7 +545,7 @@ private
 
 end type c_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface c_T
   module procedure c_constructor
 end interface c_T
@@ -591,7 +591,7 @@ private
 
 end type e_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface e_T
   module procedure e_constructor
 end interface e_T
@@ -637,115 +637,20 @@ private
 
 end type q_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface q_T
   module procedure q_constructor
 end interface q_T
 
 ! DLL Export statements
-!DEC$ ATTRIBUTES DLLEXPORT :: rs
-!DEC$ ATTRIBUTES DLLEXPORT :: ro
-!DEC$ ATTRIBUTES DLLEXPORT :: rh
-!DEC$ ATTRIBUTES DLLEXPORT :: ra
-!DEC$ ATTRIBUTES DLLEXPORT :: rv
-!DEC$ ATTRIBUTES DLLEXPORT :: rc
-!DEC$ ATTRIBUTES DLLEXPORT :: re
-!DEC$ ATTRIBUTES DLLEXPORT :: rq
-!DEC$ ATTRIBUTES DLLEXPORT :: r_check
-!DEC$ ATTRIBUTES DLLEXPORT :: r_print
-!DEC$ ATTRIBUTES DLLEXPORT :: sr
-!DEC$ ATTRIBUTES DLLEXPORT :: so
-!DEC$ ATTRIBUTES DLLEXPORT :: sh
-!DEC$ ATTRIBUTES DLLEXPORT :: sa
-!DEC$ ATTRIBUTES DLLEXPORT :: sv
-!DEC$ ATTRIBUTES DLLEXPORT :: sc
-!DEC$ ATTRIBUTES DLLEXPORT :: se
-!DEC$ ATTRIBUTES DLLEXPORT :: sq
-!DEC$ ATTRIBUTES DLLEXPORT :: s_check
-!DEC$ ATTRIBUTES DLLEXPORT :: s_print
-!DEC$ ATTRIBUTES DLLEXPORT :: or
-!DEC$ ATTRIBUTES DLLEXPORT :: os
-!DEC$ ATTRIBUTES DLLEXPORT :: oh
-!DEC$ ATTRIBUTES DLLEXPORT :: oa
-!DEC$ ATTRIBUTES DLLEXPORT :: ov
-!DEC$ ATTRIBUTES DLLEXPORT :: oc
-!DEC$ ATTRIBUTES DLLEXPORT :: oe
-!DEC$ ATTRIBUTES DLLEXPORT :: oq
-!DEC$ ATTRIBUTES DLLEXPORT :: o_check
-!DEC$ ATTRIBUTES DLLEXPORT :: o_print
-!DEC$ ATTRIBUTES DLLEXPORT :: hr
-!DEC$ ATTRIBUTES DLLEXPORT :: hs
-!DEC$ ATTRIBUTES DLLEXPORT :: ho
-!DEC$ ATTRIBUTES DLLEXPORT :: ha
-!DEC$ ATTRIBUTES DLLEXPORT :: hv
-!DEC$ ATTRIBUTES DLLEXPORT :: hc
-!DEC$ ATTRIBUTES DLLEXPORT :: he
-!DEC$ ATTRIBUTES DLLEXPORT :: hq
-!DEC$ ATTRIBUTES DLLEXPORT :: h_check
-!DEC$ ATTRIBUTES DLLEXPORT :: h_print
-!DEC$ ATTRIBUTES DLLEXPORT :: ar
-!DEC$ ATTRIBUTES DLLEXPORT :: as
-!DEC$ ATTRIBUTES DLLEXPORT :: ao
-!DEC$ ATTRIBUTES DLLEXPORT :: ah
-!DEC$ ATTRIBUTES DLLEXPORT :: av
-!DEC$ ATTRIBUTES DLLEXPORT :: ac
-!DEC$ ATTRIBUTES DLLEXPORT :: ae
-!DEC$ ATTRIBUTES DLLEXPORT :: aq
-!DEC$ ATTRIBUTES DLLEXPORT :: a_check
-!DEC$ ATTRIBUTES DLLEXPORT :: a_print
-!DEC$ ATTRIBUTES DLLEXPORT :: vr
-!DEC$ ATTRIBUTES DLLEXPORT :: vs
-!DEC$ ATTRIBUTES DLLEXPORT :: vo
-!DEC$ ATTRIBUTES DLLEXPORT :: vh
-!DEC$ ATTRIBUTES DLLEXPORT :: va
-!DEC$ ATTRIBUTES DLLEXPORT :: vc
-!DEC$ ATTRIBUTES DLLEXPORT :: ve
-!DEC$ ATTRIBUTES DLLEXPORT :: vq
-!DEC$ ATTRIBUTES DLLEXPORT :: v_check
-!DEC$ ATTRIBUTES DLLEXPORT :: v_print
-!DEC$ ATTRIBUTES DLLEXPORT :: cr
-!DEC$ ATTRIBUTES DLLEXPORT :: cs
-!DEC$ ATTRIBUTES DLLEXPORT :: co
-!DEC$ ATTRIBUTES DLLEXPORT :: ch
-!DEC$ ATTRIBUTES DLLEXPORT :: ca
-!DEC$ ATTRIBUTES DLLEXPORT :: cv
-!DEC$ ATTRIBUTES DLLEXPORT :: ce
-!DEC$ ATTRIBUTES DLLEXPORT :: cq
-!DEC$ ATTRIBUTES DLLEXPORT :: c_check
-!DEC$ ATTRIBUTES DLLEXPORT :: c_print
-!DEC$ ATTRIBUTES DLLEXPORT :: er
-!DEC$ ATTRIBUTES DLLEXPORT :: es
-!DEC$ ATTRIBUTES DLLEXPORT :: eo
-!DEC$ ATTRIBUTES DLLEXPORT :: eh
-!DEC$ ATTRIBUTES DLLEXPORT :: ea
-!DEC$ ATTRIBUTES DLLEXPORT :: ev
-!DEC$ ATTRIBUTES DLLEXPORT :: ec
-!DEC$ ATTRIBUTES DLLEXPORT :: eq
-!DEC$ ATTRIBUTES DLLEXPORT :: e_check
-!DEC$ ATTRIBUTES DLLEXPORT :: e_print
-!DEC$ ATTRIBUTES DLLEXPORT :: qr
-!DEC$ ATTRIBUTES DLLEXPORT :: qs
-!DEC$ ATTRIBUTES DLLEXPORT :: qo
-!DEC$ ATTRIBUTES DLLEXPORT :: qh
-!DEC$ ATTRIBUTES DLLEXPORT :: qa
-!DEC$ ATTRIBUTES DLLEXPORT :: qv
-!DEC$ ATTRIBUTES DLLEXPORT :: qc
-!DEC$ ATTRIBUTES DLLEXPORT :: qe
-!DEC$ ATTRIBUTES DLLEXPORT :: q_check
-!DEC$ ATTRIBUTES DLLEXPORT :: q_print
-!DEC$ ATTRIBUTES DLLEXPORT :: toRadians
-!DEC$ ATTRIBUTES DLLEXPORT :: toDegrees
-!DEC$ ATTRIBUTES DLLEXPORT :: cvtoRadians
-!DEC$ ATTRIBUTES DLLEXPORT :: cvtoDegrees
-!DEC$ ATTRIBUTES DLLEXPORT :: init_orientation
-!DEC$ ATTRIBUTES DLLEXPORT :: print_orientation
-!DEC$ ATTRIBUTES DLLEXPORT :: RodriguesProduct
-!DEC$ ATTRIBUTES DLLEXPORT :: quat_average
 
 
+!!DEC$ ATTRIBUTES DLLEXPORT :: cvtoRadians
+!!DEC$ ATTRIBUTES DLLEXPORT :: cvtoDegrees
+!!DEC$ ATTRIBUTES DLLEXPORT :: init_orientation
 
 ! We also define an orientation class that contains, for a given orientation, all the equivalent representations
-! This class uses the nine classes defined above for all conversions.  The class has a constructor and 
+! This class uses the nine classes defined above for all conversions.  The class has a constructor and
 ! some output options.
 type, public :: orientation_T
 private
@@ -754,7 +659,7 @@ private
     type(a_T) :: a ! axis-angle pair (angle in rad, component 4; axis in direction cosines)
     type(r_T) :: r ! Rodrigues vector (stored as direction cosines and length, to allow for Infinity)
     type(q_T) :: q ! quaternion representation (q(1) is scalar part, q(2:4) vector part)
-    type(h_T) :: h ! homochoric representation according to Frank's paper  
+    type(h_T) :: h ! homochoric representation according to Frank's paper
     type(c_T) :: c ! cubic grid representation (derived from homochoric)
     type(s_T) :: s ! 3D stereographic  [added 10/05/17]
     type(v_T) :: v ! rotation vector [added 10/25/19]
@@ -762,7 +667,7 @@ private
   contains
   private
 
-    procedure, pass(self) :: print_orientation_ 
+    procedure, pass(self) :: print_orientation_
     procedure, pass(self) :: getClass_e_
     procedure, pass(self) :: getClass_o_
     procedure, pass(self) :: getClass_a_
@@ -823,42 +728,14 @@ private
 
 end type orientation_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface orientation_T
   module procedure orientation_constructor
 end interface orientation_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_e
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_a
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_r
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_o
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_h
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_c
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_q
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_v
-!DEC$ ATTRIBUTES DLLEXPORT :: getClass_s
-!DEC$ ATTRIBUTES DLLEXPORT :: get_e
-!DEC$ ATTRIBUTES DLLEXPORT :: get_a
-!DEC$ ATTRIBUTES DLLEXPORT :: get_r
-!DEC$ ATTRIBUTES DLLEXPORT :: get_o
-!DEC$ ATTRIBUTES DLLEXPORT :: get_h
-!DEC$ ATTRIBUTES DLLEXPORT :: get_c
-!DEC$ ATTRIBUTES DLLEXPORT :: get_q
-!DEC$ ATTRIBUTES DLLEXPORT :: get_v
-!DEC$ ATTRIBUTES DLLEXPORT :: get_s
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ed
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ad
-!DEC$ ATTRIBUTES DLLEXPORT :: get_rd
-!DEC$ ATTRIBUTES DLLEXPORT :: get_od
-!DEC$ ATTRIBUTES DLLEXPORT :: get_hd
-!DEC$ ATTRIBUTES DLLEXPORT :: get_cd
-!DEC$ ATTRIBUTES DLLEXPORT :: get_qd
-!DEC$ ATTRIBUTES DLLEXPORT :: get_vd
-!DEC$ ATTRIBUTES DLLEXPORT :: get_sd
-
-! finally we have a method to extract a quaternion class from an arbitrary class 
-! using unlimited polymorphic variables 
-public :: getQfromClass 
+! finally we have a method to extract a quaternion class from an arbitrary class
+! using unlimited polymorphic variables
+public :: getQfromClass
 
 !--------------------------------------------------------------------------
 
@@ -866,20 +743,21 @@ contains
 
 !--------------------------------------------------------------------------
 type(r_T) function r_constructor( rinp, rdinp ) result(r)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: r_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the r_T Class 
- 
+!! constructor for the r_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: rinp(4)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: rdinp(4)
 
-integer(kind=irg)                    :: ierr 
+integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(rdinp)) r%rd = rdinp
 else
   if (present(rinp)) r%r = rinp
@@ -890,16 +768,17 @@ if (rotationRangeCheck) ierr = r%r_check()
 end function r_constructor
 
 !--------------------------------------------------------------------------
-subroutine r_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine r_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: r_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the r_T Class
- 
+
 IMPLICIT NONE
 
-type(r_T), INTENT(INOUT)  :: self 
+type(r_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('r_T')
 
@@ -907,12 +786,13 @@ end subroutine r_destructor
 
 !--------------------------------------------------------------------------
 type(s_T) function s_constructor( sinp, sdinp ) result(s)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: s_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the s_T Class 
- 
+!! constructor for the s_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: sinp(3)
@@ -920,7 +800,7 @@ real(kind=dbl),INTENT(IN),OPTIONAL   :: sdinp(3)
 
 integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(sdinp)) s%sd = sdinp
 else
   if (present(sinp)) s%s = sinp
@@ -931,16 +811,17 @@ if (rotationRangeCheck) ierr = s%s_check()
 end function s_constructor
 
 !--------------------------------------------------------------------------
-subroutine s_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine s_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: s_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the s_T Class
- 
+
 IMPLICIT NONE
 
-type(s_T), INTENT(INOUT)  :: self 
+type(s_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('s_T')
 
@@ -948,20 +829,21 @@ end subroutine s_destructor
 
 !--------------------------------------------------------------------------
 type(o_T) function o_constructor( oinp, odinp ) result(o)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: o_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the o_T Class 
- 
+!! constructor for the o_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: oinp(3,3)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: odinp(3,3)
 
-integer(kind=irg)                    :: ierr 
+integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(odinp)) o%od = odinp
 else
   if (present(oinp)) o%o = oinp
@@ -972,16 +854,17 @@ if (rotationRangeCheck) ierr = o%o_check()
 end function o_constructor
 
 !--------------------------------------------------------------------------
-subroutine o_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine o_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: o_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the o_T Class
- 
+
 IMPLICIT NONE
 
-type(o_T), INTENT(INOUT)  :: self 
+type(o_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('o_T')
 
@@ -989,20 +872,21 @@ end subroutine o_destructor
 
 !--------------------------------------------------------------------------
 type(h_T) function h_constructor( hinp, hdinp ) result(h)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the h_T Class 
- 
+!! constructor for the h_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: hinp(3)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: hdinp(3)
 
-integer(kind=irg)                    :: ierr 
+integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(hdinp)) h%hd = hdinp
 else
   if (present(hinp)) h%h = hinp
@@ -1013,16 +897,17 @@ if (rotationRangeCheck) ierr = h%h_check()
 end function h_constructor
 
 !--------------------------------------------------------------------------
-subroutine h_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine h_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: h_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the h_T Class
- 
+
 IMPLICIT NONE
 
-type(h_T), INTENT(INOUT)  :: self 
+type(h_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('h_T')
 
@@ -1030,20 +915,21 @@ end subroutine h_destructor
 
 !--------------------------------------------------------------------------
 type(a_T) function a_constructor( ainp, adinp ) result(a)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: a_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the a_T Class 
- 
+!! constructor for the a_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: ainp(4)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: adinp(4)
 
-integer(kind=irg)                    :: ierr 
+integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(adinp)) a%ad = adinp
 else
   if (present(ainp)) a%a = ainp
@@ -1054,16 +940,17 @@ if (rotationRangeCheck) ierr = a%a_check()
 end function a_constructor
 
 !--------------------------------------------------------------------------
-subroutine a_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine a_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: a_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the a_T Class
- 
+
 IMPLICIT NONE
 
-type(a_T), INTENT(INOUT)  :: self 
+type(a_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('a_T')
 
@@ -1071,20 +958,21 @@ end subroutine a_destructor
 
 !--------------------------------------------------------------------------
 type(v_T) function v_constructor( vinp, vdinp ) result(v)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: v_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the v_T Class 
- 
+!! constructor for the v_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: vinp(3)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: vdinp(3)
 
-integer(kind=irg)                    :: ierr 
+integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(vdinp)) v%vd = vdinp
 else
   if (present(vinp)) v%v = vinp
@@ -1095,16 +983,17 @@ if (rotationRangeCheck) ierr = v%v_check()
 end function v_constructor
 
 !--------------------------------------------------------------------------
-subroutine v_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine v_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: v_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the v_T Class
- 
+
 IMPLICIT NONE
 
-type(v_T), INTENT(INOUT)  :: self 
+type(v_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('v_T')
 
@@ -1112,20 +1001,21 @@ end subroutine v_destructor
 
 !--------------------------------------------------------------------------
 type(c_T) function c_constructor( cinp, cdinp ) result(c)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: c_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the c_T Class 
- 
+!! constructor for the c_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: cinp(3)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: cdinp(3)
 
-integer(kind=irg)                    :: ierr 
+integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(cdinp)) c%cd = cdinp
 else
   if (present(cinp)) c%c = cinp
@@ -1136,16 +1026,17 @@ if (rotationRangeCheck) ierr = c%c_check()
 end function c_constructor
 
 !--------------------------------------------------------------------------
-subroutine c_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine c_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: c_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the c_T Class
- 
+
 IMPLICIT NONE
 
-type(c_T), INTENT(INOUT)  :: self 
+type(c_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('c_T')
 
@@ -1153,20 +1044,21 @@ end subroutine c_destructor
 
 !--------------------------------------------------------------------------
 type(e_T) function e_constructor( einp, edinp ) result(e)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: e_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the e_T Class 
- 
+!! constructor for the e_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: einp(3)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: edinp(3)
 
-integer(kind=irg)                    :: ierr 
+integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(edinp)) e%ed = edinp
 else
   if (present(einp)) e%e = einp
@@ -1177,16 +1069,17 @@ if (rotationRangeCheck) ierr = e%e_check()
 end function e_constructor
 
 !--------------------------------------------------------------------------
-subroutine e_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine e_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: e_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the e_T Class
- 
+
 IMPLICIT NONE
 
-type(e_T), INTENT(INOUT)  :: self 
+type(e_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('e_T')
 
@@ -1194,20 +1087,21 @@ end subroutine e_destructor
 
 !--------------------------------------------------------------------------
 type(q_T) function q_constructor( qinp, qdinp ) result(q)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: q_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! constructor for the q_T Class 
- 
+!! constructor for the q_T Class
+
 IMPLICIT NONE
 
 real(kind=sgl),INTENT(IN),OPTIONAL   :: qinp(4)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: qdinp(4)
 
-integer(kind=irg)                    :: ierr 
+integer(kind=irg)                    :: ierr
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   if (present(qdinp)) q%qd = qdinp
 else
   if (present(qinp)) q%q = qinp
@@ -1218,16 +1112,17 @@ if (rotationRangeCheck) ierr = q%q_check()
 end function q_constructor
 
 !--------------------------------------------------------------------------
-subroutine q_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine q_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: q_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the q_T Class
- 
+
 IMPLICIT NONE
 
-type(q_T), INTENT(INOUT)  :: self 
+type(q_T), INTENT(INOUT)  :: self
 
 ! call reportDestructor('q_T')
 
@@ -1235,17 +1130,18 @@ end subroutine q_destructor
 
 !--------------------------------------------------------------------------
 type(orientation_T) function orientation_constructor( p ) result(or)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: orientation_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/18/20
 !!
-!! constructor for the orientation_T Class 
+!! constructor for the orientation_T Class
 
-class(*), INTENT(INOUT)      :: p 
+class(*), INTENT(INOUT)      :: p
 
 select type (p)
   class is (e_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%e = e_T( edinp = p%ed )
     else
       or%e = e_T( einp = p%e )
@@ -1259,7 +1155,7 @@ select type (p)
     or%s = or%e%es()
     or%v = or%e%ev()
   class is (o_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%o = o_T( odinp = p%od )
     else
       or%o = o_T( oinp = p%o )
@@ -1273,7 +1169,7 @@ select type (p)
     or%s = or%o%os()
     or%v = or%o%ov()
   class is (a_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%a = a_T( adinp = p%ad )
     else
       or%a = a_T( ainp = p%a )
@@ -1285,9 +1181,9 @@ select type (p)
     or%q = or%a%aq()
     or%h = or%a%ah()
     or%c = or%a%ac()
-    or%r = or%a%ar() 
+    or%r = or%a%ar()
   class is (r_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%r = r_T( rdinp = p%rd )
     else
       or%r = r_T( rinp = p%r )
@@ -1301,7 +1197,7 @@ select type (p)
     or%s = or%r%rs()
     or%v = or%r%rv()
   class is (q_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%q = q_T( qdinp = p%qd )
     else
       or%q = q_T( qinp = p%q )
@@ -1315,7 +1211,7 @@ select type (p)
     or%c = or%q%qc()
     or%r = or%q%qr()
   class is (h_t)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%h = h_T( hdinp = p%hd )
     else
       or%h = h_T( hinp = p%h )
@@ -1329,7 +1225,7 @@ select type (p)
     or%s = or%h%hs()
     or%r = or%h%hr()
   class is (c_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%c = c_T( cdinp = p%cd )
     else
       or%c = c_T( cinp = p%c )
@@ -1343,7 +1239,7 @@ select type (p)
     or%s = or%c%cs()
     or%r = or%c%cr()
   class is (s_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%s = s_T( sdinp = p%sd )
     else
       or%s = s_T( sinp = p%s)
@@ -1357,7 +1253,7 @@ select type (p)
     or%c = or%s%sc()
     or%r = or%s%sr()
   class is (v_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       or%v = v_T( vdinp = p%vd )
     else
       or%v = v_T( vinp = p%v )
@@ -1370,28 +1266,28 @@ select type (p)
     or%h = or%v%vh()
     or%c = or%v%vc()
     or%r = or%v%vr()
-  class default 
-end select 
+  class default
+end select
 
 end function orientation_constructor
 
-! this is commented out because the gfortran 6.3.1 compiler produces an internal compiler error 
+! this is commented out because the gfortran 6.3.1 compiler produces an internal compiler error
 ! f951: internal compiler error: in generate_finalization_wrapper, at fortran/class.c:1974
 
 ! f951: internal compiler error: Abort trap: 6
 ! gfortran: internal compiler error: Abort trap: 6 (program f951)
 
 ! !--------------------------------------------------------------------------
-! subroutine orientation_destructor(self) 
-! !! author: MDG 
-! !! version: 1.0 
+! subroutine orientation_destructor(self)
+! !! author: MDG
+! !! version: 1.0
 ! !! date: 02/02/20
 ! !!
 ! !! destructor for the orientation_T Class
- 
+
 ! IMPLICIT NONE
 
-! type(orientation_T), INTENT(INOUT)  :: self 
+! type(orientation_T), INTENT(INOUT)  :: self
 
 ! ! call reportDestructor('orientation_T')
 
@@ -1399,17 +1295,18 @@ end function orientation_constructor
 
 !--------------------------------------------------------------------------
 function getQfromClass( p ) result(q)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getQfromClass
+!! author: MDG
+!! version: 1.0
 !! date: 01/18/20
 !!
 !! take an arbitrary rotation class and convert it to the q_T class
 
-use mod_quaternions 
+use mod_quaternions
 
-class(*), INTENT(INOUT)      :: p 
+class(*), INTENT(INOUT)      :: p
 
-type(Quaternion_T)           :: q 
+type(Quaternion_T)           :: q
 type(q_T)                    :: qq
 
 select type (p)
@@ -1431,8 +1328,8 @@ select type (p)
     qq = p%vq()
   class is (q_T)
     qq = p
-  class default 
-end select 
+  class default
+end select
 
 q = Quaternion_T( qd = qq%q_copyd() )
 
@@ -1440,24 +1337,25 @@ end function getQfromClass
 
 !--------------------------------------------------------------------------
 recursive subroutine print_orientation_(self, degrad)
+!DEC$ ATTRIBUTES DLLEXPORT :: print_orientation_
  !! author: MDG
  !! version: 1.0
  !! date: 01/18/20
  !!
- !! prints a complete orientationtype record 
+ !! prints a complete orientationtype record
 
 use mod_io
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 character(1),INTENT(IN)                 :: degrad
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 real(kind=sgl)                          :: ioreal(4)
 
 ! print the entire record with all representations
-  if (degrad.eq.'d') then 
+  if (degrad.eq.'d') then
     call Message%printMessage('Angles in degrees')
 
     call toDegrees(self%e)
@@ -1467,13 +1365,13 @@ real(kind=sgl)                          :: ioreal(4)
     call toDegrees(self%a)
     call self%a%a_print('Axis angle pair [n; angle]       : ')
     call toRadians(self%a)
-  else 
+  else
     call Message%printMessage('Angles in radians')
 
     call self%e%e_print('Euler angles                     : ')
 
     call self%a%a_print('Axis angle pair [n; angle]       : ')
-  end if 
+  end if
 
   call self%r%r_print('Rodrigues vector                 : ')
   call self%h%h_print('Homochoric representation        : ')
@@ -1489,16 +1387,17 @@ end subroutine print_orientation_
 
 !--------------------------------------------------------------------------
 recursive function getClass_e_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_e_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(e_T)                               :: e 
+class(orientation_T),INTENT(INOUT)      :: self
+type(e_T)                               :: e
 
 e = self%e
 
@@ -1506,16 +1405,17 @@ end function getClass_e_
 
 !--------------------------------------------------------------------------
 recursive function getClass_o_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_o_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(o_T)                               :: o 
+class(orientation_T),INTENT(INOUT)      :: self
+type(o_T)                               :: o
 
 o = self%o
 
@@ -1523,16 +1423,17 @@ end function getClass_o_
 
 !--------------------------------------------------------------------------
 recursive function getClass_a_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_a_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(a_T)                               :: a 
+class(orientation_T),INTENT(INOUT)      :: self
+type(a_T)                               :: a
 
 a = self%a
 
@@ -1540,16 +1441,17 @@ end function getClass_a_
 
 !--------------------------------------------------------------------------
 recursive function getClass_r_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_r_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(r_T)                               :: r 
+class(orientation_T),INTENT(INOUT)      :: self
+type(r_T)                               :: r
 
 r = self%r
 
@@ -1557,16 +1459,17 @@ end function getClass_r_
 
 !--------------------------------------------------------------------------
 recursive function getClass_q_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT ::  getClass_q_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(q_T)                               :: q 
+class(orientation_T),INTENT(INOUT)      :: self
+type(q_T)                               :: q
 
 q = self%q
 
@@ -1574,16 +1477,17 @@ end function getClass_q_
 
 !--------------------------------------------------------------------------
 recursive function getClass_h_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_h_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(h_T)                               :: h 
+class(orientation_T),INTENT(INOUT)      :: self
+type(h_T)                               :: h
 
 h = self%h
 
@@ -1591,16 +1495,17 @@ end function getClass_h_
 
 !--------------------------------------------------------------------------
 recursive function getClass_c_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_c_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(c_T)                               :: c 
+class(orientation_T),INTENT(INOUT)      :: self
+type(c_T)                               :: c
 
 c = self%c
 
@@ -1608,16 +1513,17 @@ end function getClass_c_
 
 !--------------------------------------------------------------------------
 recursive function getClass_s_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_s_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(s_T)                               :: s 
+class(orientation_T),INTENT(INOUT)      :: self
+type(s_T)                               :: s
 
 s = self%s
 
@@ -1625,16 +1531,17 @@ end function getClass_s_
 
 !--------------------------------------------------------------------------
 recursive function getClass_v_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: getClass_v_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
-type(v_T)                               :: v 
+class(orientation_T),INTENT(INOUT)      :: self
+type(v_T)                               :: v
 
 v = self%v
 
@@ -1642,15 +1549,16 @@ end function getClass_v_
 
 !--------------------------------------------------------------------------
 recursive function get_e_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_e_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: e(3)
 
 e = self%e%e
@@ -1659,15 +1567,16 @@ end function get_e_
 
 !--------------------------------------------------------------------------
 recursive function get_ed_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ed_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: e(3)
 
 e = self%e%ed
@@ -1676,15 +1585,16 @@ end function get_ed_
 
 !--------------------------------------------------------------------------
 recursive function get_o_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_o_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: o(3,3)
 
 o = self%o%o
@@ -1693,15 +1603,16 @@ end function get_o_
 
 !--------------------------------------------------------------------------
 recursive function get_od_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_od_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: o(3,3)
 
 o = self%o%od
@@ -1710,15 +1621,16 @@ end function get_od_
 
 !--------------------------------------------------------------------------
 recursive function get_a_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_a_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: a(4)
 
 a = self%a%a
@@ -1727,15 +1639,16 @@ end function get_a_
 
 !--------------------------------------------------------------------------
 recursive function get_ad_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ad_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: a(4)
 
 a = self%a%ad
@@ -1744,15 +1657,16 @@ end function get_ad_
 
 !--------------------------------------------------------------------------
 recursive function get_r_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_r_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: r(4)
 
 r = self%r%r
@@ -1761,15 +1675,16 @@ end function get_r_
 
 !--------------------------------------------------------------------------
 recursive function get_rd_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_rd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: r(4)
 
 r = self%r%rd
@@ -1778,15 +1693,16 @@ end function get_rd_
 
 !--------------------------------------------------------------------------
 recursive function get_q_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_q_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: q(4)
 
 q = self%q%q
@@ -1795,15 +1711,16 @@ end function get_q_
 
 !--------------------------------------------------------------------------
 recursive function get_qd_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_qd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: q(4)
 
 q = self%q%qd
@@ -1812,15 +1729,16 @@ end function get_qd_
 
 !--------------------------------------------------------------------------
 recursive function get_h_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_h_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: h(3)
 
 h = self%h%h
@@ -1829,15 +1747,16 @@ end function get_h_
 
 !--------------------------------------------------------------------------
 recursive function get_hd_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_hd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: h(3)
 
 h = self%h%hd
@@ -1846,15 +1765,16 @@ end function get_hd_
 
 !--------------------------------------------------------------------------
 recursive function get_c_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_c_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: c(3)
 
 c = self%c%c
@@ -1863,15 +1783,16 @@ end function get_c_
 
 !--------------------------------------------------------------------------
 recursive function get_cd_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_cd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: c(3)
 
 c = self%c%cd
@@ -1880,15 +1801,16 @@ end function get_cd_
 
 !--------------------------------------------------------------------------
 recursive function get_s_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_s_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: s(3)
 
 s = self%s%s
@@ -1897,15 +1819,16 @@ end function get_s_
 
 !--------------------------------------------------------------------------
 recursive function get_sd_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_sd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: s(3)
 
 s = self%s%sd
@@ -1914,15 +1837,16 @@ end function get_sd_
 
 !--------------------------------------------------------------------------
 recursive function get_v_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_v_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=sgl)                          :: v(3)
 
 v = self%v%v
@@ -1931,15 +1855,16 @@ end function get_v_
 
 !--------------------------------------------------------------------------
 recursive function get_vd_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_vd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(orientation_T),INTENT(INOUT)      :: self 
+class(orientation_T),INTENT(INOUT)      :: self
 real(kind=dbl)                          :: v(3)
 
 v = self%v%vd
@@ -1948,15 +1873,16 @@ end function get_vd_
 
 !--------------------------------------------------------------------------
 recursive function e_copy_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: e_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(e_T),INTENT(INOUT)      :: self 
+class(e_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: e(3)
 
 e = self%e
@@ -1965,15 +1891,16 @@ end function e_copy_
 
 !--------------------------------------------------------------------------
 recursive function e_copyd_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: e_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(e_T),INTENT(INOUT)      :: self 
+class(e_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: e(3)
 
 e = self%ed
@@ -1982,15 +1909,16 @@ end function e_copyd_
 
 !--------------------------------------------------------------------------
 recursive function o_copy_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: o_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(o_T),INTENT(INOUT)      :: self 
+class(o_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: o(3,3)
 
 o = self%o
@@ -1999,15 +1927,16 @@ end function o_copy_
 
 !--------------------------------------------------------------------------
 recursive function o_copyd_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: o_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(o_T),INTENT(INOUT)      :: self 
+class(o_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: o(3,3)
 
 o = self%od
@@ -2016,15 +1945,16 @@ end function o_copyd_
 
 !--------------------------------------------------------------------------
 recursive function a_copy_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: a_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(a_T),INTENT(INOUT)      :: self 
+class(a_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: a(4)
 
 a = self%a
@@ -2033,15 +1963,16 @@ end function a_copy_
 
 !--------------------------------------------------------------------------
 recursive function a_copyd_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: a_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(a_T),INTENT(INOUT)      :: self 
+class(a_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: a(4)
 
 a = self%ad
@@ -2050,15 +1981,16 @@ end function a_copyd_
 
 !--------------------------------------------------------------------------
 recursive function r_copy_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: r_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(r_T),INTENT(INOUT)      :: self 
+class(r_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: r(4)
 
 r = self%r
@@ -2067,15 +1999,16 @@ end function r_copy_
 
 !--------------------------------------------------------------------------
 recursive function r_copyd_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: r_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(r_T),INTENT(INOUT)      :: self 
+class(r_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: r(4)
 
 r = self%rd
@@ -2084,15 +2017,16 @@ end function r_copyd_
 
 !--------------------------------------------------------------------------
 recursive function q_copy_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: q_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(q_T),INTENT(INOUT)      :: self 
+class(q_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: q(4)
 
 q = self%q
@@ -2101,15 +2035,16 @@ end function q_copy_
 
 !--------------------------------------------------------------------------
 recursive function q_copyd_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: q_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(q_T),INTENT(INOUT)      :: self 
+class(q_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: q(4)
 
 q = self%qd
@@ -2118,15 +2053,16 @@ end function q_copyd_
 
 !--------------------------------------------------------------------------
 recursive function h_copy_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: h_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(h_T),INTENT(INOUT)      :: self 
+class(h_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: h(3)
 
 h = self%h
@@ -2135,15 +2071,16 @@ end function h_copy_
 
 !--------------------------------------------------------------------------
 recursive function h_copyd_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: h_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(h_T),INTENT(INOUT)      :: self 
+class(h_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: h(3)
 
 h = self%hd
@@ -2152,15 +2089,16 @@ end function h_copyd_
 
 !--------------------------------------------------------------------------
 recursive function c_copy_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: c_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(c_T),INTENT(INOUT)      :: self 
+class(c_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: c(3)
 
 c = self%c
@@ -2169,15 +2107,16 @@ end function c_copy_
 
 !--------------------------------------------------------------------------
 recursive function c_copyd_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: c_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(c_T),INTENT(INOUT)      :: self 
+class(c_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: c(3)
 
 c = self%cd
@@ -2186,15 +2125,16 @@ end function c_copyd_
 
 !--------------------------------------------------------------------------
 recursive function s_copy_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: s_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(s_T),INTENT(INOUT)      :: self 
+class(s_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: s(3)
 
 s = self%s
@@ -2203,15 +2143,16 @@ end function s_copy_
 
 !--------------------------------------------------------------------------
 recursive function s_copyd_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: s_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(s_T),INTENT(INOUT)      :: self 
+class(s_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: s(3)
 
 s = self%sd
@@ -2220,15 +2161,16 @@ end function s_copyd_
 
 !--------------------------------------------------------------------------
 recursive function v_copy_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: v_copy_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(v_T),INTENT(INOUT)      :: self 
+class(v_T),INTENT(INOUT)      :: self
 real(kind=sgl)                :: v(3)
 
 v = self%v
@@ -2237,15 +2179,16 @@ end function v_copy_
 
 !--------------------------------------------------------------------------
 recursive function v_copyd_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: v_copyd_
  !! author: MDG
  !! version: 1.0
  !! date: 01/20/20
  !!
- !! extract a member from the orientations class 
+ !! extract a member from the orientations class
 
 IMPLICIT NONE
 
-class(v_T),INTENT(INOUT)      :: self 
+class(v_T),INTENT(INOUT)      :: self
 real(kind=dbl)                :: v(3)
 
 v = self%vd
@@ -2254,6 +2197,7 @@ end function v_copyd_
 
 !--------------------------------------------------------------------------
 recursive subroutine r_set_(self, r)
+!DEC$ ATTRIBUTES DLLEXPORT :: r_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2262,7 +2206,7 @@ recursive subroutine r_set_(self, r)
 
 IMPLICIT NONE
 
-class(r_T),INTENT(INOUT)      :: self 
+class(r_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: r(4)
 
 self%r = r
@@ -2271,6 +2215,7 @@ end subroutine r_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine r_setd_(self, r)
+!DEC$ ATTRIBUTES DLLEXPORT :: r_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2279,7 +2224,7 @@ recursive subroutine r_setd_(self, r)
 
 IMPLICIT NONE
 
-class(r_T),INTENT(INOUT)      :: self 
+class(r_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: r(4)
 
 self%rd = r
@@ -2288,6 +2233,7 @@ end subroutine r_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine v_set_(self, v)
+!DEC$ ATTRIBUTES DLLEXPORT :: v_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2296,7 +2242,7 @@ recursive subroutine v_set_(self, v)
 
 IMPLICIT NONE
 
-class(v_T),INTENT(INOUT)      :: self 
+class(v_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: v(3)
 
 self%v = v
@@ -2305,6 +2251,7 @@ end subroutine v_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine v_setd_(self, v)
+!DEC$ ATTRIBUTES DLLEXPORT :: v_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2313,7 +2260,7 @@ recursive subroutine v_setd_(self, v)
 
 IMPLICIT NONE
 
-class(v_T),INTENT(INOUT)      :: self 
+class(v_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: v(3)
 
 self%vd = v
@@ -2322,6 +2269,7 @@ end subroutine v_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine a_set_(self, a)
+!DEC$ ATTRIBUTES DLLEXPORT :: a_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2330,7 +2278,7 @@ recursive subroutine a_set_(self, a)
 
 IMPLICIT NONE
 
-class(a_T),INTENT(INOUT)      :: self 
+class(a_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: a(4)
 
 self%a = a
@@ -2339,6 +2287,7 @@ end subroutine a_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine a_setd_(self, a)
+!DEC$ ATTRIBUTES DLLEXPORT :: a_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2347,7 +2296,7 @@ recursive subroutine a_setd_(self, a)
 
 IMPLICIT NONE
 
-class(a_T),INTENT(INOUT)      :: self 
+class(a_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: a(4)
 
 self%ad = a
@@ -2356,6 +2305,7 @@ end subroutine a_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine q_set_(self, q)
+!DEC$ ATTRIBUTES DLLEXPORT :: q_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2364,7 +2314,7 @@ recursive subroutine q_set_(self, q)
 
 IMPLICIT NONE
 
-class(q_T),INTENT(INOUT)      :: self 
+class(q_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: q(4)
 
 self%q = q
@@ -2373,6 +2323,7 @@ end subroutine q_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine q_setd_(self, q)
+!DEC$ ATTRIBUTES DLLEXPORT :: q_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2381,7 +2332,7 @@ recursive subroutine q_setd_(self, q)
 
 IMPLICIT NONE
 
-class(q_T),INTENT(INOUT)      :: self 
+class(q_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: q(4)
 
 self%qd = q
@@ -2390,6 +2341,7 @@ end subroutine q_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine s_set_(self, s)
+!DEC$ ATTRIBUTES DLLEXPORT :: s_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2398,7 +2350,7 @@ recursive subroutine s_set_(self, s)
 
 IMPLICIT NONE
 
-class(s_T),INTENT(INOUT)      :: self 
+class(s_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: s(3)
 
 self%s = s
@@ -2407,6 +2359,7 @@ end subroutine s_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine s_setd_(self, s)
+!DEC$ ATTRIBUTES DLLEXPORT :: s_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2415,7 +2368,7 @@ recursive subroutine s_setd_(self, s)
 
 IMPLICIT NONE
 
-class(s_T),INTENT(INOUT)      :: self 
+class(s_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: s(3)
 
 self%sd = s
@@ -2424,6 +2377,7 @@ end subroutine s_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine h_set_(self, h)
+!DEC$ ATTRIBUTES DLLEXPORT :: h_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2432,7 +2386,7 @@ recursive subroutine h_set_(self, h)
 
 IMPLICIT NONE
 
-class(h_T),INTENT(INOUT)      :: self 
+class(h_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: h(3)
 
 self%h = h
@@ -2441,6 +2395,7 @@ end subroutine h_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine h_setd_(self, h)
+!DEC$ ATTRIBUTES DLLEXPORT :: h_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2449,7 +2404,7 @@ recursive subroutine h_setd_(self, h)
 
 IMPLICIT NONE
 
-class(h_T),INTENT(INOUT)      :: self 
+class(h_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: h(3)
 
 self%hd = h
@@ -2458,6 +2413,7 @@ end subroutine h_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine c_set_(self, c)
+!DEC$ ATTRIBUTES DLLEXPORT :: c_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2466,7 +2422,7 @@ recursive subroutine c_set_(self, c)
 
 IMPLICIT NONE
 
-class(c_T),INTENT(INOUT)      :: self 
+class(c_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: c(3)
 
 self%c = c
@@ -2475,6 +2431,7 @@ end subroutine c_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine c_setd_(self, c)
+!DEC$ ATTRIBUTES DLLEXPORT :: c_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2483,7 +2440,7 @@ recursive subroutine c_setd_(self, c)
 
 IMPLICIT NONE
 
-class(c_T),INTENT(INOUT)      :: self 
+class(c_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: c(3)
 
 self%cd = c
@@ -2492,6 +2449,7 @@ end subroutine c_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine e_set_(self, e)
+!DEC$ ATTRIBUTES DLLEXPORT :: e_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2500,7 +2458,7 @@ recursive subroutine e_set_(self, e)
 
 IMPLICIT NONE
 
-class(e_T),INTENT(INOUT)      :: self 
+class(e_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: e(3)
 
 self%e = e
@@ -2509,6 +2467,7 @@ end subroutine e_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine e_setd_(self, e)
+!DEC$ ATTRIBUTES DLLEXPORT :: e_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2517,7 +2476,7 @@ recursive subroutine e_setd_(self, e)
 
 IMPLICIT NONE
 
-class(e_T),INTENT(INOUT)      :: self 
+class(e_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: e(3)
 
 self%ed = e
@@ -2526,6 +2485,7 @@ end subroutine e_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine o_set_(self, o)
+!DEC$ ATTRIBUTES DLLEXPORT :: o_set_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2534,7 +2494,7 @@ recursive subroutine o_set_(self, o)
 
 IMPLICIT NONE
 
-class(o_T),INTENT(INOUT)      :: self 
+class(o_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)     :: o(3,3)
 
 self%o = o
@@ -2543,6 +2503,7 @@ end subroutine o_set_
 
 !--------------------------------------------------------------------------
 recursive subroutine o_setd_(self, o)
+!DEC$ ATTRIBUTES DLLEXPORT :: o_setd_
  !! author: MDG
  !! version: 1.0
  !! date: 02/17/20
@@ -2551,7 +2512,7 @@ recursive subroutine o_setd_(self, o)
 
 IMPLICIT NONE
 
-class(o_T),INTENT(INOUT)      :: self 
+class(o_T),INTENT(INOUT)      :: self
 real(kind=dbl),INTENT(IN)     :: o(3,3)
 
 self%od = o
@@ -2561,202 +2522,212 @@ end subroutine o_setd_
 
 !--------------------------------------------------------------------------
 recursive subroutine toDegrees(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: toDegrees
  !! author: MDG
  !! version: 1.0
  !! date: 01/18/20
  !!
- !! convert the representation to degrees; uses an unlimited polymorphic entity 
+ !! convert the representation to degrees; uses an unlimited polymorphic entity
  !!
- !! the only representations that actually use angles are Euler and axis-angle 
+ !! the only representations that actually use angles are Euler and axis-angle
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(*), intent(inout)  :: self 
+class(*), intent(inout)  :: self
 
 select type(self)
   class is (e_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       self%ed = self%ed * rtod
-    else 
+    else
       self%e = self%e * sngl(rtod)
-    end if 
+    end if
 
   class is (a_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       self%ad(4) = self%ad(4) * rtod
-    else 
+    else
       self%a(4) = self%a(4) * sngl(rtod)
-    end if 
+    end if
 
   class default
-end select 
+end select
 
 end subroutine toDegrees
 
 !--------------------------------------------------------------------------
 recursive subroutine toRadians(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: toRadians
  !! author: MDG
  !! version: 1.0
  !! date: 01/18/20
  !!
- !! convert the representation to radians; uses an unlimited polymorphic entity 
+ !! convert the representation to radians; uses an unlimited polymorphic entity
  !!
- !! the only representations that actually use angles are Euler and axis-angle 
+ !! the only representations that actually use angles are Euler and axis-angle
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(*), intent(inout)  :: self 
+class(*), intent(inout)  :: self
 
 select type(self)
   class is (e_T)
-    if (rotdoubleprecision) then 
-      self%ed = self%ed * dtor 
-    else 
+    if (rotdoubleprecision) then
+      self%ed = self%ed * dtor
+    else
       self%e = self%e * sngl(dtor)
-    end if 
+    end if
 
   class is (a_T)
-    if (rotdoubleprecision) then 
+    if (rotdoubleprecision) then
       self%ad(4) = self%ad(4) * dtor
-    else 
+    else
       self%a(4) = self%a(4) * sngl(dtor)
-    end if 
+    end if
 
   class default
-end select 
+end select
 
 end subroutine toRadians
 
 !--------------------------------------------------------------------------
-recursive function toDegrees_scalard( r ) result(d) 
+recursive function toDegrees_scalard( r ) result(d)
+!DEC$ ATTRIBUTES DLLEXPORT :: toDegrees_scalard
  !! author: MDG
  !! version: 1.0
  !! date: 01/19/20
  !!
  !! convert single angle to degrees (double precision)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-real(kind=dbl), INTENT(IN)    :: r 
-real(kind=dbl)                :: d 
+real(kind=dbl), INTENT(IN)    :: r
+real(kind=dbl)                :: d
 
-d = r * rtod 
+d = r * rtod
 
 end function toDegrees_scalard
 
 !--------------------------------------------------------------------------
-recursive function toDegrees_scalars( r ) result(s) 
+recursive function toDegrees_scalars( r ) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: toDegrees_scalars
  !! author: MDG
  !! version: 1.0
  !! date: 01/19/20
  !!
  !! convert single angle to degrees (single precision)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-real(kind=sgl), INTENT(IN)    :: r 
-real(kind=sgl)                :: s 
+real(kind=sgl), INTENT(IN)    :: r
+real(kind=sgl)                :: s
 
-s = r * sngl(rtod) 
+s = r * sngl(rtod)
 
 end function toDegrees_scalars
 
 !--------------------------------------------------------------------------
-recursive function toRadians_scalard( d ) result(r) 
+recursive function toRadians_scalard( d ) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: toRadians_scalard
  !! author: MDG
  !! version: 1.0
  !! date: 01/19/20
  !!
  !! convert single angle to radians (double precision)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-real(kind=dbl), INTENT(IN)    :: d 
-real(kind=dbl)                :: r 
+real(kind=dbl), INTENT(IN)    :: d
+real(kind=dbl)                :: r
 
 r = d * dtor
 
 end function toRadians_scalard
 
 !--------------------------------------------------------------------------
-recursive function toRadians_scalars( d ) result(s) 
+recursive function toRadians_scalars( d ) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: toRadians_scalars
  !! author: MDG
  !! version: 1.0
  !! date: 01/19/20
  !!
  !! convert single angle to radians (single precision)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-real(kind=sgl), INTENT(IN)    :: d 
-real(kind=sgl)                :: s 
+real(kind=sgl), INTENT(IN)    :: d
+real(kind=sgl)                :: s
 
 s = d * sngl(dtor)
 
 end function toRadians_scalars
 
 !--------------------------------------------------------------------------
-recursive function toDegrees_vectord( r ) result(d) 
+recursive function toDegrees_vectord( r ) result(d)
+!DEC$ ATTRIBUTES DLLEXPORT :: toDegrees_vectord
  !! author: MDG
  !! version: 1.0
  !! date: 01/19/20
  !!
  !! convert single angle to degrees (double precision)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-real(kind=dbl), INTENT(IN)    :: r(:) 
+real(kind=dbl), INTENT(IN)    :: r(:)
 real(kind=dbl)                :: d(size(r))
 
-d = r * rtod 
+d = r * rtod
 
 end function toDegrees_vectord
 
 !--------------------------------------------------------------------------
-recursive function toDegrees_vectors( r ) result(s) 
+recursive function toDegrees_vectors( r ) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: toDegrees_vectors
  !! author: MDG
  !! version: 1.0
  !! date: 01/19/20
  !!
  !! convert single angle to degrees (double precision)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 real(kind=sgl), INTENT(IN)    :: r(:)
-real(kind=sgl)                :: s(size(r)) 
+real(kind=sgl)                :: s(size(r))
 
-s = r * sngl(rtod) 
+s = r * sngl(rtod)
 
 end function toDegrees_vectors
 
 !--------------------------------------------------------------------------
-recursive function toRadians_vectord( d ) result(r) 
+recursive function toRadians_vectord( d ) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: toRadians_vectord
  !! author: MDG
  !! version: 1.0
  !! date: 01/19/20
  !!
  !! convert single angle to radians (double precision)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-real(kind=dbl), INTENT(IN)    :: d(:) 
-real(kind=dbl)                :: r(size(d)) 
+real(kind=dbl), INTENT(IN)    :: d(:)
+real(kind=dbl)                :: r(size(d))
 
 r = d * dtor
 
 end function toRadians_vectord
 
 !--------------------------------------------------------------------------
-recursive function toRadians_vectors( d ) result(s) 
+recursive function toRadians_vectors( d ) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: toRadians_vectors
  !! author: MDG
  !! version: 1.0
  !! date: 01/19/20
  !!
  !! convert single angle to radians (single precision)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-real(kind=sgl), INTENT(IN)    :: d(:) 
+real(kind=sgl), INTENT(IN)    :: d(:)
 real(kind=sgl)                :: s(size(d))
 
 s = d * sngl(dtor)
@@ -2772,6 +2743,7 @@ end function toRadians_vectors
 
 !------------------------------------------
 recursive function r_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: r_check_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -2786,21 +2758,21 @@ class(r_T), intent(inout)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
-real(kind=sgl)             :: r 
-real(kind=dbl)             :: rd 
+real(kind=sgl)             :: r
+real(kind=dbl)             :: rd
 
 
 res = 1
 
 if (rotdoubleprecision) then
-  if (self%rd(4).lt.0.D0) then 
+  if (self%rd(4).lt.0.D0) then
      call Message%printMessage('rotations:r_check: Rodrigues-Frank vector has negative length')
   endif
   rd = dsqrt(sum(self%rd(1:3)*self%rd(1:3)))
   self%rd(1:3) = self%rd(1:3) / rd
   res = 0
 else
-  if (self%r(4).lt.0.0) then 
+  if (self%r(4).lt.0.0) then
      call Message%printMessage('rotations:r_check: Rodrigues-Frank vector has negative length')
   endif
   r = sqrt(sum(self%r(1:3)*self%r(1:3)))
@@ -2812,6 +2784,7 @@ end function r_check_
 
 !------------------------------------------
 recursive function s_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: s_check_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -2851,6 +2824,7 @@ end function s_check_
 
 !------------------------------------------
 recursive function o_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: o_check_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -2915,6 +2889,7 @@ end function o_check_
 
 !------------------------------------------
 recursive function h_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: h_check_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -2951,6 +2926,7 @@ end function h_check_
 
 !------------------------------------------
 recursive function a_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: a_check_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -2996,6 +2972,7 @@ end function a_check_
 
 !------------------------------------------
 recursive function v_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: v_check_
  !! author: Saransh Singh/MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3036,6 +3013,7 @@ end function v_check_
 
 !------------------------------------------
 recursive function c_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: c_check_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3073,6 +3051,7 @@ end function c_check_
 
 !------------------------------------------
 recursive function e_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: e_check_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3091,24 +3070,24 @@ type(IO_t)                 :: Message
 res = 1
 
 if (rotdoubleprecision) then
-  if ((self%ed(1).lt.0.D0).or.(self%ed(1).gt.(2.D0*cPi))) then 
+  if ((self%ed(1).lt.0.D0).or.(self%ed(1).gt.(2.D0*cPi))) then
      call Message%printMessage('rotations:e_check: phi1 Euler angle outside of valid range [0,2pi]')
   endif
-  if ((self%ed(2).lt.0.D0).or.(self%ed(2).gt.cPi)) then 
+  if ((self%ed(2).lt.0.D0).or.(self%ed(2).gt.cPi)) then
      call Message%printMessage('rotations:e_check: Phi  Euler angle outside of valid range [0,pi]')
   endif
-  if ((self%ed(3).lt.0.D0).or.(self%ed(3).gt.(2.D0*cPi))) then 
+  if ((self%ed(3).lt.0.D0).or.(self%ed(3).gt.(2.D0*cPi))) then
      call Message%printMessage('rotations:e_check: phi2 Euler angle outside of valid range [0,2pi]')
   endif
   res = 0
 else
-  if ((self%e(1).lt.0.0).or.(self%e(1).gt.(2.0*sngl(cPi)))) then 
+  if ((self%e(1).lt.0.0).or.(self%e(1).gt.(2.0*sngl(cPi)))) then
      call Message%printMessage('rotations:e_check: phi1 Euler angle outside of valid range [0,2pi]')
   endif
-  if ((self%e(2).lt.0.0).or.(self%e(2).gt.cPi)) then 
+  if ((self%e(2).lt.0.0).or.(self%e(2).gt.cPi)) then
      call Message%printMessage('rotations:e_check: Phi  Euler angle outside of valid range [0,pi]')
   endif
-  if ((self%e(3).lt.0.0).or.(self%e(3).gt.(2.0*sngl(cPi)))) then 
+  if ((self%e(3).lt.0.0).or.(self%e(3).gt.(2.0*sngl(cPi)))) then
      call Message%printMessage('rotations:e_check: phi2 Euler angle outside of valid range [0,2pi]')
   endif
   res = 0
@@ -3118,6 +3097,8 @@ end function e_check_
 
 !------------------------------------------
 recursive function q_check_(self) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: q_check_
+
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3139,11 +3120,11 @@ res = 1
 
 if (rotdoubleprecision) then
   rd = dsqrt(sum(self%qd*self%qd))
-  self%qd = self%qd/rd 
+  self%qd = self%qd/rd
   res = 0
 else
   r = sqrt(sum(self%q*self%q))
-  self%q = self%q/r 
+  self%q = self%q/r
   res = 0
 end if
 
@@ -3157,14 +3138,15 @@ end function q_check_
 
 !--------------------------------------------------------------------------
 subroutine r_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: r_print_
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the r_T Class 
- 
-use mod_io 
- 
+!! print routine for the r_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(r_T), intent(inout)           :: self
@@ -3189,14 +3171,15 @@ end subroutine r_print_
 
 !--------------------------------------------------------------------------
 subroutine s_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: s_print_
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the s_T Class 
- 
-use mod_io 
- 
+!! print routine for the s_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(s_T), intent(inout)           :: self
@@ -3221,14 +3204,15 @@ end subroutine s_print_
 
 !--------------------------------------------------------------------------
 subroutine o_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: o_print_
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the o_T Class 
- 
-use mod_io 
- 
+!! print routine for the o_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(o_T), intent(inout)           :: self
@@ -3259,14 +3243,16 @@ end subroutine o_print_
 
 !--------------------------------------------------------------------------
 subroutine h_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h_print_
+
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the h_T Class 
- 
-use mod_io 
- 
+!! print routine for the h_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(h_T), intent(inout)           :: self
@@ -3291,14 +3277,15 @@ end subroutine h_print_
 
 !--------------------------------------------------------------------------
 subroutine a_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: a_print_
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the a_T Class 
- 
-use mod_io 
- 
+!! print routine for the a_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(a_T), intent(inout)           :: self
@@ -3323,14 +3310,15 @@ end subroutine a_print_
 
 !--------------------------------------------------------------------------
 subroutine v_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: v_print_
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the v_T Class 
- 
-use mod_io 
- 
+!! print routine for the v_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(v_T), intent(inout)           :: self
@@ -3355,14 +3343,15 @@ end subroutine v_print_
 
 !--------------------------------------------------------------------------
 subroutine c_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: c_print_
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the c_T Class 
- 
-use mod_io 
- 
+!! print routine for the c_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(c_T), intent(inout)           :: self
@@ -3387,14 +3376,15 @@ end subroutine c_print_
 
 !--------------------------------------------------------------------------
 subroutine e_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: e_print_
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the e_T Class 
- 
-use mod_io 
- 
+!! print routine for the e_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(e_T), intent(inout)           :: self
@@ -3419,14 +3409,15 @@ end subroutine e_print_
 
 !--------------------------------------------------------------------------
 subroutine q_print_(self, str)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: q_print_
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
-!! print routine for the q_T Class 
- 
-use mod_io 
- 
+!! print routine for the q_T Class
+
+use mod_io
+
 IMPLICIT NONE
 
 class(q_T), intent(inout)           :: self
@@ -3451,12 +3442,13 @@ end subroutine q_print_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! comparison routines 
+! comparison routines
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 recursive function close_enough(a,b) result(res)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: close_enough
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
 !! compares two reals and returns .TRUE. is they are closer than E-8 ! machine precision
@@ -3467,7 +3459,7 @@ real(kind=sgl),INTENT(IN)       :: a
 real(kind=sgl),INTENT(IN)       :: b
 logical                         :: res
 
-real(kind=sgl)                  :: eps = 1.E-08 ! epsilon(1.0) 
+real(kind=sgl)                  :: eps = 1.E-08 ! epsilon(1.0)
 
 res = .FALSE.
 if (abs(a-b).lt.eps) res = .TRUE.
@@ -3476,8 +3468,9 @@ end function close_enough
 
 !--------------------------------------------------------------------------
 recursive function close_enough_d(a,b) result(res)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: close_enough_d
+!! author: MDG
+!! version: 1.0
 !! date: 01/17/20
 !!
 !! compares two doubles and returns .TRUE. is they are closer than E-12 ! machine precision
@@ -3488,7 +3481,7 @@ real(kind=dbl),INTENT(IN)       :: a
 real(kind=dbl),INTENT(IN)       :: b
 logical                         :: res
 
-real(kind=dbl)                  :: eps = 1.D-12 ! epsilon(1.0D0) 
+real(kind=dbl)                  :: eps = 1.D-12 ! epsilon(1.0D0)
 
 res = .FALSE.
 if (dabs(a-b).lt.eps) res = .TRUE.
@@ -3503,6 +3496,7 @@ end function close_enough_d
 
 !------------------------------------------
 recursive function rs_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: rs_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3523,6 +3517,7 @@ end function rs_
 
 !------------------------------------------
 recursive function ro_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: ro_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3543,6 +3538,7 @@ end function ro_
 
 !------------------------------------------
 recursive function rh_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: rh_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3595,13 +3591,14 @@ end function rh_
 
 !------------------------------------------
 recursive function ra_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: ra_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
  !!
  !! Conversion from Rodrigues vector to axis angle pair
 
-use mod_math, only: infty, inftyd 
+use mod_math, only: infty, inftyd
 
 IMPLICIT NONE
 
@@ -3614,7 +3611,7 @@ real(kind=dbl)             :: tad, angled
 if (rotdoubleprecision) then
   tad = self%rd(4)
 
-  if (close_enough_d(tad,0.D0)) then 
+  if (close_enough_d(tad,0.D0)) then
     a%ad = (/ 0.D0, 0.D0, 1.D0, 0.D0 /)
     return
   end if
@@ -3629,7 +3626,7 @@ if (rotdoubleprecision) then
 else
   ta = self%r(4)
 
-  if (close_enough(ta,0.0)) then 
+  if (close_enough(ta,0.0)) then
     a%a = (/ 0.0, 0.0, 1.0, 0.0 /)
     return
   end if
@@ -3647,6 +3644,7 @@ end function ra_
 
 !------------------------------------------
 recursive function rv_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: rv_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3658,15 +3656,16 @@ IMPLICIT NONE
 class(r_T), intent(inout)  :: self
 type(v_T)                  :: v
 
-type(e_T)                  :: e 
+type(e_T)                  :: e
 
-e = self%re() 
-v = e%ev() 
+e = self%re()
+v = e%ev()
 
 end function rv_
 
 !------------------------------------------
 recursive function rc_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: rc_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3687,6 +3686,7 @@ end function rc_
 
 !------------------------------------------
 recursive function re_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: re_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3712,7 +3712,7 @@ if (rotdoubleprecision) then
     if (abs(e%ed(i)).lt.epsd) e%ed(i) = 0.D0
     do j=1,4
       if (abs(e%ed(i)-pivalsd(j)).lt.epsd) e%ed(i) = pivalsd(j)
-    end do 
+    end do
   end do
 else
   o = self%ro()
@@ -3721,7 +3721,7 @@ else
     if (abs(e%e(i)).lt.eps) e%e(i) = 0.0
     do j=1,4
       if (abs(e%e(i)-pivals(j)).lt.eps) e%e(i) = pivals(j)
-    end do 
+    end do
   end do
 end if
 
@@ -3729,6 +3729,7 @@ end function re_
 
 !------------------------------------------
 recursive function rq_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: rq_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3762,13 +3763,14 @@ end function rq_
 
 !------------------------------------------
 recursive function sr_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: sr_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
  !!
  !! Conversion from stereographic vector to Rodrigues vector
 
-use mod_math, only: infty, inftyd 
+use mod_math, only: infty, inftyd
 
 IMPLICIT NONE
 
@@ -3810,6 +3812,7 @@ end function sr_
 
 !------------------------------------------
 recursive function so_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: so_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3823,7 +3826,7 @@ type(o_T)                  :: o
 
 real(kind=sgl)             :: l, tmp(3)
 real(kind=dbl)             :: ld, tmpd(3)
-type(a_T)                  :: ax 
+type(a_T)                  :: ax
 
 if (rotdoubleprecision) then
   ld = dsqrt(sum(self%sd*self%sd))
@@ -3831,9 +3834,9 @@ if (rotdoubleprecision) then
   if (ld.gt.0.D0) then ! not the identity rotation
      tmpd = self%sd/ld
      if ( close_enough_d(ld,1.D0) ) then
-          ax%ad = (/ tmpd(1), tmpd(2), tmpd(3), cPi /) 
+          ax%ad = (/ tmpd(1), tmpd(2), tmpd(3), cPi /)
      else
-          ax%ad = (/ tmpd(1), tmpd(2), tmpd(3), 4.D0*datan(ld) /) 
+          ax%ad = (/ tmpd(1), tmpd(2), tmpd(3), 4.D0*datan(ld) /)
      end if
      o = ax%ao()
   else ! return the identity matrix
@@ -3848,9 +3851,9 @@ else
   if (l.gt.0.0) then ! not the identity rotation
      tmp = self%s/l
      if ( close_enough(l,1.0) ) then
-          ax%a = (/ tmp(1), tmp(2), tmp(3), sngl(cPi) /) 
+          ax%a = (/ tmp(1), tmp(2), tmp(3), sngl(cPi) /)
      else
-          ax%a = (/ tmp(1), tmp(2), tmp(3), 4.0*atan(l) /) 
+          ax%a = (/ tmp(1), tmp(2), tmp(3), 4.0*atan(l) /)
      end if
      o = ax%ao()
   else ! return the identity matrix
@@ -3865,6 +3868,7 @@ end function so_
 
 !------------------------------------------
 recursive function sh_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: sh_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3905,6 +3909,7 @@ end function sh_
 
 !------------------------------------------
 recursive function sa_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: sa_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3951,6 +3956,7 @@ end function sa_
 
 !------------------------------------------
 recursive function sv_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: sv_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3962,15 +3968,16 @@ IMPLICIT NONE
 class(s_T), intent(inout)  :: self
 type(v_T)                  :: v
 
-type(e_T)                  :: e 
+type(e_T)                  :: e
 
-e = self%se() 
-v = e%ev() 
+e = self%se()
+v = e%ev()
 
 end function sv_
 
 !------------------------------------------
 recursive function sc_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: sc_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -3984,7 +3991,7 @@ type(c_T)                  :: c
 
 real(kind=sgl)             :: l, tmp(3), angle
 real(kind=dbl)             :: ld, tmpd(3), angled
-type(h_T)                  :: ho 
+type(h_T)                  :: ho
 
 if (rotdoubleprecision) then
   ld = dsqrt(sum(self%sd*self%sd))
@@ -4015,6 +4022,7 @@ end function sc_
 
 !------------------------------------------
 recursive function se_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: se_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4028,7 +4036,7 @@ type(e_T)                  :: e
 
 real(kind=sgl)             :: l, tmp(3)
 real(kind=dbl)             :: ld, tmpd(3)
-type(a_T)                  :: ax 
+type(a_T)                  :: ax
 
 if (rotdoubleprecision) then
   ld = dsqrt(sum(self%sd*self%sd))
@@ -4064,6 +4072,7 @@ end function se_
 
 !------------------------------------------
 recursive function sq_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: sq_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4113,6 +4122,7 @@ end function sq_
 
 !------------------------------------------
 recursive function or_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: or_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4133,6 +4143,7 @@ end function or_
 
 !------------------------------------------
 recursive function os_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: os_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4153,6 +4164,7 @@ end function os_
 
 !------------------------------------------
 recursive function oh_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: oh_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4173,20 +4185,21 @@ end function oh_
 
 !------------------------------------------
 recursive function oa_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: oa_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
  !!
  !! Conversion from rotation matrix to axis angle pair
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
 class(o_T), intent(inout)   :: self
 type(a_T)                   :: a
 
-type(IO_T)                  :: Message 
+type(IO_T)                  :: Message
 integer(kind=irg)           :: i
 real(kind=sgl)              :: t, omega, qq(4), o(3,3), o2(3,3)
 real(kind=sgl)              :: VL(3,3), VR(3,3), Wr(3), Wi(3), WORK(20)
@@ -4204,7 +4217,7 @@ real(kind=dbl),parameter    :: thrd = 1.0D-14
 
 
 if (rotdoubleprecision) then
-   od = self%od  
+   od = self%od
    od2 = od
 
   ! first get the rotation angle
@@ -4217,24 +4230,24 @@ if (rotdoubleprecision) then
     a%ad(1:3) = (/ 0.D0, 0.D0, 1.D0 /)
     return
   else
-  ! set some initial LAPACK variables 
+  ! set some initial LAPACK variables
    nn = 3
    LDA = nn
    LDVL = nn
    LDVR = nn
    INFO = 0
-   
+
   ! first initialize the parameters for the LAPACK DGEEV routines
    JOBVL = 'N'   ! do not compute the left eigenvectors
    JOBVR = 'V'   ! do compute the right eigenvectors
-   LWORK = 20   
+   LWORK = 20
 
   ! call the eigenvalue solver
     call dgeev(JOBVL,JOBVR,nn,od,LDA,WrD,WiD,VLD,LDVL,VRD,LDVR,WORKD,LWORK,INFO)
     if (INFO.ne.0) call Message%printError('Error in oa_/dgeev : ','DGEEV return not zero')
 
   ! next, find the eigenvalue cmplx(1,0)
-   do i=1,3 
+   do i=1,3
       if ((abs(WrD(i)-1.D0).lt.thrd).and.(abs(WiD(i)).lt.thrd)) then
         a%ad(1:3) = VRD(1:3,i)
         if ((od2(2,3)-od2(3,2)).ne.0.D0) a%ad(1) = dsign(a%ad(1),-epsijkd*(od2(2,3)-od2(3,2)))
@@ -4245,8 +4258,8 @@ if (rotdoubleprecision) then
     end do
   end if
 else
-   o = self%o  
-   o2 = o 
+   o = self%o
+   o2 = o
 
   ! first get the rotation angle
    t = 0.5*(o(1,1)+o(2,2)+o(3,3) - 1.D0)
@@ -4258,24 +4271,24 @@ else
     a%a(1:3) = (/ 0.0, 0.0, 1.0 /)
     return
   else
-  ! set some initial LAPACK variables 
+  ! set some initial LAPACK variables
    nn = 3
    LDA = nn
    LDVL = nn
    LDVR = nn
    INFO = 0
-   
+
   ! first initialize the parameters for the LAPACK DGEEV routines
    JOBVL = 'N'   ! do not compute the left eigenvectors
    JOBVR = 'V'   ! do compute the right eigenvectors
-   LWORK = 20   
+   LWORK = 20
 
   ! call the eigenvalue solver
     call sgeev(JOBVL,JOBVR,nn,od,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
     if (INFO.ne.0) call Message%printError('Error in oa_/sgeev : ','SGEEV return not zero')
 
   ! next, find the eigenvalue cmplx(1,0)
-   do i=1,3 
+   do i=1,3
       if ((abs(Wr(i)-1.0).lt.thr).and.(abs(Wi(i)).lt.thr)) then
         a%a(1:3) = VR(1:3,i)
         if ((o2(2,3)-o2(3,2)).ne.0.0) a%a(1) = sign(a%a(1),-epsijk*(o2(2,3)-o2(3,2)))
@@ -4291,6 +4304,7 @@ end function oa_
 
 !------------------------------------------
 recursive function ov_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: ov_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4302,15 +4316,16 @@ IMPLICIT NONE
 class(o_T), intent(inout)  :: self
 type(v_T)                  :: v
 
-type(q_T)                  :: q 
+type(q_T)                  :: q
 
-q = self%oq() 
-v = q%qv() 
+q = self%oq()
+v = q%qv()
 
 end function ov_
 
 !------------------------------------------
 recursive function oc_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: oc_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4331,6 +4346,7 @@ end function oc_
 
 !------------------------------------------
 recursive function oe_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: oe_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4399,6 +4415,7 @@ end function oe_
 
 !------------------------------------------
 recursive function oq_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: oq_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4445,14 +4462,14 @@ if (rotdoubleprecision) then
   sd = sqrt(sum(q%qd*q%qd))
   if (sd.ne.0.D0) q%qd = q%qd/sd
 
-  ! we need to do a quick test here to make sure that the 
-  ! sign of the vector part is the same as that of the 
+  ! we need to do a quick test here to make sure that the
+  ! sign of the vector part is the same as that of the
   ! corresponding vector in the axis-angle representation;
-  ! these two can end up being different, presumably due to rounding 
+  ! these two can end up being different, presumably due to rounding
   ! issues, but this needs to be further analyzed...
   ! This adds a little bit of computation overhead but for now it
   ! is the easiest way to make sure the signs are correct.
-  oax = self%oa() 
+  oax = self%oa()
   if (oax%ad(1)*q%qd(2).lt.0.D0) q%qd(2) = -q%qd(2)
   if (oax%ad(2)*q%qd(3).lt.0.D0) q%qd(3) = -q%qd(3)
   if (oax%ad(3)*q%qd(4).lt.0.D0) q%qd(4) = -q%qd(4)
@@ -4484,14 +4501,14 @@ else
   s = sqrt(sum(q%q*q%q))
   if (s.ne.0.0) q%q = q%q/s
 
-  ! we need to do a quick test here to make sure that the 
-  ! sign of the vector part is the same as that of the 
+  ! we need to do a quick test here to make sure that the
+  ! sign of the vector part is the same as that of the
   ! corresponding vector in the axis-angle representation;
-  ! these two can end up being different, presumably due to rounding 
+  ! these two can end up being different, presumably due to rounding
   ! issues, but this needs to be further analyzed...
   ! This adds a little bit of computation overhead but for now it
   ! is the easiest way to make sure the signs are correct.
-  oax = self%oa() 
+  oax = self%oa()
   if (oax%a(1)*q%q(2).lt.0.0) q%q(2) = -q%q(2)
   if (oax%a(2)*q%q(3).lt.0.0) q%q(3) = -q%q(3)
   if (oax%a(3)*q%q(4).lt.0.0) q%q(4) = -q%q(4)
@@ -4501,6 +4518,7 @@ end function oq_
 
 !------------------------------------------
 recursive function hr_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: hr_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4521,6 +4539,7 @@ end function hr_
 
 !------------------------------------------
 recursive function hs_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: hs_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4541,6 +4560,7 @@ end function hs_
 
 !------------------------------------------
 recursive function ho_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: ho_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4561,6 +4581,7 @@ end function ho_
 
 !------------------------------------------
 recursive function ha_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: ha_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4596,7 +4617,7 @@ if (rotdoubleprecision) then
     end do
 
     sd = 2.D0*dacos(sd)
-    if (abs(sd-cPi).lt.thrd) then 
+    if (abs(sd-cPi).lt.thrd) then
      a%ad = (/ hnd(1), hnd(2), hnd(3), cPi /)
     else
      a%ad = (/ hnd(1), hnd(2), hnd(3), sd /)
@@ -4619,7 +4640,7 @@ else
     end do
 
     s = 2.0*acos(s)
-    if (abs(s-sngl(cPi)).lt.thr) then 
+    if (abs(s-sngl(cPi)).lt.thr) then
      a%a = (/ hn(1), hn(2), hn(3), sngl(cPi) /)
     else
      a%a = (/ hn(1), hn(2), hn(3), s /)
@@ -4631,6 +4652,7 @@ end function ha_
 
 !------------------------------------------
 recursive function hv_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: hv_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4642,15 +4664,16 @@ IMPLICIT NONE
 class(h_T), intent(inout)  :: self
 type(v_T)                  :: v
 
-type(e_T)                  :: e 
+type(e_T)                  :: e
 
-e = self%he() 
-v = e%ev() 
+e = self%he()
+v = e%ev()
 
 end function hv_
 
 !------------------------------------------
 recursive function hc_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: hc_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4664,7 +4687,7 @@ IMPLICIT NONE
 class(h_T), intent(inout)  :: self
 type(c_T)                  :: c
 
-type(Lambert_T)            :: Lambert 
+type(Lambert_T)            :: Lambert
 integer(kind=irg)          :: ierr
 
 if (rotdoubleprecision) then
@@ -4679,6 +4702,7 @@ end function hc_
 
 !------------------------------------------
 recursive function he_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: he_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4699,6 +4723,7 @@ end function he_
 
 !------------------------------------------
 recursive function hq_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: hq_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4719,6 +4744,7 @@ end function hq_
 
 !------------------------------------------
 recursive function ar_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: ar_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4774,6 +4800,7 @@ end function ar_
 
 !------------------------------------------
 recursive function as_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: as_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4794,6 +4821,7 @@ end function as_
 
 !------------------------------------------
 recursive function ao_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: ao_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4859,6 +4887,7 @@ end function ao_
 
 !------------------------------------------
 recursive function ah_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: ah_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4889,6 +4918,7 @@ end function ah_
 
 !------------------------------------------
 recursive function av_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: av_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4910,6 +4940,7 @@ end function av_
 
 !------------------------------------------
 recursive function ac_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: ac_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4930,6 +4961,7 @@ end function ac_
 
 !------------------------------------------
 recursive function ae_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: ae_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4950,6 +4982,7 @@ end function ae_
 
 !------------------------------------------
 recursive function aq_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: aq_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4986,6 +5019,7 @@ end function aq_
 
 !------------------------------------------
 recursive function vr_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: vr_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -4997,7 +5031,7 @@ IMPLICIT NONE
 class(v_T), intent(inout)  :: self
 type(r_T)                  :: r
 
-type(a_T)                  :: a 
+type(a_T)                  :: a
 
 a = self%va()
 r = a%ar()
@@ -5006,6 +5040,7 @@ end function vr_
 
 !------------------------------------------
 recursive function vs_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: vs_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5017,7 +5052,7 @@ IMPLICIT NONE
 class(v_T), intent(inout)  :: self
 type(s_T)                  :: s
 
-type(a_T)                  :: a 
+type(a_T)                  :: a
 
 a = self%va()
 s = a%as()
@@ -5026,6 +5061,7 @@ end function vs_
 
 !------------------------------------------
 recursive function vo_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: vo_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5037,7 +5073,7 @@ IMPLICIT NONE
 class(v_T), intent(inout)  :: self
 type(o_T)                  :: o
 
-type(a_T)                  :: a 
+type(a_T)                  :: a
 
 a = self%va()
 o = a%ao()
@@ -5046,6 +5082,7 @@ end function vo_
 
 !------------------------------------------
 recursive function vh_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: vh_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5057,7 +5094,7 @@ IMPLICIT NONE
 class(v_T), intent(inout)  :: self
 type(h_T)                  :: h
 
-type(a_T)                  :: a 
+type(a_T)                  :: a
 
 a = self%va()
 h = a%ah()
@@ -5066,6 +5103,7 @@ end function vh_
 
 !------------------------------------------
 recursive function va_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: va_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5108,6 +5146,7 @@ end function va_
 
 !------------------------------------------
 recursive function vc_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: vc_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5119,7 +5158,7 @@ IMPLICIT NONE
 class(v_T), intent(inout)  :: self
 type(c_T)                  :: c
 
-type(a_T)                  :: a 
+type(a_T)                  :: a
 
 a = self%va()
 c = a%ac()
@@ -5128,6 +5167,7 @@ end function vc_
 
 !------------------------------------------
 recursive function ve_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: ve_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5139,7 +5179,7 @@ IMPLICIT NONE
 class(v_T), intent(inout)  :: self
 type(e_T)                  :: e
 
-type(a_T)                  :: a 
+type(a_T)                  :: a
 
 a = self%va()
 e = a%ae()
@@ -5148,6 +5188,7 @@ end function ve_
 
 !------------------------------------------
 recursive function vq_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: vq_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5159,7 +5200,7 @@ IMPLICIT NONE
 class(v_T), intent(inout)  :: self
 type(q_T)                  :: q
 
-type(a_T)                  :: a 
+type(a_T)                  :: a
 
 a = self%va()
 q = a%aq()
@@ -5168,6 +5209,7 @@ end function vq_
 
 !------------------------------------------
 recursive function cr_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: cr_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5188,6 +5230,7 @@ end function cr_
 
 !------------------------------------------
 recursive function cs_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: cs_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5208,6 +5251,7 @@ end function cs_
 
 !------------------------------------------
 recursive function co_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: co_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5228,6 +5272,7 @@ end function co_
 
 !------------------------------------------
 recursive function ch_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: ch_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5256,6 +5301,7 @@ end function ch_
 
 !------------------------------------------
 recursive function ca_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: ca_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5276,6 +5322,7 @@ end function ca_
 
 !------------------------------------------
 recursive function cv_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: cv_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5287,15 +5334,16 @@ IMPLICIT NONE
 class(c_T), intent(inout)  :: self
 type(v_T)                  :: v
 
-type(e_T)                  :: e 
+type(e_T)                  :: e
 
-e = self%ce() 
-v = e%ev() 
+e = self%ce()
+v = e%ev()
 
 end function cv_
 
 !------------------------------------------
 recursive function ce_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: ce_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5316,6 +5364,7 @@ end function ce_
 
 !------------------------------------------
 recursive function cq_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: cq_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5336,13 +5385,14 @@ end function cq_
 
 !------------------------------------------
 recursive function er_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: er_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
  !!
  !! Conversion from Euler angles to Rodrigues vector
 
-use mod_math 
+use mod_math
 
 IMPLICIT NONE
 
@@ -5364,17 +5414,17 @@ if (rotdoubleprecision) then
   td = a%ad(4)
   if (abs(td-cPi).lt.thrd) then
     a%ad(4) = inftyd()
-    r%rd = a%ad 
+    r%rd = a%ad
     return
   end if
-   
-  if (close_enough_d(td,0.D0)) then 
+
+  if (close_enough_d(td,0.D0)) then
     a%ad = (/ 0.D0, 0.D0, epsijkd, 0.D0 /)
   else
     a%ad(4) = dtan(td*0.5D0)
   end if
-! and convert to Rodrigues vector 
-  r%rd = a%ad 
+! and convert to Rodrigues vector
+  r%rd = a%ad
 else
 ! then adjust the fourth component to be tan(omega/2)
   t = a%a(4)
@@ -5382,20 +5432,21 @@ else
     a%a(4) = infty()
     return
   end if
-   
-  if (close_enough(t,0.0)) then 
+
+  if (close_enough(t,0.0)) then
     a%a = (/ 0.0, 0.0, epsijk, 0.0 /)
   else
     a%a(4) = tan(t*0.5)
   end if
-! and convert to Rodrigues vector 
-  r%r = a%a 
+! and convert to Rodrigues vector
+  r%r = a%a
 end if
 
 end function er_
 
 !------------------------------------------
 recursive function es_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: es_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5416,6 +5467,7 @@ end function es_
 
 !------------------------------------------
 recursive function eo_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: eo_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5485,6 +5537,7 @@ end function eo_
 
 !------------------------------------------
 recursive function eh_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: eh_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5505,6 +5558,7 @@ end function eh_
 
 !------------------------------------------
 recursive function ea_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: ea_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5527,11 +5581,11 @@ if (rotdoubleprecision) then
   deld = 0.5D0*(self%ed(1)-self%ed(3))
   taud = dsqrt(td*td+dsin(sigd)**2)
 
-  if (close_enough_d(sigd,cPi*0.5D0)) then  ! Infinity 
+  if (close_enough_d(sigd,cPi*0.5D0)) then  ! Infinity
     alphad = cPi
   else
     alphad = 2.D0 * datan(taud/dcos(sigd))
-  end if 
+  end if
   if (abs(alphad).lt.thrd) then
   ! return a default identity axis-angle pair
           a%ad = (/ 0.D0, 0.D0, 1.D0, 0.D0 /)
@@ -5549,11 +5603,11 @@ else
   del = 0.5*(self%e(1)-self%e(3))
   tau = sqrt(t*t+sin(sig)**2)
 
-  if (close_enough(sig,sngl(cPi)*0.5)) then  ! Infinity 
+  if (close_enough(sig,sngl(cPi)*0.5)) then  ! Infinity
     alpha = sngl(cPi)
   else
     alpha = 2.0 * atan(tau/cos(sig))
-  end if 
+  end if
 
   if (abs(alpha).lt.thr) then
   ! return a default identity axis-angle pair
@@ -5572,6 +5626,7 @@ end function ea_
 
 !------------------------------------------
 recursive function ev_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: ev_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5582,9 +5637,9 @@ IMPLICIT NONE
 
 class(e_T), intent(inout)  :: self
 type(v_T)                  :: v
-type(a_T)                  :: ax 
+type(a_T)                  :: ax
 
-ax = self%ea() 
+ax = self%ea()
 
 if (rotdoubleprecision) then
     v%vd = ax%ad(1:3) * ax%ad(4)
@@ -5596,6 +5651,7 @@ end function ev_
 
 !------------------------------------------
 recursive function ec_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: ec_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5616,6 +5672,7 @@ end function ec_
 
 !------------------------------------------
 recursive function eq_(self) result(q)
+!DEC$ ATTRIBUTES DLLEXPORT :: eq_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5662,13 +5719,14 @@ end function eq_
 
 !------------------------------------------
 recursive function qr_(self) result(r)
+!DEC$ ATTRIBUTES DLLEXPORT :: qr_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
  !!
  !! Conversion from quaternion to Rodrigues vector
 
-use mod_math, only: infty, inftyd 
+use mod_math, only: infty, inftyd
 
 IMPLICIT NONE
 
@@ -5721,6 +5779,7 @@ end function qr_
 
 !------------------------------------------
 recursive function qs_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: qs_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5748,6 +5807,7 @@ end function qs_
 
 !------------------------------------------
 recursive function qo_(self) result(o)
+!DEC$ ATTRIBUTES DLLEXPORT :: qo_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5802,6 +5862,7 @@ end function qo_
 
 !------------------------------------------
 recursive function qh_(self) result(h)
+!DEC$ ATTRIBUTES DLLEXPORT :: qh_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5844,6 +5905,7 @@ end function qh_
 
 !------------------------------------------
 recursive function qa_(self) result(a)
+!DEC$ ATTRIBUTES DLLEXPORT :: qa_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5889,6 +5951,7 @@ end function qa_
 
 !------------------------------------------
 recursive function qv_(self) result(v)
+!DEC$ ATTRIBUTES DLLEXPORT :: qv_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5900,15 +5963,16 @@ IMPLICIT NONE
 class(q_T), intent(inout)  :: self
 type(v_T)                  :: v
 
-type(e_T)                  :: e 
+type(e_T)                  :: e
 
-e = self%qe() 
-v = e%ev() 
+e = self%qe()
+v = e%ev()
 
 end function qv_
 
 !------------------------------------------
 recursive function qc_(self) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: qc_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5929,6 +5993,7 @@ end function qc_
 
 !------------------------------------------
 recursive function qe_(self) result(e)
+!DEC$ ATTRIBUTES DLLEXPORT :: qe_
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -5949,7 +6014,7 @@ if (rotdoubleprecision) then
   chid = sqrt(qd03*qd12)
 
   if (close_enough_d(chid,0.D0)) then
-    if (close_enough_d(qd12,0.D0)) then 
+    if (close_enough_d(qd12,0.D0)) then
       Phid  = 0.D0
       phid2 = 0.D0                  ! arbitrarily due to degeneracy
       phid1 = datan2(-epsijkd*2.D0*self%qd(1)*self%qd(4),self%qd(1)**2-self%qd(4)**2)
@@ -5979,7 +6044,7 @@ else
   chi = sqrt(q03*q12)
 
   if (close_enough(chi,0.0)) then
-    if (close_enough(q12,0.0)) then 
+    if (close_enough(q12,0.0)) then
       Phi = 0.0
       phi2 = 0.0                  ! arbitrarily due to degeneracy
       phi1 = atan2(-epsijk*2.0*self%q(1)*self%q(4),self%q(1)**2-self%q(4)**2)
@@ -6009,10 +6074,11 @@ end function qe_
 
 !------------------------------------------
 subroutine setRotationPrecision(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: setRotationPrecision
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-character(*), INTENT(IN)    :: c 
+character(*), INTENT(IN)    :: c
 
 select case(trim(c))
  case('d')
@@ -6021,30 +6087,32 @@ select case(trim(c))
     rotdoubleprecision = .TRUE.
  case('Double')
     rotdoubleprecision = .TRUE.
- case('s')    
+ case('s')
     rotdoubleprecision = .FALSE.
- case('single')    
+ case('single')
     rotdoubleprecision = .FALSE.
- case('Single')    
+ case('Single')
     rotdoubleprecision = .FALSE.
-end select 
+end select
 
 end subroutine setRotationPrecision
 
 !------------------------------------------
 function getRotationPrecision() result(p)
+!DEC$ ATTRIBUTES DLLEXPORT :: getRotationPrecision
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-character(1)     :: p 
+character(1)     :: p
 
 p = 's'
-if (rotdoubleprecision) p = 'd' 
+if (rotdoubleprecision) p = 'd'
 
 end function getRotationPrecision
 
 !--------------------------------------------------------------------------
 recursive function RodriguesProduct(rA,rB) result(rC)
+!DEC$ ATTRIBUTES DLLEXPORT :: RodriguesProduct
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -6060,26 +6128,27 @@ type(r_T)                  :: rC
 real(kind=sgl)             :: vsA(3), vsB(3), vsC(3), l
 real(kind=dbl)             :: vdA(3), vdB(3), vdC(3), ld
 
-if (rotdoubleprecision) then 
+if (rotdoubleprecision) then
   vdA = rA%rd(1:3) * rA%rd(4)
   vdB = rB%rd(1:3) * rB%rd(4)
   vdC = (vdA + vdB - cross3(vdA,vdB))/(1.D0 - DOT_PRODUCT(vdA, vdB))
   ld = vecnorm(vdC)
-  rC%rd(1:3) = vdC(1:3)/ld 
-  rC%rd(4) = ld 
+  rC%rd(1:3) = vdC(1:3)/ld
+  rC%rd(4) = ld
 else
   vsA = rA%r(1:3) * rA%r(4)
   vsB = rB%r(1:3) * rB%r(4)
   vsC = (vsA + vsB - cross3(vsA,vsB))/(1.0 - DOT_PRODUCT(vsA, vsB))
   ld = vecnorm(vsC)
-  rC%r(1:3) = vsC(1:3)/l 
-  rC%r(4) = l 
-end if 
+  rC%r(1:3) = vsC(1:3)/l
+  rC%r(4) = l
+end if
 
 end function RodriguesProduct
 
 !--------------------------------------------------------------------------
 recursive function quat_average(qlist, numq, qstdev) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: quat_average
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -6130,6 +6199,7 @@ end function quat_average
 
 !--------------------------------------------------------------------------
 recursive function quat_average_d(qlist, numq, qstdev) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: quat_average_d
  !! author: MDG
  !! version: 1.0
  !! date: 01/17/20
@@ -6179,4 +6249,3 @@ qstdev = (/ dcos(qv), dfm(1)*sqv, dfm(2)*sqv, dfm(3)*sqv /)
 end function quat_average_d
 
 end module mod_rotations
-

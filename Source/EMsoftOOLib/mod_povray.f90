@@ -2,33 +2,33 @@
 ! Copyright (c) 2016-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_povray
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/21/20
   !!
   !! All povray-related routines
@@ -37,29 +37,29 @@ module mod_povray
   !! used for the visualization of orientation data sets in one of the many
   !! representations and fundamental zones...
   !!
-  !! The idea is that the program using this module will generate a skeleton 
+  !! The idea is that the program using this module will generate a skeleton
   !! PoVRay file that can then be customized by the user.
 
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 private
 
-type, public :: PoVRay_T 
+type, public :: PoVRay_T
   private
 
     character(fnlen)    :: filename = 'undefined'
-    character(fnlen)    :: nmlfile = 'undefined' 
+    character(fnlen)    :: nmlfile = 'undefined'
     character(fnlen)    :: locationline    ! default < 1.0, 0.0, 0.0 >
     character(fnlen)    :: skyline         ! default < 0.0, 0.0, 1.0>
     character(fnlen)    :: lightline       ! default <1, 2, -2>*50
     real(kind=sgl)      :: eyepos(3)
     logical             :: background
     integer(kind=irg)   :: dunit = 0       ! default value = 90
-    integer(kind=irg)   :: nmlunit = 88    ! default value 
-    integer(kind=irg)   :: df3unit = 86    ! default value 
+    integer(kind=irg)   :: nmlunit = 88    ! default value
+    integer(kind=irg)   :: df3unit = 86    ! default value
 
   contains
   private
@@ -91,10 +91,10 @@ type, public :: PoVRay_T
     generic, public :: openFile => openFile_
     generic, public :: setCamera => setCamera_
     generic, public :: setLightSource => setLightSource_
-! routines for handling DF3 volume files 
+! routines for handling DF3 volume files
     generic, public :: declare_DF3file => declare_DF3file_
     generic, public :: write_DF3file => write_DF3file_
-! routines for drawing selected primitives and other scene objects 
+! routines for drawing selected primitives and other scene objects
     generic, public :: addWireFrameSphere => addWireFrameSphere_
     generic, public :: addReferenceFrame => addReferenceFrame_
     generic, public :: addSphere => addSphere_
@@ -117,52 +117,31 @@ type, public :: PoVRay_T
 
 end type PoVRay_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface PoVRay_T
   module procedure PoVRay_constructor
 end interface PoVRay_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: openFile
-!DEC$ ATTRIBUTES DLLEXPORT :: setCamera
-!DEC$ ATTRIBUTES DLLEXPORT :: setLightSource
-!DEC$ ATTRIBUTES DLLEXPORT :: addEulerBox
-!DEC$ ATTRIBUTES DLLEXPORT :: declare_DF3file
-!DEC$ ATTRIBUTES DLLEXPORT :: write_DF3file
-!DEC$ ATTRIBUTES DLLEXPORT :: addWireFrameSphere
-!DEC$ ATTRIBUTES DLLEXPORT :: addReferenceFrame
-!DEC$ ATTRIBUTES DLLEXPORT :: addSphere
-!DEC$ ATTRIBUTES DLLEXPORT :: addCylinder
-!DEC$ ATTRIBUTES DLLEXPORT :: addCubochoricCube
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ432
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ23
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ622
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ422
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ32
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ222
-!DEC$ ATTRIBUTES DLLEXPORT :: drawFZ
-!DEC$ ATTRIBUTES DLLEXPORT :: initFZCyclic
-!DEC$ ATTRIBUTES DLLEXPORT :: closeFile
-!DEC$ ATTRIBUTES DLLEXPORT :: PoVRay_fliprotationmatrix
-
-contains 
+contains
 
 !--------------------------------------------------------------------------
 type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, locationline, lightline, skyline) result(PV)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: PoVRay_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/21/20
 !!
-!! constructor for the PoVRay_T Class 
- 
-use mod_EMsoft 
+!! constructor for the PoVRay_T Class
+
+use mod_EMsoft
 
 IMPLICIT NONE
 
 type(EMsoft_T), INTENT(INOUT)          :: EMsoft
  !! used to set file path etc...
-character(fnlen), INTENT(IN)           :: fname   
+character(fnlen), INTENT(IN)           :: fname
  !! PoVRay file name (full path)
-integer(kind=irg),INTENT(IN), OPTIONAL :: dunit 
+integer(kind=irg),INTENT(IN), OPTIONAL :: dunit
  !! optional output unit number (default = 90)
 character(fnlen), INTENT(IN), OPTIONAL :: nmlfile
  !! full path to an nml file to be included in the top comments
@@ -172,37 +151,37 @@ character(fnlen), INTENT(IN), OPTIONAL :: lightline
 character(fnlen), INTENT(IN), OPTIONAL :: skyline
  !! position of first light source (default <1, 2, -2>*50)
 
-if (present(dunit)) then 
-  PV%dunit = dunit 
-else 
-  PV%dunit = 90 
-end if 
+if (present(dunit)) then
+  PV%dunit = dunit
+else
+  PV%dunit = 90
+end if
 
-if (present(skyline)) then 
+if (present(skyline)) then
   PV%skyline = trim(skyline)
-else 
+else
   PV%skyline = 'sky < 0.0, 0.0, 1.0>'
 end if
 
-if (present(locationline)) then 
+if (present(locationline)) then
   PV%locationline = trim(locationline)
-else 
+else
   PV%locationline = "location < 1.0, 0.0, 0.0 >"
-end if 
+end if
 
-if (present(lightline)) then 
+if (present(lightline)) then
   PV%lightline = trim(lightline)
-else 
+else
   PV%lightline = "<1, 2, -2>*50"
-end if 
+end if
 
-PV%filename = trim(fname) 
+PV%filename = trim(fname)
 
 if (present(nmlfile)) then
   PV%nmlfile = trim(nmlfile)
-else 
+else
   PV%nmlfile = 'undefined'
-end if 
+end if
 
 call PV%openFile(EMsoft)
 call PV%setCamera()
@@ -213,47 +192,49 @@ call PV%setLightSource()
 end function PoVRay_constructor
 
 !--------------------------------------------------------------------------
-subroutine PoVRay_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine PoVRay_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: PoVRay_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the PoVRay_T Class
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
-type(PoVRay_T), INTENT(INOUT)   :: self 
+type(PoVRay_T), INTENT(INOUT)   :: self
 
 type(IO_T)                      :: Message
-logical                         :: itsopen 
+logical                         :: itsopen
 
 call reportDestructor('PoVRay_T')
 
-! if the file unit is still open, close it here 
-if (self%dunit.ne.0) then 
+! if the file unit is still open, close it here
+if (self%dunit.ne.0) then
   inquire(unit=self%dunit, opened=itsopen)
 
-  if (itsopen.eqv..TRUE.) then 
+  if (itsopen.eqv..TRUE.) then
     close(unit=self%dunit, status='keep')
     call Message%printMessage(' Closed PoVray file '//trim(self%filename))
-  end if 
-end if 
+  end if
+end if
 
 end subroutine PoVRay_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine closeFile_(self)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: closeFile_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
- !! clean up routine 
+ !! clean up routine
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 
 close(unit=self%dunit, status = 'keep')
 
@@ -268,18 +249,19 @@ end subroutine closeFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine openFile_(self, EMsoft)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: openFile_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! open a PoVRay file and add some information as comments
 
-use mod_EMsoft 
+use mod_EMsoft
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
-type(EMsoft_T),INTENT(INOUT)          :: EMsoft 
+class(PoVRay_T),INTENT(INOUT)         :: self
+type(EMsoft_T),INTENT(INOUT)          :: EMsoft
 
 character(fnlen)                      :: fname, line, cwd
 integer(kind=irg)                     :: io
@@ -301,13 +283,13 @@ if (trim(self%nmlfile).ne.'undefined') then
     read(self%nmlunit,"(A)",iostat=io) line
     if (io.eq.0) then
       write(self%dunit,"(A)") "// "//trim(line)
-    else 
-      EXIT 
+    else
+      EXIT
     end if
   end do
   close(unit=self%nmlunit,status='keep')
   write(self%dunit,"(A)") "// "
-end if 
+end if
 
 ! and write the include statements to the file
 write (self%dunit,"(A)") "#include ""colors.inc"""
@@ -323,15 +305,16 @@ end subroutine openFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine setCamera_(self)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setCamera_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! add the camera command to the current PoVRay file
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self 
+class(PoVRay_T),INTENT(INOUT)   :: self
 
 write (self%dunit,"(A)") " "
 write (self%dunit,"(A)") "camera {"
@@ -349,15 +332,16 @@ end subroutine setCamera_
 
 !--------------------------------------------------------------------------
 recursive subroutine setLightSource_(self)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setLightSource_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! add a light command with default properties to the current PoVRay file
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self 
+class(PoVRay_T),INTENT(INOUT)   :: self
 
 write (self%dunit,"(A)") " "
 write (self%dunit,"(A)") "light_source {"
@@ -376,21 +360,22 @@ end subroutine setLightSource_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! routines to create and handle DF3 volume files 
+! routines to create and handle DF3 volume files
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive subroutine declare_DF3file_(self, df3name, levelset)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: declare_DF3file_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! set up the PoVRay code to include a 3D density field (df3) file
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self 
+class(PoVRay_T),INTENT(INOUT)   :: self
 
 character(fnlen),INTENT(IN)     :: df3name
  !! DF3 output file name  (full path)
@@ -423,10 +408,10 @@ if (PRESENT(levelset)) then
   end if
 end if
 
-! these are experimental level values; the user may want to modifiy those in the 
+! these are experimental level values; the user may want to modifiy those in the
 ! output PoVRay file ...
 
-if (levels.eqv..TRUE.) then 
+if (levels.eqv..TRUE.) then
   write (self%dunit,"(A)") '        {  [0.0 rgb <0.0,0.0,0.0>] '
   write (self%dunit,"(A)") '           [0.1 rgb <0.6,0.0,0.0>]'
   write (self%dunit,"(A)") '           [0.2 rgb <0.0,0.6,0.0>]'
@@ -461,21 +446,22 @@ end subroutine declare_DF3file_
 
 !--------------------------------------------------------------------------
 recursive subroutine write_DF3file_(self, df3name, volume, ndims, scalingmode)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: write_DF3file_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! set up the PoVRay code to include a 3D density field (df3) file
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self 
+class(PoVRay_T),INTENT(INOUT)   :: self
 character(fnlen),INTENT(IN)     :: df3name
- !! output file name 
+ !! output file name
 integer(kind=irg),INTENT(IN)    :: ndims(3)
- !! dimensions of the volume array 
+ !! dimensions of the volume array
 real(kind=sgl),INTENT(INOUT)    :: volume(-ndims(1):ndims(1),-ndims(2):ndims(2),-ndims(3):ndims(3))
- !! volume array to be written to DF3 file 
+ !! volume array to be written to DF3 file
 character(3),INTENT(IN)         :: scalingmode
  !! scaling type: 'lin' or 'log' or 'lev'
 
@@ -545,50 +531,51 @@ end subroutine write_DF3file_
 
 !--------------------------------------------------------------------------
 recursive subroutine addWireFrameSphere_(self, sphereRadius)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: addWireFrameSphere_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! add a wireframe sphere to the current PoVRay file
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self 
+class(PoVRay_T),INTENT(INOUT)   :: self
 real(kind=dbl),INTENT(IN)       :: sphereRadius
 
-type(IO_T)                      :: Message 
+type(IO_T)                      :: Message
 character(12)                   :: px
 
 call Message%printMessage( (/ &
      "#macro WireFrameSphere(NrLongitudes, NrLatitudes, Rmaj, Rmin)", &
-     "                                                             ", & 
-     "  #local dLongitude = 360/NrLongitudes;                      ", & 
-     "  #local dLatitude = 180/NrLatitudes;                        ", & 
-     "  #local Cnt = 0;                                            ", & 
-     "  #while (Cnt < NrLongitudes)                                ", & 
-     "    #local Longitude = Cnt*dLongitude;                       ", & 
-     "    difference {                                             ", & 
-     "      torus { Rmaj, Rmin }                                   ", & 
-     "      plane { -z, 0 }                                        ", & 
-     "      rotate -90*z                                           ", & 
-     "      rotate Longitude*y                                     ", & 
-     "    }                                                        ", & 
-     "    #local Cnt = Cnt + 1;                                    ", & 
-     "  #end // while                                              ", & 
-     "                                                             ", & 
-     "  #local Cnt = 1;                                            ", & 
-     "  #while (Cnt < NrLatitudes)                                 ", & 
-     "    #local Latitude = radians(Cnt*dLatitude - 90);           ", & 
-     "    torus {                                                  ", & 
-     "      Rmaj*cos(Latitude), Rmin                               ", & 
-     "      translate Rmaj*sin(Latitude)*y                         ", & 
-     "    }                                                        ", & 
-     "    #local Cnt = Cnt + 1;                                    ", & 
-     "  #end // while                                              ", & 
-     "                                                             ", & 
-     "#end // macro WireFrameSphere                                ", & 
+     "                                                             ", &
+     "  #local dLongitude = 360/NrLongitudes;                      ", &
+     "  #local dLatitude = 180/NrLatitudes;                        ", &
+     "  #local Cnt = 0;                                            ", &
+     "  #while (Cnt < NrLongitudes)                                ", &
+     "    #local Longitude = Cnt*dLongitude;                       ", &
+     "    difference {                                             ", &
+     "      torus { Rmaj, Rmin }                                   ", &
+     "      plane { -z, 0 }                                        ", &
+     "      rotate -90*z                                           ", &
+     "      rotate Longitude*y                                     ", &
+     "    }                                                        ", &
+     "    #local Cnt = Cnt + 1;                                    ", &
+     "  #end // while                                              ", &
+     "                                                             ", &
+     "  #local Cnt = 1;                                            ", &
+     "  #while (Cnt < NrLatitudes)                                 ", &
+     "    #local Latitude = radians(Cnt*dLatitude - 90);           ", &
+     "    torus {                                                  ", &
+     "      Rmaj*cos(Latitude), Rmin                               ", &
+     "      translate Rmaj*sin(Latitude)*y                         ", &
+     "    }                                                        ", &
+     "    #local Cnt = Cnt + 1;                                    ", &
+     "  #end // while                                              ", &
+     "                                                             ", &
+     "#end // macro WireFrameSphere                                ", &
      "                                                             " /), redirect = self%dunit)
 
 write (px,"(F12.6)") sphereRadius
@@ -615,19 +602,20 @@ end subroutine addWireFrameSphere_
 
 !--------------------------------------------------------------------------
 recursive subroutine addReferenceFrame_(self, ac, cylr)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: addReferenceFrame_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! add a reference frame to the current PoVRay file
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 real(kind=dbl),INTENT(IN)             :: ac
  !! maximum semi-length of axis
 real(kind=dbl),OPTIONAL,INTENT(IN)    :: cylr
- !! optional cylinder radius 
+ !! optional cylinder radius
 
 real(kind=dbl)                        :: cc
 
@@ -648,18 +636,19 @@ end subroutine addReferenceFrame_
 
 !--------------------------------------------------------------------------
 recursive subroutine addSphere_(self, ctr, radius, rgb)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: addSphere_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! add a sphere to the current PoVRay file
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 real(kind=dbl),INTENT(IN)             :: ctr(3)
  !! center coordinates of the sphere
-real(kind=dbl),INTENT(IN)             :: radius 
+real(kind=dbl),INTENT(IN)             :: radius
  !! sphere radius
 real(kind=sgl),INTENT(IN)             :: rgb(3)
  !! rgb color triplet
@@ -671,20 +660,21 @@ end subroutine addSphere_
 
 !--------------------------------------------------------------------------
 recursive subroutine addCylinder_(self, p1, p2, radius, rgb)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: addCylinder_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! add a cylinder to the current PoVRay file
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 real(kind=dbl),INTENT(IN)             :: p1(3)
  !! starting point of cylinder (on axis)
 real(kind=dbl),INTENT(IN)             :: p2(3)
  !! end point of cylinder (on axis)
-real(kind=dbl),INTENT(IN)             :: radius 
+real(kind=dbl),INTENT(IN)             :: radius
  !! cylinder radius
 real(kind=sgl),INTENT(IN)             :: rgb(3)
  !! color triplet (RGB)
@@ -696,25 +686,26 @@ end subroutine addCylinder_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! code to draw a variety of fundamental zones 
+! code to draw a variety of fundamental zones
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive subroutine addEulerBox_(self)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: addEulerBox_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! add a wireframe Euler Box to the current PoVRay file
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self 
+class(PoVRay_T),INTENT(INOUT)   :: self
 
-type(IO_T)                      :: Message 
+type(IO_T)                      :: Message
 
 call Message%printMessage( (/ &
   "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
@@ -735,15 +726,16 @@ end subroutine addEulerBox_
 
 !--------------------------------------------------------------------------
 recursive subroutine addCubochoricCube_(self)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: addCubochoricCube_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! add a wireframe cubochoric Box to the current PoVRay file
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self 
+class(PoVRay_T),INTENT(INOUT)   :: self
 
 real(kind=dbl)                  :: ac
 
@@ -768,15 +760,16 @@ end subroutine addCubochoricCube_
 
 !--------------------------------------------------------------------------
 recursive function fliprotationmatrix_(self, M) result(O)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: fliprotationmatrix_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! change a rotation matrix to the POVray axes convention (left handed)
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self 
+class(PoVRay_T),INTENT(INOUT)   :: self
 
 real(kind=dbl),INTENT(IN)       :: M(3,3)
 real(kind=dbl)                  :: O(3,3)
@@ -790,7 +783,7 @@ end function fliprotationmatrix_
 !--------------------------------------------------------------------------
 ! below this line are a number of routines for different rotation representations
 ! and different crystallographic fundamental zones... below this line, there
-! should be no direct writing to the dunit file; all writes should pass 
+! should be no direct writing to the dunit file; all writes should pass
 ! through the routines above.
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -798,15 +791,16 @@ end function fliprotationmatrix_
 
 !--------------------------------------------------------------------------
 recursive subroutine getpos_FZ432_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ432_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
- !! initialize the PoVRay output for rotational group 432 
+ !! initialize the PoVRay output for rotational group 432
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 
 integer(kind=irg),INTENT(IN)          :: dims(3)
  !! array dimensions
@@ -831,7 +825,7 @@ real(kind=dbl)  :: a = 0.41421356237D0, c = 0.17157287525D0, dt = 0.34314575050D
 d = 0.610395774912
 
 if (present(MFZ)) then
-  if (MFZ) then 
+  if (MFZ) then
     d = 1.0
 ! define the coordinates of the cubic Mackenzie FZ in Rodrigues Space
     cpos(1:3, 1) = (/  0.D0,  0.D0,  0.D0 /)
@@ -857,7 +851,7 @@ if (present(MFZ)) then
     s_edge(1:2, 7) = (/  4, 5 /)
     s_edge(1:2, 8) = (/  4, 6 /)
     s_edge(1:2, 9) = (/  5, 6 /)
-  end if 
+  end if
 else ! define the coordinates of the cubic FZ in Rodrigues Space
     cpos(1:3, 1) = (/  a,  a,  c /)
     cpos(1:3, 2) = (/  c,  a,  a /)
@@ -947,15 +941,16 @@ end subroutine getpos_FZ432_
 
 !--------------------------------------------------------------------------
 recursive subroutine getpos_FZ23_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ23_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
- !! initialize the PoVRay output for rotational group 23 
+ !! initialize the PoVRay output for rotational group 23
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 
 integer(kind=irg),INTENT(IN)          :: dims(3)
  !! array dimensions
@@ -980,7 +975,7 @@ real(kind=dbl)  :: a = 1.D0, b = 0.0D0, c = 0.5773502692D0, e = 0.333333333D0, &
 d = 1.0
 
 if (present(MFZ)) then
-  if (MFZ) then 
+  if (MFZ) then
     d = 1.0
 
 ! define the coordinates of the cubic Mackenzie FZ in Rodrigues Space
@@ -1001,7 +996,7 @@ if (present(MFZ)) then
     s_edge(1:2, 4) = (/  2, 3 /)
     s_edge(1:2, 5) = (/  2, 4 /)
     s_edge(1:2, 6) = (/  3, 4 /)
-  end if 
+  end if
 else ! define the coordinates of the cubic FZ in Rodrigues Space
     cpos(1:3, 1) = (/  a,  b,  b /)
     cpos(1:3, 2) = (/  b,  a,  b /)
@@ -1028,22 +1023,23 @@ else ! define the coordinates of the cubic FZ in Rodrigues Space
     s_edge(1:2,10) = (/  2,  6 /)
     s_edge(1:2,11) = (/  3,  6 /)
     s_edge(1:2,12) = (/  4,  6 /)
- 
+
 end if
 
 end subroutine getpos_FZ23_
 
 !--------------------------------------------------------------------------
 recursive subroutine getpos_FZ622_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ622_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
- !! initialize the PoVRay output for rotational group 622 
+ !! initialize the PoVRay output for rotational group 622
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 
 integer(kind=irg),INTENT(IN)          :: dims(3)
  !! array dimensions
@@ -1098,7 +1094,7 @@ if (present(MFZ)) then
     s_edge(1:2, 10) = (/  5, 7 /)
     s_edge(1:2, 11) = (/  6, 8 /)
     s_edge(1:2, 12) = (/  7, 8 /)
-  end if 
+  end if
 
 else ! define the coordinates of the hexagonal FZ in Rodrigues Space
     cpos(1:3, 1) = (/  a,  b,  b /)
@@ -1182,15 +1178,16 @@ end subroutine getpos_FZ622_
 
 !--------------------------------------------------------------------------
 recursive subroutine getpos_FZ422_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ422_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
- !! initialize the PoVRay output for rotational group 622 
+ !! initialize the PoVRay output for rotational group 622
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 
 integer(kind=irg),INTENT(IN)          :: dims(3)
  !! array dimensions
@@ -1243,7 +1240,7 @@ if (present(MFZ)) then
     s_edge(1:2, 10) = (/  5, 7 /)
     s_edge(1:2, 11) = (/  6, 8 /)
     s_edge(1:2, 12) = (/  7, 8 /)
-  end if 
+  end if
 else ! define the coordinates of the tetragonal 422 FZ in Rodrigues Space
     cpos(1:3, 1) = (/  a,  b,  c /)
     cpos(1:3, 2) = (/  b,  a,  c /)
@@ -1300,15 +1297,16 @@ end subroutine getpos_FZ422_
 
 !--------------------------------------------------------------------------
 recursive subroutine getpos_FZ32_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ32_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
- !! initialize the PoVRay output for rotational group 32 
+ !! initialize the PoVRay output for rotational group 32
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 
 integer(kind=irg),INTENT(IN)          :: dims(3)
  !! array dimensions
@@ -1356,7 +1354,7 @@ if (present(MFZ)) then
     s_edge(1:2, 7) = (/  3, 5 /)
     s_edge(1:2, 8) = (/  4, 6 /)
     s_edge(1:2, 9) = (/  5, 6 /)
-  end if 
+  end if
 else ! define the coordinates of the cubic FZ in Rodrigues Space
     cpos(1:3, 1) = (/  a,  b,  c /)
     cpos(1:3, 2) = (/  z, oo,  c /)
@@ -1406,15 +1404,16 @@ end subroutine getpos_FZ32_
 
 !--------------------------------------------------------------------------
 recursive subroutine getpos_FZ222_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ222_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
- !! initialize the PoVRay output for rotational group 222 
+ !! initialize the PoVRay output for rotational group 222
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 
 integer(kind=irg),INTENT(IN)          :: dims(3)
  !! array dimensions
@@ -1467,7 +1466,7 @@ if (present(MFZ)) then
     s_edge(1:2, 10) = (/  5, 7 /)
     s_edge(1:2, 11) = (/  6, 8 /)
     s_edge(1:2, 12) = (/  7, 8 /)
-  end if 
+  end if
 else ! define the coordinates of the FZ in Rodrigues Space
     cpos(1:3, 1) = (/  a,  b,  c /)
     cpos(1:3, 2) = (/ -a,  b,  c /)
@@ -1503,8 +1502,9 @@ end subroutine getpos_FZ222_
 
 !--------------------------------------------------------------------------
 recursive subroutine drawFZ_(self, SO, rmode, cylr)
- !! author: MDG 
- !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: drawFZ_
+ !! author: MDG
+ !! version: 1.0
  !! date: 01/21/20
  !!
  !! initialize the PoVRay output for any rotation group
@@ -1512,42 +1512,42 @@ recursive subroutine drawFZ_(self, SO, rmode, cylr)
  !! This routine draws the outline of either the Rodrigues Fundamental
  !! zone, or the Mackenzie Fundamental Zone (if SO%getMK() is true).
 
-use mod_rotations 
+use mod_rotations
 use mod_so3
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self 
+class(PoVRay_T),INTENT(INOUT)         :: self
 type(so3_T),INTENT(INOUT)             :: SO
 integer(kind=irg),INTENT(IN)          :: rmode
  !! 1(cubochoric)|2(homochoric)|3(stereographic)|4(Rodrigues)|5(Euler)
 real(kind=dbl),INTENT(IN)             :: cylr
  !! cylinder radius
 
-type(e_T)                             :: eul, eu, euld, eulast 
+type(e_T)                             :: eul, eu, euld, eulast
 type(r_T)                             :: ro1, ro2, ro, rolast, ron
 type(q_T)                             :: qu
-type(s_T)                             :: sp, splast 
+type(s_T)                             :: sp, splast
 type(h_T)                             :: h, ho, holast
-type(o_T)                             :: om 
+type(o_T)                             :: om
 type(c_T)                             :: cu, culast
 type(a_T)                             :: axang
 type(orientation_T)                   :: ot
 
 real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, d, dd, &
-                                         tpi, hpi, aux3(3), aux(4), aux4a(4), aux4b(4)
+                                         tpi, hpi, aux(4), aux3(3), aux4a(4), aux4b(4)
 
 integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:)
 real(kind=dbl),allocatable            :: cpos(:,:)
 
 logical                               :: doMFZ, twostep
-integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder 
+integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder
 
 call setRotationPrecision('Double')
 
 tpi = 2.D0 * cPi
 hpi = 0.5D0 * cPi
-doMFZ = SO%getMK() 
+doMFZ = SO%getMK()
 call SO%getFZtypeandorder(FZtype, FZorder)
 
 if (FZtype.eq.2) then
@@ -1635,7 +1635,7 @@ if (FZtype.eq.4) then
     end if
 end if
 
-! add the reference frame and any necessary wireframes 
+! add the reference frame and any necessary wireframes
 if (rmode.eq.1) then
   ac = 0.5D0 * LPs%ap
   call self%addReferenceFrame(ac, cylr)
@@ -1646,16 +1646,16 @@ if (rmode.eq.2) then
   call self%addReferenceFrame(ac, cylr)
   call self%addWireFrameSphere(ac)
 end if
-if (rmode.eq.3) then 
+if (rmode.eq.3) then
   ac = 1.0D0
   call self%addReferenceFrame(ac, cylr)
   call self%addWireFrameSphere(ac)
 end if
-if (rmode.eq.4) then 
+if (rmode.eq.4) then
   ac = 1.0D0
   call self%addReferenceFrame(ac, cylr)
 end if
-if (rmode.eq.5) then 
+if (rmode.eq.5) then
   call self%addEulerBox()
 end if
 
@@ -1682,7 +1682,7 @@ if ((rmode.eq.1).or.(rmode.eq.2)) then
     end if
     culast = cu
     holast = ho
-  end do 
+  end do
  end do
 
  if (twostep) then
@@ -1706,9 +1706,9 @@ if ((rmode.eq.1).or.(rmode.eq.2)) then
       end if
       culast = cu
       holast = ho
-    end do 
+    end do
    end do
-  end if 
+  end if
 end if
 
 if ((rmode.eq.3).or.(rmode.eq.4)) then
@@ -1720,13 +1720,13 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
   holast = ro1%rh()
   rolast = ro1
   qu = ro1%rq()
-  splast = qu%qs() 
+  splast = qu%qs()
   do j=1,ns+1
     aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
     qu = ro%rq()
-    sp = qu%qs() 
+    sp = qu%qs()
 ! and create a cylinder with these points
     if (rmode.eq.3) then
       call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
@@ -1737,7 +1737,7 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
     end if
     rolast = ro
     splast = sp
-  end do 
+  end do
  end do
 
  if (twostep) then
@@ -1747,13 +1747,13 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
     ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d /) )
     rolast = ro1
     qu = ro1%rq()
-    splast = qu%qs() 
+    splast = qu%qs()
     do j=1,nt+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
       qu = ro%rq()
-      sp = qu%qs() 
+      sp = qu%qs()
   ! and create a cylinder with these points
       if (rmode.eq.3) then
         call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
@@ -1764,11 +1764,11 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
       end if
       rolast = ro
       splast = sp
-    end do 
+    end do
    end do
  end if
 end if
-  
+
 ! and next, draw the outline of the FZ or MFZ
 if (rmode.eq.5) then
   sh = (/ cPi, cPi/2.D0, cPi /)
@@ -1795,11 +1795,11 @@ if (rmode.eq.5) then
     eu = e_T( edinp = aux3 - sh )
 ! and create a cylinder with these points
     aux3 = eulast%e_copyd() - eu%e_copyd()
-    if (maxval(abs(aux3)).lt.cPi) then 
+    if (maxval(abs(aux3)).lt.cPi) then
       call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
     end if
     eulast = eu
-  end do 
+  end do
  end do
 
  if (twostep) then
@@ -1825,13 +1825,13 @@ if (rmode.eq.5) then
       eu = e_T( edinp = aux3 - sh )
   ! and create a cylinder with these points
       aux3 = eulast%e_copyd() - eu%e_copyd()
-      if (maxval(abs(aux3)).lt.cPi) then 
+      if (maxval(abs(aux3)).lt.cPi) then
         call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
       end if
       eulast = eu
-    end do 
+    end do
    end do
-  end if 
+  end if
 ! for the Euler representation of the Rodrigues fundamental zones we also need to draw
 ! a few additional lines to complete the volume appearance of the FZ; this depends on
 ! the order of the FZ, naturally, so we have a couple of possible cases...
@@ -1941,48 +1941,48 @@ if (FZtype.eq.3) then
     call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
     eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
 ! and finally the corner posts
     eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
     eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
     eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
     eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 end if
 
 if ((FZtype.eq.4).and.(rmode.eq.5)) then
@@ -1999,7 +1999,7 @@ if ((FZtype.eq.4).and.(rmode.eq.5)) then
     call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
     eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 ! and verticals
     hPi = hPi * 0.5D0
     eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
@@ -2054,51 +2054,52 @@ if ((FZtype.eq.4).and.(rmode.eq.5)) then
 ! and finally the corner posts
     eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
     eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
     eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
     eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
     eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
     eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
     eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /)) 
+    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 end if
 
 end subroutine drawFZ_
 
 !--------------------------------------------------------------------------
 recursive subroutine initFZCyclic_(self, FZorder, cylr, rmode)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: initFZCyclic_
+!! author: MDG
+!! version: 1.0
 !! date: 01/21/20
 !!
 !! generate the PoVRay output for the cyclic rotational groups
@@ -2107,7 +2108,7 @@ use mod_rotations
 
 IMPLICIT NONE
 
-class(PoVRay_T), INTENT(INOUT)        :: self 
+class(PoVRay_T), INTENT(INOUT)        :: self
 integer(kind=irg),INTENT(IN)          :: FZorder
  !! 2, 3, 4, or 6
 real(kind=dbl),INTENT(IN)             :: cylr
@@ -2115,20 +2116,20 @@ real(kind=dbl),INTENT(IN)             :: cylr
 integer(kind=irg),INTENT(IN)          :: rmode
  !! 1(cubochoric)|2(homochoric)|3(stereographic)|4(Rodrigues)
 
-type(e_T)                             :: eul, eu, euld, eulast 
+type(e_T)                             :: eul, eu, euld, eulast
 type(r_T)                             :: ro1, ro2, ro, rolast, ron
 type(q_T)                             :: qu
-type(s_T)                             :: sp, splast 
+type(s_T)                             :: sp, splast
 type(h_T)                             :: h, ho, holast
-type(o_T)                             :: om 
+type(o_T)                             :: om
 type(c_T)                             :: cu, culast
 type(a_T)                             :: axang
 type(orientation_T)                   :: ot
 
 real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, &
-                                         tpi, hpi, aux(3), aux4a(4), aux4b(4)
+                                         tpi, hpi, aux(4), aux4a(4), aux4b(4)
 
-integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, idpos, icpos, ihedge 
+integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, idpos, icpos, ihedge
 integer(kind=irg),allocatable         :: h_edge(:,:)
 real(kind=dbl),allocatable            :: cpos(:,:), dpos(:)
 ! parameters that depend on the cyclic group
@@ -2136,21 +2137,21 @@ real(kind=dbl)                        :: a, b, c, dt, ds, d, dd, zz, oo, c2, tmp
 
 select case(FZorder)
   case(2) ! define the coordinates of the monoclinic C2 (2) FZ in Rodrigues Space
-    a = 570.289922125538D0 
-    b = 1.0D0 
-    c = 1.0D0 
+    a = 570.289922125538D0
+    b = 1.0D0
+    c = 1.0D0
     dt = 114.57984425107713D0
-    ds = 2.0D0 
-    d = 1.7320508075688772D0 
-    zz = 0.D0 
+    ds = 2.0D0
+    d = 1.7320508075688772D0
+    zz = 0.D0
     oo = 1.D0
     idpos = 200
     icpos = 200
     ihedge = 100
-    allocate(cpos(3,icpos), h_edge(2,ihedge), dpos(idpos) ) 
+    allocate(cpos(3,icpos), h_edge(2,ihedge), dpos(idpos) )
 
     do i=-12,12
-      if (abs(i).ne.12) then 
+      if (abs(i).ne.12) then
         cpos(1:3, 13+i) = (/ -a, dtan(dble(i)*15.D0*dtor*0.5D0) ,  c /)
       else
         cpos(1:3, 13+i) = (/ -a, a ,  c /)
@@ -2203,10 +2204,10 @@ select case(FZorder)
     icpos = 208
     idpos = 208
     ihedge = 104
-    allocate(cpos(3,icpos), h_edge(2,ihedge), dpos(idpos) ) 
+    allocate(cpos(3,icpos), h_edge(2,ihedge), dpos(idpos) )
 
-    do i=-6,6 
-      if (abs(i).ne.6) then 
+    do i=-6,6
+      if (abs(i).ne.6) then
         cpos(1:3, 7+i) = (/ -a, dtan(dble(i)*30.D0*dtor*0.5D0) ,  c /)
       else
         cpos(1:3, 7+i) = (/ -a, a ,  c /)
@@ -2234,7 +2235,7 @@ select case(FZorder)
       cpos(1:3,104+i) = cpos(1:3,i)
       if (cpos(3,104+i).lt.0.D0) then
         cpos(3,104+i) = -c2
-      else 
+      else
         cpos(3,104+i) = c2
       end if
     end do
@@ -2273,10 +2274,10 @@ select case(FZorder)
     icpos = 104
     idpos = 104
     ihedge = 52
-    allocate(cpos(3,icpos), h_edge(2,ihedge), dpos(idpos) ) 
+    allocate(cpos(3,icpos), h_edge(2,ihedge), dpos(idpos) )
 
-    do i=-6,6 
-      if (abs(i).ne.6) then 
+    do i=-6,6
+      if (abs(i).ne.6) then
         cpos(1:3, 7+i) = (/ -a, dtan(dble(i)*30.D0*dtor*0.5D0) ,  c /)
       else
         cpos(1:3, 7+i) = (/ -a, a ,  c /)
@@ -2327,10 +2328,10 @@ select case(FZorder)
     icpos = 104
     idpos = 104
     ihedge = 52
-    allocate(cpos(3,icpos), h_edge(2,ihedge), dpos(idpos) ) 
+    allocate(cpos(3,icpos), h_edge(2,ihedge), dpos(idpos) )
 
-    do i=-6,6 
-      if (abs(i).ne.6) then 
+    do i=-6,6
+      if (abs(i).ne.6) then
         cpos(1:3, 7+i) = (/ -a, dtan(dble(i)*30.D0*dtor*0.5D0) ,  c /)
       else
         cpos(1:3, 7+i) = (/ -a, a ,  c /)
@@ -2370,9 +2371,9 @@ select case(FZorder)
       h_edge(1:2,39+i) = (/ 78+i, 91+i /)
     end do
   case default
-end select 
+end select
 
-! add the reference frame and any necessary wireframes 
+! add the reference frame and any necessary wireframes
 if (rmode.eq.1) then
   ac = 0.5D0 * LPs%ap
   call self%addReferenceFrame(ac, cylr)
@@ -2383,16 +2384,16 @@ if (rmode.eq.2) then
   call self%addReferenceFrame(ac, cylr)
   call self%addWireFrameSphere(ac)
 end if
-if (rmode.eq.3) then 
+if (rmode.eq.3) then
   ac = 1.0D0
   call self%addReferenceFrame(ac, cylr)
   call self%addWireFrameSphere(ac)
 end if
-if (rmode.eq.4) then 
+if (rmode.eq.4) then
   ac = 1.0D0
   call self%addReferenceFrame(ac, cylr)
 end if
-if (rmode.eq.5) then 
+if (rmode.eq.5) then
   call self%addEulerBox()
 end if
 
@@ -2420,10 +2421,10 @@ if ((rmode.eq.1).or.(rmode.eq.2)) then
     end if
     culast = cu
     holast = ho
-  end do 
+  end do
  end do
 end if
-  
+
 if ((rmode.eq.3).or.(rmode.eq.4)) then
 
  dx = 1.D0/dble(ns)
@@ -2432,13 +2433,13 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
   ro2 = r_T( rdinp = (/ cpos(1:3,h_edge(2,i))/dpos(i), dpos(i) /) )
   rolast = ro1
   qu = ro1%rq()
-  splast = qu%qs() 
+  splast = qu%qs()
   do j=1,ns+1
     aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
     qu = ro%rq()
-    sp = qu%qs() 
+    sp = qu%qs()
 ! and create a cylinder with these points
     if (rmode.eq.3) then
       call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
@@ -2449,11 +2450,11 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
     end if
     rolast = ro
     splast = sp
-  end do 
+  end do
  end do
 
 end if
-  
+
 end subroutine initFZCyclic_
 
 end module mod_povray

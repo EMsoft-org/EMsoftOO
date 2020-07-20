@@ -12,7 +12,7 @@ foreach(SC ${EMSOFTOO_STRING_CONSTANTS})
   string(FIND "${SC}" "[CATEGORY]" CATEGORY_POS)
   if(NOT CATEGORY_POS EQUAL -1)
     list(GET SC 1  VAR_VALUE)
-    set(FORTRAN_STRING_CONSTANTS 
+    set(FORTRAN_STRING_CONSTANTS
       ${FORTRAN_STRING_CONSTANTS}
       "\n!------------------------------------------\n"
       "! ${VAR_VALUE}\n"
@@ -23,7 +23,7 @@ foreach(SC ${EMSOFTOO_STRING_CONSTANTS})
     list(GET SC 1  VAR_VALUE)
     string(LENGTH ${VAR_VALUE} VAR_STR_LEN)
     math(EXPR VAR_STR_LEN ${VAR_STR_LEN}-2)
-    set(FORTRAN_STRING_CONSTANTS 
+    set(FORTRAN_STRING_CONSTANTS
       ${FORTRAN_STRING_CONSTANTS}
       "character(${VAR_STR_LEN}), parameter     :: SC_${VAR_NAME} = ${VAR_VALUE}\n!DEC$ ATTRIBUTES DLLEXPORT :: SC_${VAR_NAME}\n"
       )

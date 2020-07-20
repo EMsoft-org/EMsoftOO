@@ -26,11 +26,11 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 module mod_CLsupport
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
-  !! OpenCL module; this module is based on the following code, but modified 
+  !! OpenCL module; this module is based on the following code, but modified
   !! substantially and turned into an OpenCL_T class :
   !!--------------------------------------------------------------------------
   !!--------------------------------------------------------------------------
@@ -68,7 +68,7 @@ use ISO_C_BINDING
 use mod_global
 
 IMPLICIT NONE
-  private 
+  private
 
   character(45)   ::  errorStrings(68) = (/ &
         'CL_DEVICE_NOT_FOUND                          ', &  ! = -1
@@ -141,33 +141,33 @@ IMPLICIT NONE
         'CL_INVALID_DEVICE_PARTITION_COUNT            ' /)  ! = -68
 
 
-  type,public :: OpenCL_T 
-    private 
-    ! platform variables 
+  type,public :: OpenCL_T
+    private
+    ! platform variables
       character(fnlen), allocatable             :: p_profile(:)
       character(fnlen), allocatable             :: p_version(:)
       character(fnlen), allocatable             :: p_name(:)
       character(fnlen), allocatable             :: p_vendor(:)
       character(fnlen), allocatable             :: p_extensions(:)
       integer(c_intptr_t), allocatable          :: p_ids(:)
-! CPU information      
+! CPU information
       integer(c_intptr_t), allocatable          :: d_CPUids(:,:)
-      integer(c_size_t), allocatable            :: d_CPUmwgs(:,:) 
-      integer(c_size_t), allocatable            :: d_CPUmwis(:,:,:) 
+      integer(c_size_t), allocatable            :: d_CPUmwgs(:,:)
+      integer(c_size_t), allocatable            :: d_CPUmwis(:,:,:)
       integer(c_size_t), allocatable            :: d_CPUmaxalloc(:,:)
       integer(c_int32_t), allocatable           :: d_CPUcu(:,:)
-      integer(c_int64_t), allocatable           :: d_CPUgms(:,:) 
-      integer(c_int64_t), allocatable           :: d_CPUlms(:,:) 
+      integer(c_int64_t), allocatable           :: d_CPUgms(:,:)
+      integer(c_int64_t), allocatable           :: d_CPUlms(:,:)
       integer(c_int64_t), allocatable           :: d_CPUmmas(:,:)
       character(fnlen), allocatable             :: d_CPUname(:,:)
-! GPU information 
+! GPU information
       integer(c_intptr_t), allocatable          :: d_GPUids(:,:)
-      integer(c_size_t), allocatable            :: d_GPUmwgs(:,:) 
-      integer(c_size_t), allocatable            :: d_GPUmwis(:,:,:) 
+      integer(c_size_t), allocatable            :: d_GPUmwgs(:,:)
+      integer(c_size_t), allocatable            :: d_GPUmwis(:,:,:)
       integer(c_size_t), allocatable            :: d_GPUmaxalloc(:,:)
       integer(c_int32_t), allocatable           :: d_GPUcu(:,:)
-      integer(c_int64_t), allocatable           :: d_GPUgms(:,:) 
-      integer(c_int64_t), allocatable           :: d_GPUlms(:,:) 
+      integer(c_int64_t), allocatable           :: d_GPUgms(:,:)
+      integer(c_int64_t), allocatable           :: d_GPUlms(:,:)
       integer(c_int64_t), allocatable           :: d_GPUmmas(:,:)
       character(fnlen), allocatable             :: d_GPUname(:,:)
 ! other parameters
@@ -177,7 +177,7 @@ IMPLICIT NONE
       integer(c_int32_t),allocatable            :: num_CPUdevices(:)
       integer(c_int32_t),allocatable            :: num_GPUdevices(:)
       logical,allocatable                       :: noCPUdevices(:)
-      logical,allocatable                       :: noGPUdevices(:) 
+      logical,allocatable                       :: noGPUdevices(:)
 
     contains
       private
@@ -189,7 +189,7 @@ IMPLICIT NONE
         procedure, pass(self) :: init_PDCCQ_
         procedure, pass(self) :: init_multiPDCCQ_
         procedure, pass(self) :: DI_memory_estimate_
-        final :: CL_destructor 
+        final :: CL_destructor
 
         generic, public :: error_check => error_check_
         generic, public :: query_platform_info => query_platform_info_
@@ -201,14 +201,7 @@ IMPLICIT NONE
 
   end type OpenCL_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: error_check
-!DEC$ ATTRIBUTES DLLEXPORT :: query_platform_info
-!DEC$ ATTRIBUTES DLLEXPORT :: print_platform_info
-!DEC$ ATTRIBUTES DLLEXPORT :: read_source_file
-!DEC$ ATTRIBUTES DLLEXPORT :: read_source_file_wrapper
-!DEC$ ATTRIBUTES DLLEXPORT :: init_PDCCQ
-
-  ! the constructor routine for this class 
+  ! the constructor routine for this class
   interface OpenCL_T
     module procedure CL_constructor
   end interface OpenCL_T
@@ -217,16 +210,17 @@ contains
 
 !--------------------------------------------------------------------------
 type(OpenCL_T) function CL_constructor( ) result(CL)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CL_constructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
   !! constructor for the OpenCL Class
   !!
-  !! This constructor queries the OpenCL platforms and devices, and fills in 
-  !! all the corresponding arrays  
-  
-use mod_io 
+  !! This constructor queries the OpenCL platforms and devices, and fills in
+  !! all the corresponding arrays
+
+use mod_io
 
 IMPLICIT NONE
 
@@ -246,7 +240,7 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
   if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms')
   CL%num_platforms = nplatforms
 
-  if (CL%num_platforms.gt.0) then 
+  if (CL%num_platforms.gt.0) then
     allocate(CL%p_profile(CL%num_platforms))
     allocate(CL%p_version(CL%num_platforms))
     allocate(CL%p_name(CL%num_platforms))
@@ -266,10 +260,10 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
     if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms')
     CL%p_ids(:) = platform_ids(:)
 
-  ! for each platform, get the number of devices so we can allocate the d_*PUids array 
+  ! for each platform, get the number of devices so we can allocate the d_*PUids array
     CL%maxCPUdev = 0
     CL%maxGPUdev = 0
-    do i=1, CL%num_platforms  
+    do i=1, CL%num_platforms
       platform_id = platform_ids(i)
 
   ! device_type = CL_DEVICE_TYPE_CPU
@@ -279,7 +273,7 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
   ! device_type = CL_DEVICE_TYPE_GPU
       err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 0, C_NULL_PTR, num_devices)
       CL%maxGPUdev = maxval( (/ CL%maxGPUdev, num_devices /) )
-    end do 
+    end do
     allocate(CL%d_CPUids(CL%num_platforms, CL%maxCPUdev))
     allocate(CL%d_CPUmwgs(CL%num_platforms, CL%maxCPUdev))
     allocate(CL%d_CPUmwis(CL%num_platforms, CL%maxCPUdev,3))
@@ -294,13 +288,13 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
     allocate(CL%d_GPUmwis(CL%num_platforms, CL%maxGPUdev,3))
     allocate(CL%d_GPUmaxalloc(CL%num_platforms, CL%maxGPUdev))
     allocate(CL%d_GPUcu(CL%num_platforms, CL%maxGPUdev))
-    allocate(CL%d_GPUgms(CL%num_platforms, CL%maxGPUdev)) 
-    allocate(CL%d_GPUlms(CL%num_platforms, CL%maxGPUdev)) 
+    allocate(CL%d_GPUgms(CL%num_platforms, CL%maxGPUdev))
+    allocate(CL%d_GPUlms(CL%num_platforms, CL%maxGPUdev))
     allocate(CL%d_GPUmmas(CL%num_platforms, CL%maxGPUdev))
     allocate(CL%d_GPUname(CL%num_platforms, CL%maxGPUdev))
 
   ! get all relevant information for each platform
-    do i=1, CL%num_platforms  
+    do i=1, CL%num_platforms
       call CL%query_platform_info_(i)
     end do
   else
@@ -313,67 +307,67 @@ end if
 
 end function CL_constructor
 
-! destructor ... 
+! destructor ...
 !--------------------------------------------------------------------------
 subroutine CL_destructor( CL )
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CL_destructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
   !! destructor for the OpenCL Class
   !!
 IMPLICIT NONE
 
-type(OpenCL_T),INTENT(INOUT)  :: CL 
-
+type(OpenCL_T),INTENT(INOUT)  :: CL
   call reportDestructor('OpenCL_T')
-  
-  deallocate(CL%p_profile)
-  deallocate(CL%p_version)
-  deallocate(CL%p_name)
-  deallocate(CL%p_vendor)
-  deallocate(CL%p_extensions)
-  deallocate(CL%p_ids)
-  deallocate(CL%num_CPUdevices)
-  deallocate(CL%num_GPUdevices)
-  deallocate(CL%noCPUdevices)
-  deallocate(CL%noGPUdevices)
-  deallocate(CL%d_CPUids)
-  deallocate(CL%d_CPUmwgs)
-  deallocate(CL%d_CPUmwis)
-  deallocate(CL%d_CPUmaxalloc)
-  deallocate(CL%d_CPUcu)
-  deallocate(CL%d_CPUgms)
-  deallocate(CL%d_CPUlms)
-  deallocate(CL%d_CPUmmas)
-  deallocate(CL%d_CPUname)
-  deallocate(CL%d_GPUids)
-  deallocate(CL%d_GPUmwgs)
-  deallocate(CL%d_GPUmwis)
-  deallocate(CL%d_GPUmaxalloc)
-  deallocate(CL%d_GPUcu)
-  deallocate(CL%d_GPUgms)
-  deallocate(CL%d_GPUlms)
-  deallocate(CL%d_GPUmmas)
-  deallocate(CL%d_GPUname)
+  if (allocated(CL%p_profile)) deallocate(CL%p_profile)
+  if (allocated(CL%p_version)) deallocate(CL%p_version)
+  if (allocated(CL%p_name)) deallocate(CL%p_name)
+  if (allocated(CL%p_vendor)) deallocate(CL%p_vendor)
+  if (allocated(CL%p_extensions)) deallocate(CL%p_extensions)
+  if (allocated(CL%p_ids)) deallocate(CL%p_ids)
+  if (allocated(CL%num_CPUdevices)) deallocate(CL%num_CPUdevices)
+  if (allocated(CL%num_GPUdevices)) deallocate(CL%num_GPUdevices)
+  if (allocated(CL%noCPUdevices)) deallocate(CL%noCPUdevices)
+  if (allocated(CL%noGPUdevices)) deallocate(CL%noGPUdevices)
+  if (allocated(CL%d_CPUids)) deallocate(CL%d_CPUids)
+  if (allocated(CL%d_CPUmwgs)) deallocate(CL%d_CPUmwgs)
+  if (allocated(CL%d_CPUmwis)) deallocate(CL%d_CPUmwis)
+  if (allocated(CL%d_CPUmaxalloc)) deallocate(CL%d_CPUmaxalloc)
+  if (allocated(CL%d_CPUcu)) deallocate(CL%d_CPUcu)
+  if (allocated(CL%d_CPUgms)) deallocate(CL%d_CPUgms)
+  if (allocated(CL%d_CPUlms)) deallocate(CL%d_CPUlms)
+  if (allocated(CL%d_CPUmmas)) deallocate(CL%d_CPUmmas)
+  if (allocated(CL%d_CPUname)) deallocate(CL%d_CPUname)
+  if (allocated(CL%d_GPUids)) deallocate(CL%d_GPUids)
+  if (allocated(CL%d_GPUmwgs)) deallocate(CL%d_GPUmwgs)
+  if (allocated(CL%d_GPUmwis)) deallocate(CL%d_GPUmwis)
+  if (allocated(CL%d_GPUmaxalloc)) deallocate(CL%d_GPUmaxalloc)
+  if (allocated(CL%d_GPUcu)) deallocate(CL%d_GPUcu)
+  if (allocated(CL%d_GPUgms)) deallocate(CL%d_GPUgms)
+  if (allocated(CL%d_GPUlms)) deallocate(CL%d_GPUlms)
+  if (allocated(CL%d_GPUmmas)) deallocate(CL%d_GPUmmas)
+  if (allocated(CL%d_GPUname)) deallocate(CL%d_GPUname)
 
 end subroutine CL_destructor
 ! -----------------------------------------------------------------------------
 recursive subroutine query_platform_info_(self, p_id)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: query_platform_info_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
-  !! extract information about OpenCL platforms and devices 
+  !! extract information about OpenCL platforms and devices
   !! (based on (clfortran's query_platforms_devices.f90)
 
 use ISO_C_BINDING
-use mod_global 
+use mod_global
 
 IMPLICIT NONE
 
 class(OpenCL_T), INTENT(INOUT) :: self
-integer(kind=irg), INTENT(IN)  :: p_id 
+integer(kind=irg), INTENT(IN)  :: p_id
 
 ! Input variable.
 integer(c_intptr_t)            :: platform_id
@@ -412,6 +406,7 @@ allocate(platform_profile(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, temp_size, C_LOC(platform_profile), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_profile(p_id) = trim(cv_a2s(platform_profile))
+print *, 'Profile: ', self%p_profile
 deallocate(platform_profile)
 
 ! Version.
@@ -421,6 +416,7 @@ allocate(platform_version(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, temp_size, C_LOC(platform_version), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_version(p_id) = trim(cv_a2s(platform_version))
+print *, 'Version: ', self%p_version
 deallocate(platform_version)
 
 ! Name.
@@ -430,6 +426,7 @@ allocate(platform_name(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, temp_size, C_LOC(platform_name), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_name(p_id) = trim(cv_a2s(platform_name))
+print *, 'Name: ', self%p_name
 deallocate(platform_name)
 
 ! Vendor.
@@ -439,6 +436,7 @@ allocate(platform_vendor(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, temp_size, C_LOC(platform_vendor), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_vendor(p_id) = trim(cv_a2s(platform_vendor))
+print *, 'Vendor: ', self%p_vendor
 deallocate(platform_vendor)
 
 ! Extensions.
@@ -448,6 +446,7 @@ allocate(platform_extensions(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, temp_size, C_LOC(platform_extensions), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_extensions(p_id) = trim(cv_a2s(platform_extensions))
+print *, 'platform_extensions: ', self%p_extensions
 deallocate(platform_extensions)
 
 !
@@ -460,11 +459,11 @@ err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, 0, C_NULL_PTR, num_devices
 call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err,.TRUE.)
 
 if (err /= CL_SUCCESS .or. num_devices < 1) then
-  self%noCPUdevices(p_id) = .TRUE. 
+  self%noCPUdevices(p_id) = .TRUE.
 else
-  self%num_CPUdevices(p_id) = num_devices 
+  self%num_CPUdevices(p_id) = num_devices
   allocate(device_ids(num_devices))
-
+  
 ! Get device IDs.
   err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, num_devices, C_LOC(device_ids), num_devices)
   call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err)
@@ -476,7 +475,7 @@ else
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, temp_size, C_LOC(device_cu), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
-    self%d_CPUcu(p_id, i) = device_cu 
+    self%d_CPUcu(p_id, i) = device_cu
 
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
@@ -491,7 +490,7 @@ else
     self%d_CPUlms(p_id, i) = device_lms
 
 ! CL_DEVICE_MAX_WORK_GROUP_SIZE
-    temp_size = 8 
+    temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     self%d_CPUmwgs(p_id, i) = device_mwgs
@@ -520,9 +519,9 @@ err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 0, C_NULL_PTR, num_devices
 call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err,.TRUE.)
 
 if (err /= CL_SUCCESS .or. num_devices < 1) then
-  self%noGPUdevices(p_id) = .TRUE. 
+  self%noGPUdevices(p_id) = .TRUE.
 else
-  self%num_GPUdevices(p_id) = num_devices 
+  self%num_GPUdevices(p_id) = num_devices
 
 ! Allocate an array to hold device handles.
   if (allocated(device_ids)) deallocate(device_ids)
@@ -540,32 +539,32 @@ else
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, temp_size, C_LOC(device_cu), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
-    self%d_GPUcu(p_id, i) = device_cu 
+    self%d_GPUcu(p_id, i) = device_cu
 
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     device_gms = device_gms/1024/1024/1024
-    self%d_GPUgms(p_id, i) = device_gms 
+    self%d_GPUgms(p_id, i) = device_gms
 
     temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     device_lms = device_lms/1024
-    self%d_GPUlms(p_id, i) = device_lms 
+    self%d_GPUlms(p_id, i) = device_lms
 
 ! CL_DEVICE_MAX_WORK_GROUP_SIZE
-    temp_size = 8 
+    temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
-    self%d_GPUmwgs(p_id, i) = device_mwgs 
+    self%d_GPUmwgs(p_id, i) = device_mwgs
 
 
 ! CL_DEVICE_MAX_WORK_ITEM_SIZES
     temp_size = 8 * 3
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
-    self%d_GPUmwis(p_id, i, 1:3) = device_mwis(1:3) 
+    self%d_GPUmwis(p_id, i, 1:3) = device_mwis(1:3)
 
 ! Name.
     temp_size = 4
@@ -574,11 +573,11 @@ else
     allocate(device_name(temp_size))
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, temp_size, C_LOC(device_name), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
-    self%d_GPUname(p_id, i) = cv_a2s(device_name) 
-    deallocate(device_name) 
+    self%d_GPUname(p_id, i) = cv_a2s(device_name)
+    deallocate(device_name)
 
 ! CL_DEVICE_MAX_MEM_ALLOC_SIZE
-    temp_size = 8 
+    temp_size = 8
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, temp_size, C_LOC(device_maxalloc), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
     device_maxalloc = device_maxalloc/1024/1024
@@ -591,18 +590,19 @@ end subroutine query_platform_info_
 
 ! -----------------------------------------------------------------------------
 function cv_a2s(inp) result(outp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: cv_a2s
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
-  !! (private) auxiliary conversion routine 
+  !! (private) auxiliary conversion routine
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 character, intent(in),pointer       :: inp(:)
 
-character(fnlen)                    :: outp 
-integer(kind=irg)                   :: sz(1), i 
+character(fnlen)                    :: outp
+integer(kind=irg)                   :: sz(1), i
 
   sz = shape(inp)
   outp = ''
@@ -615,25 +615,26 @@ end function cv_a2s
 
 ! -----------------------------------------------------------------------------
 recursive subroutine print_platform_info_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: print_platform_info_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
   !! display information about an OpenCL device (based on (clfortran's query_platforms_devices.f90)
 
 use ISO_C_BINDING
 use mod_io
-use mod_global 
+use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(IN)     :: self 
+class(OpenCL_T),INTENT(IN)     :: self
 
 type(IO_T)                     :: Message
 integer(kind=irg)              :: io_int(9), i, j
 
 io_int(1) = self%num_platforms
-call Message%WriteValue('Number of Platforms: ',io_int,1,"(I2)") 
+call Message%WriteValue('Number of Platforms: ',io_int,1,"(I2)")
 
 call Message%printMessage('------------------------')
 
@@ -667,18 +668,18 @@ do i = 1, self%num_platforms
       io_int(1:8) = (/ j, self%d_CPUcu(i,j), int(self%d_CPUmwgs(i,j)), int(self%d_CPUmwis(i,j,1)), &
         int(self%d_CPUmwis(i,j,2)),int(self%d_CPUmwis(i,j,3)),int(self%d_CPUgms(i,j)), int(self%d_CPUlms(i,j)) /)
       call Message%WriteValue('', io_int, 8, &
-            "(' Device (#',I2,', CU/MWGS/MWIS/GMS/LMS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I4,'/',I4,$)") 
+            "(' Device (#',I2,', CU/MWGS/MWIS/GMS/LMS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I4,'/',I4,$)")
       call Message%printMessage(') - '//trim(self%d_CPUname(i,j)), frm="(A)" )
     end do
   end if
 
 ! Print GPU device information for this platform.
 
-  if (self%noGPUdevices(i).eqv..TRUE.) then 
+  if (self%noGPUdevices(i).eqv..TRUE.) then
     call Message%printMessage('No GPU devices found on this platform ', frm="(/A)")
   else
     io_int(1) = self%num_GPUdevices(i)
-    call Message%WriteValue(' # GPU Devices: ', io_int, 1, "(I2)") 
+    call Message%WriteValue(' # GPU Devices: ', io_int, 1, "(I2)")
     call Message%printMessage('')
 
 ! Loop over devices and print information.
@@ -687,14 +688,14 @@ do i = 1, self%num_platforms
         int(self%d_GPUmwis(i,j,2)),int(self%d_GPUmwis(i,j,3)),int(self%d_GPUgms(i,j)), int(self%d_GPUlms(i,j)), &
         int(self%d_GPUmaxalloc(i,j))  /)
       call Message%WriteValue('', io_int, 9, &
-            "(' Device (#',I2,', CU/MWGS/MWIS/GMS/LMS/MAS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,'/',I4,'/',I4,$)") 
+            "(' Device (#',I2,', CU/MWGS/MWIS/GMS/LMS/MAS: ',I4,'/',I4,'/',I4,',',I4,',',I4,'/',I3,'/',I4,'/',I4,$)")
       call Message%printMessage(') - '//trim(self%d_GPUname(i,j)), frm="(A)" )
     end do
 
     call Message%printMessage('------------------------')
   end if
 
-end do 
+end do
 
 call Message%printMessage( &
   (/ '                                            ', &
@@ -709,20 +710,21 @@ end subroutine print_platform_info_
 
 !--------------------------------------------------------------------------
 recursive subroutine DI_memory_estimate_(self, Nr, Nd, Ne, pl, gpu)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DI_memory_estimate_
+  !! author: MDG
+  !! version: 1.0
   !! date: 04/16/20
   !!
-  !! compute an estimate of the memory needed by the DI program... and 
-  !! compare this to the maximum allocatable memory for that device to 
-  !! make sure it is smaller ... This is known to not quite work right on 
+  !! compute an estimate of the memory needed by the DI program... and
+  !! compare this to the maximum allocatable memory for that device to
+  !! make sure it is smaller ... This is known to not quite work right on
   !! Windows 10.
 
 use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(OpenCL_T),INTENT(INOUT)   :: self 
+class(OpenCL_T),INTENT(INOUT)   :: self
 integer(kind=8),INTENT(IN)      :: Nr
 integer(kind=8),INTENT(IN)      :: Nd
 integer(kind=8),INTENT(IN)      :: Ne
@@ -730,17 +732,17 @@ integer(kind=4),INTENT(IN)      :: pl
 integer(kind=4),INTENT(IN)      :: gpu
 
 integer(kind=irg)               :: io_int(2)
-type(IO_T)                      :: Message 
-integer(kind=irg)               :: alloc, malloc  
+type(IO_T)                      :: Message
+integer(kind=irg)               :: alloc, malloc
 
 ! estimated allocation on the GPU
-alloc = int( maxval( (/ Nr, Nd, Ne /) ) / 1024_8 / 1024_8 ) 
+alloc = int( maxval( (/ Nr, Nd, Ne /) ) / 1024_8 / 1024_8 )
 
-! max allocatable size for the selected device 
+! max allocatable size for the selected device
 malloc = self%d_GPUmaxalloc(pl,gpu)
 
-if (alloc .gt. malloc ) then 
-  io_int(1) = alloc 
+if (alloc .gt. malloc ) then
+  io_int(1) = alloc
   io_int(2) = malloc
   call Message%printMessage('')
   call Message%printMessage('======================')
@@ -749,14 +751,15 @@ if (alloc .gt. malloc ) then
   call Message%printMessage(' please reduce the values of the numexptsingle and numdictsingle parameters...')
   call Message%printMessage('======================')
   call Message%printMessage('')
-end if 
+end if
 
 end subroutine DI_memory_estimate_
 
 !--------------------------------------------------------------------------
 recursive subroutine read_source_file_(self, EMsoft, sourcefile, csource, slength)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: read_source_file_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! read an OpenCL source file and return the source properly formatted
@@ -771,7 +774,7 @@ IMPLICIT NONE
 
 integer, parameter                      :: source_length = 50000
 
-class(OpenCL_T),INTENT(IN)              :: self 
+class(OpenCL_T),INTENT(IN)              :: self
 type(EMsoft_T),intent(INOUT)            :: EMsoft
 character(fnlen), INTENT(IN)            :: sourcefile
 character(len=source_length, KIND=c_char),INTENT(OUT) :: csource
@@ -790,7 +793,7 @@ character(3)                            :: develop
 ! find the cl file in the main opencl folder or the private folder if the Develop mode equals Yes...
 clpath = trim(EMsoft%getConfigParameter('OpenCLpathname') )
 
-! then, determine whether or not the user is working in develop mode by checking for the 
+! then, determine whether or not the user is working in develop mode by checking for the
 ! Develop keyword in the EMsoftconfig.json file... Regular users will only have a single
 ! opencl folder, but developers have two, so we need to make sure we check both
 ! locations.  The second location is the private folder...
@@ -822,12 +825,12 @@ else
   fname = trim(sourcefile)
 endif
 inquire(file=trim(fname),exist=fexist)
-if (.not.fexist) then 
+if (.not.fexist) then
   if (develop.eq.'Yes') then
    fname = trim(clpath2)//trim(sourcefile)
    fname = EMsoft%generateFilePath('OpenCLpathname',fname)
    inquire(file=trim(fname),exist=fexist)
-   if (.not.fexist) then 
+   if (.not.fexist) then
      call Message%printError('CLread_source_file','opencl source file '//trim(sourcefile)// &
        ' not found in either opencl folder.'//trim(fname))
    end if
@@ -859,8 +862,9 @@ end subroutine read_source_file_
 
 !--------------------------------------------------------------------------
 recursive subroutine read_source_file_wrapper_(self, sourcefile, csource, slength)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: read_source_file_wrapper_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! read an OpenCL source file and return the source properly formatted
@@ -889,7 +893,7 @@ logical                                 :: develop, fexist
 fname = trim(sourcefile)
 
 inquire(file=trim(fname),exist=fexist)
-if (.not.fexist) then 
+if (.not.fexist) then
    call Message%printError('CLread_source_file','opencl source  file '//trim(fname)//' not found')
 end if
 
@@ -917,8 +921,9 @@ end subroutine read_source_file_wrapper_
 !--------------------------------------------------------------------------
 recursive subroutine init_PDCCQ_(self, platform, nump, selnump, device, numd, selnumd, devinfo, &
                                   context, command_queue)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: init_PDCCQ_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! initialize a CL platform, device, context, and command queue
@@ -939,7 +944,7 @@ integer(kind=irg), INTENT(IN)            :: selnump
 integer(c_intptr_t),allocatable, target  :: device(:)
  !! device
 integer(kind=irg), INTENT(OUT)           :: numd
- !! numd number of devices available in selected platform 
+ !! numd number of devices available in selected platform
 integer(kind=irg), INTENT(IN)            :: selnumd
  !! selnumd selected device number
 character(fnlen),INTENT(OUT)             :: devinfo
@@ -952,7 +957,7 @@ integer(c_intptr_t),target               :: command_queue
 type(IO_T)                               :: Message
 integer(c_int32_t)                       :: ierr
 integer(c_size_t)                        :: cnuminfo
-character(fnlen),target                  :: info 
+character(fnlen),target                  :: info
 integer(c_intptr_t),target               :: ctx_props(3)
 integer(c_int64_t)                       :: cmd_queue_props
 
@@ -982,7 +987,7 @@ end if
 ierr = clGetDeviceInfo(device(selnumd), CL_DEVICE_NAME, sizeof(info), C_LOC(info), cnuminfo)
 call error_check_(self, 'CLinit_PDCCQ:clGetDeviceInfo',ierr)
 
-if (cnuminfo.gt.fnlen) then 
+if (cnuminfo.gt.fnlen) then
   call Message%WriteValue("CLinit_PDCCQ","device info string truncated to 132 characters")
   devinfo = trim(info(1:132))
 else
@@ -1005,13 +1010,14 @@ end subroutine init_PDCCQ_
 !--------------------------------------------------------------------------
 recursive subroutine init_multiPDCCQ_(self, platform, nump, selnump, device, numd, usenumd, &
                                        selnumd, devinfo, context, command_queue)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: init_multiPDCCQ_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! initialize a CL platform, multiple devices, a context, and command queues for multi-GPU runs
   !!
-  !! this routine still needs to be tested 
+  !! this routine still needs to be tested
 
 use ISO_C_BINDING
 use mod_io
@@ -1029,7 +1035,7 @@ integer(kind=irg), INTENT(IN)            :: selnump
 integer(c_intptr_t),allocatable, target  :: device(:)
  !! device
 integer(kind=irg), INTENT(OUT)           :: numd
- !! numd number of devices available in selected platform 
+ !! numd number of devices available in selected platform
 integer(kind=irg), INTENT(INOUT)         :: usenumd
  !! number of devices to be used
 integer(kind=irg), INTENT(IN)            :: selnumd(usenumd)
@@ -1044,7 +1050,7 @@ integer(c_intptr_t),allocatable,target   :: command_queue(:)
 type(IO_T)                               :: Message
 integer(c_int32_t)                       :: ierr
 integer(c_size_t)                        :: cnuminfo
-character(fnlen),target                  :: info 
+character(fnlen),target                  :: info
 integer(c_intptr_t),target               :: ctx_props(3)
 integer(c_int64_t)                       :: cmd_queue_props
 integer(kind=irg)                        :: i
@@ -1088,7 +1094,7 @@ do i=1,usenumd
   ierr = clGetDeviceInfo(device(selnumd(i)), CL_DEVICE_NAME, sizeof(info), C_LOC(info), cnuminfo)
   call error_check_(self, 'CLinit_PDCCQ:clGetDeviceInfo',ierr)
 
-  if (cnuminfo.gt.fnlen) then 
+  if (cnuminfo.gt.fnlen) then
     call Message%WriteValue("CLinit_PDCCQ","device info string truncated")
     devinfo(i) = trim(info(1:fnlen))
   else
@@ -1114,8 +1120,9 @@ end subroutine init_multiPDCCQ_
 
 !--------------------------------------------------------------------------
 recursive subroutine error_check_(self, routine, ierr, nonfatal)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: error_check_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! checks whether or not there was a CL 1.2 error and returns the error message
@@ -1126,7 +1133,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self 
+class(OpenCL_T), INTENT(INOUT)          :: self
 character(*),INTENT(IN)                 :: routine
 integer(kind=c_int32_t),INTENT(IN)      :: ierr
 logical,INTENT(IN),OPTIONAL             :: nonfatal
@@ -1136,7 +1143,7 @@ character(fnlen)                        :: estr
 integer(kind=irg)                       :: iout(1)
 
 if (ierr.ne.0) then
-  if ( (abs(ierr).le.68) .and. (abs(ierr).gt.0) ) then 
+  if ( (abs(ierr).le.68) .and. (abs(ierr).gt.0) ) then
     estr = errorStrings(-ierr)
   else
     iout(1) = ierr
@@ -1145,7 +1152,9 @@ if (ierr.ne.0) then
 
   if (present(nonfatal)) then
     if (nonfatal.eqv..TRUE.) then
-      call Message%printMessage('error_check', ' Non-fatal error: '//trim(estr) )
+      print*,"Non fatal error"
+!     call Message%printMessage('error_check', ' Non-fatal error: '//trim(estr) )
+!     Temporary commented Clément Lafond : avoid a fatal error when executing  EMMCOpenCL, need to understand why
     end if
   else
     call Message%printError(trim(routine),trim(estr))

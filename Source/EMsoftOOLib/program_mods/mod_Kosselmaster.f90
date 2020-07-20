@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_Kosselmaster
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/25/20
   !!
   !! class definition for the EMKosselmaster program
@@ -36,9 +36,9 @@ module mod_Kosselmaster
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-private :: CalcKthick, CalcKint 
+private :: CalcKthick, CalcKint
 
 ! namelist for the EMKosselmaster program
 type, public :: KosselmasterNameListType
@@ -53,17 +53,17 @@ type, public :: KosselmasterNameListType
   character(6)            :: Kosselmode
   character(fnlen)        :: xtalname
   character(fnlen)        :: outname
-  character(fnlen)        :: BetheParametersFile 
+  character(fnlen)        :: BetheParametersFile
 end type KosselmasterNameListType
 
 ! class definition
 type, public :: Kosselmaster_T
-private 
+private
   character(fnlen)                :: nmldeffile = 'EMKosselmaster.nml'
-  type(KosselmasterNameListType)  :: nml 
+  type(KosselmasterNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
@@ -123,32 +123,7 @@ private
   generic, public :: set_BetheParametersFile => set_BetheParametersFile_
 end type Kosselmaster_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numthick
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numthick
-!DEC$ ATTRIBUTES DLLEXPORT :: get_npx
-!DEC$ ATTRIBUTES DLLEXPORT :: set_npx
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: get_voltage
-!DEC$ ATTRIBUTES DLLEXPORT :: set_voltage
-!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: get_startthick
-!DEC$ ATTRIBUTES DLLEXPORT :: set_startthick
-!DEC$ ATTRIBUTES DLLEXPORT :: get_thickinc
-!DEC$ ATTRIBUTES DLLEXPORT :: set_thickinc
-!DEC$ ATTRIBUTES DLLEXPORT :: get_tfraction
-!DEC$ ATTRIBUTES DLLEXPORT :: set_tfraction
-!DEC$ ATTRIBUTES DLLEXPORT :: get_Kosselmode
-!DEC$ ATTRIBUTES DLLEXPORT :: set_Kosselmode
-!DEC$ ATTRIBUTES DLLEXPORT :: get_xtalname
-!DEC$ ATTRIBUTES DLLEXPORT :: set_xtalname
-!DEC$ ATTRIBUTES DLLEXPORT :: get_outname
-!DEC$ ATTRIBUTES DLLEXPORT :: set_outname
-!DEC$ ATTRIBUTES DLLEXPORT :: get_BetheParametersFile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_BetheParametersFile
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface Kosselmaster_T
   module procedure Kosselmaster_constructor
 end interface Kosselmaster_T
@@ -157,31 +132,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(Kosselmaster_T) function Kosselmaster_constructor( nmlfile ) result(Kosselmaster)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Kosselmaster_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
-!! constructor for the Kosselmaster_T Class; reads the name list 
- 
+!! constructor for the Kosselmaster_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call Kosselmaster%readNameList(nmlfile)
 
 end function Kosselmaster_constructor
 
 !--------------------------------------------------------------------------
-subroutine Kosselmaster_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine Kosselmaster_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT ::  Kosselmaster_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! destructor for the Kosselmaster_T Class
- 
+
 IMPLICIT NONE
 
-type(Kosselmaster_T), INTENT(INOUT)  :: self 
+type(Kosselmaster_T), INTENT(INOUT)  :: self
 
 call reportDestructor('Kosselmaster_T')
 
@@ -189,25 +166,26 @@ end subroutine Kosselmaster_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
-!! read the namelist from an nml file for the Kosselmaster_T Class 
+!! read the namelist from an nml file for the Kosselmaster_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT) :: self
 character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
+type(EMsoft_T)                       :: EMsoft
+type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 integer(kind=irg)       :: numthick
@@ -236,7 +214,7 @@ startthick = 10.0               ! starting thickness [nm]
 thickinc = 10.0                 ! thickness increment
 xtalname = 'undefined'          ! initial value to check that the keyword is present in the nml file
 outname = 'Kosselout.data'      ! output filename
-BetheParametersFile = 'BetheParameters.nml' ! file name for Bethe parameters 
+BetheParametersFile = 'BetheParameters.nml' ! file name for Bethe parameters
 Kosselmode = 'normal'           ! 'thicks' for thickness determination, 'normal' for normal plot
 tfraction = 0.1                 ! thickness fraction for 'thicks' mode
 
@@ -274,13 +252,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! pass the namelist for the Kosselmaster_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)          :: self
 type(KosselmasterNameListType)                :: nml
@@ -291,23 +270,24 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! write namelist to HDF file
 
 use mod_HDFsupport
 use mod_HDFnames
-use stringconstants 
+use stringconstants
 
 use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(Kosselmaster_T), INTENT(INOUT)    :: self 
+class(Kosselmaster_T), INTENT(INOUT)    :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames 
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
 integer(kind=irg),parameter             :: n_int = 3, n_real = 5
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
@@ -326,7 +306,7 @@ hdferr = HDF%createGroup(groupname)
 io_int = (/ knl%numthick, knl%npx, knl%nthreads /)
 intlist(1) = 'numthick'
 intlist(2) = 'npx'
-intlist(3) = 'nthreads' 
+intlist(3) = 'nthreads'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single reals
@@ -335,7 +315,7 @@ reallist(1) = 'voltage'
 reallist(2) = 'dmin'
 reallist(3) = 'startthick'
 reallist(4) = 'thickinc'
-reallist(5) = 'tfraction' 
+reallist(5) = 'tfraction'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! write all the strings
@@ -364,13 +344,14 @@ end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
 function get_numthick_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numthick_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get numthick from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                        :: out
@@ -381,13 +362,14 @@ end function get_numthick_
 
 !--------------------------------------------------------------------------
 subroutine set_numthick_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numthick_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set numthick in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)            :: inp
@@ -398,13 +380,14 @@ end subroutine set_numthick_
 
 !--------------------------------------------------------------------------
 function get_npx_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_npx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get npx from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                        :: out
@@ -415,13 +398,14 @@ end function get_npx_
 
 !--------------------------------------------------------------------------
 subroutine set_npx_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_npx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set npx in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)            :: inp
@@ -432,13 +416,14 @@ end subroutine set_npx_
 
 !--------------------------------------------------------------------------
 function get_nthreads_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get nthreads from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                        :: out
@@ -449,13 +434,14 @@ end function get_nthreads_
 
 !--------------------------------------------------------------------------
 subroutine set_nthreads_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set nthreads in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)            :: inp
@@ -466,13 +452,14 @@ end subroutine set_nthreads_
 
 !--------------------------------------------------------------------------
 function get_voltage_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_voltage_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get voltage from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl)                           :: out
@@ -483,13 +470,14 @@ end function get_voltage_
 
 !--------------------------------------------------------------------------
 subroutine set_voltage_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_voltage_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set voltage in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)               :: inp
@@ -500,13 +488,14 @@ end subroutine set_voltage_
 
 !--------------------------------------------------------------------------
 function get_dmin_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get dmin from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl)                           :: out
@@ -517,13 +506,14 @@ end function get_dmin_
 
 !--------------------------------------------------------------------------
 subroutine set_dmin_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set dmin in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)               :: inp
@@ -534,13 +524,14 @@ end subroutine set_dmin_
 
 !--------------------------------------------------------------------------
 function get_startthick_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_startthick_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get startthick from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl)                           :: out
@@ -551,13 +542,14 @@ end function get_startthick_
 
 !--------------------------------------------------------------------------
 subroutine set_startthick_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_startthick_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set startthick in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)               :: inp
@@ -568,13 +560,14 @@ end subroutine set_startthick_
 
 !--------------------------------------------------------------------------
 function get_thickinc_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_thickinc_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get thickinc from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl)                           :: out
@@ -585,13 +578,14 @@ end function get_thickinc_
 
 !--------------------------------------------------------------------------
 subroutine set_thickinc_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_thickinc_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set thickinc in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)               :: inp
@@ -602,13 +596,14 @@ end subroutine set_thickinc_
 
 !--------------------------------------------------------------------------
 function get_tfraction_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_tfraction_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get tfraction from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl)                           :: out
@@ -619,13 +614,14 @@ end function get_tfraction_
 
 !--------------------------------------------------------------------------
 subroutine set_tfraction_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_tfraction_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set tfraction in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)               :: inp
@@ -636,13 +632,14 @@ end subroutine set_tfraction_
 
 !--------------------------------------------------------------------------
 function get_Kosselmode_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Kosselmode_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get Kosselmode from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 character(6)                             :: out
@@ -653,13 +650,14 @@ end function get_Kosselmode_
 
 !--------------------------------------------------------------------------
 subroutine set_Kosselmode_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Kosselmode_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set Kosselmode in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 character(6), INTENT(IN)                 :: inp
@@ -670,13 +668,14 @@ end subroutine set_Kosselmode_
 
 !--------------------------------------------------------------------------
 function get_xtalname_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_xtalname_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get xtalname from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                         :: out
@@ -687,13 +686,14 @@ end function get_xtalname_
 
 !--------------------------------------------------------------------------
 subroutine set_xtalname_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_xtalname_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set xtalname in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)             :: inp
@@ -704,13 +704,14 @@ end subroutine set_xtalname_
 
 !--------------------------------------------------------------------------
 function get_outname_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_outname_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get outname from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                         :: out
@@ -721,13 +722,14 @@ end function get_outname_
 
 !--------------------------------------------------------------------------
 subroutine set_outname_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_outname_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set outname in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)             :: inp
@@ -738,13 +740,14 @@ end subroutine set_outname_
 
 !--------------------------------------------------------------------------
 function get_BetheParametersFile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_BetheParametersFile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! get BetheParametersFile from the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                         :: out
@@ -755,13 +758,14 @@ end function get_BetheParametersFile_
 
 !--------------------------------------------------------------------------
 subroutine set_BetheParametersFile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_BetheParametersFile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! set BetheParametersFile in the Kosselmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)             :: inp
@@ -772,8 +776,9 @@ end subroutine set_BetheParametersFile_
 
 !--------------------------------------------------------------------------
 subroutine Kosselmaster_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Kosselmaster_
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! perform the computations
@@ -798,11 +803,11 @@ use omp_lib
 use mod_OMPsupport
 use stringconstants
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Kosselmaster_T), INTENT(INOUT)    :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+character(fnlen), INTENT(INOUT)         :: progname
 
 type(Cell_T)                    :: cell
 type(DynType)                   :: Dyn
@@ -828,7 +833,7 @@ integer(kind=irg)               :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,izz, izzmax
 real(kind=dbl)                  :: tpi,Znsq, kkl, DBWF, kin, xy(2), dc(3), edge, scl, tmp, dx, dxm, dy, dym, xyz(3), Radius !!
 real(kind=sgl)                  :: io_real(5), selE, kn, FN(3), kkk(3), bp(4), tstop, xyzs(3), tav
 complex(kind=dbl)               :: czero
-real(kind=sgl),allocatable      :: mLPNH(:,:,:), mLPSH(:,:,:), Iz(:), thick(:), trange(:,:), masterSPNH(:,:,:), & 
+real(kind=sgl),allocatable      :: mLPNH(:,:,:), mLPSH(:,:,:), Iz(:), thick(:), trange(:,:), masterSPNH(:,:,:), &
                                    masterSPSH(:,:,:), trangeSP(:,:)
 real(kind=sgl),allocatable      :: auxNH(:,:,:), auxSH(:,:,:), auxtrange(:,:)
 logical                         :: usehex, switchmirror, verbose, insert=.TRUE., overwrite=.TRUE., silent=.TRUE., g_exists
@@ -848,15 +853,15 @@ integer(kind=irg),allocatable   :: kij(:,:)
 complex(kind=dbl),allocatable   :: DynMat(:,:)
 character(fnlen)                :: dataset, instring
 
-!$OMP THREADPRIVATE(rlp) 
+!$OMP THREADPRIVATE(rlp)
 
 call openFortranHDFInterface()
 
 associate( kmnl=>self%nml )
 
 ! set the HDF group names for this program
-HDF = HDF_T() 
-HDFnames = HDFnames_T() 
+HDF = HDF_T()
+HDFnames = HDFnames_T()
 
 ! initialize the timing routines
 timer = Timing_T()
@@ -881,7 +886,7 @@ call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, kmnl%dmin, verbose, useHDF=HDF
 ! check the crystal system and setting; abort the program for trigonal with rhombohedral setting with
 ! an explanation for the user
 
-if ((SG%getSpaceGroupXtalSystem().eq.5).and.(cell%getLatParm('b').eq.cell%getLatParm('c'))) then 
+if ((SG%getSpaceGroupXtalSystem().eq.5).and.(cell%getLatParm('b').eq.cell%getLatParm('c'))) then
     call Message%printMessage( (/ &
     '                                                                         ', &
     ' ========Program Aborted========                                         ', &
@@ -899,15 +904,15 @@ end if
  end do
  isym = j
 
-! Here, we encode isym into a new number that describes the sampling scheme; the new schemes are 
+! Here, we encode isym into a new number that describes the sampling scheme; the new schemes are
 ! described in detail in the EBSD manual pdf file.
 
 SamplingType = PGSamplingType(isym)
 
 ! next, intercept the special cases (hexagonal vs. rhombohedral cases that require special treatment)
-if ((SamplingType.eq.-1).or.(isym.eq.14).or.(isym.eq.26)) then 
+if ((SamplingType.eq.-1).or.(isym.eq.14).or.(isym.eq.26)) then
   SamplingType = SG%getHexvsRho(isym)
-end if 
+end if
 
 ! if the point group is trigonal or hexagonal, we need to switch usehex to .TRUE. so that
 ! the program will use the hexagonal sampling method
@@ -920,10 +925,10 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
 
 !=============================================
 !=============================================
-! this is where we determine the values for the thicknesses 
+! this is where we determine the values for the thicknesses
 if (kmnl%Kosselmode.eq.'thicks') then
   numthick = 1
-else 
+else
   numthick = kmnl%numthick
 end if
 
@@ -940,7 +945,7 @@ end do
 ! ---------- allocate memory for the master pattern
 ! we need to sample the stereographic projection Northern hemisphere or a portion
 ! thereoff, depending on the current symmetry.
-if (kmnl%Kosselmode.eq.'normal') then 
+if (kmnl%Kosselmode.eq.'normal') then
   allocate(mLPNH(-kmnl%npx:kmnl%npx,-npy:npy,1:kmnl%numthick),stat=istat)
   allocate(mLPSH(-kmnl%npx:kmnl%npx,-npy:npy,1:kmnl%numthick),stat=istat)
   allocate(masterSPNH(-kmnl%npx:kmnl%npx,-npy:npy,1:kmnl%numthick))
@@ -965,10 +970,10 @@ end if
 !=============================================
 ! create the HDF5 output file
 !=============================================
-  HDF = HDF_T() 
-  call HDFnames%set_ProgramData(SC_Kosselmaster) 
-  call HDFnames%set_NMLlist(SC_KosselmasterNameList) 
-  call HDFnames%set_NMLfilename(SC_KosselmasterNML) 
+  HDF = HDF_T()
+  call HDFnames%set_ProgramData(SC_Kosselmaster)
+  call HDFnames%set_NMLlist(SC_KosselmasterNameList)
+  call HDFnames%set_NMLfilename(SC_KosselmasterNML)
 
   outname = EMsoft%generateFilePath('EMdatapathname',trim(kmnl%outname))
 
@@ -991,12 +996,12 @@ dataset = trim(HDFnames%get_NMLfilename())
 
 ! leave this group
   call HDF%pop()
-  
+
 ! create a namelist group to write all the namelist files into
   hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
   call self%writeHDFNameList(HDF, HDFnames)
   call Diff%writeBetheparameterNameList(HDF)
-  
+
 ! leave this group
   call HDF%pop()
 
@@ -1014,7 +1019,7 @@ dataset = SC_xtalname
   allocate(stringarray(1))
   stringarray(1)= trim(kmnl%xtalname)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1, overwrite)
   else
     hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1)
@@ -1024,12 +1029,12 @@ dataset = SC_npx
   hdferr = HDF%writeDatasetInteger(dataset, kmnl%npx)
 
 dataset = SC_BetheParameters
-  bp(1) = Diff%getBetheParameter('c1') 
-  bp(2) = Diff%getBetheParameter('c2') 
-  bp(3) = Diff%getBetheParameter('c3') 
-  bp(4) = Diff%getBetheParameter('sg') 
+  bp(1) = Diff%getBetheParameter('c1')
+  bp(2) = Diff%getBetheParameter('c2')
+  bp(3) = Diff%getBetheParameter('c3')
+  bp(4) = Diff%getBetheParameter('sg')
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetFloatArray(dataset, bp, 4, overwrite)
   else
     hdferr = HDF%writeDatasetFloatArray(dataset, bp, 4)
@@ -1037,7 +1042,7 @@ dataset = SC_BetheParameters
 
 dataset = SC_numthick
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetInteger(dataset, kmnl%numthick, overwrite)
   else
     hdferr = HDF%writeDatasetInteger(dataset, kmnl%numthick)
@@ -1045,7 +1050,7 @@ dataset = SC_numthick
 
 dataset = SC_startthick
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetFloat(dataset, kmnl%startthick, overwrite)
   else
     hdferr = HDF%writeDatasetFloat(dataset, kmnl%startthick)
@@ -1053,7 +1058,7 @@ dataset = SC_startthick
 
 dataset = SC_thickinc
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetFloat(dataset, kmnl%thickinc, overwrite)
   else
     hdferr = HDF%writeDatasetFloat(dataset, kmnl%thickinc)
@@ -1113,7 +1118,7 @@ call kvec%set_SamplingType( SamplingType )
 call kvec%set_mapmode('RoscaLambert')
 if (usehex) then
   call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),kmnl%npx,npy, ijmax,usehex)
-else 
+else
   call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),kmnl%npx,npy, ijmax,usehex)
 end if
 numk = kvec%get_numk()
@@ -1147,10 +1152,10 @@ totweak = 0
 ! here's where we introduce the OpenMP calls, to speed up the overall calculations...
 call timer%Time_tick(1)
 
-! set the number of OpenMP threads 
+! set the number of OpenMP threads
 call OMP_setNThreads(kmnl%nthreads)
 
-! use OpenMP to run on multiple cores ... 
+! use OpenMP to run on multiple cores ...
 !$OMP PARALLEL COPYIN(rlp) &
 !$OMP& PRIVATE(DynMat,ik,FN,TID,kn,ipx,ipy,ix,iequiv,nequiv,reflist,firstw) &
 !$OMP& PRIVATE(kkk,nns,nnw,nref,io_int,Iz)
@@ -1158,21 +1163,21 @@ call OMP_setNThreads(kmnl%nthreads)
 NUMTHREADS = OMP_GET_NUM_THREADS()
 TID = OMP_GET_THREAD_NUM()
 
-!$OMP DO SCHEDULE(DYNAMIC,100)    
+!$OMP DO SCHEDULE(DYNAMIC,100)
 ! ---------- and here we start the beam direction loop
 beamloop:do ik = 1,numk
 !=============================================
 ! ---------- create the master reflection list for this beam direction
 ! Then we must determine the masterlist of reflections (also a linked list);
-! This list basically samples a large reciprocal space volume; it does not 
-! distinguish between zero and higher order Laue zones, since that 
-! distinction becomes meaningless when we consider the complete 
-! reciprocal lattice.  
+! This list basically samples a large reciprocal space volume; it does not
+! distinguish between zero and higher order Laue zones, since that
+! distinction becomes meaningless when we consider the complete
+! reciprocal lattice.
   reflist = gvectors_T()
   kkk = karray(1:3,ik)
   FN = kkk
 
-  call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, kmnl%dmin, verbose)
+  call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, self%nml%dmin, verbose)
   nref = reflist%get_nref()
 ! ---------- end of "create the master reflection list"
 !=============================================
@@ -1192,8 +1197,8 @@ beamloop:do ik = 1,numk
 
 ! solve the dynamical eigenvalue equation for this beam direction
   kn = karray(4,ik)
-  if (kmnl%Kosselmode.eq.'thicks') then 
-    call CalcKthick(DynMat,kn,nns,kmnl%tfraction,Iz)
+  if (self%nml%Kosselmode.eq.'thicks') then
+    call CalcKthick(DynMat,kn,nns,self%nml%tfraction,Iz)
   else
     call CalcKint(DynMat,kn,nns,numthick,thick,Iz)
   end if
@@ -1204,17 +1209,17 @@ beamloop:do ik = 1,numk
   ipy = kij(2,ik)
   ipz = kij(3,ik)
 !
-  if (usehex) then 
-   call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,kmnl%npx,iequiv,nequiv,usehex)
+  if (usehex) then
+   call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,self%nml%npx,iequiv,nequiv,usehex)
   else
    if ((SG%getSpaceGroupNumber().ge.195).and.(SG%getSpaceGroupNumber().le.230)) then
-     call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,kmnl%npx,iequiv,nequiv,cubictype=SamplingType)
+     call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,self%nml%npx,iequiv,nequiv,cubictype=SamplingType)
    else
-     call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,kmnl%npx,iequiv,nequiv)
+     call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,self%nml%npx,iequiv,nequiv)
    end if
   end if
 !$OMP CRITICAL
-  if (kmnl%Kosselmode.eq.'normal') then
+  if (self%nml%Kosselmode.eq.'normal') then
     do ix=1,nequiv
       if (iequiv(3,ix).eq.-1) mLPSH(iequiv(1,ix),iequiv(2,ix),1:numthick) = Iz(1:numthick)
       if (iequiv(3,ix).eq.1) mLPNH(iequiv(1,ix),iequiv(2,ix),1:numthick) = Iz(1:numthick)
@@ -1242,12 +1247,12 @@ end do beamloop
 deallocate(karray, kij)
 
 if (usehex) then
-! and finally, we convert the hexagonally sampled array to a square Lambert projection which will be used 
+! and finally, we convert the hexagonally sampled array to a square Lambert projection which will be used
 ! for all EBSD pattern interpolations;  we need to do this for both the Northern and Southern hemispheres
 
 ! we begin by allocating auxiliary arrays to hold copies of the hexagonal data; the original arrays will
 ! then be overwritten with the newly interpolated data.
-  if (kmnl%Kosselmode.eq.'normal') then
+  if (self%nml%Kosselmode.eq.'normal') then
     allocate(auxNH(-kmnl%npx:kmnl%npx,-npy:npy,1:kmnl%numthick),stat=istat)
     allocate(auxSH(-kmnl%npx:kmnl%npx,-npy:npy,1:kmnl%numthick),stat=istat)
     auxNH = mLPNH
@@ -1255,10 +1260,10 @@ if (usehex) then
   else
     allocate(auxtrange(-kmnl%npx:kmnl%npx,-npy:npy),stat=istat)
     auxtrange = trange
-  end if 
+  end if
 
   edge = 1.D0 / dble(kmnl%npx)
-  scl = float(kmnl%npx) 
+  scl = float(kmnl%npx)
   do i=-kmnl%npx,kmnl%npx
     do j=-npy,npy
 ! determine the spherical direction for this point
@@ -1269,7 +1274,7 @@ if (usehex) then
       ierr = L%LambertSphereToHex(xy)
       xy = xy * scl
 ! interpolate intensity from the neighboring points
-      if (ierr.eq.0) then 
+      if (ierr.eq.0) then
         nix = floor(xy(1))
         niy = floor(xy(2))
         nixp = nix+1
@@ -1285,7 +1290,7 @@ if (usehex) then
                                   auxNH(nix,niyp,1:numthick)*dxm*dy + auxNH(nixp,niyp,1:numthick)*dx*dy
           mLPSH(i,j,1:numthick) = auxSH(nix,niy,1:numthick)*dxm*dym + auxSH(nixp,niy,1:numthick)*dx*dym + &
                                   auxSH(nix,niyp,1:numthick)*dxm*dy + auxSH(nixp,niyp,1:numthick)*dx*dy
-        else 
+        else
           trange(i,j) = auxtrange(nix,niy)*dxm*dym + auxtrange(nixp,niy)*dx*dym + &
                         auxtrange(nix,niyp)*dxm*dy + auxtrange(nixp,niyp)*dx*dy
         end if
@@ -1305,12 +1310,12 @@ if (kmnl%Kosselmode.eq.'normal') then
 
 ! get stereographic projections (summed over the atomic positions)
   Radius = 1.0
-  do i=-kmnl%npx,kmnl%npx 
-    do j=-kmnl%npx,kmnl%npx 
+  do i=-kmnl%npx,kmnl%npx
+    do j=-kmnl%npx,kmnl%npx
       L = Lambert_T( xyd = (/ dble(i), dble(j) /) / dble(kmnl%npx) )
       ierr = L%StereoGraphicInverse( xyz, Radius )
       xyz = xyz/vecnorm(xyz)
-      if (ierr.ne.0) then 
+      if (ierr.ne.0) then
         masterSPNH(i,j,1) = 0.0
         masterSPSH(i,j,1) = 0.0
       else
@@ -1324,20 +1329,20 @@ else
   tav = sum(trange)/float(2*kmnl%npx+1)**2
   ! get stereographic projections (summed over the atomic positions)
   Radius = 1.0
-  do i=-kmnl%npx,kmnl%npx 
-    do j=-kmnl%npx,kmnl%npx 
+  do i=-kmnl%npx,kmnl%npx
+    do j=-kmnl%npx,kmnl%npx
       L = Lambert_T( xyd = (/ dble(i), dble(j) /) / dble(kmnl%npx) )
       ierr = L%StereoGraphicInverse( xyz, Radius )
       xyz = xyz/vecnorm(xyz)
-      if (ierr.ne.0) then 
+      if (ierr.ne.0) then
         trangeSP(i,j) = tav
       else
         xyzs = sngl(xyz)
         trangeSP(i,j) = InterpolateLambert(xyzs, trange, kmnl%npx)
       end if
     end do
-  end do 
-end if 
+  end do
+end if
 
 io_int(1) = nint(float(totstrong)/float(numk))
 call Message%WriteValue(' -> Average number of strong reflections = ',io_int, 1, "(I5)")
@@ -1345,12 +1350,12 @@ io_int(1) = nint(float(totweak)/float(numk))
 call Message%WriteValue(' -> Average number of weak reflections   = ',io_int, 1, "(I5)")
 
 call timer%makeTimeStamp()
-dstr = timer%getDateString() 
+dstr = timer%getDateString()
 tstre = timer%getTimeString()
 
 !===================================
 !===================================
-! and write the final output arrays to the HDF5 file 
+! and write the final output arrays to the HDF5 file
 datagroupname = trim(HDFnames%get_ProgramData())
 
 ! open the existing file using the default properties.
@@ -1361,7 +1366,7 @@ hdferr = HDF%openGroup(HDFnames%get_EMheader())
 hdferr = HDF%openGroup(datagroupname)
 
 dataset = SC_StopTime
-  call timer%Time_tock(1) 
+  call timer%Time_tock(1)
   tstop = timer%getInterval(1)
   call timer%Time_reset(1)
   line2(1) = dstr//', '//tstre
@@ -1372,7 +1377,7 @@ dataset = SC_StopTime
 
 dataset = SC_Duration
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then     
+  if (g_exists) then
     hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
   else
     hdferr = HDF%writeDatasetFloat(dataset, tstop)
@@ -1380,7 +1385,7 @@ dataset = SC_Duration
 
   call HDF%pop()
   call HDF%pop()
-  
+
   hdferr = HDF%openGroup(HDFnames%get_EMData())
   hdferr = HDF%openGroup(datagroupname)
 
@@ -1397,7 +1402,7 @@ if (kmnl%Kosselmode.eq.'normal') then
 
   dataset = SC_masterSPNH
     call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPNH, dims3, offset3, cnt3, insert)
     else
       hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPNH, dims3, offset3, cnt3)
@@ -1405,7 +1410,7 @@ if (kmnl%Kosselmode.eq.'normal') then
 
   dataset = SC_masterSPSH
     call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPSH, dims3, offset3, cnt3, insert)
     else
       hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPSH, dims3, offset3, cnt3)
@@ -1432,14 +1437,15 @@ call closeFortranHDFInterface()
 
 call Message%printMessage('Final data stored in file '//trim(kmnl%outname), frm = "(A/)")
 
-end associate 
+end associate
 
 end subroutine Kosselmaster_
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcKthick(DynMat,kn,nn,thresh,Iz)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcKthick
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! compute the thickness for which the Kossel intensity drops below a treshold
@@ -1472,32 +1478,33 @@ real(kind=dbl)                  :: s(nn), q(nn), t, ss
  lW = cPi*Wloc/cmplx(kn,0.0)
  lalpha(1:nn) = CGinv(1:nn,1)
 
-! make sure the alpha excitation coefficients are normalized 
+! make sure the alpha excitation coefficients are normalized
  ss = sum(abs(lalpha(1:nn))**2)
  if (ss.ne.1.D0) then
   ss = cmplx(1.D0/dsqrt(ss),0.D0)
   lalpha = lalpha*ss
- endif 
- 
+ endif
+
 ! compute the thickness value in steps of 0.25 nm until less than thresh
  do j=1,nn
   q(j) = -4.D0*cPi*aimag(lW(j))
   s(j) = abs(lalpha(j))**2
  end do
  t = 0.D0
- do 
+ do
    t = t+0.25D0
    ss = sum(s*dexp(t*q))
    if (ss.le.thresh) EXIT
  end do
  Iz(1) = t
-   
+
 end subroutine CalcKthick
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcKint(DynMat,kn,nn,nt,thick,Iz)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcKint
+!! author: MDG
+!! version: 1.0
 !! date: 03/25/20
 !!
 !! compute the Kossel intensities for a range of thicknesses
@@ -1531,14 +1538,14 @@ real(kind=dbl)                  :: s, q, t
  lW = cPi*Wloc/cmplx(kn,0.0)
  lalpha(1:nn) = CGinv(1:nn,1)
 
-! make sure the alpha excitation coefficients are normalized 
+! make sure the alpha excitation coefficients are normalized
  s = sum(abs(lalpha(1:nn))**2)
  if (s.ne.1.D0) then
   s = cmplx(1.D0/dsqrt(s),0.D0)
   lalpha = lalpha*s
- endif 
- 
-! compute the thickness array 
+ endif
+
+! compute the thickness array
  Iz = 0.D0
  do j=1,nn
     q = -4.D0*cPi*aimag(lW(j))
@@ -1547,8 +1554,8 @@ real(kind=dbl)                  :: s, q, t
       t = q*thick(k)
       if (abs(t).lt.30.D0) Iz(k) = Iz(k) +  s * exp(t)
     end do
- end do   
-   
+ end do
+
 end subroutine CalcKint
 
 

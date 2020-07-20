@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_MCOpenCL
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/04/20
   !!
   !! class definition for the EMMCOpenCL program
@@ -37,16 +37,16 @@ use mod_kinds
 use mod_global
 use mod_MCfiles
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! class definition
 type, public :: MCOpenCL_T
-private 
+private
   character(fnlen)            :: nmldeffile = 'EMMCOpenCL.nml'
-  type(MCOpenCLNameListType)  :: nml 
+  type(MCOpenCLNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: MCOpenCL_
@@ -57,7 +57,7 @@ private
 
 end type MCOpenCL_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface MCOpenCL_T
   module procedure MCOpenCL_constructor
 end interface MCOpenCL_T
@@ -66,15 +66,16 @@ contains
 
 !--------------------------------------------------------------------------
 type(MCOpenCL_T) function MCOpenCL_constructor( nmlfile ) result(MCOpenCL)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: MCOpenCL_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
-!! constructor for the MCOpenCL_T Class; reads the name list 
- 
+!! constructor for the MCOpenCL_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call MCOpenCL%readNameList(nmlfile)
 
@@ -82,41 +83,42 @@ end function MCOpenCL_constructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly, writetofile)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
-!! read the namelist from an nml file for the MCOpenCL_T Class 
+!! read the namelist from an nml file for the MCOpenCL_T Class
 
-use mod_io 
+use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCOpenCL_T), INTENT(INOUT)            :: self
 character(fnlen),INTENT(IN)                 :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)                 :: initonly
  !! fill in the default values only; do not read the file
 character(fnlen),INTENT(IN),optional        :: writetofile
  !! file name to which to write out the entire namelist
 
-type(IO_T)                                  :: Message       
+type(IO_T)                                  :: Message
 logical                                     :: skipread = .FALSE.
 
 integer(kind=irg) :: stdout
 integer(kind=irg) :: numsx
-integer(kind=irg) :: ivolx 
-integer(kind=irg) :: ivoly 
-integer(kind=irg) :: ivolz 
+integer(kind=irg) :: ivolx
+integer(kind=irg) :: ivoly
+integer(kind=irg) :: ivolz
 integer(kind=irg) :: globalworkgrpsz
 integer(kind=irg) :: num_el
 integer(kind=irg) :: totnum_el
 integer(kind=irg) :: multiplier
 integer(kind=irg) :: devid
 integer(kind=irg) :: platid
-real(kind=sgl)    :: ivolstepx 
-real(kind=sgl)    :: ivolstepy 
-real(kind=sgl)    :: ivolstepz 
+real(kind=sgl)    :: ivolstepx
+real(kind=sgl)    :: ivolstepy
+real(kind=sgl)    :: ivolstepz
 real(kind=dbl)    :: sig
 real(kind=dbl)    :: sigstart
 real(kind=dbl)    :: sigend
@@ -140,7 +142,7 @@ namelist  / MCCLdata / stdout, xtalname, sigstart, numsx, num_el, globalworkgrps
                        sigend, sigstep, sig, Notify, ivolx, ivoly, ivolz, ivolstepx, ivolstepy, ivolstepz, thickness
 
 if (present(writetofile)) then
-  if (trim(writetofile).ne.'') then 
+  if (trim(writetofile).ne.'') then
     xtalname = trim(self%nml%xtalname)
     mode = self%nml%mode
     ivolx = self%nml%ivolx
@@ -151,13 +153,13 @@ if (present(writetofile)) then
     ivolstepz = self%nml%ivolstepz
     globalworkgrpsz = self%nml%globalworkgrpsz
     num_el = self%nml%num_el
-    totnum_el = self%nml%totnum_el 
+    totnum_el = self%nml%totnum_el
     multiplier = self%nml%multiplier
-    devid = self%nml%devid 
+    devid = self%nml%devid
     platid = self%nml%platid
-    sig = self%nml%sig  
+    sig = self%nml%sig
     omega = self%nml%omega
-    EkeV = self%nml%EkeV 
+    EkeV = self%nml%EkeV
     Ehistmin = self%nml%Ehistmin
     Ebinsize = self%nml%Ebinsize
     dataname = self%nml%dataname
@@ -165,9 +167,9 @@ if (present(writetofile)) then
     open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='unknown')
     write(UNIT=dataunit,NML=MCCLdata)
     close(UNIT=dataunit,STATUS='keep')
-    return 
-  end if 
-end if 
+    return
+  end if
+end if
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 stdout = 6
@@ -221,7 +223,7 @@ end if
 self%nml%stdout = stdout
 self%nml%numsx = numsx
 self%nml%ivolx = ivolx
-self%nml%ivoly = ivoly 
+self%nml%ivoly = ivoly
 self%nml%ivolz = ivolz
 self%nml%globalworkgrpsz = globalworkgrpsz
 self%nml%num_el = num_el
@@ -229,7 +231,7 @@ self%nml%totnum_el = totnum_el
 self%nml%multiplier = multiplier
 self%nml%devid = devid
 self%nml%platid = platid
-self%nml%ivolstepx = ivolstepx 
+self%nml%ivolstepx = ivolstepx
 self%nml%ivolstepy = ivolstepy
 self%nml%ivolstepz = ivolstepz
 self%nml%sigstart = sigstart
@@ -253,13 +255,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
 !! pass the namelist for the MCOpenCL_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCOpenCL_T), INTENT(INOUT)          :: self
 type(MCOpenCLNameListType)                :: nml
@@ -271,8 +274,9 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 subroutine MCOpenCL_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: MCOpenCL_
+!! author: MDG
+!! version: 1.0
 !! date: 01/24/20
 !!
 !! perform the Monte Carlo computations for EBSD, ECP, TKD, or Ivol modes
@@ -295,7 +299,7 @@ use mod_notifications
 use mod_math
 use ISO_C_BINDING
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCOpenCL_T), INTENT(INOUT)   :: self
 type(EMsoft_T), INTENT(INOUT)      :: EMsoft
@@ -306,7 +310,7 @@ type(DynType)           :: Dyn
 type(Timing_T)          :: timer
 type(IO_T)              :: Message
 type(OpenCL_T)          :: CL
-type(Lambert_T)         :: Lambert 
+type(Lambert_T)         :: Lambert
 type(HDF_T)             :: HDF
 type(HDFnames_T)        :: HDFnames
 type(SpaceGroup_T)      :: SG
@@ -342,7 +346,7 @@ integer(kind=4),allocatable,target  :: init_seeds(:)
 integer(kind=4)         :: idxy(2), iE, px, py, iz, nseeds, hdferr, tstart, tstop ! auxiliary variables
 real(kind=4)            :: cxyz(3), edis, xy(2) ! auxiliary variables
 integer(kind=irg)       :: xs, ys, zs
-real(kind=8)            :: delta,rand, xyz(3) 
+real(kind=8)            :: delta,rand, xyz(3)
 real(kind=4), target    :: thickness
 character(11)           :: dstr
 character(15)           :: tstrb
@@ -363,7 +367,7 @@ type(c_ptr)                    :: event
 integer(c_int32_t)             :: ierr, pcnt, ierr2
 integer(c_size_t),target       :: slength
 integer(c_intptr_t),target     :: ctx_props(3)
-character(3),target            :: kernelname 
+character(3),target            :: kernelname
 character(5),target            :: kernelname2
 character(19),target           :: progoptions
 character(fnlen),target        :: info ! info about the GPU
@@ -393,13 +397,13 @@ timer = Timing_T()
 tstrb = timer%getTimeString()
 
 call openFortranHDFInterface()
-HDF = HDF_T() 
-HDFnames = HDFnames_T() 
+HDF = HDF_T()
+HDFnames = HDFnames_T()
 
-! set the HDF group names for reading the MC input file 
-call HDFnames%set_ProgramData(SC_MCOpenCL) 
-call HDFnames%set_NMLlist(SC_MCCLNameList) 
-call HDFnames%set_NMLfilename(SC_MCOpenCLNML) 
+! set the HDF group names for reading the MC input file
+call HDFnames%set_ProgramData(SC_MCOpenCL)
+call HDFnames%set_NMLlist(SC_MCCLNameList)
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
 
 ! get the crystal structure from the *.xtal file
 verbose = .TRUE.
@@ -445,10 +449,10 @@ MCDT%numzbins =  int(mcnl%depthmax/mcnl%depthstep)+1
 nx = (mcnl%numsx-1)/2
 if (mode .eq. 'foil') then
   thickness = sngl(mcnl%thickness)
-end if 
+end if
 
 ! allocate result arrays for GPU part
-if (mode.eq.'Ivol') then 
+if (mode.eq.'Ivol') then
   allocate(Lamresx(num_max), Lamresy(num_max), Lamresz(num_max), stat=istat)
   Lamresx = 0.0
   Lamresy = 0.0
@@ -473,7 +477,7 @@ end if
 
 if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
    MCDT%numangle = 1
-   allocate(MCDT%accum_e(MCDT%numEbins,-nx:nx,-nx:nx), & 
+   allocate(MCDT%accum_e(MCDT%numEbins,-nx:nx,-nx:nx), &
             MCDT%accum_z(MCDT%numEbins,MCDT%numzbins,-nx/10:nx/10,-nx/10:nx/10),stat=istat)
    MCDT%accum_e = 0
    MCDT%accum_z = 0
@@ -496,7 +500,6 @@ end if
 ! changed by MDG [09/01/15] after extensive modifications to Lambert routines
 ! old code delta = dble(nx)/LPs%sPio2
 delta = dble(nx)
-
 !=====================
 ! INITIALIZATION
 !=====================
@@ -508,9 +511,9 @@ call CL%init_PDCCQ(platform, nump, mcnl%platid, device, numd, mcnl%devid, info, 
 !=====================
 
 ! read the source file
-if (mode .eq. 'Ivol') then 
+if (mode .eq. 'Ivol') then
   sourcefile = 'EMMCxyz.cl'
-else if (mode .eq. 'foil') then 
+else if (mode .eq. 'foil') then
   sourcefile = 'EMMCfoil.cl'
 else
   sourcefile = 'EMMC.cl'
@@ -562,7 +565,7 @@ close(unit=iunit,status='keep')
 
 if (4*globalworkgrpsz**2 .gt. nseeds) then
   call Message%printMessage('------------------------------')
-  io_int(1) = nseeds 
+  io_int(1) = nseeds
   call Message%WriteValue('Total number of prime number seeds available = ',io_int,1)
   io_int(1) = 4*globalworkgrpsz**2
   call Message%WriteValue('Total number of prime number seeds needed    = ',io_int,1)
@@ -590,7 +593,7 @@ call CL%error_check('DoMCsimulation:clCreateBuffer:LamX', ierr)
 LamY = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
 call CL%error_check('DoMCsimulation:clCreateBuffer:LamY', ierr)
 
-if (mode.eq.'Ivol') then 
+if (mode.eq.'Ivol') then
   LamZ = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
   call CL%error_check('DoMCsimulation:clCreateBuffer:LamZ', ierr)
 else
@@ -612,9 +615,9 @@ if (mode .eq. 'bse1') then
    call Message%printMessage(' Monte Carlo mode set to bse1. Calculating statistics for tilt series...',frm='(/A/)')
 else if (mode .eq. 'full') then
    call Message%printMessage(' Monte Carlo mode set to full. Performing full calculation...',frm='(/A/)')
-else if (mode .eq. 'Ivol') then 
+else if (mode .eq. 'Ivol') then
    call Message%printMessage(' Monte Carlo mode set to Ivol. Performing full calculation...',frm='(/A/)')
-else if (mode .eq. 'foil') then 
+else if (mode .eq. 'foil') then
    call Message%printMessage(' Monte Carlo mode set to foil. Performing full calculation...',frm='(/A/)')
 else
    call Message%printError('DoMCSimulation','Unknown mode specified in namelist/json file')
@@ -628,15 +631,15 @@ angleloop: do iang = 1,MCDT%numangle
         io_int(1) = iang
         call Message%Writevalue(' Angle loop #',io_int,1,'(I3)')
         sig = (mcnl%sigstart + (iang-1)*mcnl%sigstep)*dtor
-    else 
+    else
         sig = mcnl%sig*dtor
     end if
 
     mainloop: do i = 1,(totnum_el/num_max+1)
 
 ! set the kernel arguments
-if (mode.ne.'Ivol') then 
-  if (mode .ne. 'foil') then 
+if (mode.ne.'Ivol') then
+  if (mode .ne. 'foil') then
         ierr = clSetKernelArg(kernel, 0, sizeof(LamX), C_LOC(LamX))
         call CL%error_check('DoMCsimulation:clSetKernelArg:LamX', ierr)
 
@@ -678,7 +681,7 @@ if (mode.ne.'Ivol') then
 
         ierr = clSetKernelArg(kernel, 13, sizeof(steps), C_LOC(steps))
         call CL%error_check('DoMCsimulation:clSetKernelArg:steps', ierr)
-      else 
+      else
         ierr = clSetKernelArg(kernel, 0, sizeof(EkeV), C_LOC(EkeV))
         call CL%error_check('DoMCsimulation:clSetKernelArg:EkeV', ierr)
 
@@ -723,7 +726,7 @@ if (mode.ne.'Ivol') then
 
         ierr = clSetKernelArg(kernel, 14, sizeof(LamY), C_LOC(LamY))
         call CL%error_check('DoMCsimulation:clSetKernelArg:LamYSH', ierr)
-      end if 
+      end if
 else
         ierr = clSetKernelArg(kernel, 0, sizeof(LamX), C_LOC(LamX))
         call CL%error_check('DoMCsimulation:clSetKernelArg:LamX', ierr)
@@ -830,7 +833,7 @@ end if
                end if
            end do subloopfull
         end if
- 
+
         if (mode .eq. 'bse1') then
            subloopbse1: do j = 1, num_max
 
@@ -864,7 +867,7 @@ end if
 
 ! this simulation mode produces a 3D histogram of the interaction volume with potentially different step
 ! sizes in the plane as opposed to the depth direction.  The scaling parameters are new name list parameters
-! (new as of version 5.0.2).  
+! (new as of version 5.0.2).
         if (mode .eq. 'Ivol') then
            subloopIvol: do j = 1, num_max
                if ((Lamresx(j) .ne. -100000.0) .and. (Lamresy(j) .ne. -100000.0) &
@@ -873,7 +876,7 @@ end if
                   xs = nint( Lamresx(j) / mcnl%ivolstepx )
                   ys = nint( Lamresy(j) / mcnl%ivolstepy )
                   zs = nint( Lamresz(j) / mcnl%ivolstepz )
-                  if ((abs(xs).lt.ivx).and.(abs(ys).lt.ivy).and.(zs.lt.ivz) ) then 
+                  if ((abs(xs).lt.ivx).and.(abs(ys).lt.ivy).and.(zs.lt.ivz) ) then
                     MCDT%accum_xyz(xs,ys,zs+1) = MCDT%accum_xyz(xs,ys,zs+1) + 1
                   end if
                end if
@@ -924,10 +927,10 @@ end if
     else if (mode .eq. 'Ivol') then
         io_int(1) = sum(MCDT%accum_xyz)
         call Message%WriteValue(' Total number of electrons in interaction volume = ',io_int,1,'(I15)')
-    else 
+    else
         call Message%printError('DoMCSimulations','Unknown mode specified in namelist/json file')
     end if
- 
+
 
 end do angleloop
 
@@ -935,12 +938,12 @@ if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
 ! get stereographic projections from the accum_e array
   allocate(MCDT%accumSP(MCDT%numEbins,-nx:nx,-nx:nx))
   Radius = 1.0
-  do i=-nx,nx 
-    do j=-nx,nx 
+  do i=-nx,nx
+    do j=-nx,nx
       Lambert = Lambert_T( xy = (/ float(i), float(j) /) / float(nx) )
       ierr = Lambert%StereoGraphicInverse(xyz, dble(Radius))
       xyz = xyz/vecnorm(xyz)
-      if (ierr.ne.0) then 
+      if (ierr.ne.0) then
         MCDT%accumSP(1:MCDT%numEbins,i,j) = 0.0
       else
         MCDT%accumSP(1:MCDT%numEbins,i,j) = InterpolateLambert(xyz, MCDT%accum_e, nx, MCDT%numEbins)
@@ -949,7 +952,7 @@ if ( (mode .eq. 'full') .or. (mode .eq. 'foil') ) then
   end do
 end if
 
-call timer%Time_tock() 
+call timer%Time_tock()
 io_real(1) = timer%getInterval()
 call Message%printMessage(' ')
 call Message%WriteValue(' Total execution time [s] = ',io_real,1)
@@ -962,7 +965,7 @@ dstr = timer%getDateString()
 tstre = timer%getTimeString()
 
 ! set a few variables, copy the namelist to the MCFT class
-! and save the data to an HDF5 file 
+! and save the data to an HDF5 file
 HDF = HDF_T()
 call MCFT%copynml(mcnl)
 call MCFT%writeMCfile(EMsoft, cell, SG, HDF, HDFnames, progname, dstr, tstrb, tstre)
@@ -983,7 +986,7 @@ ierr = clReleaseMemObject(LamX)
 call CL%error_check('DoMCsimulation:clReleaseMemObject:LamX', ierr)
 ierr = clReleaseMemObject(LamY)
 call CL%error_check('DoMCsimulation:clReleaseMemObject:LamY', ierr)
-if (mode.eq.'Ivol') then 
+if (mode.eq.'Ivol') then
   ierr = clReleaseMemObject(LamZ)
   call CL%error_check('DoMCsimulation:clReleaseMemObject:LamZ', ierr)
 else
@@ -998,7 +1001,7 @@ call CL%error_check('DoMCsimulation:clReleaseMemObject:seeds', ierr)
 
 ! if requested, we notify the user that this program has completed its run
 if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
-  if (trim(mcnl%Notify).eq.'On') then 
+  if (trim(mcnl%Notify).eq.'On') then
     NumLines = 3
     allocate(MessageLines(NumLines))
 
@@ -1006,7 +1009,7 @@ if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
 
     MessageLines(1) = 'EMMCOpenCL program has ended successfully'
     MessageLines(2) = 'Monte Carlo data stored in '//trim(dataname)
-    write (exectime,"(I10)") tstop  
+    write (exectime,"(I10)") tstop
     MessageLines(3) = 'Total execution time [s]: '//trim(exectime)
     SlackUsername = 'EMsoft on '//trim(c)
     i = PostMessage(EMsoft, MessageLines, NumLines, SlackUsername)

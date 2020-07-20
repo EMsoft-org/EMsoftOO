@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_OrientationViz
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/27/20
   !!
   !! class definition for the EMOrientationViz program
@@ -36,7 +36,7 @@ module mod_OrientationViz
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMOrientationViz program
 type, public :: OrientationVizNameListType
@@ -66,12 +66,12 @@ end type OrientationVizNameListType
 
 ! class definition
 type, public :: OrientationViz_T
-private 
+private
   character(fnlen)                  :: nmldeffile = 'EMOrientationViz.nml'
-  type(OrientationVizNameListType)  :: nml 
+  type(OrientationVizNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: OrientationViz_
@@ -169,55 +169,7 @@ private
   generic, public :: set_anglefile => set_anglefile_
 end type OrientationViz_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: OrientationViz
-!DEC$ ATTRIBUTES DLLEXPORT :: get_cubochoric
-!DEC$ ATTRIBUTES DLLEXPORT :: set_cubochoric
-!DEC$ ATTRIBUTES DLLEXPORT :: get_homochoric
-!DEC$ ATTRIBUTES DLLEXPORT :: set_homochoric
-!DEC$ ATTRIBUTES DLLEXPORT :: get_rodrigues
-!DEC$ ATTRIBUTES DLLEXPORT :: set_rodrigues
-!DEC$ ATTRIBUTES DLLEXPORT :: get_stereographic
-!DEC$ ATTRIBUTES DLLEXPORT :: set_stereographic
-!DEC$ ATTRIBUTES DLLEXPORT :: get_eulerspace
-!DEC$ ATTRIBUTES DLLEXPORT :: set_eulerspace
-!DEC$ ATTRIBUTES DLLEXPORT :: get_reducetoRFZ
-!DEC$ ATTRIBUTES DLLEXPORT :: set_reducetoRFZ
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nx
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nx
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ny
-!DEC$ ATTRIBUTES DLLEXPORT :: set_ny
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nz
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nz
-!DEC$ ATTRIBUTES DLLEXPORT :: get_overridepgnum
-!DEC$ ATTRIBUTES DLLEXPORT :: set_overridepgnum
-!DEC$ ATTRIBUTES DLLEXPORT :: get_MacKenzieCell
-!DEC$ ATTRIBUTES DLLEXPORT :: set_MacKenzieCell
-!DEC$ ATTRIBUTES DLLEXPORT :: get_rgb
-!DEC$ ATTRIBUTES DLLEXPORT :: set_rgb
-!DEC$ ATTRIBUTES DLLEXPORT :: get_sphrad
-!DEC$ ATTRIBUTES DLLEXPORT :: set_sphrad
-!DEC$ ATTRIBUTES DLLEXPORT :: get_distance
-!DEC$ ATTRIBUTES DLLEXPORT :: set_distance
-!DEC$ ATTRIBUTES DLLEXPORT :: get_scalingmode
-!DEC$ ATTRIBUTES DLLEXPORT :: set_scalingmode
-!DEC$ ATTRIBUTES DLLEXPORT :: get_mrcmode
-!DEC$ ATTRIBUTES DLLEXPORT :: set_mrcmode
-!DEC$ ATTRIBUTES DLLEXPORT :: get_df3file
-!DEC$ ATTRIBUTES DLLEXPORT :: set_df3file
-!DEC$ ATTRIBUTES DLLEXPORT :: get_mrcfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_mrcfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_framemrcfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_framemrcfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_xtalname
-!DEC$ ATTRIBUTES DLLEXPORT :: set_xtalname
-!DEC$ ATTRIBUTES DLLEXPORT :: get_povrayfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_povrayfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_anglefile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_anglefile
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface OrientationViz_T
   module procedure OrientationViz_constructor
 end interface OrientationViz_T
@@ -226,31 +178,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(OrientationViz_T) function OrientationViz_constructor( nmlfile ) result(OrientationViz)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: OrientationViz_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
-!! constructor for the OrientationViz_T Class; reads the name list 
- 
+!! constructor for the OrientationViz_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call OrientationViz%readNameList(nmlfile)
 
 end function OrientationViz_constructor
 
 !--------------------------------------------------------------------------
-subroutine OrientationViz_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine OrientationViz_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: OrientationViz_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! destructor for the OrientationViz_T Class
- 
+
 IMPLICIT NONE
 
-type(OrientationViz_T), INTENT(INOUT)  :: self 
+type(OrientationViz_T), INTENT(INOUT)  :: self
 
 call reportDestructor('OrientationViz_T')
 
@@ -258,25 +212,26 @@ end subroutine OrientationViz_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
-!! read the namelist from an nml file for the OrientationViz_T Class 
+!! read the namelist from an nml file for the OrientationViz_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)  :: self
 character(fnlen),INTENT(IN)             :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)             :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                          :: EMsoft 
-type(IO_T)                              :: Message       
+type(EMsoft_T)                          :: EMsoft
+type(IO_T)                              :: Message
 logical                                 :: skipread = .FALSE.
 
 integer(kind=irg) :: cubochoric
@@ -393,13 +348,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! pass the namelist for the OrientationViz_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)          :: self
 type(OrientationVizNameListType)                :: nml
@@ -410,13 +366,14 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 function get_cubochoric_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_cubochoric_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get cubochoric from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -427,13 +384,14 @@ end function get_cubochoric_
 
 !--------------------------------------------------------------------------
 subroutine set_cubochoric_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_cubochoric_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set cubochoric in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -444,13 +402,14 @@ end subroutine set_cubochoric_
 
 !--------------------------------------------------------------------------
 function get_homochoric_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_homochoric_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get homochoric from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -461,13 +420,14 @@ end function get_homochoric_
 
 !--------------------------------------------------------------------------
 subroutine set_homochoric_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_homochoric_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set homochoric in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -478,13 +438,14 @@ end subroutine set_homochoric_
 
 !--------------------------------------------------------------------------
 function get_rodrigues_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_rodrigues_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get rodrigues from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -495,13 +456,14 @@ end function get_rodrigues_
 
 !--------------------------------------------------------------------------
 subroutine set_rodrigues_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_rodrigues_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set rodrigues in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -512,13 +474,14 @@ end subroutine set_rodrigues_
 
 !--------------------------------------------------------------------------
 function get_stereographic_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_stereographic_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get stereographic from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -529,13 +492,14 @@ end function get_stereographic_
 
 !--------------------------------------------------------------------------
 subroutine set_stereographic_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_stereographic_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set stereographic in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -546,13 +510,14 @@ end subroutine set_stereographic_
 
 !--------------------------------------------------------------------------
 function get_eulerspace_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_eulerspace_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get eulerspace from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -563,13 +528,14 @@ end function get_eulerspace_
 
 !--------------------------------------------------------------------------
 subroutine set_eulerspace_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_eulerspace_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set eulerspace in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -580,13 +546,14 @@ end subroutine set_eulerspace_
 
 !--------------------------------------------------------------------------
 function get_reducetoRFZ_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_reducetoRFZ_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get reducetoRFZ from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -597,13 +564,14 @@ end function get_reducetoRFZ_
 
 !--------------------------------------------------------------------------
 subroutine set_reducetoRFZ_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_reducetoRFZ_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set reducetoRFZ in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -614,13 +582,14 @@ end subroutine set_reducetoRFZ_
 
 !--------------------------------------------------------------------------
 function get_nx_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get nx from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -631,13 +600,14 @@ end function get_nx_
 
 !--------------------------------------------------------------------------
 subroutine set_nx_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set nx in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -648,13 +618,14 @@ end subroutine set_nx_
 
 !--------------------------------------------------------------------------
 function get_ny_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ny_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get ny from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -665,13 +636,14 @@ end function get_ny_
 
 !--------------------------------------------------------------------------
 subroutine set_ny_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ny_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set ny in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -682,13 +654,14 @@ end subroutine set_ny_
 
 !--------------------------------------------------------------------------
 function get_nz_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nz_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get nz from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -699,13 +672,14 @@ end function get_nz_
 
 !--------------------------------------------------------------------------
 subroutine set_nz_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nz_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set nz in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -716,13 +690,14 @@ end subroutine set_nz_
 
 !--------------------------------------------------------------------------
 function get_overridepgnum_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_overridepgnum_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get overridepgnum from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -733,13 +708,14 @@ end function get_overridepgnum_
 
 !--------------------------------------------------------------------------
 subroutine set_overridepgnum_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_overridepgnum_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set overridepgnum in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -750,13 +726,14 @@ end subroutine set_overridepgnum_
 
 !--------------------------------------------------------------------------
 function get_MacKenzieCell_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_MacKenzieCell_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get MacKenzieCell from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg)                          :: out
@@ -767,13 +744,14 @@ end function get_MacKenzieCell_
 
 !--------------------------------------------------------------------------
 subroutine set_MacKenzieCell_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_MacKenzieCell_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set MacKenzieCell in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)              :: inp
@@ -784,13 +762,14 @@ end subroutine set_MacKenzieCell_
 
 !--------------------------------------------------------------------------
 function get_rgb_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_rgb_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get rgb from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 real(kind=sgl)                             :: out(3)
@@ -801,13 +780,14 @@ end function get_rgb_
 
 !--------------------------------------------------------------------------
 subroutine set_rgb_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_rgb_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set rgb(3) in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)                 :: inp(3)
@@ -818,13 +798,14 @@ end subroutine set_rgb_
 
 !--------------------------------------------------------------------------
 function get_sphrad_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_sphrad_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get sphrad from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 real(kind=sgl)                             :: out
@@ -835,13 +816,14 @@ end function get_sphrad_
 
 !--------------------------------------------------------------------------
 subroutine set_sphrad_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_sphrad_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set sphrad in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)                 :: inp
@@ -852,13 +834,14 @@ end subroutine set_sphrad_
 
 !--------------------------------------------------------------------------
 function get_distance_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_distance_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get distance from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 real(kind=sgl)                             :: out
@@ -869,13 +852,14 @@ end function get_distance_
 
 !--------------------------------------------------------------------------
 subroutine set_distance_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_distance_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set distance in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)                 :: inp
@@ -886,13 +870,14 @@ end subroutine set_distance_
 
 !--------------------------------------------------------------------------
 function get_scalingmode_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_scalingmode_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get scalingmode from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(3)                               :: out
@@ -903,13 +888,14 @@ end function get_scalingmode_
 
 !--------------------------------------------------------------------------
 subroutine set_scalingmode_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_scalingmode_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set scalingmode in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(3), INTENT(IN)                   :: inp
@@ -920,13 +906,14 @@ end subroutine set_scalingmode_
 
 !--------------------------------------------------------------------------
 function get_mrcmode_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_mrcmode_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get mrcmode from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(3)                               :: out
@@ -937,13 +924,14 @@ end function get_mrcmode_
 
 !--------------------------------------------------------------------------
 subroutine set_mrcmode_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_mrcmode_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set mrcmode in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(3), INTENT(IN)                   :: inp
@@ -954,13 +942,14 @@ end subroutine set_mrcmode_
 
 !--------------------------------------------------------------------------
 function get_df3file_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_df3file_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get df3file from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen)                           :: out
@@ -971,13 +960,14 @@ end function get_df3file_
 
 !--------------------------------------------------------------------------
 subroutine set_df3file_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_df3file_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set df3file in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)               :: inp
@@ -988,13 +978,14 @@ end subroutine set_df3file_
 
 !--------------------------------------------------------------------------
 function get_mrcfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_mrcfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get mrcfile from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen)                           :: out
@@ -1005,13 +996,14 @@ end function get_mrcfile_
 
 !--------------------------------------------------------------------------
 subroutine set_mrcfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_mrcfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set mrcfile in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)               :: inp
@@ -1022,13 +1014,14 @@ end subroutine set_mrcfile_
 
 !--------------------------------------------------------------------------
 function get_framemrcfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_framemrcfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get framemrcfile from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen)                           :: out
@@ -1039,13 +1032,14 @@ end function get_framemrcfile_
 
 !--------------------------------------------------------------------------
 subroutine set_framemrcfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_framemrcfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set framemrcfile in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)               :: inp
@@ -1056,13 +1050,14 @@ end subroutine set_framemrcfile_
 
 !--------------------------------------------------------------------------
 function get_xtalname_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_xtalname_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get xtalname from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen)                           :: out
@@ -1073,13 +1068,14 @@ end function get_xtalname_
 
 !--------------------------------------------------------------------------
 subroutine set_xtalname_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_xtalname_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set xtalname in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)               :: inp
@@ -1090,13 +1086,14 @@ end subroutine set_xtalname_
 
 !--------------------------------------------------------------------------
 function get_povrayfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_povrayfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get povrayfile from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen)                           :: out
@@ -1107,13 +1104,14 @@ end function get_povrayfile_
 
 !--------------------------------------------------------------------------
 subroutine set_povrayfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_povrayfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set povrayfile in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)               :: inp
@@ -1124,13 +1122,14 @@ end subroutine set_povrayfile_
 
 !--------------------------------------------------------------------------
 function get_anglefile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_anglefile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! get anglefile from the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen)                           :: out
@@ -1141,13 +1140,14 @@ end function get_anglefile_
 
 !--------------------------------------------------------------------------
 subroutine set_anglefile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_anglefile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! set anglefile in the OrientationViz_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)               :: inp
@@ -1158,8 +1158,9 @@ end subroutine set_anglefile_
 
 !--------------------------------------------------------------------------
 subroutine OrientationViz_(self, EMsoft, progname, progdesc)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: OrientationViz_
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! perform the computations
@@ -1178,25 +1179,25 @@ use mod_math
 use mod_so3
 use mod_HDFsupport, only: openFortranHDFInterface, closeFortranHDFInterface
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(OrientationViz_T), INTENT(INOUT)  :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-character(fnlen), INTENT(INOUT)         :: progdesc 
+character(fnlen), INTENT(INOUT)         :: progname
+character(fnlen), INTENT(INOUT)         :: progdesc
 
-type(IO_T)              :: Message 
-type(PoVRay_T)          :: PoVcu, PoVho, PoVro, PoVst, PoVeu 
+type(IO_T)              :: Message
+type(PoVRay_T)          :: PoVcu, PoVho, PoVro, PoVst, PoVeu
 type(DirStat_T)         :: dict
 type(so3_T)             :: SO
 type(SpaceGroup_T)      :: SG
 type(cell_T)            :: cell
-type(QuaternionArray_T) :: Pm, dummy 
-type(r_T)               :: ro 
-type(h_T)               :: ho 
-type(s_T)               :: st  
-type(e_T)               :: eu 
-type(c_T)               :: cu 
+type(QuaternionArray_T) :: Pm, dummy
+type(r_T)               :: ro
+type(h_T)               :: ho
+type(s_T)               :: st
+type(e_T)               :: eu
+type(c_T)               :: cu
 
 real(kind=dbl)          :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
 integer(kind=irg)       :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
@@ -1218,7 +1219,7 @@ real(kind=dbl)          :: muhat(4), kappahat
 real(kind=sgl),allocatable :: rovol(:,:,:), spvol(:,:,:), euvol(:,:,:), cuvol(:,:,:), hovol(:,:,:)
 real(kind=sgl)          :: maxRFZdis(5), rodx, rody, rodz, eudx, eudy, eudz, spdx, spdy, spdz, cudx, cudy, cudz, &
                            hodx, hody, hodz, scalefactors(3,5), acubo, ahomo, grid3(3,3,3), eyepos(3)
-type(FZpointd),pointer  :: FZtmp 
+type(FZpointd),pointer  :: FZtmp
 
 associate( enl=>self%nml )
 
@@ -1231,24 +1232,24 @@ rotationRangeCheck = .FALSE.
 ! init a few parameters and arrays
 grid3 = trilinear_splat( (/ 0.0, 0.0, 0.0/), (/ 0.0, 0.0, 0.0/), init=.TRUE.)
 
-! define some parameters 
+! define some parameters
 sh = (/ sngl(cPi), sngl(cPi/2.D0), sngl(cPi) /)   ! offset parameter for primary Euler cell
 
-! get the space group symmetry 
+! get the space group symmetry
 call openFortranHDFInterface()
 call cell%getCrystalData(enl%xtalname, SG, EMsoft)
 call closeFortranHDFInterface()
 pgnum = SG%getPGnumber()
 
-! set the FZtype and FZorder parameters in the SO class 
-if (enl%overridepgnum.ne.0) then 
+! set the FZtype and FZorder parameters in the SO class
+if (enl%overridepgnum.ne.0) then
   pgnum = enl%overridepgnum
-end if 
+end if
 SO = so3_T( pgnum, zerolist='FZ')
 call SO%getFZtypeandorder(FZtype, FZorder)
 
 ! Regular or MacKenzie FZ ?
-if (enl%MacKenzieCell.eq.1) then 
+if (enl%MacKenzieCell.eq.1) then
   call SO%setMK(.TRUE.)
   call SO%setMFZtypeandorder(pgnum)
   call SO%getMFZtypeandorder(FZtype, FZorder)
@@ -1264,17 +1265,17 @@ end if
 scalefactors(1:3,4) = (/ 2.0/3.0, 2.0/3.0, 2.0/3.0 /)
 scalefactors(1:3,5) = (/ (sqrt(2.0)-1.0)/0.5, (sqrt(2.0)-1.0)/0.5, (sqrt(2.0)-1.0)/0.5 /)
 
-! get the symmetry operator quaternions for the point group 
+! get the symmetry operator quaternions for the point group
 call dummy%QSym_Init(pgnum, Pm)
 
 ! make sure that the outname does not have an extension (no . in the string)
 outname = trim(enl%povrayfile)
 if ((index(trim(outname),'.').ne.0).and.(index(trim(outname),'.').gt.20)) then
   call Message%printError('EMOrientationViz','the output filename may not contain any periods')
-end if 
+end if
 outname = EMsoft%generateFilePath('EMdatapathname', enl%povrayfile)
 
-! generate the locationline parameters for PoVRay rendering 
+! generate the locationline parameters for PoVRay rendering
 dd = enl%distance
 eyepos = (/ 0.387, 0.825, 0.412 /)
 eyepos = eyepos/sqrt( sum( eyepos*eyepos))
@@ -1288,12 +1289,12 @@ p1 = "*cos(clock*0.0174533)"
 p2 = "*sin(clock*0.0174533)"
 
 locationline = p0//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1//","//pz//">*"//pd
-locationlineeu = p0//'5.0, 1.0, 0.0>*'//pd 
+locationlineeu = p0//'5.0, 1.0, 0.0>*'//pd
 
 ! PoVRay/DF3 initializations  (this opens the file, sets the camera and light source
 ! and allocates the rendering volume)
 !===========
-! cubochoric 
+! cubochoric
 !===========
 if (enl%cubochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
@@ -1311,7 +1312,7 @@ if (enl%cubochoric.ne.0) then
 end if
 
 !===========
-! homochoric 
+! homochoric
 !===========
 if (enl%homochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
@@ -1329,7 +1330,7 @@ if (enl%homochoric.ne.0) then
 end if
 
 !===========
-! Rodrigues 
+! Rodrigues
 !===========
 if (enl%rodrigues.ne.0) then
   if (enl%mrcmode.eq.'off') then
@@ -1340,7 +1341,7 @@ if (enl%rodrigues.ne.0) then
   rovol = 0.0
 ! generate the x/y/z scaling factors
 ! these should be set so that the render box has the outer dimensions of the RFZ,
-! with the exception of the cyclic groups for which we pick some value that is 
+! with the exception of the cyclic groups for which we pick some value that is
 ! reasonable.  For the dihedral groups the box should have an edge length of 2,
 ! for tetrahedral 1/3, and for octahedral sqrt(2)-1.
   rodx = float(enl%nx)
@@ -1383,16 +1384,16 @@ if (enl%eulerspace.ne.0) then
   euvol = 0.0
 ! generate the x/y/z scaling factors
 ! these should be set so that the render box has the outer dimensions of the primary Euler cell
-  eudx = float(2*enl%nx+1) / (2.0*cPi) 
+  eudx = float(2*enl%nx+1) / (2.0*cPi)
   eudy = float(2*enl%ny+1) / (2.0*cPi)
-  eudz = float(2*enl%nz+1) / (2.0*cPi) 
+  eudz = float(2*enl%nz+1) / (2.0*cPi)
 end if
 
 ! data file of orientations, convert the orientations to the RFZ
 fname = EMsoft%generateFilePath('EMdatapathname', enl%anglefile)
 call SO%getOrientationsfromFile(fname)
 ! next, we reduce these orientations to the RFZ or MacKenzie cell
-if (enl%MacKenzieCell.eq.0) then 
+if (enl%MacKenzieCell.eq.0) then
   call SO%ReducelisttoRFZ(Pm)
 else
   call SO%ReducelisttoMFZ(SG)  ! this requires the full crystal point group
@@ -1401,12 +1402,12 @@ end if
 FZtmp => SO%getListHead('FZ')          ! point to the top of the list
 numpoints = SO%getListCount('FZ')
 
-pointloop: do ix = 1,numpoints 
-  ro = FZtmp%rod 
-! are we drawing a point or splatting it into a volume ? 
-  if ((trim(enl%df3file).eq.'undefined').and.(enl%mrcmode.eq.'off')) then 
-! we have the point, so now transform it to all alternative representations and draw the 
-! corresponding spheres 
+pointloop: do ix = 1,numpoints
+  ro = FZtmp%rod
+! are we drawing a point or splatting it into a volume ?
+  if ((trim(enl%df3file).eq.'undefined').and.(enl%mrcmode.eq.'off')) then
+! we have the point, so now transform it to all alternative representations and draw the
+! corresponding spheres
 ! cubochoric
     if (enl%cubochoric.ne.0) then
       cu = ro%rc()
@@ -1422,7 +1423,7 @@ pointloop: do ix = 1,numpoints
 ! rodrigues
     if (enl%rodrigues.ne.0) then
       xyz4 = sngl(ro%r_copyd())
-      if (xyz4(4).le.1000.0) then 
+      if (xyz4(4).le.1000.0) then
         write (dataunit3,"('sphere { <',2(F20.6,','),F20.6,'>,',F6.4,' }')") xyz4(1:3)*xyz4(4), enl%sphrad
       end if
     end if
@@ -1502,12 +1503,12 @@ pointloop: do ix = 1,numpoints
         euvol(ixyz(1)+1,ixyz(2)+1,ixyz(3)+1) = euvol(ixyz(1)+1,ixyz(2)+1,ixyz(3)+1) + 1.0
       end if
     end if
-  end if 
+  end if
   FZtmp => FZtmp%next
 end do pointloop
 
-! final stage of the program so close the PoVray files  
-if (enl%mrcmode.eq.'off') then 
+! final stage of the program so close the PoVray files
+if (enl%mrcmode.eq.'off') then
  if (trim(enl%df3file).eq.'undefined') then ! we're drawing spheres, so close the union and add color information
   write(rgbstring,"(F8.6,',',F8.6,',',F8.6)") enl%rgb(1:3)
   colorstring = 'material { texture { pigment { rgb <'//trim(rgbstring)//'> filter 0.95 }'
@@ -1515,7 +1516,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit,"(A)") trim(colorstring)
     write (dataunit,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 } } } } ')")
     write (dataunit,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
-    call PoVcu%closeFile() 
+    call PoVcu%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-cu.pov')
   end if
 
@@ -1523,7 +1524,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit2,"(A)") trim(colorstring)
     write (dataunit2,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
     write (dataunit2,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
-    call PoVho%closeFile() 
+    call PoVho%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-ho.pov')
   end if
 
@@ -1531,7 +1532,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit3,"(A)") trim(colorstring)
     write (dataunit3,"('finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
     write (dataunit3,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
-    call PoVro%closeFile() 
+    call PoVro%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-ro.pov')
   end if
 
@@ -1539,7 +1540,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit4,"(A)") trim(colorstring)
     write (dataunit4,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
     write (dataunit4,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
-    call PoVst%closeFile() 
+    call PoVst%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-sp.pov')
   end if
 
@@ -1547,7 +1548,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit5,"(A)") trim(colorstring)
     write (dataunit5,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
     write (dataunit5,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
-    call PoVeu%closeFile() 
+    call PoVeu%closeFile()
     call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-eu.pov')
   end if
 
@@ -1649,8 +1650,9 @@ end subroutine OrientationViz_
 
 !--------------------------------------------------------------------------
 subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit, locationline)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: initFiles
+!! author: MDG
+!! version: 1.0
 !! date: 03/27/20
 !!
 !! perform the file initializations
@@ -1662,31 +1664,31 @@ use mod_so3
 
 IMPLICIT NONE
 
-type(EMsoft_T),INTENT(INOUT)                      :: EMsoft 
-type(OrientationVizNameListType),INTENT(INOUT)    :: enl 
+type(EMsoft_T),INTENT(INOUT)                      :: EMsoft
+type(OrientationVizNameListType),INTENT(INOUT)    :: enl
 type(PoVRay_T),INTENT(INOUT)                      :: PoV
-character(2),INTENT(IN)                           :: rep 
+character(2),INTENT(IN)                           :: rep
 type(so3_T),INTENT(INOUT)                         :: SO
 character(fnlen),INTENT(IN)                       :: outname
 integer(kind=irg),INTENT(IN)                      :: dunit
 character(fnlen),INTENT(IN)                       :: locationline
 
 type(IO_T)                                        :: Message
-character(fnlen)                                  :: fname, DF3name 
+character(fnlen)                                  :: fname, DF3name
 logical                                           :: drawMK = .FALSE.
-integer(kind=irg)                                 :: dFZ 
+integer(kind=irg)                                 :: dFZ
 
 drawMK = SO%getMK()
 
 select case(rep)
   case('cu')
-    dFZ = 1 
+    dFZ = 1
   case('ho')
-    dFZ = 2 
+    dFZ = 2
   case('st')
     dFZ = 3
   case('ro')
-    dFZ = 4 
+    dFZ = 4
   case('eu')
     dFZ = 5
 end select
@@ -1695,8 +1697,8 @@ fname = trim(outname)//'-'//rep//'.pov'
 call Message%printMessage('opening '//trim(fname))
 if (rep.ne.'eu') then
   PoV = PoVRay_T( EMsoft, fname, dunit=dunit, nmlfile=EMsoft%nmldeffile, locationline=locationline )
-end if 
-if (trim(enl%df3file).eq.'undefined') then 
+end if
+if (trim(enl%df3file).eq.'undefined') then
 ! we're just going to draw a bunch of spheres, so put them together in a PoVRay union
   call PoV%drawFZ(SO, dFZ, 0.005D0)
 ! open the union here
@@ -1716,22 +1718,22 @@ end subroutine initFiles
 
 !--------------------------------------------------------------------------
 subroutine generateMRCfile(EMsoft, enl, nums, volume, rep)
-
+!DEC$ ATTRIBUTES DLLEXPORT :: generateMRCfile
 use mod_EMsoft
-use mod_MRC 
+use mod_MRC
 use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 type(EMsoft_T),INTENT(INOUT)                      :: EMsoft
-type(OrientationVizNameListType),INTENT(INOUT)    :: enl 
-integer(kind=irg), INTENT(IN)                     :: nums(3) 
+type(OrientationVizNameListType),INTENT(INOUT)    :: enl
+integer(kind=irg), INTENT(IN)                     :: nums(3)
 real(kind=dbl),INTENT(IN)                         :: volume(nums(1),nums(2),nums(3))
 character(2),INTENT(IN)                           :: rep
 
 character(fnlen)                                  :: mrcname
-type(MRC_T)                                       :: MRC 
-type(MRCstruct)                                   :: MRCheader 
+type(MRC_T)                                       :: MRC
+type(MRCstruct)                                   :: MRCheader
 type(FEIstruct)                                   :: FEIheaders(1024)
 integer(kind=irg)                                 :: iz
 real(kind=dbl)                                    :: psum(nums(3))
@@ -1753,7 +1755,7 @@ MRCheader%amean = sum(volume)/float(nums(1))/float(nums(2))/float(nums(3))
 ! and write the volume to file
 call MRC%setMRCheader(MRCheader)
 call MRC%setFEIheaders(FEIheaders)
-call MRC%write_3Dvolume(volume,verbose=.TRUE.) 
+call MRC%write_3Dvolume(volume,verbose=.TRUE.)
 call MRC%closeFile()
 call Message%printMessage(' Volume data stored in '//trim(mrcname))
 
@@ -1761,14 +1763,14 @@ end subroutine generateMRCfile
 
 !--------------------------------------------------------------------------
 subroutine setMRCvals(MRCheader, FEIheaders, nums)
+!DEC$ ATTRIBUTES DLLEXPORT :: setMRCvals
+use mod_MRC
 
-use mod_MRC 
+IMPLICIT NONE
 
-IMPLICIT NONE 
-
-type(MRCstruct), INTENT(INOUT)    :: MRCheader 
+type(MRCstruct), INTENT(INOUT)    :: MRCheader
 type(FEIstruct), INTENT(INOUT)    :: FEIheaders(1024)
-integer(kind=irg), INTENT(IN)     :: nums(3) 
+integer(kind=irg), INTENT(IN)     :: nums(3)
 
 integer(kind=irg)                 :: i
 

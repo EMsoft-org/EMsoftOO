@@ -2,41 +2,41 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_Kikuchi
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
-  !! all kikuchi map related routines 
+  !! all kikuchi map related routines
 
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 private
 
@@ -49,29 +49,25 @@ end type kikuchireflection
 
 
 type, public :: Kikuchi_T
-private 
+private
   type(kikuchireflection), pointer     :: Kiklist
 
 contains
-private 
-    procedure, pass(self) :: getListHead_ 
+private
+    procedure, pass(self) :: getListHead_
     procedure, pass(self) :: DeleteList_
     procedure, pass(self) :: Calcmap_
     procedure, pass(self) :: PlotBands_
     procedure, pass(self) :: KikmapPage_
-    final :: Kikuchi_destructor 
+    final :: Kikuchi_destructor
 
-    generic, public :: getListHead => getListHead_ 
-    generic, public :: DeleteList => DeleteList_ 
+    generic, public :: getListHead => getListHead_
+    generic, public :: DeleteList => DeleteList_
     generic, public :: KikmapPage => KikmapPage_
-
-!DEC$ ATTRIBUTES DLLEXPORT :: getListHead    
-!DEC$ ATTRIBUTES DLLEXPORT :: DeleteList
-!DEC$ ATTRIBUTES DLLEXPORT :: KikmapPage
 
 end type Kikuchi_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface Kikuchi_T
   module procedure :: Kikuchi_constructor
 end interface Kikuchi_T
@@ -80,31 +76,32 @@ contains
 
 !--------------------------------------------------------------------------
 type(Kikuchi_T) function Kikuchi_constructor( progdesc, EMsoft, PS ) result(Kik)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Kikuchi_constructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
-  !! constructor for the Kikuchi_T Class 
+  !! constructor for the Kikuchi_T Class
 
-use mod_postscript 
+use mod_postscript
 use mod_EMsoft
 
 IMPLICIT NONE
 
-character(fnlen), INTENT(IN)                    :: progdesc 
+character(fnlen), INTENT(IN)                    :: progdesc
 type(EMsoft_T), INTENT(INOUT)                   :: EMsoft
-type(PostScript_T), INTENT(INOUT), OPTIONAL     :: PS 
+type(PostScript_T), INTENT(INOUT), OPTIONAL     :: PS
 
 integer(kind=irg)                               :: imanum
 type(kikuchireflection), pointer                :: temp
 
-if (present(PS)) then 
+if (present(PS)) then
   imanum = 1
   PS = PostScript_T(progdesc, EMsoft, imanum)
   call PS%setpspage(0)
-end if 
+end if
 
-call Kik%DeleteList() 
+call Kik%DeleteList()
 
 allocate(Kik%Kiklist)
 nullify(Kik%Kiklist%next)
@@ -113,13 +110,14 @@ end function Kikuchi_constructor
 
 !--------------------------------------------------------------------------
 subroutine Kikuchi_destructor(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Kikuchi_destructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
   !! clean up
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 type(Kikuchi_T),INTENT(INOUT)          :: self
 
@@ -131,16 +129,17 @@ end subroutine Kikuchi_destructor
 
 !--------------------------------------------------------------------------
 subroutine getListHead_(self, top)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getListHead_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
-  !! return the pointer to the top of the reflection list 
+  !! return the pointer to the top of the reflection list
 
 IMPLICIT NONE
 
 class(Kikuchi_T),INTENT(INOUT)                  :: self
-type(kikuchireflection), pointer,INTENT(OUT)    :: top 
+type(kikuchireflection), pointer,INTENT(OUT)    :: top
 
 top => self%Kiklist
 
@@ -148,11 +147,12 @@ end subroutine getListHead_
 
 !--------------------------------------------------------------------------
 subroutine DeleteList_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DeleteList_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
-  !! delete the linked list 
+  !! delete the linked list
 
 IMPLICIT NONE
 
@@ -160,7 +160,7 @@ class(Kikuchi_T),INTENT(INOUT)       :: self
 
 type(kikuchireflection), pointer     :: temp
 
-if (associated(self%Kiklist)) then 
+if (associated(self%Kiklist)) then
     temp => self%Kiklist%next
     do while (associated(temp%next))
       deallocate(self%Kiklist)
@@ -175,11 +175,12 @@ end subroutine DeleteList_
 
 !--------------------------------------------------------------------------
 subroutine KikmapPage_(self, cell, SG, PS, Diff, camlen)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: KikmapPage_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
-  !! draw Kikuchi map 
+  !! draw Kikuchi map
 
 use mod_crystallography
 use mod_symmetry
@@ -194,10 +195,10 @@ class(Kikuchi_T),INTENT(INOUT)      :: self
 type(Cell_T),INTENT(INOUT)          :: cell
 type(SpaceGroup_T),INTENT(INOUT)    :: SG
 type(PostScript_T),INTENT(INOUT)    :: PS
-class(Diffraction_T),INTENT(INOUT)  :: Diff 
+class(Diffraction_T),INTENT(INOUT)  :: Diff
 real(kind=sgl),INTENT(IN)           :: camlen
 
-type(IO_T)                          :: Message 
+type(IO_T)                          :: Message
 logical                             :: again, first, newzone, nexttop
 real(kind=sgl)                      :: negative(2),twopi,ggl,gg(3),igl,RR,thr, &
                                        RHOLZmax,RHOLZ(20),xo,yo,sc,pos(2),dy, oi_real(6), io_real(1)
@@ -207,7 +208,7 @@ real(kind=sgl),parameter            :: xoff(0:5)=(/0.0,3.3125,0.0,3.3125,0.0,3.3
 integer(kind=irg)                   :: g1i(3),g2i(3),i,numHOLZ,nref
 real(kind=sgl),parameter            :: le=3.25,he=2.9375
 character(1)                        :: z
-    
+
 real(kind=sgl)                      :: g1(3),g2(3),PX,PY,laL,Gmax,radius, Imax, psfh
 integer(kind=irg)                   :: uvw(3),contrast
 
@@ -215,7 +216,7 @@ integer(kind=irg)                   :: uvw(3),contrast
 ! 0 for black lines on white background
  contrast = 0
  radius = 80.0
- thr = 1.E-4 
+ thr = 1.E-4
  twopi = 2.0*cPi
  Imax = 0.0
 
@@ -230,7 +231,7 @@ integer(kind=irg)                   :: uvw(3),contrast
  oi_real(1) = laL
  call Message%WriteValue('camera length lambda*L [mm nm] = ', oi_real, 1, "(F10.5)")
 
-! what portion of reciprocal space is to be covered 
+! what portion of reciprocal space is to be covered
  call Message%ReadValue('Enter maximum spatial frequency to be considered [nm^-1] ', io_real, 1)
  Gmax = io_real(1)
 
@@ -240,11 +241,11 @@ integer(kind=irg)                   :: uvw(3),contrast
 ! get the basis vectors g1 and g2
  call cell%ShortestG(SG,uvw,g1i,g2i,i)
  g1 = float(g1i); g2 = float(g2i)
-    
+
 ! get Laue center in terms of g1 and g2
   oi_real(1:3) = g1(1:3)
   oi_real(4:6) = g2(1:3)
-  call Message%WriteValue('The basis vectors for this zone axis are ',oi_real, 6, "(/'g1 = ',3f10.5,/'g2 = ',3f10.5,/)") 
+  call Message%WriteValue('The basis vectors for this zone axis are ',oi_real, 6, "(/'g1 = ',3f10.5,/'g2 = ',3f10.5,/)")
 
   psfh = PS%getpsfigheight()
 
@@ -275,13 +276,13 @@ integer(kind=irg)                   :: uvw(3),contrast
   else
     call PS%filledcircle(PX,PY,radius/25.4,1.0)
   end if
-! plot origin of reciprocal space 
+! plot origin of reciprocal space
   call PS%filledcircle(PX,PY,0.03,0.0)
 
 ! compute the Kikuchimap
   call Calcmap_(self, cell, SG, PS, Diff, camlen, g1, g2, Gmax, radius, uvw, Imax)
 
-! once that is done, we can determine the intensities to be drawn and 
+! once that is done, we can determine the intensities to be drawn and
 ! draw all reflections and lines.
     call PlotBands_(self, PS, radius, contrast, Imax)
 
@@ -289,8 +290,9 @@ end subroutine KikmapPage_
 
 !--------------------------------------------------------------------------
 subroutine Calcmap_(self, cell, SG, PS, Diff, camlen, g1, g2, Gmax, radius, uvw, Imax)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Calcmap_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
   !! compute the actual map
@@ -308,13 +310,13 @@ class(Kikuchi_T),INTENT(INOUT)      :: self
 type(Cell_T),INTENT(INOUT)          :: cell
 type(SpaceGroup_T),INTENT(INOUT)    :: SG
 type(PostScript_T),INTENT(INOUT)    :: PS
-class(Diffraction_T),INTENT(INOUT)  :: Diff 
+class(Diffraction_T),INTENT(INOUT)  :: Diff
 real(kind=sgl),INTENT(IN)           :: camlen
 real(kind=sgl),INTENT(IN)           :: g1(3), g2(3), Gmax, radius
 integer(kind=irg),INTENT(IN)        :: uvw(3)
 real(kind=sgl),INTENT(INOUT)        :: Imax
 
-type(IO_T)                          :: Message 
+type(IO_T)                          :: Message
 integer(kind=irg)                   :: inmhkl(3),hc,i,j,nref,istat,inm,hh,kk,ll,ind(3),ih,ik,il,imin,hhh, oi_int(3)
 real(kind=sgl)                      :: gg(3),Ig,x,alp,beta,theta,D,gpx,gpy,hlx(2),hly(2),phi,glen,gtoc(2,2),pxy(2), &
                                        da,db,dd,dec(2,2)
@@ -323,10 +325,10 @@ logical                             :: drawit
 logical,allocatable                 :: z(:,:,:)
 character(1)                        :: q
 type(kikuchireflection),pointer     :: top, temp, bot
-type(gnode)                         :: rlp 
+type(gnode)                         :: rlp
 
  call self%getListHead(top)
- bot => top 
+ bot => top
  nullify(bot%next)
 
  call Message%WriteValue('','Computing map',"(/A)")
@@ -380,10 +382,10 @@ rmt = cell%getrmt()
      i=1
      imin=-1
      do while ((i.le.inm).and.(imin.eq.-1))
-      if (SG%IsGAllowed(i*ind).eqv..TRUE.) then 
+      if (SG%IsGAllowed(i*ind).eqv..TRUE.) then
        imin = i
       end if
-      i=i+1     
+      i=i+1
      end do
    end if
    if (imin.eq.-1) then  ! no multiple is allowed, so take next reflection
@@ -458,17 +460,17 @@ rmt = cell%getrmt()
     else
      bot%drawc = .FALSE.
     end if
-! remove the multiples of those Miller indices from the list 
+! remove the multiples of those Miller indices from the list
 ! so that we only keep the shortest vectors in any direction
    do hhh=-inm,inm
      ih=ind(1)*hhh
      ik=ind(2)*hhh
      il=ind(3)*hhh
-     if (((abs(ih).le.inmhkl(1)).and.(abs(ik).le.inmhkl(2))).and.(abs(il).le.inmhkl(3))) then 
+     if (((abs(ih).le.inmhkl(1)).and.(abs(ik).le.inmhkl(2))).and.(abs(il).le.inmhkl(3))) then
          z(ih,ik,il)=.TRUE.
      end if
    end do
-! 
+!
   end do
  end do
 end do
@@ -480,8 +482,9 @@ end subroutine Calcmap_
 
 !--------------------------------------------------------------------------
 subroutine PlotBands_(self, PS, radius, contrast, Imax)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: PlotBands_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
   !! draw a Kikuchi band
@@ -497,9 +500,9 @@ class(Kikuchi_T),INTENT(INOUT)      :: self
 type(PostScript_T),INTENT(INOUT)    :: PS
 real(kind=sgl),INTENT(IN)           :: radius
 integer(kind=irg),INTENT(IN)        :: contrast
-real(kind=sgl),INTENT(IN)           :: Imax 
+real(kind=sgl),INTENT(IN)           :: Imax
 
-type(IO_T)                          :: Message 
+type(IO_T)                          :: Message
 real(kind=sgl)                      :: V,qx,qy,CB,limit,PX,PY
 character(12)                       :: txt
 integer(kind=irg)                   :: i,nref, psunit
@@ -507,7 +510,7 @@ type(kikuchireflection),pointer     :: top, temp, bot
 
  nullify(top, temp, bot)
  call self%getListHead(top)
- psunit = PS%getpsunit() 
+ psunit = PS%getpsunit()
 
  call Message%printMessage('Plotting Kikuchi bands and labels',frm="(/A/)")
  PX = 3.75
@@ -518,31 +521,31 @@ type(kikuchireflection),pointer     :: top, temp, bot
  nref = 0
  limit = (1.001*radius)**2
  open(unit=30,file='temp.txt',status='unknown',form='formatted')
- if (contrast.eq.1) then 
+ if (contrast.eq.1) then
    write (psunit,"(F12.7,' setgray')") 1.0
  else
    write (psunit,"(F12.7,' setgray')") 0.0
  end if
  call PS%setfont(PSfonts(4),0.10)
-! move through the entire list 
+! move through the entire list
  do while (associated(temp))
 ! first line
   ! V=0.015*(temp%Ig/Imax)**0.1
   V=0.01*(temp%Ig/Imax)
   write (*,*) V, temp%Ig, Imax, temp%hkl
-  if (temp%drawh.eqv..TRUE.) then  
+  if (temp%drawh.eqv..TRUE.) then
    call PS%setlinewidth(V)
    !call PS%line(PX+temp%hlx(1),PY+temp%hly(1),PX+temp%hlx(2),PY+temp%hly(2))
    call PS%line_gray(PX+temp%hlx(1),PY+temp%hly(1),PX+temp%hlx(2),PY+temp%hly(2),0.01-V)
   end if
 ! second line
-  if (temp%drawk.eqv..TRUE.) then  
+  if (temp%drawk.eqv..TRUE.) then
    call PS%setlinewidth(V)
    !call PS%line(PX+temp%klx(1),PY+temp%kly(1),PX+temp%klx(2),PY+temp%kly(2))
    call PS%line_gray(PX+temp%klx(1),PY+temp%kly(1),PX+temp%klx(2),PY+temp%kly(2),0.01-V)
   end if
 ! central line
-  if (temp%drawc.eqv..TRUE.) then  
+  if (temp%drawc.eqv..TRUE.) then
 !  call PS%setlinewidth(0.004)
 !  call PS%line(PX+temp%clx(1),PY+temp%cly(1),PX+temp%clx(2),PY+temp%cly(2))
 ! add indices along continuation of lines
@@ -575,11 +578,12 @@ end subroutine PlotBands_
 
 !--------------------------------------------------------------------------
 subroutine CalcLine_(x,px,py,rad,hlx,hly,drawit)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcLine_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/30/20
   !!
-  !! compute the parameters to draw a single line 
+  !! compute the parameters to draw a single line
 
 IMPLICIT NONE
 
@@ -601,21 +605,21 @@ if (abs(x).le.rad) then
              hlx(2) = (qx+tgm*qy)*(1.0+sqrt(det))/(1.0+tgm**2)
              hly(2) = qy-(hlx(2)-qx)/tgm
         end if
-    else  
+    else
         if (abs(px).lt.1.0e-6) then
-! parallel to the x-axis 
+! parallel to the x-axis
              drawit = .TRUE.
              hlx(1) = sqrt(rad**2-x**2)
              hly(1) = x*py/abs(py)
              hlx(2) = -hlx(1)
-             hly(2) = hly(1)       
+             hly(2) = hly(1)
         else
-! parallel to the x-axis 
+! parallel to the x-axis
              drawit = .TRUE.
              hly(1) = sqrt(rad**2-x**2)
              hlx(1) = x*px/abs(px)
              hly(2) = -hly(1)
-             hlx(2) = hlx(1)       
+             hlx(2) = hlx(1)
         end if
     end if
 end if

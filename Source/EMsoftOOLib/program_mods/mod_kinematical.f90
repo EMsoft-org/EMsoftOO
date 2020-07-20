@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_kinematical
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/26/20
   !!
   !! class definition for the EMkinematical program
@@ -36,9 +36,9 @@ module mod_kinematical
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-private :: AntiAlias, KinematicalLines, KinematicalBands 
+private :: AntiAlias, KinematicalLines, KinematicalBands
 
 ! namelist for the EMkinematical program
 type, public :: kinematicalNameListType
@@ -53,12 +53,12 @@ end type kinematicalNameListType
 
 ! class definition
 type, public :: kinematical_T
-private 
+private
   character(fnlen)       :: nmldeffile = 'EMkinematical.nml'
-  type(kinematicalNameListType)  :: nml 
+  type(kinematicalNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
@@ -100,26 +100,7 @@ private
   generic, public :: set_mode => set_mode_
 end type kinematical_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: kinematical
-!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: get_thr
-!DEC$ ATTRIBUTES DLLEXPORT :: set_thr
-!DEC$ ATTRIBUTES DLLEXPORT :: get_voltage
-!DEC$ ATTRIBUTES DLLEXPORT :: set_voltage
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nx
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nx
-!DEC$ ATTRIBUTES DLLEXPORT :: get_xtalname
-!DEC$ ATTRIBUTES DLLEXPORT :: set_xtalname
-!DEC$ ATTRIBUTES DLLEXPORT :: get_datafile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_datafile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_mode
-!DEC$ ATTRIBUTES DLLEXPORT :: set_mode
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface kinematical_T
   module procedure kinematical_constructor
 end interface kinematical_T
@@ -128,31 +109,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(kinematical_T) function kinematical_constructor( nmlfile ) result(kinematical)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: kinematical_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
-!! constructor for the kinematical_T Class; reads the name list 
- 
+!! constructor for the kinematical_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call kinematical%readNameList(nmlfile)
 
 end function kinematical_constructor
 
 !--------------------------------------------------------------------------
-subroutine kinematical_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine kinematical_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: kinematical_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! destructor for the kinematical_T Class
- 
+
 IMPLICIT NONE
 
-type(kinematical_T), INTENT(INOUT)  :: self 
+type(kinematical_T), INTENT(INOUT)  :: self
 
 call reportDestructor('kinematical_T')
 
@@ -160,25 +143,26 @@ end subroutine kinematical_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
-!! read the namelist from an nml file for the kinematical_T Class 
+!! read the namelist from an nml file for the kinematical_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)  :: self
 character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
+type(EMsoft_T)                       :: EMsoft
+type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 real(kind=sgl)   :: dmin
@@ -227,19 +211,20 @@ self%nml%voltage = voltage
 self%nml%nx = nx
 self%nml%xtalname = xtalname
 self%nml%datafile = datafile
-self%nml%mode = mode 
+self%nml%mode = mode
 
 end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! pass the namelist for the kinematical_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)          :: self
 type(kinematicalNameListType)                :: nml
@@ -250,21 +235,22 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! write namelist to HDF file
 
 use mod_HDFsupport
 use mod_HDFnames
-use stringconstants 
+use stringconstants
 
 use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(kinematical_T), INTENT(INOUT)     :: self 
+class(kinematical_T), INTENT(INOUT)     :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T),INTENT(INOUT)          :: HDFnames
 
@@ -280,7 +266,7 @@ associate( knl => self%nml )
 ! create the group for this namelist
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
-! integers 
+! integers
 io_int = (/ knl%nx /)
 intlist(1) = 'nx'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
@@ -318,13 +304,14 @@ end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
 function get_dmin_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! get dmin from the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 real(kind=sgl)                          :: out
@@ -335,13 +322,14 @@ end function get_dmin_
 
 !--------------------------------------------------------------------------
 subroutine set_dmin_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! set dmin in the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)              :: inp
@@ -352,13 +340,14 @@ end subroutine set_dmin_
 
 !--------------------------------------------------------------------------
 function get_thr_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_thr_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! get thr from the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 real(kind=sgl)                          :: out
@@ -369,13 +358,14 @@ end function get_thr_
 
 !--------------------------------------------------------------------------
 subroutine set_thr_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_thr_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! set thr in the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)              :: inp
@@ -386,13 +376,14 @@ end subroutine set_thr_
 
 !--------------------------------------------------------------------------
 function get_voltage_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_voltage_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! get voltage from the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 real(kind=sgl)                          :: out
@@ -403,13 +394,14 @@ end function get_voltage_
 
 !--------------------------------------------------------------------------
 subroutine set_voltage_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_voltage_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! set voltage in the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)              :: inp
@@ -420,13 +412,14 @@ end subroutine set_voltage_
 
 !--------------------------------------------------------------------------
 function get_nx_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! get nx from the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 integer(kind=irg)                       :: out
@@ -437,13 +430,14 @@ end function get_nx_
 
 !--------------------------------------------------------------------------
 subroutine set_nx_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! set nx in the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)           :: inp
@@ -454,13 +448,14 @@ end subroutine set_nx_
 
 !--------------------------------------------------------------------------
 function get_xtalname_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_xtalname_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! get xtalname from the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 character(fnlen)                        :: out
@@ -471,13 +466,14 @@ end function get_xtalname_
 
 !--------------------------------------------------------------------------
 subroutine set_xtalname_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_xtalname_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! set xtalname in the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)            :: inp
@@ -488,13 +484,14 @@ end subroutine set_xtalname_
 
 !--------------------------------------------------------------------------
 function get_datafile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_datafile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! get datafile from the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 character(fnlen)                        :: out
@@ -505,13 +502,14 @@ end function get_datafile_
 
 !--------------------------------------------------------------------------
 subroutine set_datafile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_datafile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! set datafile in the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)            :: inp
@@ -522,13 +520,14 @@ end subroutine set_datafile_
 
 !--------------------------------------------------------------------------
 function get_mode_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_mode_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! get mode from the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 character(5)                            :: out
@@ -539,13 +538,14 @@ end function get_mode_
 
 !--------------------------------------------------------------------------
 subroutine set_mode_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_mode_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! set mode in the kinematical_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 character(5), INTENT(IN)                :: inp
@@ -556,23 +556,24 @@ end subroutine set_mode_
 
 !--------------------------------------------------------------------------
 subroutine kinematical_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: kinematical_
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! perform the computations
 
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T), INTENT(INOUT)     :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+character(fnlen), INTENT(INOUT)         :: progname
 
 associate( knl=>self%nml )
 
-! call the main routine 
+! call the main routine
 if (knl%mode.eq.'lines') call self%KinematicalLines(EMsoft, progname)
 
 if (knl%mode.eq.'bands') call self%KinematicalBands(EMsoft, progname)
@@ -583,8 +584,9 @@ end subroutine kinematical_
 
 !--------------------------------------------------------------------------
 subroutine KinematicalLines(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: KinematicalLines
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! generate a master pattern file with Kossel lines
@@ -606,22 +608,22 @@ use mod_HDFnames
 use ISO_C_BINDING
 use stringconstants
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T),INTENT(INOUT)  :: self
 type(EMsoft_T),INTENT(INOUT)        :: EMsoft
 character(fnlen),INTENT(IN)         :: progname
 
-type(HDF_T)                         :: HDF 
-type(HDFnames_T)                    :: HDFnames 
-type(IO_T)                          :: Message 
-type(cell_T)                        :: cell 
-type(SpaceGroup_T)                  :: SG 
-type(diffraction_T)                 :: Diff 
+type(HDF_T)                         :: HDF
+type(HDFnames_T)                    :: HDFnames
+type(IO_T)                          :: Message
+type(cell_T)                        :: cell
+type(SpaceGroup_T)                  :: SG
+type(diffraction_T)                 :: Diff
 type(DynType)                       :: Dyn
 type(Timing_T)                      :: timer
 type(Quaternion_T)                  :: qu
-type(q_T)                           :: qq 
+type(q_T)                           :: qq
 type(a_T)                           :: ax
 type(Lambert_T)                     :: Lambert
 
@@ -659,7 +661,7 @@ real(kind=sgl),allocatable          :: masterNH(:,:), masterSH(:,:), stereoNH(:,
                                        phi(:), cp(:), sp(:), dc(:,:), mLPNH(:,:,:), mLPSH(:,:,:)
 type(gnode),save                    :: rlp
 
-!$OMP THREADPRIVATE(rlp) 
+!$OMP THREADPRIVATE(rlp)
 
 verbose = .TRUE.
 space = 'r'
@@ -671,15 +673,15 @@ call setRotationPrecision('single')
 associate( knl=>self%nml )
 
 ! set the HDF group names for this program
-HDF = HDF_T() 
-HDFnames = HDFnames_T() 
+HDF = HDF_T()
+HDFnames = HDFnames_T()
 
 ! initialize the timing routines
 timer = Timing_T()
 tstrb = timer%getTimeString()
 dstr  = timer%getDateString()
 
-! initialize the crystal structure and compute a list of potential reflectors 
+! initialize the crystal structure and compute a list of potential reflectors
 ! get the crystal structure from the *.xtal file
 call cell%setFileName(knl%xtalname)
 call Diff%setrlpmethod('WK')
@@ -688,24 +690,24 @@ call Diff%setV(dble(knl%voltage))
 call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, knl%dmin, verbose, useHDF=HDF)
 mLambda = Diff%getWaveLength()
 
-! generate a list of hkl indices 
+! generate a list of hkl indices
 
 ! compute the range of reflections for the lookup table and allocate the table
 ! The master list is easily created by brute force
  imh = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
    if (dhkl.lt.knl%dmin) EXIT
    imh = imh + 1
  end do
  imk = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/0.0_sgl,float(imk),0.0_sgl/), 'r')
    if (dhkl.lt.knl%dmin) EXIT
    imk = imk + 1
  end do
  iml = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/0.0_sgl,0.0_sgl,float(iml)/), 'r')
    if (dhkl.lt.knl%dmin) EXIT
    iml = iml + 1
@@ -733,10 +735,10 @@ call Message%WriteValue(' reflection range : ',io_int,3)
 
 ! compute the Fourier coefficient
      call Diff%CalcUcg(cell, ind)
-     rlp = Diff%getrlp() 
+     rlp = Diff%getrlp()
 
 ! ignore the reciprocal lattice point if Vgg is small
-     if (rlp%Vmod.ge.knl%thr) then 
+     if (rlp%Vmod.ge.knl%thr) then
 
 ! store the Fourier coefficient of the lattice potential
       if (abs(h)+abs(k)+abs(l).eq.0) then
@@ -751,7 +753,7 @@ call Message%WriteValue(' reflection range : ',io_int,3)
       gg=cell%CalcLength(g,'r')
       call cell%TransSpace(g,gc,'r','c')
       gc = gc/sqrt(sum(gc*gc))
-      unitvec(1:3,icnt) = gc(1:3) 
+      unitvec(1:3,icnt) = gc(1:3)
 ! and Bragg angle
       th(icnt)=asin(0.5*mLambda*gg)
 
@@ -800,14 +802,14 @@ do kk=1,icnt   ! ignore the last point
 ! get the unrotated direction cosines of the sampling points on the sphere; this generate a circle on the sphere (Kossel cone trace)
   ca = cos( th(k) )
   sa = sin( th(k) )
-  v = unitvec(1:3,k) 
+  v = unitvec(1:3,k)
   sgn = 1.0
   x = cell%CalcDot(gz,v,'c')
   if (x.lt.0.0) sgn = -1.0
   do i=1,numphi
       dc(1,i) = ca * cp(i)
       dc(2,i) = ca * sp(i)
-      dc(3,i) = sa 
+      dc(3,i) = sa
   end do
 
 ! then determine the rotation quaternion to bring the z axis onto the g direction (cartesian)
@@ -830,7 +832,7 @@ do kk=1,icnt   ! ignore the last point
     end do
   end if
 
-! ok, so we have rotated this set of directions; next we need to add some intensity to each 
+! ok, so we have rotated this set of directions; next we need to add some intensity to each
 ! corresponding point in the master pattern
   do i=1,numphi
 ! convert these direction cosines to coordinates in the Rosca-Lambert projection
@@ -861,12 +863,12 @@ allocate(stereoNH(-nx:nx,-nx:nx),stat=istat)
 allocate(stereoSH(-nx:nx,-nx:nx),stat=istat)
 tav = sum(masterNH)/float(2*nx+1)**2
 Radius = 1.0
-do i=-nx,nx 
-  do j=-nx,nx 
+do i=-nx,nx
+  do j=-nx,nx
     Lambert = Lambert_T( xy = (/ float(i), float(j) /) / float(knl%nx) )
     ierr = Lambert%StereoGraphicInverse( xyz, Radius )
     xyz = xyz/vecnorm(xyz)
-    if (ierr.ne.0) then 
+    if (ierr.ne.0) then
       stereoNH(i,j) = tav
       stereoSH(i,j) = tav
     else
@@ -878,16 +880,16 @@ end do
 
 ! prepare the output
 call timer%makeTimeStamp()
-dstr = timer%getDateString() 
+dstr = timer%getDateString()
 tstre = timer%getTimeString()
 
 !------------------------------
 ! write the output to an HDF5 file
 !------------------------------
 call Message%printMessage('opening '//trim(knl%datafile), frm = "(A)" )
-call HDFnames%set_ProgramData(SC_EMkinematical) 
-call HDFnames%set_NMLlist(SC_EMkinematicalNameList) 
-call HDFnames%set_NMLfilename(SC_EMkinematicalNML) 
+call HDFnames%set_ProgramData(SC_EMkinematical)
+call HDFnames%set_NMLlist(SC_EMkinematicalNameList)
+call HDFnames%set_NMLfilename(SC_EMkinematicalNML)
 
 ! open the output file
 datafile = EMsoft%generateFilePath('EMdatapathname',trim(knl%datafile))
@@ -965,8 +967,9 @@ end subroutine KinematicalLines
 
 !--------------------------------------------------------------------------
 subroutine KinematicalBands(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: KinematicalBands
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! generate a master pattern file with Kossel bands
@@ -988,24 +991,24 @@ use mod_HDFnames
 use ISO_C_BINDING
 use stringconstants
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(kinematical_T),INTENT(INOUT)  :: self
 type(EMsoft_T),INTENT(INOUT)        :: EMsoft
 character(fnlen),INTENT(IN)         :: progname
 
-type(HDF_T)                         :: HDF 
-type(HDFnames_T)                    :: HDFnames 
-type(IO_T)                          :: Message 
-type(cell_T)                        :: cell 
-type(SpaceGroup_T)                  :: SG 
-type(diffraction_T)                 :: Diff 
+type(HDF_T)                         :: HDF
+type(HDFnames_T)                    :: HDFnames
+type(IO_T)                          :: Message
+type(cell_T)                        :: cell
+type(SpaceGroup_T)                  :: SG
+type(diffraction_T)                 :: Diff
 type(DynType)                       :: Dyn
 type(Timing_T)                      :: timer
 type(Quaternion_T)                  :: qu
-type(q_T)                           :: qq 
+type(q_T)                           :: qq
 type(a_T)                           :: ax
-type(Lambert_T)                     :: Lambert  
+type(Lambert_T)                     :: Lambert
 
 character(fnlen)                    :: listfile, masterfile, groupname, dataset, xtalname, outputfile, infile, datafile
 logical                             :: f_exists, readonly, verbose
@@ -1041,7 +1044,7 @@ real(kind=sgl),allocatable          :: srtmp(:,:,:,:), mLPNH(:,:,:), mLPSH(:,:,:
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 type(gnode),save                    :: rlp
 
-!$OMP THREADPRIVATE(rlp) 
+!$OMP THREADPRIVATE(rlp)
 
 verbose = .TRUE.
 space = 'r'
@@ -1053,15 +1056,15 @@ call setRotationPrecision('single')
 associate( knl=>self%nml )
 
 ! set the HDF group names for this program
-HDF = HDF_T() 
-HDFnames = HDFnames_T() 
+HDF = HDF_T()
+HDFnames = HDFnames_T()
 
 ! initialize the timing routines
 timer = Timing_T()
 tstrb = timer%getTimeString()
 dstr  = timer%getDateString()
 
-! initialize the crystal structure and compute a list of potential reflectors 
+! initialize the crystal structure and compute a list of potential reflectors
 ! get the crystal structure from the *.xtal file
 call cell%setFileName(knl%xtalname)
 call Diff%setrlpmethod('WK')
@@ -1073,19 +1076,19 @@ mLambda = Diff%getWaveLength()
 ! compute the range of reflections for the lookup table and allocate the table
 ! The master list is easily created by brute force
  imh = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
    if (dhkl.lt.knl%dmin) EXIT
    imh = imh + 1
  end do
  imk = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/0.0_sgl,float(imk),0.0_sgl/), 'r')
    if (dhkl.lt.knl%dmin) EXIT
    imk = imk + 1
  end do
  iml = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/0.0_sgl,0.0_sgl,float(iml)/), 'r')
    if (dhkl.lt.knl%dmin) EXIT
    iml = iml + 1
@@ -1124,10 +1127,10 @@ call Message%WriteValue(' reflection range : ',io_int,3)
 
 ! if it is a new one, then determine the entire family
       call Diff%CalcUcg(cell, ind)
-     rlp = Diff%getrlp() 
+     rlp = Diff%getrlp()
 
 ! but ignore the reciprocal lattice point if Vgg is small
-     if (abs(rlp%Ucg).ge.thr) then 
+     if (abs(rlp%Ucg).ge.thr) then
       Vgg(icnt) = (abs(rlp%Ucg))**2
 
 ! copy family in array and label all its members and multiples in z-array
@@ -1153,7 +1156,7 @@ call Message%WriteValue(' reflection range : ',io_int,3)
  oi_int(1)=totfam
  call Message%WriteValue(' Total number of family members  = ', oi_int, 1, "(I6)")
 
- icnt = icnt-1   ! to eliminate the origin ... 
+ icnt = icnt-1   ! to eliminate the origin ...
 ! compute d-spacings, g-spacings, theta
  allocate(gcart(3,icnt,48))
  do k=1,icnt
@@ -1165,51 +1168,51 @@ call Message%WriteValue(' reflection range : ',io_int,3)
     gg(k)=cell%CalcLength(g,'r')
     call cell%TransSpace(g,gc,'r','c')
     gc = gc/sqrt(sum(gc*gc))
-    gcart(1:3,k,j) = gc(1:3) 
+    gcart(1:3,k,j) = gc(1:3)
   end do
  end do
 
 ! we're taking the dot product between the plane normals and the direction cosine
-! vectors, so we will need the complement of the theta angles ... 
+! vectors, so we will need the complement of the theta angles ...
 cp2 = sngl(cPi/2.D0)
-! th = cp2 - th 
+! th = cp2 - th
 
-! next, we scan over the entire Lambert square and, for each point, 
-! determine which Kikuchi bands it belongs to; then we add all those 
+! next, we scan over the entire Lambert square and, for each point,
+! determine which Kikuchi bands it belongs to; then we add all those
 ! intensities together and place that value in the array. This should
 ! automatically take care of overlapping bands etc...
 nx = self%get_nx()
 allocate(kinmasterNH(-nx:nx,-nx:nx), kinmasterSH(-nx:nx,-nx:nx))
-kinmasterNH = 0.0 
-kinmasterSH = 0.0 
+kinmasterNH = 0.0
+kinmasterSH = 0.0
 
 edge = 1.0 / float(nx)
 
-do ix=-nx,nx 
-  do iy=-nx,nx 
-! get the direction cosines for this point 
+do ix=-nx,nx
+  do iy=-nx,nx
+! get the direction cosines for this point
     call Lambert%setxy( xy = (/ float(ix), float(iy) /) * edge )
     ierr = Lambert%LambertSquareToSphere( dc )
 
-! loop over all family members 
+! loop over all family members
     do k=1,icnt
-      do j=1,numfam(k) 
+      do j=1,numfam(k)
         dp = DOT_PRODUCT( gcart(1:3,k,j), dc(1:3) )
           ang = acos( dp ) - cp2
-          if  (abs(ang).le.th(k)) then 
+          if  (abs(ang).le.th(k)) then
             kinmasterNH(ix,iy) = kinmasterNH(ix,iy) + Vgg(k)
             kinmasterSH(-ix,-iy) = kinmasterSH(-ix,-iy) + Vgg(k)
-          end if 
-      end do 
-    end do 
-  end do 
-end do 
+          end if
+      end do
+    end do
+  end do
+end do
 
-! we need to correct the edge intensities because of some strange double counting 
-! that occurs for the perimeter of the square Lambert projection ... 
-kinmasterNH(-nx,:) = kinmasterNH(-nx+1,:) 
-kinmasterNH( nx,:) = kinmasterNH( nx-1,:) 
-kinmasterNH( -nx+1:nx-1,-nx) = kinmasterNH(-nx+1:nx-1,-nx+1) 
+! we need to correct the edge intensities because of some strange double counting
+! that occurs for the perimeter of the square Lambert projection ...
+kinmasterNH(-nx,:) = kinmasterNH(-nx+1,:)
+kinmasterNH( nx,:) = kinmasterNH( nx-1,:)
+kinmasterNH( -nx+1:nx-1,-nx) = kinmasterNH(-nx+1:nx-1,-nx+1)
 kinmasterNH( -nx+1:nx-1, nx) = kinmasterNH(-nx+1:nx-1, nx-1)
 kinmasterNH(-nx,-nx) = kinmasterNH(-nx+1,-nx+1)
 kinmasterNH( nx,-nx) = kinmasterNH( nx-1,-nx+1)
@@ -1218,7 +1221,7 @@ kinmasterNH( nx, nx) = kinmasterNH( nx-1, nx-1)
 
 kinmasterSH(-nx,:) = kinmasterSH(-nx+1,:)
 kinmasterSH( nx,:) = kinmasterSH( nx-1,:)
-kinmasterSH( -nx+1:nx-1,-nx) = kinmasterSH(-nx+1:nx-1,-nx+1) 
+kinmasterSH( -nx+1:nx-1,-nx) = kinmasterSH(-nx+1:nx-1,-nx+1)
 kinmasterSH( -nx+1:nx-1, nx) = kinmasterSH(-nx+1:nx-1, nx-1)
 kinmasterSH(-nx,-nx) = kinmasterSH(-nx+1,-nx+1)
 kinmasterSH( nx,-nx) = kinmasterSH( nx-1,-nx+1)
@@ -1230,12 +1233,12 @@ allocate(stereoSH(-nx:nx,-nx:nx),stat=istat)
 ! get stereographic projections
 Radius = 1.0
 tav = sum(kinmasterNH)/float(2*nx+1)**2
-do i=-nx,nx 
-  do j=-nx,nx 
+do i=-nx,nx
+  do j=-nx,nx
     Lambert = Lambert_T( xy = (/ float(i), float(j) /) / float(knl%nx) )
     ierr = Lambert%StereoGraphicInverse( xyz, Radius )
     xyz = xyz/vecnorm(xyz)
-    if (ierr.ne.0) then 
+    if (ierr.ne.0) then
       stereoNH(i,j) = tav
       stereoSH(i,j) = tav
     else
@@ -1245,18 +1248,18 @@ do i=-nx,nx
   end do
 end do
 
-! then save this in an HDF file 
+! then save this in an HDF file
 call timer%makeTimeStamp()
-dstr = timer%getDateString() 
+dstr = timer%getDateString()
 tstre = timer%getTimeString()
 
 !------------------------------
 ! write the output to an HDF5 file
 !------------------------------
 call Message%printMessage('opening '//trim(knl%datafile), frm = "(A)" )
-call HDFnames%set_ProgramData(SC_EMkinematical) 
-call HDFnames%set_NMLlist(SC_EMkinematicalNameList) 
-call HDFnames%set_NMLfilename(SC_EMkinematicalNML) 
+call HDFnames%set_ProgramData(SC_EMkinematical)
+call HDFnames%set_NMLlist(SC_EMkinematicalNameList)
+call HDFnames%set_NMLfilename(SC_EMkinematicalNML)
 
 ! open the output file
 datafile = EMsoft%generateFilePath('EMdatapathname',trim(knl%datafile))
@@ -1334,13 +1337,14 @@ end subroutine KinematicalBands
 
 !--------------------------------------------------------------------------
 subroutine AntiAlias(master,ixy,nix,niy,nx,inten)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: AntiAlias
+!! author: MDG
+!! version: 1.0
 !! date: 03/26/20
 !!
 !! put intensities in array using simple anti-aliasing solution to reduce jaggies
 !!
-!! we may want to replace this by a better algorithm, e.g.,  Xiaolin Wu's anti-aliasing 
+!! we may want to replace this by a better algorithm, e.g.,  Xiaolin Wu's anti-aliasing
 !! line drawing algorithm
 
 IMPLICIT NONE
@@ -1359,12 +1363,12 @@ real(kind=sgl)                  :: dx, dy, d
 ! we'll use the simple Manhattan distance w.r.t. nearest neighbors and
 ! apply the lever rule to set the intensities
 
-if ((abs(nix).lt.nx).and.(abs(niy).lt.nx)) then 
+if ((abs(nix).lt.nx).and.(abs(niy).lt.nx)) then
   dx = ixy(1)-nix
   dy = ixy(2)-niy
   if (abs(dx).gt.abs(dy)) then
     d = abs(dx)
-    if (dx.lt.0.0) then  
+    if (dx.lt.0.0) then
       master(nix-1,niy) = master(nix-1,niy) - d * inten
       master(nix,niy) = master(nix,niy) - (1.0-d) * inten
     else
@@ -1373,7 +1377,7 @@ if ((abs(nix).lt.nx).and.(abs(niy).lt.nx)) then
     end if
   else
     d = abs(dy)
-    if (dy.lt.0.0) then  
+    if (dy.lt.0.0) then
       master(nix,niy-1) = master(nix,niy-1) - d * inten
       master(nix,niy) = master(nix,niy) - (1.0-d) * inten
     else

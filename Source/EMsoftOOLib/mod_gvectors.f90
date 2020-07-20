@@ -2,43 +2,43 @@
 ! Copyright (c) 2014-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 module mod_gvectors
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/02/20
   !!
-  !! variables and types needed to determine lists of reciprocal lattice vectors.  
+  !! variables and types needed to determine lists of reciprocal lattice vectors.
   !!
   !! This was part of the dynamical module, but was moved into a separate
-  !! module.  The new module includes a routine to delete the linked list, and also routines 
+  !! module.  The new module includes a routine to delete the linked list, and also routines
   !! to allocate linked lists, which are used by almost all dynamical scattering codes.
   !!
   !! Due to some complicated module interdependencies the CalcDynMat routine is in
   !! this module rather than in diffraction, where it would logically belong.  We may need
-  !! to figure out how to change that. 
+  !! to figure out how to change that.
 
 use mod_kinds
 use mod_global
@@ -48,13 +48,13 @@ private
 
 ! [note added on 1/10/14]
 ! first we define the reflisttype (all the information needed for a given reciprocal lattice point or rlp).
-! In this linked list, we want to keep everything that might be needed to perform rlp-related 
-! simulations, except for the Fourier coefficient of the lattice potential, wich is kept in 
+! In this linked list, we want to keep everything that might be needed to perform rlp-related
+! simulations, except for the Fourier coefficient of the lattice potential, wich is kept in
 ! a lookup table.  Anything that can easily be derived from the LUT does not need to be stored.
 ! [end note]
 !
 ! linked list of reflections
-type, public :: reflisttype  
+type, public :: reflisttype
   integer(kind=irg)             :: num, &        ! sequential number
                                    hkl(3),&      ! Miller indices
                                    famhkl(3),&   ! family representative Miller indices
@@ -96,9 +96,13 @@ private
   procedure, pass(self) :: Initialize_ReflectionList_EwaldSweep_
   procedure, pass(self) :: GetDynMat_
   procedure, pass(self) :: GetDynMatKin_
+  procedure, pass(self) :: GetDynMatDHW_
   procedure, pass(self) :: get_nref_
-  procedure, pass(self) :: CalcLgh_ 
+  procedure, pass(self) :: CalcLgh_
   procedure, pass(self) :: getSghfromLUT_
+  procedure, pass(self) :: GetSgArray_ECCI_
+  procedure, pass(self) :: GetExpval_ECCI_
+
   final :: gvectors_destructor
 
   generic, public :: MakeRefList => MakeRefList_
@@ -111,25 +115,17 @@ private
                                                   Initialize_ReflectionList_EwaldSweep_
   generic, public :: GetDynMat => GetDynMat_
   generic, public :: GetDynMatKin => GetDynMatKin_
+  generic, public :: GetDynMatDHW => GetDynMatDHW_
   generic, public :: get_nref => get_nref_
   generic, public :: CalcLgh => CalcLgh_
   generic, public :: getSghfromLUT => getSghfromLUT_
+  generic, public :: GetSgArray_ECCI => GetSgArray_ECCI_
+  generic, public :: GetExpval_ECCI => GetExpval_ECCI_
 
 end type gvectors_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: MakeRefList
-!DEC$ ATTRIBUTES DLLEXPORT :: AddReflection
-!DEC$ ATTRIBUTES DLLEXPORT :: Apply_BethePotentials
-!DEC$ ATTRIBUTES DLLEXPORT :: GetSubRefList
-!DEC$ ATTRIBUTES DLLEXPORT :: Delete_gvectorlist
-!DEC$ ATTRIBUTES DLLEXPORT :: Compute_ReflectionListZoneAxis
-!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_ReflectionList
-!DEC$ ATTRIBUTES DLLEXPORT :: GetDynMat
-!DEC$ ATTRIBUTES DLLEXPORT :: GetDynMatKin
-!DEC$ ATTRIBUTES DLLEXPORT :: CalcLgh
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nref
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface gvectors_T
   module procedure gvectors_constructor
 end interface gvectors_T
@@ -138,33 +134,35 @@ contains
 
 !--------------------------------------------------------------------------
 type(gvectors_T) function gvectors_constructor( ) result(GVec)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: gvectors_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! constructor for the gvectors_T Class
- 
+
 IMPLICIT NONE
 
-! the calling program must make sure that the reflist is empty ... 
+! the calling program must make sure that the reflist is empty ...
 ! initialize the reflist
 nullify(GVec%reflist)
-GVec%nref = 0 
+GVec%nref = 0
 call GVec%MakeRefList()
 
 end function gvectors_constructor
 
 !--------------------------------------------------------------------------
-subroutine gvectors_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine gvectors_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: gvectors_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the gvectors_T Class
- 
+
 IMPLICIT NONE
 
-type(gvectors_T), INTENT(INOUT)  :: self 
+type(gvectors_T), INTENT(INOUT)  :: self
 
 type(reflisttype),pointer        :: rltmpa
 
@@ -174,8 +172,9 @@ end subroutine gvectors_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine MakeRefList_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: MakeRefList_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/02/20
   !!
   !! allocate and initialize the linked reflection list
@@ -201,24 +200,25 @@ end subroutine MakeRefList_
 
 !--------------------------------------------------------------------------
 recursive subroutine Delete_gvectorlist_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Delete_gvectorlist_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/02/20
   !!
   !! delete the entire linked list
 
 IMPLICIT NONE
 
-class(gvectors_T), INTENT(INOUT)  :: self 
+class(gvectors_T), INTENT(INOUT)  :: self
 
 type(reflisttype),pointer         :: rltmpa
 
 ! deallocate the entire linked list before returning, to prevent memory leaks
-if (associated(self%reflist)) then 
+if (associated(self%reflist)) then
   self%rltail => self%reflist
-  if (associated(self%rltail%next)) then 
+  if (associated(self%rltail%next)) then
     rltmpa => self%rltail%next
-    do 
+    do
       if (associated(self%rltail)) deallocate(self%rltail)
       if (.not. associated(rltmpa)) EXIT
       self%rltail => rltmpa
@@ -236,8 +236,9 @@ end subroutine Delete_gvectorlist_
 
 !--------------------------------------------------------------------------
 recursive function get_nref_(self) result(nref)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nref_
+!! author: MDG
+!! version: 1.0
 !! date: 02/16/20
 !!
 !! return the number of g-vectors
@@ -253,8 +254,9 @@ end function get_nref_
 
 !--------------------------------------------------------------------------
 recursive subroutine AddReflection_(self, Diff, hkl)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: AddReflection_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/02/20
   !!
   !! add a reflection to the linked reflection list
@@ -267,7 +269,7 @@ IMPLICIT NONE
 
 class(gvectors_T),INTENT(INOUT)    :: self
 type(Diffraction_T),INTENT(INOUT)  :: Diff
-integer(kind=irg),INTENT(IN)       :: hkl(3)    
+integer(kind=irg),INTENT(IN)       :: hkl(3)
  !! Miller indices of reflection to be added to list
 
 type(IO_T)                         :: Message
@@ -299,13 +301,14 @@ integer(kind=irg)                  :: istat
 ! self%rltail%thetag = rlp%Vphase                   ! added 12/14/2013 for EMECCI program
  nullify(self%rltail%nextw)
  nullify(self%rltail%nexts)
- 
+
 end subroutine AddReflection_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetSubReflist_(self, cell, Diff, FN, kk, listrootw, nns, nnw, first)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetSubReflist_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/02/20
   !!
   !! used to subselect a series of reflections from an existing reflist
@@ -335,7 +338,7 @@ integer(kind=irg)                              :: istat, gmh(3), ir, ih
 real(kind=dbl)                                 :: sgp, m, sg, gg(3)
 
 
-! this routine must go through the entire reflist and apply the Bethe criteria for a 
+! this routine must go through the entire reflist and apply the Bethe criteria for a
 ! given beam and foil normal pair. Hence, it is similar to the Apply_BethePotentials
 ! routine, except that the excitation errors are recomputed each time this routine
 ! is called, to account for the different incident beam directions.
@@ -344,7 +347,7 @@ nullify(lasts)
 nullify(lastw)
 nullify(rl)
 
-! first we extract the list of g-vectors from reflist, so that we can compute 
+! first we extract the list of g-vectors from reflist, so that we can compute
 ! all the g-h difference vectors; we only need to do this the first time we call
 ! this routine, since this list never changes (hence the SAVE qualifier for glist)
 if (PRESENT(first)) then
@@ -375,7 +378,7 @@ lasts => rl
 nullify(lasts%nextw)
 
 
-! next we need to iterate through all reflections in glist and 
+! next we need to iterate through all reflections in glist and
 ! determine which category the reflection belongs to: strong, weak, ignore
 irloop: do ir = 2,icnt
   rl => rl%next
@@ -389,8 +392,8 @@ irloop: do ir = 2,icnt
    gmh(1:3) = glist(1:3,ir) - glist(1:3,ih)
    if (Diff%getdbdiff( gmh )) then  ! it is a double diffraction reflection with |U|=0
 ! to be written
-     rh(ih) = 10000.D0 
-   else 
+     rh(ih) = 10000.D0
+   else
      rh(ih) = sgp/abs( Diff%getLUT( gmh ) )
    end if
   end do
@@ -429,20 +432,21 @@ irloop: do ir = 2,icnt
     rl%weak = .FALSE.
     rl%strong = .TRUE.
     nns = nns + 1
-  end if  
+  end if
 end do irloop
 
 end subroutine GetSubRefList_
 
 !--------------------------------------------------------------------------
 recursive subroutine Apply_BethePotentials_(self, Diff, listrootw, nns, nnw)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Apply_BethePotentials_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/02/20
   !!
   !! tag weak and strong reflections in self%reflist
   !!
-  !! This routine steps through the reflist linked list and 
+  !! This routine steps through the reflist linked list and
   !! determines for each reflection whether it is strong or weak or should be
   !! ignored.  Strong and weak reflections are then linked in a new list via
   !! the nexts and nextw pointers, along with the nns and nnw counters.
@@ -453,7 +457,7 @@ use mod_diffraction
 
 IMPLICIT NONE
 
-class(gvectors_T), INTENT(INOUT)               :: self 
+class(gvectors_T), INTENT(INOUT)               :: self
 type(Diffraction_T), INTENT(INOUT)             :: Diff
 type(reflisttype),pointer                      :: listrootw
 integer(kind=irg),INTENT(OUT)                  :: nns
@@ -470,7 +474,7 @@ nullify(lasts)
 nullify(lastw)
 nullify(rl)
 
-! first we extract the list of g-vectors from reflist, so that we can compute 
+! first we extract the list of g-vectors from reflist, so that we can compute
 ! all the g-h difference vectors
 allocate(glist(3,self%nref),rh(self%nref),stat=istat)
 rl => self%reflist%next
@@ -495,7 +499,7 @@ nullify(lasts%nextw)
 
 la = 1.D0/Diff%getWaveLength()
 
-! next we need to iterate through all reflections in glist and 
+! next we need to iterate through all reflections in glist and
 ! determine which category the reflection belongs to: strong, weak, ignore
 irloop: do ir = 2,icnt
   rl => rl%next
@@ -505,8 +509,8 @@ irloop: do ir = 2,icnt
    gmh(1:3) = glist(1:3,ir) - glist(1:3,ih)
    if (Diff%getdbdiff( gmh )) then  ! it is a double diffraction reflection with |U|=0
 ! to be written
-     rh(ih) = 10000.D0 
-   else 
+     rh(ih) = 10000.D0
+   else
      rh(ih) = sgp/abs( Diff%getLUT( gmh ) )
    end if
   end do
@@ -545,7 +549,7 @@ irloop: do ir = 2,icnt
     rl%weak = .FALSE.
     rl%strong = .TRUE.
     nns = nns + 1
-  end if  
+  end if
 end do irloop
 
 deallocate(glist, rh)
@@ -554,8 +558,9 @@ end subroutine Apply_BethePotentials_
 
 !--------------------------------------------------------------------------
 recursive subroutine Compute_ReflectionListZoneAxis_(self,cell,SG,Diff,FN,dmin,k,ga,gb)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Compute_ReflectionListZoneAxis_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/02/20
   !!
   !! compute the entire reflection list for general conditions (including HOLZ)
@@ -567,7 +572,7 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-class(gvectors_T),INTENT(INOUT)   :: self 
+class(gvectors_T),INTENT(INOUT)   :: self
 type(Cell_T),INTENT(INOUT)        :: cell
 type(SpaceGroup_T),INTENT(INOUT)  :: SG
 type(Diffraction_T),INTENT(INOUT) :: Diff
@@ -588,7 +593,7 @@ integer(kind=irg)                 :: io_int(3), gshort(3), gp(3)
 rBethe_i = Diff%getBetheParameter('c3')  ! if larger than this value, we ignore the reflection completely
 rBethe_d = Diff%getBetheParameter('sg')  ! excitation error cutoff for double diffraction reflections
 la = 1.0/sngl(Diff%getWaveLength())
-  
+
 ! get the size of the lookup table
 gp = Diff%getShapeLUT()
 imh = (gp(1)-1)/4
@@ -597,7 +602,7 @@ iml = (gp(3)-1)/4
 
 ! nullify(self%reflist)
 ! nullify(self%rltail)
-  
+
 gg = (/0,0,0/)
 call self%AddReflection(Diff, gg)  ! this guarantees that 000 is always the first reflection
 
@@ -615,14 +620,14 @@ do ix=-imh,imh
         sgp = Diff%Calcsg(cell, float(gg),k,FN)
         if  ((abs(gg(1)).le.imh).and.(abs(gg(2)).le.imk).and.(abs(gg(3)).le.iml) ) then
           if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
-            if (abs(sgp).le.rBethe_d) then 
+            if (abs(sgp).le.rBethe_d) then
               call self%AddReflection(Diff, gg)
               self%rltail%sg = sgp
               self%rltail%dbdiff = .TRUE.
-            end if 
+            end if
           else
             r_g = la * abs(sgp)/abs(Diff%getLUT( gg ))
-            if (r_g.le.rBethe_i) then 
+            if (r_g.le.rBethe_i) then
               call self%AddReflection(Diff, gg )
               self%rltail%sg = sgp
               self%rltail%dbdiff = .FALSE.
@@ -640,8 +645,9 @@ end subroutine Compute_ReflectionListZoneAxis_
 
 !--------------------------------------------------------------------------
 recursive subroutine Initialize_ReflectionList_(self, cell, SG, Diff, FN, k, dmin, verbose)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_ReflectionList_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/04/20
   !!
   !! initialize the potential reflection list for a given wave vector
@@ -653,7 +659,7 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-class(gvectors_T),INTENT(INOUT)     :: self 
+class(gvectors_T),INTENT(INOUT)     :: self
 type(Cell_T),INTENT(INOUT)          :: cell
 type(SpaceGroup_T),INTENT(INOUT)    :: SG
 type(Diffraction_T),INTENT(INOUT)   :: Diff
@@ -673,13 +679,13 @@ integer(kind=irg)                   :: io_int(3), gshort(3), gp(3)
   rBethe_i = Diff%getBetheParameter('c3')   ! if larger than this value, we ignore the reflection completely
   rBethe_d = Diff%getBetheParameter('sg')   ! excitation error cutoff for double diffraction reflections
   la = 1.0/Diff%getWaveLength()
-  
+
 ! get the size of the lookup table
   gp = Diff%getshapeLUT()
   imh = (gp(1)-1)/4
   imk = (gp(2)-1)/4
   iml = (gp(3)-1)/4
- 
+
 ! transmitted beam has excitation error zero
   gg = (/ 0,0,0 /)
   call self%AddReflection(Diff, gg )   ! this guarantees that 000 is always the first reflection
@@ -690,34 +696,33 @@ integer(kind=irg)                   :: io_int(3), gshort(3), gp(3)
 ixl: do ix=-imh,imh
 iyl:  do iy=-imk,imk
 izl:   do iz=-iml,iml
-        if ((abs(ix)+abs(iy)+abs(iz)).ne.0) then  ! avoid double counting the origin
-         gg = (/ ix, iy, iz /)
-         dval = 1.0/cell%CalcLength(float(gg), 'r' )
-
+         if ((abs(ix)+abs(iy)+abs(iz)).ne.0) then  ! avoid double counting the origin
+          gg = (/ ix, iy, iz /)
+          dval = 1.0/cell%CalcLength(float(gg), 'r' )
          if ((SG%IsGAllowed(gg)).and.(dval.gt.dmin)) then ! allowed by the lattice centering, if any
           sgp = Diff%Calcsg(cell,float(gg),k,FN)
           if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
-            if (abs(sgp).le.rBethe_d) then 
-              call self%AddReflection(Diff, gg )
-              self%rltail%sg = sgp
-              self%rltail%dbdiff = .TRUE.
-            end if
+           if (abs(sgp).le.rBethe_d) then
+             call self%AddReflection(Diff, gg )
+             self%rltail%sg = sgp
+             self%rltail%dbdiff = .TRUE.
+           end if
           else
-            r_g = la * abs(sgp)/abs(Diff%getLUT(gg))
-            if (r_g.le.rBethe_i) then 
-              call self%AddReflection(Diff, gg )
-              self%rltail%sg = sgp
-              self%rltail%dbdiff = .FALSE.
-            end if
+           r_g = la * abs(sgp)/abs(Diff%getLUT(gg))
+           if (r_g.le.rBethe_i) then
+             call self%AddReflection(Diff, gg )
+             self%rltail%sg = sgp
+             self%rltail%dbdiff = .FALSE.
+           end if
           end if
-         end if ! IsGAllowed
-        end if
+        end if ! IsGAllowed
+         end if
        end do izl
       end do iyl
     end do ixl
-    
-  if (present(verbose)) then 
-    if (verbose) then 
+
+  if (present(verbose)) then
+    if (verbose) then
       io_int(1) = self%nref
       call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I8)")
     end if
@@ -727,8 +732,9 @@ end subroutine Initialize_ReflectionList_
 
 !--------------------------------------------------------------------------
 recursive subroutine Initialize_ReflectionList_EwaldSweep_(self,cell,SG,Diff,FN,k,pedangle, goffset, verbose)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_ReflectionList_EwaldSweep_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/04/20
   !!
   !! initialize the potential reflection list for a given precession electron diffraction geometry
@@ -740,7 +746,7 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-class(gvectors_T),INTENT(INOUT)     :: self 
+class(gvectors_T),INTENT(INOUT)     :: self
 type(Cell_T),INTENT(INOUT)          :: cell
 type(SpaceGroup_T),INTENT(INOUT)    :: SG
 type(Diffraction_T),INTENT(INOUT)   :: Diff
@@ -764,17 +770,17 @@ real(kind=sgl)                      :: FNg(3), c, s, kr(3), sgp, la, kstar(3), g
   call cell%TransSpace(k, kstar, 'd', 'r')
   call cell%NormVec(kstar, 'r')
   kstar = la * kstar
-  
+
 ! get the size of the lookup table
   gp = Diff%getshapeLUT()
   imh = (gp(1)-1)/4
   imk = (gp(2)-1)/4
   iml = (gp(3)-1)/4
-  
-  if (associated(self%reflist)) then 
-    call self%Delete_gvectorlist() 
+
+  if (associated(self%reflist)) then
+    call self%Delete_gvectorlist()
   end if
- 
+
 ! transmitted beam has excitation error zero, and set xg to zero; xg will store the accumulated intensity for each reflection
   gg = (/ 0,0,0 /)
   call self%AddReflection(Diff, gg )   ! this guarantees that 000 is always the first reflection
@@ -803,7 +809,7 @@ izl:   do iz=-iml,iml
           bup = goffset+c-sqrt(z-y)
           blo = -goffset+c-sqrt(z+y)
 ! and check whether or not this point should be taken into account
-          if ((blo.le.gplen).and.(gplen.le.bup)) then 
+          if ((blo.le.gplen).and.(gplen.le.bup)) then
             sgp = Diff%Calcsg(cell,float(gg),k,FN)
 ! note that we are not applying any Bethe parameter conditions here since those will be applied for each beam orientation separately
             if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
@@ -823,9 +829,9 @@ izl:   do iz=-iml,iml
        end do izl
       end do iyl
     end do ixl
-    
-  if (present(verbose)) then 
-    if (verbose) then 
+
+  if (present(verbose)) then
+    if (verbose) then
       io_int(1) = self%nref
       call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I8)")
     end if
@@ -835,16 +841,17 @@ end subroutine Initialize_Reflectionlist_EwaldSweep_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetDynMat_(self, cell, Diff, listrootw, DynMat, nns, nnw, BlochMode, noNormAbs)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetDynMat_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/12/20
   !!
   !! compute the dynamical matrix, including Bethe potentials
   !!
-  !! We compute the dynamical matrix as the structure matrix A, with 
+  !! We compute the dynamical matrix as the structure matrix A, with
   !! the q_g elements along the off-diagonal; the reason for this is the fact
   !! that this approach leads to a dynamical matrix that is shift invariant.
-  !! A conversion to the Bloch wave dynamical matrix can be obtained by setting 
+  !! A conversion to the Bloch wave dynamical matrix can be obtained by setting
   !! the optional keyword BlochMode
 
 use mod_crystallography
@@ -853,7 +860,7 @@ use mod_kvectors
 
 IMPLICIT NONE
 
-class(gvectors_T), INTENT(INOUT) :: self 
+class(gvectors_T), INTENT(INOUT) :: self
 type(Cell_T),INTENT(INOUT)       :: cell
 type(Diffraction_T),INTENT(INOUT):: Diff
 type(reflisttype),pointer        :: listrootw
@@ -864,7 +871,7 @@ character(5),INTENT(IN),OPTIONAL :: BlochMode   ! 'Bloch' or 'Struc'
 logical,INTENT(IN),OPTIONAL      :: noNormAbs
 
 type(gnode)                      :: rlp
-complex(kind=dbl)                :: czero, ughp, uhph, weaksum, cv, Agh, Ahgp, Ahmgp, Ahg, weakdiagsum, pq0, Ahh, Agpgp, ccpi 
+complex(kind=dbl)                :: czero, ughp, uhph, weaksum, cv, Agh, Ahgp, Ahmgp, Ahg, weakdiagsum, pq0, Ahh, Agpgp, ccpi
 real(kind=dbl)                   :: weaksgsum, tpi, Pioxgp, mlambda
 real(kind=sgl)                   :: Upz
 integer(kind=sgl)                :: ir, ic, ll(3), istat, wc
@@ -873,7 +880,7 @@ character(1)                     :: AorD
 
 czero = cmplx(0.0,0.0,dbl)      ! complex zero
 tpi = 2.D0 * cPi
-ccpi = cmplx(cPi,0.0D0,dbl)
+ccpi = cmplx(0.0D0,cPi,dbl)
 mLambda = Diff%getWaveLength()
 
 nullify(rlr)
@@ -888,10 +895,10 @@ nullify(rlw)
 ! invariant, so that D derived from A will also be shift invariant]
 
 call Diff%setrlpmethod('WK')
-listroot => self%reflist 
+listroot => self%reflist
 
-AorD = 'D'
-if (present(Blochmode)) AorD = 'A'
+AorD = 'A'
+!if (present(Blochmode)) AorD = 'A'
 
 ! Standard Bloch wave mode
 if (AorD.eq.'D') then
@@ -900,8 +907,8 @@ if (AorD.eq.'D') then
         call Diff%CalcUcg(cell, (/0,0,0/) )
         rlp = Diff%getrlp()
         Upz = rlp%Upmod
-        if (present(noNormAbs)) then 
-          if (noNormAbs.eqv..TRUE.) then 
+        if (present(noNormAbs)) then
+          if (noNormAbs.eqv..TRUE.) then
             Upz = 0.0
           end if
         end if
@@ -923,9 +930,9 @@ if (AorD.eq.'D') then
               do
                if (.not.associated(rlw)) EXIT
                ll = rlr%hkl - rlw%hkl
-               ughp = Diff%getLUT( ll ) 
+               ughp = Diff%getLUT( ll )
                ll = rlw%hkl - rlc%hkl
-               uhph = Diff%getLUT( ll ) 
+               uhph = Diff%getLUT( ll )
                weaksum = weaksum +  ughp * uhph *cmplx(1.D0/rlw%sg,0.0,dbl)
                rlw => rlw%nextw
               end do
@@ -944,7 +951,7 @@ if (AorD.eq.'D') then
               do
                if (.not.associated(rlw)) EXIT
                 ll = rlr%hkl - rlw%hkl
-                ughp = Diff%getLUT( ll ) 
+                ughp = Diff%getLUT( ll )
                 weaksgsum = weaksgsum +  abs(ughp)**2/rlw%sg
                 rlw => rlw%nextw
               end do
@@ -952,21 +959,21 @@ if (AorD.eq.'D') then
               DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda-weaksgsum,Upz,dbl)
             else
               DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda,Upz,dbl)
-            end if           
-        
-           end if       
+            end if
+
+           end if
            rlc => rlc%nexts
            ic = ic + 1
-          end do        
+          end do
           rlr => rlr%nexts
           ir = ir+1
         end do
 
-else ! AorD = 'A' so we need to compute the structure matrix using LUTqg ... 
+else ! AorD = 'A' so we need to compute the structure matrix using LUTqg ...
 
 ! note that the factor of i pi is added in at the end...
         DynMat = czero
-        call Diff%CalcUcg(cell, (/0,0,0/), applyqgshift=.TRUE. )
+        call Diff%CalcUcg(cell, (/0,0,0/), applyqgshift=.FALSE. )
         rlp = Diff%getrlp()
         pq0 = cmplx(0.D0,1.D0/rlp%xgp,dbl)
 
@@ -986,9 +993,9 @@ else ! AorD = 'A' so we need to compute the structure matrix using LUTqg ...
               do
                if (.not.associated(rlw)) EXIT
                ll = rlr%hkl - rlw%hkl
-               Agh = Diff%getLUTqg( ll ) 
+               Agh = Diff%getLUTqg( ll )
                ll = rlw%hkl - rlc%hkl
-               Ahgp = Diff%getLUTqg( ll ) 
+               Ahgp = Diff%getLUTqg( ll )
 ! denominator Ahh - Ag'g'
                Ahh = cmplx(2.D0 * rlw%sg,0.D0,dbl) + pq0
                Agpgp = cmplx(2.D0 * rlc%sg,0.D0,dbl) + pq0
@@ -1010,8 +1017,8 @@ else ! AorD = 'A' so we need to compute the structure matrix using LUTqg ...
               do
                if (.not.associated(rlw)) EXIT
                 ll = rlr%hkl - rlw%hkl
-                Agh = Diff%getLUTqg( ll ) 
-                Ahg = Diff%getLUTqg(-ll ) 
+                Agh = Diff%getLUTqg( ll )
+                Ahg = Diff%getLUTqg(-ll )
 ! denominator Ahh - Agg
                 Ahh = cmplx(2.D0 * rlw%sg,0.D0,dbl) + pq0
                 Agpgp = cmplx(2.D0 * rlr%sg,0.D0,dbl) + pq0
@@ -1020,18 +1027,18 @@ else ! AorD = 'A' so we need to compute the structure matrix using LUTqg ...
               end do
               DynMat(ir,ir) = cmplx( 2.D0 * rlr%sg, 0.D0, dbl) + pq0 - weakdiagsum
             else
-              DynMat(ir,ir) = cmplx( 2.D0 * rlr%sg, 0.D0,dbl) + pq0 
-            end if           
-        
-           end if       
+              DynMat(ir,ir) = cmplx( 2.D0 * rlr%sg, 0.D0,dbl) + pq0
+            end if
+
+           end if
            rlc => rlc%nexts
            ic = ic + 1
-          end do        
+          end do
           rlr => rlr%nexts
           ir = ir+1
         end do
         DynMat = DynMat * ccpi ! cmplx(cPi, 0.D0)
-end if 
+end if
 
 
 if (present(BlochMode)) then
@@ -1046,11 +1053,12 @@ end subroutine GetDynMat_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetDynMatKin_(self, cell, Diff, listrootw, DynMat, nns)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetDynMatKin_
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/01/20
   !!
-  !! compute the Bloch wave dynamical matrix for the kinematical case 
+  !! compute the Bloch wave dynamical matrix for the kinematical case
   !! [no Bethe perturbations]
 
 use mod_crystallography
@@ -1059,7 +1067,7 @@ use mod_kvectors
 
 IMPLICIT NONE
 
-class(gvectors_T), INTENT(INOUT) :: self 
+class(gvectors_T), INTENT(INOUT) :: self
 type(Cell_T),INTENT(INOUT)       :: cell
 type(Diffraction_T),INTENT(INOUT):: Diff
 type(reflisttype),pointer        :: listrootw
@@ -1067,7 +1075,7 @@ integer(kind=irg),INTENT(IN)     :: nns
 complex(kind=dbl),INTENT(INOUT)  :: DynMat(nns,nns)
 
 type(gnode)                      :: rlp
-complex(kind=dbl)                :: czero 
+complex(kind=dbl)                :: czero
 real(kind=dbl)                   :: mlambda
 real(kind=sgl)                   :: Upz
 integer(kind=sgl)                :: ir, ll(3)
@@ -1079,7 +1087,7 @@ mLambda = Diff%getWaveLength()
 nullify(rlr)
 
 call Diff%setrlpmethod('WK')
-listroot => self%reflist 
+listroot => self%reflist
 
 DynMat = czero
 call Diff%CalcUcg(cell, (/0,0,0/) )
@@ -1092,9 +1100,9 @@ do
   if (.not.associated(rlr)) EXIT
   if (ir.ne.1) then  ! not a diagonal entry
 ! we only need to fill the first column in the kinematical approximation ...
-    ll = rlr%hkl 
+    ll = rlr%hkl
     DynMat(ir,1) = Diff%getLUT( ll )
-  end if 
+  end if
 ! add the diagonal entry
   DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda,Upz,dbl)
   rlr => rlr%nexts
@@ -1103,10 +1111,221 @@ end do
 
 end subroutine GetDynMatKin_
 
+
+!--------------------------------------------------------------------------
+recursive subroutine GetDynMatDHW_(self, cell, Diff, listroot, rltmpa, rltmpb, DynMat, nn, DM, ga, gb)
+!DEC$ ATTRIBUTES DLLEXPORT :: GetDynMatDHW_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 03/01/20
+  !!
+  !! compute the Bloch wave dynamical matrix for the kinematical case
+  !! [no Bethe perturbations]
+
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+use mod_io
+
+IMPLICIT NONE
+
+class(gvectors_T), INTENT(INOUT) :: self
+type(Cell_T),INTENT(INOUT)       :: cell
+type(Diffraction_T),INTENT(INOUT):: Diff
+type(reflisttype),pointer        :: listroot, rltmpa, rltmpb
+integer(kind=irg),INTENT(IN)     :: nn, ga(3), gb(3)
+real(kind=sgl),INTENT(IN)        :: DM(2,2)
+complex(kind=dbl),INTENT(INOUT)  :: DynMat(nn,nn)
+type(IO_T)                       :: Message
+
+type(gnode)                      :: rlp
+complex(kind=dbl)                :: cone
+real(kind=dbl)                   :: mlambda
+real(kind=sgl)                   :: Upz, DD
+integer(kind=sgl)                :: ir, ll(3), ic
+type(reflisttype),pointer        :: rlr
+real(kind=sgl)                   :: X(2)
+
+ cone = cmplx(0.D0,cPi)
+
+ mLambda = Diff%getWaveLength()
+
+ DD = DM(1,1)*DM(2,2) - DM(1,2)*DM(2,1)
+
+ nullify(rlr)
+
+ !call Diff%setrlpmethod('WK')
+ rlp = Diff%getrlp()
+ listroot => self%reflist
+ rltmpa => listroot%next
+
+ ! ir is the row index
+   do ir=1,nn
+    rltmpb => listroot%next   ! point to the front of the list
+ ! ic is the column index
+    do ic=1,nn
+     if (ic.ne.ir) then  ! exclude the diagonal
+ ! compute Fourier coefficient of electrostatic lattice potential
+      call Diff%CalcUcg(cell,rltmpa%hkl - rltmpb%hkl)
+      rlp = Diff%getrlp()
+      DynMat(ir,ic) = rlp%qg * cone
+ !cmplx(- cPi * aimag(rlp%qg), cPi * real(rlp%qg),dbl)  ! and initialize the off-diagonal matrix element (including i Pi)
+     end if
+     rltmpb => rltmpb%next  ! move to next column-entry
+    end do
+ ! decompose this point w.r.t ga and gb
+    X(1) = cell%CalcDot(float(rltmpa%hkl),float(ga),'c')
+    X(2) = cell%CalcDot(float(rltmpa%hkl),float(gb),'c')
+    X = matmul(DM,X)/DD
+
+    rltmpa%nab(1:2) = int(X(1:2))
+    rltmpa => rltmpa%next   ! move to next row-entry
+   end do
+
+   call Message%printMessage('Reference Darwin-Howie-Whelan matrix initialized',"(A/)")
+
+
+!call Diff%CalcUcg(cell, (/0,0,0/) )
+
+! rlp = Diff%getrlp()
+! Upz = rlp%Upmod
+!
+! rlr => listroot%next
+! ir = 1
+! do
+!   if (.not.associated(rlr)) EXIT
+!   if (ir.ne.1) then  ! not a diagonal entry
+! ! we only need to fill the first column in the kinematical approximation ...
+!     ll = rlr%hkl
+!     DynMat(ir,1) = Diff%getLUT( ll )
+!   end if
+! ! add the diagonal entry
+!   DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda,Upz,dbl)
+!   rlr => rlr%nexts
+!   ir = ir+1
+! end do
+
+end subroutine GetDynMatDHW_
+
+
+!--------------------------------------------------------------------------
+recursive subroutine GetSgArray_ECCI_(self, cell, sg, klist, numk, isg, DynFN, Diff, listroot, nns)
+!DEC$ ATTRIBUTES DLLEXPORT :: GetSgArray_ECCI_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 03/01/20
+  !!
+  !! compute the Bloch wave dynamical matrix for the kinematical case
+  !! [no Bethe perturbations]
+
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+use mod_io
+
+IMPLICIT NONE
+
+class(gvectors_T), INTENT(INOUT) :: self
+type(Cell_T),INTENT(INOUT)       :: cell
+type(Diffraction_T),INTENT(INOUT):: Diff
+type(reflisttype),pointer        :: listroot, rltmpa
+type(IO_T)                       :: Message
+
+real(kind=sgl),INTENT(INOUT)     :: sg(nns)
+real(kind=dbl),INTENT(IN)        :: DynFN(3)
+integer(kind=irg),INTENT(IN)     :: nns, numk, isg
+real(kind=dbl),INTENT(IN)     :: klist(3,numk)
+integer(kind=irg)                :: ig, gg(3)
+
+  nullify(rltmpa)
+  listroot => self%reflist
+  rltmpa => listroot%next
+  reflectionloopCL: do ig=1,nns
+    gg = float(rltmpa%hkl)
+    sg(ig) = Diff%Calcsg(cell,float(gg),sngl(klist(1:3,isg)),sngl(DynFN))
+! ! and we move to the next reflection in the list
+    rltmpa => rltmpa%next
+  end do reflectionloopCL
+
+end subroutine GetSgArray_ECCI_
+
+!--------------------------------------------------------------------------
+recursive subroutine GetExpval_ECCI_(self, cell, expval, Diff, listroot, nn, DM, ga, gb)
+!DEC$ ATTRIBUTES DLLEXPORT :: GetExpval_ECCI_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 03/01/20
+  !!
+  !! compute the Bloch wave dynamical matrix for the kinematical case
+  !! [no Bethe perturbations]
+
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+use mod_io
+
+IMPLICIT NONE
+
+class(gvectors_T), INTENT(INOUT) :: self
+type(Cell_T),INTENT(INOUT)       :: cell
+type(Diffraction_T),INTENT(INOUT):: Diff
+type(reflisttype),pointer        :: listroot, rltmpa, rltmpb
+type(IO_T)                       :: Message
+
+integer(kind=sgl),INTENT(INOUT)     :: expval(2, nn, nn)
+integer(kind=irg),INTENT(IN)     :: nn, ga(3), gb(3)
+integer(kind=irg)    :: ir, ic
+real(kind=sgl),INTENT(IN)        :: DM(2,2)
+real(kind=sgl)                   :: X(2)
+real(kind=sgl)                   :: DD
+  !nullify(rltmpa)
+  !nullify(rltmpb)
+  DD = DM(1,1)*DM(2,2) - DM(1,2)*DM(2,1)
+
+  expval = 0
+  listroot => self%reflist
+  rltmpa => listroot%next
+
+
+  ! ir is the row index
+    do ir=1,nn
+     rltmpb => listroot%next   ! point to the front of the list
+  ! ic is the column index
+     do ic=1,nn
+      rltmpb => rltmpb%next  ! move to next column-entry
+     end do
+  ! decompose this point w.r.t ga and gb
+     X(1) = cell%CalcDot(float(rltmpa%hkl),float(ga),'c')
+     X(2) = cell%CalcDot(float(rltmpa%hkl),float(gb),'c')
+     X = matmul(DM,X)/DD
+
+     rltmpa%nab(1:2) = int(X(1:2))
+     rltmpa => rltmpa%next   ! move to next row-entry
+    end do
+  nullify(rltmpa)
+  rltmpa => listroot%next
+
+  ! ir is the row index
+    do ir=1,nn
+      rltmpb => listroot%next   ! point to the front of the list
+  ! ic is the column index
+       do ic=1,nn
+         if (ic.ne.ir) then  ! exclude the diagonal
+           expval(1,ir,ic) = rltmpa%nab(1)-rltmpb%nab(1)
+           expval(2,ir,ic) = rltmpa%nab(2)-rltmpb%nab(2)
+         end if
+         rltmpb => rltmpb%next  ! move to next column-entry
+      end do
+      rltmpa => rltmpa%next   ! move to next row-entry
+    end do
+end subroutine GetExpval_ECCI_
+
+
 !--------------------------------------------------------------------------
 recursive subroutine getSghfromLUT_(self,Diff,nns,numset,Sgh)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSghfromLUT_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/12/20
   !!
   !! compute structure factor-like Sgh array entry for EBSD, ECCI and ECP simulations
@@ -1139,15 +1358,16 @@ associate( reflist => self%reflist )
         rltmpb => rltmpb%nexts  ! move to next column-entry
       end do
      rltmpa => rltmpa%nexts  ! move to next row-entry
-   end do  
+   end do
  end associate
 
 end subroutine getSghfromLUT_
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcLgh_(self,DMat,Lgh,thick,kn,nn,gzero,depthstep,lambdaE,izz)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcLgh_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/12/20
   !!
   !! compute the Lgh matrix for EBSD, ECCI, ECP, etc simulations
@@ -1156,7 +1376,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(gvectors_T),INTENT(INOUT)     :: self 
+class(gvectors_T),INTENT(INOUT)     :: self
 integer(kind=irg),INTENT(IN)        :: nn
 complex(kind=dbl),INTENT(IN)        :: DMat(nn,nn)
 complex(kind=dbl),INTENT(OUT)       :: Lgh(nn,nn)
@@ -1178,7 +1398,7 @@ integer(kind=irg)                   :: INFO, LDA, LDVR, LDVL,  JPIV(nn), MILWORK
 complex(kind=dbl)                   :: CGG(nn,nn), W(nn)
 complex(kind=dbl),allocatable       :: MIWORK(:)
 
-integer(kind=irg),parameter         :: LWMAX = 5000 
+integer(kind=irg),parameter         :: LWMAX = 5000
 complex(kind=dbl)                   :: VL(nn,nn),  WORK(LWMAX)
 real(kind=dbl)                      :: RWORK(2*nn)
 character                           :: JOBVL, JOBVR
@@ -1186,10 +1406,10 @@ integer(kind=sgl)                   :: LWORK
 
 ! compute the eigenvalues and eigenvectors
 ! using the LAPACK CGEEV, CGETRF, and CGETRI routines
-! 
+!
  Minp = DMat
 
-! set some initial LAPACK variables 
+! set some initial LAPACK variables
  LDA = nn
  LDVL = nn
  LDVR = nn
@@ -1211,7 +1431,7 @@ integer(kind=sgl)                   :: LWORK
   if (INFO.ne.0) call Message%printError('Error in CalcLgh: ','ZGEEV return not zero')
 
  CGinv = CGG
- 
+
  LDA=nn
  call zgetrf(nn,nn,CGinv,LDA,JPIV,INFO)
  MILWORK = -1
@@ -1239,7 +1459,7 @@ integer(kind=sgl)                   :: LWORK
 ! first the Ijk matrix (this is Winkelmann's B^{ij}(t) matrix)
 ! combined with numerical integration over [0, z0] interval,
 ! taking into account depth profiles from Monte Carlo simulations ...
-! the depth profile lambdaE must be added to the absorption 
+! the depth profile lambdaE must be added to the absorption
 ! components of the Bloch wave eigenvalues.
 
 tpi = 2.D0*cPi*depthstep
@@ -1250,34 +1470,34 @@ dzt = depthstep/thick
      qold = cmplx(tpi*(aimag(W(j))+aimag(W(k))),tpi*(real(W(j))-real(W(k))))
      if(real(qold) .lt. 0.0) qold = -qold
      do iz = 1,izz
-       q = q + dble(lambdaE(iz)) * exp( - qold * dble(iz) ) 
+       q = q + dble(lambdaE(iz)) * exp( - qold * dble(iz) )
      end do
      Ijk(j,k) = conjg(CGinv(j,gzero)) * q * CGinv(k,gzero)
   end do
  end do
 Ijk = Ijk * dzt
 
-! then the matrix multiplications to obtain Lgh 
-tmp3 = matmul(conjg(CGG),Ijk) 
+! then the matrix multiplications to obtain Lgh
+tmp3 = matmul(conjg(CGG),Ijk)
 Lgh = matmul(tmp3,transpose(CGG))
 
 end subroutine CalcLgh_
 
 
-! ! this may need to be moved to the kvectors_T class ... 
+! ! this may need to be moved to the kvectors_T class ...
 ! ! this routine is currently not used anywhere !
 
 ! !> @param cell unit cell pointer
 ! !> @param khead start of reflisttype linked list
 ! !> @param reflist reflection linked list
 ! !> @param Dyn dynamical scattering structure
-! !> @param BetheParameter Bethe parameter structure 
+! !> @param BetheParameter Bethe parameter structure
 ! !> @param numk number of wave vectors to consider
 ! !> @param nbeams total number of unique beams
 ! !--------------------------------------------------------------------------
 ! recursive subroutine Prune_ReflectionList_(self, cell, Diff, khead, Dyn, numk, nbeams)
-!   !! author: MDG 
-!   !! version: 1.0 
+!   !! author: MDG
+!   !! version: 1.0
 !   !! date: 02/02/20
 !   !!
 !   !! select from the reflection list those g-vectors that will be counted in an LACBED computation
@@ -1309,7 +1529,7 @@ end subroutine CalcLgh_
 ! type(kvectorlist),pointer               :: ktmp
 ! type(reflisttype),pointer               :: rltmpa, rltmpb
 
-! ! reset the value of DynNbeams in case it was modified in a previous call 
+! ! reset the value of DynNbeams in case it was modified in a previous call
 ! cell%DynNbeams = cell%DynNbeamsLinked
 
 ! nbeams = 0
@@ -1318,11 +1538,11 @@ end subroutine CalcLgh_
 !   rltmpa => cell%reflist%next
 
 ! ! pick the first reflection since that is the transmitted beam (only on the first time)
-!   rltmpa%famnum = 1    
+!   rltmpa%famnum = 1
 !   nbeams = nbeams + 1
 
-! ! loop over all reflections in the linked list    
-! !!!! this will all need to be changed with the new Bethe potential criteria ...  
+! ! loop over all reflections in the linked list
+! !!!! this will all need to be changed with the new Bethe potential criteria ...
 !   rltmpa => rltmpa%next
 !   reflectionloop: do ig=2,cell%DynNbeamsLinked
 !     lUg = abs(rltmpa%Ucg) * cell%mLambda
@@ -1342,23 +1562,23 @@ end subroutine CalcLgh_
 ! !       sgp = abs(CalcsgHOLZ(float(rltmpa%hkl),sngl(ktmp%kt),sngl(cell%mLambda)))
 ! !       write (*,*) rltmpa%hkl,CalcsgHOLZ(float(rltmpa%hkl),sngl(ktmp%kt), &
 ! !                       sngl(cell%mLambda)),Calcsg(float(rltmpa%hkl),sngl(ktmp%k),DynFN)
-!         sgp = abs(Calcsg(cell,float(rltmpa%hkl),sngl(ktmp%k),Dyn%FN)) 
+!         sgp = abs(Calcsg(cell,float(rltmpa%hkl),sngl(ktmp%k),Dyn%FN))
 ! ! we have to deal separately with double diffraction reflections, since
-! ! they have a zero potential coefficient !        
+! ! they have a zero potential coefficient !
 !         if ( cell%dbdiff(rltmpa%hkl(1),rltmpa%hkl(2),rltmpa%hkl(3)) ) then  ! it is a double diffraction reflection
-!           if (sgp.le.BetheParameter%sgcutoff) then         
+!           if (sgp.le.BetheParameter%sgcutoff) then
 !             nbeams = nbeams + 1
-!             rltmpa%famnum = 1    
+!             rltmpa%famnum = 1
 !             EXIT kvectorloop    ! this beam did contribute, so we no longer need to consider it
 !           end if
 !         else   ! it is not a double diffraction reflection
 !           if (sgp.le.cut1) then  ! count this beam, whether it is weak or strong
 !             nbeams = nbeams + 1
-!             rltmpa%famnum = 1    
+!             rltmpa%famnum = 1
 !             EXIT kvectorloop    ! this beam did contribute, so we no longer need to consider it
 !           end if
 !         end if
- 
+
 ! ! go to the next incident beam direction
 !        if (ik.ne.numk) ktmp => ktmp%next
 !      end do kvectorloop  ! ik loop
@@ -1370,7 +1590,7 @@ end subroutine CalcLgh_
 !   call Message(' Renumbering reflections', frm = "(A)")
 
 ! ! change the following with the new next2 pointer in the reflist type !!!
-  
+
 ! ! ok, now that we have the list, we'll go through it again to set sequential numbers instead of 1's
 ! ! at the same time, we'll deallocate those entries that are no longer needed.
 !   rltmpa => reflist%next
@@ -1396,7 +1616,7 @@ end subroutine CalcLgh_
 !   cell%DynNbeams = nbeams
 
 ! ! go through the entire list once again to correct the famhkl
-! ! entries, which may be incorrect now; famhkl is supposed to be one of the 
+! ! entries, which may be incorrect now; famhkl is supposed to be one of the
 ! ! reflections on the current list, but that might not be the case since
 ! ! famhkl was first initialized when there were additional reflections on
 ! ! the list... so we set famhkl to be the same as the first hkl in each family.
@@ -1421,7 +1641,7 @@ end subroutine CalcLgh_
 
 ! end subroutine Prune_ReflectionList
 
-! ! this is an old and currently unused routine ... 
+! ! this is an old and currently unused routine ...
 ! !--------------------------------------------------------------------------
 ! !
 ! ! SUBROUTINE: Compute_DynMat
@@ -1431,8 +1651,8 @@ end subroutine CalcLgh_
 ! !> @brief compute the entire dynamical matrix, including HOLZ and Bethe potentials
 ! !
 ! !> @details This is a complicated routine because it forms the core of the dynamical
-! !> scattering simulations.  The routine must be capable of setting up the dynamical 
-! !> matrix for systematic row and zone axis, with or without HOLZ reflections, and 
+! !> scattering simulations.  The routine must be capable of setting up the dynamical
+! !> matrix for systematic row and zone axis, with or without HOLZ reflections, and
 ! !> with Bethe potentials for the Bloch wave case.  The routine must also be able to
 ! !> decide which reflections are weak, and which are strong (again for the Bloch wave
 ! !> case, but potentially also for other cases? Further research needed...).
@@ -1440,7 +1660,7 @@ end subroutine CalcLgh_
 ! !> @param cell unit cell pointer
 ! !> @param reflist reflection list pointer
 ! !> @param Dyn dynamical scattering structure
-! !> @param BetheParameter Bethe parameter structure 
+! !> @param BetheParameter Bethe parameter structure
 ! !> @param calcmode string that describes the particular matrix mode
 ! !> @param kk incident wave vector
 ! !> @param kt tangential component of incident wave vector (encodes the Laue Center)
@@ -1454,11 +1674,11 @@ end subroutine CalcLgh_
 ! !--------------------------------------------------------------------------
 ! recursive subroutine Compute_DynMat(cell,reflist,Dyn,BetheParameter,calcmode,kk,kt,IgnoreFoilNormal,IncludeSecondOrder)
 ! !DEC$ ATTRIBUTES DLLEXPORT :: Compute_DynMat
-!   !! author: MDG 
-!   !! version: 1.0 
+!   !! author: MDG
+!   !! version: 1.0
 !   !! date: 02/02/20
 !   !!
-!   !! 
+!   !!
 
 ! use error
 ! use constants
@@ -1482,11 +1702,11 @@ end subroutine CalcLgh_
 ! complex(kind=dbl)                       :: czero,pre, weaksum, ughp, uhph
 ! integer(kind=irg)                       :: istat,ir,ic,nn, iweak, istrong, iw, ig, ll(3), gh(3), nnn, nweak, io_int(1)
 ! real(kind=sgl)                          :: glen,exer,gg(3), kpg(3), gplen, sgp, lUg, cut1, cut2, io_real(3)
-! real(kind=dbl)                          :: lsfour, weaksgsum 
+! real(kind=dbl)                          :: lsfour, weaksgsum
 ! logical                                 :: AddSecondOrder
 ! type(gnode)                           :: rlp
 ! type(reflisttype),pointer               :: rltmpa, rltmpb
- 
+
 ! AddSecondOrder = .FALSE.
 ! if (present(IncludeSecondOrder)) AddSecondOrder = .TRUE.
 
@@ -1520,7 +1740,7 @@ end subroutine CalcLgh_
 ! ! ic is the column index
 !            do ic=1,cell%DynNbeams
 !             if (ic.ne.ir) then  ! exclude the diagonal
-! ! compute Fourier coefficient of electrostatic lattice potential 
+! ! compute Fourier coefficient of electrostatic lattice potential
 !              gh = rltmpa%hkl - rltmpb%hkl
 !              if (calcmode.eq.'D-H-W') then
 !               call CalcUcg(cell, rlp,gh,applyqgshift=.TRUE.)
@@ -1534,7 +1754,7 @@ end subroutine CalcLgh_
 !            rltmpa => rltmpa%next   ! move to next row-entry
 !           end do
 !          end if
-         
+
 ! ! or the diagonal part ?
 !          if ((calcmode.eq.'DIAGH').or.(calcmode.eq.'DIAGB')) then
 !           rltmpa => reflist%next   ! point to the front of the list
@@ -1566,13 +1786,13 @@ end subroutine CalcLgh_
 !         if (BetheParameter%cutoff.eq.0.0) call Set_Bethe_Parameters(BetheParameter)
 
 
-! ! reset the value of DynNbeams in case it was modified in a previous call 
+! ! reset the value of DynNbeams in case it was modified in a previous call
 !         cell%DynNbeams = cell%DynNbeamsLinked
-        
+
 ! ! precompute lambda^2/4
 !         lsfour = cell%mLambda**2*0.25D0
-  
-! ! first, for the input beam direction, determine the excitation errors of 
+
+! ! first, for the input beam direction, determine the excitation errors of
 ! ! all the reflections in the master list, and count the ones that are
 ! ! needed for the dynamical matrix (weak as well as strong)
 !         if (.not.allocated(BetheParameter%weaklist)) allocate(BetheParameter%weaklist(cell%DynNbeams))
@@ -1595,16 +1815,16 @@ end subroutine CalcLgh_
 !     BetheParameter%weaklist(nn) = 0
 !     BetheParameter%reflistindex(nn) = 1
 
-!     rltmpa%sg = 0.D0    
+!     rltmpa%sg = 0.D0
 ! ! write (*,*) 'DynNbeamsLinked = ',DynNbeamsLinked
 
-! ! loop over all reflections in the linked list    
+! ! loop over all reflections in the linked list
 !     rltmpa => rltmpa%next
 !     reflectionloop: do ig=2,cell%DynNbeamsLinked
-!       gg = float(rltmpa%hkl)                    ! this is the reciprocal lattice vector 
+!       gg = float(rltmpa%hkl)                    ! this is the reciprocal lattice vector
 
 ! ! deal with the foil normal; if IgnoreFoilNormal is .TRUE., then assume it is parallel to the beam direction
-!      if (IgnoreFoilNormal) then 
+!      if (IgnoreFoilNormal) then
 ! ! we're taking the foil normal to be parallel to the incident beam direction at each point of
 ! ! the standard stereographic triangle, so cos(alpha) = 1 always in eqn. 5.11 of EM
 !         kpg = kk+gg                             ! k0 + g (vectors)
@@ -1613,7 +1833,7 @@ end subroutine CalcLgh_
 !      else
 !         rltmpa%sg = Calcsg(cell,gg,sngl(kk),Dyn%FN)
 ! ! here we need to determine the components of the Laue Center w.r.t. the g1 and g2 vectors
-! ! and then pass those on to the routine; 
+! ! and then pass those on to the routine;
 ! !       rltmpa%sg = CalcsgHOLZ(gg,sngl(kt),sngl(cell%mLambda))
 ! ! write (*,*) gg, Calcsg(gg,sngl(kk),DynFN), CalcsgHOLZ(gg,sngl(kt),sngl(cell%mLambda))
 !      end if
@@ -1626,15 +1846,15 @@ end subroutine CalcLgh_
 ! !  cutoff lambda |Ug| > |sg| > weakcutoff lambda |Ug|  -> weak reflection
 ! !  weakcutoff lambda |Ug| > |sg|  -> strong reflection
 ! !
-!         sgp = abs(rltmpa%sg) 
+!         sgp = abs(rltmpa%sg)
 !         lUg = abs(rltmpa%Ucg) * cell%mLambda
 !         cut1 = BetheParameter%cutoff * lUg
 !         cut2 = BetheParameter%weakcutoff * lUg
 
 ! ! we have to deal separately with double diffraction reflections, since
-! ! they have a zero potential coefficient !        
+! ! they have a zero potential coefficient !
 !         if ( cell%dbdiff(rltmpa%hkl(1),rltmpa%hkl(2),rltmpa%hkl(3)) ) then  ! it is a double diffraction reflection
-!           if (sgp.le.BetheParameter%sgcutoff) then         
+!           if (sgp.le.BetheParameter%sgcutoff) then
 !                 nn = nn+1
 !                 nnn = nnn+1
 !                 BetheParameter%stronglist(ig) = 1
@@ -1643,7 +1863,7 @@ end subroutine CalcLgh_
 !         else   ! it is not a double diffraction reflection
 !           if (sgp.le.cut1) then  ! count this beam
 !                 nn = nn+1
-! ! is this a weak or a strong reflection (in terms of Bethe potentials)? 
+! ! is this a weak or a strong reflection (in terms of Bethe potentials)?
 !                 if (sgp.le.cut2) then ! it's a strong beam
 !                         nnn = nnn+1
 !                         BetheParameter%stronglist(ig) = 1
@@ -1659,9 +1879,9 @@ end subroutine CalcLgh_
 !       rltmpa => rltmpa%next
 !     end do reflectionloop
 
-! ! if we don't have any beams in this list (unlikely, but possible if the cutoff and 
+! ! if we don't have any beams in this list (unlikely, but possible if the cutoff and
 ! ! weakcutoff parameters have unreasonable values) then we abort the run
-! ! and we report some numbers to the user 
+! ! and we report some numbers to the user
 !          if (nn.eq.0) then
 !            call Message(' no beams found for the following parameters:', frm = "(A)")
 !            io_real(1:3) = kk(1:3)
@@ -1675,15 +1895,15 @@ end subroutine CalcLgh_
 ! ! next, we define nns to be the number of strong beams, and nnw the number of weak beams.
 !          BetheParameter%nns = sum(BetheParameter%stronglist)
 !          BetheParameter%nnw = sum(BetheParameter%weaklist)
-         
+
 ! ! add nns to the weakreflistindex to offset it; this is used for plotting reflections on CBED patterns
 !         do ig=2,cell%DynNbeamsLinked
 !           if (BetheParameter%weakreflistindex(ig).ne.0) then
 !             BetheParameter%weakreflistindex(ig) = BetheParameter%weakreflistindex(ig) + BetheParameter%nns
 !           end if
 !         end do
-        
-! ! We may want to keep track of the total and average numbers of strong and weak beams  
+
+! ! We may want to keep track of the total and average numbers of strong and weak beams
 !          BetheParameter%totweak = BetheParameter%totweak + BetheParameter%nnw
 !          BetheParameter%totstrong = BetheParameter%totstrong + BetheParameter%nns
 !          if (BetheParameter%nnw.lt.BetheParameter%minweak) BetheParameter%minweak=BetheParameter%nnw
@@ -1717,7 +1937,7 @@ end subroutine CalcLgh_
 !                 BetheParameter%stronghkl(1:3,istrong) = rltmpa%hkl(1:3)
 !                 BetheParameter%strongsg(istrong) = rltmpa%sg
 ! ! make an inverse index list
-!                 BetheParameter%strongID(istrong) = ir           
+!                 BetheParameter%strongID(istrong) = ir
 !              end if
 !            rltmpa => rltmpa%next
 !         end do
@@ -1738,23 +1958,23 @@ end subroutine CalcLgh_
 !        do ir=1,BetheParameter%nns
 ! ! ic is the column index
 !           do ic=1,BetheParameter%nns
-! ! compute the Bethe Fourier coefficient of the electrostatic lattice potential 
+! ! compute the Bethe Fourier coefficient of the electrostatic lattice potential
 !               if (ic.ne.ir) then  ! not a diagonal entry
 !                  ll = BetheParameter%stronghkl(1:3,ir) - BetheParameter%stronghkl(1:3,ic)
-!                  Dyn%DynMat(ir,ic) = cell%LUT(ll(1),ll(2),ll(3)) 
+!                  Dyn%DynMat(ir,ic) = cell%LUT(ll(1),ll(2),ll(3))
 !         ! and subtract from this the total contribution of the weak beams
 !          weaksum = czero
 !          do iw=1,BetheParameter%nnw
 !               ll = BetheParameter%stronghkl(1:3,ir) - BetheParameter%weakhkl(1:3,iw)
-!               ughp = cell%LUT(ll(1),ll(2),ll(3)) 
+!               ughp = cell%LUT(ll(1),ll(2),ll(3))
 !               ll = BetheParameter%weakhkl(1:3,iw) - BetheParameter%stronghkl(1:3,ic)
-!               uhph = cell%LUT(ll(1),ll(2),ll(3)) 
+!               uhph = cell%LUT(ll(1),ll(2),ll(3))
 !               weaksum = weaksum +  ughp * uhph *cmplx(1.D0/BetheParameter%weaksg(iw),0.0,dbl)
 !          end do
 !         ! and correct the dynamical matrix element to become a Bethe potential coefficient
 !          Dyn%DynMat(ir,ic) = Dyn%DynMat(ir,ic) - cmplx(0.5D0*cell%mLambda,0.0D0,dbl)*weaksum
 ! ! do we need to add the second order corrections ?
-!                   if (AddSecondOrder) then 
+!                   if (AddSecondOrder) then
 !                     weaksum = czero
 !                   end if
 !               else  ! it is a diagonal entry, so we need the excitation error and the absorption length
@@ -1762,13 +1982,13 @@ end subroutine CalcLgh_
 !                  weaksgsum = 0.D0
 !                   do iw=1,BetheParameter%nnw
 !                       ll = BetheParameter%stronghkl(1:3,ir) - BetheParameter%weakhkl(1:3,iw)
-!                       ughp = cell%LUT(ll(1),ll(2),ll(3)) 
+!                       ughp = cell%LUT(ll(1),ll(2),ll(3))
 !                       weaksgsum = weaksgsum +  abs(ughp)**2/BetheParameter%weaksg(iw)
 !                  end do
 !                  weaksgsum = weaksgsum * cell%mLambda/2.D0
 !                  Dyn%DynMat(ir,ir) = cmplx(2.D0*BetheParameter%strongsg(ir)/cell%mLambda-weaksgsum,Dyn%Upz,dbl)
 ! ! do we need to add the second order corrections ?
-!                   if (AddSecondOrder) then 
+!                   if (AddSecondOrder) then
 !                     weaksum = czero
 !                   end if
 !                end if

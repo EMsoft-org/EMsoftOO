@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_reflectors
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/24/20
   !!
   !! class definition for the EMreflectors program
@@ -36,7 +36,7 @@ module mod_reflectors
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMreflectors program
 type, public :: reflectorsNameListType
@@ -52,12 +52,12 @@ end type reflectorsNameListType
 
 ! class definition
 type, public :: reflectors_T
-private 
+private
   character(fnlen)              :: nmldeffile = 'EMreflectors.nml'
-  type(reflectorsNameListType)  :: nml 
+  type(reflectorsNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: reflectors_
@@ -98,26 +98,8 @@ private
   generic, public :: set_listfile => set_listfile_
   generic, public :: set_kinematical => set_kinematical_
 end type reflectors_T
- 
-!DEC$ ATTRIBUTES DLLEXPORT :: get_increment
-!DEC$ ATTRIBUTES DLLEXPORT :: set_increment
-!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numlist
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numlist
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: get_outputformat
-!DEC$ ATTRIBUTES DLLEXPORT :: set_outputformat
-!DEC$ ATTRIBUTES DLLEXPORT :: get_masterfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_masterfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_listfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_listfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical
-!DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical
 
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface reflectors_T
   module procedure reflectors_constructor
 end interface reflectors_T
@@ -126,31 +108,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(reflectors_T) function reflectors_constructor( nmlfile ) result(reflectors)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: reflectors_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
-!! constructor for the reflectors_T Class; reads the name list 
- 
+!! constructor for the reflectors_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call reflectors%readNameList(nmlfile)
 
 end function reflectors_constructor
 
 !--------------------------------------------------------------------------
-subroutine reflectors_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine reflectors_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: reflectors_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! destructor for the reflectors_T Class
- 
+
 IMPLICIT NONE
 
-type(reflectors_T), INTENT(INOUT)  :: self 
+type(reflectors_T), INTENT(INOUT)  :: self
 
 call reportDestructor('reflectors_T')
 
@@ -158,25 +142,26 @@ end subroutine reflectors_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
-!! read the namelist from an nml file for the reflectors_T Class 
+!! read the namelist from an nml file for the reflectors_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)   :: self
 character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
+type(EMsoft_T)                       :: EMsoft
+type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 real(kind=sgl)                       :: increment
@@ -199,7 +184,7 @@ nthreads = 1
 outputformat = 'csv'            ! options: 'latex', 'csv', and 'markdown'
 masterfile = 'undefined'        ! master pattern filename (EBSD/ECP/TKD)
 listfile = 'undefined'          ! filename for output (no extension)
-kinematical = .FALSE.           ! if .TRUE., a kinematical master pattern will be generated 
+kinematical = .FALSE.           ! if .TRUE., a kinematical master pattern will be generated
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -234,13 +219,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! pass the namelist for the reflectors_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)   :: self
 type(reflectorsNameListType)         :: nml
@@ -251,13 +237,14 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 function get_increment_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_increment_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! get increment from the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 real(kind=sgl)                         :: out
@@ -268,13 +255,14 @@ end function get_increment_
 
 !--------------------------------------------------------------------------
 subroutine set_increment_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_increment_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! set increment in the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)             :: inp
@@ -285,13 +273,14 @@ end subroutine set_increment_
 
 !--------------------------------------------------------------------------
 function get_dmin_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! get dmin from the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 real(kind=sgl)                         :: out
@@ -302,13 +291,14 @@ end function get_dmin_
 
 !--------------------------------------------------------------------------
 subroutine set_dmin_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! set dmin in the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)             :: inp
@@ -319,13 +309,14 @@ end subroutine set_dmin_
 
 !--------------------------------------------------------------------------
 function get_numlist_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numlist_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! get numlist from the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 integer(kind=irg)                      :: out
@@ -336,13 +327,14 @@ end function get_numlist_
 
 !--------------------------------------------------------------------------
 subroutine set_numlist_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numlist_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! set numlist in the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)          :: inp
@@ -353,13 +345,14 @@ end subroutine set_numlist_
 
 !--------------------------------------------------------------------------
 function get_nthreads_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! get nthreads from the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 integer(kind=irg)                      :: out
@@ -370,13 +363,14 @@ end function get_nthreads_
 
 !--------------------------------------------------------------------------
 subroutine set_nthreads_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! set nthreads in the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)          :: inp
@@ -387,13 +381,14 @@ end subroutine set_nthreads_
 
 !--------------------------------------------------------------------------
 function get_outputformat_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_outputformat_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! get outputformat from the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 character(fnlen)                       :: out
@@ -404,13 +399,14 @@ end function get_outputformat_
 
 !--------------------------------------------------------------------------
 subroutine set_outputformat_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_outputformat_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! set outputformat in the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)           :: inp
@@ -421,13 +417,14 @@ end subroutine set_outputformat_
 
 !--------------------------------------------------------------------------
 function get_masterfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_masterfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! get masterfile from the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 character(fnlen)                       :: out
@@ -438,13 +435,14 @@ end function get_masterfile_
 
 !--------------------------------------------------------------------------
 subroutine set_masterfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_masterfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! set masterfile in the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)           :: inp
@@ -455,13 +453,14 @@ end subroutine set_masterfile_
 
 !--------------------------------------------------------------------------
 function get_listfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_listfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! get listfile from the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 character(fnlen)                       :: out
@@ -472,13 +471,14 @@ end function get_listfile_
 
 !--------------------------------------------------------------------------
 subroutine set_listfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_listfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! set listfile in the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)           :: inp
@@ -489,13 +489,14 @@ end subroutine set_listfile_
 
 !--------------------------------------------------------------------------
 function get_kinematical_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! get kinematical from the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 logical                                :: out
@@ -506,13 +507,14 @@ end function get_kinematical_
 
 !--------------------------------------------------------------------------
 subroutine set_kinematical_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! set kinematical in the reflectors_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                    :: inp
@@ -524,8 +526,9 @@ end subroutine set_kinematical_
 
 !--------------------------------------------------------------------------
 subroutine reflectors_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: reflectors_
+!! author: MDG
+!! version: 1.0
 !! date: 03/24/20
 !!
 !! perform the computations
@@ -553,14 +556,14 @@ use stringconstants
 use omp_lib
 use mod_OMPsupport
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(reflectors_T), INTENT(INOUT)      :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+character(fnlen), INTENT(INOUT)         :: progname
 
 type(cell_T)                            :: cell
-type(HDF_T)                             :: HDF 
+type(HDF_T)                             :: HDF
 type(HDFnames_T)                        :: HDFnames
 type(MCfile_T)                          :: MCFT
 type(MPfile_T)                          :: MPFT
@@ -569,7 +572,7 @@ type(IO_T)                              :: Message
 type(Diffraction_T)                     :: Diff
 type(SpaceGroup_T)                      :: SG
 type(Quaternion_T)                      :: qu
-type(q_T)                               :: qq 
+type(q_T)                               :: qq
 type(a_T)                               :: ax
 
 type(MCOpenCLNameListType)              :: mcnl
@@ -617,19 +620,19 @@ associate( enl=>self%nml )
 
 ! open the HDF interface
 call openFortranHDFInterface()
-HDF = HDF_T() 
+HDF = HDF_T()
 
 ! set the HDF group names for this program
-HDFnames = HDFnames_T() 
+HDFnames = HDFnames_T()
 
-! 1. determine the master pattern file modality 
+! 1. determine the master pattern file modality
 fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%masterfile))
 call MPFT%determineModality(HDF, fname)
 call Message%printMessage(' Input file modality is '//trim(MPFT%getModality()))
 
 ! 2. read the Monte Carlo data file (HDF format)
-call HDFnames%set_ProgramData(SC_MCOpenCL) 
-call HDFnames%set_NMLlist(SC_MCCLNameList) 
+call HDFnames%set_ProgramData(SC_MCOpenCL)
+call HDFnames%set_NMLlist(SC_MCCLNameList)
 call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
 call MCFT%setFileName(fname)
 call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
@@ -651,32 +654,32 @@ Eweights = Eweights/maxval(Eweights)
 deallocate(MCFT%MCDT%accum_e)
 
 ! 3. read EBSD/ECP/TKD/Kossel master pattern file (HDF format)
-call HDFnames%set_Variable(SC_MCOpenCL) 
+call HDFnames%set_Variable(SC_MCOpenCL)
 call MPFT%setFileName(fname)
 if (trim(MPFT%getModality()).eq.'EBSD') then
-  call HDFnames%set_ProgramData(SC_EBSDmaster) 
-  call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-  call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
+  call HDFnames%set_ProgramData(SC_EBSDmaster)
+  call HDFnames%set_NMLlist(SC_EBSDmasterNameList)
+  call HDFnames%set_NMLfilename(SC_EBSDmasterNML)
   call MPFT%readMPfile(HDF, HDFnames, mpnlEBSD, getmLPNH=.TRUE., getmLPSH=.TRUE.)
   dmin = mpnlEBSD%dmin
   else if (trim(MPFT%getModality()).eq.'ECP') then
-    call HDFnames%set_ProgramData(SC_ECPmaster) 
-    call HDFnames%set_NMLlist(SC_ECPmasterNameList) 
-    call HDFnames%set_NMLfilename(SC_ECPmasterNML) 
+    call HDFnames%set_ProgramData(SC_ECPmaster)
+    call HDFnames%set_NMLlist(SC_ECPmasterNameList)
+    call HDFnames%set_NMLfilename(SC_ECPmasterNML)
     call MPFT%readMPfile(HDF, HDFnames, mpnlECP, getmLPNH=.TRUE., getmLPSH=.TRUE.)
     dmin = mpnlECP%dmin
     else if (trim(MPFT%getModality()).eq.'TKD') then
-      call HDFnames%set_ProgramData(SC_TKDmaster) 
-      call HDFnames%set_NMLlist(SC_TKDmasterNameList) 
-      call HDFnames%set_NMLfilename(SC_TKDmasterNML) 
+      call HDFnames%set_ProgramData(SC_TKDmaster)
+      call HDFnames%set_NMLlist(SC_TKDmasterNameList)
+      call HDFnames%set_NMLfilename(SC_TKDmasterNML)
       call MPFT%readMPfile(HDF, HDFnames, mpnlTKD, getmLPNH=.TRUE., getmLPSH=.TRUE.)
       dmin = mpnlTKD%dmin
       else if (trim(MPFT%getModality()).eq.'Kossel') then
-        ! call HDFnames%set_ProgramData(SC_Kosselmaster) 
-        ! call HDFnames%set_NMLlist(SC_KosselmasterNameList) 
-        ! call HDFnames%set_NMLfilename(SC_KosselmasterNML) 
+        ! call HDFnames%set_ProgramData(SC_Kosselmaster)
+        ! call HDFnames%set_NMLlist(SC_KosselmasterNameList)
+        ! call HDFnames%set_NMLfilename(SC_KosselmasterNML)
         ! call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
-      end if 
+      end if
 
 dims4 = shape(MPFT%MPDT%mLPNH)
 nx = (dims4(1)-1)/2
@@ -688,18 +691,18 @@ masterNH = 0.0
 masterSH = 0.0
 do ix=-nx,nx
   do iy=-nx,nx
-    masterNH(ix,iy) = sum(MPFT%MPDT%mLPNH(ix,iy,1:dims4(3))*Eweights(1:dims3(1))) 
-    masterSH(ix,iy) = sum(MPFT%MPDT%mLPSH(ix,iy,1:dims4(3))*Eweights(1:dims3(1))) 
+    masterNH(ix,iy) = sum(MPFT%MPDT%mLPNH(ix,iy,1:dims4(3))*Eweights(1:dims3(1)))
+    masterSH(ix,iy) = sum(MPFT%MPDT%mLPSH(ix,iy,1:dims4(3))*Eweights(1:dims3(1)))
   end do
 end do
 deallocate(MPFT%MPDT%mLPNH, MPFT%MPDT%mLPSH)
 
 ! do we need to generate a kinematical master pattern ?
-if (enl%kinematical.eqv..TRUE.) then 
+if (enl%kinematical.eqv..TRUE.) then
   allocate(kinmasterNH(-nx:nx, -nx:nx), kinmasterSH(-nx:nx,-nx:nx) )
-  kinmasterNH = 0.0 
-  kinmasterSH = 0.0 
-end if 
+  kinmasterNH = 0.0
+  kinmasterSH = 0.0
+end if
 
 ! subtract the average value from the master pattern arrays and divide by the standard deviation
 m = sum(masterNH)/float((2*nx+1)**2)
@@ -713,7 +716,7 @@ sd = sqrt( sum(masterSH**2) / (float((2*nx+1)**2 - 1)))
 masterSH = masterSH / sd
 
 ! ok, now we have the averaged master pattern; next we need to init the crystal
-! structure, get a list of unique reflectors, and for each one integrate the 
+! structure, get a list of unique reflectors, and for each one integrate the
 ! Kikuchi band...
 
 ! get the crystal structure from the *.xtal file
@@ -732,19 +735,19 @@ call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
 ! compute the range of reflections for the lookup table and allocate the table
 ! The master list is easily created by brute force
  imh = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
    if (dhkl.lt.dmin) EXIT
    imh = imh + 1
  end do
  imk = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/0.0_sgl,float(imk),0.0_sgl/), 'r')
    if (dhkl.lt.dmin) EXIT
    imk = imk + 1
  end do
  iml = 1
- do 
+ do
    dhkl = 1.0/cell%CalcLength((/0.0_sgl,0.0_sgl,float(iml)/), 'r')
    if (dhkl.lt.dmin) EXIT
    iml = iml + 1
@@ -784,7 +787,7 @@ call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
      rlp = Diff%getrlp()
 
 ! but ignore the reciprocal lattice point if Vgg is small
-     if (abs(rlp%Ucg).ge.thr) then 
+     if (abs(rlp%Ucg).ge.thr) then
 
 ! copy family in array and label all its members and multiples in z-array
       call SG%CalcFamily(ind,num,space,itmp)
@@ -829,10 +832,10 @@ call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
  do k=1,icnt
   g(1:3)=float(family(k,1,1:3))
   gg(k)=cell%CalcLength(g,'r')
-  gcrys(1:3,k) = g(1:3) 
+  gcrys(1:3,k) = g(1:3)
   call cell%TransSpace(g,gc,'r','c')
   call cell%NormVec(gc,'c')
-  gcart(1:3,k) = gc(1:3) 
+  gcart(1:3,k) = gc(1:3)
   th(k)=asin(0.5*mLambda*gg(k))
  end do
 
@@ -858,7 +861,7 @@ do k=2,icnt-1
 ! scan through the multiples
   do j=2,mhkl
     g2 = j * g1
-    do i=k+1,icnt 
+    do i=k+1,icnt
       if (sum(abs(g2-int(gcrys(:,idx(i))))).eq.0) then
         if (VggX(idx(i)).gt.valmax) then
           keep(valpos) = .FALSE.
@@ -869,7 +872,7 @@ do k=2,icnt-1
           keep(idx(i)) = .FALSE.
         end if
       end if
-    end do 
+    end do
   end do
  end if
 end do
@@ -882,8 +885,8 @@ end do
 !=======================================
 !=======================================
 !=======================================
-! and here is the main part of this program: Kikuchi band integration for 
-! each unique family (one member per family).  
+! and here is the main part of this program: Kikuchi band integration for
+! each unique family (one member per family).
 
 ! allocate the output arrays (KikuchiBandIntegral = KBI)
 allocate(KBI(icnt),Vg(icnt),VgX(icnt))
@@ -900,16 +903,16 @@ sp = sin(phi)
 incrad = enl%increment * sngl(cPi)/180.0
 scl = float(nx)
 
-! set the number of OpenMP threads 
+! set the number of OpenMP threads
 call OMP_setNThreads(enl%nthreads)
 io_int(1) = nkeep
 call Message%WriteValue(' Total number of integrations to be carried out ', io_int, 1)
 
-if (enl%kinematical.eqv..TRUE.) then 
+if (enl%kinematical.eqv..TRUE.) then
   call Message%printMessage(' Computation of symmetrized kinematical pattern will slow things down a bit ... ')
-end if 
+end if
 
-! use OpenMP to run on multiple cores ... 
+! use OpenMP to run on multiple cores ...
 !$OMP PARALLEL DEFAULT(PRIVATE) &
 !$OMP& SHARED(k, nx, cp, sp, icnt, keep, th, incrad, numphi, gcart, cell, scl, masterNH, masterSH) &
 !$OMP& SHARED(Vg, VgX, Vgg, VggX, KBI, nkeep, kinmasterNH, kinmasterSH)
@@ -943,7 +946,7 @@ do k=1,icnt-1   ! ignore the last point
       do j=1,numtheta
         dc(1,ii) = ca(j) * cp(i)
         dc(2,ii) = ca(j) * sp(i)
-        dc(3,ii) = sa(j) 
+        dc(3,ii) = sa(j)
         cosnorm(ii) = ca(j) / ( 4.0 * sngl(cPi) * sin(th(k)) )
         ii = ii+1
       end do
@@ -951,7 +954,7 @@ do k=1,icnt-1   ! ignore the last point
 
 
 ! then determine the rotation quaternion to bring the z axis onto the g direction (cartesian)
-    v = gcart(1:3,k) 
+    v = gcart(1:3,k)
     x = cell%CalcDot(gz,v,'c')
     if (x.ne.1.0) then   ! the cross product exists
       call cell%CalcCross(v,gz,gax,'c','c',0) ! gax is the rotation axis
@@ -989,16 +992,16 @@ do k=1,icnt-1   ! ignore the last point
       end if
       Vg(k) = Vgg(k)
       VgX(k) = VggX(k)
-      if (enl%kinematical.eqv..TRUE.) then ! add the kinematical intensity and symmetrize it 
+      if (enl%kinematical.eqv..TRUE.) then ! add the kinematical intensity and symmetrize it
         call Lambert%Apply3DPGSymmetry(cell,SG,nix,niy,1,nx,iequiv,nequiv)
         do ix=1,nequiv
-          if (iequiv(3,ix).eq.-1) then 
+          if (iequiv(3,ix).eq.-1) then
             kinSH(iequiv(1,ix),iequiv(2,ix)) = kinSH(iequiv(1,ix),iequiv(2,ix)) + Vg(k)
           else
             kinNH(iequiv(1,ix),iequiv(2,ix)) = kinNH(iequiv(1,ix),iequiv(2,ix)) + Vg(k)
-          end if 
+          end if
         end do
-      end if 
+      end if
     end do
     deallocate(theta,ca,sa,cosnorm,dc)
  else
@@ -1008,19 +1011,19 @@ do k=1,icnt-1   ! ignore the last point
  if (mod(k,50).eq.0) then
   if (mod(k,500).eq.0) then
      write (*,"('|')",advance="no")
-   else 
+   else
      write (*,"('.')",advance="no")
    end if
  end if
 end do
 !$OMP END DO
 
-if (enl%kinematical.eqv..TRUE.) then 
+if (enl%kinematical.eqv..TRUE.) then
 !$OMP CRITICAL
   kinmasterNH = kinmasterNH + kinNH
   kinmasterSH = kinmasterSH + kinSH
 !$OMP END CRITICAL
-end if 
+end if
 
 !$OMP END PARALLEL
 
@@ -1048,7 +1051,7 @@ end do
 
 listfile = EMsoft%generateFilePath('EMdatapathname',trim(enl%listfile))
 
-if ((trim(enl%outputformat).eq.'latex').or.(trim(enl%outputformat).eq.'all')) then 
+if ((trim(enl%outputformat).eq.'latex').or.(trim(enl%outputformat).eq.'all')) then
   outputfile = trim(listfile)//'.tex'
   open(unit=80,file=trim(outputfile),status='unknown',form='formatted')
 
@@ -1085,11 +1088,11 @@ if ((trim(enl%outputformat).eq.'latex').or.(trim(enl%outputformat).eq.'all')) th
 end if
 
 
-if ((trim(enl%outputformat).eq.'csv').or.(trim(enl%outputformat).eq.'all')) then 
+if ((trim(enl%outputformat).eq.'csv').or.(trim(enl%outputformat).eq.'all')) then
   outputfile = trim(listfile)//'.csv'
   open(unit=80,file=trim(outputfile),status='unknown',form='formatted')
 
-  write (80,"(A)") '#,h,k,l,KBI,Ikin+abs,IX' 
+  write (80,"(A)") '#,h,k,l,KBI,Ikin+abs,IX'
 
   do i=1,enl%numlist
     k = idx(i)
@@ -1101,14 +1104,14 @@ if ((trim(enl%outputformat).eq.'csv').or.(trim(enl%outputformat).eq.'all')) then
   call Message%printMessage('Data stored in .csv file '//trim(outputfile))
 end if
 
-if ((trim(enl%outputformat).eq.'markdown').or.(trim(enl%outputformat).eq.'all')) then 
+if ((trim(enl%outputformat).eq.'markdown').or.(trim(enl%outputformat).eq.'all')) then
   outputfile = trim(listfile)//'.md'
   open(unit=80,file=trim(outputfile),status='unknown',form='formatted')
 
-  write (80,"(A)") '##EBSD Dynamical Reflector Ranking for '//trim(mcnl%xtalname) 
+  write (80,"(A)") '##EBSD Dynamical Reflector Ranking for '//trim(mcnl%xtalname)
   write (80,"(A)") ' '
-  write (80,"(A)") '|\# | (hkl) | beta_hkl | Ikin+abs |    IX   |' 
-  write (80,"(A)") '|---|-------|----------|----------|---------|' 
+  write (80,"(A)") '|\# | (hkl) | beta_hkl | Ikin+abs |    IX   |'
+  write (80,"(A)") '|---|-------|----------|----------|---------|'
 
   do i=1,enl%numlist
     k = idx(i)
@@ -1125,7 +1128,7 @@ if ((trim(enl%outputformat).eq.'markdown').or.(trim(enl%outputformat).eq.'all'))
 end if
 
 ! do we need to store the kinematical patterns in the MP file ?
-if (enl%kinematical.eqv..TRUE.) then 
+if (enl%kinematical.eqv..TRUE.) then
 
   infile = EMsoft%generateFilePath('EMdatapathname',trim(enl%masterfile))
 
@@ -1143,12 +1146,12 @@ if (enl%kinematical.eqv..TRUE.) then
   hdferr = HDF%writeDatasetFloatArray(dataset, kinmasterSH, 2*nx+1, 2*nx+1)
 
   call HDF%pop(.TRUE.)
-end if 
+end if
 
 ! close the HDF interface
 call closeFortranHDFInterface()
 
-end associate 
+end associate
 
 end subroutine reflectors_
 

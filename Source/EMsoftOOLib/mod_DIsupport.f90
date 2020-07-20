@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_DIsupport
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/31/20
   !!
   !! EMDIsupport contains a series of routines that are used by the dictionary indexing programs
@@ -36,27 +36,22 @@ module mod_DIsupport
 
 use mod_kinds
 use mod_global
-use mod_HDFsupport 
+use mod_HDFsupport
 use HDF5
 use stringconstants
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 public :: DIgetAverageOrientations, getOrientationSimilarityMap, getIndexingSuccessMap, &
           getKAMMap, getEMsoftPCcoordinates
 
-!DEC$ ATTRIBUTES DLLEXPORT :: DIgetAverageOrientations
-!DEC$ ATTRIBUTES DLLEXPORT :: getOrientationSimilarityMap
-!DEC$ ATTRIBUTES DLLEXPORT :: getIndexingSuccessMap
-!DEC$ ATTRIBUTES DLLEXPORT :: getKAMMap
-!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftPCcoordinates
-  
 contains
 
 !--------------------------------------------------------------------------
 recursive subroutine DIgetAverageOrientations(ipar, Eulers, tmi, dplist, avEuler, disorient)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DIgetAverageOrientations
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! Use the top near-matches list to compute the averaged orientations
@@ -104,14 +99,14 @@ nmuse = ipar(6)
 store = .FALSE.
 if (PRESENT(disorient)) store = .TRUE.
 
-! get the symmetry operator quaternions for the point group 
+! get the symmetry operator quaternions for the point group
 call dummy%QSym_Init(pgnum, Pm)
 Pmdims = Pm%getQnumber()
 
 !===================================
 ! ok, so now we have all the necessary data
-! next, we convert all the dictionary Euler angles into axis-angle triplets 
-! but with half the angle so that they become the logarithm of the corresponding 
+! next, we convert all the dictionary Euler angles into axis-angle triplets
+! but with half the angle so that they become the logarithm of the corresponding
 ! quaternions (we omit the scalar part which is always zero)
 allocate(logq(3,FZcnt))
 do i=1,FZcnt
@@ -151,14 +146,14 @@ do i=1,Nexp
 ! add p with the appropriate weight factor to accum
     accum(1:3) = accum(1:3) + p(1:3) * p(4) * 0.5 * w(j)
   end do
-  
+
 ! accum is now the logarithm of the desired orientation quaternion, so we need to convert
 ! this back to an Euler angle triplet
   theta = sqrt(sum(accum**2))
   theta = mod(theta, 2.0*sngl(cPi))
   if (theta.ne.0.0) then
     vec = accum/theta
-  else 
+  else
     vec = (/ 0.0, 0.0, 1.0 /)
   end if
   p(1:3) = vec(1:3)
@@ -175,8 +170,9 @@ end subroutine DIgetAverageOrientations
 
 !--------------------------------------------------------------------------
 recursive subroutine getOrientationSimilarityMap(idims, tmi, nm, ipf_wd, ipf_ht, osm)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getOrientationSimilarityMap
+!! author: MDG
+!! version: 1.0
 !! date: 04/01/20
 !!
 !! compute the OSM (Orientation Similarity Map) given a set of near matches
@@ -220,7 +216,7 @@ pstore = 0
 cp = 0
 lp = 0
 
-! we'll do this computation on the 1D array, in the same way 
+! we'll do this computation on the 1D array, in the same way
 ! as the ADP (Average Dot Product) map in the EBSDDI.f90 program
 do iii = 1,totnumexpt
     ii = mod(iii,ipf_wd)
@@ -251,7 +247,7 @@ end do
 ! divide by 4
 localosm = localosm*0.25
 
-! correct the straight segments 
+! correct the straight segments
 localosm(2:ipf_wd-1) = localosm(2:ipf_wd-1) * 4.0/3.0
 localosm(totnumexpt-ipf_wd+2:totnumexpt-1) = localosm(totnumexpt-ipf_wd+2:totnumexpt-1) * 4.0/3.0
 do jj=1,ipf_ht-2
@@ -267,7 +263,7 @@ localosm(ipf_wd) = localosm(ipf_wd) * 2.0
 localosm(totnumexpt) = localosm(totnumexpt) * 2.0
 localosm(totnumexpt-ipf_wd+1) = localosm(totnumexpt-ipf_wd+1) * 4.0/3.0
 
-! and we deallocate the auxiliary variables 
+! and we deallocate the auxiliary variables
 deallocate(lstore,pstore,lp,cp)
 
 do ii=1,ipf_wd
@@ -280,15 +276,16 @@ end subroutine getOrientationSimilarityMap
 
 !--------------------------------------------------------------------------
 recursive subroutine getIndexingSuccessMap(ipar, tmi, ea, nism, nnk, nt, ism)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getIndexingSuccessMap
+!! author: MDG
+!! version: 1.0
 !! date: 04/01/20
 !!
 !! compute the ISM (Indexing Success Map) given a set of near matches
 
 use omp_lib
 use mod_io
-use mod_quaternions 
+use mod_quaternions
 use mod_rotations
 use mod_so3
 use mod_OMPsupport
@@ -299,16 +296,16 @@ integer(kind=irg),INTENT(IN)                      :: ipar(10)
 integer(kind=irg),INTENT(IN)                      :: tmi(ipar(1),ipar(2))
 real(kind=sgl),INTENT(INOUT)                      :: ea(3,ipar(4))
 !f2py intent(in,out) ::  ea
-integer(kind=irg),INTENT(IN)                      :: nism 
+integer(kind=irg),INTENT(IN)                      :: nism
 integer(kind=irg),INTENT(IN)                      :: nnk
 integer(kind=irg),INTENT(IN)                      :: nt
 real(kind=sgl),INTENT(OUT)                        :: ism(ipar(7)*ipar(8))
-       
+
 type(IO_T)                                        :: Message
 type(a_T)                                         :: disax
 type(e_T)                                         :: ea1, ea2
 type(QuaternionArray_T)                           :: Pm, dummy
-type(so3_T)                                       :: SO 
+type(so3_T)                                       :: SO
 
 integer(kind=irg)                                 :: io_int(2), lnism, i, j
 real(kind=dbl),allocatable                        :: angles(:)
@@ -327,13 +324,13 @@ else
   lnism = nism
 end if
 
-! set up the correct symmetry variables 
+! set up the correct symmetry variables
 call dummy%QSym_Init(ipar(6), Pm)
 
 ! next we go through the entire list of points in tmi and compute the misorientation angle
 ! for the best match with respect to the next nism matches
 
-! this should be done in parallel ... 
+! this should be done in parallel ...
 call OMP_setNThreads(nt)
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,angles,angle)
 allocate(angles(lnism))
@@ -360,8 +357,9 @@ end subroutine getIndexingSuccessMap
 
 !--------------------------------------------------------------------------
 recursive subroutine getKAMMap(numeu, eulers, ipf_wd, ipf_ht, pgnum, kam)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getKAMMap
+!! author: MDG
+!! version: 1.0
 !! date: 04/01/20
 !!
 !! compute the KAM (Kernel Average Misorientation Map) given a set of orientations
@@ -383,12 +381,12 @@ real(kind=sgl),INTENT(OUT)        :: kam(ipf_wd,ipf_ht)
 type(a_T)                         :: disax
 type(e_T)                         :: ea1, ea2
 type(QuaternionArray_T)           :: Pm, dummy
-type(so3_T)                       :: SO 
+type(so3_T)                       :: SO
 
 real(kind=dbl),allocatable        :: localkam(:)
 real(kind=dbl),allocatable        :: lstore(:,:), pstore(:,:)
 real(kind=dbl)                    :: cp(3), lp(3)
-integer(kind=irg)                 :: ii, jj, iii 
+integer(kind=irg)                 :: ii, jj, iii
 real(kind=dbl)                    :: dp, a(4)
 
 kam = 0.0
@@ -401,10 +399,10 @@ pstore = 0
 cp = 0
 lp = 0
 
-! set up the correct symmetry variables 
+! set up the correct symmetry variables
 call dummy%QSym_Init(pgnum, Pm)
 
-! we'll do this computation on the 1D array, in the same way 
+! we'll do this computation on the 1D array, in the same way
 ! as the ADP (Average Dot Product) routine.
 do iii = 1,numeu
     ii = mod(iii,ipf_wd)
@@ -441,7 +439,7 @@ end do
 ! divide by 4
 localkam = localkam*0.25
 
-! correct the straight segments  
+! correct the straight segments
 localkam(2:ipf_wd-1) = localkam(2:ipf_wd-1) * 4.0/3.0
 localkam(numeu-ipf_wd+2:numeu-1) = localkam(numeu-ipf_wd+2:numeu-1) * 4.0/3.0
 do jj=1,ipf_ht-2
@@ -457,7 +455,7 @@ localkam(ipf_wd) = localkam(ipf_wd) * 2.0
 localkam(numeu) = localkam(numeu) * 2.0
 localkam(numeu-ipf_wd+1) = localkam(numeu-ipf_wd+1) * 4.0/3.0
 
-! and we deallocate the auxiliary variables 
+! and we deallocate the auxiliary variables
 deallocate(lstore,pstore)
 
 do ii=1,ipf_wd
@@ -486,18 +484,19 @@ end subroutine getKAMMap
 !> @date 08/20/19 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function getEMsoftPCcoordinates(pctr, vendor, delta, Nx, Ny) result(EMsoftpc)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftPCcoordinates
+!! author: MDG
+!! version: 1.0
 !! date: 04/01/20
 !!
 !! convert pattern center coordinates to EMsoft units for each vendor
 
 use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-real(kind=sgl),INTENT(IN)           :: pctr(3) 
-character(fnlen),INTENT(IN)         :: vendor 
+real(kind=sgl),INTENT(IN)           :: pctr(3)
+character(fnlen),INTENT(IN)         :: vendor
 real(kind=sgl),INTENT(IN)           :: delta
 integer(kind=irg),INTENT(IN)        :: Nx
 integer(kind=irg),INTENT(IN)        :: Ny
@@ -506,24 +505,24 @@ real(kind=sgl)                      :: EMsoftpc(3)
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_real(3)
 
-if (trim(vendor).eq.'EMsoft') then 
-  EMsoftpc = pctr 
-end if 
+if (trim(vendor).eq.'EMsoft') then
+  EMsoftpc = pctr
+end if
 
-if (trim(vendor).eq.'EDAX/TSL') then 
+if (trim(vendor).eq.'EDAX/TSL') then
   EMsoftpc = (/ Nx * (pctr(1) - 0.5), Nx * pctr(2) - Ny*0.5, Nx * delta * pctr(3) /)
-end if 
+end if
 
-if (trim(vendor).eq.'Oxford') then 
+if (trim(vendor).eq.'Oxford') then
   EMsoftpc = (/ Nx * (pctr(1) - 0.5), Ny * (pctr(2) - 0.5), Nx * delta * pctr(3) /)
-end if 
+end if
 
-if (trim(vendor).eq.'Bruker') then 
+if (trim(vendor).eq.'Bruker') then
   EMsoftpc = (/ Nx * (pctr(1) - 0.5), Ny * (0.5 - pctr(2)), Nx * delta * pctr(3) /)
-end if 
+end if
 
-if (trim(vendor).ne.'EMsoft') then 
-  io_real = pctr 
+if (trim(vendor).ne.'EMsoft') then
+  io_real = pctr
   call Message%WriteValue('Input pattern center coordinates in '//trim(vendor)//' convention : ',io_real,3)
   io_real = EMsoftpc
   call Message%WriteValue('  --> pattern center coordinates in EMsoft convention : ',io_real,3)

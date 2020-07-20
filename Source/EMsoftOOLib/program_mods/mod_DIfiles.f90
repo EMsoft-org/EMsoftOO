@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_DIfiles
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 04/03/20
   !!
   !! Class definition for Dictionary Indexing programs.
@@ -43,10 +43,10 @@ use h5lt
 use mod_HDFsupport
 use stringconstants
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! parent namelist for dictionary indexing programs; this is the minimum needed
-! for EBSD indexing, but other modalities may need additional parameters that 
+! for EBSD indexing, but other modalities may need additional parameters that
 ! are defined via inherited classes
 type, public :: DictionaryIndexingNameListType
   integer(kind=irg)  :: ncubochoric
@@ -111,7 +111,7 @@ type, public :: DictionaryIndexingNameListType
   real(kind=sgl)     :: Rin
   real(kind=sgl)     :: Rout
   real(kind=sgl)     :: conesemiangle
-  real(kind=sgl)     :: sampletilt 
+  real(kind=sgl)     :: sampletilt
   integer(kind=irg)  :: npix
 end type DictionaryIndexingNameListType
 
@@ -155,14 +155,14 @@ end type DIdataType
 
 ! class definition
 type, public :: DIfile_T
-private 
+private
   character(fnlen)                              :: DIfile
   type(DIdataType),public                       :: DIDT
   character(fnlen)                              :: Modality = 'unknown'
   type(DictionaryIndexingNameListType), public  :: nml
 
 contains
-private 
+private
 
   procedure, pass(self) :: getfilename_
   procedure, pass(self) :: setfilename_
@@ -189,20 +189,10 @@ private
 
 end type DIfile_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: h5_writeFile
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: getfilename
-!DEC$ ATTRIBUTES DLLEXPORT :: setfilename
-!DEC$ ATTRIBUTES DLLEXPORT :: getModality
-!DEC$ ATTRIBUTES DLLEXPORT :: setModality
-!DEC$ ATTRIBUTES DLLEXPORT :: readDIModality
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
-
 private :: h5_writePhaseGroup, h5_write2DImageFromVector, h5_writeCoordinateSystemGroup, &
            h5_writePatternCenterGroup
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface DIfile_T
   module procedure DIfile_constructor
 end interface DIfile_T
@@ -211,15 +201,16 @@ contains
 
 !--------------------------------------------------------------------------
 type(DIfile_T) function DIfile_constructor( nmlfile, fname ) result(DIfile)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DIfile_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/03/20
 !!
-!! constructor for the DIfile_T Class; reads the name list 
- 
+!! constructor for the DIfile_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 character(fnlen), OPTIONAL   :: fname
 
 if (present(nmlfile)) call DIfile%readNameList(nmlfile)
@@ -228,16 +219,17 @@ if (present(fname)) call DIfile%setfilename(fname)
 end function DIfile_constructor
 
 !--------------------------------------------------------------------------
-subroutine DIfile_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine DIfile_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: DIfile_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/03/20
 !!
 !! destructor for the DIfile_T Class
- 
+
 IMPLICIT NONE
 
-type(DIfile_T), INTENT(INOUT)  :: self 
+type(DIfile_T), INTENT(INOUT)  :: self
 
 call reportDestructor('DIfile_T')
 
@@ -245,13 +237,14 @@ end subroutine DIfile_destructor
 
 !--------------------------------------------------------------------------
 function getfilename_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getfilename_
+!! author: MDG
+!! version: 1.0
 !! date: 04/03/20
 !!
 !! get filename from the DIfile_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIfile_T), INTENT(INOUT)     :: self
 character(fnlen)                   :: out
@@ -262,13 +255,14 @@ end function getfilename_
 
 !--------------------------------------------------------------------------
 subroutine setfilename_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setfilename_
+!! author: MDG
+!! version: 1.0
 !! date: 04/03/20
 !!
 !! set filename in the DIfile_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIfile_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)       :: inp
@@ -279,13 +273,14 @@ end subroutine setfilename_
 
 !--------------------------------------------------------------------------
 function getModality_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getModality_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! get Modality from the DIfile_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIfile_T), INTENT(INOUT)     :: self
 character(fnlen)                   :: out
@@ -296,20 +291,21 @@ end function getModality_
 
 !--------------------------------------------------------------------------
 subroutine setModality_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setModality_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! set Modality in the DIfile_T class
 
-use mod_io 
+use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIfile_T), INTENT(INOUT)     :: self
 character(*), INTENT(IN)           :: inp
 
-type(IO_T)                         :: Message 
+type(IO_T)                         :: Message
 self%Modality = trim(inp)
 
 ! call Message%printMessage('DIFT%setModality: setting modality to '//trim(inp)//trim(self%Modality))
@@ -318,31 +314,32 @@ end subroutine setModality_
 
 !--------------------------------------------------------------------------
 subroutine readDIModality_(self, HDF, DIfile)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDIModality_
+!! author: MDG
+!! version: 1.0
 !! date: 04/21/20
 !!
 !! read the DIModality parameter from the DI file and set it in the DIfile_T class
 
-use HDF5 
-use mod_HDFsupport 
+use HDF5
+use mod_HDFsupport
 use mod_io
-use stringconstants 
-use ISO_C_BINDING 
+use stringconstants
+use ISO_C_BINDING
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIfile_T), INTENT(INOUT)    :: self
 type(HDF_T), INTENT(INOUT)        :: HDF
-character(fnlen), INTENT(IN)      :: DIfile 
+character(fnlen), INTENT(IN)      :: DIfile
 
-type(IO_T)                        :: Message 
+type(IO_T)                        :: Message
 character(fnlen)                  :: dataset
-logical                           :: f_exists, g_exists, stat 
+logical                           :: f_exists, g_exists, stat
 integer(kind=irg)                 :: hdferr, nlines
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
-! we assume that DIfile contains the full path to the master pattern file 
+! we assume that DIfile contains the full path to the master pattern file
 inquire(file=trim(DIfile), exist=f_exists)
 
 if (.not.f_exists) then
@@ -351,14 +348,14 @@ end if
 
 ! is this a proper HDF5 file ?
 call h5fis_hdf5_f(trim(DIfile), stat, hdferr)
-if (stat.eqv..FALSE.) then 
+if (stat.eqv..FALSE.) then
   call Message%printError('readDIModality','This is not an HDF5 file.')
-end if 
+end if
 
-! open the file 
-hdferr =  HDF%openFile(DIfile) 
+! open the file
+hdferr =  HDF%openFile(DIfile)
 
-! check whether or not the DIModality data set exists at the top level 
+! check whether or not the DIModality data set exists at the top level
 dataset = SC_DIModality
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists) then
@@ -368,12 +365,12 @@ if (g_exists) then
   self%nml%DIModality = trim(stringarray(1))
   self%Modality = trim(stringarray(1))
   deallocate(stringarray)
-else 
+else
   call Message%printMessage(' readDIModality: this file does not contain a DIModality data set.',"(/A)")
   call Message%printMessage('  --> program will continue assuming this is an old dot product file',"(A/)")
-end if 
+end if
 
-! close the file 
+! close the file
 call HDF%pop(.TRUE.)
 
 end subroutine readDIModality_
@@ -381,25 +378,26 @@ end subroutine readDIModality_
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
-!! read the namelist from an nml file for the DIfile_T Class 
+!! read the namelist from an nml file for the DIfile_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIfile_T), INTENT(INOUT)      :: self
 character(fnlen),INTENT(IN)         :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)         :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                      :: EMsoft 
-type(IO_T)                          :: Message       
+type(EMsoft_T)                      :: EMsoft
+type(IO_T)                          :: Message
 logical                             :: skipread = .FALSE.
 
 integer(kind=irg)  :: numsx
@@ -463,7 +461,7 @@ real(kind=sgl)     :: workingdistance
 real(kind=sgl)     :: Rin
 real(kind=sgl)     :: Rout
 real(kind=sgl)     :: conesemiangle
-real(kind=sgl)     :: sampletilt 
+real(kind=sgl)     :: sampletilt
 integer(kind=irg)  :: npix
 
 
@@ -530,10 +528,10 @@ dictfile        = 'undefined'
 maskfile        = 'undefined'
 refinementNMLfile = 'undefined'
 indexingmode    = 'dynamic'
-inputtype       = 'Binary'    ! Binary, EMEBSD, TSLHDF, TSLup2, OxfordHDF, OxfordBinary, BrukerHDF 
+inputtype       = 'Binary'    ! Binary, EMEBSD, TSLHDF, TSLup2, OxfordHDF, OxfordBinary, BrukerHDF
 HDFstrings      = ''
 DIModality      = 'EBSD'      ! EBSD, TKD, ECP, ...
-! ECP 
+! ECP
 npix            = 256
 conesemiangle   = 5.0
 workingdistance = 13.0
@@ -555,7 +553,7 @@ if (.not.skipread) then
             call Message%printError('readNameList:',' dictionary file name is undefined in '//nmlfile)
         end if
     end if
-        
+
 ! check for required entries
     if (trim(indexingmode) .eq. 'dynamic') then
         if (trim(masterfile).eq.'undefined') then
@@ -567,11 +565,11 @@ if (.not.skipread) then
         call Message%printError('readNameList:',' experimental file name is undefined in '//nmlfile)
     end if
 
-    if (numsx.eq.0) then 
+    if (numsx.eq.0) then
         call Message%printError('readNameList:',' pattern size numsx is zero in '//nmlfile)
     end if
 
-    if (numsy.eq.0) then 
+    if (numsy.eq.0) then
         call Message%printError('readNameList:',' pattern size numsy is zero in '//nmlfile)
     end if
 
@@ -646,13 +644,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! pass the namelist for the DI_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIfile_T), INTENT(INOUT)        :: self
 type(DictionaryIndexingNameListType)  :: nml
@@ -663,24 +662,25 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames, emnl)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/31/20
 !!
 !! write namelist to HDF file
 
 use mod_HDFsupport
 use mod_HDFnames
-use stringconstants 
+use stringconstants
 use mod_IO
 use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(DIfile_T), INTENT(INOUT)                      :: self 
+class(DIfile_T), INTENT(INOUT)                      :: self
 type(HDF_T), INTENT(INOUT)                          :: HDF
 type(HDFnames_T), INTENT(INOUT)                     :: HDFnames
-class(DictionaryIndexingNameListType), INTENT(INOUT):: emnl 
+class(DictionaryIndexingNameListType), INTENT(INOUT):: emnl
 
 type(IO_T)                                          :: Message
 integer(kind=irg)                                   :: n_int, n_real
@@ -695,11 +695,11 @@ logical                                             :: g_exists, overwrite=.TRUE
 ! create the group for this namelist
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
-! in the future we might decide to use inherited classes for the different 
+! in the future we might decide to use inherited classes for the different
 ! modalities but for now we don't; but we leave appropriate code in place...
 modality = trim(self%getModality())
 
-select case(trim(modality)) 
+select case(trim(modality))
   case('EBSD')
     isEBSD = .TRUE.
     n_int = 20
@@ -715,7 +715,7 @@ select case(trim(modality))
     n_int = 20
     n_real = 19
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
-  case default 
+  case default
     call Message%printError('writeHDFNameList', 'unknown name list type requested')
 end select
 
@@ -870,11 +870,12 @@ end subroutine writeHDFNameList_
 !--------------------------------------------------------------------------
 recursive subroutine readDotProductFile_(self, EMsoft, HDF, HDFnames, dpfile, hdferr, getADP, getAverageOrientations, getCI, &
                                          getEulerAngles, getFit, getIQ, getKAM, getOSM, getPhase, getPhi1, &
-                                         getPhi, getPhi2, getSEMsignal, getTopDotProductList, getTopMatchIndices, & 
+                                         getPhi, getPhi2, getSEMsignal, getTopDotProductList, getTopMatchIndices, &
                                          getValid, getXPosition, getYPosition, getRefinedDotProducts, &
                                          getRefinedEulerAngles, getDictionaryEulerAngles)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDotProductFile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/02/20
 !!
 !! read a Dot Product File from Dictionary Indexing into the correct namelist and data structure
@@ -925,13 +926,13 @@ character(3)                                        :: DIModality
 integer(kind=irg)                                   :: ii, nlines, i
 integer(kind=irg),allocatable                       :: iarray(:)
 real(kind=sgl),allocatable                          :: farray(:)
-integer(HSIZE_T)                                    :: dims(1), dims2(2), dims3(3), offset3(3), sz(1) 
+integer(HSIZE_T)                                    :: dims(1), dims2(2), dims3(3), offset3(3), sz(1)
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 
 
 associate(DIDT=>self%DIDT, ebsdnl=>self%nml)
 
-! we assume that the calling program has opened the HDF interface, 
+! we assume that the calling program has opened the HDF interface,
 ! and that it passes the full path filename to this routine.
 
 ! is this a proper HDF5 file ?
@@ -943,19 +944,19 @@ call h5fis_hdf5_f(trim(dpfile), stat, hdferr)
 
 if (stat.eqv..FALSE.) then ! the file exists, so let's open it an first make sure it is an EBSD dot product file
    call Message%printError('readDotProductFile','This is not a proper HDF5 file')
-end if 
-   
-! open the dot product file 
+end if
+
+! open the dot product file
 readonly = .TRUE.
 hdferr =  HDF%openFile(dpfile, readonly)
 
-! check the modality for this DI file... 
+! check the modality for this DI file...
 ! Starting with EMsoft 6.X, the DIModality string is present at the top level.
 ! If it is not present, then we have an older DI file, which different group names...
 DIModality = 'new'
 dataset = SC_DIModality
   call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists.eqv..FALSE.) then 
+  if (g_exists.eqv..FALSE.) then
     DIModality = 'old'
     Modality = 'EBSD'
     saveHDFnames = HDFnames
@@ -970,7 +971,7 @@ dataset = SC_DIModality
     Modality = trim(stringarray(1))
     deallocate(stringarray)
     call Message%printMessage(' This file has the '//trim(Modality)//' modality.')
-  end if 
+  end if
 
 ! ! make sure this is an EBSD dot product file
 ! hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
@@ -985,25 +986,25 @@ dataset = SC_DIModality
 !       call Message%printError('readDotProductFile','this is not a dot product file')
 !   end if
 
-!   if (g_exists) then 
+!   if (g_exists) then
 !     call Message%printMessage(' --> EBSD dictionary indexing file found')
 !   end if
 
-!   if (h_exists) then 
+!   if (h_exists) then
 !     call Message%printMessage(' --> EBSD spherical indexing file found')
 !   end if
 
 ! call HDF%pop()
 
-! set this value to -1 initially to trigger steps in the calling routine 
+! set this value to -1 initially to trigger steps in the calling routine
 
 DIDT%Nexp = -1
 
 if (g_exists.eqv..TRUE.) then
 !====================================
-! read all NMLparameters group datasets by writing the NMLfiles string array to a 
+! read all NMLparameters group datasets by writing the NMLfiles string array to a
 ! temporary file and calling the regular nml read routine. This should replace a
-! large number of individual read routines, so it simplifies the code ... 
+! large number of individual read routines, so it simplifies the code ...
 !====================================
     hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
     dataset = trim(HDFnames%get_NMLfilename())
@@ -1016,16 +1017,16 @@ if (g_exists.eqv..TRUE.) then
     end do
     close(unit=65,status='keep')
     call self%readNameList(tmpnmlname)
-! delete the tmp file 
+! delete the tmp file
     open(unit=65,file=trim(tmpnmlname),status='unknown',form='formatted')
     close(unit=65,status='delete')
     call HDF%pop()
-end if 
+end if
 !====================================
 !====================================
 
 ! for .ctf files we also will need the sample tilt, which we can get from
-! the 'Scan 1/EBSD/Header/Sample Tilt' data set 
+! the 'Scan 1/EBSD/Header/Sample Tilt' data set
 
 groupname = 'Scan 1'
     hdferr = HDF%openGroup(groupname)
@@ -1083,7 +1084,7 @@ if (present(getADP)) then
    else
         call Message%printMessage('  --> no AvDotProductMap data set found ... continuing ... ')
    end if
-  end if 
+  end if
 end if
 
 if (present(getAverageOrientations)) then
@@ -1095,13 +1096,13 @@ if (present(getAverageOrientations)) then
     else
       call Message%printMessage('  --> no AverageOrientations data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getCI)) then
   if (getCI.eqv..TRUE.) then
 ! if this is a Spherical Indexing file, then we should look for the 'Metric' data set,
-! otherwise the CI data set 
+! otherwise the CI data set
     dataset = SC_CI
     call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
     if (g_exists.eqv..TRUE.) then
@@ -1116,7 +1117,7 @@ if (present(getCI)) then
         call Message%printMessage('  --> no Metric data set found ... continuing ... ')
       end if
     end if
-  end if 
+  end if
 end if
 
 if (present(getEulerAngles)) then
@@ -1128,7 +1129,7 @@ if (present(getEulerAngles)) then
    else
       call Message%printMessage('  --> no EulerAngles data set found ... continuing ... ')
    end if
-  end if 
+  end if
 end if
 
 if (present(getDictionaryEulerAngles)) then
@@ -1140,7 +1141,7 @@ if (present(getDictionaryEulerAngles)) then
     else
       call Message%printMessage('  --> no DictionaryEulerAngles data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getFit)) then
@@ -1152,7 +1153,7 @@ if (present(getFit)) then
     else
       call Message%printMessage('  --> no Fit data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getIQ)) then
@@ -1164,7 +1165,7 @@ if (present(getIQ)) then
     else
       call Message%printMessage('  --> no IQ data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getKAM)) then
@@ -1176,7 +1177,7 @@ if (present(getKAM)) then
     else
       call Message%printMessage('  --> no KAM data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getOSM)) then
@@ -1188,15 +1189,15 @@ if (present(getOSM)) then
     else
       call Message%printMessage('  --> no OSM data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
-if (present(getPhase)) then   ! this is a 1-byte integer, to be implemented 
+if (present(getPhase)) then   ! this is a 1-byte integer, to be implemented
   if (getPhase.eqv..TRUE.) then
 !   dataset = SC_Phase
 !   call HDF%readDatasetIntegerArray(dataset, dims, hdferr, EBSDDIdata%Phase)
     call Message%printMessage('Phase','reading the Phase variable is not yet implemented')
-  end if 
+  end if
 end if
 
 if (present(getPhi)) then
@@ -1208,7 +1209,7 @@ if (present(getPhi)) then
     else
       call Message%printMessage('  --> no Phi data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getPhi1)) then
@@ -1220,7 +1221,7 @@ if (present(getPhi1)) then
     else
       call Message%printMessage('  --> no Phi1 data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getPhi2)) then
@@ -1232,7 +1233,7 @@ if (present(getPhi2)) then
     else
       call Message%printMessage('  --> no Phi2 data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getSEMsignal)) then
@@ -1244,7 +1245,7 @@ if (present(getSEMsignal)) then
     else
       call Message%printMessage('  --> no SEMsignal data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getTopDotProductList)) then
@@ -1256,7 +1257,7 @@ if (present(getTopDotProductList)) then
     else
       call Message%printMessage('  --> no TopDotProductList data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getTopMatchIndices)) then
@@ -1268,7 +1269,7 @@ if (present(getTopMatchIndices)) then
     else
       call Message%printMessage('  --> no TopMatchIndices data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getValid)) then
@@ -1276,7 +1277,7 @@ if (present(getValid)) then
 !   dataset = SC_Valid
 !   call HDF%readDatasetIntegerArray(dataset, dims, hdferr, EBSDDIdata%Valid)
     call Message%printMessage('Valid','reading the Valid variable is not yet implemented')
-  end if 
+  end if
 end if
 
 if (present(getXPosition)) then
@@ -1288,7 +1289,7 @@ if (present(getXPosition)) then
     else
       call Message%printMessage('  --> no XPosition data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getYPosition)) then
@@ -1300,31 +1301,31 @@ if (present(getYPosition)) then
     else
       call Message%printMessage('  --> no YPosition data set found ... continuing ... ')
     end if
-  end if 
+  end if
 end if
 
 if (present(getRefinedDotProducts)) then
   if (getRefinedDotProducts.eqv..TRUE.) then
     dataset = SC_RefinedDotProducts
     call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       call HDF%readDatasetFloatArray(dataset, dims, hdferr, DIDT%RefinedDotProducts)
     else
       call Message%printMessage('readDotProductFile','There is no RefinedDotProducts data set in this file')
     end if
-  end if 
+  end if
 end if
 
 if (present(getRefinedEulerAngles)) then
   if (getRefinedEulerAngles.eqv..TRUE.) then
     dataset = SC_RefinedEulerAngles
     call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       call HDF%readDatasetFloatArray(dataset, dims2, hdferr, DIDT%RefinedEulerAngles)
     else
       call Message%printMessage('readDotProductFile','There is no RefinedEulerAngles data set in this file')
     end if
-  end if 
+  end if
 end if
 
 call HDF%pop()
@@ -1334,15 +1335,15 @@ groupname = SC_Header
 
 dataset = SC_StepX
     call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%StepX)
     else
       call Message%printMessage('readDotProductFile','There is no StepX data set in this file')
     end if
- 
+
 dataset = SC_StepY
     call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%StepY)
     else
       call Message%printMessage('readDotProductFile','There is no StepY data set in this file')
@@ -1350,7 +1351,7 @@ dataset = SC_StepY
 
 ! and close the HDF5 dot product file
 call HDF%pop(.TRUE.)
- 
+
 end associate
 
 if (DIModality.eq.'old') HDFnames = saveHDFnames
@@ -1361,8 +1362,9 @@ end subroutine readDotProductFile_
 !--------------------------------------------------------------------------
 subroutine h5_writeFile_(self, EMsoft, HDF, HDFnames, vendor, mcnl, xtalname, dstr, tstrb, tstre, ipar, resultmain, exptIQ, &
                          indexmain, dicteulerarray, dpmap, progname, nmldeffile, OSMmap)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h5_writeFile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/03/20
 !!
 !! perform the computations
@@ -1373,7 +1375,7 @@ use mod_io
 use mod_MCfiles
 use mod_DIsupport
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIfile_T), INTENT(INOUT)                      :: self
 type(EMsoft_T), INTENT(INOUT)                       :: EMsoft
@@ -1400,7 +1402,7 @@ character(fnlen),INTENT(IN)                         :: progname
 character(fnlen),INTENT(IN)                         :: nmldeffile
 real(kind=sgl),INTENT(OUT)                          :: OSMmap(ipar(7),ipar(8))
 
-type(IO_T)                                          :: Message 
+type(IO_T)                                          :: Message
 
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 integer(kind=irg)                                   :: hdferr, filetype, i, j, ii, jj,indx, istat, ipar2(6), L
@@ -1411,20 +1413,20 @@ real(kind=sgl)                                      :: eulerarray(3,ipar(4)), WD
 real(kind=sgl),allocatable                          :: kam(:,:), ISMap(:)
 
 real(kind=sgl),allocatable                          :: exptCI(:), eangle(:), eangles(:,:), results(:), avEuler(:,:), &
-                                                       lresultmain(:,:), eulers(:,:) 
+                                                       lresultmain(:,:), eulers(:,:)
 integer(kind=1),allocatable                         :: iPhase(:), valid(:)
 integer(kind=irg),allocatable                       :: SEMsignal(:), lindexmain(:,:)
 real(kind=sgl)                                      :: isratio, io_real(1)
 
 associate(ebsdnl=>self%nml)
 
-! copy the dictionary euler angle array 
+! copy the dictionary euler angle array
 eulerarray = dicteulerarray
 
 !=====================================================
 ! write the output in the format of an h5ebsd file
 !!!! THIS PART IS STILL UNDER DEVELOPMENT !!!!
-! we use the TSL h5ebsd file as a template for now; this 
+! we use the TSL h5ebsd file as a template for now; this
 ! can be extended later other vendor formats
 !=====================================================
 
@@ -1477,7 +1479,7 @@ dataset = SC_CIMap
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset CImap', hdferr)
 
 !=====================================================
-! Fit 
+! Fit
 dataset = SC_Fit
   allocate(eangle(ipar(3)),stat=istat)
   eangle = 1.0
@@ -1550,13 +1552,13 @@ dataset = SC_OSM
 dataset = SC_IQ
   hdferr = HDF%writeDatasetFloatArray(dataset, exptIQ, ipar(3))
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset IQ', hdferr)
-  
+
 ! we also insert a visual map of the Image Quality, resampled on a rectangular array
 dataset = SC_IQMap
   call h5_write2DImageFromVector(HDF, dataset, exptIQ, ipar(3), ebsdnl)
 
 !=====================================================
-! generate the indexing success map (ISM) 
+! generate the indexing success map (ISM)
   eulerarray = eulerarray * dtor
   allocate(ISMap(ipar(7)*ipar(8)))
   call getIndexingSuccessMap(ipar, indexmain, eulerarray, ebsdnl%nism, ebsdnl%nnk, ebsdnl%nthreads, ISMap)
@@ -1570,16 +1572,16 @@ dataset = SC_ISMap
   j = 0
   do i=1,ipar(7)*ipar(8)
     if (ISMap(i).le.ebsdnl%isangle) j = j+1
-  end do 
+  end do
   isratio = 100.0 * real(j) / real(ipar(7)*ipar(8))
-  io_real(1) = isratio 
+  io_real(1) = isratio
   call Message%WriteValue(' Indexing Success Rate (%) : ',io_real,1)
   deallocate(ISMap)
 
-dataset = SC_ISR 
+dataset = SC_ISR
   hdferr = HDF%writeDatasetFloat(dataset, isratio)
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset ISR', hdferr)
- 
+
 
 !=====================================================
 ! PRIAS Bottom Strip: to be implemented
@@ -1595,7 +1597,7 @@ dataset = SC_ISR
 
 !=====================================================
 ! Pattern: in principle, this is where the fitted patterns could be stored
-! This will require re-computing them for the best match orientations; we 
+! This will require re-computing them for the best match orientations; we
 ! could leave this as an option for the user, to be implemented.
 !   call Message('h5ebsd_writeFile: writing of ->Pattern<- data not yet implemented.')
 
@@ -1634,7 +1636,7 @@ dataset = SC_EulerAngles
     eangles(1:3,ii) = eulerarray(1:3,indx)
   end do
   eangles = eangles * dtor
-  if (g_exists) then 
+  if (g_exists) then
      hdferr = HDF%writeDatasetFloatArray(dataset, eangles, 3, ipar(3), overwrite)
   else
      hdferr = HDF%writeDatasetFloatArray(dataset, eangles, 3, ipar(3))
@@ -1642,7 +1644,7 @@ dataset = SC_EulerAngles
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset EulerAngles', hdferr)
 
 !=====================================================
-! Euler angles: Phi 
+! Euler angles: Phi
 dataset = SC_Phi
   allocate(eangle(ipar(3)),stat=istat)
   do ii = 1,ipar(3)
@@ -1665,7 +1667,7 @@ dataset = SC_Phi1
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset Phi1', hdferr)
 
 !=====================================================
-! Euler angles: Phi2 
+! Euler angles: Phi2
 dataset = SC_Phi2
   do ii = 1,ipar(3)
     indx = indexmain(1,ii)
@@ -1675,7 +1677,7 @@ dataset = SC_Phi2
   hdferr = HDF%writeDatasetFloatArray(dataset, eangle, ipar(3))
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset Phi2', hdferr)
   deallocate(eangle)
- 
+
 !=====================================================
 ! X Position: list of x positions for sampling points; requires knowledge of step size
 ! from Header
@@ -1684,20 +1686,20 @@ dataset = SC_XPos
   if (sum(ebsdnl%ROI).eq.0) then
     do jj=1,ebsdnl%ipf_ht
       do ii=1,ebsdnl%ipf_wd
-        results(ebsdnl%ipf_wd*(jj-1)+ii) = (ii-1)*ebsdnl%StepX 
+        results(ebsdnl%ipf_wd*(jj-1)+ii) = (ii-1)*ebsdnl%StepX
       end do
     end do
   else
     do jj=1,ebsdnl%ROI(4)
       do ii=1,ebsdnl%ROI(3)
-        results(ebsdnl%ROI(3)*(jj-1)+ii) = (ii-1)*ebsdnl%StepX 
+        results(ebsdnl%ROI(3)*(jj-1)+ii) = (ii-1)*ebsdnl%StepX
       end do
     end do
   end if
   hdferr = HDF%writeDatasetFloatArray(dataset, results, ipar(3))
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset X Position', hdferr)
 
- 
+
 !=====================================================
 ! Y Position: list of y positions for sampling points; requires knowledge of step size
 ! from Header
@@ -1705,28 +1707,28 @@ dataset = SC_YPos
   if (sum(ebsdnl%ROI).eq.0) then
     do jj=1,ebsdnl%ipf_ht
       do ii=1,ebsdnl%ipf_wd
-        results(ebsdnl%ipf_wd*(jj-1)+ii) = (ii-1)*ebsdnl%StepY 
+        results(ebsdnl%ipf_wd*(jj-1)+ii) = (ii-1)*ebsdnl%StepY
       end do
     end do
   else
     do jj=1,ebsdnl%ROI(4)
       do ii=1,ebsdnl%ROI(3)
-        results(ebsdnl%ROI(3)*(jj-1)+ii) = (ii-1)*ebsdnl%StepY 
+        results(ebsdnl%ROI(3)*(jj-1)+ii) = (ii-1)*ebsdnl%StepY
       end do
     end do
   end if
   hdferr = HDF%writeDatasetFloatArray(dataset, results, ipar(3))
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset Y position', hdferr)
   deallocate(results)
- 
+
 !=====================================================
 !=====================================================
 ! this concludes the standard data sets in the Data group
-! here, we have additional data sets based on results from the 
+! here, we have additional data sets based on results from the
 ! dictionary indexing program; these are not part of the standard
 ! TSL h5ebsd file format.
 !=====================================================
-! EBSD average dot product map 
+! EBSD average dot product map
 dataset = SC_AvDotProductMap
   call h5_write2DImageFromVector(HDF, dataset, dpmap, ipar(3), ebsdnl)
 
@@ -1750,7 +1752,7 @@ dataset = SC_DictionaryEulerAngles
   hdferr = HDF%writeDatasetFloatArray(dataset, dicteulerarray, 3, ipar(4))
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset EulerAngles', hdferr)
 
-! number of experimental patterns 
+! number of experimental patterns
 dataset = SC_NumExptPatterns
   hdferr = HDF%writeDatasetInteger(dataset, ipar(3))
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset NumExptPatterns', hdferr)
@@ -1787,13 +1789,13 @@ groupname = SC_Header
 dataset = SC_CameraAzimuthalAngle
   hdferr = HDF%writeDatasetFloat(dataset, 0.0)
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset Camera Azimuthal Angle', hdferr)
- 
+
 !=====================================================
 ! Camera Elevation Angle
 dataset = SC_CameraElevationAngle
   hdferr = HDF%writeDatasetFloat(dataset, ebsdnl%thetac)
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error writing dataset TopMatchIndices', hdferr)
- 
+
 !=====================================================
 ! Coordinate System group
   call h5_writeCoordinateSystemGroup(EMsoft, HDF)
@@ -1857,7 +1859,7 @@ dataset = SC_SampleID
 ! Sample Tilt
 dataset = SC_SampleTilt
   hdferr = HDF%writeDatasetFloat(dataset, sngl(mcnl%sig))
- 
+
 !=====================================================
 ! Scan ID
 dataset = SC_ScanID
@@ -1868,7 +1870,7 @@ dataset = SC_ScanID
 ! Step X
 dataset = SC_StepX
   hdferr = HDF%writeDatasetFloat(dataset, ebsdnl%StepX)
- 
+
 !=====================================================
 ! Step Y
 dataset = SC_StepY
@@ -1896,19 +1898,20 @@ dataset = SC_nRows
 ! once all these have been written, we simply pop all the way to the top and close the file
   call HDF%pop(.TRUE.)
 
-end associate 
+end associate
 
 end subroutine h5_writeFile_
 
 !--------------------------------------------------------------------------
 subroutine h5_writeInfo(self, EMsoft, HDF, HDFnames, filetype, dstr, tstrb, tstre, progname, ebsdnl, nmldeffile)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h5_writeInfo
+!! author: MDG
+!! version: 1.0
 !! date: 04/03/20
 !!
 !! write general information fields to the h5ebsd file, including EMsoft specific fields
 
-use mod_EMsoft 
+use mod_EMsoft
 use mod_HDFnames
 
 IMPLICIT NONE
@@ -1967,11 +1970,11 @@ groupname = SC_NMLfiles
 
 ! leave this group
   call HDF%pop()
-  
+
 ! create a namelist group to write all the namelist files into
 groupname = SC_NMLparameters
   hdferr = HDF%createGroup(groupname)
-  if (filetype.eq.1) then 
+  if (filetype.eq.1) then
     call self%writeHDFNameList(HDF, HDFnames, ebsdnl)
   end if
 
@@ -1982,8 +1985,9 @@ end subroutine h5_writeInfo
 
 !--------------------------------------------------------------------------
 subroutine h5_write2DImageFromVector(HDF, dataset, inpvec, nump, ebsdnl, binary)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h5_write2DImageFromVector
+!! author: MDG
+!! version: 1.0
 !! date: 04/03/20
 !!
 !! write a gray scale image to the HDF5 file starting from a 1D vector
@@ -2025,15 +2029,15 @@ end if
 allocate(image(width,height),stat=istat)
 if (istat.ne.0) call Message%printError('h5_write2DImageFromVector','Could not allocate array for output image')
 
-if (isbinary.eqv..TRUE.) then 
+if (isbinary.eqv..TRUE.) then
   do jj = 1,height
     do ii = 1, width
       if (newvec((jj-1)*width+ii).gt.ebsdnl%isangle) then
         image(ii,jj) = 0
       else
         image(ii,jj) = 255
-      end if 
-    end do 
+      end if
+    end do
   end do
 else
   mi = minval(newvec)
@@ -2043,7 +2047,7 @@ else
   do jj = 1,height
     image(1:width,jj) = int(255.0*newvec((jj-1)*width+1:jj*width)/ma)
   end do
-end if 
+end if
 
 call h5immake_image_8bit_f(HDF%getObjectID(),dataset,width,height,image,hdferr)
 deallocate(image, newvec)
@@ -2052,11 +2056,12 @@ end subroutine h5_write2DImageFromVector
 
 !--------------------------------------------------------------------------
 subroutine h5_writeCoordinateSystemGroup(EMsoft, HDF)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h5_writeCoordinateSystemGroup
+!! author: MDG
+!! version: 1.0
 !! date: 02/17/20
 !!
-!! write information about the sample/detector coordinate frames 
+!! write information about the sample/detector coordinate frames
 
 use mod_EMsoft
 use mod_io
@@ -2159,15 +2164,16 @@ deallocate(schematic,chararr)
 ! and finally the selected type
 dataset = SC_ID
 hdferr = HDF%writeDatasetInteger(dataset, 2)
- 
+
 call HDF%pop()
 
 end subroutine h5_writeCoordinateSystemGroup
 
 !--------------------------------------------------------------------------
 subroutine h5_writePatternCenterGroup(HDF, xpc, ypc, L, delta, scdim)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: h5_writePatternCenterGroup
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! write the pattern center group
@@ -2193,13 +2199,13 @@ hdferr = HDF%createGroup(groupname)
 
 ! we assume that we are writing a TSL file
 
-! in EMsoft, the pattern center is measured in units of pixels from the 
-! center of the scintillator.  For TSL, the pattern center is measured 
-! from the bottom left of the scintillator (when looking towards it from the 
+! in EMsoft, the pattern center is measured in units of pixels from the
+! center of the scintillator.  For TSL, the pattern center is measured
+! from the bottom left of the scintillator (when looking towards it from the
 ! sample) and in units of the width of the scintillator.
 
-xstar = ( float(scdim(1))*0.5 + xpc ) / float(scdim(1)) 
-ystar = ( float(scdim(2))*0.5 + ypc ) / float(scdim(2)) 
+xstar = ( float(scdim(1))*0.5 + xpc ) / float(scdim(1))
+ystar = ( float(scdim(2))*0.5 + ypc ) / float(scdim(2))
 zstar = L / ( delta * float(scdim(1)) )
 
 dataset = SC_xstar
@@ -2218,8 +2224,8 @@ end subroutine h5_writePatternCenterGroup
 !--------------------------------------------------------------------------
 subroutine h5_writePhaseGroup(EMsoft, HDF, groupname, xtalname)
 !DEC$ ATTRIBUTES DLLEXPORT :: h5ebsd_writePhaseGroup
- !! author: MDG 
-  !! version: 1.0 
+ !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! write the phase group, describing the crystal structure
@@ -2235,18 +2241,18 @@ type(EMsoft_T),INTENT(INOUT)                      :: EMsoft
 type(HDF_T),INTENT(INOUT)                         :: HDF
 character(fnlen),intent(IN)                       :: groupname
 character(fnlen),intent(IN)                       :: xtalname
-                
+
 type(HDF_T)                                       :: localHDF
-type(cell_T)                                      :: cell 
+type(cell_T)                                      :: cell
 type(SpaceGroup_T)                                :: SG
-                
+
 character(fnlen)                                  :: dataset, grname, filename
 integer(kind=irg)                                 :: istat, SGnum, hdferr
 real(kind=dbl),allocatable                        :: cellparams(:)
 integer(HSIZE_T)                                  :: dims(1)
 logical                                           :: readonly, stat
-                
-                
+
+
 integer(kind=irg)                                 :: i, pgnum
 character(fnlen, KIND=c_char),allocatable,TARGET  :: stringarray(:)
 
@@ -2283,11 +2289,11 @@ hdferr = HDF%createGroup(groupname)
 
 ! the following data sets need to be created: Formula, Info, Lattice Constant a,
 ! b, c, alpha, beta, gamma, Laue Group, MaterialName, NumberFamilies, Point Group,
-! Symmetry, hkl Families.  These last ones are typically used by the EDAX/TSL 
+! Symmetry, hkl Families.  These last ones are typically used by the EDAX/TSL
 ! software, so we do not necessarily have to fill them in here.
 
 cellparams = cell%getLatParm()
-sgnum = SG%getSpaceGroupNumber() 
+sgnum = SG%getSpaceGroupNumber()
 
 ! lattice parameters [in Angstrom]
 dataset = 'Lattice Constant a'
@@ -2342,8 +2348,8 @@ stringarray(1) = ''
 hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1)
 
 ! hkl Families [this will require a bit of work !!!!!]
-! this item uses the Compound data type; we will need to generate the 
-! families of unique planes, and compute structure factors ... 
+! this item uses the Compound data type; we will need to generate the
+! families of unique planes, and compute structure factors ...
 
 ! in this version of the software [EMsoft 3.1], we leave these datasets empty
 dataset = SC_NumberFamilies

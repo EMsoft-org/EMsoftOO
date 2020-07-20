@@ -2,33 +2,33 @@
 ! Copyright (c) 2014-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_symmetry
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! all symmetry-related constants, derived types and methods
@@ -42,7 +42,7 @@ module mod_symmetry
   !! @date  11/27/01 MDG 2.1 added kind support
   !! @date  03/19/13 MDG 3.0 updated IO and such
   !! @date  01/10/14 MDG 4.0 SG is now part of the unitcell type
-  !! @date  06/05/14 MDG 4.1 made cell an argument instead of global variable 
+  !! @date  06/05/14 MDG 4.1 made cell an argument instead of global variable
   !! @date  09/05/16 MDG 4.2 added Wyckoff Position routines
   !!
   !! this module contains all the routines from the original symmetry.f90 module, as well as
@@ -75,7 +75,7 @@ IMPLICIT NONE
         " P b c n   " ," P b c a   " ," P n m a   " ," C m c m   ", &
         " C m c a   " ," C m m m   " ," C c c m   " ," C m m a   ", &
         " C c c a   " ," F m m m   " ," F d d d   " ," I m m m   ", &
-        " I b a m   " ," I b c a   " ," I m m a   ", &                ! TETRAGONAL SPACE GROUPS  
+        " I b a m   " ," I b c a   " ," I m m a   ", &                ! TETRAGONAL SPACE GROUPS
         " P 4       " ," P 41      " ," P 42      " ," P 43      ", &
         " I 4       " ," I 41      " ," P -4      " ," I -4      ", &
         " P 4/m     " ," P 42/m    " ," P 4/n     " ," P 42/n    ", &
@@ -92,14 +92,14 @@ IMPLICIT NONE
         " P 4/m b m " ," P 4/m n c " ," P 4/n m m " ," P 4/n c c ", &
         " P 42/m m c" ," P 42/m c m" ," P 42/n b c" ," P 42/n n m", &
         " P 42/m b c" ," P 42/m n m" ," P 42/n m c" ," P 42/n c m", &
-        " I 4/m m m " ," I 4/m c m " ," I 41/a m d" ," I 41/a c d", & ! RHOMBOHEDRAL SPACE GROUPS  
+        " I 4/m m m " ," I 4/m c m " ," I 41/a m d" ," I 41/a c d", & ! RHOMBOHEDRAL SPACE GROUPS
         " P 3       " ," P 31      " ," P 32      " ," R 3       ", &
         " P -3      " ," R -3      " ," P 3 1 2   " ," P 3 2 1   ", &
         " P 31 1 2  " ," P 31 2 1  " ," P 32 1 2  " ," P 32 2 1  ", &
         " R 3 2     " ," P 3 m 1   " ," P 3 1 m   " ," P 3 c 1   ", &
         " P 3 1 c   " ," R 3 m     " ," R 3 c     " ," P -3 1 m  ", &
         " P -3 1 c  " ," P -3 m 1  " ," P -3 c 1  " ," R -3 m    ", &
-        " R -3 c    ", &                                              ! HEXAGONAL SPACE GROUPS   
+        " R -3 c    ", &                                              ! HEXAGONAL SPACE GROUPS
         " P 6       " ," P 61      " ," P 65      " ," P 62      ", &
         " P 64      " ," P 63      " ," P -6      " ," P 6/m     ", &
         " P 63/m    " ," P 6 2 2   " ," P 61 2 2  " ," P 65 2 2  ", &
@@ -268,7 +268,7 @@ IMPLICIT NONE
 "16aODDaDODbOOOcOOOdOOOeDDD0             ","07aODDaDODbODDcDDOdOOOeFBFhBBB1ZZZ      ","07aODDaDODbODDcDDOdOOOeFBFhFFF1XXX      ", &
 "15aDDDbOOOcOOOdOOOeOOO0                 ","15aDDDbDODcODDdOOOeFBB0                 ","01dOOO0                                 ", &
 "11dOOO0                                 ","02dOOOfOOO0                             ","02dOOOlOOO0                             ", &
-"02dOOOlDDD0                             ","12dOOOfOOO0                             ","12dOOOfDDD0                             "/) 
+"02dOOOlDDD0                             ","12dOOOfOOO0                             ","12dOOOfDDD0                             "/)
 !DEC$ ATTRIBUTES DLLEXPORT :: SYM_GL
 
 !> SGXsym contains the first space group of each crystal system
@@ -321,7 +321,7 @@ IMPLICIT NONE
                                          221, 221, 221, 221, 221, 221, 221, 221, 221, 221 /)
 !DEC$ ATTRIBUTES DLLEXPORT :: SGsymnum
 
-! space group order 
+! space group order
   integer(kind=irg), public, dimension(230) :: SGorder(230) = (/ &
                                            1,   2,   2,   2,   4,   2,   2,   4,   4,   4, &
                                            4,   8,   4,   4,   8,   4,   4,   4,   4,   8, &
@@ -345,7 +345,7 @@ IMPLICIT NONE
                                           24,  24,  24,  24,  12,  48,  24,  12,  24,  24, &
                                           24,  96,  96,  48,  24,  48,  24,  24,  96,  96, &
                                           48,  24,  24,  48,  24,  96,  48,  24,  96,  48, &
-                                          48,  48,  48,  48, 192, 192, 192, 192,  96,  96 /) 
+                                          48,  48,  48,  48, 192, 192, 192, 192,  96,  96 /)
 !DEC$ ATTRIBUTES DLLEXPORT :: SGorder
 
 ! these parameters implement the diffraction group
@@ -362,7 +362,7 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: PGTWDorder
 
 !> inverse table for 2D point groups; this essentially implements the inverse of Table 4 in BESR paper for the Bright Field symmetry.
-  integer(kind=irg), public, dimension(12,11) :: PGTWDinverse = reshape((/ & 
+  integer(kind=irg), public, dimension(12,11) :: PGTWDinverse = reshape((/ &
                                    1,0,0,0,0,0,0,0,0,0,0,0,  1,2,0,0,0,0,0,0,0,0,0,0, &
                                    1,3,0,4,0,0,0,0,0,0,0,0,  1,3,0,5,0,0,0,0,0,0,0,0, &
                                    1,3,0,4,0,0,0,6,0,0,0,0,  1,0,7,0,0,0,0,0,0,0,0,0, &
@@ -472,7 +472,7 @@ character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  '
 !DEC$ ATTRIBUTES DLLEXPORT :: DFSP
 
 !> 10 projection diffraction groups in BESR order (Table 2, column 8, BESR, with change in row ordering)
-  integer(kind=irg), public, dimension(31) :: PDG = (/ & 
+  integer(kind=irg), public, dimension(31) :: PDG = (/ &
                                               2,2,5,5,5,8,8,8,12,12,12,12,15,15,15,19,19,19,19,26,27,30,30, &
                                               31,27,26,27,31,31,30,31/)
 !DEC$ ATTRIBUTES DLLEXPORT :: PDG
@@ -518,7 +518,7 @@ character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  '
      TT,FF,TT,TT,FF,TT,TT,FF,TT,TT,FF,TT,TT,TT,FF,TT,FF,TT,TT,FF,TT,TT,FF,TT,TT,TT,FF,TT,FF,TT,TT,FF/), (/32,31/))
 !DEC$ ATTRIBUTES DLLEXPORT :: DGPG
 
-! the following arrays are used for the symmetry compression step in 
+! the following arrays are used for the symmetry compression step in
 ! the spherical indexing (EMSphInx) package
   integer(kind=irg), public, dimension(230) :: SHT_ZRot = (/ &
                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, &
@@ -543,7 +543,7 @@ character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  '
                     3, 3, 3, 3, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, &
                     1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, &
                     0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 0, &
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 /) 
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 /)
 !DEC$ ATTRIBUTES DLLEXPORT :: SHT_mirInv
 
 character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','22','22','22', &
@@ -554,16 +554,16 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
 
 
 ! here is the main symmetry class definition; this class must be able to function on its
-! own, without knowledge of a particular crystal structure, but also in conjunction with the 
-! crystallography (Cell_T) class 
+! own, without knowledge of a particular crystal structure, but also in conjunction with the
+! crystallography (Cell_T) class
 
   type, public :: SpaceGroup_T
     !! symmetry class definition
-    private 
+    private
       integer(kind=irg)     :: SGnumber = 0
-       !! space group number 
+       !! space group number
       integer(kind=irg)     :: PGnumber = 0
-       !! space group number 
+       !! space group number
       character(11)         :: SGname = '           '
        !! current space group name
       integer(kind=irg)     :: setting = 0
@@ -578,9 +578,9 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
        !! is this a symmorphic space group?
       integer(kind=irg)     :: GENnum = 0
        !! number of generator matrices
-      integer(kind=irg)     :: MATnum = 0               
+      integer(kind=irg)     :: MATnum = 0
        !! number of non-zero symmetry matrices
-      integer(kind=irg)     :: NUMpt = 0               
+      integer(kind=irg)     :: NUMpt = 0
        !! number of point group operators
       logical               :: reduce = .TRUE.
        !! switch to enable/disable reduction to fundamental cell
@@ -588,26 +588,26 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
        !! switch for hexagonal vs. rhombohedral settings
       logical               :: second = .FALSE.   ! we always use hexagonal setting for trigonal case
        !! switch for second setting of spacegroup (if any)
-      logical               :: centrosym = .FALSE.               
+      logical               :: centrosym = .FALSE.
        !! switch for presence of centrosymmetry
-      real(kind=dbl),allocatable :: data(:,:,:)   ! data(192,4,4)            
+      real(kind=dbl),allocatable :: data(:,:,:)   ! data(192,4,4)
        !! all symmetry matrices for a given spacegroup
-      real(kind=dbl),allocatable :: direc(:,:,:)  ! direc(48,3,3)            
+      real(kind=dbl),allocatable :: direc(:,:,:)  ! direc(48,3,3)
        !! direct space point group matrices
-      real(kind=dbl),allocatable :: recip(:,:,:)  ! recip(48,3,3)            
+      real(kind=dbl),allocatable :: recip(:,:,:)  ! recip(48,3,3)
        !! reciprocal space point group matrices
-      real(kind=dbl)        :: c(4,4)                   
+      real(kind=dbl)        :: c(4,4)
        !! dummy 4x4 matrix used for various computations
       logical, public       :: recip_pending = .TRUE.
        !! the reciprocal point group matrices require the metric tensors; their computation remains
-       !! to be completed if recip_pending = .TRUE.; this can be completed by means of the 
-       !! fixRecipPG method which can be called the metric matrices are known. This is only 
+       !! to be completed if recip_pending = .TRUE.; this can be completed by means of the
+       !! fixRecipPG method which can be called the metric matrices are known. This is only
        !! relevant to the hexagonal/trigonal case.
 
     contains
-    private 
+    private
 ! basic space group generating routines and related stuff
-      procedure, pass(self) :: getSpaceGroup_ 
+      procedure, pass(self) :: getSpaceGroup_
       procedure, pass(self) :: GetSetting_
       procedure, pass(self) :: fillgen_
       procedure, pass(self) :: MakeGenerators_
@@ -618,13 +618,13 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       procedure, pass(self) :: fixRecipPG_
       procedure, pass(self) :: resetSpaceGroup_
 ! routines to extract space group parameters
-      procedure, pass(self) :: getSpaceGroupName_ 
+      procedure, pass(self) :: getSpaceGroupName_
       procedure, pass(self) :: getSpaceGroupOrder_
-      procedure, pass(self) :: getSpaceGroupNumber_ 
-      procedure, pass(self) :: getSpaceGroupGENnum_ 
-      procedure, pass(self) :: getSpaceGroupMATnum_ 
-      procedure, pass(self) :: getSpaceGroupNUMpt_ 
-      procedure, pass(self) :: getSpaceGroupSetting_ 
+      procedure, pass(self) :: getSpaceGroupNumber_
+      procedure, pass(self) :: getSpaceGroupGENnum_
+      procedure, pass(self) :: getSpaceGroupMATnum_
+      procedure, pass(self) :: getSpaceGroupNUMpt_
+      procedure, pass(self) :: getSpaceGroupSetting_
       procedure, pass(self) :: getSpaceGroupCentro_
       procedure, pass(self) :: getSpaceGroupXtalSystem_
       procedure, pass(self) :: getSpaceGroupSymmorphic_
@@ -634,19 +634,19 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       procedure, pass(self) :: getSpaceGrouptrigonal_
       procedure, pass(self) :: getSpaceGroupsecond_
       procedure, pass(self) :: getSpaceGrouphexset_
-! routines to set space group parameters 
+! routines to set space group parameters
       procedure, pass(self) :: setSpaceGroupreduce_
       procedure, pass(self) :: setSpaceGrouphexset_
       procedure, pass(self) :: setSpaceGrouptrigonal_
       procedure, pass(self) :: setSpaceGroupsecond_
-      procedure, pass(self) :: setSpaceGroupSetting_ 
-      procedure, pass(self) :: setSpaceGroupNumber_ 
-      procedure, pass(self) :: setSpaceGroupXtalSystem_ 
-! general purpose routines that use symmetry 
+      procedure, pass(self) :: setSpaceGroupSetting_
+      procedure, pass(self) :: setSpaceGroupNumber_
+      procedure, pass(self) :: setSpaceGroupXtalSystem_
+! general purpose routines that use symmetry
       procedure, pass(self) :: CalcFamily_
       procedure, pass(self) :: CalcOrbit_
       procedure, pass(self) :: CalcStar_
-! routines to extract particular parameters 
+! routines to extract particular parameters
       procedure, pass(self) :: getPGnumber_
       procedure, pass(self) :: setPGnumber_
       procedure, pass(self) :: GetOrderinZone_
@@ -659,12 +659,12 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       procedure, pass(self) :: printWyckoffPositions_
       procedure, pass(self) :: extractWyckoffposition_
       procedure, pass(self) :: interpretWyckoffletter_
-! diffraction-related routines 
+! diffraction-related routines
       procedure, pass(self) :: IsGAllowed_
       procedure, pass(self) :: GetDiffractionGroup_
       procedure, pass(self) :: BFsymmetry_
       procedure, pass(self) :: GetPatternSymmetry_
-! finally, define the destructor routine 
+! finally, define the destructor routine
       final :: SpaceGroup_destructor
 
 ! generic (public) function definitions and overloads
@@ -720,43 +720,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
 
   end type SpaceGroup_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroup
-!DEC$ ATTRIBUTES DLLEXPORT :: resetSpaceGroup
-!DEC$ ATTRIBUTES DLLEXPORT :: GenerateSymmetry
-!DEC$ ATTRIBUTES DLLEXPORT :: ListPointGroups
-!DEC$ ATTRIBUTES DLLEXPORT :: GetSpaceGroup
-!DEC$ ATTRIBUTES DLLEXPORT :: isitnew
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupName
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupOrder
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupNumber
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupSetting
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupCentro
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupXtalSystem
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupSymmorphic
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupDataMatrices
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupPGdirecMatrices
-!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupPGrecipMatrices
-!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupSetting
-!DEC$ ATTRIBUTES DLLEXPORT :: fixRecipPG
-!DEC$ ATTRIBUTES DLLEXPORT :: CalcFamily
-!DEC$ ATTRIBUTES DLLEXPORT :: CalcOrbit
-!DEC$ ATTRIBUTES DLLEXPORT :: CalcStar
-!DEC$ ATTRIBUTES DLLEXPORT :: GetSetting
-!DEC$ ATTRIBUTES DLLEXPORT :: GetOrderinZone
-!DEC$ ATTRIBUTES DLLEXPORT :: getLaueGroupNumber
-!DEC$ ATTRIBUTES DLLEXPORT :: getHexvsRho
-!DEC$ ATTRIBUTES DLLEXPORT :: getmultiplicity
-!DEC$ ATTRIBUTES DLLEXPORT :: getposition
-!DEC$ ATTRIBUTES DLLEXPORT :: getWPstring
-!DEC$ ATTRIBUTES DLLEXPORT :: printWyckoffPositions
-!DEC$ ATTRIBUTES DLLEXPORT :: extractWyckoffposition
-!DEC$ ATTRIBUTES DLLEXPORT :: interpretWyckoffletter
-!DEC$ ATTRIBUTES DLLEXPORT :: IsGAllowed
-!DEC$ ATTRIBUTES DLLEXPORT :: GetDiffractionGroup
-!DEC$ ATTRIBUTES DLLEXPORT :: BFsymmetry
-!DEC$ ATTRIBUTES DLLEXPORT :: GetPatternSymmetry
-
-! the constructor routine for this class 
+! the constructor routine for this class
   interface SpaceGroup_T
     module procedure SpaceGroup_constructor
   end interface SpaceGroup_T
@@ -771,13 +735,14 @@ contains
 
 !--------------------------------------------------------------------------
 type(SpaceGroup_T) function SpaceGroup_constructor( SGnumber, xtalSystem, setting ) result(SG)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: SpaceGroup_constructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! constructor for the SpaceGroup Class 
+  !! constructor for the SpaceGroup Class
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
@@ -785,48 +750,48 @@ integer(kind=irg), intent(in), OPTIONAL :: SGnumber
 integer(kind=irg), intent(in), OPTIONAL :: xtalSystem
 integer(kind=irg), intent(in), OPTIONAL :: setting
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 integer(kind=irg)                       :: i, pgnum
 integer(kind=irg),parameter             :: icv(7) = (/ 7, 6, 3, 2, 5, 4, 1 /)
 
-! if there are no input parameters, then we start by asking for the crystal system 
-if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) .and. .not.(present(setting)) ) then 
+! if there are no input parameters, then we start by asking for the crystal system
+if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) .and. .not.(present(setting)) ) then
   call getXtalSystem_(SG)
   call getSpaceGroup_(SG)
   call getSetting_(SG)
 
-else  ! at least one of the optional parameters are present 
+else  ! at least one of the optional parameters are present
 
-  if (present(SGnumber) .and. (.not.(present(xtalSystem))) ) then 
+  if (present(SGnumber) .and. (.not.(present(xtalSystem))) ) then
 ! find the crystal system number from the space group number SGXsym = (/ 1, 3, 16, 75, 143, 168, 195 /)
     SG%SGnumber = SGnumber
     i = 0
     do while(SGnumber.gt.SGXsym(i+1))
-      i = i+1 
-    end do 
+      i = i+1
+    end do
 ! convert this number to the EMsoft crystal system numbering scheme
     SG%xtal_system = icv(i)
-  end if 
+  end if
 
-  if ( (.not.(present(SGnumber))) .and. (present(xtalSystem)) ) then 
+  if ( (.not.(present(SGnumber))) .and. (present(xtalSystem)) ) then
     SG%xtal_system = xtalSystem
     call getSpaceGroup_(SG)
   end if
 
-  if (present(SGnumber) .and. (present(xtalSystem)) ) then 
+  if (present(SGnumber) .and. (present(xtalSystem)) ) then
     SG%SGnumber = SGnumber
     SG%xtal_system = xtalSystem
   end if
 
-  if (present(setting)) then 
-    SG%setting = setting 
-  else 
+  if (present(setting)) then
+    SG%setting = setting
+  else
     call getSetting_(SG)
-  end if 
+  end if
 
-end if 
+end if
 
-! fill in the space group name  and order 
+! fill in the space group name  and order
 SG%SGname = SYM_SGname(SG%SGnumber)
 SG%SGorder = SGorder(SG%SGnumber)
 
@@ -837,27 +802,28 @@ do i=1,32
 end do
 call SG%setPGnumber(pgnum)
 
-! allocate the arrays for symmetry operators 
+! allocate the arrays for symmetry operators
 allocate( SG%data(SG%SGorder, 4, 4), SG%direc(PGTHDorder(pgnum),3,3), SG%recip(PGTHDorder(pgnum),3,3) )
 
 SG%data = 0.D0
 SG%direc = 0.D0
 SG%recip = 0.D0
 
-! generate all the symmetry operators as well as the corresponding point group symmetry 
+! generate all the symmetry operators as well as the corresponding point group symmetry
 call GenerateSymmetry_(SG,.TRUE.)
 
 end function SpaceGroup_constructor
 
 !--------------------------------------------------------------------------
 recursive subroutine SpaceGroup_destructor(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: SpaceGroup_destructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! clean up allocated arrays
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 type(SpaceGroup_T), intent(inout)     :: self
 
@@ -871,13 +837,14 @@ end subroutine SpaceGroup_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine resetSpaceGroup_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: resetSpaceGroup_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
-  !! zero out an existing space group 
+  !! zero out an existing space group
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(SpaceGroup_T), intent(inout)     :: self
 
@@ -886,34 +853,35 @@ if (allocated(self%direc)) deallocate(self%direc)
 if (allocated(self%recip)) deallocate(self%recip)
 
 self%SGnumber = 0
-self%SGname = ''                     
+self%SGname = ''
 self%SGorder = 0
 self%xtal_system = 0
 self%NUMpt = 0
 self%MATnum = 0
 self%GENnum = 0
-self%recip_pending = .TRUE. 
-self%second = .FALSE. 
-self%centrosym = .FALSE. 
+self%recip_pending = .TRUE.
+self%second = .FALSE.
+self%centrosym = .FALSE.
 
 end subroutine resetSpaceGroup_
 
 !--------------------------------------------------------------------------
 recursive subroutine getXtalSystem_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getXtalSystem_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
-  !! ask the user for the crystal system 
+  !! ask the user for the crystal system
 
 use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(SpaceGroup_T), intent(inout)     :: self
 
 type(IO_T)                             :: Message
-integer(kind=irg)                      :: io_int(1)   
+integer(kind=irg)                      :: io_int(1)
 
  call Message%printMessage(' Select the crystal system : ', frm = "(A)")
  call Message%printMessage('  1. Cubic ', frm = "(A)")
@@ -936,18 +904,19 @@ integer(kind=irg)                      :: io_int(1)
  call Message%printMessage(' crystal system 5 above, you will be prompted for the setting. ', frm = "(A//)")
  call Message%ReadValue(' crystal system ---> ', io_int, 1)
  self%xtal_system = io_int(1)
- 
+
 end subroutine getXtalSystem_
 
 !--------------------------------------------------------------------------
 recursive subroutine getSpaceGroup_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroup_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! asks the user for a space group number
   !!
-  !! This routines lists all the relevant space groups for 
+  !! This routines lists all the relevant space groups for
   !! the present crystal system, and asks the user to pick one.
   !!
   !! the following space groups have a hexagonal and rhombohedral
@@ -959,9 +928,9 @@ recursive subroutine getSpaceGroup_(self)
   !!  hexagonal setting 160: R 3 m         234\n
   !!  hexagonal setting 161: R 3 c         235\n
   !!  hexagonal setting 166: R -3 m        23\n
-  !!  hexagonal setting 167: R -3 c        237\n 
+  !!  hexagonal setting 167: R -3 c        237\n
   !!
-  !! TODO: automatic conversion from rhombohedral to hexagonal setting ... 
+  !! TODO: automatic conversion from rhombohedral to hexagonal setting ...
 
 use mod_io
 
@@ -969,9 +938,9 @@ IMPLICIT NONE
 
 class(SpaceGroup_T), intent(inout)     :: self
 
-type(IO_T)                             :: Message 
+type(IO_T)                             :: Message
 integer(kind=irg)                      :: sgmin,sgmax,i,j,TRIG(7), io_int(1)
-logical                                :: skip 
+logical                                :: skip
 
  TRIG = (/ 146,148,155,160,161,166,167 /)
  skip = .FALSE.
@@ -991,7 +960,7 @@ logical                                :: skip
                 else
                   write (6,"(1x,i3,':',A11,5x)",advance="no") TRIG(i),SYM_SGname(TRIG(i))
                 end if
-               end do 
+               end do
                call Message%printMessage(' -------------------------- ', frm = "(A)")
                call Message%ReadValue(' Enter space group number : ', io_int, 1)
                self%SGnumber = io_int(1)
@@ -1007,7 +976,7 @@ logical                                :: skip
                  if (self%SGnumber.eq.167) self%SGnumber=237
                endif
                skip = .TRUE.
-             else 
+             else
               sgmin = 143
               sgmax = 167
              end if
@@ -1015,7 +984,7 @@ logical                                :: skip
    case (7); sgmin =   1; sgmax =   2
  end select
 
-! print out all the relevant space group names and numbers        
+! print out all the relevant space group names and numbers
  if (skip.eqv..FALSE.) then
   call Message%printMessage(' ', frm = "(/A/)")
   do i=sgmin,sgmax
@@ -1027,7 +996,7 @@ logical                                :: skip
    end if
   end do
   self%SGnumber = sgmin-1
-  do while ((self%SGnumber.lt.sgmin).or.(self%SGnumber.gt.sgmax)) 
+  do while ((self%SGnumber.lt.sgmin).or.(self%SGnumber.gt.sgmax))
    call Message%printMessage(' -------------------------- ', frm = "(A)")
    call Message%ReadValue(' Enter space group number : ', io_int, 1)
    self%SGnumber = io_int(1)
@@ -1036,14 +1005,15 @@ logical                                :: skip
     call Message%printMessage('Crystal system / space group mismatch ', frm = "(A)")
    end if
   end do
- end if 
+ end if
 
 end subroutine getSpaceGroup_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetSetting_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetSetting_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! space group first or second setting
@@ -1057,15 +1027,15 @@ IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT) :: self
 
-integer(kind=irg)                 :: i, iset, isg, io_int(1)    
+integer(kind=irg)                 :: i, iset, isg, io_int(1)
 type(IO_T)                        :: Message
 
  isg = 0
  do i=1,24
   if (tworig(i).eq.self%SGnumber) isg=i
  end do
- 
- if (isg.ne.0) then 
+
+ if (isg.ne.0) then
   iset = 0
   do while (iset.eq.0)
     call Message%printMessage(' ---------------------------------------------', frm = "(A)")
@@ -1074,38 +1044,39 @@ type(IO_T)                        :: Message
     call Message%printMessage(' the second setting has site symmetry   : '//sitesym(2*isg), frm = "(A)")
     call Message%ReadValue(' Which setting do you wish to use (1/2) : ', io_int, 1)
     call Message%printMessage('---------------------------------------------', frm = "(A)")
-    if ((io_int(1).eq.1).or.(io_int(1).eq.2)) then 
+    if ((io_int(1).eq.1).or.(io_int(1).eq.2)) then
       iset = io_int(1)
     else
       call Message%printMessage(' Value entered must be 1 or 2 !', frm = "(A)")
     end if
   end do
- else 
+ else
   iset = 1   ! setting for space group with only one origin setting...
  end if
 
  self%setting = iset
- 
+
 end subroutine GetSetting_
 
 !--------------------------------------------------------------------------
 recursive subroutine fillgen_(self, t, isgn)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: fillgen_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
-  !! (private) fills in a generator matrix based on an input 4-character code string 
+  !! (private) fills in a generator matrix based on an input 4-character code string
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)        :: self
-character(1),INTENT(IN)                  :: t(4) 
+character(1),INTENT(IN)                  :: t(4)
  !! 4-character input string
-integer(kind=irg),INTENT(IN)             :: isgn 
+integer(kind=irg),INTENT(IN)             :: isgn
  !! indicates forward or reverse translation
 
-integer(kind=irg)                        :: j    
-real(kind=dbl)                           :: sgn  
+integer(kind=irg)                        :: j
+real(kind=dbl)                           :: sgn
 
 ! forward or reverse translation ?
  sgn=dble(isgn)
@@ -1133,7 +1104,7 @@ real(kind=dbl)                           :: sgn
  end select
 
 ! then fill in the translational component
- do j=2,4 
+ do j=2,4
   select case (t(j))
    case('A'); self%c(j-1,4) = sgn/6.0_dbl
    case('B'); self%c(j-1,4) = sgn/4.0_dbl
@@ -1151,10 +1122,11 @@ real(kind=dbl)                           :: sgn
 
 end subroutine fillgen_
 
-!--------------------------------------------------------------------------     
+!--------------------------------------------------------------------------
 recursive subroutine MakeGenerators_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: MakeGenerators_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! (private) interprets the generator string and initializes all generator matrices
@@ -1177,13 +1149,13 @@ character(40)                       :: genst
 ! and put it first in the list of matrices
  self%data(1,:,:) = self%c(:,:)
 
-! get the space group generator string 
+! get the space group generator string
  genst = SYM_GL(self%SGnumber)
 
-! initialize the number of generators 
+! initialize the number of generators
  self%GENnum = ichar(genst(2:2))-QQ
 
-! create the generator matrices 
+! create the generator matrices
  do i=2,2+self%GENnum - 1
    do k=1,4
      l=2+4*(i-2)+k
@@ -1196,27 +1168,27 @@ character(40)                       :: genst
 ! this is where we are in the generator string
  i=2+4*self%GENnum+1
 
-! if there is inversion symmetry, add the inversion to the generators 
- if (genst(1:1).eq.'1') then 
+! if there is inversion symmetry, add the inversion to the generators
+ if (genst(1:1).eq.'1') then
   self%centrosym=.TRUE.
   t = (/ 'h', 'O', 'O', 'O' /)
   call fillgen_(self,t,1)
   self%data(self%GENnum+2,:,:) = self%c(:,:)
   self%GENnum = self%GENnum+2
- else   
+ else
   self%GENnum = self%GENnum+1
  end if
 
-! now check for special origin conditions (choices 1 and 2) 
- if (genst(i:i).ne.'0') then 
-  if (self%setting.eq.2) then 
+! now check for special origin conditions (choices 1 and 2)
+ if (genst(i:i).ne.'0') then
+  if (self%setting.eq.2) then
 ! second setting: apply translation transformation to generators
    t(1)='a'
    do k=2,4
     l=i+k-1
     t(k) = genst(l:l)
    end do
-   do l=2,self%GENnum 
+   do l=2,self%GENnum
 ! translate to first setting origin
     call fillgen_(self,t,-1)
     SYM_d(:,:)=self%data(l,:,:)
@@ -1228,13 +1200,13 @@ character(40)                       :: genst
 ! reduce the translations to the fundamental unit cell
     do  k=1,3
      if (abs(SYM_d(k,4)).lt.eps) SYM_d(k,4)=0.0_dbl
-     if (SYM_d(k,4).lt.0.0_dbl) then 
-      do while (SYM_d(k,4).lt.0.0_dbl) 
+     if (SYM_d(k,4).lt.0.0_dbl) then
+      do while (SYM_d(k,4).lt.0.0_dbl)
        SYM_d(k,4)=SYM_d(k,4)+1.0_dbl
       end do
      end if
-     if (SYM_d(k,4).ge.1.0_dbl) then 
-      do while (SYM_d(k,4).ge.1.0_dbl) 
+     if (SYM_d(k,4).ge.1.0_dbl) then
+      do while (SYM_d(k,4).ge.1.0_dbl)
        SYM_d(k,4)=SYM_d(k,4)-1.0_dbl
       end do
      end if
@@ -1250,24 +1222,25 @@ end subroutine MakeGenerators_
 
 !--------------------------------------------------------------------------
 recursive subroutine matrixmult_(self, k1, k2)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: matrixmult_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! (private) multiplies two 4x4 symmetry matrices and brings
-  !! the translation component back to the fundamental unit cell 
+  !! the translation component back to the fundamental unit cell
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT) :: self
 
-integer(kind=irg),INTENT(IN)      :: k1                           
+integer(kind=irg),INTENT(IN)      :: k1
  !! index of first 4x4 input matrix
-integer(kind=irg),INTENT(IN)      :: k2                           
+integer(kind=irg),INTENT(IN)      :: k2
  !! index of second 4x4 input matrix
-integer(kind=irg)                 :: i,j,k                        
+integer(kind=irg)                 :: i,j,k
  !! loop counters
-real(kind=dbl),parameter          :: eps=0.0005_dbl               
+real(kind=dbl),parameter          :: eps=0.0005_dbl
  !! truncation constant
 
  do i=1,4
@@ -1279,17 +1252,18 @@ real(kind=dbl),parameter          :: eps=0.0005_dbl
   end do
  end do
 
+
 ! bring the translational part of the matrix back to
 ! the first unit cell and correct possible rounding errors
  do  k=1,3
   if (abs(self%c(k,4)).lt.eps) self%c(k,4)=0.0_dbl
-  if (self%c(k,4).lt.0.0_dbl) then 
-   do while (self%c(k,4).lt.0.0_dbl) 
+  if (self%c(k,4).lt.0.0_dbl) then
+   do while (self%c(k,4).lt.0.0_dbl)
     self%c(k,4)=self%c(k,4)+1.0_dbl
    end do
   end if
-  if (self%c(k,4).gt.1.0_dbl) then 
-   do while (self%c(k,4).gt.1.0_dbl) 
+  if (self%c(k,4).gt.1.0_dbl) then
+   do while (self%c(k,4).gt.1.0_dbl)
     self%c(k,4)=self%c(k,4)-1.0_dbl
    end do
   end if
@@ -1300,28 +1274,30 @@ end subroutine matrixmult_
 
 !--------------------------------------------------------------------------
 recursive function isitnew_(self,nsym) result(isnew)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: isitnew_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! (private) check whether or not this is a new operator by simply comparing it 
+  !! (private) check whether or not this is a new operator by simply comparing it
   !! with all existing operators
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT) :: self
 
-integer(kind=irg),INTENT(IN)      :: nsym                 
+integer(kind=irg),INTENT(IN)      :: nsym
  !! index of matrix to be compared
-logical                           :: isnew 
+logical                           :: isnew
 
-integer(kind=irg)                 :: i,j,k,n              
+integer(kind=irg)                 :: i,j,k,n
  !! loop counters
-real(kind=dbl),parameter          :: eps=0.0005_dbl       
+real(kind=dbl),parameter          :: eps=0.0005_dbl
  !! comparison threshold
 
  k=0
  n=0
+
  do while ((k.le.nsym).and.(n.ne.12))
   n=0
   k=k+1
@@ -1331,8 +1307,8 @@ real(kind=dbl),parameter          :: eps=0.0005_dbl
    end do
   end do
  end do
- 
- if (n.ne.12) then 
+
+ if (n.ne.12) then
   isnew=.TRUE.
  else
   isnew=.FALSE.
@@ -1342,8 +1318,9 @@ end function isitnew_
 
 !--------------------------------------------------------------------------
 recursive subroutine GenerateSymmetry_(self,dopg)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GenerateSymmetry_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! compute all symmetry operators and store them in self%data.
@@ -1351,7 +1328,7 @@ recursive subroutine GenerateSymmetry_(self,dopg)
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT) :: self
-logical,INTENT(IN)                :: dopg                         
+logical,INTENT(IN)                :: dopg
  !! logical to determine if point group matrices are to be computed as well
 
 integer(kind=irg)                 :: i,j,k,nsym,k1,k2,l1,l2       ! loop counters (mostly)
@@ -1361,10 +1338,10 @@ real(kind=dbl)                    :: q,sm                         ! auxiliary va
  call MakeGenerators_(self)
  nsym = self%GENnum
 
-! generate new elements from the squares of the generators 
- do k=1,self%GENnum 
+! generate new elements from the squares of the generators
+ do k=1,self%GENnum
   call matrixmult_(self,k,k)
-  if (isitnew_(self,nsym).eqv..TRUE.) then 
+  if (isitnew_(self,nsym).eqv..TRUE.) then
    nsym=nsym+1
    self%data(nsym,:,:) = self%c(:,:)
   end if
@@ -1372,14 +1349,14 @@ real(kind=dbl)                    :: q,sm                         ! auxiliary va
 
 ! generate the remainder of the factorgroup
  k1=1
- do while (k1.le.nsym) 
+ do while (k1.le.nsym)
   k2=k1+1
   do while (k2.le.nsym)
    call matrixmult_(self,k2,k1)
-   if (isitnew_(self,nsym).eqv..TRUE.) then 
+   if (isitnew_(self,nsym).eqv..TRUE.) then
     nsym=nsym+1
     self%data(nsym,:,:) = self%c(:,:)
-    if (nsym.ge.192) then 
+    if (nsym.ge.192) then
      k2 = nsym
      k1 = nsym
     end if
@@ -1404,8 +1381,9 @@ real(kind=dbl)                    :: q,sm                         ! auxiliary va
 ! operators SYM_recip() (this requires the metric tensors which we don't have at this point !!!)
   self%recip_pending = .TRUE.
   self%NUMpt=0
-  do i=1,self%MATnum 
+  do i=1,self%MATnum
    sm=self%data(i,1,4)**2+self%data(i,2,4)**2+self%data(i,3,4)**2
+
    if (sm.lt.0.1_dbl) then
     self%NUMpt=self%NUMpt+1
 
@@ -1418,7 +1396,7 @@ real(kind=dbl)                    :: q,sm                         ! auxiliary va
 ! this method must be called after the metric tensors have been computed (calcMatrices)
 ! in the mod_crystallography module
     ! do j=1,3
-    !  do k=1,3 
+    !  do k=1,3
     !   q=0.0_dbl
     !   do l1=1,3
     !    do l2=1,3
@@ -1432,17 +1410,18 @@ real(kind=dbl)                    :: q,sm                         ! auxiliary va
    end if  ! (sm.lt.0.1)
   end do
  end if ! if (dopg.eq..TRUE.)
-! this completes generation of the factor group 
+! this completes generation of the factor group
 
 ! and finally, let's determine whether or not this space group is symmorphic
- self%symmorphic = (minval(abs(SGsym - self%SGnumber)).eq.0) 
+ self%symmorphic = (minval(abs(SGsym - self%SGnumber)).eq.0)
 
 end subroutine GenerateSymmetry_
 
 !--------------------------------------------------------------------------
 recursive subroutine fixRecipPG_(self, dmt, rmt)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: fixRecipPG_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! compute the reciprocal point symmetry matrices; they require the metric tensors.
@@ -1451,22 +1430,22 @@ IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT) :: self
 real(kind=dbl),INTENT(IN)         :: dmt(3,3)
- !! direct metric tensor 
+ !! direct metric tensor
 real(kind=dbl),INTENT(IN)         :: rmt(3,3)
- !! reciprocal metric tensor 
+ !! reciprocal metric tensor
 
-integer(kind=irg)                 :: i, j, k, l1, l2 
-real(kind=dbl)                    :: q, sm 
+integer(kind=irg)                 :: i, j, k, l1, l2
+real(kind=dbl)                    :: q, sm
 
 self%NUMpt=0
-do i=1,self%MATnum 
+do i=1,self%MATnum
  sm=self%data(i,1,4)**2+self%data(i,2,4)**2+self%data(i,3,4)**2
  if (sm.lt.0.1_dbl) then
   self%NUMpt=self%NUMpt+1
 
 ! reciprocal space point group symmetry elements
   do j=1,3
-   do k=1,3 
+   do k=1,3
     q=0.0_dbl
     do l1=1,3
      do l2=1,3
@@ -1486,8 +1465,9 @@ end subroutine fixRecipPG_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupName_(self) result(SGname)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupName_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! return the space group name string
@@ -1495,7 +1475,7 @@ recursive function getSpaceGroupName_(self) result(SGname)
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)   :: self
-character(11)                       :: SGname 
+character(11)                       :: SGname
 
 SGname = self%SGname
 
@@ -1503,8 +1483,9 @@ end function getSpaceGroupName_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupOrder_(self) result(SGorder)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupOrder_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! return the space group order
@@ -1520,11 +1501,12 @@ end function getSpaceGroupOrder_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupNumber_(self) result(SGnumber)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupNumber_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
-  !! return the space group number 
+  !! return the space group number
 
 IMPLICIT NONE
 
@@ -1537,8 +1519,9 @@ end function getSpaceGroupNumber_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupSetting_(self) result(SGsetting)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupSetting_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! return the space group setting
@@ -1554,8 +1537,9 @@ end function getSpaceGroupSetting_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupGENnum_(self) result(g)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupGENnum_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! return the space group number of generators
@@ -1571,11 +1555,12 @@ end function getSpaceGroupGENnum_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupMATnum_(self) result(g)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupMATnum_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
-  !! return the space group number of symmetry matrices 
+  !! return the space group number of symmetry matrices
 
 IMPLICIT NONE
 
@@ -1588,8 +1573,9 @@ end function getSpaceGroupMATnum_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupNUMpt_(self) result(g)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupNUMpt_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! return the space group number of point symmetry matrices
@@ -1606,8 +1592,9 @@ end function getSpaceGroupNUMpt_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupCentro_(self) result(SGcentrosym)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupCentro_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! return the space group centrosymmetry parameter
@@ -1623,11 +1610,12 @@ end function getSpaceGroupCentro_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupXtalSystem_(self) result(SGxtalsystem)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupXtalSystem_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
-  !! return the space group number 
+  !! return the space group number
 
 IMPLICIT NONE
 
@@ -1640,11 +1628,12 @@ end function getSpaceGroupXtalSystem_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupSymmorphic_(self) result(SGsymmorphic)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupSymmorphic_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
-  !! return the space group number 
+  !! return the space group number
 
 IMPLICIT NONE
 
@@ -1657,41 +1646,43 @@ end function getSpaceGroupSymmorphic_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupDataMatrices_(self) result(SGdata)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupDataMatrices_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
-  !! return the space group data matrices 
+  !! return the space group data matrices
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)   :: self
 real(kind=dbl),allocatable          :: SGdata(:,:,:)
 
-integer(kind=irg)                   :: sz(3) 
+integer(kind=irg)                   :: sz(3)
 
 sz = shape(self%data)
 
 allocate(SGdata(sz(1),sz(2),sz(3)))
 
-SGdata = self%data 
+SGdata = self%data
 
 end function getSpaceGroupDataMatrices_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupPGdirecMatrices_(self) result(SGdirec)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupPGdirecMatrices_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
-  !! return the space group direc matrices 
+  !! return the space group direc matrices
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)   :: self
 real(kind=dbl),allocatable          :: SGdirec(:,:,:)
 
-integer(kind=irg)                   :: sz(3) 
+integer(kind=irg)                   :: sz(3)
 
 sz = shape(self%direc)
 
@@ -1703,18 +1694,19 @@ end function getSpaceGroupPGdirecMatrices_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupPGrecipMatrices_(self) result(SGrecip)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupPGrecipMatrices_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
-  !! return the space group direc matrices 
+  !! return the space group direc matrices
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)   :: self
 real(kind=dbl),allocatable          :: SGrecip(:,:,:)
 
-integer(kind=irg)                   :: sz(3) 
+integer(kind=irg)                   :: sz(3)
 
 sz = shape(self%recip)
 
@@ -1726,8 +1718,9 @@ end function getSpaceGroupPGrecipMatrices_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGrouptrigonal_(self) result(trigonal)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGrouptrigonal_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! get the space group trigonal parameter
@@ -1743,8 +1736,9 @@ end function getSpaceGrouptrigonal_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGroupSetting_(self, setting)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupSetting_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! set the space group reduce parameter
@@ -1760,8 +1754,9 @@ end subroutine setSpaceGroupSetting_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGroupNumber_(self, SGnum)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupNumber_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! set the space group number parameter
@@ -1777,8 +1772,9 @@ end subroutine setSpaceGroupNumber_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGroupXtalSystem_(self, xs)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupXtalSystem_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! set the space group crystal system parameter
@@ -1794,8 +1790,9 @@ end subroutine setSpaceGroupXtalSystem_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGroupreduce_(self, reduce)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupreduce_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! set the space group reduce parameter
@@ -1811,8 +1808,9 @@ end subroutine setSpaceGroupreduce_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGrouphexset_(self) result(hexset)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGrouphexset_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! set the space group hexset parameter
@@ -1828,8 +1826,9 @@ end function getSpaceGrouphexset_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGrouphexset_(self, hexset)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGrouphexset_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! set the space group hexset parameter
@@ -1845,8 +1844,9 @@ end subroutine setSpaceGrouphexset_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGrouptrigonal_(self, trigonal)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGrouptrigonal_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! set the space group trigonal parameter
@@ -1862,8 +1862,9 @@ end subroutine setSpaceGrouptrigonal_
 
 !--------------------------------------------------------------------------
 recursive subroutine setSpaceGroupsecond_(self, second)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupsecond_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! set the space group second parameter
@@ -1879,8 +1880,9 @@ end subroutine setSpaceGroupsecond_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupsecond_(self) result(second)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupsecond_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/11/20
   !!
   !! set the space group second parameter
@@ -1896,20 +1898,21 @@ end function getSpaceGroupsecond_
 
 !--------------------------------------------------------------------------
 recursive subroutine ListPointGroups_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ListPointGroups_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! list the crystallographic point groups in tabular form
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT) :: self
 
-integer(kind=irg)                 :: i, j 
-type(IO_T)                        :: Message  
+integer(kind=irg)                 :: i, j
+type(IO_T)                        :: Message
 
 call Message%printMessage('Crystallographic Point Groups')
 call Message%printMessage('-----------------------------')
@@ -1926,8 +1929,9 @@ end subroutine ListPointGroups_
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcFamily_(self, ind, num, space, itmp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcFamily_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! compute the indices of equivalent planes/directions and store them in the itmp array
@@ -1935,19 +1939,19 @@ recursive subroutine CalcFamily_(self, ind, num, space, itmp)
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg),INTENT(OUT)           :: num                          
+integer(kind=irg),INTENT(OUT)           :: num
  !! number of equivalent entries generated
-integer(kind=irg),INTENT(IN)            :: ind(3)                       
+integer(kind=irg),INTENT(IN)            :: ind(3)
  !! input triplet
-character(1),INTENT(IN)                 :: space                        
+character(1),INTENT(IN)                 :: space
  !! 'd' or 'r'
-integer(kind=irg),allocatable, INTENT(OUT) :: itmp(:,:)                   
+integer(kind=irg),allocatable, INTENT(OUT) :: itmp(:,:)
  !! array used for family computations etc
 
 integer(kind=irg)                       :: m,i,j
-real(kind=sgl)                          :: h,k,l,ih,ik,il,idiff         
-logical                                 :: newpoint                     
-real,parameter                          :: eps=0.0001_sgl               
+real(kind=sgl)                          :: h,k,l,ih,ik,il,idiff
+logical                                 :: newpoint
+real,parameter                          :: eps=0.0001_sgl
 
 allocate(itmp(self%NUMpt, 3))
 
@@ -1960,7 +1964,7 @@ allocate(itmp(self%NUMpt, 3))
  l=float(ind(3))
 
 ! multiply with all point group elements
- do i=2,self%NUMpt 
+ do i=2,self%NUMpt
   if (space.eq.'d') then
    ih=self%direc(i,1,1)*h+self%direc(i,1,2)*k+self%direc(i,1,3)*l
    ik=self%direc(i,2,1)*h+self%direc(i,2,2)*k+self%direc(i,2,3)*l
@@ -1978,22 +1982,23 @@ allocate(itmp(self%NUMpt, 3))
    if (idiff.lt.eps) newpoint=.FALSE.
   end do
 
-  if (newpoint) then 
+  if (newpoint) then
    j=j+1
    itmp(j,1)=nint(ih)
    itmp(j,2)=nint(ik)
    itmp(j,3)=nint(il)
   endif
 
- end do 
+ end do
  num=j
 
 end subroutine CalcFamily_
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcOrbit_(self, site, n, ctmp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcOrbit_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! compute the orbit of a point with coordinates site and return it in ctmp
@@ -2001,11 +2006,11 @@ recursive subroutine CalcOrbit_(self, site, n, ctmp)
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-real(kind=dbl),INTENT(IN)               :: site(3)              
+real(kind=dbl),INTENT(IN)               :: site(3)
  !! input position
-integer(kind=irg),INTENT(OUT)           :: n                    
- !! number of equivalent entries 
-real(kind=dbl),allocatable,INTENT(OUT)  :: ctmp(:,:)          
+integer(kind=irg),INTENT(OUT)           :: n
+ !! number of equivalent entries
+real(kind=dbl),allocatable,INTENT(OUT)  :: ctmp(:,:)
  !! output array with orbit coordinates
 
 real(kind=dbl)                          :: r(3),s(3),diff       ! auxiliary variables
@@ -2021,7 +2026,7 @@ allocate(ctmp(self%MATnum, 3))
  n = 1
  r = site
  ctmp(n,:)=r(:)
- 
+
 ! get all the equivalent atom positions
  do i=2,self%MATnum
   do j=1,3
@@ -2032,7 +2037,7 @@ allocate(ctmp(self%MATnum, 3))
   end do
 
 ! sometimes the code below produces an incorrect answer when one of the fractional coordinates
-! is slightly negative... we intercept such issues here ... 
+! is slightly negative... we intercept such issues here ...
   do j=1,3
     if (abs(s(j)).lt.eps2) s(j) = 0.D0
   end do
@@ -2058,7 +2063,7 @@ allocate(ctmp(self%MATnum, 3))
    if (diff.lt.eps) then
      new = .FALSE.
    end if
-  end do 
+  end do
 
 ! yes, it is a new point
   if (new.eqv..TRUE.) then
@@ -2074,8 +2079,9 @@ end subroutine CalcOrbit_
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcStar_(self, kk, n, stmp, space)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcStar_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! compute the star of a given reciprocal vector and outputs it in an array
@@ -2084,13 +2090,13 @@ recursive subroutine CalcStar_(self, kk, n, stmp, space)
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-real(kind=dbl),INTENT(IN)               :: kk(3)               
+real(kind=dbl),INTENT(IN)               :: kk(3)
  !! input vector
-integer(kind=irg),INTENT(OUT)           :: n                   
+integer(kind=irg),INTENT(OUT)           :: n
  !! number of entries in equivalent vector array
-real(kind=dbl),allocatable,INTENT(OUT)  :: stmp(:,:)          
+real(kind=dbl),allocatable,INTENT(OUT)  :: stmp(:,:)
  !! output array with equivalent vectors
-character(1),INTENT(IN)                 :: space               
+character(1),INTENT(IN)                 :: space
  !! 'd' or 'r'
 
 integer(kind=irg)                       :: i,j,k,mm             ! various loop counters and such
@@ -2105,11 +2111,11 @@ allocate(stmp(self%NUMpt,3))
  stmp(n,1:3)=r(1:3)
 
 ! get all the equivalent reciprocal/direct space vectors
- do i=2,self%NUMpt 
+ do i=2,self%NUMpt
   do j=1,3
    s(j)=0.0_dbl
    do k=1,3
-    if (space.eq.'r') then 
+    if (space.eq.'r') then
      s(j)=s(j)+self%recip(i,j,k)*r(k)
     else
      s(j)=s(j)+self%direc(i,j,k)*r(k)
@@ -2141,72 +2147,75 @@ end subroutine CalcStar_
 
 !--------------------------------------------------------------------------
 function getPGnumber_(self) result(pgnum)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getPGnumber_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/24/20
   !!
-  !! convert the space group number to a point group number 
- 
+  !! convert the space group number to a point group number
+
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg)                       :: pgnum 
+integer(kind=irg)                       :: pgnum
 
-integer(kind=irg)                       :: i 
+integer(kind=irg)                       :: i
 
 ! find the rotational symmetry group number
 if (self%SGnumber.ge.221) then
   i = 32
 else
   i=0
-  do while (SGPG(i+1).le.self%SGnumber) 
+  do while (SGPG(i+1).le.self%SGnumber)
     i = i+1
   end do
 end if
 
-self%PGnumber = i 
+self%PGnumber = i
 pgnum = i
 
 end function getPGnumber_
 
 !--------------------------------------------------------------------------
 subroutine setPGnumber_(self, pgnum)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setPGnumber_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/25/20
   !!
   !! set the point group number
- 
+
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg),INTENT(IN)            :: pgnum 
+integer(kind=irg),INTENT(IN)            :: pgnum
 
-self%PGnumber = pgnum 
+self%PGnumber = pgnum
 
 end subroutine setPGnumber_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetOrderinZone_(self, k, il, num, jcnt, itmp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetOrderinZone_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
-  !! determine the order of the subfamily of a reciprocal 
+  !! determine the order of the subfamily of a reciprocal
   !! lattice family belonging to a zone.
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-real(kind=sgl),INTENT(IN)               :: k(3)         
+real(kind=sgl),INTENT(IN)               :: k(3)
  !! input vector (zone axis)
-integer(kind=irg),INTENT(OUT)           :: il(48)       
+integer(kind=irg),INTENT(OUT)           :: il(48)
  !! output index list
-integer(kind=irg),INTENT(IN)            :: num          
+integer(kind=irg),INTENT(IN)            :: num
  !! number of  entries to test
-integer(kind=irg),INTENT(OUT)           :: jcnt         
+integer(kind=irg),INTENT(OUT)           :: jcnt
  !! number of entries in output
-integer(kind=irg),INTENT(IN)            :: itmp(48,3)   
+integer(kind=irg),INTENT(IN)            :: itmp(48,3)
  !! array used for family computations etc
 
 integer(kind=irg)                       :: i            ! loop counter
@@ -2226,8 +2235,9 @@ end subroutine GetOrderinZone_
 
 !--------------------------------------------------------------------------
 recursive function getLaueGroupNumber_(self) result(LGN)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getLaueGroupNumber_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! get the Laue point group number for a given space group number
@@ -2257,7 +2267,7 @@ if (self%SGnumber.ge.221) then
   i = 32
 else
   i=0
-  do while (SGPG(i+1).le.self%SGnumber) 
+  do while (SGPG(i+1).le.self%SGnumber)
     i = i+1
   end do
 end if
@@ -2268,8 +2278,9 @@ end function getLaueGroupNumber_
 
 !--------------------------------------------------------------------------
 recursive function getHexvsRho_(self, pgnum) result(stnum)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getHexvsRho_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! convert a 3D point group number to a SamplingType for trigonal symmetry
@@ -2289,7 +2300,7 @@ if (self%trigonal.eqv..TRUE.) then ! yes, it is
   if ((sg.ge.143).and.(sg.le.146)) stnum = 10
 
 ! point group bar3 [corrected on 7/31/18 by MDG]
-  if (sg.eq.147) stnum = 12 
+  if (sg.eq.147) stnum = 12
   if (sg.eq.148) stnum = 12
 
 ! point group 32
@@ -2299,13 +2310,13 @@ if (self%trigonal.eqv..TRUE.) then ! yes, it is
 
 ! point group 3m
   if ((sg.eq.156).or.(sg.eq.158)) stnum = 14
-  if ((sg.eq.157).or.(sg.eq.159)) stnum = 14 
+  if ((sg.eq.157).or.(sg.eq.159)) stnum = 14
   if ((sg.eq.160).or.(sg.eq.161)) stnum = 14
-  
+
 ! point group bar3m
   if ((sg.eq.162).or.(sg.eq.163)) stnum = 17
-  if ((sg.eq.164).or.(sg.eq.165)) stnum = 16 
-  if ((sg.eq.166).or.(sg.eq.167)) stnum = 16 
+  if ((sg.eq.164).or.(sg.eq.165)) stnum = 16
+  if ((sg.eq.166).or.(sg.eq.167)) stnum = 16
 else
 ! this must be either point group 14 or 26, each with two settings
   if (pgnum.eq.14) then
@@ -2328,8 +2339,9 @@ end function getHexvsRho_
 
 !--------------------------------------------------------------------------
 pure recursive function getmultiplicity_(self, t) result(stmult)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getmultiplicity_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! convert multiplicity letter into a number string  (for Wyckoff positions)
@@ -2364,8 +2376,9 @@ end function getmultiplicity_
 
 !--------------------------------------------------------------------------
 pure recursive function getposition_(self, t) result(st)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getposition_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! convert multiplicity letter into a number string (for Wyckoff positions)
@@ -2409,18 +2422,19 @@ do i=1,3
   case ('z');  st = trim(st)//' z'
  end select
  if (i.ne.3) then
-   st = trim(st)//',' 
+   st = trim(st)//','
  else
-   st = trim(st)//' )' 
+   st = trim(st)//' )'
  end if
 end do
 
 end function getposition_
 
 !--------------------------------------------------------------------------
-recursive subroutine getWPstring_(self, wpstring, WPfile) 
-  !! author: MDG 
-  !! version: 1.0 
+recursive subroutine getWPstring_(self, wpstring, WPfile)
+!DEC$ ATTRIBUTES DLLEXPORT :: getWPstring_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! retrieve the Wyckoff positions encoder string
@@ -2438,14 +2452,14 @@ character(fnlen),INTENT(INOUT)          :: wpstring
 character(fnlen),INTENT(IN)             :: WPfile
  !! full path to Wyckoff code file
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 
 character(fnlen)                        :: line
 logical                                 :: fexists
 integer(kind=irg)                       :: ios, i, j
 
 inquire(file=trim(WPfile),exist=fexists)
-if (.not.fexists) then 
+if (.not.fexists) then
   call Message%printError('getWPstring_','Wyckoff Positions file not found')
 end if
 
@@ -2454,7 +2468,7 @@ wpstring = ''
 do i = 1, self%SGnumber
  line = ''
  read(dataunit,'(I2,A)',iostat=ios) j, line
- if (ios.ne.0) then 
+ if (ios.ne.0) then
   exit
  end if
 end do
@@ -2467,8 +2481,9 @@ end subroutine getWPstring_
 
 !--------------------------------------------------------------------------
 recursive function interpretWyckoffletter_(self, t, x, y, z) result(st)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: interpretWyckoffletter_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! convert Wyckff letter into numerical value
@@ -2513,9 +2528,10 @@ end select
 end function interpretWyckoffletter_
 
 !--------------------------------------------------------------------------
-recursive subroutine printWyckoffPositions_(self, wpstring, WPfile, WyckoffList) 
-  !! author: MDG 
-  !! version: 1.0 
+recursive subroutine printWyckoffPositions_(self, wpstring, WPfile, WyckoffList)
+!DEC$ ATTRIBUTES DLLEXPORT :: printWyckoffPositions_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! Print a list of Wyckoff positions for the current space group
@@ -2523,7 +2539,7 @@ recursive subroutine printWyckoffPositions_(self, wpstring, WPfile, WyckoffList)
   !! in the calling program, use:
   !!    WPfile = EMsoft%getConfigParameter('WyckoffPositionsfilename')
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
@@ -2535,13 +2551,13 @@ character(6),INTENT(OUT),OPTIONAL       :: WyckoffList(27)
 type(IO_T)                              :: Message
 character(fnlen)                        :: line, wpf, mess, gpstring, spstring
 logical                                 :: fexists
-integer(kind=irg)                       :: ios, i, j, numsp, ipos, io_int(1) 
+integer(kind=irg)                       :: ios, i, j, numsp, ipos, io_int(1)
 character(3)                            :: gpmul, spmul, pos
 character(5)                            :: splett
 
 call getWPstring_(self, wpstring, WPfile)
 
-! number of special positions encoded in string 
+! number of special positions encoded in string
 numsp = (len(trim(wpstring))-1)/4
 
 io_int(1) = self%SGnumber
@@ -2566,7 +2582,7 @@ if (numsp.ne.0) then
     mess = trim(spmul)//trim(splett)//trim(spstring)
     call Message%printMessage(mess)
 ! should we store this in the optional WyckoffList variable?
-    if (PRESENT(WyckoffList)) then 
+    if (PRESENT(WyckoffList)) then
       WyckoffList(i) =  trim(spmul)//trim(splett)
     end if
   end do
@@ -2582,7 +2598,7 @@ ipos = numsp*4+1
 gpmul = getmultiplicity_(self, wpstring(ipos:ipos))
 mess = trim(gpmul)//trim(splett)//' ( x, y, z )'
 ! should we store this in the optional WyckoffList variable?
-if (PRESENT(WyckoffList)) then 
+if (PRESENT(WyckoffList)) then
   WyckoffList(numsp+1) =  trim(gpmul)//trim(splett)
 end if
 call Message%printMessage(mess)
@@ -2591,8 +2607,9 @@ end subroutine printWyckoffPositions_
 
 !--------------------------------------------------------------------------
 recursive subroutine extractWyckoffposition_(self, Wyckoffpos, pt)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: extractWyckoffposition_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! Extract the coordinates by interpreting the Wyckoff encoded string
@@ -2603,7 +2620,7 @@ IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
 character(3),INTENT(IN)                 :: Wyckoffpos
-real(kind=sgl),INTENT(OUT)              :: pt(3) 
+real(kind=sgl),INTENT(OUT)              :: pt(3)
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: i, accum, findx, findy, findz
@@ -2622,28 +2639,28 @@ if (findz.ne.0) accum = accum + 4
 select case (accum)
    case (0)
 
-   case (1)   
+   case (1)
               call Message%ReadValue(' Enter x value : ',io_real,1)
               xval = io_real(1)
-   case (2)   
+   case (2)
               call Message%ReadValue(' Enter y value : ',io_real,1)
               yval = io_real(1)
-   case (3)   
+   case (3)
               call Message%ReadValue(' Enter x, y values : ',io_real,2)
               xval = io_real(1)
               yval = io_real(2)
-   case (4)   
+   case (4)
               call Message%ReadValue(' Enter z value : ',io_real,1)
               zval = io_real(1)
-   case (5)   
+   case (5)
               call Message%ReadValue(' Enter x, z values : ',io_real,2)
               xval = io_real(1)
               zval = io_real(2)
-   case (6)   
+   case (6)
               call Message%ReadValue(' Enter y, z values : ',io_real,2)
               yval = io_real(1)
               zval = io_real(2)
-   case (7)   
+   case (7)
               call Message%ReadValue(' Enter x, y, z values : ',io_real,3)
               xval = io_real(1)
               yval = io_real(2)
@@ -2660,8 +2677,9 @@ end subroutine extractWyckoffposition_
 
 !--------------------------------------------------------------------------
 recursive function IsGAllowed_(self, g) result(allowed)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: IsGAllowed_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! determine whether or not a given reflection is absent due to
@@ -2670,9 +2688,9 @@ recursive function IsGAllowed_(self, g) result(allowed)
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg),INTENT(IN)            :: g(3)         
+integer(kind=irg),INTENT(IN)            :: g(3)
  !! input reciprocal lattice vector
-logical                                 :: allowed 
+logical                                 :: allowed
 
 integer(kind=irg)                       :: seo          ! auxiliary variable
 character(1)                            :: lc           ! first letter of space group name
@@ -2692,13 +2710,14 @@ character(1)                            :: lc           ! first letter of space 
                seo = mod(-g(1)+g(2)+g(3)+90,3); if (seo.ne.0) allowed = .FALSE.
               endif ! otherwise reflections are all allowed
  end select
- 
+
 end function IsGAllowed_
 
 !--------------------------------------------------------------------------
 recursive subroutine BFsymmetry_(self, uvw, j, isym, ir)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: BFsymmetry_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! routine to determine the symmetry of a bright field bend center [uses Table 4 in BESR paper]
@@ -2706,24 +2725,24 @@ recursive subroutine BFsymmetry_(self, uvw, j, isym, ir)
   !! we must intercept the special cases where more than one symmetry of the same order can
   !! occur in a given Laue group;  e.g.  Laue group 2/m has two bright field symmetries
   !! of order 2:  2 and m
-  !! 
+  !!
   !! This happens for the following Laue groups:
   !!   2/m     [010] -> 2    [u0w] -> m
   !!   -3m     [11.0] -> 2   [u-u.w] -> m
-  !! 
+  !!
   !! The normal conversion from the reduced order ir to the actual Bright Field
   !! symmetry uses the PGTWDinverse array to determine the 2D symmetry
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg),INTENT(IN)            :: uvw(3)       
+integer(kind=irg),INTENT(IN)            :: uvw(3)
  !! zone axis indices
-integer(kind=irg),INTENT(IN)            :: j            
+integer(kind=irg),INTENT(IN)            :: j
  !! index into Laue group list
-integer(kind=irg),INTENT(OUT)           :: isym         
+integer(kind=irg),INTENT(OUT)           :: isym
  !! keeps track of special cases
-integer(kind=irg),INTENT(OUT)           :: ir           
+integer(kind=irg),INTENT(OUT)           :: ir
  !! index of point group
 
 integer(kind=irg)                       :: orderPG, Lauenum, ng         ! auxiliary variables
@@ -2748,8 +2767,9 @@ end subroutine BFsymmetry_
 
 !--------------------------------------------------------------------------
 recursive function GetPatternSymmetry_(self, uvw, pgnum, verbose) result(dgn)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetPatternSymmetry_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! Determine the diffraction group number and optionally produce output
@@ -2759,14 +2779,14 @@ use mod_io
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg),INTENT(IN)            :: uvw(3)       
+integer(kind=irg),INTENT(IN)            :: uvw(3)
  !! zone axis indices
-integer(kind=irg),INTENT(IN)            :: pgnum        
+integer(kind=irg),INTENT(IN)            :: pgnum
  !! point group number
-logical,INTENT(IN),OPTIONAL             :: verbose      
+logical,INTENT(IN),OPTIONAL             :: verbose
  !! print output or not
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 integer(kind=irg)                       :: dgn          ! output diffraction group number
 integer(kind=irg)                       :: io_int(3)
 
@@ -2797,8 +2817,9 @@ end function GetPatternSymmetry_
 
 !--------------------------------------------------------------------------
 recursive function GetDiffractionGroup_(self, uvw, pgn) result(dgn)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetDiffractionGroup_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! get the diffraction group number for this zone axis orientation
@@ -2807,21 +2828,21 @@ recursive function GetDiffractionGroup_(self, uvw, pgn) result(dgn)
   !! This is a bit tricky and we want to do this as efficiently as possible...
   !! In this first version, let's compute the order of the family of directions
   !! and based on that and the PG number determine what the diffraction group is.
-  !! The data in this routine was painstakingly entered after staring at both the 
+  !! The data in this routine was painstakingly entered after staring at both the
   !! BESR table and the International Tables for Crystallography, point group section,
   !! Table 10.2.2.
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
 class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg),INTENT(IN)            :: uvw(3)                       
+integer(kind=irg),INTENT(IN)            :: uvw(3)
  !! zone axis indices
-integer(kind=irg),INTENT(IN)            :: pgn                          
+integer(kind=irg),INTENT(IN)            :: pgn
  !! point group number
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 real(kind=dbl),allocatable              :: kstar(:,:)                   ! star variable
 integer(kind=irg)                       :: ng                           ! number of members in star
 integer(kind=irg)                       :: auvw(3), mina, nz, i, s      ! abs(uvw), min(auvw), number of zeroes
@@ -2831,11 +2852,11 @@ logical                                 :: found
 ! compute the order of the family of directions (in direct space)
  call CalcStar_(self, dble(uvw), ng, kstar, 'd')
 
-! determine some parameters that might be useful in deciding the correct diffraction group symmetry 
+! determine some parameters that might be useful in deciding the correct diffraction group symmetry
  auvw = iabs(uvw)
  mina = minval(auvw)
  nz = 0   ! how many zeroes are there in the index symbol ?
- do i=1,3 
+ do i=1,3
    if (uvw(i).eq.0) nz = nz+1
  end do
 
@@ -2869,16 +2890,16 @@ select case (pgn)
              dgn = 18 !4RmmR
          case (12)
              if (mina.eq.0) then
-                dgn = 8 ! m1R 
-            else 
+                dgn = 8 ! m1R
+            else
                 dgn = 7 ! m
-            end if 
+            end if
          case (24)
              if (mina.eq.0) then
-                dgn = 6 ! mR 
-            else 
+                dgn = 6 ! mR
+            else
                 dgn = 1 ! 1
-            end if 
+            end if
          case default
             call Message%printMessage(' -> incorrect number of equivalent directions in point group '//PGTHD(pgn), frm = "(A)")
      end select
@@ -2887,7 +2908,7 @@ select case (pgn)
          case (6)
              dgn = 16 ! 4mRmR
          case (8)
-             dgn = 22 ! 3mR 
+             dgn = 22 ! 3mR
          case (12)
              dgn = 9  ! 2mRmR
          case (24)
@@ -2909,7 +2930,7 @@ select case (pgn)
          case (6)
              dgn = 12 ! 2mm1R
          case (8)
-             dgn = 21 ! 6R 
+             dgn = 21 ! 6R
          case (12)
              dgn = 11 ! 2RmmR
          case (24)
@@ -2922,7 +2943,7 @@ select case (pgn)
          case (4)
              dgn = 20 ! 3
          case (6)
-             dgn = 9  ! 2mRmR 
+             dgn = 9  ! 2mRmR
         case (12)
               if (mina.eq.0) then
                   dgn = 6 ! mR
@@ -2940,7 +2961,7 @@ select case (pgn)
          case (6)
              dgn = 12 ! 2mm1R
          case (12)
-             dgn = 11 ! 2RmmR 
+             dgn = 11 ! 2RmmR
         case (24)
              dgn = 4  ! 2R
          case default
@@ -2954,18 +2975,18 @@ select case (pgn)
              dgn = 10 ! 2mm
          case (6)
              if (auvw(3).ne.0) then
-                dgn = 7 ! m 
+                dgn = 7 ! m
             else  ! check if [11.0] is part of kstar
                 found = .FALSE.
                 do i=1,ng
                     s = sum( int(kstar(i,1:3)) - (/ 1, 1, 0 /) )
                     if (s.eq.0) found=.TRUE.
                 end do
-                if (found) then 
+                if (found) then
                     dgn = 8 ! m1R
                 else
                     dgn = 7 ! m
-                end if 
+                end if
             end if
         case (12)
              found = .FALSE.
@@ -2986,13 +3007,13 @@ select case (pgn)
          case (1)
              dgn = 29 ! 6mm
          case (6)
-             if (auvw(3).eq.0) then  
+             if (auvw(3).eq.0) then
                 dgn = 8 ! m1R
             else
                  dgn = 7 ! m
             end if
          case (12)
-             if (auvw(3).eq.0) then  
+             if (auvw(3).eq.0) then
                 dgn = 6 ! mR
             else
                  dgn = 1 ! 1
@@ -3017,7 +3038,7 @@ select case (pgn)
                 s = kstar(i,1)+kstar(i,2)
                 if (s.eq.0) found=.TRUE.
             end do
-             if (found) then  
+             if (found) then
                 dgn = 6 ! mR
             else
                  dgn = 1 ! 1
@@ -3031,7 +3052,7 @@ select case (pgn)
          case (2)
              dgn = 27 ! 61R
          case (6)
-             dgn = 11 ! 2RmmR 
+             dgn = 11 ! 2RmmR
          case (12)
             dgn = 4  ! 2R
          case default
@@ -3042,7 +3063,7 @@ select case (pgn)
          case (2)
              dgn = 26 ! 31R
          case (3)
-             dgn = 7  ! m 
+             dgn = 7  ! m
          case (6)
             dgn = 1  ! 1
          case default
@@ -3127,7 +3148,7 @@ select case (pgn)
          case (2)
              dgn = 21 ! 6R
          case (6)
-             dgn = 4  ! 2R 
+             dgn = 4  ! 2R
          case default
             call Message%printMessage(' -> incorrect number of equivalent directions in point group '//PGTHD(pgn), frm = "(A)")
      end select
@@ -3136,7 +3157,7 @@ select case (pgn)
          case (1)
              dgn = 20 ! 3
          case (3)
-             dgn = 1  ! 1 
+             dgn = 1  ! 1
          case default
             call Message%printMessage(' -> incorrect number of equivalent directions in point group '//PGTHD(pgn), frm = "(A)")
      end select
@@ -3146,7 +3167,7 @@ select case (pgn)
          case (2)
              dgn = 19 ! 4mm1R
          case (4)
-             dgn = 12 ! 2mm1R 
+             dgn = 12 ! 2mm1R
          case (8)
             dgn = 11 ! 2RmmR
          case (16)
@@ -3167,7 +3188,7 @@ select case (pgn)
                 else
                     dgn = 7 ! m
                 end if
-            end if 
+            end if
          case (8)
             if (nz.eq.1) then
                 dgn = 6 ! mR
@@ -3186,7 +3207,7 @@ select case (pgn)
                 dgn = 8 ! m1R
             else
                 dgn = 7 ! m
-            end if 
+            end if
          case (8)
             if (nz.eq.1) then
                 dgn = 6 ! mR
@@ -3229,11 +3250,11 @@ select case (pgn)
          case (2)
              dgn = 14 ! 4R
          case (4)
-            if (auvw(3).eq.0) then 
+            if (auvw(3).eq.0) then
                 dgn = 6 ! mR
             else
                 dgn = 1 ! 1
-            end if                
+            end if
          case default
             call Message%printMessage(' -> incorrect number of equivalent directions in point group '//PGTHD(pgn), frm = "(A)")
     end select
@@ -3242,11 +3263,11 @@ select case (pgn)
          case (1)
              dgn = 13 ! 4
          case (4)
-            if (auvw(3).eq.0) then 
+            if (auvw(3).eq.0) then
                 dgn = 6 ! mR
             else
                 dgn = 1 ! 1
-            end if                
+            end if
          case default
             call Message%printMessage(' -> incorrect number of equivalent directions in point group '//PGTHD(pgn), frm = "(A)")
     end select
@@ -3311,7 +3332,7 @@ select case (pgn)
  case (4) ! m
      select case (ng)
          case (1)
-            dgn = 7 ! m     
+            dgn = 7 ! m
          case (2)
             if (sum(iabs( uvw - (/0, 1, 0/) )).eq.0) then
                 dgn = 2 ! 1R

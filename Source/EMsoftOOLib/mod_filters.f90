@@ -2,33 +2,33 @@
 ! Copyright (c) 2016-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_filters
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/17/20
   !!
   !! various useful filters
@@ -38,7 +38,7 @@ use mod_global
 
 IMPLICIT NONE
 
-contains 
+contains
 
 !--------------------------------------------------------------------------
 !
@@ -46,16 +46,16 @@ contains
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief  apply a 2D Gaussian beam broadening kernel to the planes of a 3D array 
+!> @brief  apply a 2D Gaussian beam broadening kernel to the planes of a 3D array
 !
 !> @param ipar array dimensions
 !> @param fpar step sizes
 !> @param Vxyz counts array; will contain convolved array on exit
 !> @param w FWHM of Gaussian beam
-! 
+!
 !> @date 11/16/19 MDG 1.0 original
 !--------------------------------------------------------------------------
-recursive subroutine applyGaussianBeamSpread(ipar, fpar, Vxyz, w, verbose) 
+recursive subroutine applyGaussianBeamSpread(ipar, fpar, Vxyz, w, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: applyGaussianBeamSpread
 
 IMPLICIT NONE
@@ -63,7 +63,7 @@ IMPLICIT NONE
 integer(kind=irg),INTENT(IN)                :: ipar(3)
 real(kind=sgl),INTENT(IN)                   :: fpar(2)
 integer(kind=irg),INTENT(INOUT)             :: Vxyz(ipar(1),ipar(2),ipar(3))
-real(kind=dbl),INTENT(IN)                   :: w 
+real(kind=dbl),INTENT(IN)                   :: w
 logical,OPTIONAL,INTENT(IN)                 :: verbose
 
 real(kind=dbl)                              :: sigma, pre, x, y, bd
@@ -77,9 +77,9 @@ pre = 1.D0/(sigma**2*2.0*cPi)
 ! get the largest distance from the origin for the convolution kernel
 smax =  ceiling(2.5758*sigma) + 1  ! determined by requiring that kernel contains at least 98.5% of the Gaussian intensity
 
-if (present(verbose)) then 
-  if (verbose.eqv..TRUE.) write (*,*) 'w, sigma, pre, smax : ',w, sigma, pre, smax 
-end if 
+if (present(verbose)) then
+  if (verbose.eqv..TRUE.) write (*,*) 'w, sigma, pre, smax : ',w, sigma, pre, smax
+end if
 
 ! convert sigma to effective exponential argument
 sigma = 1.D0/(2.D0 * sigma*sigma)
@@ -87,33 +87,33 @@ sigma = 1.D0/(2.D0 * sigma*sigma)
 ! generate the Gaussian kernel
 allocate(gkernel(-smax:smax,-smax:smax))
 do ix = -smax, smax
-  x = (fpar(1) * ix)**2 
+  x = (fpar(1) * ix)**2
   do iy = -smax, smax
     y = (fpar(2) * iy)**2
     gkernel(ix,iy) = exp( -sigma * (x+y) )
   end do
-end do 
-gkernel = pre * gkernel 
+end do
+gkernel = pre * gkernel
 
-if (present(verbose)) then 
-  if (verbose.eqv..TRUE.) then 
-    do ix = -smax, smax 
-      write (*,*) gkernel(ix,-smax:smax) 
+if (present(verbose)) then
+  if (verbose.eqv..TRUE.) then
+    do ix = -smax, smax
+      write (*,*) gkernel(ix,-smax:smax)
     end do
     write (*,*) 'sum of all kernel elements : ', sum(gkernel) * fpar(1) * fpar(2)
   end if
-end if 
+end if
 
 ! generate the accumulator array accum; the nint version of this will be returned in Vxyz
 allocate(accum(ipar(1),ipar(2),ipar(3)))
 accum = 0.D0
 bd = 0.D0
 
-if (present(verbose)) then 
+if (present(verbose)) then
   if (verbose.eqv..TRUE.) write(*,*) shape(Vxyz), shape(accum)
 end if
 
-! loop over x and y range and add the weighted eoshift() array to the accumulator 
+! loop over x and y range and add the weighted eoshift() array to the accumulator
 ! we begin by eoshifting the input array to row -smax
 allocate(V(ipar(1),ipar(2),ipar(3)))
 V = dble(Vxyz)
@@ -123,9 +123,9 @@ do ix = 1,2*smax+1
   do iy = -smax, smax
     accum = accum + gkernel(ix-1-smax,iy) * eoshift(V, shift = iy, boundary = bd, dim=2)
   end do
-! go to the next row 
+! go to the next row
   if (ix.lt.2*smax+1) V = eoshift(V, shift=1, boundary=bd, dim=1)
-end do 
+end do
 
 ! and copy the accumulator array into the input array as nearest integers
 Vxyz = nint( accum * fpar(1) * fpar(2) )
@@ -144,7 +144,7 @@ end subroutine applyGaussianBeamSpread
 ! !> @param nx x dimension
 ! !> @param ny y dimension
 ! !> @param im image array; must have values in range [1..256]
-! ! 
+! !
 ! !> @date 03/23/18 MDG 1.0 original
 ! !--------------------------------------------------------------------------
 ! recursive function applyPoissonNoise(image, nx, ny, idum) result(noisy)
@@ -163,29 +163,29 @@ end subroutine applyGaussianBeamSpread
 ! !f2py intent(in,out) ::  idum
 ! real(kind=sgl)                  :: noisy(nx, ny)
 
-! integer(kind=irg)               :: i, j  
-! real(kind=sgl)                  :: av, mult, invmult 
+! integer(kind=irg)               :: i, j
+! real(kind=sgl)                  :: av, mult, invmult
 
 ! do i=1, nx
 !   do j=1, ny
 !     noisy(i,j) = POIDEV(image(i,j),idum)
-!   end do 
+!   end do
 ! end do
 
 ! end function applyPoissonNoise
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: image_histogram 
+! FUNCTION: image_histogram
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief  compute the histogram of an image 
+!> @brief  compute the histogram of an image
 !
 !> @param nx x dimension
 !> @param ny y dimension
 !> @param im image array; must have values in range [1..256]
-! 
+!
 !> @date 01/23/16 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function image_histogram( nx, ny, im ) result(h)
@@ -201,7 +201,7 @@ integer(kind=irg)               :: h(256)
 integer(kind=irg),parameter     :: nh = 256
 integer(kind=irg)               :: i, j
 
-! initialize parameters 
+! initialize parameters
 h = 0
 
 do i=1,nx
@@ -215,17 +215,17 @@ end function image_histogram
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: image_jointhistogram 
+! FUNCTION: image_jointhistogram
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief  compute the joint histogram of two images 
+!> @brief  compute the joint histogram of two images
 !
 !> @param nx x dimension
 !> @param ny y dimension
 !> @param im1 image array; must have values in range [1..256]
 !> @param im2 image array; must have values in range [1..256]
-! 
+!
 !> @date 04/23/17 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function image_jointhistogram( nx, ny, im1, im2 ) result(h)
@@ -242,7 +242,7 @@ integer(kind=irg)               :: h(256,256)
 integer(kind=irg),parameter     :: nh = 256
 integer(kind=irg)               :: i, j
 
-! initialize parameters 
+! initialize parameters
 h = 0
 
 do i=1,nx
@@ -255,16 +255,16 @@ end function image_jointhistogram
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: cumul_histogram 
+! FUNCTION: cumul_histogram
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief  compute the cumulative histogram of an image 
+!> @brief  compute the cumulative histogram of an image
 !
 !> @param nx x dimension
 !> @param ny y dimension
 !> @param im image array; must have values in range [1..256]
-! 
+!
 !> @date 01/23/16 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function cumul_histogram( nx, ny, im ) result(h)
@@ -288,7 +288,7 @@ h = image_histogram( nx, ny, im )
 
 ! if all the intensities equal 0, then we need to return a zero cumulative
 ! histogram.
-if (h(1).eq.np) then 
+if (h(1).eq.np) then
   h = 0
   return
 end if
@@ -297,7 +297,7 @@ end if
 ! all intensity is in a single bin.  In that case, the cumulative histogram
 ! will be a step function and the usual noramlization to [1..256] will
 ! not work
-if (maxval(h).eq.np) then 
+if (maxval(h).eq.np) then
   nploc = maxloc(h)
   hst(1:nploc(1)-1) = h(1)
   hst(nploc(1):nh) = 256
@@ -322,10 +322,10 @@ end function cumul_histogram
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief  compute the Shannon entropy of an image 
+!> @brief  compute the Shannon entropy of an image
 !
 !> @param h a 256 element intensity histogram
-! 
+!
 !> @date 04/23/17 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function image_entropy( h ) result(e)
@@ -340,7 +340,7 @@ integer(kind=irg),parameter     :: nh = 256
 integer(kind=irg)               :: i, j
 real(kind=sgl)                  :: hnorm(256)
 
-! initialize parameters 
+! initialize parameters
 hnorm = float(h)
 
 ! normalize the histogram
@@ -361,10 +361,10 @@ end function image_entropy
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief  compute the Shannon joint entropy of two images 
+!> @brief  compute the Shannon joint entropy of two images
 !
 !> @param h a 256x256 element intensity joint histogram
-! 
+!
 !> @date 04/23/17 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function image_jointentropy( h ) result(e)
@@ -379,7 +379,7 @@ integer(kind=irg),parameter     :: nh = 256
 integer(kind=irg)               :: i, j
 real(kind=sgl)                  :: hnorm(256,256)
 
-! initialize parameters 
+! initialize parameters
 hnorm = float(h)
 
 ! normalize the histogram
@@ -402,12 +402,12 @@ end function image_jointentropy
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief  compute the mutual information of two images 
+!> @brief  compute the mutual information of two images
 !
 !> @param nx x dimension
 !> @param ny y dimension
-!> @param im image array; must have values in range [1..256] 
-! 
+!> @param im image array; must have values in range [1..256]
+!
 !> @date 04/23/17 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function image_mutualinformation( nx, ny, im1, im2 ) result(mi)
@@ -435,21 +435,21 @@ end function image_mutualinformation
 
 !--------------------------------------------------------------------------
 !
-! FUNCTION: adhisteq 
+! FUNCTION: adhisteq
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief  adaptive histogram equalization
 !
-!> @details This algorithm is based on the original paper by Pizer et al., 
-!> "Adaptive Histogram Equalization and its Variations", Computer Vision, 
-!> Graphics, and Image Processing, 39:355-368, 1987.  
+!> @details This algorithm is based on the original paper by Pizer et al.,
+!> "Adaptive Histogram Equalization and its Variations", Computer Vision,
+!> Graphics, and Image Processing, 39:355-368, 1987.
 !
 !> @param nr number of subregions to split the image into [10 works well]
 !> @param dimx x dimension
 !> @param dimy y dimension
 !> @param im image array; must have integer values in range [0..255]
-! 
+!
 !> @date 01/23/16 MDG 1.0 original
 !> @date 01/27/16 MDG 1.1 correction of off-by-one error in final array copy
 !--------------------------------------------------------------------------
@@ -468,11 +468,10 @@ integer(kind=irg)               :: output(dimx,dimy)
 integer(kind=irg)               :: ts, hts, ntx, nty, i, j, i1, i2, ir, ic, istop, jstop, ix0, iy0, Tvalx, Tvaly
 integer(kind=irg),parameter     :: nh=256
 integer(kind=irg),allocatable   :: subim(:,:)
-real(kind=sgl),allocatable      :: tmp(:), tintx(:,:), tinty(:,:), LL(:,:), LR(:,:), UL(:,:), UR(:,:) 
+real(kind=sgl),allocatable      :: tmp(:), tintx(:,:), tinty(:,:), LL(:,:), LR(:,:), UL(:,:), UR(:,:)
 integer(kind=irg),allocatable   :: chistarr(:,:,:)
 
 if (PRESENT(verbose)) write(*,*) minval(im),maxval(im)
-
 output = 0
 
 ! determine integer parameters
@@ -506,7 +505,7 @@ do ir = 1, nty+1
     do ic = 1, ntx
 ! set the sub image array limits
       ix0 = (ic-1)*hts+1
-      istop = minval( (/ix0+ts-1, dimx /) ) 
+      istop = minval( (/ix0+ts-1, dimx /) )
       Tvalx = ts
       if (istop.eq.dimx) Tvalx = istop-ix0 + 1
       iy0 = (ir-1)*hts+1
@@ -520,7 +519,9 @@ do ir = 1, nty+1
       subim = 0
       subim(1:Tvalx,1:Tvaly) = im(ix0:istop, iy0:jstop)  + 1
 !if (PRESENT(verbose)) write (*,*) 'subim : ',minval(subim),maxval(subim)
+
       chistarr(1:nh,ic,2) = cumul_histogram( Tvalx, Tvaly, subim )
+
       deallocate(subim)
     end do
   end if
@@ -537,7 +538,7 @@ do ir = 1, nty+1
   do ic = 1, ntx+1
 ! set the sub image array limits (different from above!)
     ix0 = (ic-1)*hts+1
-    istop = minval( (/ix0+hts-1, dimx /) ) 
+    istop = minval( (/ix0+hts-1, dimx /) )
     Tvalx = hts
     if (istop.eq.dimx) Tvalx = istop-ix0 + 1
     iy0 = (ir-1)*hts+1
@@ -567,12 +568,12 @@ do ir = 1, nty+1
     end do
 
 ! perform the interpolation along x
-    LL = LL + (LR-LL) * tintx(1:Tvalx,1:Tvaly) 
+    LL = LL + (LR-LL) * tintx(1:Tvalx,1:Tvaly)
     UL = UL + (UR-UL) * tintx(1:Tvalx,1:Tvaly)
 ! and interpolate along y; store the result in the output array
     output(ix0:istop,iy0:jstop) = int(LL + (UL-LL) * tinty(1:Tvalx,1:Tvaly))
 
-! deallocate the arrays 
+! deallocate the arrays
     deallocate(subim, LL, LR, UL, UR)
   end do
 end do
@@ -759,10 +760,10 @@ end subroutine getADPmapRAM
 !
 !> @param dimx x dimension
 !> @param LUT look-up table, allocated in calling program
-! 
+!
 !> @date 02/02/16 MDG 1.0 original
 !--------------------------------------------------------------------------
-recursive subroutine CalcHoughLUT( dimx, LUT ) 
+recursive subroutine CalcHoughLUT( dimx, LUT )
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcHoughLUT
 
 IMPLICIT NONE
@@ -791,14 +792,14 @@ do j = 1,dimx
   y = float(j)-d2
   do i = 1,dimx
     x = float(i)-d2
-    LUT(icnt,:) = nint(x*ct(:)+y*st(:)) 
+    LUT(icnt,:) = nint(x*ct(:)+y*st(:))
     icnt = icnt + 1
   end do
 end do
 
 LUT = LUT + dimx/2 + 1
 
-! this is here just so the ped indexing program can be tested out. 
+! this is here just so the ped indexing program can be tested out.
 ! the out of bounds error in the main chunk of the program should be corrected
 
 do i = 1,dimx*dimx
@@ -822,10 +823,10 @@ end subroutine CalcHoughLUT
 !> @param LUT look-up table from CalcHoughLUT
 !> @param im image array (must be mean-subtracted)
 !> @param HT resulting Hough transform array
-! 
+!
 !> @date 02/02/16 MDG 1.0 original
 !--------------------------------------------------------------------------
-recursive subroutine HoughTransform( dimx, LUT, im, HT ) 
+recursive subroutine HoughTransform( dimx, LUT, im, HT )
 !DEC$ ATTRIBUTES DLLEXPORT :: HoughTransform
 
 IMPLICIT NONE
@@ -864,7 +865,7 @@ end subroutine HoughTransform
 !> @param w width of Gaussian profile
 !> @param init (optional) initialize without computing anything
 !> @param destroy (optional) destroy fft plans
-! 
+!
 !> @date 02/02/16 MDG 1.0 original
 !> @date 06/03/16 MDG 1.1 modified mask to inverted Gaussian profile; added init optional parameter
 !--------------------------------------------------------------------------
@@ -909,7 +910,7 @@ if (present(init)) then
     allocate(hpmask(dims(1),dims(2)), inp(dims(1),dims(2)), outp(dims(1),dims(2)))
 
 ! generate the complex inverted Gaussian mask; w = 0.05 produces good results (usually)
-  do i=1,dims(1)/2 
+  do i=1,dims(1)/2
     x = dble(i)**2
     do j=1,dims(2)/2
       y = dble(j)**2
@@ -939,12 +940,12 @@ end if
 ! apply the hi-pass mask to rdata
 do j=1,dims(1)
  do k=1,dims(2)
-  inp(j,k) = cmplx(rdata(j,k),0.D0)    
+  inp(j,k) = cmplx(rdata(j,k),0.D0)
  end do
 end do
 call fftw_execute_dft(planf, inp, outp)
 inp = outp * hpmask
-call fftw_execute_dft(planb, inp, outp) 
+call fftw_execute_dft(planb, inp, outp)
 fdata(1:dims(1),1:dims(2)) = real(outp)
 
 call fftw_cleanup()
@@ -964,12 +965,12 @@ end function HiPassFilter
 !> @param w width of Gaussian profile
 !> @param init (optional) initialize without computing anything
 !> @param destroy (optional) destroy fft plans
-! 
+!
 !> @date 02/02/16 MDG 1.0 original
 !> @date 06/03/16 MDG 1.1 modified mask to inverted Gaussian profile; added init optional parameter
 !> @date 01/11/18 MDG 1.2 split routine from original to allow for OpenMP access
 !--------------------------------------------------------------------------
-recursive subroutine init_HiPassFilter(w, dims, hpmask, inp, outp, planf, planb) 
+recursive subroutine init_HiPassFilter(w, dims, hpmask, inp, outp, planf, planb)
 !DEC$ ATTRIBUTES DLLEXPORT :: init_HiPassFilter
 
 use mod_FFTW3
@@ -991,7 +992,7 @@ real(kind=dbl)                          :: x, y, val, v2
 hpmask = cmplx(1.D0,0.D0)
 
 ! generate the complex inverted Gaussian mask; w = 0.05 produces good results (usually)
-do i=1,dims(1)/2 
+do i=1,dims(1)/2
   x = dble(i)**2
   do j=1,dims(2)/2
     y = dble(j)**2
@@ -1025,7 +1026,7 @@ end subroutine init_HiPassFilter
 !> @param rdata real data to be transformed
 !> @param dims dimensions of rdata array
 !> @param w width of Gaussian profile
-! 
+!
 !> @date 02/02/16 MDG 1.0 original
 !> @date 06/03/16 MDG 1.1 modified mask to inverted Gaussian profile
 !> @date 01/11/18 MDG 1.2 split routine from original to allow for OpenMP access
@@ -1053,12 +1054,12 @@ real(kind=dbl)                          :: x, y, val
 ! apply the hi-pass mask to rdata
 do j=1,dims(1)
  do k=1,dims(2)
-  inp(j,k) = cmplx(rdata(j,k),0.D0)    
+  inp(j,k) = cmplx(rdata(j,k),0.D0)
  end do
 end do
 call fftw_execute_dft(planf, inp, outp)
 inp = outp * hpmask
-call fftw_execute_dft(planb, inp, outp) 
+call fftw_execute_dft(planb, inp, outp)
 fdata(1:dims(1),1:dims(2)) = real(outp)
 
 call fftw_cleanup()
@@ -1079,7 +1080,7 @@ end function applyHiPassFilter
 ! !> @param init initialize without computing anything
 ! !> @param destroy destroy fft plans
 ! !> @param fdata output data
-! ! 
+! !
 ! !> @date 05/17/17 MDG 1.0 original, taken from regular routine above
 ! !--------------------------------------------------------------------------
 ! recursive subroutine HiPassFilterC(rdata,dims,w,init,destroy,fdata) bind(c, name='HiPassFilterC')
@@ -1120,7 +1121,7 @@ end function applyHiPassFilter
 !     allocate(hpmask(dims(1),dims(2)), inp(dims(1),dims(2)), outp(dims(1),dims(2)))
 
 ! ! generate the complex inverted Gaussian mask; w = 0.05 produces good results (usually)
-!     do i=1,dims(1)/2 
+!     do i=1,dims(1)/2
 !       x = float(i)
 !       do j=1,dims(2)/2
 !         y = float(j)
@@ -1145,12 +1146,12 @@ end function applyHiPassFilter
 ! if ((destroy.eqv..FALSE.).and.(init.eqv..FALSE.)) then
 !   do j=1,dims(1)
 !    do k=1,dims(2)
-!     inp(j,k) = cmplx(rdata(j,k),0.D0)    
+!     inp(j,k) = cmplx(rdata(j,k),0.D0)
 !    end do
 !   end do
 !   call fftw_execute_dft(planf, inp, outp)
 !   inp = outp * hpmask
-!   call fftw_execute_dft(planb, inp, outp) 
+!   call fftw_execute_dft(planb, inp, outp)
 !   fdata(1:dims(1),1:dims(2)) = real(outp)
 ! endif
 
@@ -1169,7 +1170,7 @@ end function applyHiPassFilter
 !> @param input input image
 !> @param output output image
 !> @param dims dimension of these images
-! 
+!
 !> @date 12/06/16 SS 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine ButterflyMask9x9(input, output, dims)
@@ -1202,7 +1203,7 @@ do ii = 1,dims
             do ll = -4,4
                 output(ii,jj) = output(ii,jj) + inputpadded(ii+kk,jj+ll)*Butterfly9x9((kk+4)*9+ll+5)
             end do
-        end do                
+        end do
     end do
 end do
 
@@ -1216,12 +1217,12 @@ end subroutine ButterflyMask9x9
 !
 !> @author Saransh Singh, Carnegie Mellon University
 !
-!> @brief Inversion division operation to enhance contrast of hough image 
+!> @brief Inversion division operation to enhance contrast of hough image
 !
 !> @param input input image; must be between 0-1
 !> @param output output image
 !> @param dims dimension of these image
-! 
+!
 !> @date 12/06/16 SS 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine InversionDivision(input, output, dims)

@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_DIpreview
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 04/08/20
   !!
   !! class definition for the EMDIpreview program
@@ -36,7 +36,7 @@ module mod_DIpreview
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMDIpreview program
 type, public :: DIpreviewNameListType
@@ -61,12 +61,12 @@ end type DIpreviewNameListType
 
 ! class definition
 type, public :: DIpreview_T
-private 
+private
   character(fnlen)       :: nmldeffile = 'EMDIpreview.nml'
-  type(DIpreviewNameListType)  :: nml 
+  type(DIpreviewNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: DIpreview_
@@ -142,48 +142,10 @@ private
   generic, public :: set_exptfile => set_exptfile_
   generic, public :: set_inputtype => set_inputtype_
   generic, public :: set_HDFstrings => set_HDFstrings_
- 
+
 end type DIpreview_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
-!DEC$ ATTRIBUTES DLLEXPORT :: DIpreview
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numsx
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numsx
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numsy
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numsy
-!DEC$ ATTRIBUTES DLLEXPORT :: get_hipasswnsteps
-!DEC$ ATTRIBUTES DLLEXPORT :: set_hipasswnsteps
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nregionsmin
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nregionsmin
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nregionsmax
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nregionsmax
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nregionsstepsize
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nregionsstepsize
-!DEC$ ATTRIBUTES DLLEXPORT :: get_patx
-!DEC$ ATTRIBUTES DLLEXPORT :: set_patx
-!DEC$ ATTRIBUTES DLLEXPORT :: get_paty
-!DEC$ ATTRIBUTES DLLEXPORT :: set_paty
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_wd
-!DEC$ ATTRIBUTES DLLEXPORT :: set_ipf_wd
-!DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_ht
-!DEC$ ATTRIBUTES DLLEXPORT :: set_ipf_ht
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numav
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numav
-!DEC$ ATTRIBUTES DLLEXPORT :: get_hipasswmax
-!DEC$ ATTRIBUTES DLLEXPORT :: set_hipasswmax
-!DEC$ ATTRIBUTES DLLEXPORT :: get_patternfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_patternfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_tifffile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_tifffile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_exptfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_exptfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_inputtype
-!DEC$ ATTRIBUTES DLLEXPORT :: set_inputtype
-!DEC$ ATTRIBUTES DLLEXPORT :: get_HDFstrings
-!DEC$ ATTRIBUTES DLLEXPORT :: set_HDFstrings
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface DIpreview_T
   module procedure DIpreview_constructor
 end interface DIpreview_T
@@ -192,31 +154,33 @@ contains
 
 !--------------------------------------------------------------------------
 type(DIpreview_T) function DIpreview_constructor( nmlfile ) result(DIpreview)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DIpreview_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
-!! constructor for the DIpreview_T Class; reads the name list 
- 
+!! constructor for the DIpreview_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call DIpreview%readNameList(nmlfile)
 
 end function DIpreview_constructor
 
 !--------------------------------------------------------------------------
-subroutine DIpreview_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine DIpreview_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: DIpreview_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! destructor for the DIpreview_T Class
- 
+
 IMPLICIT NONE
 
-type(DIpreview_T), INTENT(INOUT)  :: self 
+type(DIpreview_T), INTENT(INOUT)  :: self
 
 call reportDestructor('DIpreview_T')
 
@@ -224,25 +188,26 @@ end subroutine DIpreview_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
-!! read the namelist from an nml file for the DIpreview_T Class 
+!! read the namelist from an nml file for the DIpreview_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)          :: self
 character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
+type(EMsoft_T)                       :: EMsoft
+type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 
@@ -298,7 +263,7 @@ if (.not.skipread) then
     close(UNIT=dataunit,STATUS='keep')
 
 ! check for required entries
-        
+
     if (trim(exptfile).eq.'undefined') then
         call Message%printError('readNameList:',' experimental file name is undefined in '//nmlfile)
     end if
@@ -307,11 +272,11 @@ if (.not.skipread) then
         call Message%printError('readNameList:',' TIFF file name is undefined in '//nmlfile)
     end if
 
-    if (numsx.eq.0) then 
+    if (numsx.eq.0) then
         call Message%printError('readNameList:',' pattern size numsx is zero in '//nmlfile)
     end if
 
-    if (numsy.eq.0) then 
+    if (numsy.eq.0) then
         call Message%printError('readNameList:',' pattern size numsy is zero in '//nmlfile)
     end if
 end if
@@ -338,13 +303,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! pass the namelist for the DIpreview_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)          :: self
 type(DIpreviewNameListType)                :: nml
@@ -356,13 +322,14 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 function get_numsx_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numsx_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get numsx from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -373,13 +340,14 @@ end function get_numsx_
 
 !--------------------------------------------------------------------------
 subroutine set_numsx_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numsx_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set numsx in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -390,13 +358,14 @@ end subroutine set_numsx_
 
 !--------------------------------------------------------------------------
 function get_numsy_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numsy_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get numsy from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -407,13 +376,14 @@ end function get_numsy_
 
 !--------------------------------------------------------------------------
 subroutine set_numsy_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numsy_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set numsy in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -424,13 +394,14 @@ end subroutine set_numsy_
 
 !--------------------------------------------------------------------------
 function get_hipasswnsteps_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_hipasswnsteps_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get hipasswnsteps from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -441,13 +412,14 @@ end function get_hipasswnsteps_
 
 !--------------------------------------------------------------------------
 subroutine set_hipasswnsteps_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_hipasswnsteps_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set hipasswnsteps in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -458,13 +430,14 @@ end subroutine set_hipasswnsteps_
 
 !--------------------------------------------------------------------------
 function get_nregionsmin_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nregionsmin_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get nregionsmin from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -475,13 +448,14 @@ end function get_nregionsmin_
 
 !--------------------------------------------------------------------------
 subroutine set_nregionsmin_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nregionsmin_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set nregionsmin in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -492,13 +466,14 @@ end subroutine set_nregionsmin_
 
 !--------------------------------------------------------------------------
 function get_nregionsmax_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nregionsmax_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get nregionsmax from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -509,13 +484,14 @@ end function get_nregionsmax_
 
 !--------------------------------------------------------------------------
 subroutine set_nregionsmax_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nregionsmax_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set nregionsmax in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -526,13 +502,14 @@ end subroutine set_nregionsmax_
 
 !--------------------------------------------------------------------------
 function get_nregionsstepsize_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nregionsstepsize_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get nregionsstepsize from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -543,13 +520,14 @@ end function get_nregionsstepsize_
 
 !--------------------------------------------------------------------------
 subroutine set_nregionsstepsize_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nregionsstepsize_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set nregionsstepsize in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -560,13 +538,14 @@ end subroutine set_nregionsstepsize_
 
 !--------------------------------------------------------------------------
 function get_patx_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_patx_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get patx from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -577,13 +556,14 @@ end function get_patx_
 
 !--------------------------------------------------------------------------
 subroutine set_patx_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_patx_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set patx in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -594,13 +574,14 @@ end subroutine set_patx_
 
 !--------------------------------------------------------------------------
 function get_paty_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_paty_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get paty from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -611,13 +592,14 @@ end function get_paty_
 
 !--------------------------------------------------------------------------
 subroutine set_paty_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_paty_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set paty in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -628,13 +610,14 @@ end subroutine set_paty_
 
 !--------------------------------------------------------------------------
 function get_ipf_wd_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_wd_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get ipf_wd from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -645,13 +628,14 @@ end function get_ipf_wd_
 
 !--------------------------------------------------------------------------
 subroutine set_ipf_wd_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ipf_wd_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set ipf_wd in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -662,13 +646,14 @@ end subroutine set_ipf_wd_
 
 !--------------------------------------------------------------------------
 function get_ipf_ht_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_ht_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get ipf_ht from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -679,13 +664,14 @@ end function get_ipf_ht_
 
 !--------------------------------------------------------------------------
 subroutine set_ipf_ht_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ipf_ht_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set ipf_ht in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -696,13 +682,14 @@ end subroutine set_ipf_ht_
 
 !--------------------------------------------------------------------------
 function get_numav_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numav_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get numav from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg)                     :: out
@@ -713,13 +700,14 @@ end function get_numav_
 
 !--------------------------------------------------------------------------
 subroutine set_numav_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numav_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set numav in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)         :: inp
@@ -730,13 +718,14 @@ end subroutine set_numav_
 
 !--------------------------------------------------------------------------
 function get_hipasswmax_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_hipasswmax_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get hipasswmax from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 real(kind=sgl)                        :: out
@@ -747,13 +736,14 @@ end function get_hipasswmax_
 
 !--------------------------------------------------------------------------
 subroutine set_hipasswmax_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_hipasswmax_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set hipasswmax in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)            :: inp
@@ -764,13 +754,14 @@ end subroutine set_hipasswmax_
 
 !--------------------------------------------------------------------------
 function get_patternfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_patternfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get patternfile from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -781,13 +772,14 @@ end function get_patternfile_
 
 !--------------------------------------------------------------------------
 subroutine set_patternfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_patternfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set patternfile in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -798,13 +790,14 @@ end subroutine set_patternfile_
 
 !--------------------------------------------------------------------------
 function get_tifffile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_tifffile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get tifffile from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -815,13 +808,14 @@ end function get_tifffile_
 
 !--------------------------------------------------------------------------
 subroutine set_tifffile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_tifffile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set tifffile in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -832,13 +826,14 @@ end subroutine set_tifffile_
 
 !--------------------------------------------------------------------------
 function get_exptfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_exptfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get exptfile from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -849,13 +844,14 @@ end function get_exptfile_
 
 !--------------------------------------------------------------------------
 subroutine set_exptfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_exptfile_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set exptfile in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -866,13 +862,14 @@ end subroutine set_exptfile_
 
 !--------------------------------------------------------------------------
 function get_inputtype_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_inputtype_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get inputtype from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out
@@ -883,13 +880,14 @@ end function get_inputtype_
 
 !--------------------------------------------------------------------------
 subroutine set_inputtype_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_inputtype_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set inputtype in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp
@@ -900,13 +898,14 @@ end subroutine set_inputtype_
 
 !--------------------------------------------------------------------------
 function get_HDFstrings_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_HDFstrings_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! get HDFstrings from the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen)                      :: out(10)
@@ -917,13 +916,14 @@ end function get_HDFstrings_
 
 !--------------------------------------------------------------------------
 subroutine set_HDFstrings_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_HDFstrings_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! set HDFstrings in the DIpreview_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)          :: inp(10)
@@ -934,8 +934,9 @@ end subroutine set_HDFstrings_
 
 !--------------------------------------------------------------------------
 subroutine DIpreview_(self, EMsoft, progname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DIpreview_
+!! author: MDG
+!! version: 1.0
 !! date: 04/08/20
 !!
 !! perform the computations
@@ -949,15 +950,15 @@ use mod_vendors
 use HDF5
 use mod_HDFsupport
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(DIpreview_T), INTENT(INOUT)       :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+character(fnlen), INTENT(INOUT)         :: progname
 
-type(Vendor_T)                          :: VT 
+type(Vendor_T)                          :: VT
 type(IO_T)                              :: Message
-type(HDF_T)                             :: HDF 
+type(HDF_T)                             :: HDF
 
 character(fnlen)                        :: ename, image_filename, fname
 integer(kind=irg)                       :: iunitexpt, recordsize, ierr, kk, ii, jj, i, j, numr, numw, binx, biny, &
@@ -995,9 +996,9 @@ recordsize = 4 * L
 patsz = L
 
 ! open the file with experimental patterns; depending on the inputtype parameter, this
-! can be a regular binary file, as produced by a MatLab or IDL script (default); a 
-! pattern file produced by EMEBSD.f90; or a vendor binary or HDF5 file... in each case we need to 
-! open the file and leave it open, then use the getSingleExpPattern() routine to read a 
+! can be a regular binary file, as produced by a MatLab or IDL script (default); a
+! pattern file produced by EMEBSD.f90; or a vendor binary or HDF5 file... in each case we need to
+! open the file and leave it open, then use the getSingleExpPattern() routine to read a
 ! pattern into the expt variable ...  at the end, we use closeExpPatternFile() to
 ! properly close the experimental pattern file
 VT = Vendor_T(enl%inputtype)
@@ -1017,7 +1018,7 @@ if (enl%numav.ge.0) then
   call Message%WriteValue(' Averaging patterns over ', io_int, 2, "(I3,' by ',I3,' area')")
   allocate(sumexpt(patsz))
   sumexpt = 0.0
-  jj = 0 
+  jj = 0
   do i=-enl%numav,enl%numav
     if ((enl%patx+i.gt.0).and.(enl%patx+i.lt.enl%ipf_wd)) then
       do j=-enl%numav,enl%numav
@@ -1026,9 +1027,9 @@ if (enl%numav.ge.0) then
           call VT%getSingleExpPattern(enl%paty, enl%ipf_wd, patsz, L, dims3, offset3, expt, enl%HDFstrings, HDF)
           sumexpt = sumexpt + expt
           jj = jj+1
-        end if 
-      end do 
-    end if 
+        end if
+      end do
+    end if
   end do
   sumexpt = sumexpt / float(jj)
 end if
@@ -1040,12 +1041,12 @@ call VT%getSingleExpPattern(enl%paty, enl%ipf_wd, patsz, L, dims3, offset3, expt
 ! and close the pattern file
 call VT%closeExpPatternFile(HDF)
 
-io_real(1) = maxval(expt) 
+io_real(1) = maxval(expt)
 call Message%WriteValue('maximum intensity in pattern ',io_real,1)
 
 ! turn it into a 2D pattern
 allocate(pattern(binx, biny), pcopy(binx, biny), pint(binx,biny), ppp(binx,biny), stat=ierr)
-if (enl%numav.gt.0) then 
+if (enl%numav.gt.0) then
   do kk=1,biny
     pcopy(1:binx,kk) = sumexpt((kk-1)*binx+1:kk*binx)
   end do
@@ -1079,9 +1080,9 @@ if (trim(enl%patternfile).ne.'undefined') then
   call im%write(trim(image_filename), iostat, iomsg) ! format automatically detected from extension
   if(0.ne.iostat) then
     call Message%printMessage("failed to write image to file : "//iomsg)
-  else  
+  else
     call Message%printMessage('  Selected pattern written to '//trim(image_filename))
-  end if 
+  end if
   deallocate(output_image)
 end if
 
@@ -1108,7 +1109,7 @@ allocate(hpmask(binx,biny),inp(binx,biny),outp(binx,biny),stat=istat)
 if (istat .ne. 0) stop 'could not allocate hpmask, inp, outp arrays'
 allocate(rrdata(binx,biny),ffdata(binx,biny),stat=istat)
 if (istat .ne. 0) stop 'could not allocate rrdata, ffdata arrays'
-call init_HiPassFilter(dble(hpvals(1)), (/enl%numsx, enl%numsy /), hpmask, inp, outp, HPplanf, HPplanb) 
+call init_HiPassFilter(dble(hpvals(1)), (/enl%numsx, enl%numsy /), hpmask, inp, outp, HPplanf, HPplanb)
 
 ! the outer loop goes over the hipass filter width and is displayed horizontally in the final image
 do ii=1,numw
@@ -1129,7 +1130,7 @@ do ii=1,numw
             ppp = pint
         else
             ppp = adhisteq(nrvals(jj),binx,biny,pint)
-        end if 
+        end if
 
 ! and store the pattern in the correct spot in the output_image array (flipped upside down !!!)
         yoffset =  (numr-jj) * biny + 1
@@ -1142,7 +1143,7 @@ do ii=1,numw
 
 ! regenerate the complex inverted Gaussian mask with the next value of the mask width
     hpmask = cmplx(1.D0,0.D0)
-    do i=1,binx/2 
+    do i=1,binx/2
       x = dble(i)**2
       do j=1,biny/2
         y = dble(j)**2
@@ -1166,9 +1167,9 @@ if(im2%empty()) call Message%printMessage("DIpreview","failed to convert array t
 call im2%write(trim(image_filename), iostat, iomsg) ! format automatically detected from extension
 if(0.ne.iostat) then
   call Message%printMessage(" Failed to write image to file : "//iomsg)
-else  
+else
   call Message%printMessage('  Preprocessed pattern array written to '//trim(image_filename))
-end if 
+end if
 deallocate(output_image)
 
 call Message%printMessage('')

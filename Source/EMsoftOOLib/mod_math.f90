@@ -2,27 +2,27 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
@@ -35,7 +35,7 @@
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief collection of mathematical/numerical routines that don't fit anywhere else
-! 
+!
 !> @date 10/13/98 MDG 1.0 original
 !> @date 05/19/01 MDG 2.0 f90
 !> @date 11/27/01 MDG 2.1 added kind support
@@ -49,11 +49,11 @@
 !> @date 11/01/19 MDG 4.6 adds Jaccard_Distance routine (moved from Indexingmod)
 !--------------------------------------------------------------------------
 ! ###################################################################
-!  
+!
 
 module mod_math
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! collection of mathematical/numerical routines that don't fit anywhere else (no classes, just routines)
@@ -71,12 +71,12 @@ end interface
 interface cross3
         module procedure cross3
         module procedure cross3_d
-end interface 
+end interface
 
 interface vecnorm
-        module procedure vecnorm 
+        module procedure vecnorm
         module procedure vecnorm_d
-        module procedure vecnorm2 
+        module procedure vecnorm2
         module procedure vecnorm2_d
 end interface
 
@@ -84,8 +84,9 @@ contains
 
 !--------------------------------------------------------------------------
 recursive function vecnorm(vec) result(veclen)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: vecnorm
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! return the single precision length of a 1D vector
@@ -103,8 +104,9 @@ end function vecnorm
 
 !--------------------------------------------------------------------------
 recursive function vecnorm_d(vec) result(veclen)
-  !! author: MDG 
-  !! version: 1.0 
+  !DEC$ ATTRIBUTES DLLEXPORT :: vecnorm_d
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! return the double precision length of a 1D vector
@@ -122,8 +124,9 @@ end function vecnorm_d
 
 !--------------------------------------------------------------------------
 recursive function vecnorm2(vec) result(veclen)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: vecnorm2
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! return the single precision length of a 2D array
@@ -141,8 +144,9 @@ end function vecnorm2
 
 !--------------------------------------------------------------------------
 recursive function vecnorm2_d(vec) result(veclen)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: vecnorm2_d
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! return the double precision length of a 2D array
@@ -160,14 +164,15 @@ end function vecnorm2_d
 
 !--------------------------------------------------------------------------
 recursive function infty() result(infinity)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: infty
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! return the single precision IEEE value for infinity
 
 real(kind=sgl)      :: infinity
-real(kind=sgl)      :: big 
+real(kind=sgl)      :: big
 
 big = HUGE(1.0)
 infinity = big + HUGE(1.0)
@@ -176,14 +181,15 @@ end function infty
 
 !--------------------------------------------------------------------------
 recursive function inftyd() result(infinity)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: inftyd
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! return the double precision IEEE value for infinity
 
 real(kind=dbl)      :: infinity
-real(kind=dbl)      :: big 
+real(kind=dbl)      :: big
 
 big = HUGE(1.D0)
 infinity = big + HUGE(1.D0)
@@ -192,8 +198,9 @@ end function inftyd
 
 !--------------------------------------------------------------------------
 recursive function nan() result(x)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: nan
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! return the single precision IEEE value for nan
@@ -201,7 +208,7 @@ recursive function nan() result(x)
  use, intrinsic :: iso_fortran_env
  use, intrinsic :: ieee_arithmetic
 
- IMPLICIT NONE 
+ IMPLICIT NONE
 
 real(kind=sgl)        :: x
 
@@ -211,8 +218,9 @@ end function nan
 
 !--------------------------------------------------------------------------
 recursive function nan_d() result(x)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: nan_d
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! return the double precision IEEE value for nan
@@ -220,7 +228,7 @@ recursive function nan_d() result(x)
  use, intrinsic :: iso_fortran_env
  use, intrinsic :: ieee_arithmetic
 
- IMPLICIT NONE 
+ IMPLICIT NONE
 
 real(kind=dbl)        :: x
 
@@ -244,8 +252,9 @@ end function nan_d
 !> @date  09/29/17 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine getPolarDecomposition(F, Rmatrix, Smatrix)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getPolarDecomposition
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! Use LAPACK routines to compute the polar decomposition of a real 3x3 matrix
@@ -254,16 +263,16 @@ use mod_io
 
 IMPLICIT NONE
 
-real(kind=dbl),INTENT(IN)     :: F(3,3)           
+real(kind=dbl),INTENT(IN)     :: F(3,3)
  !! input matrix
-real(kind=dbl),INTENT(OUT)    :: Rmatrix(3,3)     
+real(kind=dbl),INTENT(OUT)    :: Rmatrix(3,3)
  !! output unitary matrix
-real(kind=dbl),INTENT(OUT)    :: Smatrix(3,3)     
+real(kind=dbl),INTENT(OUT)    :: Smatrix(3,3)
  !! output symmetric stretch matrix
 
 ! various parameters needed by the LAPACK routine
 integer(kind=irg)             :: INFO, LDA, LDU, LDVT, LWORK, M, N, i
-integer(kind=irg),parameter   :: LWMAX = 100 
+integer(kind=irg),parameter   :: LWMAX = 100
 real(kind=dbl)                :: A(3,3), WORK(LWMAX), S(3), U(3,3), VT(3,3), Sm(3,3)
 character                     :: JOBU, JOBVT
 
@@ -300,8 +309,9 @@ end subroutine getPolarDecomposition
 
 !--------------------------------------------------------------------------
 recursive subroutine get_bit_parameters(bd, numbits, bitrange, bitmode)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_bit_parameters
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! interpret a bitdepth string and return parameters
@@ -322,7 +332,7 @@ character(2)                    :: bitval
 integer(kind=irg)               :: io_int(1)
 
 !====================================
-! analyze the bitdepth parameter; if we have integers, then we need to analyze the 
+! analyze the bitdepth parameter; if we have integers, then we need to analyze the
 ! digits in the string to figure out how to scale the data.  '10int' means that we
 ! store the data as 32-bit integers, but the scaled values range from 0 to 2^(10)-1
 if ((trim(bd).ne.'8bit').and.(trim(bd).ne.'float')) then
@@ -333,14 +343,14 @@ if ((trim(bd).ne.'8bit').and.(trim(bd).ne.'float')) then
     bitval(2:2) = ''
   end if
   read (bitval,*) numbits
-  io_int(1) = numbits 
+  io_int(1) = numbits
   call Message%WriteValue(' ---> Integer format requested with bit depth ',io_int,1,"(I3)")
   bitrange = 2.0**numbits-1.0
   bitmode = 'int'
 end if
-if (trim(bd).eq.'8bit') then 
+if (trim(bd).eq.'8bit') then
   numbits = 8
-  io_int(1) = numbits 
+  io_int(1) = numbits
   call Message%WriteValue(' ---> character format requested with bit depth ',io_int,1,"(I3)")
   bitrange = 2.0**numbits-1.0
   bitmode = 'char'
@@ -356,8 +366,9 @@ end subroutine get_bit_parameters
 
 !--------------------------------------------------------------------------
 recursive subroutine mInvert_d(a,b,uni)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: mInvert_d
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! Invert a 3x3 matrix; if unitary, simply transpose
@@ -366,19 +377,19 @@ use mod_io
 
 IMPLICIT NONE
 
-real(kind=dbl),INTENT(IN)               :: a(3,3)               
+real(kind=dbl),INTENT(IN)               :: a(3,3)
  !! input matrix
-real(kind=dbl),INTENT(OUT)              :: b(3,3)               
+real(kind=dbl),INTENT(OUT)              :: b(3,3)
  !! output matrix
-logical,INTENT(IN)                      :: uni                  
+logical,INTENT(IN)                      :: uni
  !! unitary logical
 
-type(IO_T)                              :: Message 
-real(kind=dbl)                          :: d 
-integer(kind=irg)                       :: i, j 
+type(IO_T)                              :: Message
+real(kind=dbl)                          :: d
+integer(kind=irg)                       :: i, j
 
 ! it is a regular (non-unitary) matrix
- if (.not.uni) then 
+ if (.not.uni) then
   d = a(1,1)*a(2,2)*a(3,3)+a(1,2)*a(2,3)*a(3,1)+ &
          a(1,3)*a(2,1)*a(3,2)-a(1,3)*a(2,2)*a(3,1)- &
          a(1,2)*a(2,1)*a(3,3)-a(1,1)*a(2,3)*a(3,2)
@@ -396,7 +407,7 @@ integer(kind=irg)                       :: i, j
   else
     do i=1,3
       write (*,*) (a(i,j),j=1,3)
-    end do 
+    end do
 !  call Message%printError('mInvert','matrix has zero determinant')
    call Message%printMessage('mInvert: matrix has zero determinant')
    b = a
@@ -407,11 +418,12 @@ integer(kind=irg)                       :: i, j
  endif
 
 end subroutine mInvert_d
-      
+
 !--------------------------------------------------------------------------
 recursive subroutine mInvert(a,b,uni)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: mInvert
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! Invert a single precision 3x3 matrix; if unitary, simply transpose
@@ -420,18 +432,18 @@ use mod_io
 
 IMPLICIT NONE
 
-real(kind=sgl),INTENT(IN)               :: a(3,3)               
+real(kind=sgl),INTENT(IN)               :: a(3,3)
  !! input matrix
-real(kind=sgl),INTENT(OUT)              :: b(3,3)               
+real(kind=sgl),INTENT(OUT)              :: b(3,3)
  !! output matrix
-logical,INTENT(IN)                      :: uni                  
+logical,INTENT(IN)                      :: uni
  !! unitary logical
 
 type(IO_T)                              :: Message
 real(kind=sgl)                          :: d                    !< auxiliary variable
-integer(kind=irg)                       :: i, j 
+integer(kind=irg)                       :: i, j
 ! it is a regular (non-unitary) matrix
- if (.not.uni) then 
+ if (.not.uni) then
   d = a(1,1)*a(2,2)*a(3,3)+a(1,2)*a(2,3)*a(3,1)+ &
          a(1,3)*a(2,1)*a(3,2)-a(1,3)*a(2,2)*a(3,1)- &
          a(1,2)*a(2,1)*a(3,3)-a(1,1)*a(2,3)*a(3,2)
@@ -449,7 +461,7 @@ integer(kind=irg)                       :: i, j
   else
     do i=1,3
       write (*,*) (a(i,j),j=1,3)
-    end do 
+    end do
 !  call Message%printError('mInvert','matrix has zero determinant')
    call Message%printMessage('mInvert: matrix has zero determinant')
    b = a
@@ -473,7 +485,7 @@ end subroutine mInvert
 !> @param b output matrix
 !
 !> @todo this should really be replaced by a BLAS call
-! 
+!
 !> @date   10/13/98 MDG 1.0 original
 !> @date    4/ 5/00 MDG 1.1 added inverse of unitary matrix
 !> @date    5/19/01 MDG 2.0 f90
@@ -481,11 +493,12 @@ end subroutine mInvert
 !
 !--------------------------------------------------------------------------
 recursive subroutine cInvert(a,b)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: cInvert
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
-  !! Invert a 3x3 complex matrix 
+  !! Invert a 3x3 complex matrix
   !!
   !! this should really be replaced by a BLAS call
 
@@ -493,13 +506,13 @@ use mod_io
 
 IMPLICIT NONE
 
-complex(kind=dbl),INTENT(IN)            :: a(3,3)               
+complex(kind=dbl),INTENT(IN)            :: a(3,3)
  !! input matrix
-complex(kind=dbl),INTENT(OUT)           :: b(3,3)               
+complex(kind=dbl),INTENT(OUT)           :: b(3,3)
  !! output matrix
 
 type(IO_T)                              :: Message
-complex(kind=dbl)                       :: d 
+complex(kind=dbl)                       :: d
 
   d = a(1,1)*a(2,2)*a(3,3)+a(1,2)*a(2,3)*a(3,1)+ &
       a(1,3)*a(2,1)*a(3,2)-a(1,3)*a(2,2)*a(3,1)- &
@@ -523,8 +536,9 @@ end subroutine cInvert
 
 !--------------------------------------------------------------------------
 recursive subroutine MatrixExponential(A,E,z0,TP,nn)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: MatrixExponential
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/17/20
   !!
   !! compute the exponential of a dynamical matrix
@@ -551,7 +565,7 @@ real(kind=dbl),INTENT(IN)               :: z0
 character(4),INTENT(IN)                 :: TP
  !! 'Tayl' or 'Pade', to select method
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 real(kind=dbl)                          :: modA, pref, sgn
 complex(kind=dbl),allocatable           :: B(:,:), add(:,:), Nqq(:,:), Dqq(:,:), C(:,:)
 
@@ -584,13 +598,13 @@ if (TP.eq.'Tayl') then ! use scaling and squaring for the Taylor expansion
         ! allocate an auxiliary array
         allocate( B(nn,nn), add(nn,nn), stat=istat )
         if (istat.ne.0) call Message%printError('MatrixExponential',' Error allocating arrays for Taylor approximation')
-        
+
         ! perform the scaling step
         B = (A * z0) / 2.0D0**j ! cmplx(2.0**j,0.0)
-        
+
         ! initialize the diagonal of E
         forall (i=1:nn) E(i,i) = cmplx(1.0D0,0.D0)
-        
+
         ! loop over the Taylor series
         add = B
         E = E + add
@@ -598,7 +612,7 @@ if (TP.eq.'Tayl') then ! use scaling and squaring for the Taylor expansion
           add = matmul( add, B/cmplx(icnt,0) )
           E = E + add
         end do
-        
+
         ! and deallocate the auxiliary arrays
         deallocate(add, B)
 
@@ -609,11 +623,11 @@ else ! Pade approximation for target accuracy 10^(-9)
         ! allocate auxiliary arrays
         allocate(B(nn,nn),C(nn,nn), Nqq(nn,nn), Dqq(nn,nn), stat=istat )
         if (istat.ne.0) call Message%printError('MatrixExponential',' Error allocating arrays for Pade approximation')
-        
+
         ! perform the scaling step
         B = (A * z0) / 2.D0**j  ! cmplx(2.0**j,0.0)
         C = B
-                
+
         ! initialize the diagonal of both arrays
         Nqq = cmplx(0.D0,0.D0)
         forall (i=1:nn) Nqq(i,i) = cmplx(1.0D0,0.D0)
@@ -622,7 +636,7 @@ else ! Pade approximation for target accuracy 10^(-9)
         ! init some constants
         pref = 1.D0
         sgn = -1.D0
-        
+
         ! and loop
         do icnt=1,q
           pref = pref * dble(q-icnt+1) / dble(icnt) / dble(2*q-icnt+1)
@@ -631,14 +645,14 @@ else ! Pade approximation for target accuracy 10^(-9)
           sgn = -sgn
           C = matmul( C, B )
         end do
-        
+
         ! get the inverse of Dqq using the LAPACK routines zgetrf and zgetri
         LDA = nn
         allocate( JPIV(nn) )
         call zgetrf(nn,nn,Dqq,LDA,JPIV,INFO)
         if (INFO.ne.0) call Message%printError('Error in MatrixExponential: ',' ZGETRF return not zero')
 
-        MILWORK = 64*nn 
+        MILWORK = 64*nn
         allocate(MIWORK(MILWORK))
 
         MIWORK = cmplx(0.0_dbl,0.0_dbl)
@@ -647,7 +661,7 @@ else ! Pade approximation for target accuracy 10^(-9)
 
         ! and compute E
         E = matmul( Dqq, Nqq )
-        
+
         ! clean up
         deallocate(Nqq, Dqq, C, B, JPIV, MIWORK)
 end if
@@ -688,7 +702,7 @@ recursive function BesselIn(X,N) result(BESSI)
 !     This subroutine calculates the first kind modified Bessel function
 !     of integer order N, for any REAL X. We use here the classical
 !     recursion formula, when X > N. For X < N, the Miller's algorithm
-!     is used to avoid overflows. 
+!     is used to avoid overflows.
 !     REFERENCE:
 !     C.W.CLENSHAW, CHEBYSHEV SERIES FOR MATHEMATICAL FUNCTIONS,
 !     MATHEMATICAL TABLES, VOL.5, 1962.
@@ -721,7 +735,7 @@ if(X.EQ.0.D0) then
   return
 endif
 
-! set up the recursion 
+! set up the recursion
 TOX = 2.D0/X
 BIP = 0.D0
 BI  = 1.D0
@@ -848,7 +862,7 @@ end function BesselI1
 !*****************************************************************************80
 !*****************************************************************************80
 !*****************************************************************************80
-! the functions below are taken from the normal.f90 file posted on 
+! the functions below are taken from the normal.f90 file posted on
 ! http://people.sc.fsu.edu/~jburkardt/f_src/normal/normal.html
 !*****************************************************************************80
 !*****************************************************************************80
@@ -1314,7 +1328,7 @@ recursive function r4_uniform_01 ( seed )
   return
 end
 recursive subroutine r4vec_uniform_01 ( n, seed, r )
-!DEC$ ATTRIBUTES DLLEXPORT :: r4vec_uniform_01 
+!DEC$ ATTRIBUTES DLLEXPORT :: r4vec_uniform_01
 
 !*****************************************************************************80
 !
@@ -1409,7 +1423,7 @@ recursive subroutine r4vec_uniform_01 ( n, seed, r )
   return
 end
 recursive subroutine r4vec_normal_ab ( n, a, b, seed, x )
-!DEC$ ATTRIBUTES DLLEXPORT :: r4vec_normal_ab 
+!DEC$ ATTRIBUTES DLLEXPORT :: r4vec_normal_ab
 
 !*****************************************************************************80
 !
@@ -1740,7 +1754,7 @@ recursive function r8_uniform_01 ( seed )
   return
 end
 recursive subroutine r8mat_normal_01 ( m, n, seed, r )
-!DEC$ ATTRIBUTES DLLEXPORT :: r8mat_normal_01 
+!DEC$ ATTRIBUTES DLLEXPORT :: r8mat_normal_01
 
 !*****************************************************************************80
 !
@@ -1810,7 +1824,7 @@ recursive subroutine r8mat_normal_01 ( m, n, seed, r )
   return
 end
 recursive subroutine r8mat_normal_ab ( m, n, a, b, seed, r )
-!DEC$ ATTRIBUTES DLLEXPORT :: r8mat_normal_ab 
+!DEC$ ATTRIBUTES DLLEXPORT :: r8mat_normal_ab
 
 !*****************************************************************************80
 !
@@ -1884,7 +1898,7 @@ recursive subroutine r8mat_normal_ab ( m, n, a, b, seed, r )
   return
 end
 recursive subroutine r8vec_normal_01 ( n, seed, x )
-!DEC$ ATTRIBUTES DLLEXPORT :: r8vec_normal_01 
+!DEC$ ATTRIBUTES DLLEXPORT :: r8vec_normal_01
 
 !*****************************************************************************80
 !
@@ -2007,7 +2021,7 @@ recursive subroutine r8vec_normal_01 ( n, seed, x )
   return
 end
 recursive subroutine r8vec_normal_ab ( n, a, b, seed, x )
-!DEC$ ATTRIBUTES DLLEXPORT :: r8vec_normal_ab 
+!DEC$ ATTRIBUTES DLLEXPORT :: r8vec_normal_ab
 
 !*****************************************************************************80
 !
@@ -2048,7 +2062,7 @@ recursive subroutine r8vec_normal_ab ( n, a, b, seed, x )
 !    to be the smallest even number greater than or equal to N.
 !
 !    Local, integer (kind=4) X_LO_INDEX, X_HI_INDEX, records the range
-!    of entries of X that we need to compute. 
+!    of entries of X that we need to compute.
 !
   implicit none
 
@@ -2134,7 +2148,7 @@ recursive subroutine r8vec_normal_ab ( n, a, b, seed, x )
   return
 end
 recursive subroutine r8vec_uniform_01 ( n, seed, r )
-!DEC$ ATTRIBUTES DLLEXPORT :: r8vec_uniform_01 
+!DEC$ ATTRIBUTES DLLEXPORT :: r8vec_uniform_01
 
 !*****************************************************************************80
 !
@@ -2220,13 +2234,13 @@ end
 
 !--------------------------------------------------------------------------
 !
-! SUBROUTINE: TransFourthRankTensor 
+! SUBROUTINE: TransFourthRankTensor
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
 !> @brief  transform a fourth rank tensor using a given transformation matrix
-! 
-!> @note This is one of the very few places in this package where we still use the 
+!
+!> @note This is one of the very few places in this package where we still use the
 !> good old-fashioned rotation matrix instead of quaternions... Note also that we
 !> use the 6x6 notation for the tensors, so we need to convert them to real tensor
 !> notation before carrying out the rotations.
@@ -2234,7 +2248,7 @@ end
 !> @param al rotation matrix
 !> @param cin unrotated tensor
 !> @param cout rotated tensor
-! 
+!
 !> @date 1/5/99   MDG 1.0 original
 !> @date    5/19/01 MDG 2.0 f90 version
 !> @date   11/27/01 MDG 2.1 added kind support
@@ -2247,7 +2261,7 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(IN)       :: al(3,3)
 real(kind=sgl),INTENT(IN)       :: cin(6,6)
-real(kind=sgl),INTENT(OUT)      :: cout(6,6) 
+real(kind=sgl),INTENT(OUT)      :: cout(6,6)
 
 real(kind=sgl)                          :: cold(3,3,3,3), cnew(3,3,3,3)
 integer(kind=irg)                       :: i,j,k,l,p,q,r,s,delta(3,3),gamma(6,2)
@@ -2322,7 +2336,7 @@ end subroutine TransFourthRankTensor
 !> @param x
 !> @param eps
 !> @param polish
-! 
+!
 !> @date 1/5/99   MDG 1.0 original
 !> @date    5/19/01 MDG 2.0 f90 version
 !> @date   11/27/01 MDG 2.1 added kind support
@@ -2350,7 +2364,7 @@ real(kind=dbl)                  :: dxold,errr,abx,cdx
 
       zero = cmplx(0.0,0.0,dbl)
       dxold = abs(x)
-      
+
       do iter=1,maxit
         b=a(m+1)
         errr=abs(b)
@@ -2403,7 +2417,7 @@ end subroutine laguer
 !
 !> @param a
 !> @param roots
-! 
+!
 !> @date 1/5/99   MDG 1.0 original
 !> @date    5/19/01 MDG 2.0 f90 version
 !> @date   11/27/01 MDG 2.1 added kind support
@@ -2421,7 +2435,7 @@ complex(kind=dbl),INTENT(OUT)           ::roots(6)
 integer(kind=irg)                                       :: i,j,jj,m
 real,parameter                                          :: eps = 1.E-6
 complex(kind=dbl)                               :: ad(7), x, b, c, czero
- 
+
  m=6
  czero = cmplx(0.0,0.0,dbl)
  do j=1,7
@@ -2496,11 +2510,11 @@ end subroutine
 !> @brief  determines whether or not a point lies inside or outside a triangle (in 2D)
 !
 !> @details based on http://www.blackpawn.com/texts/pointinpoly/default.html
-! 
+!
 !> @param v0 vertex coordinates
 !> @param v1 vertex coordinates
 !> @param v2 vertex coordinates
-! 
+!
 !> @date 1/5/99   MDG 1.0 original
 !> @date    5/19/01 MDG 2.0 f90 version
 !> @date   11/27/01 MDG 2.1 added kind support
@@ -2511,7 +2525,7 @@ logical recursive function point_inside_triangle(v0,v1,v2)
 
 IMPLICIT NONE
 
-real(kind=sgl),INTENT(IN)       :: v0(2), v1(2), v2(2) 
+real(kind=sgl),INTENT(IN)       :: v0(2), v1(2), v2(2)
 real(kind=sgl)                  :: dot00, dot01, dot02, dot11, dot12, invdenom, u, v
 logical                         :: inside
 
@@ -2543,14 +2557,14 @@ end function point_inside_triangle
 !> @brief rank points for inside/outside analysis
 !
 !> @details based on http://www.blackpawn.com/texts/pointinpoly/default.html
-! 
+!
 !> @param p1 vertex coordinates
 !> @param p2 vertex coordinates
 !> @param p3 vertex coordinates
 !> @param p4 vertex coordinates
 !> @param xx sorted x coordinates
 !> @param yy sorted y coordinates
-! 
+!
 !> @date 1/5/99   MDG 1.0 original
 !> @date    5/19/01 MDG 2.0 f90 version
 !> @date   11/27/01 MDG 2.1 added kind support
@@ -2561,9 +2575,9 @@ recursive subroutine rank_points(p1,p2,p3,p4,xx,yy)
 
 IMPLICIT NONE
 
-real(kind=sgl),INTENT(IN)       :: p1(2), p2(2), p3(2), p4(2) 
-real(kind=sgl),INTENT(OUT)      :: xx(4), yy(4) 
-real(kind=sgl)                  ::a(6), ma 
+real(kind=sgl),INTENT(IN)       :: p1(2), p2(2), p3(2), p4(2)
+real(kind=sgl),INTENT(OUT)      :: xx(4), yy(4)
+real(kind=sgl)                  ::a(6), ma
 
 ! set the first point
 xx(1) = p1(1)
@@ -2579,32 +2593,32 @@ a(6) = p1(1)*p4(2)-p1(2)*p4(1) + p4(1)*p3(2)-p4(2)*p3(1) + p3(1)*p2(2)-p3(2)*p2(
 a = abs(a)
 ma = maxval(a)
 
-if (a(1).eq.ma) then 
+if (a(1).eq.ma) then
   xx(2:4) = (/ p2(1),p3(1),p4(1) /)
   yy(2:4) = (/ p2(2),p3(2),p4(2) /)
   return
 end if
-if (a(2).eq.ma) then 
+if (a(2).eq.ma) then
   xx(2:4) = (/ p2(1),p4(1),p3(1) /)
   yy(2:4) = (/ p2(2),p4(2),p3(2) /)
   return
 end if
-if (a(3).eq.ma) then 
+if (a(3).eq.ma) then
   xx(2:4) = (/ p3(1),p2(1),p4(1) /)
   yy(2:4) = (/ p3(2),p2(2),p4(2) /)
   return
 end if
-if (a(4).eq.ma) then 
+if (a(4).eq.ma) then
   xx(2:4) = (/ p3(1),p4(1),p2(1) /)
   yy(2:4) = (/ p3(2),p4(2),p2(2) /)
   return
 end if
-if (a(5).eq.ma) then 
+if (a(5).eq.ma) then
   xx(2:4) = (/ p4(1),p2(1),p3(1) /)
   yy(2:4) = (/ p4(2),p2(2),p3(2) /)
   return
 end if
-if (a(6).eq.ma) then 
+if (a(6).eq.ma) then
   xx(2:4) = (/ p4(1),p3(1),p2(1) /)
   yy(2:4) = (/ p4(2),p3(2),p2(2) /)
 end if
@@ -2622,31 +2636,31 @@ end subroutine rank_points
 !> @brief  determines whether or not a point lies inside or outside a polygon (in 2D)
 !
 !> @details based on http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html (Fortran version)
-! 
+!
 !> @note Copyright (c) 1970-2003, Wm. Randolph Franklin
 !>
-!> Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-!> and associated documentation files (the "Software"), to deal in the Software without restriction, 
-!> including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-!> and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, 
+!> Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+!> and associated documentation files (the "Software"), to deal in the Software without restriction,
+!> including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+!> and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
 !> subject to the following conditions:
 
 !> Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimers.
-!> Redistributions in binary form must reproduce the above copyright notice in the documentation and/or 
+!> Redistributions in binary form must reproduce the above copyright notice in the documentation and/or
 !> other materials provided with the distribution.
-!> The name of W. Randolph Franklin may not be used to endorse or promote products derived from this Software 
+!> The name of W. Randolph Franklin may not be used to endorse or promote products derived from this Software
 !> without specific prior written permission.
-!> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
-!> TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-!> THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
-!> CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+!> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+!> TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+!> THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+!> CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 !> DEALINGS IN THE SOFTWARE.
 !
 !> @param px point coordinate x
 !> @param py point coordinate y
 !> @param xx vertex coordinates
 !> @param yy vertex coordinates
-! 
+!
 !> @date 1/5/99   MDG 1.0 original
 !> @date    5/19/01 MDG 2.0 f90 version
 !> @date   11/27/01 MDG 2.1 added kind support
@@ -2676,7 +2690,7 @@ do i=1,4
   if (.not.(my.and.ny.AND.(mx.or.nx).and..not.(mx.and.nx))) then
     z  = (y(i)*x(j)-x(i)*y(j))/(x(j)-x(i))
     if (z.lt.0.0) cycle
-    if (z.eq.0.0) then 
+    if (z.eq.0.0) then
       inorout = 0
       exit
     end if
@@ -2692,8 +2706,8 @@ end function point_inside_polygon
 
 !----------------------------------------------------------------------------
 !----------------------------------------------------------------------------
-! the following routines are taken from Numerical Recipes and need to be 
-! replaced by routines in the public domain ... 
+! the following routines are taken from Numerical Recipes and need to be
+! replaced by routines in the public domain ...
 !----------------------------------------------------------------------------
 !----------------------------------------------------------------------------
 
@@ -2819,11 +2833,11 @@ end function el2k
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
-!> @brief Kronecker delta 
+!> @brief Kronecker delta
 !
 !> @param i first integer subscript
 !> @param j second integer subscript
-! 
+!
 !> @date  12/27/15 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function kdelta(i,j) result(k)
@@ -2837,7 +2851,7 @@ integer(kind=irg),INTENT(IN)    :: i,j
 integer(kind=irg)               :: k
 
 k=0
-if (i.eq.j) k=1 
+if (i.eq.j) k=1
 
 end function kdelta
 
@@ -2847,7 +2861,7 @@ end function kdelta
 !
 !> @author Saransh Singh, Carnegie Mellon University
 !
-!> @brief  all three roots of cubic polynomial with real coefficients 
+!> @brief  all three roots of cubic polynomial with real coefficients
 !
 !> @details the equations were taken from wikipedia article https://en.wikipedia.org/wiki/Cubic_function
 !
@@ -2868,7 +2882,7 @@ IMPLICIT NONE
 real(kind=dbl),INTENT(IN)            :: co(4)
 complex(kind=dbl),INTENT(OUT)        :: X(3)
 
-real(kind=dbl)                       :: del0, del1 
+real(kind=dbl)                       :: del0, del1
 complex(kind=dbl)                    :: u(3), C, pre
 integer(kind=irg)                    :: i
 
@@ -2899,7 +2913,7 @@ end subroutine cubicroots
 !> @param NCol number of columns
 !> @param NClusters number of clusters
 !> @param Wts returns the Weights array
-! 
+!
 !> @date  12/27/15 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine KClusterWeights(Matrix, NRow, NCol, NClusters, Niter, Wts)
@@ -2966,7 +2980,7 @@ do k=1,Niter
     Wts(1:NCol,mnm) = ILR * V(1:NCol,mnm) + Wts(1:NCol,mnm)
 
     findothers: do j=2,NClusters
-        if (MM(idx(j)).eq.MM(idx(1))) then 
+        if (MM(idx(j)).eq.MM(idx(1))) then
           mnm = idx(j)
           Wts(1:NCol,mnm) = ILR * V(1:NCol,mnm) + Wts(1:NCol,mnm)
         else
@@ -2997,7 +3011,7 @@ end subroutine KClusterWeights
 !> @param NCol number of columns
 !> @param NClusters number of cluster to look for
 !> @param IndexArray returns the IndexArray
-! 
+!
 !> @date  12/27/15 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine KCluster(Matrix, NRow, NCol, NClusters, Niter, IndexArray)
@@ -3015,11 +3029,11 @@ integer(kind=irg),INTENT(IN)    :: NClusters
 integer(kind=irg),INTENT(IN)    :: Niter
 integer(kind=irg),INTENT(OUT)   :: IndexArray(NRow)
 
-type(IO_T)                      :: Message 
+type(IO_T)                      :: Message
 real(kind=dbl)                  :: Weights(NCol,NClusters), M(NClusters), tW(NClusters,NCol)
 integer(kind=irg)               :: i, j, mloc(1), iaHist(NClusters), Hmin, Hmax, io_int(5), cntarr(NClusters), ebin
 
-! determine the weights 
+! determine the weights
 call KClusterWeights(Matrix, NRow, NCol, NClusters, Niter, Weights)
 
 ! and loop over all rows of the input array
@@ -3031,18 +3045,18 @@ do i = 1, NRow
 if (mod(i,2500).eq.0) write (*,*) 'done with row ',i
 end do
 
-! here we need to analyze the IndexArray; easiest way to do this is to compute 
+! here we need to analyze the IndexArray; easiest way to do this is to compute
 ! its histogram and determine whether or not all the bins have counts in them.
-! if they do, then the NClusters variable was likely set too small, so we need 
-! to let the user know about this.  If there are bins with no entries in them, 
+! if they do, then the NClusters variable was likely set too small, so we need
+! to let the user know about this.  If there are bins with no entries in them,
 ! then we need to relabel the indices to make sure there are no empty bins
 ! anywhere... If there are a lot of empty bins, then we also need to let the user know.
-iaHist = -1 
+iaHist = -1
 do i=1,NRow
   j = IndexArray(i)
-  if (iaHist(j).lt.0) then 
-   iaHist(j) = 1 
-  else 
+  if (iaHist(j).lt.0) then
+   iaHist(j) = 1
+  else
    iaHist(j) = iaHist(j) + 1
   end if
 end do
@@ -3051,7 +3065,7 @@ Hmin = minval(iaHist)
 Hmax = maxval(iaHist)
 
 cntarr = 0
-where (iaHist.eq.-1) 
+where (iaHist.eq.-1)
   cntarr = 1
 end where
 ebin = sum(cntarr)
@@ -3059,7 +3073,7 @@ ebin = sum(cntarr)
 call Message%printMessage('KCluster:  IndexArray analysis ')
 io_int(1) = NClusters
 call Message%WriteValue('  Number of bins       : ',io_int,1,"(I5)")
-io_int(1) = Hmin 
+io_int(1) = Hmin
 io_int(2) = Hmax
 call Message%WriteValue('  Min/Max bin counts   : ',io_int,2,"(I5,'/',I5)")
 io_int(1) = ebin
@@ -3084,7 +3098,7 @@ end subroutine KCluster
 !> @param NSC number of scan columns
 !> @param NSR number of scan rows
 !> @param IndexArray returns the IndexArray
-! 
+!
 !> @date  01/06/15 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive subroutine ReorganizeClusters(Matrix, NRow, NCol, NClusters, NSC, NSR, IndexArray)
@@ -3118,7 +3132,7 @@ logical                         :: go
 !IA = reshape( IndexArray, (/ NSC, NSR /) )
 !write (*,*) 'reshaped IndexArray ', shape (IA)
 
-! count the number of points in each cluster and add the x-y coordinates to get the cluster centroid 
+! count the number of points in each cluster and add the x-y coordinates to get the cluster centroid
 allocate(centroids(NCol, NClusters))
 NinC = 0
 do i=1,NRow
@@ -3136,13 +3150,13 @@ end do
 ! we do not need to take a square root!
 do i=1,NRow
   PointEnergy(i) = sum( (Matrix(1:NCol,i) - centroids(1:NCol,IndexArray(i)))**2 )
-end do 
+end do
 
 TotalEnergy = sum(PointEnergy)
 write (*,*) ' Total Energy       = ',dsqrt(TotalEnergy)
 
 ! next we try one loop of the following algorithm
-! for each cluster, we determine the point with the highest energy and compute 
+! for each cluster, we determine the point with the highest energy and compute
 ! its energy with respect to all the other centroids; if any one of them is lower,
 ! then we swap the point to the other cluster.  We run through the array once for now
 nloop = 0
@@ -3166,7 +3180,7 @@ do while (go)
        cE(k) = PointEnergy(j)
        k = k+1
      end if
-  end do 
+  end do
 
 ! get the point with the largest energy
   Emax = maxloc(cE)
@@ -3183,11 +3197,11 @@ do while (go)
     NinC(Emin(1)) = NinC(Emin(1)) + 1
     PointEnergy(cset(Emax(1))) = ClusterEnergy(Emin(1))
     IndexArray(cset(Emax(1))) = Emin(1)
-! we must also update the centroids ... 
+! we must also update the centroids ...
     Col = Matrix(1:NCol,cset(Emax(1)))
     centroids(1:NCol,ic) = ( centroids(1:NCol,ic)*dble(NinC(ic)+1) - Col ) / dble(NinC(ic))
     centroids(1:NCol,Emin(1)) = ( centroids(1:NCol,Emin(1))*dble(NinC(Emin(1))-1) + Col ) / dble(NinC(Emin(1)))
-  end if 
+  end if
 ! and repeat this for all the clusters
   deallocate(cset, cE)
 
@@ -3199,12 +3213,12 @@ end do
 
 write (*,*) ' --> total number of cluster assignments changed : ',totswap
 
-! write an array of centroid-centroid distances to a file for further analysis 
+! write an array of centroid-centroid distances to a file for further analysis
 open(unit=dataunit2,file='cds.data',status='unknown',form='unformatted')
 allocate(cds(NClusters,NClusters))
 do i=1,NClusters
   do j=1,NClusters
-    cds(i,j) = dsqrt(sum( (centroids(1:NCol,i)-centroids(1:NCol,j))**2 )) 
+    cds(i,j) = dsqrt(sum( (centroids(1:NCol,i)-centroids(1:NCol,j))**2 ))
   end do
 end do
 write(dataunit2) NClusters
@@ -3224,7 +3238,7 @@ end subroutine ReorganizeClusters
 !
 !> @param u input vector 1
 !> @param v input vector 2
-! 
+!
 !> @date 03/03/16   SS 1.0 original
 !> @date 12/01/16  MDG 1.1 split in single and double precision versions
 !--------------------------------------------------------------------------
@@ -3254,7 +3268,7 @@ end function cross3
 !
 !> @param u input vector 1
 !> @param v input vector 2
-! 
+!
 !> @date 03/03/16   SS 1.0 original
 !--------------------------------------------------------------------------
 recursive function cross3_d(u, v) result(res)
@@ -3284,7 +3298,7 @@ end function cross3_d
 !> @param n number of entries in vectors
 !> @param va first vector of integers
 !> @param vb second vector of integers
-! 
+!
 !> @date  07/28/16 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function vectormatch(n, va, vb) result(nce)
@@ -3303,7 +3317,7 @@ nce = 0
 
 ! we'll use a very simplistic approach: for each entry va_i in va, compute
 ! abs(vb-va_i); if the minval of this array equals zero, then the entry
-! va_i appears in vb.  Note that this only works if there are no 
+! va_i appears in vb.  Note that this only works if there are no
 ! duplicate entries in either of the vectors and all the entries are positive...
 ! this routine is used by the dictionary indexing codes, so that is always true.
 
@@ -3325,7 +3339,7 @@ end function vectormatch
 !> @brief distributes a function value onto a cubic grid of 3x3x3 nodes (used for 3D histograms)
 !
 !> @details This function takes a volume array and a point coordinate, and adds the value
-!> of 1 to the array, but distributed ("splatted") over a group of 27 grid points using a 
+!> of 1 to the array, but distributed ("splatted") over a group of 27 grid points using a
 !> relatively sharp Gaussian function.  The function takes the remainder part of the coordinates
 !> and computes Gaussian values for each grid point with the peak at the position r mod dr. The
 !> 3x3x3 array is then returned to the calling program with the extrapolated values on the grid nodes.
@@ -3334,7 +3348,7 @@ end function vectormatch
 !> @param r the point to be splatted
 !> @param dr the step sizes in the current array
 !> @param init initalize the coordinate arrays
-! 
+!
 !> @date  06/20/17 MDG 1.0 original
 !--------------------------------------------------------------------------
 recursive function trilinear_splat(r, dr, init) result(grid3)
@@ -3350,11 +3364,11 @@ real(kind=sgl)              :: grid3(3,3,3)
 real(kind=sgl),SAVE         :: grx(3,3,3), gry(3,3,3), grz(3,3,3)
 real(kind=sgl)              :: alpha = 2.0, rx, ry, rz, drx, dry, drz
 
-if (present(init)) then 
+if (present(init)) then
  if (init.eqv..TRUE.) then
-  grx = 0.0 
-  gry = 0.0 
-  grz = 0.0 
+  grx = 0.0
+  gry = 0.0
+  grz = 0.0
   grx(1,:,:) = -1.0
   grx(3,:,:) =  1.0
   gry(:,1,:) = -1.0
@@ -3389,20 +3403,20 @@ end function trilinear_splat
 !> @details a generic subroutine to calculate the determinant of any mxn matrix.
 !> we will be using the dgetrf subroutine of BLAS to calculate the decomposition of
 !> A as A = P * L * U, where L is the unitriangular matrix i.e. det(L) = 1; P is the
-!> permutation matrix so its determinant is either +/- 1. using the property det(A) = 
+!> permutation matrix so its determinant is either +/- 1. using the property det(A) =
 !> det(P) * det(L) * det(U), we can calculate determinant as simply the product of diagonal
 !> elements of U.
 !
 !> @param A nxn real matrix
 !> @param n size of A
-! 
+!
 !> @date  06/01/18 SS 1.0 original
 !--------------------------------------------------------------------------
 recursive function CalcDeterminant(A, m, n) result(determinant)
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcDeterminant
 
 use mod_kinds
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
@@ -3444,9 +3458,9 @@ end function CalcDeterminant
 !
 !> @param img1 input image 1
 !> @param img2 input image 1
-!> @param nn size of (square) image 
+!> @param nn size of (square) image
 !> @param mutualinformation logical switch
-! 
+!
 !> @date 11/17/15 SS 1.0 original
 !--------------------------------------------------------------------------
 recursive function Jaccard_Distance(img1,img2,nn,mutualinformation) result(JD)
@@ -3501,22 +3515,23 @@ do ii = 0,255
 end do
 
 if (present(mutualinformation)) then
-  if (mutualinformation.eqv..TRUE.) then 
+  if (mutualinformation.eqv..TRUE.) then
     JD = (H1 + H2) - H12
   else
-    JD = 2.D0 - (H1 + H2)/H12  
+    JD = 2.D0 - (H1 + H2)/H12
   end if
 else
-    JD = 2.D0 - (H1 + H2)/H12  
+    JD = 2.D0 - (H1 + H2)/H12
 end if
 
 end function Jaccard_Distance
 
 !----------------------------------------------------------------------------
 recursive subroutine Quicksort(Item, First, Last, Indices)
+!DEC$ ATTRIBUTES DLLEXPORT :: Quicksort
 !----------------------------------------------------------------------------
-! This routine is based on a similar routine in "Fortran 90 for Engineers & 
-! Scientists" by Nyhoff and Leestma.  I modified it to return an integer 
+! This routine is based on a similar routine in "Fortran 90 for Engineers &
+! Scientists" by Nyhoff and Leestma.  I modified it to return an integer
 ! array sorted based on the relationship of the real data in "Item".
 !
 ! TJH 21 Oct 1998
@@ -3529,7 +3544,7 @@ integer(kind=irg),INTENT(IN)    :: First, Last
 integer(kind=irg),INTENT(INOUT) :: Indices(:)
 
 integer(kind=irg)               :: Mid
-  
+
 !--------------------------------------------------------------------
 
 if (First < Last) then                ! IF list size >= 2
@@ -3542,15 +3557,15 @@ end subroutine Quicksort
 
 !-Split----------------------------------------------------------------------
 !
-! Subroutine to split a list into two sublists, using the first element 
-! as a pivot, and return the position of the element about which the 
+! Subroutine to split a list into two sublists, using the first element
+! as a pivot, and return the position of the element about which the
 ! list was divided. Local variables used are:
 ! Left   : position of the first element
 ! Right  : position of the last element
 ! Pivot  : pivot element
 ! Swap   : used to swap elements
 !
-! Accepts:   Array Item and positions Low and High of the first and 
+! Accepts:   Array Item and positions Low and High of the first and
 !            last elements
 ! Returns:   Array Item (modified) with elements in ascending order
 !

@@ -2,61 +2,61 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMCLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMCLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMCLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMCLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMCLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMCLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_MCfiles
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 02/12/20
   !!
-  !! class for Monte Carlo file handling 
+  !! class for Monte Carlo file handling
 
 use mod_kinds
 use mod_global
 use stringconstants
 use ISO_C_BINDING
 
-IMPLICIT NONE 
+IMPLICIT NONE
 private
 
 ! namelist for the EMMCOpenCL program
 type, public :: MCOpenCLNameListType
   integer(kind=irg) :: stdout
   integer(kind=irg) :: numsx
-  integer(kind=irg) :: ivolx 
-  integer(kind=irg) :: ivoly 
-  integer(kind=irg) :: ivolz 
+  integer(kind=irg) :: ivolx
+  integer(kind=irg) :: ivoly
+  integer(kind=irg) :: ivolz
   integer(kind=irg) :: globalworkgrpsz
   integer(kind=irg) :: num_el
   integer(kind=irg) :: totnum_el
   integer(kind=irg) :: multiplier
   integer(kind=irg) :: devid
   integer(kind=irg) :: platid
-  real(kind=sgl)    :: ivolstepx 
-  real(kind=sgl)    :: ivolstepy 
-  real(kind=sgl)    :: ivolstepz 
+  real(kind=sgl)    :: ivolstepx
+  real(kind=sgl)    :: ivolstepy
+  real(kind=sgl)    :: ivolstepz
   real(kind=dbl)    :: sig
   real(kind=dbl)    :: sigstart
   real(kind=dbl)    :: sigend
@@ -88,15 +88,15 @@ type, public :: MCdataType
   integer(kind=irg),allocatable   :: accum_xyz(:,:,:)
 end type MCdataType
 
-type, public :: MCfile_T 
-  private 
+type, public :: MCfile_T
+  private
     type(MCdataType),public             :: MCDT
-    type(MCOpenCLNameListType),public   :: nml 
+    type(MCOpenCLNameListType),public   :: nml
     character(fnlen)                    :: MCfile
     character(fnlen, KIND=c_char),allocatable   :: nmlstrings(:)
 
   contains
-  private 
+  private
 
     procedure, pass(self) :: readMCfile_
     procedure, pass(self) :: getFileInfo_
@@ -132,21 +132,22 @@ type, public :: MCfile_T
 
 end type MCfile_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface MCfile_T
   module procedure MCfile_constructor
 end interface MCfile_T
 
-contains 
+contains
 
 !--------------------------------------------------------------------------
 type(MCfile_T) function MCfile_constructor( ) result(MCfile)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: MCfile_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/05/20
 !!
 !! constructor for the MCfile_T Class
- 
+
 IMPLICIT NONE
 
 
@@ -154,13 +155,14 @@ end function MCfile_constructor
 
 !--------------------------------------------------------------------------
 subroutine copynml_(self, nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: copynml_
+!! author: MDG
+!! version: 1.0
 !! date: 02/06/20
 !!
 !! copy the namelist into the MCfile_T class for writing to file
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)          :: self
 type(MCOpenCLNameListType),INTENT(IN)   :: nml
@@ -171,17 +173,18 @@ end subroutine copynml_
 
 !--------------------------------------------------------------------------
 subroutine copyaccume_(self, acc, keep)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: copyaccume_
+!! author: MDG
+!! version: 1.0
 !! date: 02/12/20
 !!
 !! copy the accumulator array
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:)
-logical, INTENT(IN), OPTIONAL                 :: keep 
+logical, INTENT(IN), OPTIONAL                 :: keep
 
 integer(kind=irg)                             :: s(3), nx
 
@@ -189,7 +192,7 @@ s = shape(self%MCDT%accum_e)
 nx = (s(2)-1)/2
 allocate(acc(s(1),-nx:nx,-nx:nx))
 
-acc = self%MCDT%accum_e 
+acc = self%MCDT%accum_e
 
 if (.not.present(keep)) deallocate(self%MCDT%accum_e)
 
@@ -197,17 +200,18 @@ end subroutine copyaccume_
 
 !--------------------------------------------------------------------------
 subroutine copyaccumz_(self, acc, keep)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: copyaccumz_
+!! author: MDG
+!! version: 1.0
 !! date: 02/12/20
 !!
 !! copy the accumulator array
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:,:)
-logical, INTENT(IN), OPTIONAL                 :: keep 
+logical, INTENT(IN), OPTIONAL                 :: keep
 
 integer(kind=irg)                             :: s(4), nx, ny
 
@@ -216,7 +220,7 @@ nx = (s(3)-1)/2
 ny = (s(4)-1)/2
 allocate( acc(s(1),s(2),-nx:nx,-ny:ny) )
 
-acc = self%MCDT%accum_z 
+acc = self%MCDT%accum_z
 
 if (.not.present(keep)) deallocate(self%MCDT%accum_z)
 
@@ -224,24 +228,25 @@ end subroutine copyaccumz_
 
 !--------------------------------------------------------------------------
 subroutine copyaccumSP_(self, acc, keep)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: copyaccumSP_
+!! author: MDG
+!! version: 1.0
 !! date: 02/12/20
 !!
 !! copy the accumulator array
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:)
-logical, INTENT(IN), OPTIONAL                 :: keep 
+logical, INTENT(IN), OPTIONAL                 :: keep
 
 integer(kind=irg)                             :: s(3)
 
 s = shape(self%MCDT%accumSP)
 allocate(acc(s(1),s(2),s(3)))
 
-acc = self%MCDT%accumSP 
+acc = self%MCDT%accumSP
 
 if (.not.present(keep)) deallocate(self%MCDT%accumSP)
 
@@ -249,17 +254,18 @@ end subroutine copyaccumSP_
 
 !--------------------------------------------------------------------------
 subroutine copyaccumxyz_(self, acc, keep)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: copyaccumxyz_
+!! author: MDG
+!! version: 1.0
 !! date: 02/12/20
 !!
 !! copy the accumulator array
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)                :: self
 integer(kind=irg), allocatable, INTENT(OUT)   :: acc(:,:,:)
-logical, INTENT(IN), OPTIONAL                 :: keep 
+logical, INTENT(IN), OPTIONAL                 :: keep
 
 integer(kind=irg)                             :: s(3), nx, ny
 
@@ -268,7 +274,7 @@ nx = (s(1)-1)/2
 ny = (s(2)-1)/2
 allocate(acc(-nx:nx,-ny:ny,s(3)))
 
-acc = self%MCDT%accum_xyz 
+acc = self%MCDT%accum_xyz
 
 if (.not.present(keep)) deallocate(self%MCDT%accum_xyz)
 
@@ -276,13 +282,14 @@ end subroutine copyaccumxyz_
 
 !--------------------------------------------------------------------------
 function getnml_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getnml_
+!! author: MDG
+!! version: 1.0
 !! date: 02/06/20
 !!
 !! get the namelist from the MCfile_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)          :: self
 type(MCOpenCLNameListType)              :: nml
@@ -293,13 +300,14 @@ end function getnml_
 
 !--------------------------------------------------------------------------
 function getnumEbins_(self) result(n)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumEbins_
+!! author: MDG
+!! version: 1.0
 !! date: 02/06/20
 !!
 !! get numEbins from the MCfile_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)    :: self
 integer(kind=irg)                 :: n
@@ -310,13 +318,14 @@ end function getnumEbins_
 
 !--------------------------------------------------------------------------
 function getnumzbins_(self) result(n)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumzbins_
+!! author: MDG
+!! version: 1.0
 !! date: 02/06/20
 !!
 !! get numzbins from the MCfile_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)    :: self
 integer(kind=irg)                 :: n
@@ -327,13 +336,14 @@ end function getnumzbins_
 
 !--------------------------------------------------------------------------
 function getnumangles_(self) result(n)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumangles_
+!! author: MDG
+!! version: 1.0
 !! date: 02/06/20
 !!
 !! get numangles from the MCfile_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)    :: self
 integer(kind=irg)                 :: n
@@ -344,13 +354,14 @@ end function getnumangles_
 
 !--------------------------------------------------------------------------
 subroutine setFileName_(self, MCfile)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setFileName_
+!! author: MDG
+!! version: 1.0
 !! date: 02/06/20
 !!
-!! set the Monte Carlo file name 
+!! set the Monte Carlo file name
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(MCfile_T), INTENT(INOUT)          :: self
 character(fnlen), INTENT(IN)            :: MCfile
@@ -361,21 +372,22 @@ end subroutine setFileName_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
 !! write namelist to HDF file
 
 use mod_HDFsupport
 use mod_HDFnames
-use stringconstants 
+use stringconstants
 
 use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(MCfile_T), INTENT(INOUT)          :: self 
+class(MCfile_T), INTENT(INOUT)          :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
@@ -491,32 +503,33 @@ end associate
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine readMCfile_(self, HDF, HDFnames, getAccume, getAccumz, getAccumSP, getAccumxyz, getstrings, silent) 
-!! author: MDG 
-!! version: 1.0 
+recursive subroutine readMCfile_(self, HDF, HDFnames, getAccume, getAccumz, getAccumSP, getAccumxyz, getstrings, silent)
+!DEC$ ATTRIBUTES DLLEXPORT :: readMCfile_
+!! author: MDG
+!! version: 1.0
 !! date: 02/05/20
 !!
-!! read namelist and selected data from Monte Carlo file 
+!! read namelist and selected data from Monte Carlo file
 
-use HDF5 
+use HDF5
 use mod_HDFsupport
 use mod_HDFnames
 use mod_io
 use stringconstants
-use ISO_C_BINDING 
+use ISO_C_BINDING
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(MCfile_T), INTENT(INOUT)  :: self 
+class(MCfile_T), INTENT(INOUT)  :: self
 type(HDF_T),INTENT(INOUT)       :: HDF
 type(HDFnames_T),INTENT(INOUT)  :: HDFnames
-logical,INTENT(IN),OPTIONAL     :: getAccume     
+logical,INTENT(IN),OPTIONAL     :: getAccume
  !! energy accumulator array switch
-logical,INTENT(IN),OPTIONAL     :: getAccumz     
+logical,INTENT(IN),OPTIONAL     :: getAccumz
  !! depth accumulator array switch
-logical,INTENT(IN),OPTIONAL     :: getAccumSP    
+logical,INTENT(IN),OPTIONAL     :: getAccumSP
  !! stereographic accumulator array switch
-logical,INTENT(IN),OPTIONAL     :: getAccumxyz   
+logical,INTENT(IN),OPTIONAL     :: getAccumxyz
  !! interaction volume array switch
 logical,INTENT(IN),OPTIONAL     :: getstrings
 logical,INTENT(IN),OPTIONAL     :: silent
@@ -531,7 +544,7 @@ real(kind=sgl),allocatable                          :: farray(:)
 integer(kind=irg),allocatable                       :: accum_e(:,:,:)
 integer(kind=irg),allocatable                       :: accum_xyz(:,:,:)
 integer(kind=irg),allocatable                       :: accum_z(:,:,:,:)
-integer(HSIZE_T)                                    :: dims(1), dims2(2), dims3(3), offset3(3), dims4(4) 
+integer(HSIZE_T)                                    :: dims(1), dims2(2), dims3(3), offset3(3), dims4(4)
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 
 associate( nml => self%nml, MCDT => self%MCDT )
@@ -550,9 +563,9 @@ call h5fis_hdf5_f(trim(self%MCfile), stat, hdferr)
 
 if (stat.eqv..FALSE.) then ! the file exists, so let's open it an first make sure it is an EBSD dot product file
    call Message%printError('readMCfile','This is not a proper HDF5 file')
-end if 
-   
-! open the Monte Carlo file 
+end if
+
+! open the Monte Carlo file
 readonly = .TRUE.
 hdferr =  HDF%openFile(self%MCfile) !, readonly)
 
@@ -561,7 +574,7 @@ hdferr =  HDF%openFile(self%MCfile) !, readonly)
 ! this test sets a flag in side the HDFsupport module so that the proper reading routines will be employed
 hdferr = HDF%openGroup(HDFnames%get_EMheader())
 
-datagroupname = trim(HDFnames%get_ProgramData()) 
+datagroupname = trim(HDFnames%get_ProgramData())
 call H5Lexists_f(HDF%getobjectID(),trim(datagroupname),g_exists, hdferr)
 if (.not.g_exists) then
   call Message%printError('readMCfile','This HDF file does not contain Monte Carlo header data')
@@ -571,7 +584,7 @@ hdferr = HDF%openGroup(HDFnames%get_ProgramData())
 FL = .FALSE.
 datagroupname = 'FixedLength'
 FL = HDF%CheckFixedLengthflag(datagroupname)
-if (FL.eqv..TRUE.) then 
+if (FL.eqv..TRUE.) then
   call Message%printMessage('Input file was generated by a program using fixed length strings')
 end if
 call HDF%pop()
@@ -589,15 +602,15 @@ if (g_exists.eqv..FALSE.) then
 end if
 call HDF%pop()
 
-! get the name list strings if requested 
-if (present(getstrings)) then 
-  if (getstrings.eqv..TRUE.) then 
+! get the name list strings if requested
+if (present(getstrings)) then
+  if (getstrings.eqv..TRUE.) then
     hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
     dataset = trim(HDFnames%get_NMLfilename())
     call HDF%readdatasetstringarray(dataset, nlines, hdferr, self%nmlstrings)
     call HDF%pop()
-  end if 
-end if 
+  end if
+end if
 
 !====================================
 ! read all NMLparameters group datasets
@@ -612,15 +625,15 @@ dataset = SC_mode
     nml%mode = trim(stringarray(1))
     deallocate(stringarray)
 
-if (nml%mode.eq.'Ivol') then 
+if (nml%mode.eq.'Ivol') then
   dataset = 'ivolx'
-    call HDF%readDatasetInteger(dataset, hdferr, nml%ivolx) 
+    call HDF%readDatasetInteger(dataset, hdferr, nml%ivolx)
 
   dataset = 'ivoly'
-    call HDF%readDatasetInteger(dataset, hdferr, nml%ivoly) 
+    call HDF%readDatasetInteger(dataset, hdferr, nml%ivoly)
 
   dataset = 'ivolz'
-    call HDF%readDatasetInteger(dataset, hdferr, nml%ivolz) 
+    call HDF%readDatasetInteger(dataset, hdferr, nml%ivolz)
 
   dataset = 'ivolstepx'
     call HDF%readDatasetDouble(dataset, hdferr, x)
@@ -633,7 +646,7 @@ if (nml%mode.eq.'Ivol') then
   dataset = 'ivolstepz'
     call HDF%readDatasetDouble(dataset, hdferr, x)
     nml%ivolstepz = sngl(x)
-end if 
+end if
 
 dataset = SC_Ebinsize
   call HDF%readDatasetDouble(dataset, hdferr, nml%Ebinsize)
@@ -691,24 +704,24 @@ else
     nml%platid  = 1
 end if
 
-if (nml%mode.eq.'full') then 
+if (nml%mode.eq.'full') then
   dataset = SC_sig
       call HDF%readDatasetDouble(dataset, hdferr, nml%sig)
-end if 
+end if
 
-if (nml%mode.eq.'foil') then 
+if (nml%mode.eq.'foil') then
   dataset = SC_thickness
       call HDF%readDatasetDouble(dataset, hdferr, nml%thickness)
-end if 
+end if
 
-if (nml%mode.eq.'bse1') then 
+if (nml%mode.eq.'bse1') then
   dataset = SC_sigstart
       call HDF%readDatasetDouble(dataset, hdferr, nml%sigstart)
   dataset = SC_sigend
       call HDF%readDatasetDouble(dataset, hdferr, nml%sigend)
   dataset = SC_sigstep
       call HDF%readDatasetDouble(dataset, hdferr, nml%sigstep)
-end if 
+end if
 
 dataset = SC_stdout
     call HDF%readDatasetInteger(dataset, hdferr, nml%stdout)
@@ -734,21 +747,21 @@ dataset = SC_xtalname
 
 ! integers
 dataset = SC_multiplier
-if (nml%multiplier.eq.1) then 
+if (nml%multiplier.eq.1) then
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
   if (g_exists.eqv..TRUE.) then
       call HDF%readDatasetInteger(dataset, hdferr, nml%multiplier)
   else
       nml%multiplier = 1
   end if
-end if 
+end if
 
-if ( (trim(nml%mode).eq.'full') .or. (trim(nml%mode).eq.'foil') ) then 
+if ( (trim(nml%mode).eq.'full') .or. (trim(nml%mode).eq.'foil') ) then
   dataset = SC_numEbins
     call HDF%readDatasetInteger(dataset, hdferr, MCDT%numEbins)
   dataset = SC_numzbins
     call HDF%readDatasetInteger(dataset, hdferr, MCDT%numzbins)
-else if (trim(nml%mode).eq.'bse1') then 
+else if (trim(nml%mode).eq.'bse1') then
   dataset = SC_numangle
     call HDF%readDatasetInteger(dataset, hdferr, MCDT%numangle)
   dataset = SC_numzbins
@@ -757,7 +770,7 @@ end if
 
 
 ! various optional arrays
-if (present(getAccume)) then 
+if (present(getAccume)) then
   if (getAccume.eqv..TRUE.) then
     dataset = SC_accume
     call HDF%readDatasetIntegerArray(dataset, dims3, hdferr, accum_e)
@@ -765,34 +778,34 @@ if (present(getAccume)) then
     allocate(MCDT%accum_e(1:dims3(1),-nx:nx,-nx:nx))
     MCDT%accum_e = accum_e
     deallocate(accum_e)
-  end if 
+  end if
 end if
 
-if (present(getAccumz)) then 
+if (present(getAccumz)) then
   if (getAccumz.eqv..TRUE.) then
     dataset = SC_accumz
     call HDF%readDatasetIntegerArray(dataset, dims4, hdferr, accum_z)
     nx = (dims4(3)-1)/2
     allocate(MCDT%accum_z(1:dims4(1),1:dims4(2),-nx:nx, -nx:nx))
     MCDT%accum_z = accum_z
-    deallocate(accum_z)  
-  end if 
+    deallocate(accum_z)
+  end if
 end if
 
 ! the following dataset may not be present in all MC files
-if (present(getAccumSP)) then 
+if (present(getAccumSP)) then
   if (getAccumSP.eqv..TRUE.) then
     dataset = SC_accumSP
     call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
     if (g_exists) then
       call HDF%readDatasetFloatArray(dataset, dims3, hdferr, MCDT%accumSP)
-    else 
+    else
       allocate( MCDT%accumSP(1,1,1) )
-    end if 
-  end if 
+    end if
+  end if
 end if
 
-if (present(getAccumxyz)) then 
+if (present(getAccumxyz)) then
   if (getAccumxyz.eqv..TRUE.) then
     dataset = SC_accumxyz
     call HDF%readDatasetIntegerArray(dataset, dims3, hdferr, accum_xyz)
@@ -801,39 +814,40 @@ if (present(getAccumxyz)) then
     nz = dims3(3)
     allocate(MCDT%accum_xyz(-nx:nx, -ny:ny, nz))
     MCDT%accum_xyz = accum_xyz
-    deallocate(accum_xyz)  
-  end if 
+    deallocate(accum_xyz)
+  end if
 end if
 
 ! and close the HDF5 Monte Carlo file
 call HDF%pop(.TRUE.)
 
-if (.not.present(silent)) then 
+if (.not.present(silent)) then
   call Message%printMessage(' --> Completed reading Monte Carlo data from '//trim(self%MCfile), frm = "(A/)")
-end if 
+end if
 
-end associate 
+end associate
 
 end subroutine readMCfile_
 
 !--------------------------------------------------------------------------
 recursive subroutine getFileInfo_(self)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getFileInfo_
+!! author: MDG
+!! version: 1.0
 !! date: 04/17/20
 !!
-!! provide a bit of file information for the EMHDFFileInfo program 
+!! provide a bit of file information for the EMHDFFileInfo program
 
-use HDF5 
+use HDF5
 use mod_HDFsupport
 use mod_HDFnames
 use mod_io
 use stringconstants
-use ISO_C_BINDING 
+use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(MCfile_T), INTENT(INOUT)            :: self 
+class(MCfile_T), INTENT(INOUT)            :: self
 
 type(HDF_T)                               :: localHDF
 type(HDFnames_T)                          :: localHDFnames
@@ -842,28 +856,28 @@ type(IO_T)                                :: Message
 integer(kind=irg)                         :: i, sz1(1), sz2(2), sz3(3), sz4(4)
 
 localHDFnames = HDFnames_T()
-call localHDFnames%set_ProgramData(SC_MCOpenCL) 
-call localHDFnames%set_NMLlist(SC_MCCLNameList) 
+call localHDFnames%set_ProgramData(SC_MCOpenCL)
+call localHDFnames%set_NMLlist(SC_MCCLNameList)
 call localHDFnames%set_NMLfilename(SC_MCOpenCLNML)
 
 localHDF = HDF_T()
 
   call self%readMCfile_(localHDF, localHDFnames, &
-                        getAccume=.TRUE., & 
+                        getAccume=.TRUE., &
                         getAccumz=.TRUE., &
                         getAccumSP=.TRUE., &
                         getstrings=.TRUE., &
-                        silent=.TRUE.) 
+                        silent=.TRUE.)
 
-! then generate some output; first the entire namelist minus the comment lines 
+! then generate some output; first the entire namelist minus the comment lines
 call Message%printMessage( (/ ' Monte Carlo namelist entries', &
                               ' ----------------------------' /))
 sz1 = shape(self%nmlstrings)
 do i=1,sz1(1)
-  if (self%nmlstrings(i)(1:1).ne.'!') then 
+  if (self%nmlstrings(i)(1:1).ne.'!') then
     call Message%printMessage(self%nmlstrings(i))
-  end if 
-end do 
+  end if
+end do
 deallocate(self%nmlstrings)
 
 associate(MCDT=>self%MCDT)
@@ -875,13 +889,13 @@ call Message%WriteValue('accum_e     : ', sz3, 3, "(I4,' x ',I4,' x ',I4)" )
 sz4 = shape(MCDT%accum_z)
 call Message%WriteValue('accum_z     : ', sz4, 4, "(I4,' x ',I4,' x ',I4,' x ',I4)" )
 sz3 = shape(MCDT%accumSP)
-if (sum(sz3).gt.3) then 
+if (sum(sz3).gt.3) then
   call Message%WriteValue('accumSP     : ', sz3, 3, "(I4,' x ',I4,' x ',I4)" )
 end if
 
 deallocate(MCDT%accum_e, MCDT%accum_z, MCDT%accumSP)
 
-end associate 
+end associate
 
 call localHDF%pop(.TRUE.)
 
@@ -889,8 +903,9 @@ end subroutine getFileInfo_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeMCfile_(self, EMsoft, cell, SG, HDF, HDFnames, progname, dstr, tstrb, tstre)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeMCfile_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/06/20
   !!
   !! write Monte Carlo data to an HDF5 file
@@ -903,13 +918,13 @@ use mod_HDFsupport
 use mod_HDFnames
 use stringconstants
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(MCfile_T), INTENT(INOUT)      :: self 
-type(EMsoft_T), INTENT(INOUT)       :: EMsoft 
-type(Cell_T), INTENT(INOUT)         :: cell 
+class(MCfile_T), INTENT(INOUT)      :: self
+type(EMsoft_T), INTENT(INOUT)       :: EMsoft
+type(Cell_T), INTENT(INOUT)         :: cell
 type(SpaceGroup_T), INTENT(INOUT)   :: SG
-type(HDF_T),INTENT(INOUT)           :: HDF 
+type(HDF_T),INTENT(INOUT)           :: HDF
 type(HDFnames_T),INTENT(INOUT)      :: HDFnames
 character(fnlen), INTENT(IN)        :: progname
 character(11), INTENT(INOUT)        :: dstr
@@ -918,7 +933,7 @@ character(15), INTENT(IN)           :: tstre
 
 character(fnlen)                    :: dataname, datagroupname, groupname, attributename, dataset
 logical                             :: f_exists
-integer(kind=irg)                   :: hdferr, nx, s(3), s4(4)  
+integer(kind=irg)                   :: hdferr, nx, s(3), s4(4)
 character(fnlen,kind=c_char)        :: HDF_FileVersion
 
 associate ( nml => self%nml, MCDT => self%MCDT )
@@ -962,7 +977,7 @@ call HDF%pop()
 ! then the remainder of the data in a EMData group
 hdferr = HDF%createGroup(HDFnames%get_EMData())
 
-! here we add the data groupname MCOpenCL and we attach to it a HDF_FileVersion attribute 
+! here we add the data groupname MCOpenCL and we attach to it a HDF_FileVersion attribute
 hdferr = HDF%createGroup(datagroupname)
 HDF_FileVersion = '4.0'
 HDF_FileVersion = cstringify(HDF_FileVersion)
@@ -988,43 +1003,43 @@ write (*,*) 'NML%MODE = ',trim(nml%mode)
 if ( (nml%mode .eq. 'full') .or. (nml%mode .eq. 'foil') ) then
   s = shape(MCDT%accum_e)
   nx = s(2)
-  
+
   dataset = SC_numEbins
       hdferr = HDF%writeDatasetInteger(dataset, MCDT%numEbins)
-  
+
   dataset = SC_accume
       hdferr = HDF%writeDatasetIntegerArray(dataset, MCDT%accum_e, MCDT%numEbins, nx, nx)
-  
+
   dataset = SC_accumSP
       hdferr = HDF%writeDatasetFloatArray(dataset, MCDT%accumSP, MCDT%numEbins, nx, nx)
-  
+
   s4 = shape(MCDT%accum_z)
   nx = s4(3)
-  
+
   dataset = SC_accumz
       hdferr = HDF%writeDatasetIntegerArray(dataset, MCDT%accum_z, MCDT%numEbins, MCDT%numzbins, nx, nx)
-  
-  if (nml%mode.eq.'foil') then 
+
+  if (nml%mode.eq.'foil') then
     dataset = SC_thickness
         hdferr = HDF%writeDatasetDouble(dataset, nml%thickness)
-  end if  
+  end if
 
 else if (nml%mode .eq. 'bse1') then
   s = shape(MCDT%accum_e)
   nx = s(2)
-  
+
   dataset = SC_numangle
       hdferr = HDF%writeDatasetInteger(dataset, MCDT%numangle)
-  
+
   dataset = SC_accume
       hdferr = HDF%writeDatasetIntegerArray(dataset, MCDT%accum_e, MCDT%numangle, nx, nx)
-  
+
   s4 = shape(MCDT%accum_z)
   nx = s4(3)
 
   dataset = SC_accumz
       hdferr = HDF%writeDatasetIntegerArray(dataset, MCDT%accum_z, MCDT%numangle, MCDT%numzbins, nx, nx)
-  
+
 else if (nml%mode .eq. 'Ivol') then
 
   s = shape(MCDT%accum_xyz)
@@ -1040,14 +1055,15 @@ end if
 
 call HDF%pop(.TRUE.)
 
-end associate 
+end associate
 
 end subroutine writeMCfile_
 
 !--------------------------------------------------------------------------
 recursive subroutine copyMCdata_(self, EMsoft, HDF, inputfile, outputfile, h5)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: copyMCdata_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/06/20
   !!
   !! copy Monte Carlo data from one file to a new file using h5copy
@@ -1062,7 +1078,7 @@ IMPLICIT NONE
 
 class(MCfile_T),INTENT(INOUT)     :: self
 type(EMsoft_T),INTENT(INOUT)      :: EMsoft
-type(HDF_T),INTENT(INOUT)         :: HDF 
+type(HDF_T),INTENT(INOUT)         :: HDF
 character(fnlen),INTENT(IN)       :: inputfile
 character(fnlen),INTENT(IN)       :: outputfile
 character(fnlen),INTENT(IN)       :: h5
@@ -1075,21 +1091,21 @@ integer(kind=irg)                 :: hdferr
 character(fnlen)                  :: dev
 
 ! first we make sure that we actually have the h5copy program available
-! check for EMDevelop parameter 
+! check for EMDevelop parameter
 developer = .FALSE.
 dev = EMsoft%getConfigParameter('Develop')
 if (trim(dev).eq.'Yes') developer = .TRUE.
 
-if (developer.eqv..TRUE.) then 
-! if TRUE, use EMsoft_geth5copypath which is defined at configure time 
+if (developer.eqv..TRUE.) then
+! if TRUE, use EMsoft_geth5copypath which is defined at configure time
   h5copypath = trim(EMsoft%getConfigParameter('h5copypath'))//' -p -v '
   h5copypath = EMsoft%toNativePath(h5copypath)
-else 
-! if FALSE, check name list h5copypath parameter 
-  if (trim(h5).ne.'undefined') then 
+else
+! if FALSE, check name list h5copypath parameter
+  if (trim(h5).ne.'undefined') then
     h5copypath = trim(h5)//' -p -v '
     h5copypath = EMsoft%toNativePath(h5copypath)
-  else 
+  else
 ! if undefined, then fail
     call Message%printError('copyMCdata','h5copypath must be set in the name list file ')
   end if
@@ -1104,7 +1120,7 @@ inquire(file=trim(infile), exist=f_exists)
 outfile = trim(EMsoft%generateFilePath('EMdatapathname',outputfile))
 
 ! if the file does not exist, abort the program with an error message
-if (f_exists.eqv..FALSE.) then 
+if (f_exists.eqv..FALSE.) then
   call Message%printError('copyMCdata','Monte Carlo copyfromenergyfile does not exist: '//trim(infile))
 end if
 
@@ -1114,13 +1130,13 @@ hdferr =  HDF%openFile(infile, readonly)
 
 groupname = SC_EMData
 hdferr = HDF%openGroup(groupname)
-if (hdferr.eq.-1) then 
+if (hdferr.eq.-1) then
   call Message%printError('copyMCdata','EMData group does not exist in '//trim(infile))
 end if
 
 groupname = SC_MCOpenCL
 hdferr = HDF%openGroup(groupname)
-if (hdferr.eq.-1) then 
+if (hdferr.eq.-1) then
   call Message%printError('copyMCdata','MCOpenCL group does not exist in '//trim(infile))
 end if
 

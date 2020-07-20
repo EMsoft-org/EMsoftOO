@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_postscript
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! A collection of postscript output routines used to create a variety of graphics output
@@ -49,11 +49,11 @@ module mod_postscript
   !!
   !!       call self%closefile\n
   !!
-  !! The code to draw spheres (sp) is taken from the appendix of 
+  !! The code to draw spheres (sp) is taken from the appendix of
   !! Earl J. Kirklands book on Advanced Computing in Electron Microscopy,
-  !! and slightly modified to include color.  
-  !! 
-  !! All dimensions are in inches 
+  !! and slightly modified to include color.
+  !!
+  !! All dimensions are in inches
   !! pspage      = pagenumber for multi-page files
   !! psfigwidth  = width of drawing (pagewidth - 2 inches for margins = 6.5)
   !! psfigheight = height of drawing (pageheight - 2 = 9.0)
@@ -245,7 +245,7 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
 
 
   type, public :: PostScript_T
-   private 
+   private
      integer(kind=irg)      :: pspage
      integer(kind=irg)      :: psunit = 20
      integer(kind=irg)      :: imanum
@@ -256,7 +256,7 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
      character(fnlen)       :: psname
 
    contains
-    private 
+    private
       procedure, pass(self) :: openFile_
       procedure, pass(self) :: closeFile_
       procedure, pass(self) :: newpage_
@@ -296,7 +296,7 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: balloon_
       procedure, pass(self) :: setfont_
       procedure, pass(self) :: Printhkl_
-      procedure, pass(self) :: DumpIndices_ 
+      procedure, pass(self) :: DumpIndices_
       procedure, pass(self) :: PrintIndices_
       procedure, pass(self) :: DumpImage_
       procedure, pass(self) :: DumpImageDistort_
@@ -318,133 +318,76 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
       procedure, pass(self) :: DiffPage_
       final :: PS_destructor
 
-      generic, public :: openFile => openFile_ 
-!DEC$ ATTRIBUTES DLLEXPORT :: openFile
-      generic, public :: closeFile => closeFile_ 
-!DEC$ ATTRIBUTES DLLEXPORT :: closeFile
+      generic, public :: openFile => openFile_
+      generic, public :: closeFile => closeFile_
       generic, public :: newpage => newpage_
-!DEC$ ATTRIBUTES DLLEXPORT :: newpage
       generic, public :: setpspage => setpspage_
-!DEC$ ATTRIBUTES DLLEXPORT :: setpspage
       generic, public :: cellinfo => cellinfo_
-!DEC$ ATTRIBUTES DLLEXPORT :: cellinfo
       generic, public :: clippath => clippath_
-!DEC$ ATTRIBUTES DLLEXPORT :: clippath
       generic, public :: translate => translate_
-!DEC$ ATTRIBUTES DLLEXPORT :: translate
       generic, public :: move => move_
-!DEC$ ATTRIBUTES DLLEXPORT :: move
       generic, public :: draw => draw_
-!DEC$ ATTRIBUTES DLLEXPORT :: draw
       generic, public :: line_gray => line_gray_
-!DEC$ ATTRIBUTES DLLEXPORT :: line_gray
       generic, public :: setlinewidth => setlinewidth_
-!DEC$ ATTRIBUTES DLLEXPORT :: setlinewidth
       generic, public :: square => square_
-!DEC$ ATTRIBUTES DLLEXPORT :: square
       generic, public :: filledsquare => filledsquare_
-!DEC$ ATTRIBUTES DLLEXPORT :: filledsquare
       generic, public :: cross => cross_
-!DEC$ ATTRIBUTES DLLEXPORT :: cross
       generic, public :: sphere => sphere_
-!DEC$ ATTRIBUTES DLLEXPORT :: sphere
       generic, public :: arc => arc_
-!DEC$ ATTRIBUTES DLLEXPORT :: arc 
       generic, public :: circle => circle_
-!DEC$ ATTRIBUTES DLLEXPORT :: circle
       generic, public :: filledcircle => filledcircle_
-!DEC$ ATTRIBUTES DLLEXPORT :: filledcircle
       generic, public :: drawframe => drawframe_
-!DEC$ ATTRIBUTES DLLEXPORT :: drawframe
       generic, public :: drawrect => drawrect_
-!DEC$ ATTRIBUTES DLLEXPORT :: drawrect
       generic, public :: line => line_
-!DEC$ ATTRIBUTES DLLEXPORT :: line
       generic, public :: setdash => setdash_
-!DEC$ ATTRIBUTES DLLEXPORT :: setdash
       generic, public :: closepathS => closepathS_
-!DEC$ ATTRIBUTES DLLEXPORT :: closepathS
       generic, public :: stroke => stroke_
-!DEC$ ATTRIBUTES DLLEXPORT :: stroke
       generic, public :: gsave => gsave_
-!DEC$ ATTRIBUTES DLLEXPORT :: gsave
       generic, public :: grestore => grestore_
-!DEC$ ATTRIBUTES DLLEXPORT :: grestore
       generic, public :: closepath => closepath_
-!DEC$ ATTRIBUTES DLLEXPORT :: closepath
       generic, public :: newpath => newpath_
-!DEC$ ATTRIBUTES DLLEXPORT :: newpath
       generic, public :: text => text_
-!DEC$ ATTRIBUTES DLLEXPORT :: text
       generic, public :: textv => textv_
-!DEC$ ATTRIBUTES DLLEXPORT :: textv
       generic, public :: texttitle => texttitle_
-!DEC$ ATTRIBUTES DLLEXPORT :: texttitle
       generic, public :: textvtitle => textvtitle_
-!DEC$ ATTRIBUTES DLLEXPORT :: textvtitle
       generic, public :: textint => textint_
-!DEC$ ATTRIBUTES DLLEXPORT :: textint
       generic, public :: textvar => textvar_
-!DEC$ ATTRIBUTES DLLEXPORT :: textvar
       generic, public :: textvardbl => textvardbl_
-!DEC$ ATTRIBUTES DLLEXPORT :: textvardbl
       generic, public :: textballoon => textballoon_
-!DEC$ ATTRIBUTES DLLEXPORT :: textballoon
       generic, public :: balloon => balloon_
-!DEC$ ATTRIBUTES DLLEXPORT :: balloon
       generic, public :: setfont => setfont_
-!DEC$ ATTRIBUTES DLLEXPORT :: setfont
       generic, public :: Printhkl => Printhkl_
-!DEC$ ATTRIBUTES DLLEXPORT :: Printhkl
+
       generic, public :: DumpIndices => DumpIndices_
-!DEC$ ATTRIBUTES DLLEXPORT :: DumpIndices
       generic, public :: PrintIndices => PrintIndices_
-!DEC$ ATTRIBUTES DLLEXPORT :: PrintIndices
       generic, public :: DumpImage => DumpImage_
-!DEC$ ATTRIBUTES DLLEXPORT :: DumpImage
       generic, public :: DumpImageDistort => DumpImageDistort_
-!DEC$ ATTRIBUTES DLLEXPORT :: DumpImageDistort
       generic, public :: DrawSPFrame => DrawSPFrame_
-!DEC$ ATTRIBUTES DLLEXPORT :: DrawSPFrame
       generic, public :: DrawcellFrame => DrawcellFrame_
-!DEC$ ATTRIBUTES DLLEXPORT :: DrawcellFrame
       generic, public :: getpsunit => getpsunit_
-!DEC$ ATTRIBUTES DLLEXPORT :: getpsunit
       generic, public :: getpsscale => getpsscale_
-!DEC$ ATTRIBUTES DLLEXPORT :: getpsscale
       generic, public :: getpsfigwidth => getpsfigwidth_
-!DEC$ ATTRIBUTES DLLEXPORT :: getpsfigwidth
       generic, public :: getpsfigheight => getpsfigheight_
-!DEC$ ATTRIBUTES DLLEXPORT :: getpsfigheight
       generic, public :: StereoProj => StereoProj_
-!DEC$ ATTRIBUTES DLLEXPORT :: StereoProj
-      generic, public :: DumpZAP => DumpZAP_ 
-!DEC$ ATTRIBUTES DLLEXPORT :: DumpZAP
+      generic, public :: DumpZAP => DumpZAP_
       generic, public :: DumpPP => DumpPP_
-!DEC$ ATTRIBUTES DLLEXPORT :: DumpPP
       generic, public :: dumpline => dumpline_
-!dec$ attributes dllexport :: dumpline
       generic, public :: DumpMatrix => DumpMatrix_
-!dec$ attributes dllexport :: DumpMatrix
       generic, public :: DumpAtom => DumpAtom_
-!dec$ attributes dllexport :: DumpAtom
       generic, public :: InfoPage => InfoPage_
-!dec$ attributes dllexport :: InfoPage
-      generic, public :: StrucFacPage => StrucFacPage_ 
-!dec$ attributes dllexport :: StrucFacPage
-      generic, public :: StereoPage => StereoPage_ 
-!dec$ attributes dllexport :: StereoPage
-      generic, public :: DiffPage => DiffPage_ 
-!dec$ attributes dllexport :: DiffPage
+      generic, public :: StrucFacPage => StrucFacPage_
+      generic, public :: StereoPage => StereoPage_
+      generic, public :: DiffPage => DiffPage_
+
 
   end type PostScript_T
 
-  ! the constructor routine for this class 
+  ! the constructor routine for this class
   interface PostScript_T
     module procedure :: PS_constructor
   end interface PostScript_T
 
-contains 
+contains
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -454,17 +397,18 @@ contains
 
 !--------------------------------------------------------------------------
 type(PostScript_T) function PS_constructor( progdesc, EMsoft, imanum ) result(PS)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: PS_constructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! constructor for the PostScript_T Class 
+  !! constructor for the PostScript_T Class
 
-use mod_EMsoft 
+use mod_EMsoft
 
 IMPLICIT NONE
 
-character(fnlen), INTENT(IN)    :: progdesc 
+character(fnlen), INTENT(IN)    :: progdesc
 type(EMsoft_T), INTENT(INOUT)   :: EMsoft
 integer(kind=irg), INTENT(IN)   :: imanum
 
@@ -474,38 +418,40 @@ integer(kind=irg), INTENT(IN)   :: imanum
 end function PS_constructor
 
 !--------------------------------------------------------------------------
-subroutine PS_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine PS_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: PS_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the PostScript_T Class
 
-use mod_io 
+use mod_io
 
 IMPLICIT NONE
 
-type(PostScript_T), INTENT(INOUT)     :: self 
+type(PostScript_T), INTENT(INOUT)     :: self
 
 type(IO_T)                            :: Message
-logical                               :: itsopen 
+logical                               :: itsopen
 
 call reportDestructor('PostScript_T')
 
-! if the MRC uit is still open, close it here 
+! if the MRC uit is still open, close it here
 inquire(unit=self%psunit, opened=itsopen)
 
-if (itsopen.eqv..TRUE.) then 
+if (itsopen.eqv..TRUE.) then
   close(unit=self%psunit, status='keep')
   call Message%printMessage(' Closed PostScript file '//trim(self%psname))
-end if 
+end if
 
 end subroutine PS_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine openfile_(self, progdesc, EMsoft, dontask)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: openFile_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! open postscript file and dump the preamble to the file
@@ -518,27 +464,27 @@ IMPLICIT NONE
 class(PostScript_T),INTENT(INOUT)     :: self
 character(fnlen),INTENT(IN)           :: progdesc
 type(EMsoft_T),INTENT(INOUT)          :: EMsoft
-logical,INTENT(IN),optional           :: dontask        
+logical,INTENT(IN),optional           :: dontask
  !! optional parameter to select file opening route
 
-type(IO_T)                            :: Message 
+type(IO_T)                            :: Message
 
 real(kind=sgl)                            :: fw, fh        !< page format parameters
 integer(kind=irg)                         :: i            !< loop counter
 character(fnlen)                      :: gname
 
 ! define the writeable portion of the page (should be made more user-friendly by adding A4 format...)
- self%psfigwidth=6.5 
+ self%psfigwidth=6.5
  self%psfigheight=9.0
  self%psscale=1.0
 
 ! open file and dump Prolog and Comments sections
  if (present(dontask)) then
-! don't ask for a file name 
+! don't ask for a file name
    open(unit=self%psunit,file=trim(EMsoft%toNativePath(self%psname)),status='unknown',action='write',form='formatted')
    call Message%printMessage('Opening temporary file for PostScript output', frm = "(A)")
  else
-! do ask for a file name 
+! do ask for a file name
    call Message%ReadValue(' Enter Postscript file name : ', gname,"(A)")
    self%psname = trim(gname)
    open(unit=self%psunit,file=trim(EMsoft%toNativePath(self%psname)),status='unknown',form='formatted')
@@ -550,7 +496,7 @@ character(fnlen)                      :: gname
  write (self%psunit,"(A,' ',A)") trim(PSpreamble(3)), trim(progdesc)
  do i=4,23
   write (self%psunit,"(A)") PSpreamble(i)
- end do 
+ end do
 
 ! determine lower left corner and translate to that point
  fw=0.5*(8.50-self%psscale*self%psfigwidth)
@@ -566,21 +512,22 @@ end subroutine openfile_
 
 !--------------------------------------------------------------------------
 recursive subroutine closeFile_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: closeFile_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! close and save postscript file
 
 IMPLICIT NONE
 
-class(PostScript_T),INTENT(INOUT)    :: self 
+class(PostScript_T),INTENT(INOUT)    :: self
 
-! write the trailer to the file 
+! write the trailer to the file
  write (self%psunit,*) 'showpage'
  write (self%psunit,"(' %%Pages: ',i3)") self%pspage
  write (self%psunit,"(' %%EOF')")
- 
+
 ! and close it
   close(unit=self%psunit,status='keep')
 
@@ -588,8 +535,9 @@ end subroutine closeFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine newpage_(self, frm, btxt)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: newpage_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! start a new page in the PS file
@@ -597,9 +545,9 @@ recursive subroutine newpage_(self, frm, btxt)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)   :: self
-logical,INTENT(IN)                    :: frm        
+logical,INTENT(IN)                    :: frm
  !! logical draw frame or not
-character(*),INTENT(IN)               :: btxt        
+character(*),INTENT(IN)               :: btxt
  !! character string for header balloon
 
  if (self%pspage.ne.0) then
@@ -610,55 +558,57 @@ character(*),INTENT(IN)               :: btxt
  self%pspage = self%pspage + 1
  write (self%psunit,"(' %%Page: ',i3,i3)") self%pspage-1,self%pspage
  write (self%psunit,*) '/saveobj save def'
- 
-! prepare to draw a header balloon 
+
+! prepare to draw a header balloon
  call self%setfont(PSfonts(3),0.18)
  write (self%psunit,"(1x,F12.7,' ',F12.7,' M (',I8,') show')") 6.75,self%psfigheight-0.2,self%pspage
  if (frm.eqv..TRUE.) then  ! we need a frame
   call self%drawframe(6.75,self%psfigheight)
  endif
- 
+
 ! output the text balloon
  call self%setlinewidth(0.012)
  call self%textballoon(2.0,9.2,btxt,PSfonts(2),0.25)
  call self%setfont(PSfonts(5),0.07)
  call self%text(0.1,-0.1,PSlbl)
- 
+
 end subroutine newpage_
 
 !--------------------------------------------------------------------------
 recursive subroutine setpspage_(self, pgnum)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setpspage_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
-  !! set a page number 
+  !! set a page number
 
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)   :: self
-integer(kind=irg), INTENT(IN)       :: pgnum 
+integer(kind=irg), INTENT(IN)       :: pgnum
 
-self%pspage = pgnum 
+self%pspage = pgnum
 
 end subroutine setpspage_
 
 !--------------------------------------------------------------------------
 recursive subroutine cellinfo_(self, cell, xo, yo)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: cellinfo_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! write unit cell information (for drawing programs)
 
-use mod_crystallography 
+use mod_crystallography
 
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)        :: self
 type(Cell_T),INTENT(INOUT)               :: cell
-real(kind=sgl),INTENT(IN)                :: xo,yo        
- !! starting location for output 
+real(kind=sgl),INTENT(IN)                :: xo,yo
+ !! starting location for output
 
  call self%setfont(PSfonts(2),0.12/self%psscale)
  call self%text(xo,yo,'Filename: '//trim(cell%getFileName()))
@@ -680,8 +630,9 @@ end subroutine cellinfo_
 
 !--------------------------------------------------------------------------
 recursive function getpsunit_(self) result(psu)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpsunit_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! get the postscript output device id
@@ -697,8 +648,9 @@ end function getpsunit_
 
 !--------------------------------------------------------------------------
 recursive function getpsscale_(self) result(psscale)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpsscale_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! make the last path the clippath
@@ -714,8 +666,9 @@ end function getpsscale_
 
 !--------------------------------------------------------------------------
 recursive function getpsfigwidth_(self) result(psfw)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpsfigwidth_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/28/20
   !!
   !! return ps figure width
@@ -731,8 +684,9 @@ end function getpsfigwidth_
 
 !--------------------------------------------------------------------------
 recursive function getpsfigheight_(self) result(psfh)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getpsfigheight_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! make the last path the clippath
@@ -749,8 +703,9 @@ end function getpsfigheight_
 
 !--------------------------------------------------------------------------
 recursive subroutine clippath_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: clippath_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! make the last path the clippath
@@ -765,16 +720,17 @@ end subroutine clippath_
 
 !--------------------------------------------------------------------------
 recursive subroutine translate_(self,x,y)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: translate_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! redefine the origin of the current coordinate frame 
+  !! redefine the origin of the current coordinate frame
 
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)     :: self
-real(kind=sgl),INTENT(IN)               :: x,y    
+real(kind=sgl),INTENT(IN)               :: x,y
  !! coordinates of new origin
 
  write (self%psunit,"(F18.7,' ',F18.7,' T')") x,y
@@ -783,8 +739,9 @@ end subroutine translate_
 
 !--------------------------------------------------------------------------
 recursive subroutine move_(self,x,y)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: move_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! move to a given location
@@ -792,7 +749,7 @@ recursive subroutine move_(self,x,y)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)   :: self
-real(kind=sgl),INTENT(IN)           :: x,y    
+real(kind=sgl),INTENT(IN)           :: x,y
  !! move to this location
 
  write (self%psunit,"(F18.7,' ',F18.7,' M')") x,y
@@ -801,8 +758,9 @@ end subroutine move_
 
 !--------------------------------------------------------------------------
 recursive subroutine draw_(self,x,y)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: draw_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw a line from the current point to the new point
@@ -810,7 +768,7 @@ recursive subroutine draw_(self,x,y)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)         :: x,y    
+real(kind=sgl),INTENT(IN)         :: x,y
  !! end coordinates of draw
 
   write (self%psunit,"(F18.7,' ',F18.7,' L')") x,y
@@ -819,35 +777,37 @@ end subroutine draw_
 
 !--------------------------------------------------------------------------
 recursive subroutine line_gray_(self,x1,y1,x2,y2,gray)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: line_gray_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! draw a line with a given gray level from the current point to the new point        
+  !! draw a line with a given gray level from the current point to the new point
 
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x1,y1        
+real(kind=sgl),INTENT(IN)            :: x1,y1
  !! starting point
-real(kind=sgl),INTENT(IN)            :: x2,y2        
+real(kind=sgl),INTENT(IN)            :: x2,y2
  !! end point
-real(kind=sgl),INTENT(IN)            :: gray          
+real(kind=sgl),INTENT(IN)            :: gray
  !! gray level
 
-  write (self%psunit,"(F18.7,' setgray ')") gray  
+  write (self%psunit,"(F18.7,' setgray ')") gray
   call self%move(x1,y1)
   call self%draw(x2,y2)
 
 ! and reset the gray level to black
-  write (self%psunit,"('S  0.0 setgray ')")      
+  write (self%psunit,"('S  0.0 setgray ')")
 
 end subroutine line_gray_
 
 !--------------------------------------------------------------------------
 recursive subroutine setlinewidth_(self,x)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setlinewidth_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !!  set the line width
@@ -855,7 +815,7 @@ recursive subroutine setlinewidth_(self,x)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x        
+real(kind=sgl),INTENT(IN)            :: x
  !! line width parameter
 
  write (self%psunit,"(F12.7,' setlinewidth')") x
@@ -864,21 +824,22 @@ end subroutine setlinewidth_
 
 !--------------------------------------------------------------------------
 recursive subroutine square_(self,x,y,edge)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: square_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! draw a square 
+  !! draw a square
 
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)           :: x,y    
+real(kind=sgl),INTENT(IN)           :: x,y
  !! center coordinates
-real(kind=sgl),INTENT(IN)           :: edge    
+real(kind=sgl),INTENT(IN)           :: edge
  !! edge length
 
-real(kind=sgl)                        :: ed    
+real(kind=sgl)                        :: ed
 
  ed=0.5*edge
  write (self%psunit,"('0.0 setgray')")
@@ -892,20 +853,21 @@ end subroutine square_
 
 !--------------------------------------------------------------------------
 recursive subroutine filledsquare_(self,x,y,edge,graylevel)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: filledsquare_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! draw a filled square       
+  !! draw a filled square
 
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y            
+real(kind=sgl),INTENT(IN)            :: x,y
  !! center coordinates
-real(kind=sgl),INTENT(IN)            :: edge            
+real(kind=sgl),INTENT(IN)            :: edge
  !! edge length
-real(kind=sgl),INTENT(IN)            :: graylevel    
+real(kind=sgl),INTENT(IN)            :: graylevel
  !! gray level for filling
 
 real(kind=sgl)          :: ed
@@ -922,23 +884,24 @@ end subroutine filledsquare_
 
 !--------------------------------------------------------------------------
 recursive subroutine cross_(self,x,y,edge,lw)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: cross_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! draw a small cross       
+  !! draw a small cross
 
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y    
+real(kind=sgl),INTENT(IN)            :: x,y
  !! center coordinates
-real(kind=sgl),INTENT(IN)            :: edge    
+real(kind=sgl),INTENT(IN)            :: edge
  !! edge length
-real(kind=sgl),INTENT(IN)            :: lw        
+real(kind=sgl),INTENT(IN)            :: lw
  !! line width
 
-real(kind=sgl)                        :: ed    
+real(kind=sgl)                        :: ed
 
  ed=0.5*edge
  call self%setlinewidth(lw)
@@ -953,23 +916,24 @@ end subroutine cross_
 
 !--------------------------------------------------------------------------
 recursive subroutine sphere_(self,x,y,r,clr)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: sphere_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw a colored sphere
   !!
-  !! method modified from Earl J. Kirkland''s book, page 226, adapted for 
+  !! method modified from Earl J. Kirkland''s book, page 226, adapted for
   !! color PostScript
 
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)         :: x,y    
+real(kind=sgl),INTENT(IN)         :: x,y
  !! center coordinates
-real(kind=sgl),INTENT(IN)         :: r      
+real(kind=sgl),INTENT(IN)         :: r
  !! radius
-integer(kind=irg),INTENT(IN)      :: clr    
+integer(kind=irg),INTENT(IN)      :: clr
  !! atomic number
 
 write (self%psunit,"(1x,7(f12.5,1x),'sp')") ATOM_colors(1:3,clr),r,r,x,y
@@ -978,8 +942,10 @@ end subroutine sphere_
 
 !--------------------------------------------------------------------------
 recursive subroutine arc_(self,x0,y0,x,y,radius,ang1,ang2)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: arc_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw an arc of a circle (see PostScript 'arc' command for details)
@@ -987,13 +953,13 @@ recursive subroutine arc_(self,x0,y0,x,y,radius,ang1,ang2)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x0,y0           
+real(kind=sgl),INTENT(IN)            :: x0,y0
  !! new origin coordinates
-real(kind=sgl),INTENT(IN)            :: x,y               
+real(kind=sgl),INTENT(IN)            :: x,y
  !! center coordinates
-real(kind=sgl),INTENT(IN)            :: radius           
+real(kind=sgl),INTENT(IN)            :: radius
  !! radius
-real(kind=sgl),INTENT(IN)            :: ang1,ang2     
+real(kind=sgl),INTENT(IN)            :: ang1,ang2
  !! start and end angles
 
 
@@ -1003,8 +969,9 @@ end subroutine arc_
 
 !--------------------------------------------------------------------------
 recursive subroutine circle_(self,x,y,radius)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: circle_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw a circle
@@ -1012,9 +979,9 @@ recursive subroutine circle_(self,x,y,radius)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y            
+real(kind=sgl),INTENT(IN)            :: x,y
   !! center coordinates
-real(kind=sgl),INTENT(IN)            :: radius        
+real(kind=sgl),INTENT(IN)            :: radius
   !! radius
 
  write (self%psunit,"('N ',3(F16.10,' '),'0 360 arc Cl S')") x,y,radius
@@ -1023,8 +990,9 @@ end subroutine circle_
 
 !--------------------------------------------------------------------------
 recursive subroutine filledcircle_(self,x,y,radius,graylevel)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: filledcircle_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw a filled circle
@@ -1032,11 +1000,11 @@ recursive subroutine filledcircle_(self,x,y,radius,graylevel)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y            
+real(kind=sgl),INTENT(IN)            :: x,y
  !! center coordinates
-real(kind=sgl),INTENT(IN)            :: radius        
+real(kind=sgl),INTENT(IN)            :: radius
  !! radius
-real(kind=sgl),INTENT(IN)            :: graylevel    
+real(kind=sgl),INTENT(IN)            :: graylevel
  !! gray level
 
  write (self%psunit,"(F12.7,' setgray')") graylevel
@@ -1046,8 +1014,9 @@ end subroutine filledcircle_
 
 !--------------------------------------------------------------------------
 recursive subroutine drawframe_(self,x,y)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: drawframe_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw the main frame
@@ -1055,9 +1024,9 @@ recursive subroutine drawframe_(self,x,y)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x        
+real(kind=sgl),INTENT(IN)            :: x
  !! frame width
-real(kind=sgl),INTENT(IN)            :: y         
+real(kind=sgl),INTENT(IN)            :: y
  !! frame height
 
 call self%drawrect(0.0,0.0,x,y)
@@ -1066,8 +1035,9 @@ end subroutine drawframe_
 
 !--------------------------------------------------------------------------
 recursive subroutine drawrect_(self,x1,y1,x2,y2)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: drawrect_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw a rectangle
@@ -1075,27 +1045,28 @@ recursive subroutine drawrect_(self,x1,y1,x2,y2)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x1, y1        
+real(kind=sgl),INTENT(IN)            :: x1, y1
  !! lower left
-real(kind=sgl),INTENT(IN)            :: x2, y2     
+real(kind=sgl),INTENT(IN)            :: x2, y2
  !! upper right
 
- write (self%psunit,"('N')") 
+ write (self%psunit,"('N')")
  call self%move(x1,y1)
  call self%draw(x1,y2)
  call self%draw(x2,y2)
  call self%draw(x2,y1)
  call self%draw(x1,y1)
  call self%closepathS()
- write (self%psunit,"('[0.15 0.03 0.02 0.03] 0 setdash')") 
- write (self%psunit,"('[] 0 setdash')") 
+ write (self%psunit,"('[0.15 0.03 0.02 0.03] 0 setdash')")
+ write (self%psunit,"('[] 0 setdash')")
 
 end subroutine drawrect_
 
 !--------------------------------------------------------------------------
 recursive subroutine line_(self,x1,y1,x2,y2)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: line_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw a line between two points
@@ -1103,21 +1074,22 @@ recursive subroutine line_(self,x1,y1,x2,y2)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x1, y1        
+real(kind=sgl),INTENT(IN)            :: x1, y1
  !! first point
-real(kind=sgl),INTENT(IN)            :: x2, y2     
+real(kind=sgl),INTENT(IN)            :: x2, y2
  !! second point
 
   call self%move(x1,y1)
   call self%draw(x2,y2)
-  write (self%psunit,"('S')")      
+  write (self%psunit,"('S')")
 
 end subroutine line_
 
 !--------------------------------------------------------------------------
 recursive subroutine setdash_(self, num)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setdash_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! define a dash pattern
@@ -1127,7 +1099,7 @@ recursive subroutine setdash_(self, num)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-integer(kind=irg),INTENT(IN)        :: num    
+integer(kind=irg),INTENT(IN)        :: num
  !! dash pattern number of components/segments
 
 integer(kind=irg)                      :: i    ! loop counter
@@ -1142,8 +1114,9 @@ end subroutine setdash_
 
 !--------------------------------------------------------------------------
 recursive subroutine closepathS_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: closepathS_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! close current path and Stroke
@@ -1158,8 +1131,10 @@ end subroutine closepathS_
 
 !--------------------------------------------------------------------------
 recursive subroutine stroke_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: stroke_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! stroke the current path
@@ -1174,8 +1149,9 @@ end subroutine stroke_
 
 !--------------------------------------------------------------------------
 recursive subroutine gsave_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: gsave_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! save the current graphics settings
@@ -1190,8 +1166,9 @@ end subroutine gsave_
 
 !--------------------------------------------------------------------------
 recursive subroutine grestore_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: grestore_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! restore the previous graphics settings
@@ -1206,8 +1183,9 @@ end subroutine grestore_
 
 !--------------------------------------------------------------------------
 recursive subroutine closepath_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: closepath_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! close the current path
@@ -1222,8 +1200,10 @@ end subroutine closepath_
 
 !--------------------------------------------------------------------------
 recursive subroutine newpath_(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: newpath_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! start a new path
@@ -1238,8 +1218,9 @@ end subroutine newpath_
 
 !--------------------------------------------------------------------------
 recursive subroutine text_(self,x,y,line)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: text_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw text at a given location
@@ -1247,22 +1228,23 @@ recursive subroutine text_(self,x,y,line)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y    
+real(kind=sgl),INTENT(IN)            :: x,y
  !! text start coordinates
-character(*),INTENT(IN)              :: line    
+character(*),INTENT(IN)              :: line
  !! output string
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
- write (self%psunit,"('(')",advance="no") 
+ write (self%psunit,"('(')",advance="no")
  write (self%psunit,"(A)",advance="no") line
- write (self%psunit,"(') show')") 
+ write (self%psunit,"(') show')")
 
 end subroutine text_
 
 !--------------------------------------------------------------------------
 recursive subroutine textv_(self,x,y,line)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: textv_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw text rotated counterclockwise by 90 degrees
@@ -1270,23 +1252,25 @@ recursive subroutine textv_(self,x,y,line)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y    
+real(kind=sgl),INTENT(IN)            :: x,y
  !! text start coordinates
-character(*),INTENT(IN)              :: line    
+character(*),INTENT(IN)              :: line
  !! output string
 
- write (self%psunit,"('gsave ')") 
+ write (self%psunit,"('gsave ')")
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
- write (self%psunit,"('90.0 rotate')") 
+ write (self%psunit,"('90.0 rotate')")
  write (self%psunit,"('( ',A,' ) show')") line
- write (self%psunit,"('-90.0 rotate grestore')") 
+ write (self%psunit,"('-90.0 rotate grestore')")
 
 end subroutine textv_
 
 !--------------------------------------------------------------------------
 recursive subroutine texttitle_(self,x,y,line,q)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: texttitle_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw the title
@@ -1294,15 +1278,15 @@ recursive subroutine texttitle_(self,x,y,line,q)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y    
+real(kind=sgl),INTENT(IN)            :: x,y
  !! text start coordinates
-character(*),INTENT(IN)              :: line    
+character(*),INTENT(IN)              :: line
  !! output string
-real(kind=sgl),INTENT(IN)            :: q      
- !! 
+real(kind=sgl),INTENT(IN)            :: q
+ !!
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
- write (self%psunit,"('(')",advance="no") 
+ write (self%psunit,"('(')",advance="no")
  write (self%psunit,"(A)",advance="no") line
  write (self%psunit,"('  [x',1PE8.0,'] ) show')") q
 
@@ -1310,8 +1294,9 @@ end subroutine texttitle_
 
 !--------------------------------------------------------------------------
 recursive subroutine textvtitle_(self,x,y,line,q)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: textvtitle_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw a vertical title
@@ -1319,27 +1304,28 @@ recursive subroutine textvtitle_(self,x,y,line,q)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)         :: x,y  
+real(kind=sgl),INTENT(IN)         :: x,y
  !! text start coordinates
-character(*),INTENT(IN)           :: line 
+character(*),INTENT(IN)           :: line
  !! output string
-real(kind=sgl),INTENT(IN)         :: q    
- !! 
+real(kind=sgl),INTENT(IN)         :: q
+ !!
 
- write (self%psunit,"('gsave ')") 
+ write (self%psunit,"('gsave ')")
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
- write (self%psunit,"('90.0 rotate')") 
- write (self%psunit,"('(')",advance="no") 
+ write (self%psunit,"('90.0 rotate')")
+ write (self%psunit,"('(')",advance="no")
  write (self%psunit,"(A)",advance="no") line
  write (self%psunit,"('  [x',1PE8.0,'] ) show')") q
- write (self%psunit,"('-90.0 rotate grestore')") 
+ write (self%psunit,"('-90.0 rotate grestore')")
 
 end subroutine textvtitle_
 
 !--------------------------------------------------------------------------
 recursive subroutine textint_(self,x,y,line,vl)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: textint_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! text followed by an integer number
@@ -1347,25 +1333,26 @@ recursive subroutine textint_(self,x,y,line,vl)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y          
+real(kind=sgl),INTENT(IN)            :: x,y
  !! text start coordinates
-character(*),INTENT(IN)              :: line          
+character(*),INTENT(IN)              :: line
  !! output string
-integer(kind=irg),INTENT(IN)        :: vl        
+integer(kind=irg),INTENT(IN)        :: vl
  !! integer output value
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
- write (self%psunit,"('(')",advance="no") 
+ write (self%psunit,"('(')",advance="no")
  write (self%psunit,"(A)",advance="no") line
  write (self%psunit,"(I4)",advance="no") vl
- write (self%psunit,"(') show')") 
+ write (self%psunit,"(') show')")
 
 end subroutine textint_
 
 !--------------------------------------------------------------------------
 recursive subroutine textvar_(self,x,y,line,vl)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: textvar_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! text followed by a real number
@@ -1373,25 +1360,26 @@ recursive subroutine textvar_(self,x,y,line,vl)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y    
+real(kind=sgl),INTENT(IN)            :: x,y
  !! text start coordinates
-character(*),INTENT(IN)              :: line    
+character(*),INTENT(IN)              :: line
  !! output string
-real(kind=sgl),INTENT(IN)            :: vl        
+real(kind=sgl),INTENT(IN)            :: vl
  !! real output value
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
- write (self%psunit,"('(')",advance="no") 
+ write (self%psunit,"('(')",advance="no")
  write (self%psunit,"(A)",advance="no") line
  write (self%psunit,"(F14.4)",advance="no") vl
- write (self%psunit,"(') show')") 
+ write (self%psunit,"(') show')")
 
 end subroutine textvar_
 
 !--------------------------------------------------------------------------
 recursive subroutine textvardbl_(self,x,y,line,vl)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: textvardbl_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! text followed by a double precision real number
@@ -1399,25 +1387,26 @@ recursive subroutine textvardbl_(self,x,y,line,vl)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y    
+real(kind=sgl),INTENT(IN)            :: x,y
  !! text start coordinates
-character(*),INTENT(IN)              :: line    
+character(*),INTENT(IN)              :: line
  !! output string
-real(kind=dbl),INTENT(IN)            :: vl        
+real(kind=dbl),INTENT(IN)            :: vl
  !! double output value
 
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
- write (self%psunit,"('(')",advance="no") 
+ write (self%psunit,"('(')",advance="no")
  write (self%psunit,"(A)",advance="no") line
  write (self%psunit,"(F12.6)",advance="no") vl
- write (self%psunit,"(') show')") 
+ write (self%psunit,"(') show')")
 
 end subroutine textvardbl_
 
 !--------------------------------------------------------------------------
 recursive subroutine textballoon_(self,x,y,line,font,sc)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: textballoon_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! text inside a rounded balloon
@@ -1425,36 +1414,37 @@ recursive subroutine textballoon_(self,x,y,line,font,sc)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y    
+real(kind=sgl),INTENT(IN)            :: x,y
  !! text start coordinates
-character(*),INTENT(IN)              :: line    
+character(*),INTENT(IN)              :: line
  !! output string
-character(*),INTENT(IN)              :: font    
+character(*),INTENT(IN)              :: font
  !! font string
-real(kind=sgl),INTENT(IN)            :: sc      
+real(kind=sgl),INTENT(IN)            :: sc
  !! scale factor
 
  call self%setfont(font,sc)
- write (self%psunit,"('/length (')",advance="no") 
+ write (self%psunit,"('/length (')",advance="no")
  write (self%psunit,"(A)",advance="no") line
- write (self%psunit,"(') stringwidth pop def')") 
+ write (self%psunit,"(') stringwidth pop def')")
  write (self%psunit,"('/height ',F6.4,' def /border ',F6.4,' def')") 0.11*sc/0.2,0.06*sc/0.2
  write (self%psunit,"('/bottom ',F12.7,' border sub def')") y
  write (self%psunit,"('/top ',F12.7,' height add border add def')") y
  write (self%psunit,"('/left ',F12.7,' border sub def')") x
  write (self%psunit,"('/right ',F12.7,' length add border add def')") x
- write (self%psunit,"('/rad 0.04 def frame')") 
+ write (self%psunit,"('/rad 0.04 def frame')")
  write (self%psunit,"(F12.7,' ',F12.7,' M')") x,y
- write (self%psunit,"('(')",advance="no") 
+ write (self%psunit,"('(')",advance="no")
  write (self%psunit,"(A)",advance="no") line
- write (self%psunit,"(') show')") 
- 
+ write (self%psunit,"(') show')")
+
 end subroutine textballoon_
 
 !--------------------------------------------------------------------------
 recursive subroutine balloon_(self,x,y,le,he,w)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: balloon_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw an empty balloon
@@ -1462,26 +1452,27 @@ recursive subroutine balloon_(self,x,y,le,he,w)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: x,y        
+real(kind=sgl),INTENT(IN)            :: x,y
  !! start coordinates
-real(kind=sgl),INTENT(IN)            :: le, he    
+real(kind=sgl),INTENT(IN)            :: le, he
  !! length and height
-real(kind=sgl),INTENT(IN)            :: w          
+real(kind=sgl),INTENT(IN)            :: w
  !! width parameter
 
  write (self%psunit,"('/he ',F6.4,' def /bo ',F6.4,' def /wi ',F6.4,' def')") he,0.5*w,le
  write (self%psunit,"('/bottom ',F12.7,' bo add def')") y
- write (self%psunit,"('/top bottom he add bo sub bo sub def')")  
+ write (self%psunit,"('/top bottom he add bo sub bo sub def')")
  write (self%psunit,"('/left ',F12.7,' bo add def')") x
- write (self%psunit,"('/right left wi add bo sub def')")  
- write (self%psunit,"('/rad 0.04 def frame')") 
+ write (self%psunit,"('/right left wi add bo sub def')")
+ write (self%psunit,"('/rad 0.04 def frame')")
 
 end subroutine balloon_
 
 !--------------------------------------------------------------------------
 recursive subroutine setfont_(self,line,sc)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setfont_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! select a font and make it active
@@ -1489,14 +1480,14 @@ recursive subroutine setfont_(self,line,sc)
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)            :: sc      
- !! font scale factor  
-character(*),INTENT(IN)              :: line    
+real(kind=sgl),INTENT(IN)            :: sc
+ !! font scale factor
+character(*),INTENT(IN)              :: line
  !! font string
 
- write (self%psunit,"()",advance="no") 
+ write (self%psunit,"()",advance="no")
  write (self%psunit,"('/',A)",advance="no") line
- write (self%psunit,"(' findfont')") 
+ write (self%psunit,"(' findfont')")
  write (self%psunit,"(F6.4,' scalefont ')") sc
  write (self%psunit,"('setfont')")
 
@@ -1504,8 +1495,9 @@ end subroutine setfont_
 
 !--------------------------------------------------------------------------
 recursive subroutine Printhkl_(self,x,y,h,k,l)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Printhkl_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! print hkl indices in PostScript format
@@ -1553,8 +1545,9 @@ end subroutine Printhkl_
 
 !--------------------------------------------------------------------------
 recursive subroutine DumpIndices_(self,hexset,S,h,k,l,c,x,y,n)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DumpIndices_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! version of Printhkl used by stereographic projection program
@@ -1566,15 +1559,15 @@ IMPLICIT NONE
 class(PostScript_T),INTENT(INOUT)       :: self
 !f2py intent(in,out) ::  PS
 logical,INTENT(IN)                      :: hexset
-character(1),INTENT(IN)                   :: S            
+character(1),INTENT(IN)                   :: S
  !! space character 'd' or 'r'
-integer(kind=irg),INTENT(IN)              :: h,k,l    
+integer(kind=irg),INTENT(IN)              :: h,k,l
  !! Miller index triplet
-integer(kind=irg),INTENT(IN)                :: c            
+integer(kind=irg),INTENT(IN)                :: c
  !! positioning parameter
-real(kind=sgl),INTENT(IN)                    :: x,y        
+real(kind=sgl),INTENT(IN)                    :: x,y
  !! starting position of indices
-logical,INTENT(IN)                          :: n            
+logical,INTENT(IN)                          :: n
  !! logical
 
 character(1),parameter :: numbers(0:9) = (/'0','1','2','3','4','5','6','7','8','9'/)
@@ -1673,8 +1666,9 @@ end subroutine DumpIndices_
 
 !--------------------------------------------------------------------------
 recursive subroutine PrintIndices_(self,S,hexset,h,k,l,x,y)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: PrintIndices_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! version of Printhkl used by stereographic projection program
@@ -1684,13 +1678,13 @@ use mod_misc
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)   :: self
-character(1),INTENT(IN)               :: S              
+character(1),INTENT(IN)               :: S
  !! space character 'd' or 'r'
 logical,INTENT(IN)                  :: hexset
  !! hexagonal setting logical
-integer(kind=irg),INTENT(IN)          :: h,k,l        
+integer(kind=irg),INTENT(IN)          :: h,k,l
  !! Miller index triplet
-real(kind=sgl),INTENT(IN)                :: x,y            
+real(kind=sgl),INTENT(IN)                :: x,y
  !! starting position of indices
 
 character(12)                              :: line
@@ -1704,8 +1698,9 @@ end subroutine PrintIndices_
 
 !--------------------------------------------------------------------------
 recursive subroutine DumpImage_(self,imaint,imanum,x0,y0,npx,npy,scl)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DumpImage_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw integer image (512x512 maximum size) at given location with given scale
@@ -1716,22 +1711,23 @@ class(PostScript_T),INTENT(INOUT)     :: self
 integer(kind=irg),INTENT(IN)             :: imaint(npx,npy)
  !! image array
 integer(kind=irg),INTENT(INOUT)       :: imanum
- !! image number 
-real(kind=sgl),INTENT(IN)             :: x0,y0        
+ !! image number
+real(kind=sgl),INTENT(IN)             :: x0,y0
  !! image position
-integer(kind=irg),INTENT(IN)             :: npx,npy    
+integer(kind=irg),INTENT(IN)             :: npx,npy
  !! image size
-real(kind=sgl),INTENT(IN)             :: scl            
+real(kind=sgl),INTENT(IN)             :: scl
  !! image scale factor
 
  call self%DumpImageDistort(imaint,imanum,x0,y0,npx,npy,scl,scl)
- 
+
 end subroutine DumpImage_
 
 !--------------------------------------------------------------------------
-recursive subroutine DumpImageDistort_(self,imaint,imanum,x0,y0,npx,npy,sclx,scly)   
-  !! author: MDG 
-  !! version: 1.0 
+recursive subroutine DumpImageDistort_(self,imaint,imanum,x0,y0,npx,npy,sclx,scly)
+!DEC$ ATTRIBUTES DLLEXPORT :: DumpImageDistort_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! draw integer image (512x512 maximum size) at given location with given scale which may be different along x and y
@@ -1741,11 +1737,11 @@ IMPLICIT NONE
 class(PostScript_T),INTENT(INOUT)     :: self
 integer(kind=irg),INTENT(IN)             :: imaint(npx,npy)
 integer(kind=irg),INTENT(INOUT)       :: imanum
-real(kind=sgl),INTENT(IN)             :: x0,y0          
+real(kind=sgl),INTENT(IN)             :: x0,y0
  !! image position
-integer(kind=irg),INTENT(IN)             :: npx,npy        
+integer(kind=irg),INTENT(IN)             :: npx,npy
  !! image size
-real(kind=sgl),INTENT(IN)             :: sclx,scly    
+real(kind=sgl),INTENT(IN)             :: sclx,scly
  !! image scale factors
 
 integer(kind=irg)                       :: iq,i,j,ir,iq1,iq2,k
@@ -1767,7 +1763,7 @@ character(1),parameter                  :: hd(0:15) = (/'0','1','2','3','4','5',
  write (self%psunit,"(' { currentfile picstr readhexstring pop } image } def')")
  write (self%psunit,"(' gsave ',f7.4,' ',f7.4,' scale ')") sclx,scly*float(npy)/float(npx)
  write (self%psunit,"(3A)") imnm(imanum)
- 
+
  do j=1,npy
   do i=1,npx
    ir=2*i-1
@@ -1791,13 +1787,14 @@ end subroutine DumpImageDistort_
 
 !--------------------------------------------------------------------------
 recursive subroutine DrawSPFrame_(self,cell,SG,CX,CY,CRad,iview,sp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DrawSPFrame_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !!  draw a stereographic projection layout 
+  !!  draw a stereographic projection layout
 
-use mod_crystallography 
+use mod_crystallography
 use mod_symmetry
 use mod_misc, only: IndexString
 
@@ -1806,13 +1803,13 @@ IMPLICIT NONE
 class(PostScript_T),INTENT(INOUT) :: self
 type(Cell_T),INTENT(INOUT)        :: cell
 type(SpaceGroup_T),INTENT(INOUT)  :: SG
-real(kind=sgl),INTENT(IN)                :: CX, CY        
- !! circle center coordinates 
-real(kind=sgl),INTENT(IN)                :: CRad         
+real(kind=sgl),INTENT(IN)                :: CX, CY
+ !! circle center coordinates
+real(kind=sgl),INTENT(IN)                :: CRad
  !! circle radius
-integer(kind=irg),INTENT(INOUT)        :: iview(3)    
+integer(kind=irg),INTENT(INOUT)        :: iview(3)
  !! zone axis indices
-character(1),INTENT(IN)                  :: sp              
+character(1),INTENT(IN)                  :: sp
  !! drawing space
 
 character(12)     :: instr
@@ -1833,7 +1830,7 @@ character(17)     :: str
  call IndexString(SG%getSpaceGrouphexset(),instr,iview,'d')
  call self%text(CX,8.14,'Viewing Direction '//instr)
 
- if (sp.eq.'d') then 
+ if (sp.eq.'d') then
   str='direct space'
  else
   str='reciprocal space'
@@ -1845,32 +1842,33 @@ end subroutine DrawSPFrame_
 
 !--------------------------------------------------------------------------
 subroutine DrawcellFrame_(self, cell, iview, sp, CX, CY, hexset)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DrawcellFrame_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
   !! format the output page for the EMdrawcell program
 
-use mod_io 
-use mod_crystallography 
-use mod_misc 
+use mod_io
+use mod_crystallography
+use mod_misc
 
 IMPLICIT NONE
 
 class(PostScript_T), INTENT(INOUT)  :: self
-type(Cell_T), INTENT(INOUT)         :: cell 
-integer(kind=irg),INTENT(INOUT)     :: iview(3)             
+type(Cell_T), INTENT(INOUT)         :: cell
+integer(kind=irg),INTENT(INOUT)     :: iview(3)
  !! viewing direction
-character(1),INTENT(IN)             :: sp                   
+character(1),INTENT(IN)             :: sp
  !! drawing space character
-real(kind=sgl), INTENT(IN)          :: CX, CY               
- !! center of page   
+real(kind=sgl), INTENT(IN)          :: CX, CY
+ !! center of page
 logical, INTENT(IN)                 :: hexset
 
 character(12)                       :: instr
 character(17)                       :: str
 
- if (sp.eq.'d') then 
+ if (sp.eq.'d') then
   call self%newpage(.FALSE.,'Crystal Structure Drawing')
  else
   call self%newpage(.FALSE.,'Reciprocal Lattice Drawing')
@@ -1882,7 +1880,7 @@ character(17)                       :: str
  call self%cellinfo(cell,0.0,8.3)
  call IndexString(hexset, instr, iview, 'd')
  call self%text(CX*0.5,8.14,'Viewing Direction '//instr)
- if (sp.eq.'d') then 
+ if (sp.eq.'d') then
   str='direct space'
  else
   str='reciprocal space'
@@ -1893,53 +1891,54 @@ end subroutine DrawcellFrame_
 
 !--------------------------------------------------------------------------
 recursive subroutine StereoProj_(self, cell, SG, sp, iview, hm, km, lm, topbot)
+!DEC$ ATTRIBUTES DLLEXPORT :: StereoProj_
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 01/26/20
   !!
   !! draw a stereographic projection
 
 use mod_crystallography
-use mod_symmetry 
-use mod_math 
-use mod_io 
-use mod_misc 
+use mod_symmetry
+use mod_math
+use mod_io
+use mod_misc
 
 IMPLICIT NONE
 
-class(PostScript_T),INTENT(INOUT)   :: self 
+class(PostScript_T),INTENT(INOUT)   :: self
 type(Cell_T),INTENT(INOUT)          :: cell
 type(SpaceGroup_T),INTENT(INOUT)    :: SG
-character(1),INTENT(IN)             :: sp         
+character(1),INTENT(IN)             :: sp
  !! space character 'd' or 'r'
-integer(kind=irg),INTENT(INOUT)     :: iview(3)   
+integer(kind=irg),INTENT(INOUT)     :: iview(3)
  !! viewing direction
-integer(kind=irg),INTENT(IN)        :: hm, km, lm 
+integer(kind=irg),INTENT(IN)        :: hm, km, lm
  !! maximum h,k,l indices to be included in drawing
-logical,INTENT(IN)                  :: topbot     
- !! logical 
+logical,INTENT(IN)                  :: topbot
+ !! logical
 
 logical                             :: nn
 logical,allocatable                 :: z(:,:,:)
-real(kind=sgl)                      :: rr(3),g(3),r(3),M(3,3), CX, CY, CRad,xst,yst 
+real(kind=sgl)                      :: rr(3),g(3),r(3),M(3,3), CX, CY, CRad,xst,yst
 real(kind=sgl),parameter            :: negthresh = -0.000001
-integer(kind=irg)                   :: i,h,k,l,hkl(3),hkil(4),cr,hh,kk,ll,num,hkm 
-integer(kind=irg),allocatable       :: itmp(:,:) 
+integer(kind=irg)                   :: i,h,k,l,hkl(3),hkil(4),cr,hh,kk,ll,num,hkm
+integer(kind=irg),allocatable       :: itmp(:,:)
 
 ! 20cm radius projection circle [inches]
  CRad = 3.937
  CX = 3.25
  CY = 3.5
- 
+
 ! create transformation matrix
  call ProjectionMatrix(cell, iview, M)
- 
+
 ! write text and draw projection circle
  call self%DrawSPFrame(cell, SG, CX, CY, CRad, iview, sp)
 
 ! loop over families
 ! make sure that the arrays are big enough for the hexagonal case...
-if (SG%getSpaceGrouphexset().eqv..TRUE.) then 
+if (SG%getSpaceGrouphexset().eqv..TRUE.) then
   hkm = abs(hm)+abs(km)
   allocate(z(-hkm:hkm,-hkm:hkm,-lm:lm))
 else
@@ -1998,16 +1997,17 @@ z = .FALSE.
        end if
       end do
     end if
-   end do 
-  end do 
- end do 
+   end do
+  end do
+ end do
 
 end subroutine StereoProj_
 
 !--------------------------------------------------------------------------
 recursive subroutine DumpZAP_(self,cell,SG,xo,yo,u,v,w,p,np,first,indi,laL,icnt,dbdiff,Vg,Vgsave,rg,rfamily,rnumfam,hhcc)
+!DEC$ ATTRIBUTES DLLEXPORT :: DumpZAP_
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 01/26/20
   !!
   !! draw a single zone axis diffraction pattern
@@ -2018,26 +2018,26 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-class(PostScript_T),INTENT(INOUT)   :: self 
+class(PostScript_T),INTENT(INOUT)   :: self
 type(Cell_T),INTENT(INOUT)          :: cell
 type(SpaceGroup_T),INTENT(INOUT)    :: SG
-real(kind=sgl),INTENT(IN)           :: xo, yo               
+real(kind=sgl),INTENT(IN)           :: xo, yo
  !! lower left position
-integer(kind=irg),INTENT(IN)        :: u, v, w              
+integer(kind=irg),INTENT(IN)        :: u, v, w
  !! zone axis components
-integer(kind=irg),INTENT(IN)        :: p                    
+integer(kind=irg),INTENT(IN)        :: p
  !! ??
-logical,INTENT(IN)                  :: np                   
+logical,INTENT(IN)                  :: np
  !! logical for new page
-logical,INTENT(IN)                  :: first                
+logical,INTENT(IN)                  :: first
  !! logical
-integer(kind=irg),INTENT(IN)        :: indi                 
+integer(kind=irg),INTENT(IN)        :: indi
  !! ??
-real(kind=sgl),INTENT(IN)           :: laL                  
+real(kind=sgl),INTENT(IN)           :: laL
  !! camera length
-integer(kind=irg),INTENT(IN)        :: icnt                 
+integer(kind=irg),INTENT(IN)        :: icnt
  !! counter
-logical,INTENT(IN)                  :: dbdiff(icnt)         
+logical,INTENT(IN)                  :: dbdiff(icnt)
  !! array to deal with double diffraction spots
 real(kind=sgl),INTENT(IN)           :: Vg(*),rg(*),Vgsave(*)
 integer(kind=irg),INTENT(IN)        :: hhcc
@@ -2140,7 +2140,7 @@ logical                             :: dbd(nref)
 ! then get the cross product between t and g; this is the y-axis
  call cell%CalcCross(c,gx,gy,'c','c',0)
 
-! plot origin of reciprocal space 
+! plot origin of reciprocal space
  call self%filledcircle(PX,PY,0.05,0.0)
 
 ! then plot the remaining reflections
@@ -2162,7 +2162,7 @@ logical                             :: dbd(nref)
 ! is it a regular reflection ?
   if (locv(j).ge.thr) then
    call self%filledcircle(qx,qy,locv(j),0.0)
-   if ((indi.eq.1).or.(indi.eq.3)) then 
+   if ((indi.eq.1).or.(indi.eq.3)) then
     call self%Printhkl(qx,qy,locg(j,1),locg(j,2),locg(j,3))
    end if
   end if
@@ -2170,35 +2170,36 @@ logical                             :: dbd(nref)
  end do
 
  deallocate(idx, lng)
- 
+
 end subroutine DumpZAP_
 
 !--------------------------------------------------------------------------
 recursive subroutine DumpPP_(self,cell,xo,yo,np,laL,icnt,Vgsave,rg,rnumfam)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: DumpPP_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! draw a kinematical powder pattern
 
-use mod_crystallography 
+use mod_crystallography
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(PostScript_T),INTENT(INOUT)   :: self 
+class(PostScript_T),INTENT(INOUT)   :: self
 type(Cell_T),INTENT(INOUT)          :: cell
-real(kind=sgl),INTENT(IN)           :: xo, yo               
- !! lower left position   
-logical,INTENT(IN)                  :: np                   
- !! logical for new page    
-real(kind=sgl),INTENT(IN)           :: laL                  
- !! camera length   
-integer(kind=irg),INTENT(IN)        :: icnt                 
- !! counter   
+real(kind=sgl),INTENT(IN)           :: xo, yo
+ !! lower left position
+logical,INTENT(IN)                  :: np
+ !! logical for new page
+real(kind=sgl),INTENT(IN)           :: laL
+ !! camera length
+integer(kind=irg),INTENT(IN)        :: icnt
+ !! counter
 real(kind=sgl),INTENT(IN)           :: rg(*),Vgsave(*)
 integer(kind=irg),INTENT(IN)        :: rnumfam(*)
-    
-! nref = max number of rings    
+
+! nref = max number of rings
 integer(kind=irg),parameter         :: nref = 500
 integer(kind=irg)                   :: i,j
 real(kind=sgl)                      :: sc,gmax,leng(nref),PX,PY,locv(nref),grad,w,Vmax
@@ -2243,17 +2244,17 @@ real(kind=sgl),parameter            :: le=3.25,he=2.9375,thr=1.0E-4
   if (locv(i).gt.Vmax) Vmax=locv(i)
  end do
 
-! plot origin of reciprocal space 
+! plot origin of reciprocal space
  call self%filledcircle(PX,PY,0.05,0.0)
 
-! then plot the diffraction circles 
+! then plot the diffraction circles
  do i=1,icnt
   j=icnt+1-i
 ! get the circle radius and intensity
   grad = leng(j)*sc
   w = locv(j)*0.03/Vmax
 ! draw circle if radius fits in drawing frame and intensity large enough
-  if ((w.gt.0.0001).AND.(grad.le.1.375)) then 
+  if ((w.gt.0.0001).AND.(grad.le.1.375)) then
    call self%setlinewidth(w)
    call self%circle(PX,PY,grad)
   end if
@@ -2263,8 +2264,9 @@ end subroutine DumpPP_
 
 !--------------------------------------------------------------------------
 subroutine InfoPage_(self, cell, SG)
+!dec$ attributes dllexport :: InfoPage_
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! creates a page with crystallographic unit cell info
@@ -2273,7 +2275,7 @@ use mod_io
 use mod_crystallography
 use mod_symmetry
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
 type(Cell_T),INTENT(INOUT)        :: cell
@@ -2283,15 +2285,15 @@ real(kind=sgl)                    :: ast,bst,cst,alphast,betast,gammast,coor(5),
 integer(kind=irg)                 :: iap,i,j
 character(1),parameter            :: xsys(7) = (/'c','t','o','h','R','m','a'/)
 character(2)                      :: brvs
-character(11)                     :: sgname 
+character(11)                     :: sgname
 real(kind=dbl)                    :: dmt(3,3), rmt(3,3), dsm(3,3), rsm(3,3)
 real(kind=dbl),allocatable        :: apos(:,:)
 integer(kind=irg),allocatable     :: atp(:)
 
-! start first page 
+! start first page
  call self%newpage(.TRUE.,trim(cell%getFileName()))
 
-! write text 
+! write text
  call self%text(5.25,0.05,'Distances [nm], angles [degrees]')
  call self%setlinewidth(0.012)
 
@@ -2299,7 +2301,7 @@ integer(kind=irg),allocatable     :: atp(:)
  call self%textballoon(0.75,8.45,'Direct Space',PSfonts(2),0.20)
  call self%setfont(PSfonts(4),0.14)
  call self%text(1.0,8.00,'a :')
- call self%text(1.0,7.84,'b :') 
+ call self%text(1.0,7.84,'b :')
  call self%text(1.0,7.68,'c :')
  write (self%psunit,900) 1.25,8.00,cell%getLatParm('a')
  write (self%psunit,900) 1.25,7.84,cell%getLatParm('b')
@@ -2310,7 +2312,7 @@ integer(kind=irg),allocatable     :: atp(:)
  call self%text(1.0,7.20,'g :')
  call self%setfont(PSfonts(4),0.14)
  write (self%psunit,900) 1.25,7.52,cell%getLatParm('alpha')
- write (self%psunit,900) 1.25,7.36,cell%getLatParm('beta') 
+ write (self%psunit,900) 1.25,7.36,cell%getLatParm('beta')
  write (self%psunit,900) 1.25,7.20,cell%getLatParm('gamma')
 
 ! space group information and unit cell volume
@@ -2322,7 +2324,7 @@ integer(kind=irg),allocatable     :: atp(:)
  call self%setfont(PSfonts(2),0.14)
  brvs(1:1)=xsys(SG%getSpaceGroupXtalSystem())
  sgname = SG%getSpaceGroupName()
- if (SG%getSpaceGroupXtalSystem().ne.5) then 
+ if (SG%getSpaceGroupXtalSystem().ne.5) then
   brvs(2:2)=sgname(2:2)
  else
   brvs(2:2)=' '
@@ -2347,7 +2349,7 @@ integer(kind=irg),allocatable     :: atp(:)
  gammast=acos(rmt(1,2)/ast/bst)/dtor
  call self%setfont(PSfonts(4),0.14)
  call self%text(1.0,6.30,'a* :')
- call self%text(1.0,6.14,'b* :') 
+ call self%text(1.0,6.14,'b* :')
  call self%text(1.0,5.98,'c* :')
  write (self%psunit,900) 1.25,6.30,ast
  write (self%psunit,900) 1.25,6.14,bst
@@ -2372,7 +2374,7 @@ integer(kind=irg),allocatable     :: atp(:)
  call self%DumpMatrix(1.0,3.2,sngl(dsm),'a =')
  call self%DumpMatrix(3.5,3.2,sngl(rsm),'b =')
 
-apos = cell%getAsymPosData() 
+apos = cell%getAsymPosData()
 atp = cell%getAtomtype()
 
 ! asymmetric unit
@@ -2385,7 +2387,7 @@ atp = cell%getAtomtype()
  y=topy
  db = 0.2
  do i=1,cell%getNatomtype()
-  if (mod(i-1,10).eq.0) then 
+  if (mod(i-1,10).eq.0) then
    x=x+dx
    call self%setfont(PSfonts(3),0.14)
    call self%text(x,y+0.2,'atom ')
@@ -2394,7 +2396,7 @@ atp = cell%getAtomtype()
    call self%text(x+1.25,y+0.2,'z ')
    call self%text(x+1.50,y+0.2,'occ. ')
    call self%text(x+1.95,y+0.2,'B ')
-   call self%setfont(PSfonts(4),0.12) 
+   call self%setfont(PSfonts(4),0.12)
   endif
   y=topy + mod(i-1,10)*dy
   do j=1,3
@@ -2418,8 +2420,9 @@ end subroutine InfoPage_
 
 !--------------------------------------------------------------------------
 subroutine DumpMatrix_(self, x, y, g, tt)
+!dec$ attributes dllexport :: DumpMatrix_
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! format a 3x3 matrix in PostScript
@@ -2434,7 +2437,7 @@ real(kind=sgl)                         :: dy,dx
 
 ! set the matrix label
  call self%setlinewidth(0.012)
- call self%setfont(PSfonts(4),0.12) 
+ call self%setfont(PSfonts(4),0.12)
  call self%text(x-0.1,y+0.3,tt)
 
 ! draw the left bracket
@@ -2466,15 +2469,16 @@ real(kind=sgl)                         :: dy,dx
  call self%line(dx,y-0.1,dx,y+2.5*dy)
  call self%line(dx,y+2.5*dy,dx-0.1,y+2.5*dy)
  call self%setlinewidth(0.012)
-      
+
  900    format (1x,F12.7,' ',F12.7,' M (',F12.5,') show')
 
 end subroutine DumpMatrix_
 
 !--------------------------------------------------------------------------
 subroutine DumpAtom_(self, x, y, A, AT, coor)
+!dec$ attributes dllexport :: DumpAtom_
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! format atom info for asymmetric unit
@@ -2488,7 +2492,7 @@ character(2),INTENT(IN)                 :: A
 integer(kind=irg),INTENT(IN)            :: AT
 real(kind=sgl)                          :: dx
 
- write (self%psunit,900) x,y,A,AT 
+ write (self%psunit,900) x,y,A,AT
  dx=x+0.40
  write (self%psunit,910) dx,y,coor(1)
  dx=dx+0.36
@@ -2500,7 +2504,7 @@ real(kind=sgl)                          :: dx
  dx=dx+0.36
  write (self%psunit,910) dx,y,coor(5)
 
-! formats 
+! formats
  900    format (1x,F12.7,' ',F12.7,' M (',A2,' [',I2,'] ) show')
  910    format (1x,F12.7,' ',F12.7,' M (',f6.4,') show')
 
@@ -2508,23 +2512,24 @@ end subroutine DumpAtom_
 
 !--------------------------------------------------------------------------
 subroutine StrucFacPage_(self, cell, SG, Diff)
+!dec$ attributes dllexport :: StrucFacPage_
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! Structure Factor Information Page
 
-use mod_io 
+use mod_io
 use mod_symmetry
 use mod_crystallography
 use mod_diffraction
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)      :: self
 type(Cell_T),INTENT(INOUT)             :: cell
 type(SpaceGroup_T),INTENT(INOUT)       :: SG
-type(Diffraction_T),INTENT(INOUT)      :: Diff 
+type(Diffraction_T),INTENT(INOUT)      :: Diff
 
 type(IO_T)                             :: Message
 integer(kind=irg),parameter            :: inm = 4
@@ -2537,10 +2542,10 @@ real(kind=sgl),allocatable             :: Vgg(:,:),ddg(:),gg(:),xi(:),xip(:),twt
 character(1)                           :: space
 type(gnode)                            :: rlp
 
-! start page 
+! start page
  call self%newpage(.TRUE.,'Structure Factor Information')
 
-! write text 
+! write text
  call self%text(4.0,0.05,'Distances [nm], angles [mrad], potential [V,rad]')
 
 ! label columns
@@ -2552,20 +2557,20 @@ type(gnode)                            :: rlp
  call self%text(xs+1.53,8.15,'p ')
  call self%text(xs+1.93,8.15,'d ')
  call self%text(xs+2.38,8.15,'g ')
- call self%setfont(PSfonts(1),0.14) 
+ call self%setfont(PSfonts(1),0.14)
  call self%text(xs+2.83,8.15,'2q ')
- call self%setfont(PSfonts(3),0.14) 
+ call self%setfont(PSfonts(3),0.14)
  call self%text(xs+3.33,8.15,'|V| ')
  call self%text(xs+3.68,8.15,'Vphase ')
  call self%text(xs+4.18,8.15,'|V''| ')
  call self%text(xs+4.58,8.15,'V''phase ')
- call self%setfont(PSfonts(1),0.14) 
+ call self%setfont(PSfonts(1),0.14)
  call self%text(xs+5.23,8.15,'x ')
- call self%setfont(PSfonts(3),0.14) 
+ call self%setfont(PSfonts(3),0.14)
  call self%text(xs+5.31,8.13,'g ')
- call self%setfont(PSfonts(1),0.14) 
+ call self%setfont(PSfonts(1),0.14)
  call self%text(xs+5.58,8.15,'x''')
- call self%setfont(PSfonts(3),0.14) 
+ call self%setfont(PSfonts(3),0.14)
  call self%text(xs+5.66,8.13,'g ')
 
 ! initialize parameters
@@ -2603,10 +2608,10 @@ type(gnode)                            :: rlp
 
 ! if it is a new one, then determine the entire family
      call Diff%CalcUcg(cell,ind)
-     rlp = Diff%getrlp() 
+     rlp = Diff%getrlp()
 
 ! but ignore the reciprocal lattice point if Vgg is small
-     if (rlp%Vmod.ge.thr) then 
+     if (rlp%Vmod.ge.thr) then
 
 ! copy family in array and label all its members in z-array
       call SG%CalcFamily(ind,num,space,itmp)
@@ -2657,9 +2662,9 @@ type(gnode)                            :: rlp
  ind(3)=0
  call Diff%CalcUcg(cell,ind)
  rlp = Diff%getrlp()
- Vgg(icnt,1)=rlp%Vmod 
+ Vgg(icnt,1)=rlp%Vmod
  Vgg(icnt,2)=rlp%Vphase
- Vgg(icnt,3)=rlp%Vpmod 
+ Vgg(icnt,3)=rlp%Vpmod
  Vgg(icnt,4)=rlp%Vpphase
  gg(icnt)=0.0
  twth(icnt)=0.0
@@ -2707,13 +2712,15 @@ end subroutine StrucFacPage_
 
 !--------------------------------------------------------------------------
 subroutine DumpLine_(self,i,h,k,l,p,d,g,th,vm,vp,vpm,vpp,xi,xip)
+!dec$ attributes dllexport :: DumpLine_
+
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! formats a line of structure factor information
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT)      :: self
 integer                                :: h,k,l,p,i
@@ -2723,7 +2730,7 @@ real                                   :: d,g,th,xi,vm,vp,vpm,vpp,xip, x, y, xs
  if ((mod(i-1,50).eq.0).AND.(i.ne.1)) then
   call self%newpage(.TRUE.,'Structure Factor Information')
 
-! write text 
+! write text
   call self%text(4.0,0.05,'Distances [nm], angles [mrad], potential [V,rad]')
 
 ! label columns
@@ -2735,59 +2742,59 @@ real                                   :: d,g,th,xi,vm,vp,vpm,vpp,xip, x, y, xs
   call self%text(xs+1.53,8.15,'p ')
   call self%text(xs+1.93,8.15,'d ')
   call self%text(xs+2.38,8.15,'g ')
-  call self%setfont(PSfonts(1),0.14) 
+  call self%setfont(PSfonts(1),0.14)
   call self%text(xs+2.83,8.15,'2q ')
-  call self%setfont(PSfonts(3),0.14) 
+  call self%setfont(PSfonts(3),0.14)
   call self%text(xs+3.33,8.15,'|V| ')
   call self%text(xs+3.68,8.15,'Vphase ')
   call self%text(xs+4.18,8.15,'|V''| ')
   call self%text(xs+4.58,8.15,'V''phase ')
-  call self%setfont(PSfonts(1),0.14) 
+  call self%setfont(PSfonts(1),0.14)
   call self%text(xs+5.23,8.15,'x ')
-  call self%setfont(PSfonts(3),0.14) 
+  call self%setfont(PSfonts(3),0.14)
   call self%text(xs+5.31,8.13,'g ')
-  call self%setfont(PSfonts(1),0.14) 
+  call self%setfont(PSfonts(1),0.14)
   call self%text(xs+5.58,8.15,'x''')
-  call self%setfont(PSfonts(3),0.14) 
+  call self%setfont(PSfonts(3),0.14)
   call self%text(xs+5.66,8.13,'g ')
  end if
 
 ! put all entries in the correct positions
  x = xs+1.0
  y = 8.0 - (mod(i-1,50))*0.15
- call self%setfont(PSfonts(4),0.12) 
- write (self%psunit,900) x,y,h       
+ call self%setfont(PSfonts(4),0.12)
+ write (self%psunit,900) x,y,h
  x=x+0.15
- write (self%psunit,900) x,y,k       
+ write (self%psunit,900) x,y,k
  x=x+0.15
- write (self%psunit,900) x,y,l       
+ write (self%psunit,900) x,y,l
  x=x+0.20
- write (self%psunit,900) x,y,p       
+ write (self%psunit,900) x,y,p
  x=x+0.25
- write (self%psunit,901) x,y,d       
+ write (self%psunit,901) x,y,d
  x=x+0.45
- write (self%psunit,901) x,y,g       
+ write (self%psunit,901) x,y,g
  x=x+0.45
- write (self%psunit,902) x,y,th*1000.0      
+ write (self%psunit,902) x,y,th*1000.0
  x=x+0.55
- write (self%psunit,901) x,y,vm      
+ write (self%psunit,901) x,y,vm
  x=x+0.45
- write (self%psunit,901) x,y,vp      
+ write (self%psunit,901) x,y,vp
  x=x+0.45
- write (self%psunit,901) x,y,vpm     
+ write (self%psunit,901) x,y,vpm
  x=x+0.45
- write (self%psunit,901) x,y,vpp     
+ write (self%psunit,901) x,y,vpp
  x=x+0.45
- if (xi.gt.100000.0) then 
-  write (self%psunit,905) x,y       
+ if (xi.gt.100000.0) then
+  write (self%psunit,905) x,y
  else
-  write (self%psunit,906) x,y,xi       
+  write (self%psunit,906) x,y,xi
  endif
  x=x+0.45
- if (xip.gt.100000.0) then 
-  write (self%psunit,905) x,y       
+ if (xip.gt.100000.0) then
+  write (self%psunit,905) x,y
  else
-  write (self%psunit,906) x,y,xip       
+  write (self%psunit,906) x,y,xip
  endif
 !
  900    format (1x,F12.7,' ',F12.7,' M (',I2,') show')
@@ -2802,13 +2809,14 @@ end subroutine DumpLine_
 
 !--------------------------------------------------------------------------
 subroutine StereoPage_(self, cell, SG)
+!dec$ attributes dllexport :: StereoPage_
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! creates pages with stereographic projections
 
-use mod_io 
+use mod_io
 use mod_crystallography
 use mod_symmetry
 
@@ -2846,8 +2854,9 @@ end subroutine StereoPage_
 
 !--------------------------------------------------------------------------
 recursive subroutine DiffPage_(self, cell, SG, Diff, camlen)
-  !! author: MDG 
-  !! version: 1.0 
+!dec$ attributes dllexport :: DiffPage_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !!  draw kinematical zone axis electron diffraction patterns
@@ -2863,11 +2872,11 @@ IMPLICIT NONE
 class(PostScript_T),INTENT(INOUT)   :: self
 type(Cell_T),INTENT(INOUT)          :: cell
 type(SpaceGroup_T),INTENT(INOUT)    :: SG
-class(Diffraction_T),INTENT(INOUT)  :: Diff 
+class(Diffraction_T),INTENT(INOUT)  :: Diff
 real(kind=sgl),INTENT(IN)           :: camlen
 
 type(IO_T)                          :: Message
-    
+
 integer(kind=irg),parameter         :: inm = 5
 character(1)                        :: list(256)
 logical                             :: first,np,ppat,a
@@ -2883,17 +2892,17 @@ real(kind=sgl),parameter            :: xoff(0:5)=(/0.0,3.3125,0.0,3.3125,0.0,3.3
                                        eps = 1.0E-3
 logical,allocatable                 :: dbdiff(:)
 integer(kind=irg),allocatable       :: itmp(:,:)   !< array used for family computations etc
-    
+
 real(kind=sgl),allocatable          :: Vg(:),rg(:),Vgsave(:)
 integer(kind=irg),allocatable       :: rfamily(:,:,:),rnumfam(:)
 type(gnode)                         :: rlp
 
 ! set some parameters
- thr = 1.E-4 
+ thr = 1.E-4
  twopi = 2.0*cPi
  Vmax = 0.0
 
-! gmax is the radius of the sphere whose intersection with the 
+! gmax is the radius of the sphere whose intersection with the
 ! back focal plane is the circle on the output zone axis patterns
  laL = sngl(Diff%getWaveLength()) * camlen
  RR = 1.375 * 25.4
@@ -2904,7 +2913,7 @@ type(gnode)                         :: rlp
  oi_real(1) = camlen
  call Message%WriteValue(' L         [mm] = ', oi_real, 1)
  oi_real(1) = laL
- call Message%WriteValue('camera length lambda*L [mm nm] = ', oi_real, 1) 
+ call Message%WriteValue('camera length lambda*L [mm nm] = ', oi_real, 1)
 
 ! determine the families of reciprocal lattice points
 ! in a region of reciprocal space.
@@ -2931,7 +2940,7 @@ rmt = cell%getrmt()
  allocate(numfam(iinm))
 
 ! if this is a non-symmorphic space group, then also
-! allocate the dbdiff array to tag potential double 
+! allocate the dbdiff array to tag potential double
 ! diffraction reflections
  if (.not.SG%getSpaceGroupSymmorphic()) then
    allocate(dbdiff(hhcc))
@@ -2959,13 +2968,13 @@ rmt = cell%getrmt()
 ! if it is larger than gmax, then compute the entire family
      if (ggl.ge.gmax) then
       call SG%CalcFamily(ind,num,'r',itmp)
-! and label the family members in the zr array so that we 
+! and label the family members in the zr array so that we
 ! do not include those points later on in the loop
       do i=1,num
        zr(itmp(i,1),itmp(i,2),itmp(i,3))=.TRUE.
       end do
-     else 
-! if the length is smaller than gmax, then compute the 
+     else
+! if the length is smaller than gmax, then compute the
 ! Fourier coefficient Vg and determine the entire family
 ! [recall that all members in a family have the same Vg]
 ! Do this only for those reflections that are allowed by
@@ -2994,7 +3003,7 @@ rmt = cell%getrmt()
 ! and take the modulus squared for the intensity
        Vg(icnt)=rlp%Vmod**2
        Vgsave(icnt)=Vg(icnt)
-! update the maximum value 
+! update the maximum value
        Vmax = max(Vg(icnt),Vmax)
       else
 ! remove the equivalent systematic absences
@@ -3014,15 +3023,15 @@ rmt = cell%getrmt()
       rnumfam(icnt)=num
       totfam=totfam+num-1
       icnt=icnt+1
-     end if 
-    end if 
+     end if
+    end if
    end do
   end do
  end do
 
  icnt=icnt-1
 ! normalize potential coefficients to largest one
-! and scale in a non-linear way to mimic density on 
+! and scale in a non-linear way to mimic density on
 ! an electron micrograph [Gonzalez & Windtz]
 ! Use the where operator to avoid the negative intensities
  call Message%ReadValue('logarithmic[0] or exponential[1] intensity scale ', io_int, 1)
@@ -3057,16 +3066,16 @@ rmt = cell%getrmt()
       ii = 0
       do i=1,num
        hh = itmp(i,1)+itmp(i,2)+itmp(i,3)
-       if (hh.gt.js) then 
+       if (hh.gt.js) then
         ii = i
         js = hh
        end if
-! then remove the multiples of those direction indices from list 
+! then remove the multiples of those direction indices from list
        do m=-inm,inm
         ih=itmp(i,1)*m
         ik=itmp(i,2)*m
         il=itmp(i,3)*m
-        if (((abs(ih).le.inm).and.(abs(ik).le.inm)).and.(abs(il).le.inm)) then 
+        if (((abs(ih).le.inm).and.(abs(ik).le.inm)).and.(abs(il).le.inm)) then
          z(ih,ik,il)=.TRUE.
         end if
        end do
@@ -3105,7 +3114,7 @@ rmt = cell%getrmt()
   do k=1,3
    io_int(k+1) = family(j,k)
   end do
-  if (mod(i,4).eq.0) then 
+  if (mod(i,4).eq.0) then
    call Message%WriteValue('', io_int,4,"(I3,' [',3I3,'];')")
   else
    call Message%WriteValue('', io_int,4,"(I3,' [',3I3,'];')",advance="no")
@@ -3124,12 +3133,12 @@ rmt = cell%getrmt()
  call Message%ReadValue('No indices (0), labels (1), extinctions (2), labels + extinctions (3): ', io_int, 1)
  iref = io_int(1)
 
-! and create output in 2 columns, 3 rows 
- do i=1,fmax  
+! and create output in 2 columns, 3 rows
+ do i=1,fmax
   dpcnt=dpcnt+1
   j=idx(slect(i))
   imo = mod(i-1,6)
-  if (imo.eq.0) then 
+  if (imo.eq.0) then
    np=.TRUE.
   else
    np=.FALSE.
@@ -3159,8 +3168,9 @@ end subroutine DiffPage_
 
 !--------------------------------------------------------------------------
 recursive subroutine studylist(list,slect,np,ppat)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: studylist
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! determine which zone axis pattern to draw from user input
@@ -3189,15 +3199,15 @@ integer(kind=irg),parameter             :: nmb(48:57)=(/0,1,2,3,4,5,6,7,8,9/)
 ! count characters and search for , and -
  do i=1,256
   if (list(i)(1:1).ne.' ') j=j+1
-  if (list(i)(1:1).eq.',') then 
+  if (list(i)(1:1).eq.',') then
    ccnt = ccnt+1
    comma(ccnt)=i
   end if
-  if (list(i)(1:1).eq.'-') then 
+  if (list(i)(1:1).eq.'-') then
    hcnt = hcnt+1
    hyphen(hcnt)=i
   end if
- end do 
+ end do
  ccnt = ccnt+1
  comma(ccnt) = j+1
 
@@ -3251,9 +3261,9 @@ integer(kind=irg),parameter             :: nmb(48:57)=(/0,1,2,3,4,5,6,7,8,9/)
    end if
    ip = comma(i)+1
   end if
- end do 
+ end do
  np = icnt
- 
+
 end subroutine studylist
 
 

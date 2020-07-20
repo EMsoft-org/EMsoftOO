@@ -27,8 +27,8 @@
 ! ###################################################################
 
 module mod_global
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 12/30/19
   !!
   !! global constant definitions (except for strings which are in stringconstants.in.f90)
@@ -57,20 +57,20 @@ public
 !DEC$ ATTRIBUTES DLLEXPORT :: displayEMsoftWarningMessages
 !DEC$ ATTRIBUTES DLLEXPORT :: displayConfigFileMissingMessage
 
-!> We define a logical to query the current HDF fortran interface state 
-!> There can be issues with HDF reading/writing if the interface is opened multiple times 
+!> We define a logical to query the current HDF fortran interface state
+!> There can be issues with HDF reading/writing if the interface is opened multiple times
 !> without the corresponding close commands...
-  logical                               :: HDFinterfaceOpen 
+  logical                               :: HDFinterfaceOpen
 !DEC$ ATTRIBUTES DLLEXPORT :: HDFinterfaceOpen
 
-!> Since it can be difficult to debug class destructor routines, we define a variable 
-!> that makes the destructors a little more verbose ... 
-  ! logical                               :: verboseClassDestructors = .TRUE. 
-  logical                               :: verboseClassDestructors = .FALSE. 
+!> Since it can be difficult to debug class destructor routines, we define a variable
+!> that makes the destructors a little more verbose ...
+   !logical                               :: verboseClassDestructors = .TRUE.
+  logical                               :: verboseClassDestructors = .FALSE.
 !DEC$ ATTRIBUTES DLLEXPORT :: verboseClassDestructors
 
 !> Whenever a rotation is defined using one of the rotation classes, we carry out
-!> a range check on the input; this can be turned off with this switch 
+!> a range check on the input; this can be turned off with this switch
   logical                               :: rotationRangeCheck = .TRUE.
 !DEC$ ATTRIBUTES DLLEXPORT :: rotationRangeCheck
 
@@ -85,17 +85,17 @@ public
 !DEC$ ATTRIBUTES DLLEXPORT :: dataunit3
 
 !> Maximum number of positions in asymmetric unit
-  integer(kind=irg), parameter          :: maxpasym = 250   
+  integer(kind=irg), parameter          :: maxpasym = 250
 !DEC$ ATTRIBUTES DLLEXPORT :: maxpasym
 
 ! ****************************************************
 ! ****************************************************
 ! ****************************************************
-! these two parameters are used to change the sign of the permutation symbol from Adam 
-! Morawiec's book to the convention used for the EMsoft package.  If you want to use Adam's 
+! these two parameters are used to change the sign of the permutation symbol from Adam
+! Morawiec's book to the convention used for the EMsoft package.  If you want to use Adam's
 ! convention, both of these parameters should be set to +1; -1 will change the sign everywhere
-! for all representations that involve the unit vector.  The quaternion product is 
-! also redefined to include the epsijk parameter.  Doing so guarantees that the 
+! for all representations that involve the unit vector.  The quaternion product is
+! also redefined to include the epsijk parameter.  Doing so guarantees that the
 ! quat_Lp operator ALWAYS returns an active result, regardless of the choice of epsijk;
 ! quat_LPstar ALWAYS returns a passive result.
 
@@ -109,10 +109,10 @@ public
 !DEC$ ATTRIBUTES DLLEXPORT :: epsijk
 !DEC$ ATTRIBUTES DLLEXPORT :: epsijkd
 
-! In the first case, epsijk=-1, the rotation 120@[111] will result in 
-! an axis angle pair of [111], 2pi/3.  In the second case, the axis-angle 
+! In the first case, epsijk=-1, the rotation 120@[111] will result in
+! an axis angle pair of [111], 2pi/3.  In the second case, the axis-angle
 ! pair will be -[111], 2pi/3.  In all cases, the rotations are interpreted
-! in the passive sense.  The case epsijk=+1 corresponds to the mathematically 
+! in the passive sense.  The case epsijk=+1 corresponds to the mathematically
 ! consistent case, using the standard definition for the quaternion product; in
 ! the other case, epsijk=-1, one must redefine the quaternion product in order
 ! to produce consistent results.  This takes a lengthy explanation ... see the
@@ -120,9 +120,9 @@ public
 ! to a number of files, notably quaternions.f90, and everywhere else that quaternions
 ! and rotations in general are used (in particular the mod_rotations module).
 !
-! Reference:  D.J. Rowenhorst, A.D. Rollett, G.S. Roher, M.A. Groeber, M.A. Jackson, 
-!  P.J. Konijnenberg, and M. De Graef. "Tutorial: consistent representations of and 
-!  conversions between 3D rotations". Modeling and Simulations in Materials Science 
+! Reference:  D.J. Rowenhorst, A.D. Rollett, G.S. Roher, M.A. Groeber, M.A. Jackson,
+!  P.J. Konijnenberg, and M. De Graef. "Tutorial: consistent representations of and
+!  conversions between 3D rotations". Modeling and Simulations in Materials Science
 !  and Engineering, 23, 083501 (2015).
 !
 ! ****************************************************
@@ -144,9 +144,9 @@ public
 !> cAvogadro    = Avogadro's constant [mol^-1]
 !
 ! The values of several of these constants have been updated to the new SI 2019 exact values [MDG, 01/22/19]
-! The exact values below are the ones for cLight, cPlanck, cBoltzmann, cCharge; the others are derived using 
-! the standard relations in the 2019 SI units document.  In the derivation, we used 0.0072973525664D0 as the 
-! value for the hyperfine structure constant alpha. 
+! The exact values below are the ones for cLight, cPlanck, cBoltzmann, cCharge; the others are derived using
+! the standard relations in the 2019 SI units document.  In the derivation, we used 0.0072973525664D0 as the
+! value for the hyperfine structure constant alpha.
 !
   real(kind=dbl), parameter :: cPi=3.141592653589793238D0, cLight = 299792458.D0, &
                                cPlanck = 6.62607015D-34, cBoltzmann = 1.380649D-23,  &
@@ -166,7 +166,7 @@ public
 !DEC$ ATTRIBUTES DLLEXPORT :: cRestmass
 !DEC$ ATTRIBUTES DLLEXPORT :: cJ2eV
 
-  real(kind=dbl), parameter :: dtor = cPi/180.D0 
+  real(kind=dbl), parameter :: dtor = cPi/180.D0
   real(kind=dbl), parameter :: rtod = 180.D0/cPi
 !DEC$ ATTRIBUTES DLLEXPORT :: dtor
 !DEC$ ATTRIBUTES DLLEXPORT :: rtod
@@ -262,11 +262,11 @@ type(LambertParametersType)        :: LPs
 
   real(kind=sgl),dimension(81)        :: Butterfly9x9 = (/-10.0, -15.0, -22.0, -22.0, -22.0, -22.0, -22.0, -15.0, -10.0, &
                                                          -1.0, -6.0, -13.0, -22.0, -22.0, -22.0, -13.0, -6.0, -1.0, &
-                                                          3.0, 6.0, 4.0, -3.0, -22.0, -3.0, 4.0, 6.0, 3.0, & 
+                                                          3.0, 6.0, 4.0, -3.0, -22.0, -3.0, 4.0, 6.0, 3.0, &
                                                           3.0, 11.0, 19.0, 28.0, 42.0, 28.0, 19.0, 11.0, 3.0, &
                                                           3.0, 11.0, 27.0, 42.0, 42.0, 42.0, 27.0, 11.0, 3.0, &
                                                           3.0, 11.0, 19.0, 28.0, 42.0, 28.0, 19.0, 11.0, 3.0, &
-                                                          3.0, 6.0, 4.0, -3.0, -22.0, -3.0, 4.0, 6.0, 3.0, & 
+                                                          3.0, 6.0, 4.0, -3.0, -22.0, -3.0, 4.0, 6.0, 3.0, &
                                                          -1.0, -6.0, -13.0, -22.0, -22.0, -22.0, -13.0, -6.0, -1.0, &
                                                          -10.0, -15.0, -22.0, -22.0, -22.0, -22.0, -22.0, -15.0, -10.0/)
 !DEC$ ATTRIBUTES DLLEXPORT :: Butterfly9x9
@@ -320,19 +320,20 @@ contains
 
 !--------------------------------------------------------------------------
 recursive subroutine reportDestructor(cdname)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: reportDestructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/16/20
 !!
 !! print out a line telling the user which class destructor routine is being called
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-character(*),INTENT(IN)  :: cdname 
+character(*),INTENT(IN)  :: cdname
 
-if (verboseClassDestructors.eqv..TRUE.) then 
+if (verboseClassDestructors.eqv..TRUE.) then
   write (*,*) 'entered destructor routine for class '//trim(cdname)
-end if 
+end if
 
 end subroutine reportDestructor
 

@@ -2,38 +2,38 @@
 ! Copyright (c) 2014-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_crystallography
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! Everything that has to do with crystallographic computations (used to be crystal.f90 module)
 
-use mod_kinds 
+use mod_kinds
 use mod_global
 use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
                                           stdout=>output_unit, &
@@ -50,13 +50,13 @@ IMPLICIT NONE
       real(kind=dbl)                       :: a, b, c, alpha, beta, gamma
        !! lattice parameters [nanometers and degrees]
       integer(kind=irg)                    :: xtal_system
-       !! crystal system number; duplicated from the entry in the SpaceGroup class (mod_symmetry.f90) 
+       !! crystal system number; duplicated from the entry in the SpaceGroup class (mod_symmetry.f90)
       integer(kind=irg)                    :: ATOM_type(maxpasym)
        !! atom types in asymetric unit
       integer(kind=irg)                    :: ATOM_ntype
        !! number of atom types in asymmetric unit
       real(kind=sgl)                       :: ATOM_pos(maxpasym,5)
-       !! atom coordinates, site occupations, and Debye-Waller factors for atoms in asymmetric unit 
+       !! atom coordinates, site occupations, and Debye-Waller factors for atoms in asymmetric unit
       character(fnlen)                     :: xtalname
        !! crystal structure file name
       character(fnlen)                     :: source
@@ -65,7 +65,7 @@ IMPLICIT NONE
       real(kind=dbl)                       :: dmt(3,3)
        !! dirct metric tensor
       real(kind=dbl)                       :: rmt(3,3)
-       !! reciprocal metric tensor 
+       !! reciprocal metric tensor
       real(kind=dbl)                       :: dsm(3,3)
        !! direct structure matrix
       real(kind=dbl)                       :: rsm(3,3)
@@ -74,16 +74,16 @@ IMPLICIT NONE
        !! direct structure matrix for the trigonal/rhombohedral case
       real(kind=dbl)                       :: vol
        !! unit cell volume [nm^3]
-! other useful derived quantities 
+! other useful derived quantities
       integer(kind=irg)                    :: numat(maxpasym)
        !! number of atoms of each type in asymmetric unit
       real(kind=dbl),allocatable           :: apos(:,:,:)
-       !! array with atom coordinates 
+       !! array with atom coordinates
       real(kind=dbl)                       :: density
        !! theoretical density
-      real(kind=dbl)                       :: avZ 
-       !! average atomic number 
-      real(kind=dbl)                       :: avA 
+      real(kind=dbl)                       :: avZ
+       !! average atomic number
+      real(kind=dbl)                       :: avA
        !! average atomic number
       logical                              :: Wyckoff = .FALSE.
        !! should we use Wyckoff positions when creating a crystal data file ?
@@ -106,7 +106,7 @@ IMPLICIT NONE
           procedure, pass(self) :: calcCrossSingle
           procedure, pass(self) :: calcCrossDouble
           procedure, pass(self) :: calcPositions_
-! routines to set class parameters 
+! routines to set class parameters
           procedure, pass(self) :: getFileName_
           procedure, pass(self) :: getSource_
           procedure, pass(self) :: getVolume_
@@ -138,13 +138,13 @@ IMPLICIT NONE
           procedure, pass(self) :: displayPeriodicTable
           ! procedure, pass(self) :: extractAtomPositionData
           procedure, pass(self) :: calcTheoreticalDensity
-! routines to read/write .xtal files 
+! routines to read/write .xtal files
           procedure, pass(self) :: readDataHDF_
           procedure, pass(self) :: saveDataHDF_
           procedure, pass(self) :: addXtalDataGroup_
           procedure, pass(self) :: getCrystalData_
           procedure, pass(self) :: dumpXtalInfo_
-! miscellaneous routines 
+! miscellaneous routines
           procedure, pass(self) :: resetUnitCell
           procedure, pass(self) :: ShortestG_
           procedure, pass(self) :: GetAsymPosWyckoff_
@@ -158,98 +158,57 @@ IMPLICIT NONE
           ! procedure, pass(self) :: getEMsoftXtalSystem
 
           generic, public :: resetCell => resetUnitCell
-          !DEC$ ATTRIBUTES DLLEXPORT :: resetCell
+
           generic, public :: calcMatrices => computeMatrices
-          !DEC$ ATTRIBUTES DLLEXPORT :: calcMatrices 
           generic, public :: transSpace => transSpaceDouble, transSpaceSingle
-          !DEC$ ATTRIBUTES DLLEXPORT :: transSpace 
           generic, public :: transCoor => transformCoordinates
-          !DEC$ ATTRIBUTES DLLEXPORT :: transCoor 
           generic, public :: calcDot => calcDotSingle, calcDotDouble
-          !DEC$ ATTRIBUTES DLLEXPORT :: calcDot 
           generic, public :: normVec => normVecSingle, normVecDouble
-          !DEC$ ATTRIBUTES DLLEXPORT :: normVec 
           generic, public :: calcLength => calcLengthSingle, calcLengthDouble
-          !DEC$ ATTRIBUTES DLLEXPORT :: calcLength 
           generic, public :: calcAngle => calcAngleSingle, calcAngleDouble
-          !DEC$ ATTRIBUTES DLLEXPORT :: calcAngle 
           generic, public :: calcCross => calcCrossSingle, calcCrossDouble
-          !DEC$ ATTRIBUTES DLLEXPORT :: calcCross 
           generic, public :: calcPositions => calcPositions_
-          !DEC$ ATTRIBUTES DLLEXPORT :: calcPositions 
           generic, public :: getLatParm => getLatticeParameterSingle, getLatticeParametersAll
-          !DEC$ ATTRIBUTES DLLEXPORT :: getLatParm 
           generic, public :: setLatParm => setLatticeParameterSingle, setLatticeParametersAll
-          !DEC$ ATTRIBUTES DLLEXPORT :: setLatParm 
           generic, public :: setLatParm => requestLatticeParameters
-          !DEC$ ATTRIBUTES DLLEXPORT :: setLatParm 
           generic, public :: setXtalSystem => setXtalSystem_
-          !DEC$ ATTRIBUTES DLLEXPORT :: setXtalSystem 
           generic, public :: getAsymPos => getAsymmetricPosition
-          !DEC$ ATTRIBUTES DLLEXPORT :: getAsymPos 
           generic, public :: getAsymPosData => getAsymPosArray
-          !DEC$ ATTRIBUTES DLLEXPORT :: getAsymPos 
           generic, public :: getdsm => getDirectStructureMatrix
-          !DEC$ ATTRIBUTES DLLEXPORT :: getdsm
           generic, public :: getrsm => getReciprocalStructureMatrix
-          !DEC$ ATTRIBUTES DLLEXPORT :: getrsm
           generic, public :: getdmt => getDirectMetricTensor
-          !DEC$ ATTRIBUTES DLLEXPORT :: getdmt
           generic, public :: getrmt => getReciprocalMetricTensor
-          !DEC$ ATTRIBUTES DLLEXPORT :: getrmt
-          generic, public :: calcDensity => calcTheoreticalDensity 
-          !DEC$ ATTRIBUTES DLLEXPORT :: calcDensity 
-          generic, public :: getDensity => getDensity_ 
-          !DEC$ ATTRIBUTES DLLEXPORT :: getDensity 
+          generic, public :: calcDensity => calcTheoreticalDensity
+          generic, public :: getDensity => getDensity_
           generic, public :: GetAsymPosWyckoff => GetAsymPosWyckoff_
-          !DEC$ ATTRIBUTES DLLEXPORT :: GetAsymPosWyckoff 
           generic, public :: getnumat => getnumat_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getnumat 
           generic, public :: setnumat => setnumat_
-          !DEC$ ATTRIBUTES DLLEXPORT :: setnumat 
           generic, public :: getapos => getapos_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getapos 
           generic, public :: setWyckoff => setWyckoff_
-          !DEC$ ATTRIBUTES DLLEXPORT :: setWyckoff 
           generic, public :: setFileName => setFileName_
-          !DEC$ ATTRIBUTES DLLEXPORT :: setFileName 
           generic, public :: getFileName => getFileName_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getFileName 
           generic, public :: setSource => setSource_
-          !DEC$ ATTRIBUTES DLLEXPORT :: setSource 
           generic, public :: getSource => getSource_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getSource 
           generic, public :: getVolume => getVolume_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getVolume 
           generic, public :: setNatomtype => setNatomtype_
-          !DEC$ ATTRIBUTES DLLEXPORT :: setNatomtype 
           generic, public :: getNatomtype => getNatomtype_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getNatomtype 
           generic, public :: getAtomtype => getatomtype_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getNatomtype 
+
           generic, public :: setAtomtype => setatomtype_
-          !DEC$ ATTRIBUTES DLLEXPORT :: setNatomtype 
           generic, public :: readDataHDF => readDataHDF_
-          !DEC$ ATTRIBUTES DLLEXPORT :: readDataHDF 
           generic, public :: saveDataHDF => saveDataHDF_
-          !DEC$ ATTRIBUTES DLLEXPORT :: saveDataHDF 
           generic, public :: addXtalDataGroup => addXtalDataGroup_
-          !DEC$ ATTRIBUTES DLLEXPORT :: addXtalDataGroup
-          generic, public :: setAtomPos => setAtomPos_, setAtomPosAll_ 
-          !DEC$ ATTRIBUTES DLLEXPORT :: setAtomPos 
+          generic, public :: setAtomPos => setAtomPos_, setAtomPosAll_
           generic, public :: getCrystalData => getCrystalData_
-          !DEC$ ATTRIBUTES DLLEXPORT :: getCrystalData 
           generic, public :: dumpXtalInfo => dumpXtalInfo_
-          !DEC$ ATTRIBUTES DLLEXPORT :: dumpXtalInfo 
           generic, public :: ShortestG => ShortestG_
-          !DEC$ ATTRIBUTES DLLEXPORT :: ShortestG
 
   end type Cell_T
 
-! the following parameters and arrays need to be moved to somewhere else ... 
+! the following parameters and arrays need to be moved to somewhere else ...
       ! integer(kind=irg)                    :: DynNbeams, DynNbeamsLinked, nns, nnw, numscatfac
 
-  ! the constructor routine for this class 
+  ! the constructor routine for this class
   interface Cell_T
     module procedure Cell_constructor
   end interface Cell_T
@@ -258,21 +217,22 @@ contains
 
 !--------------------------------------------------------------------------
 type(Cell_T) function Cell_constructor( latparm ) result(cell)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: Cell_constructor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
-  !! constructor for the Cell Class 
-  
+  !! constructor for the Cell Class
+
 IMPLICIT NONE
 
 real(kind=dbl), INTENT(IN), OPTIONAL :: latparm(6)
- !! optional lattice parameter array; cell will be reset to zero if not present 
+ !! optional lattice parameter array; cell will be reset to zero if not present
 
 call cell%resetUnitCell()
 
 if (present(latparm)) then
-! set the lattice parameters 
+! set the lattice parameters
   cell%a = latparm(1)
   cell%b = latparm(2)
   cell%c = latparm(3)
@@ -280,23 +240,24 @@ if (present(latparm)) then
   cell%beta  = latparm(5)
   cell%gamma = latparm(6)
 
-! initialize all the relevant geometry matrices 
+! initialize all the relevant geometry matrices
   call cell%calcMatrices()
 end if
 
 end function Cell_constructor
 
 !--------------------------------------------------------------------------
-subroutine Cell_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine Cell_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: Cell_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/02/20
 !!
 !! destructor for the Cell_T Class
- 
+
 IMPLICIT NONE
 
-type(Cell_T), INTENT(INOUT)  :: self 
+type(Cell_T), INTENT(INOUT)  :: self
 
 call reportDestructor('Cell_T')
 
@@ -307,11 +268,12 @@ end subroutine Cell_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine resetUnitCell(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: resetUnitCell
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
-  !! reset all unit cell variables to zero 
+  !! reset all unit cell variables to zero
 
 IMPLICIT NONE
 
@@ -339,25 +301,26 @@ class(Cell_T), intent(inout)    :: self
 
 ! and deallocate any arrays
  if (allocated(self%apos)) deallocate(self%apos)
- 
+
 end subroutine resetUnitCell
 
 !--------------------------------------------------------------------------
 recursive function getLatticeParameterSingle( self, p ) result(lp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getLatticeParameterSingle
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
-  !! return a single lattice parameter 
+  !! return a single lattice parameter
 
-use mod_global 
+use mod_global
 
 IMPLICIT NONE
 
 class(Cell_T),intent(inout)    :: self
-character(*), intent(in)       :: p 
+character(*), intent(in)       :: p
 
-real(kind=dbl)                 :: lp 
+real(kind=dbl)                 :: lp
 
 select case(p)
   case('a')
@@ -371,26 +334,27 @@ select case(p)
   case('beta')
     lp = self%beta
   case('gamma')
-    lp = self%gamma 
+    lp = self%gamma
   end select
 
 end function getLatticeParameterSingle
 
 !--------------------------------------------------------------------------
 recursive subroutine setLatticeParameterSingle( self, p, lp )
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setLatticeParameterSingle
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/28/20
   !!
-  !! set a single lattice parameter 
+  !! set a single lattice parameter
 
-use mod_global 
+use mod_global
 
 IMPLICIT NONE
 
 class(Cell_T),intent(inout)    :: self
-character(*), intent(in)       :: p 
-real(kind=dbl), intent(in)     :: lp 
+character(*), intent(in)       :: p
+real(kind=dbl), intent(in)     :: lp
 
 select case(p)
   case('a')
@@ -411,19 +375,20 @@ end subroutine setLatticeParameterSingle
 
 !--------------------------------------------------------------------------
 recursive function getLatticeParametersAll( self ) result(lp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getLatticeParametersAll
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! return all lattice parameters
 
-use mod_global 
+use mod_global
 
 IMPLICIT NONE
 
 class(Cell_T),intent(inout)    :: self
 
-real(kind=dbl)                 :: lp(6) 
+real(kind=dbl)                 :: lp(6)
 
 lp = (/ self%a, self%b, self%c, self%alpha, self%beta, self%gamma /)
 
@@ -431,18 +396,19 @@ end function getLatticeParametersAll
 
 !--------------------------------------------------------------------------
 recursive subroutine setLatticeParametersAll( self, lp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setLatticeParametersAll
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/28/20
   !!
   !! set all lattice parameters
 
-use mod_global 
+use mod_global
 
 IMPLICIT NONE
 
 class(Cell_T),intent(inout)    :: self
-real(kind=dbl),intent(in)      :: lp(6) 
+real(kind=dbl),intent(in)      :: lp(6)
 
 self%a = lp(1)
 self%b = lp(2)
@@ -455,20 +421,21 @@ end subroutine setLatticeParametersAll
 
 !--------------------------------------------------------------------------
 recursive subroutine computeMatrices(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: computeMatrices
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
-  !! computes important crystallographic matrices 
+  !! computes important crystallographic matrices
 
 use mod_io
-use mod_global 
+use mod_global
 
 IMPLICIT NONE
 
 class(Cell_T),intent(inout)   :: self
 
-type(IO_T)                    :: Message 
+type(IO_T)                    :: Message
 
 ! auxiliary variables for geometric computation
 real(kind=dbl)                :: det,ca,cb,cg,sa,sb,sg,tg,pirad
@@ -496,7 +463,7 @@ real(kind=dbl)                :: Mx(3,3), My(3,3), x, y
  self%dmt(3,1) = self%dmt(1,3)
  self%dmt(2,3) = self%b*self%c*ca
  self%dmt(3,2) = self%dmt(2,3)
-! cell volume via the determinant of dmt 
+! cell volume via the determinant of dmt
  det = (self%a*self%b*self%c)**2*(1.D0-ca**2-cb**2-cg**2+2.D0*ca*cb*cg)
  self%vol = dsqrt(det)
 
@@ -543,7 +510,7 @@ real(kind=dbl)                :: Mx(3,3), My(3,3), x, y
 ! sampling routines for master pattern calculations.
 !
 ! added by MDG on 08/30/15; computations in Mathematica notebook rhombohedral.nb in manuals folder, validated.
-if (self%xtal_system.eq.5) then 
+if (self%xtal_system.eq.5) then
 ! Mx matrix
   x = 0.5D0/dcos(pirad*0.5D0*self%alpha)
   y = dsqrt(1.D0-x*x)
@@ -559,9 +526,10 @@ end subroutine computeMatrices
 
 
 !--------------------------------------------------------------------------
-recursive subroutine dumpXtalInfo_(self, SG)    
-  !! author: MDG 
-  !! version: 1.0 
+recursive subroutine dumpXtalInfo_(self, SG)
+!DEC$ ATTRIBUTES DLLEXPORT :: dumpXtalInfo_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
   !! a brief summary of the crystal structure
@@ -572,9 +540,9 @@ use mod_symmetry
 IMPLICIT NONE
 
 class(Cell_T), intent(inout)            :: self
-type(SpaceGroup_T), intent(inout)       :: SG 
+type(SpaceGroup_T), intent(inout)       :: SG
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 
 integer(kind=irg)                       :: i, j, oi_int(3)
 real(kind=dbl)                          :: oi_real(5)
@@ -600,15 +568,15 @@ real(kind=dbl)                          :: oi_real(5)
  call Message%WriteValue('  Space group #      : ', oi_int, 1, "(1x,I3)")
  call Message%WriteValue('  Space group symbol : ', trim(SYM_SGname(SG%getSpaceGroupNumber())) )
  call Message%WriteValue('  Generator String   : ',  trim(SYM_GL(SG%getSpaceGroupNumber())) )
- if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().ne.5)) then 
+ if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().ne.5)) then
   call Message%printMessage('   Using second origin setting', frm = "(A)")
  endif
- if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().eq.5)) then 
+ if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().eq.5)) then
   call Message%printMessage('   Using rhombohedral parameters', frm = "(A)")
  endif
-  if (SG%getSpaceGroupCentro()) then 
+  if (SG%getSpaceGroupCentro()) then
     call Message%printMessage('   Structure is centrosymmetric', frm = "(A)")
- else 
+ else
    call Message%printMessage('   Structure is non-centrosymmetric', frm = "(A)")
  end if
 
@@ -620,7 +588,7 @@ real(kind=dbl)                          :: oi_real(5)
  oi_int(1) = SG%getSpaceGroupNUMpt()
  call Message%WriteValue('  # point sym. matr. : ', oi_int, 1, "(1x,I3)")
 
-! generate atom positions and dump output  
+! generate atom positions and dump output
  call Message%printMessage('', frm = "(A/)")
  call self%calcPositions(SG, 'v')
  oi_int(1) = self%ATOM_ntype
@@ -641,33 +609,36 @@ end subroutine dumpXtalInfo_
 
 !--------------------------------------------------------------------------
 recursive subroutine setWyckoff_(self, useWyckoff)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setWyckoff_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
-  !! set the Wyckoff parameter 
+  !! set the Wyckoff parameter
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
-logical, INTENT(IN)             :: useWyckoff 
+class(Cell_T), INTENT(INOUT)    :: self
+logical, INTENT(IN)             :: useWyckoff
 
-self%Wyckoff = useWyckoff 
+self%Wyckoff = useWyckoff
 
 end subroutine setWyckoff_
 
 !--------------------------------------------------------------------------
 recursive subroutine setFileName_(self, xtalname)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setFileName_
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
-  !! set the output filename 
+  !! set the output filename
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
-character(fnlen),INTENT(IN)     :: xtalname 
+class(Cell_T), INTENT(INOUT)    :: self
+character(fnlen),INTENT(IN)     :: xtalname
 
 self%xtalname = trim(xtalname)
 
@@ -675,16 +646,17 @@ end subroutine setFileName_
 
 !--------------------------------------------------------------------------
 recursive function getFileName_(self) result(xtalname)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getFileName_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/15/20
   !!
-  !! get the .xtal filename 
+  !! get the .xtal filename
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
-character(fnlen)                :: xtalname 
+class(Cell_T), INTENT(INOUT)    :: self
+character(fnlen)                :: xtalname
 
 xtalname = trim(self%xtalname)
 
@@ -692,16 +664,17 @@ end function getFileName_
 
 !--------------------------------------------------------------------------
 recursive function getDirectStructureMatrix(self) result(dsm)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getDirectStructureMatrix
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/26/20
   !!
-  !! get the direct structure matrix 
+  !! get the direct structure matrix
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
-real(kind=dbl)                  :: dsm(3,3) 
+class(Cell_T), INTENT(INOUT)    :: self
+real(kind=dbl)                  :: dsm(3,3)
 
 dsm = self%dsm
 
@@ -709,16 +682,18 @@ end function getDirectStructureMatrix
 
 !--------------------------------------------------------------------------
 recursive function getReciprocalStructureMatrix(self) result(rsm)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getReciprocalStructureMatrix
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/26/20
   !!
-  !! get the reciprocal structure matrix 
+  !! get the reciprocal structure matrix
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
-real(kind=dbl)                  :: rsm(3,3) 
+class(Cell_T), INTENT(INOUT)    :: self
+real(kind=dbl)                  :: rsm(3,3)
 
 rsm = self%rsm
 
@@ -726,16 +701,17 @@ end function getReciprocalStructureMatrix
 
 !--------------------------------------------------------------------------
 recursive function getDirectMetricTensor(self) result(dmt)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getDirectMetricTensor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
-  !! get the direct metric tensor 
+  !! get the direct metric tensor
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
-real(kind=dbl)                  :: dmt(3,3) 
+class(Cell_T), INTENT(INOUT)    :: self
+real(kind=dbl)                  :: dmt(3,3)
 
 dmt = self%dmt
 
@@ -743,16 +719,17 @@ end function getDirectMetricTensor
 
 !--------------------------------------------------------------------------
 recursive function getReciprocalMetricTensor(self) result(rmt)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getReciprocalMetricTensor
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
-  !! get the reciprocal metric tensor 
+  !! get the reciprocal metric tensor
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
-real(kind=dbl)                  :: rmt(3,3) 
+class(Cell_T), INTENT(INOUT)    :: self
+real(kind=dbl)                  :: rmt(3,3)
 
 rmt = self%rmt
 
@@ -760,15 +737,16 @@ end function getReciprocalMetricTensor
 
 !--------------------------------------------------------------------------
 recursive subroutine setSource_(self, source)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setSource_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! set the Source
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 character(fnlen),INTENT(IN)     :: source
 
 self%source = trim(source)
@@ -777,15 +755,16 @@ end subroutine setSource_
 
 !--------------------------------------------------------------------------
 recursive function getSource_(self) result(source)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getSource_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/16/20
   !!
   !! get the Source
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)   :: self 
+class(Cell_T), INTENT(INOUT)   :: self
 character(fnlen)               :: source
 
 source = trim(self%source)
@@ -794,15 +773,16 @@ end function getSource_
 
 !--------------------------------------------------------------------------
 recursive function getVolume_(self) result(vol)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getVolume_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/27/20
   !!
   !! get the cell volume
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)   :: self 
+class(Cell_T), INTENT(INOUT)   :: self
 real(kind=dbl)                 :: vol
 
 vol = self%vol
@@ -811,15 +791,16 @@ end function getVolume_
 
 !--------------------------------------------------------------------------
 recursive subroutine setNatomtype_(self, n)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setNatomtype_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! set the Source
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 integer(kind=irg),INTENT(IN)    :: n
 
 self%ATOM_ntype = n
@@ -828,32 +809,34 @@ end subroutine setNatomtype_
 
 !--------------------------------------------------------------------------
 recursive function getNatomtype_(self) result(n)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNatomtype_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! set the Source
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 integer(kind=irg)               :: n
 
-n = self%ATOM_ntype 
+n = self%ATOM_ntype
 
 end function getNatomtype_
 
 !--------------------------------------------------------------------------
 recursive subroutine setXtalSystem_(self, xs)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setXtalSystem_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! set the crystal system (necessary to avoid circular dependency with space group class)
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 integer(kind=irg),INTENT(IN)    :: xs
 
 self%xtal_system = xs
@@ -862,15 +845,16 @@ end subroutine setXtalSystem_
 
 !--------------------------------------------------------------------------
 recursive subroutine setAtomPos_(self, pos)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setAtomPos_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/14/20
   !!
   !! set a single atom position
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 real(kind=sgl),INTENT(IN)       :: pos(3)
 
 self%ATOM_pos = 0.0
@@ -880,15 +864,16 @@ end subroutine setAtomPos_
 
 !--------------------------------------------------------------------------
 recursive subroutine setAtomPosAll_(self, pos)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setAtomPosAll_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/14/20
   !!
   !! set a single atom position
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 real(kind=dbl),INTENT(IN)       :: pos(maxpasym,5)
 
 self%ATOM_pos = pos
@@ -897,18 +882,19 @@ end subroutine setAtomPosAll_
 
 !--------------------------------------------------------------------------
 recursive function getatomtype_(self) result(atp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getatomtype_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/16/20
   !!
   !! returns the ATOM_type array to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 integer(kind=irg), allocatable  :: atp(:)
 
-integer(kind=irg)               :: sz(1) 
+integer(kind=irg)               :: sz(1)
 
 sz = shape(self%ATOM_type)
 allocate(atp(sz(1)))
@@ -919,15 +905,16 @@ end function getatomtype_
 
 !--------------------------------------------------------------------------
 recursive subroutine setatomtype_(self, atp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setatomtype_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/14/20
   !!
   !! sets the ATOM_type array
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 integer(kind=irg), INTENT(IN)   :: atp(1:self%ATOM_ntype)
 
 self%ATOM_type(1:self%ATOM_ntype) = atp(1:self%ATOM_ntype)
@@ -936,18 +923,19 @@ end subroutine setatomtype_
 
 !--------------------------------------------------------------------------
 recursive function getnumat_(self) result(numat)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumat_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/25/20
   !!
   !! returns the apos array to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 integer(kind=irg), allocatable  :: numat(:)
 
-integer(kind=irg)               :: sz(3) 
+integer(kind=irg)               :: sz(3)
 
 allocate( numat( self%ATOM_ntype ) )
 
@@ -957,15 +945,16 @@ end function getnumat_
 
 !--------------------------------------------------------------------------
 recursive subroutine setnumat_(self, numat)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: setnumat_
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/14/20
   !!
   !! set the number of atoms in the asymmetric unit
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 integer(kind=irg), INTENT(IN)   :: numat
 
 self%ATOM_ntype = numat
@@ -974,18 +963,19 @@ end subroutine setnumat_
 
 !--------------------------------------------------------------------------
 recursive function getapos_(self) result(apos)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getapos_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/25/20
   !!
   !! returns the apos array to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 real(kind=dbl), allocatable     :: apos(:,:,:)
 
-integer(kind=irg)               :: sz(3) 
+integer(kind=irg)               :: sz(3)
 
 sz = shape(self%apos)
 allocate(apos(sz(1),sz(2),sz(3)))
@@ -996,30 +986,32 @@ end function getapos_
 
 !--------------------------------------------------------------------------
 recursive function getAsymPosArray(self) result(asp)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getAsymPosArray
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/16/20
   !!
   !! returns the AsymPos array to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)    :: self 
+class(Cell_T), INTENT(INOUT)    :: self
 real(kind=dbl), allocatable     :: asp(:,:)
 
-integer(kind=irg)               :: sz(2) 
+integer(kind=irg)               :: sz(2)
 
 sz = shape(self%ATOM_pos)
 allocate(asp(sz(1),sz(2)))
 
 asp = self%ATOM_pos
 
-end function getAsymPosArray 
+end function getAsymPosArray
 
 !--------------------------------------------------------------------------
 recursive subroutine getAsymmetricPosition(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getAsymmetricPosition
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/13/20
   !!
   !! ask the user for the atom type, coordinates, site occupation parameter
@@ -1029,7 +1021,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(Cell_T),INTENT(INOUT)             :: self 
+class(Cell_T),INTENT(INOUT)             :: self
 
 type(IO_T)                              :: Message
 logical                                 :: more                 ! logical to determine if more atoms need to be entered
@@ -1037,7 +1029,7 @@ character(1)                            :: ans, list(256)       ! used for IO
 real(kind=sgl)                          :: pt(5), out_real(5)   ! used to read and write asymmetric position data
 integer(kind=irg)                       :: i, j, io_int(1), std, sl   ! auxiliary variables
 character(fnlen)                        :: instring
- 
+
  more=.TRUE.
  self%ATOM_ntype = 0
  call Message%printMessage(' Enter atoms in the asymmetric unit ', frm = "(/A)")
@@ -1065,21 +1057,21 @@ character(fnlen)                        :: instring
   end do
 
 ! interpret this string and extract coordinates and such ...
-  call extractAtomPositionData(list,pt) 
-  
-! store in the appropriate component of the cell variable  
+  call extractAtomPositionData(list,pt)
+
+! store in the appropriate component of the cell variable
   self%ATOM_pos(self%ATOM_ntype,1:5) = pt(1:5)
 
-! and write the coordinate back to the terminal  
+! and write the coordinate back to the terminal
   out_real = (/ (self%ATOM_pos(self%ATOM_ntype,j),j=1,5) /)
-  call Message%WriteValue('    -> ', out_real, 5, frm = "(1x,4(F10.7,2x),F10.7)") 
+  call Message%WriteValue('    -> ', out_real, 5, frm = "(1x,4(F10.7,2x),F10.7)")
 
   call Message%ReadValue(' ->  Another atom ? (y/n) ', ans, frm = "(A1)")
-  if ((ans.eq.'y').or.(ans.eq.'Y')) then 
+  if ((ans.eq.'y').or.(ans.eq.'Y')) then
    more=.TRUE.
   else
    more=.FALSE.
-  end if 
+  end if
 
  end do
 
@@ -1093,8 +1085,9 @@ end subroutine getAsymmetricPosition
 
 !--------------------------------------------------------------------------
 recursive subroutine TransSpaceSingle(self, t, d, inspace, outspace)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: TransSpaceSingle
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! convert vector components from inspace to outspace ('d', 'r', 'c') (single precision)
@@ -1102,16 +1095,16 @@ recursive subroutine TransSpaceSingle(self, t, d, inspace, outspace)
 IMPLICIT NONE
 
 class(Cell_T), intent(in)       :: self
-real(kind=sgl),INTENT(IN)       :: t(3)                 
+real(kind=sgl),INTENT(IN)       :: t(3)
  !! input vector in inspace reference frame
-real(kind=sgl),INTENT(OUT)      :: d(3)                 
- !! output vector in outspace reference frame 
-character(1),INTENT(IN)         :: inspace              
+real(kind=sgl),INTENT(OUT)      :: d(3)
+ !! output vector in outspace reference frame
+character(1),INTENT(IN)         :: inspace
  !! characters to label input space (d, r, or c)
-character(1),INTENT(IN)         :: outspace             
+character(1),INTENT(IN)         :: outspace
  !! characters to label output space (d, r, or c)
 
-! intercept the case where inspace and outspace are the same 
+! intercept the case where inspace and outspace are the same
 if (inspace.eq.outspace) then
   d = t
   return
@@ -1155,13 +1148,14 @@ end if
    return
   end if
  end if
- 
+
 end subroutine TransSpaceSingle
 
 !--------------------------------------------------------------------------
 recursive subroutine TransSpaceDouble(self,t,d,inspace,outspace)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: TransSpaceDouble
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! convert vector components from inspace to outspace ('d', 'r', 'c') (double precision)
@@ -1169,16 +1163,16 @@ recursive subroutine TransSpaceDouble(self,t,d,inspace,outspace)
 IMPLICIT NONE
 
 class(Cell_T), intent(in)       :: self
-real(kind=dbl),INTENT(IN)       :: t(3)                 
+real(kind=dbl),INTENT(IN)       :: t(3)
  !! input vector in inspace reference frame
-real(kind=dbl),INTENT(OUT)      :: d(3)                 
- !! output vector in outspace reference frame 
-character(1),INTENT(IN)         :: inspace              
+real(kind=dbl),INTENT(OUT)      :: d(3)
+ !! output vector in outspace reference frame
+character(1),INTENT(IN)         :: inspace
  !! characters to label input space (d, r, or c)
-character(1),INTENT(IN)         :: outspace             
+character(1),INTENT(IN)         :: outspace
  !! characters to label output space (d, r, or c)
 
-! intercept the case where inspace and outspace are the same 
+! intercept the case where inspace and outspace are the same
 if (inspace.eq.outspace) then
   d = t
   return
@@ -1222,46 +1216,47 @@ end if
    return
   end if
  end if
- 
+
 end subroutine TransSpaceDouble
 
 !--------------------------------------------------------------------------
 recursive subroutine transformCoordinates(self, t, d, talpha, space, direction)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: transformCoordinates
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
-  !! convert vector components from one reference frame 
-  !! to another; this is a general coordinate transformation using the 
-  !! old-to-new matrix alpha.  The details of this routine are summarized in 
-  !! Table 1.6, page 51, of the textbook. The direction of the 
+  !! convert vector components from one reference frame
+  !! to another; this is a general coordinate transformation using the
+  !! old-to-new matrix alpha.  The details of this routine are summarized in
+  !! Table 1.6, page 51, of the textbook. The direction of the
   !! transformation is 'on' (old-to-new) or 'no' (new-to-old).
 
 IMPLICIT NONE
 
 class(Cell_T), intent(in)       :: self
-real(kind=dbl),INTENT(IN)       :: t(3)                 
+real(kind=dbl),INTENT(IN)       :: t(3)
  !! input vector w.r.t. input space reference frame
-real(kind=dbl),INTENT(OUT)      :: d(3)                 
+real(kind=dbl),INTENT(OUT)      :: d(3)
  !! transformed vector components
-real(kind=dbl),INTENT(IN)       :: talpha(3,3)          
+real(kind=dbl),INTENT(IN)       :: talpha(3,3)
  !! transformation matrix
-real(kind=dbl)                  :: alinv(3,3)           
+real(kind=dbl)                  :: alinv(3,3)
  !! inverse of transformation matrix
-character(1),INTENT(IN)         :: space                
+character(1),INTENT(IN)         :: space
  !! space in which to perform transformation ('d', 'r', 'c')
-character(2),INTENT(IN)         :: direction            
+character(2),INTENT(IN)         :: direction
  !! transformation direction (no=new-to-old, on=old-to-new)
 
 ! these matrices are typically unitary, so inverse is simply the transpose
- if (space.eq.'d') then 
-  if (direction.eq.'on') then 
+ if (space.eq.'d') then
+  if (direction.eq.'on') then
    d = matmul(t,transpose(talpha))
   else
    d = matmul(t,talpha)
   end if
  else
-  if (direction.eq.'on') then 
+  if (direction.eq.'on') then
    d = matmul(talpha,t)
   else
    d = matmul(transpose(talpha),t)
@@ -1272,8 +1267,9 @@ end subroutine transformCoordinates
 
 !--------------------------------------------------------------------------
 recursive function CalcDotSingle(self, p, q, space) result(cdot)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcDotSingle
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! computes the dot product between two vectors in
@@ -1283,13 +1279,13 @@ recursive function CalcDotSingle(self, p, q, space) result(cdot)
 IMPLICIT NONE
 
 class(Cell_T),intent(in)        :: self
-real(kind=sgl),INTENT(IN)       :: p(3)         
+real(kind=sgl),INTENT(IN)       :: p(3)
  !! first input vector in space reference frame
-real(kind=sgl),INTENT(IN)       :: q(3)         
+real(kind=sgl),INTENT(IN)       :: q(3)
  !! second input vector
-character(1),INTENT(IN)         :: space        
+character(1),INTENT(IN)         :: space
  !! space in which to compute product ('d', 'r', or 'c')
-real(kind=sgl)                  :: cdot         
+real(kind=sgl)                  :: cdot
  !! dot product p.q
 
  cdot = 0.0_sgl
@@ -1301,8 +1297,9 @@ end function CalcDotSingle
 
 !--------------------------------------------------------------------------
 recursive function CalcDotDouble(self, p, q, space) result(cdot)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcDotDouble
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! computes the dot product between two vectors in
@@ -1312,13 +1309,13 @@ recursive function CalcDotDouble(self, p, q, space) result(cdot)
 IMPLICIT NONE
 
 class(Cell_T),intent(in)        :: self
-real(kind=dbl),INTENT(IN)       :: p(3)         
+real(kind=dbl),INTENT(IN)       :: p(3)
  !! first input vector in space reference frame
-real(kind=dbl),INTENT(IN)       :: q(3)         
+real(kind=dbl),INTENT(IN)       :: q(3)
  !! second input vector
-character(1),INTENT(IN)         :: space        
+character(1),INTENT(IN)         :: space
  !! space in which to compute product ('d', 'r', or 'c')
-real(kind=dbl)                  :: cdot         
+real(kind=dbl)                  :: cdot
  !! dot product p.q
 
  cdot = 0.0_dbl
@@ -1330,76 +1327,79 @@ end function CalcDotDouble
 
 !--------------------------------------------------------------------------
 recursive subroutine NormVecSingle(self, p, space)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: NormVecSingle
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! single precision vector normalization
   !!
   !! vector normalization in arbitrary space.  Note that it is not
   !! necessarily so that the Cartesian length of a vector [sqrt(x^2+y^2+z^2)]
-  !! becomes unity after this normalization.  That is only the case for 
+  !! becomes unity after this normalization.  That is only the case for
   !! the cartesian metric; for all other metrics, the length of a normalized
   !! vector is in general not equal to 1.0 !
 
 IMPLICIT NONE
 
 class(Cell_T),intent(in)                :: self
-real(kind=sgl),INTENT(INOUT)            :: p(3)         
+real(kind=sgl),INTENT(INOUT)            :: p(3)
  !! input/output vector components
 !f2py intent(in,out) ::  p
-character(1),INTENT(IN)                 :: space        
+character(1),INTENT(IN)                 :: space
  !! space character ('d', 'r', or 'c')
-real(kind=sgl)                          :: x            
+real(kind=sgl)                          :: x
  !! auxiliary variable
 
  x = self%CalcLength(p, space)
- if (x.ne.0.0) then 
+ if (x.ne.0.0) then
    p = p/x
  else
    p = (/0.0,0.0,0.0/)
- end if  
+ end if
 
 end subroutine NormVecSingle
 
 !--------------------------------------------------------------------------
 recursive subroutine NormVecDouble(self, p, space)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: NormVecDouble
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! double precision vector normalization
   !!
   !! vector normalization in arbitrary space.  Note that it is not
   !! necessarily so that the Cartesian length of a vector [sqrt(x^2+y^2+z^2)]
-  !! becomes unity after this normalization.  That is only the case for 
+  !! becomes unity after this normalization.  That is only the case for
   !! the cartesian metric; for all other metrics, the length of a normalized
   !! vector is in general not equal to 1.0 !
 
 IMPLICIT NONE
 
 class(Cell_T),intent(in)                :: self
-real(kind=dbl),INTENT(INOUT)            :: p(3)         
+real(kind=dbl),INTENT(INOUT)            :: p(3)
  !! input/output vector components
 !f2py intent(in,out) ::  p
-character(1),INTENT(IN)                 :: space        
+character(1),INTENT(IN)                 :: space
  !! space character ('d', 'r', or 'c')
-real(kind=dbl)                          :: x            
+real(kind=dbl)                          :: x
  !! auxiliary variable
 
  x = self%CalcLength(p,space)
- if (x.ne.0.D0) then 
+ if (x.ne.0.D0) then
    p = p/x
  else
    p = (/0.D0,0.D0,0.D0/)
- end if  
+ end if
 
 end subroutine NormVecDouble
 
 !--------------------------------------------------------------------------
 recursive function CalcLengthSingle(self, p, space) result(x)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcLengthSingle
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! single precision vector length
@@ -1407,11 +1407,11 @@ recursive function CalcLengthSingle(self, p, space) result(x)
 IMPLICIT NONE
 
 class(Cell_T),intent(in)                :: self
-real(kind=sgl),INTENT(IN)               :: p(3)         
+real(kind=sgl),INTENT(IN)               :: p(3)
  !! input/output vector components
-character(1),INTENT(IN)                 :: space        
+character(1),INTENT(IN)                 :: space
  !! space character ('d', 'r', or 'c')
-real(kind=sgl)                          :: x            
+real(kind=sgl)                          :: x
  !! auxiliary variable
 
  x = sqrt(self%CalcDot(p, p, space))
@@ -1420,8 +1420,9 @@ end function CalcLengthSingle
 
 !--------------------------------------------------------------------------
 recursive function CalcLengthDouble(self, p, space) result(x)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcLengthDouble
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! double precision vector length
@@ -1429,11 +1430,11 @@ recursive function CalcLengthDouble(self, p, space) result(x)
 IMPLICIT NONE
 
 class(Cell_T),intent(in)                :: self
-real(kind=dbl),INTENT(IN)               :: p(3)         
+real(kind=dbl),INTENT(IN)               :: p(3)
  !! input/output vector components
-character(1),INTENT(IN)                 :: space        
+character(1),INTENT(IN)                 :: space
  !! space character ('d', 'r', or 'c')
-real(kind=dbl)                          :: x            
+real(kind=dbl)                          :: x
  !! auxiliary variable
 
  x = dsqrt(self%CalcDot(p, p, space))
@@ -1442,8 +1443,9 @@ end function CalcLengthDouble
 
 !--------------------------------------------------------------------------
 recursive function CalcAngleSingle(self, p, q, space) result(a)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcAngleSingle
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! single precision angle in arbitrary space
@@ -1454,17 +1456,17 @@ use mod_global
 IMPLICIT NONE
 
 class(Cell_T),intent(in)                :: self
-real(kind=sgl),INTENT(IN)               :: p(3)         
+real(kind=sgl),INTENT(IN)               :: p(3)
   !! first vector components
-real(kind=sgl),INTENT(IN)               :: q(3)         
+real(kind=sgl),INTENT(IN)               :: q(3)
   !! second vector components
-character(1),INTENT(IN)                 :: space        
+character(1),INTENT(IN)                 :: space
   !! space of the computation ('d', 'r', 'c')
-real(kind=sgl)                          :: a            
+real(kind=sgl)                          :: a
   !! angle (radians)
 
-real(kind=sgl)                          :: x, y, z, t   
-type(IO_T)                              :: Message 
+real(kind=sgl)                          :: x, y, z, t
+type(IO_T)                              :: Message
 
  x = self%CalcDot(p,q,space)
  y = self%CalcLength(p,space)
@@ -1475,12 +1477,12 @@ type(IO_T)                              :: Message
  end if
 
  t = x/(y*z)
- if (t.ge.1.0_sgl) then 
+ if (t.ge.1.0_sgl) then
   a = 0.0_sgl
- else 
-  if (t.le.-1.0_sgl) then 
+ else
+  if (t.le.-1.0_sgl) then
    a = sngl(cPi)
-  else 
+  else
    a = acos(t)
   end if
  end if
@@ -1489,8 +1491,9 @@ end function CalcAngleSingle
 
 !--------------------------------------------------------------------------
 recursive function CalcAngleDouble(self,p,q,space) result(a)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcAngleDouble
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! double precision angle in arbitrary space
@@ -1501,17 +1504,17 @@ use mod_global
 IMPLICIT NONE
 
 class(Cell_T),intent(in)                :: self
-real(kind=dbl),INTENT(IN)               :: p(3)         
+real(kind=dbl),INTENT(IN)               :: p(3)
  !! first vector components
-real(kind=dbl),INTENT(IN)               :: q(3)         
+real(kind=dbl),INTENT(IN)               :: q(3)
  !! second vector components
-character(1),INTENT(IN)                 :: space        
+character(1),INTENT(IN)                 :: space
  !! space of the computation ('d', 'r', 'c')
-real(kind=dbl)                          :: a            
+real(kind=dbl)                          :: a
  !! angle in radians
 
-type(IO_T)                              :: Message 
-real(kind=dbl)                          :: x, y, z, t   
+type(IO_T)                              :: Message
+real(kind=dbl)                          :: x, y, z, t
 
  x = self%CalcDot(p,q,space)
  y = self%CalcLength(p,space)
@@ -1522,22 +1525,23 @@ real(kind=dbl)                          :: x, y, z, t
  end if
 
  t = x/(y*z)
- if (t.ge.1.0_dbl) then 
+ if (t.ge.1.0_dbl) then
   a = 0.0_dbl
- else 
-  if (t.le.-1.0_dbl) then 
+ else
+  if (t.le.-1.0_dbl) then
    a = cPi
-  else 
+  else
    a = dacos(t)
   end if
  end if
- 
+
 end function CalcAngleDouble
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcCrossSingle(self,p,q,r,inspace,outspace,iv)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcCrossSingle
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! vector cross product in arbitrary space (single precision)
@@ -1550,32 +1554,32 @@ recursive subroutine CalcCrossSingle(self,p,q,r,inspace,outspace,iv)
   !! volume. More information in section 1.3.5, page 18.
 
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Cell_T),intent(in)                :: self
-real(kind=sgl),INTENT(IN)               :: p(3)         
+real(kind=sgl),INTENT(IN)               :: p(3)
  !! first input vector (order is important here !)
-real(kind=sgl),INTENT(IN)               :: q(3)         
+real(kind=sgl),INTENT(IN)               :: q(3)
  !! second input vector
-real(kind=sgl),INTENT(OUT)              :: r(3)         
+real(kind=sgl),INTENT(OUT)              :: r(3)
  !! output vector
-character(1),INTENT(IN)                 :: inspace      
+character(1),INTENT(IN)                 :: inspace
  !! inspace character ('d','r','c')
-character(1),INTENT(IN)                 :: outspace     
+character(1),INTENT(IN)                 :: outspace
  !! outspace character
-integer(kind=irg),INTENT(IN)            :: iv           
+integer(kind=irg),INTENT(IN)            :: iv
  !! volume division switch
 
-real(kind=sgl)                          :: x(3), vl     
+real(kind=sgl)                          :: x(3), vl
 
 ! divide by volume?
- if (iv.eq.1) then 
+ if (iv.eq.1) then
   vl = sngl(self%vol)
  else
   vl = 1.0_sgl
  endif
 
-! in direct space 
+! in direct space
  if (inspace.eq.'d') then               ! so the output is in reciprocal space !
   r(1) = vl*(p(2)*q(3)-p(3)*q(2))
   r(2) = vl*(p(3)*q(1)-p(1)*q(3))
@@ -1590,7 +1594,7 @@ real(kind=sgl)                          :: x(3), vl
   end if
  end if
 
-! in reciprocal space 
+! in reciprocal space
  if (inspace.eq.'r') then               ! so the output is in direct space !
   r(1) = (p(2)*q(3)-p(3)*q(2))/vl
   r(2) = (p(3)*q(1)-p(1)*q(3))/vl
@@ -1611,13 +1615,14 @@ real(kind=sgl)                          :: x(3), vl
   r(2) = p(3)*q(1)-p(1)*q(3)
   r(3) = p(1)*q(2)-p(2)*q(1)
  end if
- 
+
 end subroutine CalcCrossSingle
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcCrossDouble(self,p,q,r,inspace,outspace,iv)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcCrossDouble
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! vector cross product in arbitrary space (single precision)
@@ -1629,31 +1634,31 @@ recursive subroutine CalcCrossDouble(self,p,q,r,inspace,outspace,iv)
   !! whether the result should be scaled by the unit cell
   !! volume. More information in section 1.3.5, page 18.
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(Cell_T),intent(in)                :: self
-real(kind=dbl),INTENT(IN)               :: p(3)         
+real(kind=dbl),INTENT(IN)               :: p(3)
  !! first input vector (order is important here !)
-real(kind=dbl),INTENT(IN)               :: q(3)         
+real(kind=dbl),INTENT(IN)               :: q(3)
  !! second input vector
-real(kind=dbl),INTENT(OUT)              :: r(3)         
+real(kind=dbl),INTENT(OUT)              :: r(3)
  !! output vector
-character(1),INTENT(IN)                 :: inspace      
+character(1),INTENT(IN)                 :: inspace
  !! inspace character ('d','r','c')
-character(1),INTENT(IN)                 :: outspace     
+character(1),INTENT(IN)                 :: outspace
  !! outspace character
-integer(kind=irg),INTENT(IN)            :: iv           
+integer(kind=irg),INTENT(IN)            :: iv
  !! volume division switch
 
-real(kind=dbl)                          :: x(3), vl     
+real(kind=dbl)                          :: x(3), vl
 
- if (iv.eq.1) then 
+ if (iv.eq.1) then
   vl = self%vol
  else
   vl = 1.0_dbl
  endif
 
-! in direct space 
+! in direct space
  if (inspace.eq.'d') then               ! so the output is in reciprocal space !
   r(1) = vl*(p(2)*q(3)-p(3)*q(2))
   r(2) = vl*(p(3)*q(1)-p(1)*q(3))
@@ -1668,7 +1673,7 @@ real(kind=dbl)                          :: x(3), vl
   end if
  end if
 
-! in reciprocal space 
+! in reciprocal space
  if (inspace.eq.'r') then               ! so the output is in direct space !
   r(1) = (p(2)*q(3)-p(3)*q(2))/vl
   r(2) = (p(3)*q(1)-p(1)*q(3))/vl
@@ -1689,19 +1694,20 @@ real(kind=dbl)                          :: x(3), vl
   r(2) = p(3)*q(1)-p(1)*q(3)
   r(3) = p(1)*q(2)-p(2)*q(1)
  end if
-  
+
 end subroutine CalcCrossDouble
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! routines for crystallographic IO 
+! routines for crystallographic IO
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive subroutine requestLatticeParameters(self, SG)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: requestLatticeParameters
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! Input of crystal system followed by the appropriate set of lattice
@@ -1711,7 +1717,7 @@ recursive subroutine requestLatticeParameters(self, SG)
   !!              xtal_system   hexset    SYM_trigonal   SYM_second
   !! hexagonal          4         T            F              F
   !! trig/hex           5         T            T              F
-  !! trig/rhomb         5         F            T              T 
+  !! trig/rhomb         5         F            T              T
 
 use mod_io
 use mod_symmetry
@@ -1719,13 +1725,13 @@ use mod_symmetry
 IMPLICIT NONE
 
 class(Cell_T),intent(inout)             :: self
-type(SpaceGroup_T), intent(inout)       :: SG 
+type(SpaceGroup_T), intent(inout)       :: SG
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: io_int(1)
 real(kind=dbl)                          :: io_real(1)
 
-  ! make sure the symmetry operations will be reduced to the 
+  ! make sure the symmetry operations will be reduced to the
   ! fundamental unit cell
    call SG%setSpaceGroupreduce(.TRUE.)
    call SG%setSpaceGrouphexset(.FALSE.)
@@ -1751,8 +1757,8 @@ real(kind=dbl)                          :: io_real(1)
   ! put default values based on cubic symmetry, then change them later
    call Message%ReadValue('    a [nm] = ', io_real, 1)
    self%a = io_real(1)
-   self%b = self%a 
-   self%c = self%a 
+   self%b = self%a
+   self%c = self%a
    self%alpha = 90.0_dbl
    self%beta = 90.0_dbl
    self%gamma = 90.0_dbl
@@ -1775,13 +1781,13 @@ real(kind=dbl)                          :: io_real(1)
      call Message%ReadValue('    c [nm] = ', io_real, 1)
      self%c = io_real(1)
      self%gamma=120.0_dbl
-  ! rhombohedral 
+  ! rhombohedral
     case (5)
      call Message%ReadValue('    alpha [deg] = ', io_real, 1)
      self%alpha = io_real(1)
      self%beta = self%alpha
      self%gamma = self%alpha
-  ! monoclinic   
+  ! monoclinic
     case (6)
      call Message%ReadValue('    b [nm] = ', io_real, 1)
      self%b = io_real(1)
@@ -1789,8 +1795,8 @@ real(kind=dbl)                          :: io_real(1)
      self%c = io_real(1)
      call Message%ReadValue('    beta  [deg] = ', io_real, 1)
      self%beta = io_real(1)
-  ! triclinic    
-    case (7) 
+  ! triclinic
+    case (7)
      call Message%ReadValue('    b [nm] = ', io_real, 1)
      self%b = io_real(1)
      call Message%ReadValue('    c [nm] = ', io_real, 1)
@@ -1812,17 +1818,17 @@ real(kind=dbl)                          :: io_real(1)
   ! if hexagonal setting is used, then Miller-Bravais indices must be enabled
    if ((self%xtal_system.eq.4).OR.((self%xtal_system.eq.5).AND.(.not.SG%getSpaceGroupsecond() ) )) then
      call SG%setSpaceGrouphexset(.TRUE.)
-   else 
+   else
      call SG%setSpaceGrouphexset(.FALSE.)
    end if
-!end if 
-  
+!end if
+
 end subroutine requestLatticeParameters
 
 ! !--------------------------------------------------------------------------
 ! recursive subroutine GetAsymmetricPosition(self)
-!   !! author: MDG 
-!   !! version: 1.0 
+!   !! author: MDG
+!   !! version: 1.0
 !   !! date: 01/07/20
 !   !!
 !   !! ask the user for the atom type, coordinates, site occupation parameter
@@ -1836,12 +1842,12 @@ end subroutine requestLatticeParameters
 ! !f2py intent(in,out) ::  cell
 
 ! type(IO_T)                              :: Message
-! logical                                 :: more                 
-! character(1)                            :: ans, list(256)       
-! real(kind=sgl)                          :: pt(5), out_real(5)   
-! integer(kind=irg)                       :: i, j, io_int(1), std, sl  
+! logical                                 :: more
+! character(1)                            :: ans, list(256)
+! real(kind=sgl)                          :: pt(5), out_real(5)
+! integer(kind=irg)                       :: i, j, io_int(1), std, sl
 ! character(fnlen)                        :: instring
- 
+
 !  more=.TRUE.
 !  self%ATOM_ntype = 0
 !  call Message%printMessage(' Enter atoms in asymmetric unit ', frm = "(/A)")
@@ -1869,21 +1875,21 @@ end subroutine requestLatticeParameters
 !   end do
 
 ! ! interpret this string and extract coordinates and such ...
-!   call extractAtomPositionData(list,pt) 
- 
-! ! store in the appropriate component of the cell variable  
+!   call extractAtomPositionData(list,pt)
+
+! ! store in the appropriate component of the cell variable
 !   self%ATOM_pos(self%ATOM_ntype,1:5) = pt(1:5)
 
-! ! and write the coordinate back to the terminal  
+! ! and write the coordinate back to the terminal
 !   out_real = (/ (self%ATOM_pos(self%ATOM_ntype,j),j=1,5) /)
-!   call Message%WriteValue('    -> ', out_real, 5, frm = "(1x,4(F10.7,2x),F10.7)") 
+!   call Message%WriteValue('    -> ', out_real, 5, frm = "(1x,4(F10.7,2x),F10.7)")
 
 !   call Message%ReadValue(' ->  Another atom ? (y/n) ', ans, frm = "(A1)")
-!   if ((ans.eq.'y').or.(ans.eq.'Y')) then 
+!   if ((ans.eq.'y').or.(ans.eq.'Y')) then
 !    more=.TRUE.
 !   else
 !    more=.FALSE.
-!   end if 
+!   end if
 
 !  end do
 
@@ -1891,8 +1897,9 @@ end subroutine requestLatticeParameters
 
 !--------------------------------------------------------------------------
 recursive subroutine GetAsymPosWyckoff_(self, SG, EMsoft)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetAsymPosWyckoff_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/10/20
   !!
   !! read the atom coordinates from standard input in Wyckoff format (uses mod_symmetry routines)
@@ -1926,7 +1933,7 @@ character(6)                            :: list
  WPfile = trim(EMsoft%getConfigParameter('WyckoffPositionsfilename'))
  call SG%printWyckoffPositions(wpstring, WPfile, WyckoffList)
 
-! number of special positions encoded in string 
+! number of special positions encoded in string
  numsp = (len(trim(wpstring))-1)/4+1
 
  call Message%printMessage('WPstring : '//trim(wpstring))
@@ -1945,25 +1952,25 @@ character(6)                            :: list
 ! ask for the Wyckoff position
     call Message%printMessage(' ->  Wyckoff position : ', frm = "(A,' ')",advance="no")
     list = '      '
-    call Message%ReadValue(' ', list, frm="(A)") 
+    call Message%ReadValue(' ', list, frm="(A)")
 
 ! find the corresponding encoded triplet
     do i=1,6
       Wyckoffstring(i:i) = list(i:i)
     end do
     do i=1,numsp
-      if (trim(Wyckoffstring).eq.trim(WyckoffList(i))) then 
+      if (trim(Wyckoffstring).eq.trim(WyckoffList(i))) then
         found = .TRUE.
-        if (i.eq.numsp) then 
+        if (i.eq.numsp) then
           Wyckoffpos = 'xyz'
         else
           do j=1,3
             ipos = (i-1)*4+1+j
             Wyckoffpos(j:j) = wpstring(ipos:ipos)
-          end do 
+          end do
         end if
       end if
-    end do 
+    end do
     if (found.eqv..FALSE.) then
       call Message%printMessage(' incorrect Wyckoff position; please try again ', frm = "(A,' ')",advance="no")
 !   else
@@ -1972,21 +1979,21 @@ character(6)                            :: list
   end do
 
 ! interpret this encoded string and extract coordinates and such ...
-  call SG%extractWyckoffposition(Wyckoffpos, pt) 
-  
-! store in the appropriate component of the cell variable  
+  call SG%extractWyckoffposition(Wyckoffpos, pt)
+
+! store in the appropriate component of the cell variable
   self%ATOM_pos(self%ATOM_ntype,1:3) = pt(1:3)
 
-! and write the coordinate back to the terminal  
+! and write the coordinate back to the terminal
   out_real = (/ (self%ATOM_pos(self%ATOM_ntype,j),j=1,5) /)
-  call Message%WriteValue('    -> ', out_real, 5, frm = "(1x,4(F10.7,2x),F10.7)") 
+  call Message%WriteValue('    -> ', out_real, 5, frm = "(1x,4(F10.7,2x),F10.7)")
 
   call Message%ReadValue(' ->  Another atom ? (y/n) ', ans, frm = "(A1)")
-  if ((ans.eq.'y').or.(ans.eq.'Y')) then 
+  if ((ans.eq.'y').or.(ans.eq.'Y')) then
    more=.TRUE.
   else
    more=.FALSE.
-  end if 
+  end if
 
  end do
 
@@ -1994,8 +2001,9 @@ end subroutine GetAsymPosWyckoff_
 
 !--------------------------------------------------------------------------
 recursive subroutine displayPeriodicTable(self)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: displayPeriodicTable
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! display the periodic table so that the user can look up the atomic number
@@ -2008,7 +2016,7 @@ class(Cell_T),intent(inout)             :: self
 type (IO_T)                             :: Message
 
 call Message%printMessage( (/ &
-   ' ------------------------------------ Periodic Table of the Elements --------------------------------------', & 
+   ' ------------------------------------ Periodic Table of the Elements --------------------------------------', &
    '1:H                                                                                                    2:He', &
    '3:Li  4:Be                                                               5:B   6:C   7:N   8:O   9:F  10:Ne', &
    '11:Na 12:Mg                                                             13:Al 14:Si 15:P  16:S  17:Cl 18:Ar', &
@@ -2023,27 +2031,28 @@ end subroutine displayPeriodicTable
 
 !--------------------------------------------------------------------------
 recursive subroutine extractAtomPositionData(list,pt)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: extractAtomPositionData
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
-  !! Extract the coordinates, site occupation, and DW factor from the 
+  !! Extract the coordinates, site occupation, and DW factor from the
   !! input string; note that coordinates can be entered in decimal or in fractional
   !! notation, hence the somewhat convoluted way of interpreting this string...
 
 IMPLICIT NONE
 
-character(1),INTENT(IN)                 :: list(256)                            
+character(1),INTENT(IN)                 :: list(256)
  !! input string
-real(kind=sgl),INTENT(OUT)              :: pt(5)                                
+real(kind=sgl),INTENT(OUT)              :: pt(5)
  !! output real array
 
 integer(kind=irg)                       :: comma(6),slash(5),period(5), &
                                            ccnt,scnt,pcnt,pp,i,j,hcnt, &
-                                           ip,ipt,icnt,nd,n,k,ns                
-integer(kind=irg),parameter             :: nmb(48:57)=(/0,1,2,3,4,5,6,7,8,9/)   
-real(kind=dbl)                          :: nominator,denominator,x              
-logical                                 :: hasperiod                            
+                                           ip,ipt,icnt,nd,n,k,ns
+integer(kind=irg),parameter             :: nmb(48:57)=(/0,1,2,3,4,5,6,7,8,9/)
+real(kind=dbl)                          :: nominator,denominator,x
+logical                                 :: hasperiod
 
 ! first, make sure all the spaces are removed from the list array
 
@@ -2056,28 +2065,28 @@ logical                                 :: hasperiod
  pcnt = 0
  j = 0
  hcnt = 0
- 
+
 ! count characters and search for , . and /
  ccnt = ccnt+1
  comma(ccnt) = 0
  do i=1,256
   if (list(i)(1:1).ne.' ') j=j+1
-  if (list(i)(1:1).eq.',') then 
+  if (list(i)(1:1).eq.',') then
    ccnt = ccnt+1
    comma(ccnt)=i
   end if
-  if (list(i)(1:1).eq.'/') then 
+  if (list(i)(1:1).eq.'/') then
    scnt = scnt+1
    slash(scnt)=i
   end if
-  if (list(i)(1:1).eq.'.') then 
+  if (list(i)(1:1).eq.'.') then
    pcnt = pcnt+1
    period(pcnt)=i
   end if
- end do 
+ end do
  ccnt = ccnt+1
  comma(ccnt) = j+1
- do while (ccnt.lt.6) 
+ do while (ccnt.lt.6)
   ccnt = ccnt+1
   comma(ccnt) = comma(ccnt-1)+1
  end do
@@ -2120,14 +2129,14 @@ logical                                 :: hasperiod
      hasperiod = .FALSE.
    endif
    nd = comma(i+1)-ip
-   if (hasperiod) then 
+   if (hasperiod) then
     if (period(pp).eq.comma(i)+1) then
      x = 0.D0
      ns = 2
     else
      x = dble(nmb(ichar(list(ip)(1:1))))
      ns = 3
-    end if 
+    end if
     do k=ns,nd
      x = x + 10.D0**(ns-k-1)*dble(nmb(ichar(list(ip+k-1)(1:1))))
     end do
@@ -2146,7 +2155,7 @@ logical                                 :: hasperiod
     ip = comma(i+1)+1
    end if
   end if
- end do 
+ end do
 
 ! set default values
  if (pt(4).eq.0.0) pt(4) = 1.0
@@ -2155,11 +2164,12 @@ end subroutine extractAtomPositionData
 
 !--------------------------------------------------------------------------
 recursive function getDensity_(self) result(dza)
+!DEC$ ATTRIBUTES DLLEXPORT :: getDensity_
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
-class(Cell_T), INTENT(INOUT)  :: self 
-real(kind=dbl)                :: dza(3) 
+class(Cell_T), INTENT(INOUT)  :: self
+real(kind=dbl)                :: dza(3)
 
 dza = (/ self%density, self%avA, self%avZ /)
 
@@ -2167,8 +2177,10 @@ end function getDensity_
 
 !--------------------------------------------------------------------------
 recursive subroutine calcTheoreticalDensity(self, Z2percent)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: calcTheoreticalDensity
+
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/07/20
   !!
   !! compute the theoretical density as well as average Z and A
@@ -2201,7 +2213,7 @@ self%avZ = Z/dble(sum( self%numat(1:self % ATOM_ntype) ))
 self%density = AW / (self % vol * 1.D-21 * cAvogadro)
 
 ! do we need to fill the Z2percent array?
-! this estimates the percentage contribution of each atom type to the 
+! this estimates the percentage contribution of each atom type to the
 ! Rutherford scattering process by simply taking Z^2 for each atom in the unit cell
 if (present(Z2percent)) then
   allocate(Z2percent(self%ATOM_ntype),Z2list(self%ATOM_ntype))
@@ -2210,24 +2222,25 @@ if (present(Z2percent)) then
   end do
   Z = sum(Z2list)
   Z2percent = 100.0 * Z2list / Z
-end if 
+end if
 
 end subroutine calcTheoreticalDensity
 
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-! HDF support routines for writing and reading .xtal files 
+! HDF support routines for writing and reading .xtal files
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
 recursive subroutine saveDataHDF_(self, SG, EMsoft)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: saveDataHDF_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/14/20
   !!
-  !! save crystal structure data to an HDF file 
+  !! save crystal structure data to an HDF file
 
 use mod_io
 use mod_global
@@ -2237,14 +2250,14 @@ use mod_HDFsupport
 use mod_timing
 use mod_symmetry
 use stringconstants
- 
+
 IMPLICIT NONE
 
 class(Cell_T),INTENT(INOUT)             :: self
 type(SpaceGroup_T),INTENT(INOUT)        :: SG
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 type(Timing_T)                          :: Timer
 
 type(HDF_T)                             :: me  ! local HDF class
@@ -2252,7 +2265,7 @@ type(HDF_T)                             :: me  ! local HDF class
 character(11)                           :: dstr
 character(15)                           :: tstr
 character(fnlen)                        :: progname = 'EMmkxtal.f90', groupname, dataset, xtalname, strings(1)
-integer(kind=irg)                       :: hdferr, setting 
+integer(kind=irg)                       :: hdferr, setting
 real(kind=dbl)                          :: cellparams(6)
 integer(kind=irg),allocatable           :: atomtypes(:)
 real(kind=sgl),allocatable              :: atompos(:,:)
@@ -2262,9 +2275,9 @@ Message = IO_T()
 Timer = Timing_T()
 
 dstr = Timer%getDateString()
-tstr = Timer%getTimeString() 
+tstr = Timer%getTimeString()
 
-me = HDF_T() 
+me = HDF_T()
 
   xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
   hdferr =  me%createFile(xtalname)
@@ -2308,11 +2321,11 @@ me = HDF_T()
   call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
 
   ! make sure we do not write a '0' for the SGset variable; it must be either 1 or 2
-  if (SG%getSpaceGroupSetting().eq.0) then 
+  if (SG%getSpaceGroupSetting().eq.0) then
     setting = 1
-  else 
+  else
     setting = SG%getSpaceGroupSetting()
-  end if 
+  end if
   dataset = SC_SpaceGroupSetting
   hdferr = me%writeDatasetInteger(dataset, setting)
   call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
@@ -2347,11 +2360,12 @@ end subroutine saveDataHDF_
 
 !--------------------------------------------------------------------------
 recursive subroutine addXtalDataGroup_(self, SG, EMsoft, useHDF)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: addXtalDataGroup_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/14/20
   !!
-  !! save crystal structure data to an HDF file 
+  !! save crystal structure data to an HDF file
 
 use mod_io
 use mod_global
@@ -2361,7 +2375,7 @@ use mod_HDFsupport
 use mod_timing
 use mod_symmetry
 use stringconstants
- 
+
 IMPLICIT NONE
 
 class(Cell_T),INTENT(INOUT)             :: self
@@ -2369,13 +2383,13 @@ type(SpaceGroup_T),INTENT(INOUT)        :: SG
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
 type(HDF_T),INTENT(INOUT)               :: useHDF
 
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 type(Timing_T)                          :: Timer
 
 character(11)                           :: dstr
 character(15)                           :: tstr
 character(fnlen)                        :: progname = 'EMmkxtal.f90', groupname, dataset, xtalname, strings(1)
-integer(kind=irg)                       :: hdferr, setting 
+integer(kind=irg)                       :: hdferr, setting
 real(kind=dbl)                          :: cellparams(6)
 integer(kind=irg),allocatable           :: atomtypes(:)
 real(kind=sgl),allocatable              :: atompos(:,:)
@@ -2385,7 +2399,7 @@ Message = IO_T()
 Timer = Timing_T()
 
 dstr = Timer%getDateString()
-tstr = Timer%getTimeString() 
+tstr = Timer%getTimeString()
 
   groupname = SC_CrystalData
   hdferr = useHDF%createGroup(groupname)
@@ -2425,11 +2439,11 @@ tstr = Timer%getTimeString()
   call useHDF%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
 
   ! make sure we do not write a '0' for the SGset variable; it must be either 1 or 2
-  if (SG%getSpaceGroupSetting().eq.0) then 
+  if (SG%getSpaceGroupSetting().eq.0) then
     setting = 1
-  else 
+  else
     setting = SG%getSpaceGroupSetting()
-  end if 
+  end if
   dataset = SC_SpaceGroupSetting
   hdferr = useHDF%writeDatasetInteger(dataset, setting)
   call useHDF%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
@@ -2463,11 +2477,12 @@ end subroutine addXtalDataGroup_
 
 !--------------------------------------------------------------------------
 recursive subroutine getCrystalData_(self, xtalname, SG, EMsoft, verbose, useHDF)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getCrystalData_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! load or generate crystal data 
+  !! load or generate crystal data
 
 use mod_EMsoft
 use mod_io
@@ -2478,17 +2493,17 @@ IMPLICIT NONE
 
 class(Cell_T),INTENT(INOUT)             :: self
 character(fnlen),INTENT(IN)             :: xtalname
-type(SpaceGroup_T),INTENT(INOUT)        :: SG 
+type(SpaceGroup_T),INTENT(INOUT)        :: SG
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
 logical,INTENT(IN),OPTIONAL             :: verbose
 type(HDF_T),OPTIONAL,INTENT(INOUT)      :: useHDF
 
 type(HDF_T)                             :: me
-type(IO_T)                              :: Message 
+type(IO_T)                              :: Message
 integer(kind=irg)                       :: i, ipg, SGnum
 
  self%xtalname = trim(xtalname)
- if (present(useHDF)) then 
+ if (present(useHDF)) then
   call self%readDataHDF(SG, EMsoft, useHDF)
  else
   call self%readDataHDF(SG, EMsoft)
@@ -2503,8 +2518,8 @@ integer(kind=irg)                       :: i, ipg, SGnum
 
 ! [code modified on 8/1/18 (MDG), to correct k-vector sampling symmetry errors]
 ! First generate the point symmetry matrices, then the actual space group.
-! if the actual group is also the symmorphic group, then both 
-! steps can be done simultaneously, otherwise two calls to 
+! if the actual group is also the symmorphic group, then both
+! steps can be done simultaneously, otherwise two calls to
 ! GenerateSymmetry are needed.
  ! SGnum = SG%getSpaceGroupNumber()
  ! if (SGsymnum(SGnum).eq.SGnum) then
@@ -2518,30 +2533,31 @@ integer(kind=irg)                       :: i, ipg, SGnum
  !  write (*,*) ' SG order = ', SGorder(SG%getSpaceGroupNumber())
  ! end if
 
-! the reciprocal space symmetry matrices can not be computed unless the 
-! direct and reciprocal structure matrices are available (this really only matters 
-! for hexagonal and rhombohedral reference frames).  So, we generate the 
+! the reciprocal space symmetry matrices can not be computed unless the
+! direct and reciprocal structure matrices are available (this really only matters
+! for hexagonal and rhombohedral reference frames).  So, we generate the
 ! reciprocal symmetry matrices here ...
 if (SG%recip_pending.eqv..TRUE.) call SG%fixRecipPG( self%dmt, self%rmt)
 
-call self%calcPositions(SG,'s') 
+call self%calcPositions(SG,'s')
 
 ! and print the information on the screen
 if (present(verbose)) then
  if (verbose) then
    call self%dumpXtalInfo(SG)
  end if
-end if 
+end if
 
 end subroutine getCrystalData_
 
 !--------------------------------------------------------------------------
 recursive subroutine readDataHDF_(self, SG, EMsoft, useHDF, useXtalName)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readDataHDF_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
-  !! Read crystal structure data from an HDF file 
+  !! Read crystal structure data from an HDF file
 
 use mod_EMsoft
 use mod_io
@@ -2550,7 +2566,7 @@ use HDF5
 use mod_HDFsupport
 use ISO_C_BINDING
 use stringconstants
- 
+
 IMPLICIT NONE
 
 class(Cell_T),INTENT(INOUT)             :: self
@@ -2565,7 +2581,7 @@ type(IO_T)                              :: Message
 character(fnlen)                        :: dataset, groupname, xtalname
 integer(HSIZE_T)                        :: dims(1), dims2(2)
 integer(kind=irg)                       :: hdferr, nlines, xtal_system, SGnum, setting, &
-                                           ATOM_ntype, i 
+                                           ATOM_ntype, i
 real(kind=dbl),allocatable              :: cellparams(:)
 integer(kind=irg),allocatable           :: atomtypes(:)
 real(kind=sgl),allocatable              :: atompos(:,:)
@@ -2574,14 +2590,17 @@ logical                                 :: openHDFfile, d_exists
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 
 openHDFfile = .TRUE.
+
+call openFortranHDFInterface()
+
 if (present(useHDF)) then
   openHDFfile = .FALSE.
   me = useHDF
-else 
+else
   me = HDF_T()
 end if
 
-if (present(useXtalName)) then 
+if (present(useXtalName)) then
   xtalname = trim(useXtalName)
 else
   xtalname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',self%xtalname))
@@ -2610,7 +2629,7 @@ self%beta = cellparams(5)
 self%gamma = cellparams(6)
 
 dataset = SC_SpaceGroupNumber
-call me%readDatasetInteger(dataset, hdferr, SGnum) 
+call me%readDatasetInteger(dataset, hdferr, SGnum)
 call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
 dataset = SC_SpaceGroupSetting
 call me%readDatasetInteger(dataset, hdferr, setting)
@@ -2627,7 +2646,7 @@ if (SGnum.ge.221) then
   i = 32
 else
   i=0
-  do while (SGPG(i+1).le.SGnum) 
+  do while (SGPG(i+1).le.SGnum)
     i = i+1
   end do
 end if
@@ -2641,19 +2660,19 @@ call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
 dataset = SC_Atomtypes
 call me%readDatasetIntegerArray(dataset, dims, hdferr, atomtypes)
 call me%error_check('readDataHDF:readDatasetIntegerArray:'//trim(dataset), hdferr)
-self%ATOM_type(1:self%ATOM_ntype) = atomtypes(1:self%ATOM_ntype) 
+self%ATOM_type(1:self%ATOM_ntype) = atomtypes(1:self%ATOM_ntype)
 deallocate(atomtypes)
 
 dataset = SC_AtomData
 call me%readDatasetFloatArray(dataset, dims2, hdferr, atompos)
 call me%error_check('readDataHDF:readDatasetFloatArray:'//trim(dataset), hdferr)
-self%ATOM_pos(1:self%ATOM_ntype,1:5) = atompos(1:self%ATOM_ntype,1:5) 
+self%ATOM_pos(1:self%ATOM_ntype,1:5) = atompos(1:self%ATOM_ntype,1:5)
 deallocate(atompos)
 
 ! the following data set does not exist in older .xtal files so we test for its presence
 dataset = SC_Source
 call H5Lexists_f(me%getobjectID(),trim(dataset),d_exists, hdferr)
-if (d_exists) then 
+if (d_exists) then
   call me%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
   self%source = trim(stringarray(1))
   deallocate(stringarray)
@@ -2673,9 +2692,9 @@ if ((SGnum.ge.143).and.(SGnum.le.167)) then
   call SG%setSpaceGrouptrigonal(.TRUE.)
 else
   call SG%setSpaceGrouptrigonal(.FALSE.)
-end if 
+end if
 
-! we have not yet implemented the rhombohedral setting of the trigonal 
+! we have not yet implemented the rhombohedral setting of the trigonal
 ! space groups, so this needs to remain at .FALSE. always.
 call SG%setSpaceGroupsecond(.FALSE.)
 
@@ -2685,8 +2704,9 @@ end subroutine readDataHDF_
 
 !--------------------------------------------------------------------------
 recursive subroutine calcPositions_(self, SG, switch)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: calcPositions_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/09/20
   !!
   !! Compute all atom positions in the fundamental unit
@@ -2705,15 +2725,15 @@ character(1),INTENT(IN)         :: switch ! if switch='m', then multiple unit ce
 type(IO_T)                      :: Message
 logical                         :: inside                       ! auxiliary logical
 integer(kind=irg)               :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3)  ! various auxiliary variables
-real(kind=dbl)                  :: ff(3),sh(3)                  ! auxiliary variables  
-real(kind=sgl)                  :: r(3),g(3)                    ! auxiliary variables  
+real(kind=dbl)                  :: ff(3),sh(3)                  ! auxiliary variables
+real(kind=sgl)                  :: r(3),g(3)                    ! auxiliary variables
 real(kind=dbl),allocatable      :: ctmp(:,:)
 
 ! make sure all coordinates are reduced to the fundamental unit cell
  call SG%setSpaceGroupreduce(.TRUE.)
 
 ! multiple cells ?
- if (switch.eq.'m') then 
+ if (switch.eq.'m') then
   call Message%ReadValue('Number of unit cells in a, b and c direction ?: ', io_int,3)
   do j=1,3
    celln(j) = io_int(j)
@@ -2753,7 +2773,7 @@ real(kind=dbl),allocatable      :: ctmp(:,:)
      do kk=1,self%numat(i)
       do mm=1,3
        r(mm)=ctmp(kk,mm)+ff(mm)-sh(mm)
-      end do 
+      end do
       if (switch.eq.'m') then
 ! make sure the atom is actually inside the block of unit
 ! cells, or on one of the edges/faces/corners
@@ -2777,7 +2797,7 @@ real(kind=dbl),allocatable      :: ctmp(:,:)
        icnt=icnt+1
       end if  ! switch
      end do ! kk
-    end do ! l 
+    end do ! l
    end do ! k
   end do ! j
   self%numat(i)=icnt-1
@@ -2795,55 +2815,56 @@ end subroutine calcPositions_
 
 !--------------------------------------------------------------------------
 recursive subroutine ShortestG_(self, SG, k, gone, gtwo, isym)
-  !! author: MDG 
-  !! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ShortestG_
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/26/20
   !!
-  !! determine the pair of shortest reciprocal lattice 
-  !! vectors for a given zone axis; used to draw diffraction 
+  !! determine the pair of shortest reciprocal lattice
+  !! vectors for a given zone axis; used to draw diffraction
   !! patterns and in a bunch of other routines
   !!
   !! we look for 4 integer numbers which transform ga and gb
   !! simultaneously into two shortest possible vectors of the same zone;
   !! a range of -10:10 should be sufficient as a search space
-  !! 
+  !!
   !! If g1 and g2 are those shortest vectors, then we have
-  !! 
+  !!
   !!    ga  =  na*g1 + ma*g2\n
   !!    gb  =  nb*g1 + mb*g2\n
-  !! 
+  !!
   !! Inversion of this relation gives
-  !! 
+  !!
   !!    g1  =  (mb*ga - ma*gb)/D\n
   !!    g2  =  (-nb*ga + na*gb)/D\n
-  !! 
+  !!
   !! with D = na*mb - nb*ma.
-  !! 
-  !! The procedure below searches for the combination of 
-  !! (ma,mb,na,nb) which simultaneously minimizes the 
+  !!
+  !! The procedure below searches for the combination of
+  !! (ma,mb,na,nb) which simultaneously minimizes the
   !! length of g1 and g2, and makes sure that both g1 and g2
   !! are integer linear combinations of the reciprocal basis
   !! vectors.
 
-use mod_io 
+use mod_io
 use mod_symmetry
 
 IMPLICIT NONE
 
 class(Cell_T),INTENT(INOUT)             :: self
-type(SpaceGroup_T),INTENT(INOUT)        :: SG 
-integer(kind=irg),INTENT(INOUT)         :: isym                 
+type(SpaceGroup_T),INTENT(INOUT)        :: SG
+integer(kind=irg),INTENT(INOUT)         :: isym
  !! used to resolve some potential ambiguities for 3-fold and 6-fold symmetries
-integer(kind=irg),INTENT(IN)            :: k(3)                 
+integer(kind=irg),INTENT(IN)            :: k(3)
  !! input zone axis indices
-integer(kind=irg),INTENT(OUT)           :: gone(3)              
+integer(kind=irg),INTENT(OUT)           :: gone(3)
  !! output first vector
-integer(kind=irg),INTENT(OUT)           :: gtwo(3)              
+integer(kind=irg),INTENT(OUT)           :: gtwo(3)
  !! output second vector
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: ga(3),gb(3),nzero(3),u,v,w,snz,ml(4),igsave(3)
-integer(kind=irg)                       :: ima,imb,ina,inb,el(6),denom,minsum,inm,il(48),jcnt,num 
+integer(kind=irg)                       :: ima,imb,ina,inb,el(6),denom,minsum,inm,il(48),jcnt,num
 real(kind=sgl)                          :: fel(6),fit,gsave(3)
 integer(kind=irg),allocatable           :: ifit(:,:,:,:)
 integer(kind=irg),allocatable           :: itmp(:,:)
@@ -2852,12 +2873,12 @@ integer(kind=irg),allocatable           :: itmp(:,:)
  v = k(2)
  w = k(3)
 
-! determine two arbitrary vectors normal to k 
+! determine two arbitrary vectors normal to k
 ! first count the zeroes in k
  nzero = (/0,0,0/)
  where (k.eq.0) nzero = 1
  snz = sum(nzero)
- 
+
  if (snz.eq.0) then  ! make sure ga x gb is parallel to k
    ga = (/v,-u,0/)
    gb = (/w,0,-u/)
@@ -2878,7 +2899,7 @@ integer(kind=irg),allocatable           :: itmp(:,:)
             endif
   case(3); call Message%printError('ShortestG',' beam direction cannot be [0,0,0]')
   end select
- end if 
+ end if
 
 ! check linear combinations to see if there are any shorter ones
  inm = 10
@@ -2887,12 +2908,12 @@ integer(kind=irg),allocatable           :: itmp(:,:)
   do imb=-inm,inm
    do ina=-inm,inm
     do inb=-inm,inm
-     el(1) = imb*ga(1)-ima*gb(1) 
-     el(2) = imb*ga(2)-ima*gb(2) 
-     el(3) = imb*ga(3)-ima*gb(3) 
-     el(4) = ina*gb(1)-inb*ga(1) 
-     el(5) = ina*gb(2)-inb*ga(2) 
-     el(6) = ina*gb(3)-inb*ga(3) 
+     el(1) = imb*ga(1)-ima*gb(1)
+     el(2) = imb*ga(2)-ima*gb(2)
+     el(3) = imb*ga(3)-ima*gb(3)
+     el(4) = ina*gb(1)-inb*ga(1)
+     el(5) = ina*gb(2)-inb*ga(2)
+     el(6) = ina*gb(3)-inb*ga(3)
      denom = ina*imb-inb*ima
      ifit(ima,imb,ina,inb)=100
      if (denom.ne.0) then
@@ -2902,8 +2923,8 @@ integer(kind=irg),allocatable           :: itmp(:,:)
       if (fit.eq.0.0) then
         gone(1:3) = int(fel(1:3))
         gtwo(1:3) = int(fel(4:6))
-! keep the sum of the squares of the lengths 
-       ifit(ima,imb,ina,inb)=sum(gone**2)+sum(gtwo**2) 
+! keep the sum of the squares of the lengths
+       ifit(ima,imb,ina,inb)=sum(gone**2)+sum(gtwo**2)
       end if
      end if
     end do
@@ -2932,7 +2953,7 @@ integer(kind=irg),allocatable           :: itmp(:,:)
  end do
  deallocate(ifit)
 
-! transform ga and gb into g1 and g2 
+! transform ga and gb into g1 and g2
  gone = (ml(2)*ga-ml(1)*gb)/(ml(3)*ml(2)-ml(4)*ml(1))
  gtwo = (ml(3)*gb-ml(4)*ga)/(ml(3)*ml(2)-ml(4)*ml(1))
 
@@ -2945,7 +2966,7 @@ integer(kind=irg),allocatable           :: itmp(:,:)
   gtwo = igsave
  end if
 
-! finally, if isym.ne.0 make sure that the selection of the 
+! finally, if isym.ne.0 make sure that the selection of the
 ! basis vectors for the 3-fold and 6-fold 2D point groups is
 ! correctly done.
 !
@@ -2966,14 +2987,14 @@ integer(kind=irg),allocatable           :: itmp(:,:)
 !                this is the case for the selected gone and gtwo.
  if ((isym.eq.8).and.(self%gamma.eq.120.0)) then
    isym=12
-   fit = self%CalcAngle(float(gone),float(gtwo),'r')/dtor 
+   fit = self%CalcAngle(float(gone),float(gtwo),'r')/dtor
    if (abs(fit-120.0).lt.1.0) then
      gtwo=gone+gtwo
    end if
  end if
 !
  if (isym.eq.8) then
-   fit = self%CalcAngle(float(gone),float(gtwo),'r')/dtor 
+   fit = self%CalcAngle(float(gone),float(gtwo),'r')/dtor
    if (abs(fit-120.0).gt.1.0) then
      gtwo=gtwo-gone
    end if
@@ -3009,7 +3030,7 @@ end subroutine ShortestG_
 
 
 ! !--------------------------------------------------------------------------
-! ! 
+! !
 ! ! FUNCTION:CalcsgHOLZ
 ! !
 ! !> @author Marc De Graef, Carnegie Mellon University
@@ -3023,7 +3044,7 @@ end subroutine ShortestG_
 ! !> @param gg input g vector
 ! !> @param kt tangential components of wave vector
 ! !> @param lambda electron wavelength
-! ! 
+! !
 ! !> @date   10/16/13 MDG 1.0 new version, includes HOLZ stuff
 ! !> @date   01/10/14 MDG 4.0 checked for changes to unitcell type
 ! !> @date   06/05/14 MDG 4.1 added unit cell pointer argument and HOLZdata argument
@@ -3068,7 +3089,7 @@ end subroutine ShortestG_
 
 
 ! !--------------------------------------------------------------------------
-! ! 
+! !
 ! ! SUBROUTINE:GetHOLZGeometry
 ! !
 ! !> @author Marc De Graef, Carnegie Mellon University
@@ -3083,7 +3104,7 @@ end subroutine ShortestG_
 ! !> @param g2 second ZOLZ vector
 ! !> @param uvw zone axis
 ! !> @param FN foil normal
-! ! 
+! !
 ! !> @date 10/17/13 MDG 1.0 original
 ! !> @date   01/10/14 MDG 4.0 checked for changes to unitcell type
 ! !> @date   06/05/14 MDG 4.1 added unit cell pointer argument and HOLZdata argument
@@ -3111,7 +3132,7 @@ end subroutine ShortestG_
 !     HOLZdata%g2 = g2
 !     HOLZdata%uvw = uvw
 !     HOLZdata%FN = fn
-    
+
 ! ! distance between consecutive HOLZ layers in nm-1
 !     HOLZdata%H = 1.0/CalcLength(cell,float(uvw),'d')
 
@@ -3188,7 +3209,7 @@ end subroutine ShortestG_
 ! end subroutine GetHOLZGeometry
 
 ! !--------------------------------------------------------------------------
-! ! 
+! !
 ! ! FUNCTION:GetHOLZcoordinates
 ! !
 ! !> @author Marc De Graef, Carnegie Mellon University
@@ -3200,7 +3221,7 @@ end subroutine ShortestG_
 ! !> @param gg input g vector
 ! !> @param kt tangential wave vector component
 ! !> @param lambda electron wavelength
-! ! 
+! !
 ! !> @date 1/29/02  MDG 1.0 original
 ! !> @date 04/08/13 MDG 2.0 rewrite
 ! !> @date 10/16/13 MDG 3.0 incorporation into LACBED code
@@ -3225,7 +3246,7 @@ end subroutine ShortestG_
 !         N = abs( HOLZdata%uvw(1)*gg(1) + HOLZdata%uvw(2)*gg(2) + HOLZdata%uvw(3)*gg(3) )
 
 ! ! get components of gg w.r.t. g1 and g2
-!         hh = gg - N * HOLZdata%gshort 
+!         hh = gg - N * HOLZdata%gshort
 !         h1 = CalcDot(cell,hh,HOLZdata%g1,'c')
 !         h2 = CalcDot(cell,hh,HOLZdata%g2,'c')
 !         g11 = CalcDot(cell,HOLZdata%g1,HOLZdata%g1,'c')
@@ -3246,10 +3267,10 @@ end subroutine ShortestG_
 !         pxy = matmul(HOLZdata%gtoc,gxy)
 
 ! end function GetHOLZcoordinates
- 
- 
+
+
 ! !--------------------------------------------------------------------------
-! ! 
+! !
 ! ! FUNCTION:Convert_kgs_to_Substrate
 ! !
 ! !> @author Marc De Graef, Carnegie Mellon University
@@ -3262,9 +3283,9 @@ end subroutine ShortestG_
 ! !> @param TTinv coordinate transformation matrix
 ! !> @param lambdaS electron wavelength in substrate, corrected for refraction
 ! !> @param FN foil normal in substrate frame
-! ! 
+! !
 ! !> @date 11/25/14 MDG 1.0 original
-! !> @date 08/19/15 SS  1.1 replaced FN by r in evaluation of tangential 
+! !> @date 08/19/15 SS  1.1 replaced FN by r in evaluation of tangential
 ! !> component and corrected calculation of kgS from p1
 ! !> @date 09/23/15 commented out a few lines
 ! !--------------------------------------------------------------------------

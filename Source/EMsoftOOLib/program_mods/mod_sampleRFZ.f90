@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_sampleRFZ
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/22/20
   !!
   !! class definition for the EMsampleRFZ program
@@ -36,7 +36,7 @@ module mod_sampleRFZ
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMsampleRFZ program
 type, public :: sampleRFZNameListType
@@ -63,12 +63,12 @@ type, public :: sampleRFZNameListType
 end type sampleRFZNameListType
 
 type, public :: sampleRFZ_T
-private 
+private
   character(fnlen)             :: nmldeffile = 'EMsampleRFZ.nml'
-  type(sampleRFZNameListType)  :: nml 
+  type(sampleRFZNameListType)  :: nml
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: CreateSampling_
@@ -79,7 +79,7 @@ private
 
 end type sampleRFZ_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface sampleRFZ_T
   module procedure sampleRFZ_constructor
 end interface sampleRFZ_T
@@ -88,12 +88,13 @@ contains
 
 !--------------------------------------------------------------------------
 type(sampleRFZ_T) function sampleRFZ_constructor( nmlfile ) result(RFZ)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: sampleRFZ_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
-!! constructor for the sampleRFZ_T Class; reads the name list file  
- 
+!! constructor for the sampleRFZ_T Class; reads the name list file
+
 IMPLICIT NONE
 
 character(fnlen), INTENT(IN)    :: nmlfile
@@ -104,11 +105,12 @@ end function sampleRFZ_constructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
-!! read the namelist for the sampleRFZ_T Class 
+!! read the namelist for the sampleRFZ_T Class
 
 use mod_io
 
@@ -116,7 +118,7 @@ IMPLICIT NONE
 
 class(sampleRFZ_T), INTENT(INOUT)  :: self
 character(fnlen),INTENT(IN)        :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)        :: initonly
  !! fill in the default values only; do not read the file
 
@@ -200,13 +202,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
 !! pass the namelist for the sampleRFZ_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(sampleRFZ_T), INTENT(INOUT)    :: self
 type(sampleRFZNameListType)          :: nml
@@ -223,7 +226,7 @@ end function getNameList_
 !
 !> @brief Generate a sampling of the Rodrigues Fundamental Zone for a given xtal symmetry
 !
-!> @todo add an HDF5 output option 
+!> @todo add an HDF5 output option
 !
 !> @param nmlfile namelist file name
 !
@@ -235,8 +238,9 @@ end function getNameList_
 !> @date 08/16/17 MDG 2.4 added option to generate uniform fiber texture sampling in Rodrigues space
 !--------------------------------------------------------------------------
 subroutine CreateSampling_(self, EMsoft)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CreateSampling_
+!! author: MDG
+!! version: 1.0
 !! date: 01/22/20
 !!
 !! Generate a sampling of the Rodrigues Fundamental Zone for a given xtal symmetry
@@ -249,12 +253,12 @@ use mod_quaternions
 use mod_io
 use mod_symmetry
 use mod_rotations
-use mod_so3 
+use mod_so3
 
 IMPLICIT NONE
 
 class(sampleRFZ_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)      :: EMsoft 
+type(EMsoft_T), INTENT(INOUT)      :: EMsoft
 
 type(sampleRFZNameListType)        :: rfznl
 type(IO_T)                         :: Message
@@ -263,7 +267,7 @@ type(Cell_T)                       :: cell
 type(q_T)                          :: qFZ
 type(a_T)                          :: a
 type(r_T)                          :: r
-type(so3_T)                        :: SO 
+type(so3_T)                        :: SO
 
 integer(kind=irg)                  :: i, j, num, m, io_int(1), FZcnt, FZtype, FZorder
 real(kind=dbl)                     :: ax(4), calpha, conevector(3), x, &
@@ -300,31 +304,31 @@ end if
 if (sum(rfznl%axFZ - (/0.D0, 0.D0, 1.D0, 0.D0 /)) .ne. 0.D0) then
   ax = rfznl%axFZ
   x = sqrt(sum(ax(1:3)*ax(1:3)))
-  if (x.gt.0.D0) then 
+  if (x.gt.0.D0) then
     ax(1:3) = ax(1:3) / x
   else
-    ax(1:3) = (/ 0.D0, 0.D0, 1.D0 /)  
+    ax(1:3) = (/ 0.D0, 0.D0, 1.D0 /)
   end if
   ax(4) = ax(4) * cPi / 180.D0
   a = a_T( adinp = ax )
   qFZ = a%aq()
   rotateFZ = .TRUE.
-end if 
+end if
 
 ! a bit of output
 call Message%printMessage('Starting computation for point group '//PGTHD(rfznl%pgnum))
 
-! if samplemode is set to FIB, a fiber texture will be generated, so we 
+! if samplemode is set to FIB, a fiber texture will be generated, so we
 ! need to properly initialize the symmetry operations...
 if (trim(rfznl%samplemode).eq.'FIB') then
-  if (rfznl%xtalname.eq.'undefined') then 
+  if (rfznl%xtalname.eq.'undefined') then
     call Message%printError('CreateSampling','Routine requires an .xtal filename for fiber texture mode')
   endif
 ! initialize crystal
   call SG%setSpaceGroupreduce(.FALSE.)
   call cell%getCrystalData(rfznl%xtalname, SG, EMsoft)
   conevector = rfznl%conevector/sqrt(sum(rfznl%conevector**2))
-  
+
   SGdirec = SG%getSpaceGroupPGdirecMatrices()
 
 ! first take the identity
@@ -338,7 +342,7 @@ if (trim(rfznl%samplemode).eq.'FIB') then
   write (*,*) 'fiber vector : ',itmp(j,1:3)
 
 ! multiply with all point group elements
-  do i=2,SG%getSpaceGroupNUMpt() 
+  do i=2,SG%getSpaceGroupNUMpt()
      ih=SGdirec(i,1,1)*h+SGdirec(i,1,2)*k+SGdirec(i,1,3)*l
      ik=SGdirec(i,2,1)*h+SGdirec(i,2,2)*k+SGdirec(i,2,3)*l
      il=SGdirec(i,3,1)*h+SGdirec(i,3,2)*k+SGdirec(i,3,3)*l
@@ -350,12 +354,12 @@ if (trim(rfznl%samplemode).eq.'FIB') then
        if (idiff.lt.eps) newpoint=.FALSE.
      end do
 
-     if (newpoint) then 
+     if (newpoint) then
        j=j+1
        itmp(j,1:3)=(/ ih, ik, il /)
      endif
 
-  end do 
+  end do
   num=j
   write (*,*) 'total number of equivalent fiber axes ',num
 endif
@@ -366,7 +370,7 @@ call SO%setGridType( rfznl%gridtype )
 
 ! get the linked list for the FZ for point group symmetry pgnum for nsteps along the cubic semi-edge
 if (trim(rfznl%samplemode).eq.'RFZ') then
-  if (rotateFZ.eqv..TRUE.) then 
+  if (rotateFZ.eqv..TRUE.) then
     call SO%SampleRFZ(rfznl%nsteps,qFZ)
   else
     call SO%SampleRFZ(rfznl%nsteps)
@@ -404,43 +408,43 @@ if (trim(rfznl%samplemode).eq.'RFZ') then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%euoutname)
     call SO%writeOrientationstoFile(filename, 'eu')
   end if
-  
+
   ! generate a list of all orientations in cubochoric format (if requested)
   if (docu) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%cuoutname)
     call SO%writeOrientationstoFile(filename, 'cu')
   end if
-  
+
   ! generate a list of all orientations in homochoric format (if requested)
   if (doho) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%hooutname)
     call SO%writeOrientationstoFile(filename, 'ho')
   end if
-  
+
   ! generate a list of all orientations in quternion format (if requested)
   if (doqu) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%quoutname)
     call SO%writeOrientationstoFile(filename, 'qu')
   end if
-  
+
   ! generate a list of all orientations in Rodrigues format (if requested)
   if (doro) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%rooutname)
     call SO%writeOrientationstoFile(filename, 'ro')
   end if
-  
+
   ! generate a list of all orientations in orientation matrix format (if requested)
   if (doom) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%omoutname)
     call SO%writeOrientationstoFile(filename, 'om')
   end if
-  
+
   ! generate a list of all orientations in axis angle pair format (if requested)
   if (doax) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%axoutname)
     call SO%writeOrientationstoFile(filename, 'ax')
   end if
-  
+
   ! generate a list of all orientations in stereographic format (if requested)
   if (dost) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%stoutname)
@@ -458,43 +462,43 @@ else  ! we use the rotated rodrigues vectors ...
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%euoutname)
     call SO%writeOrientationstoFile(filename, 'eu', trod=.TRUE.)
   end if
-  
+
   ! generate a list of all orientations in cubochoric format (if requested)
   if (docu) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%cuoutname)
     call SO%writeOrientationstoFile(filename, 'cu', trod=.TRUE.)
   end if
-  
+
   ! generate a list of all orientations in homochoric format (if requested)
   if (doho) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%hooutname)
     call SO%writeOrientationstoFile(filename, 'ho', trod=.TRUE.)
   end if
-  
+
   ! generate a list of all orientations in quternion format (if requested)
   if (doqu) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%quoutname)
     call SO%writeOrientationstoFile(filename, 'qu', trod=.TRUE.)
   end if
-  
+
   ! generate a list of all orientations in Rodrigues format (if requested)
   if (doro) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%rooutname)
     call SO%writeOrientationstoFile(filename, 'ro', trod=.TRUE.)
   end if
-  
+
   ! generate a list of all orientations in orientation matrix format (if requested)
   if (doom) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%omoutname)
     call SO%writeOrientationstoFile(filename, 'om', trod=.TRUE.)
   end if
-  
+
   ! generate a list of all orientations in axis angle pair format (if requested)
   if (doax) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%axoutname)
     call SO%writeOrientationstoFile(filename, 'ax', trod=.TRUE.)
   end if
-  
+
   ! generate a list of all orientations in stereographic format (if requested)
   if (dost) then
     filename = EMsoft%generateFilePath('EMdatapathname',rfznl%stoutname)

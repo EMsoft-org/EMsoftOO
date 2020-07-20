@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_ECP
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 03/14/20
   !!
   !! class definition for the EMECP program
@@ -36,7 +36,7 @@ module mod_ECP
 use mod_kinds
 use mod_global
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 ! namelist for the EMECP program
 type, public :: ECPNameListType
@@ -62,7 +62,7 @@ type ECPDetectorType
   real(kind=sgl),allocatable  :: rgx(:,:), rgy(:,:), rgz(:,:)  ! auxiliary detector arrays needed for interpolation
   integer(kind=irg)           :: npolar, nazimuth
   ! real(kind=sgl),allocatable  :: accum_e_detector(:,:,:)
-  ! type(EBSDPixel),allocatable :: detector(:,:) 
+  ! type(EBSDPixel),allocatable :: detector(:,:)
 end type ECPDetectorType
 
 type, public :: IncidentListECP
@@ -73,14 +73,14 @@ end type IncidentListECP
 
 ! class definition
 type, public :: ECP_T
-private 
+private
   character(fnlen)                :: nmldeffile = 'EMECP.nml'
-  type(ECPNameListType),public    :: nml 
+  type(ECPNameListType),public    :: nml
   type(ECPDetectorType)           :: det
   type(IncidentListECP),pointer   :: klist
 
 contains
-private 
+private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
@@ -109,7 +109,7 @@ private
 
 end type ECP_T
 
-! the constructor routine for this class 
+! the constructor routine for this class
 interface ECP_T
   module procedure ECP_constructor
 end interface ECP_T
@@ -118,16 +118,17 @@ contains
 
 !--------------------------------------------------------------------------
 type(ECP_T) function ECP_constructor( nmlfile ) result(ECP)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ECP_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/14/20
 !!
-!! constructor for the ECP_T Class; reads the name list 
- 
+!! constructor for the ECP_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
-integer(kind=irg)            :: istat 
+character(fnlen), OPTIONAL   :: nmlfile
+integer(kind=irg)            :: istat
 
 if (present(nmlfile)) call ECP%readNameList(nmlfile)
 
@@ -137,16 +138,17 @@ nullify(ECP%klist%next)
 end function ECP_constructor
 
 !--------------------------------------------------------------------------
-subroutine ECP_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
+subroutine ECP_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: ECP_destructor
+!! author: MDG
+!! version: 1.0
 !! date: 03/14/20
 !!
 !! destructor for the ECP_T Class
- 
+
 IMPLICIT NONE
 
-type(ECP_T), INTENT(INOUT)  :: self 
+type(ECP_T), INTENT(INOUT)  :: self
 
 call reportDestructor('ECP_T')
 
@@ -154,25 +156,26 @@ end subroutine ECP_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/14/20
 !!
-!! read the namelist from an nml file for the ECP_T Class 
+!! read the namelist from an nml file for the ECP_T Class
 
-use mod_io 
+use mod_io
 use mod_EMsoft
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ECP_T), INTENT(INOUT)      :: self
 character(fnlen),INTENT(IN)      :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)      :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                   :: EMsoft 
-type(IO_T)                       :: Message       
+type(EMsoft_T)                   :: EMsoft
+type(IO_T)                       :: Message
 logical                          :: skipread = .FALSE.
 
 ! parameters for the standard ECP program
@@ -197,7 +200,7 @@ real(kind=sgl)          :: Rout
 namelist /ECPlist/ xtalname, anglefile, nthreads, conesemiangle, npix, maskpattern, eulerconvention, Rin, Rout, &
                    energyfile, masterfile, datafile, gammavalue, outputformat, sampletilt, workingdistance
 
-! set the common default parameters 
+! set the common default parameters
 npix = 200                              ! number of pixels in final image (npix x npix)
 nthreads = 1                            ! number of OpenMP threads
 conesemiangle = 0.0                     ! beam convergence in mrad (either ktmax or thetac must be given)
@@ -215,10 +218,10 @@ workingdistance = 13.0
 Rin = 2.0
 Rout = 6.0
 
-! read the name list, depending on the class type 
+! read the name list, depending on the class type
 if (.not.skipread) then
 ! read the namelist file
-  open(UNIT=dataunit,FILE=trim(EMsoft%toNativePath(nmlfile)),DELIM='apostrophe',STATUS='old')
+  open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
   read(UNIT=dataunit,NML=ECPlist)
   close(UNIT=dataunit,STATUS='keep')
 
@@ -226,7 +229,7 @@ if (.not.skipread) then
   if (trim(xtalname).eq.'undefined') then
     call Message%printError('EMECP:',' crystal file name is undefined in '//nmlfile)
   end if
-end if 
+end if
 
 self%nml%npix = npix
 self%nml%nthreads = nthreads
@@ -249,13 +252,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/14/20
 !!
 !! pass the namelist for the ECP_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ECP_T), INTENT(INOUT)   :: self
 type(ECPNameListType)         :: nml
@@ -266,13 +270,14 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 function get_numk_(self) result(numk)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numk_
+!! author: MDG
+!! version: 1.0
 !! date: 03/17/20
 !!
-!! get the number of incident wave vectors in the list 
+!! get the number of incident wave vectors in the list
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ECP_T), INTENT(INOUT)   :: self
 integer(kind=irg)             :: numk
@@ -283,13 +288,14 @@ end function get_numk_
 
 !--------------------------------------------------------------------------
 subroutine set_numk_(self, numk)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numk_
+!! author: MDG
+!! version: 1.0
 !! date: 03/17/20
 !!
-!! set the number of incident wave vectors in the list 
+!! set the number of incident wave vectors in the list
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ECP_T), INTENT(INOUT)   :: self
 integer(kind=irg),INTENT(OUT) :: numk
@@ -300,39 +306,41 @@ end subroutine set_numk_
 
 !--------------------------------------------------------------------------
 recursive function get_ListHead_(self) result(klist)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ListHead_
+!! author: MDG
+!! version: 1.0
 !! date: 02/12/20
 !!
-!! return a pointer ot the head of the list 
+!! return a pointer ot the head of the list
 
 IMPLICIT NONE
 
 class(ECP_T), INTENT(INOUT)     :: self
 type(IncidentListECP), pointer  :: klist
 
-klist => self%klist 
+klist => self%klist
 
 end function get_ListHead_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 03/14/20
 !!
 !! write namelist to HDF file
 
 use mod_HDFsupport
 use mod_HDFnames
-use stringconstants 
+use stringconstants
 use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(ECP_T), INTENT(INOUT)             :: self 
+class(ECP_T), INTENT(INOUT)             :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames 
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
 integer(kind=irg),parameter             :: n_int = 2, n_real = 6
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
@@ -410,8 +418,9 @@ end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
 subroutine ECP_(self, EMsoft, progname, nmldeffile)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ECP_
+!! author: MDG
+!! version: 1.0
 !! date: 03/14/20
 !!
 !! perform the computations
@@ -435,14 +444,14 @@ use ISO_C_BINDING
 use omp_lib
 use mod_OMPsupport
 ! use distortion
-use mod_filters 
+use mod_filters
 use stringconstants
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ECP_T), INTENT(INOUT)             :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+character(fnlen), INTENT(INOUT)         :: progname
 character(fnlen), INTENT(INOUT)         :: nmldeffile
 
 type(MCfile_T)                          :: MCFT
@@ -452,7 +461,7 @@ type(HDFnames_T)                        :: HDFnames
 type(so3_T)                             :: SO
 type(Timing_T)                          :: timer
 type(IO_T)                              :: Message
-type(Quaternion_T)                      :: quat, qq 
+type(Quaternion_T)                      :: quat, qq
 type(QuaternionArray_T)                 :: qAR
 
 type(ECPmasterNameListType)             :: mpnl
@@ -485,7 +494,7 @@ integer(kind=irg)                       :: TID, nthreads
 real(kind=dbl)                          :: dp, MCangle
 logical                                 :: switchwfoff = .FALSE.
 
-integer(HSIZE_T), dimension(1:3)        :: hdims, offset 
+integer(HSIZE_T), dimension(1:3)        :: hdims, offset
 integer(HSIZE_T)                        :: dims3(3)
 character(fnlen,kind=c_char)            :: line2(1)
 character(fnlen)                        :: groupname, dataset, attributename, HDF_FileVersion, fname
@@ -499,8 +508,8 @@ logical                                 :: overwrite = .TRUE., insert = .TRUE., 
 call openFortranHDFInterface()
 
 ! construct the HDF and HDFnames classes
-HDF = HDF_T() 
-HDFnames = HDFnames_T() 
+HDF = HDF_T()
+HDFnames = HDFnames_T()
 
 ! associate a couple of variable types
 associate( enl => self%nml, ECPdetector => self%det, ECPMCdata => MCFT%MCDT )
@@ -519,9 +528,9 @@ numangles = SO%getListCount('FZ')
 call SO%listtoQuaternionArray( qAR )
 call SO%delete_FZlist()
 
-! set the HDF group names for reading the MC input file 
-call HDFnames%set_ProgramData(SC_MCOpenCL) 
-call HDFnames%set_NMLlist(SC_MCCLNameList) 
+! set the HDF group names for reading the MC input file
+call HDFnames%set_ProgramData(SC_MCOpenCL)
+call HDFnames%set_NMLlist(SC_MCCLNameList)
 call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
 ! call HDFnames%get_AllNames()
 !=================================================================
@@ -532,10 +541,10 @@ call MCFT%setFileName(fname)
 call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
 mcnl = MCFT%getnml()
 
-! set the HDF group names for reading the MP input file 
-call HDFnames%set_ProgramData(SC_ECPmaster) 
-call HDFnames%set_NMLlist(SC_ECPMasterNameList) 
-call HDFnames%set_NMLfilename(SC_ECPmasterNML) 
+! set the HDF group names for reading the MP input file
+call HDFnames%set_ProgramData(SC_ECPmaster)
+call HDFnames%set_NMLlist(SC_ECPMasterNameList)
+call HDFnames%set_NMLfilename(SC_ECPmasterNML)
 ! call HDFnames%get_AllNames()
 !=================================================================
 ! 3. read ECP master pattern file (HDF format); and sum to 2D arrays
@@ -547,18 +556,18 @@ call MPFT%copysummLPNH(mLPNH)
 call MPFT%copysummLPSH(mLPSH)
 
 ! reset the HDFnames to the ones needed by the EMECP program
-call HDFnames%set_ProgramData(SC_ECP) 
-call HDFnames%set_NMLlist(SC_ECPNameList) 
-call HDFnames%set_NMLfilename(SC_EMECPNML) 
+call HDFnames%set_ProgramData(SC_ECP)
+call HDFnames%set_NMLlist(SC_ECPNameList)
+call HDFnames%set_NMLfilename(SC_EMECPNML)
 ! call HDFnames%get_AllNames()
 
 !=================================================================
-! 4. generate the detector 
+! 4. generate the detector
 !=================================================================
 call self%ECPGenerateDetector(verbose)
 
 !=================================================================
-! get the weight factors 
+! get the weight factors
 !=================================================================
 nsig = nint((enl%conesemiangle) + abs(enl%sampletilt)) + 1
 allocate(anglewf(1:nsig),stat=istat)
@@ -590,7 +599,7 @@ numk = self%get_numk()
 allocate(kij(2,numk),klist(3,numk),stat=istat)
 
 io_int(1) = numk
-call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1) 
+call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1)
 
 ktmp => self%klist
 ! converting to array for OpenMP parallelization
@@ -630,7 +639,7 @@ dataset = trim(HDFnames%get_NMLfilename())
 hdferr = HDF%writeDatasetTextFile(dataset, nmldeffile)
 
 call HDF%pop()
-call HDF%pop()
+
 
 ! create a NMLparameters group to write all the namelist entries into
 groupname = trim(HDFnames%get_NMLparameters())
@@ -645,12 +654,12 @@ call HDF%pop()
 groupname = trim(HDFnames%get_EMData())
 hdferr = HDF%createGroup(groupname)
 
-! create the ECP group and add a HDF_FileVersion attribbute to it 
+! create the ECP group and add a HDF_FileVersion attribbute to it
 groupname = trim(HDFnames%get_ProgramData())
   hdferr = HDF%createGroup(groupname)
 
 ! before Feb. 19, 2019, an undetected error caused all patterns to be upside down in the Kikuchi bands only,
-! not in the background intensity profile.  This was compensated by a pattern flip of all experimental 
+! not in the background intensity profile.  This was compensated by a pattern flip of all experimental
 ! patterns in the dictionary indexing program, but when taking individual patterns from this program, they
 ! are actually upside down in all versions through HDF_FileVersion 4.0.  As of 4.1, the patterns are in the
 ! correct orientation.  This was detected by manually indexing a simulated pattern.
@@ -665,10 +674,10 @@ hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
 ! =====================================================
 ! we need to write the image dimensions
 dataset = SC_npix
-hdferr = HDF%writeDatasetInteger(dataset, enl%npix) 
+hdferr = HDF%writeDatasetInteger(dataset, enl%npix)
 
 dataset = SC_numangledictionary
-hdferr = HDF%writeDatasetInteger(dataset, numangles) 
+hdferr = HDF%writeDatasetInteger(dataset, numangles)
 ! =====================================================
 ! end of HDF_FileVersion = 4.0 and above write statements
 ! =====================================================
@@ -681,7 +690,7 @@ line2(1) = cstringify(line2(1))
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 !====================================
 
-! and we leave this group open for further data output ... 
+! and we leave this group open for further data output ...
 
 ! define the circular mask
 allocate(mask(1:enl%npix, 1:enl%npix),stat=istat)
@@ -719,7 +728,7 @@ ECPpatternintd = 0.0
 ECPpatterninteger = 0
 ECPpatternad = 0
 
-! create the pattern data set in the output file 
+! create the pattern data set in the output file
 dataset = SC_ECPpatterns
 
 if (enl%outputformat .eq. 'bin') then
@@ -742,7 +751,7 @@ if (enl%outputformat .eq. 'gui') then
     hdferr = HDF%writeHyperslabFloatArray(dataset, ECP_tmp, hdims, offset, dims3)
 end if
 
-iparecp = (/ nsig, numk, enl%npix, mpnl%npx /) 
+iparecp = (/ nsig, numk, enl%npix, mpnl%npx /)
 
 ! set the number of OpenMP threads
 call OMP_setNThreads(enl%nthreads)
@@ -778,33 +787,33 @@ angleloop: do iang = 1,numangles
         call Message%WriteValue(' completed pattern # ',io_int,1)
     end if
 !$OMP CRITICAL
-    if (enl%outputformat .eq. 'bin') then
+    if (self%nml%outputformat .eq. 'bin') then
         ma = maxval(ECPpattern)
         mi = minval(ECPpattern)
         ECPpatternintd = ((ECPpattern - mi)/ (ma-mi))
-        if (enl%maskpattern.eq.'y')  ECPpatternintd = ECPpatternintd * mask 
+        if (self%nml%maskpattern.eq.'y')  ECPpatternintd = ECPpatternintd * mask
         bpat = char(nint(255.0*ECPpatternintd))
 
 ! write dictionary pattern to h5 file
         bpat_tmp(:,:,1) = bpat
         offset = (/ 0, 0, iang-1 /)
-        hdims = (/ enl%npix, enl%npix, numangles /)
-        dims3 = (/ enl%npix, enl%npix, 1 /)
+        hdims = (/ self%nml%npix, self%nml%npix, numangles /)
+        dims3 = (/ self%nml%npix, self%nml%npix, 1 /)
         hdferr = HDF%writeHyperslabCharArray(dataset, bpat_tmp, hdims, offset, dims3, insert)
- 
+
     end if
 
-    if (enl%outputformat .eq. 'gui') then
-          if (enl%maskpattern.eq.'y')  ECPpattern = ECPpattern * mask
+    if (self%nml%outputformat .eq. 'gui') then
+          if (self%nml%maskpattern.eq.'y')  ECPpattern = ECPpattern * mask
           ECP_tmp(:,:,1) = ECPpattern
           offset = (/ 0, 0, iang-1 /)
-          hdims = (/ enl%npix, enl%npix, numangles /)
-          dims3 = (/ enl%npix, enl%npix, 1 /)
+          hdims = (/ self%nml%npix, self%nml%npix, numangles /)
+          dims3 = (/ self%nml%npix, self%nml%npix, 1 /)
           hdferr = HDF%writeHyperslabFloatArray(dataset, ECP_tmp, hdims, offset, dims3, insert)
     end if
 !$OMP END CRITICAL
 
-end do angleloop 
+end do angleloop
 !$OMP END DO
 !$OMP END PARALLEL
 
@@ -823,7 +832,7 @@ hdferr = HDF%openGroup(groupname)
 
 ! stop time /EMheader/StopTime 'character'
 dataset = SC_StopTime
-call timer%Time_tock(1) 
+call timer%Time_tock(1)
 tstop = timer%getInterval(1)
 line2(1) = dstr//', '//tstre
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
@@ -833,7 +842,7 @@ call Message%WriteValue(' Execution time [s]: ',io_int,1)
 
 dataset = SC_Duration
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-if (g_exists) then     
+if (g_exists) then
   hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
 else
   hdferr = HDF%writeDatasetFloat(dataset, tstop)
@@ -847,14 +856,15 @@ call closeFortranHDFInterface()
 
 call Message%printMessage(' -> Execution completed.',frm='(A)')
 
-end associate 
+end associate
 
 end subroutine ECP_
 
 !--------------------------------------------------------------------------
 recursive subroutine ECPGenerateDetector_(self, verbose)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ECPGenerateDetector_
+!! author: MDG
+!! version: 1.0
 !! date: 03/15/20
 !!
 !! generate the ECP detector arrays
@@ -868,7 +878,7 @@ IMPLICIT NONE
 class(ECP_T),INTENT(INOUT)     :: self
 logical, INTENT(IN), OPTIONAL  :: verbose
 
-type(IO_T)                     :: Message 
+type(IO_T)                     :: Message
 real(kind=sgl)                 :: thetain, thetaout, polar, azimuthal, delpolar, delazimuth
 real(kind=sgl)                 :: io_real(2), om(3,3), sampletilt, dc(3)
 integer(kind=irg)              :: iazimuth, ipolar, istat
@@ -901,12 +911,12 @@ delpolar = (thetaout - thetain)/float(det%npolar-1)
 det%nazimuth = 361
 delazimuth = 2.0*cPi/float(det%nazimuth-1)
 
-write (*,*) det%npolar, det%nazimuth 
+write (*,*) det%npolar, det%nazimuth
 
 allocate(det%rgx(det%npolar,det%nazimuth))
 allocate(det%rgy(det%npolar,det%nazimuth))
 allocate(det%rgz(det%npolar,det%nazimuth),stat=istat)
-if (istat .ne. 0) then 
+if (istat .ne. 0) then
   write (*,*) 'istat = ', istat
   call Message%printError('ECPGenerateDetector','cannot allocate the rgx, rgy and rgz arrays')
 end if
@@ -940,14 +950,15 @@ if (present(verbose)) then
     end if
 end if
 
-end associate 
+end associate
 
 end subroutine ECPGenerateDetector_
 
 !--------------------------------------------------------------------------
 recursive subroutine ECPGetWeightFactors_(self, mcnl, MCFT, weightfact, nsig, verbose)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: ECPGetWeightFactors_
+!! author: MDG
+!! version: 1.0
 !! date: 03/15/20
 !!
 !! generate the ECP weight factor array
@@ -1025,13 +1036,14 @@ end subroutine ECPGetWeightFactors_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetVectorsCone_(self)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: GetVectorsCone_
+!! author: MDG
+!! version: 1.0
 !! date: 03/15/20
 !!
 !! generate incident wave vectors inside the cone
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(ECP_T),INTENT(INOUT)          :: self
 
@@ -1068,23 +1080,24 @@ do ii = imin, imax
     end do
 end do
 
-end associate 
+end associate
 
-call self%set_numk(numk) 
+call self%set_numk(numk)
 
 end subroutine GetVectorsCone_
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcECPatternSingle_(self, ipar, qu, anglewf, mLPNH, mLPSH, kij, klist, ECPpattern, switchwfoff)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcECPatternSingle_
+!! author: MDG
+!! version: 1.0
 !! date: 03/15/20
 !!
-!! Calculate a single EC pattern for a given orientation 
+!! Calculate a single EC pattern for a given orientation
 
-use mod_io 
-use mod_quaternions 
-use mod_Lambert 
+use mod_io
+use mod_quaternions
+use mod_Lambert
 
 IMPLICIT NONE
 
@@ -1114,8 +1127,8 @@ do idir = 1,numk
 
 ! do the active coordinate transformation for this euler angle
     dc = klist(1:3,idir)
-    dp = DOT_PRODUCT(dc(1:3),(/dsin(ecpnl%sampletilt*dtor),0.D0,dcos(ecpnl%sampletilt*dtor)/))        
-      
+    dp = DOT_PRODUCT(dc(1:3),(/dsin(ecpnl%sampletilt*dtor),0.D0,dcos(ecpnl%sampletilt*dtor)/))
+
 
     MCangle = acos(dp)*rtod
 ! find index closest to the list of MC runs we already have and interpolate the weight factor
@@ -1127,7 +1140,7 @@ do idir = 1,numk
 
     dx = MCangle - int(MCangle)
     dxm =  1.0 - dx
- 
+
     wf = anglewf(isig) * dxm + anglewf(isigp) * dx
 
     dc2 = qu%quat_Lp(dc)
@@ -1139,10 +1152,10 @@ do idir = 1,numk
 ! interpolate the intensity
     ipx = kij(1,idir)
     ipy = kij(2,idir)
-        
+
 ! including the detector model with some sample tilt
     if (switchwfoff .eqv. .FALSE.) then
-        if (dc(3) .ge. 0.0) then 
+        if (dc(3) .ge. 0.0) then
             ECPpattern(ipx,ipy) = wf * ( mLPNH(nix,niy) * dxm * dym + &
                                          mLPNH(nixp,niy) * dx * dym + &
                                          mLPNH(nix,niyp) * dxm * dy + &
@@ -1154,29 +1167,30 @@ do idir = 1,numk
                                           mLPSH(nixp,niyp) * dx * dy )
         end if
     else
-        if (dc(3) .ge. 0.0) then 
+        if (dc(3) .ge. 0.0) then
             ECPpattern(ipx,ipy) =  mLPNH(nix,niy) * dxm * dym + &
                                    mLPNH(nixp,niy) * dx * dym + &
                                    mLPNH(nix,niyp) * dxm * dy + &
-                                   mLPNH(nixp,niyp) * dx * dy 
+                                   mLPNH(nixp,niyp) * dx * dy
         else
             ECPpattern(ipx,ipy) =  mLPSH(nix,niy) * dxm * dym + &
                                    mLPSH(nixp,niy) * dx * dym + &
                                    mLPSH(nix,niyp) * dxm * dy + &
-                                   mLPSH(nixp,niyp) * dx * dy 
+                                   mLPSH(nixp,niyp) * dx * dy
         end if
     end if
 
-end do 
+end do
 
-end associate 
+end associate
 
 end subroutine CalcECPatternSingle_
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcECPatternSingleFull_(self,ipar,qu,accum,mLPNH,mLPSH,rgx,rgy,rgz,binned,mask)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcECPatternSingleFull_
+!! author: MDG
+!! version: 1.0
 !! date: 04/21/20
 !!
 !! compute a single ECP pattern, used in EMFitOrientations
@@ -1198,7 +1212,7 @@ real(kind=sgl),INTENT(IN)           :: rgy(ipar(2),ipar(3))
 real(kind=sgl),INTENT(IN)           :: rgz(ipar(2),ipar(3))
 real(kind=sgl),INTENT(OUT)          :: binned(ipar(2),ipar(3))
 real(kind=sgl),INTENT(IN)           :: mask(ipar(2),ipar(3))
-      
+
 real(kind=sgl),allocatable          :: ECpattern(:,:)
 real(kind=sgl),allocatable          :: wf(:)
 real(kind=sgl)                      :: dc(3),ixy(2),scl,bindx

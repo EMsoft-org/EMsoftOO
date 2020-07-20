@@ -2,33 +2,33 @@
 ! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
-! Redistribution and use in source and binary forms, with or without modification, are 
+! Redistribution and use in source and binary forms, with or without modification, are
 ! permitted provided that the following conditions are met:
 !
-!     - Redistributions of source code must retain the above copyright notice, this list 
+!     - Redistributions of source code must retain the above copyright notice, this list
 !        of conditions and the following disclaimer.
-!     - Redistributions in binary form must reproduce the above copyright notice, this 
-!        list of conditions and the following disclaimer in the documentation and/or 
+!     - Redistributions in binary form must reproduce the above copyright notice, this
+!        list of conditions and the following disclaimer in the documentation and/or
 !        other materials provided with the distribution.
-!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
-!        of its contributors may be used to endorse or promote products derived from 
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names
+!        of its contributors may be used to endorse or promote products derived from
 !        this software without specific prior written permission.
 !
-! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
 module mod_EBSDmaster
-  !! author: MDG 
-  !! version: 1.0 
+  !! author: MDG
+  !! version: 1.0
   !! date: 02/05/20
   !!
   !! class definition for the EMEBSDmaster program
@@ -37,18 +37,18 @@ use mod_kinds
 use mod_global
 use mod_MPfiles
 
-IMPLICIT NONE 
-private 
+IMPLICIT NONE
+private
 
 
 ! class definition
 type, public :: EBSDmaster_T
-  private 
+  private
     character(fnlen)              :: nmldeffile = 'EMEBSDmaster.nml'
-    type(EBSDmasterNameListType)  :: nml 
+    type(EBSDmasterNameListType)  :: nml
 
   contains
-  private 
+  private
 
     procedure, pass(self) :: readNameList_
     procedure, pass(self) :: getNameList_
@@ -81,7 +81,7 @@ type, public :: EBSDmaster_T
     procedure, pass(self) :: set_Notify_
     procedure, pass(self) :: set_kinematical_
     ! procedure, pass(self) :: set_thickness_
-   
+
 
     generic, public :: getNameList => getNameList_
     generic, public :: readNameList => readNameList_
@@ -116,36 +116,7 @@ type, public :: EBSDmaster_T
     ! generic, public :: set_thickness => set_thickness_
  end type EBSDmaster_T
 
-!DEC$ ATTRIBUTES DLLEXPORT :: get_npx
-!DEC$ ATTRIBUTES DLLEXPORT :: set_npx
-!DEC$ ATTRIBUTES DLLEXPORT :: get_Esel
-!DEC$ ATTRIBUTES DLLEXPORT :: set_Esel
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads
-!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin
-!DEC$ ATTRIBUTES DLLEXPORT :: get_copyfromenergyfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_copyfromenergyfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_h5copypath
-!DEC$ ATTRIBUTES DLLEXPORT :: set_h5copypath
-!DEC$ ATTRIBUTES DLLEXPORT :: get_energyfile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_energyfile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_BetheParametersFile
-!DEC$ ATTRIBUTES DLLEXPORT :: set_BetheParametersFile
-!DEC$ ATTRIBUTES DLLEXPORT :: get_combinesites
-!DEC$ ATTRIBUTES DLLEXPORT :: set_combinesites
-!DEC$ ATTRIBUTES DLLEXPORT :: get_restart
-!DEC$ ATTRIBUTES DLLEXPORT :: set_restart
-!DEC$ ATTRIBUTES DLLEXPORT :: get_uniform
-!DEC$ ATTRIBUTES DLLEXPORT :: set_uniform
-!DEC$ ATTRIBUTES DLLEXPORT :: get_Notify
-!DEC$ ATTRIBUTES DLLEXPORT :: set_Notify
-!DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical
-!DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical
-!!DEC$ ATTRIBUTES DLLEXPORT :: get_thickness
-!!DEC$ ATTRIBUTES DLLEXPORT :: set_thickness
-
-! the constructor routine for this class 
+! the constructor routine for this class
 interface EBSDmaster_T
   module procedure EBSDmaster_constructor
 end interface EBSDmaster_T
@@ -154,15 +125,16 @@ contains
 
 !--------------------------------------------------------------------------
 type(EBSDmaster_T) function EBSDmaster_constructor( nmlfile ) result(EBSDmaster)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDmaster_constructor
+!! author: MDG
+!! version: 1.0
 !! date: 02/05/20
 !!
-!! constructor for the EBSDmaster_T Class; reads the name list 
- 
+!! constructor for the EBSDmaster_T Class; reads the name list
+
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
+character(fnlen), OPTIONAL   :: nmlfile
 
 call EBSDmaster%readNameList(nmlfile)
 
@@ -170,23 +142,24 @@ end function EBSDmaster_constructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 02/05/20
 !!
-!! read the namelist from an nml file for the EBSDmaster_T Class 
+!! read the namelist from an nml file for the EBSDmaster_T Class
 
-use mod_io 
+use mod_io
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)          :: self
 character(fnlen),INTENT(IN)                 :: nmlfile
- !! full path to namelist file 
+ !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)                 :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                                  :: Message       
+type(IO_T)                                  :: Message
 logical                                     :: skipread = .FALSE.
 
 integer(kind=irg) :: npx
@@ -218,7 +191,7 @@ h5copypath = 'undefined'
 energyfile = 'undefined'        ! default filename for z_0(E_e) data from EMMC Monte Carlo simulations
 BetheParametersFile='BetheParameters.nml'
 combinesites = .FALSE.          ! combine all atom sites into one BSE yield or not
-restart = .FALSE.               ! when .TRUE. an existing file will be assumed 
+restart = .FALSE.               ! when .TRUE. an existing file will be assumed
 uniform = .FALSE.               ! when .TRUE., the output master patterns will contain 1.0 everywhere
 kinematical = .FALSE.           ! use the kinematical approximation if .TRUE.
 
@@ -257,13 +230,14 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+!! author: MDG
+!! version: 1.0
 !! date: 02/05/20
 !!
 !! pass the namelist for the EBSDmaster_T Class to the calling program
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)          :: self
 type(EBSDmasterNameListType)                :: nml
@@ -274,13 +248,14 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 function get_npx_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_npx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get npx from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                      :: out
@@ -291,13 +266,14 @@ end function get_npx_
 
 !--------------------------------------------------------------------------
 subroutine set_npx_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_npx_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set npx in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)          :: inp
@@ -308,13 +284,14 @@ end subroutine set_npx_
 
 !--------------------------------------------------------------------------
 function get_Esel_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Esel_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get Esel from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                      :: out
@@ -325,13 +302,14 @@ end function get_Esel_
 
 !--------------------------------------------------------------------------
 subroutine set_Esel_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Esel_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set Esel in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)          :: inp
@@ -342,13 +320,14 @@ end subroutine set_Esel_
 
 !--------------------------------------------------------------------------
 function get_nthreads_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT ::get_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get nthreads from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg)                      :: out
@@ -359,13 +338,14 @@ end function get_nthreads_
 
 !--------------------------------------------------------------------------
 subroutine set_nthreads_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT ::set_nthreads_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set nthreads in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)          :: inp
@@ -376,13 +356,14 @@ end subroutine set_nthreads_
 
 !--------------------------------------------------------------------------
 function get_dmin_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get dmin from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl)                         :: out
@@ -393,13 +374,14 @@ end function get_dmin_
 
 !--------------------------------------------------------------------------
 subroutine set_dmin_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dmin_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set dmin in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)             :: inp
@@ -410,13 +392,13 @@ end subroutine set_dmin_
 
 ! !--------------------------------------------------------------------------
 ! function get_thickness_(self) result(out)
-! !! author: MDG 
-! !! version: 1.0 
+! !! author: MDG
+! !! version: 1.0
 ! !! date: 03/18/20
 ! !!
 ! !! get thickness from the EBSDmaster_T class
 
-! IMPLICIT NONE 
+! IMPLICIT NONE
 
 ! class(EBSDmaster_T), INTENT(INOUT)     :: self
 ! real(kind=sgl)                         :: out
@@ -427,13 +409,13 @@ end subroutine set_dmin_
 
 ! !--------------------------------------------------------------------------
 ! subroutine set_thickness_(self,inp)
-! !! author: MDG 
-! !! version: 1.0 
+! !! author: MDG
+! !! version: 1.0
 ! !! date: 03/18/20
 ! !!
 ! !! set thickness in the EBSDmaster_T class
 
-! IMPLICIT NONE 
+! IMPLICIT NONE
 
 ! class(EBSDmaster_T), INTENT(INOUT)     :: self
 ! real(kind=sgl), INTENT(IN)             :: inp
@@ -444,13 +426,14 @@ end subroutine set_dmin_
 
 !--------------------------------------------------------------------------
 function get_copyfromenergyfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_copyfromenergyfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get copyfromenergyfile from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                       :: out
@@ -461,13 +444,14 @@ end function get_copyfromenergyfile_
 
 !--------------------------------------------------------------------------
 subroutine set_copyfromenergyfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_copyfromenergyfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set copyfromenergyfile in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)           :: inp
@@ -478,13 +462,14 @@ end subroutine set_copyfromenergyfile_
 
 !--------------------------------------------------------------------------
 function get_h5copypath_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_h5copypath_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get h5copypath from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                       :: out
@@ -495,13 +480,14 @@ end function get_h5copypath_
 
 !--------------------------------------------------------------------------
 subroutine set_h5copypath_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_h5copypath_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set h5copypath in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)           :: inp
@@ -512,13 +498,14 @@ end subroutine set_h5copypath_
 
 !--------------------------------------------------------------------------
 function get_energyfile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_energyfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get energyfile from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                       :: out
@@ -529,13 +516,14 @@ end function get_energyfile_
 
 !--------------------------------------------------------------------------
 subroutine set_energyfile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_energyfile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set energyfile in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)           :: inp
@@ -546,13 +534,14 @@ end subroutine set_energyfile_
 
 !--------------------------------------------------------------------------
 function get_BetheParametersFile_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_BetheParametersFile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get BetheParametersFile from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(fnlen)                       :: out
@@ -563,13 +552,14 @@ end function get_BetheParametersFile_
 
 !--------------------------------------------------------------------------
 subroutine set_BetheParametersFile_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_BetheParametersFile_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set BetheParametersFile in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)           :: inp
@@ -580,13 +570,14 @@ end subroutine set_BetheParametersFile_
 
 !--------------------------------------------------------------------------
 function get_combinesites_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_combinesites_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get combinesites from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 logical                                :: out
@@ -597,13 +588,14 @@ end function get_combinesites_
 
 !--------------------------------------------------------------------------
 subroutine set_combinesites_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_combinesites_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set combinesites in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                    :: inp
@@ -614,13 +606,14 @@ end subroutine set_combinesites_
 
 !--------------------------------------------------------------------------
 function get_restart_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_restart_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get restart from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 logical                                :: out
@@ -631,13 +624,14 @@ end function get_restart_
 
 !--------------------------------------------------------------------------
 subroutine set_restart_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_restart_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set restart in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                    :: inp
@@ -648,13 +642,14 @@ end subroutine set_restart_
 
 !--------------------------------------------------------------------------
 function get_uniform_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_uniform_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get uniform from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 logical                                :: out
@@ -665,13 +660,14 @@ end function get_uniform_
 
 !--------------------------------------------------------------------------
 subroutine set_uniform_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_uniform_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set uniform in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                    :: inp
@@ -682,13 +678,14 @@ end subroutine set_uniform_
 
 !--------------------------------------------------------------------------
 function get_Notify_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Notify_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get Notify from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(3)                           :: out
@@ -699,13 +696,14 @@ end function get_Notify_
 
 !--------------------------------------------------------------------------
 subroutine set_Notify_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Notify_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set Notify in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 character(3), INTENT(IN)               :: inp
@@ -716,13 +714,14 @@ end subroutine set_Notify_
 
 !--------------------------------------------------------------------------
 function get_kinematical_(self) result(out)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_kinematical_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! get kinematical from the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 logical                                :: out
@@ -733,13 +732,14 @@ end function get_kinematical_
 
 !--------------------------------------------------------------------------
 subroutine set_kinematical_(self,inp)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_kinematical_
+!! author: MDG
+!! version: 1.0
 !! date: 03/18/20
 !!
 !! set kinematical in the EBSDmaster_T class
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)     :: self
 logical, INTENT(IN)                    :: inp
@@ -750,13 +750,14 @@ end subroutine set_kinematical_
 
 !--------------------------------------------------------------------------
 subroutine EBSDmaster_(self, EMsoft, progname, HDFnames, thickness)
-!! author: MDG 
-!! version: 1.0 
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDmaster_
+!! author: MDG
+!! version: 1.0
 !! date: 02/05/20
 !!
 !! compute an EBSD or TKD master pattern as a function of energy
 !!
-!! The TKD and EBSD master pattern code is pretty much identical; it is just 
+!! The TKD and EBSD master pattern code is pretty much identical; it is just
 !! the Monte Carlo input data that is different, and we use the HDFnames class
 !! to differentiate the HDF5 output files (different group names)
 
@@ -781,7 +782,7 @@ use mod_notifications
 use stringconstants
 use mod_MCfiles
 
-IMPLICIT NONE 
+IMPLICIT NONE
 
 class(EBSDmaster_T), INTENT(INOUT)  :: self
 type(EMsoft_T), INTENT(INOUT)       :: EMsoft
@@ -850,23 +851,23 @@ integer(kind=irg)               :: NumLines, info
 character(fnlen)                :: SlackUsername, exectime
 character(100)                  :: c
 
-!$OMP THREADPRIVATE(rlp) 
+!$OMP THREADPRIVATE(rlp)
 
-if (present(thickness)) then 
+if (present(thickness)) then
   isTKD = .TRUE.
-  saveHDFnames = HDFnames 
-end if 
+  saveHDFnames = HDFnames
+end if
 
 call openFortranHDFInterface()
 
 ! set the HDF group names for this program
-HDF = HDF_T() 
-HDFnames = HDFnames_T() 
+HDF = HDF_T()
+HDFnames = HDFnames_T()
 if (isTKD.eqv..TRUE.) then
   call MPFT%setModality('TKD')
-else 
+else
   call MPFT%setModality('EBSD')
-end if 
+end if
 
 ! simplify the notation a little
 associate( emnl => self%nml )
@@ -875,8 +876,8 @@ associate( emnl => self%nml )
 timer = Timing_T()
 tstrb = timer%getTimeString()
 
-! if copyfromenergyfile is different from 'undefined', then we need to 
-! copy all the Monte Carlo data from that file into a new file, which 
+! if copyfromenergyfile is different from 'undefined', then we need to
+! copy all the Monte Carlo data from that file into a new file, which
 ! will then be read from and written to by the ComputeMasterPattern routine.
 if (emnl%copyfromenergyfile.ne.'undefined') then
   call MCFT%copyMCdata(EMsoft, HDF, emnl%copyfromenergyfile, emnl%energyfile, emnl%h5copypath)
@@ -893,9 +894,9 @@ doLegendre = .FALSE.
 !=============================================
 !=============================================
 ! ---------- read Monte Carlo .h5 output file and extract necessary parameters
-! set the HDF group names for reading the MC input file 
-call HDFnames%set_ProgramData(SC_MCOpenCL) 
-call HDFnames%set_NMLlist(SC_MCCLNameList) 
+! set the HDF group names for reading the MC input file
+call HDFnames%set_ProgramData(SC_MCOpenCL)
+call HDFnames%set_NMLlist(SC_MCCLNameList)
 call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
 fname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%energyfile))
 call MCFT%setFileName(fname)
@@ -903,15 +904,15 @@ call MCFT%readMCfile(HDF, HDFnames, getAccumz=.TRUE.)
 mcnl = MCFT%getnml()
 call MCFT%copyaccumz(accum_z)
 
-! set the HDFnames to the correct strings for this program 
-if (isTKD.eqv..TRUE.) then 
+! set the HDFnames to the correct strings for this program
+if (isTKD.eqv..TRUE.) then
   HDFnames = saveHDFnames
 else
-  call HDFnames%set_ProgramData(SC_EBSDmaster) 
-  call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-  call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-  call HDFnames%set_Variable(SC_MCOpenCL) 
-end if 
+  call HDFnames%set_ProgramData(SC_EBSDmaster)
+  call HDFnames%set_NMLlist(SC_EBSDmasterNameList)
+  call HDFnames%set_NMLfilename(SC_EBSDmasterNML)
+  call HDFnames%set_Variable(SC_MCOpenCL)
+end if
 
 nsx = (mcnl%numsx - 1)/2
 nsy = nsx
@@ -921,7 +922,7 @@ io_int(1) = mcnl%totnum_el
 call Message%WriteValue(' --> total number of BSE electrons in MC data set ', io_int, 1)
 !=============================================
 !=============================================
-numEbins = MCFT%getnumEbins() 
+numEbins = MCFT%getnumEbins()
 
 allocate(EkeVs(numEbins),thick(numEbins))
 
@@ -939,17 +940,17 @@ end do
 if (emnl%restart.eqv..TRUE.) then
 ! in this case we need to check whether or not the file exists, then open
 ! it and read the value of the last energy level that was simulated and written
-! to that file; if this level is different from the lowest energy level we 
+! to that file; if this level is different from the lowest energy level we
 ! know that there is at least one more level to be simulated.  If it is equal,
 ! then we can abort the program here.
 
   inquire(file=trim(outname), exist=f_exists)
-  if (.not.f_exists) then 
+  if (.not.f_exists) then
     call Message%printError('EBSDmaster','restart HDF5 file does not exist')
   end if
-  
+
 !=============================================
-! open the existing HDF5 file 
+! open the existing HDF5 file
 !=============================================
   datagroupname = 'EBSDmaster'
   HDF = HDF_T()
@@ -970,13 +971,13 @@ dataset = SC_lastEnergy
 end if
 !=============================================
 !=============================================
-! crystallography section; 
+! crystallography section;
 verbose = .TRUE.
 
 call cell%setFileName(mcnl%xtalname)
 call Diff%setrlpmethod('WK')
 
-if (emnl%restart.eqv..TRUE.) then 
+if (emnl%restart.eqv..TRUE.) then
   call Diff%setV(dble(EkeVs(lastEnergy-1)))
   call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, emnl%dmin, verbose, useHDF=HDF)
 else
@@ -987,7 +988,7 @@ end if
 ! check the crystal system and setting; abort the program for trigonal with rhombohedral setting with
 ! an explanation for the user
 
-if ((SG%getSpaceGroupXtalSystem().eq.5).and.(cell%getLatParm('b').eq.cell%getLatParm('c'))) then 
+if ((SG%getSpaceGroupXtalSystem().eq.5).and.(cell%getLatParm('b').eq.cell%getLatParm('c'))) then
     call Message%printMessage( (/ &
     '                                                                         ', &
     ' ========Program Aborted========                                         ', &
@@ -1007,7 +1008,7 @@ Ze = io_real(3)
 call Message%WriteValue('Density, avA, avZ = ',io_real,3,"(2f10.5,',',f10.5)")
 
 ! allocate and compute the Sgh loop-up table
- numset = cell%getNatomtype()  
+ numset = cell%getNatomtype()
  call Diff%Initialize_SghLUT(cell, SG, emnl%dmin, numset, nat, verbose)
 
 ! determine the point group number
@@ -1017,24 +1018,24 @@ call Message%WriteValue('Density, avA, avZ = ',io_real,3,"(2f10.5,',',f10.5)")
  end do
  isym = j
 
-! here is new code dealing with all the special cases (quite a few more compared to the 
+! here is new code dealing with all the special cases (quite a few more compared to the
 ! Laue group case)...  isym is the point group number. Once the symmetry case has been
 ! fully determined (taking into account things like 31m and 3m1 an such), then the only places
 ! that symmetry is handled are the modified Calckvectors routine, and the filling of the modified
-! Lambert projections after the dynamical simulation step.  We are also changing the name of the 
+! Lambert projections after the dynamical simulation step.  We are also changing the name of the
 ! sr array (or srhex) to mLPNH and mLPSH (modified Lambert Projection Northern/Southern Hemisphere),
 ! and we change the output HDF5 file a little as well. We need to make sure that the EMEBSD program
-! issues a warning when an old format HDF5 file is read.  
+! issues a warning when an old format HDF5 file is read.
 
-! Here, we encode isym into a new number that describes the sampling scheme; the new schemes are 
+! Here, we encode isym into a new number that describes the sampling scheme; the new schemes are
 ! described in detail in the EBSD manual pdf file.
 
 SamplingType = PGSamplingType(isym)
 
 ! next, intercept the special cases (hexagonal vs. rhombohedral cases that require special treatment)
-if ((SamplingType.eq.-1).or.(isym.eq.14).or.(isym.eq.26)) then 
+if ((SamplingType.eq.-1).or.(isym.eq.14).or.(isym.eq.26)) then
   SamplingType = SG%getHexvsRho(isym)
-end if 
+end if
 
 ! if the point group is trigonal or hexagonal, we need to switch usehex to .TRUE. so that
 ! the program will use the hexagonal sampling method
@@ -1058,7 +1059,7 @@ do iE = 1,numEbins
   do iy=-nsy/10,nsy/10
    istat = sum(accum_z(iE,:,ix,iy))
    izz = 1
-   do while (sum(accum_z(iE,1:izz,ix,iy)).lt.(0.99*istat)) 
+   do while (sum(accum_z(iE,1:izz,ix,iy)).lt.(0.99*istat))
     izz = izz+1
    end do
    if (izz.gt.izzmax) izzmax = izz
@@ -1088,6 +1089,7 @@ end do
 !=============================================
 ! ---------- a couple of initializations
    npy = emnl%npx
+   allocate(svals(numset),stat=istat)
    gzero = 1  ! index of incident beam
    debug = 0  ! no longer used
 ! ----------
@@ -1096,8 +1098,8 @@ end do
 
 !=============================================
 !=============================================
-! if the combinesites parameter is .TRUE., then we only need to 
-! allocate a dimension of 1 in the master pattern array since we are adding 
+! if the combinesites parameter is .TRUE., then we only need to
+! allocate a dimension of 1 in the master pattern array since we are adding
 ! together the master patterns for all sites in the asymmetric unit.
   if (emnl%combinesites.eqv..TRUE.) then
     numsites = 1
@@ -1135,7 +1137,7 @@ if (emnl%restart.eqv..FALSE.) then
 !=============================================
 ! create or update the HDF5 output file
 !=============================================
-  HDF = HDF_T() 
+  HDF = HDF_T()
 
 ! Open an existing file or create a new file using the default properties.
   if (trim(energyfile).eq.trim(outname)) then
@@ -1145,7 +1147,7 @@ if (emnl%restart.eqv..FALSE.) then
   end if
 
 ! write the EMheader to the file
-  datagroupname = trim(HDFnames%get_ProgramData()) 
+  datagroupname = trim(HDFnames%get_ProgramData())
   call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, datagroupname)
 
 ! add the Duration field to the EMheader group
@@ -1155,7 +1157,7 @@ if (emnl%restart.eqv..FALSE.) then
 dataset = SC_Duration
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
   tstop = 0
-  if (g_exists) then     
+  if (g_exists) then
     hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
   else
     hdferr = HDF%writeDatasetFloat(dataset, tstop)
@@ -1187,7 +1189,7 @@ dataset = trim(HDFnames%get_NMLfilename())
   hdferr = HDF%openGroup(HDFnames%get_EMData())
   hdferr = HDF%createGroup(HDFnames%get_ProgramData())
 
-! create the EBSDmaster group and add a HDF_FileVersion attribute to it 
+! create the EBSDmaster group and add a HDF_FileVersion attribute to it
   HDF_FileVersion = '4.0'
   HDF_FileVersion = cstringify(HDF_FileVersion)
   attributename = SC_HDFFileVersion
@@ -1200,7 +1202,7 @@ dataset = SC_xtalname
   allocate(stringarray(1))
   stringarray(1)= trim(mcnl%xtalname)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1, overwrite)
   else
     hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1)
@@ -1208,19 +1210,19 @@ dataset = SC_xtalname
 
 dataset = SC_numset
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetInteger(dataset, numset, overwrite)
   else
     hdferr = HDF%writeDatasetInteger(dataset, numset)
   end if
 
 dataset = SC_BetheParameters
-  bp(1) = Diff%getBetheParameter('c1') 
-  bp(2) = Diff%getBetheParameter('c2') 
-  bp(3) = Diff%getBetheParameter('c3') 
-  bp(4) = Diff%getBetheParameter('sg') 
+  bp(1) = Diff%getBetheParameter('c1')
+  bp(2) = Diff%getBetheParameter('c2')
+  bp(3) = Diff%getBetheParameter('c3')
+  bp(4) = Diff%getBetheParameter('sg')
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetFloatArray(dataset, bp, 4, overwrite)
   else
     hdferr = HDF%writeDatasetFloatArray(dataset, bp, 4)
@@ -1228,15 +1230,15 @@ dataset = SC_BetheParameters
 
 dataset = SC_lastEnergy
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetInteger(dataset, lastEnergy, overwrite)
   else
     hdferr = HDF%writeDatasetInteger(dataset, lastEnergy)
   end if
-  
+
 dataset = 'Z2percent'  ! SC_Z2percent
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeDatasetFloatArray(dataset, Z2percent, cell%getNatomtype(), overwrite)
   else
     hdferr = HDF%writeDatasetFloatArray(dataset, Z2percent, cell%getNatomtype())
@@ -1245,7 +1247,7 @@ dataset = 'Z2percent'  ! SC_Z2percent
   if (emnl%Esel.eq.-1) then
 dataset = SC_numEbins
     call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       hdferr = HDF%writeDatasetInteger(dataset, numEbins, overwrite)
     else
       hdferr = HDF%writeDatasetInteger(dataset, numEbins)
@@ -1253,7 +1255,7 @@ dataset = SC_numEbins
 
 dataset = SC_EkeVs
     call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       hdferr = HDF%writeDatasetFloatArray(dataset, EkeVs, numEbins, overwrite)
     else
       hdferr = HDF%writeDatasetFloatArray(dataset, EkeVs, numEbins)
@@ -1261,20 +1263,20 @@ dataset = SC_EkeVs
   else
 dataset = SC_numEbins
     call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       hdferr = HDF%writeDatasetInteger(dataset, one, overwrite)
     else
       hdferr = HDF%writeDatasetInteger(dataset, one)
     end if
-  
+
 dataset = SC_selE
     call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then 
+    if (g_exists) then
       hdferr = HDF%writeDatasetFloat(dataset, selE, overwrite)
     else
       hdferr = HDF%writeDatasetFloat(dataset, selE)
     end if
-  end if  
+  end if
 
 ! create the hyperslabs and write zeroes to them for now
 dataset = SC_mLPNH
@@ -1282,7 +1284,7 @@ dataset = SC_mLPNH
   cnt4 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1, numsites /)
   offset4 = (/ 0, 0, 0, 0 /)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeHyperslabFloatArray(dataset, mLPNH, dims4, offset4, cnt4, insert)
   else
     hdferr = HDF%writeHyperslabFloatArray(dataset, mLPNH, dims4, offset4, cnt4)
@@ -1293,7 +1295,7 @@ dataset = SC_mLPSH
   cnt4 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1, numsites /)
   offset4 = (/ 0, 0, 0, 0 /)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeHyperslabFloatArray(dataset, mLPSH, dims4, offset4, cnt4, insert)
   else
     hdferr = HDF%writeHyperslabFloatArray(dataset, mLPSH, dims4, offset4, cnt4)
@@ -1304,7 +1306,7 @@ dataset = SC_masterSPNH
   cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1 /)
   offset3 = (/ 0, 0, 0 /)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPNH, dims3, offset3, cnt3, insert)
   else
     hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPNH, dims3, offset3, cnt3)
@@ -1315,7 +1317,7 @@ dataset = SC_masterSPSH
   cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1 /)
   offset3 = (/ 0, 0, 0 /)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then 
+  if (g_exists) then
     hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPSH, dims3, offset3, cnt3, insert)
   else
     hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPSH, dims3, offset3, cnt3)
@@ -1336,7 +1338,7 @@ if (doLegendre.eqv..TRUE.) then
   allocate(diagonal(2*emnl%npx+1),upd(2*emnl%npx+1))
   diagonal = 0.D0
   upd = (/ (dble(i) / dsqrt(4.D0 * dble(i)**2 - 1.D0), i=1,2*emnl%npx+1) /)
-  call dsterf(2*emnl%npx-1, diagonal, upd, info) 
+  call dsterf(2*emnl%npx-1, diagonal, upd, info)
 ! the eigenvalues are stored from smallest to largest and we need them in the opposite direction
   allocate(LegendreArray(2*emnl%npx+1))
   LegendreArray(1:2*emnl%npx+1) = diagonal(2*emnl%npx+1:1:-1)
@@ -1350,7 +1352,7 @@ end if
 ! figure out what the start energy value is for the energyloop
 if (lastEnergy.ne.-1) then
   Estart = lastEnergy-1
-  if (Estart.eq.0) then 
+  if (Estart.eq.0) then
     call Message%printMessage('All energy levels are present in the HDF5 file')
     call Message%printMessage('No further computations needed.')
     stop 'Program halted.'
@@ -1362,7 +1364,7 @@ end if
 !=============================================
 !=============================================
 ! ---------- from here on, we need to repeat the entire computation for each energy value
-! so this is where we could in principle implement an OpenMP approach; alternatively, 
+! so this is where we could in principle implement an OpenMP approach; alternatively,
 ! we could do the inner loop over the incident beam directions in OpenMP (probably simpler)
 
 ! we use two times, one (1) for each individual energy level, the other (2) for the overall time
@@ -1376,8 +1378,8 @@ energyloop: do iE=Estart,1,-1
      if (emnl%Esel.ne.iE) CYCLE energyloop
    end if
    ! start the energy level timer
-   call timer%Time_tick(1)  
-   
+   call timer%Time_tick(1)
+
 ! is there any intensity in the Monte Carlo lambda function ?  If not, then skip this energylevel
    if (isTKD.eqv..TRUE.) then
      if (sum(lambdaE(iE,:)).lt.1.0e-7) then
@@ -1386,8 +1388,8 @@ energyloop: do iE=Estart,1,-1
        call Message%printMessage('---> Skipping this energy level ')
        CYCLE energyloop
      end if
-   end if 
-   
+   end if
+
 ! print a message to indicate where we are in the computation
    io_int(1)=iE
    io_int(2)=Estart
@@ -1421,14 +1423,14 @@ energyloop: do iE=Estart,1,-1
     call kvec%set_mapmode('RoscaLambert')
     if (usehex) then
       call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),emnl%npx,npy, ijmax,usehex)
-    else 
+    else
       call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),emnl%npx,npy, ijmax,usehex)
     end if
-   else 
+   else
     call kvec%set_mapmode('RoscaLambertLegendre')
     if (usehex) then
       call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),emnl%npx,npy, ijmax,usehex, LegendreArray)
-    else 
+    else
       call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),emnl%npx,npy, ijmax,usehex, LegendreArray)
     end if
    end if
@@ -1462,35 +1464,33 @@ energyloop: do iE=Estart,1,-1
 
 ! here's where we introduce the OpenMP calls, to speed up the overall calculations...
 
-! set the number of OpenMP threads 
+! set the number of OpenMP threads
   call OMP_setNThreads(emnl%nthreads)
 
-! use OpenMP to run on multiple cores ... 
+! use OpenMP to run on multiple cores ...
 !$OMP PARALLEL COPYIN(rlp) &
 !$OMP& PRIVATE(DynMat,Sgh,Lgh,ik,FN,TID,kn,ipx,ipy,ix,iequiv,nequiv,reflist,firstw) &
 !$OMP& PRIVATE(kkk,nns,nnw,nref,svals,io_int)
 
-  allocate(svals(numset),stat=istat)
-
   NUMTHREADS = OMP_GET_NUM_THREADS()
   TID = OMP_GET_THREAD_NUM()
 
-!$OMP DO SCHEDULE(DYNAMIC,100)    
+!$OMP DO SCHEDULE(DYNAMIC,100)
 ! ---------- and here we start the beam direction loop
    beamloop:do ik = 1,numk
 
 !=============================================
 ! ---------- create the master reflection list for this beam direction
 ! Then we must determine the masterlist of reflections (also a linked list);
-! This list basically samples a large reciprocal space volume; it does not 
-! distinguish between zero and higher order Laue zones, since that 
-! distinction becomes meaningless when we consider the complete 
-! reciprocal lattice.  
+! This list basically samples a large reciprocal space volume; it does not
+! distinguish between zero and higher order Laue zones, since that
+! distinction becomes meaningless when we consider the complete
+! reciprocal lattice.
      reflist = gvectors_T()
      kkk = karray(1:3,ik)
      FN = kkk
 
-     call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, emnl%dmin, verbose)
+     call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, self%nml%dmin, verbose)
      nref = reflist%get_nref()
 ! ---------- end of "create the master reflection list"
 !=============================================
@@ -1501,23 +1501,23 @@ energyloop: do iE=Estart,1,-1
      nnw = 0
      call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
 
-     if (emnl%kinematical.eqv..FALSE.) then 
+     if (self%nml%kinematical.eqv..FALSE.) then
 ! generate the dynamical matrix
        if (allocated(DynMat)) deallocate(DynMat)
        allocate(DynMat(nns,nns))
        call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
        totstrong = totstrong + nns
        totweak = totweak + nnw
-     else 
-! all reflections are strong, but they are not coupled to each other, only to the 
-! incident beam; all q_{g-g'} are zero except the ones with g'=0.  In addition, there 
+     else
+! all reflections are strong, but they are not coupled to each other, only to the
+! incident beam; all q_{g-g'} are zero except the ones with g'=0.  In addition, there
 ! is no anomalous absorption, only normal absorption.
        if (allocated(DynMat)) deallocate(DynMat)
        allocate(DynMat(nns,nns))
        call reflist%GetDynMatKin(cell, Diff, firstw, DynMat, nns)
        totstrong = totstrong + nns
        totweak = 0
-     end if 
+     end if
 
 ! then we need to initialize the Sgh and Lgh arrays
      if (allocated(Sgh)) deallocate(Sgh)
@@ -1528,11 +1528,11 @@ energyloop: do iE=Estart,1,-1
      call reflist%getSghfromLUT(Diff,nns,numset,Sgh)
 
 
-! solve the dynamical eigenvalue equation for this beam direction  
+! solve the dynamical eigenvalue equation for this beam direction
      kn = karray(4,ik)
      call reflist%CalcLgh(DynMat,Lgh,dble(thick(iE)),dble(kn),nns,gzero,mcnl%depthstep,lambdaE(iE,1:izzmax),izzmax)
 
-! sum over the element-wise (Hadamard) product of the Lgh and Sgh arrays 
+! sum over the element-wise (Hadamard) product of the Lgh and Sgh arrays
      svals = 0.0
      do ix=1,numset
        svals(ix) = real(sum(Lgh(1:nns,1:nns)*Sgh(1:nns,1:nns,ix)))
@@ -1545,17 +1545,17 @@ energyloop: do iE=Estart,1,-1
      ipy = kij(2,ik)
      ipz = kij(3,ik)
 !
-     if (usehex) then 
-       call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,emnl%npx,iequiv,nequiv,usehex)
+     if (usehex) then
+       call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,self%nml%npx,iequiv,nequiv,usehex)
      else
        if ((SG%getSpaceGroupNumber().ge.195).and.(SG%getSpaceGroupNumber().le.230)) then
-         call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,emnl%npx,iequiv,nequiv,cubictype=SamplingType)
+         call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,self%nml%npx,iequiv,nequiv,cubictype=SamplingType)
        else
-         call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,emnl%npx,iequiv,nequiv)
+         call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,self%nml%npx,iequiv,nequiv)
        end if
      end if
 !$OMP CRITICAL
-  if (emnl%combinesites.eqv..FALSE.) then
+  if (self%nml%combinesites.eqv..FALSE.) then
      do ix=1,nequiv
        if (iequiv(3,ix).eq.-1) mLPSH(iequiv(1,ix),iequiv(2,ix),1,1:numset) = svals(1:numset)
        if (iequiv(3,ix).eq.1) mLPNH(iequiv(1,ix),iequiv(2,ix),1,1:numset) = svals(1:numset)
@@ -1578,8 +1578,6 @@ energyloop: do iE=Estart,1,-1
 
     end do beamloop
 
-  deallocate(svals)
-
 ! end of OpenMP portion
 !$OMP END PARALLEL
 
@@ -1587,7 +1585,7 @@ energyloop: do iE=Estart,1,-1
   deallocate(karray, kij)
 
   if (usehex) then
-! and finally, we convert the hexagonally sampled array to a square Lambert projection which will be used 
+! and finally, we convert the hexagonally sampled array to a square Lambert projection which will be used
 ! for all EBSD pattern interpolations;  we need to do this for both the Northern and Southern hemispheres
 
 ! we begin by allocating auxiliary arrays to hold copies of the hexagonal data; the original arrays will
@@ -1598,7 +1596,7 @@ energyloop: do iE=Estart,1,-1
     auxSH = mLPSH
 
     edge = 1.D0 / dble(emnl%npx)
-    scl = float(emnl%npx) 
+    scl = float(emnl%npx)
     do i=-emnl%npx,emnl%npx
       do j=-npy,npy
 ! determine the spherical direction for this point
@@ -1609,7 +1607,7 @@ energyloop: do iE=Estart,1,-1
         ierr = L%LambertSphereToHex(xy)
         xy = xy * scl
 ! interpolate intensity from the neighboring points
-        if (ierr.eq.0) then 
+        if (ierr.eq.0) then
           nix = floor(xy(1))
           niy = floor(xy(2))
           nixp = nix+1
@@ -1640,12 +1638,12 @@ energyloop: do iE=Estart,1,-1
 
 ! get stereographic projections (summed over the atomic positions)
   Radius = 1.0
-  do i=-emnl%npx,emnl%npx 
-    do j=-emnl%npx,emnl%npx 
+  do i=-emnl%npx,emnl%npx
+    do j=-emnl%npx,emnl%npx
       L = Lambert_T( xyd = (/ dble(i), dble(j) /) / dble(emnl%npx) )
       ierr = L%StereoGraphicInverse( xyz, Radius )
       xyz = xyz/vecnorm(xyz)
-      if (ierr.ne.0) then 
+      if (ierr.ne.0) then
         masterSPNH(i,j,1) = 0.0
         masterSPSH(i,j,1) = 0.0
       else
@@ -1655,7 +1653,7 @@ energyloop: do iE=Estart,1,-1
     end do
   end do
 
-! since these computations can take a long time, here we store 
+! since these computations can take a long time, here we store
 ! all the output at the end of each pass through the energyloop.
 
   io_int(1) = nint(float(totstrong)/float(numk))
@@ -1664,9 +1662,9 @@ energyloop: do iE=Estart,1,-1
   call Message%WriteValue(' -> Average number of weak reflections   = ',io_int, 1, "(I5)")
 
   call timer%makeTimeStamp()
-  dstr = timer%getDateString() 
+  dstr = timer%getDateString()
   tstre = timer%getTimeString()
- end if  ! (emnl%uniform.eqv..FALSE.) 
+ end if  ! (emnl%uniform.eqv..FALSE.)
 
   datagroupname = trim(HDFnames%get_ProgramData())
 
@@ -1678,7 +1676,7 @@ energyloop: do iE=Estart,1,-1
   hdferr = HDF%openGroup(datagroupname)
 
 dataset = SC_StopTime
-  call timer%Time_tock(1) 
+  call timer%Time_tock(1)
   tstop = timer%getInterval(1)
   call timer%Time_reset(1)
   line2(1) = dstr//', '//tstre
@@ -1689,7 +1687,7 @@ dataset = SC_StopTime
 
 dataset = SC_Duration
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then     
+  if (g_exists) then
     hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
   else
     hdferr = HDF%writeDatasetFloat(dataset, tstop)
@@ -1697,18 +1695,18 @@ dataset = SC_Duration
 
   call HDF%pop()
   call HDF%pop()
-  
+
   hdferr = HDF%openGroup(HDFnames%get_EMData())
   hdferr = HDF%openGroup(datagroupname)
 
 ! update the current energy level counter, so that the restart option will function
 dataset = SC_lastEnergy
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-  if (g_exists) then     
+  if (g_exists) then
     hdferr = HDF%writeDataSetInteger(dataset, iE, overwrite)
   else
     hdferr = HDF%writeDataSetInteger(dataset, iE)
-  end if 
+  end if
 
 ! add data to the hyperslab
 dataset = SC_mLPNH
@@ -1737,41 +1735,41 @@ dataset = SC_masterSPSH
 
   call HDF%pop(.TRUE.)
 
- if ((emnl%Esel.eq.-1).and.(iE.ne.1)) then 
+ if ((emnl%Esel.eq.-1).and.(iE.ne.1)) then
   call Message%printMessage(' Intermediate data stored in file '//trim(emnl%energyfile), frm = "(A/)")
  end if
 
- if ((emnl%Esel.eq.-1).and.(iE.eq.1)) then 
+ if ((emnl%Esel.eq.-1).and.(iE.eq.1)) then
   call Message%printMessage(' Final data stored in file '//trim(emnl%energyfile), frm = "(A/)")
  end if
 
 end do energyloop
 
-call timer%Time_tock(2) 
+call timer%Time_tock(2)
 io_int(1) = timer%getInterval(2)
 call Message%WriteValue(' Total execution time [s] ',io_int,1)
 
 ! if requested, we notify the user that this program has completed its run
 if (trim(EMsoft%getConfigParameter('EMNotify')).ne.'Off') then
-  if (trim(emnl%Notify).eq.'On') then 
+  if (trim(emnl%Notify).eq.'On') then
     NumLines = 3
     allocate(MessageLines(NumLines))
 
     call hostnm(c)
-    if (isTKD.eqv..TRUE.) then  
+    if (isTKD.eqv..TRUE.) then
       MessageLines(1) = 'EMTKDmaster program has ended successfully'
     else
       MessageLines(1) = 'EMEBSDmaster program has ended successfully'
-    end if 
+    end if
     MessageLines(2) = 'Master pattern data stored in '//trim(outname)
-    write (exectime,"(F10.4)") timer%getInterval(2)  
+    write (exectime,"(F10.4)") timer%getInterval(2)
     MessageLines(3) = 'Total execution time [s]: '//trim(exectime)
     SlackUsername = 'EMsoft on '//trim(c)
     i = PostMessage(EMsoft, MessageLines, NumLines, SlackUsername)
   end if
 end if
 
-end associate 
+end associate
 
 end subroutine EBSDmaster_
 
