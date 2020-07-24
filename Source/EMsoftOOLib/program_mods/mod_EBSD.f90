@@ -1950,7 +1950,7 @@ EBSDpattern = prefactor * EBSDpattern
 
 ! 17/07/2020 Clément Lafond, temporary fix to avoid NaN value, and negatives
 ! values when EBSD pattern size is large
-do ii=1,ipar(2)1
+do ii=1,ipar(2)
     do jj=1,ipar(3)
         if (isnan(EBSDpattern(ii,jj)).or.EBSDpattern(ii,jj).lt.0.0) then
           EBSDpattern(ii,jj) = 0.0
