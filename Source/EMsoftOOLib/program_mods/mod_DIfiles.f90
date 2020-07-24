@@ -971,7 +971,13 @@ dataset = SC_DIModality
     Modality = trim(stringarray(1))
     deallocate(stringarray)
     call Message%printMessage(' This file has the '//trim(Modality)//' modality.')
-  end if
+    ! select case(trim(Modality))
+    !   case('EBSD')
+    !   case('TKD')
+    !   case('ECP')
+    !   case default
+    ! end select
+  end if 
 
 ! ! make sure this is an EBSD dot product file
 ! hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
@@ -1030,7 +1036,9 @@ end if
 
 groupname = 'Scan 1'
     hdferr = HDF%openGroup(groupname)
-groupname = SC_EBSD
+if (trim(Modality).eq.'EBSD') groupname = SC_EBSD
+if (trim(Modality).eq.'TKD') groupname = SC_TKD
+if (trim(Modality).eq.'ECP') groupname = SC_ECP
     hdferr = HDF%openGroup(groupname)
 groupname = 'Header'
     hdferr = HDF%openGroup(groupname)
@@ -1044,7 +1052,7 @@ dataset = 'Sample Tilt'
     end if
     call HDF%pop()
 
-! open the Scan 1/EBSD/Data group; dictionary indexing files only have one "scan" in them...
+! open the Scan 1/(Modality)/Data group; dictionary indexing files only have one "scan" in them...
 groupname = SC_Data
     hdferr = HDF%openGroup(groupname)
 
@@ -1406,7 +1414,7 @@ type(IO_T)                                          :: Message
 
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 integer(kind=irg)                                   :: hdferr, filetype, i, j, ii, jj,indx, istat, ipar2(6), L
-character(fnlen)                                    :: groupname, dataset, h5ebsdfile, savefile
+character(fnlen)                                    :: groupname, dataset, h5ebsdfile, savefile, Modality
 logical                                             :: noindex, g_exists, overwrite=.TRUE.
 real(kind=sgl)                                      :: eulerarray(3,ipar(4)), WD
 
@@ -1426,8 +1434,8 @@ eulerarray = dicteulerarray
 !=====================================================
 ! write the output in the format of an h5ebsd file
 !!!! THIS PART IS STILL UNDER DEVELOPMENT !!!!
-! we use the TSL h5ebsd file as a template for now; this
-! can be extended later other vendor formats
+! we use the TSL h5ebsd file as a template for now; this 
+! can be extended later for other vendor formats
 !=====================================================
 
 if (vendor.ne.'TSL') then
@@ -1440,8 +1448,8 @@ allocate(stringarray(1))
 ! Create a new file using the default properties.
   hdferr =  HDF%createFile(self%getfilename())
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error opening file', hdferr)
-  filetype = 1
 
+  filetype = 1  ! for vendor = 'TSL'; others not yet implemented
   call self%h5_writeInfo(EMsoft, HDF, HDFnames, filetype, dstr, tstrb, tstre, progname, ebsdnl, nmldeffile)
 
 ! here we start with the h5ebsd-specific stuff
@@ -1449,9 +1457,13 @@ allocate(stringarray(1))
   hdferr = HDF%createGroup(groupname)
   if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error opening group Scan 1', hdferr)
 
-groupname = SC_EBSD
+! we need to name the following group according to the scattering modality 
+Modality = self%getModality()
+if (trim(Modality).eq.'EBSD') groupname = SC_EBSD
+if (trim(Modality).eq.'TKD') groupname = SC_TKD
+if (trim(Modality).eq.'ECP') groupname = SC_ECP
   hdferr = HDF%createGroup(groupname)
-  if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error opening group EBSD', hdferr)
+  if (hdferr.ne.0) call HDF%error_check('h5_writeFile:Error opening group EBSD/TKD/ECP', hdferr)
 
 !=====================================================
 !=====================================================
