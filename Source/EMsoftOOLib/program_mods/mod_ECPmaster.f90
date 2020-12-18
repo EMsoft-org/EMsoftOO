@@ -271,7 +271,7 @@ complex(kind=dbl)       :: czero
 integer(kind=irg)       :: nt, nns, nnw, tots, totw ! thickness array and BetheParameters strong and weak beams
 real(kind=sgl)          :: FN(3), kk(3), fnat, kn, tstop
 integer(kind=irg)       :: numset, nref, ipx, ipy, ipz, iequiv(3,48), nequiv, ip, jp, izz, IE, iz, one,ierr, &
-                           NUMTHREADS, totstrong, totweak, nat(100)
+                           NUMTHREADS, totstrong, totweak, nat(maxpasym)
 integer(kind=irg),allocatable   :: kij(:,:)
 real(kind=dbl)          :: res(2), xyz(3), ind, nabsl
 
