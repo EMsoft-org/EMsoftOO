@@ -314,6 +314,8 @@ else if (trim(MPFT%getModality()).eq.'ECP') then
   isECP = .TRUE.
   end if
 
+! get the maximum number of available threads and check against
+! the requested number   
 ! is this a dynamic calculation (i.e., do we actually compute the diffraction patterns)?
 if (trim(dinl%indexingmode).eq.'dynamic') then
 
@@ -1082,7 +1084,7 @@ dictionaryloop: do ii = 1,cratio+1
 
       ierr = clEnqueueWriteBuffer(command_queue, cl_dict, CL_TRUE, 0_8, size_in_bytes_dict, C_LOC(dicttranspose(1)), &
                                   0, C_NULL_PTR, C_NULL_PTR)
-      call CL%error_check('DIdriver:clEnqueueWriteBuffer', ierr)
+      call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
 
       mvres = 0.0
 
@@ -1097,7 +1099,7 @@ dictionaryloop: do ii = 1,cratio+1
 
         ierr = clEnqueueWriteBuffer(command_queue, cl_expt, CL_TRUE, 0_8, size_in_bytes_expt, C_LOC(expt(1)), &
                                     0, C_NULL_PTR, C_NULL_PTR)
-        call CL%error_check('DIdriver:clEnqueueWriteBuffer', ierr)
+        call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
 
         call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,DIFT%nml%devid,kernel,context,command_queue)
 
