@@ -582,7 +582,7 @@ type(TKDmasterNameListType)             :: mpnlTKD
 
 character(fnlen)                        :: listfile, masterfile, groupname, dataset, xtalname, outputfile, infile, fname
 logical                                 :: f_exists, readonly, verbose
-integer(kind=irg)                       :: hdferr, nlines, i, istat, ix, iy, nx, io_int(1), nkeep
+integer(kind=irg)                       :: hdferr, nlines, i, istat, ix, iy, nx, io_int(1), nkeep, nl2, k2
 integer(HSIZE_T)                        :: dims3(3), dims4(3)
 real(kind=dbl)                          :: EkeV, mLambda
 real(kind=sgl)                          :: m
@@ -1062,11 +1062,23 @@ if ((trim(enl%outputformat).eq.'latex').or.(trim(enl%outputformat).eq.'all')) th
   open(unit=80,file=trim(outputfile),status='unknown',form='formatted')
 
 ! format everything as a LaTeX table, with rank, hkl, |g|, KBI, Vg (sfi)
-  write (80,"('\begin{table}[th]\caption{reflector ranking}\centering\leavevmode\begin{tabular}{llrrr}')")
-  write (80,"('\hline $\#$ & $(hkl)$ & $\beta_{hkl}$ & $I^{\text{abs}}_{hkl}$ & $I^{\text{X}}_{hkl}$ \\')")
+  write (80,"('\begin{table}[th]\caption{reflector ranking}\centering\leavevmode\begin{tabular}{llrrrcllrrr}')")
+  write (80,"('\hline $\#$ & $(hkl)$ & $\beta_{hkl}$ & $I^{\text{abs}}_{hkl}$ & $I^{\text{X}}_{hkl}$ & $\quad$ &')")
+  write (80,"('$\#$ & $(hkl)$ & $\beta_{hkl}$ & $I^{\text{abs}}_{hkl}$ & $I^{\text{X}}_{hkl}$\\')")
   write (80,"('\hline')")
+  if (mod(enl%numlist,2).eq.0) then 
+    nl2 = enl%numlist/2
+  else 
+    nl2 = (enl%numlist+1)/2
+  end if 
   do i=1,enl%numlist
     k = idx(i)
+    if ((i+nl2).le.enl%numlist) then 
+      k2 = idx(i+nl2)
+    else
+      k2 = -1
+    end if
+! the first reflection for this line in the table
     if ((sum(abs(gcrys(:,k))).ne.0.0).and.(KBI(k).ne.0.0)) then
       glen = cell%CalcLength(gcrys(:,k),'r')
         write (80,"(I2,'& $(')",advance="no") i
@@ -1085,8 +1097,30 @@ if ((trim(enl%outputformat).eq.'latex').or.(trim(enl%outputformat).eq.'all')) th
             end if
           end if
         end do
-        write (80,"(')$ & ',F6.2,' & ',F6.2,' & ',F6.2,'\\ ')") KBI(k), Vg(k), VgX(k)
+        write (80,"(')$ & ',F6.2,' & ',F6.2,' & ',F6.2,' & &')") KBI(k), Vg(k), VgX(k)
     end if
+! the second reflection for this line in the table
+    if ((sum(abs(gcrys(:,k2))).ne.0.0).and.(KBI(k2).ne.0.0).and.(k2.ne.-1)) then
+      glen = cell%CalcLength(gcrys(:,k2),'r')
+        write (80,"(I2,'& $(')",advance="no") i+nl2
+        do jj=1,3
+          if (int(gcrys(jj,k2)).lt.0) then
+            if (jj.lt.3) then
+              write (80,"('\bar{',I3,'}\,')",advance="no") abs(int(gcrys(jj,k2)))
+            else
+              write (80,"('\bar{',I3,'}')",advance="no") abs(int(gcrys(jj,k2)))
+            end if
+          else
+            if (jj.lt.3) then
+              write (80,"(I3,'\,')",advance="no") int(gcrys(jj,k2))
+            else
+              write (80,"(I3)",advance="no") int(gcrys(jj,k2))
+            end if
+          end if
+        end do
+        write (80,"(')$ & ',F6.2,' & ',F6.2,' & ',F6.2,'\\ ')") KBI(k2), Vg(k2), VgX(k2)
+      end if
+      if (k2.eq.-1) write (80,"('\\')") 
   end do
   write(80,"('\hline\end{tabular}\end{table}')")
   close(unit=80,status='keep')
