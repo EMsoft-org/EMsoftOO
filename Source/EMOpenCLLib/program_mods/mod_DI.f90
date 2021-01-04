@@ -1136,9 +1136,13 @@ dictionaryloop: do ii = 1,cratio+1
         end if
 
       end do experimentalloop
+      !-----
+      ierr = clReleaseMemObject(cl_dict)
+      call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
 
-      deallocate(dicttranspose)
-
+      !-----
+      ierr = clReleaseMemObject(cl_expt)
+      call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
       io_real(1) = mvres
       io_real(2) = float(iii)/float(cratio)*100.0
       call Message%WriteValue('',io_real,2,"(' max. dot product = ',F10.6,';',F6.1,'% complete')")
@@ -1301,9 +1305,7 @@ if (cancelled.eqv..TRUE.) EXIT dictionaryloop
 
 end do dictionaryloop
 
-!-----
-ierr = clReleaseMemObject(cl_dict)
-call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
+deallocate(dicttranspose)
 
 !-----
 ierr = clReleaseMemObject(cl_expt)

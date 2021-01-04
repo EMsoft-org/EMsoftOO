@@ -1969,6 +1969,8 @@ end if
 
 binned = binned * mask
 
+deallocate(EBSDpattern)
+
 end subroutine CalcEBSDPatternSingleFull_
 
 !--------------------------------------------------------------------------
