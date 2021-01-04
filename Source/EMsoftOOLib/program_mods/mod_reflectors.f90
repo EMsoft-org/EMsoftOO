@@ -827,6 +827,7 @@ call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
  call Message%WriteValue(' Total number of family members  = ', oi_int, 1, "(I6)")
 
 ! compute d-spacings, g-spacings, theta
+ call Message%printMessage(' Computing d-spacings, g-spacings, and scattering angles')
  allocate(gcart(3,icnt),gcrys(3,icnt))
  mLambda = Diff%getWaveLength()
  do k=1,icnt
@@ -851,6 +852,7 @@ keep(idx(1)) = .FALSE.   ! eliminate (000) from the list
 
 mhkl = int(maxval(gcrys))
 
+call Message%printMessage(' Selecting lowest hkl values with largest structure factor ')
 do k=2,icnt-1
  if (keep(idx(k)).eqv..TRUE.) then
   valpos = idx(k)
@@ -905,12 +907,16 @@ scl = float(nx)
 
 ! set the number of OpenMP threads
 call OMP_setNThreads(enl%nthreads)
+io_int(1) = enl%nthreads
+call Message%WriteValue(' Setting # threads to ',io_int,1,"(I3)")
 io_int(1) = nkeep
-call Message%WriteValue(' Total number of integrations to be carried out ', io_int, 1)
+call Message%WriteValue(' Total number of integrations to be carried out ',io_int,1,"(I6)")
 
 if (enl%kinematical.eqv..TRUE.) then
   call Message%printMessage(' Computation of symmetrized kinematical pattern will slow things down a bit ... ')
 end if
+
+call Message%printMessage(' Starting parallel integrations... (.=100, |=1000) ')
 
 ! use OpenMP to run on multiple cores ...
 !$OMP PARALLEL DEFAULT(PRIVATE) &
@@ -924,7 +930,7 @@ allocate(kinNH(-nx:nx,-nx:nx), kinSH(-nx:nx,-nx:nx))
 kinNH = 0.0
 kinSH = 0.0
 
-!$OMP DO SCHEDULE(STATIC,1)
+!$OMP DO SCHEDULE(STATIC,enl%nthreads)
 do k=1,icnt-1   ! ignore the last point
  if (keep(k)) then
   ii = nint(th(k)/incrad)
@@ -1008,8 +1014,8 @@ do k=1,icnt-1   ! ignore the last point
     Vg(k) = 0.0
     VgX(k) = 0.0
  end if
- if (mod(k,50).eq.0) then
-  if (mod(k,500).eq.0) then
+ if (mod(k,100).eq.0) then
+  if (mod(k,1000).eq.0) then
      write (*,"('|')",advance="no")
    else
      write (*,"('.')",advance="no")
