@@ -1476,21 +1476,6 @@ allocate(mask(binx,biny),masklin(binx*biny))
 mask = 1.0
 masklin = 0.0
 
-allocate(EBSDPattern(binx,biny),tmpimageexpt(binx*biny),imageexpt(binx*biny),binned(binx,biny))
-EBSDPattern = 0.0
-tmpimageexpt = 0.0
-imageexpt = 0.0
-binned = 0.0
-
-
-allocate(EBSDpatternintd(binx,biny),EBSDpatterninteger(binx,biny),EBSDpatternad(binx,biny))
-EBSDpatternintd = 0.0
-EBSDpatterninteger = 0
-EBSDpatternad = 0.0
-
-allocate(imagedictflt(binx*biny))
-imagedictflt = 0.0
-
 !===============================================================
 ! define the circular mask if necessary and convert to 1D vector
 !===============================================================
@@ -1602,6 +1587,21 @@ if (ronl%method.eq.'FIT') then
 !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,kk,ll,mm) &
 !$OMP& PRIVATE(X,INITMEANVAL,dpPS,eulerPS,rfz,euinp,pos, q, qu, qq2, qq, eu, ho)
 
+          allocate(EBSDPattern(binx,biny),tmpimageexpt(binx*biny),imageexpt(binx*biny),binned(binx,biny))
+          EBSDPattern = 0.0
+          tmpimageexpt = 0.0
+          imageexpt = 0.0
+          binned = 0.0
+          
+          
+          allocate(EBSDpatternintd(binx,biny),EBSDpatterninteger(binx,biny),EBSDpatternad(binx,biny))
+          EBSDpatternintd = 0.0
+          EBSDpatterninteger = 0
+          EBSDpatternad = 0.0
+          
+          allocate(imagedictflt(binx*biny))
+          imagedictflt = 0.0
+
           TID = OMP_GET_THREAD_NUM()
 
 !$OMP DO SCHEDULE(DYNAMIC)
@@ -1670,8 +1670,9 @@ if (ronl%method.eq.'FIT') then
 
         end do
     !$OMP END DO
+        deallocate(tmpimageexpt,binned,EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt)    
     !$OMP END PARALLEL
-
+        
     end do
 else  ! sub-divide the cubochoric grid in half steps and determine for which gridpoint the dot product is largest
     do iii = 1,cratioE
@@ -1680,11 +1681,13 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
         stpsz = LPs%ap/2.D0/DIFT%nml%ncubochoric/2.D0
 
         if (self%nml%inRAM.eqv..FALSE.) then
+            allocate(tmpimageexpt(binx*biny))
             do jj = 1,ppendE(iii)
                 eindex = (iii - 1)*DIFT%nml%numexptsingle + jj
                 read(itmpexpt,rec=eindex) tmpimageexpt
                 exptpatterns(1:binx*biny,jj) = tmpimageexpt(1:binx*biny)
             end do
+            deallocate(tmpimageexpt)
         end if
 
         do kk = 1,niter
@@ -1696,8 +1699,17 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ii,tmpimageexpt,jj,quat,binned,ma,mi,eindex) &
     !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,ll,mm,dp) &
     !$OMP& PRIVATE(cubneighbor,cu0, cu, eu)
-    !$OMP DO SCHEDULE(DYNAMIC)
 
+            allocate(tmpimageexpt(binx*biny),binned(binx,biny))
+            allocate(EBSDpatternintd(binx,biny),EBSDpatterninteger(binx,biny),EBSDpatternad(binx,biny))
+            allocate(imagedictflt(binx*biny))
+            tmpimageexpt = 0.0
+            binned = 0.0
+            EBSDpatternintd = 0.0
+            EBSDpatterninteger = 0
+            EBSDpatternad = 0.0
+            imagedictflt = 0.0
+    !$OMP DO SCHEDULE(DYNAMIC)      
             do ii = 1,ppendE(iii)
 
                eindex = (iii - 1)*DIFT%nml%numexptsingle + ii
@@ -1761,6 +1773,9 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
             end do
 
     !$OMP END DO
+
+            deallocate(tmpimageexpt,binned,EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt)
+    
     !$OMP END PARALLEL
 
         stpsz = stpsz/2.D0
