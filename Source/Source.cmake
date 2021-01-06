@@ -23,7 +23,7 @@ set(MODALITY_DIRS
     # GBs
     # EEC
     # OLIO
-    # OM
+    OM
     # pyEMsoftOO
     SEM
     # TEM
