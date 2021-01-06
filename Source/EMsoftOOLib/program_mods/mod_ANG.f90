@@ -532,6 +532,7 @@ else
       deallocate(DIDT%RefinedDotProducts)
     end if 
     call Message%printMessage(' Using refined Euler angles from dot product/SI file')
+end if
 
 call cell%setFileName(enl%xtalname)
 call cell%readDataHDF(SG, EMsoft, HDF)

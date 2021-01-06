@@ -1694,6 +1694,7 @@ if (ronl%method.eq.'FIT') then
           end if 
 
           TID = OMP_GET_THREAD_NUM()
+!$OMP BARRIER
 
 !$OMP DO SCHEDULE(DYNAMIC)
           do jj = 1,ppendE(iii)
@@ -1842,8 +1843,14 @@ if (ronl%method.eq.'FIT') then
         end do
     !$OMP END DO
         deallocate(tmpimageexpt,binned,EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt)    
-        deallocate(X,XL,XU,INITMEANVAL,STEPSIZE, eulerPS, dpPS, mydet%rgx, mydet%rgy)
-        deallocate(mydet%rgz, mydet%accum_e_detector)
+        deallocate(X,XL,XU,INITMEANVAL,STEPSIZE, eulerPS, dpPS)
+        if (trim(ronl%PCcorrection).eq.'on') then
+          deallocate(mydet%rgx, mydet%rgy)
+          deallocate(mydet%rgz, mydet%accum_e_detector)
+        end if)
+
+    !$OMP BARRIER    
+
     !$OMP END PARALLEL
         
     end do
