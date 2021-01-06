@@ -2278,6 +2278,10 @@ includeFmatrix = .TRUE.
     nbatches = 0
     ninlastbatch = numangles/nthreads+1
     nlastremainder = numangles - (nthreads-1)*ninlastbatch
+    if (nlastremainder.le.0) then 
+      ninlastbatch = numangles/nthreads
+      nlastremainder = numangles - (nthreads-1)*ninlastbatch
+    end if
     nlastbatches = 1
     nextra = 0
     if (nlastremainder.gt.0) nextra = 1
