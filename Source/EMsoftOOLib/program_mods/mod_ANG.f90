@@ -477,6 +477,7 @@ DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(enl%dotproductfil
 if (trim(enl%angledataset).eq.'refined') then
     call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
                                  getCI=.TRUE., &
+                                 getRefinedDotProducts=.TRUE., &
                                  getIQ=.TRUE., &
                                  getOSM=.TRUE., &
                                  getRefinedEulerAngles=.TRUE., &
@@ -517,19 +518,20 @@ if (refined.eqv..FALSE.) then
     if (allocated(DIDT%Phi)) deallocate(DIDT%Phi)
     if (allocated(DIDT%Phi2)) deallocate(DIDT%Phi2)
     call Message%printMessage(' Using original Euler angles from dot product/SI file')
+    if (allocated(DIDT%CI)) then 
+      CIlist(1:Nexp) = DIDT%CI(1:Nexp)
+      deallocate(DIDT%CI)
+  end if
 else
     euler_best(1,1:Nexp) = DIDT%RefinedEulerAngles(1,1:Nexp)*rtod
     euler_best(2,1:Nexp) = DIDT%RefinedEulerAngles(2,1:Nexp)*rtod
     euler_best(3,1:Nexp) = DIDT%RefinedEulerAngles(3,1:Nexp)*rtod
     if (allocated(DIDT%RefinedEulerAngles)) deallocate(DIDT%RefinedEulerAngles)
+    if (allocated(DIDT%RefinedDotProducts)) then 
+      CIlist(1:Nexp) = DIDT%RefinedDotProducts(1:Nexp)
+      deallocate(DIDT%RefinedDotProducts)
+    end if 
     call Message%printMessage(' Using refined Euler angles from dot product/SI file')
-end if
-if (allocated(DIDT%CI)) then
-    CIlist(1:Nexp) = DIDT%CI(1:Nexp)
-    deallocate(DIDT%CI)
-else
-    CIlist = 0.0
-end if
 
 call cell%setFileName(enl%xtalname)
 call cell%readDataHDF(SG, EMsoft, HDF)
