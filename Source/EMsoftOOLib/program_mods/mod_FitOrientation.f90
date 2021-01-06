@@ -1847,7 +1847,7 @@ if (ronl%method.eq.'FIT') then
         if (trim(ronl%PCcorrection).eq.'on') then
           deallocate(mydet%rgx, mydet%rgy)
           deallocate(mydet%rgz, mydet%accum_e_detector)
-        end if)
+        end if
 
     !$OMP BARRIER    
 
