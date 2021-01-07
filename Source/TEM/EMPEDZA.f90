@@ -26,34 +26,34 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMCPLMmaster
+program EMPEDZA
     !! author: MDG
     !! version: 1.0 
     !! date: 01/24/20
     !!
-    !! 
+    !! Zone axis Precession Electron Diffraction
   
   use mod_kinds
   use mod_global
   use mod_EMsoft
-  use mod_CPLMmaster
+  use mod_PEDZA
   
   IMPLICIT NONE
   
-  character(fnlen)                :: progname = 'EMCPLMmaster.f90'
-  character(fnlen)                :: progdesc = ''
+  character(fnlen)                :: progname = 'EMPEDZA.f90'
+  character(fnlen)                :: progdesc = 'Zone Axis Dynamical Precession Electron Diffraction Pattern Simulation'
   
   type(EMsoft_T)                  :: EMsoft
-  type(CPLMmaster_T)              :: CPLMmaster 
+  type(PEDZA_T)     :: PEDZA 
   
   ! print the EMsoft header and handle any command line arguments  
   EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
   
   ! deal with the namelist stuff
-  CPLMmaster = CPLMmaster_T(EMsoft%nmldeffile)
+  PEDZA = PEDZA_T(EMsoft%nmldeffile)
   
   ! perform the computations
-  call CPLMmaster%CPLMmaster(EMsoft, progname)
+  call PEDZA%PEDZA(EMsoft, progname, EMsoft%nmldeffile)
   
-end program EMCPLMmaster
+  end program EMPEDZA
   

@@ -26,34 +26,34 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMCPLMmaster
+program EMPEDkin
     !! author: MDG
     !! version: 1.0 
-    !! date: 01/24/20
+    !! date: 03/14/20
     !!
-    !! 
+    !! Kinematical precession electron diffraction dictionary creation
   
   use mod_kinds
   use mod_global
   use mod_EMsoft
-  use mod_CPLMmaster
-  
+  use mod_PEDkin
+
   IMPLICIT NONE
   
-  character(fnlen)                :: progname = 'EMCPLMmaster.f90'
-  character(fnlen)                :: progdesc = ''
+  character(fnlen)        :: progname = 'EMPEDkin.f90'
+  character(fnlen)        :: progdesc = 'Kinematical Precession Electron Diffraction Dictionary Generation'
+  character(fnlen)        :: nmldeffile 
   
-  type(EMsoft_T)                  :: EMsoft
-  type(CPLMmaster_T)              :: CPLMmaster 
-  
+  type(EMsoft_T)          :: EMsoft 
+  type(PEDkin_T)          :: PEDkin
+
   ! print the EMsoft header and handle any command line arguments  
-  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
+  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 40 /) )
   
   ! deal with the namelist stuff
-  CPLMmaster = CPLMmaster_T(EMsoft%nmldeffile)
+  PEDkin = PEDkin_T(EMsoft%nmldeffile)
   
   ! perform the computations
-  call CPLMmaster%CPLMmaster(EMsoft, progname)
+  call PEDkin%PEDkin(EMsoft, progname, EMsoft%nmldeffile)
   
-end program EMCPLMmaster
-  
+  end program EMPEDkin
