@@ -70,6 +70,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_FitOrientations.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_JSONsupport.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_defect.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_MuellerCalculus.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90

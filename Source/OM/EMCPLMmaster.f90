@@ -44,7 +44,7 @@ program EMCPLMmaster
   character(fnlen)                :: progdesc = ''
   
   type(EMsoft_T)                  :: EMsoft
-  type(CPLMmaster_T)     :: CPLMmaster 
+  type(CPLMmaster_T)              :: CPLMmaster 
   
   ! print the EMsoft header and handle any command line arguments  
   EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
@@ -55,5 +55,5 @@ program EMCPLMmaster
   ! perform the computations
   call CPLMmaster%CPLMmaster(EMsoft, progname)
   
-  end program EMCPLMmaster
+end program EMCPLMmaster
   
