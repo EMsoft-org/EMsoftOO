@@ -61,7 +61,7 @@ type(Quaternion_T)          :: qm, qus
 type(Orientation_T)         :: ot, saveot
 
 integer(kind=irg)           :: pgnum, Rtype, Otype, io_int(1), num, k
-real(kind=dbl)              :: rod(3), io_dbl(4), io_dbl3(3), a(4)
+real(kind=dbl)              :: rod(3), io_dbl(4), io_dbl3(3), a(4), qqd(4)
 logical                     :: next
 
 ! print some information
@@ -112,7 +112,17 @@ do while (next)
   do k=1,num
     qm = Pm%getQuatfromArray(k)
     qus = qm * Quaternion_T( qd = qu%q_copyd() )
+
     qq = q_T( qdinp = qus%get_quatd() )
+    
+    qqd = qq%q_copyd()
+
+    if (qqd(1).lt.0.0) then
+      qqd = -qqd
+      qus = Quaternion_T(qd = qqd)
+      qq = q_T( qdinp = qus%get_quatd() )
+    end if
+
     ot = Orientation_T( qq )
     ro = ot%getClass_r()
     ax = ot%getClass_a()

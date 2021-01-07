@@ -1829,7 +1829,7 @@ type(Cell_T), INTENT(INOUT)                :: cell
 type(SpaceGroup_T), INTENT(INOUT)          :: SG
 real(kind=sgl),INTENT(IN)                  :: dmin
 integer(kind=sgl),INTENT(IN)               :: numset
-integer(kind=sgl),INTENT(INOUT)            :: nat(100)
+integer(kind=sgl),INTENT(INOUT)            :: nat(maxpasym)
 logical,INTENT(IN),optional                :: verbose
 
 type(IO_T)                                 :: Message
@@ -1920,7 +1920,7 @@ type(Cell_T), INTENT(INOUT)             :: cell
 type(SpaceGroup_T),INTENT(INOUT)        :: SG
 integer(kind=irg),INTENT(IN)            :: kkk(3)
 integer(kind=irg),INTENT(IN)            :: numset
-integer(kind=irg),INTENT(INOUT)         :: nat(100)
+integer(kind=irg),INTENT(INOUT)         :: nat(maxpasym)
 complex(kind=dbl),INTENT(INOUT)         :: Sghvec(numset)
 
 integer(kind=irg)                       :: ip, ir, ic, ikk, n
@@ -1982,7 +1982,7 @@ class(Diffraction_T), INTENT(INOUT)     :: self
 type(Cell_T), INTENT(INOUT)             :: cell
 type(SpaceGroup_T),INTENT(INOUT)        :: SG
 integer(kind=irg),INTENT(IN)            :: numset
-integer(kind=irg),INTENT(INOUT)         :: nat(100)
+integer(kind=irg),INTENT(INOUT)         :: nat(maxpasym)
 complex(kind=dbl),INTENT(INOUT)         :: Sghvec(numset)
 
 integer(kind=irg)                       :: ip, ir, ic, ikk, n

@@ -809,7 +809,7 @@ integer(HSIZE_T)        :: dims4(4), cnt4(4), offset4(4)
 integer(HSIZE_T)        :: dims3(3), cnt3(3), offset3(3)
 integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
                            numk, timestart, timestop, numsites, nthreads, & ! number of independent incident beam directions
-                           ir,nat(100),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
+                           ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
                            numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, &
                            istat,gzero,ic,ip,ikk, totstrong, totweak, jh, ierr, nix, niy, nixp, niyp     ! counters
 real(kind=dbl)          :: tpi,Znsq, kkl, DBWF, kin, delta, h, lambda, omtl, srt, dc(3), xy(2), edge, scl, tmp, dx, dxm, dy, dym !
@@ -1089,7 +1089,7 @@ end do
 !=============================================
 ! ---------- a couple of initializations
    npy = emnl%npx
-   allocate(svals(numset),stat=istat)
+   
    gzero = 1  ! index of incident beam
    debug = 0  ! no longer used
 ! ----------
@@ -1472,6 +1472,8 @@ energyloop: do iE=Estart,1,-1
 !$OMP& PRIVATE(DynMat,Sgh,Lgh,ik,FN,TID,kn,ipx,ipy,ix,iequiv,nequiv,reflist,firstw) &
 !$OMP& PRIVATE(kkk,nns,nnw,nref,svals,io_int)
 
+  allocate(svals(numset),stat=istat)
+
   NUMTHREADS = OMP_GET_NUM_THREADS()
   TID = OMP_GET_THREAD_NUM()
 
@@ -1577,7 +1579,8 @@ energyloop: do iE=Estart,1,-1
      call reflist%Delete_gvectorlist()
 
     end do beamloop
-
+    
+deallocate(svals)
 ! end of OpenMP portion
 !$OMP END PARALLEL
 

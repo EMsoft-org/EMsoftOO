@@ -53,7 +53,6 @@ type, public :: EBSDNameListType
   real(kind=sgl)          :: L
   real(kind=sgl)          :: thetac
   real(kind=sgl)          :: delta
-  real(kind=sgl)          :: omega
   real(kind=sgl)          :: xpc
   real(kind=sgl)          :: ypc
   real(kind=sgl)          :: energymin
@@ -199,7 +198,6 @@ real(kind=sgl)          :: thetac
 real(kind=sgl)          :: delta
 real(kind=sgl)          :: xpc
 real(kind=sgl)          :: ypc
-real(kind=sgl)          :: omega
 real(kind=sgl)          :: energymin
 real(kind=sgl)          :: energymax
 real(kind=sgl)          :: gammavalue
@@ -228,7 +226,7 @@ character(fnlen)        :: datafile
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EBSDdata / L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eulerconvention, masterfile, bitdepth, &
                        energyfile, datafile, beamcurrent, dwelltime, energymin, energymax, binning, gammavalue, alphaBD, &
-                       scalingmode, axisangle, nthreads, outputformat, maskpattern, omega, spatialaverage, &
+                       scalingmode, axisangle, nthreads, outputformat, maskpattern, spatialaverage, &
                        applyDeformation, Ftensor, includebackground, anglefiletype, makedictionary, hipassw, nregions, &
                        maskradius, poisson
 
@@ -237,7 +235,7 @@ namelist  / EBSDdata / L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eule
 ! they might diverge in the future.
 namelist  / TKDdata /  L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eulerconvention, masterfile, bitdepth, &
                        energyfile, datafile, beamcurrent, dwelltime, energymin, energymax, binning, gammavalue, alphaBD, &
-                       scalingmode, axisangle, nthreads, outputformat, maskpattern, omega, spatialaverage, &
+                       scalingmode, axisangle, nthreads, outputformat, maskpattern, spatialaverage, &
                        applyDeformation, Ftensor, includebackground, anglefiletype, makedictionary, hipassw, nregions, &
                        maskradius, poisson
 
@@ -252,7 +250,6 @@ thetac          = 0.0           ! [degrees]
 delta           = 25.0          ! [microns]
 xpc             = 0.0           ! [pixels]
 ypc             = 0.0           ! [pixels]
-omega           = 0.0
 energymin       = 15.0          ! minimum energy to consider
 energymax       = 30.0          ! maximum energy to consider
 gammavalue      = 1.0           ! gamma factor
@@ -362,7 +359,6 @@ self%nml%masterfile = masterfile
 ! user definition, if any, in the namelist file is overwritten here...
 self%nml%energyfile = masterfile       ! changed on 05/16/19 [MDG]
 self%nml%datafile = datafile
-self%nml%omega = omega
 self%nml%spatialaverage = spatialaverage
 
 end subroutine readNameList_
@@ -947,7 +943,9 @@ deallocate(z)
     end do
   end do
 
-if (present(verbose)) call Message%printMessage(' -> completed detector generation', frm = "(A)")
+if (present(verbose)) then
+  if (verbose.eqv..TRUE.) call Message%printMessage(' -> completed detector generation', frm = "(A)")
+end if 
 
 end associate
 
@@ -1973,6 +1971,8 @@ end if
 
 binned = binned * mask
 
+deallocate(EBSDpattern)
+
 end subroutine CalcEBSDPatternSingleFull_
 
 !--------------------------------------------------------------------------
@@ -2278,6 +2278,10 @@ includeFmatrix = .TRUE.
     nbatches = 0
     ninlastbatch = numangles/nthreads+1
     nlastremainder = numangles - (nthreads-1)*ninlastbatch
+    if (nlastremainder.le.0) then 
+      ninlastbatch = numangles/nthreads
+      nlastremainder = numangles - (nthreads-1)*ninlastbatch
+    end if
     nlastbatches = 1
     nextra = 0
     if (nlastremainder.gt.0) nextra = 1

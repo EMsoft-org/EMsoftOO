@@ -1087,8 +1087,13 @@ if (present(getADP)) then
    dataset = SC_AvDotProductMap
    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
    if (g_exists.eqv..TRUE.) then
-    allocate(DIDT%ADP(ebsdnl%ipf_wd, ebsdnl%ipf_ht))
-    call HDF%read2DImage(dataset, DIDT%ADP, ebsdnl%ipf_wd, ebsdnl%ipf_ht)
+    if (sum(ebsdnl%ROI).ne.0) then 
+      allocate(DIDT%ADP(ebsdnl%ROI(3), ebsdnl%ROI(4)))
+      call HDF%read2DImage(dataset, DIDT%ADP, ebsdnl%ROI(3), ebsdnl%ROI(4))
+    else
+      allocate(DIDT%ADP(ebsdnl%ipf_wd, ebsdnl%ipf_ht))
+      call HDF%read2DImage(dataset, DIDT%ADP, ebsdnl%ipf_wd, ebsdnl%ipf_ht)
+    end if 
    else
         call Message%printMessage('  --> no AvDotProductMap data set found ... continuing ... ')
    end if

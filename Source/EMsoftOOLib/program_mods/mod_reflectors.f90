@@ -582,7 +582,7 @@ type(TKDmasterNameListType)             :: mpnlTKD
 
 character(fnlen)                        :: listfile, masterfile, groupname, dataset, xtalname, outputfile, infile, fname
 logical                                 :: f_exists, readonly, verbose
-integer(kind=irg)                       :: hdferr, nlines, i, istat, ix, iy, nx, io_int(1), nkeep
+integer(kind=irg)                       :: hdferr, nlines, i, istat, ix, iy, nx, io_int(1), nkeep, nl2, k2
 integer(HSIZE_T)                        :: dims3(3), dims4(3)
 real(kind=dbl)                          :: EkeV, mLambda
 real(kind=sgl)                          :: m
@@ -827,6 +827,7 @@ call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
  call Message%WriteValue(' Total number of family members  = ', oi_int, 1, "(I6)")
 
 ! compute d-spacings, g-spacings, theta
+ call Message%printMessage(' Computing d-spacings, g-spacings, and scattering angles')
  allocate(gcart(3,icnt),gcrys(3,icnt))
  mLambda = Diff%getWaveLength()
  do k=1,icnt
@@ -851,6 +852,7 @@ keep(idx(1)) = .FALSE.   ! eliminate (000) from the list
 
 mhkl = int(maxval(gcrys))
 
+call Message%printMessage(' Selecting lowest hkl values with largest structure factor ')
 do k=2,icnt-1
  if (keep(idx(k)).eqv..TRUE.) then
   valpos = idx(k)
@@ -905,12 +907,16 @@ scl = float(nx)
 
 ! set the number of OpenMP threads
 call OMP_setNThreads(enl%nthreads)
+io_int(1) = enl%nthreads
+call Message%WriteValue(' Setting # threads to ',io_int,1,"(I3)")
 io_int(1) = nkeep
-call Message%WriteValue(' Total number of integrations to be carried out ', io_int, 1)
+call Message%WriteValue(' Total number of integrations to be carried out ',io_int,1,"(I6)")
 
 if (enl%kinematical.eqv..TRUE.) then
   call Message%printMessage(' Computation of symmetrized kinematical pattern will slow things down a bit ... ')
 end if
+
+call Message%printMessage(' Starting parallel integrations... (.=100, |=1000) ')
 
 ! use OpenMP to run on multiple cores ...
 !$OMP PARALLEL DEFAULT(PRIVATE) &
@@ -924,7 +930,7 @@ allocate(kinNH(-nx:nx,-nx:nx), kinSH(-nx:nx,-nx:nx))
 kinNH = 0.0
 kinSH = 0.0
 
-!$OMP DO SCHEDULE(STATIC,1)
+!$OMP DO SCHEDULE(STATIC,enl%nthreads)
 do k=1,icnt-1   ! ignore the last point
  if (keep(k)) then
   ii = nint(th(k)/incrad)
@@ -1008,8 +1014,8 @@ do k=1,icnt-1   ! ignore the last point
     Vg(k) = 0.0
     VgX(k) = 0.0
  end if
- if (mod(k,50).eq.0) then
-  if (mod(k,500).eq.0) then
+ if (mod(k,100).eq.0) then
+  if (mod(k,1000).eq.0) then
      write (*,"('|')",advance="no")
    else
      write (*,"('.')",advance="no")
@@ -1056,11 +1062,23 @@ if ((trim(enl%outputformat).eq.'latex').or.(trim(enl%outputformat).eq.'all')) th
   open(unit=80,file=trim(outputfile),status='unknown',form='formatted')
 
 ! format everything as a LaTeX table, with rank, hkl, |g|, KBI, Vg (sfi)
-  write (80,"('\begin{table}[th]\caption{reflector ranking}\centering\leavevmode\begin{tabular}{llrrr}')")
-  write (80,"('\hline $\#$ & $(hkl)$ & $\beta_{hkl}$ & $I^{\text{abs}}_{hkl}$ & $I^{\text{X}}_{hkl}$ \\')")
+  write (80,"('\begin{table}[th]\caption{reflector ranking}\centering\leavevmode\begin{tabular}{llrrrcllrrr}')")
+  write (80,"('\hline $\#$ & $(hkl)$ & $\beta_{hkl}$ & $I^{\text{abs}}_{hkl}$ & $I^{\text{X}}_{hkl}$ & $\quad$ &')")
+  write (80,"('$\#$ & $(hkl)$ & $\beta_{hkl}$ & $I^{\text{abs}}_{hkl}$ & $I^{\text{X}}_{hkl}$\\')")
   write (80,"('\hline')")
+  if (mod(enl%numlist,2).eq.0) then 
+    nl2 = enl%numlist/2
+  else 
+    nl2 = (enl%numlist+1)/2
+  end if 
   do i=1,enl%numlist
     k = idx(i)
+    if ((i+nl2).le.enl%numlist) then 
+      k2 = idx(i+nl2)
+    else
+      k2 = -1
+    end if
+! the first reflection for this line in the table
     if ((sum(abs(gcrys(:,k))).ne.0.0).and.(KBI(k).ne.0.0)) then
       glen = cell%CalcLength(gcrys(:,k),'r')
         write (80,"(I2,'& $(')",advance="no") i
@@ -1079,8 +1097,30 @@ if ((trim(enl%outputformat).eq.'latex').or.(trim(enl%outputformat).eq.'all')) th
             end if
           end if
         end do
-        write (80,"(')$ & ',F6.2,' & ',F6.2,' & ',F6.2,'\\ ')") KBI(k), Vg(k), VgX(k)
+        write (80,"(')$ & ',F6.2,' & ',F6.2,' & ',F6.2,' & &')") KBI(k), Vg(k), VgX(k)
     end if
+! the second reflection for this line in the table
+    if ((sum(abs(gcrys(:,k2))).ne.0.0).and.(KBI(k2).ne.0.0).and.(k2.ne.-1)) then
+      glen = cell%CalcLength(gcrys(:,k2),'r')
+        write (80,"(I2,'& $(')",advance="no") i+nl2
+        do jj=1,3
+          if (int(gcrys(jj,k2)).lt.0) then
+            if (jj.lt.3) then
+              write (80,"('\bar{',I3,'}\,')",advance="no") abs(int(gcrys(jj,k2)))
+            else
+              write (80,"('\bar{',I3,'}')",advance="no") abs(int(gcrys(jj,k2)))
+            end if
+          else
+            if (jj.lt.3) then
+              write (80,"(I3,'\,')",advance="no") int(gcrys(jj,k2))
+            else
+              write (80,"(I3)",advance="no") int(gcrys(jj,k2))
+            end if
+          end if
+        end do
+        write (80,"(')$ & ',F6.2,' & ',F6.2,' & ',F6.2,'\\ ')") KBI(k2), Vg(k2), VgX(k2)
+      end if
+      if (k2.eq.-1) write (80,"('\\')") 
   end do
   write(80,"('\hline\end{tabular}\end{table}')")
   close(unit=80,status='keep')

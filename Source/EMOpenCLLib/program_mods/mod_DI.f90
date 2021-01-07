@@ -314,6 +314,8 @@ else if (trim(MPFT%getModality()).eq.'ECP') then
   isECP = .TRUE.
   end if
 
+! get the maximum number of available threads and check against
+! the requested number   
 ! is this a dynamic calculation (i.e., do we actually compute the diffraction patterns)?
 if (trim(dinl%indexingmode).eq.'dynamic') then
 
@@ -1082,7 +1084,7 @@ dictionaryloop: do ii = 1,cratio+1
 
       ierr = clEnqueueWriteBuffer(command_queue, cl_dict, CL_TRUE, 0_8, size_in_bytes_dict, C_LOC(dicttranspose(1)), &
                                   0, C_NULL_PTR, C_NULL_PTR)
-      call CL%error_check('DIdriver:clEnqueueWriteBuffer', ierr)
+      call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
 
       mvres = 0.0
 
@@ -1097,7 +1099,7 @@ dictionaryloop: do ii = 1,cratio+1
 
         ierr = clEnqueueWriteBuffer(command_queue, cl_expt, CL_TRUE, 0_8, size_in_bytes_expt, C_LOC(expt(1)), &
                                     0, C_NULL_PTR, C_NULL_PTR)
-        call CL%error_check('DIdriver:clEnqueueWriteBuffer', ierr)
+        call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
 
         call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,DIFT%nml%devid,kernel,context,command_queue)
 
@@ -1134,9 +1136,13 @@ dictionaryloop: do ii = 1,cratio+1
         end if
 
       end do experimentalloop
+      !-----
+      ierr = clReleaseMemObject(cl_dict)
+      call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
 
-      deallocate(dicttranspose)
-
+      !-----
+      ierr = clReleaseMemObject(cl_expt)
+      call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
       io_real(1) = mvres
       io_real(2) = float(iii)/float(cratio)*100.0
       call Message%WriteValue('',io_real,2,"(' max. dot product = ',F10.6,';',F6.1,'% complete')")
@@ -1299,9 +1305,7 @@ if (cancelled.eqv..TRUE.) EXIT dictionaryloop
 
 end do dictionaryloop
 
-!-----
-ierr = clReleaseMemObject(cl_dict)
-call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
+deallocate(dicttranspose)
 
 !-----
 ierr = clReleaseMemObject(cl_expt)

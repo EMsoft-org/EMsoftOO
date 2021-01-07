@@ -283,7 +283,7 @@ contains
     if(this%loaded) then
       name = FFTWisdomType_Name(EMsoft) ! get the wisdom file name
       status = fftw_export_wisdom_to_filename(name) ! write accumulated wisdom to file
-      if (status .eq. 0) call Message%printError('FFTWisdomType_Save','error writing wisdom to file') ! handle error
+      if (status .eq. 0) call Message%printMessage('Warning: FFTWisdomType_Save could not write wisdom to file') ! handle error
       deallocate(name) ! clean up string
       ! call fftw_cleanup() ! free up any extra fftw memory usage (outside of existing plans)
     endif

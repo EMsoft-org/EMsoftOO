@@ -36,7 +36,6 @@
 ! or format:  first line 'eu', second line number of Euler triplets, then one triplet per line (in degrees)
  PSvariantfile = 'undefined',
 ! ===================================
-! ===================================
 ! the standard refinement approach uses the same pattern center for all patterns; this is 
 ! a reasonable approximation when the total scan area is of the order of the detector pixel
 ! size.  For larger scan areas, one must perform a pattern center correction.  This can 
