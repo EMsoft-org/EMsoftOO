@@ -29,7 +29,7 @@ set(MODALITY_DIRS
     # TEM
     # QC
     Utilities
-    # XRay
+     XRay
 )
 # -----------------------------------------------------------------------
 # Establish which modalities are going to be compiled

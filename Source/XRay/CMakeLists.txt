@@ -28,14 +28,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                       )
 
-   Add_EMsoftOO_Executable(TARGET EMLaue
-                       SOURCES ${APP_DIR}/EMLaue.f90
-                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}  
-                       TEMPLATE ${TMPLT_DIR}/EMLaue.template
-                       SOLUTION_FOLDER EMsoftPublic/XRay
-                       INSTALL_PROGRAM TRUE
-                       INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMsoftOOHDFLib_BINARY_DIR} ${EMsoft_BINARY_DIR}/EMsoftLib
-                       )
+  # Add_EMsoftOO_Executable(TARGET EMLaue
+   #                    SOURCES ${APP_DIR}/EMLaue.f90
+   #                    LINK_LIBRARIES ${EXE_LINK_LIBRARIES}  
+   #                    TEMPLATE ${TMPLT_DIR}/EMLaue.template
+   #                    SOLUTION_FOLDER EMsoftPublic/XRay
+   #                    INSTALL_PROGRAM TRUE
+   #                    INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMsoftOOHDFLib_BINARY_DIR} ${EMsoft_BINARY_DIR}/EMsoftLib
+    #                   )
 
   #Add_EMsoftOO_Executable(TARGET EMLaueSlit
   #                    SOURCES ${APP_DIR}/EMLaueSlit.f90
