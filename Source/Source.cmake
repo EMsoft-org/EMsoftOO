@@ -29,7 +29,7 @@ set(MODALITY_DIRS
     # TEM
     # QC
     Utilities
-     XRay
+    XRay
 )
 # -----------------------------------------------------------------------
 # Establish which modalities are going to be compiled
@@ -42,7 +42,7 @@ endforeach()
 # -----------------------------------------------------------------------
 # Add a wrapper lib thats uses the enabled modality options to compile itself
 # -----------------------------------------------------------------------
-# add_subdirectory(${PROJECT_SOURCE_DIR}/Source/EMsoftOOWrapperLib ${PROJECT_BINARY_DIR}/EMsoftOOWrapperLib)
+add_subdirectory(${PROJECT_SOURCE_DIR}/Source/EMsoftOOWrapperLib ${PROJECT_BINARY_DIR}/EMsoftOOWrapperLib)
 
 # -----------------------------------------------------------------------
 # Add the executables

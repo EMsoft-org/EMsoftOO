@@ -60,7 +60,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_fftw3.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_fft_wrap.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_imageOPs.f90
-  #${EMsoftOOLib_SOURCE_DIR}/mod_DSHT.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_DSHT.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_patterns.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_vendors.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_DIsupport.f90
