@@ -22,6 +22,7 @@ set(EMsoftOOLib_SRCS
 
   ${EMsoftOOLib_SOURCE_DIR}/mod_kinds.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_global.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_memory.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_io.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_timing.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_quaternions.f90
@@ -71,6 +72,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_JSONsupport.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_defect.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_MuellerCalculus.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_LaueSupport.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90

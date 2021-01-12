@@ -40,6 +40,23 @@ module mod_Lauemaster
   
   ! namelist for the EMLauemaster program
   type, public :: LauemasterNameListType
+    integer(kind=irg)       :: npx
+    integer(kind=irg)       :: patchw
+    real(kind=sgl)          :: lambdamin
+    real(kind=sgl)          :: lambdamax
+    real(kind=dbl)          :: kappaVMF
+    real(kind=dbl)          :: intfactor
+    character(3)            :: outformat
+    logical                 :: binarize
+    character(fnlen)        :: SHT_folder
+    character(fnlen)        :: SHT_formula
+    character(fnlen)        :: SHT_name
+    character(fnlen)        :: SHT_structuresymbol
+    character(fnlen)        :: addtoKiltHub
+    character(fnlen)        :: useDOI
+    character(fnlen)        :: hdfname
+    character(fnlen)        :: tiffname
+    character(fnlen)        :: xtalname
   end type LauemasterNameListType
   
   ! class definition
@@ -127,8 +144,94 @@ module mod_Lauemaster
   type(IO_T)                           :: Message       
   logical                              :: skipread = .FALSE.
   
+  integer(kind=irg)       :: npx
+  integer(kind=irg)       :: patchw
+  real(kind=sgl)          :: lambdamin
+  real(kind=sgl)          :: lambdamax
+  real(kind=dbl)          :: kappaVMF
+  real(kind=dbl)          :: intfactor
+  character(3)            :: outformat
+  logical                 :: binarize
+  character(fnlen)        :: SHT_folder
+  character(fnlen)        :: SHT_formula
+  character(fnlen)        :: SHT_name
+  character(fnlen)        :: SHT_structuresymbol
+  character(fnlen)        :: addtoKiltHub
+  character(fnlen)        :: useDOI
+  character(fnlen)        :: hdfname
+  character(fnlen)        :: tiffname
+  character(fnlen)        :: xtalname
   
+  ! define the IO namelist to facilitate passing variables to the program.
+  namelist  / LaueMasterData / npx, lambdamin, lambdamax, kappaVMF, hdfname, xtalname, &
+            intfactor, tiffname, patchw, SHT_folder, SHT_formula, SHT_name, &
+            SHT_structuresymbol, addtoKiltHub, useDOI, outformat, binarize
+
+  npx = 500
+  patchw = 5
+  lambdamin = 0.10
+  lambdamax = 0.16
+  kappaVMF = 50000.D0
+  intfactor = 0.0001D0
+  outformat = 'LMP'
+  SHT_folder = 'undefined'        ! folder to store SHT files, relative to EMDatapathname
+  SHT_formula = 'undefined'       ! compound chemical formula, e.g., SiO2
+  SHT_name = 'undefined'          ! compund name (e.g., forsterite)
+  SHT_structuresymbol = 'undefined' ! StrukturBericht symbol (e.g., D0_22) or Pearson symbol (e.g., hP12), or ...
+  addtoKiltHub = 'No'             ! file to be added to data base on kilthub.cmu.edu ?
+  useDOI = 'undefined'            ! if no DOI is entered, then we use the Zenodo DOI for the .sht repository
+  xtalname = 'undefined'
+  hdfname = 'undefined'
+  tiffname = 'undefined'
+  binarize = .FALSE. 
+
+  if (present(initonly)) then
+    if (initonly) skipread = .TRUE.
+  end if
+
+  ! read the name list, depending on the class type
+  if (.not.skipread) then
+  ! read the namelist file
+    open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
+    read(UNIT=dataunit,NML=LaueMasterData)
+    close(UNIT=dataunit,STATUS='keep')
   
+  ! check for required entries
+    if (trim(xtalname).eq.'undefined') then
+      call Message%printError('readNameList:',' crystal file name is undefined in '//nmlfile)
+    end if
+
+    if (outformat.eq.'SHT') then 
+      ! for Legendre mode, the SHT_formula parameter MUST be present 
+        if (trim(SHT_formula).eq.'undefined') then 
+         call Message%printError('readNameList:',' SHT_formula must be defined in '//nmlfile)
+        end if
+     
+        if (trim(SHT_folder).eq.'undefined') then 
+         call Message%printError('readNameList:',' SHT_folder must be defined in '//nmlfile)
+        end if
+    end if 
+  end if
+
+  
+  self%nml%npx = npx
+  self%nml%patchw = patchw
+  self%nml%lambdamin = lambdamin
+  self%nml%lambdamax = lambdamax
+  self%nml%kappaVMF = kappaVMF
+  self%nml%intfactor = intfactor
+  self%nml%xtalname = xtalname
+  self%nml%outformat = outformat
+  self%nml%hdfname = hdfname
+  self%nml%tiffname = tiffname 
+  self%nml%addtoKiltHub = addtoKiltHub
+  self%nml%useDOI = useDOI
+  self%nml%SHT_formula = SHT_formula
+  self%nml%SHT_name = SHT_name
+  self%nml%SHT_structuresymbol = SHT_structuresymbol
+  self%nml%SHT_folder = trim(SHT_folder)
+  self%nml%binarize = binarize
+
   end subroutine readNameList_
   
   !--------------------------------------------------------------------------
@@ -193,8 +296,8 @@ module mod_Lauemaster
   !! perform the computations
   
   use mod_EMsoft
-  use mod_HDFsupport
-  use mod_HDFnames
+  use mod_initializers
+  use mod_diffraction
   use mod_symmetry
   use mod_crystallography
   use mod_io
@@ -205,6 +308,8 @@ module mod_Lauemaster
   use mod_timing
   use mod_Lambert
   use HDF5
+  use mod_HDFsupport
+  use mod_HDFnames
   use ISO_C_BINDING
   use omp_lib
   use mod_OMPsupport
@@ -213,13 +318,256 @@ module mod_Lauemaster
   use, intrinsic :: iso_fortran_env
   use mod_DSHT 
   use mod_fft_wrap
+  use mod_LaueSupport
 
   IMPLICIT NONE 
   
+  interface 
+    recursive function writeShtFile (fn, iprm, fprm, doi, note, alm, aTy, aCd, vers, cprm) result(res) &
+    bind(C, name ='writeShtFile_')
+
+    use ISO_C_BINDING
+
+    IMPLICIT NONE 
+
+    character(c_char)             :: fn
+    integer(c_int)                :: iprm(11) 
+    real(c_float)                 :: fprm(25)
+    character(c_char)             :: doi
+    character(c_char)             :: note 
+    real(C_DOUBLE_COMPLEX)        :: alm(2*(iprm(3)+3)*(iprm(3)+3))
+    integer(c_int)                :: aTy(iprm(6))
+    real(c_float)                 :: aCd(iprm(6),5)
+    character(c_char)             :: vers 
+    character(c_char)             :: cprm
+    integer(c_int)                :: res
+    end function writeShtFile
+  end interface 
+
+
   class(Lauemaster_T), INTENT(INOUT)       :: self
   type(EMsoft_T), INTENT(INOUT)           :: EMsoft
   character(fnlen), INTENT(INOUT)         :: progname 
 
+  type(Cell_T)            :: cell
+  type(DynType)           :: Dyn
+  type(Timing_T)          :: timer
+  type(Diffraction_T)     :: Diff
+  type(IO_T)              :: Message
+  type(Laue_T)            :: reflist
+  type(Lambert_T)         :: kl
+  type(HDF_T)             :: HDF
+  type(SpaceGroup_T)      :: SG
+  type(kvectors_T)        :: kvec
+  type(HDFnames_T)        :: HDFnames
+  type(Laue_g_list), pointer :: rltmp
+  logical 								                   :: verbose
+  real(kind=sgl),allocatable                 :: mLPNH(:,:), mLPSH(:,:), masterSPNH(:,:), masterSPSH(:,:)
+  integer(kind=irg)						               :: npx, npy, gcnt, ierr, nix, niy, nixp, niyp, i, j, w, istat, TIFF_nx, TIFF_ny, &
+                                                hdferr, bw, d, ll, res, timestart, timestop, info, Lindex
+  real(kind=sgl)							               :: xy(2), xyz(3), dx, dy, dxm, dym, Radius, mi, ma, tstart, tstop, sdev, mean
+  real(kind=dbl)                             :: VMFscale, inten, p, LegendreLattitude
+  character(fnlen)                           :: fname, TIFF_filename, attributename, groupname, datagroupname, dataset, &
+                                                 doiString, layout, SHTfile
+
+  ! declare variables for use in object oriented image module
+  integer                         :: iostat
+  character(len=128)              :: iomsg
+  logical                         :: isInteger, north, initLUT
+  integer(int8), allocatable      :: TIFF_image(:,:)
+  character(11)                   :: dstr
+  character(15)                   :: tstrb
+  character(15)                   :: tstre
+  character(fnlen)                :: image_filename
+  type(image_t)                   :: im, im2
+  integer(int8)                   :: i8 (3,4), int8val
+  integer(int8), allocatable      :: output_image(:,:)
+
+  ! parameters for the .sht output file 
+  integer(kind=irg),parameter     :: nipar=11, nfpar=25
+  character(fnlen)                :: EMversion, cprm, note, notestring
+  character(6)                    :: vstring
+  character(8)                    :: vstring2
+  character(fnlen)                :: revision
+  integer(c_int32_t)              :: sgN      ! space group number [1,230]
+  integer(c_int32_t)              :: sgS      ! space group setting [1,2]
+  integer(c_int32_t)              :: numAt    ! number of atoms
+  integer(c_int32_t),allocatable  :: aTy(:)   ! atom types (nAt atomic numbers)
+  real(c_float),allocatable       :: aCd(:,:) ! atom coordinates, (nAt * 5 floats {x, y, z, occupancy, Debye-Waller in nm^2})
+  real(c_float)                   :: lat(6)   ! lattice parameters {a, b, a, alpha, beta, gamma} (in nm / degree)
+  real(c_float)                   :: fprm(nfpar) ! floating point parameters (float32 EMsoftED parameters in order)
+  integer(c_int32_t)              :: iprm(nipar) ! integer parameters {# electrons, electron multiplier, numsx, npx, latgridtype}
+  real(kind=dbl),allocatable      :: finalmLPNH(:,:), finalmLPSH(:,:), weights(:)
+  real(kind=dbl),allocatable      :: LegendreArray(:), upd(:), diagonal(:)
+
+  type(DiscreteSHT)               :: transformer 
+  complex(kind=dbl), allocatable  :: almMaster(:,:)   ! spectra of master pattern to index against
+  complex(kind=dbl), allocatable  :: almPat   (:,:)   ! work space to hold spectra of exerimental pattern
+  real(kind=dbl),allocatable      :: alm(:)
+  real(kind=sgl)                  :: dmin
+  
+  associate( lmnl => self%nml )
+
+  ! basic explanation: this is a really simple and fast Laue master pattern; we compute all the plane normals 
+  ! that fall inside the extended Ewald sphere volume.  For each we compute the kinematic intensity
+  ! using the x-ray scattering factors.  Then we add a narrow Gaussian peak to the square Lambert projection
+  ! (either Northern or Southern hemisphere) in the correct position, using spherical interpolation 
+  ! (a von Mises-type distribution might be useful here ...).  Finally, standard output to an HDF5 file, or 
+  ! output to an .sht file.
+
+  ! lmnl components
+  ! xtalname
+  ! lambdamin
+  ! lambdamax
+  ! kappaVMF
+  ! hdfname
+  
+  if (lmnl%outformat.eq.'SHT') then 
+  npx = 193
+    layout = 'legendre'
+  else 
+    npx = lmnl%npx
+  end if
+  
+
+  call openFortranHDFInterface()
+  HDF = HDF_T()
+
+  ! set the HDF group names for this program
+  HDFnames = HDFnames_T()
+
+  ! initialize the timing routines
+  timer = Timing_T()
+  tstrb = timer%getTimeString()
+  
+  !=============================================
+!=============================================
+! crystallography section
+  verbose = .TRUE.
+
+  call cell%setFileName(lmnl%xtalname)
+
+  dmin = 0.05
+  call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
+
+  !=============================================
+  !=============================================
+  ! compute reflection list with kinematical intensities
+  reflist = Laue_T()
+  call  reflist%Init_Reflist(cell, SG, Diff,  gcnt, lmnl%lambdamin, lmnl%intfactor, verbose)
+
+  !=============================================
+  !=============================================
+  ! populate the master pattern in square Lambert projection
+  ! npx = lmnl%npx
+    npy = npx
+    allocate(mLPNH(-npx:npx,-npy:npy),stat=istat)
+    allocate(mLPSH(-npx:npx,-npy:npy),stat=istat)
+    mLPNH = 0.0
+    mLPSH = 0.0
+
+    
+  !=============================================
+  !=============================================
+  ! precompute the Legendre array for the new lattitudinal grid values
+    call Message%printMessage(' Computing Legendre lattitudinal grid values')
+    allocate(diagonal(2*npx+1),upd(2*npx+1))
+    diagonal = 0.D0
+    upd = (/ (dble(i) / dsqrt(4.D0 * dble(i)**2 - 1.D0), i=1,2*npx+1) /)
+    call dsterf(2*npx-1, diagonal, upd, info) 
+  ! the eigenvalues are stored from smallest to largest and we need them in the opposite direction
+    allocate(LegendreArray(0:2*npx))
+    LegendreArray(0:2*npx) = diagonal(2*npx+1:1:-1)
+  ! set the center eigenvalue to 0
+    LegendreArray(npx) = 0.D0
+    deallocate(diagonal, upd)
+
+    ! the von Mises-Fisher distribution is defined by 
+    !
+    !   vmf(x;mu,kappa) = ( kappa / (4 pi sinh(kappa) ) ) exp[ kappa mu.x ]
+    !
+    ! and this is multiplied by the intensity;  since these can be really large numbers we 
+    ! we will work with the large kappa expansion as well as logarithms; first of all, the 
+    ! distribution becomes (for large kappa)
+    !
+    ! vmf(x;mu,kappa) = ( kappa exp[ kappa (mu.x-1) ]/  (2 pi)    (for large kappa)
+    !
+    ! multiplying this by the intensity I and taking the logarithm, we have
+    !
+    ! log(vmf) = (-1 + mu.x) kappa + Log(Inten) - Log(Pi) + Log(kappa) - Log(2) 
+    ! 
+    ! we'll take the constant part of this and call it VMFscale
+
+    VMFscale = log(lmnl%kappaVMF) - log(2.D0) - log(cPi)
+
+    ! set the size of the patches in the square Lambert space that we need to evaluate the VMF distribution for
+    w = lmnl%patchw  ! this could become a part of the input namelist
+
+    ! go through the entire reflection list
+    !rltmp => reflist%get_ListHead()
+
+   ! do i=1,gcnt
+  ! locate the nearest Lambert pixel (we need to make sure that the cartesian vector has unit length)
+     ! call cell%NormVec(rltmp%xyz, 'c') 
+
+  ! do we need to modify the direction cosines to coincide with the Legendre lattitudinal grid values?
+     ! north = .TRUE.
+     ! if (rltmp%xyz(3).lt.0) north=.FALSE.
+    !  if (abs(rltmp%xyz(3)).ne.1.D0) then
+      !  kl = Lambert_T( xyd = rltmp%xyz * edge )
+      !  ierr = kl%LambertSpheretoSquare(rltmp%xyz, ierr) * float(npx)
+  ! here we need to be very careful to determine the index of the Legendre ring, NOT the Lambert ring !!!
+       ! Lindex = npx 
+       ! do while(LegendreArray(Lindex).lt.rltmp%xyz(3)) 
+       !   Lindex = Lindex - 1
+       ! end do  
+      !  LegendreLattitude = LegendreArray( Lindex - 1)
+  ! the factor p rescales the x and y components of kstar to maintain a unit vector
+       ! p = sqrt((1.D0-LegendreLattitude**2)/(1.D0-rltmp%xyz(3)**2))
+      !  rltmp%xyz = (/ p*rltmp%xyz(1), p*rltmp%xyz(2), LegendreLattitude /)
+  ! rescale the coordinates in the Legendre square to be on the correct ring
+      !  kl = kl * float(Lindex)/maxval(abs(kl))
+      !end if
+     ! if (.not.north) rltmp%xyz(3) = -rltmp%xyz(3)
+  ! and continue with the projection
+      ! call LambertgetInterpolation(sngl(rltmp%xyz), float(npx), npx, npy, nix, niy, nixp, niyp, dx, dy, dxm, dym)
+  ! intensity with polarization correction
+     ! inten = rltmp%sfs * rltmp%polar
+      !if (lmnl%binarize.eqv..TRUE.) inten = 1.0
+  ! depending on the sign of xyz(3) we put this point in the Northern or Southern hemisphere, taking into account the
+  ! special case of reflections along the equator which should appear in both hemisphere arrays.  The intensities are 
+  ! computed on a small grid of w x w points on the Lambert projection, which are then interpolated from a "Gaussian" on
+  ! the sphere. we use the von Mises-Fisher distribution with p=3
+      !call sampleVMF(sngl(rltmp%xyz), lmnl%kappaVMF, VMFscale, inten, npx, int(kl(1)), int(kl(2)), w, mLPNH, mLPSH, LegendreArray)
+  ! and go to the next point
+     ! rltmp => rltmp%next
+    !end do 
+
+  ! finally, make sure that the equator is copied into both arrays
+    !mLPSH(-npx,-npx:npx) = mLPNH(-npx,-npx:npx)
+    !mLPSH( npx,-npx:npx) = mLPNH( npx,-npx:npx)
+   !mLPSH(-npx:npx,-npx) = mLPNH(-npx:npx,-npx)
+    !mLPSH(-npx:npx, npx) = mLPNH(-npx:npx, npx)
+  ! that completes the computation of the master pattern
+
+  ! do we need to rebinarize?
+  !if (lmnl%binarize.eqv..TRUE.) then 
+   ! where (mLPNH.gt.0.75) 
+    !  mLPNH = 1.0
+    !end where 
+    !where (mLPSH.gt.0.75) 
+    !  mLPSH = 1.0
+   ! end where 
+  !end if 
+
+  !=============================================
+  !=============================================
+  ! convert to stereographic projection
+    !allocate(masterSPNH(-npx:npx,-npy:npy))
+    !allocate(masterSPSH(-npx:npx,-npy:npy))
+    !masterSPNH = 0.0
+    !masterSPSH = 0.0
+  end associate
 
   end subroutine Lauemaster_
   
