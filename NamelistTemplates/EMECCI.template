@@ -8,6 +8,9 @@
 !------------
  nthreads = 1,
 !------------
+! Set ECCI computation mode to 'full' or 'fast'
+mode = 'fast',
+!------------
 ! microscope parameters
 !------------
 ! microscope accelerating voltage [kV]
