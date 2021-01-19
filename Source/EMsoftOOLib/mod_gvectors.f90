@@ -93,15 +93,22 @@ private
   procedure, pass(self) :: Delete_gvectorlist_
   procedure, pass(self) :: Compute_ReflectionListZoneAxis_
   procedure, pass(self) :: Initialize_ReflectionList_
+  procedure, pass(self) :: Initialize_ReflectionList_PED_
   procedure, pass(self) :: Initialize_ReflectionList_EwaldSweep_
   procedure, pass(self) :: GetDynMat_
   procedure, pass(self) :: GetDynMatKin_
   procedure, pass(self) :: GetDynMatDHW_
+  procedure, pass(self) :: GetDynMatFull_
   procedure, pass(self) :: get_nref_
   procedure, pass(self) :: CalcLgh_
+  procedure, pass(self) :: CalcLghdepth_
+  procedure, pass(self) :: CalcCBEDint_
+  procedure, pass(self) :: CalcPEDint_
   procedure, pass(self) :: getSghfromLUT_
+  procedure, pass(self) :: getSghfromLUTsum_
   procedure, pass(self) :: GetSgArray_ECCI_
   procedure, pass(self) :: GetExpval_ECCI_
+  procedure, pass(self) :: Get_ListHead_
 
   final :: gvectors_destructor
 
@@ -112,15 +119,22 @@ private
   generic, public :: Delete_gvectorlist => Delete_gvectorlist_
   generic, public :: Compute_ReflectionListZoneAxis => Compute_ReflectionListZoneAxis_
   generic, public :: Initialize_ReflectionList => Initialize_ReflectionList_, &
+                                                  Initialize_ReflectionList_PED_,&
                                                   Initialize_ReflectionList_EwaldSweep_
   generic, public :: GetDynMat => GetDynMat_
   generic, public :: GetDynMatKin => GetDynMatKin_
   generic, public :: GetDynMatDHW => GetDynMatDHW_
+  generic, public :: GetDynMatFull => GetDynMatFull_
   generic, public :: get_nref => get_nref_
   generic, public :: CalcLgh => CalcLgh_
+  generic, public :: CalcLghdepth => CalcLghdepth_
+  generic, public :: CalcCBEDint => CalcCBEDint_
+  generic, public :: CalcPEDint => CalcPEDint_
   generic, public :: getSghfromLUT => getSghfromLUT_
+  generic, public :: getSghfromLUTsum => getSghfromLUTsum_
   generic, public :: GetSgArray_ECCI => GetSgArray_ECCI_
   generic, public :: GetExpval_ECCI => GetExpval_ECCI_
+  generic, public :: Get_ListHead => Get_ListHead_
 
 end type gvectors_T
 
@@ -438,6 +452,25 @@ end do irloop
 end subroutine GetSubRefList_
 
 !--------------------------------------------------------------------------
+recursive function Get_ListHead_(self) result(listrootw)
+!DEC$ ATTRIBUTES DLLEXPORT :: Get_ListHead_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/02/20
+  !!
+  !! return the number of g-vectors
+
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT)                :: self
+type(reflisttype),pointer                      :: listrootw
+
+listrootw => self%reflist
+
+end function Get_ListHead_
+
+!--------------------------------------------------------------------------
 recursive subroutine Apply_BethePotentials_(self, Diff, listrootw, nns, nnw)
 !DEC$ ATTRIBUTES DLLEXPORT :: Apply_BethePotentials_
   !! author: MDG
@@ -731,6 +764,86 @@ izl:   do iz=-iml,iml
 end subroutine Initialize_ReflectionList_
 
 !--------------------------------------------------------------------------
+recursive subroutine Initialize_ReflectionList_PED_(self, cell, SG, Diff, gmax, Igmax, verbose)
+!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_ReflectionList_PED_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/04/20
+  !!
+  !! initialize the potential reflection list for a given wave vector
+
+use mod_io
+use mod_crystallography
+use mod_diffraction
+use mod_symmetry
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT)     :: self
+type(Cell_T),INTENT(INOUT)          :: cell
+type(SpaceGroup_T),INTENT(INOUT)    :: SG
+type(Diffraction_T),INTENT(INOUT)   :: Diff
+real(kind=sgl),INTENT(IN)           :: gmax
+real(kind=sgl),INTENT(OUT)          :: Igmax
+logical,INTENT(IN),OPTIONAL         :: verbose
+
+type(IO_T)                          :: Message
+integer(kind=irg)                   :: imh, imk, iml, gg(3), ix, iy, iz, i, minholz, RHOLZ, im, istat, N, &
+                                       ig, numr, ir, irsel
+real(kind=sgl)                      :: dhkl, io_real(9), H, g3(3), g3n(3), FNg(3), ddt, s, kr(3), exer, &
+                                       rBethe_i, rBethe_d, sgp, r_g, la, dval, xgmin, glen
+integer(kind=irg)                   :: io_int(3), gshort(3), gp(3)
+
+
+! get the size of the lookup table
+  gp = Diff%getshapeLUT()
+  imh = (gp(1)-1)/4
+  imk = (gp(2)-1)/4
+  iml = (gp(3)-1)/4
+
+! transmitted beam has excitation error zero
+  gg = (/ 0,0,0 /)
+  call self%AddReflection(Diff, gg )   ! this guarantees that 000 is always the first reflection
+  self%rltail%xg = 0.0
+  xgmin = 100000.0
+  Igmax = 0.0
+
+! now compute |sg|/|U_g|/lambda for the other allowed reflections; if this parameter is less than
+! the threshhold, rBethe_i, then add the reflection to the list of potential reflections
+ixl: do ix=-imh,imh
+iyl:  do iy=-imk,imk
+izl:   do iz=-iml,iml
+         if ((abs(ix)+abs(iy)+abs(iz)).ne.0) then  ! avoid double counting the origin
+           gg = (/ ix, iy, iz /)
+           glen = cell%CalcLength(float(gg), 'r' )
+  
+  ! find all reflections, ignoring double diffraction spots
+           if ((SG%IsGAllowed(gg)).and.(glen.le.gmax)) then ! allowed by the lattice centering, if any
+              call self%AddReflection(Diff, gg)
+  ! we'll use the sangle field of the rltail structure to store |Ug|^2; we will also need the extinction distance
+              self%rltail%sangle = abs(Diff%getLUT((/ix, iy, iz/)))**2
+              print*,Diff%getLUT((/ix, iy, iz/))
+              if (self%rltail%sangle.gt.Igmax) Igmax = self%rltail%sangle
+              self%rltail%xg = 1.0/(abs(Diff%getLUT((/ix, iy, iz/)))*Diff%getWaveLength())
+              if ( self%rltail%xg.lt.xgmin) xgmin =  self%rltail%xg
+           end if ! IsGAllowed
+          end if
+       end do izl
+      end do iyl
+    end do ixl
+
+  if (present(verbose)) then
+    if (verbose) then
+      io_int(1) = self%nref
+      call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I8)")
+    end if
+  end if
+
+  print*,Igmax
+
+end subroutine Initialize_ReflectionList_PED_
+
+!--------------------------------------------------------------------------
 recursive subroutine Initialize_ReflectionList_EwaldSweep_(self,cell,SG,Diff,FN,k,pedangle, goffset, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: Initialize_ReflectionList_EwaldSweep_
   !! author: MDG
@@ -880,7 +993,7 @@ character(1)                     :: AorD
 
 czero = cmplx(0.0,0.0,dbl)      ! complex zero
 tpi = 2.D0 * cPi
-ccpi = cmplx(0.0D0,cPi,dbl)
+ccpi = cmplx(cPi,0.0D0,dbl)
 mLambda = Diff%getWaveLength()
 
 nullify(rlr)
@@ -897,8 +1010,8 @@ nullify(rlw)
 call Diff%setrlpmethod('WK')
 listroot => self%reflist
 
-AorD = 'A'
-!if (present(Blochmode)) AorD = 'A'
+AorD = 'D'
+if (present(Blochmode)) AorD = 'A'
 
 ! Standard Bloch wave mode
 if (AorD.eq.'D') then
@@ -1038,8 +1151,10 @@ else ! AorD = 'A' so we need to compute the structure matrix using LUTqg ...
           ir = ir+1
         end do
         DynMat = DynMat * ccpi ! cmplx(cPi, 0.D0)
+        !DynMat = DynMat * cmplx(0.D0,cPi)
 end if
-
+!cv = cmplx(1.D0/cPi/mLambda,0.D0)
+!DynMat = DynMat * cv
 
 if (present(BlochMode)) then
   if (BlochMode.eq.'Bloch') then
@@ -1050,6 +1165,75 @@ end if
 
 end subroutine GetDynMat_
 
+!--------------------------------------------------------------------------
+recursive subroutine GetDynMatFull_(self, cell, Diff, listrootw, DynMat, nref)
+!DEC$ ATTRIBUTES DLLEXPORT :: GetDynMatFull_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 03/01/20
+  !!
+  !! compute the Bloch wave dynamical matrix for the full dynamical case
+  !! [no Bethe perturbations]
+
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+
+IMPLICIT NONE
+
+class(gvectors_T), INTENT(INOUT) :: self
+type(Cell_T),INTENT(INOUT)       :: cell
+type(Diffraction_T),INTENT(INOUT):: Diff
+type(reflisttype),pointer        :: listrootw
+integer(kind=irg),INTENT(IN)     :: nref
+complex(kind=dbl),INTENT(INOUT)  :: DynMat(nref,nref)
+
+type(gnode)                      :: rlp
+complex(kind=dbl)                :: czero, weaksum, qg0, pq0
+real(kind=dbl)                   :: mlambda, weaksgsum
+real(kind=sgl)                   :: Upz
+integer(kind=sgl)                :: ir, ic, ll(3), istat, wc
+type(reflisttype),pointer        :: listroot, rlr, rlc
+
+czero = cmplx(0.0,0.0,dbl)      ! complex zero
+
+mLambda = Diff%getWaveLength()
+
+nullify(rlr)
+nullify(rlc)
+
+call Diff%setrlpmethod('WK')
+listroot => self%reflist
+
+DynMat = czero
+call Diff%CalcUcg(cell, (/0,0,0/) )
+rlp = Diff%getrlp()
+Upz = rlp%Upmod
+
+rlr => listroot%next
+ir = 1
+    do
+        if (.not.associated(rlr)) EXIT
+        rlc => listroot%next
+        ic = 1
+        do
+            if (.not.associated(rlc)) EXIT
+            if (ic.ne.ir) then  ! not a diagonal entry
+                ll = rlr%hkl - rlc%hkl
+                DynMat(ir,ic) = Diff%getLUT(ll)
+            else
+                DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda,Upz,dbl)
+            end if
+            rlc => rlc%nexts
+            ic = ic + 1
+        end do
+        rlr => rlr%nexts
+        ir = ir+1
+    end do
+
+!DynMat = DynMat * cmplx(cPi,0.D0)
+
+end subroutine GetDynMatFull_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetDynMatKin_(self, cell, Diff, listrootw, DynMat, nns)
@@ -1119,7 +1303,7 @@ recursive subroutine GetDynMatDHW_(self, cell, Diff, listroot, rltmpa, rltmpb, D
   !! version: 1.0
   !! date: 03/01/20
   !!
-  !! compute the Bloch wave dynamical matrix for the kinematical case
+  !! compute the Darwin-Howie-Whelan dynamical matrix
   !! [no Bethe perturbations]
 
 use mod_crystallography
@@ -1182,28 +1366,7 @@ real(kind=sgl)                   :: X(2)
     rltmpa => rltmpa%next   ! move to next row-entry
    end do
 
-   call Message%printMessage('Reference Darwin-Howie-Whelan matrix initialized',"(A/)")
-
-
-!call Diff%CalcUcg(cell, (/0,0,0/) )
-
-! rlp = Diff%getrlp()
-! Upz = rlp%Upmod
-!
-! rlr => listroot%next
-! ir = 1
-! do
-!   if (.not.associated(rlr)) EXIT
-!   if (ir.ne.1) then  ! not a diagonal entry
-! ! we only need to fill the first column in the kinematical approximation ...
-!     ll = rlr%hkl
-!     DynMat(ir,1) = Diff%getLUT( ll )
-!   end if
-! ! add the diagonal entry
-!   DynMat(ir,ir) = cmplx(2.D0*rlr%sg/mLambda,Upz,dbl)
-!   rlr => rlr%nexts
-!   ir = ir+1
-! end do
+   call Message%printMessage(' --> Reference Darwin-Howie-Whelan matrix initialized',"(A/)")
 
 end subroutine GetDynMatDHW_
 
@@ -1215,8 +1378,7 @@ recursive subroutine GetSgArray_ECCI_(self, cell, sg, klist, numk, isg, DynFN, D
   !! version: 1.0
   !! date: 03/01/20
   !!
-  !! compute the Bloch wave dynamical matrix for the kinematical case
-  !! [no Bethe perturbations]
+  !! compute the Sg array for ECCI
 
 use mod_crystallography
 use mod_diffraction
@@ -1234,7 +1396,7 @@ type(IO_T)                       :: Message
 real(kind=sgl),INTENT(INOUT)     :: sg(nns)
 real(kind=dbl),INTENT(IN)        :: DynFN(3)
 integer(kind=irg),INTENT(IN)     :: nns, numk, isg
-real(kind=dbl),INTENT(IN)     :: klist(3,numk)
+real(kind=dbl),INTENT(IN)        :: klist(3,numk)
 integer(kind=irg)                :: ig, gg(3)
 
   nullify(rltmpa)
@@ -1256,8 +1418,7 @@ recursive subroutine GetExpval_ECCI_(self, cell, expval, Diff, listroot, nn, DM,
   !! version: 1.0
   !! date: 03/01/20
   !!
-  !! compute the Bloch wave dynamical matrix for the kinematical case
-  !! [no Bethe perturbations]
+  !! compute the exponential values array used in ECCI computation
 
 use mod_crystallography
 use mod_diffraction
@@ -1278,8 +1439,7 @@ integer(kind=irg)    :: ir, ic
 real(kind=sgl),INTENT(IN)        :: DM(2,2)
 real(kind=sgl)                   :: X(2)
 real(kind=sgl)                   :: DD
-  !nullify(rltmpa)
-  !nullify(rltmpb)
+
   DD = DM(1,1)*DM(2,2) - DM(1,2)*DM(2,1)
 
   expval = 0
@@ -1364,6 +1524,178 @@ associate( reflist => self%reflist )
 end subroutine getSghfromLUT_
 
 !--------------------------------------------------------------------------
+recursive subroutine getSghfromLUTsum_(self,Diff,nns,numset,nat,Sgh)
+!DEC$ ATTRIBUTES DLLEXPORT :: getSghfromLUTsum_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/12/20
+  !!
+  !! compute structure factor-like Sgh array entry for EBSD, ECCI and ECP simulations
+
+use mod_crystallography
+use mod_diffraction
+! use symmetry
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT)         :: self
+type(Diffraction_T),INTENT(INOUT)       :: Diff
+integer(kind=irg),INTENT(IN)            :: nns
+integer(kind=irg),INTENT(IN)            :: numset
+integer(kind=irg),INTENT(IN)            :: nat(maxpasym)
+complex(kind=dbl),INTENT(INOUT)         :: Sgh(nns,nns)
+
+type(reflisttype),pointer               :: rltmpa, rltmpb
+integer(kind=irg)                       :: ir, ic, kkk(3)
+
+associate( reflist => self%reflist )
+! loop over all contributing reflections
+! ir is the row index
+    rltmpa => reflist%next    ! point to the front of the list
+    do ir=1,nns
+! ic is the column index
+      rltmpb => reflist%next    ! point to the front of the list
+      do ic=1,nns
+        kkk = rltmpb%hkl - rltmpa%hkl
+        Sgh(ir,ic) = sum(Diff%getSghLUT( numset, kkk ))
+        rltmpb => rltmpb%nexts  ! move to next column-entry
+      end do
+     rltmpa => rltmpa%nexts  ! move to next row-entry
+   end do
+ end associate
+
+end subroutine getSghfromLUTsum_
+
+recursive subroutine CalcCBEDint_(self,cell,DynMat,kn,nn,nt,thick,inten)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcCBEDint_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/12/20
+  !!
+  !! compute the scattered intensities for a range of thicknesses (specifically for CBED mode)
+
+use mod_io
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+use mod_global
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)    :: nn                   !< number of strong beams
+complex(kind=dbl),INTENT(IN)    :: DynMat(nn,nn)
+type(Diffraction_T) :: Diff
+type(Cell_T)                    :: cell
+real(kind=sgl),INTENT(IN)       :: kn
+
+integer(kind=irg),INTENT(IN)    :: nt                   !< number of thickness values
+real(kind=sgl),INTENT(IN)       :: thick(nt)            !< thickness array
+real(kind=sgl),INTENT(INOUT)    :: inten(nt,nn)         !< output intensities (both strong and weak)
+
+integer(kind=irg)               :: i,j,IPIV(nn), ll(3), jp
+complex(kind=dbl)               :: CGinv(nn,nn), Minp(nn,nn),diag(nn),Wloc(nn), lCG(nn,nn), lW(nn), &
+                                   lalpha(nn), delta(nn,nn) 
+real(kind=sgl)                  :: th
+
+! compute the eigenvalues and eigenvectors
+ Minp = DynMat
+ IPIV = 0
+ call Diff%BWsolve(Minp,Wloc,lCG,CGinv,nn,IPIV)
+
+! the alpha coefficients are in the first column of the inverse matrix
+! the minus sign in W(i) stems from the fact that k_n is in the direction
+! opposite to the foil normal
+ lW = cPi*Wloc/cmplx(kn,0.0)
+ do i=1,nn
+  lalpha(i) = CGinv(i,1)
+ end do
+
+! we are going to ignore weak beam intensities for now...
+
+! compute the strong beam intensities, stored in the first nn slots of inten 
+! we could also compute the weak beams, since they make use of the same diag(1:nn) expression
+! as the strong beams, plus a few other factors (excitation error, wave length, Fourier coefficients)
+! that part would need to rewritten entirely
+ do i=1,nt
+  th = thick(i)
+  diag(1:nn)=exp(-th*aimag(lW(1:nn)))*cmplx(cos(th*real(lW(1:nn))),sin(th*real(lW(1:nn))))*lalpha(1:nn)
+! the delta array is common to the strong and weak beam intensity computation, so we compute it first
+  do j=1,nn
+   delta(j,1:nn) = lCG(j,1:nn)*diag(1:nn)
+  end do
+! strong beams
+  do j=1,nn
+   inten(i,j) = abs(sum(delta(j,1:nn)))**2
+  end do 
+ end do
+
+end subroutine CalcCBEDint_
+
+recursive subroutine CalcPEDint_(self,cell,DynMat,kn,nn,nt,thick,inten)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcPEDint_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/12/20
+  !!
+  !! compute the scattered intensities for a range of thicknesses (specifically for CBED mode)
+
+use mod_io
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+use mod_global
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)    :: nn                   !< number of strong beams
+complex(kind=dbl),INTENT(IN)    :: DynMat(nn,nn)
+type(Diffraction_T) :: Diff
+type(Cell_T)                    :: cell
+real(kind=sgl),INTENT(IN)       :: kn
+
+integer(kind=irg),INTENT(IN)    :: nt                   !< number of thickness values
+real(kind=sgl),INTENT(IN)       :: thick(nt)            !< thickness array
+real(kind=sgl),INTENT(INOUT)    :: inten(nt,nn)         !< output intensities (both strong and weak)
+
+integer(kind=irg)               :: i,j,IPIV(nn), ll(3), jp
+complex(kind=dbl)               :: CGinv(nn,nn), Minp(nn,nn),diag(nn),Wloc(nn), lCG(nn,nn), lW(nn), &
+                                   lalpha(nn), delta(nn,nn) 
+real(kind=sgl)                  :: th
+
+! compute the eigenvalues and eigenvectors
+Minp = DynMat
+IPIV = 0
+call Diff%BWsolve(Minp,Wloc,lCG,CGinv,nn,IPIV)
+
+! the alpha coefficients are in the first column of the inverse matrix
+lW = cPi*Wloc/cmplx(kn,0.0)
+lalpha(1:nn) = CGinv(1:nn,1)
+
+! make sure the alpha excitation coefficients are normalized 
+! s = sum(abs(lalpha(1:nn))**2)
+! if (s.ne.1.D0) then
+!  s = cmplx(1.D0/dsqrt(s),0.D0)
+!  lalpha = lalpha*s
+! endif 
+
+! compute the strong beam intensities, stored in the first nn slots of inten 
+do i=1,nt
+ th = thick(i)
+ diag(1:nn)=exp(-th*aimag(lW(1:nn)))*cmplx(cos(th*real(lW(1:nn))),sin(th*real(lW(1:nn))))*lalpha(1:nn)
+! the delta array is common to the strong and weak beam intensity computation, so we compute it first
+ do j=1,nn
+  delta(j,1:nn) = lCG(j,1:nn)*diag(1:nn)
+ end do
+! strong beams
+ do j=1,nn
+  inten(i,j) = abs(sum(delta(j,1:nn)))**2
+ end do 
+end do
+end subroutine CalcPEDint_
+
+!--------------------------------------------------------------------------
 recursive subroutine CalcLgh_(self,DMat,Lgh,thick,kn,nn,gzero,depthstep,lambdaE,izz)
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcLgh_
   !! author: MDG
@@ -1392,7 +1724,7 @@ integer                             :: i,j,k, iz
 complex(kind=dbl)                   :: CGinv(nn,nn), Minp(nn,nn), tmp3(nn,nn)
 
 real(kind=dbl)                      :: tpi, dzt
-complex(kind=dbl)                   :: Ijk(nn,nn), q, getMIWORK(1), qold
+complex(kind=dbl)                   :: Ijk(nn,nn), q, getMIWORK, qold
 
 integer(kind=irg)                   :: INFO, LDA, LDVR, LDVL,  JPIV(nn), MILWORK
 complex(kind=dbl)                   :: CGG(nn,nn), W(nn)
@@ -1437,8 +1769,7 @@ integer(kind=sgl)                   :: LWORK
  MILWORK = -1
  LDA=nn
  call zgetri(nn,CGinv,LDA,JPIV,getMIWORK,MILWORK,INFO)
- MILWORK =  INT(real(getMIWORK(1)))
-
+ MILWORK =  INT(real(getMIWORK))
  if (.not.allocated(MIWORK)) allocate(MIWORK(MILWORK))
  MIWORK = cmplx(0.D0,0.D0)
  LDA=nn
@@ -1484,6 +1815,132 @@ Lgh = matmul(tmp3,transpose(CGG))
 
 end subroutine CalcLgh_
 
+!--------------------------------------------------------------------------
+recursive subroutine CalcLghdepth_(self,DMat,Lgh,thick,kn,nn,gzero,depthstep,lambdaE,izz)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcLghdepth_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/12/20
+  !!
+  !! compute the Lgh matrix for EBSD, ECCI, ECP, etc simulations
+
+use mod_io
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT)     :: self
+integer(kind=irg),INTENT(IN)        :: nn
+complex(kind=dbl),INTENT(IN)        :: DMat(nn,nn)
+complex(kind=dbl),INTENT(OUT)       :: Lgh(nn,nn,izz)
+real(kind=dbl),INTENT(IN)           :: thick
+real(kind=dbl),INTENT(IN)           :: kn
+integer(kind=irg),INTENT(IN)        :: gzero
+real(kind=dbl),INTENT(IN)           :: depthstep
+integer(kind=irg),INTENT(IN)        :: izz
+real(kind=sgl),INTENT(IN)           :: lambdaE(izz)
+
+type(IO_T)                          :: Message
+
+integer                             :: i,j,k, iz
+complex(kind=dbl)                   :: CGinv(nn,nn), Minp(nn,nn), tmp3(nn,nn,izz)
+
+real(kind=dbl)                      :: tpi, dzt
+complex(kind=dbl)                   :: Ijk(nn,nn,izz), q, getMIWORK, qold
+
+integer(kind=irg)                   :: INFO, LDA, LDVR, LDVL, JPIV(nn), MILWORK
+complex(kind=dbl)                   :: CGG(nn,nn), W(nn)
+complex(kind=dbl),allocatable       :: MIWORK(:)
+
+integer(kind=irg),parameter         :: LWMAX = 5000 
+complex(kind=dbl)                   :: VL(nn,nn),  WORK(LWMAX)
+real(kind=dbl)                      :: RWORK(2*nn)
+character                           :: JOBVL, JOBVR
+integer(kind=sgl)                   :: LWORK
+
+! compute the eigenvalues and eigenvectors
+! using the LAPACK CGEEV, CGETRF, and CGETRI routines
+!
+ Minp = DMat
+
+! set some initial LAPACK variables
+ LDA = nn
+ LDVL = nn
+ LDVR = nn
+ INFO = 0
+
+ ! first initialize the parameters for the LAPACK ZGEEV, CGETRF, and CGETRI routines
+ JOBVL = 'N'   ! do not compute the left eigenvectors
+ JOBVR = 'V'   ! do compute the right eigenvectors
+ LWORK = -1 ! so that we can ask the routine for the actually needed value
+
+! call the routine to determine the optimal workspace size
+ LDA = nn
+  call zgeev(JOBVL,JOBVR,nn,Minp,LDA,W,VL,LDVL,CGG,LDVR,WORK,LWORK,RWORK,INFO)
+  LWORK = MIN( LWMAX, INT( WORK( 1 ) ) )
+
+! then call the eigenvalue solver
+  LDA = nn
+  call zgeev(JOBVL,JOBVR,nn,Minp,LDA,W,VL,LDVL,CGG,LDVR,WORK,LWORK,RWORK,INFO)
+  if (INFO.ne.0) call Message%printError('Error in CalcLgh: ','ZGEEV return not zero')
+
+ CGinv = CGG
+
+ LDA=nn
+ call zgetrf(nn,nn,CGinv,LDA,JPIV,INFO)
+ MILWORK = -1
+ LDA=nn
+ call zgetri(nn,CGinv,LDA,JPIV,getMIWORK,MILWORK,INFO)
+ MILWORK =  INT(real(getMIWORK))
+ if (.not.allocated(MIWORK)) allocate(MIWORK(MILWORK))
+ MIWORK = cmplx(0.D0,0.D0)
+ LDA=nn
+ call zgetri(nn,CGinv,LDA,JPIV,MIWORK,MILWORK,INFO)
+ deallocate(MIWORK)
+
+! in all the time that we've used these routines, we haven't
+! had a single problem with the matrix inversion, so we don't
+! really need to do this test:
+!
+! if ((cabs(sum(matmul(CGG,CGinv)))-dble(nn)).gt.1.E-8) write (*,*) 'Error in matrix inversion; continuing'
+
+
+! then compute the integrated intensity matrix
+ W = W/cmplx(2.0*kn,0.0)
+
+! recall that alpha(1:nn) = CGinv(1:nn,gzero)
+
+! first the Ijk matrix (this is Winkelmann's B^{ij}(t) matrix)
+! combined with numerical integration over [0, z0] interval,
+! taking into account depth profiles from Monte Carlo simulations ...
+! the depth profile lambdaE must be added to the absorption
+! components of the Bloch wave eigenvalues.
+
+ tpi = 2.D0*cPi*depthstep
+ dzt = depthstep/thick
+  do j=1,nn
+   do k=1,nn
+      q =  cmplx(0.D0,0.D0)
+      qold = cmplx(tpi*(aimag(W(j))+aimag(W(k))),tpi*(real(W(j))-real(W(k))))
+      if(real(qold) .lt. 0.0) qold = -qold
+      do iz = 1,izz
+        q = dble(lambdaE(iz)) * exp( - qold * dble(iz) )
+        Ijk(j,k,iz) = conjg(CGinv(j,gzero)) * q * CGinv(k,gzero)
+      end do
+   end do
+  end do
+ ! finally, multiply by dz/z_0 for the discrete integration (so we 
+ ! don't forget to do that in the calling program...) 
+ Ijk = Ijk * dzt
+ 
+ ! then the matrix multiplications to obtain Lgh(z) 
+ do iz=1,izz
+   tmp3(1:nn,1:nn,iz) = matmul(conjg(CGG),Ijk(1:nn,1:nn,iz)) 
+ end do
+ do iz=1,izz
+   Lgh(1:nn,1:nn,iz) = matmul(tmp3(1:nn,1:nn,iz),transpose(CGG))
+ end do
+
+end subroutine CalcLghdepth_
 
 ! ! this may need to be moved to the kvectors_T class ...
 ! ! this routine is currently not used anywhere !

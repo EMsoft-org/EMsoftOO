@@ -1,3 +1,309 @@
+! ###################################################################
+! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
+! All rights reserved.
+!
+! Redistribution and use in source and binary forms, with or without modification, are 
+! permitted provided that the following conditions are met:
+!
+!     - Redistributions of source code must retain the above copyright notice, this list 
+!        of conditions and the following disclaimer.
+!     - Redistributions in binary form must reproduce the above copyright notice, this 
+!        list of conditions and the following disclaimer in the documentation and/or 
+!        other materials provided with the distribution.
+!     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
+!        of its contributors may be used to endorse or promote products derived from 
+!        this software without specific prior written permission.
+!
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+! ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+! LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+! ###################################################################
+
+module mod_LaueSupport
+!! author: MDG 
+!! version: 1.0 
+!! date: 01/22/20
+!!
+!! class definition for the Laue modality
+  
+  use mod_kinds
+  use mod_global
+  
+  IMPLICIT NONE 
+  private
+
+  ! linked list for Laue XRD computations.
+  type, public :: Laue_g_list  
+    integer(kind=irg)   :: hkl(3)       ! Miller indices
+    real(kind=dbl)      :: xyz(3)       ! Cartesian components of the plane normal
+    real(kind=dbl)      :: tt           ! 2theta value
+    real(kind=dbl)      :: polar        ! polarization factor
+    real(kind=dbl)      :: sfs          ! |structure factor|^2
+    type(Laue_g_list),pointer :: next   ! connection to next reflector 
+  end type Laue_g_list
+
+  ! class definition
+  type, public :: Laue_T
+  private 
+    type(Laue_g_list), pointer :: reflist
+    type(Laue_g_list), pointer :: rltail
+    integer(kind=irg)          :: nref
+  
+  contains
+  private 
+    procedure, pass(self) :: MakeRefList_
+    procedure, pass(self) :: get_ListHead_
+    procedure, pass(self) :: Laue_Init_Reflist_
+  
+    generic, public :: MakeRefList => MakeRefList_
+    generic, public :: get_ListHead => get_ListHead_
+    generic, public :: Init_Reflist => Laue_Init_Reflist_
+  
+  end type Laue_T
+  
+  ! the constructor routine for this class 
+  interface Laue_T
+    module procedure Laue_constructor
+  end interface Laue_T
+  
+  contains
+  
+  !--------------------------------------------------------------------------
+  type(Laue_T) function Laue_constructor( ) result(GVec)
+  !DEC$ ATTRIBUTES DLLEXPORT :: Laue_constructor
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/22/20
+  !!
+  !! constructor for the Laue_T Class; reads the name list 
+   
+  IMPLICIT NONE
+  
+  ! the calling program must make sure that the reflist is empty ...
+  ! initialize the reflist
+  nullify(GVec%reflist)
+  GVec%nref = 0
+  call GVec%MakeRefList()
+
+  end function Laue_constructor
+  
+  !--------------------------------------------------------------------------
+  subroutine Laue_destructor(self) 
+  !DEC$ ATTRIBUTES DLLEXPORT :: Laue_destructor
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/22/20
+  !!
+  !! destructor for the Laue_T Class
+   
+  IMPLICIT NONE
+  
+  type(Laue_T), INTENT(INOUT)  :: self 
+  
+  call reportDestructor('Laue_T')
+  
+  end subroutine Laue_destructor
+
+  !--------------------------------------------------------------------------
+  recursive subroutine MakeRefList_(self)
+  !DEC$ ATTRIBUTES DLLEXPORT :: MakeRefList_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/02/20
+  !!
+  !! allocate and initialize the linked reflection list
+
+  use mod_io
+
+  IMPLICIT NONE
+
+  class(Laue_T), INTENT(INOUT)  :: self
+
+  type(IO_T)                        :: Message
+  integer(kind=irg)                 :: istat
+
+  ! create it if it does not already exist
+  if (.not.associated(self%reflist)) then
+    allocate(self%reflist,stat=istat)
+    if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
+    self%rltail => self%reflist           ! tail points to new value
+    nullify(self%rltail%next)             ! nullify next in new value
+  end if
+
+  end subroutine MakeRefList_
+
+  !--------------------------------------------------------------------------
+  recursive function get_ListHead_(self) result(glist)
+  !DEC$ ATTRIBUTES DLLEXPORT :: get_ListHead_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/12/20
+  !!
+  !! return the number of k-vectors
+
+  IMPLICIT NONE
+
+  class(Laue_T), INTENT(INOUT)  :: self
+  type(Laue_g_list), pointer    :: glist
+
+  glist => self%reflist
+
+  end function get_ListHead_
+  
+  !--------------------------------------------------------------------------
+  subroutine Laue_Init_Reflist_(self, cell, SG, Diff, gcnt, lambdamin, intfactor, verbose)
+  !DEC$ ATTRIBUTES DLLEXPORT :: Laue_Init_Reflist_
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 01/22/20
+  !!
+  !! perform the computations
+  
+  use mod_EMsoft
+  use mod_io
+  use mod_crystallography
+  use mod_symmetry
+  use mod_diffraction
+
+  IMPLICIT NONE 
+  
+  class(Laue_T), INTENT(INOUT)       :: self
+  type(IO_T)                         :: Message
+  type(SpaceGroup_T), INTENT(INOUT)  :: SG
+  type(Diffraction_T), INTENT(INOUT) :: Diff
+  type(Cell_T), INTENT(INOUT)        :: cell
+  integer(kind=irg),INTENT(OUT)      :: gcnt
+  real(kind=sgl), INTENT(IN)         :: lambdamin
+  real(kind=dbl) , INTENT(IN)        :: intfactor
+  logical,INTENT(IN),OPTIONAL        :: verbose
+
+  type(Laue_g_list),pointer         :: gtmp, gtail                ! linked list for allowed g-vector search 
+  type(gnode)                       :: rlp
+  real(kind=sgl)                    :: gmax                       !< diameter of limiting sphere
+  real(kind=sgl)                    :: ghkl                       !< length of a reciprocal lattice vector
+  integer(kind=irg)                 :: imh, imk, iml              !< maximum index along a*, b*, and c*
+  real(kind=sgl)                    :: g(3), tt                   !< g-vector and 2theta
+  integer(kind=irg)                 :: io_int(3)                  !< io variable
+  real(kind=sgl)                    :: io_real(1)                 !< io variable
+  integer(kind=irg)                 :: istat, h, k, l, icnt       !< status variables and such
+  !real(kind=sgl),parameter          :: tdtr = 114.5915590262      !< 2 * 180.0 / pi
+  real(kind=sgl)                    :: threshold, th, sfs         !< threshold for discarding allowed reflections, |F|^2
+
+
+  ! first get the range of Miller indices based on the lattice parameters and the xray wave length
+  gmax = 2.0 / lambdamin      ! radius of the limiting sphere for smallest wave length  [nm^-1]
+  imh = 1
+  do   ! a* direction
+    imh = imh + 1
+    ghkl = cell%CalcLength((/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
+    if (ghkl.gt.gmax) EXIT
+  end do
+  imk = 1
+  do  ! b* direction
+    imk = imk + 1
+    ghkl = cell%CalcLength((/0.0_sgl,float(imk),0.0_sgl/), 'r')
+    if (ghkl.gt.gmax) EXIT
+  end do
+  iml = 1
+  do  ! c* direction
+    iml = iml + 1
+    ghkl = cell%CalcLength((/0.0_sgl,0.0_sgl,float(iml)/), 'r')
+    if (ghkl.gt.gmax) EXIT
+  end do
+
+  ! output range
+  if (present(verbose)) then 
+    if (verbose) then
+      io_int = (/ imh, imk ,iml /)
+      call Message%WriteValue('Range of reflections along a*, b* and c* = ', io_int, 3)
+    end if
+   end if 
+
+  ! next we make a list of all rlp's that satisfy the following conditions
+  !  - rlp must be inside the limiting sphere;
+  !  - rlp must not be a systematic extinction;
+  !  - rlp must not be a symmetry-induced extinction (since everything is kinematical)
+  ! Since we don't know a-priori how many rlps will satisfy all
+  ! three conditions, we'll first create a linked list and then copy
+  ! that list into an allocatable array reflist
+  if (.not.associated(self%reflist)) then ! allocate the head and tail of the linked list
+   allocate(self%reflist,stat=istat)         ! allocate new value
+   if (istat.ne.0) call Message%printError('Laue_Init_Reflist', 'unable to allocate reflist pointer')
+   gtail => self%reflist                     ! tail points to new value
+   nullify(gtail%next)                  ! nullify next in new value
+  end if
+  gtail => self%reflist
+  call Diff%setrlpmethod('XR')
+
+  ! compute the intensity threshold parameter as a fraction of |F(000)|^2 
+  call Diff%CalcUcg(cell,(/0, 0, 0/))
+  rlp = Diff%getrlp()
+  threshold = cabs(rlp%Ucg)**2
+  if (present(verbose)) then
+    if (verbose) then
+      io_real(1) = threshold 
+      call Message%WriteValue(' Intensity Threshold value : ', io_real, 1)
+    end if
+  end if
+  
+  ! now loop over all g-vectors inside the imh, imk, iml range
+  gcnt = 0
+  icnt = 0
+  th = sngl(intfactor) * threshold
+  do h=-imh,imh
+    do k=-imk,imk
+      do l=-iml,iml
+        icnt = icnt + 1
+        g =float( (/ h, k, l /) )
+! first of all, is this reflection inside the limiting sphere? (CalcLength)
+        ghkl = cell%CalcLength(g,'r')
+        if ((ghkl.le.gmax).and.(ghkl.gt.0.0)) then 
+! then see if the reflection is allowed by systematic extinction (IsGAllowed)
+          if ( SG%IsGAllowed( (/ h,k,l /) ) ) then    ! this is not a systematic extinction
+! does this reflection have a non-zero structure factor larger than the threshold?
+            call Diff%CalcUcg(cell, (/ h, k, l /) )
+            sfs = cabs(rlp%Ucg)**2 
+            if (sfs.ge.th) then   ! count this reflection 
+              gcnt = gcnt + 1
+! fill in the values
+              gtail%hkl = (/ h, k, l /)
+              call cell%TransSpace(dble(gtail%hkl), gtail%xyz, 'r', 'c')
+!            call NormVec(cell, gtail%xyz, 'c')    ! removed by MDG, 07/30/19 for EMLaue program
+              gtail % tt = Diff%CalcDiffAngle(cell, (/h, k, l/))
+              gtail % polar = (1.D0+ cos(2.D0*gtail%tt)**2)*0.5D0
+              gtail % sfs = sfs / threshold
+! and add it to the linked list
+              allocate(gtail%next,stat=istat)    ! allocate new value
+              if (istat.ne.0) call Message%printError('Laue_Init_Reflist', 'unable to allocate new entry in ghead linked list')
+              gtail => gtail%next              ! gtail points to new value
+              nullify(gtail%next)              ! nullify next in new value
+            end if
+          end if
+        end if
+      end do
+    end do
+  end do
+
+  if (present(verbose)) then
+    if (verbose) then
+      io_int(1) = gcnt
+      call Message%WriteValue(' Total number of reflections = ', io_int, 1)
+    end if
+  end if 
+
+
+  end subroutine Laue_Init_Reflist_
+  
+
+  end module mod_LaueSupport
+
 ! these routines need to go in the Laue_T Class
 ! !--------------------------------------------------------------------------
 ! !
