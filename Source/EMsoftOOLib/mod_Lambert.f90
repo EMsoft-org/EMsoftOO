@@ -125,6 +125,8 @@ IMPLICIT NONE
         procedure, pass(self) :: LambertInverseSingle
         procedure, pass(self) :: LambertInverseDouble
         procedure, pass(self) :: Apply3DPGSymmetry_
+        procedure, pass(self) :: sampleVMF_
+        procedure, pass(self) :: HemiCheck_
         procedure, pass(self) :: setxy_
         procedure, pass(self) :: setxyd_
         procedure, pass(self) :: setxyz_
@@ -157,6 +159,8 @@ IMPLICIT NONE
         generic, public :: LambertForward => LambertForwardSingle, LambertForwardDouble
         generic, public :: LambertInverse => LambertInverseSingle, LambertInverseDouble
         generic, public :: Apply3DPGSymmetry => Apply3DPGSymmetry_
+        generic, public :: sampleVMF => sampleVMF_
+        generic, public :: HemiCheck => HemiCheck_
         generic, public :: setxy => setxy_
         generic, public :: setxyz => setxyz_
         generic, public :: setxyd => setxyd_
@@ -2445,6 +2449,131 @@ nequiv = n
 
 end subroutine Apply3DPGSymmetry_
 
+recursive subroutine sampleVMF_(self, mu, kappa, VMFscale, inten, npx, nix, niy, w, mLPNH, mLPSH, LegendreArray)
+!DEC$ ATTRIBUTES DLLEXPORT :: sampleVMF_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/07/20
+  !!
+  !! sample a p=3 von Mises-Fisher distribution for a Lambert grid patch around a given direction
 
+IMPLICIT NONE 
+
+
+class(Lambert_T), INTENT(INOUT) :: self
+real(kind=sgl),INTENT(IN)     :: mu(3)
+real(kind=dbl),INTENT(IN)     :: kappa
+real(kind=dbl),INTENT(IN)     :: VMFscale
+real(kind=dbl),INTENT(IN)     :: inten
+integer(kind=irg),INTENT(IN)  :: npx
+integer(kind=irg),INTENT(IN)  :: nix
+integer(kind=irg),INTENT(IN)  :: niy
+integer(kind=irg),INTENT(IN)  :: w
+real(kind=sgl),INTENT(INOUT)  :: mLPNH(-npx:npx, -npx:npx)
+!f2py intent(in,out) ::  mLPNH
+real(kind=sgl),INTENT(INOUT)  :: mLPSH(-npx:npx, -npx:npx)
+!f2py intent(in,out) ::  mLPSH
+real(kind=dbl),INTENT(IN)     :: LegendreArray(0:2*npx)
+
+real(kind=sgl)                :: xyz(3), vmf , LegendreLattitude, p
+integer(kind=irg)             :: i, j, ix, iy
+logical                       :: North, xN, yN  
+
+North = .TRUE.
+if (mu(3).lt.0.0) North = .FALSE.
+
+do i=-w, w 
+  ix = nix + i 
+  do j=-w, w 
+    iy = niy + j  
+! check the hemisphere and properly wrap where needed
+    xyz = self%HemiCheck_(ix, iy, npx, North)
+! correct the angle to the Legendre lattitude 
+    LegendreLattitude = sngl(LegendreArray( maxval( abs( (/ ix, iy /) ) )) )
+! the factor p rescales the x and y components of kstar to maintain a unit vector
+    p = sqrt((1.D0-LegendreLattitude**2)/(1.D0-xyz(3)**2))
+    xyz = (/ p*xyz(1), p*xyz(2), LegendreLattitude /)
+! compute the VMF value
+    vmf = (-1.D0 + sum(mu*xyz)) * kappa + Log(inten) + VMFscale
+! put this value in the correct array location
+!    if (xyz(3).ge.0.0) then
+      mLPNH(ix, iy) = mLPNH(ix, iy) + exp(vmf) 
+      mLPSH(-ix, -iy) = mLPSH(-ix, -iy) + exp(vmf)
+!    end if
+  end do 
+end do 
+
+end subroutine sampleVMF_
+
+!--------------------------------------------------------------------------
+recursive function HemiCheck_(self, ix, iy, npx, North) result(xyz) 
+!DEC$ ATTRIBUTES DLLEXPORT :: HemiCheck_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/07/20
+  !!
+  !! get the xyz belonging to an integer input point that may be Northern or Southern hemishpere...
+IMPLICIT NONE 
+
+class(Lambert_T), INTENT(INOUT) :: self
+integer(kind=irg),INTENT(INOUT)     :: ix
+!f2py intent(in,out) ::  ix
+integer(kind=irg),INTENT(INOUT)     :: iy
+!f2py intent(in,out) ::  iy
+integer(kind=irg),INTENT(IN)        :: npx
+logical,INTENT(IN)                  :: North
+real(kind=sgl)                      :: xyz(3)
+
+type(Lambert_T)                     :: L
+
+integer(kind=irg)                   :: ierr 
+
+if ((abs(ix).le.npx).and.(abs(iy).le.npx)) then
+! regular case
+  L = Lambert_T( xy = (float( (/ ix, iy/) ) / float(npx)))
+  ierr = L%LambertSquareToSphere(xyz)
+else 
+    if ((abs(ix).gt.npx).and.(abs(iy).gt.npx)) then 
+! corner case
+        if (ix.gt.0) then 
+          ix = 2*npx-ix
+        else
+          ix = -2*npx-ix
+        end if 
+        if (iy.gt.0) then 
+          iy = 2*npx-iy
+        else
+          iy = -2*npx-iy
+        end if 
+        L = Lambert_T( xy = (float( (/ ix, iy/) ) / float(npx)))
+        ierr = L%LambertSquareToSphere(xyz)
+        if (North.eqv..TRUE.) xyz(3) = -xyz(3)
+     else
+! remaining cases
+        if ((abs(ix).gt.npx).and.(abs(iy).le.npx)) then 
+! edge case
+          if (ix.gt.0) then 
+            ix = 2*npx-ix
+          else
+            ix = -2*npx-ix
+          end if 
+          L = Lambert_T( xy = (float( (/ ix, iy/) ) / float(npx)))
+          ierr = L%LambertSquareToSphere(xyz)
+          if (North.eqv..TRUE.) xyz(3) = -xyz(3)
+        end if
+        if ((abs(ix).le.npx).and.(abs(iy).gt.npx)) then 
+! edge case
+          if (iy.gt.0) then 
+            iy = 2*npx-iy
+          else
+            iy = -2*npx-iy
+          end if 
+          L = Lambert_T( xy = (float( (/ ix, iy/) ) / float(npx)))
+          ierr = L%LambertSquareToSphere(xyz)
+          if (North.eqv..TRUE.) xyz(3) = -xyz(3)
+        end if
+    end if
+end if
+end function HemiCheck_
 
 end module mod_Lambert

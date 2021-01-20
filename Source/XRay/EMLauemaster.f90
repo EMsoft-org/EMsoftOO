@@ -53,7 +53,7 @@ program EMLauemaster
   Lauemaster = Lauemaster_T(EMsoft%nmldeffile)
   
   ! perform the computations
-  call Lauemaster%Lauemaster(EMsoft, progname)
+  call Lauemaster%Lauemaster(EMsoft, progname, EMsoft%nmldeffile)
   
 end program EMLauemaster
   
