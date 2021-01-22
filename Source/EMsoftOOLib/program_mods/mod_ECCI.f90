@@ -603,8 +603,8 @@ real(kind=sgl),allocatable              :: lambdaZ(:), disparray(:,:,:,:),imatva
 real(kind=sgl),allocatable              ::  svals(:), sgarray(:), klist(:,:), knlist(:)
 integer(kind=sgl),allocatable           :: expval(:,:,:),  hklarray(:,:), nab(:,:), XYint(:,:)
 complex(kind=dbl)                       :: para(0:numdd),dx,dy,dxm,dym, xgp
-complex(kind=dbl),allocatable           :: DHWM(:,:),DHWMvoid(:,:),DDD(:,:),Sarray(:,:,:,:)
-complex(kind=dbl),allocatable           :: Lgh(:), Lgh2(:,:,:), Sgh(:), Sghtmp(:), DHWMz(:,:), Sgh2(:,:), Sghtmp2(:,:)
+complex(kind=dbl),allocatable           :: DHWM(:,:),DHWMvoid(:,:),DDD(:,:),Sarray(:,:,:,:), Sarrayk(:,:,:,:,:)
+complex(kind=dbl),allocatable           :: Lgh(:), Lgh2(:,:), Sgh(:), Sghtmp(:), DHWMz(:,:), Sgh2(:,:), Sghtmp2(:,:)
 complex(kind=dbl)                       :: czero=cmplx(0.D0,0.D0),cone=dcmplx(1.D0,0.D0)
 type(kvectorlist),pointer               :: khead, ktmp
 logical                                 :: verbose
@@ -630,7 +630,8 @@ character(len=128)                      :: iomsg
 logical                                 :: overwrite = .TRUE., insert = .TRUE., g_exists, usehex
 
 integer(HSIZE_T), dimension(1:3)        :: hdims, offset
-integer(HSIZE_T)                        :: dims3(3), dims4(4)
+integer(HSIZE_T), dimension(1:5)        :: hdims5, offset5
+integer(HSIZE_T)                        :: dims3(3), dims4(4), dims5(5)
 character(fnlen,kind=c_char)            :: line2(1)
 
 character (len=10) :: file_name
@@ -684,7 +685,7 @@ call Diff%setrlpmethod('WK')
 call Diff%setV(dble(emnl%voltage))
 
 call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, emnl%dmin, verbose, useHDF=HDF)
-
+call Diff%Printrlp()
 lambda = Diff%getWaveLength()
 
 ! check the crystal system and setting; abort the program for trigonal with rhombohedral setting with
@@ -704,9 +705,8 @@ end if
 numset = cell%getNatomtype()
 call Diff%Initialize_SghLUT(cell, SG, emnl%dmin, numset, nat, verbose)
 
-
-!write(*,*) 'numset = ', numset
-
+write(*,*) sum(nat(1:numset))
+ 
 ! determine the point group number
 j=0
 do i=1,32
@@ -1071,11 +1071,12 @@ call Message%WriteValue(' --> ECCI: number of beam directions =  ', io_int, 1, "
 
 ! define the numd complex defect parameters (i.e., precompute the sin and cos arrays
 numd = 360
+para = czero
 do i=0,numd
   arg = 2.D0*cPi*dble(i)/dble(numd)
   para(i) = cmplx(dcos(arg),-dsin(arg))
 end do
-
+!rite(*,*) para
 cone = cmplx(1.D0,0.D0)
 
 mainloop: do isg = numstart,numstop 
@@ -1086,7 +1087,6 @@ mainloop: do isg = numstart,numstop
   reflist = gvectors_T()
 
   kk = klist(1:3,isg)
-  !kk = float(emnl%k)
   call cell%NormVec(kk,'c')
   kk = kk/lambda
   call cell%TransSpace(kk,kstar,'c','r')
@@ -1112,10 +1112,12 @@ mainloop: do isg = numstart,numstop
   end if
 
   ! allocate the various DHW Matrices
+  !call mem%alloc2(DHWMz, (/nn,nn/), 'DHWMz')
   if (allocated(DHWMz)) deallocate(DHWMz)
   allocate(DHWMz(nn,nn))
   DHWMz = czero
-
+  
+  !call mem%alloc2(DHWMvoid, (/nn,nn/), 'DHWMvoid')
   if (allocated(DHWMvoid)) deallocate(DHWMvoid)
   allocate(DHWMvoid(nn,nn))
 
@@ -1139,48 +1141,45 @@ mainloop: do isg = numstart,numstop
       ! Conversion from Bloch wave matrix to scattering matrix formalism
       DHWMz = DHWMz * dcmplx(0.D0,cPi * lambda)
   end if 
-
-  ! compute the excitation error for the incident beam directions
-  if (allocated(sgarray)) deallocate(sgarray)
-  allocate(sgarray(nn))
-
-  call reflist%GetSgArray_ECCI(cell, sgarray, dble(klist), numk, isg, DynFN, Diff, firstw, nn)
-
+  
   ! loop over all reflections to get the appropriate powers
+  !call mem%alloc3(expval, (/2,nn,nn/), 'expval')
   if (allocated(expval)) deallocate(expval)
   allocate(expval(2,nn,nn))
   expval = 0.0
-
+  
   call reflist%GetExpval_ECCI(cell, expval, Diff, firstw, nn, DM, ga, gb )
 
   ! Compute Sgh
-  ! For the moment only the diagonals terms are computed...
-  if (allocated(Sgh)) deallocate(Sgh)
-  allocate(Sgh(nn))
+  ! Only diagonals terms are computed gives inverted contrast...
+  !call mem%alloc1(Sgh, (/nn/), 'Sgh')
+  !if (allocated(Sgh)) deallocate(Sgh)
+  !allocate(Sgh(nn))
 
-  nat = 0
-  call Diff%preCalcSghECCI(cell, SG, nn, nat, Sgh)
-
-  
-
-  ! Commented section used to test computation with non diagonals terms of Sgh
-  ! then we need to initialize the Sgh arrays
-  !if (allocated(Sghtmp2)) deallocate(Sghtmp2)
-  !if (allocated(Lgh2)) deallocate(Lgh2)
-  !allocate(Sghtmp2(nn,nn))
-  !Sghtmp2 = czero
-  !Lgh2 = czero
   !nat = 0
-  !call reflist%getSghfromLUTsum(Diff,nn,numset,nat,Sghtmp2)
+  !call Diff%preCalcSghECCI(cell, SG, nn, nat, Sgh)
+
+  ! Computation with non diagonals terms of Sgh
+  ! then we need to initialize the Sgh arrays
+  if (allocated(Sghtmp2)) deallocate(Sghtmp2)
+  allocate(Sghtmp2(nn,nn))
+  Sghtmp2 = czero
+  call reflist%getSghfromLUTsum(Diff,nn,numset,nat,Sghtmp2)
 
   call Message%printMessage(' --> Done',"(A)")
 
   if (self%nml%mode.eq.'Full') then
 
-    forall (i=1:nn)
-      DHWMz(i,i)= cmplx(0.D0,2.D0*cPi*sgarray(i)) + xgp ! xgp already has i Pi in it.
-      DHWMvoid(i,i) = DHWMz(i,i)
-    end forall
+  ! compute the excitation error for the incident beam directions
+  !call mem%alloc1(sgarray, (/nn/), 'sgarray')
+  if (allocated(sgarray)) deallocate(sgarray)
+  allocate(sgarray(nn))
+
+  call reflist%GetSgArray_ECCI(cell, sgarray, dble(klist), numk, isg, DynFN, Diff, firstw, nn)
+  forall (i=1:nn)
+    DHWMz(i,i)= cmplx(0.D0,2.D0*cPi*sgarray(i)) + xgp ! xgp already has i Pi in it.
+    DHWMvoid(i,i) = DHWMz(i,i)
+  end forall
 
   else if (self%nml%mode.eq.'fast') then
     forall (i=1:nn)
@@ -1189,19 +1188,22 @@ mainloop: do isg = numstart,numstop
   end if
 
   allocate(Sarray(nn,nn,0:numd,0:numd))
-
+  Sarray = czero
+  !call mem%alloc4(Sarray, (/nn,nn,numd,numd/), 'Sarray')
   NTHR = emnl%nthreads
-  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,jj,ic,ir,g,Azz,DDD,zmax)
+  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,jj,ic,ir,g,Azz,DDD,zmax,Sarrayk)
   TID = OMP_GET_THREAD_NUM()
-
-  if (TID.eq.0) then
-  io_int(1) = isg
-  call Message%WriteValue(' -> ',io_int,1,"(I4,' ')",advance="no")
-  call Message%printMessage('starting Sarray computation',"(A)",advance="no")
-  end if
 
   allocate(Azz(nn,nn), DDD(nn,nn))   ! these are private variables, so each thread must allocate them !
 
+  if (TID.eq.0) then
+    io_int(1) = isg
+    call Message%WriteValue(' -> ',io_int,1,"(I4,' ')",advance="no")
+    call Message%printMessage('starting Sarray computation',"(A)",advance="no")
+  end if
+
+  !call mem%alloc2(Azz, (/nn,nn/), 'Azz')
+  !call mem%alloc2(DDD, (/nn,nn/), 'DDD')
   !$OMP DO SCHEDULE(STATIC) 
   do j=0,numd
     do i=0,numd
@@ -1211,9 +1213,9 @@ mainloop: do isg = numstart,numstop
     ! ir is the row index
         do ir=1,nn
           if (ic.ne.ir) then  ! exclude the diagonal
-            DDD(ir,ic) = DHWMz(ir,ic) * para(i)**expval(1,ir,ic) * para(j)**expval(2,ir,ic)
+            DDD(ir,ic) = DHWMz(ir,ic) 
           else
-            DDD(ir,ic) = DHWMz(ir,ic)
+            DDD(ir,ic) = DHWMz(ir,ic) * para(i)**expval(1,ir,ic) * para(j)**expval(2,ir,ic)
           end if
         end do
       end do
@@ -1221,13 +1223,14 @@ mainloop: do isg = numstart,numstop
       call MatrixExponential(DDD, Azz, dble(defects%DF_slice), 'Pade', nn)
 
       Sarray(1:nn,1:nn,i,j) = Azz(1:nn,1:nn)
-      
     end do
   end do
-  !$OMP END DO  
-  deallocate(Azz, DDD)
+  !$OMP END DO
+  !call mem%dealloc2(Azz, 'Azz')
+  !call mem%dealloc2(DDD, 'DDD')
+  deallocate(Azz,DDD)
   !$OMP END PARALLEL
-
+  
   call Message%printMessage(' --> Done; scattering matrix computation ',"(A)",advance="no")
 
   !----------------------------------------------------!
@@ -1238,19 +1241,23 @@ mainloop: do isg = numstart,numstop
   !----------------------------------------------------!
 
   NTHR = 12
-  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm,dym,ixp,iyp,Lgh,ir,ic,svals)
+  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm,dym,ixp,iyp,Lgh,Lgh2,ir,ic,svals)
   TID = OMP_GET_THREAD_NUM()
-
-  allocate(Azz(nn,nn),amp(nn),amp2(nn),Lgh(nn))
+  !call mem%alloc2(Azz, (/nn,nn/), 'Azz')
+  !call mem%alloc1(amp, (/nn/), 'amp')
+  !call mem%alloc1(amp2, (/nn/), 'amp2')
+  !call mem%alloc1(Lgh, (/nn/), 'Lgh')
+  allocate(Azz(nn,nn),amp(nn),amp2(nn),Lgh(nn),Lgh2(nn,nn))
 
   !$OMP DO SCHEDULE (STATIC)
   donpix: do i=1,npix
     donpiy:   do j=1,npiy
       ! initialize the wave function for this pixel with (1.0,0.0) for the incident beam
+      Lgh = czero
       Lgh2 = czero
       amp = czero
       amp(1) = cone
-
+      amp2 = czero
       doslices: do k=1,defects%DF_nums    ! loop over the fixed thickness slices
     ! compute the appropriate scattering matrix to propagate with (see section 8.3.3 in the book)
           if (disparray(1,k,i,j).eq.-10000) then  ! this is point inside a void
@@ -1271,51 +1278,43 @@ mainloop: do isg = numstart,numstop
             Azz = dxm*dym*Sarray(1:nn,1:nn,ix,iy)+dx*dym*Sarray(1:nn,1:nn,ixp,iy)+ &
                   dxm*dy*Sarray(1:nn,1:nn,ix,iyp)+dx*dy*Sarray(1:nn,1:nn,ixp,iyp)
           end if
-
           amp2 = matmul(Azz,amp)
 
           if (k.eq.1) then
-            !Lgh2 = lambdaZ(k)*abs(amp2)**2
-            Lgh = lambdaZ(k)*abs(amp2)**2
-            !Lgh2(1:nn,1:nn,k) = lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
-      !spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
-            !Lgh2(1:nn,1:nn,k) = spread(amp2(1:nn),dim=2,ncopies=nn)*&
-      !spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
+            Lgh2(1:nn,1:nn) = (mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
+                                spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
           else
-            !Lgh2 = Lgh + lambdaZ(k)*abs(amp2)**2
-            Lgh = Lgh + lambdaZ(k)*abs(amp2)**2
-            !Lgh2(1:nn,1:nn,k) = Lgh2(1:nn,1:nn,k-1)+spread(amp2(1:nn),dim=2,ncopies=nn)*&
-      !spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
+            Lgh2(1:nn,1:nn) = Lgh2(1:nn,1:nn)+(mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
+                              spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
           end if
-
+          
           amp = amp2
       end do doslices ! loop over slices
-      
-      ECCIimages(i,j,1) = sngl(real(sum( Sgh * Lgh )))
-      
+
       ! Commented section used to test Sgh non diagonals terms use...
 
-      !svals = 0.0
-      !do k=1,defects%DF_nums
-      !    !svals(ix) = real(sum(Lgh(1:nns,1:nns)*Sgh(1:nns,1:nns,ix)))
-      !    svals(k) = real(sum(Lgh2(1:nn,1:nn,k)*Sghtmp2(1:nn,1:nn)))
-      !end do
-      
-      !svals = svals/float(sum(nat(1:numset)))
+      svals = 0.0
+      svals = real(sum(Lgh2(1:nn,1:nn)*Sghtmp2(1:nn,1:nn)))
+
+      svals = svals/sngl(sum(nat(1:numset)))
       
     ! then we need to multiply Sgh and Lgh, sum, and take the real part which will
     ! produce the desired BSE intensity
-     ! ECCIimages(i,j,1) =  sum(svals)
+      ECCIimages(i,j,1) =  sngl(sum(svals))
 
     end do donpiy
   end do donpix
-  !$OMP END DO 
+  !$OMP END DO
+  !call mem%dealloc2(Azz, 'Azz')
+  !call mem%dealloc1(amp, 'amp')
+  !call mem%dealloc1(amp2, 'amp2')
+  !call mem%dealloc1(Lgh, 'Lgh') 
   deallocate(Azz,amp,amp2,Lgh)
   !$OMP END PARALLEL
   deallocate(Sarray)
+  !call mem%dealloc4(Sarray, 'Sarray')
 
-
-  ECCIimages = ECCIimages / float(Defects%DF_nums) / float(sum(nat))
+  ECCIimages = ECCIimages / float(Defects%DF_nums) !/ float(sum(nat))
 
   if ((trim(emnl%montagename).ne.'undefined')) then
     do i=1,emnl%DF_npix
@@ -1324,7 +1323,7 @@ mainloop: do isg = numstart,numstop
       end do
     end do
   end if
-
+  
   call reflist%Delete_gvectorlist()
 
   ! open the HDF interface
@@ -1490,7 +1489,7 @@ subroutine  CalcExpval_(self, expval,  nab, nn)
   !! version: 1.0
   !! date: 03/14/20
   !!
-  !! Compute the displacement field
+  !! Compute the exponential value
   
   use mod_crystallography
   use mod_diffraction
@@ -1524,7 +1523,7 @@ subroutine  CalcSgarray_(self, cell, Diff, sgarray, hklarray, klist, DynFN, numk
   !! version: 1.0
   !! date: 03/14/20
   !!
-  !! Compute the displacement field
+  !! Compute the sg array
   
   use mod_crystallography
   use mod_diffraction
