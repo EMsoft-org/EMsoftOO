@@ -265,6 +265,7 @@ if (inRAM.eqv..FALSE.) then
      fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(nml%tmpfile)
    else
      fname = trim(nml%tmpfile)
+     !fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(nml%tmpfile)
    end if
    inquire(file=trim(fname), exist=f_exists)
 

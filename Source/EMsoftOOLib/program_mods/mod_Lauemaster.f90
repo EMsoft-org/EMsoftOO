@@ -287,7 +287,7 @@ module mod_Lauemaster
   end subroutine writeHDFNameList_
   
   !--------------------------------------------------------------------------
-  subroutine Lauemaster_(self, EMsoft, progname)
+  subroutine Lauemaster_(self, EMsoft, progname, nmldeffile)
   !DEC$ ATTRIBUTES DLLEXPORT :: Lauemaster_
   !! author: MDG 
   !! version: 1.0 
@@ -345,29 +345,32 @@ module mod_Lauemaster
   end interface 
 
 
-  class(Lauemaster_T), INTENT(INOUT)       :: self
+  class(Lauemaster_T), INTENT(INOUT)      :: self
   type(EMsoft_T), INTENT(INOUT)           :: EMsoft
   character(fnlen), INTENT(INOUT)         :: progname 
+  character(fnlen),INTENT(IN)             :: nmldeffile
 
-  type(Cell_T)            :: cell
-  type(DynType)           :: Dyn
-  type(Timing_T)          :: timer
-  type(Diffraction_T)     :: Diff
-  type(IO_T)              :: Message
-  type(Laue_T)            :: reflist
-  type(Lambert_T)         :: kl
-  type(HDF_T)             :: HDF
-  type(SpaceGroup_T)      :: SG
-  type(kvectors_T)        :: kvec
-  type(HDFnames_T)        :: HDFnames
+  type(Cell_T)                            :: cell
+  type(DynType)                           :: Dyn
+  type(Timing_T)                          :: timer
+  type(Diffraction_T)                     :: Diff
+  type(IO_T)                              :: Message
+  type(Laue_T)                            :: reflist
+  type(Lambert_T)                         :: L
+  type(HDF_T)                             :: HDF
+  type(SpaceGroup_T)                      :: SG
+  type(kvectors_T)                        :: kvec
+  type(HDFnames_T)                        :: HDFnames
+  type(image_t)                           :: im, im2
+
   type(Laue_g_list), pointer :: rltmp
   logical 								                   :: verbose
   real(kind=sgl),allocatable                 :: mLPNH(:,:), mLPSH(:,:), masterSPNH(:,:), masterSPSH(:,:)
   integer(kind=irg)						               :: npx, npy, gcnt, ierr, nix, niy, nixp, niyp, i, j, w, istat, TIFF_nx, TIFF_ny, &
                                                 hdferr, bw, d, ll, res, timestart, timestop, info, Lindex
-  real(kind=sgl)							               :: xy(2), xyz(3), dx, dy, dxm, dym, Radius, mi, ma, tstart, tstop, sdev, mean
+  real(kind=sgl)							               :: xyz(3), kl(2), dx, dy, dxm, dym, Radius, mi, ma, tstart, tstop, sdev, mean
   real(kind=dbl)                             :: VMFscale, inten, p, LegendreLattitude
-  character(fnlen)                           :: fname, TIFF_filename, attributename, groupname, datagroupname, dataset, &
+  character(fnlen)                           :: fname, hdfname, TIFF_filename, attributename, groupname, datagroupname, dataset, &
                                                  doiString, layout, SHTfile
 
   ! declare variables for use in object oriented image module
@@ -379,7 +382,6 @@ module mod_Lauemaster
   character(15)                   :: tstrb
   character(15)                   :: tstre
   character(fnlen)                :: image_filename
-  type(image_t)                   :: im, im2
   integer(int8)                   :: i8 (3,4), int8val
   integer(int8), allocatable      :: output_image(:,:)
 
@@ -448,6 +450,7 @@ module mod_Lauemaster
   call cell%setFileName(lmnl%xtalname)
 
   dmin = 0.05
+  call Diff%setV(dble(1.0))
   call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
 
   !=============================================
@@ -504,69 +507,193 @@ module mod_Lauemaster
     w = lmnl%patchw  ! this could become a part of the input namelist
 
     ! go through the entire reflection list
-    !rltmp => reflist%get_ListHead()
+    rltmp => reflist%get_ListHead()
 
-   ! do i=1,gcnt
+    do i=1,gcnt
   ! locate the nearest Lambert pixel (we need to make sure that the cartesian vector has unit length)
-     ! call cell%NormVec(rltmp%xyz, 'c') 
-
+      call cell%NormVec(rltmp%xyz, 'c') 
   ! do we need to modify the direction cosines to coincide with the Legendre lattitudinal grid values?
-     ! north = .TRUE.
-     ! if (rltmp%xyz(3).lt.0) north=.FALSE.
-    !  if (abs(rltmp%xyz(3)).ne.1.D0) then
-      !  kl = Lambert_T( xyd = rltmp%xyz * edge )
-      !  ierr = kl%LambertSpheretoSquare(rltmp%xyz, ierr) * float(npx)
+      north = .TRUE.
+      if (rltmp%xyz(3).lt.0) north=.FALSE.
+      if (abs(rltmp%xyz(3)).ne.1.D0) then
+        L = Lambert_T( xyz = sngl(rltmp%xyz))
+        ierr = L%LambertSphereToSquare( kl ) 
+        kl = kl * sngl(npx)
   ! here we need to be very careful to determine the index of the Legendre ring, NOT the Lambert ring !!!
-       ! Lindex = npx 
-       ! do while(LegendreArray(Lindex).lt.rltmp%xyz(3)) 
-       !   Lindex = Lindex - 1
-       ! end do  
-      !  LegendreLattitude = LegendreArray( Lindex - 1)
+        Lindex = npx 
+        do while(LegendreArray(Lindex).lt.rltmp%xyz(3)) 
+          Lindex = Lindex - 1
+        end do  
+        LegendreLattitude = LegendreArray( Lindex - 1)
   ! the factor p rescales the x and y components of kstar to maintain a unit vector
-       ! p = sqrt((1.D0-LegendreLattitude**2)/(1.D0-rltmp%xyz(3)**2))
-      !  rltmp%xyz = (/ p*rltmp%xyz(1), p*rltmp%xyz(2), LegendreLattitude /)
+        p = sqrt((1.D0-LegendreLattitude**2)/(1.D0-rltmp%xyz(3)**2))
+        rltmp%xyz = (/ p*rltmp%xyz(1), p*rltmp%xyz(2), LegendreLattitude /)
   ! rescale the coordinates in the Legendre square to be on the correct ring
-      !  kl = kl * float(Lindex)/maxval(abs(kl))
-      !end if
-     ! if (.not.north) rltmp%xyz(3) = -rltmp%xyz(3)
+        kl = kl * float(Lindex)/maxval(abs(kl))
+      end if
+        if (.not.north) rltmp%xyz(3) = -rltmp%xyz(3)
   ! and continue with the projection
-      ! call LambertgetInterpolation(sngl(rltmp%xyz), float(npx), npx, npy, nix, niy, nixp, niyp, dx, dy, dxm, dym)
+        !call LambertgetInterpolation(sngl(rltmp%xyz), float(npx), npx, npy, nix, niy, nixp, niyp, dx, dy, dxm, dym)
   ! intensity with polarization correction
-     ! inten = rltmp%sfs * rltmp%polar
-      !if (lmnl%binarize.eqv..TRUE.) inten = 1.0
+        inten = rltmp%sfs * rltmp%polar
+        write(*,*) inten
+        if (lmnl%binarize.eqv..TRUE.) inten = 1.0
   ! depending on the sign of xyz(3) we put this point in the Northern or Southern hemisphere, taking into account the
   ! special case of reflections along the equator which should appear in both hemisphere arrays.  The intensities are 
   ! computed on a small grid of w x w points on the Lambert projection, which are then interpolated from a "Gaussian" on
   ! the sphere. we use the von Mises-Fisher distribution with p=3
-      !call sampleVMF(sngl(rltmp%xyz), lmnl%kappaVMF, VMFscale, inten, npx, int(kl(1)), int(kl(2)), w, mLPNH, mLPSH, LegendreArray)
+       call L%sampleVMF(sngl(rltmp%xyz), lmnl%kappaVMF, VMFscale, inten, npx, int(kl(1)), int(kl(2)), w, mLPNH, mLPSH, LegendreArray)
   ! and go to the next point
-     ! rltmp => rltmp%next
-    !end do 
-
+      rltmp => rltmp%next
+    end do 
+    write(*,*) maxval(mLPNH)
   ! finally, make sure that the equator is copied into both arrays
-    !mLPSH(-npx,-npx:npx) = mLPNH(-npx,-npx:npx)
-    !mLPSH( npx,-npx:npx) = mLPNH( npx,-npx:npx)
-   !mLPSH(-npx:npx,-npx) = mLPNH(-npx:npx,-npx)
-    !mLPSH(-npx:npx, npx) = mLPNH(-npx:npx, npx)
+    mLPSH(-npx,-npx:npx) = mLPNH(-npx,-npx:npx)
+    mLPSH( npx,-npx:npx) = mLPNH( npx,-npx:npx)
+    mLPSH(-npx:npx,-npx) = mLPNH(-npx:npx,-npx)
+    mLPSH(-npx:npx, npx) = mLPNH(-npx:npx, npx)
   ! that completes the computation of the master pattern
 
   ! do we need to rebinarize?
-  !if (lmnl%binarize.eqv..TRUE.) then 
-   ! where (mLPNH.gt.0.75) 
-    !  mLPNH = 1.0
-    !end where 
-    !where (mLPSH.gt.0.75) 
-    !  mLPSH = 1.0
-   ! end where 
-  !end if 
+  if (lmnl%binarize.eqv..TRUE.) then 
+    where (mLPNH.gt.0.75) 
+      mLPNH = 1.0
+    end where 
+    where (mLPSH.gt.0.75) 
+      mLPSH = 1.0
+    end where 
+  end if 
 
   !=============================================
   !=============================================
   ! convert to stereographic projection
-    !allocate(masterSPNH(-npx:npx,-npy:npy))
-    !allocate(masterSPSH(-npx:npx,-npy:npy))
-    !masterSPNH = 0.0
-    !masterSPSH = 0.0
+  allocate(masterSPNH(-npx:npx,-npy:npy))
+  allocate(masterSPSH(-npx:npx,-npy:npy))
+  masterSPNH = 0.0
+  masterSPSH = 0.0
+
+
+! get stereographic projections
+  Radius = 1.0
+  do i=-npx,npx 
+    do j=-npx,npx 
+      L = Lambert_T( xy = (/ float(i), float(j) /) / float(npx ))
+      ierr = L%StereoGraphicInverse( xyz, Radius )
+      xyz = xyz/vecnorm(xyz)
+      if (ierr.ne.0) then 
+        masterSPNH(i,j) = 0.0
+        masterSPSH(i,j) = 0.0
+      else
+        masterSPNH(i,j) = InterpolateLambert(xyz, mLPNH, npx)
+        masterSPSH(i,j) = InterpolateLambert(xyz, mLPSH, npx)
+      end if
+    end do
+  end do
+
+  !=============================================
+  !=============================================
+  ! we save an image for the Northern hemisphere in stereographic projection
+
+  ! output the master pattern as a tiff file 
+
+  fname = EMsoft%generateFilePath('EMdatapathname',trim(lmnl%tiffname))
+  TIFF_filename = trim(fname)
+
+  ! allocate memory for image
+  TIFF_nx = 2*npx+1
+  TIFF_ny = 2*npx+1
+  allocate(TIFF_image(TIFF_nx,TIFF_ny))
+
+  ! fill the image with whatever data you have (between 0 and 255)
+  ma = maxval(masterSPNH)
+  write(*,*) 'maximum intensity = ', ma 
+
+  TIFF_image = int(255 * (masterSPNH/ma))
+
+  ! set up the image_t structure
+  im = image_t(TIFF_image)
+  if(im%empty()) call Message%printMessage("ComputeLaueMasterPattern","failed to convert array to image")
+
+  ! create the file
+  call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+  if(0.ne.iostat) then
+    call Message%printMessage("failed to write image to file : "//iomsg)
+  else  
+    call Message%printMessage('image written to '//trim(TIFF_filename))
+  end if 
+  deallocate(TIFF_image)
+
+  !=============================================
+  !=============================================
+  ! save everything to HDF5 file
+    
+  if (lmnl%outformat.eq.'LMP') then   ! regular master pattern HDF5 output
+    hdfname = EMsoft%generateFilePath('EMdatapathname',trim(lmnl%hdfname))
+    !=============================================
+    ! create or update the HDF5 output file
+    !=============================================
+    call HDFnames%set_ProgramData(SC_Lauemaster)
+    call HDFnames%set_NMLlist(SC_LaueNameList)
+    call HDFnames%set_NMLfilename(SC_LauemasterNML)
+  
+    ! Open an existing file or create a new file using the default properties.
+    hdferr =  HDF%createFile(hdfname)
+
+    ! write the EMheader to the file
+    datagroupname = trim(HDFnames%get_ProgramData())
+    call HDF%writeEMheader(EMsoft, dstr, tstrb, tstre, progname, datagroupname)
+  
+  ! open or create a namelist group to write all the namelist files into
+    groupname = SC_NMLfiles
+    hdferr = HDF%createGroup(groupname)
+  
+  ! read the text file and write the array to the file
+    dataset = SC_LauemasterNML
+    hdferr = HDF%writeDatasetTextFile(dataset, nmldeffile)
+  
+  ! leave this group
+    call HDF%pop()
+  
+  ! create a namelist group to write all the namelist files into
+    groupname = SC_NMLparameters
+    hdferr = HDF%createGroup(groupname)
+  
+    call self%writeHDFNameList(HDF, HDFnames)
+  
+  ! leave this group
+    call HDF%pop()
+  
+  ! then the remainder of the data in a EMData group
+    groupname = SC_EMData
+    hdferr = HDF%createGroup(groupname)
+  
+  ! create the Lauemaster group and add a HDF_FileVersion attribbute to it 
+    hdferr = HDF%createGroup(datagroupname)
+    !HDF_FileVersion = '4.0'
+    !attributename = SC_HDFFileVersion
+    !hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
+  
+  ! now start writing the ouput arrays...
+    dataset = SC_mLPNH
+    hdferr = HDF%writeDatasetFloatArray(dataset, mLPNH, 2*npx+1, 2*npx+1)
+  
+    dataset = SC_mLPSH
+    hdferr = HDF%writeDatasetFloatArray(dataset, mLPSH, 2*npx+1, 2*npx+1)
+  
+    dataset = SC_masterSPNH
+    hdferr = HDF%writeDatasetFloatArray(dataset, masterSPNH, 2*npx+1, 2*npx+1)
+  
+    dataset = SC_masterSPSH
+    hdferr = HDF%writeDatasetFloatArray(dataset, masterSPSH, 2*npx+1, 2*npx+1)
+  
+  ! and close the file
+    call HDF%pop(.TRUE.)
+  ! close the Fortran interface
+    call closeFortranHDFInterface()
+
+
+  end if
+
   end associate
 
   end subroutine Lauemaster_

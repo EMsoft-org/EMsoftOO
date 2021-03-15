@@ -274,6 +274,7 @@ module mod_LaueSupport
               gcnt = gcnt + 1
 ! fill in the values
               gtail%hkl = (/ h, k, l /)
+              write(*,*) gtail%hkl
               call cell%TransSpace(dble(gtail%hkl), gtail%xyz, 'r', 'c')
 !            call NormVec(cell, gtail%xyz, 'c')    ! removed by MDG, 07/30/19 for EMLaue program
               gtail % tt = Diff%CalcDiffAngle(cell, (/h, k, l/))

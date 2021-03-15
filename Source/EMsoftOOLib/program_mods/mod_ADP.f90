@@ -1240,10 +1240,11 @@ if (adpnl%usetmpfile.eq.'n') then
   dinl%ipf_wd = adpnl%ipf_wd
   dinl%ipf_ht = adpnl%ipf_ht
   dinl%tmpfile = adpnl%tmpfile
-  dinl%exptfile = adpnl%exptfile
+  dinl%exptfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(adpnl%exptfile)
   dinl%inputtype = adpnl%inputtype
   dinl%HDFstrings = adpnl%HDFstrings
   dinl%nregions = adpnl%nregions
+  dinl%DIModality = 'EBSD'
 
   call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
 end if
