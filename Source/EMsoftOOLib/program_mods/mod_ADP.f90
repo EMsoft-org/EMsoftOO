@@ -1423,6 +1423,8 @@ allocate(TIFF_image(TIFF_nx,TIFF_ny))
 ma = maxval(dpmap)
 mi = minval(dpmap)
 
+write (*,*) ' adp map range ',mi,ma 
+
 do j=1,TIFF_ny
  do i=1,TIFF_nx
   ii = (j-1) * TIFF_nx + i

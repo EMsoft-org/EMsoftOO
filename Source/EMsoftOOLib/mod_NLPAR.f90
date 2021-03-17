@@ -55,16 +55,18 @@ private
   procedure, pass(self) :: setSearchWindow_
   procedure, pass(self) :: getSearchWindow_
   procedure, pass(self) :: setLambda_
+  procedure, pass(self) :: getLambda_
   procedure, pass(self) :: estimateSigma_
-  procedure, pass(self) :: getPairwiseDistance_
+  procedure, pass(self) :: getWeightFactors_
   procedure, pass(self) :: averagePatterns_
   procedure, pass(self) :: doNLPAR_
 
   generic, public :: setSearchWindow => setSearchWindow_
   generic, public :: getSearchWindow => getSearchWindow_
   generic, public :: setLambda => setLambda_
+  generic, public :: getLambda => getLambda_
   generic, public :: estimateSigma => estimateSigma_
-  generic, public :: getPairwiseDistance => getPairwiseDistance_
+  generic, public :: getWeightFactors => getWeightFactors_
   generic, public :: averagePatterns => averagePatterns_
   generic, public :: doNLPAR => doNLPAR_
 
@@ -162,7 +164,25 @@ self%lambda= inp
 end subroutine setLambda_
 
 !--------------------------------------------------------------------------
-function estimateSigma_(self, pb, ps, wd) result(sigEst)
+function getLambda_(self) result(outp)
+!DEC$ ATTRIBUTES DLLEXPORT :: getLambda_
+!! author: MDG
+!! version: 1.0
+!! date: 03/17/21
+!!
+!! get lambda parameter
+
+IMPLICIT NONE
+
+class(NLPAR_T), INTENT(INOUT)   :: self
+real(kind=sgl)                  :: outp
+
+outp = self%lambda
+
+end function getLambda_
+
+!--------------------------------------------------------------------------
+function estimateSigma_(self, pb, ps, wd, sw, jrow) result(sigEst)
 !DEC$ ATTRIBUTES DLLEXPORT :: estimateSigma_
 !! author: MDG 
 !! version: 1.0 
@@ -180,19 +200,23 @@ IMPLICIT NONE
 class(NLPAR_T), INTENT(INOUT)          :: self
 integer(kind=irg), INTENT(IN)          :: ps 
 integer(kind=irg), INTENT(IN)          :: wd 
-real(kind=sgl), INTENT(IN)             :: pb( ps * wd * 3 )
+integer(kind=irg), INTENT(IN)          :: sw 
+real(kind=sgl), INTENT(IN)             :: pb( ps * wd * (2*sw+2) )
+integer(kind=irg), INTENT(IN)          :: jrow
 real(kind=sgl)                         :: sigEst( wd ) 
 
-real(kind=sgl)                         :: dpvals(8), cp(ps)
+real(kind=sgl)                         :: dpvals(8), cp(ps), nv
 integer(kind=irg)                      :: ip, i, j, pstart(8), ik, pc
 
 sigEst = 0.0
+
+nv = 0.5/float(wd)
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, pstart, dpvals, pc, cp)
 !$OMP DO SCHEDULE(DYNAMIC,5)
   do ip=2,wd-1
     dpvals = 0.0 
-    pc = (wd+ip-1) * ps + 1
+    pc = ( (jrow-1)*wd+ip-1) * ps + 1
     cp = pb(pc:pc+ps-1)
     ik = 0
     do i=-1,1
@@ -206,7 +230,7 @@ sigEst = 0.0
     do ik=1,8 
       dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
     end do
-    sigEst(ip) = sqrt( minval(dpvals) ) * 0.25
+    sigEst(ip) = minval(dpvals)*nv  ! we only use this in squared form so no need for sqrt
   end do
 !$OMP END DO 
 !$OMP END PARALLEL
@@ -218,8 +242,8 @@ sigEst(wd) = sigEst(wd-1)
 end function estimateSigma_
 
 !--------------------------------------------------------------------------
-function getPairwiseDistance_(self, pb, ps, wd, sw, row) result(dpp)
-!DEC$ ATTRIBUTES DLLEXPORT :: getPairwiseDistance_
+function getWeightFactors_(self, pb, se, ps, wd, sw, lambda, row) result(wt)
+!DEC$ ATTRIBUTES DLLEXPORT :: getWeightFactors_
 !! author: MDG 
 !! version: 1.0 
 !! date: 03/15/21
@@ -235,19 +259,23 @@ integer(kind=irg), INTENT(IN)          :: ps
 integer(kind=irg), INTENT(IN)          :: wd 
 integer(kind=irg), INTENT(IN)          :: sw 
 real(kind=sgl), INTENT(IN)             :: pb( ps * wd * (2*sw+1) )
+real(kind=sgl), INTENT(IN)             :: se( wd * (2*sw+1) )
+real(kind=sgl), INTENT(IN)             :: lambda
 integer(kind=sgl), INTENT(IN), OPTIONAL:: row 
-real(kind=sgl)                         :: dpp( 2*sw+1, 2*sw+1, wd ) 
+real(kind=sgl)                         :: wt( 2*sw+1, 2*sw+1, wd ) 
 
-real(kind=sgl)                         :: cp(ps)
-integer(kind=irg)                      :: ip, i, j, pstart, ik, jrow, icol, pc
+real(kind=sgl)                         :: cp(ps), diff(ps)
+integer(kind=irg)                      :: ip, i, j, pstart, ik, jrow, icol, pc, fwd, sfwd, sigi, sigj
+
+fwd = float(wd)
+sfwd = sqrt(2.0*fwd)
 
 ! we need to make sure that we handle the bottom and top SW patterns differently!
-! The point with indices (irow, jrow) is the reference pattern for the NLPAR algorithm
+! The point with indices (icol, jrow) is the reference pattern for the NLPAR algorithm
 jrow = sw+1
 if (present(row)) jrow=row
 
-! we need to make sure that we handle the leftmost and rightmost SW patterns separately!
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, ip, icol, pc, cp, pstart)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, ip, icol, pc, cp, pstart, sigi, sigj, diff)
 !$OMP DO SCHEDULE(DYNAMIC,10)
   do ik=1,wd  ! loop over all the reference patterns 
 ! icol is the starting column for the double loop
@@ -256,21 +284,28 @@ if (present(row)) jrow=row
     if (ik.gt.wd-sw) icol=wd-2*sw
     pc = (jrow-1)*wd*ps + (icol-1)*ps + 1
     cp = pb(pc:pc+ps-1)  ! this is the reference pattern vector 
+    sigi = se( (jrow-1)*wd + icol )  ! sigma_i^2 for the reference pattern 
 ! loop over all the patterns in the box
     do i=icol,icol+2*sw
       ip = i-icol+1
       do j=1,2*sw+1
-        if ( (i.ne.icol) .and. (j.ne.jrow)) then
-          pstart = (j-1) * wd * ps + (icol-1) * ps + 1
-          dpp(ip,j,wd) = sum( ( cp - pb(pstart:pstart+ps-1) )**2 )
+        if ( (ip.eq.icol) .and. (j.eq.jrow)) then
+          wt(ip,j,ik) = 1.0
+        else
+          pstart = (j-1) * wd * ps + (ip-1) * ps + 1
+          sigj = sigi + se( (j-1) * wd  + ip )
+          diff = cp - pb(pstart:pstart+ps-1)
+          wt(ip,j,ik) = exp( - lambda*maxval( (/0.0, (sum(diff*diff)-fwd*sigj)/(sfwd*sigj) /)) ) 
         end if
       end do
     end do     
+    wt(:,:,ik) = wt(:,:,ik) / sum(wt(:,:,ik))
   end do 
 !$OMP END DO 
 !$OMP END PARALLEL
 
-end function getPairwiseDistance_
+end function getWeightFactors_
+
 
 !--------------------------------------------------------------------------
 function averagePatterns_(self, pb, wt, ps, wd, sw) result(pat)
@@ -296,6 +331,7 @@ real(kind=sgl)                         :: pat( ps * wd )
 real(kind=sgl)                         :: psum(ps)
 integer(kind=irg)                      :: ip, i, j, pstart, ik, jrow, icol
 
+pat = 0.0
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, ip, icol, psum, pstart)
 !$OMP DO SCHEDULE(DYNAMIC,10)
@@ -375,9 +411,9 @@ integer(kind=irg)                                 :: tickstart, tstop, io_int(2)
 integer(HSIZE_T)                                  :: dims3(3), offset3(3)
 integer(kind=irg),parameter                       :: iunitexpt = 41, itmpexpt = 42
 real(kind=dbl)                                    :: w, Jres
-real(kind=sgl)                                    :: vlen, tmp, mi, ma 
+real(kind=sgl)                                    :: vlen, tmp, mi, ma, lambda, fwd, sfwd 
 real(kind=sgl),allocatable                        :: Pattern(:,:), imageexpt(:), exppatarray(:), Pat(:,:), exptblock(:), &
-                                                     sigvals(:,:), wtfactors(:,:,:), sigrow(:), dpp(:,:,:), tmpimageexpt(:)
+                                                     sigvals(:,:), wtfactors(:,:,:), sigEst(:), dpp(:,:,:), tmpimageexpt(:)
 real(kind=dbl),allocatable                        :: rrdata(:,:), ffdata(:,:), ksqarray(:,:)
 integer(kind=irg),allocatable                     :: pint(:,:)
 complex(kind=dbl),allocatable                     :: hpmask(:,:)
@@ -387,6 +423,7 @@ logical                                           :: isEBSD = .FALSE., isTKD = .
 character(fnlen)                                  :: fname 
 
 SW = self%getSearchWindow_()
+lambda = 1.0/self%getLambda_()**2
 mem = memory_T()
 
 verbose = .FALSE.
@@ -407,6 +444,8 @@ recordsize = correctsize*4
 L = binx*biny
 patsz = correctsize
 w = nml%hipassw
+fwd = float(L)
+sfwd = sqrt(2.0*float(L))
 
 if (sum(nml%ROI).ne.0) then
   ROIselected = .TRUE.
@@ -465,7 +504,7 @@ call OMP_setNThreads(nml%nthreads)
 ! allocate the arrays that holds the experimental patterns from (2*SW+1) rows of the region of interest
 call mem%alloc1(exppatarray, (/patsz * nml%ipf_wd/), 'exppatarray')
 call mem%alloc1(exptblock, (/patsz * nml%ipf_wd * (2*SW+1)/), 'exptblock')
-call mem%alloc1(sigrow, (/nml%ipf_wd/), 'sigrow')
+call mem%alloc1(sigEst, (/nml%ipf_wd * (2*SW+1)/), 'sigEst')
 
 if (present(exptIQ)) then
 ! prepare the fftw plan for this pattern size to compute pattern quality (pattern sharpness Q)
@@ -499,7 +538,7 @@ call timer%Time_tick(1)
 ! we read the first 2*SW+1 rows and then start the row loop.  To keep things simple, we read complete rows 
 ! and apply the ROI afterwards if it is defined.
 dims3 = (/ binx, biny, nml%ipf_wd /)
-do jrow = 1, 2*SW+1
+do jrow = 1, 2*SW+1+1  ! the second +1 is to have enough rows for the sigEst routine
   offset3 = (/ 0, 0, (jrow-1)*nml%ipf_wd /)
   if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
     call VT%getExpPatternRow(jrow, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
@@ -515,82 +554,64 @@ end do
 ! and we'll take the bottom row equal to the first row to avoid 
 ! having to deal with an incomplete nearest neighbor set.
 ! We send the first three concecutive rows to the estimateSigma_ routine.
-sigrow = self%estimateSigma_(exptblock( 1 : 3 * patsz * nml%ipf_wd ), patsz, nml%ipf_wd)
-sigrow = 1.0/sigrow**2/self%lambda**2   ! we'll take the inverse here and use this for rows 1 and 2
-if (verbose.eqv..TRUE.) write (*,*) ' sigrow 2 :', 1 , 3 * patsz * nml%ipf_wd
+do jrow=2,2*SW+1
+  sigEst((jrow-1)*nml%ipf_wd+1:jrow*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, SW, jrow)
+  if (verbose.eqv..TRUE.) write (*,*) ' computed sigma^2 for row ', jrow 
+end do 
+! make sure to copy the second row into the first row 
+sigEst(1:nml%ipf_wd) = sigEst(nml%ipf_wd+1:2*nml%ipf_wd)
+if (verbose.eqv..TRUE.) write (*,*) ' copied sigma^2 for row 1'
 
-! The following is a very complicated loop!  
-call mem%alloc3(dpp, (/2*SW+1,2*SW+1,nml%ipf_wd/), 'dpp')
+!==================================================
+! The following is a very complicated main loop!  
+!==================================================
 call mem%alloc3(wtfactors, (/2*SW+1,2*SW+1,nml%ipf_wd/), 'wtfactors')
 do jrow=1,nml%ipf_ht
 ! loop over all the experimental rows.  First we read the next line but only
 ! if we are in the central region.
-  if ( (jrow.gt.SW+1) .and. (jrow.lt.(nml%ipf_ht-SW+1)) ) then   ! we need to shift and read the following row of patterns 
-    exptblock = cshift(exptblock, nml%ipf_wd * patsz)
-    offset3 = (/ 0, 0, (jrow+SW-1)*nml%ipf_wd /)
+  if ( (jrow.gt.SW+1) .and. (jrow.lt.(nml%ipf_ht-SW+1)) ) then   ! we need to shift arrays and read the following row of patterns 
+    exptblock = cshift(exptblock, nml%ipf_wd * patsz)  ! experimental patterns 
+    sigEst = cshift(sigEst, nml%ipf_wd)                ! estimated sigma^2 values
+    offset3 = (/ 0, 0, (jrow+SW)*nml%ipf_wd /)
     if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
-      call VT%getExpPatternRow(jrow+SW, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
+      call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
                                HDFstrings=nml%HDFstrings, HDF=HDF)
     else
-      call VT%getExpPatternRow(jrow+SW, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray)
+      call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray)
     end if
     ! we add this as the last row of the exptblock array
-    exptblock( 2 * SW * patsz * nml%ipf_wd+1: (2 * SW + 1) * patsz * nml%ipf_wd ) = exppatarray(1:patsz * nml%ipf_wd)
-    if (verbose.eqv..TRUE.) write (*,*) ' read line ',jrow+SW,' of ',nml%ipf_ht
+    exptblock( (2 * SW +1) * patsz * nml%ipf_wd+1: (2 * SW + 2) * patsz * nml%ipf_wd ) = exppatarray(1:patsz * nml%ipf_wd)
+    if (verbose.eqv..TRUE.) write (*,*) ' read line ',jrow+SW+1,' of ',nml%ipf_ht
+! at this point we might as well compute the estimated sigma^2 values for the penultimate 
+! row in the exptblock array ... except for when we are at the end for which we need to 
+! copy a row ... if jrow = nml%ipf_ht-SW
+    if (jrow.eq.(nml%ipf_ht-SW)) then  ! copy the last line
+      sigEst((2*SW)*nml%ipf_wd+1:(2*SW+1)*nml%ipf_wd) = sigEst((2*SW-1)*nml%ipf_wd+1:(2*SW)*nml%ipf_wd)
+      if (verbose.eqv..TRUE.) write (*,*) ' copied sigma^2 for row ', jrow 
+    else 
+      sigEst((2*SW)*nml%ipf_wd+1:(2*SW+1)*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, SW, 2*SW+1)
+      if (verbose.eqv..TRUE.) write (*,*) ' computed sigma^2 for row ', jrow 
+    end if 
   end if 
 
-! get the distance arrays 
+! get the weightfactor array (this includes the normalized distance computation)
   if (jrow.le.SW+1) then ! we are in the bottom block of SW+1 patterns without loading
-    dpp = self%getPairwiseDistance_(exptblock, patsz, nml%ipf_wd, SW, row=jrow)
-    if (verbose.eqv..TRUE.) write (*,*) ' getPairwiseDistance fixed',jrow 
+    wtfactors = self%getWeightFactors_(exptblock, sigEst, patsz, nml%ipf_wd, SW, lambda, row=jrow)
+    if (verbose.eqv..TRUE.) write (*,*) ' getWeightFactors_ fixed',jrow 
   else 
     if (jrow.ge.nml%ipf_ht-SW) then ! same for the top block of SW+1 patterns
-      dpp = self%getPairwiseDistance_(exptblock, patsz, nml%ipf_wd, SW, row=2*SW+1-(nml%ipf_ht-jrow))
-      if (verbose.eqv..TRUE.) write (*,*) ' getPairwiseDistance fixed',2*SW+1-(nml%ipf_ht-jrow) 
+      wtfactors = self%getWeightFactors_(exptblock, sigEst, patsz, nml%ipf_wd, SW, lambda, row=2*SW+1-(nml%ipf_ht-jrow))
+      if (verbose.eqv..TRUE.) write (*,*) ' getWeightFactors_ fixed',2*SW+1-(nml%ipf_ht-jrow) 
     else  ! we just loaded a new pattern row so we recompute distances
-      dpp = self%getPairwiseDistance_(exptblock, patsz, nml%ipf_wd, SW)
-      if (verbose.eqv..TRUE.) write (*,*) ' getPairwiseDistance ',jrow 
+      wtfactors = self%getWeightFactors_(exptblock, sigEst, patsz, nml%ipf_wd, SW, lambda)
+      if (verbose.eqv..TRUE.) write (*,*) ' getWeightFactors_ ',jrow 
     end if
-  end if 
-
-! if we are in the first or second row, then we use the precomputed sigrow array for the weight computation
-  if (jrow.le.2) then 
-    do i=1,2*sw+1 
-      do j=1,2*sw+1 
-        wtfactors(i,j,1:nml%ipf_wd) = exp( - dpp(i,j,1:nml%ipf_wd) * sigrow(1:nml%ipf_wd) )
-      end do
-    end do 
-  else  ! if we are in the last row, then don't recompute the sigma values, otherwise do recompute them  
-    if (jrow.ne.nml%ipf_ht) then 
-      if (jrow.le.SW+1) then 
-        sigrow = self%estimateSigma_(exptblock( (jrow-2) * patsz * nml%ipf_wd+1:(jrow+1) * patsz * nml%ipf_wd ), &
-                                    patsz, nml%ipf_wd)
-        if (verbose.eqv..TRUE.) write (*,*) ' sigrow fixed',(jrow-2) * patsz * nml%ipf_wd+1,(jrow+1) * patsz * nml%ipf_wd
-      else 
-        if (jrow.gt.nml%ipf_ht-SW) then 
-          sigrow = self%estimateSigma_(exptblock( &
-          (2*SW+1-(nml%ipf_ht-jrow)-2) * patsz * nml%ipf_wd+1:(2*SW+2-(nml%ipf_ht-jrow)) * patsz * nml%ipf_wd ), &
-          patsz, nml%ipf_wd)
-        if (verbose.eqv..TRUE.) write (*,*) ' sigrow fixed',(2*SW+1-(nml%ipf_ht-jrow)-2)*patsz*nml%ipf_wd+1,&
-                                            (2*SW+2-(nml%ipf_ht-jrow))*patsz*nml%ipf_wd
-        else
-          sigrow = self%estimateSigma_(exptblock( (SW-1) * patsz * nml%ipf_wd+1:(SW+2) * patsz * nml%ipf_wd ), &
-                                      patsz, nml%ipf_wd)
-        if (verbose.eqv..TRUE.) write (*,*) ' sigrow ',(SW-1) * patsz * nml%ipf_wd+1,(SW+2) * patsz * nml%ipf_wd
-        end if
-      end if
-      sigrow = 1.0/sigrow**2/self%lambda**2   ! we'll take the inverse here and use this for rows 1 and 2
-    end if 
-    do i=1,2*sw+1 
-      do j=1,2*sw+1 
-        wtfactors(i,j,1:nml%ipf_wd) = exp( - dpp(i,j,1:nml%ipf_wd) * sigrow(1:nml%ipf_wd) )
-      end do
-    end do 
   end if 
 
 ! and compute the weighted sum of patterns 
   exppatarray = self%averagePatterns(exptblock, wtfactors, patsz, nml%ipf_wd, SW)
   if (verbose.eqv..TRUE.) write (*,*) ' averagePatterns ',jrow
+
 ! next we perform the normal pre-processing steps on these averaged pattern vectors 
 ! these lines are taken from the PreProcessPatterns routine; maybe in a later version
 ! we can avoid duplicating this code segment (it also appears twice further down)
@@ -685,9 +706,8 @@ close(unit=itmpexpt,status = 'keep')
 !====================================
 call mem%dealloc1(exppatarray, 'exppatarray')
 call mem%dealloc1(exptblock, 'exptblock')
-call mem%dealloc1(sigrow, 'sigrow')
+call mem%dealloc1(sigEst, 'sigEst')
 call mem%dealloc2(hpmask, 'hpmask')
-call mem%dealloc3(dpp, 'dpp')
 call mem%dealloc3(wtfactors, 'wtfactors')
 
 if (present(exptIQ)) then
