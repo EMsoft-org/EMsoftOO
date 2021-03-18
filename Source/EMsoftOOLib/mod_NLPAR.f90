@@ -190,8 +190,7 @@ function estimateSigma_(self, pb, ps, wd, sw, jrow) result(sigEst)
 !!
 !! estimate the sigma parameter for a given pattern (needs 3x3 surrounding patterns)
 !!
-!! we do this for a single row and duplicate the first and last values; this is done 
-!! using multiple threads 
+!! we do this for a single row (jrow) using OpenMP
 
 use omp_lib
 
@@ -206,13 +205,13 @@ integer(kind=irg), INTENT(IN)          :: jrow
 real(kind=sgl)                         :: sigEst( wd ) 
 
 real(kind=sgl)                         :: dpvals(8), cp(ps), nv
-integer(kind=irg)                      :: ip, i, j, pstart(8), ik, pc
+integer(kind=irg)                      :: ip, i, j, i1, i2, iknum, pstart(8), ik, pc
 
 sigEst = 0.0
 
 nv = 0.5/float(ps)
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, pstart, dpvals, pc, cp)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, i1, i2, iknum, pstart, dpvals, pc, cp)
 !$OMP DO SCHEDULE(DYNAMIC,5)
   do ip=1,wd
     dpvals = 0.0 
@@ -222,48 +221,40 @@ nv = 0.5/float(ps)
     pstart = 0
 ! treat the boundary points separately
     if (ip.eq.1) then 
-      do i=0,1
-        do j=-1,1
-          if ((abs(i)+abs(j)).ne.0)  then 
-            ik = ik+1 
-            pstart(ik) = pc + (i + j * wd) * ps 
-          end if
-        end do 
-      end do 
-      do ik=1,5 
-        dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
-      end do
+      i1 = 0
+      i2 = 1
+      iknum = 5
+    else 
+      if (ip.eq.wd) then 
+        i1 = -1
+        i2 = 0
+        iknum = 5
+      else   
+        i1 = -1
+        i2 = 1
+        iknum = 8
+      end if
     end if 
-    if (ip.eq.wd) then 
-      do i=-1,0
-        do j=-1,1
-          if ((abs(i)+abs(j)).ne.0)  then 
-            ik = ik+1 
-            pstart(ik) = pc + (i + j * wd) * ps 
-          end if
-        end do 
+! perform the computation
+    do i=i1,i2
+      do j=-1,1
+        if ((abs(i)+abs(j)).ne.0)  then 
+          ik = ik+1 
+          pstart(ik) = pc + (i + j * wd) * ps 
+        end if
       end do 
-      do ik=1,5 
-        dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
-      end do
-    end if 
-    if ( (ip.gt.1).and.(ip.lt.wd)) then
-      do i=-1,1
-        do j=-1,1
-          if ((abs(i)+abs(j)).ne.0)  then 
-            ik = ik+1 
-            pstart(ik) = pc + (i + j * wd) * ps 
-          end if
-        end do 
-      end do 
-      do ik=1,8 
-        dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
-      end do
-    end if
+    end do 
+    do ik=1,iknum
+      dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
+    end do
     sigEst(ip) = minval(dpvals)*nv  ! we only use this in squared form so no need for sqrt
   end do
 !$OMP END DO 
 !$OMP END PARALLEL
+
+! we'll rescale here as well to compensate for the difference in points at the edges 
+sigEst(1) = sigEst(1) * 1.6
+sigEst(wd) = sigEst(wd) * 1.6
 
 end function estimateSigma_
 
@@ -292,33 +283,37 @@ integer(kind=sgl), INTENT(IN), OPTIONAL:: row
 real(kind=sgl)                         :: wt( 2*sw+1, 2*sw+1, wd ) 
 
 real(kind=sgl)                         :: cp(ps), diff(ps)
-integer(kind=irg)                      :: ip, i, j, pstart, ik, jrow, icol, pc, fps, sfps, sigi, sigj
+integer(kind=irg)                      :: ip, i, j, pstart, ik, jref, icol, iref, pc, fps, sfps, sigi, sigj
 
 fps = float(ps)
 sfps = sqrt(2.0*fps)
 
 ! we need to make sure that we handle the bottom and top SW patterns differently!
-! The point with indices (icol, jrow) is the reference pattern for the NLPAR algorithm
-jrow = sw+1
-if (present(row)) jrow=row
+! The point with indices (iref, jref) is the reference pattern for the NLPAR algorithm
+jref = sw+1
+if (present(row)) jref=row
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, ip, icol, pc, cp, pstart, sigi, sigj, diff)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, ip, icol, iref, pc, cp, pstart, sigi, sigj, diff)
 !$OMP DO SCHEDULE(DYNAMIC,10)
   do ik=1,wd  ! loop over all the reference patterns 
-! icol is the starting column for the double loop
+! icol is the column corresponding to the left edge of the (2*SW+1)x(2*SW+1) box 
+! iref is the column position of the reference pattern, so iref should always be ik
+    iref = ik
     icol = ik-sw
     if (ik.le.sw) icol = 1
-    if (ik.gt.wd-sw) icol=wd-2*sw
-    pc = (jrow-1)*wd*ps + (icol-1)*ps + 1
+    if (ik.ge.wd-sw) icol=wd-2*sw
+! get the location of the reference pattern in the pb pattern array
+    pc = (jref-1)*wd*ps + (iref-1)*ps + 1
     cp = pb(pc:pc+ps-1)  ! this is the reference pattern vector 
-    sigi = se( (jrow-1)*wd + icol )  ! sigma_i^2 for the reference pattern 
+    sigi = se( (jref-1)*wd + iref )  ! sigma_i^2 for the reference pattern 
 ! loop over all the patterns in the box
     do i=icol,icol+2*sw
       ip = i-icol+1
       do j=1,2*sw+1
-        if ( (i.eq.icol) .and. (j.eq.jrow)) then
+        if ( (i.eq.iref) .and. (j.eq.jref)) then
           wt(ip,j,ik) = 1.0
         else
+! get the location of the (i,j) pattern in the array pb
           pstart = (j-1) * wd * ps + (i-1) * ps + 1
           sigj = sigi + se( (j-1) * wd  + i )
           diff = cp - pb(pstart:pstart+ps-1)
