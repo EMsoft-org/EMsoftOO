@@ -399,8 +399,8 @@ recursive subroutine doNLPAR_(self, EMsoft, HDF, inRAM, nml, binx, biny, masklin
 !! version: 1.0
 !! date: 03/15/21
 !!
-!! apply the NLPAR averaging method to the pattern file and generate a preprocessed pattern file 
-!! this includes the normal pattern preprocessing step performed for DI etc... programs, in other 
+!! Apply the NLPAR averaging method to the pattern file and generate a preprocessed pattern file 
+!! This includes the normal pattern preprocessing step performed for DI etc... programs, in other 
 !! words, this is a more complicated version of the PreProcessPatterns routine in mod_patterns, with 
 !! some duplication of code; this is unavoidable because NLPAR needs to read multiple lines of patterns
 !! instead of just one, and it would needlessly complicate the PreProcessPatterns routine to do it the 
@@ -445,7 +445,7 @@ integer(kind=irg)                                 :: tickstart, tstop, io_int(2)
 integer(HSIZE_T)                                  :: dims3(3), offset3(3)
 integer(kind=irg),parameter                       :: iunitexpt = 41, itmpexpt = 42
 real(kind=dbl)                                    :: w, Jres
-real(kind=sgl)                                    :: vlen, tmp, mi, ma, lambda, fwd, sfwd, io_real(1) 
+real(kind=sgl)                                    :: vlen, tmp, mi, ma, lambda, io_real(1) 
 real(kind=sgl),allocatable                        :: Pattern(:,:), imageexpt(:), exppatarray(:), Pat(:,:), exptblock(:), &
                                                      sigvals(:,:), wtfactors(:,:,:), sigEst(:), dpp(:,:,:), tmpimageexpt(:)
 real(kind=dbl),allocatable                        :: rrdata(:,:), ffdata(:,:), ksqarray(:,:)
@@ -460,7 +460,7 @@ SW = self%getSearchWindow_()
 lambda = 1.0/self%getLambda_()**2
 mem = memory_T()
 
-verbose = .TRUE. ! .FALSE.
+verbose = .FALSE.
 
 call Message%printMessage(' Performing NLPAR averaging on experimental patterns')
 
@@ -478,8 +478,6 @@ recordsize = correctsize*4
 L = binx*biny
 patsz = correctsize
 w = nml%hipassw
-fwd = float(L)
-sfwd = sqrt(2.0*float(L))
 
 if (sum(nml%ROI).ne.0) then
   ROIselected = .TRUE.
@@ -529,18 +527,16 @@ if (istat.ne.0) then
     call Message%printError("PreProcessPatterns:", "Fatal error handling experimental pattern file")
 end if
 
-! this next part is done with OpenMP, with only thread 0 doing the reading;
-! Thread 0 reads one or more lines worth of patterns from the input file, then all threads do
-! the work, and thread 0 adds them to the epatterns array in RAM or the temporary output file; 
-! repeat until all patterns have been processed.
+! Some parts are done with OpenMP so set the number of threads here
 call OMP_setNThreads(nml%nthreads)
 
-! allocate the arrays that holds the experimental patterns from (2*SW+1) rows of the region of interest
+! allocate the array that holds the experimental patterns from (2*SW+1) rows of the region of interest
+! as well as the exppatarray and sigEst arrays; all are 1D arrays to speed things up
 call mem%alloc1(exppatarray, (/patsz * nml%ipf_wd/), 'exppatarray')
 call mem%alloc1(exptblock, (/patsz * nml%ipf_wd * (2*SW+2)/), 'exptblock')
 call mem%alloc1(sigEst, (/nml%ipf_wd * (2*SW+1)/), 'sigEst')
 
-if (present(exptIQ)) then
+if (present(exptIQ)) then  ! this is only used in the dictionary indexing environment
 ! prepare the fftw plan for this pattern size to compute pattern quality (pattern sharpness Q)
   call mem%alloc2(Pat, (/binx,biny/),'Pat')
   call mem%alloc2(ksqarray, (/binx,biny/),'ksqarray')
@@ -558,19 +554,17 @@ call mem%dealloc2(inp,'inp')
 call mem%dealloc2(outp,'outp')
 ! keep the hpmask array 
 
-call mem%allocated_memory_use()
-
 call Message%printMessage('Starting processing of experimental patterns')
 timer = Timing_T()
 call timer%Time_tick(1)
 
 !==================================================
-! the bottom SW rows require some special treatment 
+! perform the NLPAR algorithm + regular pre-processing
 !==================================================
 
 ! Loop over all the rows and make sure that we always have 2*SW+1 rows in the exptblock array; so,
 ! we read the first 2*SW+1 rows and then start the row loop.  To keep things simple, we read complete rows 
-! and apply the ROI afterwards if it is defined.
+! and apply the ROI afterwards if it is defined [remains to be implemented, 3/18/2021].
 dims3 = (/ binx, biny, nml%ipf_wd /)
 do jrow = 1, 2*SW+1+1  ! the second +1 is to have enough rows for the sigEst routine
   offset3 = (/ 0, 0, (jrow-1)*nml%ipf_wd /)
@@ -584,65 +578,60 @@ do jrow = 1, 2*SW+1+1  ! the second +1 is to have enough rows for the sigEst rou
   if (verbose.eqv..TRUE.) write (*,*) ' read line ',jrow,' of ',nml%ipf_ht
 end do 
 
-! we need to compute the sigma values for the bottom 2 rows 
-! and we'll take the bottom row equal to the first row to avoid 
-! having to deal with an incomplete nearest neighbor set.
-! We send the first three concecutive rows to the estimateSigma_ routine.
+! we need to compute the estimated sigma values for the each row in exptblock 
 do jrow=1,2*SW+1
   sigEst((jrow-1)*nml%ipf_wd+1:jrow*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, nml%ipf_ht, SW, jrow)
   if (verbose.eqv..TRUE.) write (*,*) ' computed sigma^2 for row ', jrow 
 end do 
 
 !==================================================
-! The following is a very complicated main loop!  
+! The following is a complicated main loop!  
 !==================================================
 call mem%alloc3(wtfactors, (/2*SW+1,2*SW+1,nml%ipf_wd/), 'wtfactors')
-do jrow=1,nml%ipf_ht
-! loop over all the experimental rows.  First we read the next line but only
-! if we are in the central region.
-  if ( (jrow.gt.SW+1) .and. (jrow.le.(nml%ipf_ht-SW)) ) then   ! we need to shift arrays and read the following row of patterns 
-    exptblock = cshift(exptblock, nml%ipf_wd * patsz)  ! experimental patterns 
-    sigEst = cshift(sigEst, nml%ipf_wd)                ! estimated sigma^2 values
+do jrow=1,nml%ipf_ht ! loop over all the experimental rows.  
+  if ( (jrow.gt.SW+1) .and. (jrow.le.(nml%ipf_ht-SW)) ) then  ! we need to shift arrays and read the following row of patterns 
+    exptblock = cshift(exptblock, nml%ipf_wd * patsz)         ! experimental patterns 
+    sigEst = cshift(sigEst, nml%ipf_wd)                       ! corresponding estimated sigma^2 values
     offset3 = (/ 0, 0, (jrow+SW)*nml%ipf_wd /)
-    if (jrow.ne.(nml%ipf_ht-SW)) then
+    if (jrow.ne.(nml%ipf_ht-SW)) then  ! read the next row unless we're already at the end
       if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
         call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
                                  HDFstrings=nml%HDFstrings, HDF=HDF)
       else
         call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray)
       end if
-      ! we add this as the last row of the exptblock array
+      ! we add this as the last row of the (cshifted) exptblock array
       exptblock( (2 * SW +1) * patsz * nml%ipf_wd+1: (2 * SW + 2) * patsz * nml%ipf_wd ) = exppatarray(1:patsz * nml%ipf_wd)
       if (verbose.eqv..TRUE.) write (*,*) ' read line ',jrow+SW+1,' of ',nml%ipf_ht
     end if 
-! at this point we might as well compute the estimated sigma^2 values 
-    if (jrow.le.(nml%ipf_ht-SW)) then  ! copy the last line
+! at this point we might as well compute the estimated sigma^2 values for this new pattern row
+    if (jrow.le.(nml%ipf_ht-SW)) then  
       sigEst((2*SW)*nml%ipf_wd+1:(2*SW+1)*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, nml%ipf_ht, SW, 2*SW+1)
       if (verbose.eqv..TRUE.) write (*,*) ' computed sigma^2 for row ', jrow+SW
     end if 
   end if 
 
 ! get the weightfactor array (this includes the normalized distance computation)
-  if (jrow.le.SW+1) then ! we are in the bottom block of SW+1 patterns without loading
+  if (jrow.le.SW+1) then ! we are in the bottom block of SW+1 patterns
     wtfactors = self%getWeightFactors_(exptblock, sigEst, patsz, nml%ipf_wd, SW, lambda, row=jrow)
     if (verbose.eqv..TRUE.) write (*,*) ' getWeightFactors_ fixed',jrow 
   else 
     if (jrow.gt.nml%ipf_ht-SW) then ! same for the top block of SW+1 patterns
       wtfactors = self%getWeightFactors_(exptblock, sigEst, patsz, nml%ipf_wd, SW, lambda, row=2*SW+1-(nml%ipf_ht-jrow))
       if (verbose.eqv..TRUE.) write (*,*) ' getWeightFactors_ fixed',2*SW+1-(nml%ipf_ht-jrow) 
-    else  ! we just loaded a new pattern row so we recompute distances
+    else  ! this is what we do for all rows in between the bottom and top blocks
       wtfactors = self%getWeightFactors_(exptblock, sigEst, patsz, nml%ipf_wd, SW, lambda)
       if (verbose.eqv..TRUE.) write (*,*) ' getWeightFactors_ ',jrow 
     end if
   end if 
 
-! and compute the weighted sum of patterns 
+! compute the weighted sum of patterns for all patterns in this row
   exppatarray = self%averagePatterns(exptblock, wtfactors, patsz, nml%ipf_wd, SW)
   if (verbose.eqv..TRUE.) write (*,*) ' averagePatterns ',jrow
 
 ! next we perform the normal pre-processing steps on these averaged pattern vectors 
 ! these lines are taken from the PreProcessPatterns routine; maybe in a later version
-! we can avoid duplicating this code segment (it also appears twice further down)
+! we can avoid duplicating this code segment
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(jj, kk, mi, ma, istat) &
 !$OMP& PRIVATE(imageexpt, tmpimageexpt, Pat, rrdata, ffdata, pint, vlen, tmp, inp, outp)
@@ -716,17 +705,19 @@ deallocate(tmpimageexpt, Pat, rrdata, ffdata, pint, inp, outp)
 
 ! print an update of progress
     if (mod(jrow-iiistart+1,5).eq.0) then
-      ! if (ROIselected.eqv..TRUE.) then
-      !   io_int(1:2) = (/ jrow-iiistart+1, nml%ROI(4) /)
-      !   call Message%WriteValue('Completed row ',io_int,2,"(I4,' of ',I4,' rows')")
-      ! else
+      if (ROIselected.eqv..TRUE.) then
+        io_int(1:2) = (/ jrow-iiistart+1, nml%ROI(4) /)
+        call Message%WriteValue('Completed row ',io_int,2,"(I4,' of ',I4,' rows')")
+      else
         io_int(1:2) = (/ jrow-iiistart+1, nml%ipf_ht /)
         call Message%WriteValue('Completed row ',io_int,2,"(I4,' of ',I4,' rows')")
-      ! end if
+      end if
     end if
 
 end do 
 
+! close the files 
+call VT%closeExpPatternFile()
 close(unit=itmpexpt,status = 'keep')
 
 ! print some timing information
@@ -751,8 +742,6 @@ call mem%dealloc3(wtfactors, 'wtfactors')
 if (present(exptIQ)) then
   call mem%dealloc2(ksqarray, 'ksqarray')
 end if
-
-call mem%allocated_memory_use()
 
 end subroutine doNLPAR_
 
