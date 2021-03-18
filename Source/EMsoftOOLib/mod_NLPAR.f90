@@ -182,7 +182,7 @@ outp = self%lambda
 end function getLambda_
 
 !--------------------------------------------------------------------------
-function estimateSigma_(self, pb, ps, wd, sw, jrow) result(sigEst)
+function estimateSigma_(self, pb, ps, wd, ht, sw, jrow) result(sigEst)
 !DEC$ ATTRIBUTES DLLEXPORT :: estimateSigma_
 !! author: MDG 
 !! version: 1.0 
@@ -199,53 +199,65 @@ IMPLICIT NONE
 class(NLPAR_T), INTENT(INOUT)          :: self
 integer(kind=irg), INTENT(IN)          :: ps 
 integer(kind=irg), INTENT(IN)          :: wd 
+integer(kind=irg), INTENT(IN)          :: ht
 integer(kind=irg), INTENT(IN)          :: sw 
 real(kind=sgl), INTENT(IN)             :: pb( ps * wd * (2*sw+2) )
 integer(kind=irg), INTENT(IN)          :: jrow
 real(kind=sgl)                         :: sigEst( wd ) 
 
 real(kind=sgl)                         :: dpvals(8), cp(ps), nv
-integer(kind=irg)                      :: ip, i, j, i1, i2, iknum, pstart(8), ik, pc
+integer(kind=irg)                      :: ip, i, j, i1, i2, j1, j2, iknum, pstart(8), ik, pc
 
 sigEst = 0.0
 
 nv = 0.5/float(ps)
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, i1, i2, iknum, pstart, dpvals, pc, cp)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, i1, i2, j1, j2, iknum, pstart, dpvals, pc, cp)
 !$OMP DO SCHEDULE(DYNAMIC,5)
   do ip=1,wd
-    dpvals = 0.0 
+    dpvals = 10000.0 
     pc = ( (jrow-1)*wd+ip-1) * ps + 1
     cp = pb(pc:pc+ps-1)
     ik = 0
     pstart = 0
-! treat the boundary points separately
+! treat the boundary points separately, first along x
     if (ip.eq.1) then 
       i1 = 0
       i2 = 1
-      iknum = 5
     else 
       if (ip.eq.wd) then 
         i1 = -1
         i2 = 0
-        iknum = 5
       else   
         i1 = -1
         i2 = 1
-        iknum = 8
       end if
     end if 
+! then along y
+    if (jrow.eq.1) then 
+      j1 = 0
+      j2 = 1
+    else 
+      if (jrow.eq.ht) then 
+        j1 = -1
+        j2 = 0
+      else   
+        j1 = -1
+        j2 = 1
+      end if
+    end if 
+
 ! perform the computation
     do i=i1,i2
-      do j=-1,1
+      do j=j1,j2
         if ((abs(i)+abs(j)).ne.0)  then 
           ik = ik+1 
           pstart(ik) = pc + (i + j * wd) * ps 
         end if
       end do 
     end do 
-    do ik=1,iknum
-      dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
+    do i=1,ik
+      dpvals(i) = sum( ( cp - pb(pstart(i):pstart(i)+ps-1) )**2 )
     end do
     sigEst(ip) = minval(dpvals)*nv  ! we only use this in squared form so no need for sqrt
   end do
@@ -253,8 +265,8 @@ nv = 0.5/float(ps)
 !$OMP END PARALLEL
 
 ! we'll rescale here as well to compensate for the difference in points at the edges 
-sigEst(1) = sigEst(1) * 1.6
-sigEst(wd) = sigEst(wd) * 1.6
+! sigEst(1) = sigEst(1) * 1.6
+! sigEst(wd) = sigEst(wd) * 1.6
 
 end function estimateSigma_
 
@@ -448,7 +460,7 @@ SW = self%getSearchWindow_()
 lambda = 1.0/self%getLambda_()**2
 mem = memory_T()
 
-verbose = .FALSE.
+verbose = .TRUE. ! .FALSE.
 
 call Message%printMessage(' Performing NLPAR averaging on experimental patterns')
 
@@ -576,13 +588,10 @@ end do
 ! and we'll take the bottom row equal to the first row to avoid 
 ! having to deal with an incomplete nearest neighbor set.
 ! We send the first three concecutive rows to the estimateSigma_ routine.
-do jrow=2,2*SW+1
-  sigEst((jrow-1)*nml%ipf_wd+1:jrow*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, SW, jrow)
+do jrow=1,2*SW+1
+  sigEst((jrow-1)*nml%ipf_wd+1:jrow*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, nml%ipf_ht, SW, jrow)
   if (verbose.eqv..TRUE.) write (*,*) ' computed sigma^2 for row ', jrow 
 end do 
-! make sure to copy the second row into the first row 
-sigEst(1:nml%ipf_wd) = sigEst(nml%ipf_wd+1:2*nml%ipf_wd)
-if (verbose.eqv..TRUE.) write (*,*) ' copied sigma^2 for row 1'
 
 !==================================================
 ! The following is a very complicated main loop!  
@@ -591,27 +600,24 @@ call mem%alloc3(wtfactors, (/2*SW+1,2*SW+1,nml%ipf_wd/), 'wtfactors')
 do jrow=1,nml%ipf_ht
 ! loop over all the experimental rows.  First we read the next line but only
 ! if we are in the central region.
-  if ( (jrow.gt.SW+1) .and. (jrow.lt.(nml%ipf_ht-SW)) ) then   ! we need to shift arrays and read the following row of patterns 
+  if ( (jrow.gt.SW+1) .and. (jrow.le.(nml%ipf_ht-SW)) ) then   ! we need to shift arrays and read the following row of patterns 
     exptblock = cshift(exptblock, nml%ipf_wd * patsz)  ! experimental patterns 
     sigEst = cshift(sigEst, nml%ipf_wd)                ! estimated sigma^2 values
     offset3 = (/ 0, 0, (jrow+SW)*nml%ipf_wd /)
-    if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
-      call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
-                               HDFstrings=nml%HDFstrings, HDF=HDF)
-    else
-      call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray)
-    end if
-    ! we add this as the last row of the exptblock array
-    exptblock( (2 * SW +1) * patsz * nml%ipf_wd+1: (2 * SW + 2) * patsz * nml%ipf_wd ) = exppatarray(1:patsz * nml%ipf_wd)
-    if (verbose.eqv..TRUE.) write (*,*) ' read line ',jrow+SW+1,' of ',nml%ipf_ht
-! at this point we might as well compute the estimated sigma^2 values for the penultimate 
-! row in the exptblock array ... except for when we are at the end for which we need to 
-! copy a row ... if jrow = nml%ipf_ht-SW
-    if (jrow.eq.(nml%ipf_ht-SW)) then  ! copy the last line
-      sigEst((2*SW)*nml%ipf_wd+1:(2*SW+1)*nml%ipf_wd) = sigEst((2*SW-1)*nml%ipf_wd+1:(2*SW)*nml%ipf_wd)
-      if (verbose.eqv..TRUE.) write (*,*) ' copied sigma^2 for row ', jrow 
-    else 
-      sigEst((2*SW)*nml%ipf_wd+1:(2*SW+1)*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, SW, 2*SW+1)
+    if (jrow.ne.(nml%ipf_ht-SW)) then
+      if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+        call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
+                                 HDFstrings=nml%HDFstrings, HDF=HDF)
+      else
+        call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray)
+      end if
+      ! we add this as the last row of the exptblock array
+      exptblock( (2 * SW +1) * patsz * nml%ipf_wd+1: (2 * SW + 2) * patsz * nml%ipf_wd ) = exppatarray(1:patsz * nml%ipf_wd)
+      if (verbose.eqv..TRUE.) write (*,*) ' read line ',jrow+SW+1,' of ',nml%ipf_ht
+    end if 
+! at this point we might as well compute the estimated sigma^2 values 
+    if (jrow.le.(nml%ipf_ht-SW)) then  ! copy the last line
+      sigEst((2*SW)*nml%ipf_wd+1:(2*SW+1)*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, nml%ipf_ht, SW, 2*SW+1)
       if (verbose.eqv..TRUE.) write (*,*) ' computed sigma^2 for row ', jrow+SW
     end if 
   end if 
@@ -621,7 +627,7 @@ do jrow=1,nml%ipf_ht
     wtfactors = self%getWeightFactors_(exptblock, sigEst, patsz, nml%ipf_wd, SW, lambda, row=jrow)
     if (verbose.eqv..TRUE.) write (*,*) ' getWeightFactors_ fixed',jrow 
   else 
-    if (jrow.ge.nml%ipf_ht-SW) then ! same for the top block of SW+1 patterns
+    if (jrow.gt.nml%ipf_ht-SW) then ! same for the top block of SW+1 patterns
       wtfactors = self%getWeightFactors_(exptblock, sigEst, patsz, nml%ipf_wd, SW, lambda, row=2*SW+1-(nml%ipf_ht-jrow))
       if (verbose.eqv..TRUE.) write (*,*) ' getWeightFactors_ fixed',2*SW+1-(nml%ipf_ht-jrow) 
     else  ! we just loaded a new pattern row so we recompute distances
