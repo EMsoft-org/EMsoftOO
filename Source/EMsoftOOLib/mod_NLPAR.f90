@@ -210,34 +210,60 @@ integer(kind=irg)                      :: ip, i, j, pstart(8), ik, pc
 
 sigEst = 0.0
 
-nv = 0.5/float(wd)
+nv = 0.5/float(ps)
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i, j, ik, pstart, dpvals, pc, cp)
 !$OMP DO SCHEDULE(DYNAMIC,5)
-  do ip=2,wd-1
+  do ip=1,wd
     dpvals = 0.0 
     pc = ( (jrow-1)*wd+ip-1) * ps + 1
     cp = pb(pc:pc+ps-1)
     ik = 0
-    do i=-1,1
-      do j=-1,1
-        if ((abs(i)+abs(j)).ne.0)  then 
-          ik = ik+1 
-          pstart(ik) = pc + (i + j * wd) * ps 
-        end if
+    pstart = 0
+! treat the boundary points separately
+    if (ip.eq.1) then 
+      do i=0,1
+        do j=-1,1
+          if ((abs(i)+abs(j)).ne.0)  then 
+            ik = ik+1 
+            pstart(ik) = pc + (i + j * wd) * ps 
+          end if
+        end do 
       end do 
-    end do 
-    do ik=1,8 
-      dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
-    end do
+      do ik=1,5 
+        dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
+      end do
+    end if 
+    if (ip.eq.wd) then 
+      do i=-1,0
+        do j=-1,1
+          if ((abs(i)+abs(j)).ne.0)  then 
+            ik = ik+1 
+            pstart(ik) = pc + (i + j * wd) * ps 
+          end if
+        end do 
+      end do 
+      do ik=1,5 
+        dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
+      end do
+    end if 
+    if ( (ip.gt.1).and.(ip.lt.wd)) then
+      do i=-1,1
+        do j=-1,1
+          if ((abs(i)+abs(j)).ne.0)  then 
+            ik = ik+1 
+            pstart(ik) = pc + (i + j * wd) * ps 
+          end if
+        end do 
+      end do 
+      do ik=1,8 
+        dpvals(ik) = sum( ( cp - pb(pstart(ik):pstart(ik)+ps-1) )**2 )
+      end do
+    end if
     sigEst(ip) = minval(dpvals)*nv  ! we only use this in squared form so no need for sqrt
   end do
 !$OMP END DO 
 !$OMP END PARALLEL
-
-! copy the edge points; should be a good estimate
-sigEst(1) = sigEst(2)
-sigEst(wd) = sigEst(wd-1)
 
 end function estimateSigma_
 
@@ -248,7 +274,8 @@ function getWeightFactors_(self, pb, se, ps, wd, sw, lambda, row) result(wt)
 !! version: 1.0 
 !! date: 03/15/21
 !!
-!! compute the (2*SW+1)x(2*SW+1) pairwise distance arrays
+!! compute the (2*SW+1)x(2*SW+1)xwd weight factor array
+!! this includes the computation of the normalized distances 
 
 use omp_lib
 
@@ -258,17 +285,17 @@ class(NLPAR_T), INTENT(INOUT)          :: self
 integer(kind=irg), INTENT(IN)          :: ps 
 integer(kind=irg), INTENT(IN)          :: wd 
 integer(kind=irg), INTENT(IN)          :: sw 
-real(kind=sgl), INTENT(IN)             :: pb( ps * wd * (2*sw+1) )
+real(kind=sgl), INTENT(IN)             :: pb( ps * wd * (2*sw+2) )
 real(kind=sgl), INTENT(IN)             :: se( wd * (2*sw+1) )
 real(kind=sgl), INTENT(IN)             :: lambda
 integer(kind=sgl), INTENT(IN), OPTIONAL:: row 
 real(kind=sgl)                         :: wt( 2*sw+1, 2*sw+1, wd ) 
 
 real(kind=sgl)                         :: cp(ps), diff(ps)
-integer(kind=irg)                      :: ip, i, j, pstart, ik, jrow, icol, pc, fwd, sfwd, sigi, sigj
+integer(kind=irg)                      :: ip, i, j, pstart, ik, jrow, icol, pc, fps, sfps, sigi, sigj
 
-fwd = float(wd)
-sfwd = sqrt(2.0*fwd)
+fps = float(ps)
+sfps = sqrt(2.0*fps)
 
 ! we need to make sure that we handle the bottom and top SW patterns differently!
 ! The point with indices (icol, jrow) is the reference pattern for the NLPAR algorithm
@@ -289,13 +316,13 @@ if (present(row)) jrow=row
     do i=icol,icol+2*sw
       ip = i-icol+1
       do j=1,2*sw+1
-        if ( (ip.eq.icol) .and. (j.eq.jrow)) then
+        if ( (i.eq.icol) .and. (j.eq.jrow)) then
           wt(ip,j,ik) = 1.0
         else
-          pstart = (j-1) * wd * ps + (ip-1) * ps + 1
-          sigj = sigi + se( (j-1) * wd  + ip )
+          pstart = (j-1) * wd * ps + (i-1) * ps + 1
+          sigj = sigi + se( (j-1) * wd  + i )
           diff = cp - pb(pstart:pstart+ps-1)
-          wt(ip,j,ik) = exp( - lambda*maxval( (/0.0, (sum(diff*diff)-fwd*sigj)/(sfwd*sigj) /)) ) 
+          wt(ip,j,ik) = exp( - lambda*maxval( (/0.0, (sum(diff*diff)-fps*sigj)/(sfps*sigj) /)) ) 
         end if
       end do
     end do     
@@ -314,7 +341,7 @@ function averagePatterns_(self, pb, wt, ps, wd, sw) result(pat)
 !! version: 1.0 
 !! date: 03/15/21
 !!
-!! compute the (2*SW+1)x(2*SW+1) pairwise distance arrays
+!! compute the weighted average patterns 
 
 use omp_lib
 
@@ -324,7 +351,7 @@ class(NLPAR_T), INTENT(INOUT)          :: self
 integer(kind=irg), INTENT(IN)          :: ps 
 integer(kind=irg), INTENT(IN)          :: wd 
 integer(kind=irg), INTENT(IN)          :: sw 
-real(kind=sgl), INTENT(IN)             :: pb( ps * wd * (2*sw+1) )
+real(kind=sgl), INTENT(IN)             :: pb( ps * wd * (2*sw+2) )
 real(kind=sgl), INTENT(IN)             :: wt( 2*sw+1, 2*sw+1, wd )
 real(kind=sgl)                         :: pat( ps * wd ) 
 
@@ -345,7 +372,7 @@ pat = 0.0
     do i=icol,icol+2*sw
       ip = i-icol+1
       do j=1,2*sw+1
-        pstart = (j-1) * wd * ps + (icol-1) * ps + 1
+        pstart = (j-1) * wd * ps + (i-1) * ps + 1
         psum(1:ps) = psum(1:ps) + wt(ip,j,ik) * pb(pstart:pstart+ps-1)
       end do 
     end do 
@@ -411,7 +438,7 @@ integer(kind=irg)                                 :: tickstart, tstop, io_int(2)
 integer(HSIZE_T)                                  :: dims3(3), offset3(3)
 integer(kind=irg),parameter                       :: iunitexpt = 41, itmpexpt = 42
 real(kind=dbl)                                    :: w, Jres
-real(kind=sgl)                                    :: vlen, tmp, mi, ma, lambda, fwd, sfwd 
+real(kind=sgl)                                    :: vlen, tmp, mi, ma, lambda, fwd, sfwd, io_real(1) 
 real(kind=sgl),allocatable                        :: Pattern(:,:), imageexpt(:), exppatarray(:), Pat(:,:), exptblock(:), &
                                                      sigvals(:,:), wtfactors(:,:,:), sigEst(:), dpp(:,:,:), tmpimageexpt(:)
 real(kind=dbl),allocatable                        :: rrdata(:,:), ffdata(:,:), ksqarray(:,:)
@@ -503,7 +530,7 @@ call OMP_setNThreads(nml%nthreads)
 
 ! allocate the arrays that holds the experimental patterns from (2*SW+1) rows of the region of interest
 call mem%alloc1(exppatarray, (/patsz * nml%ipf_wd/), 'exppatarray')
-call mem%alloc1(exptblock, (/patsz * nml%ipf_wd * (2*SW+1)/), 'exptblock')
+call mem%alloc1(exptblock, (/patsz * nml%ipf_wd * (2*SW+2)/), 'exptblock')
 call mem%alloc1(sigEst, (/nml%ipf_wd * (2*SW+1)/), 'sigEst')
 
 if (present(exptIQ)) then
@@ -569,7 +596,7 @@ call mem%alloc3(wtfactors, (/2*SW+1,2*SW+1,nml%ipf_wd/), 'wtfactors')
 do jrow=1,nml%ipf_ht
 ! loop over all the experimental rows.  First we read the next line but only
 ! if we are in the central region.
-  if ( (jrow.gt.SW+1) .and. (jrow.lt.(nml%ipf_ht-SW+1)) ) then   ! we need to shift arrays and read the following row of patterns 
+  if ( (jrow.gt.SW+1) .and. (jrow.lt.(nml%ipf_ht-SW)) ) then   ! we need to shift arrays and read the following row of patterns 
     exptblock = cshift(exptblock, nml%ipf_wd * patsz)  ! experimental patterns 
     sigEst = cshift(sigEst, nml%ipf_wd)                ! estimated sigma^2 values
     offset3 = (/ 0, 0, (jrow+SW)*nml%ipf_wd /)
@@ -590,7 +617,7 @@ do jrow=1,nml%ipf_ht
       if (verbose.eqv..TRUE.) write (*,*) ' copied sigma^2 for row ', jrow 
     else 
       sigEst((2*SW)*nml%ipf_wd+1:(2*SW+1)*nml%ipf_wd) = self%estimateSigma_(exptblock, patsz, nml%ipf_wd, SW, 2*SW+1)
-      if (verbose.eqv..TRUE.) write (*,*) ' computed sigma^2 for row ', jrow 
+      if (verbose.eqv..TRUE.) write (*,*) ' computed sigma^2 for row ', jrow+SW
     end if 
   end if 
 
@@ -700,6 +727,16 @@ deallocate(tmpimageexpt, Pat, rrdata, ffdata, pint, inp, outp)
 end do 
 
 close(unit=itmpexpt,status = 'keep')
+
+! print some timing information
+call timer%Time_tock(1)
+tstop = timer%getInterval(1)
+if (tstop.eq.0.0) then
+  call Message%printMessage(' # experimental patterns processed per second : ? [time shorter than system time resolution] ')
+else
+  io_real(1) = float(nml%nthreads) * float(totnumexpt)/tstop
+  call Message%WriteValue(' # experimental patterns processed per second : ',io_real,1,"(F10.1,/)")
+end if
 
 !====================================
 ! that should be it... some clean up and we return to the calling program
