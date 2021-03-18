@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2021, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -49,7 +49,6 @@ private
   integer(kind=irg)     :: searchWindow
   real(kind=sgl)        :: lambda
 
-
 contains
 private 
   procedure, pass(self) :: setSearchWindow_
@@ -86,7 +85,7 @@ type(NLPAR_T) function NLPAR_constructor( ) result(NLPAR)
 !! version: 1.0 
 !! date: 03/15/21
 !!
-!! constructor for the NLPAR_T Class; reads the name list 
+!! constructor for the NLPAR_T Class; doesn't do anything at the moment
  
 IMPLICIT NONE
 
@@ -263,10 +262,6 @@ nv = 0.5/float(ps)
   end do
 !$OMP END DO 
 !$OMP END PARALLEL
-
-! we'll rescale here as well to compensate for the difference in points at the edges 
-! sigEst(1) = sigEst(1) * 1.6
-! sigEst(wd) = sigEst(wd) * 1.6
 
 end function estimateSigma_
 
@@ -658,7 +653,7 @@ do jrow=1,nml%ipf_ht ! loop over all the experimental rows.
 
       if (present(exptIQ)) then
 ! compute the pattern Image Quality
-        exptIQ((iii-iiistart)*jjend + jj) = sngl(computeEBSDIQ(binx, biny, Pat, ksqarray, Jres, planf))
+        exptIQ((jrow-iiistart)*jjend + jj) = sngl(computeEBSDIQ(binx, biny, Pat, ksqarray, Jres, planf))
       end if
 
 ! Hi-Pass filter

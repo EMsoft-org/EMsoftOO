@@ -52,8 +52,14 @@
 ! OPTIONAL: use non-local pattern averaging  [NLPAR]
 !###################################################################
 !
+! set to .TRUE. in order to use NLPAR as part of the pattern preprocessing
+! this means the preprocessing will take longer but the indexing results will
+! be better for noisy data sets
+ doNLPAR = .FALSE.,
 ! the NLPAR search window will have size (2*sw+1) by (2*sw+1)
  sw = 3,
+! weight decay parameter
+ lambda = 0.375,
 
 !###################################################################
 ! ONLY SPECIFY WHEN INDEXINGMODE IS 'DYNAMIC'
