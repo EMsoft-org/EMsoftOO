@@ -86,6 +86,7 @@ use mod_kinds
 use mod_global
 use modA 
 use modB 
+use mod_memory
 
 ! use mod_EMsoft
 ! use mod_io
@@ -113,39 +114,63 @@ integer(kind=irg)       :: i, slen
 ! type(rng_t)             :: seed 
 ! type(QuaternionArray_T) :: qra , qrb
 
+integer(kind=ish), allocatable :: ar(:) 
+real(kind=sgl), allocatable    :: ar3(:,:,:) 
+complex(kind=dbl), allocatable :: ar2(:,:) 
+type(memory_T)                 :: mem, memth 
 
-write (*,*) '->'//trim(progname)//'<-', len_trim(progname)
+memth = memory_T(nt = 2)
+mem = memory_T()
+call mem%alloc1( ar, (/250/), 'ar', 15_ish )
+call memth%alloc3( ar3, (/50, 60, 70/), 'ar3', 10.0_sgl, TID=1 )
+call mem%alloc2( ar2, (/20, 20/), 'ar2', (0.D0, -1.D0) )
 
-Cprogname = carstringify(progname)
+write (*,*) ar(1:5)
+write (*,*) ar2(1,6)
+write (*,*) ar3(1,2,3)
 
-do i=1,len_trim(progname) 
-    write (*,"(A1$)") Cprogname(i:i)
-end do 
-write (*,*) ''
+call mem%allocated_memory_use()
+call memth%thread_memory_use()
 
-progname = ''
-i=1
-do while(Cprogname(i).ne.C_NULL_CHAR) 
-  progname(i:i) = Cprogname(i)
-  i = i+1
-end do
+call mem%dealloc1( ar, 'ar' ) 
+call memth%dealloc3( ar3, 'ar3', TID=1) 
+call mem%thread_memory_use()
+call mem%dealloc2( ar2, 'ar2') 
 
-write (*,*) '->'//trim(progname)//'<-', len_trim(progname)
+call mem%allocated_memory_use()
+
+! write (*,*) '->'//trim(progname)//'<-', len_trim(progname)
+
+! Cprogname = carstringify(progname)
+
+! do i=1,len_trim(progname) 
+!     write (*,"(A1$)") Cprogname(i:i)
+! end do 
+! write (*,*) ''
+
+! progname = ''
+! i=1
+! do while(Cprogname(i).ne.C_NULL_CHAR) 
+!   progname(i:i) = Cprogname(i)
+!   i = i+1
+! end do
+
+! write (*,*) '->'//trim(progname)//'<-', len_trim(progname)
 
 
 
 
 
-stop
+! stop
 
-t1%a = 10
-call t1%writeHDFnamelist(40)
-call t1%p(1)
+! t1%a = 10
+! call t1%writeHDFnamelist(40)
+! call t1%p(1)
 
-t2%a = 20 
-t2%b = 30
-call t2%writeHDFnamelist(60)
-call t2%p(2)
+! t2%a = 20 
+! t2%b = 30
+! call t2%writeHDFnamelist(60)
+! call t2%p(2)
 
 
 
