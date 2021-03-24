@@ -121,11 +121,13 @@ type(memory_T)                 :: mem, memth
 
 memth = memory_T(nt = 2)
 mem = memory_T()
-call mem%alloc1( ar, (/250/), 'ar', 15_ish )
-call memth%alloc3( ar3, (/50, 60, 70/), 'ar3', 10.0_sgl, TID=1 )
-call mem%alloc2( ar2, (/20, 20/), 'ar2', (0.D0, -1.D0) )
+call mem%toggle_verbose() 
 
-write (*,*) ar(1:5)
+call mem%alloc1( ar, (/250/), 'ar', 15_ish, startdims = (/ -250 /) )
+call memth%alloc3( ar3, (/50, 60, 70/), 'ar3', 10.0_sgl, TID=1 )
+call mem%alloc2( ar2, (/20, 20/), 'ar2', (0.D0, -1.D0), startdims = (/-20, -20/) )
+
+write (*,*) ar(-5:5)
 write (*,*) ar2(1,6)
 write (*,*) ar3(1,2,3)
 
@@ -133,11 +135,12 @@ call mem%allocated_memory_use()
 call memth%thread_memory_use()
 
 call mem%dealloc1( ar, 'ar' ) 
-call memth%dealloc3( ar3, 'ar3', TID=1) 
+!call memth%dealloc3( ar3, 'ar3', TID=1) 
 call mem%thread_memory_use()
 call mem%dealloc2( ar2, 'ar2') 
 
 call mem%allocated_memory_use()
+call memth%allocated_memory_use()
 
 ! write (*,*) '->'//trim(progname)//'<-', len_trim(progname)
 

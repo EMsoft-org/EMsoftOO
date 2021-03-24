@@ -41,6 +41,80 @@ module mod_memory
   !! OpenMP parallel regions, where each thread needs to allocate its own
   !! arrays. This requires that the constructor be called with the number of 
   !! OMP threads.
+  !!
+  !! This class is not meant to be used to track all memory use for every program 
+  !! and module... it should only be used within a single program and will allow 
+  !! the developer to track general memory use from explicit array allocations as 
+  !! well as array allocations inside parallel program sections.  Memory allocated 
+  !! inside a routine that is called from the main program will not be tracked
+  !! (unless the routine is properly instrumented).
+  !!
+  !! Usage example:  [without threading]
+  !! program t 
+  !!
+  !! use mod_kinds
+  !! use mod_global
+  !! use mod_memory 
+  !!
+  !! IMPLICIT NONE 
+  !! 
+  !! type(memory_T)             :: mem 
+  !! real(kind=sgl),allocatable :: ar(:,:)
+  !!
+  !! ! initiate the memory class 
+  !! mem = memory_T() 
+  !!
+  !! ! allocate the array and initialize with value 10.0
+  !! call mem%alloc2( ar, (/ 20, 30 /), 'ar', 10.0)
+  !! 
+  !! ! find out how much memory has been allocated and what type 
+  !! call mem%allocated_memory_use()
+  !! 
+  !! ! deallocate the array 
+  !! call mem%dealloc2(ar, 'ar')
+  !!
+  !! ! make sure it was indeed deallocated 
+  !! call mem%allocated_memory_use()
+  !!
+  !! end program 
+  !!--------------------------------------------------
+  !!
+  !! usage example: [with threading]
+  !! program t 
+  !!
+  !! use mod_kinds
+  !! use mod_global
+  !! use omp_lib
+  !! use mod_memory 
+  !!
+  !! IMPLICIT NONE 
+  !! 
+  !! type(memory_T)                 :: memth 
+  !! real(kind=sgl),allocatable     :: ar(:,:)
+  !! complex(kind=dbl),allocatable  :: cc(:)
+  !! integer(kind=irg)              :: nthreads, TID 
+  !!
+  !! nthreads = 3 
+  !!
+  !! ! initiate the memory class 
+  !! memth = memory_T( nt = nthreads ) 
+  !!
+  !! ! inside the parallel OMP region, allocate the array for each thread 
+  !! ! we'll assume that TID contains the thread ID 
+  !! call memth%alloc2( ar, (/ 10, 10 /), 'ar', 15.0, TID=TID)
+  !! call memth%alloc1( cc, (/ 10 + 5*TID /), 'cc', TID=TID)
+  !!
+  !! ! print memory usage information
+  !! if (TID.eq.0) call memth%thread_memory_use()
+  !! 
+  !! ! do stuff with the arrays
+  !! ! then just before closing the parallel section 
+  !! call memth%dealloc2(ar, 'ar', TID=TID)
+  !! call memth%dealloc1(cc, 'cc', TID=TID)
+  !! ! end parallel region 
+  !! 
+  !! end program 
+  !! 
   !!--------------------------------------------------
 
 use mod_kinds
@@ -485,7 +559,8 @@ end subroutine toggle_verbose_
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-subroutine alloc_ish1_(self, ar, dims, varname, initval, TID)
+!--------------------------------------------------------------------------
+subroutine alloc_ish1_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ish1_
 !! author: MDG
 !! version: 1.0
@@ -501,10 +576,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(1)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(1) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -520,15 +596,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ish1_:', &
-        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ish) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims-startdims+1)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ish, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ish1_:', &
+        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 end if
-self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
-call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -538,7 +630,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ish
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ish
+  else 
+    write (szstr,*) product(dims)*self%bytes_ish
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -567,7 +663,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -589,7 +685,7 @@ endif
 end subroutine dealloc_ish1_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ish2_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ish2_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ish2_
 !! author: MDG
 !! version: 1.0
@@ -605,10 +701,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(2)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(2) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -624,15 +721,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ish2_:', &
-        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ish) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims-startdims+1)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ish, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ish2_:', &
+        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 end if
-self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
-call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -642,7 +755,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ish
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ish
+  else 
+    write (szstr,*) product(dims)*self%bytes_ish
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -671,7 +788,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -693,7 +810,7 @@ endif
 end subroutine dealloc_ish2_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ish3_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ish3_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ish3_
 !! author: MDG
 !! version: 1.0
@@ -709,10 +826,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(3)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(3) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -728,15 +846,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ish3_:', &
-        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ish) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims-startdims+1)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ish, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ish3_:', &
+        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 end if
-self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
-call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -746,7 +880,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ish
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ish
+  else 
+    write (szstr,*) product(dims)*self%bytes_ish
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -775,7 +913,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -797,7 +935,7 @@ endif
 end subroutine dealloc_ish3_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ish4_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ish4_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ish4_
 !! author: MDG
 !! version: 1.0
@@ -813,10 +951,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(4)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(4) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -832,15 +971,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ish4_:', &
-        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ish) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims-startdims+1)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ish, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ish4_:', &
+        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 end if
-self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
-call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -850,7 +1005,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ish
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ish
+  else 
+    write (szstr,*) product(dims)*self%bytes_ish
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -879,7 +1038,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -901,7 +1060,7 @@ endif
 end subroutine dealloc_ish4_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ish5_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ish5_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ish5_
 !! author: MDG
 !! version: 1.0
@@ -917,10 +1076,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(5)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(5) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -936,15 +1096,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),startdims(5):dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ish5_:', &
-        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ish) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims-startdims+1)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ish, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ish5_:', &
+        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 end if
-self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
-call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -954,7 +1130,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ish
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ish
+  else 
+    write (szstr,*) product(dims)*self%bytes_ish
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -983,7 +1163,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1005,7 +1185,7 @@ endif
 end subroutine dealloc_ish5_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ish6_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ish6_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ish6_
 !! author: MDG
 !! version: 1.0
@@ -1021,10 +1201,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(6)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(6) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -1040,15 +1221,32 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),&
+              startdims(5):dims(5),startdims(6):dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ish6_:', &
-        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ish) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims-startdims+1)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ish, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ish6_:', &
+        ' Unable to allocate integer(kind=ish) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 end if
-self%totmem_ish(LID) = self%totmem_ish(LID) + product(dims)*self%bytes_ish 
-call self%update_total_memory_use_(product(dims)*self%bytes_ish, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1058,7 +1256,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ish
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ish
+  else 
+    write (szstr,*) product(dims)*self%bytes_ish
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1087,7 +1289,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1109,7 +1311,7 @@ endif
 end subroutine dealloc_ish6_
 
 !--------------------------------------------------------------------------
-subroutine alloc_irg1_(self, ar, dims, varname, initval, TID)
+subroutine alloc_irg1_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_irg1_
 !! author: MDG
 !! version: 1.0
@@ -1125,10 +1327,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(1)
 character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(1) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -1144,15 +1347,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_irg1_:', &
-        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=irg) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims-startdims+1)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_irg, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_irg1_:', &
+        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 end if
-self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
-call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1162,7 +1381,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_irg
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_irg
+  else 
+    write (szstr,*) product(dims)*self%bytes_irg
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1191,7 +1414,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1213,7 +1436,7 @@ endif
 end subroutine dealloc_irg1_
 
 !--------------------------------------------------------------------------
-subroutine alloc_irg2_(self, ar, dims, varname, initval, TID)
+subroutine alloc_irg2_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_irg2_
 !! author: MDG
 !! version: 1.0
@@ -1229,10 +1452,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(2)
 character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(2) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -1248,15 +1472,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_irg2_:', &
-        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=irg) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims-startdims+1)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_irg, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_irg2_:', &
+        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 end if
-self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
-call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1266,7 +1506,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_irg
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_irg
+  else 
+    write (szstr,*) product(dims)*self%bytes_irg
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1295,7 +1539,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1317,7 +1561,7 @@ endif
 end subroutine dealloc_irg2_
 
 !--------------------------------------------------------------------------
-subroutine alloc_irg3_(self, ar, dims, varname, initval, TID)
+subroutine alloc_irg3_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_irg3_
 !! author: MDG
 !! version: 1.0
@@ -1333,10 +1577,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(3)
 character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(3) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -1352,15 +1597,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_irg3_:', &
-        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=irg) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims-startdims+1)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_irg, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_irg3_:', &
+        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 end if
-self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
-call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1370,7 +1631,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_irg
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_irg
+  else 
+    write (szstr,*) product(dims)*self%bytes_irg
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1399,7 +1664,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1421,7 +1686,7 @@ endif
 end subroutine dealloc_irg3_
 
 !--------------------------------------------------------------------------
-subroutine alloc_irg4_(self, ar, dims, varname, initval, TID)
+subroutine alloc_irg4_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_irg4_
 !! author: MDG
 !! version: 1.0
@@ -1437,10 +1702,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(4)
 character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(4) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -1456,15 +1722,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_irg4_:', &
-        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=irg) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims-startdims+1)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_irg, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_irg4_:', &
+        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 end if
-self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
-call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1474,7 +1756,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_irg
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_irg
+  else 
+    write (szstr,*) product(dims)*self%bytes_irg
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1503,7 +1789,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1525,7 +1811,7 @@ endif
 end subroutine dealloc_irg4_
 
 !--------------------------------------------------------------------------
-subroutine alloc_irg5_(self, ar, dims, varname, initval, TID)
+subroutine alloc_irg5_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_irg5_
 !! author: MDG
 !! version: 1.0
@@ -1541,10 +1827,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(5)
 character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(5) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -1560,15 +1847,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),startdims(5):dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_irg5_:', &
-        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=irg) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims-startdims+1)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_irg, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_irg5_:', &
+        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 end if
-self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
-call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1578,7 +1881,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_irg
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_irg
+  else 
+    write (szstr,*) product(dims)*self%bytes_irg
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1607,7 +1914,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1629,7 +1936,7 @@ endif
 end subroutine dealloc_irg5_
 
 !--------------------------------------------------------------------------
-subroutine alloc_irg6_(self, ar, dims, varname, initval, TID)
+subroutine alloc_irg6_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_irg6_
 !! author: MDG
 !! version: 1.0
@@ -1645,10 +1952,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(6)
 character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(6) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -1664,15 +1972,32 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),& 
+              startdims(5):dims(5),startdims(6):dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_irg6_:', &
-        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=irg) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims-startdims+1)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_irg, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_irg6_:', &
+        ' Unable to allocate integer(kind=irg) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
+  call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 end if
-self%totmem_irg(LID) = self%totmem_irg(LID) + product(dims)*self%bytes_irg 
-call self%update_total_memory_use_(product(dims)*self%bytes_irg, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1682,7 +2007,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_irg
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_irg
+  else 
+    write (szstr,*) product(dims)*self%bytes_irg
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1711,7 +2040,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1733,7 +2062,7 @@ endif
 end subroutine dealloc_irg6_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ill1_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ill1_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ill1_
 !! author: MDG
 !! version: 1.0
@@ -1749,10 +2078,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(1)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(1) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -1768,15 +2098,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ill1_:', &
-        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ill) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims-startdims+1)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ill, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ill1_:', &
+        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 end if
-self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
-call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1786,7 +2132,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ill
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ill
+  else 
+    write (szstr,*) product(dims)*self%bytes_ill
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1815,7 +2165,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1837,7 +2187,7 @@ endif
 end subroutine dealloc_ill1_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ill2_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ill2_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ill2_
 !! author: MDG
 !! version: 1.0
@@ -1853,10 +2203,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(2)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(2) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -1872,15 +2223,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ill2_:', &
-        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ill) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims-startdims+1)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ill, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ill2_:', &
+        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 end if
-self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
-call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1890,7 +2257,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ill
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ill
+  else 
+    write (szstr,*) product(dims)*self%bytes_ill
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -1919,7 +2290,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -1941,7 +2312,7 @@ endif
 end subroutine dealloc_ill2_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ill3_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ill3_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ill3_
 !! author: MDG
 !! version: 1.0
@@ -1957,10 +2328,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(3)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(3) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -1976,15 +2348,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ill3_:', &
-        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ill) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims-startdims+1)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ill, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ill3_:', &
+        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 end if
-self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
-call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -1994,7 +2382,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ill
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ill
+  else 
+    write (szstr,*) product(dims)*self%bytes_ill
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2023,7 +2415,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2045,7 +2437,7 @@ endif
 end subroutine dealloc_ill3_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ill4_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ill4_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ill4_
 !! author: MDG
 !! version: 1.0
@@ -2061,10 +2453,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(4)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(4) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -2080,15 +2473,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ill4_:', &
-        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ill) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims-startdims+1)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ill, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ill4_:', &
+        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 end if
-self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
-call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2098,7 +2507,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ill
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ill
+  else 
+    write (szstr,*) product(dims)*self%bytes_ill
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2127,7 +2540,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2149,7 +2562,7 @@ endif
 end subroutine dealloc_ill4_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ill5_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ill5_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ill5_
 !! author: MDG
 !! version: 1.0
@@ -2165,10 +2578,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(5)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(5) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -2184,15 +2598,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),startdims(5):dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ill5_:', &
-        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ill) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims-startdims+1)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ill, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ill5_:', &
+        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 end if
-self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
-call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2202,7 +2632,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ill
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ill
+  else 
+    write (szstr,*) product(dims)*self%bytes_ill
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2231,7 +2665,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2253,7 +2687,7 @@ endif
 end subroutine dealloc_ill5_
 
 !--------------------------------------------------------------------------
-subroutine alloc_ill6_(self, ar, dims, varname, initval, TID)
+subroutine alloc_ill6_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ill6_
 !! author: MDG
 !! version: 1.0
@@ -2269,10 +2703,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(6)
 character(*),INTENT(IN)                          :: varname
 integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(6) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -2288,15 +2723,32 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4), &
+              startdims(5):dims(5),startdims(6):dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_ill6_:', &
-        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate integer(kind=ill) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims-startdims+1)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_ill, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_ill6_:', &
+        ' Unable to allocate integer(kind=ill) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
+  call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 end if
-self%totmem_ill(LID) = self%totmem_ill(LID) + product(dims)*self%bytes_ill 
-call self%update_total_memory_use_(product(dims)*self%bytes_ill, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2306,7 +2758,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_ill
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_ill
+  else 
+    write (szstr,*) product(dims)*self%bytes_ill
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2335,7 +2791,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2357,7 +2813,7 @@ endif
 end subroutine dealloc_ill6_
 
 !--------------------------------------------------------------------------
-subroutine alloc_sgl1_(self, ar, dims, varname, initval, TID)
+subroutine alloc_sgl1_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_sgl1_
 !! author: MDG
 !! version: 1.0
@@ -2373,10 +2829,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(1)
 character(*),INTENT(IN)                          :: varname
 real(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(1) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -2392,15 +2849,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_sgl1_:', &
-        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=sgl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims-startdims+1)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_sgl, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_sgl1_:', &
+        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 end if
-self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
-call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2410,7 +2883,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_sgl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_sgl
+  else 
+    write (szstr,*) product(dims)*self%bytes_sgl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2439,7 +2916,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2461,7 +2938,7 @@ endif
 end subroutine dealloc_sgl1_
 
 !--------------------------------------------------------------------------
-subroutine alloc_sgl2_(self, ar, dims, varname, initval, TID)
+subroutine alloc_sgl2_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_sgl2_
 !! author: MDG
 !! version: 1.0
@@ -2477,10 +2954,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(2)
 character(*),INTENT(IN)                          :: varname
 real(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(2) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -2496,15 +2974,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_sgl2_:', &
-        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=sgl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims-startdims+1)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_sgl, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_sgl2_:', &
+        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 end if
-self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
-call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2514,7 +3008,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_sgl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_sgl
+  else 
+    write (szstr,*) product(dims)*self%bytes_sgl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2543,7 +3041,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2565,7 +3063,7 @@ endif
 end subroutine dealloc_sgl2_
 
 !--------------------------------------------------------------------------
-subroutine alloc_sgl3_(self, ar, dims, varname, initval, TID)
+subroutine alloc_sgl3_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_sgl3_
 !! author: MDG
 !! version: 1.0
@@ -2581,10 +3079,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(3)
 character(*),INTENT(IN)                          :: varname
 real(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(3) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -2600,15 +3099,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_sgl3_:', &
-        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=sgl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims-startdims+1)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_sgl, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_sgl3_:', &
+        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 end if
-self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
-call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2618,7 +3133,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_sgl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_sgl
+  else 
+    write (szstr,*) product(dims)*self%bytes_sgl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2647,7 +3166,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2669,7 +3188,7 @@ endif
 end subroutine dealloc_sgl3_
 
 !--------------------------------------------------------------------------
-subroutine alloc_sgl4_(self, ar, dims, varname, initval, TID)
+subroutine alloc_sgl4_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_sgl4_
 !! author: MDG
 !! version: 1.0
@@ -2685,10 +3204,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(4)
 character(*),INTENT(IN)                          :: varname
 real(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(4) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -2704,15 +3224,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_sgl4_:', &
-        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=sgl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims-startdims+1)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_sgl, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_sgl4_:', &
+        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 end if
-self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
-call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2722,7 +3258,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_sgl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_sgl
+  else 
+    write (szstr,*) product(dims)*self%bytes_sgl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2751,7 +3291,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2773,7 +3313,7 @@ endif
 end subroutine dealloc_sgl4_
 
 !--------------------------------------------------------------------------
-subroutine alloc_sgl5_(self, ar, dims, varname, initval, TID)
+subroutine alloc_sgl5_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_sgl5_
 !! author: MDG
 !! version: 1.0
@@ -2789,10 +3329,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(5)
 character(*),INTENT(IN)                          :: varname
 real(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(5) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -2808,15 +3349,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),startdims(5):dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_sgl5_:', &
-        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=sgl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims-startdims+1)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_sgl, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_sgl5_:', &
+        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 end if
-self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
-call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2826,7 +3383,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_sgl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_sgl
+  else 
+    write (szstr,*) product(dims)*self%bytes_sgl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2855,7 +3416,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2877,7 +3438,7 @@ endif
 end subroutine dealloc_sgl5_
 
 !--------------------------------------------------------------------------
-subroutine alloc_sgl6_(self, ar, dims, varname, initval, TID)
+subroutine alloc_sgl6_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_sgl6_
 !! author: MDG
 !! version: 1.0
@@ -2893,10 +3454,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(6)
 character(*),INTENT(IN)                          :: varname
 real(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(6) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -2912,15 +3474,32 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4), &
+              startdims(5):dims(5),startdims(6):dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_sgl6_:', &
-        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=sgl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims-startdims+1)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_sgl, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_sgl6_:', &
+        ' Unable to allocate real(kind=sgl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 end if
-self%totmem_sgl(LID) = self%totmem_sgl(LID) + product(dims)*self%bytes_sgl 
-call self%update_total_memory_use_(product(dims)*self%bytes_sgl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -2930,7 +3509,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_sgl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_sgl
+  else 
+    write (szstr,*) product(dims)*self%bytes_sgl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -2959,7 +3542,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -2981,7 +3564,7 @@ endif
 end subroutine dealloc_sgl6_
 
 !--------------------------------------------------------------------------
-subroutine alloc_dbl1_(self, ar, dims, varname, initval, TID)
+subroutine alloc_dbl1_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_dbl1_
 !! author: MDG
 !! version: 1.0
@@ -2997,10 +3580,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(1)
 character(*),INTENT(IN)                          :: varname
 real(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(1) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -3016,15 +3600,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_dbl1_:', &
-        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=dbl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims-startdims+1)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_dbl, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_dbl1_:', &
+        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 end if
-self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
-call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3034,7 +3634,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_dbl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_dbl
+  else 
+    write (szstr,*) product(dims)*self%bytes_dbl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3063,7 +3667,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3085,7 +3689,7 @@ endif
 end subroutine dealloc_dbl1_
 
 !--------------------------------------------------------------------------
-subroutine alloc_dbl2_(self, ar, dims, varname, initval, TID)
+subroutine alloc_dbl2_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_dbl2_
 !! author: MDG
 !! version: 1.0
@@ -3101,10 +3705,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(2)
 character(*),INTENT(IN)                          :: varname
 real(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(2) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -3120,15 +3725,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_dbl2_:', &
-        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=dbl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims-startdims+1)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_dbl, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_dbl2_:', &
+        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 end if
-self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
-call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3138,7 +3759,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_dbl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_dbl
+  else 
+    write (szstr,*) product(dims)*self%bytes_dbl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3167,7 +3792,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3189,7 +3814,7 @@ endif
 end subroutine dealloc_dbl2_
 
 !--------------------------------------------------------------------------
-subroutine alloc_dbl3_(self, ar, dims, varname, initval, TID)
+subroutine alloc_dbl3_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_dbl3_
 !! author: MDG
 !! version: 1.0
@@ -3205,10 +3830,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(3)
 character(*),INTENT(IN)                          :: varname
 real(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(3) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -3224,15 +3850,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_dbl3_:', &
-        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=dbl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims-startdims+1)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_dbl, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_dbl3_:', &
+        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 end if
-self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
-call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3242,7 +3884,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_dbl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_dbl
+  else 
+    write (szstr,*) product(dims)*self%bytes_dbl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3271,7 +3917,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3293,7 +3939,7 @@ endif
 end subroutine dealloc_dbl3_
 
 !--------------------------------------------------------------------------
-subroutine alloc_dbl4_(self, ar, dims, varname, initval, TID)
+subroutine alloc_dbl4_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_dbl4_
 !! author: MDG
 !! version: 1.0
@@ -3309,10 +3955,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(4)
 character(*),INTENT(IN)                          :: varname
 real(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(4) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -3328,15 +3975,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_dbl4_:', &
-        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=dbl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims-startdims+1)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_dbl, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_dbl4_:', &
+        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 end if
-self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
-call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3346,7 +4009,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_dbl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_dbl
+  else 
+    write (szstr,*) product(dims)*self%bytes_dbl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3375,7 +4042,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3397,7 +4064,7 @@ endif
 end subroutine dealloc_dbl4_
 
 !--------------------------------------------------------------------------
-subroutine alloc_dbl5_(self, ar, dims, varname, initval, TID)
+subroutine alloc_dbl5_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_dbl5_
 !! author: MDG
 !! version: 1.0
@@ -3413,10 +4080,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(5)
 character(*),INTENT(IN)                          :: varname
 real(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(5) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -3432,15 +4100,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),startdims(5):dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_dbl5_:', &
-        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=dbl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims-startdims+1)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_dbl, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_dbl5_:', &
+        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 end if
-self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
-call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3450,7 +4134,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_dbl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_dbl
+  else 
+    write (szstr,*) product(dims)*self%bytes_dbl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3479,7 +4167,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3501,7 +4189,7 @@ endif
 end subroutine dealloc_dbl5_
 
 !--------------------------------------------------------------------------
-subroutine alloc_dbl6_(self, ar, dims, varname, initval, TID)
+subroutine alloc_dbl6_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_dbl6_
 !! author: MDG
 !! version: 1.0
@@ -3517,10 +4205,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(6)
 character(*),INTENT(IN)                          :: varname
 real(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(6) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -3536,15 +4225,32 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4), &
+              startdims(5):dims(5),startdims(6):dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_dbl6_:', &
-        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate real(kind=dbl) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims-startdims+1)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_dbl, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_dbl6_:', &
+        ' Unable to allocate real(kind=dbl) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
+  call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 end if
-self%totmem_dbl(LID) = self%totmem_dbl(LID) + product(dims)*self%bytes_dbl 
-call self%update_total_memory_use_(product(dims)*self%bytes_dbl, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3554,7 +4260,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_dbl
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_dbl
+  else 
+    write (szstr,*) product(dims)*self%bytes_dbl
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3583,7 +4293,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3605,7 +4315,7 @@ endif
 end subroutine dealloc_dbl6_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplx1_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplx1_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplx1_
 !! author: MDG
 !! version: 1.0
@@ -3621,10 +4331,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(1)
 character(*),INTENT(IN)                          :: varname
 complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(1) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -3640,15 +4351,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplx1_:', &
-        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplx) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims-startdims+1)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplx, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplx1_:', &
+        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 end if
-self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3658,7 +4385,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplx
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplx
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplx
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3687,7 +4418,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3709,7 +4440,7 @@ endif
 end subroutine dealloc_cmplx1_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplx2_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplx2_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplx2_
 !! author: MDG
 !! version: 1.0
@@ -3725,10 +4456,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(2)
 character(*),INTENT(IN)                          :: varname
 complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(2) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -3744,15 +4476,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplx2_:', &
-        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplx) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims-startdims+1)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplx, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplx2_:', &
+        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 end if
-self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3762,7 +4510,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplx
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplx
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplx
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3791,7 +4543,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3813,7 +4565,7 @@ endif
 end subroutine dealloc_cmplx2_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplx3_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplx3_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplx3_
 !! author: MDG
 !! version: 1.0
@@ -3829,10 +4581,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(3)
 character(*),INTENT(IN)                          :: varname
 complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(3) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -3848,15 +4601,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplx3_:', &
-        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplx) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims-startdims+1)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplx, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplx3_:', &
+        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 end if
-self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3866,7 +4635,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplx
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplx
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplx
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3895,7 +4668,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -3917,7 +4690,7 @@ endif
 end subroutine dealloc_cmplx3_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplx4_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplx4_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplx4_
 !! author: MDG
 !! version: 1.0
@@ -3933,10 +4706,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(4)
 character(*),INTENT(IN)                          :: varname
 complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(4) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -3952,15 +4726,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplx4_:', &
-        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplx) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims-startdims+1)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplx, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplx4_:', &
+        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 end if
-self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -3970,7 +4760,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplx
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplx
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplx
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -3999,7 +4793,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -4021,7 +4815,7 @@ endif
 end subroutine dealloc_cmplx4_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplx5_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplx5_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplx5_
 !! author: MDG
 !! version: 1.0
@@ -4037,10 +4831,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(5)
 character(*),INTENT(IN)                          :: varname
 complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(5) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -4056,15 +4851,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),startdims(5):dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplx5_:', &
-        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplx) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims-startdims+1)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplx, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplx5_:', &
+        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 end if
-self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -4074,7 +4885,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplx
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplx
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplx
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -4103,7 +4918,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -4125,7 +4940,7 @@ endif
 end subroutine dealloc_cmplx5_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplx6_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplx6_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplx6_
 !! author: MDG
 !! version: 1.0
@@ -4141,10 +4956,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(6)
 character(*),INTENT(IN)                          :: varname
 complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(6) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -4160,15 +4976,32 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4), &
+              startdims(5):dims(5),startdims(6):dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplx6_:', &
-        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplx) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims-startdims+1)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplx, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplx6_:', &
+        ' Unable to allocate complex(kind=cmplx) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 end if
-self%totmem_cmplx(LID) = self%totmem_cmplx(LID) + product(dims)*self%bytes_cmplx 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplx, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -4178,7 +5011,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplx
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplx
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplx
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -4207,7 +5044,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -4229,7 +5066,7 @@ endif
 end subroutine dealloc_cmplx6_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplxd1_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplxd1_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplxd1_
 !! author: MDG
 !! version: 1.0
@@ -4245,10 +5082,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(1)
 character(*),INTENT(IN)                          :: varname
 complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(1) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -4264,15 +5102,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplxd1_:', &
-        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplxd) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims-startdims+1)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplxd, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplxd1_:', &
+        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 end if
-self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -4282,7 +5136,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplxd
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplxd
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplxd
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -4311,7 +5169,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -4333,7 +5191,7 @@ endif
 end subroutine dealloc_cmplxd1_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplxd2_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplxd2_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplxd2_
 !! author: MDG
 !! version: 1.0
@@ -4349,10 +5207,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(2)
 character(*),INTENT(IN)                          :: varname
 complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(2) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -4368,15 +5227,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplxd2_:', &
-        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplxd) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims-startdims+1)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplxd, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplxd2_:', &
+        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 end if
-self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -4386,7 +5261,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplxd
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplxd
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplxd
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -4415,7 +5294,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -4437,7 +5316,7 @@ endif
 end subroutine dealloc_cmplxd2_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplxd3_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplxd3_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplxd3_
 !! author: MDG
 !! version: 1.0
@@ -4453,10 +5332,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(3)
 character(*),INTENT(IN)                          :: varname
 complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(3) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -4472,15 +5352,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplxd3_:', &
-        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplxd) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims-startdims+1)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplxd, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplxd3_:', &
+        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 end if
-self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -4490,7 +5386,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplxd
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplxd
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplxd
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -4519,7 +5419,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -4541,7 +5441,7 @@ endif
 end subroutine dealloc_cmplxd3_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplxd4_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplxd4_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplxd4_
 !! author: MDG
 !! version: 1.0
@@ -4557,10 +5457,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(4)
 character(*),INTENT(IN)                          :: varname
 complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(4) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -4576,15 +5477,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplxd4_:', &
-        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplxd) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims-startdims+1)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplxd, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplxd4_:', &
+        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 end if
-self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -4594,7 +5511,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplxd
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplxd
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplxd
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -4623,7 +5544,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -4645,7 +5566,7 @@ endif
 end subroutine dealloc_cmplxd4_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplxd5_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplxd5_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplxd5_
 !! author: MDG
 !! version: 1.0
@@ -4661,10 +5582,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(5)
 character(*),INTENT(IN)                          :: varname
 complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(5) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -4680,15 +5602,31 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),startdims(5):dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplxd5_:', &
-        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplxd) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims-startdims+1)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplxd, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplxd5_:', &
+        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 end if
-self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -4698,7 +5636,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplxd
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplxd
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplxd
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -4727,7 +5669,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier
@@ -4749,7 +5691,7 @@ endif
 end subroutine dealloc_cmplxd5_
 
 !--------------------------------------------------------------------------
-subroutine alloc_cmplxd6_(self, ar, dims, varname, initval, TID)
+subroutine alloc_cmplxd6_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_cmplxd6_
 !! author: MDG
 !! version: 1.0
@@ -4765,10 +5707,11 @@ integer(kind=irg), INTENT(IN)                    :: dims(6)
 character(*),INTENT(IN)                          :: varname
 complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr, outstr, szstr, initstr
-integer(kind=irg)                                :: sz, err, LID, szar(6) 
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -4784,15 +5727,32 @@ if (allocated(ar)) then
 endif
 
 ! allocate the array 
-allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
-if (err.ne.0) then 
-    errorstr = ' '
-    write (errorstr,*) dims
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3),startdims(4):dims(4),&
+              startdims(5):dims(5),startdims(6):dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
     call Message%printError('mod_memory:alloc_cmplxd6_:', &
-        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//errorstr)
+      ' Unable to allocate complex(kind=cmplxd) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims-startdims+1)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_cmplxd, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3),dims(4),dims(5),dims(6)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_cmplxd6_:', &
+        ' Unable to allocate complex(kind=cmplxd) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
+  call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 end if
-self%totmem_cmplxd(LID) = self%totmem_cmplxd(LID) + product(dims)*self%bytes_cmplxd 
-call self%update_total_memory_use_(product(dims)*self%bytes_cmplxd, LID)
 
 ! initalize the array to zeros or initval if present  
 if (present(initval)) then 
@@ -4802,7 +5762,11 @@ else
 end if
 
 if (self%verbose) then 
-  write (szstr,*) product(dims)*self%bytes_cmplxd
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_cmplxd
+  else 
+    write (szstr,*) product(dims)*self%bytes_cmplxd
+  end if
   if (present(initval)) then 
     write (initstr,*) initval
   else 
@@ -4831,7 +5795,7 @@ character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
 type(IO_T)                                       :: Message
-character(fnlen)                                 :: errorstr
+character(fnlen)                                 :: estr
 integer(kind=irg)                                :: err, LID, sz 
 
 ! set the local thread identifier

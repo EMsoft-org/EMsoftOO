@@ -159,6 +159,8 @@ private
       !! name of the files that contains the wiki file codes
      character(3)      :: EMsoftHDFtest
       !! equal to YES when the EMsoftHDFtest environmental parameter is set
+     character(3)      :: EMsoftAllocatetest
+      !! equal to YES when the EMsoftAllocatetest environmental parameter is set
      character(fnlen)  :: SlackWebHookURL
       !! URL for Slack messaging
      character(fnlen)  :: SlackChannel
@@ -208,6 +210,7 @@ private
       procedure, pass(self) :: getwikicodefilename
       procedure, pass(self) :: getJSONparameter
       procedure, pass(self) :: getEMsoftHDFtest
+      ! procedure, pass(self) :: getEMsoftAllocatetest
       procedure, pass(self) :: path_init
       procedure, pass(self) :: toNativePath_
       procedure, pass(self) :: fromNativePath_
@@ -389,6 +392,7 @@ subroutine init(self)
   call self % getfftwWisdomfilename()
   call self % getwikicodefilename()
   call self % getEMsoftHDFtest()
+  ! call self % getEMsoftAllocatetest()
 
 end subroutine init
 
@@ -447,6 +451,7 @@ subroutine printConfigParameters(self)
   call Message % printMessage( 'fftwWisdomfilename       = '//trim( self % fftwWisdomfilename ) )
   call Message % printMessage( 'wikicodefilename         = '//trim( self % wikicodefilename ) )
   call Message % printMessage( 'EMsoftHDFtest            = '//trim( self % EMsoftHDFtest ) )
+  call Message % printMessage( 'EMsoftAllocatetest       = '//trim( self % EMsoftAllocatetest ) )
   call Message % printMessage( '</EMsoftConfigurationParameters> ' )
 
 end subroutine printConfigParameters
@@ -536,6 +541,8 @@ function getConfigParameter(self, inp) result(cp)
       cp = trim( self % wikicodefilename )
     case('EMsoftHDFtest')
       cp = trim( self % EMsoftHDFtest )
+    case('EMsoftAllocatetest')
+      cp = trim( self % EMsoftAllocatetest )
     case default
       cp = 'unknown configuration parameter'
   end select
@@ -631,6 +638,8 @@ subroutine setConfigParameter(self, inp, value)
       self % wikicodefilename = trim(value)
     case('EMsoftHDFtest')
       self % EMsoftHDFtest = trim(value)
+    case('EMsoftAllocatetest')
+      self % EMsoftAllocatetest = trim(value)
     case default
       cp = 'unknown configuration parameter'
   end select
@@ -1499,6 +1508,33 @@ if (trim(envReturn).ne.'') then
 end if
 
 end subroutine getEMsoftHDFtest
+
+!--------------------------------------------------------------------------
+! subroutine getEMsoftAllocatetest(self)
+! !DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftAllocatetest
+!   !! author: MDG
+!   !! version: 1.0
+!   !! date: 3/24/21
+!   !!
+!   !! returns the EMsoftAllocatetest environment variable
+
+! use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+
+! IMPLICIT NONE
+
+! class(EMsoft_T),intent(inout)      :: self
+
+! character(fnlen)                   :: envParam, envReturn
+
+! envParam = 'EMsoftAllocatetest'
+! call getenv(trim(envParam),envReturn)
+! self%getEMsoftAllocatetest = 'No'
+! if (trim(envReturn).ne.'') then
+!   self%getEMsoftAllocatetest = 'Yes'
+! end if
+
+! end subroutine getEMsoftAllocatetest
+
 
 !--------------------------------------------------------------------------
 function getJSONparameter(self, ep, nobackslash) result(param)
