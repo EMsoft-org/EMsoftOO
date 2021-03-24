@@ -94,6 +94,7 @@ use mod_EBSD
 use mod_ECP
 use mod_so3
 use mod_vendors
+use mod_NLPAR
 
 IMPLICIT NONE
 
@@ -158,6 +159,7 @@ type(r_T)                                           :: ro
 type(Vendor_T)                                      :: VT
 type(Quaternion_T)                                  :: qu
 type(IncidentListECP),pointer                       :: ktmp
+type(NLPAR_T)                                       :: NLPAR
 
 type(MCOpenCLNameListType)                          :: mcnl
 type(SEMmasterNameListType)                         :: mpnl
@@ -781,7 +783,6 @@ if (istat .ne. 0) stop 'Could not allocate array for dictionary patterns'
 dict1 = 0.0
 dict2 = 0.0
 dict => dict1
-dicttranspose = 0.0
 
 allocate(results(Ne*Nd),stat=istat)
 if (istat .ne. 0) stop 'Could not allocate array for results'
@@ -931,8 +932,17 @@ end do
 ! Preprocess all the experimental patterns and store
 ! them in a temporary file as vectors; also, create
 ! an average dot product map to be stored in the h5ebsd output file
+! new addition 3/18/21: option to use NLPAR as part of 
+! the preprocessing step!
 !=====================================================
-call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
+if (dinl%doNLPAR.eqv..TRUE.) then 
+  NLPAR = NLPAR_T()
+  call NLPAR%setSearchWindow(dinl%sw)
+  call NLPAR%setLambda(dinl%lambda) 
+  call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
+else 
+  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
+end if 
 
 !=====================================================
 call Message%printMessage(' --> computing Average Dot Product map (ADP)')
@@ -1305,7 +1315,7 @@ if (cancelled.eqv..TRUE.) EXIT dictionaryloop
 
 end do dictionaryloop
 
-deallocate(dicttranspose)
+! deallocate(dicttranspose)
 
 !-----
 ierr = clReleaseMemObject(cl_expt)

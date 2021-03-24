@@ -488,8 +488,7 @@ end if
 if (self%filename(1:1).eq.trim(EMsoft%getConfigParameter('EMsoftnativedelimiter'))) then
   ename = trim(self%filename)
 else
-  ename = trim(self%filename)
-  !ename = trim(self%filename)
+  ename = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(self%filename)
 end if
 
 f_exists = .FALSE.

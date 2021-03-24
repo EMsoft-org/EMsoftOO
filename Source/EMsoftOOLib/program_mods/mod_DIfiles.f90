@@ -70,6 +70,7 @@ type, public :: DictionaryIndexingNameListType
   integer(kind=irg)  :: platid
   integer(kind=irg)  :: nregions
   integer(kind=irg)  :: nlines
+  integer(kind=irg)  :: sw
   real(kind=sgl)     :: L
   real(kind=sgl)     :: thetac
   real(kind=sgl)     :: delta
@@ -86,6 +87,8 @@ type, public :: DictionaryIndexingNameListType
   real(kind=sgl)     :: hipassw
   real(kind=sgl)     :: stepX
   real(kind=sgl)     :: stepY
+  real(kind=sgl)     :: lambda
+  logical            :: doNLPAR
   character(1)       :: maskpattern
   character(3)       :: scalingmode
   character(3)       :: Notify
@@ -421,6 +424,7 @@ integer(kind=irg)  :: nnav
 integer(kind=irg)  :: nosm
 integer(kind=irg)  :: nism
 integer(kind=irg)  :: maskradius
+integer(kind=irg)  :: sw
 real(kind=sgl)     :: L
 real(kind=sgl)     :: thetac
 real(kind=sgl)     :: delta
@@ -436,6 +440,8 @@ real(kind=sgl)     :: energymax
 real(kind=sgl)     :: beamcurrent
 real(kind=sgl)     :: dwelltime
 real(kind=sgl)     :: hipassw
+real(kind=sgl)     :: lambda
+logical            :: doNLPAR
 character(1)       :: maskpattern
 character(1)       :: keeptmpfile
 character(3)       :: scalingmode
@@ -472,7 +478,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
-                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix
+                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 ncubochoric     = 50
@@ -494,6 +500,7 @@ numsy           = 0             ! [dimensionless]
 ROI             = (/ 0, 0, 0, 0 /)  ! Region of interest (/ x0, y0, w, h /)
 maskradius      = 240
 binning         = 1             ! binning mode  (1, 2, 4, or 8)
+sw              = 3
 L               = 20000.0       ! [microns]
 thetac          = 0.0           ! [degrees]
 delta           = 25.0          ! [microns]
@@ -506,6 +513,8 @@ dwelltime       = 100.0         ! in microseconds
 hipassw         = 0.05          ! hi pass inverted Gaussian mask parameter
 stepX           = 1.0           ! sampling step size along X
 stepY           = 1.0           ! sampling step size along Y
+lambda          = 0.375
+doNLPAR         = .FALSE.
 keeptmpfile     = 'n'
 maskpattern     = 'n'           ! 'y' or 'n' to include a circular mask
 Notify          = 'Off'
@@ -594,6 +603,9 @@ self%nml%isangle       = isangle
 self%nml%ipf_ht        = ipf_ht
 self%nml%ipf_wd        = ipf_wd
 self%nml%nthreads      = nthreads
+self%nml%sw            = sw 
+self%nml%lambda        = lambda 
+self%nml%doNLPAR       = doNLPAR
 self%nml%datafile      = trim(datafile)
 self%nml%tmpfile       = trim(tmpfile)
 self%nml%ctffile       = trim(ctffile)
@@ -683,7 +695,7 @@ type(HDFnames_T), INTENT(INOUT)                     :: HDFnames
 class(DictionaryIndexingNameListType), INTENT(INOUT):: emnl
 
 type(IO_T)                                          :: Message
-integer(kind=irg)                                   :: n_int, n_real
+integer(kind=irg)                                   :: n_int, n_real, NLPAR
 integer(kind=irg)                                   :: hdferr
 integer(kind=irg),allocatable                       :: io_int(:)
 real(kind=sgl),allocatable                          :: io_real(:)
@@ -702,8 +714,8 @@ modality = trim(self%getModality())
 select case(trim(modality))
   case('EBSD')
     isEBSD = .TRUE.
-    n_int = 20
-    n_real = 19
+    n_int = 22
+    n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
     isECP = .TRUE.
@@ -719,11 +731,14 @@ select case(trim(modality))
     call Message%printError('writeHDFNameList', 'unknown name list type requested')
 end select
 
+NLPAR = 0
+if (emnl%doNLPAR.eqv..TRUE.) NLPAR=1
+
 ! write all the single integers
 io_int = (/ emnl%ncubochoric, emnl%numexptsingle, emnl%numdictsingle, emnl%ipf_ht, &
             emnl%ipf_wd, emnl%nnk, emnl%maskradius, emnl%numsx, emnl%numsy, emnl%binning, &
             emnl%nthreads, emnl%devid, emnl%platid, emnl%nregions, emnl%nnav, &
-            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix /)
+            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR /)
 intlist(1) = 'Ncubochoric'
 intlist(2) = 'numexptsingle'
 intlist(3) = 'numdictsingle'
@@ -744,12 +759,14 @@ intlist(17) = 'nlines'
 intlist(18) = 'usenumd'
 intlist(19) = 'nism'
 intlist(20) = 'npix'
+intlist(21) = 'sw'
+intlist(22) = 'NLPAR'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 io_real = (/ emnl%L, emnl%thetac, emnl%delta, emnl%omega, emnl%xpc, &
              emnl%ypc, emnl%energymin, emnl%energymax, emnl%gammavalue, emnl%StepX, &
              emnl%stepY, emnl%isangle, emnl%beamcurrent, emnl%dwelltime, emnl%hipassw, &
-             emnl%workingdistance, emnl%conesemiangle, emnl%Rin, emnl%Rout /)
+             emnl%workingdistance, emnl%conesemiangle, emnl%Rin, emnl%Rout, emnl%lambda /)
 reallist(1) = 'L'
 reallist(2) = 'thetac'
 reallist(3) = 'delta'
@@ -769,6 +786,7 @@ reallist(16) = 'workingdistance'
 reallist(17) = 'conesemiangle'
 reallist(18) = 'Rin'
 reallist(19) = 'Rout'
+reallist(20) = 'lambda'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! a 4-vector

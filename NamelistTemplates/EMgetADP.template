@@ -9,6 +9,9 @@
  ipf_wd = 100,
 ! define the region of interest;  leave all at 0 for full field of view
  ROI = 0 0 0 0,
+! number of pattern pixels along x and y
+ numsx = 0,
+ numsy = 0,
 ! to use a custom mask, enter the mask filename here; leave undefined for standard mask option
  maskfile = 'undefined',
 ! filter patterns or not
@@ -21,10 +24,12 @@
  hipassw = 0.05,
 ! number of regions for adaptive histogram equalization
  nregions = 10,
-! number of pattern pixels along x and y
- numsx = 0,
- numsy = 0,
-!
+! do we need to do an NLPAR pre-processing step ?
+ doNLPAR = 'FALSE',
+! NLPAR search window size (2*sw+1) by (2*sw+1)
+ sw = 3,
+! lambda parameter
+ lambda = 0.375,
 !###################################################################
 ! INPUT FILE PARAMETERS
 !###################################################################

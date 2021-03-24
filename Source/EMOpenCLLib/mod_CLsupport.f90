@@ -406,7 +406,7 @@ allocate(platform_profile(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, temp_size, C_LOC(platform_profile), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_profile(p_id) = trim(cv_a2s(platform_profile))
-print *, 'Profile: ', self%p_profile
+print *, 'Profile: ', trim(self%p_profile(p_id))
 deallocate(platform_profile)
 
 ! Version.
@@ -416,7 +416,7 @@ allocate(platform_version(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, temp_size, C_LOC(platform_version), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_version(p_id) = trim(cv_a2s(platform_version))
-print *, 'Version: ', self%p_version
+print *, 'Version: ', trim(self%p_version(p_id))
 deallocate(platform_version)
 
 ! Name.
@@ -426,7 +426,7 @@ allocate(platform_name(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, temp_size, C_LOC(platform_name), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_name(p_id) = trim(cv_a2s(platform_name))
-print *, 'Name: ', self%p_name
+print *, 'Name: ', trim(self%p_name(p_id))
 deallocate(platform_name)
 
 ! Vendor.
@@ -436,7 +436,7 @@ allocate(platform_vendor(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, temp_size, C_LOC(platform_vendor), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_vendor(p_id) = trim(cv_a2s(platform_vendor))
-print *, 'Vendor: ', self%p_vendor
+print *, 'Vendor: ', trim(self%p_vendor(p_id))
 deallocate(platform_vendor)
 
 ! Extensions.
@@ -446,7 +446,7 @@ allocate(platform_extensions(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, temp_size, C_LOC(platform_extensions), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_extensions(p_id) = trim(cv_a2s(platform_extensions))
-print *, 'platform_extensions: ', self%p_extensions
+print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
 deallocate(platform_extensions)
 
 !

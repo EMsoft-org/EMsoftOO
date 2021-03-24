@@ -48,7 +48,9 @@ type, public :: ADPNameListType
  integer(kind=irg)  :: nthreads
  integer(kind=irg)  :: nregions
  integer(kind=irg)  :: ROI(4)
+ integer(kind=irg)  :: sw
  real(kind=dbl)     :: hipassw
+ real(kind=sgl)     :: lambda
  character(1)       :: maskpattern
  character(1)       :: filterpattern
  character(1)       :: keeptmpfile
@@ -59,6 +61,7 @@ type, public :: ADPNameListType
  character(fnlen)   :: maskfile
  character(fnlen)   :: inputtype
  character(fnlen)   :: HDFstrings(10)
+ logical            :: doNLPAR
 end type ADPNameListType
 
 ! class definition
@@ -91,6 +94,9 @@ private
   procedure, pass(self) :: get_maskfile_
   procedure, pass(self) :: get_inputtype_
   procedure, pass(self) :: get_HDFstrings_
+  procedure, pass(self) :: get_sw_
+  procedure, pass(self) :: get_doNLPAR_
+  procedure, pass(self) :: get_lambda_
   procedure, pass(self) :: set_ipf_ht_
   procedure, pass(self) :: set_ipf_wd_
   procedure, pass(self) :: set_maskradius_
@@ -110,6 +116,9 @@ private
   procedure, pass(self) :: set_maskfile_
   procedure, pass(self) :: set_inputtype_
   procedure, pass(self) :: set_HDFstrings_
+  procedure, pass(self) :: set_sw_
+  procedure, pass(self) :: set_doNLPAR_
+  procedure, pass(self) :: set_lambda_
 
   generic, public :: getNameList => getNameList_
   generic, public :: readNameList => readNameList_
@@ -133,6 +142,9 @@ private
   generic, public :: get_maskfile => get_maskfile_
   generic, public :: get_inputtype => get_inputtype_
   generic, public :: get_HDFstrings => get_HDFstrings_
+  generic, public :: get_sw => get_sw_
+  generic, public :: get_doNLPAR => get_doNLPAR_
+  generic, public :: get_lambda => get_lambda_
   generic, public :: set_ipf_ht => set_ipf_ht_
   generic, public :: set_ipf_wd => set_ipf_wd_
   generic, public :: set_maskradius => set_maskradius_
@@ -152,6 +164,9 @@ private
   generic, public :: set_maskfile => set_maskfile_
   generic, public :: set_inputtype => set_inputtype_
   generic, public :: set_HDFstrings => set_HDFstrings_
+  generic, public :: set_sw => set_sw_
+  generic, public :: set_doNLPAR => set_doNLPAR_
+  generic, public :: set_lambda => set_lambda_
 end type ADP_T
 
 ! the constructor routine for this class
@@ -881,6 +896,114 @@ self%nml%HDFstrings = inp
 end subroutine set_HDFstrings_
 
 !--------------------------------------------------------------------------
+function get_sw_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_sw_
+!! author: MDG
+!! version: 1.0
+!! date: 03/15/21
+!!
+!! get sw from the ADP_T class
+
+IMPLICIT NONE
+
+class(ADP_T), INTENT(INOUT)     :: self
+integer(kind=irg)               :: out
+
+out = self%nml%sw
+
+end function get_sw_
+
+!--------------------------------------------------------------------------
+subroutine set_sw_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_sw_
+!! author: MDG
+!! version: 1.0
+!! date: 03/15/21
+!!
+!! set sw in the ADP_T class
+
+IMPLICIT NONE
+
+class(ADP_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)   :: inp
+
+self%nml%sw = inp
+
+end subroutine set_sw_
+
+!--------------------------------------------------------------------------
+function get_doNLPAR_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_doNLPAR_
+!! author: MDG
+!! version: 1.0
+!! date: 03/15/21
+!!
+!! get doNLPAR from the ADP_T class
+
+IMPLICIT NONE
+
+class(ADP_T), INTENT(INOUT)     :: self
+logical                         :: out
+
+out = self%nml%doNLPAR
+
+end function get_doNLPAR_
+
+!--------------------------------------------------------------------------
+subroutine set_doNLPAR_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_doNLPAR_
+!! author: MDG
+!! version: 1.0
+!! date: 03/15/21
+!!
+!! set doNLPAR in the ADP_T class
+
+IMPLICIT NONE
+
+class(ADP_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)             :: inp
+
+self%nml%doNLPAR = inp
+
+end subroutine set_doNLPAR_
+
+!--------------------------------------------------------------------------
+function get_lambda_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_lambda_
+!! author: MDG
+!! version: 1.0
+!! date: 03/15/21
+!!
+!! get lambda from the ADP_T class
+
+IMPLICIT NONE
+
+class(ADP_T), INTENT(INOUT)     :: self
+real(kind=sgl)                  :: out
+
+out = self%nml%lambda
+
+end function get_lambda_
+
+!--------------------------------------------------------------------------
+subroutine set_lambda_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_lambda_
+!! author: MDG
+!! version: 1.0
+!! date: 03/15/21
+!!
+!! set lambda in the ADP_T class
+
+IMPLICIT NONE
+
+class(ADP_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)      :: inp
+
+self%nml%lambda = inp
+
+end subroutine set_lambda_
+
+!--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
 !DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
 !! author: MDG
@@ -910,7 +1033,9 @@ integer(kind=irg)       :: numsy
 integer(kind=irg)       :: nthreads
 integer(kind=irg)       :: nregions
 integer(kind=irg)       :: ROI(4)
+integer(kind=irg)       :: sw
 real(kind=dbl)          :: hipassw
+real(kind=sgl)          :: lambda
 character(1)            :: maskpattern
 character(1)            :: filterpattern
 character(1)            :: keeptmpfile
@@ -921,10 +1046,12 @@ character(fnlen)        :: tiffname
 character(fnlen)        :: maskfile
 character(fnlen)        :: inputtype
 character(fnlen)        :: HDFstrings(10)
+logical                 :: doNLPAR
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / getADP / numsx, numsy, nregions, maskpattern, nthreads, ipf_ht, ipf_wd, exptfile, maskradius, inputtype, &
-                     tmpfile, maskfile, HDFstrings, hipassw, tiffname, filterpattern, keeptmpfile, usetmpfile, ROI
+                     tmpfile, maskfile, HDFstrings, hipassw, tiffname, filterpattern, keeptmpfile, usetmpfile, ROI, &
+                     sw, doNLPAR, lambda
 
 ! set the input parameters to default values
  ipf_ht = 100
@@ -940,12 +1067,15 @@ namelist  / getADP / numsx, numsy, nregions, maskpattern, nthreads, ipf_ht, ipf_
  numsx = 0
  numsy = 0
  ROI = (/ 0, 0, 0, 0 /)
+ sw = 3
+ lambda = 0.375
  exptfile = 'undefined'
  inputtype = 'Binary'
  HDFstrings = ''
  tmpfile = 'EMEBSDDict_tmp.data'
  tiffname = 'undefined'
  nthreads = 1
+ doNLPAR = .FALSE.
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -984,6 +1114,9 @@ self%nml%numsy = numsy
 self%nml%nthreads = nthreads
 self%nml%nregions = nregions
 self%nml%ROI = ROI
+self%nml%lambda = lambda
+self%nml%sw = sw
+self%nml%doNLPAR = doNLPAR
 self%nml%hipassw = hipassw
 self%nml%maskpattern = maskpattern
 self%nml%filterpattern = filterpattern
@@ -1039,6 +1172,7 @@ use mod_HDFsupport
 use ISO_C_BINDING
 use mod_DIfiles
 use mod_image
+use mod_NLPAR
 
 use, intrinsic :: iso_fortran_env
 
@@ -1051,6 +1185,7 @@ character(fnlen), INTENT(INOUT)                     :: progname
 type(IO_T)                                          :: Message
 type(HDF_T)                                         :: HDF
 type(timing_T)                                      :: timer
+type(NLPAR_T)                                       :: NLPAR 
 
 integer(kind=irg)                                   :: num,ierr,irec,istat
 integer(kind=irg),parameter                         :: iunit = 40
@@ -1246,7 +1381,14 @@ if (adpnl%usetmpfile.eq.'n') then
   dinl%nregions = adpnl%nregions
   dinl%DIModality = 'EBSD'
 
-  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
+  if (adpnl%doNLPAR.eqv..TRUE.) then 
+    NLPAR = NLPAR_T()
+    call NLPAR%setSearchWindow(adpnl%sw)
+    call NLPAR%setLambda(adpnl%lambda) 
+    call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
+  else 
+    call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
+  end if 
 end if
 
 !=====================================================
@@ -1280,6 +1422,8 @@ allocate(TIFF_image(TIFF_nx,TIFF_ny))
 ! fill the image with whatever data you have (between 0 and 255)
 ma = maxval(dpmap)
 mi = minval(dpmap)
+
+write (*,*) ' adp map range ',mi,ma 
 
 do j=1,TIFF_ny
  do i=1,TIFF_nx
