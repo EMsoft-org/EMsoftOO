@@ -304,7 +304,7 @@ end interface memory_T
 contains
 
 !--------------------------------------------------------------------------
-type(memory_T) function memory_constructor( nt )  result(mem) 
+type(memory_T) function memory_constructor( nt, silent )  result(mem) 
 !DEC$ ATTRIBUTES DLLEXPORT :: memory_constructor
 !! author: MDG
 !! version: 1.0
@@ -312,9 +312,17 @@ type(memory_T) function memory_constructor( nt )  result(mem)
 !!
 !! constructor for the memory_T Class
 
+use mod_io
+use mod_EMsoft
+
 IMPLICIT NONE
 
 integer(kind=irg), INTENT(IN), OPTIONAL  :: nt 
+logical, INTENT(IN), OPTIONAL            :: silent 
+
+type(IO_T)                               :: Message
+type(EMsoft_T)                           :: EMsoft
+character(fnlen)                         :: dummy 
 
 ! deallocate any old memory usage counter arrays 
 if (allocated(mem%totmem_ish)) deallocate(mem%totmem_ish) 
@@ -358,9 +366,47 @@ mem%totmem_dbl  = 0
 mem%totmem_cmplx  = 0
 mem%totmem_cmplxd  = 0
 mem%current_memory_allocated = 0
+
 mem%verbose = .FALSE.
+if (.not.present(silent)) then 
+    dummy = ''
+    EMsoft = EMsoft_T(dummy,dummy,silent=.TRUE.)
+    if (EMsoft%getConfigParameter('EMsoftAllocatetest').eq.'Yes') then 
+      call Message%printMessage('>>>>>>>>>>>>>>>  Turning on verbosity in mod_memory class !!!!!!!!!')
+      mem%verbose = .TRUE.
+    else 
+      mem%verbose = .FALSE.
+    end if 
+end if 
 
 end function memory_constructor
+
+!--------------------------------------------------------------------------
+subroutine memory_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: memory_destructor
+!! author: MDG
+!! version: 1.0
+!! date: 03/25/21
+!!
+!! destructor for the memory_T Class
+
+IMPLICIT NONE
+
+type(memory_T), INTENT(INOUT)  :: self
+
+! deallocate any old memory usage counter arrays 
+if (allocated(self%totmem_ish)) deallocate(self%totmem_ish) 
+if (allocated(self%totmem_irg)) deallocate(self%totmem_irg) 
+if (allocated(self%totmem_ill)) deallocate(self%totmem_ill) 
+if (allocated(self%totmem_sgl)) deallocate(self%totmem_sgl) 
+if (allocated(self%totmem_dbl)) deallocate(self%totmem_dbl) 
+if (allocated(self%totmem_cmplx)) deallocate(self%totmem_cmplx) 
+if (allocated(self%totmem_cmplxd)) deallocate(self%totmem_cmplxd) 
+if (allocated(self%current_memory_allocated)) deallocate(self%current_memory_allocated) 
+
+call reportDestructor('memory_T')
+
+end subroutine memory_destructor
 
 !--------------------------------------------------------------------------
 subroutine show_allocated_memory_use_( self )

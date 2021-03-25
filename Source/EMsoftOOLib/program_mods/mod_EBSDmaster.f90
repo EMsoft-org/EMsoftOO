@@ -880,7 +880,6 @@ tstrb = timer%getTimeString()
 
 ! initialize the memory class 
 mem = memory_T()
-call mem%toggle_verbose() 
 
 ! if copyfromenergyfile is different from 'undefined', then we need to
 ! copy all the Monte Carlo data from that file into a new file, which
@@ -1384,8 +1383,7 @@ call timer%Time_tick(2)
 reflist = gvectors_T()
 
 ! instantiate the memory class for the OpenMP section
-memth = memory_T( nt = emnl%nthreads )
-! call memth%toggle_verbose()
+memth = memory_T( nt = emnl%nthreads, silent=.TRUE. )
 
 energyloop: do iE=Estart,1,-1
  if (emnl%uniform.eqv..FALSE.) then

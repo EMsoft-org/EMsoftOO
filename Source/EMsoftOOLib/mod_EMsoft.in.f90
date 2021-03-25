@@ -210,7 +210,7 @@ private
       procedure, pass(self) :: getwikicodefilename
       procedure, pass(self) :: getJSONparameter
       procedure, pass(self) :: getEMsoftHDFtest
-      ! procedure, pass(self) :: getEMsoftAllocatetest
+      procedure, pass(self) :: getEMsoftAllocatetest
       procedure, pass(self) :: path_init
       procedure, pass(self) :: toNativePath_
       procedure, pass(self) :: fromNativePath_
@@ -392,7 +392,7 @@ subroutine init(self)
   call self % getfftwWisdomfilename()
   call self % getwikicodefilename()
   call self % getEMsoftHDFtest()
-  ! call self % getEMsoftAllocatetest()
+  call self % getEMsoftAllocatetest()
 
 end subroutine init
 
@@ -1510,31 +1510,31 @@ end if
 end subroutine getEMsoftHDFtest
 
 !--------------------------------------------------------------------------
-! subroutine getEMsoftAllocatetest(self)
-! !DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftAllocatetest
-!   !! author: MDG
-!   !! version: 1.0
-!   !! date: 3/24/21
-!   !!
-!   !! returns the EMsoftAllocatetest environment variable
+subroutine getEMsoftAllocatetest(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftAllocatetest
+  !! author: MDG
+  !! version: 1.0
+  !! date: 3/24/21
+  !!
+  !! returns the EMsoftAllocatetest environment variable
 
-! use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
-! IMPLICIT NONE
+IMPLICIT NONE
 
-! class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),intent(inout)      :: self
 
-! character(fnlen)                   :: envParam, envReturn
+character(fnlen)                   :: envParam, envReturn
 
-! envParam = 'EMsoftAllocatetest'
-! call getenv(trim(envParam),envReturn)
-! self%getEMsoftAllocatetest = 'No'
-! if (trim(envReturn).ne.'') then
-!   self%getEMsoftAllocatetest = 'Yes'
-! end if
+envParam = 'EMsoftAllocatetest'
+call getenv(trim(envParam),envReturn)
+write (*,*) trim(envParam), trim(envReturn) 
+self%EMsoftAllocatetest = 'No'
+if (trim(envReturn).ne.'') then
+  self%EMsoftAllocatetest = 'Yes'
+end if
 
-! end subroutine getEMsoftAllocatetest
-
+end subroutine getEMsoftAllocatetest
 
 !--------------------------------------------------------------------------
 function getJSONparameter(self, ep, nobackslash) result(param)
