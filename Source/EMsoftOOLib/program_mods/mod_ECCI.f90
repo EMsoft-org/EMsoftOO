@@ -797,10 +797,10 @@ call Message%WriteValue('# independent beam directions to be considered = ', io_
 ! Convert to array for OpenMP
 mem = memory_T()
 
-call mem%alloc2( kij, (/3, numk/), 'kij')
-call mem%alloc2( klist, (/3, numk/), 'klist')
-call mem%alloc1( knlist, (/numk/), 'knlist')
-call mem%alloc2( XYarray, (/2, numk/), 'XYarray')
+call mem%alloc( kij, (/3, numk/), 'kij')
+call mem%alloc( klist, (/3, numk/), 'klist')
+call mem%alloc( knlist, (/numk/), 'knlist')
+call mem%alloc( XYarray, (/2, numk/), 'XYarray')
 
 ! ! point to the first beam direction
 if (trim(emnl%progmode).eq.'array') ktmp => kvec%get_ListHead()
@@ -857,7 +857,7 @@ io_real(1) = nabsl
 
 call Message%WriteValue('Normal absorption length : ', io_real, 1, "(F10.5/)")
 
-call mem%alloc1(lambdaZ, (/numzbins/), 'lambdaZ', 0.0_sgl)
+call mem%alloc(lambdaZ, (/numzbins/), 'lambdaZ', 0.0_sgl)
 
 do iz=1,numzbins
   lambdaZ(iz) = float(sum(accum_z(numangle,iz,:,:)))/float(etotal)
@@ -1113,12 +1113,12 @@ mainloop: do isg = numstart,numstop
   end if
 
   ! allocate the various DHW Matrices
-  !call mem%alloc2(DHWMz, (/nn,nn/), 'DHWMz')
+  !call mem%alloc(DHWMz, (/nn,nn/), 'DHWMz')
   if (allocated(DHWMz)) deallocate(DHWMz)
   allocate(DHWMz(nn,nn))
   DHWMz = czero
   
-  !call mem%alloc2(DHWMvoid, (/nn,nn/), 'DHWMvoid')
+  !call mem%alloc(DHWMvoid, (/nn,nn/), 'DHWMvoid')
   if (allocated(DHWMvoid)) deallocate(DHWMvoid)
   allocate(DHWMvoid(nn,nn))
 
@@ -1144,7 +1144,7 @@ mainloop: do isg = numstart,numstop
   end if 
   
   ! loop over all reflections to get the appropriate powers
-  !call mem%alloc3(expval, (/2,nn,nn/), 'expval')
+  !call mem%alloc(expval, (/2,nn,nn/), 'expval')
   if (allocated(expval)) deallocate(expval)
   allocate(expval(2,nn,nn))
   expval = 0.0
@@ -1153,7 +1153,7 @@ mainloop: do isg = numstart,numstop
 
   ! Compute Sgh
   ! Only diagonals terms are computed gives inverted contrast...
-  !call mem%alloc1(Sgh, (/nn/), 'Sgh')
+  !call mem%alloc(Sgh, (/nn/), 'Sgh')
   !if (allocated(Sgh)) deallocate(Sgh)
   !allocate(Sgh(nn))
 
@@ -1172,7 +1172,7 @@ mainloop: do isg = numstart,numstop
   if (self%nml%mode.eq.'Full') then
 
   ! compute the excitation error for the incident beam directions
-  !call mem%alloc1(sgarray, (/nn/), 'sgarray')
+  !call mem%alloc(sgarray, (/nn/), 'sgarray')
   if (allocated(sgarray)) deallocate(sgarray)
   allocate(sgarray(nn))
 
@@ -1190,7 +1190,7 @@ mainloop: do isg = numstart,numstop
 
   allocate(Sarray(nn,nn,0:numd,0:numd))
   Sarray = czero
-  !call mem%alloc4(Sarray, (/nn,nn,numd,numd/), 'Sarray')
+  !call mem%alloc(Sarray, (/nn,nn,numd,numd/), 'Sarray')
   NTHR = emnl%nthreads
   !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,jj,ic,ir,g,Azz,DDD,zmax,Sarrayk)
   TID = OMP_GET_THREAD_NUM()
@@ -1203,8 +1203,8 @@ mainloop: do isg = numstart,numstop
     call Message%printMessage('starting Sarray computation',"(A)",advance="no")
   end if
 
-  !call mem%alloc2(Azz, (/nn,nn/), 'Azz')
-  !call mem%alloc2(DDD, (/nn,nn/), 'DDD')
+  !call mem%alloc(Azz, (/nn,nn/), 'Azz')
+  !call mem%alloc(DDD, (/nn,nn/), 'DDD')
   !$OMP DO SCHEDULE(STATIC) 
   do j=0,numd
     do i=0,numd
@@ -1245,10 +1245,10 @@ mainloop: do isg = numstart,numstop
   !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) &
   !$OMP& PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm,dym,ixp,iyp,Lgh,Lgh2,ir,ic,svals)
   TID = OMP_GET_THREAD_NUM()
-  !call mem%alloc2(Azz, (/nn,nn/), 'Azz')
-  !call mem%alloc1(amp, (/nn/), 'amp')
-  !call mem%alloc1(amp2, (/nn/), 'amp2')
-  !call mem%alloc1(Lgh, (/nn/), 'Lgh')
+  !call mem%alloc(Azz, (/nn,nn/), 'Azz')
+  !call mem%alloc(amp, (/nn/), 'amp')
+  !call mem%alloc(amp2, (/nn/), 'amp2')
+  !call mem%alloc(Lgh, (/nn/), 'Lgh')
   allocate(Azz(nn,nn),amp(nn),amp2(nn),Lgh(nn),Lgh2(nn,nn))
 
   !$OMP DO SCHEDULE (STATIC)

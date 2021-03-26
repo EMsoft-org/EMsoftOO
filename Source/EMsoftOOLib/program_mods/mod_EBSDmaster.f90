@@ -929,8 +929,8 @@ call Message%WriteValue(' --> total number of BSE electrons in MC data set ', io
 !=============================================
 numEbins = MCFT%getnumEbins()
 
-call mem%alloc1( EkeVs, (/ numEbins /), 'EkeVs')
-call mem%alloc1( thick, (/ numEbins /), 'thick')
+call mem%alloc( EkeVs, (/ numEbins /), 'EkeVs')
+call mem%alloc( thick, (/ numEbins /), 'thick')
 
 do i=1,numEbins
   EkeVs(i) = mcnl%Ehistmin + float(i-1)*mcnl%Ebinsize
@@ -1074,7 +1074,7 @@ do iE = 1,numEbins
 end do
 
 izz = nint(maxval(thick)/mcnl%depthstep)
-call mem%alloc2(lambdaE, (/ numEbins, izz/), 'lambdaE')
+call mem%alloc(lambdaE, (/ numEbins, izz/), 'lambdaE')
 do iE=1,numEbins
  call Diff%setV(dble(Ekevs(iE)))
  call Diff%CalcUcg(cell,(/0,0,0/))
@@ -1113,14 +1113,10 @@ end do
   end if
 
 ! ---------- allocate memory for the master patterns
-  call mem%alloc4(mLPNH, (/ emnl%npx, npy, 1, numsites /), 'mLPNH', startdims=(/-emnl%npx,-npy,1,1/))
-  call mem%alloc4(mLPSH, (/ emnl%npx, npy, 1, numsites /), 'mLPNH', startdims=(/-emnl%npx,-npy,1,1/))
-  call mem%alloc3(masterSPNH, (/ emnl%npx, npy, 1 /), 'masterSPNH', startdims=(/-emnl%npx,-npy,1/))
-  call mem%alloc3(masterSPSH, (/ emnl%npx, npy, 1 /), 'masterSPSH', startdims=(/-emnl%npx,-npy,1/))
-  ! allocate(mLPNH(-emnl%npx:emnl%npx,-npy:npy,1,1:numsites),stat=istat)
-  ! allocate(mLPSH(-emnl%npx:emnl%npx,-npy:npy,1,1:numsites),stat=istat)
-  ! allocate(masterSPNH(-emnl%npx:emnl%npx,-npy:npy,1))
-  ! allocate(masterSPSH(-emnl%npx:emnl%npx,-npy:npy,1))
+  call mem%alloc(mLPNH, (/ emnl%npx, npy, 1, numsites /), 'mLPNH', startdims=(/-emnl%npx,-npy,1,1/))
+  call mem%alloc(mLPSH, (/ emnl%npx, npy, 1, numsites /), 'mLPNH', startdims=(/-emnl%npx,-npy,1,1/))
+  call mem%alloc(masterSPNH, (/ emnl%npx, npy, 1 /), 'masterSPNH', startdims=(/-emnl%npx,-npy,1/))
+  call mem%alloc(masterSPSH, (/ emnl%npx, npy, 1 /), 'masterSPSH', startdims=(/-emnl%npx,-npy,1/))
 
 ! set various arrays to zero
   if (emnl%uniform.eqv..TRUE.) then
@@ -1344,18 +1340,18 @@ end if
 ! do we need to precompute the Legendre array for the new lattitudinal grid values?
 if (doLegendre.eqv..TRUE.) then
   call Message%printMessage(' Computing Legendre lattitudinal grid values')
-  call mem%alloc1(diagonal, (/2*emnl%npx+1/), 'diagonal')
-  call mem%alloc1(upd, (/2*emnl%npx+1/), 'upd')
+  call mem%alloc(diagonal, (/2*emnl%npx+1/), 'diagonal')
+  call mem%alloc(upd, (/2*emnl%npx+1/), 'upd')
   diagonal = 0.D0
   upd = (/ (dble(i) / dsqrt(4.D0 * dble(i)**2 - 1.D0), i=1,2*emnl%npx+1) /)
   call dsterf(2*emnl%npx-1, diagonal, upd, info)
 ! the eigenvalues are stored from smallest to largest and we need them in the opposite direction
-  call mem%alloc1(LegendreArray, (/2*emnl%npx+1/), 'LegendreArray')
+  call mem%alloc(LegendreArray, (/2*emnl%npx+1/), 'LegendreArray')
   LegendreArray(1:2*emnl%npx+1) = diagonal(2*emnl%npx+1:1:-1)
 ! set the center eigenvalue to 0
   LegendreArray(emnl%npx+1) = 0.D0
-  call mem%dealloc1(diagonal, 'diagonal')
-  call mem%dealloc1(upd, 'upd')
+  call mem%dealloc(diagonal, 'diagonal')
+  call mem%dealloc(upd, 'upd')
 end if
 
 !=============================================
@@ -1453,8 +1449,8 @@ energyloop: do iE=Estart,1,-1
    call Message%WriteValue('# independent beam directions to be considered = ', io_int, 1, "(I8)")
 
 ! convert part of the kvector linked list into arrays for OpenMP
-  call mem%alloc2(karray, (/4,numk/), 'karray')
-  call mem%alloc2(kij, (/3,numk/), 'kij')
+  call mem%alloc(karray, (/4,numk/), 'karray')
+  call mem%alloc(kij, (/3,numk/), 'kij')
 ! point to the first beam direction
   ktmp => kvec%get_ListHead()
 ! and loop through the list, keeping k, kn, and i,j
@@ -1490,7 +1486,7 @@ energyloop: do iE=Estart,1,-1
   NUMTHREADS = OMP_GET_NUM_THREADS()
   TID = OMP_GET_THREAD_NUM()
 
-  call memth%alloc1(svals, (/ numset /), 'svals', TID=TID)
+  call memth%alloc(svals, (/ numset /), 'svals', TID=TID)
 
 !$OMP DO SCHEDULE(DYNAMIC,100)
 ! ---------- and here we start the beam direction loop
@@ -1521,7 +1517,7 @@ energyloop: do iE=Estart,1,-1
      if (self%nml%kinematical.eqv..FALSE.) then
 ! generate the dynamical matrix
        ! if (allocated(DynMat)) deallocate(DynMat)
-       call memth%alloc2(DynMat, (/nns,nns/), 'DynMat', TID=TID)
+       call memth%alloc(DynMat, (/nns,nns/), 'DynMat', TID=TID)
        call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
        totstrong = totstrong + nns
        totweak = totweak + nnw
@@ -1530,7 +1526,7 @@ energyloop: do iE=Estart,1,-1
 ! incident beam; all q_{g-g'} are zero except the ones with g'=0.  In addition, there
 ! is no anomalous absorption, only normal absorption.
        ! if (allocated(DynMat)) deallocate(DynMat)
-       call memth%alloc2(DynMat, (/nns,nns/), 'DynMat', TID=TID)
+       call memth%alloc(DynMat, (/nns,nns/), 'DynMat', TID=TID)
        call reflist%GetDynMatKin(cell, Diff, firstw, DynMat, nns)
        totstrong = totstrong + nns
        totweak = 0
@@ -1539,8 +1535,8 @@ energyloop: do iE=Estart,1,-1
 ! then we need to initialize the Sgh and Lgh arrays
      ! if (allocated(Sgh)) deallocate(Sgh)
      ! if (allocated(Lgh)) deallocate(Lgh)
-     call memth%alloc3(Sgh, (/ nns,nns,numset /), 'Sgh', TID=TID)
-     call memth%alloc2(Lgh, (/ nns,nns /), 'Lgh', TID=TID)
+     call memth%alloc(Sgh, (/ nns,nns,numset /), 'Sgh', TID=TID)
+     call memth%alloc(Lgh, (/ nns,nns /), 'Lgh', TID=TID)
      Sgh = czero
      Lgh = czero
      call reflist%getSghfromLUT(Diff,nns,numset,Sgh)
@@ -1593,20 +1589,20 @@ energyloop: do iE=Estart,1,-1
      end if
 
      call reflist%Delete_gvectorlist()
-     call memth%dealloc3(Sgh, 'Sgh', TID=TID)
-     call memth%dealloc2(Lgh, 'Sgh', TID=TID)
-     call memth%dealloc2(DynMat, 'DynMat', TID=TID)
+     call memth%dealloc(Sgh, 'Sgh', TID=TID)
+     call memth%dealloc(Lgh, 'Sgh', TID=TID)
+     call memth%dealloc(DynMat, 'DynMat', TID=TID)
 
     end do beamloop
     
-  call memth%dealloc1(svals, 'svals', TID=TID)
+  call memth%dealloc(svals, 'svals', TID=TID)
 
 ! end of OpenMP portion
 !$OMP END PARALLEL
 
 ! deallocate arrays that will need to be re-allocated in the next cycle
-  call mem%dealloc2(karray, 'karray')
-  call mem%dealloc2(kij, 'kij')
+  call mem%dealloc(karray, 'karray')
+  call mem%dealloc(kij, 'kij')
 
   if (usehex) then
 ! and finally, we convert the hexagonally sampled array to a square Lambert projection which will be used
@@ -1614,8 +1610,8 @@ energyloop: do iE=Estart,1,-1
 
 ! we begin by allocating auxiliary arrays to hold copies of the hexagonal data; the original arrays will
 ! then be overwritten with the newly interpolated data.
-    call mem%alloc4(auxNH, (/emnl%npx,npy,1,numsites/), 'auxNH', startdims=(/-emnl%npx,-npy,1,1/))
-    call mem%alloc4(auxSH, (/emnl%npx,npy,1,numsites/), 'auxSH', startdims=(/-emnl%npx,-npy,1,1/))
+    call mem%alloc(auxNH, (/emnl%npx,npy,1,numsites/), 'auxNH', startdims=(/-emnl%npx,-npy,1,1/))
+    call mem%alloc(auxSH, (/emnl%npx,npy,1,numsites/), 'auxSH', startdims=(/-emnl%npx,-npy,1,1/))
     ! allocate(auxSH(-emnl%npx:emnl%npx,-npy:npy,1,1:numsites),stat=istat)
     auxNH = mLPNH
     auxSH = mLPSH
@@ -1650,8 +1646,8 @@ energyloop: do iE=Estart,1,-1
         end if
       end do
     end do
-    call mem%dealloc4(auxNH, 'auxNH')
-    call mem%dealloc4(auxSH, 'auxSH')
+    call mem%dealloc(auxNH, 'auxNH')
+    call mem%dealloc(auxSH, 'auxSH')
   end if
 
 ! make sure that the outer pixel rim of the mLPSH patterns is identical to
@@ -1660,7 +1656,6 @@ energyloop: do iE=Estart,1,-1
   mLPSH( emnl%npx,-emnl%npx:emnl%npx,1,1:numsites) = mLPNH( emnl%npx,-emnl%npx:emnl%npx,1,1:numsites)
   mLPSH(-emnl%npx:emnl%npx,-emnl%npx,1,1:numsites) = mLPNH(-emnl%npx:emnl%npx,-emnl%npx,1,1:numsites)
   mLPSH(-emnl%npx:emnl%npx, emnl%npx,1,1:numsites) = mLPNH(-emnl%npx:emnl%npx, emnl%npx,1,1:numsites)
-
 
 ! get stereographic projections (summed over the atomic positions)
   Radius = 1.0
@@ -1797,13 +1792,13 @@ end if
 
 end associate
 
-call mem%dealloc1(EkeVs, 'EkeVs')
-call mem%dealloc1(thick, 'thick')
-call mem%dealloc2(lambdaE, 'lambdaE')
-call mem%dealloc4(mLPNH, 'mLPNH')
-call mem%dealloc4(mLPSH, 'mLPSH')
-call mem%dealloc3(masterSPNH, 'masterSPNH')
-call mem%dealloc3(masterSPSH, 'masterSPSH')
+call mem%dealloc(EkeVs, 'EkeVs')
+call mem%dealloc(thick, 'thick')
+call mem%dealloc(lambdaE, 'lambdaE')
+call mem%dealloc(mLPNH, 'mLPNH')
+call mem%dealloc(mLPSH, 'mLPSH')
+call mem%dealloc(masterSPNH, 'masterSPNH')
+call mem%dealloc(masterSPSH, 'masterSPSH')
 
 call mem%allocated_memory_use()
 call memth%thread_memory_use()

@@ -1528,7 +1528,6 @@ character(fnlen)                   :: envParam, envReturn
 
 envParam = 'EMsoftAllocatetest'
 call getenv(trim(envParam),envReturn)
-write (*,*) trim(envParam), trim(envReturn) 
 self%EMsoftAllocatetest = 'No'
 if (trim(envReturn).ne.'') then
   self%EMsoftAllocatetest = 'Yes'

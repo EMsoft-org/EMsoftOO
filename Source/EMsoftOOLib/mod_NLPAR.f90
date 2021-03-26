@@ -538,26 +538,26 @@ call OMP_setNThreads(nml%nthreads)
 
 ! allocate the array that holds the experimental patterns from (2*SW+1) rows of the region of interest
 ! as well as the exppatarray and sigEst arrays; all are 1D arrays to speed things up
-call mem%alloc1(exppatarray, (/patsz * nml%ipf_wd/), 'exppatarray')
-call mem%alloc1(exptblock, (/patsz * nml%ipf_wd * (2*SW+2)/), 'exptblock')
-call mem%alloc1(sigEst, (/nml%ipf_wd * (2*SW+1)/), 'sigEst')
+call mem%alloc(exppatarray, (/patsz * nml%ipf_wd/), 'exppatarray')
+call mem%alloc(exptblock, (/patsz * nml%ipf_wd * (2*SW+2)/), 'exptblock')
+call mem%alloc(sigEst, (/nml%ipf_wd * (2*SW+1)/), 'sigEst')
 
 if (present(exptIQ)) then  ! this is only used in the dictionary indexing environment
 ! prepare the fftw plan for this pattern size to compute pattern quality (pattern sharpness Q)
-  call mem%alloc2(Pat, (/binx,biny/),'Pat')
-  call mem%alloc2(ksqarray, (/binx,biny/),'ksqarray')
+  call mem%alloc(Pat, (/binx,biny/),'Pat')
+  call mem%alloc(ksqarray, (/binx,biny/),'ksqarray')
   Jres = 0.0
   call init_getEBSDIQ(binx, biny, Pat, ksqarray, Jres, planf)
-  call mem%dealloc2(Pat,'Pat')
+  call mem%dealloc(Pat,'Pat')
 end if
 
 ! initialize the HiPassFilter routine (has its own FFTW plans)
-call mem%alloc2(hpmask, (/binx,biny/),'hpmask')
-call mem%alloc2(inp, (/binx,biny/),'inp')
-call mem%alloc2(outp, (/binx,biny/),'outp')
+call mem%alloc(hpmask, (/binx,biny/),'hpmask')
+call mem%alloc(inp, (/binx,biny/),'inp')
+call mem%alloc(outp, (/binx,biny/),'outp')
 call init_HiPassFilter(w, (/ binx, biny /), hpmask, inp, outp, HPplanf, HPplanb)
-call mem%dealloc2(inp,'inp')
-call mem%dealloc2(outp,'outp')
+call mem%dealloc(inp,'inp')
+call mem%dealloc(outp,'outp')
 ! keep the hpmask array 
 
 call Message%printMessage('Starting processing of experimental patterns')
@@ -598,7 +598,7 @@ end do
 !==================================================
 ! The following is a complicated main loop!  
 !==================================================
-call mem%alloc3(wtfactors, (/2*SW+1,2*SW+1,nml%ipf_wd/), 'wtfactors')
+call mem%alloc(wtfactors, (/2*SW+1,2*SW+1,nml%ipf_wd/), 'wtfactors')
 do jrow=1,nml%ipf_ht ! loop over all the experimental rows.  
   if ( (jrow.gt.SW+1) .and. (jrow.le.(nml%ipf_ht-SW)) ) then  ! we need to shift arrays and read the following row of patterns 
     exptblock = cshift(exptblock, wdll * psll)         ! experimental patterns 
@@ -744,14 +744,14 @@ end if
 !====================================
 ! that should be it... some clean up and we return to the calling program
 !====================================
-call mem%dealloc1(exppatarray, 'exppatarray')
-call mem%dealloc1(exptblock, 'exptblock')
-call mem%dealloc1(sigEst, 'sigEst')
-call mem%dealloc2(hpmask, 'hpmask')
-call mem%dealloc3(wtfactors, 'wtfactors')
+call mem%dealloc(exppatarray, 'exppatarray')
+call mem%dealloc(exptblock, 'exptblock')
+call mem%dealloc(sigEst, 'sigEst')
+call mem%dealloc(hpmask, 'hpmask')
+call mem%dealloc(wtfactors, 'wtfactors')
 
 if (present(exptIQ)) then
-  call mem%dealloc2(ksqarray, 'ksqarray')
+  call mem%dealloc(ksqarray, 'ksqarray')
 end if
 
 end subroutine doNLPAR_

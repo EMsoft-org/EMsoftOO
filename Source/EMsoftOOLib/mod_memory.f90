@@ -239,55 +239,36 @@ type, public :: memory_T
     procedure, pass(self) :: show_thread_memory_use_
     procedure, pass(self) :: update_total_memory_use_ 
     procedure, pass(self) :: toggle_verbose_ 
-    ! final :: memory_destructor 
+    final :: memory_destructor 
 
-    generic, public :: alloc1 => alloc_ish1_, alloc_irg1_, alloc_ill1_, &
+! overload all the allocation and deallocation routines into simple alloc and dealloc methods
+    generic, public :: alloc => alloc_ish1_, alloc_irg1_, alloc_ill1_, &
                                  alloc_sgl1_, alloc_dbl1_, alloc_cmplx1_, &
-                                 alloc_cmplxd1_
-
-    generic, public :: alloc2 => alloc_ish2_, alloc_irg2_, alloc_ill2_, &
+                                 alloc_cmplxd1_, alloc_ish2_, alloc_irg2_, alloc_ill2_, &
                                  alloc_sgl2_, alloc_dbl2_, alloc_cmplx2_, &
-                                 alloc_cmplxd2_
-
-    generic, public :: alloc3 => alloc_ish3_, alloc_irg3_, alloc_ill3_, &
+                                 alloc_cmplxd2_, alloc_ish3_, alloc_irg3_, alloc_ill3_, &
                                  alloc_sgl3_, alloc_dbl3_, alloc_cmplx3_, &
-                                 alloc_cmplxd3_
-
-    generic, public :: alloc4 => alloc_ish4_, alloc_irg4_, alloc_ill4_, &
+                                 alloc_cmplxd3_, alloc_ish4_, alloc_irg4_, alloc_ill4_, &
                                  alloc_sgl4_, alloc_dbl4_, alloc_cmplx4_, &
-                                 alloc_cmplxd4_
-
-    generic, public :: alloc5 => alloc_ish5_, alloc_irg5_, alloc_ill5_, &
+                                 alloc_cmplxd4_, alloc_ish5_, alloc_irg5_, alloc_ill5_, &
                                  alloc_sgl5_, alloc_dbl5_, alloc_cmplx5_, &
-                                 alloc_cmplxd5_
-
-    generic, public :: alloc6 => alloc_ish6_, alloc_irg6_, alloc_ill6_, &
+                                 alloc_cmplxd5_, alloc_ish6_, alloc_irg6_, alloc_ill6_, &
                                  alloc_sgl6_, alloc_dbl6_, alloc_cmplx6_, &
                                  alloc_cmplxd6_
 
-    generic, public :: dealloc1 => dealloc_ish1_, dealloc_irg1_, dealloc_ill1_, &
-                                   dealloc_sgl1_, dealloc_dbl1_, dealloc_cmplx1_, &
-                                   dealloc_cmplxd1_
-
-    generic, public :: dealloc2 => dealloc_ish2_, dealloc_irg2_, dealloc_ill2_, &
-                                    dealloc_sgl2_, dealloc_dbl2_, dealloc_cmplx2_, &
-                                    dealloc_cmplxd2_
-
-    generic, public :: dealloc3 => dealloc_ish3_, dealloc_irg3_, dealloc_ill3_, &
-                                    dealloc_sgl3_, dealloc_dbl3_, dealloc_cmplx3_, &
-                                    dealloc_cmplxd3_
-
-    generic, public :: dealloc4 => dealloc_ish4_, dealloc_irg4_, dealloc_ill4_, &
-                                    dealloc_sgl4_, dealloc_dbl4_, dealloc_cmplx4_, &
-                                    dealloc_cmplxd4_
-
-    generic, public :: dealloc5 => dealloc_ish5_, dealloc_irg5_, dealloc_ill5_, &
-                                    dealloc_sgl5_, dealloc_dbl5_, dealloc_cmplx5_, &
-                                    dealloc_cmplxd5_
-
-    generic, public :: dealloc6 => dealloc_ish6_, dealloc_irg6_, dealloc_ill6_, &
-                                    dealloc_sgl6_, dealloc_dbl6_, dealloc_cmplx6_, &
-                                    dealloc_cmplxd6_
+    generic, public :: dealloc => dealloc_ish1_, dealloc_irg1_, dealloc_ill1_, &
+                                  dealloc_sgl1_, dealloc_dbl1_, dealloc_cmplx1_, &
+                                  dealloc_cmplxd1_, dealloc_ish2_, dealloc_irg2_, dealloc_ill2_, &
+                                  dealloc_sgl2_, dealloc_dbl2_, dealloc_cmplx2_, &
+                                  dealloc_cmplxd2_,dealloc_ish3_, dealloc_irg3_, dealloc_ill3_, &
+                                  dealloc_sgl3_, dealloc_dbl3_, dealloc_cmplx3_, &
+                                  dealloc_cmplxd3_, dealloc_ish4_, dealloc_irg4_, dealloc_ill4_, &
+                                  dealloc_sgl4_, dealloc_dbl4_, dealloc_cmplx4_, &
+                                  dealloc_cmplxd4_,dealloc_ish5_, dealloc_irg5_, dealloc_ill5_, &
+                                  dealloc_sgl5_, dealloc_dbl5_, dealloc_cmplx5_, &
+                                  dealloc_cmplxd5_,dealloc_ish6_, dealloc_irg6_, dealloc_ill6_, &
+                                  dealloc_sgl6_, dealloc_dbl6_, dealloc_cmplx6_, &
+                                  dealloc_cmplxd6_
 
     generic, public :: getsize => compute_size_
     generic, public :: allocated_memory_use => show_allocated_memory_use_
