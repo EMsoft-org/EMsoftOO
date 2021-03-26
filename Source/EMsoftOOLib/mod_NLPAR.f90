@@ -441,10 +441,10 @@ real(kind=sgl),INTENT(INOUT),OPTIONAL             :: exptIQ(totnumexpt)
 type(IO_T)                                        :: Message
 type(Vendor_T)                                    :: VT
 type(timing_T)                                    :: timer
-type(memory_T)                                    :: mem 
+type(memory_T)                                    :: mem, memth 
 
 integer(kind=irg)                                 :: itype, istat, L, recordsize, patsz, iiistart, iiiend, jjend, ierr, &
-                                                     SW, i, iii, ii, j, jj, jrow, kk 
+                                                     SW, i, iii, ii, j, jj, jrow, kk, TID 
 integer(kind=irg)                                 :: tickstart, tstop, io_int(2)
 integer(HSIZE_T)                                  :: dims3(3), offset3(3)
 integer(kind=irg),parameter                       :: iunitexpt = 41, itmpexpt = 42
@@ -564,6 +564,9 @@ call Message%printMessage('Starting processing of experimental patterns')
 timer = Timing_T()
 call timer%Time_tick(1)
 
+! instantiate the memory allocation class for the OpenMP region
+memth = memory_T( nt = nml%nthreads, silent = .TRUE. )
+
 !==================================================
 ! perform the NLPAR algorithm + regular pre-processing
 !==================================================
@@ -645,16 +648,17 @@ do jrow=1,nml%ipf_ht ! loop over all the experimental rows.
 ! we can avoid duplicating this code segment
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(jj, kk, mi, ma, istat) &
-!$OMP& PRIVATE(imageexpt, tmpimageexpt, Pat, rrdata, ffdata, pint, vlen, tmp, inp, outp)
+!$OMP& PRIVATE(imageexpt, tmpimageexpt, Pat, rrdata, ffdata, pint, vlen, tmp, inp, outp, TID)
 
-  allocate(Pat(binx,biny),rrdata(binx,biny),ffdata(binx,biny),tmpimageexpt(binx*biny),stat=istat)
-  if (istat .ne. 0) stop 'could not allocate arrays for Hi-Pass filter'
+  TID = OMP_GET_THREAD_NUM()
 
-  allocate(pint(binx,biny),stat=istat)
-  if (istat .ne. 0) stop 'could not allocate pint array'
-
-  allocate(inp(binx,biny),outp(binx,biny),stat=istat)
-  if (istat .ne. 0) stop 'could not allocate inp, outp arrays'
+  call memth%alloc(Pat, (/ binx,biny /), 'Pat', TID=TID)
+  call memth%alloc(rrdata, (/ binx,biny /), 'rrdata', TID=TID)
+  call memth%alloc(ffdata, (/ binx,biny /), 'ffdata', TID=TID)
+  call memth%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', TID=TID)
+  call memth%alloc(pint, (/ binx,biny /), 'pint', TID=TID)
+  call memth%alloc(inp, (/ binx,biny /), 'inp', TID=TID)
+  call memth%alloc(outp, (/ binx,biny /), 'outp', TID=TID)
 
   tmpimageexpt = 0.0
   rrdata = 0.D0
@@ -699,9 +703,17 @@ do jrow=1,nml%ipf_ht ! loop over all the experimental rows.
       end if
   end do
 !$OMP END DO
-deallocate(tmpimageexpt, Pat, rrdata, ffdata, pint, inp, outp)
 !$OMP BARRIER
+
+  call memth%dealloc(tmpimageexpt, 'tmpimageexpt', TID=TID)
+  call memth%dealloc(Pat, 'Pat', TID=TID)
+  call memth%dealloc(rrdata, 'rrdata', TID=TID)
+  call memth%dealloc(ffdata, 'ffdata', TID=TID)
+  call memth%dealloc(pint, 'pint', TID=TID)
+  call memth%dealloc(inp, 'inp', TID=TID)
+  call memth%dealloc(outp, 'outp', TID=TID)
 !$OMP END PARALLEL
+
 
 ! and we either write the resulting patterns to the temp file or we keep them in RAM 
       if (inRAM.eqv..TRUE.) then
@@ -726,6 +738,7 @@ deallocate(tmpimageexpt, Pat, rrdata, ffdata, pint, inp, outp)
     end if
 
 end do 
+
 
 ! close the files 
 call VT%closeExpPatternFile()
@@ -753,6 +766,9 @@ call mem%dealloc(wtfactors, 'wtfactors')
 if (present(exptIQ)) then
   call mem%dealloc(ksqarray, 'ksqarray')
 end if
+
+! call memth%thread_memory_use()
+! call mem%allocated_memory_use()
 
 end subroutine doNLPAR_
 
