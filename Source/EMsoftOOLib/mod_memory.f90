@@ -65,13 +65,13 @@ module mod_memory
   !! mem = memory_T() 
   !!
   !! ! allocate the array and initialize with value 10.0
-  !! call mem%alloc2( ar, (/ 20, 30 /), 'ar', 10.0)
+  !! call mem%alloc( ar, (/ 20, 30 /), 'ar', 10.0)
   !! 
   !! ! find out how much memory has been allocated and what type 
   !! call mem%allocated_memory_use()
   !! 
   !! ! deallocate the array 
-  !! call mem%dealloc2(ar, 'ar')
+  !! call mem%dealloc(ar, 'ar')
   !!
   !! ! make sure it was indeed deallocated 
   !! call mem%allocated_memory_use()
@@ -101,16 +101,16 @@ module mod_memory
   !!
   !! ! inside the parallel OMP region, allocate the array for each thread 
   !! ! we'll assume that TID contains the thread ID 
-  !! call memth%alloc2( ar, (/ 10, 10 /), 'ar', 15.0, TID=TID)
-  !! call memth%alloc1( cc, (/ 10 + 5*TID /), 'cc', TID=TID)
+  !! call memth%alloc( ar, (/ 10, 10 /), 'ar', 15.0, TID=TID)
+  !! call memth%alloc( cc, (/ 10 + 5*TID /), 'cc', TID=TID)
   !!
   !! ! print memory usage information
   !! if (TID.eq.0) call memth%thread_memory_use()
   !! 
   !! ! do stuff with the arrays
   !! ! then just before closing the parallel section 
-  !! call memth%dealloc2(ar, 'ar', TID=TID)
-  !! call memth%dealloc1(cc, 'cc', TID=TID)
+  !! call memth%dealloc(ar, 'ar', TID=TID)
+  !! call memth%dealloc(cc, 'cc', TID=TID)
   !! ! end parallel region 
   !! 
   !! end program 
