@@ -1164,7 +1164,7 @@ use mod_filters
 use mod_io
 use mod_math
 use mod_timing
-use omp_lib
+! use omp_lib
 use HDF5
 use h5im
 use h5lt
@@ -1173,6 +1173,7 @@ use ISO_C_BINDING
 use mod_DIfiles
 use mod_image
 use mod_NLPAR
+use mod_memory
 
 use, intrinsic :: iso_fortran_env
 
@@ -1186,6 +1187,7 @@ type(IO_T)                                          :: Message
 type(HDF_T)                                         :: HDF
 type(timing_T)                                      :: timer
 type(NLPAR_T)                                       :: NLPAR 
+type(memory_T)                                      :: mem 
 
 integer(kind=irg)                                   :: num,ierr,irec,istat
 integer(kind=irg),parameter                         :: iunit = 40
@@ -1242,6 +1244,9 @@ associate(adpnl=>self%nml)
 timer = Timing_T()
 tstrb = timer%getTimeString()
 
+! memory class 
+mem = memory_T()
+
 ! copy various constants from the namelist
 L = adpnl%numsx*adpnl%numsy
 totnumexpt = adpnl%ipf_wd*adpnl%ipf_ht
@@ -1270,26 +1275,16 @@ if (sum(adpnl%ROI).ne.0) ROIselected = .TRUE.
 !=========================================
 ! ALLOCATION AND INITIALIZATION OF ARRAYS
 !=========================================
-allocate(mask(binx,biny),masklin(L),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate arrays for masks'
-mask = 1.0
-masklin = 0.0
-
-allocate(imageexpt(L),imageexptflt(correctsize),imagedictflt(correctsize),imagedictfltflip(correctsize),stat=istat)
-allocate(tmpimageexpt(correctsize),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate array for reading experimental image patterns'
-imageexpt = 0.0
-imageexptflt = 0.0
-
-allocate(EBSDpattern(binx,biny),binned(binx,biny),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate array for EBSD pattern'
-EBSDpattern = 0.0
-binned = 0.0
-
-allocate(rdata(binx,biny),fdata(binx,biny),stat=istat)
-if (istat .ne. 0) stop 'could not allocate arrays for Hi-Pass filter'
-rdata = 0.D0
-fdata = 0.D0
+call mem%alloc(mask, (/ binx,biny /), 'mask', 1.0)
+call mem%alloc(masklin, (/ L /), 'masklin', 0.0)
+call mem%alloc(imageexpt, (/ L /), 'imageexpt', 0.0) 
+call mem%alloc(imageexptflt, (/ correctsize /), 'imageexptflt', 0.0)  
+call mem%alloc(imagedictflt, (/ correctsize /), 'imagedictflt', 0.0) 
+call mem%alloc(imagedictfltflip, (/ correctsize /), 'imagedictfltflip', 0.0)
+call mem%alloc(EBSDpattern, (/ binx,biny /), 'EBSDpattern', 0.0) 
+call mem%alloc(binned, (/ binx,biny /), 'binned', 0.0)
+call mem%alloc(rdata, (/ binx,biny /), 'rdata', 0.D0) 
+call mem%alloc(fdata, (/ binx,biny /), 'fdata', 0.D0)
 
 !=====================================================
 ! define the circular mask if necessary and convert to 1D vector
@@ -1401,12 +1396,12 @@ open(unit=itmpexpt,file=trim(fname),&
 
 ! use the getADPmap routine in the filters module
 if (ROIselected.eqv..TRUE.) then
-  allocate(dpmap(adpnl%ROI(3)*adpnl%ROI(4)))
+  call mem%alloc(dpmap, (/ adpnl%ROI(3)*adpnl%ROI(4) /), 'dpmap')
   call getADPmap(itmpexpt, adpnl%ROI(3)*adpnl%ROI(4), L, adpnl%ROI(3), adpnl%ROI(4), dpmap)
   TIFF_nx = adpnl%ROI(3)
   TIFF_ny = adpnl%ROI(4)
 else
-  allocate(dpmap(totnumexpt))
+  call mem%alloc(dpmap, (/ totnumexpt /), 'dpmap')
   call getADPmap(itmpexpt, totnumexpt, L, adpnl%ipf_wd, adpnl%ipf_ht, dpmap)
   TIFF_nx = adpnl%ipf_wd
   TIFF_ny = adpnl%ipf_ht
@@ -1417,7 +1412,11 @@ fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(adpnl%tiffname)//'
 TIFF_filename = trim(fname)
 
 ! allocate memory for image
+! call mem%alloc(TIFF_image, (/ TIFF_nx,TIFF_ny /), 'TIFF_image')
 allocate(TIFF_image(TIFF_nx,TIFF_ny))
+
+! call mem%allocated_memory_use('after TIFF image initialization')
+
 
 ! fill the image with whatever data you have (between 0 and 255)
 ma = maxval(dpmap)
@@ -1443,7 +1442,6 @@ if(0.ne.iostat) then
 else
   call Message%printMessage('ADP map written to '//trim(TIFF_filename))
 end if
-deallocate(TIFF_image)
 
 if (adpnl%keeptmpfile.eq.'n') then
   close(unit=itmpexpt, status = 'delete')
@@ -1456,6 +1454,20 @@ end if
 call closeFortranHDFInterface()
 
 end associate
+
+call mem%dealloc(mask, 'mask')
+call mem%dealloc(masklin, 'masklin')
+call mem%dealloc(imageexpt, 'imageexpt') 
+call mem%dealloc(imageexptflt, 'imageexptflt')  
+call mem%dealloc(imagedictflt, 'imagedictflt') 
+call mem%dealloc(imagedictfltflip, 'imagedictfltflip')
+call mem%dealloc(EBSDpattern, 'EBSDpattern') 
+call mem%dealloc(binned, 'binned')
+call mem%dealloc(rdata, 'rdata') 
+call mem%dealloc(fdata, 'fdata')
+call mem%dealloc(dpmap, 'dpmap')
+
+! call mem%allocated_memory_use(' from end of ADP_ subroutine ')
 
 end subroutine ADP_
 

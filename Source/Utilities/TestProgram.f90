@@ -117,30 +117,34 @@ integer(kind=irg)       :: i, slen
 integer(kind=ish), allocatable :: ar(:) 
 real(kind=sgl), allocatable    :: ar3(:,:,:) 
 complex(kind=dbl), allocatable :: ar2(:,:) 
+character(fnlen), allocatable  :: str(:)
 type(memory_T)                 :: mem, memth 
 
-memth = memory_T(nt = 2)
+! memth = memory_T(nt = 2)
 mem = memory_T()
 call mem%toggle_verbose() 
 
-call mem%alloc1( ar, (/250/), 'ar', 15_ish, startdims = (/ -250 /) )
-call memth%alloc3( ar3, (/50, 60, 70/), 'ar3', 10.0_sgl, TID=1 )
-call mem%alloc2( ar2, (/20, 20/), 'ar2', (0.D0, -1.D0), startdims = (/-20, -20/) )
+call mem%alloc( ar, (/250/), 'ar', 15_ish, startdims = (/ -250 /) )
+!call memth%alloc( ar3, (/50, 60, 70/), 'ar3', 10.0_sgl, TID=1 )
+call mem%alloc( ar2, (/20, 20/), 'ar2', (0.D0, -1.D0), startdims = (/-20, -20/) )
+call mem%alloc( str, (/ 15 /), 'str', 'test')
 
 write (*,*) ar(-5:5)
 write (*,*) ar2(1,6)
-write (*,*) ar3(1,2,3)
+! write (*,*) ar3(1,2,3)
+write (*,*) trim(str(5))
 
 call mem%allocated_memory_use()
-call memth%thread_memory_use()
+! call memth%thread_memory_use()
 
-call mem%dealloc1( ar, 'ar' ) 
-!call memth%dealloc3( ar3, 'ar3', TID=1) 
-call mem%thread_memory_use()
-call mem%dealloc2( ar2, 'ar2') 
+call mem%dealloc( ar, 'ar' ) 
+! call memth%dealloc3( ar3, 'ar3', TID=1) 
+! call mem%thread_memory_use()
+call mem%dealloc( ar2, 'ar2') 
+call mem%dealloc(str, 'str')
 
 call mem%allocated_memory_use()
-call memth%allocated_memory_use()
+! call memth%allocated_memory_use()
 
 ! write (*,*) '->'//trim(progname)//'<-', len_trim(progname)
 

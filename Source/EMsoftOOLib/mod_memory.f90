@@ -134,6 +134,7 @@ type, public :: memory_T
     integer(kind=irg), allocatable :: totmem_dbl(:) 
     integer(kind=irg), allocatable :: totmem_cmplx(:)
     integer(kind=irg), allocatable :: totmem_cmplxd(:)
+    integer(kind=irg), allocatable :: totmem_char(:)
     integer(kind=irg), allocatable :: current_memory_allocated(:)
     integer(kind=irg) :: bytes_ish = 2
     integer(kind=irg) :: bytes_irg = 4
@@ -142,12 +143,14 @@ type, public :: memory_T
     integer(kind=irg) :: bytes_dbl = 8
     integer(kind=irg) :: bytes_cmplx = 8
     integer(kind=irg) :: bytes_cmplxd = 16
+    integer(kind=irg) :: bytes_char = 1
     integer(kind=irg), public :: nthreads = 1
     logical, public   :: verbose
 
   contains
   private 
 
+    procedure, pass(self) :: alloc_char1_
     procedure, pass(self) :: alloc_ish1_
     procedure, pass(self) :: alloc_ish2_
     procedure, pass(self) :: alloc_ish3_
@@ -191,6 +194,7 @@ type, public :: memory_T
     procedure, pass(self) :: alloc_cmplxd5_
     procedure, pass(self) :: alloc_cmplxd6_
 
+    procedure, pass(self) :: dealloc_char1_
     procedure, pass(self) :: dealloc_ish1_
     procedure, pass(self) :: dealloc_ish2_
     procedure, pass(self) :: dealloc_ish3_
@@ -242,21 +246,21 @@ type, public :: memory_T
     final :: memory_destructor 
 
 ! overload all the allocation and deallocation routines into simple alloc and dealloc methods
-    generic, public :: alloc => alloc_ish1_, alloc_irg1_, alloc_ill1_, &
-                                 alloc_sgl1_, alloc_dbl1_, alloc_cmplx1_, &
-                                 alloc_cmplxd1_, alloc_ish2_, alloc_irg2_, alloc_ill2_, &
-                                 alloc_sgl2_, alloc_dbl2_, alloc_cmplx2_, &
-                                 alloc_cmplxd2_, alloc_ish3_, alloc_irg3_, alloc_ill3_, &
-                                 alloc_sgl3_, alloc_dbl3_, alloc_cmplx3_, &
-                                 alloc_cmplxd3_, alloc_ish4_, alloc_irg4_, alloc_ill4_, &
-                                 alloc_sgl4_, alloc_dbl4_, alloc_cmplx4_, &
-                                 alloc_cmplxd4_, alloc_ish5_, alloc_irg5_, alloc_ill5_, &
-                                 alloc_sgl5_, alloc_dbl5_, alloc_cmplx5_, &
-                                 alloc_cmplxd5_, alloc_ish6_, alloc_irg6_, alloc_ill6_, &
-                                 alloc_sgl6_, alloc_dbl6_, alloc_cmplx6_, &
-                                 alloc_cmplxd6_
+    generic, public :: alloc => alloc_char1_, alloc_ish1_, alloc_irg1_, alloc_ill1_, &
+                                alloc_sgl1_, alloc_dbl1_, alloc_cmplx1_, &
+                                alloc_cmplxd1_, alloc_ish2_, alloc_irg2_, alloc_ill2_, &
+                                alloc_sgl2_, alloc_dbl2_, alloc_cmplx2_, &
+                                alloc_cmplxd2_, alloc_ish3_, alloc_irg3_, alloc_ill3_, &
+                                alloc_sgl3_, alloc_dbl3_, alloc_cmplx3_, &
+                                alloc_cmplxd3_, alloc_ish4_, alloc_irg4_, alloc_ill4_, &
+                                alloc_sgl4_, alloc_dbl4_, alloc_cmplx4_, &
+                                alloc_cmplxd4_, alloc_ish5_, alloc_irg5_, alloc_ill5_, &
+                                alloc_sgl5_, alloc_dbl5_, alloc_cmplx5_, &
+                                alloc_cmplxd5_, alloc_ish6_, alloc_irg6_, alloc_ill6_, &
+                                alloc_sgl6_, alloc_dbl6_, alloc_cmplx6_, &
+                                alloc_cmplxd6_
 
-    generic, public :: dealloc => dealloc_ish1_, dealloc_irg1_, dealloc_ill1_, &
+    generic, public :: dealloc => dealloc_char1_, dealloc_ish1_, dealloc_irg1_, dealloc_ill1_, &
                                   dealloc_sgl1_, dealloc_dbl1_, dealloc_cmplx1_, &
                                   dealloc_cmplxd1_, dealloc_ish2_, dealloc_irg2_, dealloc_ill2_, &
                                   dealloc_sgl2_, dealloc_dbl2_, dealloc_cmplx2_, &
@@ -313,6 +317,7 @@ if (allocated(mem%totmem_sgl)) deallocate(mem%totmem_sgl)
 if (allocated(mem%totmem_dbl)) deallocate(mem%totmem_dbl) 
 if (allocated(mem%totmem_cmplx)) deallocate(mem%totmem_cmplx) 
 if (allocated(mem%totmem_cmplxd)) deallocate(mem%totmem_cmplxd) 
+if (allocated(mem%totmem_char)) deallocate(mem%totmem_char)
 if (allocated(mem%current_memory_allocated)) deallocate(mem%current_memory_allocated) 
 
 ! allocate for nthreads OpenMP threads or just a single scalar 
@@ -325,6 +330,7 @@ if (present(nt)) then
     allocate(mem%totmem_dbl(0:nt-1))
     allocate(mem%totmem_cmplx(0:nt-1))
     allocate(mem%totmem_cmplxd(0:nt-1))
+    allocate(mem%totmem_char(0:nt-1))
     allocate(mem%current_memory_allocated(0:nt-1))
 else 
     mem%nthreads = 1
@@ -335,6 +341,7 @@ else
     allocate(mem%totmem_dbl(1))
     allocate(mem%totmem_cmplx(1))
     allocate(mem%totmem_cmplxd(1))
+    allocate(mem%totmem_char(1))
     allocate(mem%current_memory_allocated(1))
 end if
 
@@ -346,6 +353,7 @@ mem%totmem_sgl  = 0
 mem%totmem_dbl  = 0
 mem%totmem_cmplx  = 0
 mem%totmem_cmplxd  = 0
+mem%totmem_char  = 0
 mem%current_memory_allocated = 0
 
 mem%verbose = .FALSE.
@@ -383,6 +391,7 @@ if (allocated(self%totmem_sgl)) deallocate(self%totmem_sgl)
 if (allocated(self%totmem_dbl)) deallocate(self%totmem_dbl) 
 if (allocated(self%totmem_cmplx)) deallocate(self%totmem_cmplx) 
 if (allocated(self%totmem_cmplxd)) deallocate(self%totmem_cmplxd) 
+if (allocated(self%totmem_char)) deallocate(self%totmem_char) 
 if (allocated(self%current_memory_allocated)) deallocate(self%current_memory_allocated) 
 
 call reportDestructor('memory_T')
@@ -390,7 +399,7 @@ call reportDestructor('memory_T')
 end subroutine memory_destructor
 
 !--------------------------------------------------------------------------
-subroutine show_allocated_memory_use_( self )
+subroutine show_allocated_memory_use_( self, expl )
 !DEC$ ATTRIBUTES DLLEXPORT :: show_allocated_memory_use_
 !! author: MDG
 !! version: 1.0
@@ -401,11 +410,16 @@ subroutine show_allocated_memory_use_( self )
 IMPLICIT NONE
 
 class(memory_T), INTENT(INOUT)      :: self
+character(*),INTENT(IN),OPTIONAL    :: expl 
+
 type(IO_T)                          :: Message 
 
 integer(kind=irg)                   :: io_int(1) 
 
 call Message%printMessage(' Allocated Memory Status (in bytes) : ',"(/A)")
+if (present(expl)) then 
+  call Message%printMessage(' [ '//trim(expl)//' ]',"(A)")
+end if 
 call Message%printMessage(' ----------------------------------   ',"(A)")
 io_int = sum(self%totmem_ish)
 call Message%WriteValue(' integer(kind=ish)     : ', io_int, 1)
@@ -421,6 +435,9 @@ io_int = sum(self%totmem_cmplx)
 call Message%WriteValue(' complex(kind=sgl)     : ', io_int, 1)
 io_int = sum(self%totmem_cmplxd)
 call Message%WriteValue(' complex(kind=dbl)     : ', io_int, 1)
+io_int = sum(self%totmem_char)
+call Message%WriteValue(' character             : ', io_int, 1)
+
 
 call Message%printMessage(' ')
 io_int = sum(self%current_memory_allocated)
@@ -429,7 +446,7 @@ call Message%WriteValue(' total allocated bytes (unthreaded) : ', io_int, 1)
 end subroutine show_allocated_memory_use_
 
 !--------------------------------------------------------------------------
-subroutine show_thread_memory_use_( self )
+subroutine show_thread_memory_use_( self, expl )
 !DEC$ ATTRIBUTES DLLEXPORT :: show_thread_memory_use_
 !! author: MDG
 !! version: 1.0
@@ -440,11 +457,16 @@ subroutine show_thread_memory_use_( self )
 IMPLICIT NONE
 
 class(memory_T), INTENT(INOUT)      :: self
+character(*),INTENT(IN),OPTIONAL    :: expl 
+
 type(IO_T)                          :: Message 
 
 integer(kind=irg)                   :: io_int(1), i 
 
 call Message%printMessage(' Allocated Memory Status (in bytes) : ',"(/A)")
+if (present(expl)) then 
+  call Message%printMessage(' [ '//trim(expl)//' ]',"(A)")
+end if 
 call Message%printMessage(' ----------------------------------   ',"(A)")
 if (self%nthreads.gt.1) then 
     do i=0, self%nthreads-1
@@ -464,6 +486,8 @@ if (self%nthreads.gt.1) then
         call Message%WriteValue('    complex(kind=sgl) : ', io_int, 1)
         io_int = self%totmem_cmplxd(i)
         call Message%WriteValue('    complex(kind=dbl) : ', io_int, 1)
+        io_int = self%totmem_char(i)
+        call Message%WriteValue(' character             : ', io_int, 1)
         call Message%printMessage(' ')
     end do 
 else
@@ -481,6 +505,8 @@ else
     call Message%WriteValue('    complex(kind=sgl) : ', io_int, 1)
     io_int = self%totmem_cmplxd(1)
     call Message%WriteValue('    complex(kind=dbl) : ', io_int, 1)
+    io_int = self%totmem_char(1)
+    call Message%WriteValue(' character             : ', io_int, 1)
     call Message%printMessage(' ')
 end if 
     
@@ -545,6 +571,8 @@ select case(trim(tp))
         nbytes = product(dims) * self%bytes_cmplx
     case('cmplxd') 
         nbytes = product(dims) * self%bytes_cmplxd
+    case('char') 
+        nbytes = dims(1) * self%bytes_char
 end select 
 
 end function compute_size_
@@ -575,6 +603,9 @@ end subroutine toggle_verbose_
 !--------------------------------------------------------------------------
 ! Here we have the individual routines for all relevant data types 
 ! Since f90 does not have templates, we need separate routines for all types.
+! 
+! For the character type, we only do 1D arrays; it is unlikely that we 
+! will ever need a 2D array of strings...
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -586,6 +617,131 @@ end subroutine toggle_verbose_
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
+recursive subroutine alloc_char1_(self, ar, dims, varname, initval, TID, startdims)
+!DEC$ ATTRIBUTES DLLEXPORT :: alloc_char1_
+!! author: MDG
+!! version: 1.0
+!! date: 03/28/21
+!!
+!! allocate an array of type char
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+character(fnlen), INTENT(INOUT), allocatable     :: ar(:)
+integer(kind=irg), INTENT(IN)                    :: dims(1)
+character(*),INTENT(IN)                          :: varname
+character(*), INTENT(IN), OPTIONAL               :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    szar = size(ar)
+    sz = product(szar) * self%bytes_ish
+    self%totmem_ish(LID) = self%totmem_ish(LID) - sz
+    deallocate(ar)
+endif
+
+! allocate the array 
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
+    call Message%printError('mod_memory:alloc_char1_:', &
+      ' Unable to allocate character(fnlen) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_char(LID) = self%totmem_char(LID) + (dims(1)-startdims(1)+1)*fnlen
+  call self%update_total_memory_use_((dims(1)-startdims(1)+1)*fnlen, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_char1_:', &
+        ' Unable to allocate character(fnlen) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_char(LID) = self%totmem_char(LID) + dims(1)*fnlen
+  call self%update_total_memory_use_(dims(1)*fnlen, LID)
+end if
+
+! initalize the array to zeros or initval if present  
+if (present(initval)) then 
+    ar = trim(initval)
+else 
+    ar = ''
+end if
+
+if (self%verbose) then 
+  if (present(startdims)) then 
+    write (szstr,*) (dims(1)-startdims(1)+1)*fnlen
+  else 
+    write (szstr,*) dims(1)*fnlen
+  end if
+  if (present(initval)) then 
+    write (initstr,*) trim(initval)
+  else 
+    write (initstr,*) ''
+  end if
+  outstr = ' -> allocated array '//trim(varname)//' of size '//trim(szstr)//'; initialized to '//trim(initstr)
+  call Message%printMessage(outstr)
+end if
+
+end subroutine alloc_char1_
+
+!--------------------------------------------------------------------------
+subroutine dealloc_char1_(self, ar, varname, TID)
+!DEC$ ATTRIBUTES DLLEXPORT :: dealloc_char1_
+!! author: MDG
+!! version: 1.0
+!! date: 03/28/21
+!!
+!! deallocate an array of type char
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+character(fnlen), INTENT(INOUT), allocatable     :: ar(:)
+character(*),INTENT(IN)                          :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr
+integer(kind=irg)                                :: err, LID, sz 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    sz = size(ar)*fnlen 
+    self%totmem_char(LID) = self%totmem_char(LID) - sz
+    call self%update_total_memory_use_( -sz, LID )
+    if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
+    deallocate(ar)
+else 
+    call Message%printMessage(' mod_memory:dealloc_char1_:Warning: attempting to deallocate array that is not allocated. ')
+endif
+
+end subroutine dealloc_char1_
+
 !--------------------------------------------------------------------------
 recursive subroutine alloc_ish1_(self, ar, dims, varname, initval, TID, startdims)
 !DEC$ ATTRIBUTES DLLEXPORT :: alloc_ish1_
