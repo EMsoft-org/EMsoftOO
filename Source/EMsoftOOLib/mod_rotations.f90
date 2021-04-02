@@ -5598,7 +5598,11 @@ if (rotdoubleprecision) then
           if (alphad.lt.0.D0) a%ad = -a%ad
   end if
 else
-  t = tan(self%e(2)*0.5)
+  if (close_enough(self%e(2),sngl(cPi))) then 
+    t = sngl( dtan(cPi*0.5D0) )
+  else
+    t = tan(self%e(2)*0.5)     
+  end if
   sig = 0.5*(self%e(1)+self%e(3))
   del = 0.5*(self%e(1)-self%e(3))
   tau = sqrt(t*t+sin(sig)**2)
