@@ -558,6 +558,7 @@ use mod_HDFnames
 use mod_io
 use mod_rotations
 use stringconstants
+use mod_memory
 
 IMPLICIT NONE
 
@@ -575,6 +576,7 @@ type(so3_T)                         :: SO
 type(IO_T)                          :: Message
 type(Quaternion_T)                  :: quat
 type(QuaternionArray_T)             :: qAR
+type(memory_T)                      :: mem
 
 type(EBSDmasterNameListType)        :: mpnl
 type(MCOpenCLNameListType)          :: mcnl
@@ -660,15 +662,17 @@ end if
 ! for a regular Euler angle file, we precompute the detector arrays here; for the 'orpcdef' mode
 ! we compute them later (for each pattern separately)
 if (trim(enl%anglefiletype).eq.'orientations') then
-  allocate(EBSDdetector%rgx(enl%numsx,enl%numsy), &
-           EBSDdetector%rgy(enl%numsx,enl%numsy), &
-           EBSDdetector%rgz(enl%numsx,enl%numsy), &
-           EBSDdetector%accum_e_detector(EBSDMCdata%numEbins,enl%numsx,enl%numsy), stat=istat)
+  mem = memory_T()
+  call mem%alloc(EBSDdetector%rgx, (/ enl%numsx,enl%numsy /), 'EBSDdetector%rgx' )
+  call mem%alloc(EBSDdetector%rgy, (/ enl%numsx,enl%numsy /), 'EBSDdetector%rgy' )
+  call mem%alloc(EBSDdetector%rgz, (/ enl%numsx,enl%numsy /), 'EBSDdetector%rgz' )
+  call mem%alloc(EBSDdetector%accum_e_detector, (/ EBSDMCdata%numEbins,enl%numsx,enl%numsy /), 'EBSDdetector%accum_e_detector' )
+
 ! 4. generate detector arrays
   call self%GenerateDetector(MCFT, verbose, isTKD)
 
   ! perform the pattern computations
-  call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, numangles, qAR, progname, nmldeffile)
+  call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, mem, numangles, qAR, progname, nmldeffile)
 end if
 
 if (trim(enl%anglefiletype).eq.'orpcdef') then
@@ -952,7 +956,7 @@ end associate
 end subroutine GenerateDetector_
 
 !--------------------------------------------------------------------------
-subroutine ComputeEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, numangles, angles, progname, nmldeffile)
+subroutine ComputeEBSDPatterns_(self, EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, mem, numangles, angles, progname, nmldeffile)
 !DEC$ ATTRIBUTES DLLEXPORT :: ComputeEBSDPatterns_
 !! author: MDG
 !! version: 1.0
@@ -980,6 +984,7 @@ use mod_math
 use mod_filters
 use mod_MCfiles
 use mod_MPfiles
+use mod_memory
 
 IMPLICIT NONE
 
@@ -990,6 +995,7 @@ type(MPfile_T), INTENT(INOUT)           :: MPFT
 type(HDF_T),INTENT(INOUT)               :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 type(EBSDmasterNameListType),INTENT(INOUT) :: mpnl
+type(memory_T), INTENT(INOUT)           :: mem 
 integer(kind=irg),INTENT(IN)            :: numangles
 type(QuaternionArray_T), INTENT(IN)     :: angles
 character(fnlen),INTENT(IN)             :: progname
@@ -1003,6 +1009,7 @@ type(e_T)                               :: eu
 type(Quaternion_T)                      :: quat
 type(Timing_T)                          :: timer
 type(Cell_T)                            :: cell
+type(memory_T)                          :: memth
 
 ! all geometrical parameters and filenames
 real(kind=dbl)                          :: prefactor, qz(3)
@@ -1119,14 +1126,13 @@ prefactor = emult * enl%beamcurrent * enl%dwelltime * 1.0D-6
 io_real(1) = prefactor
 call Message%WriteValue(' Intensity scaling prefactor = ', io_real, 1)
 
-allocate(energywf(Emin:Emax), wf(EBSDMCdata%numEbins),stat=istat)
-energywf = 0.0
-wf = 0.0
+call mem%alloc(energywf, (/ Emax /), 'energywf', 0.0, startdims = (/ Emin /) )
+call mem%alloc(wf, (/ EBSDMCdata%numEbins /), 'wf', 0.0 )
 
 wf = sum(sum(EBSDdetector%accum_e_detector,3),2)
 energywf(Emin:Emax) = wf(Emin:Emax)
 energywf = energywf/sum(energywf)
-deallocate(wf)
+call mem%dealloc(wf, 'wf')
 
 !====================================
 ! init a bunch of parameters
@@ -1218,7 +1224,7 @@ hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
 ! The following write commands constitute HDF_FileVersion = 4.0 and above
 ! =====================================================
 dataset = SC_xtalname
-allocate(stringarray(1))
+call mem%alloc(stringarray, (/ 1 /), 'stringarray')
 stringarray(1)= trim(mcnl%xtalname)
 hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray xtalname', hdferr)
@@ -1228,7 +1234,7 @@ hdferr = HDF%writeDatasetInteger(dataset, numangles)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetInteger numangles', hdferr)
 
 ! and add the Euler angles to the output file
-allocate(eulerangles(3,numangles))
+call mem%alloc(eulerangles, (/ 3,numangles /), 'eulerangles')
 do i=1,numangles
   quat = angles%getQuatfromArray(i)
   call qq%q_set( quat%get_quats() )
@@ -1357,9 +1363,9 @@ end if
 
 ! allocate the istart and istop arrays for all the separate runs
   totnumbatches = nbatches + nextra
-  allocate(istart(0:nthreads-1,totnumbatches))
-  allocate(istop(0:nthreads-1,totnumbatches))
-  allocate(patinbatch(totnumbatches))
+  call mem%alloc(istart, (/ nthreads-1,totnumbatches /), 'istart', startdims = (/ 0, 1/) )
+  call mem%alloc(istop, (/ nthreads-1,totnumbatches/), 'istop', startdims = (/ 0, 1 /) )
+  call mem%alloc(patinbatch, (/ totnumbatches /), 'patinbatch')
   do i=1,nbatches
     do j=0,nthreads-1
       istart(j,i) = 1 + ninbatch * ( j + nthreads*(i-1) )
@@ -1389,27 +1395,27 @@ else
 end if
 
 if (trim(bitmode).eq.'char') then
-  allocate(batchpatterns(binx,biny,ninbatch*nthreads),stat=istat)
+  allocate(batchpatterns(binx,biny,ninbatch*nthreads))
 end if
 if (trim(bitmode).eq.'int') then
-  allocate(batchpatternsint(binx,biny,ninbatch*nthreads),stat=istat)
+  call mem%alloc(batchpatternsint, (/binx,biny,ninbatch*nthreads /), 'batchpatternsint')
 end if
 if (trim(bitmode).eq.'float') then
-  allocate(batchpatterns32(binx,biny,ninbatch*nthreads),stat=istat)
+  call mem%alloc(batchpatterns32, (/binx,biny,ninbatch*nthreads /), 'batchpatterns32')
 end if
 if (trim(bitmode).eq.'dict') then
-  allocate(batchpatterns32lin(correctsize,ninbatch*nthreads),stat=istat)
+  call mem%alloc(batchpatterns32lin, (/correctsize,ninbatch*nthreads /), 'batchpatterns32lin')
 end if
 
 !====================================
 ! here we also create a mask if necessary
-  allocate(mask(binx,biny),masklin(binx*biny),stat=istat)
-  mask = 1.0
-  masklin = 1.0
+  call mem%alloc(mask, (/ binx,biny /), 'mask', 1.0) 
+  call mem%alloc(masklin, (/ binx*biny /), 'masklin', 1.0)
   if (enl%maskpattern.eq.'y') then
 ! create the circular mask in a potentially rectangular array
     maskradius = (minval( (/ binx, biny /) ) / 2 )**2
-    allocate(lx(binx), ly(biny), stat=istat)
+    call mem%alloc(lx, (/ binx /), 'lx')
+    call mem%alloc(ly, (/ biny /), 'ly')
     lx = (/ (float(i),i=1,binx) /) - float(binx/2)
     ly = (/ (float(i),i=1,biny) /) - float(biny/2)
     do i=1,binx
@@ -1417,7 +1423,8 @@ end if
         if ((lx(i)**2+ly(j)**2).gt.maskradius) mask(i,j) = 0.0
       end do
     end do
-    deallocate(lx, ly)
+    call mem%dealloc(lx, 'lx')
+    call mem%dealloc(ly, 'ly')
     if (trim(bitmode).eq.'dict') then
       do j = 1,biny
         do i = 1,binx
@@ -1445,6 +1452,8 @@ ipar(7) = EBSDMCdata%numEbins
 ! set the number of OpenMP threads
 call OMP_setNThreads(nthreads)
 
+memth = memory_T( nt = nthreads )
+
 call timer%Time_tick()
 
 !====================================
@@ -1468,12 +1477,13 @@ do ibatch=1,totnumbatches
 
 ! each thread needs a private copy of the master and accum arrays; not having
 ! those can produce poor scaling...
-  dims2 = shape(self%det%rgx)
-  allocate(trgx(dims2(1),dims2(2)), trgy(dims2(1),dims2(2)), trgz(dims2(1),dims2(2)))
-  dims3 = shape(self%det%accum_e_detector)
-  allocate(taccum(dims3(1),dims3(2),dims3(3)))
-  dims3 = shape(MPFT%MPDT%mLPNH)
-  allocate(tmLPNH(dims3(1),dims3(2),dims3(3)), tmLPSH(dims3(1),dims3(2),dims3(3)))
+  call memth%alloc(trgx, shape(self%det%rgx), 'trgx', TID=TID)
+  call memth%alloc(trgy, shape(self%det%rgx), 'trgy', TID=TID)
+  call memth%alloc(trgz, shape(self%det%rgx), 'trgz', TID=TID)
+  call memth%alloc(taccum, shape(self%det%accum_e_detector), 'taccum', TID=TID)
+  call memth%alloc(tmLPNH, shape(MPFT%MPDT%mLPNH), 'tmLPNH', TID=TID)
+  call memth%alloc(tmLPSH, shape(MPFT%MPDT%mLPNH), 'tmLPSH', TID=TID)
+
 ! and copy the data in
   trgx = self%det%rgx
   trgy = self%det%rgy
@@ -1483,59 +1493,59 @@ do ibatch=1,totnumbatches
   tmLPSH = MPFT%MPDT%mLPSH
 
 ! allocate the arrays that will hold the computed pattern
-  allocate(binned(binx,biny),stat=istat)
+  call memth%alloc(binned, (/ binx,biny /), 'binned', TID=TID) 
   if (trim(bitmode).eq.'char') then
-    allocate(bpat(binx,biny),stat=istat)
+    allocate(bpat(binx,biny))
   end if
   if (trim(bitmode).eq.'int') then
-    allocate(bpatint(binx,biny),stat=istat)
+    call memth%alloc(bpatint, (/ binx,biny /), 'bpatint', TID=TID)
   end if
   if (trim(bitmode).eq.'dict') then
-    allocate(bpatint(binx,biny),stat=istat)
-    allocate(binnedvec(correctsize),stat=istat)
+    call memth%alloc(bpatint, (/ binx,biny /), 'bpatint', TID=TID) 
+    call memth%alloc(binnedvec, (/ correctsize /), 'binnedvec', TID=TID)
   end if
 
 ! this array requires some care in terms of its size parameters...
   if ((singlebatch.eqv..TRUE.).AND.(ibatch.eq.totnumbatches)) then
      if (TID.eq.nthreads-1) then
       if (trim(bitmode).eq.'char') then
-        allocate(threadbatchpatterns(binx,biny,nlastremainder),stat=istat)
+        allocate(threadbatchpatterns(binx,biny,nlastremainder))
       end if
       if (trim(bitmode).eq.'int') then
-        allocate(threadbatchpatternsint(binx,biny,nlastremainder),stat=istat)
+        call memth%alloc(threadbatchpatternsint, (/ binx,biny,nlastremainder /),'threadbatchpatternsint', TID=TID) 
       end if
       if (trim(bitmode).eq.'float') then
-        allocate(threadbatchpatterns32(binx,biny,nlastremainder),stat=istat)
+        call memth%alloc(threadbatchpatterns32, (/ binx,biny,nlastremainder /),'threadbatchpatterns32', TID=TID) 
       end if
       if (trim(bitmode).eq.'dict') then
-        allocate(threadbatchpatterns32lin(correctsize,nlastremainder),stat=istat)
+        call memth%alloc(threadbatchpatterns32lin, (/ correctsize,nlastremainder /),'threadbatchpatterns32lin', TID=TID) 
       end if
     else
       if (trim(bitmode).eq.'char') then
-        allocate(threadbatchpatterns(binx,biny,ninlastbatch),stat=istat)
+        allocate(threadbatchpatterns(binx,biny,ninlastbatch)) 
       end if
       if (trim(bitmode).eq.'int') then
-        allocate(threadbatchpatternsint(binx,biny,ninlastbatch),stat=istat)
+        call memth%alloc(threadbatchpatternsint, (/ binx,biny,ninlastbatch /), 'threadbatchpatternsint', TID=TID) 
       end if
       if (trim(bitmode).eq.'float') then
-        allocate(threadbatchpatterns32(binx,biny,ninlastbatch),stat=istat)
+        call memth%alloc(threadbatchpatterns32, (/ binx,biny,ninlastbatch /),'threadbatchpatterns32', TID=TID) 
       end if
       if (trim(bitmode).eq.'dict') then
-        allocate(threadbatchpatterns32lin(correctsize,ninlastbatch),stat=istat)
+        call memth%alloc(threadbatchpatterns32lin, (/ correctsize,ninlastbatch /),'threadbatchpatterns32lin', TID=TID) 
       end if
     end if
   else
     if (trim(bitmode).eq.'char') then
-      allocate(threadbatchpatterns(binx,biny,ninbatch),stat=istat)
+      allocate(threadbatchpatterns(binx,biny,ninbatch)) 
     end if
     if (trim(bitmode).eq.'int') then
-      allocate(threadbatchpatternsint(binx,biny,ninbatch),stat=istat)
+      call memth%alloc(threadbatchpatternsint, (/ binx,biny,ninbatch /),'threadbatchpatternsint', TID=TID) 
     end if
     if (trim(bitmode).eq.'float') then
-      allocate(threadbatchpatterns32(binx,biny,ninbatch),stat=istat)
+      call memth%alloc(threadbatchpatterns32, (/ binx,biny,ninbatch /),'threadbatchpatterns32', TID=TID) 
     end if
     if (trim(bitmode).eq.'dict') then
-      allocate(threadbatchpatterns32lin(correctsize,ninbatch),stat=istat)
+      call memth%alloc(threadbatchpatterns32lin, (/ correctsize,ninbatch /),'threadbatchpatterns32lin', TID=TID) 
     end if
   end if
 
@@ -1697,7 +1707,33 @@ do ibatch=1,totnumbatches
   end if
 !$OMP END CRITICAL
 
+if (trim(bitmode).eq.'char') then
+  deallocate(threadbatchpatterns)
+  deallocate(bpat)
+end if
+if (trim(bitmode).eq.'int') then
+  call memth%dealloc(threadbatchpatternsint, 'threadbatchpatternsint', TID=TID) 
+  call memth%dealloc(bpatint, 'bpatint', TID=TID)
+end if
+if (trim(bitmode).eq.'float') then
+  call memth%dealloc(threadbatchpatterns32, 'threadbatchpatterns32', TID=TID) 
+end if
+if (trim(bitmode).eq.'dict') then
+  call memth%dealloc(threadbatchpatterns32lin, 'threadbatchpatterns32lin', TID=TID) 
+  call memth%dealloc(bpatint, 'bpatint', TID=TID) 
+  call memth%dealloc(binnedvec, 'binnedvec', TID=TID)
+end if
+call memth%dealloc(trgx, 'trgx', TID=TID)
+call memth%dealloc(trgy, 'trgy', TID=TID)
+call memth%dealloc(trgz, 'trgz', TID=TID)
+call memth%dealloc(taccum, 'taccum', TID=TID)
+call memth%dealloc(tmLPNH, 'tmLPNH', TID=TID)
+call memth%dealloc(tmLPSH, 'tmLPSH', TID=TID)
+
 !$OMP END PARALLEL
+
+! test for memory allocations in the threaded region 
+call memth%thread_memory_use()
 
 ! here we write all the entries in the batchpatterns array to the HDF file as a hyperslab
 ! =====================================================
@@ -1811,6 +1847,9 @@ call HDF%pop(.TRUE.)
 
 
 end associate
+
+! test for memory allocations in the threaded region 
+call mem%allocated_memory_use()
 
 end subroutine ComputeEBSDPatterns_
 

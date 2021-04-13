@@ -19,7 +19,7 @@ set(EMsoftOOWrapperLib_SOURCES
   #${EEC_Wrapper_SRCS}
   #${OLIO_Wrapper_SRCS}
   ${OM_Wrapper_SRCS}
-  ${SEM_Wrapper_SRCS}
+  #${SEM_Wrapper_SRCS}
   #${TEM_Wrapper_SRCS}
   #${QC_Wrapper_SRCS}
   ${Utilities_Wrapper_SRCS}
@@ -27,7 +27,7 @@ set(EMsoftOOWrapperLib_SOURCES
 
 set(EMsoftOOWrapperLib_HEADERS
   ${DictionaryIndexing_Wrapper_HEADERS} 
-  ${SEM_Wrapper_HEADERS} 
+  #${SEM_Wrapper_HEADERS} 
   #${TEM_Wrapper_HEADERS} 
 )
 

@@ -26,10 +26,10 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 !--------------------------------------------------------------------------
-! EMsoft:EMSEMwrappermod.f90
+! EMsoft:mod_SEMwrappers.f90
 !--------------------------------------------------------------------------
 !
-! MODULE: EMSEMwrappermod
+! MODULE: mod_SEMwrappers
 !
 !> @author Marc De Graef, Carnegie Mellon University
 !
@@ -134,7 +134,7 @@
 
 
 !
-module EMSEMwrappermod
+module mod_SEMwrappers
 
     !--------------------------------------------------------------------------
     ! Callback routine(s) to communicate progress with DREAM.3D package
@@ -270,7 +270,6 @@ real(kind=sgl),INTENT(OUT)              :: EBSDpattern(ipar(23),ipar(24),ipar(21
 TYPE(C_FUNPTR), INTENT(IN), VALUE       :: cproc
 integer(c_size_t),INTENT(IN), VALUE     :: objAddress
 character(len=1),INTENT(IN)             :: cancel
-character(fnlen)                        :: pname, pdesc
 
 type(memory_T)                          :: mem 
 type(EMsoft_T)                          :: EMsoft
@@ -279,6 +278,7 @@ type(e_T)                               :: eu
 type(q_T)                               :: qu
 
 ! various variables and arrays
+character(fnlen)                        :: pname, pdesc
 real(kind=sgl)                          :: fullsizepattern(ipar(19),ipar(20)), binned(ipar(23),ipar(24))
 real(kind=irg),allocatable,save         :: accum_e_detector(:,:,:)
 real(kind=sgl),allocatable,save         :: rgx(:,:), rgy(:,:), rgz(:,:)
@@ -523,5 +523,5 @@ end subroutine EMsoftCgetEBSDPatterns
 
 
     
-end module EMSEMwrappermod
+end module mod_SEMwrappers
     

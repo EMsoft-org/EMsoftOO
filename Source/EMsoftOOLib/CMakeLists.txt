@@ -74,6 +74,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_MuellerCalculus.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_LaueSupport.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_NLPAR.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_SEMwrappers.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_wrappers.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90
