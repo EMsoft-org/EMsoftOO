@@ -77,7 +77,7 @@ if (s[0] ne sm) then begin
 endif
 
 ipar = replicate(0L,80)    ; parameter defined in getEBSDPatternsWrapper in mod_wrappers.f90
-ipar[0] = SEMdata.mcnsx
+ipar[0] = SEMdata.mcimx
 ipar[8] = SEMdata.numset
 ipar[11] = SEMdata.mcenergynumbin
 ipar[16] = SEMdata.mpimx
@@ -86,9 +86,8 @@ ipar[19] = SEMdata.detnumsy
 ipar[20] = SEMdata.numangles
 ipar[21] = SEMdata.detbinning
 ipar[22] = SEMdata.detnumsx/SEMdata.detbinning
-ipar[23] = SEMdata.detnumsx/SEMdata.detbinning
-ipar[24] = 1
-if (SEMdata.angletype eq 'qu') then ipar[24] = 0 
+ipar[23] = SEMdata.detnumsy/SEMdata.detbinning
+ipar[24] = 0
 ipar[25] = 0
 
 fpar = replicate(0.0,80)   ; parameter defined in getEBSDPatternsWrapper in mod_wrappers.f90 
@@ -101,7 +100,7 @@ fpar[17] = SEMdata.dettheta
 fpar[18] = SEMdata.detL
 fpar[19] = SEMdata.detbeamcurrent
 fpar[20] = SEMdata.detdwelltime
-fpar[21] = SEMdata.gammavalue
+fpar[21] = -SEMdata.gammavalue
 
 callname = 'getEBSDPatternsWrapper'
 
@@ -118,17 +117,17 @@ if keyword_set(single) then begin
 
 ; call the EMsoft wrapper routine from EMdymod.f90
   if (!version.os eq 'darwin') then begin
-    res = call_external(librarylocation+'/libEMsoftLib.dylib', callname, $
+    res = call_external(librarylocation+'/libEMsoftOOLib.dylib', callname, $
                         ipar, fpar, EBSDpattern, quats, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (!version.os eq 'Win32') then begin
-    res = call_external(librarylocation+'/EMsoftLib.dll', callname, $
+    res = call_external(librarylocation+'/EMsoftOOLib.dll', callname, $
                         ipar, fpar, EBSDpattern, quats, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (!version.os eq 'linux') then begin
-    res = call_external(librarylocation+'/libEMsoftLib.so', callname, $
+    res = call_external(librarylocation+'/libEMsoftOOLib.so', callname, $
                         ipar, fpar, EBSDpattern, quats, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
@@ -157,17 +156,17 @@ end else begin ; computation of multiple EBSDpatterns
 
 ; call the EMsoft wrapper routine from EMdymod.f90
   if (!version.os eq 'darwin') then begin
-    res = call_external(librarylocation+'/libEMsoftLib.dylib', callname, $
+    res = call_external(librarylocation+'/libEMsoftOOLib.dylib', callname, $
                         ipar, fpar, EBSDpattern, quaternions, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (!version.os eq 'Win32') then begin
-    res = call_external(librarylocation+'/EMsoftLib.dll', callname, $
+    res = call_external(librarylocation+'/EMsoftOOLib.dll', callname, $
                         ipar, fpar, EBSDpattern, quaternions, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (!version.os eq 'linux') then begin
-    res = call_external(librarylocation+'/libEMsoftLib.so', callname, $
+    res = call_external(librarylocation+'/libEMsoftOOLib.so', callname, $
                         ipar, fpar, EBSDpattern, quaternions, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 

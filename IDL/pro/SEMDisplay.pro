@@ -375,7 +375,7 @@ SEMdata = {SEMdatastruct, $
 	Emaxsel: long(0), $				; max energy selection 
 	PatternOrigin: long(0), $		; pattern origin indicator
 	PatternScaling: long(0), $		; pattern scaling type (0=linear, 1=gamma)
-	gammavalue: float(0), $			; gamma correction factor
+	gammavalue: 0.01, $			; gamma correction factor
 	Patternmin: float(0), $			; pattern min indicator
 	Patternmax: float(0), $			; pattern max indicator
 	detax1: float(0), $				; axis angle pair component

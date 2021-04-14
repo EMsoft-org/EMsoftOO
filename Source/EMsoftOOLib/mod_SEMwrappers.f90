@@ -451,9 +451,9 @@ dn = nint(float(ipar(21))*0.01)
 cn = dn
 
 ! here is the main loop over all quaternions
-quat = Quaternion_T( q = (/ 0.0, 0.0, 0.0, 0.0 /) )
+quat = Quaternion_T( q = (/ 1.0, 0.0, 0.0, 0.0 /) )
 eu = e_T( )
-qu = q_T( qinp = (/ 0.0, 0.0, 0.0, 0.0 /) )
+qu = q_T( qinp = (/ 1.0, 0.0, 0.0, 0.0 /) )
 quatloop: do ip=1,ipar(21)
   binned = 0.0
   fullsizepattern = 0.0
@@ -489,7 +489,7 @@ quatloop: do ip=1,ipar(21)
     end do
   end do
 
-! bin the pattern if necessary and apply the gamma scaling factor
+! bin the pattern if necessary and apply the gamma scaling factor (except when calling from IDL)
   if (binx.ne.ipar(19)) then 
     do ii=1,ipar(19),binfac
         do jj=1,ipar(20),binfac
@@ -497,9 +497,17 @@ quatloop: do ip=1,ipar(21)
             sum(fullsizepattern(ii:ii+binfac-1,jj:jj+binfac-1))
         end do
     end do
-    EBSDpattern(1:binx,1:biny,ip) = (binned(1:binx,1:biny)* bindx)**fpar(22)
+    if (fpar(22).gt.0.0) then 
+      EBSDpattern(1:binx,1:biny,ip) = (binned(1:binx,1:biny) * bindx)**fpar(22)
+    else
+      EBSDpattern(1:binx,1:biny,ip) = binned(1:binx,1:biny) * bindx
+    end if
   else
-    EBSDpattern(1:binx,1:biny,ip) = (fullsizepattern(1:binx,1:biny))**fpar(22)
+    if (fpar(22).gt.0.0) then 
+      EBSDpattern(1:binx,1:biny,ip) = (fullsizepattern(1:binx,1:biny))**fpar(22)
+    else
+      EBSDpattern(1:binx,1:biny,ip) = fullsizepattern(1:binx,1:biny)
+    end if 
   end if
 
 ! has the cancel flag been set by the calling program ?

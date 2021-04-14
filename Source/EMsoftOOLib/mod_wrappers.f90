@@ -112,8 +112,8 @@ character(len=1)                                :: cancel
 ! fpar(22) = gammavalue
 
 ! transform the C pointers above to fortran pointers, and use them in the regular function call
-nipar = 10
-nfpar = 10
+nipar = 80
+nfpar = 80
 nq = 4
 
 call c_f_pointer(argv(1),ipar,(/nipar/)) 
@@ -124,8 +124,9 @@ call c_f_pointer(argv(5),accum_e,(/ipar(4),2*ipar(5)+1,2*ipar(5)+1/))
 call c_f_pointer(argv(6),mLPNH,(/2*ipar(6)+1, 2*ipar(6)+1, ipar(4), ipar(7)/))
 call c_f_pointer(argv(7),mLPSH,(/2*ipar(6)+1, 2*ipar(6)+1, ipar(4), ipar(7)/))
 
-! call getEBSDPatterns(ipar, fpar, EBSDpattern, quats, accum_e, mLPNH, mLPSH)
-call EMsoftCgetEBSDPatterns(ipar, fpar, EBSDpattern, quats, accum_e, mLPNH, mLPSH, cproc, objAddress, cancel)
+objAddress = 0
+cancel = char(0)
+call EMsoftCgetEBSDPatterns(ipar, fpar, EBSDpattern, quats, accum_e, mLPNH, mLPSH, C_NULL_FUNPTR, objAddress, cancel)
 
 getEBSDPatternsWrapper = 1._c_float
 end function getEBSDPatternsWrapper
