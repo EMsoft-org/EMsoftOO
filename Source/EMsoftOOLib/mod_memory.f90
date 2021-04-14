@@ -135,6 +135,7 @@ type, public :: memory_T
     integer(kind=irg), allocatable :: totmem_cmplx(:)
     integer(kind=irg), allocatable :: totmem_cmplxd(:)
     integer(kind=irg), allocatable :: totmem_char(:)
+    integer(kind=irg), allocatable :: totmem_logical(:)
     integer(kind=irg), allocatable :: current_memory_allocated(:)
     integer(kind=irg) :: bytes_ish = 2
     integer(kind=irg) :: bytes_irg = 4
@@ -144,6 +145,7 @@ type, public :: memory_T
     integer(kind=irg) :: bytes_cmplx = 8
     integer(kind=irg) :: bytes_cmplxd = 16
     integer(kind=irg) :: bytes_char = 1
+    integer(kind=irg) :: bytes_logical = 1
     integer(kind=irg), public :: nthreads = 1
     logical, public   :: verbose
 
@@ -151,6 +153,7 @@ type, public :: memory_T
   private 
 
     procedure, pass(self) :: alloc_char1_
+    procedure, pass(self) :: alloc_char2_
     procedure, pass(self) :: alloc_ish1_
     procedure, pass(self) :: alloc_ish2_
     procedure, pass(self) :: alloc_ish3_
@@ -193,8 +196,12 @@ type, public :: memory_T
     procedure, pass(self) :: alloc_cmplxd4_
     procedure, pass(self) :: alloc_cmplxd5_
     procedure, pass(self) :: alloc_cmplxd6_
+    procedure, pass(self) :: alloc_logical1_
+    procedure, pass(self) :: alloc_logical2_
+    procedure, pass(self) :: alloc_logical3_
 
     procedure, pass(self) :: dealloc_char1_
+    procedure, pass(self) :: dealloc_char2_
     procedure, pass(self) :: dealloc_ish1_
     procedure, pass(self) :: dealloc_ish2_
     procedure, pass(self) :: dealloc_ish3_
@@ -237,6 +244,9 @@ type, public :: memory_T
     procedure, pass(self) :: dealloc_cmplxd4_
     procedure, pass(self) :: dealloc_cmplxd5_
     procedure, pass(self) :: dealloc_cmplxd6_
+    procedure, pass(self) :: dealloc_logical1_
+    procedure, pass(self) :: dealloc_logical2_
+    procedure, pass(self) :: dealloc_logical3_
 
     procedure, pass(self) :: compute_size_
     procedure, pass(self) :: show_allocated_memory_use_ 
@@ -246,7 +256,7 @@ type, public :: memory_T
     final :: memory_destructor 
 
 ! overload all the allocation and deallocation routines into simple alloc and dealloc methods
-    generic, public :: alloc => alloc_char1_, alloc_ish1_, alloc_irg1_, alloc_ill1_, &
+    generic, public :: alloc => alloc_char1_, alloc_char2_, alloc_ish1_, alloc_irg1_, alloc_ill1_, &
                                 alloc_sgl1_, alloc_dbl1_, alloc_cmplx1_, &
                                 alloc_cmplxd1_, alloc_ish2_, alloc_irg2_, alloc_ill2_, &
                                 alloc_sgl2_, alloc_dbl2_, alloc_cmplx2_, &
@@ -258,9 +268,9 @@ type, public :: memory_T
                                 alloc_sgl5_, alloc_dbl5_, alloc_cmplx5_, &
                                 alloc_cmplxd5_, alloc_ish6_, alloc_irg6_, alloc_ill6_, &
                                 alloc_sgl6_, alloc_dbl6_, alloc_cmplx6_, &
-                                alloc_cmplxd6_
+                                alloc_cmplxd6_, alloc_logical1_, alloc_logical2_, alloc_logical3_ 
 
-    generic, public :: dealloc => dealloc_char1_, dealloc_ish1_, dealloc_irg1_, dealloc_ill1_, &
+    generic, public :: dealloc => dealloc_char1_, dealloc_char2_, dealloc_ish1_, dealloc_irg1_, dealloc_ill1_, &
                                   dealloc_sgl1_, dealloc_dbl1_, dealloc_cmplx1_, &
                                   dealloc_cmplxd1_, dealloc_ish2_, dealloc_irg2_, dealloc_ill2_, &
                                   dealloc_sgl2_, dealloc_dbl2_, dealloc_cmplx2_, &
@@ -272,7 +282,7 @@ type, public :: memory_T
                                   dealloc_sgl5_, dealloc_dbl5_, dealloc_cmplx5_, &
                                   dealloc_cmplxd5_,dealloc_ish6_, dealloc_irg6_, dealloc_ill6_, &
                                   dealloc_sgl6_, dealloc_dbl6_, dealloc_cmplx6_, &
-                                  dealloc_cmplxd6_
+                                  dealloc_cmplxd6_, dealloc_logical1_, dealloc_logical2_, dealloc_logical3_ 
 
     generic, public :: getsize => compute_size_
     generic, public :: allocated_memory_use => show_allocated_memory_use_
@@ -488,6 +498,8 @@ if (self%nthreads.gt.1) then
         call Message%WriteValue('    complex(kind=dbl) : ', io_int, 1)
         io_int = self%totmem_char(i)
         call Message%WriteValue(' character             : ', io_int, 1)
+        io_int = self%totmem_logical(i)
+        call Message%WriteValue(' logical               : ', io_int, 1)
         call Message%printMessage(' ')
     end do 
 else
@@ -507,6 +519,8 @@ else
     call Message%WriteValue('    complex(kind=dbl) : ', io_int, 1)
     io_int = self%totmem_char(1)
     call Message%WriteValue(' character             : ', io_int, 1)
+    io_int = self%totmem_logical(1)
+    call Message%WriteValue(' logical               : ', io_int, 1)
     call Message%printMessage(' ')
 end if 
     
@@ -573,6 +587,8 @@ select case(trim(tp))
         nbytes = product(dims) * self%bytes_cmplxd
     case('char') 
         nbytes = dims(1) * self%bytes_char
+    case('logical') 
+        nbytes = dims(1) * self%bytes_logical
 end select 
 
 end function compute_size_
@@ -741,6 +757,131 @@ else
 endif
 
 end subroutine dealloc_char1_
+
+!--------------------------------------------------------------------------
+recursive subroutine alloc_char2_(self, ar, dims, varname, initval, TID, startdims)
+!DEC$ ATTRIBUTES DLLEXPORT :: alloc_char2_
+!! author: MDG
+!! version: 1.0
+!! date: 04/14/21
+!!
+!! allocate an array of type char
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+character(fnlen), INTENT(INOUT), allocatable     :: ar(:,:)
+integer(kind=irg), INTENT(IN)                    :: dims(2)
+character(*),INTENT(IN)                          :: varname
+character(*), INTENT(IN), OPTIONAL               :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    szar = size(ar)
+    sz = product(szar) * self%bytes_ish
+    self%totmem_ish(LID) = self%totmem_ish(LID) - sz
+    deallocate(ar)
+endif
+
+! allocate the array 
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
+    call Message%printError('mod_memory:alloc_char2_:', &
+      ' Unable to allocate character(fnlen) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_char(LID) = self%totmem_char(LID) + (dims(1)-startdims(1)+1)*(dims(2)-startdims(2)+1)*fnlen
+  call self%update_total_memory_use_((dims(1)-startdims(1)+1)*(dims(2)-startdims(2)+1)*fnlen, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_char2_:', &
+        ' Unable to allocate character(fnlen) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_char(LID) = self%totmem_char(LID) + dims(1)*dims(2)*fnlen
+  call self%update_total_memory_use_(dims(1)*dims(2)*fnlen, LID)
+end if
+
+! initalize the array to zeros or initval if present  
+if (present(initval)) then 
+    ar = trim(initval)
+else 
+    ar = ''
+end if
+
+if (self%verbose) then 
+  if (present(startdims)) then 
+    write (szstr,*) (dims(1)-startdims(1)+1)*(dims(2)-startdims(2)+1)*fnlen
+  else 
+    write (szstr,*) dims(1)*dims(2)*fnlen
+  end if
+  if (present(initval)) then 
+    write (initstr,*) trim(initval)
+  else 
+    write (initstr,*) ''
+  end if
+  outstr = ' -> allocated array '//trim(varname)//' of size '//trim(szstr)//'; initialized to '//trim(initstr)
+  call Message%printMessage(outstr)
+end if
+
+end subroutine alloc_char2_
+
+!--------------------------------------------------------------------------
+subroutine dealloc_char2_(self, ar, varname, TID)
+!DEC$ ATTRIBUTES DLLEXPORT :: dealloc_char2_
+!! author: MDG
+!! version: 1.0
+!! date: 04/14/21
+!!
+!! deallocate an array of type char
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+character(fnlen), INTENT(INOUT), allocatable     :: ar(:,:)
+character(*),INTENT(IN)                          :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr
+integer(kind=irg)                                :: err, LID, sz 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    sz = size(ar)*fnlen 
+    self%totmem_char(LID) = self%totmem_char(LID) - sz
+    call self%update_total_memory_use_( -sz, LID )
+    if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
+    deallocate(ar)
+else 
+    call Message%printMessage(' mod_memory:dealloc_char2_:Warning: attempting to deallocate array that is not allocated. ')
+endif
+
+end subroutine dealloc_char2_
 
 !--------------------------------------------------------------------------
 recursive subroutine alloc_ish1_(self, ar, dims, varname, initval, TID, startdims)
@@ -5998,5 +6139,383 @@ else
 endif
 
 end subroutine dealloc_cmplxd6_
+
+!--------------------------------------------------------------------------
+subroutine alloc_logical1_(self, ar, dims, varname, initval, TID, startdims)
+!DEC$ ATTRIBUTES DLLEXPORT :: alloc_logical1_
+!! author: MDG
+!! version: 1.0
+!! date: 04/14/21
+!!
+!! allocate an array of type logical1
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+logical, INTENT(INOUT), allocatable              :: ar(:)
+integer(kind=irg), INTENT(IN)                    :: dims(1)
+character(*),INTENT(IN)                          :: varname
+logical, INTENT(IN), OPTIONAL                    :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    szar = size(ar)
+    sz = product(szar) * self%bytes_logical
+    self%totmem_logical(LID) = self%totmem_logical(LID) - sz
+    deallocate(ar)
+endif
+
+! allocate the array 
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
+    call Message%printError('mod_memory:alloc_logical1_:', &
+      ' Unable to allocate logical(kind=logical) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_logical(LID) = self%totmem_logical(LID) + product(dims-startdims+1)*self%bytes_logical 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_logical, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_logical1_:', &
+        ' Unable to allocate logical(kind=logical) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_logical(LID) = self%totmem_logical(LID) + product(dims)*self%bytes_logical 
+  call self%update_total_memory_use_(product(dims)*self%bytes_logical, LID)
+end if
+
+! initalize the array to zeros or initval if present  
+if (present(initval)) then 
+    ar = initval
+else 
+    ar = .FALSE.
+end if
+
+if (self%verbose) then 
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_logical
+  else 
+    write (szstr,*) product(dims)*self%bytes_logical
+  end if
+  if (present(initval)) then 
+    write (initstr,*) initval
+  else 
+    write (initstr,*) .FALSE.
+  end if
+  outstr = ' -> allocated array '//trim(varname)//' of size '//trim(szstr)//'; initialized to '//trim(initstr)
+  call Message%printMessage(outstr)
+end if
+
+end subroutine alloc_logical1_
+
+!--------------------------------------------------------------------------
+subroutine dealloc_logical1_(self, ar, varname, TID)
+!DEC$ ATTRIBUTES DLLEXPORT :: dealloc_logical1_
+!! author: MDG
+!! version: 1.0
+!! date: 04/14/21
+!!
+!! deallocate an array of type logical1
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+logical, INTENT(INOUT), allocatable              :: ar(:)
+character(*),INTENT(IN)                          :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: errorstr
+integer(kind=irg)                                :: err, LID, sz 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    sz = size(ar) * self%bytes_logical
+    self%totmem_logical(LID) = self%totmem_logical(LID) - sz
+    call self%update_total_memory_use_( -sz, LID )
+    if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
+    deallocate(ar)
+else 
+    call Message%printMessage(' mod_memory:dealloc_logical1_:Warning: attempting to deallocate array that is not allocated. ')
+endif
+
+end subroutine dealloc_logical1_
+
+!--------------------------------------------------------------------------
+subroutine alloc_logical2_(self, ar, dims, varname, initval, TID, startdims)
+!DEC$ ATTRIBUTES DLLEXPORT :: alloc_logical2_
+!! author: MDG
+!! version: 1.0
+!! date: 04/14/21
+!!
+!! allocate an array of type logical2
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+logical, INTENT(INOUT), allocatable              :: ar(:,:)
+integer(kind=irg), INTENT(IN)                    :: dims(2)
+character(*),INTENT(IN)                          :: varname
+logical, INTENT(IN), OPTIONAL                    :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    szar = size(ar)
+    sz = product(szar) * self%bytes_logical
+    self%totmem_logical(LID) = self%totmem_logical(LID) - sz
+    deallocate(ar)
+endif
+
+! allocate the array 
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
+    call Message%printError('mod_memory:alloc_logical2_:', &
+      ' Unable to allocate logical(kind=logical) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_logical(LID) = self%totmem_logical(LID) + product(dims-startdims+1)*self%bytes_logical 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_logical, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_logical2_:', &
+        ' Unable to allocate logical(kind=logical) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_logical(LID) = self%totmem_logical(LID) + product(dims)*self%bytes_logical 
+  call self%update_total_memory_use_(product(dims)*self%bytes_logical, LID)
+end if
+
+! initalize the array to zeros or initval if present  
+if (present(initval)) then 
+    ar = initval
+else 
+    ar = .FALSE.
+end if
+
+if (self%verbose) then 
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_logical
+  else 
+    write (szstr,*) product(dims)*self%bytes_logical
+  end if
+  if (present(initval)) then 
+    write (initstr,*) initval
+  else 
+    write (initstr,*) .FALSE.
+  end if
+  outstr = ' -> allocated array '//trim(varname)//' of size '//trim(szstr)//'; initialized to '//trim(initstr)
+  call Message%printMessage(outstr)
+end if
+
+end subroutine alloc_logical2_
+
+!--------------------------------------------------------------------------
+subroutine dealloc_logical2_(self, ar, varname, TID)
+!DEC$ ATTRIBUTES DLLEXPORT :: dealloc_logical2_
+!! author: MDG
+!! version: 1.0
+!! date: 04/14/21
+!!
+!! deallocate an array of type logical2
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+logical, INTENT(INOUT), allocatable              :: ar(:,:)
+character(*),INTENT(IN)                          :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: errorstr
+integer(kind=irg)                                :: err, LID, sz 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    sz = size(ar) * self%bytes_logical
+    self%totmem_logical(LID) = self%totmem_logical(LID) - sz
+    call self%update_total_memory_use_( -sz, LID )
+    if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
+    deallocate(ar)
+else 
+    call Message%printMessage(' mod_memory:dealloc_logical2_:Warning: attempting to deallocate array that is not allocated. ')
+endif
+
+end subroutine dealloc_logical2_
+
+!--------------------------------------------------------------------------
+subroutine alloc_logical3_(self, ar, dims, varname, initval, TID, startdims)
+!DEC$ ATTRIBUTES DLLEXPORT :: alloc_logical3_
+!! author: MDG
+!! version: 1.0
+!! date: 04/14/21
+!!
+!! allocate an array of type logical3
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+logical, INTENT(INOUT), allocatable              :: ar(:,:,:)
+integer(kind=irg), INTENT(IN)                    :: dims(3)
+character(*),INTENT(IN)                          :: varname
+logical, INTENT(IN), OPTIONAL                    :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    szar = size(ar)
+    sz = product(szar) * self%bytes_logical
+    self%totmem_logical(LID) = self%totmem_logical(LID) - sz
+    deallocate(ar)
+endif
+
+! allocate the array 
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2),startdims(3):dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
+    call Message%printError('mod_memory:alloc_logical3_:', &
+      ' Unable to allocate logical(kind=logical) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_logical(LID) = self%totmem_logical(LID) + product(dims-startdims+1)*self%bytes_logical 
+  call self%update_total_memory_use_(product(dims-startdims+1)*self%bytes_logical, LID)
+else
+  allocate(ar(dims(1),dims(2),dims(3)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_logical3_:', &
+        ' Unable to allocate logical(kind=logical) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_logical(LID) = self%totmem_logical(LID) + product(dims)*self%bytes_logical 
+  call self%update_total_memory_use_(product(dims)*self%bytes_logical, LID)
+end if
+
+! initalize the array to zeros or initval if present  
+if (present(initval)) then 
+    ar = initval
+else 
+    ar = .FALSE.
+end if
+
+if (self%verbose) then 
+  if (present(startdims)) then 
+    write (szstr,*) product(dims-startdims+1)*self%bytes_logical
+  else 
+    write (szstr,*) product(dims)*self%bytes_logical
+  end if
+  if (present(initval)) then 
+    write (initstr,*) initval
+  else 
+    write (initstr,*) .FALSE.
+  end if
+  outstr = ' -> allocated array '//trim(varname)//' of size '//trim(szstr)//'; initialized to '//trim(initstr)
+  call Message%printMessage(outstr)
+end if
+
+end subroutine alloc_logical3_
+
+!--------------------------------------------------------------------------
+subroutine dealloc_logical3_(self, ar, varname, TID)
+!DEC$ ATTRIBUTES DLLEXPORT :: dealloc_logical3_
+!! author: MDG
+!! version: 1.0
+!! date: 04/14/21
+!!
+!! deallocate an array of type logical3
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+logical, INTENT(INOUT), allocatable              :: ar(:,:,:)
+character(*),INTENT(IN)                          :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: errorstr
+integer(kind=irg)                                :: err, LID, sz 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    sz = size(ar) * self%bytes_logical
+    self%totmem_logical(LID) = self%totmem_logical(LID) - sz
+    call self%update_total_memory_use_( -sz, LID )
+    if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
+    deallocate(ar)
+else 
+    call Message%printMessage(' mod_memory:dealloc_logical3_:Warning: attempting to deallocate array that is not allocated. ')
+endif
+
+end subroutine dealloc_logical3_
+
+
+
 
 end module mod_memory

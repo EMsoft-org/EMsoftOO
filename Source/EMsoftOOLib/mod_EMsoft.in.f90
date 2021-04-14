@@ -234,6 +234,7 @@ private
 
       procedure, pass(self), public :: fromNativePath => fromNativePath_
 
+      procedure, pass(self), public :: C2F_configuration_strings => C2F_configuration_strings_
 
   end type EMsoft_T
 ! !DEC$ ATTRIBUTES DLLEXPORT :: setConfigParameter
@@ -242,6 +243,8 @@ private
   interface EMsoft_T
     module procedure :: constructor
   end interface EMsoft_T
+
+  private :: cstrlen, cstrf 
 
 contains
 
@@ -2401,5 +2404,113 @@ if (haltprogram) then
 end if
 
 end subroutine Interpret_Program_Arguments_no_nml_
+
+!--------------------------------------------------------------------------
+subroutine C2F_configuration_strings_(self, cptr) 
+!DEC$ ATTRIBUTES DLLEXPORT :: C2F_configuration_strings_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 04/14/21
+  !!
+  !! convert C-strings to standard f90 configuration strings
+
+IMPLICIT NONE
+
+class(EMsoft_T), INTENT(INOUT)          :: self 
+type(c_ptr), INTENT(IN), value          :: cptr
+
+character(kind=c_char), pointer         :: fptr(:,:)
+integer(kind=irg)                       :: ii, lenstr
+
+call c_f_pointer(cptr, fptr, [ fnlen, wraparraysize ])
+
+call self%setConfigParameter('EMsoftpathname', cstrf(fptr(1:fnlen,1)))
+call self%setConfigParameter('EMXtalFolderpathname', cstrf(fptr(1:fnlen,2)))
+call self%setConfigParameter('EMdatapathname', cstrf(fptr(1:fnlen,3)))
+call self%setConfigParameter('EMtmppathname', cstrf(fptr(1:fnlen,4)))
+call self%setConfigParameter('EMsoftLibraryLocation', cstrf(fptr(1:fnlen,5)))
+call self%setConfigParameter('EMSlackWebHookURL', cstrf(fptr(1:fnlen,6)))
+call self%setConfigParameter('EMSlackChannel', cstrf(fptr(1:fnlen,7)))
+call self%setConfigParameter('UserName', cstrf(fptr(1:fnlen,8)))
+call self%setConfigParameter('UserLocation', cstrf(fptr(1:fnlen,9)))
+call self%setConfigParameter('UserEmail', cstrf(fptr(1:fnlen,10)))
+call self%setConfigParameter('EMNotify', cstrf(fptr(1:fnlen,11)))
+call self%setConfigParameter('Develop', cstrf(fptr(1:fnlen,12)))
+call self%setConfigParameter('Release', cstrf(fptr(1:fnlen,13)))
+call self%setConfigParameter('h5copypath', cstrf(fptr(1:fnlen,14)))
+call self%setConfigParameter('EMsoftplatform', cstrf(fptr(1:fnlen,15)))
+call self%setConfigParameter('EMsofttestpath', cstrf(fptr(1:fnlen,16)))
+call self%setConfigParameter('EMsoftTestingPath', cstrf(fptr(1:fnlen,17)))
+call self%setConfigParameter('EMsoftversion', cstrf(fptr(1:fnlen,18)))
+call self%setConfigParameter('Configpath', cstrf(fptr(1:fnlen,19)))
+call self%setConfigParameter('Templatepathname', cstrf(fptr(1:fnlen,20)))
+call self%setConfigParameter('Resourcepathname', cstrf(fptr(1:fnlen,21)))
+call self%setConfigParameter('Homepathname', cstrf(fptr(1:fnlen,22)))
+call self%setConfigParameter('OpenCLpathname', cstrf(fptr(1:fnlen,23)))
+call self%setConfigParameter('Templatecodefilename', cstrf(fptr(1:fnlen,24)))
+call self%setConfigParameter('WyckoffPositionsfilename', cstrf(fptr(1:fnlen,25)))
+call self%setConfigParameter('Randomseedfilename', cstrf(fptr(1:fnlen,26)))
+call self%setConfigParameter('EMsoftnativedelimiter', cstrf(fptr(1:fnlen,27)))
+
+end subroutine C2F_configuration_strings_
+
+!--------------------------------------------------------------------------
+!
+! FUNCTION: cstrlen
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief compute the length of a null-terminated C string
+!
+!> @date 10/28/17 MDG 1.0 original
+!--------------------------------------------------------------------------
+function cstrlen(carray) result(res)
+
+IMPLICIT NONE
+
+character(kind=c_char), INTENT(IN) :: carray(:)
+integer(kind=irg)                  :: res
+
+integer(kind=irg)                  :: ii
+
+res = size(carray)
+do ii = 1, size(carray)
+  if (carray(ii) == C_NULL_CHAR) then
+    res = ii - 1
+    return
+  end if
+end do
+
+end function cstrlen
+
+!--------------------------------------------------------------------------
+!
+! FUNCTION: cstrf
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief convert a c string into a correctly formatted f string
+!
+!> @date 11/30/17 MDG 1.0 original
+!--------------------------------------------------------------------------
+function cstrf(carray) result(res)
+
+IMPLICIT NONE
+
+character(kind=c_char), INTENT(IN) :: carray(:)
+character(fnlen)                   :: res
+
+integer(kind=irg)                  :: ii, lenstr
+
+lenstr = cstrlen(carray)
+res = ''
+do ii = 1, lenstr
+    res(ii:ii) = carray(ii)
+end do
+
+end function cstrf
+
+
+
 
 end module mod_EMsoft

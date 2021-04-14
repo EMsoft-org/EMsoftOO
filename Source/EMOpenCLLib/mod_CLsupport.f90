@@ -143,7 +143,7 @@ IMPLICIT NONE
 
   type,public :: OpenCL_T
     private
-    ! platform variables
+! platform variables
       character(fnlen), allocatable             :: p_profile(:)
       character(fnlen), allocatable             :: p_version(:)
       character(fnlen), allocatable             :: p_name(:)
@@ -221,10 +221,12 @@ type(OpenCL_T) function CL_constructor( ) result(CL)
   !! all the corresponding arrays
 
 use mod_io
+use mod_memory
 
 IMPLICIT NONE
 
 type(IO_T)                      :: Message
+type(memory_T)                  :: mem
 integer(c_int32_t)              :: err
 integer(c_int)                  :: nplatforms
 integer(c_size_t)               :: zero_size = 0
@@ -241,19 +243,18 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
   CL%num_platforms = nplatforms
 
   if (CL%num_platforms.gt.0) then
-    allocate(CL%p_profile(CL%num_platforms))
-    allocate(CL%p_version(CL%num_platforms))
-    allocate(CL%p_name(CL%num_platforms))
-    allocate(CL%p_vendor(CL%num_platforms))
-    allocate(CL%p_extensions(CL%num_platforms))
-    allocate(CL%p_ids(CL%num_platforms))
-    allocate(CL%num_CPUdevices(CL%num_platforms))
-    allocate(CL%num_GPUdevices(CL%num_platforms))
-    allocate(CL%noCPUdevices(CL%num_platforms))
-    allocate(CL%noGPUdevices(CL%num_platforms))
-    CL%noCPUdevices = .FALSE.
-    CL%noGPUdevices = .FALSE.
-    allocate(platform_ids(CL%num_platforms))
+    mem = memory_T()
+    call mem%alloc(CL%p_profile, (/ CL%num_platforms /), 'CL%p_profile')
+    call mem%alloc(CL%p_version, (/ CL%num_platforms /), 'CL%p_version')
+    call mem%alloc(CL%p_name, (/ CL%num_platforms /), 'CL%p_name')
+    call mem%alloc(CL%p_vendor, (/ CL%num_platforms /), 'CL%p_vendor')
+    call mem%alloc(CL%p_extensions, (/ CL%num_platforms /), 'CL%p_extensions')
+    call mem%alloc(CL%p_ids, (/ CL%num_platforms /), 'CL%p_ids')
+    call mem%alloc(CL%num_CPUdevices, (/ CL%num_platforms /), 'CL%num_CPUdevices')
+    call mem%alloc(CL%num_GPUdevices, (/ CL%num_platforms /), 'CL%num_GPUdevices')
+    call mem%alloc(CL%noCPUdevices, (/ CL%num_platforms /), 'CL%noCPUdevices', .FALSE.)
+    call mem%alloc(CL%noGPUdevices, (/ CL%num_platforms /), 'CL%noGPUdevices', .FALSE.)
+    call mem%alloc(platform_ids, (/ CL%num_platforms /), 'platform_ids')
 
   ! Get platforms IDs.
     err = clGetPlatformIDs(nplatforms, C_LOC(platform_ids), nplatforms)
@@ -274,24 +275,24 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
       err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 0, C_NULL_PTR, num_devices)
       CL%maxGPUdev = maxval( (/ CL%maxGPUdev, num_devices /) )
     end do
-    allocate(CL%d_CPUids(CL%num_platforms, CL%maxCPUdev))
-    allocate(CL%d_CPUmwgs(CL%num_platforms, CL%maxCPUdev))
-    allocate(CL%d_CPUmwis(CL%num_platforms, CL%maxCPUdev,3))
-    allocate(CL%d_CPUmaxalloc(CL%num_platforms, CL%maxCPUdev))
-    allocate(CL%d_CPUcu(CL%num_platforms, CL%maxCPUdev))
-    allocate(CL%d_CPUgms(CL%num_platforms, CL%maxCPUdev))
-    allocate(CL%d_CPUlms(CL%num_platforms, CL%maxCPUdev))
-    allocate(CL%d_CPUmmas(CL%num_platforms, CL%maxCPUdev))
-    allocate(CL%d_CPUname(CL%num_platforms, CL%maxCPUdev))
-    allocate(CL%d_GPUids(CL%num_platforms, CL%maxGPUdev))
-    allocate(CL%d_GPUmwgs(CL%num_platforms, CL%maxGPUdev))
-    allocate(CL%d_GPUmwis(CL%num_platforms, CL%maxGPUdev,3))
-    allocate(CL%d_GPUmaxalloc(CL%num_platforms, CL%maxGPUdev))
-    allocate(CL%d_GPUcu(CL%num_platforms, CL%maxGPUdev))
-    allocate(CL%d_GPUgms(CL%num_platforms, CL%maxGPUdev))
-    allocate(CL%d_GPUlms(CL%num_platforms, CL%maxGPUdev))
-    allocate(CL%d_GPUmmas(CL%num_platforms, CL%maxGPUdev))
-    allocate(CL%d_GPUname(CL%num_platforms, CL%maxGPUdev))
+    call mem%alloc(CL%d_CPUids, (/ CL%num_platforms, CL%maxCPUdev /), 'CL%d_CPUids')
+    call mem%alloc(CL%d_CPUmwgs, (/ CL%num_platforms, CL%maxCPUdev /), 'CL%d_CPUmwgs')
+    call mem%alloc(CL%d_CPUmwis, (/ CL%num_platforms, CL%maxCPUdev,3 /), 'CL%d_CPUmwis')
+    call mem%alloc(CL%d_CPUmaxalloc, (/ CL%num_platforms, CL%maxCPUdev /), 'CL%d_CPUmaxalloc')
+    call mem%alloc(CL%d_CPUcu, (/ CL%num_platforms, CL%maxCPUdev /), 'CL%d_CPUcu')
+    call mem%alloc(CL%d_CPUgms, (/ CL%num_platforms, CL%maxCPUdev /), 'CL%d_CPUgms')
+    call mem%alloc(CL%d_CPUlms, (/ CL%num_platforms, CL%maxCPUdev /), 'CL%d_CPUlms')
+    call mem%alloc(CL%d_CPUmmas, (/ CL%num_platforms, CL%maxCPUdev /), 'CL%d_CPUmmas')
+    call mem%alloc(CL%d_CPUname, (/ CL%num_platforms, CL%maxCPUdev /), 'CL%d_CPUname')
+    call mem%alloc(CL%d_GPUids, (/ CL%num_platforms, CL%maxGPUdev /), 'CL%d_GPUids')
+    call mem%alloc(CL%d_GPUmwgs, (/ CL%num_platforms, CL%maxGPUdev /), 'CL%d_GPUmwgs')
+    call mem%alloc(CL%d_GPUmwis, (/ CL%num_platforms, CL%maxGPUdev, 3 /), 'CL%d_GPUmwis')
+    call mem%alloc(CL%d_GPUmaxalloc, (/ CL%num_platforms, CL%maxGPUdev /), 'CL%d_GPUmaxalloc')
+    call mem%alloc(CL%d_GPUcu, (/ CL%num_platforms, CL%maxGPUdev /), 'CL%d_GPUcu')
+    call mem%alloc(CL%d_GPUgms, (/ CL%num_platforms, CL%maxGPUdev /), 'CL%d_GPUgms')
+    call mem%alloc(CL%d_GPUlms, (/ CL%num_platforms, CL%maxGPUdev /), 'CL%d_GPUlms')
+    call mem%alloc(CL%d_GPUmmas, (/ CL%num_platforms, CL%maxGPUdev /), 'CL%d_GPUmmas')
+    call mem%alloc(CL%d_GPUname, (/ CL%num_platforms, CL%maxGPUdev /), 'CL%d_GPUname')
 
   ! get all relevant information for each platform
     do i=1, CL%num_platforms
@@ -317,6 +318,7 @@ subroutine CL_destructor( CL )
   !!
   !! destructor for the OpenCL Class
   !!
+
 IMPLICIT NONE
 
 type(OpenCL_T),INTENT(INOUT)  :: CL
