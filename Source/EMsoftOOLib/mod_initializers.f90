@@ -224,4 +224,106 @@ izl:   do iz=-2*iml,2*iml
 end subroutine Initialize_Cell
 
 
+
+!--------------------------------------------------------------------------
+recursive subroutine Initialize_Cell_noHDF(cell, Diff, SG, Dyn, dmin)
+!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_Cell_NoHDF
+ !! author: MDG
+ !! version: 1.0
+ !! date: 04/15/21
+ !!
+ !! perform all steps to initialize a unit cell without needing to read an .xtal file
+ !! we assume that all the atom coordinates and symmetry operators have already been created
+
+use mod_symmetry
+use mod_io
+use mod_gvectors
+use mod_diffraction
+use mod_crystallography
+
+IMPLICIT NONE
+
+type(Cell_T),INTENT(INOUT)                 :: cell
+type(Diffraction_T),INTENT(INOUT)          :: Diff
+type(SpaceGroup_T),INTENT(INOUT)           :: SG
+type(DynType),INTENT(INOUT)                :: Dyn
+real(kind=sgl),INTENT(IN)                  :: dmin
+
+type(IO_T)                                 :: Message
+type(gnode)                                :: rlp
+integer(kind=irg)                          :: istat, io_int(3), skip
+integer(kind=irg)                          :: imh, imk, iml, gg(3), ix, iy, iz
+real(kind=sgl)                             :: dhkl, io_real(3), ddt
+real(kind=sgl),parameter                   :: gstepsize = 0.001  ! [nm^-1] interpolation stepsize
+
+! compute the range of reflections for the lookup table and allocate the table
+! The master list is easily created by brute force
+ imh = 1
+ do
+   dhkl = 1.0/cell%CalcLength( (/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
+   if (dhkl.lt.dmin) EXIT
+   imh = imh + 1
+ end do
+ imk = 1
+ do
+   dhkl = 1.0/cell%CalcLength((/0.0_sgl,float(imk),0.0_sgl/), 'r')
+   if (dhkl.lt.dmin) EXIT
+   imk = imk + 1
+ end do
+ iml = 1
+ do
+   dhkl = 1.0/cell%CalcLength((/0.0_sgl,0.0_sgl,float(iml)/), 'r')
+   if (dhkl.lt.dmin) EXIT
+   iml = iml + 1
+ end do
+
+! we assume that the wavelength has already been set in the Diff class...
+ call Diff%CalcWaveLength(cell)
+
+ call Diff%allocateLUT( (/ imh, imk, iml /) )
+
+ddt = 1.0e-5
+
+! next, we compute the overall lookup table Diff%LUT; we do not, at this point, create a
+! list of linked reflections; in the old code, this was done at the same time, but it appears
+! it is better to decouple these two computations. In this new approach, we'll compute a much
+! shorter linked list based on the incident wave vector direction.
+
+! first, we deal with the transmitted beam
+ gg = (/ 0,0,0 /)
+ call Diff%CalcUcg(cell,gg,applyqgshift=.TRUE.)
+ rlp = Diff%getrlp()
+ Dyn%Upz = rlp%Vpmod         ! U'0 normal absorption parameter
+
+! and add this reflection to the look-up table
+ call Diff%setLUT( gg, rlp%Ucg )
+ call Diff%setLUTqg( gg, rlp%qg )
+
+! now do the same for the other allowed reflections
+! note that the lookup table must be twice as large as the list of participating reflections,
+! since the dynamical matrix uses g-h as its index !!!
+ixl: do ix=-2*imh,2*imh
+iyl:  do iy=-2*imk,2*imk
+izl:   do iz=-2*iml,2*iml
+        gg = (/ ix, iy, iz /)
+        if (SG%IsGAllowed(gg)) then  ! is this reflection allowed by lattice centering ?
+! add the reflection to the look up table
+           call Diff%CalcUcg(cell,gg,applyqgshift=.TRUE.)
+           rlp = Diff%getrlp()
+           call Diff%setLUT( gg, rlp%Ucg )
+           call Diff%setLUTqg( gg, rlp%qg )
+! flag this reflection as a double diffraction candidate if cabs(Ucg)<ddt threshold
+           if (cabs(rlp%Ucg).le.ddt) then
+             call Diff%setdbdiff( gg, .TRUE. )
+           end if
+        end if ! IsGAllowed
+       end do izl
+      end do iyl
+    end do ixl
+
+! that's it
+end subroutine Initialize_Cell_NoHDF
+
+
+
 end module mod_initializers

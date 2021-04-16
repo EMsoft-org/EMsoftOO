@@ -564,7 +564,7 @@ recursive subroutine EMsoftCgetECPatterns(ipar, fpar, ECpattern, quats, accum_e,
 !DEC$ ATTRIBUTES DLLEXPORT :: EMsoftCgetECPatterns
 
 ! the input parameters are all part of a ipar and fpar input arrays instead of the usual namelist structures.
-! The following is the mapping:
+! The following is the mapping:  [NOTE THAT THESE NEED TO BE REVISED TO THE INDICES AT THE TOP OF THIS FILE !!!]
 !
 ! ipar(1) = detnumpix
 ! ipar(2) = numangle
@@ -793,6 +793,620 @@ quatloop: do ip=1,ipar(6)
 end do quatloop
 
 end subroutine EMsoftCgetECPatterns
+
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE:EMsoftCgetEBSDmaster
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief This subroutine can be called by a C/C++ program as a standalone routine to compute EBSD master patterns
+!
+!> @details This subroutine provides a method to compute an EBSD master pattern for the northern and southern
+!> hemispheres, i.e., it implements the EMEBSDmaster.f90 program.  The routine can be called from an external C/C++ program; 
+!> the routine provides a callback mechanism to update the calling program about computational 
+!> progress, as well as a cancel option.
+!>
+!> The routine is intended to be called from a C/C++ program, e.g., DREAM.3D.  This routine is a 
+!> simplified version of the core of the EMEBSDmaster program. 
+!>
+!> Since the HDF5 library with fortran90 support can only be a static library on Mac OS X, we must
+!> have the calling program read the .xtal HDF5 file and pass the necessary information on to
+!> this routine.  This is a workaround until the HDF group fixes the static library issue; DREAM.3D
+!> requires a dynamical HDF5 library, so for DREAM.3D and EMsoft to properly work together, the 
+!> callable routines in this file may not depend on any HDF code at all, either directly or indirectly.
+!>
+!> @param ipar array with integer input parameters
+!> @param fpar array with float input parameters
+!> @param atdata atom coordinate array
+!> @param attypes atom type array
+!> @param latparm lattice parameter array
+!> @param accum_z output array with Monte Carlo depth histogram
+!> @param mLPNH modified Lambert projection northern hemisphere (output)
+!> @param mLPSH modified Lambert projection southern hemisphere (output)
+!
+!> @date 04/17/16 MDG 1.0 original
+!> @date 08/16/18 MDG 1.1 added 'uniform' parameter [ipar(36)] to generate only the background
+!> @date 04/15/21 MDG 2.0 conversion to Object Oriented version
+!--------------------------------------------------------------------------
+recursive subroutine EMsoftCgetEBSDmaster(ipar,fpar,atompos,atomtypes,latparm,accum_z,mLPNH,mLPSH,cproc,objAddress,cancel) &
+           bind(c, name='EMsoftCgetEBSDmaster')    ! this routine is callable from a C/C++ program
+!DEC$ ATTRIBUTES DLLEXPORT :: EMsoftCgetEBSDmaster
+
+! these are the same as in the EMsoftCgetMCOpenCL routine, with a few extras at the end.
+! ipar components
+! ipar(1) : integer(kind=irg)       :: nx  = (numsx-1)/2
+! ipar(2) : integer(kind=irg)       :: globalworkgrpsz
+! ipar(3) : integer(kind=irg)       :: num_el
+! ipar(4) : integer(kind=irg)       :: totnum_el
+! ipar(5) : integer(kind=irg)       :: multiplier
+! ipar(6) : integer(kind=irg)       :: devid
+! ipar(7) : integer(kind=irg)       :: platid
+! ipar(8) : integer(kind=irg)       :: CrystalSystem
+! ipar(9) : integer(kind=irg)       :: Natomtypes
+! ipar(10): integer(kind=irg)       :: SpaceGroupNumber
+! ipar(11): integer(kind=irg)       :: SpaceGroupSetting
+! ipar(12): integer(kind=irg)       :: numEbins
+! ipar(13): integer(kind=irg)       :: numzbins
+! ipar(14): integer(kind=irg)       :: mcmode  ( 1 = 'full', 2 = 'bse1' )
+! ipar(15): integer(kind=irg)       :: numangle
+! ipar(16): integer(kind=irg)       :: nxten = nx/10
+! the following are only used in this routine, not in the Monte Carlo routine
+! ipar(17): integer(kind=irg)       :: npx
+! ipar(18): integer(kind=irg)       :: nthreads
+! ipar(36): integer(kind=irg)       :: uniform  ['1' = yes (background only), '0' = no ]
+
+! fpar components
+! fpar(1) : real(kind=dbl)          :: sig
+! fpar(2) : real(kind=dbl)          :: omega
+! fpar(3) : real(kind=dbl)          :: EkeV
+! fpar(4) : real(kind=dbl)          :: Ehistmin
+! fpar(5) : real(kind=dbl)          :: Ebinsize
+! fpar(6) : real(kind=dbl)          :: depthmax
+! fpar(7) : real(kind=dbl)          :: depthstep
+! fpar(8) : real(kind=dbl)          :: sigstart
+! fpar(9) : real(kind=dbl)          :: sigend
+! fpar(10): real(kind=dbl)          :: sigstep
+! parameters only used in this routine, this includes the Bethe Parameters !!!!
+! fpar(11) : real(kind=dbl)         :: dmin
+! fpar(12) : real(kind=dbl)         :: Bethe  c1
+! fpar(13) : real(kind=dbl)         :: Bethe  c2
+! fpar(14) : real(kind=dbl)         :: Bethe  c3
+
+use mod_EMsoft
+use mod_initializers
+use mod_symmetry
+use mod_crystallography
+use mod_gvectors
+use mod_kvectors
+use mod_io
+use mod_math
+use mod_diffraction
+use mod_timing
+use mod_Lambert
+use ISO_C_BINDING
+use omp_lib
+use mod_OMPsupport
+use mod_memory
+use mod_notifications
+use stringconstants
+use mod_MCfiles
+
+IMPLICIT NONE
+
+integer(c_int32_t),INTENT(IN)           :: ipar(wraparraysize)
+real(kind=sgl),INTENT(IN)               :: fpar(wraparraysize)
+real(kind=sgl),INTENT(IN)               :: atompos(ipar(9),5)
+integer(kind=irg),INTENT(IN)            :: atomtypes(ipar(9))
+real(kind=sgl),INTENT(IN)               :: latparm(6)
+integer(kind=irg),INTENT(IN)            :: accum_z(ipar(12),ipar(13),-ipar(16):ipar(16),-ipar(16):ipar(16))
+real(kind=sgl),INTENT(INOUT)            :: mLPNH(-ipar(17):ipar(17),-ipar(17):ipar(17),1:ipar(12),1:ipar(9))
+real(kind=sgl),INTENT(INOUT)            :: mLPSH(-ipar(17):ipar(17),-ipar(17):ipar(17),1:ipar(12),1:ipar(9))
+TYPE(C_FUNPTR), INTENT(IN), VALUE       :: cproc
+integer(c_size_t),INTENT(IN), VALUE     :: objAddress
+character(len=1),INTENT(IN)             :: cancel
+
+type(Cell_T)            :: cell
+type(DynType)           :: Dyn
+type(Timing_T)          :: timer
+type(IO_T)              :: Message
+type(Lambert_T)         :: L
+type(SpaceGroup_T)      :: SG
+type(Diffraction_T)     :: Diff
+type(kvectors_T)        :: kvec
+type(gvectors_T)        :: reflist
+type(memory_T)          :: mem, memth
+
+real(kind=dbl)          :: ctmp(192,3), arg
+
+integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
+                           numk, numsites, & 
+                           ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, cancelerr, &
+                           numset,n,ix,iy,iz, nns, nnw, nref, Estart, ipg, isave, npx, nthreads,  &
+                           istat,gzero,ic,ip,ikk, totstrong, totweak, jh, ierr, nix, niy, nixp, niyp, nxten     ! counters
+real(kind=dbl)          :: tpi,Znsq, kkl, DBWF, kin, delta, h, lambda, omtl, srt, dc(3), xy(2), edge, scl, tmp, &
+                           dx, dxm, dy, dym, dmin !
+real(kind=sgl)          :: io_real(5), selE, kn, FN(3), kkk(3), tstart, tstop, bp(4), nabsl
+real(kind=sgl),allocatable      :: EkeVs(:), svals(:), auxNH(:,:,:,:), auxSH(:,:,:,:)  ! results
+complex(kind=dbl)               :: czero
+complex(kind=dbl),allocatable   :: Lgh(:,:), Sgh(:,:,:)
+logical                 :: usehex, switchmirror, verbose
+real(kind=dbl)          :: apositions(maxpasym,5)
+! Monte Carlo derived quantities
+integer(kind=irg)       :: numEbins, numzbins, nsx, nsy, hdferr, nlines, lastEnergy, cn, dn, totn, cn2, totn2 ! variables used in MC energy file
+real(kind=dbl)          :: EkeV, Ehistmin, Ebinsize, depthmax, depthstep, etotal ! enery variables from MC program
+integer(kind=irg),allocatable :: thick(:), acc_z(:,:,:,:)
+real(kind=sgl),allocatable :: lambdaE(:,:)
+logical                 :: f_exists, readonly, overwrite=.TRUE., insert=.TRUE., stereog, uniform
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen,kind=c_char)                     :: line2(1)
+character(fnlen)                                 :: pname, pdesc
+integer(kind=irg)       :: imh, imk, iml, gg(3)
+real(kind=sgl)          :: dhkl, ddt
+
+type(gnode),save                :: rlp
+type(kvectorlist), pointer      :: ktmp
+type(reflisttype), pointer      :: firstw
+real(kind=sgl),allocatable      :: karray(:,:)
+integer(kind=irg),allocatable   :: kij(:,:)
+complex(kind=dbl),allocatable   :: DynMat(:,:)
+character(fnlen)                :: dataset, instring
+PROCEDURE(ProgressCallBack3), POINTER   :: proc
+
+!$OMP THREADPRIVATE(rlp) 
+
+nullify(proc)
+
+! link the proc procedure to the cproc argument
+CALL C_F_PROCPOINTER (cproc, proc)
+
+! initalize a few variables
+tpi = 2.D0*cPi
+czero = dcmplx(0.D0,0.D0)
+
+! parameters that would normally be read from the MC HDF5 file
+npx = ipar(17)
+nxten = ipar(16)
+EkeV = fpar(3)
+Ehistmin = fpar(4)
+Ebinsize = fpar(5)
+depthmax = fpar(6)
+depthstep = fpar(7)
+numEbins = ipar(12)
+Estart = numEbins
+numzbins = ipar(13)
+num_el = ipar(3)
+dmin = fpar(11)
+nthreads = ipar(18)
+etotal = dble(ipar(4))*dble(ipar(5))
+numsites = ipar(9)
+numset = numsites
+uniform = .FALSE.
+if (ipar(36).eq.1) uniform = .TRUE.
+
+nsx = ipar(1) ! (mcnl%numsx - 1)/2
+nsy = nsx
+
+!=============================================
+!=============================================
+! crystallography section
+
+! the following is necessitated by the fact that none of this code may 
+! depend on HDF5 routines, so we need to cut-and-paste from various 
+! other library routines to set things up so that we can compute the 
+! density, and the average atomic number and atomic mass...
+
+! copy all the unit cell parameters into the proper fields and compute the 
+! density parameters needed by the Monte Carlo routine; 
+! initialize cell and SG classes 
+cell = Cell_T( dble(latparm) )
+SG = SpaceGroup_T( SGnumber = ipar(10), xtalSystem = ipar(8), setting = ipar(11) )
+! fill in additional symmetry and cell parameters
+if ((ipar(10).ge.143).and.(ipar(10).le.167)) then
+  call SG%setSpaceGrouptrigonal(.TRUE.)
+else
+  call SG%setSpaceGrouptrigonal(.FALSE.)
+end if 
+! atom type and coordinate parameters
+call cell%setNatomtype( ipar(9) )
+call cell%setAtomtype( atomtypes(1:ipar(9)) )
+apositions(1:ipar(9), 1:5) = atompos
+call cell%setAtomPos( apositions )
+! generate the symmetry operations
+call SG%setSpaceGrouphexset( .FALSE. )
+if (ipar(8).eq.4) call SG%setSpaceGrouphexset( .TRUE. )
+if ((ipar(8).eq.5).AND.(ipar(11).ne.2)) call SG%setSpaceGrouphexset( .TRUE. )
+! Get the symmorphic space group corresponding to the point group
+! of the actual space group
+ipg = SG%getPGnumber()
+! if the actual group is also the symmorphic group, then both 
+! steps can be done simultaneously, otherwise two calls to 
+! GenerateSymmetry are needed.
+if (SGPG(ipg).eq.ipar(10)) then
+  call SG%GenerateSymmetry( .TRUE. )
+else
+  isave = SG%getSpaceGroupNumber()
+  call SG%setSpaceGroupNumber( SGPG(ipg) )
+  call SG%GenerateSymmetry( .TRUE. )
+  call SG%setSpaceGroupNumber( int(isave) )
+  call SG%GenerateSymmetry( .FALSE. )
+end if
+! next we get all the atom positions
+call cell%CalcPositions( SG, 'v' )
+
+! initialize the memory class 
+mem = memory_T()
+
+! set the method for Fourier coefficient computation to Weickenmeier-Kohl
+call Diff%setrlpmethod( 'WK' )
+call Diff%setV( EkeV )
+! next we need to initialize the cell but without reading any HDF files ... 
+call Initialize_Cell_NoHDF(cell, Diff, SG, Dyn, fpar(11))
+
+! set the BetheParameters ... 
+call Diff%SetBetheParameters( usevalues = (/ sngl(fpar(12)), sngl(fpar(13)), sngl(fpar(14)), 1.0_sgl /) )
+
+! allocate and compute the Sgh loop-up table
+numset = cell%getNatomtype()
+nat = 0
+call Diff%Initialize_SghLUT(cell, SG, fpar(11), numset, nat, verbose)
+
+! determine the point group number
+j=0
+do i=1,32
+if (SGPG(i).le.SG%getSpaceGroupNumber()) j=i
+end do
+isym = j
+
+! here is new code dealing with all the special cases (quite a few more compared to the 
+! Laue group case)...  isym is the point group number. Once the symmetry case has been
+! fully determined (taking into account things like 31m and 3m1 an such), then the only places
+! that symmetry is handled are the modified Calckvectors routine, and the filling of the modified
+! Lambert projections after the dynamical simulation step.  We are also changing the name of the 
+! sr array (or srhex) to mLPNH and mLPSH (modified Lambert Projection Northern/Southern Hemisphere).
+
+! Here, we encode isym into a new number that describes the sampling scheme; the new schemes are 
+! described in detail in the EBSD manual pdf file.
+SamplingType = PGSamplingType(isym)
+
+! next, intercept the special cases (hexagonal vs. rhombohedral cases that require special treatment)
+if ((SamplingType.eq.-1).or.(isym.eq.14).or.(isym.eq.26)) then
+  SamplingType = SG%getHexvsRho(isym)
+end if
+
+! if the point group is trigonal or hexagonal, we need to switch usehex to .TRUE. so that
+! the program will use the hexagonal sampling method
+usehex = .FALSE.
+if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) usehex = .TRUE.
+
+! ---------- end of symmetry and crystallography section
+!=============================================
+!=============================================
+
+!=============================================
+!=============================================
+! this is where we determine the value for the thickness integration limit for the CalcLgh3 routine...
+mem = memory_T()
+call mem%alloc(EkeVs, (/ numEbins /), 'EkeVs')
+call mem%alloc(thick, (/ numEbins /), 'thick')
+do i=1,numEbins
+  EkeVs(i) = Ehistmin + float(i-1)*Ebinsize
+end do
+
+! then, for each energy determine the 95% histogram thickness
+izzmax = 0
+do iE = 1,numEbins
+ do ix=-nsx/10,nsx/10
+  do iy=-nsy/10,nsy/10
+   istat = sum(accum_z(iE,:,ix,iy))
+   izz = 1
+   do while (sum(accum_z(iE,1:izz,ix,iy)).lt.(0.99*istat))
+    izz = izz+1
+   end do
+   if (izz.gt.izzmax) izzmax = izz
+  end do
+ end do
+ thick(iE) = dble(izzmax) * fpar(7)
+end do
+
+izz = nint(maxval(thick)/fpar(7))
+call mem%alloc(lambdaE, (/ numEbins, izz/), 'lambdaE')
+do iE=1,numEbins
+ call Diff%setV(dble(Ekevs(iE)))
+ call Diff%CalcWaveLength( cell )
+ call Diff%CalcUcg(cell,(/0,0,0/))
+ rlp = Diff%getrlp()
+ nabsl = rlp%xgp
+ do iz=1,izz
+  lambdaE(iE,iz) = float(sum(accum_z(iE,iz,-nsx/10:nsx/10,-nsy/10:nsy/10)))/etotal
+  lambdaE(iE,iz) = lambdaE(iE,iz) * exp(2.0*sngl(cPi)*(iz-1)*fpar(7)/nabsl)
+ end do
+end do
+
+! ---------- end of 'read Monte Carlo output file and extract necessary parameters' section
+!=============================================
+!=============================================
+
+!=============================================
+!=============================================
+! ---------- a couple of initializations
+   numset = cell%getNatomtype()
+   npy = npx
+   gzero = 1  ! index of incident beam
+   debug = 0  ! no longer used
+! ----------
+!=============================================
+!=============================================
+
+!=============================================
+!=============================================
+
+! set various arrays to zero or 1, depending on uniform parameter
+if (uniform.eqv..TRUE.) then
+   mLPNH = 1.0
+   mLPSH = 1.0
+else
+   mLPNH = 0.0
+   mLPSH = 0.0
+end if
+
+! set the callback parameters
+dn = 1
+cn = dn
+cn2 = 0
+totn2 = Estart
+
+!=============================================
+!=============================================
+! ---------- from here on, we need to repeat the entire computation for each energy value, assuming that uniform = .FALSE.
+if (uniform.eqv..FALSE.) then
+  reflist = gvectors_T()
+
+! instantiate the memory class for the OpenMP section
+  memth = memory_T( nt = ipar(18), silent=.TRUE. )
+
+  cancelerr = 0
+  energyloop: do iE=Estart,1,-1
+  cn2 = cn2+dn 
+! if this is not the first run, then set the accelerating voltage and recompute the Fourier coefficients
+  if (iE.ne.Estart) then 
+   call Diff%setV(dble(EkeVs(iE)))
+   call Diff%setrlpmethod('WK')
+   call Initialize_Cell_NoHDF(cell, Diff, SG, Dyn, fpar(11))
+  end if 
+
+!=============================================
+! ---------- create the incident beam directions list
+! determine all independent incident beam directions (use a linked list starting at khead)
+! numk is the total number of k-vectors to be included in this computation;
+! note that this needs to be redone for each energy, since the wave vector changes with energy
+   kvec = kvectors_T()   ! initialize the wave vector list
+   call kvec%set_kinp( (/ 0.D0, 0.D0, 1.D0 /) )
+   call kvec%set_ktmax( 0.D0 )
+   call kvec%set_SamplingType( SamplingType )
+   call kvec%set_mapmode('RoscaLambert')
+   if (usehex) then
+     call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),npx,npy, ijmax,usehex)
+   else
+     call kvec%Calckvectors(cell, SG, Diff, (/ 0.D0, 0.D0, 0.D0 /),npx,npy, ijmax,usehex)
+   end if
+   numk = kvec%get_numk()
+   totn = numk
+   cn = dn
+
+! convert part of the kvector linked list into arrays for OpenMP
+   call mem%alloc(karray, (/ 4,numk /), 'karray')
+   call mem%alloc(kij, (/ 3,numk /), 'kij')
+! point to the first beam direction
+   ktmp => kvec%get_ListHead()
+! and loop through the list, keeping k, kn, and i,j
+   karray(1:3,1) = sngl(ktmp%k(1:3))
+   karray(4,1) = sngl(ktmp%kn)
+   kij(1:3,1) = (/ ktmp%i, ktmp%j, ktmp%hs /)
+   do ik=2,numk
+     ktmp => ktmp%next
+     karray(1:3,ik) = sngl(ktmp%k(1:3))
+     karray(4,ik) = sngl(ktmp%kn)
+     kij(1:3,ik) = (/ ktmp%i, ktmp%j, ktmp%hs /)
+   end do
+! and remove the linked list
+   call kvec%Delete_kvectorlist()
+
+   verbose = .FALSE.
+   totstrong = 0
+   totweak = 0
+
+! ---------- end of "create the incident beam directions list"
+!=============================================
+
+! here's where we introduce the OpenMP calls, to spead up the overall calculations...
+
+! set the number of OpenMP threads 
+    call OMP_SET_NUM_THREADS( ipar(18) )
+
+! use OpenMP to run on multiple cores ... 
+!$OMP PARALLEL COPYIN(rlp) &
+!$OMP& PRIVATE(DynMat,Sgh,Lgh,ik,FN,TID,kn,ipx,ipy,ix,iequiv,nequiv,reflist,firstw) &
+!$OMP& PRIVATE(kkk,nns,nnw,nref,svals) SHARED(cancelerr)
+
+    NUMTHREADS = OMP_GET_NUM_THREADS()
+    TID = OMP_GET_THREAD_NUM()
+
+  call memth%alloc(svals, (/ numset /), 'svals', TID=TID)
+
+!$OMP DO SCHEDULE(DYNAMIC,100)    
+! ---------- and here we start the beam direction loop
+     beamloop:do ik = 1,numk
+
+!=============================================
+! ---------- create the master reflection list for this beam direction
+! Then we must determine the masterlist of reflections (also a linked list);
+! This list basically samples a large reciprocal space volume; it does not 
+! distinguish between zero and higher order Laue zones, since that 
+! distinction becomes meaningless when we consider the complete 
+! reciprocal lattice.  
+      reflist = gvectors_T()
+      kkk = karray(1:3,ik)
+      FN = kkk
+
+      call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, fpar(11))
+      nref = reflist%get_nref()
+! ---------- end of "create the master reflection list"
+!=============================================
+
+! determine strong and weak reflections
+       nullify(firstw)
+       nns = 0
+       nnw = 0
+       call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
+
+! generate the dynamical matrix
+       call memth%alloc(DynMat, (/nns,nns/), 'DynMat', TID=TID)
+       call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
+       totstrong = totstrong + nns
+       totweak = totweak + nnw
+
+! then we need to initialize the Sgh and Lgh arrays
+       call memth%alloc(Sgh, (/ nns,nns,numset /), 'Sgh', TID=TID)
+       call memth%alloc(Lgh, (/ nns,nns /), 'Lgh', TID=TID)
+       Sgh = czero
+       Lgh = czero
+       call reflist%getSghfromLUT(Diff,nns,numset,Sgh)
+
+! solve the dynamical eigenvalue equation for this beam direction  
+       kn = karray(4,ik)
+       call reflist%CalcLgh(DynMat,Lgh,dble(thick(iE)),dble(kn),nns,gzero,depthstep,lambdaE(iE,1:izzmax),izzmax)
+
+! sum over the element-wise (Hadamard) product of the Lgh and Sgh arrays 
+       svals = 0.0
+       do ix=1,numset
+         svals(ix) = real(sum(Lgh(1:nns,1:nns)*Sgh(1:nns,1:nns,ix)))
+       end do
+       svals = svals/float(sum(nat(1:numset)))
+
+! and store the resulting svals values, applying point group symmetry where needed.
+       ipx = kij(1,ik)
+       ipy = kij(2,ik)
+       ipz = kij(3,ik)
+!
+     if (usehex) then
+       call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,npx,iequiv,nequiv,usehex)
+     else
+       if ((SG%getSpaceGroupNumber().ge.195).and.(SG%getSpaceGroupNumber().le.230)) then
+         call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,npx,iequiv,nequiv,cubictype=SamplingType)
+       else
+         call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,npx,iequiv,nequiv)
+       end if
+     end if
+!$OMP CRITICAL
+       do ix=1,nequiv
+         if (iequiv(3,ix).eq.-1) mLPSH(iequiv(1,ix),iequiv(2,ix),iE,1:numset) = svals(1:numset)
+         if (iequiv(3,ix).eq.1) mLPNH(iequiv(1,ix),iequiv(2,ix),iE,1:numset) = svals(1:numset)
+       end do
+!$OMP END CRITICAL
+  
+     call reflist%Delete_gvectorlist()
+     call memth%dealloc(Sgh, 'Sgh', TID=TID)
+     call memth%dealloc(Lgh, 'Sgh', TID=TID)
+     call memth%dealloc(DynMat, 'DynMat', TID=TID)
+
+! has the cancel flag been set by the calling program ?
+!!!!$OMP CANCELLATION POINT
+     if(cancel.ne.char(0)) then
+!$OMP ATOMIC WRITE
+         cancelerr = 1
+!$OMP CANCEL DO
+      end if 
+
+! update the progress counter and report it to the calling program via the proc callback routine
+!$OMP CRITICAL
+     if(objAddress.ne.0) then
+       cn = cn+dn
+       if (mod(cn,1000).eq.0) then 
+         call proc(objAddress, cn, totn, cn2, totn2)
+       end if
+     end if
+!$OMP END CRITICAL
+
+! for testing purposes ... the wrapper should not produce any command line output
+    ! if (mod(ik,5000).eq.0) write (*,*) ik,' completed out of ',numk 
+
+    end do beamloop
+
+    call memth%dealloc(svals, 'svals', TID=TID)
+
+! end of OpenMP portion
+!$OMP END PARALLEL
+  
+! was the Cancel button pressed in the calling program?
+    if(cancelerr.ne.0) EXIT energyloop
+
+    call mem%dealloc(karray, 'karray')
+    call mem%dealloc(kij, 'kij')
+
+   if (usehex) then
+! and finally, we convert the hexagonally sampled array to a square Lambert projection which will be used 
+! for all EBSD pattern interpolations;  we need to do this for both the Northern and Southern hemispheres
+
+! we begin by allocating auxiliary arrays to hold copies of the hexagonal data; the original arrays will
+! then be overwritten with the newly interpolated data.
+    call mem%alloc(auxNH, (/npx,npy,1,numsites/), 'auxNH', startdims=(/-npx,-npy,1,1/))
+    call mem%alloc(auxSH, (/npx,npy,1,numsites/), 'auxSH', startdims=(/-npx,-npy,1,1/))
+    auxNH = mLPNH
+    auxSH = mLPSH
+
+    edge = 1.D0 / dble(npx)
+    scl = float(npx)
+    do i=-npx,npx
+      do j=-npy,npy
+! determine the spherical direction for this point
+        L = Lambert_T( xyd = (/ dble(i), dble(j) /) * edge )
+        ierr = L%LambertSquareToSphere(dc)
+! convert direction cosines to hexagonal Lambert projections
+        L = Lambert_T( xyzd = dc )
+        ierr = L%LambertSphereToHex(xy)
+        xy = xy * scl
+! interpolate intensity from the neighboring points
+        if (ierr.eq.0) then
+          nix = floor(xy(1))
+          niy = floor(xy(2))
+          nixp = nix+1
+          niyp = niy+1
+          if (nixp.gt.npx) nixp = nix
+          if (niyp.gt.npx) niyp = niy
+          dx = xy(1) - nix
+          dy = xy(2) - niy
+          dxm = 1.D0 - dx
+          dym = 1.D0 - dy
+          mLPNH(i,j,1,1:numsites) = auxNH(nix,niy,1,1:numsites)*dxm*dym + auxNH(nixp,niy,1,1:numsites)*dx*dym + &
+                               auxNH(nix,niyp,1,1:numsites)*dxm*dy + auxNH(nixp,niyp,1,1:numsites)*dx*dy
+          mLPSH(i,j,1,1:numsites) = auxSH(nix,niy,1,1:numsites)*dxm*dym + auxSH(nixp,niy,1,1:numsites)*dx*dym + &
+                               auxSH(nix,niyp,1,1:numsites)*dxm*dy + auxSH(nixp,niyp,1,1:numsites)*dx*dy
+        end if
+      end do
+    end do
+    call mem%dealloc(auxNH, 'auxNH')
+    call mem%dealloc(auxSH, 'auxSH')
+   end if
+
+! make sure that the outer pixel rim of the mLPSH patterns is identical to
+! that of the mLPNH array.
+   mLPSH(-npx,-npx:npx,iE,1:numset) = mLPNH(-npx,-npx:npx,iE,1:numset)
+   mLPSH( npx,-npx:npx,iE,1:numset) = mLPNH( npx,-npx:npx,iE,1:numset)
+   mLPSH(-npx:npx,-npx,iE,1:numset) = mLPNH(-npx:npx,-npx,iE,1:numset)
+   mLPSH(-npx:npx, npx,iE,1:numset) = mLPNH(-npx:npx, npx,iE,1:numset)
+
+  end do energyloop
+
+end if ! (uniform.eqv..FALSE.)
+
+! that's the end of it...
+
+end subroutine EMsoftCgetEBSDmaster
+
+
+
 
     
 end module mod_SEMwrappers

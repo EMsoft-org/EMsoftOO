@@ -29,6 +29,7 @@ set(MODALITY_DIRS
     # TEM
     # QC
     Utilities
+    TestPrograms
     XRay
 )
 # -----------------------------------------------------------------------

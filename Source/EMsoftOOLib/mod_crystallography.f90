@@ -229,8 +229,6 @@ IMPLICIT NONE
 real(kind=dbl), INTENT(IN), OPTIONAL :: latparm(6)
  !! optional lattice parameter array; cell will be reset to zero if not present
 
-call cell%resetUnitCell()
-
 if (present(latparm)) then
 ! set the lattice parameters
   cell%a = latparm(1)
@@ -242,6 +240,8 @@ if (present(latparm)) then
 
 ! initialize all the relevant geometry matrices
   call cell%calcMatrices()
+else 
+  call cell%resetUnitCell()
 end if
 
 end function Cell_constructor

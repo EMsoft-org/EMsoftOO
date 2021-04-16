@@ -427,7 +427,7 @@ module mod_diffraction
   
   ! relativistic acceleration voltage
     self%Psihat = self%voltage*(1.D0+temp2)*1000.D0
-  
+
   ! compute the electron wavelength in nm
   ! compute V_0 and add it to mPsihat (corrected by mRelcor)
   ! this should have been done in the calling program
@@ -528,42 +528,30 @@ module mod_diffraction
   !DEC$ ATTRIBUTES DLLEXPORT :: allocateLUT_
     !! author: MDG
     !! version: 1.0
-    !! date: 02/04/20
+    !! date: 02/04/20, incorporated memory_T class on 04/15/21
     !!
     !! allocates the LUT arrays
   
-  use mod_io
+  use mod_memory
   
   IMPLICIT NONE
   
   class(Diffraction_T),INTENT(INOUT)  :: self
   integer(kind=irg)                   :: dims(3)
   
-  integer(kind=irg)                   :: imh, imk, iml, istat
-  type(IO_T)                          :: Message
+  integer(kind=irg)                   :: imh, imk, iml
+  type(memory_T)                      :: mem
   
-  imh = dims(1)
-  imk = dims(2)
-  iml = dims(3)
+  imh = 2*dims(1)
+  imk = 2*dims(2)
+  iml = 2*dims(3)
   
-  if (allocated( self%LUT )) deallocate(self%LUT)
-  if (allocated( self%LUTqg )) deallocate(self%LUTqg)
-  if (allocated( self%dbdiff )) deallocate(self%dbdiff)
-  
+  mem = memory_T() 
+
   ! the LUT array stores all the Fourier coefficients, so that we only need to compute them once... i.e., here and now
-  allocate(self%LUT(-2*imh:2*imh,-2*imk:2*imk,-2*iml:2*iml),stat=istat)
-  if (istat.ne.0) call Message%printError('allocateLUT:',' unable to allocate LUT array')
-  
-  allocate(self%LUTqg(-2*imh:2*imh,-2*imk:2*imk,-2*iml:2*iml),stat=istat)
-  if (istat.ne.0) call Message%printError('allocateLUT:',' unable to allocate LUTqg array')
-  
-  ! allocate an array that keeps track of potential double diffraction reflections
-  allocate(self%dbdiff(-2*imh:2*imh,-2*imk:2*imk,-2*iml:2*iml),stat=istat)
-  if (istat.ne.0) call Message%printError('allocateLUT:',' unable to allocate dbdiff array')
-  
-  self%LUT = cmplx(0.D0,0.D0)
-  self%LUTqg = cmplx(0.D0,0.D0)
-  self%dbdiff = .FALSE.
+  call mem%alloc(self%LUT, (/ imh, imk, iml /), 'self%LUT', cmplx(0.D0,0.D0), startdims=(/ -imh, -imk, -iml /))
+  call mem%alloc(self%LUTqg, (/ imh, imk, iml /), 'self%LUTqg', cmplx(0.D0,0.D0), startdims=(/ -imh, -imk, -iml /))
+  call mem%alloc(self%dbdiff, (/ imh, imk, iml /), 'self%dbdiff', .FALSE., startdims=(/ -imh, -imk, -iml /))
   
   end subroutine allocateLUT_
   
@@ -1523,11 +1511,11 @@ module mod_diffraction
   end function getBetheParameter_
   
   !--------------------------------------------------------------------------
-  recursive subroutine Set_Bethe_Parameters_(self, EMsoft, silent, filename)
+  recursive subroutine Set_Bethe_Parameters_(self, EMsoft, silent, filename, usevalues)
   !DEC$ ATTRIBUTES DLLEXPORT :: Set_Bethe_Parameters_
     !! author: MDG
     !! version: 1.0
-    !! date: 02/02/20
+    !! date: 02/02/20; added usevalues on 04/15/21
     !!
     !! Read the Bethe potential parameters from a file, if it exists; otherwise take defaults
     !!
@@ -1542,9 +1530,10 @@ module mod_diffraction
   IMPLICIT NONE
   
   class(Diffraction_T), INTENT(INOUT)         :: self
-  type(EMsoft_T), INTENT(INOUT)               :: EMsoft
+  type(EMsoft_T), INTENT(INOUT),OPTIONAL      :: EMsoft
   logical,INTENT(IN),OPTIONAL                 :: silent
   character(fnlen),INTENT(IN),OPTIONAL        :: filename
+  real(kind=sgl),INTENT(IN),OPTIONAL          :: usevalues(4)
   
   type(IO_T)                                  :: Message
   character(fnlen)                            :: Bethefilename, fname
@@ -1553,38 +1542,46 @@ module mod_diffraction
   
   namelist /BetheList/ c1, c2, c3, sgdbdiff
   
-  if (present(filename)) then
-    Bethefilename = trim(filename)
+  if (present(usevalues)) then 
+    self%BetheParameters%c1 = usevalues(1)
+    self%BetheParameters%c2 = usevalues(2)
+    self%BetheParameters%c3 = usevalues(3)
+    self%BetheParameters%sgdbdiff = usevalues(4)
   else
-    Bethefilename = 'BetheParameters.nml'
-  end if
-  
-  ! check for the presence of the namelist file in the current folder
-  inquire(file=trim(Bethefilename),exist=fexist)
-  
-  ! set all default values (must be done here, since nml file may not contain all of them)
-  c1 = 40.0_sgl           ! changed from 8 and 12 for a test on 8/14/15
-  c2 = 50.0_sgl           !
-  c3 = 100.0_sgl          !
-  sgdbdiff = 1.00_sgl    !
-  
-  if (fexist) then ! check for the file in the local folder
-  ! read the parameters from the file
-   fname = EMsoft%toNativePath(Bethefilename)
-   open(UNIT=dataunit,FILE=trim(fname),DELIM='APOSTROPHE')
-   READ(UNIT=dataunit,NML=BetheList)
-   close(UNIT=dataunit)
-   if (.not.present(silent)) then
-     call Message%printMessage('Read Bethe parameters from BetheParameters.nml', frm = "(A)")
-     write (6,nml=BetheList)
-   end if
-  end if
-  
-  self%BetheParameters%c1 = c1
-  self%BetheParameters%c2 = c2
-  self%BetheParameters%c3 = c3
-  self%BetheParameters%sgdbdiff = sgdbdiff
-  
+
+    if (present(filename)) then
+      Bethefilename = trim(filename)
+    else
+      Bethefilename = 'BetheParameters.nml'
+    end if
+    
+    ! check for the presence of the namelist file in the current folder
+    inquire(file=trim(Bethefilename),exist=fexist)
+    
+    ! set all default values (must be done here, since nml file may not contain all of them)
+    c1 = 40.0_sgl           ! changed from 8 and 12 for a test on 8/14/15
+    c2 = 50.0_sgl           !
+    c3 = 100.0_sgl          !
+    sgdbdiff = 1.00_sgl    !
+    
+    if (fexist) then ! check for the file in the local folder
+    ! read the parameters from the file
+     fname = EMsoft%toNativePath(Bethefilename)
+     open(UNIT=dataunit,FILE=trim(fname),DELIM='APOSTROPHE')
+     READ(UNIT=dataunit,NML=BetheList)
+     close(UNIT=dataunit)
+     if (.not.present(silent)) then
+       call Message%printMessage('Read Bethe parameters from BetheParameters.nml', frm = "(A)")
+       write (6,nml=BetheList)
+     end if
+    end if
+    
+    self%BetheParameters%c1 = c1
+    self%BetheParameters%c2 = c2
+    self%BetheParameters%c3 = c3
+    self%BetheParameters%sgdbdiff = sgdbdiff
+  end if 
+
   end subroutine Set_Bethe_Parameters_
   
   !--------------------------------------------------------------------------

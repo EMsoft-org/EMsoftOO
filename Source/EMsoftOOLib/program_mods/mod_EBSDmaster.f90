@@ -53,6 +53,7 @@ type, public :: EBSDmaster_T
     procedure, pass(self) :: readNameList_
     procedure, pass(self) :: getNameList_
     procedure, pass(self) :: EBSDmaster_
+    procedure, pass(self) :: testEBSDmasterWrapper_
     procedure, pass(self) :: get_npx_
     procedure, pass(self) :: get_Esel_
     procedure, pass(self) :: get_nthreads_
@@ -86,6 +87,7 @@ type, public :: EBSDmaster_T
     generic, public :: getNameList => getNameList_
     generic, public :: readNameList => readNameList_
     generic, public :: EBSDmaster => EBSDmaster_
+    generic, public :: testEBSDmasterWrapper => testEBSDmasterWrapper_
     generic, public :: get_npx => get_npx_
     generic, public :: get_Esel => get_Esel_
     generic, public :: get_nthreads => get_nthreads_
@@ -1553,7 +1555,6 @@ energyloop: do iE=Estart,1,-1
      end do
      svals = svals/float(sum(nat(1:numset)))
 
-
 ! and store the resulting svals values, applying point group symmetry where needed.
      ipx = kij(1,ik)
      ipy = kij(2,ik)
@@ -1805,5 +1806,258 @@ call memth%thread_memory_use()
 
 end subroutine EBSDmaster_
 
+
+!--------------------------------------------------------------------------
+subroutine testEBSDmasterWrapper_(self, EMsoft, progname, HDFnames)
+!DEC$ ATTRIBUTES DLLEXPORT :: testEBSDmasterWrapper_
+!! author: MDG
+!! version: 1.0
+!! date: 04/16/21
+!!
+!! bare bones testing routine for the C-callable EMsoftCgetEBSDmaster routine in mod_SEMwrappers
+!!
+
+use mod_EMsoft
+use mod_initializers
+use mod_symmetry
+use mod_crystallography
+use mod_gvectors
+use mod_kvectors
+use mod_io
+use mod_math
+use mod_diffraction
+use mod_timing
+use mod_Lambert
+use HDF5
+use mod_HDFsupport
+use mod_HDFnames
+use ISO_C_BINDING
+use mod_memory
+use mod_notifications
+use stringconstants
+use mod_MCfiles
+use mod_SEMwrappers
+
+IMPLICIT NONE
+
+class(EBSDmaster_T), INTENT(INOUT)  :: self
+type(EMsoft_T), INTENT(INOUT)       :: EMsoft
+character(fnlen),INTENT(IN)         :: progname
+type(HDFnames_T),INTENT(INOUT)      :: HDFnames
+
+type(Cell_T)            :: cell
+type(IO_T)              :: Message
+type(DynType)           :: Dyn
+type(HDF_T)             :: HDF
+type(SpaceGroup_T)      :: SG
+type(Diffraction_T)     :: Diff
+type(MCfile_T)          :: MCFT
+type(memory_T)          :: mem, memth
+
+real(kind=dbl)          :: ctmp(192,3), arg, Radius, xyz(3)
+integer(HSIZE_T)        :: dims4(4), cnt4(4), offset4(4)
+integer(HSIZE_T)        :: dims3(3), cnt3(3), offset3(3)
+integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
+                           numk, timestart, timestop, numsites, nthreads, & ! number of independent incident beam directions
+                           ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
+                           numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, &
+                           istat,gzero,ic,ip,ikk, totstrong, totweak, jh, ierr, nix, niy, nixp, niyp     ! counters
+real(kind=dbl)          :: tpi,Znsq, kkl, DBWF, kin, delta, h, lambda, omtl, srt, dc(3), xy(2), edge, scl, tmp, dx, dxm, dy, dym !
+real(kind=sgl)          :: io_real(5), selE, kn, FN(3), kkk(3), tstop, nabsl, etotal, density, Ze, at_wt, bp(4)
+real(kind=sgl),allocatable      :: mLPNH(:,:,:,:), mLPSH(:,:,:,:)
+integer(kind=irg),allocatable   :: accum_z(:,:,:,:)
+complex(kind=dbl)               :: czero
+logical                 :: usehex, switchmirror, verbose
+
+! Monte Carlo derived quantities
+integer(kind=irg)       :: numEbins, nsx, nsy, hdferr, nlines, lastEnergy    ! variables used in MC energy file
+character(fnlen)        :: oldprogname, groupname, energyfile, outname, datagroupname, attributename, HDF_FileVersion, fname
+character(8)            :: MCscversion
+character(11)           :: dstr
+character(15)           :: tstrb
+character(15)           :: tstre
+logical                 :: f_exists, readonly, overwrite=.TRUE., insert=.TRUE., stereog, g_exists, xtaldataread, FL, &
+                           doLegendre, isTKD = .FALSE.
+
+character(fnlen)                :: dataset, instring
+type(MCOpenCLNameListType)      :: mcnl
+
+real(kind=sgl), allocatable     :: atompos(:,:)
+integer(kind=irg),allocatable   :: atomtypes(:)
+real(kind=sgl),allocatable      :: atpos(:,:)
+integer(kind=irg),allocatable   :: attp(:)
+real(kind=sgl)                  :: latparm(6)
+integer(c_int32_t)              :: ipar(wraparraysize)
+real(kind=sgl)                  :: fpar(wraparraysize)
+integer(c_size_t)               :: objAddress
+character(len=1)                :: cancel
+
+call openFortranHDFInterface()
+
+! set the HDF group names for this program
+HDF = HDF_T()
+HDFnames = HDFnames_T()
+
+! simplify the notation a little
+associate( emnl => self%nml )
+
+! initialize the memory class 
+mem = memory_T()
+
+! if copyfromenergyfile is different from 'undefined', then we need to
+! copy all the Monte Carlo data from that file into a new file, which
+! will then be read from and written to by the ComputeMasterPattern routine.
+if (emnl%copyfromenergyfile.ne.'undefined') then
+  call MCFT%copyMCdata(EMsoft, HDF, emnl%copyfromenergyfile, emnl%energyfile, emnl%h5copypath)
+end if
+
+energyfile = trim(EMsoft%generateFilePath('EMdatapathname',emnl%energyfile))
+outname = trim(energyfile)
+
+!=============================================
+!=============================================
+! ---------- read Monte Carlo .h5 output file and extract necessary parameters
+! set the HDF group names for reading the MC input file
+call HDFnames%set_ProgramData(SC_MCOpenCL)
+call HDFnames%set_NMLlist(SC_MCCLNameList)
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
+fname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%energyfile))
+call MCFT%setFileName(fname)
+call MCFT%readMCfile(HDF, HDFnames, getAccumz=.TRUE.)
+mcnl = MCFT%getnml()
+call MCFT%copyaccumz(accum_z)
+
+! set the HDFnames to the correct strings for this program
+call HDFnames%set_ProgramData(SC_EBSDmaster)
+call HDFnames%set_NMLlist(SC_EBSDmasterNameList)
+call HDFnames%set_NMLfilename(SC_EBSDmasterNML)
+call HDFnames%set_Variable(SC_MCOpenCL)
+
+nsx = (mcnl%numsx - 1)/2
+nsy = nsx
+etotal = float(mcnl%totnum_el)
+numEbins = MCFT%getnumEbins()
+
+!=============================================
+!=============================================
+! crystallography section;
+verbose = .TRUE.
+
+call cell%setFileName(mcnl%xtalname)
+call Diff%setrlpmethod('WK')
+
+call Diff%setV(dble(mcnl%EkeV))
+call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, emnl%dmin, verbose, useHDF=HDF)
+
+! from here on we simply get all the parameters set properly to call the wrapper routine 
+! ---------- a couple of initializations
+npy = emnl%npx
+numsites = cell%getNatomtype()
+
+! ---------- allocate memory for the master patterns
+call mem%alloc(mLPNH, (/ emnl%npx, npy, numEbins, numsites /), 'mLPNH', 0.0, startdims=(/-emnl%npx,-npy,1,1/))
+call mem%alloc(mLPSH, (/ emnl%npx, npy, numEbins, numsites /), 'mLPNH', 0.0, startdims=(/-emnl%npx,-npy,1,1/))
+
+! define the ipar and fpar parameter arrays 
+ipar = 0
+ipar(1) = nsx
+ipar(2) = mcnl%globalworkgrpsz
+ipar(3) = mcnl%num_el
+ipar(4) = mcnl%totnum_el
+ipar(5) = mcnl%multiplier
+ipar(6) = mcnl%devid
+ipar(7) = mcnl%platid
+ipar(8) = SG%getSpaceGroupXtalSystem()
+ipar(9) = numsites
+ipar(10)= SG%getSpaceGroupNumber()
+ipar(11)= SG%getSpaceGroupSetting()
+ipar(12)= MCFT%getnumEbins()
+ipar(13)= MCFT%getnumzbins()
+ipar(14)= 1
+ipar(15)= 1
+ipar(16)= nsx/10
+ipar(17)= emnl%npx
+ipar(18)= emnl%nthreads
+ipar(36)= 0
+
+fpar = 0.0
+fpar(1) = mcnl%sig
+fpar(2) = mcnl%omega
+fpar(3) = mcnl%EkeV
+fpar(4) = mcnl%Ehistmin
+fpar(5) = mcnl%Ebinsize
+fpar(6) = mcnl%depthmax
+fpar(7) = mcnl%depthstep
+fpar(8) = mcnl%sigstart
+fpar(9) = mcnl%sigend
+fpar(10)= mcnl%sigstep
+fpar(11)= emnl%dmin
+fpar(12)= 4.0
+fpar(13)= 8.0
+fpar(14)= 50.0
+
+! get the atom positions and lattice parameters into separate arrays 
+atomtypes = cell%getAtomtype()
+atompos = cell%getAsymPosData()
+latparm = cell%getLatParm()
+allocate(atpos(numsites,5), attp(numsites))
+atpos = atompos(1:numsites,1:5)
+attp = atomtypes(1:numsites) 
+
+cancel = char(0)
+objAddress = 0_c_size_t
+
+! call the wrapper routine 
+write (*,*) 'calling wrapper routine '
+call EMsoftCgetEBSDmaster(ipar,fpar,atpos,attp,latparm,accum_z,mLPNH,mLPSH,C_NULL_FUNPTR,objAddress,cancel)
+write (*,*) '   done.'
+
+!=============================================
+! create a simple HDF5 output file
+!=============================================
+HDF = HDF_T()
+
+! Open an existing file or create a new file using the default properties.
+hdferr =  HDF%openFile(outname)
+
+! then the remainder of the data in a EMData group
+hdferr = HDF%openGroup(HDFnames%get_EMData())
+hdferr = HDF%createGroup(HDFnames%get_ProgramData())
+
+! create the hyperslabs and write zeroes to them for now
+dataset = SC_mLPNH
+  dims4 = (/  2*emnl%npx+1, 2*emnl%npx+1, numEbins, numsites /)
+  cnt4 = (/ 2*emnl%npx+1, 2*emnl%npx+1, numEbins, numsites /)
+  offset4 = (/ 0, 0, 0, 0 /)
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then
+    hdferr = HDF%writeHyperslabFloatArray(dataset, mLPNH, dims4, offset4, cnt4, insert)
+  else
+    hdferr = HDF%writeHyperslabFloatArray(dataset, mLPNH, dims4, offset4, cnt4)
+  end if
+
+dataset = SC_mLPSH
+  dims4 = (/  2*emnl%npx+1, 2*emnl%npx+1, numEbins, numsites /)
+  cnt4 = (/ 2*emnl%npx+1, 2*emnl%npx+1, numEbins, numsites /)
+  offset4 = (/ 0, 0, 0, 0 /)
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then
+    hdferr = HDF%writeHyperslabFloatArray(dataset, mLPSH, dims4, offset4, cnt4, insert)
+  else
+    hdferr = HDF%writeHyperslabFloatArray(dataset, mLPSH, dims4, offset4, cnt4)
+  end if
+
+  call HDF%pop(.TRUE.)
+
+write (*,*) 'output written to '//trim(outname)
+
+call mem%dealloc(mLPNH, 'mLPNH')
+call mem%dealloc(mLPSH, 'mLPSH')
+
+call closeFortranHDFInterface()
+
+end associate
+
+end subroutine testEBSDmasterWrapper_
 
 end module mod_EBSDmaster

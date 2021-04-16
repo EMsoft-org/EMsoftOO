@@ -328,6 +328,7 @@ if (allocated(mem%totmem_dbl)) deallocate(mem%totmem_dbl)
 if (allocated(mem%totmem_cmplx)) deallocate(mem%totmem_cmplx) 
 if (allocated(mem%totmem_cmplxd)) deallocate(mem%totmem_cmplxd) 
 if (allocated(mem%totmem_char)) deallocate(mem%totmem_char)
+if (allocated(mem%totmem_logical)) deallocate(mem%totmem_logical)
 if (allocated(mem%current_memory_allocated)) deallocate(mem%current_memory_allocated) 
 
 ! allocate for nthreads OpenMP threads or just a single scalar 
@@ -341,6 +342,7 @@ if (present(nt)) then
     allocate(mem%totmem_cmplx(0:nt-1))
     allocate(mem%totmem_cmplxd(0:nt-1))
     allocate(mem%totmem_char(0:nt-1))
+    allocate(mem%totmem_logical(0:nt-1))
     allocate(mem%current_memory_allocated(0:nt-1))
 else 
     mem%nthreads = 1
@@ -352,6 +354,7 @@ else
     allocate(mem%totmem_cmplx(1))
     allocate(mem%totmem_cmplxd(1))
     allocate(mem%totmem_char(1))
+    allocate(mem%totmem_logical(1))
     allocate(mem%current_memory_allocated(1))
 end if
 
@@ -364,6 +367,7 @@ mem%totmem_dbl  = 0
 mem%totmem_cmplx  = 0
 mem%totmem_cmplxd  = 0
 mem%totmem_char  = 0
+mem%totmem_logical  = 0
 mem%current_memory_allocated = 0
 
 mem%verbose = .FALSE.
