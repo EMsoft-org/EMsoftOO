@@ -995,7 +995,8 @@ if (Clinked.eqv..TRUE.) then
   cancelled = .FALSE.
 end if
 
-call mem%allocated_memory_use( expl = 'just before dictionaryloop ')
+! call mem%allocated_memory_use( expl = 'just before dictionaryloop ')
+
 verbose = .FALSE.
 
 dictionaryloop: do ii = 1,cratio+1
@@ -1157,7 +1158,7 @@ dictionaryloop: do ii = 1,cratio+1
       call timeproc(objAddress, cn, totn, ttime)
       cn = cn + dn
     end if
-
+    call memth%dealloc(dicttranspose, 'dicttranspose', TID=0)
 
 !$OMP END MASTER
 
@@ -1369,6 +1370,30 @@ if (cancelled.eqv..FALSE.) then
   call closeFortranHDFInterface()
 
 ! explicitly deallocate all allocated arrays
+if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.)) then
+  call mem%dealloc(det%rgx, 'det%rgx') 
+  call mem%dealloc(det%rgy, 'det%rgy') 
+  call mem%dealloc(det%rgz, 'det%rgz') 
+  call mem%dealloc(det%accum_e_detector, 'det%accum_e_detector')
+else
+  call mem%dealloc(anglewf, 'anglewf')
+  call mem%dealloc(kij, 'kij')
+  call mem%dealloc(klist,'klist')
+end if 
+if (trim(dinl%indexingmode).eq.'dynamic') then
+  if (isECP.eqv..TRUE.) then
+    call mem%dealloc(mLPNH2D, 'mLPNH2D')
+    call mem%dealloc(mLPSH2D, 'mLPSH2D')
+  else
+    call mem%dealloc(mLPNH, 'mLPNH')
+    call mem%dealloc(mLPSH, 'mLPSH')
+    call mem%dealloc(accum_e_MC, 'accum_e_MC')
+  end if 
+end if 
+if (trim(dinl%indexingmode).eq.'dynamic') then
+  call mem%dealloc(eudictarray, 'eudictarray') 
+  call mem%dealloc(FZarray, 'FZarray')
+end if  
 call mem%dealloc(expt, 'expt')
 call mem%dealloc(dict1, 'dict1')
 call mem%dealloc(dict2, 'dict2')
@@ -1395,8 +1420,17 @@ call mem%dealloc(exptCI, 'exptCI')
 call mem%dealloc(exptFit, 'exptFit')
 call mem%dealloc(rdata, 'rdata') 
 call mem%dealloc(fdata, 'fdata')
+call mem%dealloc(ppend, 'ppend')
+call mem%dealloc(ppendE, 'ppendE')
+call mem%dealloc(dpmap, 'dpmap')
+if (Clinked.eqv..TRUE.) then
+  call mem%dealloc(dparray,'dparray')
+  call mem%dealloc(indarray, 'indarray')
+end if 
+call mem%dealloc(OSMmap, 'OSMmap')
 
-call mem%allocated_memory_use( expl = 'end of program clean up ... ')
+! call mem%allocated_memory_use( expl = 'end of program clean up ... ')
+! call memth%thread_memory_use( expl = 'end of program clean up for threads ... ')
 
 ! if requested, we notify the user that this program has completed its run
   if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then

@@ -63,7 +63,6 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /) )
 ! call the DIdriver routine to take care of the entire indexing process 
 Cnmldeffile = carstringify(EMsoft%nmldeffile)
 Cprogname = carstringify(progname)
-! call DIdriver(Cnmldeffile, Cprogname, C_NULL_FUNPTR, C_NULL_FUNPTR, C_NULL_FUNPTR, 0_ill)
 call DIdriver(Cnmldeffile, Cprogname, C_NULL_FUNPTR, C_NULL_FUNPTR, C_NULL_FUNPTR, 0_c_size_t)
 
 end program EMDI
