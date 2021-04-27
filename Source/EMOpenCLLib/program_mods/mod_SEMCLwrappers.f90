@@ -419,6 +419,7 @@ if ((ipar(8).eq.5).AND.(ipar(11).ne.2)) call SG%setSpaceGrouphexset( .TRUE. )
  end if
 ! next we get all the atom positions
 call cell%CalcPositions( SG, 'v' )
+
 ! and now we have all we need to compute the density, average A and average Z
 call cell%CalcDensity()
 dza = cell%getDensity()
@@ -459,7 +460,7 @@ accum_z = 0
 !======================
 ! OpenCL INITIALIZATION
 !======================
-CL = OpenCL_T()
+CL = OpenCL_T( verb = .FALSE. )
 call CL%init_PDCCQ(platform, nump, int(ipar(7)), device, numd, int(ipar(6)), info, context, command_queue)
 
 !=====================
@@ -660,6 +661,7 @@ angleloop: do iang = 1,numangle
       cn = cn+dn
     end if
 
+! write (*,*) ' completed ',i,' out of ', (totnum_el/num_max+1)
   end do mainloop
 end do angleloop 
 

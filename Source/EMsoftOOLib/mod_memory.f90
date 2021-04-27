@@ -624,8 +624,8 @@ end subroutine toggle_verbose_
 ! Here we have the individual routines for all relevant data types 
 ! Since f90 does not have templates, we need separate routines for all types.
 ! 
-! For the character type, we only do 1D arrays; it is unlikely that we 
-! will ever need a 2D array of strings...
+! For the character type, we only do 1D and 2D arrays; it is unlikely that we 
+! will ever need a 3D array of strings...
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------

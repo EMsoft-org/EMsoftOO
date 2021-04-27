@@ -209,7 +209,7 @@ IMPLICIT NONE
 contains
 
 !--------------------------------------------------------------------------
-type(OpenCL_T) function CL_constructor( ) result(CL)
+type(OpenCL_T) function CL_constructor( verb ) result(CL)
 !DEC$ ATTRIBUTES DLLEXPORT :: CL_constructor
   !! author: MDG
   !! version: 1.0
@@ -225,6 +225,8 @@ use mod_memory
 
 IMPLICIT NONE
 
+logical,INTENT(IN),OPTIONAL     :: verb 
+
 type(IO_T)                      :: Message
 type(memory_T)                  :: mem
 integer(c_int32_t)              :: err
@@ -235,7 +237,12 @@ integer(kind=irg)               :: i
 integer(c_intptr_t)             :: platform_id
 integer(c_int32_t)              :: num_devices
 integer(c_intptr_t), allocatable, target :: platform_ids(:)
+logical                         :: verbose 
 
+verbose = .FALSE.
+if (present(verb)) then
+  if (verb.eqv..TRUE.) verbose = .TRUE.
+end if 
 
 ! Get the number of platforms, prior to allocating arrays.
   err = clGetPlatformIDs(0, C_NULL_PTR, nplatforms)
@@ -296,7 +303,11 @@ integer(c_intptr_t), allocatable, target :: platform_ids(:)
 
   ! get all relevant information for each platform
     do i=1, CL%num_platforms
-      call CL%query_platform_info_(i)
+      if (verbose.eqv..TRUE.) then 
+        call CL%query_platform_info_(i, verbose)
+      else
+        call CL%query_platform_info_(i)
+      end if 
     end do
   else
   ! the number of platforms is 0 which means that OpenCL is either absent or incorrectly set up
@@ -354,7 +365,7 @@ type(OpenCL_T),INTENT(INOUT)  :: CL
 
 end subroutine CL_destructor
 ! -----------------------------------------------------------------------------
-recursive subroutine query_platform_info_(self, p_id)
+recursive subroutine query_platform_info_(self, p_id, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: query_platform_info_
   !! author: MDG
   !! version: 1.0
@@ -370,6 +381,7 @@ IMPLICIT NONE
 
 class(OpenCL_T), INTENT(INOUT) :: self
 integer(kind=irg), INTENT(IN)  :: p_id
+logical,INTENT(IN),OPTIONAL    :: verbose 
 
 ! Input variable.
 integer(c_intptr_t)            :: platform_id
@@ -408,7 +420,7 @@ allocate(platform_profile(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, temp_size, C_LOC(platform_profile), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_profile(p_id) = trim(cv_a2s(platform_profile))
-print *, 'Profile: ', trim(self%p_profile(p_id))
+if (present(verbose)) print *, 'Profile: ', trim(self%p_profile(p_id))
 deallocate(platform_profile)
 
 ! Version.
@@ -418,7 +430,7 @@ allocate(platform_version(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, temp_size, C_LOC(platform_version), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_version(p_id) = trim(cv_a2s(platform_version))
-print *, 'Version: ', trim(self%p_version(p_id))
+if (present(verbose)) print *, 'Version: ', trim(self%p_version(p_id))
 deallocate(platform_version)
 
 ! Name.
@@ -428,7 +440,7 @@ allocate(platform_name(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, temp_size, C_LOC(platform_name), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_name(p_id) = trim(cv_a2s(platform_name))
-print *, 'Name: ', trim(self%p_name(p_id))
+if (present(verbose)) print *, 'Name: ', trim(self%p_name(p_id))
 deallocate(platform_name)
 
 ! Vendor.
@@ -438,7 +450,7 @@ allocate(platform_vendor(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, temp_size, C_LOC(platform_vendor), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_vendor(p_id) = trim(cv_a2s(platform_vendor))
-print *, 'Vendor: ', trim(self%p_vendor(p_id))
+if (present(verbose)) print *, 'Vendor: ', trim(self%p_vendor(p_id))
 deallocate(platform_vendor)
 
 ! Extensions.
@@ -448,7 +460,7 @@ allocate(platform_extensions(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, temp_size, C_LOC(platform_extensions), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_extensions(p_id) = trim(cv_a2s(platform_extensions))
-print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
+if (present(verbose)) print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
 deallocate(platform_extensions)
 
 !

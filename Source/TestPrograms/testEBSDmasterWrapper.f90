@@ -43,7 +43,7 @@ use stringconstants
 IMPLICIT NONE
 
 character(fnlen)       :: progname = 'testEMEBSDmasterWrapper.f90'
-character(fnlen)       :: progdesc = 'Driver program to test the testEMEBSDmasterWrapper routine' 
+character(fnlen)       :: progdesc = 'Driver program to test the EMsoftCgetEBSDmaster routine' 
 
 type(EMsoft_T)         :: EMsoft
 type(EBSDmaster_T)     :: MP 

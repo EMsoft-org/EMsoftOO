@@ -50,10 +50,12 @@ private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: MCOpenCL_
+  procedure, pass(self) :: testMCOpenCLWrapper_
 
   generic, public :: getNameList => getNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: MCOpenCL => MCOpenCL_
+  generic, public :: testMCOpenCLWrapper => testMCOpenCLWrapper_
 
 end type MCOpenCL_T
 
@@ -1019,5 +1021,231 @@ end if
 end associate
 
 end subroutine MCOpenCL_
+
+!--------------------------------------------------------------------------
+subroutine testMCOpenCLWrapper_(self, EMsoft, progname)
+!DEC$ ATTRIBUTES DLLEXPORT :: testMCOpenCLWrapper_
+!! author: MDG
+!! version: 1.0
+!! date: 04/16/21
+!!
+!! driver routine to test the EMsoftCgetMCOpenCL routine in mod_SEMCLwrappers.f90
+
+use mod_EMsoft
+use mod_crystallography
+use mod_symmetry
+use mod_io
+use stringconstants
+use mod_initializers
+use mod_diffraction
+use mod_Lambert
+use HDF5
+use mod_HDFsupport
+use mod_HDFnames
+use mod_notifications
+use mod_math
+use ISO_C_BINDING
+use mod_SEMCLwrappers
+
+IMPLICIT NONE
+
+class(MCOpenCL_T), INTENT(INOUT)   :: self
+type(EMsoft_T), INTENT(INOUT)      :: EMsoft
+character(fnlen),INTENT(IN)        :: progname
+
+type(Cell_T)            :: cell
+type(DynType)           :: Dyn
+type(IO_T)              :: Message
+type(HDF_T)             :: HDF
+type(HDFnames_T)        :: HDFnames
+type(SpaceGroup_T)      :: SG
+type(Diffraction_T)     :: Diff
+type(MCfile_T)          :: MCFT
+
+integer(kind=irg)       :: numsy        ! number of Lambert map points along y
+integer(kind=irg)       :: nx           ! no. of pixels
+integer(kind=irg)       :: j,k,l,ip,istat, ivx, ivy, ivz, numsites
+integer(kind=ill)       :: i, io_int(1), num_max, totnum_el_nml, multiplier, s4(4), s3(3)
+real(kind=4),target     :: Ze           ! average atomic number
+real(kind=4),target     :: density      ! density in g/cm^3
+real(kind=4),target     :: at_wt        ! average atomic weight in g/mole
+logical                 :: verbose
+real(kind=4)            :: dens, avA, avZ, io_real(3), dmin, Radius  ! used with CalcDensity routine
+real(kind=8)            :: io_dble(3)
+real(kind=4),target     :: EkeV, sig, omega ! input values to the kernel. Can only be real kind=4 otherwise values are not properly passed
+integer(kind=ill)       :: totnum_el, bse     ! total number of electrons to simulate and no. of backscattered electrons
+integer(kind=4)         :: prime ! input values to the kernel
+integer(kind=4),target  :: globalworkgrpsz, num_el, steps ! input values to the kernel
+integer(kind=8)         :: size_in_bytes,size_in_bytes_seeds ! size of arrays passed to kernel. Only accepts kind=8 integers by clCreateBuffer etc., so donot change
+integer(kind=8),target  :: globalsize(2), localsize(2) ! size of global and local work groups. Again only kind=8 is accepted by clEnqueueNDRangeKernel
+character(4)            :: mode
+
+integer(kind=4)         :: idxy(2), iE, px, py, iz, nseeds, hdferr, tstart, tstop ! auxiliary variables
+real(kind=4)            :: cxyz(3), edis, xy(2) ! auxiliary variables
+integer(kind=irg)       :: xs, ys, zs
+real(kind=8)            :: delta,rand, xyz(3)
+real(kind=4), target    :: thickness
+character(11)           :: dstr
+character(15)           :: tstrb
+character(15)           :: tstre
+logical                 :: f_exists
+
+integer(c_size_t),target       :: slocal(2), localout
+
+integer(c_int)         :: nump, numd, irec, val,val1 ! auxiliary variables
+integer(c_size_t)      :: cnum, cnuminfo
+character(fnlen)       :: s, pdesc, pname, outname, dataset
+integer(kind=irg)      :: iang
+
+real(kind=sgl), allocatable     :: atompos(:,:)
+integer(kind=irg),allocatable   :: atomtypes(:)
+real(kind=sgl),allocatable      :: atpos(:,:)
+integer(kind=irg),allocatable   :: attp(:)
+real(kind=sgl)                  :: latparm(6)
+integer(c_int32_t)              :: ipar(wraparraysize)
+real(kind=sgl)                  :: fpar(wraparraysize)
+character(kind=c_char, len=1)   :: spar(wraparraysize*fnlen)
+integer(c_size_t)               :: objAddress
+character(len=1)                :: cancel
+
+
+associate (mcnl => self%nml, MCDT => MCFT%MCDT )
+
+numsy = mcnl%numsx
+
+call openFortranHDFInterface()
+HDF = HDF_T()
+HDFnames = HDFnames_T()
+
+! set the HDF group names for reading the MC input file
+call HDFnames%set_ProgramData(SC_MCOpenCL)
+call HDFnames%set_NMLlist(SC_MCCLNameList)
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
+
+! get the crystal structure from the *.xtal file
+verbose = .TRUE.
+dmin = 0.05
+val = 0
+val1 = 0
+call cell%setFileName(mcnl%xtalname)
+call Diff%setV(mcnl%EkeV)
+call Diff%setrlpmethod('WK')
+call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, noLUT=.TRUE., verbose=verbose, useHDF = HDF)
+numsites = cell%getNatomtype()
+
+MCDT%numEbins =  int((mcnl%EkeV-mcnl%Ehistmin)/mcnl%Ebinsize)+1
+MCDT%numzbins =  int(mcnl%depthmax/mcnl%depthstep)+1
+
+! next we set up the input parameters for the EMsoftCgetMCOpenCL routine 
+ipar = 0
+ipar(1)  = (numsy-1)/2
+ipar(2)  = mcnl%globalworkgrpsz
+ipar(3)  = mcnl%num_el
+ipar(4)  = mcnl%totnum_el
+ipar(5)  = mcnl%multiplier
+ipar(6)  = mcnl%devid
+ipar(7)  = mcnl%platid
+ipar(8)  = SG%getSpaceGroupXtalSystem()
+ipar(9)  = cell%getNatomtype()
+ipar(10) = SG%getSpaceGroupNumber()
+ipar(11) = SG%getSpaceGroupSetting()
+ipar(12) = MCFT%getnumEbins()
+ipar(13) = MCFT%getnumzbins()
+ipar(14) = 1
+ipar(15) = 1
+ipar(16) = ipar(1)/10
+
+fpar = 0
+fpar(1)  = mcnl%sig
+fpar(2)  = mcnl%omega
+fpar(3)  = mcnl%EkeV
+fpar(4)  = mcnl%Ehistmin
+fpar(5)  = mcnl%Ebinsize
+fpar(6)  = mcnl%depthmax
+fpar(7)  = mcnl%depthstep
+fpar(8)  = mcnl%sigstart
+fpar(9)  = mcnl%sigend
+fpar(10) = mcnl%sigstep
+
+! the calling program passes a c-string array spar that we need to convert to the 
+! standard EMsoft config structure for use inside this routine
+pname = ''
+pdesc = ''
+EMsoft = EMsoft_T( pname, pdesc, silent=.TRUE. )
+! copy the necessary strings into the spar array
+spar = ' '
+s = trim(EMsoft%getConfigParameter('OpenCLpathname'))
+j = 22*fnlen+1
+k = 1
+do i=j,j+len(trim(s)) 
+  spar(i) = s(k:k)
+  k=k+1
+end do 
+spar(j+len(trim(s))+1) = C_NULL_CHAR
+
+s = trim(EMsoft%getConfigParameter('Randomseedfilename'))
+j = 25*fnlen+1
+k = 1
+do i=j,j+len(trim(s)) 
+  spar(i) = s(k:k)
+  k=k+1
+end do 
+spar(j+len(trim(s))+1) = C_NULL_CHAR
+
+atomtypes = cell%getAtomtype()
+atompos = cell%getAsymPosData()
+latparm = cell%getLatParm()
+allocate(atpos(numsites,5), attp(numsites))
+atpos = atompos(1:numsites,1:5)
+attp = atomtypes(1:numsites) 
+
+cancel = char(0)
+objAddress = 0_c_size_t
+
+MCDT%numangle = 1
+nx = ipar(1)
+allocate(MCDT%accum_e(MCDT%numEbins,-nx:nx,-nx:nx), &
+         MCDT%accum_z(MCDT%numEbins,MCDT%numzbins,-nx/10:nx/10,-nx/10:nx/10),stat=istat)
+MCDT%accum_e = 0
+MCDT%accum_z = 0
+
+! and call the routine 
+write (*,*) 'calling C wrapper'
+call EMsoftCgetMCOpenCL(ipar, fpar, spar, atpos, attp, latparm, MCDT%accum_e, MCDT%accum_z, C_NULL_FUNPTR, objAddress, cancel)
+write (*,*)  ' done.'
+
+!=============================================
+! create a simple HDF5 output file
+!=============================================
+HDF = HDF_T()
+
+! Open an existing file or create a new file using the default properties.
+outname = EMsoft%generateFilePath('EMdatapathname', mcnl%dataname)
+hdferr =  HDF%createFile(outname)
+
+! create the hyperslabs and write zeroes to them for now
+s3 = shape(MCDT%accum_e)
+nx = s3(2)
+
+dataset = SC_accume
+    hdferr = HDF%writeDatasetIntegerArray(dataset, MCDT%accum_e, ipar(12), nx, nx)
+
+s4 = shape(MCDT%accum_z)
+nx = s4(3)
+
+dataset = SC_accumz
+    hdferr = HDF%writeDatasetIntegerArray(dataset, MCDT%accum_z, ipar(12), ipar(13), nx, nx)
+
+call HDF%pop(.TRUE.)
+
+call closeFortranHDFInterface()
+
+write (*,*) ' output stored in '//trim(outname)
+
+end associate
+
+end subroutine testMCOpenCLWrapper_
+
+
 
 end module mod_MCOpenCL

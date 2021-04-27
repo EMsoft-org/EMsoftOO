@@ -95,6 +95,7 @@ use mod_ECP
 use mod_so3
 use mod_vendors
 use mod_NLPAR
+use mod_memory
 
 IMPLICIT NONE
 
@@ -160,6 +161,7 @@ type(Vendor_T)                                      :: VT
 type(Quaternion_T)                                  :: qu
 type(IncidentListECP),pointer                       :: ktmp
 type(NLPAR_T)                                       :: NLPAR
+type(memory_T)                                      :: mem, memth
 
 type(MCOpenCLNameListType)                          :: mcnl
 type(SEMmasterNameListType)                         :: mpnl
@@ -279,6 +281,7 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /), silent=.TRUE.)
 
 ! link the proc procedure to the cproc argument
 Clinked = .FALSE.
+cancelled = .FALSE.
 if (present(cancel)) then
   Clinked = .TRUE.
   nullify(proc, errorproc, timeproc)
@@ -296,6 +299,10 @@ HDFnames = HDFnames_T()
 call setRotationPrecision('d')
 
 associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
+
+! initialize the memory allocation classes
+mem = memory_T()
+memth = memory_T( nt = dinl%nthreads )
 
 ! make sure that nthreads is at least 2
 if (dinl%nthreads.lt.2) then
@@ -369,12 +376,12 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     call Message%WriteValue(' Setting point group number to ',io_int,1)
 
     ! 3. for EBSD/TKD copy a few parameters from dinl to enl
-    ! and then generate the detector arrays
+    ! and generate the detector arrays
     if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.)) then
-      allocate(det%rgx(dinl%numsx,dinl%numsy), &
-               det%rgy(dinl%numsx,dinl%numsy), &
-               det%rgz(dinl%numsx,dinl%numsy), &
-               det%accum_e_detector(MCDT%numEbins,dinl%numsx,dinl%numsy), stat=istat)
+      call mem%alloc(det%rgx, (/ dinl%numsx,dinl%numsy /), 'det%rgx') 
+      call mem%alloc(det%rgy, (/ dinl%numsx,dinl%numsy /), 'det%rgy') 
+      call mem%alloc(det%rgz, (/ dinl%numsx,dinl%numsy /), 'det%rgz') 
+      call mem%alloc(det%accum_e_detector, (/ MCDT%numEbins,dinl%numsx,dinl%numsy /), 'det%accum_e_detector')
       enl%numsx = dinl%numsx
       enl%numsy = dinl%numsy
       enl%xpc = dinl%xpc
@@ -404,7 +411,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
 
         call ECP%ECPGenerateDetector(verbose=.TRUE.)
         nsig = nint((ecpnl%conesemiangle) + abs(ecpnl%sampletilt)) + 1
-        allocate(anglewf(1:nsig),stat=istat)
+        call mem%alloc(anglewf, (/ nsig /), 'anglewf')
 
         call Message%printMessage(' --> Calculating weight factors', frm = "(A)" )
         call ECP%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
@@ -430,7 +437,8 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
         numk = 0
         call ECP%GetVectorsCone()
         numk = ECP%get_numk()
-        allocate(kij(2,numk),klist(3,numk),stat=istat)
+        call mem%alloc(kij, (/ 2,numk /), 'kij')
+        call mem%alloc(klist, (/ 3,numk /), 'klist')
 
         io_int(1) = numk
         call Message%WriteValue(' Number of beams for which interpolation will be done = ',io_int,1)
@@ -648,14 +656,14 @@ bindx = 1.0/float(dinl%binning)**2
 npy = mpnl%npx
 if (trim(dinl%indexingmode).eq.'dynamic') then
   if (isECP.eqv..TRUE.) then
-    allocate(mLPNH2D(-mpnl%npx:mpnl%npx,-npy:npy))
-    allocate(mLPSH2D(-mpnl%npx:mpnl%npx,-npy:npy))
+    call mem%alloc(mLPNH2D, (/ mpnl%npx,npy /), 'mLPNH2D', startdims = (/ -mpnl%npx,-npy /))
+    call mem%alloc(mLPSH2D, (/ mpnl%npx,npy /), 'mLPSH2D', startdims = (/ -mpnl%npx,-npy /))
     mLPNH2D = sum(MPDT%mLPNH,3)
     mLPSH2D = sum(MPDT%mLPSH,3)
   else
-    allocate(mLPNH(-mpnl%npx:mpnl%npx,-npy:npy,MCDT%numEbins))
-    allocate(mLPSH(-mpnl%npx:mpnl%npx,-npy:npy,MCDT%numEbins))
-    allocate(accum_e_MC(MCDT%numEbins,dinl%numsx,dinl%numsy),stat=istat)
+    call mem%alloc(mLPNH, (/ mpnl%npx,npy,MCDT%numEbins /), 'mLPNH', startdims= (/ -mpnl%npx,-npy,1 /))
+    call mem%alloc(mLPSH, (/ mpnl%npx,npy,MCDT%numEbins /), 'mLPSH', startdims= (/ -mpnl%npx,-npy,1 /))
+    call mem%alloc(accum_e_MC, (/ MCDT%numEbins,dinl%numsx,dinl%numsy /), 'accum_e_MC')
     accum_e_MC = det%accum_e_detector
     mLPNH = MPDT%mLPNH
     mLPSH = MPDT%mLPSH
@@ -684,7 +692,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
 
       if (Clinked.eqv..TRUE.) then
 ! generate the Euler dictionary array needed by the EMsoftWorkbench
-        allocate(eudictarray(3*FZcnt))
+        call mem%alloc(eudictarray, (/ 3*FZcnt /), 'eudictarray')
         FZtmp => SO%getListHead('FZ')
         do ii = 1,FZcnt
           eu = FZtmp%rod%re()
@@ -703,7 +711,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     end if
 
     ! allocate and fill FZarray for OpenMP parallelization
-    allocate(FZarray(4,FZcnt),stat=istat)
+    call mem%alloc(FZarray, (/ 4,FZcnt /), 'FZarray')
     FZarray = 0.0
 
     FZtmp => SO%getListHead('FZ')
@@ -774,86 +782,40 @@ call CL%error_check('InnerProdGPU:clReleaseProgram', ierr)
 !=========================================
 call Message%printMessage(' --> Allocating various arrays for indexing')
 
-allocate(expt(Ne*correctsize),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate array for experimental patterns'
-expt = 0.0
-
-allocate(dict1(Nd*correctsize),dict2(Nd*correctsize),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate array for dictionary patterns'
-dict1 = 0.0
-dict2 = 0.0
+call mem%alloc(expt, (/ Ne*correctsize /), 'expt', initval = 0.0)
+call mem%alloc(dict1, (/ Nd*correctsize /), 'dict1', initval = 0.0)
+call mem%alloc(dict2, (/ Nd*correctsize /), 'dict2', initval = 0.0)
 dict => dict1
-
-allocate(results(Ne*Nd),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate array for results'
-results = 0.0
-
-allocate(mask(binx,biny),masklin(L),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate arrays for masks'
-mask = 1.0
-masklin = 0.0
-
-allocate(imageexpt(L),imageexptflt(correctsize),stat=istat)
-allocate(tmpimageexpt(correctsize),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate array for reading experimental image patterns'
-imageexpt = 0.0
-imageexptflt = 0.0
-
-allocate(meandict(correctsize),meanexpt(correctsize),imagedict(correctsize),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate array for mean dictionary and experimental patterns'
-meandict = 0.0
-meanexpt = 0.0
-
-! allocate(pattern(dinl%numsx,dinl%numsy),binned(binx,biny),stat=istat)
-allocate(pattern(binx,biny),stat=istat)
-if (istat .ne. 0) stop 'Could not allocate array for EBSD pattern'
-pattern = 0.0
-
-allocate(resultarray(1:Nd),stat=istat)
-if (istat .ne. 0) stop 'could not allocate result arrays'
-resultarray = 0.0
-
-allocate(indexarray(1:Nd),stat=istat)
-if (istat .ne. 0) stop 'could not allocate index arrays'
-indexarray = 0
-
-allocate(indexlist(1:Nd*(ceiling(float(FZcnt)/float(Nd)))),stat=istat)
-if (istat .ne. 0) stop 'could not allocate indexlist arrays'
+call mem%alloc(results, (/ Ne*Nd /), 'results', initval = 0.0)
+call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
+call mem%alloc(masklin, (/ L /), 'masklin', initval = 0.0)
+call mem%alloc(imageexpt, (/ L /), 'imageexpt', initval = 0.0) 
+call mem%alloc(imageexptflt, (/ correctsize /), 'imageexptflt', initval = 0.0)
+call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
+call mem%alloc(meandict, (/ correctsize /), 'meandict', initval = 0.0)
+call mem%alloc(meanexpt, (/ correctsize /), 'meanexpt', initval = 0.0) 
+call mem%alloc(imagedict, (/ correctsize /), 'imagedict', initval = 0.0)
+call mem%alloc(pattern, (/ binx,biny /), 'pattern', initval = 0.0)
+call mem%alloc(resultarray, (/ Nd /), 'resultarray', initval = 0.0)
+call mem%alloc(indexarray, (/ Nd /), 'indexarray', initval = 0)
+call mem%alloc(indexlist, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist')
 do ii = 1,Nd*ceiling(float(FZcnt)/float(Nd))
     indexlist(ii) = ii
 end do
-
-allocate(resultmain(nnk,Ne*ceiling(float(totnumexpt)/float(Ne))),stat=istat)
-if (istat .ne. 0) stop 'could not allocate main result array'
-resultmain = -2.0
-
-allocate(indexmain(nnk,Ne*ceiling(float(totnumexpt)/float(Ne))),stat=istat)
-if (istat .ne. 0) stop 'could not allocate main index array'
-indexmain = 0
-
-allocate(resulttmp(2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne))),stat=istat)
-if (istat .ne. 0) stop 'could not allocate temporary result array'
-resulttmp = -2.0
-
-allocate(indextmp(2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne))),stat=istat)
-if (istat .ne. 0) stop 'could not allocate temporary index array'
-indextmp = 0
-
-allocate(eulerarray(1:3,Nd*ceiling(float(FZcnt)/float(Nd))),stat=istat)
-if (istat .ne. 0) stop 'could not allocate euler array'
-eulerarray = 0.0
+call mem%alloc(resultmain, (/ nnk, Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resultmain', initval = -2.0)
+call mem%alloc(indexmain, (/ nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indexmain', initval = 0)
+call mem%alloc(resulttmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resulttmp', initval = -2.0)
+call mem%alloc(indextmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indextmp', initval = 0)
+call mem%alloc(eulerarray, (/ 3, Nd*ceiling(float(FZcnt)/float(Nd)) /), 'eulerarray', initval = 0.0)
 if (trim(dinl%indexingmode).eq.'static') then
     eulerarray(1:3,1:FZcnt) = eulerarray2(1:3,1:FZcnt)
-    deallocate(eulerarray2)
+    deallocate(eulerarray2)  ! this was initialized in an HDF5 call, so not part of mem class
 end if
-
-allocate(exptIQ(totnumexpt), exptCI(totnumexpt), exptFit(totnumexpt), stat=istat)
-if (istat .ne. 0) stop 'could not allocate exptIQ array'
-
-allocate(rdata(binx,biny),fdata(binx,biny),stat=istat)
-if (istat .ne. 0) stop 'could not allocate arrays for Hi-Pass filter'
-rdata = 0.D0
-fdata = 0.D0
+call mem%alloc(exptIQ, (/ totnumexpt /), 'exptIQ')
+call mem%alloc(exptCI, (/ totnumexpt /), 'exptCI') 
+call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
+call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
+call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
 
 !=====================================================
 ! determine loop variables to avoid having to duplicate
@@ -867,7 +829,8 @@ ratioE = float(totnumexpt)/float(Ne)
 cratioE = ceiling(ratioE)
 fratioE = floor(ratioE)
 
-allocate(ppend(cratio),ppendE(cratioE))
+call mem%alloc(ppend, (/ cratio /), 'ppend')
+call mem%alloc(ppendE, (/ cratioE /), 'ppendE')
 ppend = (/ (Nd, i=1,cratio) /)
 if (fratio.lt.cratio) then
   ppend(cratio) = MODULO(FZcnt,Nd)
@@ -960,10 +923,10 @@ open(unit=itmpexpt,file=trim(fname),&
 
 ! use the getADPmap routine in the filters module
 if (ROIselected.eqv..TRUE.) then
-  allocate(dpmap(dinl%ROI(3)*dinl%ROI(4)))
+  call mem%alloc(dpmap, (/ dinl%ROI(3)*dinl%ROI(4) /), 'dpmap')
   call getADPmap(itmpexpt, dinl%ROI(3)*dinl%ROI(4), L, dinl%ROI(3), dinl%ROI(4), dpmap)
 else
-  allocate(dpmap(totnumexpt))
+  call mem%alloc(dpmap, (/ totnumexpt /), 'dpmap')
   call getADPmap(itmpexpt, totnumexpt, L, dinl%ipf_wd, dinl%ipf_ht, dpmap)
 end if
 
@@ -1019,7 +982,8 @@ jpar(7) = numE
 
 ! do we need to allocate arrays for the cproc callback routine ?
 if (Clinked.eqv..TRUE.) then
-  allocate(dparray(totnumexpt), indarray(totnumexpt))
+  call mem%alloc(dparray, (/ totnumexpt /), 'dparray')
+  call mem%alloc(indarray, (/ totnumexpt /), 'indarray')
 ! and get the C_LOC pointers to those arrays
   dparr_cptr = C_LOC(dparray)
   indarr_cptr = C_LOC(indarray)
@@ -1030,6 +994,9 @@ if (Clinked.eqv..TRUE.) then
   cn = 1
   cancelled = .FALSE.
 end if
+
+call mem%allocated_memory_use( expl = 'just before dictionaryloop ')
+verbose = .FALSE.
 
 dictionaryloop: do ii = 1,cratio+1
     results = 0.0
@@ -1050,21 +1017,21 @@ dictionaryloop: do ii = 1,cratio+1
 
     if (verbose.eqv..TRUE.) then
       io_int(1) = ii
-      call Message%WriteValue(' Dictionaryloop index = ',io_int,1)
+      io_int(2) = cratio
+      call Message%WriteValue(' Dictionaryloop index/total loops = ',io_int,2)
     end if
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, vlen, tock, ttime, dicttranspose, dictpatflt) &
 !$OMP& PRIVATE(binned, ma, mi, patternintd, patterninteger, patternad, qu, ro, quat, imagedictflt,imagedictfltflip)
 
-! allocate the local arrays that are used by each thread
-    allocate(patterninteger(binx,biny))
-    patterninteger = 0
-    allocate(patternad(binx,biny),patternintd(binx,biny))
-    patternad = 0.0
-    patternintd = 0.0
-    allocate(imagedictflt(correctsize),imagedictfltflip(correctsize))
-
     TID = OMP_GET_THREAD_NUM()
+
+! allocate the local arrays that are used by each thread
+    call memth%alloc(patterninteger, (/ binx,biny /), 'patterninteger', TID=TID, initval = 0)
+    call memth%alloc(patternad, (/ binx,biny /), 'patternad', TID=TID, initval = 0) 
+    call memth%alloc(patternintd, (/ binx,biny /), 'patternintd', TID=TID, initval = 0.0)
+    call memth%alloc(imagedictflt, (/ correctsize /), 'imagedictflt', TID=TID, initval = 0.0) 
+    call memth%alloc(imagedictfltflip, (/ correctsize /), 'imagedictfltflip', TID=TID, initval = 0.0)
 
     if ((ii.eq.1).and.(TID.eq.0)) then
       io_int(1) = OMP_GET_NUM_THREADS()
@@ -1083,15 +1050,12 @@ dictionaryloop: do ii = 1,cratio+1
         end if
       end if
 
-      allocate(dicttranspose(Nd*correctsize))
-      dicttranspose = 0.0
-
+      call memth%alloc(dicttranspose, (/ Nd*correctsize /), 'dicttranspose', TID=0, initval = 0.0)
       do ll = 1,correctsize
         do mm = 1,Nd
             dicttranspose((ll-1)*Nd+mm) = T0dict((mm-1)*correctsize+ll)
         end do
       end do
-
       ierr = clEnqueueWriteBuffer(command_queue, cl_dict, CL_TRUE, 0_8, size_in_bytes_dict, C_LOC(dicttranspose(1)), &
                                   0, C_NULL_PTR, C_NULL_PTR)
       call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
@@ -1144,15 +1108,8 @@ dictionaryloop: do ii = 1,cratio+1
 ! callback arguments:  objAddress, loopCompleted, totalLoops, timeRemaining, dparray, indarray
           call proc(objAddress, FZcnt, euarr_cptr, dparr_cptr, indarr_cptr)
         end if
-
       end do experimentalloop
-      !-----
-      ierr = clReleaseMemObject(cl_dict)
-      call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
 
-      !-----
-      ierr = clReleaseMemObject(cl_expt)
-      call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
       io_real(1) = mvres
       io_real(2) = float(iii)/float(cratio)*100.0
       call Message%WriteValue('',io_real,2,"(' max. dot product = ',F10.6,';',F6.1,'% complete')")
@@ -1200,14 +1157,16 @@ dictionaryloop: do ii = 1,cratio+1
       call timeproc(objAddress, cn, totn, ttime)
       cn = cn + dn
     end if
+
+
 !$OMP END MASTER
 
 
 ! here we carry out the dictionary pattern computation, unless we are in the ii=cratio+1 step
     if (ii.lt.cratio+1) then
      if (verbose.eqv..TRUE.) then
+       io_int(1) = TID
        if (associated(dict,dict1)) then
-         io_int(1) = TID
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict1')")
        else
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict2')")
@@ -1215,7 +1174,8 @@ dictionaryloop: do ii = 1,cratio+1
      end if
 
      if (trim(DIFT%nml%indexingmode).eq.'dynamic') then
-      allocate(binned(binx,biny))
+      call memth%alloc(binned, (/ binx,biny /), 'binned', TID=TID, initval = 0.0)
+
 !$OMP DO SCHEDULE(DYNAMIC)
 
       do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
@@ -1224,7 +1184,6 @@ dictionaryloop: do ii = 1,cratio+1
          ro = r_T( rdinp = dble(FZarray(1:4,(ii-1)*Nd+pp)) )
          quat = ro%rq()
          qu = Quaternion_T( qd = quat%q_copyd() )
-
          if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.) ) then
            call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,EBSD%det%rgx,&
                                                EBSD%det%rgy,EBSD%det%rgz,binned,Emin,Emax,mask,prefactor)
@@ -1274,7 +1233,7 @@ dictionaryloop: do ii = 1,cratio+1
        end if
       end do
 !$OMP END DO
-      deallocate(binned)
+      call memth%dealloc(binned, 'binned', TID=TID)
     else  ! we are doing static indexing, so only 2 threads in total
 
 ! get a set of patterns from the precomputed dictionary file...
@@ -1286,7 +1245,7 @@ dictionaryloop: do ii = 1,cratio+1
        dims2 = (/ correctsize, ppend(ii) /)
        offset2 = (/ 0, (ii-1)*Nd /)
 
-       if(allocated(dictpatflt)) deallocate(dictpatflt)
+       if (allocated(dictpatflt)) deallocate(dictpatflt)
        dictpatflt = HDF%readHyperslabFloatArray2D(dataset, offset2, dims2)
 
        do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
@@ -1306,7 +1265,14 @@ dictionaryloop: do ii = 1,cratio+1
     end if
    end if
 
-   deallocate(patterninteger,patternad,patternintd,imagedictflt,imagedictfltflip)
+   call memth%dealloc(patterninteger, 'patterninteger', TID=TID)
+   call memth%dealloc(patternad, 'patternad', TID=TID)
+   call memth%dealloc(patternintd, 'patternintd', TID=TID)
+   call memth%dealloc(imagedictflt, 'imagedictflt', TID=TID)
+   call memth%dealloc(imagedictfltflip, 'imagedictfltflip', TID=TID)
+
+! make sure the threads are synchronized before we start the next cycle ... 
+!$OMP BARRIER
 
 ! and we end the parallel section here (all threads will synchronize).
 !$OMP END PARALLEL
@@ -1315,7 +1281,9 @@ if (cancelled.eqv..TRUE.) EXIT dictionaryloop
 
 end do dictionaryloop
 
-! deallocate(dicttranspose)
+!-----
+ierr = clReleaseMemObject(cl_dict)
+call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
 
 !-----
 ierr = clReleaseMemObject(cl_expt)
@@ -1368,7 +1336,7 @@ if (cancelled.eqv..FALSE.) then
     ipar(8) = dinl%ipf_ht
   end if
 
-  allocate(OSMmap(jjend, iiiend))
+  call mem%alloc(OSMmap, (/ jjend, iiiend /), 'OSMmap')
 
   call timer%makeTimeStamp()
   tstre = timer%getTimeString()
@@ -1399,6 +1367,36 @@ if (cancelled.eqv..FALSE.) then
 
 ! close the fortran HDF5 interface
   call closeFortranHDFInterface()
+
+! explicitly deallocate all allocated arrays
+call mem%dealloc(expt, 'expt')
+call mem%dealloc(dict1, 'dict1')
+call mem%dealloc(dict2, 'dict2')
+call mem%dealloc(results, 'results')
+call mem%dealloc(mask, 'mask')
+call mem%dealloc(masklin, 'masklin')
+call mem%dealloc(imageexpt, 'imageexpt') 
+call mem%dealloc(imageexptflt, 'imageexptflt')
+call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
+call mem%dealloc(meandict, 'meandict')
+call mem%dealloc(meanexpt, 'meanexpt') 
+call mem%dealloc(imagedict, 'imagedict')
+call mem%dealloc(pattern, 'pattern')
+call mem%dealloc(resultarray, 'resultarray')
+call mem%dealloc(indexarray, 'indexarray')
+call mem%dealloc(indexlist, 'indexlist')
+call mem%dealloc(resultmain, 'resultmain')
+call mem%dealloc(indexmain, 'indexmain')
+call mem%dealloc(resulttmp, 'resulttmp')
+call mem%dealloc(indextmp, 'indextmp')
+call mem%dealloc(eulerarray, 'eulerarray')
+call mem%dealloc(exptIQ, 'exptIQ')
+call mem%dealloc(exptCI, 'exptCI') 
+call mem%dealloc(exptFit, 'exptFit')
+call mem%dealloc(rdata, 'rdata') 
+call mem%dealloc(fdata, 'fdata')
+
+call mem%allocated_memory_use( expl = 'end of program clean up ... ')
 
 ! if requested, we notify the user that this program has completed its run
   if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then

@@ -26,44 +26,33 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMDI
+program testMCOpenCLWrapper
   !! author: MDG
   !! version: 1.0 
-  !! date: 04/02/20
+  !! date: 02/04/20
   !!
-  !! Indexing of EBSD/ECP/TKD patterns using a dynamically generated pattern dictionary
-  !!
-  !! This program has a different structure from most other programs because the indexing
-  !! routine must be callable from C++ (EMsoftWorkBench).  So the regular class structure
-  !! is handled a bit differently, and the name list is not initialized in the main program
-  !! at all. The DIdriver routine is also not part of a class, but is called as a regular 
-  !! routine. 
+  !! Monte Carlo backscattered electron simulation
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_DI
-use mod_HDFsupport
-use ISO_C_BINDING
+use mod_MCOpenCL
 
 IMPLICIT NONE
 
-character(fnlen)        :: progname
-character(fnlen)        :: progdesc = 'Indexing of EBSD/ECP/TKD patterns using a dynamically calculated pattern dictionary'
+character(fnlen)     :: progname = 'testMCOpenCLWrapper.f90'
+character(fnlen)     :: progdesc = 'Driver for the EMsoftCgetMCOpenCL routine'
 
-type(EMsoft_T)          :: EMsoft
-character(kind=c_char)  :: Cprogname(fnlen)
-character(kind=c_char)  :: Cnmldeffile(fnlen)
-
-progname = 'EMDI.f90'
+type(EMsoft_T)       :: EMsoft
+type(MCOpenCL_T)     :: MCCL 
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 42 /) )
 
-! call the DIdriver routine to take care of the entire indexing process 
-Cnmldeffile = carstringify(EMsoft%nmldeffile)
-Cprogname = carstringify(progname)
-! call DIdriver(Cnmldeffile, Cprogname, C_NULL_FUNPTR, C_NULL_FUNPTR, C_NULL_FUNPTR, 0_ill)
-call DIdriver(Cnmldeffile, Cprogname, C_NULL_FUNPTR, C_NULL_FUNPTR, C_NULL_FUNPTR, 0_c_size_t)
+! deal with the namelist stuff
+MCCL = MCOpenCL_T(EMsoft%nmldeffile)
 
-end program EMDI
+! perform the sampling algorithm
+call MCCL%testMCOpenCLWrapper(EMsoft, progname)
+
+end program testMCOpenCLWrapper
