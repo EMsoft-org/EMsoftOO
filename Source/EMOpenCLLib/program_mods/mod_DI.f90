@@ -207,7 +207,7 @@ real(kind=sgl),allocatable,TARGET                   :: dict1(:), dict2(:), eudic
 real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:), mask(:,:),masklin(:), exptIQ(:), &
                                                        exptCI(:), exptFit(:), exppatarray(:), tmpexppatarray(:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:), &
-                                                       tmpimageexpt(:), OSMmap(:,:)
+                                                       tmpimageexpt(:), OSMmap(:,:), maxsortarr(:), minsortarr(:)
 real(kind=sgl),allocatable, target                  :: results(:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
                                                        eulerarray(:,:),eulerarray2(:,:),resultmain(:,:),resulttmp(:,:)
 integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:)
@@ -806,6 +806,8 @@ call mem%alloc(resultmain, (/ nnk, Ne*ceiling(float(totnumexpt)/float(Ne)) /), '
 call mem%alloc(indexmain, (/ nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indexmain', initval = 0)
 call mem%alloc(resulttmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resulttmp', initval = -2.0)
 call mem%alloc(indextmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indextmp', initval = 0)
+call mem%alloc(maxsortarr, (/ totnumexpt /), 'maxsortarr', initval = 0.0)
+call mem%alloc(minsortarr, (/ totnumexpt /), 'minsortarr', initval =-2.0)
 call mem%alloc(eulerarray, (/ 3, Nd*ceiling(float(FZcnt)/float(Nd)) /), 'eulerarray', initval = 0.0)
 if (trim(dinl%indexingmode).eq.'static') then
     eulerarray(1:3,1:FZcnt) = eulerarray2(1:3,1:FZcnt)
@@ -1082,19 +1084,25 @@ dictionaryloop: do ii = 1,cratio+1
         if (dp.gt.mvres) mvres = dp
 
 ! this might be simplified later for the remainder of the patterns
+! we only resort if the largest new dot product value is larger than the smallest 
+! value on the already sorted list [suggested by D. Rowenhorst]
         do qq = 1,ppendE(jj)
             jjj = (jj-1)*Ne+qq
-            resultarray(1:Nd) = results((qq-1)*Nd+1:qq*Nd)
-            indexarray(1:Nd) = indexlist((iii-1)*Nd+1:iii*Nd)
+            maxsortarr(jjj) = maxval(results((qq-1)*Nd+1:qq*Nd))
+            if (maxsortarr(jjj).gt.minsortarr(jjj)) then 
+              resultarray(1:Nd) = results((qq-1)*Nd+1:qq*Nd)
+              indexarray(1:Nd) = indexlist((iii-1)*Nd+1:iii*Nd)
 
-            call SSORT(resultarray,indexarray,Nd,-2)
-            resulttmp(nnk+1:2*nnk,jjj) = resultarray(1:nnk)
-            indextmp(nnk+1:2*nnk,jjj) = indexarray(1:nnk)
+              call SSORT(resultarray,indexarray,Nd,-2)
+              resulttmp(nnk+1:2*nnk,jjj) = resultarray(1:nnk)
+              indextmp(nnk+1:2*nnk,jjj) = indexarray(1:nnk)
 
-            call SSORT(resulttmp(:,jjj),indextmp(:,jjj),2*nnk,-2)
+              call SSORT(resulttmp(:,jjj),indextmp(:,jjj),2*nnk,-2)
 
-            resultmain(1:nnk,jjj) = resulttmp(1:nnk,jjj)
-            indexmain(1:nnk,jjj) = indextmp(1:nnk,jjj)
+              resultmain(1:nnk,jjj) = resulttmp(1:nnk,jjj)
+              indexmain(1:nnk,jjj) = indextmp(1:nnk,jjj)
+              minsortarr(jjj) = resulttmp(nnk,jjj)
+            end if 
         end do
 
 ! handle the callback routines if requested
@@ -1414,6 +1422,8 @@ call mem%dealloc(resultmain, 'resultmain')
 call mem%dealloc(indexmain, 'indexmain')
 call mem%dealloc(resulttmp, 'resulttmp')
 call mem%dealloc(indextmp, 'indextmp')
+call mem%dealloc(maxsortarr, 'maxsortarr')
+call mem%dealloc(minsortarr, 'minsortarr')
 call mem%dealloc(eulerarray, 'eulerarray')
 call mem%dealloc(exptIQ, 'exptIQ')
 call mem%dealloc(exptCI, 'exptCI') 
