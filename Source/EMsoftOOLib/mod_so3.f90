@@ -1546,7 +1546,7 @@ end do
 end subroutine SampleIsoMisorientation_
 
 !--------------------------------------------------------------------------
-recursive subroutine getOrientationsfromFile_(self, filename)
+recursive subroutine getOrientationsfromFile_(self, filename, listN)
 !DEC$ ATTRIBUTES DLLEXPORT :: getOrientationsfromFile_
   !! author: MDG
   !! version: 1.0
@@ -1561,6 +1561,7 @@ class(so3_T),INTENT(INOUT)              :: self
 
 character(fnlen),INTENT(IN)             :: filename
  !! complete path to input file name
+integer(kind=irg),INTENT(IN),OPTIONAL   :: listN 
 
 type(e_T)                               :: e
 type(o_T)                               :: o
@@ -1592,6 +1593,9 @@ select case(anglemode)
   case('eu') ! angles must be in degrees
     do i=1,numang
       read (53,*) x3(1:3)
+      if (present(listN)) then 
+        if (i.lt.listN) write (*,*) x3(1:3)
+      end if 
       x3 = x3 * dtor
       e = e_T( edinp = x3 )
       FZtmp%rod = e%er()

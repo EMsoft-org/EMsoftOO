@@ -203,7 +203,7 @@ end interface DIfile_T
 contains
 
 !--------------------------------------------------------------------------
-type(DIfile_T) function DIfile_constructor( nmlfile, fname ) result(DIfile)
+type(DIfile_T) function DIfile_constructor( nmlfile, fname, inRAM ) result(DIfile)
 !DEC$ ATTRIBUTES DLLEXPORT :: DIfile_constructor
 !! author: MDG
 !! version: 1.0
@@ -215,8 +215,15 @@ IMPLICIT NONE
 
 character(fnlen), OPTIONAL   :: nmlfile
 character(fnlen), OPTIONAL   :: fname
+logical, OPTIONAL            :: inRAM 
 
-if (present(nmlfile)) call DIfile%readNameList(nmlfile)
+if (present(nmlfile)) then 
+  if (present(inRAM)) then 
+    if (inRAM.eqv..TRUE.) call DIfile%readNameList(nmlfile, inRAM=.TRUE.)
+  else
+    call DIfile%readNameList(nmlfile)
+  end if 
+end if 
 if (present(fname)) call DIfile%setfilename(fname)
 
 end function DIfile_constructor
@@ -380,7 +387,7 @@ end subroutine readDIModality_
 
 
 !--------------------------------------------------------------------------
-subroutine readNameList_(self, nmlfile, initonly)
+subroutine readNameList_(self, nmlfile, initonly, inRAM)
 !DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
 !! author: MDG
 !! version: 1.0
@@ -398,6 +405,7 @@ character(fnlen),INTENT(IN)         :: nmlfile
  !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)         :: initonly
  !! fill in the default values only; do not read the file
+logical,OPTIONAL,INTENT(IN)         :: inRAM
 
 type(EMsoft_T)                      :: EMsoft
 type(IO_T)                          :: Message
@@ -480,6 +488,14 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda
 
+namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
+                     beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
+                     scalingmode, maskpattern, L, omega, nthreads, energymax, datafile, angfile, ctffile, &
+                     ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
+                     dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
+                     HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
+                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda
+
 ! set the input parameters to default values (except for xtalname, which must be present)
 ncubochoric     = 50
 numexptsingle   = 1024
@@ -554,7 +570,11 @@ end if
 if (.not.skipread) then
 ! read the namelist file
     open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
-    read(UNIT=dataunit,NML=DIdata)
+    if (present(inRAM)) then
+      if (inRAM.eqv..TRUE.) read(UNIT=dataunit,NML=DIRAMdata)
+    else
+      read(UNIT=dataunit,NML=DIdata)
+    end if 
     close(UNIT=dataunit,STATUS='keep')
 
     if (trim(indexingmode) .eq. 'static') then

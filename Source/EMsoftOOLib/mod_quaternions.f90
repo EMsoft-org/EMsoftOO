@@ -633,33 +633,38 @@ self%s = 'd'
 end subroutine setquatd
 
 !--------------------------------------------------------------------------
-recursive subroutine quatarrayprint(self)
-!DEC$ ATTRIBUTES DLLEXPORT :: quatarrayprint
-  !! author: MDG
-  !! version: 1.0
+recursive subroutine quatarrayprint(self, listN)
+  !! author: MDG 
+  !! version: 1.0 
   !! date: 01/08/20
   !!
   !! print an array of quaternions
 
 use mod_io
 
-IMPLICIT NONE
+IMPLICIT NONE 
 
   class(QuaternionArray_T),intent(in)   :: self
-   !! input quaternion
+   !! input quaternion 
+  integer(kind=irg),INTENT(IN),OPTIONAL :: listN
 
-  type(IO_T)                            :: Message
-  integer(kind=irg)                     :: i
+  type(IO_T)                            :: Message 
+  integer(kind=irg)                     :: i, n
 
-  if (self%s.eq.'s') then
-    do i=1,self%n
+  if (present(listN)) then 
+    n = listN
+  else 
+    n = self%n 
+  end if
+  if (self%s.eq.'s') then 
+    do i=1,n
       call Message % WriteValue('', self%q(:,i), 4, frm="('(',4f12.6,')')")
     end do
-  else
-    do i=1,self%n
+  else 
+    do i=1,n
       call Message % WriteValue('', self%qd(:,i), 4, frm="('(',4f20.14,')')")
     end do
-  end if
+  end if 
 
 end subroutine quatarrayprint
 

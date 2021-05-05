@@ -618,6 +618,7 @@ if (trim(enl%anglefiletype).eq.'orientations') then
   numangles = SO%getListCount('FZ')
   call SO%listtoQuaternionArray( qAR )
   call SO%delete_FZlist()
+  write (*,*) ' Number of orientations read from file: ', numangles
 else if (trim(enl%anglefiletype).eq.'orpcdef') then
 ! this requires a conversion from the Euler angles in the file to quaternions
 ! plus storage of the pattern center and deformation tensor arrays
@@ -1082,6 +1083,7 @@ associate( enl => self%nml, mcnl => MCFT%nml, &
 !====================================
 ! max number of OpenMP threads on this platform
 maxthreads = omp_get_max_threads()
+call setRotationPrecision('d')
 
 !====================================
 ! what is the output format?  GUI or BIN ?
@@ -1237,9 +1239,9 @@ if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetInteger numangles', hdfer
 call mem%alloc(eulerangles, (/ 3,numangles /), 'eulerangles')
 do i=1,numangles
   quat = angles%getQuatfromArray(i)
-  call qq%q_set( quat%get_quats() )
+  call qq%q_setd( quat%get_quatd() )
   eu = qq%qe()
-  eulerangles(1:3,i) = eu%e_copy()
+  eulerangles(1:3,i) = sngl( eu%e_copyd() )
 end do
 dataset = SC_Eulerangles
 hdferr = HDF%writeDatasetFloatArray(dataset, eulerangles/sngl(dtor), 3, numangles)
@@ -1729,11 +1731,12 @@ call memth%dealloc(trgz, 'trgz', TID=TID)
 call memth%dealloc(taccum, 'taccum', TID=TID)
 call memth%dealloc(tmLPNH, 'tmLPNH', TID=TID)
 call memth%dealloc(tmLPSH, 'tmLPSH', TID=TID)
+call memth%dealloc(binned, 'binned', TID=TID)
 
 !$OMP END PARALLEL
 
 ! test for memory allocations in the threaded region 
-call memth%thread_memory_use()
+! call memth%thread_memory_use()
 
 ! here we write all the entries in the batchpatterns array to the HDF file as a hyperslab
 ! =====================================================
@@ -1845,11 +1848,24 @@ if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
 ! close the datafile
 call HDF%pop(.TRUE.)
 
+call mem%dealloc(EBSDdetector%rgx, 'EBSDdetector%rgx')
+call mem%dealloc(EBSDdetector%rgy, 'EBSDdetector%rgy')
+call mem%dealloc(EBSDdetector%rgz, 'EBSDdetector%rgz')
+call mem%dealloc(EBSDdetector%accum_e_detector, 'EBSDdetector%accum_e_detector')
+call mem%dealloc(energywf, 'energywf')
+call mem%dealloc(stringarray, 'stringarray')
+call mem%dealloc(eulerangles, 'eulerangles')
+call mem%dealloc(istart, 'istart')
+call mem%dealloc(istop, 'istop')
+call mem%dealloc(patinbatch, 'patinbatch')
+call mem%dealloc(batchpatterns32lin, 'batchpatterns32lin')
+call mem%dealloc(mask, 'mask')
+call mem%dealloc(masklin, 'masklin')
 
 end associate
 
-! test for memory allocations in the threaded region 
-call mem%allocated_memory_use()
+! test for memory deallocations 
+! call mem%allocated_memory_use()
 
 end subroutine ComputeEBSDPatterns_
 

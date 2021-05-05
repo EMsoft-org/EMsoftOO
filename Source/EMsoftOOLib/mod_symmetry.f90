@@ -765,10 +765,14 @@ else  ! at least one of the optional parameters are present
   if (present(SGnumber) .and. (.not.(present(xtalSystem))) ) then
 ! find the crystal system number from the space group number SGXsym = (/ 1, 3, 16, 75, 143, 168, 195 /)
     SG%SGnumber = SGnumber
-    i = 0
-    do while(SGnumber.gt.SGXsym(i+1))
-      i = i+1
-    end do
+    if (SGnumber.ge.SGXsym(7)) then 
+        i = 7
+    else
+        i = 0
+        do while(SGnumber.gt.SGXsym(i+1))
+          i = i+1
+        end do
+    end if 
 ! convert this number to the EMsoft crystal system numbering scheme
     SG%xtal_system = icv(i)
   end if

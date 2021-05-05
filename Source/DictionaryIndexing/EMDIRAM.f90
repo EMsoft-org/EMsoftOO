@@ -51,7 +51,7 @@ progname = 'EMDIRAM.f90'
 
 ! print the EMsoft header and handle any command line arguments  
 ! this program uses the same name list file as the EMDI program
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 105 /) )
 
 ! call the DIRAMdriver routine to take care of the entire indexing process 
 call DIRAMdriver(EMsoft%nmldeffile, progname, progdesc)

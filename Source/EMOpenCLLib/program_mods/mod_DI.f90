@@ -1623,10 +1623,10 @@ integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), 
 type(FZpointd),pointer                              :: FZlist, FZtmp
 integer(kind=irg),allocatable,target                :: indexlist1(:),indexlist2(:),indexarray(:),indexmain(:,:),indextmp(:,:)
 real(kind=sgl)                                      :: dmin,voltage,scl,ratio, mi, ma, ratioE, io_real(2), tstart, tmp, &
-                                                       totnum_el, vlen, tstop, ttime
+                                                       totnum_el, vlen, tstop, ttime, msa
 real(kind=dbl)                                      :: prefactor
 character(fnlen)                                    :: xtalname
-integer(kind=irg)                                   :: binx,biny,TID,nthreads,Emin,Emax, iiistart, iiiend, jjend
+integer(kind=irg)                                   :: binx,biny,TID,TID2,nthreads,Emin,Emax, iiistart, iiiend, jjend
 real(kind=sgl)                                      :: sx,dx,dxm,dy,dym,rhos,x,projweight, dp, mvres, nel, emult
 real(kind=sgl)                                      :: dc(3),ixy(2),bindx, MCsig, WD, fpar1(1), fpar2(2)
 integer(kind=irg)                                   :: nix,niy,nixp,niyp
@@ -1650,10 +1650,10 @@ call openFortranHDFInterface()
 HDF = HDF_T()
 
 ! we've already shown the standard splash screen, so we do this one silently
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /), silent=.TRUE.)
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 105 /), silent=.TRUE.)
 
 ! deal with the namelist stuff
-DIFT = DIfile_T(nmldeffile)
+DIFT = DIfile_T(nmlfile=nmldeffile, inRAM=.TRUE.)
 
 ! set the HDF group names for this program
 HDFnames = HDFnames_T()
@@ -1721,6 +1721,7 @@ if (hdferr.ne.0) call HDF%error_check('HDF_openFile ', hdferr)
 ! we need the point group number (derived from the space group number)
 ! if MPDT%newSGnumber is set to 2, then pgnum must be set to 1 for
 ! overlap master patterns  [ added by MDG, 06/19/19 ]
+MPDT%AveragedMP = .FALSE.
 if (MPDT%AveragedMP.eqv..TRUE.) then
     pgnum = MPDT%newPGnumber
     io_int = pgnum
@@ -1746,6 +1747,9 @@ else
     end if
     io_int = pgnum
     call Message%WriteValue(' Setting point group number to ',io_int,1)
+    io_int = SGnum
+    call Message%WriteValue(' Setting space group number to ',io_int,1)
+    SG = SpaceGroup_T( SGnumber = SGnum )
 end if
 
 ! then read some more data from the EMData group
@@ -1778,10 +1782,14 @@ if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetInteger:numangles', hdferr
 ! euler angle list Eulerangles
 dataset = SC_Eulerangles
 call HDF%readDatasetFloatArray(dataset, dims2, hdferr, eulerarray2)
-eulerarray2 = eulerarray2 * rtod
+! eulerarray2 = eulerarray2 * dtor
 if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetFloatArray2D:Eulerangles', hdferr)
 
-! we leave this file open since we still need to read all the patterns...
+! here we read ALL the dictionary patterns into the dpatterns array
+dataset = SC_EBSDpatterns
+call HDF%readDatasetFloatArray(dataset, dims2, hdferr, dpatterns)
+if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetIntegerArray2D:EBSDpatterns', hdferr)
+
 !=====================================================
 call Message%printMessage('-->  completed initial reading of dictionary file ')
 
@@ -1952,18 +1960,16 @@ call mem%alloc(meanexpt, (/ correctsize /), 'meanexpt', initval = 0.0)
 call mem%alloc(imagedict, (/ correctsize /), 'imagedict', initval = 0.0)
 call mem%alloc(pattern, (/ binx,biny /), 'pattern', initval = 0.0)
 call mem%alloc(binned, (/ binx, biny /), 'binned', initval = 0.0)
-call mem%alloc(resultarray, (/ Nd /), 'resultarray', initval = 0.0)
-call mem%alloc(indexarray, (/ Nd /), 'indexarray', initval = 0)
 call mem%alloc(indexlist1, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist1')
 call mem%alloc(indexlist2, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist2')
 do ii = 1,Nd*ceiling(float(FZcnt)/float(Nd))
     indexlist1(ii) = ii
     indexlist2(ii) = ii
 end do
-call mem%alloc(resultmain, (/ nnk, Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resultmain', initval = -2.0)
-call mem%alloc(indexmain, (/ nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indexmain', initval = 0)
 call mem%alloc(resulttmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resulttmp', initval = -2.0)
 call mem%alloc(indextmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indextmp', initval = 0)
+call mem%alloc(resultmain, (/ nnk, Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resultmain', initval = -2.0)
+call mem%alloc(indexmain, (/ nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indexmain', initval = 0)
 call mem%alloc(maxsortarr, (/ totnumexpt /), 'maxsortarr', initval = 0.0)
 call mem%alloc(minsortarr, (/ totnumexpt /), 'minsortarr', initval =-2.0)
 call mem%alloc(eulerarray, (/ 3, Nd*ceiling(float(FZcnt)/float(Nd)) /), 'eulerarray', initval = 0.0)
@@ -1975,6 +1981,10 @@ call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
 call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
 call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
 
+write (*,*) ' Euler array check '
+do ii=1,10
+  write(*,*) eulerarray(:,ii)
+end do
 
 !=====================================================
 ! define the circular mask if necessary and convert to 1D vector
@@ -2117,7 +2127,7 @@ call timer%Time_tick(2)
 verbose = .FALSE.
 
 dictionaryloop: do ii = 1,cratio+1
-    results = 0.0
+    nullify(results)
 
 ! if ii is odd, then we use dict1 for the dictionary computation, and dict2 for the GPU
 ! (assuming ii>1); when ii is even we switch the two pointers
@@ -2163,7 +2173,9 @@ dictionaryloop: do ii = 1,cratio+1
        end do
     end if
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, tock, ttime, resultarray, indexarray)
+    call OMP_SET_NESTED(.TRUE.)
+
+!$OMP PARALLEL NUM_THREADS(dinl%nthreads) DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, tock, ttime)
 
     TID = OMP_GET_THREAD_NUM()
 
@@ -2172,8 +2184,9 @@ dictionaryloop: do ii = 1,cratio+1
       call Message%WriteValue(' actual number of OpenMP threads  = ', io_int, 1)
     end if
 
-! the master thread should be the one working on the GPU computation
-!$OMP MASTER
+! only one thread should be the one working on the GPU computation
+!$OMP SECTIONS
+!$OMP SECTION  
     if (ii.gt.1) then
       iii = ii-1        ! the index ii is already one ahead, since the GPU thread lags one cycle behind the others...
       if (verbose.eqv..TRUE.) then
@@ -2238,11 +2251,18 @@ dictionaryloop: do ii = 1,cratio+1
         end if
       end if
     end if
-!$OMP END MASTER
 
+! the other thread goes here 
+!$OMP SECTION
+    TID2 = OMP_GET_THREAD_NUM() 
+    call memth%alloc(resultarray, (/ Nd /), 'resultarray', initval = 0.0, TID=TID2)
+    call memth%alloc(indexarray, (/ Nd /), 'indexarray', initval = 0, TID=TID2)
+    resultarray = 0.0
+    indexarray = 0
+ 
    if (ii.gt.1) then
      if (verbose.eqv..TRUE.) then
-       io_int(1) = TID
+       io_int(1) = TID2
        if (associated(dict,dict1)) then
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict1')")
        else
@@ -2252,12 +2272,12 @@ dictionaryloop: do ii = 1,cratio+1
 
 ! perform the sorting only if the largest new dot product is larger than the 
 ! smallest dot product already on the sorted list [suggested by D. Rowenhorst]
-!$OMP DO SCHEDULE(DYNAMIC)
+!$OMP PARALLEL DO SCHEDULE(DYNAMIC) NUM_THREADS(dinl%nthreads-2) DEFAULT(SHARED) PRIVATE(qq,resultarray,indexarray,msa)
         do qq = 1,totnumexpt
-            maxsortarr(qq) = maxval(results((qq-1)*Nd+1:qq*Nd))
-            if (maxsortarr(qq).gt.minsortarr(qq)) then 
-              resultarray(1:Nd) = results((qq-1)*Nd+1:qq*Nd)
-              indexarray(1:Nd) = indexlist((iii-1)*Nd+1:iii*Nd)
+            msa = maxval(dpsort((qq-1)*Nd+1:qq*Nd))
+            if (msa.gt.minsortarr(qq)) then 
+              resultarray(1:Nd) = dpsort((qq-1)*Nd+1:qq*Nd)
+              indexarray(1:Nd) = dpindex((ii-1)*Nd+1:ii*Nd)
 
               call SSORT(resultarray,indexarray,Nd,-2)
               resulttmp(nnk+1:2*nnk,qq) = resultarray(1:nnk)
@@ -2270,10 +2290,14 @@ dictionaryloop: do ii = 1,cratio+1
               minsortarr(qq) = resulttmp(nnk,qq)
             end if 
         end do
-!$OMP END DO
+!$OMP END PARALLEL DO
    end if
+  call memth%dealloc(resultarray, 'resultarray', TID=TID2)
+  call memth%dealloc(indexarray, 'indexarray', TID=TID2)
 
 ! and we end the parallel section here (all threads will synchronize).
+!$OMP END SECTIONS NOWAIT
+!$OMP BARRIER
 !$OMP END PARALLEL
 
 end do dictionaryloop
@@ -2360,28 +2384,30 @@ end if
 ! explicitly deallocate all allocated arrays
 
 call mem%dealloc(expt, 'expt')
-call mem%dealloc(dict1, 'dict1')
-call mem%dealloc(dict2, 'dict2')
+call mem%dealloc(epatterns, 'epatterns')
+deallocate(dpatterns)
 call mem%dealloc(dicttranspose, 'dicttranspose')
-call mem%dealloc(results1, 'results')
-call mem%dealloc(results2, 'results')
+call mem%dealloc(res, 'res')
+call mem%dealloc(results1, 'results1')
+call mem%dealloc(results2, 'results2')
 call mem%dealloc(mask, 'mask')
 call mem%dealloc(masklin, 'masklin')
 call mem%dealloc(imageexpt, 'imageexpt') 
 call mem%dealloc(imageexptflt, 'imageexptflt')
 call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
+call mem%dealloc(imagedictflt, 'imagedictflt')
+call mem%dealloc(imagedictfltflip, 'imagedictfltflip')
+call mem%dealloc(binned, 'binned')
 call mem%dealloc(meandict, 'meandict')
 call mem%dealloc(meanexpt, 'meanexpt') 
 call mem%dealloc(imagedict, 'imagedict')
 call mem%dealloc(pattern, 'pattern')
-call mem%dealloc(resultarray, 'resultarray')
-call mem%dealloc(indexarray, 'indexarray')
 call mem%dealloc(indexlist1, 'indexlist')
 call mem%dealloc(indexlist2, 'indexlist')
-call mem%dealloc(resultmain, 'resultmain')
-call mem%dealloc(indexmain, 'indexmain')
 call mem%dealloc(resulttmp, 'resulttmp')
 call mem%dealloc(indextmp, 'indextmp')
+call mem%dealloc(resultmain, 'resultmain')
+call mem%dealloc(indexmain, 'indexmain')
 call mem%dealloc(maxsortarr, 'maxsortarr')
 call mem%dealloc(minsortarr, 'minsortarr')
 call mem%dealloc(eulerarray, 'eulerarray')
@@ -2395,8 +2421,8 @@ call mem%dealloc(ppendE, 'ppendE')
 call mem%dealloc(dpmap, 'dpmap')
 call mem%dealloc(OSMmap, 'OSMmap')
 
-call mem%allocated_memory_use( expl = 'end of program clean up ... ')
-call memth%thread_memory_use( expl = 'end of program clean up for threads ... ')
+! call mem%allocated_memory_use( expl = 'end of program clean up ... ')
+! call memth%thread_memory_use( expl = 'end of program clean up for threads ... ')
 
 ! if requested, we notify the user that this program has completed its run
   if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
