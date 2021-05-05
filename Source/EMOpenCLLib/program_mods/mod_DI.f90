@@ -1660,6 +1660,7 @@ HDFnames = HDFnames_T()
 
 call setRotationPrecision('d')
 
+! short hand notations
 associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
 
 ! initialize the memory allocation classes
@@ -1733,7 +1734,7 @@ else
 
     dataset = SC_SpaceGroupNumber
     call HDF%readDatasetInteger(dataset, hdferr, SGnum)
-    if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetInteger:SpaceGroupNumber', hdferr)
+    if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetInteger:SpaceGroupNumber', hdferr)
     call HDF%pop()
 ! get the point group number
     if (SGnum.ge.221) then
@@ -1777,18 +1778,19 @@ xtalname = trim(mcnl%xtalname)
 ! number of Eulerangles numangles
 dataset = SC_numangles
 call HDF%readDatasetInteger(dataset, hdferr, FZcnt)
-if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetInteger:numangles', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetInteger:numangles', hdferr)
 
 ! euler angle list Eulerangles
 dataset = SC_Eulerangles
 call HDF%readDatasetFloatArray(dataset, dims2, hdferr, eulerarray2)
-! eulerarray2 = eulerarray2 * dtor
-if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetFloatArray2D:Eulerangles', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetFloatArray:Eulerangles', hdferr)
 
 ! here we read ALL the dictionary patterns into the dpatterns array
 dataset = SC_EBSDpatterns
 call HDF%readDatasetFloatArray(dataset, dims2, hdferr, dpatterns)
-if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetIntegerArray2D:EBSDpatterns', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:EBSDpatterns', hdferr)
+
+call HDF%pop(.TRUE.)
 
 !=====================================================
 call Message%printMessage('-->  completed initial reading of dictionary file ')
@@ -1981,11 +1983,6 @@ call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
 call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
 call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
 
-write (*,*) ' Euler array check '
-do ii=1,10
-  write(*,*) eulerarray(:,ii)
-end do
-
 !=====================================================
 ! define the circular mask if necessary and convert to 1D vector
 !=====================================================
@@ -2119,6 +2116,27 @@ call mem%allocated_memory_use( expl = 'Memory usage before start of parallel sec
 ! for an efficient execution.  The appropriate number of threads will depend
 ! on how powerful the GPU card is...
 !=====================================================
+!=====================================================
+! Revision to the above 03 May 2021 [D. Rowenhorst]
+! With newer GPUs it is increasingly hard to keep them occupied. 
+! Thus the code below has been rewritten using nested OpenMP threading.  
+! The outside threads are minimally parallel in that there are only two 
+! parallel SECTIONS, and thus two threads created.  With the revisions there 
+! is no need to keep track of the master/child threads here. 
+! The first SECTION is doing the hard work of sending the calculated/precalculated 
+! dictionary to the GPU then sending in batches of experimental patterns to the GPU, 
+! taking the dot product and then allowing the CPU to rank the results.  
+! The second SECTION does either the calculation of the dictionary (dynamic) or 
+! fetches it off disk (static). It will perform this work while the first section 
+! is performing the DP calculation and using some fancy pointer math prepares the new
+! dictionary chunk for the next batch.  
+! Within each SECTION there are portions that undergo nested parallelization for some 
+! key DO loops, where many threads can be thrown at the problem, notably the creation 
+! of dictionary patterns, and the sorting of the dot product results.  Using many threads 
+! here makes creating the dictionary patterns much less of a burden and keeps the GPU
+! much busier.  
+! There is some overhead with making lots of threads on each iteration. Future versions will 
+! try and address this.  
 
 call timer%makeTimeStamp()
 call timer%Time_tick(1)
@@ -2175,7 +2193,8 @@ dictionaryloop: do ii = 1,cratio+1
 
     call OMP_SET_NESTED(.TRUE.)
 
-!$OMP PARALLEL NUM_THREADS(dinl%nthreads) DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, tock, ttime)
+!$OMP PARALLEL NUM_THREADS(dinl%nthreads) DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, tock, ttime) &
+!$OMP& PRIVATE(resultarray, indexarray)
 
     TID = OMP_GET_THREAD_NUM()
 
@@ -2277,7 +2296,7 @@ dictionaryloop: do ii = 1,cratio+1
             msa = maxval(dpsort((qq-1)*Nd+1:qq*Nd))
             if (msa.gt.minsortarr(qq)) then 
               resultarray(1:Nd) = dpsort((qq-1)*Nd+1:qq*Nd)
-              indexarray(1:Nd) = dpindex((ii-1)*Nd+1:ii*Nd)
+              indexarray(1:Nd) = dpindex((ii-2)*Nd+1:(ii-1)*Nd)
 
               call SSORT(resultarray,indexarray,Nd,-2)
               resulttmp(nnk+1:2*nnk,qq) = resultarray(1:nnk)
@@ -2314,9 +2333,7 @@ call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
 ierr = clReleaseKernel(kernel)
 call CL%error_check('DIdriver:clReleaseKernel', ierr)
 
-if (trim(dinl%indexingmode).eq.'static') then
-  call HDF%pop(.TRUE.)
-end if
+
 
 ! perform some timing stuff
   call timer%Time_tock(2)
