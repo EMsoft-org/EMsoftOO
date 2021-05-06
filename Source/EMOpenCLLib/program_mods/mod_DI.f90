@@ -1701,6 +1701,7 @@ call HDFnames%set_ProgramData(SC_EMDI)
 call HDFnames%set_NMLlist(SC_EMDINameList)
 call HDFnames%set_NMLfilename(SC_EMDI)
 
+
 ! set the timer
 timer = Timing_T()
 dstr = timer%getDateString()
@@ -1751,6 +1752,7 @@ else
     io_int = SGnum
     call Message%WriteValue(' Setting space group number to ',io_int,1)
     SG = SpaceGroup_T( SGnumber = SGnum )
+
 end if
 
 ! then read some more data from the EMData group
@@ -1794,6 +1796,14 @@ call HDF%pop(.TRUE.)
 
 !=====================================================
 call Message%printMessage('-->  completed initial reading of dictionary file ')
+
+! we know that the dictionary indexing file has all the
+! crystallographic data in it, so we read that here instead of assuming
+! that the actual .xtal file exists on this system ...
+! this initializes the cell class which is needed to properly write the .ctf and .ang files
+fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
+call cell%setFileName(xtalname)
+call cell%readDataHDF(SG, EMsoft, useXtalName=fname)
 
 if (sum(dinl%ROI).ne.0) then
   ROIselected = .TRUE.
@@ -2332,7 +2342,6 @@ call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
 ! release the OpenCL kernel
 ierr = clReleaseKernel(kernel)
 call CL%error_check('DIdriver:clReleaseKernel', ierr)
-
 
 
 ! perform some timing stuff
