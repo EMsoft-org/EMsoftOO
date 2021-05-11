@@ -49,6 +49,10 @@ module mod_LaueSupport
     type(Laue_g_list),pointer :: next   ! connection to next reflector 
   end type Laue_g_list
 
+! namelist for the EMXXX program
+  type, public :: LaueNameListType
+  end type LaueNameListType
+
   ! class definition
   type, public :: Laue_T
   private 
