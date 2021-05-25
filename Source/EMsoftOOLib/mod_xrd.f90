@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2016-2020, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2020, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -26,44 +26,36 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMLaue
-  !! author: MDG
+module mod_xrd
+  !! author: MDG 
   !! version: 1.0 
-  !! date: 05/11/21
+  !! date: 05/25/21
   !!
-  !! compute a batch of Laue patterns
+  !! definitions for the xrd module
 
 use mod_kinds
 use mod_global
-use mod_EMsoft
-use mod_Laue
-use mod_HDFnames 
-use stringconstants
+
+IMPLICIT NONE 
+
+contains
+
+!--------------------------------------------------------------------------
+recursive function getXRDwavenumber(kV) result(wavenumber)
+!DEC$ ATTRIBUTES DLLEXPORT :: getXRDwavenumber
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/25/21
+!!
+!! convert energy to wave length (for x-rays)
 
 IMPLICIT NONE
 
-character(fnlen)                :: progname = 'EMLaue.f90'
-character(fnlen)                :: progdesc = 'Compute a batch of Laue diffraction patterns'
+real(kind=sgl),INTENT(IN)             :: kV 
+real(kind=sgl)                        :: wavenumber
 
-type(EMsoft_T)                  :: EMsoft
-type(Laue_T)                    :: Laue 
-type(HDFnames_T)                :: HDFnames
+wavenumber = kV / 1.23984193  ! in nm 
 
-! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 251 /) )
+end function getXRDwavenumber
 
-! deal with the namelist stuff
-Laue = Laue_T(EMsoft%nmldeffile)
-
-! set the HDFnames to the correct strings for this program
-HDFnames = HDFnames_T()
-call HDFnames%set_EMData(SC_EMData)
-call HDFnames%set_ProgramData(SC_Laue)
-call HDFnames%set_NMLlist(SC_LaueNameList)
-call HDFnames%set_NMLfilename(SC_LaueNML)
-call HDFnames%set_Variable(SC_Laue)
-
-! perform the computations
-call Laue%ComputeLauePatterns(EMsoft, progname, HDFnames)
-
-end program EMLaue
+end module mod_xrd

@@ -29,9 +29,9 @@
 module mod_LaueSupport
 !! author: MDG 
 !! version: 1.0 
-!! date: 01/22/20
+!! date: 05/25/21
 !!
-!! class definition for the Laue modality
+!! class definition for the Laue reflection lists and associated computations
   
   use mod_kinds
   use mod_global
@@ -49,12 +49,8 @@ module mod_LaueSupport
     type(Laue_g_list),pointer :: next   ! connection to next reflector 
   end type Laue_g_list
 
-! namelist for the EMXXX program
-  type, public :: LaueNameListType
-  end type LaueNameListType
-
   ! class definition
-  type, public :: Laue_T
+  type, public :: LaueReflist_T
   private 
     type(Laue_g_list), pointer :: reflist
     type(Laue_g_list), pointer :: rltail
@@ -64,29 +60,36 @@ module mod_LaueSupport
   private 
     procedure, pass(self) :: MakeRefList_
     procedure, pass(self) :: get_ListHead_
+    procedure, pass(self) :: get_Listcnt_
     procedure, pass(self) :: Laue_Init_Reflist_
+    procedure, pass(self) :: getLauePattern_
   
     generic, public :: MakeRefList => MakeRefList_
     generic, public :: get_ListHead => get_ListHead_
+    generic, public :: get_Listcnt => get_Listcnt_
     generic, public :: Init_Reflist => Laue_Init_Reflist_
+    generic, public :: getLauePattern => getLauePattern_
   
-  end type Laue_T
+  end type LaueReflist_T
   
+  private :: addLauereflection_ 
+  public :: backprojectLauePattern
+
   ! the constructor routine for this class 
-  interface Laue_T
-    module procedure Laue_constructor
-  end interface Laue_T
+  interface LaueReflist_T
+    module procedure LaueReflist_constructor
+  end interface LaueReflist_T
   
   contains
   
   !--------------------------------------------------------------------------
-  type(Laue_T) function Laue_constructor( ) result(GVec)
-  !DEC$ ATTRIBUTES DLLEXPORT :: Laue_constructor
+  type(LaueReflist_T) function LaueReflist_constructor( ) result(GVec)
+  !DEC$ ATTRIBUTES DLLEXPORT :: LaueReflist_constructor
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/22/20
   !!
-  !! constructor for the Laue_T Class; reads the name list 
+  !! constructor for the LaueReflist_T Class; reads the name list 
    
   IMPLICIT NONE
   
@@ -96,11 +99,11 @@ module mod_LaueSupport
   GVec%nref = 0
   call GVec%MakeRefList()
 
-  end function Laue_constructor
+  end function LaueReflist_constructor
   
   !--------------------------------------------------------------------------
-  subroutine Laue_destructor(self) 
-  !DEC$ ATTRIBUTES DLLEXPORT :: Laue_destructor
+  subroutine LaueReflist_destructor(self) 
+  !DEC$ ATTRIBUTES DLLEXPORT :: LaueReflist_destructor
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/22/20
@@ -109,11 +112,11 @@ module mod_LaueSupport
    
   IMPLICIT NONE
   
-  type(Laue_T), INTENT(INOUT)  :: self 
+  type(LaueReflist_T), INTENT(INOUT)  :: self 
   
   call reportDestructor('Laue_T')
   
-  end subroutine Laue_destructor
+  end subroutine LaueReflist_destructor
 
   !--------------------------------------------------------------------------
   recursive subroutine MakeRefList_(self)
@@ -128,7 +131,7 @@ module mod_LaueSupport
 
   IMPLICIT NONE
 
-  class(Laue_T), INTENT(INOUT)  :: self
+  class(LaueReflist_T), INTENT(INOUT)  :: self
 
   type(IO_T)                        :: Message
   integer(kind=irg)                 :: istat
@@ -154,12 +157,30 @@ module mod_LaueSupport
 
   IMPLICIT NONE
 
-  class(Laue_T), INTENT(INOUT)  :: self
+  class(LaueReflist_T), INTENT(INOUT)  :: self
   type(Laue_g_list), pointer    :: glist
 
   glist => self%reflist
 
   end function get_ListHead_
+  
+    !--------------------------------------------------------------------------
+  recursive function get_Listcnt_(self) result(refcnt)
+  !DEC$ ATTRIBUTES DLLEXPORT :: get_Listcnt_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 05/25/21
+  !!
+  !! return the number of entries in the list
+
+  IMPLICIT NONE
+
+  class(LaueReflist_T), INTENT(INOUT)   :: self
+  integer(kind=irg)                     :: refcnt
+
+  refcnt = self%nref
+
+  end function get_Listcnt_
   
   !--------------------------------------------------------------------------
   subroutine Laue_Init_Reflist_(self, cell, SG, Diff, gcnt, lambdamin, intfactor, verbose)
@@ -178,7 +199,7 @@ module mod_LaueSupport
 
   IMPLICIT NONE 
   
-  class(Laue_T), INTENT(INOUT)       :: self
+  class(LaueReflist_T), INTENT(INOUT):: self
   type(IO_T)                         :: Message
   type(SpaceGroup_T), INTENT(INOUT)  :: SG
   type(Diffraction_T), INTENT(INOUT) :: Diff
@@ -238,10 +259,10 @@ module mod_LaueSupport
   ! three conditions, we'll first create a linked list and then copy
   ! that list into an allocatable array reflist
   if (.not.associated(self%reflist)) then ! allocate the head and tail of the linked list
-   allocate(self%reflist,stat=istat)         ! allocate new value
+   allocate(self%reflist,stat=istat)      ! allocate new value
    if (istat.ne.0) call Message%printError('Laue_Init_Reflist', 'unable to allocate reflist pointer')
-   gtail => self%reflist                     ! tail points to new value
-   nullify(gtail%next)                  ! nullify next in new value
+   gtail => self%reflist                  ! tail points to new value
+   nullify(gtail%next)                    ! nullify next in new value
   end if
   gtail => self%reflist
   call Diff%setrlpmethod('XR')
@@ -278,12 +299,12 @@ module mod_LaueSupport
               gcnt = gcnt + 1
 ! fill in the values
               gtail%hkl = (/ h, k, l /)
-              write(*,*) gtail%hkl
               call cell%TransSpace(dble(gtail%hkl), gtail%xyz, 'r', 'c')
 !            call NormVec(cell, gtail%xyz, 'c')    ! removed by MDG, 07/30/19 for EMLaue program
               gtail % tt = Diff%CalcDiffAngle(cell, (/h, k, l/))
               gtail % polar = (1.D0+ cos(2.D0*gtail%tt)**2)*0.5D0
               gtail % sfs = sfs / threshold
+              ! write(*,*) gtail%hkl, sfs
 ! and add it to the linked list
               allocate(gtail%next,stat=istat)    ! allocate new value
               if (istat.ne.0) call Message%printError('Laue_Init_Reflist', 'unable to allocate new entry in ghead linked list')
@@ -306,8 +327,263 @@ module mod_LaueSupport
 
   end subroutine Laue_Init_Reflist_
   
+!--------------------------------------------------------------------------
+recursive function getLauePattern_(self, Lauemode, SDdistance, Pixelsize, spotw, qu, kouter, kinner, &
+                                   npx, npy) result(pattern)
+!DEC$ ATTRIBUTES DLLEXPORT :: getLauePattern_
+  !! author: MDG 
+  !! version: 1.0 
+  !! date: 05/25/21
+  !!
+  !! compute a single Laue pattern
 
-  end module mod_LaueSupport
+use mod_io
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(LaueReflist_T),INTENT(INOUT)  :: self
+character(fnlen),INTENT(IN)         :: Lauemode
+real(kind=sgl),INTENT(IN)           :: SDdistance
+real(kind=sgl),INTENT(IN)           :: pixelsize
+real(kind=sgl),INTENT(IN)           :: spotw
+type(Quaternion_T),INTENT(IN)       :: qu
+real(kind=sgl),INTENT(IN)           :: kouter 
+real(kind=sgl),INTENT(IN)           :: kinner 
+integer(kind=irg),INTENT(IN)        :: npx 
+integer(kind=irg),INTENT(IN)        :: npy 
+real(kind=sgl)                      :: pattern(npx, npy)
+
+real(kind=sgl)                      :: r1, r2, grot(3), gyz, gbig, gsmall, kspot, kprime(3), kp(3), scl
+type(Laue_g_list),pointer           :: rltmp
+integer(kind=irg)                   :: gg, traref, refcnt
+
+traref = 1  ! reflection mode = 1
+if (trim(Lauemode).eq.'transmission') traref = 2 ! transmission mode = 2
+
+scl = SDdistance * 1000.0 / pixelsize 
+
+pattern = 0.0
+
+nullify(rltmp)
+rltmp => self%reflist
+refcnt = self%get_Listcnt()
+
+do gg=1,refcnt 
+  grot = sngl(qu%quat_Lp(rltmp%xyz))
+! make sure this reflection lies between the two limiting Ewald spheres
+  gyz = sum(grot*grot) 
+  gbig = 2.0*grot(1)*kouter + gyz 
+  gsmall = 2.0*grot(1)*kinner + gyz 
+  if ((gbig.le.0.0).and.(gsmall.ge.0.0)) then 
+! this is a good point so let's draw stuff
+! first, determine the wave number for this point
+    kspot = - gyz / (2.0*grot(1))
+    kprime = (/ kspot, 0.0, 0.0 /)  + grot
+    if ((kprime(1).gt.0.0).and.(traref.eq.2)) then 
+      kp = (kprime/abs(kprime(1))) * scl
+      if ( (abs(kp(2)).le.(npx/2)).and.(abs(kp(3)).le.(npy/2)) ) then 
+! draw the reflection on the transmission screen 
+      call addLauereflection_(pattern, npx, npy, kp, sngl(rltmp%sfs), spotw)
+      end if
+    end if 
+    if ((kprime(1).lt.0.0).and.(traref.eq.1)) then 
+      kp = (kprime/abs(kprime(1))) * scl
+      if ( (abs(kp(2)).le.(npx/2)).and.(abs(kp(3)).le.(npy/2)) ) then 
+! draw the reflection on the backreflection screen 
+      kp(2) = -kp(2)
+      call addLauereflection_(pattern, npx, npy, kp, sngl(rltmp%sfs), spotw)
+      end if
+    end if 
+  end if
+  rltmp => rltmp%next
+end do
+
+end function getLauePattern_
+
+!--------------------------------------------------------------------------
+recursive subroutine addLauereflection_(pattern, npx, npy, kp, sfs, spotw) 
+!DEC$ ATTRIBUTES DLLEXPORT :: addLauereflection_
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN)      :: npx
+integer(kind=irg),INTENT(IN)      :: npy
+real(kind=sgl),INTENT(INOUT)      :: pattern(npx, npy)
+!f2py intent(in,out) ::  pattern
+real(kind=sgl),INTENT(IN)         :: kp(3)
+real(kind=sgl),INTENT(IN)         :: sfs 
+real(kind=sgl),INTENT(IN)         :: spotw 
+
+integer(kind=irg),parameter       :: dd = 15
+real(kind=sgl),allocatable,save   :: xar(:,:), yar(:,:) 
+real(kind=sgl)                    :: row(dd), px, py, evals(dd,dd), dx, dy
+integer(kind=irg)                 :: i, ddd, ix, iy
+
+! make sure that the xar and yar arrays are allocated 
+if (allocated(xar).eqv..FALSE.) then 
+  row = (/ (real(i), i=0,dd-1) /) - real(dd/2)
+  allocate(xar(dd,dd), yar(dd,dd))
+  do i=1,dd 
+    xar(:,i) = row
+    yar(i,:) = row
+  end do
+end if
+
+ddd = (dd-1)/2
+
+px = kp(2) + real(npx/2)
+py = kp(3) + real(npy/2)
+
+dx = px-int(px)
+dy = py-int(py)
+ix = int(px)-ddd
+iy = int(py)-ddd 
+
+evals = alog(sfs+1.0) * exp( - ( (xar-dx)**2 + (yar -dy)**2 ) * spotw )
+
+if ( (ix+dd.lt.npx).and.(iy+dd.lt.npy).and.(ix.gt.0).and.(iy.gt.0) ) then
+  pattern(ix:ix+dd-1,iy:iy+dd-1) = pattern(ix:ix+dd-1,iy:iy+dd-1) + evals
+end if
+
+end subroutine addLauereflection_
+
+!--------------------------------------------------------------------------
+recursive function backprojectLauePattern(kk, delta, L, Lstart, Ldims, LPdims, Lpat, BPmode, LegendreArray) result(mLPNH)
+!DEC$ ATTRIBUTES DLLEXPORT :: backprojectLauePattern
+
+use mod_quaternions
+use mod_rotations
+use mod_Lambert
+
+IMPLICIT NONE
+
+real(kind=sgl),INTENT(IN)           :: kk(2)
+real(kind=sgl),INTENT(IN)           :: delta 
+real(kind=sgl),INTENT(IN)           :: L
+integer(kind=irg),INTENT(IN)        :: Lstart
+integer(kind=irg),INTENT(IN)        :: Ldims(2) 
+integer(kind=irg),INTENT(IN)        :: LPdims(2) 
+real(kind=sgl),INTENT(IN)           :: Lpat(Ldims(1),Ldims(2))
+character(fnlen),INTENT(IN)         :: BPmode
+real(kind=dbl), INTENT(IN)          :: LegendreArray(2*LPdims(1)+1)
+real(kind=sgl)                      :: mLPNH(-LPdims(1):LPdims(1), -LPdims(2):LPdims(2))
+
+integer(kind=irg)                   :: iz, iy, ierr, slp1(2), slp2(2), Lgx, Lgy, Lring, edge, j, k, Lx, Ly, Npts, rrr(2)
+real(kind=dbl)                      :: pz, py, phi, quat(4), r, p, q(3), Ledge, xy(2), d, &
+                                       Lpoint(2), dc(3), Ldc(3), LegendreLattitude, Ld(2), rr(2), qq(3)
+integer(kind=irg),allocatable       :: Lxy(:,:)
+type(Quaternion_T)                  :: yquat
+type(Lambert_T)                     :: Lam
+
+
+! scale factor for square Lambert projection
+Ledge = dble(LPdims(1))
+edge = int(Ledge)
+d = 0.5D0
+Lam = Lambert_T( xyd = (/ 0.D0, 0.D0 /) )
+
+! set the array to zero
+mLPNH = 0.0
+Ld = dble(delta * Ldims) / 2.D0
+
+! yquat = (/ 1.D0/sqrt(2.D0), 0.D0, -1.D0/sqrt(2.D0), 0.D0 /)
+
+! first find the limits in the square Laue pattern for the range of the back projection... 
+
+! we can either scan the detector and back project onto the square Legendre projection,
+! or we foward project from the square Legendre array and integrate the corresponding 
+! area on the detector...
+! if (trim(BPmode).eq.'backward') then 
+! ! this needs to be completed !!!
+!   do iy=1,Ldims(1)
+!     py = dble(iy-Ldims(1)/2) * delta
+!     do iz=1,Ldims(2)
+!       pz = dble(iz-Ldims(2)/2) * delta
+!       if (Lpat(iy,iz).ne.0.D0) then 
+!       ! if (Lpat(ix,iy).ge.1.D-3) then 
+!   ! get the azimuthal angle phi from px and py
+!           phi = datan2(py, pz) - cPi*0.5D0
+!           quat = (/ cos(phi*0.5D0), -sin(phi*0.5D0), 0.D0, 0.D0 /)
+!   ! use the analytical backprojection equation
+!           p = sqrt(L*L+py*py+pz*pz)
+!           r = 1.D0 / sqrt( 2.D0*p*(p+L) )
+!           q = (/ -0.5D0*sqrt(1.D0+L/p), py*r, pz*r /)
+!   ! this is the normal in the azimuthal plane (x,z); next we need to apply the rotation by phi 
+!   ! around x to bring the vector into the correct location
+!   ! also rotate these unit vectors by 90° around the y-axis so that they fall in along the equator
+!           q = quat_Lp(yquat,quat_Lp(quat, q))
+!           q = q/norm2(q) 
+!   ! convert to the Legendre lattitude 
+
+!   ! and project this point onto the Lambert square 
+!           xy = LambertSphereToSquare(q,ierr) * Ledge + Ledge
+!           if ((.not.isNaN(xy(1))) .and. (.not.isNaN(xy(2)))) then 
+!             call InsertIntensity( mLPNH, LPdims, xy, Lpat(iy,iz) )
+!           end if
+!       end if
+!     end do 
+!   end do
+! else ! we do a forward projection from the square Legendre array, going in concentric squares from the 
+     ! edge to the center, but terminating when we go off the detector surface; for each point on the 
+     ! square path, we convert to direction cosines, rescale to Legendre lattitudes, and then project
+     ! onto the detector plane.  
+  yquat = Quaternion_T( qd = (/ 1.D0/sqrt(2.D0), 0.D0, 1.D0/sqrt(2.D0), 0.D0 /) )
+  allocate(Lxy(2,4*(2*edge+1)))
+  do Lring = Lstart, edge/2 ! we skip several outer square rings since their intensity is zero
+    LegendreLattitude = LegendreArray( Lring )
+    k=1
+    Lxy = 0
+    Ly = edge-Lring
+    do Lx = -edge+Lring, edge-Lring    ! top line of square path 
+      Lxy(1:2,k) = (/Lx, Ly/)
+      k=k+1
+    end do 
+    Ly = -edge+Lring
+    do Lx = -edge+Lring, edge-Lring    ! bottom line of square path 
+      Lxy(1:2,k) = (/Lx, Ly/)
+      k=k+1
+    end do 
+    Lx = -edge+Lring
+    do Ly = -edge+Lring+1, edge-Lring-1    ! left line of square path 
+      Lxy(1:2,k) = (/Lx, Ly/)
+      k=k+1
+    end do 
+    Lx = edge-Lring
+    do Ly = -edge+Lring+1, edge-Lring-1    ! right line of square path 
+      Lxy(1:2,k) = (/Lx, Ly/)
+      k=k+1
+    end do 
+    Npts = k-1
+
+    do k=1,Npts
+! get the direction cosines for point k
+      call Lam%setxyd( (/ dble(Lxy(1,k)), dble(Lxy(2,k)) /) / Ledge )
+      ierr = Lam%LambertSquaretoSphere( dc )
+! convert to have Legendre lattitudes instead of Lambert lattitudes
+      p = sqrt((1.D0-LegendreLattitude**2)/(1.D0-dc(3)**2))
+      Ldc = (/ p*dc(1), p*dc(2), LegendreLattitude /)
+! rotate around the y-axis to the correct quadrant 
+      qq = yquat%quat_LP( Ldc )
+! finally, forward project the vector to the detector plane 
+      rr = 2.D0 * dble(L) * qq(1) / (2.D0*qq(1)**2-1.D0) * (/ qq(2), qq(3) /)       
+! if the point falls inside the field of view, then get the intensity
+      if ( ( (abs(rr(1)).lt.Ld(1)) .and. (abs(rr(2)).lt.Ld(2)) ).eqv..TRUE.) then 
+! convert to units of pixels      
+        rrr = nint( rr / delta ) + Ldims/2
+        if ( ((rrr(1).gt.0).and.(rrr(1).lt.Ldims(1))) .and. ( (rrr(2).gt.0).and.(rrr(2).lt.Ldims(2) ) ) ) then 
+          mLPNH(Lxy(1,k), Lxy(2,k)) = Lpat( rrr(1), rrr(2) )
+        end if
+      end if 
+    end do 
+  end do 
+! end if
+
+end function backprojectLauePattern
+
+
+end module mod_LaueSupport
 
 ! these routines need to go in the Laue_T Class
 ! !--------------------------------------------------------------------------

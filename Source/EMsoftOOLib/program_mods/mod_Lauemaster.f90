@@ -355,7 +355,7 @@ module mod_Lauemaster
   type(Timing_T)                          :: timer
   type(Diffraction_T)                     :: Diff
   type(IO_T)                              :: Message
-  type(Laue_T)                            :: reflist
+  type(LaueReflist_T)                     :: reflist
   type(Lambert_T)                         :: L
   type(HDF_T)                             :: HDF
   type(SpaceGroup_T)                      :: SG
@@ -456,7 +456,7 @@ module mod_Lauemaster
   !=============================================
   !=============================================
   ! compute reflection list with kinematical intensities
-  reflist = Laue_T()
+  reflist = LaueReflist_T()
   call  reflist%Init_Reflist(cell, SG, Diff,  gcnt, lmnl%lambdamin, lmnl%intfactor, verbose)
 
   !=============================================
