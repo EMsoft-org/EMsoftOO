@@ -1292,7 +1292,7 @@ end if
 ! precompute the Legendre array for the new lattitudinal grid values
 if (trim(lnl%backprojection).eq.'Yes') then 
   call Message%printMessage(' Computing Legendre lattitudinal grid values')
-  call mem%alloc(diagonal, (/ BPnpx /), 'diagonal', initval=0.D0),
+  call mem%alloc(diagonal, (/ BPnpx /), 'diagonal', initval=0.D0)
   call mem%alloc(upd, (/ BPnpx /), 'upd')
   upd = (/ (dble(i) / dsqrt(4.D0 * dble(i)**2 - 1.D0), i=1,BPnpx) /)
   call dsterf(BPnpx-2, diagonal, upd, info) 
