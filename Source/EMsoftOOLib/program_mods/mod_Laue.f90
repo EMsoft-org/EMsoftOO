@@ -1086,6 +1086,8 @@ call Message%WriteValue(' Number of orientations read from file: ', io_int, 1)
 kouter = getXRDwavenumber(lnl%maxVoltage)
 kinner = getXRDwavenumber(lnl%minVoltage)
 
+write (*,*) 'wave numbers : ', kouter, kinner 
+
 !=============================================
 !=============================================
 ! crystallography section 
@@ -1096,7 +1098,7 @@ call Diff%setrlpmethod('XR')
 
 dmin = 0.05
 call Diff%setV(dble(1.0))
-call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
+call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF, noLUT=.TRUE.)
 
 if ((SG%getSpaceGroupXtalSystem().eq.5).and.(cell%getLatParm('b').eq.cell%getLatParm('c'))) then
     call Message%printMessage( (/ &
@@ -1288,17 +1290,20 @@ end if
 !=============================================
 !=============================================
 ! precompute the Legendre array for the new lattitudinal grid values
+if (trim(lnl%backprojection).eq.'Yes') then 
   call Message%printMessage(' Computing Legendre lattitudinal grid values')
-  allocate(diagonal(2*npx+1),upd(2*npx+1))
-  diagonal = 0.D0
-  upd = (/ (dble(i) / dsqrt(4.D0 * dble(i)**2 - 1.D0), i=1,2*npx+1) /)
-  call dsterf(2*npx-1, diagonal, upd, info) 
-! the eigenvalues are stored from smallest to largest and we need them in the opposite direction
-  allocate(LegendreArray(0:2*npx))
-  LegendreArray(0:2*npx) = diagonal(2*npx+1:1:-1)
-! set the center eigenvalue to 0
-  LegendreArray(npx) = 0.D0
-  deallocate(diagonal, upd)
+  call mem%alloc(diagonal, (/ BPnpx /), 'diagonal', initval=0.D0),
+  call mem%alloc(upd, (/ BPnpx /), 'upd')
+  upd = (/ (dble(i) / dsqrt(4.D0 * dble(i)**2 - 1.D0), i=1,BPnpx) /)
+  call dsterf(BPnpx-2, diagonal, upd, info) 
+  ! the eigenvalues are stored from smallest to largest and we need them in the opposite direction
+  call mem%alloc(LegendreArray, (/ BPnpx-1 /), 'LegendreArray', startdims = (/ 0 /) )
+  LegendreArray(0:BPnpx-1) = diagonal(BPnpx:1:-1)
+  ! set the center eigenvalue to 0
+  LegendreArray((BPnpx-1)/2) = 0.D0
+  call mem%dealloc(diagonal, 'diagonal') 
+  call mem%dealloc(upd, 'upd')
+end if 
 
 !=============================================
 !=============================================
@@ -1345,9 +1350,9 @@ memth = Memory_T( nt = lnl%nthreads )
 !$OMP DO SCHEDULE(DYNAMIC)
       do jj = 1,batchnumangles(ii)
         bp = backprojectLauePattern( (/kouter, kinner/), lnl%pixelsize, lnl%SDdistance, Lstart, &
-                                     (/npx, npy/), (/BPnpx, BPnpy/), patternbatch(1:npx,1:npy,jj), &
+                                     (/npx, npy/), (/ lnl%BPx, lnl%BPx /), patternbatch(1:npx,1:npy,jj), &
                                      lnl%Lauemode, LegendreArray)
-        bppatterns(1:npx,1:npy,jj) = bp
+        bppatterns(1:BPnpx,1:BPnpy,jj) = bp
       end do 
 !$OMP END DO
     if (TID.eq.0) then 
@@ -1456,6 +1461,9 @@ call closeFortranHDFInterface()
 ! clean up allocated memory 
 call mem%dealloc(patternbatch, 'patternbatch')
 call mem%dealloc(batchnumangles, 'batchnumangles')
+if (trim(lnl%backprojection).eq.'Yes') then 
+  call mem%dealloc(LegendreArray, 'LegendreArray')
+end if 
 
 ! call mem%allocated_memory_use()
 ! call memth%thread_memory_use()

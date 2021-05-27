@@ -294,6 +294,7 @@ module mod_LaueSupport
           if ( SG%IsGAllowed( (/ h,k,l /) ) ) then    ! this is not a systematic extinction
 ! does this reflection have a non-zero structure factor larger than the threshold?
             call Diff%CalcUcg(cell, (/ h, k, l /) )
+            rlp = Diff%getrlp()
             sfs = cabs(rlp%Ucg)**2 
             if (sfs.ge.th) then   ! count this reflection 
               gcnt = gcnt + 1
@@ -316,6 +317,8 @@ module mod_LaueSupport
       end do
     end do
   end do
+
+  self%nref = gcnt 
 
   if (present(verbose)) then
     if (verbose) then
@@ -362,7 +365,7 @@ integer(kind=irg)                   :: gg, traref, refcnt
 traref = 1  ! reflection mode = 1
 if (trim(Lauemode).eq.'transmission') traref = 2 ! transmission mode = 2
 
-scl = SDdistance * 1000.0 / pixelsize 
+scl = SDdistance / pixelsize 
 
 pattern = 0.0
 
@@ -385,15 +388,15 @@ do gg=1,refcnt
       kp = (kprime/abs(kprime(1))) * scl
       if ( (abs(kp(2)).le.(npx/2)).and.(abs(kp(3)).le.(npy/2)) ) then 
 ! draw the reflection on the transmission screen 
-      call addLauereflection_(pattern, npx, npy, kp, sngl(rltmp%sfs), spotw)
+        call addLauereflection_(pattern, npx, npy, kp, sngl(rltmp%sfs), spotw)
       end if
     end if 
     if ((kprime(1).lt.0.0).and.(traref.eq.1)) then 
       kp = (kprime/abs(kprime(1))) * scl
       if ( (abs(kp(2)).le.(npx/2)).and.(abs(kp(3)).le.(npy/2)) ) then 
 ! draw the reflection on the backreflection screen 
-      kp(2) = -kp(2)
-      call addLauereflection_(pattern, npx, npy, kp, sngl(rltmp%sfs), spotw)
+        kp(2) = -kp(2)
+        call addLauereflection_(pattern, npx, npy, kp, sngl(rltmp%sfs), spotw)
       end if
     end if 
   end if

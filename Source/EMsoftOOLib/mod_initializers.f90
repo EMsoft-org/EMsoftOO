@@ -117,6 +117,7 @@ call Diff%CalcWaveLength(cell)
 
 ! compute the range of reflections for the lookup table and allocate the table
 ! The master list is easily created by brute force
+if (compute) then
  imh = 1
  do
    dhkl = 1.0/cell%CalcLength( (/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
@@ -159,7 +160,7 @@ ddt = 1.0e-5
 ! it is better to decouple these two computations. In this new approach, we'll compute a much
 ! shorter linked list based on the incident wave vector direction.
 
-if (compute) then
+
 ! first, we deal with the transmitted beam
  gg = (/ 0,0,0 /)
  if (interp.eqv..TRUE.) then
