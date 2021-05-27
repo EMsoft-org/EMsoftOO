@@ -2163,7 +2163,7 @@ if (lnl%projectionmode.eq.'T') then
   numvox = icnt
   io_int(1) = numvox
   call Message%WriteValue(' total number of sample voxels : ',io_int, 1, frm = "(I8)")
-  io_int(1) = refcnt
+  io_int(1) = gcnt
   call Message%WriteValue(' total number of potential reflections : ',io_int, 1, frm = "(I8)")
 end if 
 
@@ -2325,7 +2325,7 @@ dataset = SC_StopTime
   hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
 
 dataset = SC_Duration
-  hdferr = HDF%writeDatasetFloat(dataset, tstop)
+  hdferr = HDF%writeDatasetFloat(dataset, tstop, overwrite)
 
  call HDF%pop(.TRUE.)
 
