@@ -40,7 +40,7 @@ module mod_LaueSupport
   private
 
   ! linked list for Laue XRD computations.
-  type, public :: Laue_g_list  
+  type, public :: Laue_g_list
     integer(kind=irg)   :: hkl(3)       ! Miller indices
     real(kind=dbl)      :: xyz(3)       ! Cartesian components of the plane normal
     real(kind=dbl)      :: tt           ! 2theta value
@@ -49,12 +49,24 @@ module mod_LaueSupport
     type(Laue_g_list),pointer :: next   ! connection to next reflector 
   end type Laue_g_list
 
+  type, public :: Laue_grow_list  
+    integer(kind=irg)             :: hkl(3)       ! Miller indices
+    real(kind=dbl)                :: xyz(3)       ! Cartesian components of the unit plane normal
+    real(kind=dbl),allocatable    :: sfs(:)       ! |structure factor|^2
+    real(kind=dbl),allocatable    :: dspacing(:)  ! d-spacing
+    integer(kind=irg)             :: Nentries     ! dimension of the sfs and dspacing arrays
+    type(Laue_grow_list),pointer  :: next         ! connection to next reflector
+  end type Laue_grow_list
+
   ! class definition
   type, public :: LaueReflist_T
   private 
-    type(Laue_g_list), pointer :: reflist
-    type(Laue_g_list), pointer :: rltail
-    integer(kind=irg)          :: nref
+    type(Laue_g_list), pointer    :: reflist
+    type(Laue_g_list), pointer    :: rltail
+    type(Laue_grow_list), pointer :: reflistgrow
+    type(Laue_grow_list), pointer :: rltailgrow
+    integer(kind=irg)             :: nref
+    integer(kind=irg)             :: nrefgrow
   
   contains
   private 
@@ -62,17 +74,21 @@ module mod_LaueSupport
     procedure, pass(self) :: get_ListHead_
     procedure, pass(self) :: get_Listcnt_
     procedure, pass(self) :: Laue_Init_Reflist_
+    procedure, pass(self) :: Laue_Init_Unit_Reflist_
     procedure, pass(self) :: getLauePattern_
+    procedure, pass(self) :: getLaueDCTPattern_
   
     generic, public :: MakeRefList => MakeRefList_
     generic, public :: get_ListHead => get_ListHead_
     generic, public :: get_Listcnt => get_Listcnt_
     generic, public :: Init_Reflist => Laue_Init_Reflist_
+    generic, public :: Init_Unit_Reflist => Laue_Init_Unit_Reflist_
     generic, public :: getLauePattern => getLauePattern_
+    generic, public :: getLaueDCTPattern => getLaueDCTPattern_
   
   end type LaueReflist_T
   
-  private :: addLauereflection_ 
+  private :: addLauereflection_, addLaueSlitreflection_
   public :: backprojectLauePattern
 
   ! the constructor routine for this class 
@@ -183,7 +199,7 @@ module mod_LaueSupport
   end function get_Listcnt_
   
   !--------------------------------------------------------------------------
-  subroutine Laue_Init_Reflist_(self, cell, SG, Diff, gcnt, lambdamin, intfactor, verbose)
+  subroutine Laue_Init_Reflist_(self, cell, SG, Diff, gcnt, lambdamin, intfactor, verbose, shortg)
   !DEC$ ATTRIBUTES DLLEXPORT :: Laue_Init_Reflist_
   !! author: MDG 
   !! version: 1.0 
@@ -199,27 +215,28 @@ module mod_LaueSupport
 
   IMPLICIT NONE 
   
-  class(LaueReflist_T), INTENT(INOUT):: self
-  type(IO_T)                         :: Message
-  type(SpaceGroup_T), INTENT(INOUT)  :: SG
-  type(Diffraction_T), INTENT(INOUT) :: Diff
-  type(Cell_T), INTENT(INOUT)        :: cell
-  integer(kind=irg),INTENT(OUT)      :: gcnt
-  real(kind=sgl), INTENT(IN)         :: lambdamin
-  real(kind=dbl) , INTENT(IN)        :: intfactor
-  logical,INTENT(IN),OPTIONAL        :: verbose
+  class(LaueReflist_T), INTENT(INOUT)     :: self
+  type(IO_T)                              :: Message
+  type(SpaceGroup_T), INTENT(INOUT)       :: SG
+  type(Diffraction_T), INTENT(INOUT)      :: Diff
+  type(Cell_T), INTENT(INOUT)             :: cell
+  integer(kind=irg),INTENT(OUT)           :: gcnt
+  real(kind=sgl), INTENT(IN)              :: lambdamin
+  real(kind=dbl) , INTENT(IN)             :: intfactor
+  logical,INTENT(IN),OPTIONAL             :: verbose
+  real(kind=sgl),INTENT(INOUT),OPTIONAL   :: shortg
 
-  type(Laue_g_list),pointer         :: gtmp, gtail                ! linked list for allowed g-vector search 
-  type(gnode)                       :: rlp
-  real(kind=sgl)                    :: gmax                       !< diameter of limiting sphere
-  real(kind=sgl)                    :: ghkl                       !< length of a reciprocal lattice vector
-  integer(kind=irg)                 :: imh, imk, iml              !< maximum index along a*, b*, and c*
-  real(kind=sgl)                    :: g(3), tt                   !< g-vector and 2theta
-  integer(kind=irg)                 :: io_int(3)                  !< io variable
-  real(kind=sgl)                    :: io_real(1)                 !< io variable
-  integer(kind=irg)                 :: istat, h, k, l, icnt       !< status variables and such
-  !real(kind=sgl),parameter          :: tdtr = 114.5915590262      !< 2 * 180.0 / pi
-  real(kind=sgl)                    :: threshold, th, sfs         !< threshold for discarding allowed reflections, |F|^2
+  type(Laue_g_list),pointer               :: gtmp, gtail                ! linked list for allowed g-vector search 
+  type(gnode)                             :: rlp
+  real(kind=sgl)                          :: gmax                       !< diameter of limiting sphere
+  real(kind=sgl)                          :: ghkl                       !< length of a reciprocal lattice vector
+  integer(kind=irg)                       :: imh, imk, iml              !< maximum index along a*, b*, and c*
+  real(kind=sgl)                          :: g(3), tt, shg              !< g-vector and 2theta
+  integer(kind=irg)                       :: io_int(3)                  !< io variable
+  real(kind=sgl)                          :: io_real(1)                 !< io variable
+  integer(kind=irg)                       :: istat, h, k, l, icnt       !< status variables and such
+  !real(kind=sgl),parameter                :: tdtr = 114.5915590262      !< 2 * 180.0 / pi
+  real(kind=sgl)                          :: threshold, th, sfs         !< threshold for discarding allowed reflections, |F|^2
 
 
   ! first get the range of Miller indices based on the lattice parameters and the xray wave length
@@ -282,6 +299,7 @@ module mod_LaueSupport
   gcnt = 0
   icnt = 0
   th = sngl(intfactor) * threshold
+  shg = 1000.0
   do h=-imh,imh
     do k=-imk,imk
       do l=-iml,iml
@@ -289,6 +307,7 @@ module mod_LaueSupport
         g =float( (/ h, k, l /) )
 ! first of all, is this reflection inside the limiting sphere? (CalcLength)
         ghkl = cell%CalcLength(g,'r')
+        if (ghkl.lt.shg) shg = ghkl ! only used if shortg argument is present
         if ((ghkl.le.gmax).and.(ghkl.gt.0.0)) then 
 ! then see if the reflection is allowed by systematic extinction (IsGAllowed)
           if ( SG%IsGAllowed( (/ h,k,l /) ) ) then    ! this is not a systematic extinction
@@ -327,6 +346,7 @@ module mod_LaueSupport
     end if
   end if 
 
+  if (present(shortg)) shortg = shg 
 
   end subroutine Laue_Init_Reflist_
   
@@ -451,6 +471,51 @@ if ( (ix+dd.lt.npx).and.(iy+dd.lt.npy).and.(ix.gt.0).and.(iy.gt.0) ) then
 end if
 
 end subroutine addLauereflection_
+
+!--------------------------------------------------------------------------
+recursive subroutine addLaueSlitreflection_(pattern, npx, npy, kp, sfs, spotw) 
+!DEC$ ATTRIBUTES DLLEXPORT :: addLauereflection_
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN)      :: npx
+integer(kind=irg),INTENT(IN)      :: npy
+real(kind=sgl),INTENT(INOUT)      :: pattern(npx, npy)
+!f2py intent(in,out) ::  pattern
+real(kind=sgl),INTENT(IN)         :: kp(3)
+real(kind=sgl),INTENT(IN)         :: sfs 
+real(kind=sgl),INTENT(IN)         :: spotw 
+
+integer(kind=irg),parameter       :: dd = 15
+real(kind=sgl),allocatable        :: xar(:,:), yar(:,:) 
+real(kind=sgl)                    :: row(dd), px, py, evals(dd,dd), dx, dy
+integer(kind=irg)                 :: i, ddd, ix, iy
+
+! make sure that the xar and yar arrays are allocated 
+row = (/ (real(i), i=0,dd-1) /) - real(dd/2)
+allocate(xar(dd,dd), yar(dd,dd))
+do i=1,dd 
+  xar(:,i) = row
+  yar(i,:) = row
+end do
+
+ddd = (dd-1)/2
+
+px = kp(2) + real(npx/2)
+py = kp(3) + real(npy/2)
+
+dx = px-int(px)
+dy = py-int(py)
+ix = int(px)-ddd
+iy = int(py)-ddd 
+
+evals = sfs * exp( - ( (xar-dx)**2 + (yar -dy)**2 ) * spotw )
+
+if ( (ix+dd.lt.npx).and.(iy+dd.lt.npy).and.(ix.gt.0).and.(iy.gt.0) ) then
+  pattern(ix:ix+dd-1,iy:iy+dd-1) = pattern(ix:ix+dd-1,iy:iy+dd-1) + evals
+end if
+
+end subroutine addLaueSlitreflection_
 
 !--------------------------------------------------------------------------
 recursive function backprojectLauePattern(kk, delta, L, Lstart, Ldims, LPdims, Lpat, BPmode, LegendreArray) result(mLPNH)
@@ -585,377 +650,411 @@ Ld = dble(delta * Ldims) / 2.D0
 
 end function backprojectLauePattern
 
+!--------------------------------------------------------------------------
+recursive function getLaueDCTPattern_(self, qu, lmin, lmax, refcnt, Ny, Nz, ps, projectionmode, sampletodetector, samplethickness, &
+                                      absl, spotw, Dy, Dz, kinpre, kvec, kvox, binarize) result(pattern)
+!DEC$ ATTRIBUTES DLLEXPORT :: getLaueDCTPattern_
+
+use mod_io
+use mod_math
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(LaueReflist_T),INTENT(INOUT)      :: self
+! type(LaueSlitNameListType),INTENT(IN)   :: lnl 
+type(Quaternion_T),INTENT(IN)           :: qu
+real(kind=sgl),INTENT(IN)               :: lmin
+real(kind=sgl),INTENT(IN)               :: lmax
+integer(kind=irg),INTENT(IN)            :: refcnt
+integer(kind=irg),INTENT(IN)            :: Ny
+integer(kind=irg),INTENT(IN)            :: Nz
+real(kind=dbl),INTENT(IN)               :: ps 
+character(1),INTENT(IN)                 :: projectionmode
+real(kind=dbl),INTENT(IN)               :: sampletodetector 
+real(kind=dbl),INTENT(IN)               :: samplethickness
+real(kind=dbl),INTENT(IN)               :: absl
+real(kind=sgl),INTENT(IN)               :: spotw
+real(kind=dbl),INTENT(IN)               :: Dy
+real(kind=dbl),INTENT(IN)               :: Dz
+real(kind=sgl),INTENT(IN)               :: kinpre
+real(kind=sgl),INTENT(IN)               :: kvec(3)
+real(kind=sgl),INTENT(IN)               :: kvox(3)
+real(kind=sgl)                          :: pattern(Ny, Nz)
+logical                                 :: binarize
+    
+real(kind=sgl)                          :: th, la, s0(3), s(3), G(3), d, scl, dvec(3), kexit(3), kinpost, dins, atf, Ly, Lz, pre
+type(Laue_grow_list),pointer            :: rltmp
+integer(kind=irg)                       :: i, j, k , spots
+
+! common parameters
+Ly = float(Ny/2) * ps
+Lz = float(Nz/2) * ps
+
+pattern = 0.0
+
+nullify(rltmp)
+rltmp => self%reflistgrow
+
+if (projectionmode.eq.'T') then 
+! this is the transmission mode; we follow the algorithm suggested in
+! the paper by Arnaud et al., "A laboratory transmission diffraction Laue 
+! setup to evaluate single crystal quality", to appear in JAC.  We take the 
+! unit incident beam direction and dot it with all the unit reciprocal lattice
+! vectors to get the diffraction angle; then we use Bragg's law and the interplanar
+! spacing to extract the wave length that gives rise to the reflection; if this 
+! wavelength falls inside the given interval, then we proceed and add the reflection
+! to the pattern.  
+
+  d = sampletodetector - samplethickness
+ 
+! first handle the transmitted beam  (normalized to unit intensity)
+  if (kvec(1).gt.0.0) then 
+    scl = (d + abs(kvox(1))) / kvec(1)    ! scale factor to get to the detector plane
+    dvec = kvox + kvec * scl             ! this is with respect to the optical axis
+    dvec = dvec + (/ 0.D0, Dy, Dz  /)   ! correct for the pattern center to get detector coordinates
+    if ((abs(dvec(2)).lt.Ly).or.(abs(dvec(3)).lt.Lz)) then ! we plot this reflection
+! correct the intensity for absorption (total distance inside sample dins = kinpre + kinpost)
+      scl = abs(kvox(1)) / kvec(1)    ! scale factor to get to the sample exit plane
+      kexit = kvox + kvec * scl       ! this is with respect to the optical axis
+      kinpost = sqrt(sum((kexit-kvox)**2))
+      dins = kinpre + kinpost 
+      atf = exp( - dins/absl ) ! * lnl%beamstopatf
+      if (binarize.eqv..TRUE.) atf = 1.0
+! and draw the reflection
+      dvec = dvec / ps 
+      dvec(2) = -dvec(2)
+      call addLaueSlitreflection_(pattern, Ny, Nz, dvec, atf, spotw)
+    end if 
+  end if
+
+
+! go through the entire linked list and determine for each potential reflector whether or not
+! the corresponding wave length falls inside the allowed range; if so, then compute whether or 
+! not this diffracted beam intersects the detector and generate the correct intensity at that
+! detector pixel 
+
+  do i = 1, refcnt 
+! for all the allowed reflections along this systematic row, compute the wave length
+! using Bragg's law 
+    rltmp%xyz = rltmp%xyz / vecnorm(rltmp%xyz)
+    G = sngl(qu%quat_Lp(rltmp%xyz))
+    if (G(1).lt.0.0) then 
+      G = G / vecnorm(G)
+! get the diffraction angle for the unit vectors
+      th = acos( DOT_PRODUCT(kvec, G) ) - 0.5D0*cPi
+      pre = -2.D0 * DOT_PRODUCT(kvec, G)
+      do j = 1, rltmp%Nentries
+        if (rltmp%sfs(j).ne.0.0) then 
+          la = 2.0 * rltmp%dspacing(j) * sin(th)
+          if ((la.gt.lmin).and.(la.lt.lmax)) then ! we have a potential diffracted beam !
+            ! get the scattered beam 
+            s0 = kvec ! / la
+            s = s0 + pre * G 
+! this vector originates at the point kvox in the sample, so next we compute 
+! where the intersection with the detector plane will be; we only need to take 
+! into account those s-vectors that have a positive x-component. 
+            if (s(1).gt.0.0) then 
+              scl = (d + abs(kvox(1))) / s(1)    ! scale factor to get to the detector plane
+              dvec = kvox + s * scl             ! this is with respect to the optical axis
+              dvec = dvec + (/ 0.D0, Dy, Dz  /)   ! correct for the pattern center to get detector coordinates
+              if ((abs(dvec(2)).lt.Ly).or.(abs(dvec(3)).lt.Lz)) then ! we plot this reflection
+! correct the intensity for absorption (total distance inside sample dins = kinpre + kinpost)
+                scl = abs(kvox(1)) / s(1)    ! scale factor to get to the sample exit plane
+                kexit = kvox + s * scl       ! this is with respect to the optical axis
+                kinpost = sqrt(sum((kexit-kvox)**2))
+                dins = kinpre + kinpost 
+                atf = exp( - dins/absl )*rltmp%sfs(j)
+                if (binarize.eqv..TRUE.) atf = 1.0
+! and draw the reflection
+                dvec = dvec / ps 
+                dvec(2) = -dvec(2)
+                call addLaueSlitreflection_(pattern, Ny, Nz, dvec, sngl(atf), spotw)
+              end if 
+            else
+              CYCLE
+            end if
+          end if
+        end if 
+      end do 
+    end if
+    rltmp => rltmp%next
+  end do 
+end if  ! transmission mode 
+
+! the following modes are much simpler since they do not require an integration 
+! over the sample voxels
+if (projectionmode.eq.'B') then ! back-reflection
+! go through the entire linked list and determine for each potential reflector whether or not
+! the corresponding wave length falls inside the allowed range; if so, then compute whether or 
+! not this diffracted beam intersects the detector and generate the correct intensity at that
+! detector pixel 
+d = sampletodetector
+spots = 0
+rltmp => rltmp%next  ! skip the first reflection ...  ?
+  do i = 1, refcnt-1
+! for all the allowed reflections along this systematic row, compute the wave length
+! using Bragg's law 
+    rltmp%xyz = rltmp%xyz / vecnorm(rltmp%xyz)
+    G = sngl(qu%quat_Lp(rltmp%xyz))
+    if (G(1).lt.0.0) then 
+      G = G / vecnorm(G)
+! get the diffraction angle for the unit vectors
+      th = acos( DOT_PRODUCT(kvec, G) ) - 0.5D0*cPi
+      pre = -2.D0 * DOT_PRODUCT(kvec, G)
+      do j = 1, rltmp%Nentries
+        if (rltmp%sfs(j).ne.0.0) then 
+          la = 2.0 * rltmp%dspacing(j) * sin(th)
+          if ((la.gt.lmin).and.(la.lt.lmax)) then ! we have a potential diffracted beam !
+            ! get the scattered beam 
+            s0 = kvec ! / la
+            s = s0 + pre * G 
+! this vector originates at the point kvox in the sample, so next we compute 
+! where the intersection with the detector plane will be; we only need to take 
+! into account those s-vectors that have a positive x-component. 
+            if (s(1).lt.0.0) then 
+              scl = d / s(1)    ! scale factor to get to the detector plane
+              dvec = s * scl    ! this is with respect to the optical axis
+              dvec = dvec + (/ 0.D0, Dy, Dz  /)   ! correct for the pattern center to get detector coordinates
+              if ((abs(dvec(2)).lt.Ly).or.(abs(dvec(3)).lt.Lz)) then ! we plot this reflection
+                atf = rltmp%sfs(j)
+                if (binarize.eqv..TRUE.) atf = 1.0
+! and draw the reflection
+                dvec = dvec / ps 
+                dvec(2) = -dvec(2)
+                call addLaueSlitreflection_(pattern, Ny, Nz, dvec, sngl(atf), spotw)
+                spots = spots + 1
+              end if 
+            else
+              CYCLE
+            end if
+          end if
+        end if 
+      end do 
+    end if
+    rltmp => rltmp%next
+  end do 
+end if 
+
+! if (projectionmode.eq.'S') then ! side-reflection
+
+! end if 
+
+end function getLaueDCTPattern_
+
+!--------------------------------------------------------------------------
+subroutine Laue_Init_Unit_Reflist_(self, cell, SG, Diff, lambdamin, intfactor, gcnt, verbose, shortg)
+!DEC$ ATTRIBUTES DLLEXPORT :: Laue_Init_Unit_Reflist_
+
+use mod_io
+use mod_misc
+use mod_crystallography
+use mod_symmetry
+use mod_diffraction 
+use mod_postscript
+use mod_memory
+
+IMPLICIT NONE
+
+class(LaueReflist_T),INTENT(INOUT):: self
+type(Cell_T),INTENT(INOUT)        :: cell
+type(SpaceGroup_T),INTENT(INOUT)  :: SG 
+type(Diffraction_T), INTENT(INOUT):: Diff
+real(kind=sgl),INTENT(IN)         :: lambdamin
+real(kind=sgl),INTENT(IN)         :: intfactor
+integer(kind=irg),INTENT(OUT)     :: gcnt
+logical,OPTIONAL,INTENT(IN)       :: verbose                    ! print output or not ?
+real(kind=sgl),INTENT(INOUT),OPTIONAL :: shortg
+
+type(Laue_grow_list),pointer      :: gtmp, gtail                ! linked list for allowed g-vector search 
+type(gnode)                       :: rlp
+type(IO_T)                        :: Message 
+type(memory_T)                    :: mem 
+
+logical,allocatable               :: z(:,:,:)
+
+real(kind=sgl)                    :: gmax                       !< diameter of limiting sphere
+real(kind=sgl)                    :: ghkl, shg                  !< length of a reciprocal lattice vector
+integer(kind=irg)                 :: imh, imk, iml              !< maximum index along a*, b*, and c*
+real(kind=sgl)                    :: tt                         !< 2theta
+integer(kind=irg)                 :: io_int(3)                  !< io variable
+real(kind=sgl)                    :: io_real(1)                 !< io variable
+integer(kind=irg)                 :: i, istat, h, k, l, icnt, g(3), gr(3), rf, lcnt       !< status variables and such
+real(kind=sgl)                    :: threshold, th, sfs         !< threshold for discarding allowed reflections, |F|^2
+
+! first get the range of Miller indices based on the lattice parameters and the xray wave length
+ gmax = 2.0 / lambdamin      ! radius of the limiting sphere for smallest wave length  [nm^-1]
+ imh = 1
+ do   ! a* direction
+   imh = imh + 1
+   ghkl = cell%CalcLength((/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
+   if (ghkl.gt.gmax) EXIT
+ end do
+ imk = 1
+ do  ! b* direction
+   imk = imk + 1
+   ghkl = cell%CalcLength((/0.0_sgl,float(imk),0.0_sgl/), 'r')
+   if (ghkl.gt.gmax) EXIT
+ end do
+ iml = 1
+ do  ! c* direction
+   iml = iml + 1
+   ghkl = cell%CalcLength((/0.0_sgl,0.0_sgl,float(iml)/), 'r')
+   if (ghkl.gt.gmax) EXIT
+ end do
+
+! output range
+if (present(verbose)) then 
+  if (verbose) then
+    io_int = (/ imh, imk ,iml /)
+    call Message%WriteValue('Range of reflections along a*, b* and c* = ', io_int, 3)
+  end if
+end if 
+ 
+! logical array to keep track of reflections that we have already dealt with (.TRUE.)
+mem = memory_T()
+call mem%alloc(z, (/ imh, imk, iml /), 'z', initval = .FALSE., startdims = (/ -imh, -imk, -iml /) )
+
+! next we make a list of all rlp's that satisfy the following conditions
+!  - rlp must be inside the limiting sphere;
+!  - rlp must not be a systematic extinction;
+!  - rlp must not be a symmetry-induced extinction (since everything is kinematical)
+! Since we don't know a-priori how many rlps will satisfy all
+! three conditions, we'll first create a linked list and then copy
+! that list into an allocatable array reflist
+if (.not.associated(self%reflistgrow)) then ! allocate the head and tail of the linked list
+ allocate(self%reflistgrow,stat=istat)      ! allocate new value
+ if (istat.ne.0) call Message%printError('Laue_Init_Unit_Reflist', 'unable to allocate reflist pointer')
+ gtail => self%reflistgrow                  ! tail points to new value
+ nullify(gtail%next)                        ! nullify next in new value
+end if
+gtail => self%reflistgrow
+call Diff%setrlpmethod('XR')
+
+  ! compute the intensity threshold parameter as a fraction of |F(000)|^2 
+call Diff%CalcUcg(cell,(/0, 0, 0/))
+rlp = Diff%getrlp()
+threshold = cabs(rlp%Ucg)**2
+if (present(verbose)) then
+  if (verbose) then
+    io_real(1) = threshold 
+    call Message%WriteValue(' Intensity Threshold value : ', io_real, 1)
+  end if
+end if
+
+! now loop over all g-vectors inside the imh, imk, iml range
+! we keep only the unit normal, and we also keep the structure factors 
+! and d-spacings for a series of positive multiples of g (i.e., we keep Friedel
+! pairs apart).  This will then allow for an efficient scan through the Ewald
+! volume in the pattern generation module. 
+
+! to ensure that we get the correct ranges for the sfs and dspacing arrays, we 
+! first reduce each hkl to the smallest common denominator, which sets the Nentries
+! parameter; then we compute all the sfs and dspacing values, as well as the unit 
+! g-vector (in the Cartesian crystal reference frame) and we set all the points along
+! the g row to .TRUE. in the z logical array
+gcnt = 0
+icnt = 0
+lcnt = 0
+th = intfactor * threshold
+shg = 1000.0 
+
+! loop over the entire reciprocal space sublattice
+do h=-imh,imh
+ do k=-imk,imk
+  do l=-iml,iml
+! skip the origin !  (transmitted beam will be handled separately)
+    if (maxval(abs( (/ h, k, l /) ) ).eq.0) CYCLE
+! have we already dealt with this reflection?
+    if (z(h,k,l).eqv..TRUE.) CYCLE 
+! is this reflection forbidden by lattice centering ?
+    if ( .not.SG%IsGAllowed( (/ h, k, l /) ) ) then 
+      z(h,k,l) = .TRUE.
+      CYCLE
+    end if 
+! we haven't covered this one yet so let's reduce the Miller indices to the lowest common denominator
+    g = (/ h, k, l /)
+    gr = g
+    call IndexReduce( gr )
+! the reduction factor is ...
+    do i=1,3
+      if (gr(i).ne.0) then 
+        rf = g(i)/gr(i)
+        EXIT 
+      end if 
+    end do 
+! have we done this one yet ?  If not, then we fill in the linked list entry, and 
+! allocate the next one 
+    if (z(gr(1),gr(2),gr(3)).eqv..FALSE.) then
+! set the entire systematic row to .TRUE. to avoid visiting them again 
+      do rf=1,100
+        ghkl = cell%CalcLength(float(rf*gr),'r')
+        if (rf.eq.1) then 
+          if (ghkl.lt.shg) shg = ghkl 
+        end if 
+        if (ghkl.gt.gmax) EXIT 
+      end do
+      rf = rf-1
+      do i=1,rf 
+        z(i*gr(1), i*gr(2), i*gr(3)) = .TRUE.
+      end do
+! the reduction factor is also the Nentries parameter for the linked list, so we create a 
+! new entry in the list and generate the proper arrays sfs and dspacing
+      gtail % hkl = gr 
+! convert the shortest g-vector to a unit cartesian vector
+      call cell%TransSpace(dble(gr), gtail % xyz, 'r', 'c')
+      call cell%NormVec(gtail%xyz, 'c')
+! then deal with the intensities and d-spacings
+      gtail % Nentries = rf 
+      call mem%alloc( gtail%sfs, (/ rf /), 'gtail%sfs', initval = 0.D0) 
+      call mem%alloc( gtail%dspacing, (/ rf /), 'gtail%dspacing', initval = 0.D0 )
+      do i=1,rf
+! is this reflection inside the limiting sphere? (CalcLength)
+        ghkl = cell%CalcLength(float(i*gr),'r')
+        if ((ghkl.le.gmax).and.(ghkl.gt.0.0)) then 
+          if ( SG%IsGAllowed( i*gr ) ) then ! allowed reflection, so compute the entries
+            call Diff%CalcUcg(cell, i*gr )
+            rlp = Diff%getrlp()
+            gtail % sfs(i) = cabs(rlp % Ucg)**2 / threshold 
+            if (gtail%sfs(i).gt.intfactor) then 
+              gtail % dspacing(i) = 1.0/cell%CalcLength(float(i*gr), 'r')
+            else 
+              gtail % dspacing(i) = 0.0
+              gtail % sfs(i) = 0.0
+            end if 
+          end if
+        end if
+      end do
+      if (sum(gtail%sfs).eq.0.0) then 
+        call mem%dealloc(gtail%sfs, 'gtail%sfs')
+        call mem%dealloc(gtail%dspacing, 'gtail%dspacing')
+      else
+! extend the linked list
+        allocate(gtail%next,stat=istat)    ! allocate new value
+        if (istat.ne.0) call Message%printError('Laue_Init_Unit_Reflist', 'unable to allocate new entry in linked list')
+        gtail => gtail%next              ! gtail points to new value
+        nullify(gtail%next)              ! nullify next in new value
+        gcnt = gcnt + 1
+      end if
+    end if
+    icnt = icnt + 1
+  end do
+ end do
+end do
+
+if (present(verbose)) then
+  if (verbose) then
+    io_int(1:2) = (/ gcnt, icnt /)
+    call Message%WriteValue(' Total number of reflections accepted/tested = ', io_int, 2, frm="(I8,'/',I8)")
+  end if
+end if 
+
+if (present(shortg)) shortg = shg 
+
+end subroutine Laue_Init_Unit_Reflist_
+
+
+
 
 end module mod_LaueSupport
-
-! these routines need to go in the Laue_T Class
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: Laue_Init_Reflist
-! !
-! !> @author Marc De Graef, Carnegie Melon University
-! !
-! !> @brief compute the list of all possible reciprocal lattice points for Laue XRD
-! !
-! !> @param verbose print output when .TRUE.
-! !
-! !> @date 03/14/19 MDG 1.0 original
-! !--------------------------------------------------------------------------
-! subroutine Laue_Init_Reflist(cell, lmnl, reflist, gcnt, verbose)
-!   !! author: MDG 
-!   !! version: 1.0 
-!   !! date: 02/02/20
-!   !!
-!   !!
-
-! use local
-! use io
-! use crystal
-! use error
-! use symmetry
-! use diffraction 
-! use NameListTypedefs
-
-! IMPLICIT NONE
-
-! type(unitcell)                    :: cell
-! type(LaueMasterNameListType),INTENT(INOUT) :: lmnl
-! !f2py intent(in,out) ::  lmnl
-! type(Laue_g_list),pointer         :: reflist                    ! linked list for allowed g-vector search 
-! integer(kind=irg),INTENT(OUT)     :: gcnt
-! logical,OPTIONAL,INTENT(IN)       :: verbose                    ! print output or not ?
-
-! type(Laue_g_list),pointer         :: gtmp, gtail                ! linked list for allowed g-vector search 
-! type(gnode)                       :: rlp
-
-! real(kind=sgl)                    :: gmax                       !< diameter of limiting sphere
-! real(kind=sgl)                    :: ghkl                       !< length of a reciprocal lattice vector
-! integer(kind=irg)                 :: imh, imk, iml              !< maximum index along a*, b*, and c*
-! real(kind=sgl)                    :: g(3), tt                   !< g-vector and 2theta
-! integer(kind=irg)                 :: io_int(3)                  !< io variable
-! real(kind=sgl)                    :: io_real(1)                 !< io variable
-! integer(kind=irg)                 :: istat, h, k, l, icnt       !< status variables and such
-! !real(kind=sgl),parameter          :: tdtr = 114.5915590262      !< 2 * 180.0 / pi
-! real(kind=sgl)                    :: threshold, th, sfs         !< threshold for discarding allowed reflections, |F|^2
-
-! ! first get the range of Miller indices based on the lattice parameters and the xray wave length
-!  gmax = 2.0 / lmnl%lambdamin      ! radius of the limiting sphere for smallest wave length  [nm^-1]
-!  imh = 1
-!  do   ! a* direction
-!    imh = imh + 1
-!    ghkl = CalcLength(cell,  (/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
-!    if (ghkl.gt.gmax) EXIT
-!  end do
-!  imk = 1
-!  do  ! b* direction
-!    imk = imk + 1
-!    ghkl = CalcLength(cell, (/0.0_sgl,float(imk),0.0_sgl/), 'r')
-!    if (ghkl.gt.gmax) EXIT
-!  end do
-!  iml = 1
-!  do  ! c* direction
-!    iml = iml + 1
-!    ghkl = CalcLength(cell, (/0.0_sgl,0.0_sgl,float(iml)/), 'r')
-!    if (ghkl.gt.gmax) EXIT
-!  end do
-
-! ! output range
-! if (present(verbose)) then 
-!   if (verbose) then
-!     io_int = (/ imh, imk ,iml /)
-!     call WriteValue('Range of reflections along a*, b* and c* = ', io_int, 3)
-!   end if
-! end if 
- 
-! ! next we make a list of all rlp's that satisfy the following conditions
-! !  - rlp must be inside the limiting sphere;
-! !  - rlp must not be a systematic extinction;
-! !  - rlp must not be a symmetry-induced extinction (since everything is kinematical)
-! ! Since we don't know a-priori how many rlps will satisfy all
-! ! three conditions, we'll first create a linked list and then copy
-! ! that list into an allocatable array reflist
-!  if (.not.associated(reflist)) then ! allocate the head and tail of the linked list
-!    allocate(reflist,stat=istat)         ! allocate new value
-!    if (istat.ne.0) call FatalError('Laue_Init_Reflist', 'unable to allocate reflist pointer')
-!    gtail => reflist                     ! tail points to new value
-!    nullify(gtail%next)                  ! nullify next in new value
-!  end if
-
-! ! initialize the computation mode X-Ray
-! rlp%method = 'XR'
-
-! ! compute the intensity threshold parameter as a fraction of |F(000)|^2 
-!  call CalcUcg(cell, rlp, (/0, 0, 0/) )
-!  threshold = cabs(rlp%Ucg)**2
-! if (present(verbose)) then
-!   if (verbose) then
-!     io_real(1) = threshold 
-!     call WriteValue(' Intensity Threshold value : ', io_real, 1)
-!   end if
-! end if
-
-! ! now loop over all g-vectors inside the imh, imk, iml range
-! gcnt = 0
-! icnt = 0
-! th = lmnl%intfactor * threshold
-! do h=-imh,imh
-!  do k=-imk,imk
-!   do l=-iml,iml
-!    icnt = icnt + 1
-!     g =float( (/ h, k, l /) )
-! ! first of all, is this reflection inside the limiting sphere? (CalcLength)
-!     ghkl = CalcLength(cell,g,'r')
-!     if ((ghkl.le.gmax).and.(ghkl.gt.0.0)) then 
-! ! then see if the reflection is allowed by systematic extinction (IsGAllowed)
-!        if ( IsGAllowed(cell, (/ h,k,l /) ) ) then    ! this is not a systematic extinction
-! ! does this reflection have a non-zero structure factor larger than the threshold?
-!            call CalcUcg(cell, rlp, (/ h, k, l /) )
-!            sfs = cabs(rlp % Ucg)**2 
-!            if (sfs.ge.th) then   ! count this reflection 
-!              gcnt = gcnt + 1
-! ! fill in the values
-!              gtail % hkl = (/ h, k, l /)
-!              call TransSpace(cell, dble(gtail % hkl), gtail % xyz, 'r', 'c')
-! !             call NormVec(cell, gtail%xyz, 'c')    ! removed by MDG, 07/30/19 for EMLaue program
-!              gtail % tt = CalcDiffAngle(cell,h,k,l)
-!              gtail % polar = (1.D0+ cos(2.D0*gtail%tt)**2)*0.5D0
-!              gtail % sfs = sfs / threshold
-! ! and add it to the linked list
-!              allocate(gtail%next,stat=istat)    ! allocate new value
-!              if (istat.ne.0) call FatalError('Laue_Init_Reflist', 'unable to allocate new entry in ghead linked list')
-!              gtail => gtail%next              ! gtail points to new value
-!              nullify(gtail%next)              ! nullify next in new value
-!            end if
-!        end if
-!     end if
-!   end do
-!  end do
-! end do
-
-! if (present(verbose)) then
-!   if (verbose) then
-!     io_int(1) = gcnt
-!     call WriteValue(' Total number of reflections = ', io_int, 1)
-!   end if
-! end if 
-
-! end subroutine Laue_Init_Reflist
-
-
-
-! !--------------------------------------------------------------------------
-! !
-! ! SUBROUTINE: Laue_Init_Unit_Reflist
-! !
-! !> @author Marc De Graef, Carnegie Melon University
-! !
-! !> @brief compute the list of all possible reciprocal lattice points for Laue XRD;
-! !> in this particular version, we return only unit length g-vectors, and then only
-! !> one Friedel pair for each lattice row.  We also keep the structure factors for
-! !> entire row, since we will need to evaluate which multiple of g actually causes the
-! !> reflection; we will also need the d-spacings for each of them.  The linked list 
-! !> generated by this routine has a type that is different from the regular Laue linked list
-! !
-! !> @param verbose print output when .TRUE.
-! !
-! !> @date 01/29/20 MDG 1.0 original
-! !--------------------------------------------------------------------------
-! subroutine Laue_Init_Unit_Reflist(cell, lmnl, reflist, gcnt, verbose)
-! !DEC$ ATTRIBUTES DLLEXPORT :: Laue_Init_Unit_Reflist
-
-! use local
-! use io
-! use crystal
-! use error
-! use symmetry
-! use diffraction 
-! use postscript
-! use NameListTypedefs
-
-! IMPLICIT NONE
-
-! type(unitcell)                    :: cell
-! type(LaueMasterNameListType),INTENT(INOUT) :: lmnl
-! !f2py intent(in,out) ::  lmnl
-! type(Laue_grow_list),pointer      :: reflist                    ! linked list for allowed g-vector search 
-! integer(kind=irg),INTENT(OUT)     :: gcnt
-! logical,OPTIONAL,INTENT(IN)       :: verbose                    ! print output or not ?
-
-! type(Laue_grow_list),pointer      :: gtmp, gtail                ! linked list for allowed g-vector search 
-! type(gnode)                       :: rlp
-
-! logical,allocatable               :: z(:,:,:)
-
-! real(kind=sgl)                    :: gmax                       !< diameter of limiting sphere
-! real(kind=sgl)                    :: ghkl                       !< length of a reciprocal lattice vector
-! integer(kind=irg)                 :: imh, imk, iml              !< maximum index along a*, b*, and c*
-! real(kind=sgl)                    :: tt                         !< 2theta
-! integer(kind=irg)                 :: io_int(3)                  !< io variable
-! real(kind=sgl)                    :: io_real(1)                 !< io variable
-! integer(kind=irg)                 :: i, istat, h, k, l, icnt, g(3), gr(3), rf, lcnt       !< status variables and such
-! !real(kind=sgl),parameter          :: tdtr = 114.5915590262      !< 2 * 180.0 / pi
-! real(kind=sgl)                    :: threshold, th, sfs         !< threshold for discarding allowed reflections, |F|^2
-
-! ! first get the range of Miller indices based on the lattice parameters and the xray wave length
-!  gmax = 2.0 / lmnl%lambdamin      ! radius of the limiting sphere for smallest wave length  [nm^-1]
-!  imh = 1
-!  do   ! a* direction
-!    imh = imh + 1
-!    ghkl = CalcLength(cell,  (/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
-!    if (ghkl.gt.gmax) EXIT
-!  end do
-!  imk = 1
-!  do  ! b* direction
-!    imk = imk + 1
-!    ghkl = CalcLength(cell, (/0.0_sgl,float(imk),0.0_sgl/), 'r')
-!    if (ghkl.gt.gmax) EXIT
-!  end do
-!  iml = 1
-!  do  ! c* direction
-!    iml = iml + 1
-!    ghkl = CalcLength(cell, (/0.0_sgl,0.0_sgl,float(iml)/), 'r')
-!    if (ghkl.gt.gmax) EXIT
-!  end do
-
-! ! output range
-! if (present(verbose)) then 
-!   if (verbose) then
-!     io_int = (/ imh, imk ,iml /)
-!     call WriteValue('Range of reflections along a*, b* and c* = ', io_int, 3)
-!   end if
-! end if 
- 
-! ! logical array to keep track of reflections that we have already dealt with (.TRUE.)
-! allocate(z(-imh:imh, -imk:imk, -iml:iml))
-! z = .FALSE.   ! all are set to .FALSE. to start the triple loop through the reciprocal lattice 
-
-! ! next we make a list of all rlp's that satisfy the following conditions
-! !  - rlp must be inside the limiting sphere;
-! !  - rlp must not be a systematic extinction;
-! !  - rlp must not be a symmetry-induced extinction (since everything is kinematical)
-! ! Since we don't know a-priori how many rlps will satisfy all
-! ! three conditions, we'll first create a linked list and then copy
-! ! that list into an allocatable array reflist
-!  if (.not.associated(reflist)) then ! allocate the head and tail of the linked list
-!    allocate(reflist,stat=istat)         ! allocate new value
-!    if (istat.ne.0) call FatalError('Laue_Init_Reflist', 'unable to allocate reflist pointer')
-!    gtail => reflist                     ! tail points to new value
-!    nullify(gtail%next)                  ! nullify next in new value
-!  end if
-
-! ! initialize the computation mode X-Ray
-! rlp%method = 'XR'
-
-! ! compute the intensity threshold parameter as a fraction of |F(000)|^2 
-!  call CalcUcg(cell, rlp, (/0, 0, 0/) )
-!  threshold = cabs(rlp%Ucg)**2
-! if (present(verbose)) then
-!   if (verbose) then
-!     io_real(1) = threshold 
-!     call WriteValue(' Intensity Threshold value : ', io_real, 1)
-!   end if
-! end if
-
-! ! now loop over all g-vectors inside the imh, imk, iml range
-! ! we keep only the unit normal, and we also keep the structure factors 
-! ! and d-spacings for a series of positive multiples of g (i.e., we keep Friedel
-! ! pairs apart).  This will then allow for an efficient scan through the Ewald
-! ! volume in the pattern generation module. 
-
-! ! to ensure that we get the correct ranges for the sfs and dspacing arrays, we 
-! ! first reduce each hkl to the smallest common denominator, which sets the Nentries
-! ! parameter; then we compute all the sfs and dspacing values, as well as the unit 
-! ! g-vector (in the Cartesian crystal reference frame) and we set all the points along
-! ! the g row to .TRUE. in the z logical array
-! gcnt = 0
-! icnt = 0
-! lcnt = 0
-! th = lmnl%intfactor * threshold
-
-! ! loop over the entire reciprocal space sublattice
-! do h=-imh,imh
-!  do k=-imk,imk
-!   do l=-iml,iml
-! ! skip the origin !  (transmitted beam will be handled separately)
-!     if (maxval(abs( (/ h, k, l /) ) ).eq.0) CYCLE
-! ! have we already dealt with this reflection?
-!     if (z(h,k,l).eqv..TRUE.) CYCLE 
-! ! is this reflection forbidden by lattice centering ?
-!     if ( .not.IsGAllowed(cell, (/ h, k, l /) ) ) then 
-!       z(h,k,l) = .TRUE.
-!       CYCLE
-!     end if 
-! ! we haven't covered this one yet so let's reduce the Miller indices to the lowest common denominator
-!     g = (/ h, k, l /)
-!     gr = g
-!     call IndexReduce( gr )
-! ! the reduction factor is ...
-!     do i=1,3
-!       if (gr(i).ne.0) then 
-!         rf = g(i)/gr(i)
-!         EXIT 
-!       end if 
-!     end do 
-! ! have we done this one yet ?  If not, then we fill in the linked list entry, and 
-! ! allocate the next one 
-!     if (z(gr(1),gr(2),gr(3)).eqv..FALSE.) then
-! ! set the entire systematic row to .TRUE. to avoid visiting them again 
-!       do rf=1,100
-!         ghkl = CalcLength(cell,float(rf*gr),'r')
-!         if (ghkl.gt.gmax) EXIT 
-!       end do
-!       rf = rf-1
-!       do i=1,rf 
-!         z(i*gr(1), i*gr(2), i*gr(3)) = .TRUE.
-!       end do
-! ! the reduction factor is also the Nentries parameter for the linked list, so we create a 
-! ! new entry in the list and generate the proper arrays sfs and dspacing
-!       gtail % hkl = gr 
-! ! convert the shortest g-vector to a unit cartesian vector
-!       call TransSpace(cell, dble(gr), gtail % xyz, 'r', 'c')
-!       call NormVec(cell, gtail%xyz, 'c')
-! ! then deal with the intensities and d-spacings
-!       gtail % Nentries = rf 
-!       allocate( gtail%sfs(rf), gtail%dspacing(rf) )
-!       gtail % sfs = 0.0
-!       gtail % dspacing = 0.0
-!       do i=1,rf
-! ! is this reflection inside the limiting sphere? (CalcLength)
-!         ghkl = CalcLength(cell,float(i*gr),'r')
-!         if ((ghkl.le.gmax).and.(ghkl.gt.0.0)) then 
-!           if ( IsGAllowed(cell, i*gr ) ) then ! allowed reflection, so compute the entries
-!             call CalcUcg(cell, rlp, i*gr )
-!             gtail % sfs(i) = cabs(rlp % Ucg)**2 / threshold 
-!             if (gtail%sfs(i).gt.lmnl%intfactor) then 
-!               gtail % dspacing(i) = 1.0/CalcLength(cell, float(i*gr), 'r')
-!             else 
-!               gtail % dspacing(i) = 0.0
-!               gtail % sfs(i) = 0.0
-!             end if 
-!           end if
-!         end if
-!       end do
-!       if (sum(gtail%sfs).eq.0.0) then 
-!         deallocate(gtail%sfs, gtail%dspacing)
-!       else
-! ! extend the linked list
-!         allocate(gtail%next,stat=istat)    ! allocate new value
-!         if (istat.ne.0) call FatalError('Laue_Init_Unit_Reflist', 'unable to allocate new entry in linked list')
-!         gtail => gtail%next              ! gtail points to new value
-!         nullify(gtail%next)              ! nullify next in new value
-!         gcnt = gcnt + 1
-!       end if
-!     end if
-!     icnt = icnt + 1
-!   end do
-!  end do
-! end do
-
-! if (present(verbose)) then
-!   if (verbose) then
-!     io_int(1:2) = (/ gcnt, icnt /)
-!     call WriteValue(' Total number of reflections accepted/tested = ', io_int, 2, frm="(I8,'/',I8)")
-!   end if
-! end if 
-
-! end subroutine Laue_Init_Unit_Reflist

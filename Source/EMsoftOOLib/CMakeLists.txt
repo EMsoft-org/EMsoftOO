@@ -109,6 +109,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_CPLMmaster.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Lauemaster.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Laue.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_LaueDCT.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

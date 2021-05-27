@@ -37,6 +37,8 @@ use mod_kinds
 use mod_global
 use mod_EMsoft
 use mod_LaueDCT
+use mod_HDFnames
+use stringconstants
 
 IMPLICIT NONE
 
@@ -45,6 +47,7 @@ character(fnlen)                :: progdesc = 'Forward projection for polycrysta
 
 type(EMsoft_T)                  :: EMsoft
 type(LaueDCT_T)                 :: DCT 
+type(HDFnames_T)                :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 252 /) )
@@ -52,7 +55,15 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 252 /) )
 ! deal with the namelist stuff
 DCT = LaueDCT_T(EMsoft%nmldeffile)
 
+! set the HDFnames to the correct strings for this program
+HDFnames = HDFnames_T()
+call HDFnames%set_EMData(SC_EMData)
+call HDFnames%set_ProgramData(SC_LaueDCT)
+call HDFnames%set_NMLlist(SC_LaueDCTNameList)
+call HDFnames%set_NMLfilename(SC_LaueDCTNML)
+call HDFnames%set_Variable(SC_LaueDCT)
+
 ! perform the computations
-call DCT%LaueDCT(EMsoft, progname)
+call DCT%LaueDCT(EMsoft, progname, HDFnames)
 
 end program EMLaueDCT
