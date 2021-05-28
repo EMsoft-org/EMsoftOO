@@ -65,15 +65,20 @@ type, public :: LaueDCTNameListType
         real(kind=sgl)          :: sampletilt       ! for side-reflection mode
         real(kind=sgl)          :: gammavalue
         real(kind=dbl)          :: intcutoffratio
+        real(kind=dbl)          :: samplescalefactor! scale factor from DREAM.3D units to mm
         integer(kind=irg)       :: BPx
         integer(kind=irg)       :: nthreads
         logical                 :: binarize
+        logical                 :: singlextal       ! .TRUE. for single crystal, .FALSE. for polycrystal
         character(1)            :: projectionmode   ! 'B'= back-reflection; 'S' = side-reflection; 'T' = transmission
         character(fnlen)        :: backprojection
         character(fnlen)        :: orientationfile
         character(fnlen)        :: tiffprefix
         character(fnlen)        :: hdfname
         character(fnlen)        :: xtalname
+        character(fnlen)        :: DREAM3Dfilename
+        character(fnlen)        :: EulerAnglesHDFpath(10)
+        character(fnlen)        :: FeatureIDsHDFpath(10)
 end type LaueDCTNameListType
 
 ! class definition
@@ -113,15 +118,18 @@ private
   procedure, pass(self) :: get_sampletilt_
   procedure, pass(self) :: get_gammavalue_
   procedure, pass(self) :: get_intcutoffratio_
+  procedure, pass(self) :: get_samplescalefactor_
   procedure, pass(self) :: get_BPx_
   procedure, pass(self) :: get_nthreads_
   procedure, pass(self) :: get_binarize_
+  procedure, pass(self) :: get_singlextal_
   procedure, pass(self) :: get_projectionmode_
   procedure, pass(self) :: get_backprojection_
   procedure, pass(self) :: get_orientationfile_
   procedure, pass(self) :: get_tiffprefix_
   procedure, pass(self) :: get_hdfname_
   procedure, pass(self) :: get_xtalname_
+  procedure, pass(self) :: get_DREAM3Dfilename_
   procedure, pass(self) :: set_Lw_
   procedure, pass(self) :: set_Lh_
   procedure, pass(self) :: set_Lx_
@@ -147,15 +155,18 @@ private
   procedure, pass(self) :: set_sampletilt_
   procedure, pass(self) :: set_gammavalue_
   procedure, pass(self) :: set_intcutoffratio_
+  procedure, pass(self) :: set_samplescalefactor_
   procedure, pass(self) :: set_BPx_
   procedure, pass(self) :: set_nthreads_
   procedure, pass(self) :: set_binarize_
+  procedure, pass(self) :: set_singlextal_
   procedure, pass(self) :: set_projectionmode_
   procedure, pass(self) :: set_backprojection_
   procedure, pass(self) :: set_orientationfile_
   procedure, pass(self) :: set_tiffprefix_
   procedure, pass(self) :: set_hdfname_
   procedure, pass(self) :: set_xtalname_
+  procedure, pass(self) :: set_DREAM3Dfilename_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -186,15 +197,18 @@ private
   generic, public :: get_sampletilt => get_sampletilt_
   generic, public :: get_gammavalue => get_gammavalue_
   generic, public :: get_intcutoffratio => get_intcutoffratio_
+  generic, public :: get_samplescalefactor => get_samplescalefactor_
   generic, public :: get_BPx => get_BPx_
   generic, public :: get_nthreads => get_nthreads_
   generic, public :: get_binarize => get_binarize_
+  generic, public :: get_singlextal => get_singlextal_
   generic, public :: get_projectionmode => get_projectionmode_
   generic, public :: get_backprojection => get_backprojection_
   generic, public :: get_orientationfile => get_orientationfile_
   generic, public :: get_tiffprefix => get_tiffprefix_
   generic, public :: get_hdfname => get_hdfname_
   generic, public :: get_xtalname => get_xtalname_
+  generic, public :: get_DREAM3Dfilename => get_DREAM3Dfilename_
   generic, public :: set_Lw => set_Lw_
   generic, public :: set_Lh => set_Lh_
   generic, public :: set_Lx => set_Lx_
@@ -220,15 +234,18 @@ private
   generic, public :: set_sampletilt => set_sampletilt_
   generic, public :: set_gammavalue => set_gammavalue_
   generic, public :: set_intcutoffratio => set_intcutoffratio_
+  generic, public :: set_samplescalefactor => set_samplescalefactor_
   generic, public :: set_BPx => set_BPx_
   generic, public :: set_nthreads => set_nthreads_
   generic, public :: set_binarize => set_binarize_
+  generic, public :: set_singlextal => set_singlextal_
   generic, public :: set_projectionmode => set_projectionmode_
   generic, public :: set_backprojection => set_backprojection_
   generic, public :: set_orientationfile => set_orientationfile_
   generic, public :: set_tiffprefix => set_tiffprefix_
   generic, public :: set_hdfname => set_hdfname_
   generic, public :: set_xtalname => set_xtalname_
+  generic, public :: set_DREAM3Dfilename => set_DREAM3Dfilename_
 end type LaueDCT_T
 
 ! the constructor routine for this class 
@@ -1173,6 +1190,42 @@ self%lnl%intcutoffratio = inp
 end subroutine set_intcutoffratio_
 
 !--------------------------------------------------------------------------
+function get_samplescalefactor_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_samplescalefactor_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! get samplescalefactor from the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+real(kind=dbl)                      :: out
+
+out = self%lnl%samplescalefactor
+
+end function get_samplescalefactor_
+
+!--------------------------------------------------------------------------
+subroutine set_samplescalefactor_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_samplescalefactor_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! set samplescalefactor in the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)          :: inp
+
+self%lnl%samplescalefactor = inp
+
+end subroutine set_samplescalefactor_
+
+!--------------------------------------------------------------------------
 function get_BPx_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_BPx_
 !! author: MDG 
@@ -1280,6 +1333,41 @@ self%lnl%binarize = inp
 
 end subroutine set_binarize_
 
+!--------------------------------------------------------------------------
+function get_singlextal_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_singlextal_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! get singlextal from the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+logical                             :: out
+
+out = self%lnl%singlextal
+
+end function get_singlextal_
+
+!--------------------------------------------------------------------------
+subroutine set_singlextal_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_singlextal_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! set singlextal in the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)                 :: inp
+
+self%lnl%singlextal = inp
+
+end subroutine set_singlextal_
 !--------------------------------------------------------------------------
 function get_projectionmode_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_projectionmode_
@@ -1497,6 +1585,42 @@ self%lnl%xtalname = inp
 end subroutine set_xtalname_
 
 !--------------------------------------------------------------------------
+function get_DREAM3Dfilename_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_DREAM3Dfilename_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! get DREAM3Dfilename from the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+character(fnlen)                    :: out
+
+out = self%lnl%DREAM3Dfilename
+
+end function get_DREAM3Dfilename_
+
+!--------------------------------------------------------------------------
+subroutine set_DREAM3Dfilename_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_DREAM3Dfilename_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! set DREAM3Dfilename in the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)        :: inp
+
+self%lnl%DREAM3Dfilename = inp
+
+end subroutine set_DREAM3Dfilename_
+
+!--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
 !! author: MDG 
 !! version: 1.0 
@@ -1544,23 +1668,27 @@ real(kind=sgl)                       :: spotw
 real(kind=sgl)                       :: sampletilt
 real(kind=sgl)                       :: gammavalue
 real(kind=dbl)                       :: intcutoffratio
+real(kind=dbl)                       :: samplescalefactor
 integer(kind=irg)                    :: BPx
 integer(kind=irg)                    :: nthreads
 logical                              :: binarize
+logical                              :: singlextal
 character(1)                         :: projectionmode
 character(fnlen)                     :: backprojection
 character(fnlen)                     :: orientationfile
 character(fnlen)                     :: tiffprefix
 character(fnlen)                     :: hdfname
 character(fnlen)                     :: xtalname
-
-
+character(fnlen)                     :: DREAM3Dfilename
+character(fnlen)                     :: EulerAnglesHDFpath(10)
+character(fnlen)                     :: FeatureIDsHDFpath(10)
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / LaueDCTData / Lw,Lh,Lx,Ly,Lz,VoltageH,VoltageL,Sx,sampletodetector, beamstopwidth, beamstopheight,&
                           samplethickness,ps,Ny,Nz,Dx,Dy,Dz,vs,absl, binarize, sampletilt, &
-                          beamstopatf,spotw,BPx,nthreads,backprojection, intcutoffratio, &
-                          orientationfile,tiffprefix,hdfname,xtalname, gammavalue, projectionmode
+                          beamstopatf,spotw,BPx,nthreads,backprojection, intcutoffratio, samplescalefactor, &
+                          orientationfile,tiffprefix,hdfname,xtalname, gammavalue, projectionmode, &
+                          singlextal, DREAM3Dfilename, EulerAnglesHDFpath, FeatureIDsHDFpath
 
 Lw               = 2.D0    ! slit width (mm)
 Lh               = 2.D0    ! slit height (mm)
@@ -1589,13 +1717,26 @@ spotw            = 0.1     ! spot size weight factor (1/(2*sigma^2))
 sampletilt       = 40.D0   ! sample tilt for side-reflection mode 
 gammavalue       = 1.0     ! scaling factor for gamma intensity scaling
 intcutoffratio   = 0.0001D0! intensity ratio cut off
+samplescalefactor= 1.D0    ! 1 micron per DREAM.3D pixel
 binarize         = .FALSE.
+singlextal       = .TRUE.  ! .TRUE. for single crystal, .FALSE. for polycrystal (requires DREAM.3D file)
 projectionmode   = 'T'     ! transmission; 'B' for back-reflection, 'S' for side-reflection
 backprojection   = 'No'    ! 'Yes' or 'No'; adds backprojections to output file
 orientationfile  = 'undefined'  ! input file with orientation list 
 tiffprefix       = 'undefined'  ! prefix for tiff output files with individual patterns
 xtalname         = 'undefined'  ! structure file name
 hdfname          = 'undefined'  ! HDF output file name
+DREAM3Dfilename  = 'undefined'  ! DREAM.3D input file name (only for polycrystal)
+EulerAnglesHDFpath = (/ '', '', '', '', '', '', '', '', '', '' /) ! path to EulerAngles 
+FeatureIDsHDFpath  = (/ '', '', '', '', '', '', '', '', '', '' /)  ! path to FeatureIDs 
+
+EulerAnglesHDFpath(1) = 'DataContainers'
+EulerAnglesHDFpath(3) = 'CellData'
+EulerAnglesHDFpath(4) = 'EulerAngles'
+
+FeatureIDsHDFpath(1) = 'DataContainers'
+FeatureIDsHDFpath(3) = 'CellData'
+FeatureIDsHDFpath(4) = 'FeatureIDs'
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -1616,6 +1757,11 @@ if (.not.skipread) then
  end if
  if (trim(orientationfile).eq.'undefined') then
   call Message%printError('readNameList:',' orientation file name is undefined in '//nmlfile)
+ end if
+ if (singlextal.eqv..FALSE.) then 
+   if (trim(DREAM3Dfilename).eq.'undefined') then
+    call Message%printError('readNameList:',' DREAM3D file name is undefined in '//nmlfile)
+   end if
  end if
 end if
 
@@ -1645,6 +1791,7 @@ self%lnl%sampletilt = sampletilt
 self%lnl%BPx = BPx
 self%lnl%nthreads = nthreads
 self%lnl%intcutoffratio = intcutoffratio
+self%lnl%samplescalefactor = samplescalefactor
 self%lnl%backprojection = backprojection
 self%lnl%projectionmode = projectionmode
 self%lnl%orientationfile = orientationfile
@@ -1652,6 +1799,10 @@ self%lnl%tiffprefix = tiffprefix
 self%lnl%hdfname = hdfname
 self%lnl%xtalname = xtalname
 self%lnl%binarize = binarize
+self%lnl%singlextal = singlextal
+self%lnl%DREAM3Dfilename = DREAM3Dfilename
+self%lnl%EulerAnglesHDFpath = EulerAnglesHDFpath
+self%lnl%FeatureIDsHDFpath = FeatureIDsHDFpath
 
 end subroutine readNameList_
 
@@ -1692,13 +1843,14 @@ class(LaueDCT_T), INTENT(INOUT)         :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 4, n_real = 3, n_dbl = 19
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
+integer(kind=irg),parameter             :: n_int = 4, n_real = 3, n_dbl = 20
+integer(kind=irg)                       :: hdferr,  io_int(n_int), i
 real(kind=sgl)                          :: io_real(n_real)
 real(kind=dbl)                          :: io_dbl(n_dbl)   
 character(20)                           :: intlist(n_int), reallist(n_real), dbllist(n_dbl)
 character(fnlen)                        :: dataset, sval(1),groupname
 character(fnlen,kind=c_char)            :: line2(1)
+character(fnlen,kind=c_char)            :: line10(10)
 
 associate( lnl => self%lnl )
 
@@ -1723,7 +1875,8 @@ call HDF%writeNMLreals(io_real, reallist, n_real)
 ! write all the single reals
 io_dbl = (/ lnl%Lw, lnl%Lh, lnl%Lx, lnl%Ly, lnl%Lz, lnl%VoltageH, lnl%VoltageL, lnl%Sx, &
             lnl%sampletodetector, lnl%samplethickness, lnl%ps, lnl%Dy, &
-            lnl%Dz, lnl%vs, lnl%absl, lnl%beamstopatf, lnl%beamstopwidth, lnl%beamstopheight, lnl%intcutoffratio /)
+            lnl%Dz, lnl%vs, lnl%absl, lnl%beamstopatf, lnl%beamstopwidth, lnl%beamstopheight, lnl%intcutoffratio, &
+            lnl%samplescalefactor /)
 dbllist(1) = 'Lw'
 dbllist(2) = 'Lh'
 dbllist(3) = 'Lx'
@@ -1743,6 +1896,7 @@ dbllist(16) = 'beamstopatf'
 dbllist(17) = 'beamstopwidth'
 dbllist(18) = 'beamstopheight'
 dbllist(19) = 'intcutoffratio'
+dbllist(20) = 'samplescalefactor'
 call HDF%writeNMLdbles(io_dbl, dbllist, n_dbl)
 
 ! write all the strings
@@ -1770,6 +1924,25 @@ dataset = 'projectionmode'
 line2(1) = trim(lnl%projectionmode)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create projectionmode dataset', hdferr)
+
+dataset = 'DREAM3Dfilename'
+line2(1) = trim(lnl%DREAM3Dfilename)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create DREAM3Dfilename dataset', hdferr)
+
+dataset = 'EulerAnglesHDFpath'
+do i=1,10 
+  line10(i) = trim(lnl%EulerAnglesHDFpath(i))
+end do 
+hdferr = HDF%writeDatasetStringArray(dataset, line10, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create EulerAnglesHDFpath dataset', hdferr)
+
+dataset = 'FeatureIDsHDFpath'
+do i=1,10 
+  line10(i) = trim(lnl%FeatureIDsHDFpath(i))
+end do 
+hdferr = HDF%writeDatasetStringArray(dataset, line10, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create FeatureIDsHDFpath dataset', hdferr)
 
 ! and pop this group off the stack
 call HDF%pop()
@@ -1812,7 +1985,7 @@ use mod_notifications
 use stringconstants
 use mod_image
 use mod_Laue
-! use postscript
+use mod_DREAM3D
 use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE 
@@ -1835,6 +2008,7 @@ type(QuaternionArray_T)                    :: qAR
 type(Quaternion_T)                         :: quat
 type(LaueReflist_T)                        :: LaueReflist
 type(q_T)                                  :: qu
+type(microstructure)                       :: microstr
 
 integer(kind=irg)                          :: numangles, numbatches, remainder, ii, jj, pid, tickstart
 
@@ -1893,6 +2067,20 @@ mem = memory_T()
 
 ! rotations in double precision
 call setRotationPrecision('d')
+
+! read a DREAM.3D microstructure file ?
+if (lnl%singlextal.eqv..FALSE.) then  
+  call ReadDREAM3Dfile(EMsoft, lnl%DREAM3Dfilename, microstr, lnl%EulerAnglesHDFpath, lnl%FeatureIDsHDFpath)
+  microstr%samplescalefactor = lnl%samplescalefactor
+  write (*,*) ' Microstructure Data '
+  write (*,*) 'Dimensions ', microstr%dimensions 
+  write (*,*) 'Origin     ', microstr%origin
+  write (*,*) 'Spacing    ', microstr%gridspacing
+  write (*,*) 'Euler Array ', shape(microstr%EulerAngles)
+  write (*,*) 'Feature Array ', shape(microstr%FeatureIDs), maxval(microstr%FeatureIDs)
+end if 
+
+stop
 
 ! read the list of orientations and convert them all to quaternions if they are not already
 fname = EMsoft%generateFilePath('EMdatapathname',trim(lnl%orientationfile))

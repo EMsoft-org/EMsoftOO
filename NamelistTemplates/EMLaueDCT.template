@@ -49,6 +49,14 @@
  BPx              = 300,    ! semi-edge length for back projection square Lambert maps
 
 !==========================================================
+! parameters for polycrystalline sample 
+ singlextal       = .TRUE.  ! .TRUE. for single crystal, .FALSE. for polycrystal
+ samplescalefactor= 1.D0    ! scale factor to convert DREAM.3D units to mm
+ DREAM3Dfilename  = 'undefined'  ! path to .dream3d file 
+ EulerAnglesHDFpath = 'DataContainers', '', 'CellData', 'EulerAngles', '', '', '', '', '', ''  ! path to EulerAngles dataset in .dream3d file
+ FeatureIDsHDFpath  = 'DataContainers', '', 'CellData', 'FeatureIDs', '', '', '', '', '', ''  ! path to FeatureIDs dataset in HDF5 .dream3d file
+
+!==========================================================
 ! parallel processing parameters
  nthreads         = 1,      ! number of parallel threads for pattern computation
 

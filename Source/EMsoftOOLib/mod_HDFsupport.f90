@@ -117,6 +117,11 @@ IMPLICIT NONE
      procedure, pass(self) :: writeDatasetIntegerArray2D
      procedure, pass(self) :: writeDatasetIntegerArray3D
      procedure, pass(self) :: writeDatasetIntegerArray4D
+     procedure, pass(self) :: writeDatasetInteger64_
+     procedure, pass(self) :: writeDatasetInteger64Array1D
+     procedure, pass(self) :: writeDatasetInteger64Array2D
+     procedure, pass(self) :: writeDatasetInteger64Array3D
+     procedure, pass(self) :: writeDatasetInteger64Array4D
      procedure, pass(self) :: writeDatasetFloat_
      procedure, pass(self) :: writeDatasetDouble_
      procedure, pass(self) :: writeDatasetFloatArray1D
@@ -148,10 +153,15 @@ IMPLICIT NONE
      procedure, pass(self) :: readDatasetCharArray3D
      procedure, pass(self) :: readDatasetCharArray4D
      procedure, pass(self) :: readDatasetInteger_
+     procedure, pass(self) :: readDatasetInteger64_
      procedure, pass(self) :: readDatasetIntegerArray1D
      procedure, pass(self) :: readDatasetIntegerArray2D
      procedure, pass(self) :: readDatasetIntegerArray3D
      procedure, pass(self) :: readDatasetIntegerArray4D
+     procedure, pass(self) :: readDatasetInteger64Array1D
+     procedure, pass(self) :: readDatasetInteger64Array2D
+     procedure, pass(self) :: readDatasetInteger64Array3D
+     procedure, pass(self) :: readDatasetInteger64Array4D
      procedure, pass(self) :: readDatasetFloat_
      procedure, pass(self) :: readDatasetFloatArray1D
      procedure, pass(self) :: readDatasetFloatArray2D
@@ -217,9 +227,12 @@ IMPLICIT NONE
      generic, public :: writeDatasetCharArray => writeDatasetCharArray1D, writeDatasetCharArray2D, &
                                                  writeDatasetCharArray3D, writeDatasetCharArray4D
      generic, public :: writeDatasetInteger => writeDatasetInteger_
+     generic, public :: writeDatasetInteger64 => writeDatasetInteger64_
      generic, public :: writeDatasetInteger1byteArray1D => writeDatasetInteger1byteArray1D_
      generic, public :: writeDatasetIntegerArray => writeDatasetIntegerArray1D, writeDatasetIntegerArray2D, &
                                                     writeDatasetIntegerArray3D, writeDatasetIntegerArray4D
+     generic, public :: writeDatasetInteger64Array => writeDatasetInteger64Array1D, writeDatasetInteger64Array2D, &
+                                                    writeDatasetInteger64Array3D, writeDatasetInteger64Array4D
      generic, public :: writeDatasetFloat => writeDatasetFloat_
      generic, public :: writeDatasetDouble => writeDatasetDouble_
      generic, public :: writeDatasetFloatArray => writeDatasetFloatArray1D, writeDatasetFloatArray2D, &
@@ -242,6 +255,9 @@ IMPLICIT NONE
      generic, public :: readDatasetInteger => readDatasetInteger_
      generic, public :: readDatasetIntegerArray => readDatasetIntegerArray1D, readDatasetIntegerArray2D, &
                                                    readDatasetIntegerArray3D, readDatasetIntegerArray4D
+     generic, public :: readDatasetInteger64 => readDatasetInteger64_
+     generic, public :: readDatasetInteger64Array => readDatasetInteger64Array1D, readDatasetInteger64Array2D, &
+                                                   readDatasetInteger64Array3D, readDatasetInteger64Array4D
      generic, public :: readDatasetFloat => readDatasetFloat_
      generic, public :: readDatasetFloatArray => readDatasetFloatArray1D, readDatasetFloatArray2D, &
                                                  readDatasetFloatArray3D, readDatasetFloatArray4D
@@ -1655,6 +1671,84 @@ call error_check_(self, 'writeDatasetInteger_:h5sclose_f:'//trim(dataname), hdfe
 
 end function writeDatasetInteger_
 
+
+!--------------------------------------------------------------------------
+recursive function writeDatasetInteger64_(self, dataname, intval, overwrite) result(success)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger64_
+
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! write an integer data set to the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(kind=int64),INTENT(IN)             :: intval
+
+logical,INTENT(IN),OPTIONAL                :: overwrite
+integer(kind=irg)                          :: success
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:1)           :: dims
+
+integer(kind=int64), dimension(1:1), TARGET:: wdata
+TYPE(C_PTR)                                :: f_ptr
+
+success = 0
+
+dims(1) = 1
+wdata(1) = intval
+
+! get a C pointer to the integer array
+f_ptr = C_LOC(wdata(1))
+
+! Create dataspace.
+!
+rnk = 1
+call h5screate_simple_f(rnk, dims, space, hdferr)
+call error_check_(self, 'writeDatasetInteger64_:h5screate_simple_f:'//trim(dataname), hdferr)
+
+!
+! Create the dataset and write the variable-length string data to it.
+!
+if (present(overwrite)) then
+  call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64_:h5dopen_f:'//trim(dataname), hdferr)
+else
+  call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_I64LE, space, dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64_:h5dcreate_f:'//trim(dataname), hdferr)
+end if
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+
+call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
+call error_check_(self, 'writeDatasetInteger64_:h5dwrite_f:'//trim(dataname), hdferr)
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+!
+! Close and release resources.
+!
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'writeDatasetInteger64_:h5dclose_f:'//trim(dataname), hdferr)
+
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'writeDatasetInteger64_:h5sclose_f:'//trim(dataname), hdferr)
+
+! that's it
+
+end function writeDatasetInteger64_
+
 !--------------------------------------------------------------------------
 recursive function writeDatasetInteger1byteArray1D_(self, dataname, intarr, dim0, overwrite) result(success)
 !DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger1byteArray1D_
@@ -2054,6 +2148,335 @@ DEALLOCATE(wdata, stat=istat)
 ! that's it
 
 end function writeDatasetIntegerArray4D
+
+!--------------------------------------------------------------------------
+recursive function writeDatasetInteger64Array1D(self, dataname, intarr, dim0, overwrite) result(success)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger64Array1D
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! write a 1D integer array data set to the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(kind=irg),INTENT(IN)               :: dim0
+integer(kind=int64),INTENT(IN)             :: intarr(dim0)
+logical,INTENT(IN),OPTIONAL                :: overwrite
+integer(kind=irg)                          :: success, istat
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:1)           :: dims
+
+integer(kind=int64),allocatable,TARGET     :: wdata(:)
+
+TYPE(C_PTR)                                :: f_ptr
+
+success = 0
+
+allocate(wdata(dim0), stat=istat)
+
+wdata = intarr
+dims(1) = dim0
+
+! get a C pointer to the integer array
+f_ptr = C_LOC(wdata(1))
+
+! Create dataspace.
+!
+rnk = 1
+call h5screate_simple_f(rnk, dims, space, hdferr)
+call error_check_(self, 'writeDatasetInteger64Array1D:h5screate_simple_f:'//trim(dataname), hdferr)
+
+!
+! Create the dataset and write the variable-length string data to it.
+!
+if (present(overwrite)) then
+  call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64Array1D:h5dopen_f:'//trim(dataname), hdferr)
+else
+  call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_I64LE, space, dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64Array1D:h5dcreate_f:'//trim(dataname), hdferr)
+end if
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+
+call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
+call error_check_(self, 'writeDatasetInteger64Array1D:h5dwrite_f:'//trim(dataname), hdferr)
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+!
+! Close and release resources.
+!
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'writeDatasetInteger64Array1D:h5dclose_f:'//trim(dataname), hdferr)
+
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'writeDatasetInteger64Array1D:h5sclose_f:'//trim(dataname), hdferr)
+DEALLOCATE(wdata, stat=istat)
+
+! that's it
+
+end function writeDatasetInteger64Array1D
+
+!--------------------------------------------------------------------------
+recursive function writeDatasetInteger64Array2D(self, dataname, intarr, dim0, dim1, overwrite) result(success)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger64Array2D
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! write a 2D integer array data set to the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(kind=irg),INTENT(IN)               :: dim0
+integer(kind=irg),INTENT(IN)               :: dim1
+integer(kind=int64),INTENT(IN)             :: intarr(dim0, dim1)
+logical,INTENT(IN),OPTIONAL                :: overwrite
+integer(kind=irg)                          :: success, istat
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:2)           :: dims
+
+integer(kind=int64),allocatable,TARGET     :: wdata(:,:)
+
+TYPE(C_PTR)                                :: f_ptr
+
+success = 0
+
+allocate(wdata(dim0, dim1), stat=istat)
+
+wdata = intarr
+
+dims(1:2) = (/ dim0, dim1 /)
+
+
+! get a C pointer to the integer array
+f_ptr = C_LOC(wdata(1,1))
+
+! Create dataspace.
+!
+rnk = 2
+call h5screate_simple_f(rnk, dims, space, hdferr)
+call error_check_(self, 'writeDatasetInteger64Array2D:h5screate_simple_f:'//trim(dataname), hdferr)
+
+!
+! Create the dataset and write the variable-length string data to it.
+!
+if (present(overwrite)) then
+  call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64Array2D:h5dopen_f:'//trim(dataname), hdferr)
+else
+  call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_I64LE, space, dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64Array2D:h5dcreate_f:'//trim(dataname), hdferr)
+end if
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+
+call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
+call error_check_(self, 'writeDatasetInteger64Array2D:h5dwrite_f:'//trim(dataname), hdferr)
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+!
+! Close and release resources.
+!
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'writeDatasetInteger64Array2D:h5dclose_f:'//trim(dataname), hdferr)
+
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'writeDatasetInteger64Array2D:h5sclose_f:'//trim(dataname), hdferr)
+DEALLOCATE(wdata, stat=istat)
+
+! that's it
+
+end function writeDatasetInteger64Array2D
+
+!--------------------------------------------------------------------------
+recursive function writeDatasetInteger64Array3D(self, dataname, intarr, dim0, dim1, dim2, overwrite) result(success)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger64Array3D
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! write a 3D integer array data set to the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(kind=irg),INTENT(IN)               :: dim0
+integer(kind=irg),INTENT(IN)               :: dim1
+integer(kind=irg),INTENT(IN)               :: dim2
+integer(kind=int64),INTENT(IN),TARGET      :: intarr(dim0, dim1, dim2)
+logical,INTENT(IN),OPTIONAL                :: overwrite
+integer(kind=irg)                          :: success, istat
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:3)           :: dims
+
+integer(kind=int64),allocatable,TARGET     :: wdata(:,:,:)
+TYPE(C_PTR)                                :: f_ptr
+
+success = 0
+
+allocate(wdata(dim0, dim1, dim2), stat=istat)
+
+dims(1:3) = (/ dim0, dim1, dim2 /)
+wdata = intarr
+
+! get a C pointer to the integer array
+f_ptr = C_LOC(intarr(1, 1, 1))
+
+! Create dataspace.
+!
+rnk = 3
+call h5screate_simple_f(rnk, dims, space, hdferr)
+call error_check_(self, 'writeDatasetInteger64Array3D:h5screate_simple_f:'//trim(dataname), hdferr)
+
+!
+! Create the dataset and write the variable-length string data to it.
+!
+if (present(overwrite)) then
+  call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64Array3D:h5dopen_f:'//trim(dataname), hdferr)
+else
+  call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_I64LE, space, dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64Array3D:h5dcreate_f:'//trim(dataname), hdferr)
+end if
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+
+call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
+call error_check_(self, 'writeDatasetInteger64Array3D:h5dwrite_f:'//trim(dataname), hdferr)
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+!
+! Close and release resources.
+!
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'writeDatasetInteger64Array3D:h5dclose_f:'//trim(dataname), hdferr)
+
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'writeDatasetInteger64Array3D:h5sclose_f:'//trim(dataname), hdferr)
+
+DEALLOCATE(wdata, stat=istat)
+
+! that's it
+
+end function writeDatasetInteger64Array3D
+
+!--------------------------------------------------------------------------
+recursive function writeDatasetInteger64Array4D(self, dataname, intarr, dim0, dim1, dim2, dim3, overwrite) result(success)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeDatasetInteger64Array4D
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! write a 4D integer array data set to the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(kind=irg),INTENT(IN)               :: dim0
+integer(kind=irg),INTENT(IN)               :: dim1
+integer(kind=irg),INTENT(IN)               :: dim2
+integer(kind=irg),INTENT(IN)               :: dim3
+integer(kind=int64),INTENT(IN)             :: intarr(dim0, dim1, dim2, dim3)
+logical,INTENT(IN),OPTIONAL                :: overwrite
+integer(kind=irg)                          :: success, istat
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:4)           :: dims
+
+integer(kind=int64),allocatable,TARGET     :: wdata(:,:,:,:)
+TYPE(C_PTR)                                :: f_ptr
+
+success = 0
+
+allocate(wdata(dim0, dim1, dim2, dim3), stat=istat)
+
+wdata = intarr
+
+! get a C pointer to the integer array
+f_ptr = C_LOC(wdata(1,1,1,1))
+
+! Create dataspace.
+!
+rnk = 4
+dims(1:4) = (/ dim0, dim1, dim2, dim3 /)
+
+call h5screate_simple_f(rnk, dims, space, hdferr)
+call error_check_(self, 'writeDatasetInteger64Array4D:h5screate_simple_f:'//trim(dataname), hdferr)
+
+!
+! Create the dataset and write the variable-length string data to it.
+!
+if (present(overwrite)) then
+  call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64Array4D:h5dopen_f:'//trim(dataname), hdferr)
+else
+  call h5dcreate_f(self%head%next%objectID, cstringify(dataname), H5T_STD_I64LE, space, dset, hdferr)
+  call error_check_(self, 'writeDatasetInteger64Array4D:h5dcreate_f:'//trim(dataname), hdferr)
+end if
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+
+call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
+call error_check_(self, 'writeDatasetInteger64Array4D:h5dwrite_f:'//trim(dataname), hdferr)
+
+if (hdferr.lt.0) then
+  success = -1
+end if
+!
+! Close and release resources.
+!
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'writeDatasetInteger64Array4D:h5dclose_f:'//trim(dataname), hdferr)
+
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'writeDatasetInteger64Array4D:h5sclose_f:'//trim(dataname), hdferr)
+
+DEALLOCATE(wdata, stat=istat)
+
+! that's it
+
+end function writeDatasetInteger64Array4D
 
 !--------------------------------------------------------------------------
 recursive function writeDatasetFloat_(self, dataname, fltval, overwrite) result(success)
@@ -3466,6 +3889,301 @@ call error_check_(self, 'readDatasetIntegerArray4D:h5dclose_f:'//trim(dataname),
 ! that's it
 
 end subroutine readDatasetIntegerArray4D
+
+
+!--------------------------------------------------------------------------
+recursive subroutine readDatasetInteger64_(self, dataname, hdferr, rdata)
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetInteger64_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! reads and returns an integer data set from the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(kind=irg), INTENT(OUT)             :: hdferr
+integer(kind=int64),  TARGET, INTENT(OUT)  :: rdata
+
+integer(HID_T)                             :: space, dset ! Handles
+
+TYPE(C_PTR)                                :: f_ptr
+
+! open the data set
+call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+call error_check_(self, 'readDatasetInteger64_:h5dopen_f:'//trim(dataname), hdferr)
+
+! get dataspace and allocate memory for read buffer
+call h5dget_space_f(dset,space, hdferr)
+call error_check_(self, 'readDatasetInteger64_:h5dget_space_f:'//trim(dataname), hdferr)
+
+!
+! Read the data.
+!
+f_ptr = C_LOC(rdata)
+call h5dread_f( dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr)
+call error_check_(self, 'readDatasetInteger64_:h5dread_f:'//trim(dataname), hdferr)
+
+!
+! Close and release resources.
+!
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'readDatasetInteger64_:h5sclose_f:'//trim(dataname), hdferr)
+
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'readDatasetInteger64_:h5dclose_f:'//trim(dataname), hdferr)
+
+! that's it
+
+end subroutine readDatasetInteger64_
+
+!--------------------------------------------------------------------------
+recursive subroutine readDatasetInteger64Array1D(self, dataname, dims, hdferr, rdata)
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetInteger64Array1D
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! reads and returns a 1D integer array data set from the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(HSIZE_T),INTENT(OUT)               :: dims(1)
+integer(kind=irg), INTENT(OUT)             :: hdferr
+integer(kind=int64), dimension(:), allocatable, TARGET, INTENT(OUT)              :: rdata
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: rnk
+integer(HSIZE_T), DIMENSION(1:1)           :: maxdims
+
+TYPE(C_PTR)                                :: f_ptr
+
+! open the data set
+call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+call error_check_(self, 'readDatasetInteger64Array1D:h5dopen_f:'//trim(dataname), hdferr)
+
+! get dataspace and allocate memory for read buffer
+call h5dget_space_f(dset,space, hdferr)
+call error_check_(self, 'readDatasetInteger64Array1D:h5dget_space_f:'//trim(dataname), hdferr)
+
+call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
+call error_check_(self, 'readDatasetInteger64Array1D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
+
+
+allocate(rdata(1:dims(1)))
+!
+! Read the data.
+!
+f_ptr = C_LOC(rdata(1))
+call h5dread_f( dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr)
+call error_check_(self, 'readDatasetInteger64Array1D:h5dread_f:'//trim(dataname), hdferr)
+
+!
+! Close and release resources.
+!
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'readDatasetInteger64Array1D:h5sclose_f:'//trim(dataname), hdferr)
+
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'readDatasetInteger64Array1D:h5dclose_f:'//trim(dataname), hdferr)
+
+
+! that's it
+
+end subroutine readDatasetInteger64Array1D
+
+!--------------------------------------------------------------------------
+recursive subroutine readDatasetInteger64Array2D(self, dataname, dims, hdferr, rdata)
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetInteger64Array2D
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! reads and returns a 2D integer array data set from the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(HSIZE_T),INTENT(OUT)               :: dims(2)
+integer(kind=irg), INTENT(OUT)             :: hdferr
+integer(kind=int64), dimension(:,:), allocatable, TARGET, INTENT(OUT)            :: rdata
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: rnk
+integer(HSIZE_T), DIMENSION(1:2)           :: maxdims
+
+TYPE(C_PTR)                                :: f_ptr
+
+! open the data set
+call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+call error_check_(self, 'readDatasetInteger64Array2D:h5dopen_f:'//trim(dataname), hdferr)
+
+! get dataspace and allocate memory for read buffer
+call h5dget_space_f(dset,space, hdferr)
+call error_check_(self, 'readDatasetInteger64Array2D:h5dget_space_f:'//trim(dataname), hdferr)
+
+call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
+call error_check_(self, 'readDatasetInteger64Array2D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
+
+
+allocate(rdata(1:dims(1),1:dims(2)))
+!
+! Read the data.
+!
+f_ptr = C_LOC(rdata(1,1))
+call h5dread_f( dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr)
+call error_check_(self, 'readDatasetInteger64Array2D:h5dread_f:'//trim(dataname), hdferr)
+
+!
+! Close and release resources.
+!
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'readDatasetInteger64Array2D:h5sclose_f:'//trim(dataname), hdferr)
+
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'readDatasetInteger64Array2D:h5dclose_f:'//trim(dataname), hdferr)
+
+
+! that's it
+
+end subroutine readDatasetInteger64Array2D
+
+!--------------------------------------------------------------------------
+recursive subroutine readDatasetInteger64Array3D(self, dataname, dims, hdferr, rdata)
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetInteger64Array3D
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! reads and returns a 3D integer array data set from the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(HSIZE_T),INTENT(OUT)               :: dims(3)
+integer(kind=irg), INTENT(OUT)             :: hdferr
+integer(kind=int64), dimension(:,:,:), allocatable, TARGET, INTENT(OUT)          :: rdata
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: rnk
+integer(HSIZE_T), DIMENSION(1:3)           :: maxdims
+
+TYPE(C_PTR)                                :: f_ptr
+
+! open the data set
+call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+call error_check_(self, 'readDatasetInteger64Array3D:h5dopen_f:'//trim(dataname), hdferr)
+
+! get dataspace and allocate memory for read buffer
+call h5dget_space_f(dset,space, hdferr)
+call error_check_(self, 'readDatasetInteger64Array3D:h5dget_space_f:'//trim(dataname), hdferr)
+
+call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
+call error_check_(self, 'readDatasetInteger64Array3D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
+
+
+allocate(rdata(1:dims(1),1:dims(2),1:dims(3)))
+!
+! Read the data.
+!
+f_ptr = C_LOC(rdata(1,1,1))
+call h5dread_f( dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr)
+call error_check_(self, 'readDatasetInteger64Array3D:h5dread_f:'//trim(dataname), hdferr)
+
+!
+! Close and release resources.
+!
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'readDatasetInteger64Array3D:h5sclose_f:'//trim(dataname), hdferr)
+
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'readDatasetInteger64Array3D:h5dclose_f:'//trim(dataname), hdferr)
+
+
+! that's it
+
+end subroutine readDatasetInteger64Array3D
+
+!--------------------------------------------------------------------------
+recursive subroutine readDatasetInteger64Array4D(self, dataname, dims, hdferr, rdata)
+!DEC$ ATTRIBUTES DLLEXPORT :: readDatasetInteger64Array4D
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! reads and returns a 4D integer array data set from the current file or group ID
+
+use ISO_C_BINDING
+use iso_fortran_env, only: int64
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+character(fnlen),INTENT(IN)                :: dataname
+integer(HSIZE_T),INTENT(OUT)               :: dims(4)
+integer(kind=irg), INTENT(OUT)             :: hdferr
+!integer, dimension(:,:,:,:), allocatable, TARGET, INTENT(OUT)        :: rdata
+integer(kind=int64), dimension(:,:,:,:), allocatable, TARGET        :: rdata
+
+integer(HID_T)                             :: space, dset ! Handles
+integer                                    :: rnk
+integer(HSIZE_T), DIMENSION(1:4)           :: maxdims
+
+TYPE(C_PTR)                                :: f_ptr
+
+! open the data set
+call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
+call error_check_(self, 'readDatasetInteger64Array4D:h5dopen_f:'//trim(dataname), hdferr)
+
+! get dataspace and allocate memory for read buffer
+call h5dget_space_f(dset,space, hdferr)
+call error_check_(self, 'readDatasetInteger64Array4D:h5dget_space_f:'//trim(dataname), hdferr)
+
+
+call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
+call error_check_(self, 'readDatasetInteger64Array4D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
+
+
+allocate(rdata(1:dims(1),1:dims(2),1:dims(3),1:dims(4)))
+!
+! Read the data.
+!
+f_ptr = C_LOC(rdata(1,1,1,1))
+call h5dread_f( dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr)
+call error_check_(self, 'readDatasetInteger64Array4D:h5dread_f:'//trim(dataname), hdferr)
+
+!
+! Close and release resources.
+!
+call h5sclose_f(space, hdferr)
+call error_check_(self, 'readDatasetInteger64Array4D:h5sclose_f:'//trim(dataname), hdferr)
+
+call h5dclose_f(dset , hdferr)
+call error_check_(self, 'readDatasetInteger64Array4D:h5dclose_f:'//trim(dataname), hdferr)
+
+
+! that's it
+
+end subroutine readDatasetInteger64Array4D
+
 
 !--------------------------------------------------------------------------
 recursive subroutine readDatasetFloat_(self, dataname, hdferr, rdata)
