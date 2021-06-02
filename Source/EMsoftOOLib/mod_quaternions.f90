@@ -276,6 +276,8 @@ IMPLICIT NONE
 ! quaternion-based transformations
       procedure, pass(self) :: quatLp
       procedure, pass(self) :: quatLpd
+      procedure, pass(self) :: quatLp_vecarray
+      procedure, pass(self) :: quatLpd_vecarray
 ! routines with two or more input quaternions
       procedure, pass(self) :: quatinnerproduct
       procedure, pass(self) :: quatangle
@@ -299,6 +301,7 @@ IMPLICIT NONE
       generic, public :: operator(/) => quatsdiv, quatsdivd
       generic, public :: quat_normalize => quatnormalize
       generic, public :: quat_Lp => quatLp, quatLpd
+      generic, public :: quat_Lp_vecarray => quatLp_vecarray, quatLpd_vecarray
       generic, public :: quat_innerproduct => quatinnerproduct
       generic, public :: quat_angle => quatangle
       generic, public :: quat_slerp => quatslerp
@@ -1685,7 +1688,6 @@ end function quatarrayangle
 
 
 !--------------------------------------------------------------------------!
-! pure recursive function quatLp(self, v) result (res)
 recursive function quatLp(self, v) result (res)
 !DEC$ ATTRIBUTES DLLEXPORT :: quatLp
   !! author: MDG
@@ -1712,6 +1714,38 @@ IMPLICIT NONE
   res(1:3) = rqv%q(2:4)
 
 end function quatLp
+
+!--------------------------------------------------------------------------!
+recursive function quatLp_vecarray(self, N, v) result (res)
+!DEC$ ATTRIBUTES DLLEXPORT :: quatLp_vecarray
+  !! author: MDG
+  !! version: 1.0
+  !! date: 06/02/21
+  !!
+  !! actively rotate an array of unit vectors by a unit quaternion, L_p = p v p* (single precision)
+
+IMPLICIT NONE
+
+  class(Quaternion_T),intent(in)    :: self
+   !! input quaternion
+  integer(kind=irg),intent(in)      :: N
+  real(kind=sgl),intent(in)         :: v(3, N)
+   !! input vector to be rotated
+  real(kind=sgl)                    :: res(3, N)
+   !! output vector
+
+  type(Quaternion_T)                :: qv, rqv, cq
+  integer(kind=irg)                 :: i
+
+  do i=1,N 
+    qv%q = (/ 0.0, v(1, i), v(2, i), v(3, i) /)
+    qv%s = 's'
+    cq = quatconjg(self)
+    rqv = quatmult(self, quatmult(qv, cq) )
+    res(1:3, i) = rqv%q(2:4)
+  end do
+
+end function quatLp_vecarray
 
 !--------------------------------------------------------------------------!
 recursive function quatarrayLp(self, v) result (res)
@@ -1773,6 +1807,38 @@ IMPLICIT NONE
   res(1:3) = rqv%qd(2:4)
 
 end function quatLpd
+
+!--------------------------------------------------------------------------!
+recursive function quatLpd_vecarray(self, N, v) result (res)
+!DEC$ ATTRIBUTES DLLEXPORT :: quatLpd_vecarray
+  !! author: MDG
+  !! version: 1.0
+  !! date: 06/02/21
+  !!
+  !! actively rotate an array of unit vectors by a unit quaternion, L_p = p v p* (double precision)
+
+IMPLICIT NONE
+
+  class(Quaternion_T),intent(in)    :: self
+   !! input quaternion
+  integer(kind=irg),intent(in)      :: N
+  real(kind=dbl),intent(in)         :: v(3, N)
+   !! input vector to be rotated
+  real(kind=dbl)                    :: res(3, N)
+   !! output vector
+
+  type(Quaternion_T)                :: qv, rqv, cq
+  integer(kind=irg)                 :: i
+
+  do i=1,N 
+    qv%qd = (/ 0.D0, v(1, i), v(2, i), v(3, i) /)
+    qv%s = 'd'
+    cq = quatconjg(self)
+    rqv = quatmult(self, quatmult(qv, cq) )
+    res(1:3, i) = rqv%qd(2:4)
+  end do
+
+end function quatLpd_vecarray
 
 !--------------------------------------------------------------------------!
 recursive function quatArrayLpd(self, v) result (res)

@@ -50,6 +50,7 @@ module mod_HDFsupport
   !! 09/30/19 MAJ 4.1 initial mods of allocations that caused Mac OSX/ifort issues in write routines
   !! 10/01/19 MDG 4.2 additional mods to make ifort work on Mac OS X
   !! 11/08/19 MDG 4.3 replaced individual dims parameters by single dims array in multiple routines
+  !! 05/28/21 MDG 5.0 adds support for 64-bit integers and integer arrays (needed for .dream3d files)
 
 use mod_kinds
 use mod_global

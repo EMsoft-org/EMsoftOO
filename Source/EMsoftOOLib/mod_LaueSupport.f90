@@ -651,7 +651,7 @@ Ld = dble(delta * Ldims) / 2.D0
 end function backprojectLauePattern
 
 !--------------------------------------------------------------------------
-recursive function getLaueDCTPattern_(self, qu, lmin, lmax, refcnt, Ny, Nz, ps, projectionmode, sampletodetector, samplethickness, &
+recursive function getLaueDCTPattern_(self, qu, lmin, lmax, refcnt, Ny, Nz, ps, sampletodetector, samplethickness,  &
                                       absl, spotw, Dy, Dz, kinpre, kvec, kvox, binarize) result(pattern)
 !DEC$ ATTRIBUTES DLLEXPORT :: getLaueDCTPattern_
 
@@ -671,7 +671,6 @@ integer(kind=irg),INTENT(IN)            :: refcnt
 integer(kind=irg),INTENT(IN)            :: Ny
 integer(kind=irg),INTENT(IN)            :: Nz
 real(kind=dbl),INTENT(IN)               :: ps 
-character(1),INTENT(IN)                 :: projectionmode
 real(kind=dbl),INTENT(IN)               :: sampletodetector 
 real(kind=dbl),INTENT(IN)               :: samplethickness
 real(kind=dbl),INTENT(IN)               :: absl
@@ -697,7 +696,6 @@ pattern = 0.0
 nullify(rltmp)
 rltmp => self%reflistgrow
 
-if (projectionmode.eq.'T') then 
 ! this is the transmission mode; we follow the algorithm suggested in
 ! the paper by Arnaud et al., "A laboratory transmission diffraction Laue 
 ! setup to evaluate single crystal quality", to appear in JAC.  We take the 
@@ -781,65 +779,6 @@ if (projectionmode.eq.'T') then
     end if
     rltmp => rltmp%next
   end do 
-end if  ! transmission mode 
-
-! the following modes are much simpler since they do not require an integration 
-! over the sample voxels
-if (projectionmode.eq.'B') then ! back-reflection
-! go through the entire linked list and determine for each potential reflector whether or not
-! the corresponding wave length falls inside the allowed range; if so, then compute whether or 
-! not this diffracted beam intersects the detector and generate the correct intensity at that
-! detector pixel 
-d = sampletodetector
-spots = 0
-rltmp => rltmp%next  ! skip the first reflection ...  ?
-  do i = 1, refcnt-1
-! for all the allowed reflections along this systematic row, compute the wave length
-! using Bragg's law 
-    rltmp%xyz = rltmp%xyz / vecnorm(rltmp%xyz)
-    G = sngl(qu%quat_Lp(rltmp%xyz))
-    if (G(1).lt.0.0) then 
-      G = G / vecnorm(G)
-! get the diffraction angle for the unit vectors
-      th = acos( DOT_PRODUCT(kvec, G) ) - 0.5D0*cPi
-      pre = -2.D0 * DOT_PRODUCT(kvec, G)
-      do j = 1, rltmp%Nentries
-        if (rltmp%sfs(j).ne.0.0) then 
-          la = 2.0 * rltmp%dspacing(j) * sin(th)
-          if ((la.gt.lmin).and.(la.lt.lmax)) then ! we have a potential diffracted beam !
-            ! get the scattered beam 
-            s0 = kvec ! / la
-            s = s0 + pre * G 
-! this vector originates at the point kvox in the sample, so next we compute 
-! where the intersection with the detector plane will be; we only need to take 
-! into account those s-vectors that have a positive x-component. 
-            if (s(1).lt.0.0) then 
-              scl = d / s(1)    ! scale factor to get to the detector plane
-              dvec = s * scl    ! this is with respect to the optical axis
-              dvec = dvec + (/ 0.D0, Dy, Dz  /)   ! correct for the pattern center to get detector coordinates
-              if ((abs(dvec(2)).lt.Ly).or.(abs(dvec(3)).lt.Lz)) then ! we plot this reflection
-                atf = rltmp%sfs(j)
-                if (binarize.eqv..TRUE.) atf = 1.0
-! and draw the reflection
-                dvec = dvec / ps 
-                dvec(2) = -dvec(2)
-                call addLaueSlitreflection_(pattern, Ny, Nz, dvec, sngl(atf), spotw)
-                spots = spots + 1
-              end if 
-            else
-              CYCLE
-            end if
-          end if
-        end if 
-      end do 
-    end if
-    rltmp => rltmp%next
-  end do 
-end if 
-
-! if (projectionmode.eq.'S') then ! side-reflection
-
-! end if 
 
 end function getLaueDCTPattern_
 

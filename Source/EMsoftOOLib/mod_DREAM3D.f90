@@ -36,16 +36,19 @@ module mod_DREAM3D
 use mod_kinds
 use mod_global
 use iso_fortran_env, only: int64
+use mod_quaternions
 
 IMPLICIT NONE 
 
 type microstructure 
-  real(kind=sgl),allocatable        :: EulerAngles(:,:,:,:) 
+
+  type(QuaternionArray_T)           :: Quaternions
   integer(kind=irg),allocatable     :: FeatureIDs(:,:,:) 
   integer(kind=int64),allocatable   :: dimensions(:)
   real(kind=sgl),allocatable        :: origin(:)
   real(kind=sgl),allocatable        :: gridspacing(:)
   real(kind=sgl)                    :: samplescalefactor
+  integer(kind=irg)                 :: numvoxels
 end type microstructure 
 
 contains
@@ -63,6 +66,7 @@ use mod_EMsoft
 use mod_IO 
 use HDF5
 use mod_HDFsupport 
+use mod_rotations
 
 IMPLICIT NONE 
 
@@ -74,15 +78,19 @@ character(fnlen),INTENT(IN)           :: FIDpath(10)
 
 type(HDF_T)                           :: HDF 
 type(IO_T)                            :: Message 
+type(e_T)                             :: eu 
+type(q_T)                             :: qq 
 
 character(fnlen)                      :: fname, groupname, dataset  
 logical                               :: f_exists, readonly 
-integer(kind=irg)                     :: hdferr 
+integer(kind=irg)                     :: hdferr, iq, ix, iy, iz 
 integer(HSIZE_T)                      :: dims(1), dims3(3), dims4(4)
 integer(kind=int64),allocatable       :: dimensions(:)
 real(kind=sgl),allocatable            :: origin(:)
 real(kind=sgl),allocatable            :: gridspacing(:)
 integer(kind=irg),allocatable         :: FeatureIDs(:,:,:,:) 
+real(kind=sgl),allocatable            :: EulerAngles(:,:,:,:) 
+real(kind=dbl),allocatable            :: quats(:,:) 
 
 HDF = HDF_T()
 fname = trim(EMsoft%generateFilePath('EMdatapathname',dname))
@@ -132,13 +140,29 @@ groupname = EApath(3)
   hdferr = HDF%openGroup(groupname)
 
 dataset = trim(EApath(4))
-  call HDF%readDatasetFloatArray(dataset, dims4, hdferr, microstr%EulerAngles)
+  call HDF%readDatasetFloatArray(dataset, dims4, hdferr, EulerAngles)
+
+! convert them to a QuaternionArray_T
+  microstr%numvoxels = product(dimensions)
+  allocate(quats(4,microstr%numvoxels))
+  iq = 0
+  do iz=1,dimensions(3)
+    do iy=1,dimensions(2)
+      do ix=1,dimensions(1)
+        eu = e_T( edinp = dble(EulerAngles(1:3,ix,iy,iz)) )
+        qq = eu%eq()
+        iq = iq+1 
+        quats(1:4, iq) = qq%q_copyd()
+      end do
+    end do
+  end do
+  microstr%Quaternions = QuaternionArray_T( qd = quats, n = microstr%numvoxels )
 
 dataset = trim(FIDpath(4))
   call HDF%readDatasetIntegerArray(dataset, dims4, hdferr, FeatureIDs)
   allocate(microstr%FeatureIDs(dims4(2),dims4(3),dims4(4)))
   microstr%FeatureIDs = FeatureIDs(1,:,:,:)
-  deallocate(FeatureIDs, dimensions, origin, gridspacing)
+  deallocate(EulerAngles, FeatureIDs, dimensions, origin, gridspacing, quats)
 
 ! that's it, so we close the file 
 call HDF%pop(.TRUE.)
