@@ -1018,7 +1018,7 @@ logical                                 :: f_exists, init, g_exists, overwrite, 
                                            isECP=.FALSE., switchwfoff
 integer(kind=irg),parameter             :: iunitexpt = 41, itmpexpt = 42
 integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo 
-real(kind=sgl),allocatable              :: tmpimageexpt(:), EBSDPattern(:,:), mask(:,:), masklin(:)
+real(kind=sgl),allocatable              :: tmpimageexpt(:), EBSDPattern(:,:), mask(:,:), masklin(:), imageexpt(:)
 real(kind=sgl),allocatable              :: imagedictflt(:), exppatarray(:)
 real(kind=sgl),allocatable              :: EBSDpatternintd(:,:), binned(:,:), euler_best(:,:)
 real(kind=sgl),allocatable              :: epatterns(:,:)
@@ -1786,7 +1786,8 @@ if (ronl%method.eq.'FIT') then
                       myenl%xpc = enl%xpc - dx
                       myenl%ypc = enl%ypc - dy
                       myenl%L = enl%L - DPCL(sampley)
-                      call  EBSD%GeneratemyEBSDDetector(MCFT, dinl%numsx, dinl%numsy, MCDT%numEbins, mydet%rgx, mydet%rgy, mydet%rgz, mydet%accum_e_detector, (/ myenl%xpc, myenl%ypc, myenl%L /))
+                      call  EBSD%GeneratemyEBSDDetector(MCFT, dinl%numsx, dinl%numsy, MCDT%numEbins, mydet%rgx, &
+                      mydet%rgy, mydet%rgz, mydet%accum_e_detector, (/ myenl%xpc, myenl%ypc, myenl%L /))
                       
                       ! first undo the pattern center shift by an equivalent rotation (see J. Appl. Cryst. (2017). 50, 1664–1676, eq.15)
                       if ((dx.ne.0.0).or.(dy.ne.0.0)) then 
@@ -1813,15 +1814,17 @@ if (ronl%method.eq.'FIT') then
                                             INITMEANVAL(1:3) = ho%h_copyd()
                                             X = 0.5D0
                                             call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
-                                                      XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, mydet%accum_e_detector,&
-                                                      MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, mydet%rgx, mydet%rgy, &
-                                                      mydet%rgz, STEPSIZE, DIFT%nml%gammavalue, verbose)
+                                                      XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, &
+                                                      mydet%accum_e_detector,MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, &
+                                                      mydet%rgx, mydet%rgy, mydet%rgz, STEPSIZE, DIFT%nml%gammavalue, &
+                                                      verbose)
                                             ho = h_T( hdinp = dble(X*2.0*STEPSIZE - STEPSIZE + INITMEANVAL) )
                                             eu = ho%he()
                                             eulerPS(1:3,kk,ll) = eu%e_copyd()
-                                            call EMFitOrientationcalfunEBSD(IPAR2, INITMEANVAL, tmpimageexpt, mydet%accum_e_detector, &
-                                                                            MPDT%mLPNH, MPDT%mLPSH, N, X, F, mask, prefactor, &
-                                                                            mydet%rgx, mydet%rgy, mydet%rgz, STEPSIZE, DIFT%nml%gammavalue, verbose)
+                                            call EMFitOrientationcalfunEBSD(IPAR2, INITMEANVAL, tmpimageexpt, &
+                                                 mydet%accum_e_detector, MPDT%mLPNH, MPDT%mLPSH, N, X, F, mask, &
+                                                 prefactor, mydet%rgx, mydet%rgy, mydet%rgz, STEPSIZE, &
+                                                 DIFT%nml%gammavalue, verbose)
 
                                             dpPS(kk,ll) = 1.D0 - F
                       

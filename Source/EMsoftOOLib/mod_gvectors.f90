@@ -1735,6 +1735,7 @@ complex(kind=dbl)                   :: VL(nn,nn),  WORK(LWMAX)
 real(kind=dbl)                      :: RWORK(2*nn)
 character                           :: JOBVL, JOBVR
 integer(kind=sgl)                   :: LWORK
+integer(kind=sgl)                   :: ilaenv
 
 ! compute the eigenvalues and eigenvectors
 ! using the LAPACK CGEEV, CGETRF, and CGETRI routines
@@ -1768,9 +1769,10 @@ integer(kind=sgl)                   :: LWORK
  call zgetrf(nn,nn,CGinv,LDA,JPIV,INFO)
  MILWORK = -1
  LDA=nn
- call zgetri(nn,CGinv,LDA,JPIV,getMIWORK,MILWORK,INFO)
- MILWORK =  INT(real(getMIWORK))
- if (.not.allocated(MIWORK)) allocate(MIWORK(MILWORK))
+!  call zgetri(nn,CGinv,LDA,JPIV,getMIWORK,MILWORK,INFO)
+!  MILWORK =  INT(real(getMIWORK))
+ MILWORK=ilaenv( 1, 'ZGETRI', ' ', nn, -1, -1, -1 )
+ if (.not.allocated(MIWORK)) allocate(MIWORK(nn*MILWORK))
  MIWORK = cmplx(0.D0,0.D0)
  LDA=nn
  call zgetri(nn,CGinv,LDA,JPIV,MIWORK,MILWORK,INFO)
@@ -1856,6 +1858,7 @@ complex(kind=dbl)                   :: VL(nn,nn),  WORK(LWMAX)
 real(kind=dbl)                      :: RWORK(2*nn)
 character                           :: JOBVL, JOBVR
 integer(kind=sgl)                   :: LWORK
+integer(kind=sgl)                   :: ilaenv
 
 ! compute the eigenvalues and eigenvectors
 ! using the LAPACK CGEEV, CGETRF, and CGETRI routines
@@ -1889,9 +1892,11 @@ integer(kind=sgl)                   :: LWORK
  call zgetrf(nn,nn,CGinv,LDA,JPIV,INFO)
  MILWORK = -1
  LDA=nn
- call zgetri(nn,CGinv,LDA,JPIV,getMIWORK,MILWORK,INFO)
- MILWORK =  INT(real(getMIWORK))
- if (.not.allocated(MIWORK)) allocate(MIWORK(MILWORK))
+
+!  call zgetri(nn,CGinv,LDA,JPIV,getMIWORK,MILWORK,INFO)
+!  MILWORK =  INT(real(getMIWORK))
+ MILWORK=ilaenv( 1, 'ZGETRI', ' ', nn, -1, -1, -1 )
+ if (.not.allocated(MIWORK)) allocate(MIWORK(nn*MILWORK))
  MIWORK = cmplx(0.D0,0.D0)
  LDA=nn
  call zgetri(nn,CGinv,LDA,JPIV,MIWORK,MILWORK,INFO)
