@@ -518,7 +518,7 @@ module mod_Lauemaster
       if (abs(rltmp%xyz(3)).ne.1.D0) then
         L = Lambert_T( xyz = sngl(rltmp%xyz))
         ierr = L%LambertSphereToSquare( kl ) 
-        kl = kl * sngl(npx)
+        kl = kl * sngl(real(npx))
   ! here we need to be very careful to determine the index of the Legendre ring, NOT the Lambert ring !!!
         Lindex = npx 
         do while(LegendreArray(Lindex).lt.rltmp%xyz(3)) 
@@ -542,7 +542,8 @@ module mod_Lauemaster
   ! special case of reflections along the equator which should appear in both hemisphere arrays.  The intensities are 
   ! computed on a small grid of w x w points on the Lambert projection, which are then interpolated from a "Gaussian" on
   ! the sphere. we use the von Mises-Fisher distribution with p=3
-       call L%sampleVMF(sngl(rltmp%xyz), lmnl%kappaVMF, VMFscale, inten, npx, int(kl(1)), int(kl(2)), w, mLPNH, mLPSH, LegendreArray)
+       call L%sampleVMF(sngl(rltmp%xyz), lmnl%kappaVMF, VMFscale, inten, npx, int(kl(1)), int(kl(2)), w, mLPNH, mLPSH, &
+       LegendreArray)
   ! and go to the next point
       rltmp => rltmp%next
     end do 

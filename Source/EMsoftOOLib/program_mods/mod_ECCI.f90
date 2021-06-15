@@ -599,7 +599,8 @@ real(kind=sgl)                          ::thetacr,  nabsl, thick, X(2), bragg, t
                                            gac(3), gbc(3),zmax, tstop, kk(3), FN(3), gc(3) 
 real(kind=dbl)                          ::  kt(3), delta , ktmax, arg, glen, DynFN(3), xx
 complex(kind=dbl),allocatable           :: amp(:),amp2(:),Azz(:,:),DF_R(:,:)
-real(kind=sgl),allocatable              :: lambdaZ(:), disparray(:,:,:,:),imatvals(:,:), ECCIimages(:,:,:), XYarray(:,:), ECCIstore(:,:,:)
+real(kind=sgl),allocatable              :: lambdaZ(:), disparray(:,:,:,:),imatvals(:,:), ECCIimages(:,:,:), XYarray(:,:), &
+                                          ECCIstore(:,:,:)
 real(kind=sgl),allocatable              ::  svals(:), sgarray(:), klist(:,:), knlist(:)
 integer(kind=sgl),allocatable           :: expval(:,:,:),  hklarray(:,:), nab(:,:), XYint(:,:)
 complex(kind=dbl)                       :: para(0:numdd),dx,dy,dxm,dym, xgp
@@ -1241,7 +1242,8 @@ mainloop: do isg = numstart,numstop
   !----------------------------------------------------!
 
   NTHR = 12
-  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm,dym,ixp,iyp,Lgh,Lgh2,ir,ic,svals)
+  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm)&
+  !$OMP& PRIVATE(dym,ixp,iyp,Lgh,Lgh2,ir,ic,svals)
   TID = OMP_GET_THREAD_NUM()
   !call mem%alloc2(Azz, (/nn,nn/), 'Azz')
   !call mem%alloc1(amp, (/nn/), 'amp')
@@ -1296,7 +1298,7 @@ mainloop: do isg = numstart,numstop
       svals = 0.0
       svals = real(sum(Lgh2(1:nn,1:nn)*Sghtmp2(1:nn,1:nn)))
 
-      svals = svals/sngl(sum(nat(1:numset)))
+      svals = svals/sngl(real(sum(nat(1:numset))))
       
     ! then we need to multiply Sgh and Lgh, sum, and take the real part which will
     ! produce the desired BSE intensity
@@ -1668,7 +1670,8 @@ integer(kind=irg),INTENT(OUT)       :: numk
 
 type(kvectorlist),pointer           :: ktmp,ktail
 integer                             :: istat,imin,imax,jmin,jmax,ijmax,i,j,ic,jc, iang
-real                                :: kr(3),glen,delta, dtang, kstar(3),kt(3),gan(3),gperp(3),ktlen, dkt, ii, jj, ii1, ii2, jj1, jj2
+real                                :: kr(3),glen,delta, dtang, kstar(3),kt(3),gan(3),gperp(3),ktlen, dkt, ii, &
+                                       jj, ii1, ii2, jj1, jj2
 real(kind=dbl)                      :: ki, iangrad
 ! compute geometrical factors
  glen = cell%CalcLength(float(ga),'r')         ! length of ga
