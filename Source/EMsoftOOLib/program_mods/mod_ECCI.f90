@@ -1242,8 +1242,8 @@ mainloop: do isg = numstart,numstop
   !----------------------------------------------------!
 
   NTHR = 12
-  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) &
-  !$OMP& PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm,dym,ixp,iyp,Lgh,Lgh2,ir,ic,svals)
+  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm)&
+  !$OMP& PRIVATE(dym,ixp,iyp,Lgh,Lgh2,ir,ic,svals)
   TID = OMP_GET_THREAD_NUM()
   !call mem%alloc(Azz, (/nn,nn/), 'Azz')
   !call mem%alloc(amp, (/nn/), 'amp')
@@ -1298,7 +1298,7 @@ mainloop: do isg = numstart,numstop
       svals = 0.0
       svals = real(sum(Lgh2(1:nn,1:nn)*Sghtmp2(1:nn,1:nn)))
 
-      svals = svals/float(sum(nat(1:numset)))
+      svals = svals/sngl(real(sum(nat(1:numset))))
       
     ! then we need to multiply Sgh and Lgh, sum, and take the real part which will
     ! produce the desired BSE intensity
@@ -1670,8 +1670,8 @@ integer(kind=irg),INTENT(OUT)       :: numk
 
 type(kvectorlist),pointer           :: ktmp,ktail
 integer                             :: istat,imin,imax,jmin,jmax,ijmax,i,j,ic,jc, iang
-real                                :: kr(3),glen,delta, dtang, kstar(3),kt(3),gan(3),gperp(3),ktlen, &
-                                       dkt, ii, jj, ii1, ii2, jj1, jj2
+real                                :: kr(3),glen,delta, dtang, kstar(3),kt(3),gan(3),gperp(3),ktlen, dkt, ii, &
+                                       jj, ii1, ii2, jj1, jj2
 real(kind=dbl)                      :: ki, iangrad
 ! compute geometrical factors
  glen = cell%CalcLength(float(ga),'r')         ! length of ga

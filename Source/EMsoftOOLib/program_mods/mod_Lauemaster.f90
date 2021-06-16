@@ -518,7 +518,7 @@ module mod_Lauemaster
       if (abs(rltmp%xyz(3)).ne.1.D0) then
         L = Lambert_T( xyz = sngl(rltmp%xyz))
         ierr = L%LambertSphereToSquare( kl ) 
-        kl = kl * float(npx)
+        kl = kl * sngl(real(npx))
   ! here we need to be very careful to determine the index of the Legendre ring, NOT the Lambert ring !!!
         Lindex = npx 
         do while(LegendreArray(Lindex).lt.rltmp%xyz(3)) 
