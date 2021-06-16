@@ -42,7 +42,7 @@ IMPLICIT NONE
 
 type microstructure 
 
-  type(QuaternionArray_T)           :: Quaternions
+  type(Quaternion3DArray_T)         :: Quaternions
   integer(kind=irg),allocatable     :: FeatureIDs(:,:,:) 
   integer(kind=int64),allocatable   :: dimensions(:)
   real(kind=sgl),allocatable        :: origin(:)
@@ -80,6 +80,7 @@ type(HDF_T)                           :: HDF
 type(IO_T)                            :: Message 
 type(e_T)                             :: eu 
 type(q_T)                             :: qq 
+type(Quaternion_T)                    :: quat 
 
 character(fnlen)                      :: fname, groupname, dataset  
 logical                               :: f_exists, readonly 
@@ -90,7 +91,6 @@ real(kind=sgl),allocatable            :: origin(:)
 real(kind=sgl),allocatable            :: gridspacing(:)
 integer(kind=irg),allocatable         :: FeatureIDs(:,:,:,:) 
 real(kind=sgl),allocatable            :: EulerAngles(:,:,:,:) 
-real(kind=dbl),allocatable            :: quats(:,:) 
 
 HDF = HDF_T()
 fname = trim(EMsoft%generateFilePath('EMdatapathname',dname))
@@ -144,24 +144,24 @@ dataset = trim(EApath(4))
 
 ! convert them to a QuaternionArray_T
   microstr%numvoxels = product(dimensions)
-  allocate(quats(4,microstr%numvoxels))
-  iq = 0
+  microstr%Quaternions = Quaternion3DArray_T( s = 'd', n = dimensions)
   do iz=1,dimensions(3)
     do iy=1,dimensions(2)
       do ix=1,dimensions(1)
         eu = e_T( edinp = dble(EulerAngles(1:3,ix,iy,iz)) )
         qq = eu%eq()
-        iq = iq+1 
-        quats(1:4, iq) = qq%q_copyd()
+        quat = Quaternion_T( qd = qq%q_copyd() )
+        call microstr%Quaternions%insertQuatin3DArray( (/ ix, iy, iz /), quat)
       end do
     end do
   end do
-  microstr%Quaternions = QuaternionArray_T( qd = quats, n = microstr%numvoxels )
 
 dataset = trim(FIDpath(4))
   call HDF%readDatasetIntegerArray(dataset, dims4, hdferr, FeatureIDs)
   allocate(microstr%FeatureIDs(dims4(2),dims4(3),dims4(4)))
   microstr%FeatureIDs = FeatureIDs(1,:,:,:)
+
+! clean up some large arrays
   deallocate(EulerAngles, FeatureIDs, dimensions, origin, gridspacing, quats)
 
 ! that's it, so we close the file 

@@ -1889,7 +1889,7 @@ integer(kind=irg)                          :: numangles, numbatches, remainder, 
 integer(kind=irg)                          :: i, j, icnt, numvox, hdferr, npx, npy, refcnt, io_int(4), Lstart, bsw, bsh, gcnt, &
                                               g(3), gr(3), rf, NUMTHREADS, TID, BPnpx, BPnpy, m, betamin, betamax, NNy, NNz
 real(kind=sgl)                             :: l, kouter, kinner, tstart, tstop, mi, ma, lambdamin, lambdamax, kv(3), &
-                                              scl, kv2(3), shortg, info, gg, mps, dmin, intfactor, io_real(3) 
+                                              scl, kv2(3), shortg, info, gg, mps, dmin, intfactor, io_real(3), fpar(20) 
 real(kind=sgl),allocatable                 :: pattern(:,:), patternsum(:,:,:), bppatterns(:,:,:), bp(:,:)
 real(kind=dbl)                             :: qq(4)
 logical,allocatable                        :: line(:)
@@ -1898,9 +1898,9 @@ logical                                    :: verbose, f_exists, g_exists, inser
 
 type(Laue_grow_list),pointer               :: reflist, rltmp          
 
-real(kind=dbl)                             :: dt, pixel(3), k, disc, tt, tm, tp, newt, th 
+real(kind=dbl)                             :: dt, pixel(3), k, disc, tt, tm, tp, newt, th, dpar(20) 
 real(kind=dbl),allocatable                 :: slist(:,:), rotated_slist(:,:), rays(:,:), frontpts(:,:,:), backpts(:,:,:)
-integer(kind=irg)                          :: it, nt, npoints
+integer(kind=irg)                          :: it, nt, npoints, ipar(20)
 integer(kind=irg),allocatable              :: spppix(:,:), nst(:,:,:)
 
 
@@ -2185,7 +2185,8 @@ end if
 
 ! we need to keep the sampling positions as well as the ray vectors for those rays that 
 ! intersect the cylindrical sample; we offset the detector pixels by 1/2 so that the origin falls
-! between pixels
+! between pixels; we do the same thing inside the cylinder along each ray so that the first 
+! sampling point fallls 0.5*dt from the cylinder surface.
   do iz=shadow(2,3),shadow(2,2)-1
     do iy=shadow(1,2),shadow(1,1)-1
       pixel = (/ scdet(1,1), (dble(iy)+0.5D0)*lnl%ps, (dble(iz)+0.5D0)*lnl%ps /) / scdet(1,1) 
@@ -2215,7 +2216,7 @@ end if
             npoints = npoints + 1  
             if (it.eq.0) nst(1,iy,iz) = npoints
             if (it.eq.nt) nst(2,iy,iz) = npoints
-            newt = tm+dble(it)*dt
+            newt = tm+(dble(it)+0.5D0)*dt
             stmp%pos = (/ newt, pixel(2)*newt, pixel(3)*newt /)
             stmp%ray = pixel
             stmp%pixely = iy 
@@ -2291,6 +2292,24 @@ do it=1,numangles
   call qAR%insertQuatinArray(it, quat)
 end do 
 
+! define the ipar, fpar, and dpar arrays to pass parameters to the actual computation
+! we'll give them 20 entries each to make sure that we allow for future additions
+ipar(1) = lnl%Ny 
+ipar(2) = lnl%Nz 
+ipar(3) = gcnt 
+
+dpar(1) = lnl%Dy 
+dpar(2) = lnl%Dz 
+dpar(3) = lnl%ps 
+dpar(4) = lnl%samplingstepsize 
+dpar(5) = lnl%absl  
+dpar(6) = lnl%sampletodetector 
+dpar(7) = lnl%spotw  
+dpar(8) = t 
+dpar(9) = lnl% 
+
+
+
 !=============================================
 !=============================================
 ! Here we perform the actual simulations; the threads cover all the sample voxels for a 
@@ -2321,18 +2340,21 @@ memth = Memory_T( nt=lnl%nthreads )
 ! the pattern for that pixel, including all the diffracted beams along the ray. Each thread works on
 ! a horizontal row of pixels before returning the accumulated pattern and adding it to the overall pattern.
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, pattern)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, pattern, pp, np)
 
       NUMTHREADS = OMP_GET_NUM_THREADS()
       TID = OMP_GET_THREAD_NUM()
-      call memth%alloc(pattern, (/ lnl%Ny, lnl%Nz /), 'pattern', TID = TID)
+      call memth%alloc(pattern, (/ lnl%Ny, lnl%Nz /), 'pattern', initval=0.0, TID = TID)
+      call memth%alloc(pp, (/ lnl%Ny, lnl%Nz /), 'pp', initval=0.0, TID = TID)
 
 !$OMP DO SCHEDULE(DYNAMIC)
       do iz = shadow(2,3),shadow(2,2)-1
-        do iy=shadow(1,2),shadow(1,1)-1
-          pattern = pattern + LaueReflist%getLaueDCTPattern(quat, lambdamin, lambdamax, gcnt, lnl%Ny, lnl%Nz, lnl%ps, lnl%sampletodetector, t, &
-                                                lnl%absl, lnl%spotw, lnl%Dy, lnl%Dz, kinpre(pid), kvecs(1:3,pid), &
-                                                kvox(1:3,pid), lnl%binarize )
+        do iy= shadow(1,2),shadow(1,1)-1
+! pass only the relevant portions for this pixel of the slist and rotated_slist arrays etc ... 
+          np = nst(2, iy, iz) - nst(1, iy, iz) + 1 
+          pp = LaueReflist%getnewLaueDCTPattern(microstr, ipar, fpar, dpar, np, slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), &
+                                                rotated_slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), rays(1:3,nst(1,iy,iz)), &
+          pattern = pattern + pp 
         end do 
 
 !$OMP CRITICAL
@@ -2347,6 +2369,7 @@ memth = Memory_T( nt=lnl%nthreads )
         call Message%WriteValue(' patterns completed for batch ', io_int, 1) 
       end if 
       call memth%dealloc(pattern, 'pattern', TID = TID)
+      call memth%dealloc(pp, 'pp', TID = TID)
 
 ! end of OpenMP portion
 !$OMP END PARALLEL

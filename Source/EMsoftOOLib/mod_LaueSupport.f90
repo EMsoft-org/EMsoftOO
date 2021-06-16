@@ -77,6 +77,7 @@ module mod_LaueSupport
     procedure, pass(self) :: Laue_Init_Unit_Reflist_
     procedure, pass(self) :: getLauePattern_
     procedure, pass(self) :: getLaueDCTPattern_
+    procedure, pass(self) :: getnewLaueDCTPattern_
   
     generic, public :: MakeRefList => MakeRefList_
     generic, public :: get_ListHead => get_ListHead_
@@ -85,6 +86,7 @@ module mod_LaueSupport
     generic, public :: Init_Unit_Reflist => Laue_Init_Unit_Reflist_
     generic, public :: getLauePattern => getLauePattern_
     generic, public :: getLaueDCTPattern => getLaueDCTPattern_
+    generic, public :: getnewLaueDCTPattern => getnewLaueDCTPattern_
   
   end type LaueReflist_T
   
@@ -649,6 +651,55 @@ Ld = dble(delta * Ldims) / 2.D0
 ! end if
 
 end function backprojectLauePattern
+
+!--------------------------------------------------------------------------
+recursive function getnewLaueDCTPattern_(self, mstr, ipar, fpar, dpar, np, slist, rlist, ray, 
+                                         squat) result(pattern)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnewLaueDCTPattern_
+
+use mod_io
+use mod_math
+use mod_quaternions
+use mod_rotations
+use mod_DREAM3D 
+
+IMPLICIT NONE
+
+class(LaueReflist_T),INTENT(INOUT)      :: self
+type(microstructure),INTENT(INOUT)      :: mstr 
+integer(kind=irg),INTENT(IN)            :: ipar(20)
+real(kind=sgl),INTENT(IN)               :: fpar(20)
+real(kind=dbl),INTENT(IN)               :: dpar(20)
+integer(kind=irg),INTENT(IN)            :: np
+real(kind=dbl),INTENT(IN)               :: slist(3,np)
+real(kind=dbl),INTENT(IN)               :: rlist(3,np)
+real(kind=dbl),INTENT(IN)               :: ray(3)
+type(Quaternion_T),INTENT(IN)           :: squat
+real(kind=sgl)                          :: pattern(Ny, Nz)
+
+real(kind=dbl),allocatable              :: quats(np) 
+
+real(kind=sgl)                          :: th, la, s0(3), s(3), G(3), d, scl, dvec(3), kexit(3), kinpost, dins, atf, Ly, Lz, pre
+type(Laue_grow_list),pointer            :: rltmp
+integer(kind=irg)                       :: i, j, k , spots
+
+! first we need to get the grain orientations along this trajectory; this we do by
+! sampling from the microstructure using the rotated coordinates in the rlist array.
+! In a first approximation we just take the nearest point in the microstructure.
+! keep in mind that the origins of the Quaternion3DArray and the array of sampling points are 
+! offset along the diagonal of the box !
+
+
+! then we apply the sample rotation squat to these grain orientations to get them into the correct
+! reference frame.
+
+! for each sampling point along the ray, we need to do the gvector analysis while also 
+! keeping track of the attenuation of the direct beam along this ray. 
+
+
+
+
+end function getnewLaueDCTPattern_
 
 !--------------------------------------------------------------------------
 recursive function getLaueDCTPattern_(self, qu, lmin, lmax, refcnt, Ny, Nz, ps, sampletodetector, samplethickness,  &
