@@ -2186,7 +2186,7 @@ end if
 ! we need to keep the sampling positions as well as the ray vectors for those rays that 
 ! intersect the cylindrical sample; we offset the detector pixels by 1/2 so that the origin falls
 ! between pixels; we do the same thing inside the cylinder along each ray so that the first 
-! sampling point fallls 0.5*dt from the cylinder surface.
+! sampling point falls 0.5*dt from the cylinder surface.
   do iz=shadow(2,3),shadow(2,2)-1
     do iy=shadow(1,2),shadow(1,1)-1
       pixel = (/ scdet(1,1), (dble(iy)+0.5D0)*lnl%ps, (dble(iz)+0.5D0)*lnl%ps /) / scdet(1,1) 
