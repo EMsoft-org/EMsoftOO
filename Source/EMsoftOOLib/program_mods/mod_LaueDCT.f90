@@ -84,6 +84,7 @@ type, private :: samplinglisttype
   real(kind=dbl)                        :: ray(3)
   real(kind=dbl)                        :: front(3)
   real(kind=dbl)                        :: back(3)
+  real(kind=dbl)                        :: voxelvolume
   integer(kind=irg)                     :: pixely 
   integer(kind=irg)                     :: pixelz 
   type(samplinglisttype), pointer       :: next
@@ -1877,29 +1878,29 @@ type(Diffraction_T)                        :: Diff
 type(DynType)                              :: Dyn
 type(memory_T)                             :: mem, memth
 type(so3_T)                                :: SO
-type(QuaternionArray_T)                    :: qAR
+type(QuaternionArray_T)                    :: qAR, orlist
 type(Quaternion_T)                         :: quat
 type(LaueReflist_T)                        :: LaueReflist
 type(q_T)                                  :: qu
 type(microstructure)                       :: microstr
 type(samplinglisttype), pointer            :: samplinglist, stmp, stmpb
 
-integer(kind=irg)                          :: numangles, numbatches, remainder, ii, jj, pid, tickstart, shadow(2,4)
+integer(kind=irg)                          :: numangles, numbatches, remainder, ii, jj, pid, tickstart, shadow(2,4), np
 
 integer(kind=irg)                          :: i, j, icnt, numvox, hdferr, npx, npy, refcnt, io_int(4), Lstart, bsw, bsh, gcnt, &
                                               g(3), gr(3), rf, NUMTHREADS, TID, BPnpx, BPnpy, m, betamin, betamax, NNy, NNz
 real(kind=sgl)                             :: l, kouter, kinner, tstart, tstop, mi, ma, lambdamin, lambdamax, kv(3), &
                                               scl, kv2(3), shortg, info, gg, mps, dmin, intfactor, io_real(3), fpar(20) 
-real(kind=sgl),allocatable                 :: pattern(:,:), patternsum(:,:,:), bppatterns(:,:,:), bp(:,:)
-real(kind=dbl)                             :: qq(4)
+real(kind=sgl),allocatable                 :: pp(:,:), pattern(:,:), patternsum(:,:,:), bppatterns(:,:,:), bp(:,:)
+real(kind=dbl)                             :: qq(4), pre, dtp
 logical,allocatable                        :: line(:)
 
 logical                                    :: verbose, f_exists, g_exists, insert=.TRUE., overwrite=.TRUE.
 
 type(Laue_grow_list),pointer               :: reflist, rltmp          
 
-real(kind=dbl)                             :: dt, pixel(3), k, disc, tt, tm, tp, newt, th, dpar(20) 
-real(kind=dbl),allocatable                 :: slist(:,:), rotated_slist(:,:), rays(:,:), frontpts(:,:,:), backpts(:,:,:)
+real(kind=dbl)                             :: dt, pixel(3), k, disc, tt, tm, tp, newt, th, dpar(20), previous 
+real(kind=dbl),allocatable                 :: slist(:,:), rotated_slist(:,:), rays(:,:), frontpts(:,:,:), backpts(:,:,:), voxvol(:)
 integer(kind=irg)                          :: it, nt, npoints, ipar(20)
 integer(kind=irg),allocatable              :: spppix(:,:), nst(:,:,:)
 
@@ -1959,8 +1960,9 @@ io_real(1:3) = microstr%origin
 call Message%writeValue('  Origin                :', io_real, 3)
 io_real(1:3) = microstr%gridspacing
 call Message%writeValue('  Spacing               :', io_real, 3)
-io_int(1:2) = (/ 4, microstr%Quaternions%getQnumber() /)
-call Message%writeValue('  Quaternion array shape:', io_int, 2)
+gr = microstr%Quaternions%getQnumber()
+io_int(1:4) = (/ 4, gr(1), gr(2), gr(3) /)
+call Message%writeValue('  Quaternion array shape:', io_int, 4)
 io_int(1:3) = shape(microstr%FeatureIDs)
 call Message%writeValue('  FeatureIDs array shape:', io_int, 3)
 io_int(1) = maxval(microstr%FeatureIDs)
@@ -2010,7 +2012,7 @@ end if
 !=============================================
 ! compute possible reflection list with kinematical intensities, and intensities
 intfactor = 0.0001D0   ! default intensity cutoff factor (from EMLauemaster program)
-LaueReflist = LaueReflist_T()
+LaueReflist = LaueReflist_T( grow = .TRUE. )
 call LaueReflist%Init_Unit_Reflist(cell, SG, Diff, lambdamin, intfactor, gcnt, verbose, shortg)
 
 ! we need to compute the correct value for Lstart... setting to 8 for now
@@ -2187,40 +2189,45 @@ end if
 ! intersect the cylindrical sample; we offset the detector pixels by 1/2 so that the origin falls
 ! between pixels; we do the same thing inside the cylinder along each ray so that the first 
 ! sampling point falls 0.5*dt from the cylinder surface.
+  pre = (lnl%ps/(lnl%Sx + lnl%sampletodetector))**2
   do iz=shadow(2,3),shadow(2,2)-1
     do iy=shadow(1,2),shadow(1,1)-1
       pixel = (/ scdet(1,1), (dble(iy)+0.5D0)*lnl%ps, (dble(iz)+0.5D0)*lnl%ps /) / scdet(1,1) 
       k = pixel(2)**2
       disc = (1.D0+k)*0.25D0*t*t - k*lnl%Sx 
       if (disc.ge.0.D0) then 
-        if (disc.eq.0.D0) then 
-          npoints = npoints + 1  
-          nst(1:2,iy,iz) = (/ npoints, npoints /)
-          tt = lnl%Sx / (1.D0+k)
-          stmp%pos = (/ tt, pixel(2)*tt, pixel(3)*tt /)
-          stmp%ray = pixel
-          stmp%front = stmp%pos
-          stmp%back = stmp%pos
-          stmp%pixely = iy 
-          stmp%pixelz = iz
-          allocate( stmp%next )
-          stmp => stmp%next
-          nullify(stmp%next)
+        if (disc.eq.0.D0) then ! this will rarely happen, so we don't need to include these points 
+          ! npoints = npoints + 1  
+          ! nst(1:2,iy,iz) = (/ npoints, npoints /)
+          ! tt = lnl%Sx / (1.D0+k)
+          ! stmp%pos = (/ tt, pixel(2)*tt, pixel(3)*tt /)
+          ! stmp%ray = pixel
+          ! stmp%front = stmp%pos
+          ! stmp%back = stmp%pos
+          ! stmp%pixely = iy 
+          ! stmp%pixelz = iz
+          ! stmp%voxelvolume = 0.D0    ! surface voxels are not counted
+          ! allocate( stmp%next )
+          ! stmp => stmp%next
+          ! nullify(stmp%next)
         else 
           tm = (lnl%Sx-sqrt(disc))/(1.D0+k)
           tp = (lnl%Sx+sqrt(disc))/(1.D0+k)
           stmp%front = (/ tm, pixel(2)*tm, pixel(3)*tm /)
           stmp%back = (/ tp, pixel(2)*tp, pixel(3)*tp /)
           nt = int( (tp-tm)/dt )+1 
+          dtp = (tp-tm)/nt
+          previous = tm
           do it=0,nt 
             npoints = npoints + 1  
             if (it.eq.0) nst(1,iy,iz) = npoints
             if (it.eq.nt) nst(2,iy,iz) = npoints
-            newt = tm+(dble(it)+0.5D0)*dt
+            newt = tm+(dble(it)+0.5D0)*dtp
             stmp%pos = (/ newt, pixel(2)*newt, pixel(3)*newt /)
             stmp%ray = pixel
             stmp%pixely = iy 
             stmp%pixelz = iz
+            stmp%voxelvolume = pre * dtp * (0.75D0*dtp*dtp + newt*newt)
             allocate( stmp%next )
             stmp => stmp%next
             nullify(stmp%next)
@@ -2233,6 +2240,7 @@ end if
 ! convert the linked list to regular array 
   call mem%alloc(slist, (/ 3, npoints /), 'slist', initval = 0.D0)
   call mem%alloc(rays, (/ 3, npoints /), 'rays', initval = 0.D0)
+  call mem%alloc(voxvol, (/ npoints /), 'voxvol', initval = 0.D0)
   call mem%alloc(rotated_slist, (/ 3, npoints /), 'rotated_slist', initval = 0.D0)
   call mem%alloc(spppix, (/ shadow(1,1)-1, shadow(2,2)-1 /), 'spppix', initval = 0, startdims = (/ shadow(1,2), shadow(2,3) /) )
   call mem%alloc(frontpts, (/ 3, shadow(1,1)-1, shadow(2,2)-1 /), 'frontpts', initval = 0.D0, &
@@ -2249,13 +2257,14 @@ end if
     end if
     slist(1:3,it) = stmp%pos
     rays(1:3,it) = stmp%ray
+    voxvol(it) = stmp%voxelvolume
     stmp => stmp%next
   end do 
 
 ! we'll transfer the sampling points to the sample reference frame by a translation along x
 ! this way we can perform the sample rotations and do the interpolations needed for proper sampling
 ! The other data points remain in the source reference frame so that we can compute the incident wave vector
-  slist(1,:) = slist(1,:) + lnl%sampletodetector
+  slist(1,:) = slist(1,:) - lnl%sampletodetector
 
 ! delete the linked list completely 
   stmp => samplinglist 
@@ -2306,14 +2315,16 @@ dpar(5) = lnl%absl
 dpar(6) = lnl%sampletodetector 
 dpar(7) = lnl%spotw  
 dpar(8) = t 
-dpar(9) = lnl% 
+dpar(9) = lambdamin 
+dpar(10)= lambdamax
+! dpar(9) = lnl% 
 
 
 
 !=============================================
 !=============================================
 ! Here we perform the actual simulations; the threads cover all the sample voxels for a 
-! given orientation and the resulting patterns are summed together.
+! given sample orientation and the resulting patterns are summed together.
 ! Then we go to the next orientation.
 ! Write them to the HDF5 output file, along with (optionally) the pattern tiff files
 
@@ -2333,6 +2344,10 @@ memth = Memory_T( nt=lnl%nthreads )
       quat = qAR%getQuatfromArray( ii ) 
       rotated_slist = quat%quat_Lp_vecarray( npoints, slist )
     end if 
+! transform the list to the microstructure reference frame
+    rotated_slist(1,:) =  rotated_slist(1,:) / microstr%gridspacing(1) + microstr%dimensions(1)/2
+    rotated_slist(2,:) =  rotated_slist(2,:) / microstr%gridspacing(2) + microstr%dimensions(2)/2
+    rotated_slist(3,:) =  rotated_slist(3,:) / microstr%gridspacing(3) + microstr%dimensions(3)/2
 
 ! use OpenMP to run on multiple cores ... 
 ! We loop over all the detector pixels that are illuminated by the slit. For each such pixel,
@@ -2340,7 +2355,7 @@ memth = Memory_T( nt=lnl%nthreads )
 ! the pattern for that pixel, including all the diffracted beams along the ray. Each thread works on
 ! a horizontal row of pixels before returning the accumulated pattern and adding it to the overall pattern.
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, pattern, pp, np)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, pattern, pp, np, orlist)
 
       NUMTHREADS = OMP_GET_NUM_THREADS()
       TID = OMP_GET_THREAD_NUM()
@@ -2350,10 +2365,13 @@ memth = Memory_T( nt=lnl%nthreads )
 !$OMP DO SCHEDULE(DYNAMIC)
       do iz = shadow(2,3),shadow(2,2)-1
         do iy= shadow(1,2),shadow(1,1)-1
-! pass only the relevant portions for this pixel of the slist and rotated_slist arrays etc ... 
           np = nst(2, iy, iz) - nst(1, iy, iz) + 1 
-          pp = LaueReflist%getnewLaueDCTPattern(microstr, ipar, fpar, dpar, np, slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), &
-                                                rotated_slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), rays(1:3,nst(1,iy,iz)), &
+! for this ray, get the sequence of orientations from the microstructure 
+          call getRayOrientations( microstr, rotated_slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), np, orlist )
+! pass only the relevant portions for this pixel of the slist and rotated_slist arrays etc ... 
+          pp = LaueReflist%getnewLaueDCTPattern(ipar, fpar, dpar, np, slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), &
+                                                rays(1:3,nst(1,iy,iz)), voxvol(nst(1,iy,iz):nst(2,iy,iz)), quat, orlist )
+          call orlist%deleteArray() ! explicitly clean up the orientations array
           pattern = pattern + pp 
         end do 
 

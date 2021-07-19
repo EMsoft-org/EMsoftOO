@@ -101,7 +101,7 @@ module mod_LaueSupport
   contains
   
   !--------------------------------------------------------------------------
-  type(LaueReflist_T) function LaueReflist_constructor( ) result(GVec)
+  type(LaueReflist_T) function LaueReflist_constructor( grow ) result(GVec)
   !DEC$ ATTRIBUTES DLLEXPORT :: LaueReflist_constructor
   !! author: MDG 
   !! version: 1.0 
@@ -111,11 +111,21 @@ module mod_LaueSupport
    
   IMPLICIT NONE
   
+  logical,INTENT(IN),OPTIONAL         :: grow 
+
   ! the calling program must make sure that the reflist is empty ...
   ! initialize the reflist
-  nullify(GVec%reflist)
-  GVec%nref = 0
-  call GVec%MakeRefList()
+  if (present(grow)) then 
+    if (grow.eqv..TRUE.) then 
+      nullify(GVec%reflistgrow)
+      GVec%nref = 0
+      call GVec%MakeRefList( grow )
+    end if 
+  else
+    nullify(GVec%reflist)
+    GVec%nref = 0
+    call GVec%MakeRefList()
+  end if
 
   end function LaueReflist_constructor
   
@@ -137,7 +147,7 @@ module mod_LaueSupport
   end subroutine LaueReflist_destructor
 
   !--------------------------------------------------------------------------
-  recursive subroutine MakeRefList_(self)
+  recursive subroutine MakeRefList_(self, grow)
   !DEC$ ATTRIBUTES DLLEXPORT :: MakeRefList_
   !! author: MDG
   !! version: 1.0
@@ -150,17 +160,29 @@ module mod_LaueSupport
   IMPLICIT NONE
 
   class(LaueReflist_T), INTENT(INOUT)  :: self
+  logical,INTENT(IN),OPTIONAL          :: grow 
 
   type(IO_T)                        :: Message
   integer(kind=irg)                 :: istat
 
   ! create it if it does not already exist
-  if (.not.associated(self%reflist)) then
-    allocate(self%reflist,stat=istat)
-    if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
-    self%rltail => self%reflist           ! tail points to new value
-    nullify(self%rltail%next)             ! nullify next in new value
-  end if
+  if (present(grow)) then 
+    if (grow.eqv..TRUE.) then 
+      if (.not.associated(self%reflistgrow)) then
+        allocate(self%reflistgrow,stat=istat)
+        if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
+        self%rltailgrow => self%reflistgrow       ! tail points to new value
+        nullify(self%rltailgrow%next)             ! nullify next in new value
+      end if
+    end if 
+  else
+    if (.not.associated(self%reflist)) then
+      allocate(self%reflist,stat=istat)
+      if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
+      self%rltail => self%reflist           ! tail points to new value
+      nullify(self%rltail%next)             ! nullify next in new value
+    end if
+  end if 
 
   end subroutine MakeRefList_
 
@@ -653,8 +675,8 @@ Ld = dble(delta * Ldims) / 2.D0
 end function backprojectLauePattern
 
 !--------------------------------------------------------------------------
-recursive function getnewLaueDCTPattern_(self, mstr, ipar, fpar, dpar, np, slist, rlist, ray, 
-                                         squat) result(pattern)
+recursive function getnewLaueDCTPattern_(self, ipar, fpar, dpar, np, slist, ray, vvol, &
+                                         squat, orlist) result(pattern)
 !DEC$ ATTRIBUTES DLLEXPORT :: getnewLaueDCTPattern_
 
 use mod_io
@@ -666,38 +688,36 @@ use mod_DREAM3D
 IMPLICIT NONE
 
 class(LaueReflist_T),INTENT(INOUT)      :: self
-type(microstructure),INTENT(INOUT)      :: mstr 
 integer(kind=irg),INTENT(IN)            :: ipar(20)
 real(kind=sgl),INTENT(IN)               :: fpar(20)
 real(kind=dbl),INTENT(IN)               :: dpar(20)
 integer(kind=irg),INTENT(IN)            :: np
 real(kind=dbl),INTENT(IN)               :: slist(3,np)
-real(kind=dbl),INTENT(IN)               :: rlist(3,np)
 real(kind=dbl),INTENT(IN)               :: ray(3)
+real(kind=dbl),INTENT(IN)               :: vvol(np)
 type(Quaternion_T),INTENT(IN)           :: squat
-real(kind=sgl)                          :: pattern(Ny, Nz)
+type(QuaternionArray_T),INTENT(IN)      :: orlist
+real(kind=sgl)                          :: pattern(ipar(1), ipar(2))
 
-real(kind=dbl),allocatable              :: quats(np) 
+type(Quaternion_T)                      :: quats
 
 real(kind=sgl)                          :: th, la, s0(3), s(3), G(3), d, scl, dvec(3), kexit(3), kinpost, dins, atf, Ly, Lz, pre
 type(Laue_grow_list),pointer            :: rltmp
-integer(kind=irg)                       :: i, j, k , spots
+integer(kind=irg)                       :: i, j, k , spots, isp
 
-! first we need to get the grain orientations along this trajectory; this we do by
-! sampling from the microstructure using the rotated coordinates in the rlist array.
-! In a first approximation we just take the nearest point in the microstructure.
-! keep in mind that the origins of the Quaternion3DArray and the array of sampling points are 
-! offset along the diagonal of the box !
+! For each sampling point along the ray, we need to do the gvector analysis while also 
+! keeping track of the attenuation of the direct beam along this ray. The intensity of a diffracted
+! beam must be subtracted from the incident intensity at each sampling point and for those diffracted
+! beams that hit the detector, the attenuation must be included.
+!
+! loop over all np sampling points
+pattern = 0.0
+do isp = 1, np 
+! get the rotation quaternion corrected for the sample orientation
+  quats = squat * orlist%getQuatfromArray( isp )
+! 
 
-
-! then we apply the sample rotation squat to these grain orientations to get them into the correct
-! reference frame.
-
-! for each sampling point along the ray, we need to do the gvector analysis while also 
-! keeping track of the attenuation of the direct beam along this ray. 
-
-
-
+end do 
 
 end function getnewLaueDCTPattern_
 

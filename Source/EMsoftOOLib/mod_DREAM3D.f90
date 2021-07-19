@@ -55,6 +55,7 @@ contains
 
 !--------------------------------------------------------------------------
 subroutine ReadDREAM3Dfile(EMsoft, dname, microstr, EApath, FIDpath) 
+!DEC$ ATTRIBUTES DLLEXPORT :: ReadDream3Dfile
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/28/21
@@ -84,7 +85,7 @@ type(Quaternion_T)                    :: quat
 
 character(fnlen)                      :: fname, groupname, dataset  
 logical                               :: f_exists, readonly 
-integer(kind=irg)                     :: hdferr, iq, ix, iy, iz 
+integer(kind=irg)                     :: hdferr, iq, ix, iy, iz, d3(3) 
 integer(HSIZE_T)                      :: dims(1), dims3(3), dims4(4)
 integer(kind=int64),allocatable       :: dimensions(:)
 real(kind=sgl),allocatable            :: origin(:)
@@ -121,6 +122,7 @@ dataset = 'DIMENSIONS'
   call HDF%readDatasetInteger64Array(dataset, dims, hdferr, dimensions)
   allocate(microstr%dimensions(dims(1)))
   microstr%dimensions = dimensions
+  d3(1:3) = dimensions(1:3)
 
 dataset = 'ORIGIN'
   call HDF%readDatasetFloatArray(dataset, dims, hdferr, origin)
@@ -144,7 +146,7 @@ dataset = trim(EApath(4))
 
 ! convert them to a QuaternionArray_T
   microstr%numvoxels = product(dimensions)
-  microstr%Quaternions = Quaternion3DArray_T( s = 'd', n = dimensions)
+  microstr%Quaternions = Quaternion3DArray_T( d3, s = 'd' )
   do iz=1,dimensions(3)
     do iy=1,dimensions(2)
       do ix=1,dimensions(1)
@@ -162,7 +164,7 @@ dataset = trim(FIDpath(4))
   microstr%FeatureIDs = FeatureIDs(1,:,:,:)
 
 ! clean up some large arrays
-  deallocate(EulerAngles, FeatureIDs, dimensions, origin, gridspacing, quats)
+  deallocate(EulerAngles, FeatureIDs, dimensions, origin, gridspacing)
 
 ! that's it, so we close the file 
 call HDF%pop(.TRUE.)
@@ -171,5 +173,31 @@ call Message%printMessage(' Microstructure data read from DREAM.3D file '//trim(
 
 end subroutine ReadDREAM3Dfile
 
+!--------------------------------------------------------------------------
+recursive subroutine getRayOrientations(microstr, rslist, nsp, orlist) 
+!DEC$ ATTRIBUTES DLLEXPORT :: getRayOrientations
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/15/21
+!!
+!! extract orientations from the microstructure along a ray 
+
+type(microstructure),INTENT(INOUT)    :: microstr 
+integer(kind=irg),INTENT(IN)          :: nsp
+real(kind=dbl),INTENT(IN)             :: rslist(3, nsp)
+type(QuaternionArray_T),INTENT(INOUT) :: orlist
+
+integer(kind=irg)                     :: i
+
+! declare a standard QuaternionArray structure
+orlist = QuaternionArray_T( n = nsp, s = 'd' )
+
+! get the orientation at each ray position from the 3D quaternion array
+do i=1,nsp 
+  call orlist%insertQuatinArray( i, microstr%Quaternions%getQuatfrom3DArray( nint(rslist(:,i)) ) )
+end do 
+
+! expansion for multi-phase microstructures:  get Feature and Phase IDs as well
+end subroutine getRayOrientations
 
 end module mod_DREAM3D
