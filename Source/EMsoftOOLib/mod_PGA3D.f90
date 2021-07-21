@@ -198,7 +198,6 @@ end do
 
 end function mvec_dual_
 
-
 !--------------------------------------------------------------------------
 recursive function mvec_getcomp_(self, ind) result(c)
 !DEC$ ATTRIBUTES DLLEXPORT :: mvec_getcomp_

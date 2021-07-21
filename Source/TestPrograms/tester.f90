@@ -8,7 +8,7 @@ program tester
 
     type(PGA3D_T)           :: mv, mv2, mv3
     integer(kind=irg)       :: i 
-    real(kind=dbl)          :: a 
+    real(kind=dbl)          :: a, b, c, d, x, y, z 
 
     call PGA3D_initialize(verbose=.TRUE.)
 
@@ -54,8 +54,12 @@ program tester
     call mv3%log( pre='rotor')
     mv3 = plane (1.D0, 2.D0, 3.D0, 4.D0)
     call mv3%log( pre='plane')
+    call getplane(mv3, a, b, c, d)
+    write (*,*) 'plane indices : ', a, b, c, d 
     mv3 = point(1.D0, 2.D0, 3.D0)
     call mv3%log( pre='point')
+    call getpoint(mv3, x, y, z)
+    write (*,*) 'point coordinates : ', x, y, z
 
 
 end program

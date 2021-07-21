@@ -171,6 +171,27 @@ pl = (E1.muls.a) + (E2.muls.b) + (E3.muls.c) + (E0.muls.d)
 end function plane
 
 !--------------------------------------------------------------------------
+recursive subroutine getplane(pl, a, b, c, d) 
+!DEC$ ATTRIBUTES DLLEXPORT :: getplane
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/21/21
+!!
+!! get the components of a plane
+
+IMPLICIT NONE 
+
+type(PGA3D_T), INTENT(INOUT)         :: pl
+real(kind=dbl), INTENT(OUT)          :: a, b, c, d 
+
+a = pl%getcomp(2)
+b = pl%getcomp(3)
+c = pl%getcomp(4)
+d = pl%getcomp(1)
+
+end subroutine getplane
+
+!--------------------------------------------------------------------------
 recursive function point(x, y, z) result(pt)
 !DEC$ ATTRIBUTES DLLEXPORT :: point
 !! author: MDG 
@@ -187,6 +208,26 @@ type(PGA3D_T)                       :: pt
 pt = (E032.muls.x) + (E013.muls.y) + (E021.muls.z) + E123
 
 end function point
+
+!--------------------------------------------------------------------------
+recursive subroutine getpoint(pt, x, y, z)
+!DEC$ ATTRIBUTES DLLEXPORT :: getpoint
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/21/21
+!!
+!! get the coordinates of a point
+
+IMPLICIT NONE 
+
+type(PGA3D_T), INTENT(INOUT)         :: pt
+real(kind=dbl), INTENT(OUT)          :: x, y, z
+
+x = pt%getcomp(13)
+y = pt%getcomp(12)
+z = pt%getcomp(11)
+
+end subroutine getpoint
 
 
 
