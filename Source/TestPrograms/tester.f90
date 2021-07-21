@@ -2,22 +2,19 @@ program tester
 
     use mod_global 
     use mod_PGA3D 
+    use mod_PGA3Dsupport
 
     IMPLICIT NONE 
 
-    type(PGA3D_T)           :: mv, mv2, mv3 
+    type(PGA3D_T)           :: mv, mv2, mv3
     integer(kind=irg)       :: i 
     real(kind=dbl)          :: a 
 
-    mv = PGA3D_T()
+    call PGA3D_initialize(verbose=.TRUE.)
 
-    do i=0,15,2
-      call mv%setcomp( dble(i), i)
-    end do 
-    call mv%setcomp( -15.D0, 4 )
-    do i=0,15 
-        write (*,*) mv%getcomp(i)
-    end do 
+    mv = PGA3D_T()
+    call mv%setcomp( -15.D0, 1 )
+    call mv%log( pre='test')
 
     call mv%log( pre='initial')
     mv2 = .reverse.mv
@@ -46,9 +43,19 @@ program tester
     call mv3%log( pre='add')
     mv3 = mv - mv2
     call mv3%log( pre='subtract')
-    mv3 = mv + a 
+    mv3 = mv.adds.a 
     call mv3%log( pre='adds')
-
+    write (*,*) 'norm(mv)  = ', mv%norm()
+    write (*,*) 'inorm(mv) = ', mv%inorm()
+    mv3 = mv%normalized()
+    call mv3%log( pre='normalized')
+    write (*,*) 'norm(mv3)  = ', mv3%norm()
+    mv3 = rotor(cPi/2.0, E12)
+    call mv3%log( pre='rotor')
+    mv3 = plane (1.D0, 2.D0, 3.D0, 4.D0)
+    call mv3%log( pre='plane')
+    mv3 = point(1.D0, 2.D0, 3.D0)
+    call mv3%log( pre='point')
 
 
 end program
