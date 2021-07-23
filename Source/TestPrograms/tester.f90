@@ -6,60 +6,141 @@ program tester
 
     IMPLICIT NONE 
 
-    type(PGA3D_T)           :: mv, mv2, mv3
+    type(PGA3D_T)           :: mv, mv2, mv3, tr, pt, rot, axz, orig, px, l, p, &
+                                rline, rpoint, rplane, pop, pot, poc, cr 
     integer(kind=irg)       :: i 
     real(kind=dbl)          :: a, b, c, d, x, y, z 
+    real(kind=dbl),allocatable            :: gr(:)
+    
+    call PGA3D_initialize()
 
-    call PGA3D_initialize(verbose=.TRUE.)
+!     mv = PGA3D_T()
+!     call mv%setcomp( -15.D0, 1 )
+!     call mv%log( pre='test')
 
-    mv = PGA3D_T()
-    call mv%setcomp( -15.D0, 1 )
-    call mv%log( pre='test')
+!     call mv%log( pre='initial')
+!     mv2 = .reverse.mv
+!     call mv2%log( pre='reverse')
+!     mv2 = .dual.mv 
+!     call mv2%log( pre='dual')
+!     mv2 = .involute.mv 
+!     call mv2%log( pre='involute')
+!     mv3 = conjg(mv)
+!     call mv3%log( pre='conjg')
+!     mv3 = mv * mv2
+!     call mv3%log( pre='product')
+!     mv3 = mv.wedge.mv2
+!     call mv3%log( pre='wedge')
+!     mv3 = mv.vee.mv2
+!     call mv3%log( pre='vee')
+!     mv3 = mv.inner.mv2
+!     call mv3%log( pre='inner')
+!     a = 20.D0
+! ! the following doesn't work yet
+!     ! mv3 = a.smul.mv 
+!     ! call mv3%log( pre='smul')
+!     mv3 = mv.muls.a 
+!     call mv3%log( pre='muls')
+!     mv3 = mv + mv2
+!     call mv3%log( pre='add')
+!     mv3 = mv - mv2
+!     call mv3%log( pre='subtract')
+!     mv3 = mv.adds.a 
+!     call mv3%log( pre='adds')
+!     write (*,*) 'norm(mv)  = ', mv%norm()
+!     write (*,*) 'inorm(mv) = ', mv%inorm()
+!     mv3 = mv%normalized()
+!     call mv3%log( pre='normalized')
+!     write (*,*) 'norm(mv3)  = ', mv3%norm()
+    ! rot = rotor(cPi/2.D0, E1*E2)
+    ! axz = E1.wedge.E2 
+    ! orig = axz.wedge.E3
+    ! px = point(0.D0,0.D0,1.D0)
+    ! line = orig.vee.px 
+    ! p = plane(0.D0,0.D0,1.D0,-3.D0)
+    ! rline = rot * line * conjg(rot)
+    ! rpoint = rot * px * conjg(rot)
+    ! rplane = rot * p * conjg(rot)
 
-    call mv%log( pre='initial')
-    mv2 = .reverse.mv
-    call mv2%log( pre='reverse')
-    mv2 = .dual.mv 
-    call mv2%log( pre='dual')
-    mv2 = .involute.mv 
-    call mv2%log( pre='involute')
-    mv3 = conjg(mv)
-    call mv3%log( pre='conjg')
-    mv3 = mv * mv2
-    call mv3%log( pre='product')
-    mv3 = mv.wedge.mv2
-    call mv3%log( pre='wedge')
-    mv3 = mv.vee.mv2
-    call mv3%log( pre='vee')
-    mv3 = mv.inner.mv2
-    call mv3%log( pre='inner')
-    a = 20.D0
-! the following doesn't work yet
-    ! mv3 = a.smul.mv 
-    ! call mv3%log( pre='smul')
-    mv3 = mv.muls.a 
-    call mv3%log( pre='muls')
-    mv3 = mv + mv2
-    call mv3%log( pre='add')
-    mv3 = mv - mv2
-    call mv3%log( pre='subtract')
-    mv3 = mv.adds.a 
-    call mv3%log( pre='adds')
-    write (*,*) 'norm(mv)  = ', mv%norm()
-    write (*,*) 'inorm(mv) = ', mv%inorm()
-    mv3 = mv%normalized()
-    call mv3%log( pre='normalized')
-    write (*,*) 'norm(mv3)  = ', mv3%norm()
-    mv3 = rotor(cPi/2.0, E12)
-    call mv3%log( pre='rotor')
-    mv3 = plane (1.D0, 2.D0, 3.D0, 4.D0)
-    call mv3%log( pre='plane')
-    call getplane(mv3, a, b, c, d)
-    write (*,*) 'plane indices : ', a, b, c, d 
-    mv3 = point(1.D0, 2.D0, 3.D0)
-    call mv3%log( pre='point')
-    call getpoint(mv3, x, y, z)
-    write (*,*) 'point coordinates : ', x, y, z
+
+    ! call px%log( pre = 'px')
+    ! call orig%log( pre = 'orig')
+    ! call axz%log( pre = 'axz')
+    ! call line%log( pre = 'line')
+    ! call p%log( pre = 'plane')
+    ! call rot%log( pre = 'rotor')
+    ! call rline%log( pre = 'rotated line')
+    ! call rpoint%log( pre = 'rotated point')
+    ! call rplane%log( pre = 'rotated plane')
+    ! pop = (p.inner.px)*p 
+    ! call pop%log( pre = 'point on plane (not normalized)')
+    ! pop = pop%normalized()
+    ! call getpoint(pop, x, y, z)
+    ! call pop%log( pre = 'point on plane')
+    ! write (*,*) 'point coordinates : ', x, y, z
+    ! pot = pointontorus(0.D0, 0.D0)
+    ! call pot%log( pre = 'point on torus')
+    ! call getpoint(pot, x, y, z)
+    ! write (*,*) 'point coordinates : ', x, y, z
+
+    tr = translator(5.D0, E1*E0)
+    do i=0,11
+        x = dble(i)/12.D0
+        cr = circle(x, 5.D0, E1*E2)
+        poc = tr * cr * E123 * conjg(cr) * conjg(tr)
+        call poc%log()
+        ! call getpoint(cr, x, y, z)
+        ! write (*,*) 'point coordinates : ', x, y, z
+    end do 
+
+    ! p = plane(0.D0, 0.D0, 1.D0, 0.D0)
+    ! l = p*E0123
+    ! call l%log()
+
+    ! pt = point(0.D0, 0.D0, 5.D0)
+    ! p = plane(0.D0, 0.D0, 1.D0, -10.D0)
+    ! mv = normalthru(pt, p)
+    ! call mv%log()
+    ! mv = projectonto(pt, p)
+    ! call mv%log()
+
+    ! pt = point(0.D0, 0.D0, 0.D0) 
+    ! tr = point(0.D0, 0.D0, 5.D0) 
+    ! write (*,*) 'distance = ', distpoints(pt, tr)
+    ! l = pt.vee.tr 
+    ! write(*,*) 'norm of line ', l%norm()
+
+    ! mv = plane(0.D0, 1.D0, 1.D0, 5.D0)
+    ! mv2= plane(0.D0, 1.D0, 0.D0, -20.D0)
+    ! write (*,*) 'distance = ', distplanes(mv, mv2)
+    ! write (*,*) 'angle     = ', angleplanes(mv, mv2)/dtor
+    ! write (*,*) 'angle     = ', angleplaneline(mv, l)/dtor
+    ! write (*,*) 'distance  = ', distplaneline(mv2, l)
+    ! write (*,*) 'oriented distance = ', ordisttoplane(tr, mv2)
+    ! pt = point(2.D0, 2.D0, 0.D0) 
+    ! write (*,*) 'oriented distance = ', ordisttoline(pt, l)
+
+    ! pt = point(0.D0, 0.D0, 0.D0)
+    ! tr = translator(5.D0, E1*E0)
+    ! pt = tr * pt * conjg(tr)
+    ! tr = translator(-2.D0, E2*E0) 
+    ! pt = tr * pt * conjg(tr)
+    ! tr = translator(4.D0, E3*E0)
+    ! mv = tr * pt * conjg(tr)
+    ! call getpoint(mv, x, y, z)
+    ! write (*,*) 'translated point coordinates : ', x, y, z
+
+
+    ! mv3 = rotor(cPi/2.0, E12)
+    ! call mv3%log( pre='rotor')
+    ! mv3 = plane (1.D0, 2.D0, 3.D0, 4.D0)
+    ! call mv3%log( pre='plane')
+    ! call getplane(mv3, a, b, c, d)
+    ! write (*,*) 'plane indices : ', a, b, c, d 
+    ! mv3 = point(1.D0, 2.D0, 3.D0)
+    ! call mv3%log( pre='point')
+    ! call getpoint(mv3, x, y, z)
+    ! write (*,*) 'point coordinates : ', x, y, z
 
 
 end program

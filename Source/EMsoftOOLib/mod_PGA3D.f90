@@ -64,6 +64,7 @@ contains
 private 
   procedure, pass(self) :: mvec_setcomp_
   procedure, pass(self) :: mvec_getcomp_
+  procedure, pass(self) :: mvec_getgrade_
   procedure, pass(self) :: mvec_log_
   procedure, pass(self) :: mvec_reverse_
   procedure, pass(self) :: mvec_dual_
@@ -73,6 +74,8 @@ private
   procedure, pass(self) :: mvec_wedge_
   procedure, pass(self) :: mvec_vee_
   procedure, pass(self) :: mvec_inner_
+  procedure, pass(self) :: mvec_commutator_
+  procedure, pass(self) :: mvec_sandwich_
   procedure, pass(self) :: mvec_add_
   procedure, pass(self) :: mvec_subtract_
   procedure, pass(self) :: mvec_muls_
@@ -83,6 +86,7 @@ private
 
   generic, public :: setcomp => mvec_setcomp_
   generic, public :: getcomp => mvec_getcomp_
+  generic, public :: getgrade => mvec_getgrade_
   generic, public :: log => mvec_log_
   generic, public :: operator(.reverse.) => mvec_reverse_ 
   generic, public :: operator(.dual.) => mvec_dual_
@@ -91,6 +95,8 @@ private
   generic, public :: operator(.wedge.) => mvec_wedge_
   generic, public :: operator(.vee.) => mvec_vee_
   generic, public :: operator(.inner.) => mvec_inner_
+  generic, public :: operator(.cross.) => mvec_commutator_
+  generic, public :: operator(.sandwich.) => mvec_sandwich_
   generic, public :: operator(+) => mvec_add_
   generic, public :: operator(-) => mvec_subtract_
   generic, public :: operator(.muls.) => mvec_muls_ ! , mvec_smul_
@@ -235,6 +241,46 @@ integer(kind=irg),INTENT(IN)          :: ind
 self%mvec(ind) = val
 
 end subroutine mvec_setcomp_
+
+!--------------------------------------------------------------------------
+recursive function mvec_getgrade_(self, ind) result(c)
+!DEC$ ATTRIBUTES DLLEXPORT :: mvec_getgrade_
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/20/21
+!!
+!! get grade ind from a multivector 
+
+IMPLICIT NONE 
+
+class(PGA3D_T), INTENT(INOUT)         :: self
+integer(kind=irg),INTENT(IN)          :: ind
+real(kind=dbl),allocatable            :: c(:)
+
+integer(kind=irg),parameter           :: gr(0:4) = (/ 1, 4, 6, 4, 1 /)
+integer(kind=irg)                     :: i
+
+allocate( c(gr(ind)) )
+select case (ind)
+  case (0)
+    c(1) = self%mvec_getcomp_(0)
+  case (1)
+    do i = 1, 4 
+      c(i) = self%mvec_getcomp_(i)
+    end do 
+  case (2)
+    do i = 1, 6 
+      c(i) = self%mvec_getcomp_(i+4)
+    end do 
+  case (3)
+    do i = 1, 4 
+      c(i) = self%mvec_getcomp_(i+10)
+    end do 
+  case (4)
+    c(1) = self%mvec_getcomp_(15)
+end select     
+
+end function mvec_getgrade_
 
 !--------------------------------------------------------------------------
 recursive function mvec_conjugate_(self) result(mvout)
@@ -404,7 +450,7 @@ recursive function mvec_inner_(self, mvb) result(mvout)
 !! version: 1.0 
 !! date: 07/20/21
 !!
-!! Vee (or regressive) product of two multivectors
+!! dot product of two multivectors
 
 IMPLICIT NONE 
 
@@ -436,9 +482,50 @@ mvout%mvec = (/ b(0)*a(0)+b(2)*a(2)+b(3)*a(3)+b(4)*a(4)-b(8)*a(8)-b(9)*a(9)-b(10
                 b(14)*a(0)+b(0)*a(14), &
                 b(15)*a(0)+b(0)*a(15) /)
 
-mvout%mvec(0) = 0.D0
-
 end function mvec_inner_
+
+!--------------------------------------------------------------------------
+recursive function mvec_commutator_(self, mvb) result(mvout)
+!DEC$ ATTRIBUTES DLLEXPORT :: mvec_commutator_
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/23/21
+!!
+!! cross (Commutator) product of two multivectors
+
+IMPLICIT NONE 
+
+class(PGA3D_T), INTENT(IN)          :: self
+type(PGA3D_T), INTENT(IN)           :: mvb 
+type(PGA3D_T)                       :: mvout
+
+mvout = self%mvec_mult_(mvb) 
+mvout = mvout%mvec_subtract_( mvb%mvec_mult_(self) )
+mvout = mvout%mvec_muls_(0.5D0)
+
+end function mvec_commutator_
+
+!--------------------------------------------------------------------------
+recursive function mvec_sandwich_(self, mvb) result(mvout)
+!DEC$ ATTRIBUTES DLLEXPORT :: mvec_sandwich_
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/23/21
+!!
+!! sandwhich product of two multivectors
+
+IMPLICIT NONE 
+
+class(PGA3D_T), INTENT(IN)          :: self
+type(PGA3D_T), INTENT(IN)           :: mvb 
+type(PGA3D_T)                       :: mvout
+
+type(PGA3D_T)                       :: p
+
+p = self
+mvout = self%mvec_mult_( mvb%mvec_mult_( p%mvec_conjugate_() ) )
+
+end function mvec_sandwich_
 
 !--------------------------------------------------------------------------
 recursive function mvec_add_(self, mvb) result(mvout)
