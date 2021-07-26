@@ -43,9 +43,9 @@ IMPLICIT NONE
 
 
 private
-character(5), parameter :: basis(16) = (/ "    1","   e0","   e1","   e2","   e3", &
-                                          "  e01","  e02","  e03","  e12","  e31","  e23", &
-                                          " e021"," e013"," e032"," e123","e0123" /)
+character(5), parameter :: basis(0:15) = (/ "  one","   e0","   e1","   e2","   e3", &
+                                            "  e01","  e02","  e03","  e12","  e31","  e23", &
+                                            " e021"," e013"," e032"," e123","e0123" /)
 
 
 intrinsic :: conjg 
@@ -65,6 +65,8 @@ private
   procedure, pass(self) :: mvec_setcomp_
   procedure, pass(self) :: mvec_getcomp_
   procedure, pass(self) :: mvec_log_
+  procedure, pass(self) :: mvec_reverse_
+  procedure, pass(self) :: mvec_dual_
   procedure, pass(self) :: mvec_conjugate_
   procedure, pass(self) :: mvec_involute_
   procedure, pass(self) :: mvec_mult_
@@ -75,28 +77,27 @@ private
   procedure, pass(self) :: mvec_subtract_
   procedure, pass(self) :: mvec_muls_
   procedure, pass(self) :: mvec_adds_
-  ! procedure, pass(self) :: mvec_norm_
-  ! procedure, pass(self) :: mvec_inorm_
-  ! procedure, pass(self) :: mvec_normalized_
-  procedure, pass(self) :: reverseOrder
-  procedure, pass(self) :: PoincareDuality
+  procedure, pass(self) :: mvec_norm_
+  procedure, pass(self) :: mvec_inorm_
+  procedure, pass(self) :: mvec_normalized_
 
   generic, public :: setcomp => mvec_setcomp_
   generic, public :: getcomp => mvec_getcomp_
   generic, public :: log => mvec_log_
+  generic, public :: operator(.reverse.) => mvec_reverse_ 
+  generic, public :: operator(.dual.) => mvec_dual_
   generic, public :: operator(.involute.) => mvec_involute_
   generic, public :: operator(*) => mvec_mult_
   generic, public :: operator(.wedge.) => mvec_wedge_
   generic, public :: operator(.vee.) => mvec_vee_
   generic, public :: operator(.inner.) => mvec_inner_
-  generic, public :: operator(+) => mvec_add_, mvec_adds_
+  generic, public :: operator(+) => mvec_add_
   generic, public :: operator(-) => mvec_subtract_
   generic, public :: operator(.muls.) => mvec_muls_ ! , mvec_smul_
-  ! generic, public :: norm => mvec_norm_
-  ! generic, public :: inorm => mvec_inorm_
-  ! generic, public :: normalized => mvec_normalized_
-  generic,public :: operator(.reverse.) => reverseOrder 
-  generic,public :: operator(.dual.) => PoincareDuality
+  generic, public :: operator(.adds.) => mvec_adds_ ! , mvec_smul_
+  generic, public :: norm => mvec_norm_
+  generic, public :: inorm => mvec_inorm_
+  generic, public :: normalized => mvec_normalized_
 
 end type PGA3D_T
 
@@ -157,8 +158,8 @@ end subroutine PGA3D_destructor
 
 
 !--------------------------------------------------------------------------
-function reverseOrder( self ) result(mvout)
-!DEC$ ATTRIBUTES DLLEXPORT :: reverseOrder
+function mvec_reverse_( self ) result(mvout)
+!DEC$ ATTRIBUTES DLLEXPORT :: mvec_reverse_
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/20/21
@@ -173,11 +174,11 @@ type(PGA3D_T)              :: mvout
 mvout%mvec = self%mvec
 mvout%mvec(5:14) = -mvout%mvec(5:14)
 
-end function reverseOrder
+end function mvec_reverse_
 
 !--------------------------------------------------------------------------
-function PoincareDuality( self ) result(mvout)
-!DEC$ ATTRIBUTES DLLEXPORT :: PoincareDuality
+function mvec_dual_( self ) result(mvout)
+!DEC$ ATTRIBUTES DLLEXPORT :: mvec_dual_
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/20/21
@@ -195,8 +196,7 @@ do i=0,15
   mvout%mvec(i) = self%mvec(16-i)
 end do
 
-end function PoincareDuality
-
+end function mvec_dual_
 
 !--------------------------------------------------------------------------
 recursive function mvec_getcomp_(self, ind) result(c)
@@ -537,6 +537,70 @@ type(PGA3D_T)                       :: mvout
 mvout%mvec = self%mvec * b
 
 end function mvec_muls_
+
+!--------------------------------------------------------------------------
+recursive function mvec_norm_(self) result(n)
+!DEC$ ATTRIBUTES DLLEXPORT :: mvec_norm_
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/21/21
+!!
+!! norm of a multivector 
+
+IMPLICIT NONE 
+
+class(PGA3D_T), INTENT(IN)          :: self
+real(kind=dbl)                      :: n 
+
+type(PGA3D_T)                       :: b, c
+
+b = self
+c = b%mvec_mult_(b%mvec_conjugate_())
+n = sqrt(abs(c%mvec(0)))
+
+end function mvec_norm_
+
+!--------------------------------------------------------------------------
+recursive function mvec_inorm_(self) result(n)
+!DEC$ ATTRIBUTES DLLEXPORT :: mvec_inorm_
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/21/21
+!!
+!! ideal norm of a multivector 
+
+IMPLICIT NONE 
+
+class(PGA3D_T), INTENT(IN)          :: self
+real(kind=dbl)                      :: n 
+
+type(PGA3D_T)                       :: b, c
+
+b = self%mvec_dual_()
+c = b%mvec_mult_(b%mvec_conjugate_())
+n = sqrt(abs(c%mvec(0)))
+
+end function mvec_inorm_
+
+!--------------------------------------------------------------------------
+recursive function mvec_normalized_(self) result(mvout)
+!DEC$ ATTRIBUTES DLLEXPORT :: mvec_normalized_
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/21/21
+!!
+!! normalize a multivector 
+
+IMPLICIT NONE 
+
+class(PGA3D_T), INTENT(IN)          :: self
+type(PGA3D_T)                       :: mvout
+
+mvout = self%mvec_muls_(1.D0/self%mvec_norm_())
+
+end function mvec_normalized_
+
+
 
 !--------------------------------------------------------------------------
 recursive subroutine mvec_log_(self, pre) 
