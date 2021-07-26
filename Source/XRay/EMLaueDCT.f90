@@ -31,7 +31,7 @@ program EMLaueDCT
   !! version: 1.0 
   !! date: 05/27/21
   !!
-  !! Forward projection for polycrystalline Laue Diffraction Contrast Tomography
+  !! Forward projection for single or poly-crystalline Laue Diffraction Contrast Tomography
 
 use mod_kinds
 use mod_global

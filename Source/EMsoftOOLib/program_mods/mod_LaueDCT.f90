@@ -38,7 +38,7 @@ use mod_global
 
 IMPLICIT NONE 
 
-! namelist for the EMLaueDCT program [this was the EMLaueSlit program before EMsoft v. 6.0]
+! namelist for the EMLaueDCT program [this was the EMLaueSlit program for single crystals before EMsoft v. 6.0]
 type, public :: LaueDCTNameListType
         real(kind=dbl)          :: Lw               ! slit width (mm)
         real(kind=dbl)          :: Lh               ! slit height (mm)
@@ -49,10 +49,10 @@ type, public :: LaueDCTNameListType
         real(kind=dbl)          :: VoltageL         ! lowest tube voltage     
         real(kind=dbl)          :: Sx               ! distance from source to samplefront (mm)
         real(kind=dbl)          :: sampletodetector ! distance sample front to detector face (mm)
-        real(kind=dbl)          :: samplethickness  ! sample thickness (mm)
         real(kind=dbl)          :: ps               ! detector pixel size (mm)
         integer(kind=irg)       :: Ny               ! number of detector pixels horizontally
         integer(kind=irg)       :: Nz               ! number of detector pixels vertically
+        integer(kind=irg)       :: sampleNrotations ! number of rotation steps around sample axis; step size = 2pi/sampleNrotations
         real(kind=dbl)          :: Dx               ! detector pattern center x coordinate  [mm]
         real(kind=dbl)          :: Dy               ! detector pattern center y coordinate  [mm]
         real(kind=dbl)          :: Dz               ! detector pattern center z coordinate  [mm]
@@ -62,19 +62,33 @@ type, public :: LaueDCTNameListType
         real(kind=dbl)          :: beamstopwidth    ! beam stop width [mm]
         real(kind=dbl)          :: beamstopheight   ! beam stop height [mm]
         real(kind=sgl)          :: spotw
-        real(kind=sgl)          :: sampletilt       ! for side-reflection mode
         real(kind=sgl)          :: gammavalue
         real(kind=dbl)          :: intcutoffratio
+        real(kind=dbl)          :: samplescalefactor! scale factor from DREAM.3D units to mm
+        real(kind=dbl)          :: samplingstepsize ! step size along the x-ray traces [mm]
         integer(kind=irg)       :: BPx
         integer(kind=irg)       :: nthreads
         logical                 :: binarize
-        character(1)            :: projectionmode   ! 'B'= back-reflection; 'S' = side-reflection; 'T' = transmission
         character(fnlen)        :: backprojection
-        character(fnlen)        :: orientationfile
         character(fnlen)        :: tiffprefix
         character(fnlen)        :: hdfname
         character(fnlen)        :: xtalname
+        character(fnlen)        :: DREAM3Dfilename
+        character(fnlen)        :: EulerAnglesHDFpath(10)
+        character(fnlen)        :: FeatureIDsHDFpath(10)
 end type LaueDCTNameListType
+
+
+type, private :: samplinglisttype 
+  real(kind=dbl)                        :: pos(3)
+  real(kind=dbl)                        :: ray(3)
+  real(kind=dbl)                        :: front(3)
+  real(kind=dbl)                        :: back(3)
+  real(kind=dbl)                        :: voxelvolume
+  integer(kind=irg)                     :: pixely 
+  integer(kind=irg)                     :: pixelz 
+  type(samplinglisttype), pointer       :: next
+end type samplinglisttype
 
 ! class definition
 type, public :: LaueDCT_T
@@ -97,10 +111,10 @@ private
   procedure, pass(self) :: get_VoltageL_
   procedure, pass(self) :: get_Sx_
   procedure, pass(self) :: get_sampletodetector_
-  procedure, pass(self) :: get_samplethickness_
   procedure, pass(self) :: get_ps_
   procedure, pass(self) :: get_Ny_
   procedure, pass(self) :: get_Nz_
+  procedure, pass(self) :: get_sampleNrotations_
   procedure, pass(self) :: get_Dx_
   procedure, pass(self) :: get_Dy_
   procedure, pass(self) :: get_Dz_
@@ -110,18 +124,18 @@ private
   procedure, pass(self) :: get_beamstopwidth_
   procedure, pass(self) :: get_beamstopheight_
   procedure, pass(self) :: get_spotw_
-  procedure, pass(self) :: get_sampletilt_
   procedure, pass(self) :: get_gammavalue_
   procedure, pass(self) :: get_intcutoffratio_
+  procedure, pass(self) :: get_samplescalefactor_
+  procedure, pass(self) :: get_samplingstepsize_
   procedure, pass(self) :: get_BPx_
   procedure, pass(self) :: get_nthreads_
   procedure, pass(self) :: get_binarize_
-  procedure, pass(self) :: get_projectionmode_
   procedure, pass(self) :: get_backprojection_
-  procedure, pass(self) :: get_orientationfile_
   procedure, pass(self) :: get_tiffprefix_
   procedure, pass(self) :: get_hdfname_
   procedure, pass(self) :: get_xtalname_
+  procedure, pass(self) :: get_DREAM3Dfilename_
   procedure, pass(self) :: set_Lw_
   procedure, pass(self) :: set_Lh_
   procedure, pass(self) :: set_Lx_
@@ -131,10 +145,10 @@ private
   procedure, pass(self) :: set_VoltageL_
   procedure, pass(self) :: set_Sx_
   procedure, pass(self) :: set_sampletodetector_
-  procedure, pass(self) :: set_samplethickness_
   procedure, pass(self) :: set_ps_
   procedure, pass(self) :: set_Ny_
   procedure, pass(self) :: set_Nz_
+  procedure, pass(self) :: set_sampleNrotations_
   procedure, pass(self) :: set_Dx_
   procedure, pass(self) :: set_Dy_
   procedure, pass(self) :: set_Dz_
@@ -144,18 +158,18 @@ private
   procedure, pass(self) :: set_beamstopwidth_
   procedure, pass(self) :: set_beamstopheight_
   procedure, pass(self) :: set_spotw_
-  procedure, pass(self) :: set_sampletilt_
   procedure, pass(self) :: set_gammavalue_
   procedure, pass(self) :: set_intcutoffratio_
+  procedure, pass(self) :: set_samplescalefactor_
+  procedure, pass(self) :: set_samplingstepsize_
   procedure, pass(self) :: set_BPx_
   procedure, pass(self) :: set_nthreads_
   procedure, pass(self) :: set_binarize_
-  procedure, pass(self) :: set_projectionmode_
   procedure, pass(self) :: set_backprojection_
-  procedure, pass(self) :: set_orientationfile_
   procedure, pass(self) :: set_tiffprefix_
   procedure, pass(self) :: set_hdfname_
   procedure, pass(self) :: set_xtalname_
+  procedure, pass(self) :: set_DREAM3Dfilename_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -170,10 +184,10 @@ private
   generic, public :: get_VoltageL => get_VoltageL_
   generic, public :: get_Sx => get_Sx_
   generic, public :: get_sampletodetector => get_sampletodetector_
-  generic, public :: get_samplethickness => get_samplethickness_
   generic, public :: get_ps => get_ps_
   generic, public :: get_Ny => get_Ny_
   generic, public :: get_Nz => get_Nz_
+  generic, public :: get_sampleNrotations => get_sampleNrotations_
   generic, public :: get_Dx => get_Dx_
   generic, public :: get_Dy => get_Dy_
   generic, public :: get_Dz => get_Dz_
@@ -183,18 +197,18 @@ private
   generic, public :: get_beamstopwidth => get_beamstopwidth_
   generic, public :: get_beamstopheight => get_beamstopheight_
   generic, public :: get_spotw => get_spotw_
-  generic, public :: get_sampletilt => get_sampletilt_
   generic, public :: get_gammavalue => get_gammavalue_
   generic, public :: get_intcutoffratio => get_intcutoffratio_
+  generic, public :: get_samplescalefactor => get_samplescalefactor_
+  generic, public :: get_samplingstepsize => get_samplingstepsize_
   generic, public :: get_BPx => get_BPx_
   generic, public :: get_nthreads => get_nthreads_
   generic, public :: get_binarize => get_binarize_
-  generic, public :: get_projectionmode => get_projectionmode_
   generic, public :: get_backprojection => get_backprojection_
-  generic, public :: get_orientationfile => get_orientationfile_
   generic, public :: get_tiffprefix => get_tiffprefix_
   generic, public :: get_hdfname => get_hdfname_
   generic, public :: get_xtalname => get_xtalname_
+  generic, public :: get_DREAM3Dfilename => get_DREAM3Dfilename_
   generic, public :: set_Lw => set_Lw_
   generic, public :: set_Lh => set_Lh_
   generic, public :: set_Lx => set_Lx_
@@ -204,10 +218,10 @@ private
   generic, public :: set_VoltageL => set_VoltageL_
   generic, public :: set_Sx => set_Sx_
   generic, public :: set_sampletodetector => set_sampletodetector_
-  generic, public :: set_samplethickness => set_samplethickness_
   generic, public :: set_ps => set_ps_
   generic, public :: set_Ny => set_Ny_
   generic, public :: set_Nz => set_Nz_
+  generic, public :: set_sampleNrotations => set_sampleNrotations_
   generic, public :: set_Dx => set_Dx_
   generic, public :: set_Dy => set_Dy_
   generic, public :: set_Dz => set_Dz_
@@ -217,18 +231,18 @@ private
   generic, public :: set_beamstopwidth => set_beamstopwidth_
   generic, public :: set_beamstopheight => set_beamstopheight_
   generic, public :: set_spotw => set_spotw_
-  generic, public :: set_sampletilt => set_sampletilt_
   generic, public :: set_gammavalue => set_gammavalue_
   generic, public :: set_intcutoffratio => set_intcutoffratio_
+  generic, public :: set_samplescalefactor => set_samplescalefactor_
+  generic, public :: set_samplingstepsize => set_samplingstepsize_
   generic, public :: set_BPx => set_BPx_
   generic, public :: set_nthreads => set_nthreads_
   generic, public :: set_binarize => set_binarize_
-  generic, public :: set_projectionmode => set_projectionmode_
   generic, public :: set_backprojection => set_backprojection_
-  generic, public :: set_orientationfile => set_orientationfile_
   generic, public :: set_tiffprefix => set_tiffprefix_
   generic, public :: set_hdfname => set_hdfname_
   generic, public :: set_xtalname => set_xtalname_
+  generic, public :: set_DREAM3Dfilename => set_DREAM3Dfilename_
 end type LaueDCT_T
 
 ! the constructor routine for this class 
@@ -597,42 +611,6 @@ self%lnl%sampletodetector = inp
 end subroutine set_sampletodetector_
 
 !--------------------------------------------------------------------------
-function get_samplethickness_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_samplethickness_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/27/2021
-!!
-!! get samplethickness from the LaueDCT_T class
-
-IMPLICIT NONE 
-
-class(LaueDCT_T), INTENT(INOUT)     :: self
-real(kind=dbl)                      :: out
-
-out = self%lnl%samplethickness
-
-end function get_samplethickness_
-
-!--------------------------------------------------------------------------
-subroutine set_samplethickness_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_samplethickness_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/27/2021
-!!
-!! set samplethickness in the LaueDCT_T class
-
-IMPLICIT NONE 
-
-class(LaueDCT_T), INTENT(INOUT)     :: self
-real(kind=dbl), INTENT(IN)          :: inp
-
-self%lnl%samplethickness = inp
-
-end subroutine set_samplethickness_
-
-!--------------------------------------------------------------------------
 function get_ps_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_ps_
 !! author: MDG 
@@ -739,6 +717,42 @@ integer(kind=irg), INTENT(IN)       :: inp
 self%lnl%Nz = inp
 
 end subroutine set_Nz_
+
+!--------------------------------------------------------------------------
+function get_sampleNrotations_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_sampleNrotations_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! get sampleNrotations from the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%lnl%sampleNrotations
+
+end function get_sampleNrotations_
+
+!--------------------------------------------------------------------------
+subroutine set_sampleNrotations_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_sampleNrotations_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! set sampleNrotations in the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%lnl%sampleNrotations = inp
+
+end subroutine set_sampleNrotations_
 
 !--------------------------------------------------------------------------
 function get_Dx_(self) result(out)
@@ -1065,42 +1079,6 @@ self%lnl%spotw = inp
 end subroutine set_spotw_
 
 !--------------------------------------------------------------------------
-function get_sampletilt_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_sampletilt_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/27/2021
-!!
-!! get sampletilt from the LaueDCT_T class
-
-IMPLICIT NONE 
-
-class(LaueDCT_T), INTENT(INOUT)     :: self
-real(kind=sgl)                      :: out
-
-out = self%lnl%sampletilt
-
-end function get_sampletilt_
-
-!--------------------------------------------------------------------------
-subroutine set_sampletilt_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_sampletilt_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/27/2021
-!!
-!! set sampletilt in the LaueDCT_T class
-
-IMPLICIT NONE 
-
-class(LaueDCT_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)          :: inp
-
-self%lnl%sampletilt = inp
-
-end subroutine set_sampletilt_
-
-!--------------------------------------------------------------------------
 function get_gammavalue_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_gammavalue_
 !! author: MDG 
@@ -1171,6 +1149,78 @@ real(kind=dbl), INTENT(IN)          :: inp
 self%lnl%intcutoffratio = inp
 
 end subroutine set_intcutoffratio_
+
+!--------------------------------------------------------------------------
+function get_samplescalefactor_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_samplescalefactor_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! get samplescalefactor from the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+real(kind=dbl)                      :: out
+
+out = self%lnl%samplescalefactor
+
+end function get_samplescalefactor_
+
+!--------------------------------------------------------------------------
+subroutine set_samplescalefactor_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_samplescalefactor_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! set samplescalefactor in the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)          :: inp
+
+self%lnl%samplescalefactor = inp
+
+end subroutine set_samplescalefactor_
+
+!--------------------------------------------------------------------------
+function get_samplingstepsize_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_samplingstepsize_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! get samplingstepsize from the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+real(kind=dbl)                      :: out
+
+out = self%lnl%samplingstepsize
+
+end function get_samplingstepsize_
+
+!--------------------------------------------------------------------------
+subroutine set_samplingstepsize_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_samplingstepsize_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! set samplingstepsize in the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)          :: inp
+
+self%lnl%samplingstepsize = inp
+
+end subroutine set_samplingstepsize_
 
 !--------------------------------------------------------------------------
 function get_BPx_(self) result(out)
@@ -1281,42 +1331,6 @@ self%lnl%binarize = inp
 end subroutine set_binarize_
 
 !--------------------------------------------------------------------------
-function get_projectionmode_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_projectionmode_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/27/2021
-!!
-!! get projectionmode from the LaueDCT_T class
-
-IMPLICIT NONE 
-
-class(LaueDCT_T), INTENT(INOUT)     :: self
-character(1)                        :: out
-
-out = self%lnl%projectionmode
-
-end function get_projectionmode_
-
-!--------------------------------------------------------------------------
-subroutine set_projectionmode_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_projectionmode_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/27/2021
-!!
-!! set projectionmode in the LaueDCT_T class
-
-IMPLICIT NONE 
-
-class(LaueDCT_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)            :: inp
-
-self%lnl%projectionmode = inp
-
-end subroutine set_projectionmode_
-
-!--------------------------------------------------------------------------
 function get_backprojection_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_backprojection_
 !! author: MDG 
@@ -1351,42 +1365,6 @@ character(fnlen), INTENT(IN)        :: inp
 self%lnl%backprojection = inp
 
 end subroutine set_backprojection_
-
-!--------------------------------------------------------------------------
-function get_orientationfile_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_orientationfile_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/27/2021
-!!
-!! get orientationfile from the LaueDCT_T class
-
-IMPLICIT NONE 
-
-class(LaueDCT_T), INTENT(INOUT)     :: self
-character(fnlen)                    :: out
-
-out = self%lnl%orientationfile
-
-end function get_orientationfile_
-
-!--------------------------------------------------------------------------
-subroutine set_orientationfile_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_orientationfile_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/27/2021
-!!
-!! set orientationfile in the LaueDCT_T class
-
-IMPLICIT NONE 
-
-class(LaueDCT_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)        :: inp
-
-self%lnl%orientationfile = inp
-
-end subroutine set_orientationfile_
 
 !--------------------------------------------------------------------------
 function get_tiffprefix_(self) result(out)
@@ -1497,6 +1475,42 @@ self%lnl%xtalname = inp
 end subroutine set_xtalname_
 
 !--------------------------------------------------------------------------
+function get_DREAM3Dfilename_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_DREAM3Dfilename_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! get DREAM3Dfilename from the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+character(fnlen)                    :: out
+
+out = self%lnl%DREAM3Dfilename
+
+end function get_DREAM3Dfilename_
+
+!--------------------------------------------------------------------------
+subroutine set_DREAM3Dfilename_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_DREAM3Dfilename_
+!! author: MDG 
+!! version: 1.0 
+!! date: 05/27/2021
+!!
+!! set DREAM3Dfilename in the LaueDCT_T class
+
+IMPLICIT NONE 
+
+class(LaueDCT_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)        :: inp
+
+self%lnl%DREAM3Dfilename = inp
+
+end subroutine set_DREAM3Dfilename_
+
+!--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
 !! author: MDG 
 !! version: 1.0 
@@ -1528,11 +1542,11 @@ real(kind=dbl)                       :: VoltageH         ! highest tube voltage
 real(kind=dbl)                       :: VoltageL         ! lowest tube voltage     
 real(kind=dbl)                       :: Sx               ! distance from source to samplefront (mm)
 real(kind=dbl)                       :: sampletodetector ! distance sample front to detector face (mm)
-real(kind=dbl)                       :: samplethickness  ! sample thickness (mm)
 real(kind=dbl)                       :: ps               ! detector pixel size (mm)
 integer(kind=irg)                    :: Ny               ! number of detector pixels horizontally
 integer(kind=irg)                    :: Nz               ! number of detector pixels vertically
-real(kind=dbl)                       :: DX               ! detector pattern center x coordinate  [mm]
+integer(kind=irg)                    :: sampleNrotations ! number of rotation steps around sample axis
+real(kind=dbl)                       :: Dx               ! detector pattern center x coordinate  [mm]
 real(kind=dbl)                       :: Dy               ! detector pattern center y coordinate  [mm]
 real(kind=dbl)                       :: Dz               ! detector pattern center z coordinate  [mm]
 real(kind=dbl)                       :: vs               ! size of the voxels that make up the sample (mm)
@@ -1541,26 +1555,27 @@ real(kind=dbl)                       :: beamstopatf      ! beam stop attenuation
 real(kind=dbl)                       :: beamstopwidth    ! beam stop width [mm]
 real(kind=dbl)                       :: beamstopheight   ! beam stop height [mm]
 real(kind=sgl)                       :: spotw
-real(kind=sgl)                       :: sampletilt
 real(kind=sgl)                       :: gammavalue
 real(kind=dbl)                       :: intcutoffratio
+real(kind=dbl)                       :: samplescalefactor
+real(kind=dbl)                       :: samplingstepsize
 integer(kind=irg)                    :: BPx
 integer(kind=irg)                    :: nthreads
 logical                              :: binarize
-character(1)                         :: projectionmode
 character(fnlen)                     :: backprojection
-character(fnlen)                     :: orientationfile
 character(fnlen)                     :: tiffprefix
 character(fnlen)                     :: hdfname
 character(fnlen)                     :: xtalname
-
-
+character(fnlen)                     :: DREAM3Dfilename
+character(fnlen)                     :: EulerAnglesHDFpath(10)
+character(fnlen)                     :: FeatureIDsHDFpath(10)
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / LaueDCTData / Lw,Lh,Lx,Ly,Lz,VoltageH,VoltageL,Sx,sampletodetector, beamstopwidth, beamstopheight,&
-                          samplethickness,ps,Ny,Nz,Dx,Dy,Dz,vs,absl, binarize, sampletilt, &
-                          beamstopatf,spotw,BPx,nthreads,backprojection, intcutoffratio, &
-                          orientationfile,tiffprefix,hdfname,xtalname, gammavalue, projectionmode
+                          ps,Ny,Nz,sampleNrotations,Dx,Dy,Dz,vs,absl, binarize, &
+                          beamstopatf,spotw,BPx,nthreads,backprojection, intcutoffratio, samplescalefactor, &
+                          tiffprefix,hdfname,xtalname, gammavalue, &
+                          samplingstepsize, DREAM3Dfilename, EulerAnglesHDFpath, FeatureIDsHDFpath
 
 Lw               = 2.D0    ! slit width (mm)
 Lh               = 2.D0    ! slit height (mm)
@@ -1571,10 +1586,10 @@ VoltageH         = 60.D0   ! highest tube voltage
 VoltageL         = 40.D0   ! lowest tube voltage     
 Sx               = 120.D0  ! distance from source to samplefront (mm)
 sampletodetector = 120.D0  ! distance sample front to detector face (mm)
-samplethickness  = 2.D0    ! sample thickness (mm)
 ps               = 0.254D0 ! pixel width (mm)
 Ny               = 960     ! number of pixels horizontally
 Nz               = 780     ! number of pixels vertically
+sampleNrotations = 180     ! number of rotation steps in a 2pi rotation
 Dx               = 0.D0    ! pattern center x coordinate 
 Dy               = 0.D0    ! pattern center y coordinate 
 Dz               = 0.D0    ! pattern center z coordinate 
@@ -1586,16 +1601,26 @@ beamstopheight   = 2.0D0   ! beam stop height [mm]
 nthreads         = 1       ! number of parallel threads for pattern computation
 BPx              = 300     ! semi-edge length for back projection square Lambert maps
 spotw            = 0.1     ! spot size weight factor (1/(2*sigma^2))
-sampletilt       = 40.D0   ! sample tilt for side-reflection mode 
 gammavalue       = 1.0     ! scaling factor for gamma intensity scaling
 intcutoffratio   = 0.0001D0! intensity ratio cut off
+samplescalefactor= 10.D0   ! 10 microns per DREAM.3D unit length
+samplingstepsize = 0.005D0 ! in mm, step size along ray
 binarize         = .FALSE.
-projectionmode   = 'T'     ! transmission; 'B' for back-reflection, 'S' for side-reflection
 backprojection   = 'No'    ! 'Yes' or 'No'; adds backprojections to output file
-orientationfile  = 'undefined'  ! input file with orientation list 
 tiffprefix       = 'undefined'  ! prefix for tiff output files with individual patterns
 xtalname         = 'undefined'  ! structure file name
 hdfname          = 'undefined'  ! HDF output file name
+DREAM3Dfilename  = 'undefined'  ! DREAM.3D input file name (only for polycrystal)
+EulerAnglesHDFpath = (/ '', '', '', '', '', '', '', '', '', '' /) ! path to EulerAngles 
+FeatureIDsHDFpath  = (/ '', '', '', '', '', '', '', '', '', '' /)  ! path to FeatureIDs 
+
+EulerAnglesHDFpath(1) = 'DataContainers'
+EulerAnglesHDFpath(3) = 'CellData'
+EulerAnglesHDFpath(4) = 'EulerAngles'
+
+FeatureIDsHDFpath(1) = 'DataContainers'
+FeatureIDsHDFpath(3) = 'CellData'
+FeatureIDsHDFpath(4) = 'FeatureIDs'
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -1614,9 +1639,6 @@ if (.not.skipread) then
  if (trim(hdfname).eq.'undefined') then
   call Message%printError('readNameList:',' output file name is undefined in '//nmlfile)
  end if
- if (trim(orientationfile).eq.'undefined') then
-  call Message%printError('readNameList:',' orientation file name is undefined in '//nmlfile)
- end if
 end if
 
 self%lnl%Lw = Lw               
@@ -1628,10 +1650,10 @@ self%lnl%VoltageH = VoltageH
 self%lnl%VoltageL = VoltageL         
 self%lnl%Sx = Sx               
 self%lnl%sampletodetector = sampletodetector 
-self%lnl%samplethickness  = samplethickness  
 self%lnl%ps = ps               
 self%lnl%Ny = Ny               
 self%lnl%Nz = Nz               
+self%lnl%sampleNrotations = sampleNrotations               
 self%lnl%Dx = Dx               
 self%lnl%Dy = Dy               
 self%lnl%Dz = Dz               
@@ -1641,17 +1663,18 @@ self%lnl%beamstopatf = beamstopatf
 self%lnl%beamstopwidth = beamstopwidth
 self%lnl%beamstopheight = beamstopheight
 self%lnl%spotw = spotw
-self%lnl%sampletilt = sampletilt
 self%lnl%BPx = BPx
 self%lnl%nthreads = nthreads
 self%lnl%intcutoffratio = intcutoffratio
-self%lnl%backprojection = backprojection
-self%lnl%projectionmode = projectionmode
-self%lnl%orientationfile = orientationfile
+self%lnl%samplescalefactor = samplescalefactor
+self%lnl%samplingstepsize = samplingstepsize
 self%lnl%tiffprefix = tiffprefix
 self%lnl%hdfname = hdfname
 self%lnl%xtalname = xtalname
 self%lnl%binarize = binarize
+self%lnl%DREAM3Dfilename = DREAM3Dfilename
+self%lnl%EulerAnglesHDFpath = EulerAnglesHDFpath
+self%lnl%FeatureIDsHDFpath = FeatureIDsHDFpath
 
 end subroutine readNameList_
 
@@ -1692,13 +1715,14 @@ class(LaueDCT_T), INTENT(INOUT)         :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 4, n_real = 3, n_dbl = 19
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
+integer(kind=irg),parameter             :: n_int = 5, n_real = 2, n_dbl = 20
+integer(kind=irg)                       :: hdferr,  io_int(n_int), i
 real(kind=sgl)                          :: io_real(n_real)
 real(kind=dbl)                          :: io_dbl(n_dbl)   
 character(20)                           :: intlist(n_int), reallist(n_real), dbllist(n_dbl)
 character(fnlen)                        :: dataset, sval(1),groupname
 character(fnlen,kind=c_char)            :: line2(1)
+character(fnlen,kind=c_char)            :: line10(10)
 
 associate( lnl => self%lnl )
 
@@ -1706,24 +1730,25 @@ associate( lnl => self%lnl )
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
 ! write all the single integers
-io_int = (/ lnl%Ny, lnl%Nz, lnl%nthreads, lnl%BPx /)
+io_int = (/ lnl%Ny, lnl%Nz, lnl%nthreads, lnl%BPx, lnl%sampleNrotations /)
 intlist(1) = 'Ny'
 intlist(2) = 'Nz'
 intlist(3) = 'nthreads'
 intlist(4) = 'BPx'
+intlist(5) = 'sampleNrotations'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single reals
-io_real = (/ lnl%spotw, lnl%gammavalue, lnl%sampletilt/)
+io_real = (/ lnl%spotw, lnl%gammavalue /)
 reallist(1) = 'spotw'
 reallist(2) = 'gammavalue'
-reallist(3) = 'sampletilt'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! write all the single reals
 io_dbl = (/ lnl%Lw, lnl%Lh, lnl%Lx, lnl%Ly, lnl%Lz, lnl%VoltageH, lnl%VoltageL, lnl%Sx, &
-            lnl%sampletodetector, lnl%samplethickness, lnl%ps, lnl%Dy, &
-            lnl%Dz, lnl%vs, lnl%absl, lnl%beamstopatf, lnl%beamstopwidth, lnl%beamstopheight, lnl%intcutoffratio /)
+            lnl%sampletodetector, lnl%ps, lnl%Dy, &
+            lnl%Dz, lnl%vs, lnl%absl, lnl%beamstopatf, lnl%beamstopwidth, lnl%beamstopheight, lnl%intcutoffratio, &
+            lnl%samplescalefactor, lnl%samplingstepsize /)
 dbllist(1) = 'Lw'
 dbllist(2) = 'Lh'
 dbllist(3) = 'Lx'
@@ -1733,16 +1758,17 @@ dbllist(6) = 'VoltageH'
 dbllist(7) = 'VoltageL'
 dbllist(8) = 'Sx'
 dbllist(9) = 'sampletodetector'
-dbllist(10) = 'samplethickness'
-dbllist(11) = 'ps'
-dbllist(12) = 'Dy'
-dbllist(13) = 'Dz'
-dbllist(14) = 'vs'
-dbllist(15) = 'absl'
-dbllist(16) = 'beamstopatf'
-dbllist(17) = 'beamstopwidth'
-dbllist(18) = 'beamstopheight'
-dbllist(19) = 'intcutoffratio'
+dbllist(10) = 'ps'
+dbllist(11) = 'Dy'
+dbllist(12) = 'Dz'
+dbllist(13) = 'vs'
+dbllist(14) = 'absl'
+dbllist(15) = 'beamstopatf'
+dbllist(16) = 'beamstopwidth'
+dbllist(17) = 'beamstopheight'
+dbllist(18) = 'intcutoffratio'
+dbllist(19) = 'samplescalefactor'
+dbllist(20) = 'samplingstepsize'
 call HDF%writeNMLdbles(io_dbl, dbllist, n_dbl)
 
 ! write all the strings
@@ -1761,15 +1787,24 @@ line2(1) = trim(lnl%tiffprefix)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tiffprefix dataset', hdferr)
 
-dataset = 'orientationfile'
-line2(1) = trim(lnl%orientationfile)
+dataset = 'DREAM3Dfilename'
+line2(1) = trim(lnl%DREAM3Dfilename)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create orientationfile dataset', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create DREAM3Dfilename dataset', hdferr)
 
-dataset = 'projectionmode'
-line2(1) = trim(lnl%projectionmode)
-hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create projectionmode dataset', hdferr)
+dataset = 'EulerAnglesHDFpath'
+do i=1,10 
+  line10(i) = trim(lnl%EulerAnglesHDFpath(i))
+end do 
+hdferr = HDF%writeDatasetStringArray(dataset, line10, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create EulerAnglesHDFpath dataset', hdferr)
+
+dataset = 'FeatureIDsHDFpath'
+do i=1,10 
+  line10(i) = trim(lnl%FeatureIDsHDFpath(i))
+end do 
+hdferr = HDF%writeDatasetStringArray(dataset, line10, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create FeatureIDsHDFpath dataset', hdferr)
 
 ! and pop this group off the stack
 call HDF%pop()
@@ -1785,6 +1820,18 @@ subroutine LaueDCT_(self, EMsoft, progname, HDFnames)
 !! date: 05/27/21
 !!
 !! perform the computations
+!!
+!! This routine uses some of the approaches in the following paper:
+!! "A flexible and standalone forward simulation model for laboratory X-ray diffraction contrast tomography"
+!! H. Fang, D. Juul Jensen and Y. Zhang, Acta Cryst (2020) A76, 652–663
+!!
+!! but the microstructure sampling algorithm is different in the sense that a dense grid of points is used
+!! with all points lying on the rays connecting the detector pixels with the source.
+!!
+!! As we develop this routine further we will add more of the contributions to the intensity to make 
+!! the simulation more realistic  
+!!
+!!
 
 use mod_EMsoft
 use mod_initializers
@@ -1812,7 +1859,7 @@ use mod_notifications
 use stringconstants
 use mod_image
 use mod_Laue
-! use postscript
+use mod_DREAM3D
 use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE 
@@ -1831,23 +1878,32 @@ type(Diffraction_T)                        :: Diff
 type(DynType)                              :: Dyn
 type(memory_T)                             :: mem, memth
 type(so3_T)                                :: SO
-type(QuaternionArray_T)                    :: qAR
+type(QuaternionArray_T)                    :: qAR, orlist
 type(Quaternion_T)                         :: quat
 type(LaueReflist_T)                        :: LaueReflist
 type(q_T)                                  :: qu
+type(microstructure)                       :: microstr
+type(samplinglisttype), pointer            :: samplinglist, stmp, stmpb
 
-integer(kind=irg)                          :: numangles, numbatches, remainder, ii, jj, pid, tickstart
+integer(kind=irg)                          :: numangles, numbatches, remainder, ii, jj, pid, tickstart, shadow(2,4), np
 
-integer(kind=irg)                          :: i, j, icnt, numvox, hdferr, npx, npy, refcnt, io_int(2), Lstart, bsw, bsh, gcnt, &
+integer(kind=irg)                          :: i, j, icnt, numvox, hdferr, npx, npy, refcnt, io_int(4), Lstart, bsw, bsh, gcnt, &
                                               g(3), gr(3), rf, NUMTHREADS, TID, BPnpx, BPnpy, m, betamin, betamax, NNy, NNz
 real(kind=sgl)                             :: l, kouter, kinner, tstart, tstop, mi, ma, lambdamin, lambdamax, kv(3), &
-                                              scl, kv2(3), shortg, info, gg, mps, dmin, intfactor 
-real(kind=sgl),allocatable                 :: pattern(:,:), patternsum(:,:,:), bppatterns(:,:,:), bp(:,:)
-real(kind=dbl)                             :: qq(4)
+                                              scl, kv2(3), shortg, info, gg, mps, dmin, intfactor, io_real(3), fpar(20) 
+real(kind=sgl),allocatable                 :: pp(:,:), pattern(:,:), patternsum(:,:,:), bppatterns(:,:,:), bp(:,:)
+real(kind=dbl)                             :: qq(4), pre, dtp
+logical,allocatable                        :: line(:)
 
 logical                                    :: verbose, f_exists, g_exists, insert=.TRUE., overwrite=.TRUE.
 
 type(Laue_grow_list),pointer               :: reflist, rltmp          
+
+real(kind=dbl)                             :: dt, pixel(3), k, disc, tt, tm, tp, newt, th, dpar(20), previous 
+real(kind=dbl),allocatable                 :: slist(:,:), rotated_slist(:,:), rays(:,:), frontpts(:,:,:), backpts(:,:,:), voxvol(:)
+integer(kind=irg)                          :: it, nt, npoints, ipar(20)
+integer(kind=irg),allocatable              :: spppix(:,:), nst(:,:,:)
+
 
 character(fnlen)                           :: hdfname, groupname, datagroupname, attributename, dataset, fname, &
                                               TIFF_filename, BPmode
@@ -1894,14 +1950,33 @@ mem = memory_T()
 ! rotations in double precision
 call setRotationPrecision('d')
 
-! read the list of orientations and convert them all to quaternions if they are not already
-fname = EMsoft%generateFilePath('EMdatapathname',trim(lnl%orientationfile))
-call SO%nullifyList()
-call SO%getOrientationsfromFile(fname)
-numangles = SO%getListCount('FZ')
-call SO%listtoQuaternionArray( qAR )
-call SO%delete_FZlist()
-io_int(1) = numangles
+! read a DREAM.3D microstructure file or a list of orientations for a single crystal ?
+call ReadDREAM3Dfile(EMsoft, lnl%DREAM3Dfilename, microstr, lnl%EulerAnglesHDFpath, lnl%FeatureIDsHDFpath)
+microstr%samplescalefactor = lnl%samplescalefactor
+call Message%printMessage(' ------------------- ')
+io_int(1:3) = microstr%dimensions
+call Message%writeValue('  # of voxels           :', io_int, 3)
+io_real(1:3) = microstr%origin
+call Message%writeValue('  Origin                :', io_real, 3)
+io_real(1:3) = microstr%gridspacing
+call Message%writeValue('  Spacing               :', io_real, 3)
+gr = microstr%Quaternions%getQnumber()
+io_int(1:4) = (/ 4, gr(1), gr(2), gr(3) /)
+call Message%writeValue('  Quaternion array shape:', io_int, 4)
+io_int(1:3) = shape(microstr%FeatureIDs)
+call Message%writeValue('  FeatureIDs array shape:', io_int, 3)
+io_int(1) = maxval(microstr%FeatureIDs)
+call Message%writeValue('  # of grains           :', io_int, 1)
+numangles = lnl%sampleNrotations 
+
+! the sample thickness is the number of non-zero voxels along the x-direction at the center of the y-z plane
+call mem%alloc(line, (/ int(microstr%dimensions(1)) /), 'line')
+line = ( microstr%FeatureIDs(:, microstr%dimensions(2)/2, microstr%dimensions(3)/2) .ne. 0)
+t = 0.5 * dble(count(line)) * microstr%gridspacing(1) * lnl%samplescalefactor
+call mem%dealloc(line, 'line')
+
+io_real(1) = t 
+call Message%writeValue('  Cylinder radius       :', io_real, 1)
 
 ! compute the limiting wave numbers for the outer and inner Ewald spheres
 kouter = getXRDwavenumber(sngl(lnl%VoltageH))
@@ -1919,7 +1994,7 @@ call cell%setFileName(lnl%xtalname)
 call Diff%setrlpmethod('XR')
 
 dmin = 0.05
-call Diff%setV(dble(1.0))
+call Diff%setV(dble(1.0)) ! any value will work except 0.0
 call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF, noLUT=.TRUE.)
 
 if ((SG%getSpaceGroupXtalSystem().eq.5).and.(cell%getLatParm('b').eq.cell%getLatParm('c'))) then
@@ -1937,7 +2012,7 @@ end if
 !=============================================
 ! compute possible reflection list with kinematical intensities, and intensities
 intfactor = 0.0001D0   ! default intensity cutoff factor (from EMLauemaster program)
-LaueReflist = LaueReflist_T()
+LaueReflist = LaueReflist_T( grow = .TRUE. )
 call LaueReflist%Init_Unit_Reflist(cell, SG, Diff, lambdamin, intfactor, gcnt, verbose, shortg)
 
 ! we need to compute the correct value for Lstart... setting to 8 for now
@@ -1946,7 +2021,7 @@ Lstart = 8
 
 !=============================================
 !=============================================
-! start creation of the output file, using a hyperslab approach for the Laue patterns 
+! start creation of the output file
 
 ! Open a new file
   hdfname = trim(EMsoft%generateFilePath('EMdatapathname',lnl%hdfname))
@@ -2060,8 +2135,7 @@ end if
 
 
 ! projectionmode = 'T'
-if (lnl%projectionmode.eq.'T') then 
-  call Message%printMessage(' Initializing geometry for Laue Transmission mode')
+  call Message%printMessage(' Initializing sampling geometry for Laue Transmission mode')
   
 ! all computations are done in mm
   ds = lnl%Lx 
@@ -2070,7 +2144,6 @@ if (lnl%projectionmode.eq.'T') then
   d0vec = (/ d0, 0.D0, 0.D0 /)   ! vector to the sample front surface in x-direction
   d = lnl%sampletodetector 
   dvec = (/ d0+d, 0.D0, 0.D0 /)  ! vector to the detector in x-direction
-  t = lnl%samplethickness 
   slitc = (/ 0.D0, lnl%Ly, lnl%Lz /)  ! location of slit center in slit plane
 ! half width and height of the slit 
   sw = lnl%Lw*0.5D0
@@ -2093,93 +2166,116 @@ if (lnl%projectionmode.eq.'T') then
     scdet(1:3,i) = l * scuvec(1:3,i)
   end do
 
-! the same in the sample back plane, which delineates the range of sample voxels to be considered
-  do i=1, 4
-    l = (d0vec(1)+t) / scuvec(1,i)
-    scsbp(1:3,i) = l * scuvec(1:3,i)
-  end do
+! the sample is cylindrical, so we set up the sampling points inside the cylinder on rays from the 
+! source to the detector; one ray per detector pixel.  
 
-! determine the integration range for voxels inside the sample 
-  minvy = int( minval(scsbp(2,:)) / lnl%vs) - 1
-  maxvy = int( maxval(scsbp(2,:)) / lnl%vs) + 1
-  minvz = int( minval(scsbp(3,:)) / lnl%vs) - 1
-  maxvz = int( maxval(scsbp(3,:)) / lnl%vs) + 1
-  numvx = int( t / lnl%vs) 
+! the following are the corners of the slit projection on the detector in units of number of pixels
+  do i=1,4 
+    shadow(1:2,i) = nint( scdet(2:3,i) / lnl%ps )
+  end do 
 
-! the y and z coordinates need to be re-centered around 0 for the 
-! following loops to function properly 
-  m = (maxvy-minvy)/2
-  minvy = -m
-  maxvy = m
+! for each detector pixel, we have a ray and along this ray we have multiple sampling points that lie
+! inside the sample cylinder.  Since we do not know the number of points ahead of time we'll use a 
+! linked list and convert it to a regular array when we're done.
+  nullify(samplinglist)
+  allocate(samplinglist)
+  stmp => samplinglist 
+  nullify(stmp%next)
+  npoints = 0
+  dt = lnl%samplingstepsize 
+  call mem%alloc(nst, (/ 2, shadow(1,1)-1, shadow(2,2)-1 /), 'nst', initval = 0, startdims = (/ 1, shadow(1,2), shadow(2,3) /) )
 
-  m = (maxvz-minvz)/2
-  minvz = -m
-  maxvz = m
-
-! maximum number of sample voxels that can contribute to the pattern 
-  numvox = (maxvy-minvy)*(maxvz-minvz)*numvx 
-
-! the coordinates of the projected center of the sample (in the back plane) 
-  samplecenter = sum(scsbp,2) * 0.25D0 
-
-! an incident wave vector is then proportional to a unit vector along the line connecting each of the 
-! sample voxels to the source location; the complete pattern can then be formed by superimposing all 
-! the individual patterns for each of these directions, taking into account the distance traveled
-! in the sample (normal Beer's law absorption). The integration loop over the voxels is then as follows:
-! (we use OpenMP to loop over the voxels)
-
-  call mem%alloc(kvecs, (/ 3,numvox /), 'kvecs')
-  call mem%alloc(kvox, (/ 3,numvox /), 'kvox')
-  call mem%alloc(kinpre, (/ numvox /), 'kinpre')
-
-  icnt = 0
-  do ix = 1, numvx
-    dx = lnl%vs*( -0.5D0 - dble(ix-1) )
-    do iy = minvy, maxvy 
-      dy = lnl%vs * (0.5D0 + dble(iy))
-      do iz = minvz, maxvz 
-        dz = lnl%vs * (0.5D0 + dble(iz))
-        kuvec = samplecenter + (/ dx, dy, dz /)
-        kuvec = kuvec / vecnorm(kuvec)
-  ! make sure this vector falls inside the projection of the slit into the back face of the sample
-        scl = (lnl%Sx+lnl%samplethickness) / kuvec(1)
-        kv = scl * kuvec
-        if ( (kv(2).le.scsbp(2,1)).and.(kv(2).ge.scsbp(2,2)) .and. (kv(3).le.scsbp(3,1)).and.(kv(3).ge.scsbp(3,4)) ) then 
-          icnt = icnt + 1
-  ! get the distance traveled inside the sample for this k vector (we'll do the same after diffraction event)
-          scl = (lnl%Sx) / kuvec(1)
-          kv = scl * kuvec
-          kv2 = samplecenter + (/ dx, dy, dz /)
-          kinpre(icnt) = sqrt(sum( (kv-kv2)**2 ))
-  ! consider this vector for the diffraction process 
-          kvecs(1:3, icnt) = kuvec(1:3)
-          kvox(1:3, icnt) = (/ dx, dy+samplecenter(2), dz+samplecenter(3) /)  ! relative to projection center in sample back plane
+! we need to keep the sampling positions as well as the ray vectors for those rays that 
+! intersect the cylindrical sample; we offset the detector pixels by 1/2 so that the origin falls
+! between pixels; we do the same thing inside the cylinder along each ray so that the first 
+! sampling point falls 0.5*dt from the cylinder surface.
+  pre = (lnl%ps/(lnl%Sx + lnl%sampletodetector))**2
+  do iz=shadow(2,3),shadow(2,2)-1
+    do iy=shadow(1,2),shadow(1,1)-1
+      pixel = (/ scdet(1,1), (dble(iy)+0.5D0)*lnl%ps, (dble(iz)+0.5D0)*lnl%ps /) / scdet(1,1) 
+      k = pixel(2)**2
+      disc = (1.D0+k)*0.25D0*t*t - k*lnl%Sx 
+      if (disc.ge.0.D0) then 
+        if (disc.eq.0.D0) then ! this will rarely happen, so we don't need to include these points 
+          ! npoints = npoints + 1  
+          ! nst(1:2,iy,iz) = (/ npoints, npoints /)
+          ! tt = lnl%Sx / (1.D0+k)
+          ! stmp%pos = (/ tt, pixel(2)*tt, pixel(3)*tt /)
+          ! stmp%ray = pixel
+          ! stmp%front = stmp%pos
+          ! stmp%back = stmp%pos
+          ! stmp%pixely = iy 
+          ! stmp%pixelz = iz
+          ! stmp%voxelvolume = 0.D0    ! surface voxels are not counted
+          ! allocate( stmp%next )
+          ! stmp => stmp%next
+          ! nullify(stmp%next)
+        else 
+          tm = (lnl%Sx-sqrt(disc))/(1.D0+k)
+          tp = (lnl%Sx+sqrt(disc))/(1.D0+k)
+          stmp%front = (/ tm, pixel(2)*tm, pixel(3)*tm /)
+          stmp%back = (/ tp, pixel(2)*tp, pixel(3)*tp /)
+          nt = int( (tp-tm)/dt )+1 
+          dtp = (tp-tm)/nt
+          previous = tm
+          do it=0,nt 
+            npoints = npoints + 1  
+            if (it.eq.0) nst(1,iy,iz) = npoints
+            if (it.eq.nt) nst(2,iy,iz) = npoints
+            newt = tm+(dble(it)+0.5D0)*dtp
+            stmp%pos = (/ newt, pixel(2)*newt, pixel(3)*newt /)
+            stmp%ray = pixel
+            stmp%pixely = iy 
+            stmp%pixelz = iz
+            stmp%voxelvolume = pre * dtp * (0.75D0*dtp*dtp + newt*newt)
+            allocate( stmp%next )
+            stmp => stmp%next
+            nullify(stmp%next)
+          end do 
         end if 
-      end do 
+      end if 
     end do 
   end do 
 
-  ! reset the total number of contributing voxels
-  numvox = icnt
-  io_int(1) = numvox
-  call Message%WriteValue(' total number of sample voxels : ',io_int, 1, frm = "(I8)")
-  io_int(1) = gcnt
-  call Message%WriteValue(' total number of potential reflections : ',io_int, 1, frm = "(I8)")
-end if 
+! convert the linked list to regular array 
+  call mem%alloc(slist, (/ 3, npoints /), 'slist', initval = 0.D0)
+  call mem%alloc(rays, (/ 3, npoints /), 'rays', initval = 0.D0)
+  call mem%alloc(voxvol, (/ npoints /), 'voxvol', initval = 0.D0)
+  call mem%alloc(rotated_slist, (/ 3, npoints /), 'rotated_slist', initval = 0.D0)
+  call mem%alloc(spppix, (/ shadow(1,1)-1, shadow(2,2)-1 /), 'spppix', initval = 0, startdims = (/ shadow(1,2), shadow(2,3) /) )
+  call mem%alloc(frontpts, (/ 3, shadow(1,1)-1, shadow(2,2)-1 /), 'frontpts', initval = 0.D0, &
+                 startdims = (/ 1, shadow(1,2), shadow(2,3) /) )
+  call mem%alloc(backpts, (/ 3, shadow(1,1)-1, shadow(2,2)-1 /), 'backpts', initval = 0.D0, &
+                 startdims = (/ 1, shadow(1,2), shadow(2,3) /) )
 
-if (lnl%projectionmode.eq.'S') then 
-  call Message%printMessage(' Initializing geometry for Laue Side-Reflection mode [TO BE WRITTEN]')
-  
-end if 
+  stmp => samplinglist
+  do it=1,npoints 
+    spppix( stmp%pixely, stmp%pixelz ) = spppix( stmp%pixely, stmp%pixelz ) + 1 
+    if (maxval(frontpts(1:3,stmp%pixely, stmp%pixelz)).gt.0.D0) then 
+      frontpts(1:3,stmp%pixely, stmp%pixelz) = stmp%front(1:3)
+      backpts(1:3,stmp%pixely, stmp%pixelz) = stmp%back(1:3)
+    end if
+    slist(1:3,it) = stmp%pos
+    rays(1:3,it) = stmp%ray
+    voxvol(it) = stmp%voxelvolume
+    stmp => stmp%next
+  end do 
 
-if (lnl%projectionmode.eq.'B') then 
-  call Message%printMessage(' Initializing geometry for Laue Back-Reflection mode')
-    numvox = 1
-    call mem%alloc(kvecs, (/ 3,numvox /), 'kvecs')
-    call mem%alloc(kvox, (/ 3,numvox /), 'kvox', initval = 0.0)
-    call mem%alloc(kinpre, (/ numvox /), 'kinpre', initval = 0.0)
-    kvecs(:,1) = (/ 1.0, 0.0, 0.0 /)
-end if 
+! we'll transfer the sampling points to the sample reference frame by a translation along x
+! this way we can perform the sample rotations and do the interpolations needed for proper sampling
+! The other data points remain in the source reference frame so that we can compute the incident wave vector
+  slist(1,:) = slist(1,:) - lnl%sampletodetector
+
+! delete the linked list completely 
+  stmp => samplinglist 
+  stmpb => stmp%next 
+  do  
+    if (associated(stmp)) deallocate(stmp)
+    if (.not.associated(stmpb)) EXIT 
+    stmp => stmpb 
+    stmpb => stmp%next 
+  end do 
+  nullify(samplinglist, stmp, stmpb)
 
 ! next we need the Legendre lattitudes for the back projector 
 if (trim(lnl%backprojection).eq.'Yes') then 
@@ -2197,10 +2293,38 @@ if (trim(lnl%backprojection).eq.'Yes') then
   call mem%dealloc(upd, 'upd')
 end if 
 
+! generate the sample rotation QuaternionArray_T class 
+qAR = QuaternionArray_T( n = numangles, s = 'd' )
+do it=1,numangles
+  th = ( dble(it-1)*2.D0*cPi/dble(numangles) ) / 2.D0 ! need the semi-angle
+  quat = Quaternion_T( qd = (/ cos(th), 0.D0, 0.D0, sin(th) /) )
+  call qAR%insertQuatinArray(it, quat)
+end do 
+
+! define the ipar, fpar, and dpar arrays to pass parameters to the actual computation
+! we'll give them 20 entries each to make sure that we allow for future additions
+ipar(1) = lnl%Ny 
+ipar(2) = lnl%Nz 
+ipar(3) = gcnt 
+
+dpar(1) = lnl%Dy 
+dpar(2) = lnl%Dz 
+dpar(3) = lnl%ps 
+dpar(4) = lnl%samplingstepsize 
+dpar(5) = lnl%absl  
+dpar(6) = lnl%sampletodetector 
+dpar(7) = lnl%spotw  
+dpar(8) = t 
+dpar(9) = lambdamin 
+dpar(10)= lambdamax
+! dpar(9) = lnl% 
+
+
+
 !=============================================
 !=============================================
 ! Here we perform the actual simulations; the threads cover all the sample voxels for a 
-! given orientation and the resulting patterns are summed together.
+! given sample orientation and the resulting patterns are summed together.
 ! Then we go to the next orientation.
 ! Write them to the HDF5 output file, along with (optionally) the pattern tiff files
 
@@ -2213,22 +2337,44 @@ memth = Memory_T( nt=lnl%nthreads )
 
 ! outer loop ... 
   do ii = 1, numangles
-    quat = conjg( qAR%getQuatfromArray( ii ) )
+! rotate all the sampling points except for the first angle which is zero
+    if (ii.eq.1) then 
+      rotated_slist = slist 
+    else 
+      quat = qAR%getQuatfromArray( ii ) 
+      rotated_slist = quat%quat_Lp_vecarray( npoints, slist )
+    end if 
+! transform the list to the microstructure reference frame
+    rotated_slist(1,:) =  rotated_slist(1,:) / microstr%gridspacing(1) + microstr%dimensions(1)/2
+    rotated_slist(2,:) =  rotated_slist(2,:) / microstr%gridspacing(2) + microstr%dimensions(2)/2
+    rotated_slist(3,:) =  rotated_slist(3,:) / microstr%gridspacing(3) + microstr%dimensions(3)/2
 
-    if (lnl%projectionmode.eq.'T') then 
 ! use OpenMP to run on multiple cores ... 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, pid, pattern)
+! We loop over all the detector pixels that are illuminated by the slit. For each such pixel,
+! we pass on the list of rotated sampling points along with their number; the routine then returns
+! the pattern for that pixel, including all the diffracted beams along the ray. Each thread works on
+! a horizontal row of pixels before returning the accumulated pattern and adding it to the overall pattern.
+
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, pattern, pp, np, orlist)
 
       NUMTHREADS = OMP_GET_NUM_THREADS()
       TID = OMP_GET_THREAD_NUM()
-      call memth%alloc(pattern, (/ lnl%Ny, lnl%Nz /), 'pattern', TID = TID)
+      call memth%alloc(pattern, (/ lnl%Ny, lnl%Nz /), 'pattern', initval=0.0, TID = TID)
+      call memth%alloc(pp, (/ lnl%Ny, lnl%Nz /), 'pp', initval=0.0, TID = TID)
 
 !$OMP DO SCHEDULE(DYNAMIC)
-      do pid = 1,numvox
-        pattern = LaueReflist%getLaueDCTPattern(quat, lambdamin, lambdamax, gcnt, lnl%Ny, lnl%Nz, lnl%ps, & 
-                                                lnl%projectionmode, lnl%sampletodetector, lnl%samplethickness, & 
-                                                lnl%absl, lnl%spotw, lnl%Dy, lnl%Dz, kinpre(pid), kvecs(1:3,pid), &
-                                                kvox(1:3,pid), lnl%binarize )
+      do iz = shadow(2,3),shadow(2,2)-1
+        do iy= shadow(1,2),shadow(1,1)-1
+          np = nst(2, iy, iz) - nst(1, iy, iz) + 1 
+! for this ray, get the sequence of orientations from the microstructure 
+          call getRayOrientations( microstr, rotated_slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), np, orlist )
+! pass only the relevant portions for this pixel of the slist and rotated_slist arrays etc ... 
+          pp = LaueReflist%getnewLaueDCTPattern(ipar, fpar, dpar, np, slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), &
+                                                rays(1:3,nst(1,iy,iz)), voxvol(nst(1,iy,iz):nst(2,iy,iz)), quat, orlist )
+          call orlist%deleteArray() ! explicitly clean up the orientations array
+          pattern = pattern + pp 
+        end do 
+
 !$OMP CRITICAL
           patternsum(:, :, ii) = patternsum(:, :, ii) + pattern(:, :) 
 !$OMP END CRITICAL
@@ -2241,24 +2387,10 @@ memth = Memory_T( nt=lnl%nthreads )
         call Message%WriteValue(' patterns completed for batch ', io_int, 1) 
       end if 
       call memth%dealloc(pattern, 'pattern', TID = TID)
+      call memth%dealloc(pp, 'pp', TID = TID)
 
 ! end of OpenMP portion
 !$OMP END PARALLEL
-    end if 
-
-    if (lnl%projectionmode.eq.'B') then 
-      call mem%alloc(pattern, (/ lnl%Ny, lnl%Nz /), 'pattern')
-
-      pattern = LaueReflist%getLaueDCTPattern(quat, lambdamin, lambdamax, gcnt, lnl%Ny, lnl%Nz, lnl%ps, & 
-                                                lnl%projectionmode, lnl%sampletodetector, lnl%samplethickness, & 
-                                                lnl%absl, lnl%spotw, lnl%Dy, lnl%Dz, kinpre(pid), kvecs(1:3,pid), &
-                                                kvox(1:3,pid), lnl%binarize )
-      patternsum(:, :, ii) = pattern(:, :) 
-
-      call mem%dealloc(pattern, 'pattern')
-
-    end if 
-
 
     if (lnl%binarize.eqv..TRUE.) then 
       mps = maxval(patternsum(:,:,ii))

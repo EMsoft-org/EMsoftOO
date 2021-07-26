@@ -276,6 +276,8 @@ IMPLICIT NONE
 ! quaternion-based transformations
       procedure, pass(self) :: quatLp
       procedure, pass(self) :: quatLpd
+      procedure, pass(self) :: quatLp_vecarray
+      procedure, pass(self) :: quatLpd_vecarray
 ! routines with two or more input quaternions
       procedure, pass(self) :: quatinnerproduct
       procedure, pass(self) :: quatangle
@@ -299,6 +301,7 @@ IMPLICIT NONE
       generic, public :: operator(/) => quatsdiv, quatsdivd
       generic, public :: quat_normalize => quatnormalize
       generic, public :: quat_Lp => quatLp, quatLpd
+      generic, public :: quat_Lp_vecarray => quatLp_vecarray, quatLpd_vecarray
       generic, public :: quat_innerproduct => quatinnerproduct
       generic, public :: quat_angle => quatangle
       generic, public :: quat_slerp => quatslerp
@@ -327,7 +330,7 @@ IMPLICIT NONE
 
     contains
     private
-    ! quaternion IO routines
+! quaternion IO routines
       procedure, pass(self) :: quatarrayprint
 ! quaternion arithmetic routines
       procedure, pass(self) :: quatarrayadd
@@ -351,6 +354,7 @@ IMPLICIT NONE
       procedure, pass(self) :: insertQuatintoArray
       procedure, pass(self) :: QSym_Init_
       procedure, pass(self) :: getQnumber_
+      procedure, pass(self) :: deleteArray_
 
 ! generics
       generic, public :: quat_print => quatarrayprint
@@ -368,13 +372,51 @@ IMPLICIT NONE
       generic, public :: insertQuatinArray => insertQuatintoArray
       generic, public :: QSym_Init => QSym_Init_
       generic, public :: getQnumber => getQnumber_
+      generic, public :: deleteArray => deleteArray_
 
   end type QuaternionArray_T
+
+
+! next we define the quaternion 3D array class; this doesn't need as many methods
+! as the regular one, just inserting in and extracting from the array
+! this type is used in microstructure descriptions when there is an orientation 
+! for each voxel
+  type, public :: Quaternion3DArray_T
+    !! Quaternion3D Class definition
+    private
+      integer(kind=irg)            :: n(3)
+      integer(kind=irg)            :: nthreads
+      real(kind=sgl), allocatable  :: q(:,:,:,:)
+       !! single precision quaternion
+      real(kind=dbl), allocatable  :: qd(:,:,:,:)
+       !! double precision quaternion
+      character(1)                 :: s
+       !! precision indicator ('s' or 'd')
+
+    contains
+    private
+! miscellaneous routines
+      procedure, pass(self) :: extractfromQuaternion3DArray
+      procedure, pass(self) :: insertQuatinto3DArray
+      procedure, pass(self) :: get3DQnumber_
+
+! generics
+      generic, public :: getQuatfrom3DArray => extractfromQuaternion3DArray
+      generic, public :: insertQuatin3DArray => insertQuatinto3DArray
+      generic, public :: getQnumber => get3DQnumber_
+
+  end type Quaternion3DArray_T
+
 
 ! the constructor routine for this class
   interface QuaternionArray_T
     module procedure QuaternionArray_constructor
   end interface QuaternionArray_T
+
+! the constructor routine for this class
+  interface Quaternion3DArray_T
+    module procedure Quaternion3DArray_constructor
+  end interface Quaternion3DArray_T
 
   public :: quat_randomArray
   interface quat_randomArray
@@ -457,8 +499,6 @@ type(QuaternionArray_T) function QuaternionArray_constructor( n, nthreads, q, qd
   !! either call with parameters n and s
   !! or with n and either one of q or qd
 
-use mod_io
-
 IMPLICIT NONE
 
   integer(kind=irg), INTENT(IN)             :: n
@@ -466,8 +506,6 @@ IMPLICIT NONE
   real(kind=sgl), INTENT(IN), OPTIONAL      :: q(4,n)
   real(kind=dbl), INTENT(IN), OPTIONAL      :: qd(4,n)
   character(1), INTENT(IN), OPTIONAL        :: s
-
-  type(IO_T)                                :: Message
 
 ! OpenMP threads
   QuatArray % nthreads = 0
@@ -487,12 +525,10 @@ IMPLICIT NONE
     return
   end if
 
-! number of quaternions in array
-  QuatArray % n = n
-
 ! single precision
   if (present(q)) then
     allocate(QuatArray % q(4,n))
+    QuatArray % n = n
     QuatArray % q = q
     QuatArray % s = 's'
   end if
@@ -500,6 +536,7 @@ IMPLICIT NONE
 ! double precision
   if (present(qd)) then
     allocate(QuatArray % qd(4,n))
+    QuatArray % n = n
     QuatArray % qd = qd
     QuatArray % s = 'd'
   end if
@@ -525,6 +562,82 @@ if (allocated(self%q)) deallocate(self%q)
 if (allocated(self%qd)) deallocate(self%qd)
 
 end subroutine QuaternionArray_destructor
+
+!--------------------------------------------------------------------------
+type(Quaternion3DArray_T) function Quaternion3DArray_constructor( n, nthreads, q, qd, s ) result(Quat3DArray)
+!DEC$ ATTRIBUTES DLLEXPORT :: Quaternion3DArray_constructor
+  !! author: MDG
+  !! version: 1.0
+  !! date: 06/03/21
+  !!
+  !! constructor for the Quaternion3DArray Class
+  !!
+  !! either call with parameters n and s
+  !! or with n and either one of q or qd
+
+IMPLICIT NONE
+
+  integer(kind=irg), INTENT(IN)             :: n(3)
+  integer(kind=irg), INTENT(IN), OPTIONAL   :: nthreads
+  real(kind=sgl), INTENT(IN), OPTIONAL      :: q(4,n(1),n(2),n(3))
+  real(kind=dbl), INTENT(IN), OPTIONAL      :: qd(4,n(1),n(2),n(3))
+  character(1), INTENT(IN), OPTIONAL        :: s
+
+! OpenMP threads
+  Quat3DArray % nthreads = 0
+  if (present(nthreads)) Quat3DArray % nthreads = nthreads
+
+! are we declaring just an empty variable with no entries, but with a given precision ?
+  if ( present(s) .and. (.not.present(q)) .and. (.not.present(qd)) ) then
+    Quat3DArray % n = n
+    Quat3DArray % s = s
+    if (s.eq.'s') then
+      allocate(Quat3DArray % q(4,n(1),n(2),n(3)))
+      Quat3DArray % q = 0.0
+    else
+      allocate(Quat3DArray % qd(4,n(1),n(2),n(3)))
+      Quat3DArray % qd = 0.D0
+    end if
+    return
+  end if
+
+! single precision
+  if (present(q)) then
+    allocate(Quat3DArray % q(4,n(1),n(2),n(3)))
+    Quat3DArray % n = n
+    Quat3DArray % q = q
+    Quat3DArray % s = 's'
+  end if
+
+! double precision
+  if (present(qd)) then
+    allocate(Quat3DArray % qd(4,n(1),n(2),n(3)))
+    Quat3DArray % n = n
+    Quat3DArray % qd = qd
+    Quat3DArray % s = 'd'
+  end if
+
+end function Quaternion3DArray_constructor
+
+!--------------------------------------------------------------------------
+subroutine Quaternion3DArray_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: Quaternion3DArray_destructor
+!! author: MDG
+!! version: 1.0
+!! date: 06/03/21
+!!
+!! destructor for the Quaternion3DArray_T Class
+
+IMPLICIT NONE
+
+type(Quaternion3DArray_T), INTENT(INOUT)     :: self
+
+call reportDestructor('Quaternion3DArray_T')
+
+if (allocated(self%q)) deallocate(self%q)
+if (allocated(self%qd)) deallocate(self%qd)
+
+end subroutine Quaternion3DArray_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine quatprint(self)
@@ -1685,7 +1798,6 @@ end function quatarrayangle
 
 
 !--------------------------------------------------------------------------!
-! pure recursive function quatLp(self, v) result (res)
 recursive function quatLp(self, v) result (res)
 !DEC$ ATTRIBUTES DLLEXPORT :: quatLp
   !! author: MDG
@@ -1712,6 +1824,38 @@ IMPLICIT NONE
   res(1:3) = rqv%q(2:4)
 
 end function quatLp
+
+!--------------------------------------------------------------------------!
+recursive function quatLp_vecarray(self, N, v) result (res)
+!DEC$ ATTRIBUTES DLLEXPORT :: quatLp_vecarray
+  !! author: MDG
+  !! version: 1.0
+  !! date: 06/02/21
+  !!
+  !! actively rotate an array of unit vectors by a unit quaternion, L_p = p v p* (single precision)
+
+IMPLICIT NONE
+
+  class(Quaternion_T),intent(in)    :: self
+   !! input quaternion
+  integer(kind=irg),intent(in)      :: N
+  real(kind=sgl),intent(in)         :: v(3, N)
+   !! input vector to be rotated
+  real(kind=sgl)                    :: res(3, N)
+   !! output vector
+
+  type(Quaternion_T)                :: qv, rqv, cq
+  integer(kind=irg)                 :: i
+
+  do i=1,N 
+    qv%q = (/ 0.0, v(1, i), v(2, i), v(3, i) /)
+    qv%s = 's'
+    cq = quatconjg(self)
+    rqv = quatmult(self, quatmult(qv, cq) )
+    res(1:3, i) = rqv%q(2:4)
+  end do
+
+end function quatLp_vecarray
 
 !--------------------------------------------------------------------------!
 recursive function quatarrayLp(self, v) result (res)
@@ -1773,6 +1917,38 @@ IMPLICIT NONE
   res(1:3) = rqv%qd(2:4)
 
 end function quatLpd
+
+!--------------------------------------------------------------------------!
+recursive function quatLpd_vecarray(self, N, v) result (res)
+!DEC$ ATTRIBUTES DLLEXPORT :: quatLpd_vecarray
+  !! author: MDG
+  !! version: 1.0
+  !! date: 06/02/21
+  !!
+  !! actively rotate an array of unit vectors by a unit quaternion, L_p = p v p* (double precision)
+
+IMPLICIT NONE
+
+  class(Quaternion_T),intent(in)    :: self
+   !! input quaternion
+  integer(kind=irg),intent(in)      :: N
+  real(kind=dbl),intent(in)         :: v(3, N)
+   !! input vector to be rotated
+  real(kind=dbl)                    :: res(3, N)
+   !! output vector
+
+  type(Quaternion_T)                :: qv, rqv, cq
+  integer(kind=irg)                 :: i
+
+  do i=1,N 
+    qv%qd = (/ 0.D0, v(1, i), v(2, i), v(3, i) /)
+    qv%s = 'd'
+    cq = quatconjg(self)
+    rqv = quatmult(self, quatmult(qv, cq) )
+    res(1:3, i) = rqv%qd(2:4)
+  end do
+
+end function quatLpd_vecarray
 
 !--------------------------------------------------------------------------!
 recursive function quatArrayLpd(self, v) result (res)
@@ -1882,6 +2058,83 @@ IMPLICIT NONE
   end if
 
 end subroutine insertQuatintoArray
+
+!--------------------------------------------------------------------------!
+recursive function extractfromQuaternion3DArray(self, i) result (res)
+!DEC$ ATTRIBUTES DLLEXPORT :: extractfromQuaternion3DArray
+  !! author: MDG
+  !! version: 1.0
+  !! date: 06/03/21
+  !!
+  !! extract a quaternion from an array of quaternions
+
+use mod_io
+
+IMPLICIT NONE
+
+  class(Quaternion3DArray_T),intent(in) :: self
+   !! input quaternion array
+  integer(kind=irg), intent(in)         :: i(3)
+   !! quaternion to be extracted
+  type(Quaternion_T)                    :: res
+   !! extracted quaternion
+
+  type(IO_T)                            :: Message
+
+  if ( (i(1).le.self%n(1)) .and. (i(2).le.self%n(2)) .and. (i(3).le.self%n(3)) ) then
+    res%s = self%s
+    if (self%s.eq.'s') then
+      res%q(:) = self%q(:,i(1),i(2),i(3))
+    else
+      res%qd(:) = self%qd(:,i(1),i(2),i(3))
+    end if
+  else
+    call Message%printWarning('extractfromQuaternion3DArray: requested quaternion index larger than array size', &
+                              (/'   ---> returning empty quaternion'/) )
+    if (self%s.eq.'s') then
+      res = Quaternion_T( q = (/ 0.0, 0.0, 0.0, 0.0 /) )
+    else
+      res = Quaternion_T( qd = (/ 0.D0, 0.D0, 0.D0, 0.D0 /) )
+    end if
+  end if
+
+end function extractfromQuaternion3DArray
+
+
+!--------------------------------------------------------------------------!
+recursive subroutine insertQuatinto3DArray(self, i, q)
+!DEC$ ATTRIBUTES DLLEXPORT :: insertQuatinto3DArray
+  !! author: MDG
+  !! version: 1.0
+  !! date: 06/03/21
+  !!
+  !! insert a quaternion into an array of quaternions
+
+use mod_io
+
+IMPLICIT NONE
+
+  class(Quaternion3DArray_T),intent(inout):: self
+   !! input quaternion array
+  integer(kind=irg), intent(in)           :: i(3)
+   !! quaternion to be extracted
+  type(Quaternion_T), intent(in)          :: q
+   !! extracted quaternion
+
+  type(IO_T)                              :: Message
+
+  if ( (i(1).le.self%n(1)) .and. (i(2).le.self%n(2)) .and. (i(3).le.self%n(3)) ) then
+    if (self%s.eq.'s') then
+      self%q(:,i(1),i(2),i(3)) = q%get_quats()
+    else
+      self%qd(:,i(1),i(2),i(3)) = q%get_quatd()
+    end if
+  else
+    call Message%printWarning('extractfromQuaternion3DArray: requested quaternion index larger than array size', &
+                              (/'   ---> no quaternion inserted'/) )
+  end if
+
+end subroutine insertQuatinto3DArray
 
 !--------------------------------------------------------------------------!
 ! pure recursive function quatslerp(self, qb, n) result(res)
@@ -2269,5 +2522,46 @@ integer(kind=irg)                         :: num
 num = self%n
 
 end function getQnumber_
+
+!--------------------------------------------------------------------------
+recursive function get3DQnumber_(self) result(num)
+!DEC$ ATTRIBUTES DLLEXPORT :: get3DQnumber_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 07/18/21
+  !!
+  !! returns the number of quaternions in the Quaternion3DArray_T class
+
+IMPLICIT NONE
+
+class(Quaternion3DArray_T), INTENT(INOUT)    :: self
+integer(kind=irg)                            :: num(3)
+
+num = self%n
+
+end function get3DQnumber_
+
+!--------------------------------------------------------------------------
+recursive subroutine deleteArray_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: deleteArray_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 07/16/21
+  !!
+  !! deletes the current array of quaternions in this class
+
+IMPLICIT NONE
+
+class(QuaternionArray_T), INTENT(INOUT)   :: self
+
+if (self%s.eq.'s') then 
+  if (allocated(self%q)) deallocate(self%q)
+else 
+  if (allocated(self%qd)) deallocate(self%qd)
+end if
+
+self%n = 0
+
+end subroutine deleteArray_
 
 end module mod_quaternions

@@ -77,6 +77,7 @@ module mod_LaueSupport
     procedure, pass(self) :: Laue_Init_Unit_Reflist_
     procedure, pass(self) :: getLauePattern_
     procedure, pass(self) :: getLaueDCTPattern_
+    procedure, pass(self) :: getnewLaueDCTPattern_
   
     generic, public :: MakeRefList => MakeRefList_
     generic, public :: get_ListHead => get_ListHead_
@@ -85,6 +86,7 @@ module mod_LaueSupport
     generic, public :: Init_Unit_Reflist => Laue_Init_Unit_Reflist_
     generic, public :: getLauePattern => getLauePattern_
     generic, public :: getLaueDCTPattern => getLaueDCTPattern_
+    generic, public :: getnewLaueDCTPattern => getnewLaueDCTPattern_
   
   end type LaueReflist_T
   
@@ -99,7 +101,7 @@ module mod_LaueSupport
   contains
   
   !--------------------------------------------------------------------------
-  type(LaueReflist_T) function LaueReflist_constructor( ) result(GVec)
+  type(LaueReflist_T) function LaueReflist_constructor( grow ) result(GVec)
   !DEC$ ATTRIBUTES DLLEXPORT :: LaueReflist_constructor
   !! author: MDG 
   !! version: 1.0 
@@ -109,11 +111,21 @@ module mod_LaueSupport
    
   IMPLICIT NONE
   
+  logical,INTENT(IN),OPTIONAL         :: grow 
+
   ! the calling program must make sure that the reflist is empty ...
   ! initialize the reflist
-  nullify(GVec%reflist)
-  GVec%nref = 0
-  call GVec%MakeRefList()
+  if (present(grow)) then 
+    if (grow.eqv..TRUE.) then 
+      nullify(GVec%reflistgrow)
+      GVec%nref = 0
+      call GVec%MakeRefList( grow )
+    end if 
+  else
+    nullify(GVec%reflist)
+    GVec%nref = 0
+    call GVec%MakeRefList()
+  end if
 
   end function LaueReflist_constructor
   
@@ -135,7 +147,7 @@ module mod_LaueSupport
   end subroutine LaueReflist_destructor
 
   !--------------------------------------------------------------------------
-  recursive subroutine MakeRefList_(self)
+  recursive subroutine MakeRefList_(self, grow)
   !DEC$ ATTRIBUTES DLLEXPORT :: MakeRefList_
   !! author: MDG
   !! version: 1.0
@@ -148,17 +160,29 @@ module mod_LaueSupport
   IMPLICIT NONE
 
   class(LaueReflist_T), INTENT(INOUT)  :: self
+  logical,INTENT(IN),OPTIONAL          :: grow 
 
   type(IO_T)                        :: Message
   integer(kind=irg)                 :: istat
 
   ! create it if it does not already exist
-  if (.not.associated(self%reflist)) then
-    allocate(self%reflist,stat=istat)
-    if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
-    self%rltail => self%reflist           ! tail points to new value
-    nullify(self%rltail%next)             ! nullify next in new value
-  end if
+  if (present(grow)) then 
+    if (grow.eqv..TRUE.) then 
+      if (.not.associated(self%reflistgrow)) then
+        allocate(self%reflistgrow,stat=istat)
+        if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
+        self%rltailgrow => self%reflistgrow       ! tail points to new value
+        nullify(self%rltailgrow%next)             ! nullify next in new value
+      end if
+    end if 
+  else
+    if (.not.associated(self%reflist)) then
+      allocate(self%reflist,stat=istat)
+      if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
+      self%rltail => self%reflist           ! tail points to new value
+      nullify(self%rltail%next)             ! nullify next in new value
+    end if
+  end if 
 
   end subroutine MakeRefList_
 
@@ -651,7 +675,54 @@ Ld = dble(delta * Ldims) / 2.D0
 end function backprojectLauePattern
 
 !--------------------------------------------------------------------------
-recursive function getLaueDCTPattern_(self, qu, lmin, lmax, refcnt, Ny, Nz, ps, projectionmode, sampletodetector, samplethickness, &
+recursive function getnewLaueDCTPattern_(self, ipar, fpar, dpar, np, slist, ray, vvol, &
+                                         squat, orlist) result(pattern)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnewLaueDCTPattern_
+
+use mod_io
+use mod_math
+use mod_quaternions
+use mod_rotations
+use mod_DREAM3D 
+
+IMPLICIT NONE
+
+class(LaueReflist_T),INTENT(INOUT)      :: self
+integer(kind=irg),INTENT(IN)            :: ipar(20)
+real(kind=sgl),INTENT(IN)               :: fpar(20)
+real(kind=dbl),INTENT(IN)               :: dpar(20)
+integer(kind=irg),INTENT(IN)            :: np
+real(kind=dbl),INTENT(IN)               :: slist(3,np)
+real(kind=dbl),INTENT(IN)               :: ray(3)
+real(kind=dbl),INTENT(IN)               :: vvol(np)
+type(Quaternion_T),INTENT(IN)           :: squat
+type(QuaternionArray_T),INTENT(IN)      :: orlist
+real(kind=sgl)                          :: pattern(ipar(1), ipar(2))
+
+type(Quaternion_T)                      :: quats
+
+real(kind=sgl)                          :: th, la, s0(3), s(3), G(3), d, scl, dvec(3), kexit(3), kinpost, dins, atf, Ly, Lz, pre
+type(Laue_grow_list),pointer            :: rltmp
+integer(kind=irg)                       :: i, j, k , spots, isp
+
+! For each sampling point along the ray, we need to do the gvector analysis while also 
+! keeping track of the attenuation of the direct beam along this ray. The intensity of a diffracted
+! beam must be subtracted from the incident intensity at each sampling point and for those diffracted
+! beams that hit the detector, the attenuation must be included.
+!
+! loop over all np sampling points
+pattern = 0.0
+do isp = 1, np 
+! get the rotation quaternion corrected for the sample orientation
+  quats = squat * orlist%getQuatfromArray( isp )
+! 
+
+end do 
+
+end function getnewLaueDCTPattern_
+
+!--------------------------------------------------------------------------
+recursive function getLaueDCTPattern_(self, qu, lmin, lmax, refcnt, Ny, Nz, ps, sampletodetector, samplethickness,  &
                                       absl, spotw, Dy, Dz, kinpre, kvec, kvox, binarize) result(pattern)
 !DEC$ ATTRIBUTES DLLEXPORT :: getLaueDCTPattern_
 
@@ -671,7 +742,6 @@ integer(kind=irg),INTENT(IN)            :: refcnt
 integer(kind=irg),INTENT(IN)            :: Ny
 integer(kind=irg),INTENT(IN)            :: Nz
 real(kind=dbl),INTENT(IN)               :: ps 
-character(1),INTENT(IN)                 :: projectionmode
 real(kind=dbl),INTENT(IN)               :: sampletodetector 
 real(kind=dbl),INTENT(IN)               :: samplethickness
 real(kind=dbl),INTENT(IN)               :: absl
@@ -697,7 +767,6 @@ pattern = 0.0
 nullify(rltmp)
 rltmp => self%reflistgrow
 
-if (projectionmode.eq.'T') then 
 ! this is the transmission mode; we follow the algorithm suggested in
 ! the paper by Arnaud et al., "A laboratory transmission diffraction Laue 
 ! setup to evaluate single crystal quality", to appear in JAC.  We take the 
@@ -781,65 +850,6 @@ if (projectionmode.eq.'T') then
     end if
     rltmp => rltmp%next
   end do 
-end if  ! transmission mode 
-
-! the following modes are much simpler since they do not require an integration 
-! over the sample voxels
-if (projectionmode.eq.'B') then ! back-reflection
-! go through the entire linked list and determine for each potential reflector whether or not
-! the corresponding wave length falls inside the allowed range; if so, then compute whether or 
-! not this diffracted beam intersects the detector and generate the correct intensity at that
-! detector pixel 
-d = sampletodetector
-spots = 0
-rltmp => rltmp%next  ! skip the first reflection ...  ?
-  do i = 1, refcnt-1
-! for all the allowed reflections along this systematic row, compute the wave length
-! using Bragg's law 
-    rltmp%xyz = rltmp%xyz / vecnorm(rltmp%xyz)
-    G = sngl(qu%quat_Lp(rltmp%xyz))
-    if (G(1).lt.0.0) then 
-      G = G / vecnorm(G)
-! get the diffraction angle for the unit vectors
-      th = acos( DOT_PRODUCT(kvec, G) ) - 0.5D0*cPi
-      pre = -2.D0 * DOT_PRODUCT(kvec, G)
-      do j = 1, rltmp%Nentries
-        if (rltmp%sfs(j).ne.0.0) then 
-          la = 2.0 * rltmp%dspacing(j) * sin(th)
-          if ((la.gt.lmin).and.(la.lt.lmax)) then ! we have a potential diffracted beam !
-            ! get the scattered beam 
-            s0 = kvec ! / la
-            s = s0 + pre * G 
-! this vector originates at the point kvox in the sample, so next we compute 
-! where the intersection with the detector plane will be; we only need to take 
-! into account those s-vectors that have a positive x-component. 
-            if (s(1).lt.0.0) then 
-              scl = d / s(1)    ! scale factor to get to the detector plane
-              dvec = s * scl    ! this is with respect to the optical axis
-              dvec = dvec + (/ 0.D0, Dy, Dz  /)   ! correct for the pattern center to get detector coordinates
-              if ((abs(dvec(2)).lt.Ly).or.(abs(dvec(3)).lt.Lz)) then ! we plot this reflection
-                atf = rltmp%sfs(j)
-                if (binarize.eqv..TRUE.) atf = 1.0
-! and draw the reflection
-                dvec = dvec / ps 
-                dvec(2) = -dvec(2)
-                call addLaueSlitreflection_(pattern, Ny, Nz, dvec, sngl(atf), spotw)
-                spots = spots + 1
-              end if 
-            else
-              CYCLE
-            end if
-          end if
-        end if 
-      end do 
-    end if
-    rltmp => rltmp%next
-  end do 
-end if 
-
-! if (projectionmode.eq.'S') then ! side-reflection
-
-! end if 
 
 end function getLaueDCTPattern_
 
