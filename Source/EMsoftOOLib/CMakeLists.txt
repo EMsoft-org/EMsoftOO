@@ -78,6 +78,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_wrappers.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_xrd.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_DREAM3D.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_PGA3D.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ConvertOrientations.f90
