@@ -3,16 +3,29 @@ program tester
     use mod_global 
     use mod_PGA3D 
     use mod_PGA3Dsupport
+    use mod_shapes
+
 
     IMPLICIT NONE 
 
+    type(shape_T)           :: shape     
     type(PGA3D_T)           :: mv, mv2, mv3, tr, pt, rot, axz, orig, px, l, p, &
                                 rline, rpoint, rplane, pop, pot, poc, cr 
     integer(kind=irg)       :: i 
     real(kind=dbl)          :: a, b, c, d, x, y, z 
     real(kind=dbl),allocatable            :: gr(:)
+    character(fnlen)        :: sname 
     
     call PGA3D_initialize()
+    
+    ! sname = 'rhombicuboctahedron' 
+    sname = 'cube' 
+
+    shape = shape_T( sname )
+    call shape%shape_info()
+
+
+
 
 !     mv = PGA3D_T()
 !     call mv%setcomp( -15.D0, 1 )
@@ -83,15 +96,15 @@ program tester
     ! call getpoint(pot, x, y, z)
     ! write (*,*) 'point coordinates : ', x, y, z
 
-    tr = translator(5.D0, E1*E0)
-    do i=0,11
-        x = dble(i)/12.D0
-        cr = circle(x, 5.D0, E1*E2)
-        poc = tr * cr * E123 * conjg(cr) * conjg(tr)
-        call poc%log()
-        ! call getpoint(cr, x, y, z)
-        ! write (*,*) 'point coordinates : ', x, y, z
-    end do 
+    ! tr = translator(5.D0, E1*E0)
+    ! do i=0,11
+    !     x = dble(i)/12.D0
+    !     cr = circle(x, 5.D0, E1*E2)
+    !     poc = tr * cr * E123 * conjg(cr) * conjg(tr)
+    !     call poc%log()
+    !     ! call getpoint(cr, x, y, z)
+    !     ! write (*,*) 'point coordinates : ', x, y, z
+    ! end do 
 
     ! p = plane(0.D0, 0.D0, 1.D0, 0.D0)
     ! l = p*E0123
