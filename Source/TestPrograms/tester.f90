@@ -18,12 +18,63 @@ program tester
     
     call PGA3D_initialize()
     
-    ! sname = 'rhombicuboctahedron' 
-    sname = 'cube' 
-
+    sname = 'cube'
     shape = shape_T( sname )
     call shape%shape_info()
-
+    sname = 'cuboctahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()    
+    sname = 'dodecahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()    
+    sname = 'icosahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()    
+    sname = 'icosidodecahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()    
+    sname = 'octahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()   
+    sname = 'rhombic_dodecahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()   
+    sname = 'rhombicosidodecahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()   
+    sname = 'rhombicuboctahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()    
+    sname = 'rhombitruncated_cuboctahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()    
+    sname = 'rhombitruncated_icosidodecahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()   
+    sname = 'snub_cube'
+    shape = shape_T( sname )
+    call shape%shape_info()  
+    sname = 'snub_dodecahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()   
+    sname = 'tetrahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()  
+    sname = 'truncated_cube'
+    shape = shape_T( sname )
+    call shape%shape_info()  
+    sname = 'truncated_dodecahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()   
+    sname = 'truncated_icosahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()  
+    sname = 'truncated_octahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()  
+    sname = 'truncated_tetrahedron'
+    shape = shape_T( sname )
+    call shape%shape_info()   
 
 
 

@@ -224,7 +224,7 @@ do i=1,self%nfaces
     else 
       vsum = vsum + mv
     end if  
-    call vsum%log()
+    ! call vsum%log()
     self%area = self%area + mv%norm()
   end do 
 end do 
