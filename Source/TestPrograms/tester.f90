@@ -11,67 +11,77 @@ program tester
     type(shape_T)           :: shape     
     type(PGA3D_T)           :: mv, mv2, mv3, tr, pt, rot, axz, orig, px, l, p, &
                                 rline, rpoint, rplane, pop, pot, poc, cr 
-    integer(kind=irg)       :: i 
+    integer(kind=irg)       :: i, dims(3)
     real(kind=dbl)          :: a, b, c, d, x, y, z 
-    real(kind=dbl),allocatable            :: gr(:)
+    real(kind=dbl),allocatable            :: gr(:),sf(:,:,:)
     character(fnlen)        :: sname 
     
     call PGA3D_initialize()
     
     sname = 'cube'
-    shape = shape_T( sname )
-    call shape%shape_info()
-    sname = 'cuboctahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()    
-    sname = 'dodecahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()    
-    sname = 'icosahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()    
     sname = 'icosidodecahedron'
     shape = shape_T( sname )
-    call shape%shape_info()    
-    sname = 'octahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()   
-    sname = 'rhombicosidodecahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()   
-    sname = 'rhombicuboctahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()    
-    sname = 'rhombitruncated_cuboctahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()    
-    sname = 'rhombitruncated_icosidodecahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()   
-    sname = 'snub_cube'
-    shape = shape_T( sname )
-    call shape%shape_info()  
-    sname = 'snub_dodecahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()   
-    sname = 'tetrahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()  
-    sname = 'truncated_cube'
-    shape = shape_T( sname )
-    call shape%shape_info()  
-    sname = 'truncated_dodecahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()   
-    sname = 'truncated_icosahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()  
-    sname = 'truncated_octahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()  
-    sname = 'truncated_tetrahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()   
+    call shape%shape_info()
+    dims = (/ 10, 10, 10 /)
+    allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
+    x = 5.D0
+    call shape%shape_function(sf, dims, x)
+
+    do i=-dims(1),dims(1)
+        write (*,"(21F4.1)") sf(i,:,0)
+    end do
+
+    ! sname = 'cuboctahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()    
+    ! sname = 'dodecahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()    
+    ! sname = 'icosahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()    
+    ! sname = 'icosidodecahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()    
+    ! sname = 'octahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()   
+    ! sname = 'rhombicosidodecahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()   
+    ! sname = 'rhombicuboctahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()    
+    ! sname = 'rhombitruncated_cuboctahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()    
+    ! sname = 'rhombitruncated_icosidodecahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()   
+    ! sname = 'snub_cube'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()  
+    ! sname = 'snub_dodecahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()   
+    ! sname = 'tetrahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()  
+    ! sname = 'truncated_cube'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()  
+    ! sname = 'truncated_dodecahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()   
+    ! sname = 'truncated_icosahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()  
+    ! sname = 'truncated_octahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()  
+    ! sname = 'truncated_tetrahedron'
+    ! shape = shape_T( sname )
+    ! call shape%shape_info()   
 
 
 
@@ -116,9 +126,31 @@ program tester
     ! rot = rotor(cPi/2.D0, E1*E2)
     ! axz = E1.wedge.E2 
     ! orig = axz.wedge.E3
-    ! px = point(0.D0,0.D0,1.D0)
-    ! line = orig.vee.px 
-    ! p = plane(0.D0,0.D0,1.D0,-3.D0)
+    ! px = point(0.D0,0.D0,0.D0)
+    ! ! line = orig.vee.px 
+    ! p = plane(0.D0,0.D0,-1.D0,-3.D0)
+    ! mv = p .wedge. px
+    ! call mv%log()
+    ! mv2 = p.inner.E3
+    ! call mv2%log()
+    ! write(*,*) mv%getcomp(15)
+    ! px = point(0.D0,0.D0, 6.D0)
+    ! mv = p .wedge. px
+    ! call mv%log()
+    ! write(*,*) mv%getcomp(15)
+
+    ! px = point(0.D0,0.D0,0.D0)
+    ! ! line = orig.vee.px 
+    ! p = plane(0.D0,0.D0,-1.D0, 3.D0)
+    ! mv = p .wedge. px
+    ! call mv%log()
+    ! write(*,*) mv%getcomp(15)
+    ! px = point(0.D0,0.D0,-6.D0)
+    ! mv = p .wedge. px
+    ! call mv%log()
+    ! write(*,*) mv%getcomp(15)
+
+
     ! rline = rot * line * conjg(rot)
     ! rpoint = rot * px * conjg(rot)
     ! rplane = rot * p * conjg(rot)

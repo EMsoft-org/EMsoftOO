@@ -57,6 +57,7 @@ private
   integer(kind=irg)               :: nfaces
   integer(kind=irg)               :: nedges
   type(face_T),allocatable        :: faces(:)
+  type(PGA3D_T), allocatable      :: face(:)
   type(PGA3D_T), allocatable      :: facecenter(:)
   type(PGA3D_T), allocatable      :: vertex(:)
   type(PGA3D_T), allocatable      :: facenormal(:)
@@ -71,10 +72,12 @@ private
   procedure, pass(self) :: shape_init_
   procedure, pass(self) :: shape_info_
   procedure, pass(self) :: build_shape_
+  procedure, pass(self) :: shape_function_
 
   generic, public :: initialize_shape => shape_init_
   generic, public :: shape_info => shape_info_
   generic, public :: build_shape => build_shape_
+  generic, public :: shape_function => shape_function_
 
 end type shape_T
 
@@ -186,7 +189,7 @@ class(shape_T), INTENT(INOUT)   :: self
 
 integer(kind=irg)               :: i, j, icnt, i1, i2 
 real(kind=dbl)                  :: s
-type(PGA3D_T)                   :: mv, mv2, vsum 
+type(PGA3D_T)                   :: mv, mv2, vsum, pt 
 
 ! build all the edges
 icnt = 1
@@ -204,6 +207,7 @@ do i=1,self%nvertices
   self%vertex(i) = self%vertex(i)%normalized()
 end do 
 
+pt = point(0.D0,0.D0,0.D0)
 ! find the face centers 
 do j=1,self%nfaces
   mv = self%vertex(self%faces(j)%verts(1)) 
@@ -213,6 +217,10 @@ do j=1,self%nfaces
   s = 1.D0/dble(self%faces(j)%nv)
   mv = mv.muls.s
   self%facecenter(j) = mv%normalized()
+  mv2 = pt .vee. self%facecenter(j)
+  self%facenormal(j) = mv2%normalized()
+  self%face(j) = mv2.inner.self%facecenter(j)
+  call self%face(j)%log()
   ! call self%facecenter(j)%log()
 end do
 
@@ -328,6 +336,8 @@ if (fexists.eqv..TRUE.) then
   read (dataunit,"(A)") line   ! vertex coordinates 
   read (dataunit,*) self%nfaces
   allocate(self%faces(self%nfaces))
+  allocate(self%face(self%nfaces))
+  allocate(self%facenormal(self%nfaces))
   allocate(self%facecenter(self%nfaces))
   do i=1,self%nfaces
     line = ''
@@ -346,6 +356,51 @@ end if
 
 end subroutine shape_init_
 
+!--------------------------------------------------------------------------
+subroutine shape_function_( self, shapearray, dims, Ledge )
+!DEC$ ATTRIBUTES DLLEXPORT :: shape_function_
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/28/21
+!!
+!! generate a discrete shape function array using pixelwise comparisons in PGA3D
+!! (this is also known as the characteristic function, 1 inside and 0 outside)
 
+IMPLICIT NONE 
+
+class(shape_T), INTENT(INOUT)           :: self
+integer(kind=irg),INTENT(IN)            :: dims(3)
+real(kind=dbl), INTENT(INOUT)           :: shapearray(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3))
+real(kind=dbl),INTENT(IN)               :: Ledge 
+
+type(PGA3D_T)                           :: pt, mv 
+integer(kind=irg)                       :: i, j, k, f 
+real(kind=dbl)                          :: sgn, sgnsum 
+
+pt = point(0.D0,0.D0,0.D0)
+mv = self%face(1) .wedge. pt 
+sgn = dble(self%nfaces)
+if (mv%getcomp(15).lt.0.D0) sgn = -sgn
+
+shapearray = 0.D0
+do i=-dims(1),dims(1)
+  do j=-dims(2),dims(2)
+    do k=-dims(3),dims(3)
+      pt = point(dble(i)*0.5D0,dble(j)*0.5D0,dble(k)*0.5D0)
+      sgnsum = 0.D0
+      do f=1,self%nfaces 
+        mv = self%face(f) .wedge. pt 
+        if (mv%getcomp(15).gt.0.D0) then 
+          sgnsum = sgnsum + 1.D0 
+        else
+          sgnsum = sgnsum - 1.D0 
+        end if
+      end do 
+      if (sgnsum.eq.sgn) shapearray(i,j,k) = 1.D0
+    end do 
+  end do 
+end do 
+
+end subroutine shape_function_
 
 end module mod_shapes
