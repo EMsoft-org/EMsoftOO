@@ -141,7 +141,11 @@ class(shape_T), INTENT(INOUT)  :: self
 
 type(IO_T)                    :: Message 
 integer(kind=irg)             :: io_int(20)
-real(kind=dbl)                :: io_real(10)
+real(kind=dbl)                :: io_real(10), L
+type(PGA3D_T)                 :: mv
+
+mv = self%vertex(self%faces(1)%verts(1)).vee.self%vertex(self%faces(1)%verts(2))
+L = mv%norm()
 
 call Message%printMessage(' Shape Name : '//trim(self%shapename))
 call Message%printMessage(' Shape File : '//trim(self%shapefile),frm="(A/)")
@@ -154,10 +158,14 @@ io_int(1) = self%nedges
 call Message%WriteValue(' # edges     : ', io_int, 1)
 io_int(1) = self%nvertices + self%nfaces - self%nedges
 call Message%WriteValue(' V+F-E (should be 2) ', io_int, 1, frm="(I3/)")
-
+io_real(1) = L
+call Message%WriteValue(' Edge length : ', io_real, 1)
 io_real(1:2) = (/ self%area, self%volume /)
 call Message%WriteValue(' Area/Volume : ', io_real, 2)
+io_real(1:2) = (/ self%area/L**2, self%volume/L**3 /)
+call Message%WriteValue('   for L=1   : ', io_real, 2)
 
+call Message%printMessage('')
 end subroutine shape_info_
 
 
@@ -180,7 +188,18 @@ integer(kind=irg)               :: i, j, icnt, i1, i2
 real(kind=dbl)                  :: s
 type(PGA3D_T)                   :: mv, mv2, vsum 
 
-! first we normalize all the vertices
+! build all the edges
+icnt = 1
+do i=1,self%nfaces
+  do j=1,self%faces(i)%nv
+    self%edge(icnt) = self%vertex(self%faces(i)%verts(j)).vee.self%vertex(self%faces(i)%verts(mod(j+1,self%faces(i)%nv)+1))
+    ! call self%edge(icnt)%log()
+    ! self%edge(icnt) = self%edge(icnt)%normalized()
+    icnt = icnt + 1
+  end do 
+end do 
+
+! normalize all the vertices
 do i=1,self%nvertices 
   self%vertex(i) = self%vertex(i)%normalized()
 end do 
@@ -197,15 +216,6 @@ do j=1,self%nfaces
   ! call self%facecenter(j)%log()
 end do
 
-! then we build all the edges
-icnt = 1
-do i=1,self%nfaces
-  do j=1,self%faces(i)%nv
-    self%edge(icnt) = self%vertex(self%faces(i)%verts(j)).vee.self%vertex(self%faces(i)%verts(mod(j+1,self%faces(i)%nv)+1))
-    ! call self%edge(icnt)%log()
-    icnt = icnt + 1
-  end do 
-end do 
 
 ! and we get the area and volume
 self%area = 0.D0 

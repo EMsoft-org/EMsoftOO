@@ -36,9 +36,6 @@ program tester
     sname = 'octahedron'
     shape = shape_T( sname )
     call shape%shape_info()   
-    sname = 'rhombic_dodecahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()   
     sname = 'rhombicosidodecahedron'
     shape = shape_T( sname )
     call shape%shape_info()   
