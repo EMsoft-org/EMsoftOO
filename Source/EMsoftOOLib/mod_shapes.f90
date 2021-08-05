@@ -31,12 +31,49 @@ module mod_shapes
   !! version: 1.0 
   !! date: 07/27/21
   !!
-  !! class definition for a polyhedron shape 
+  !! class definition for a 3D (polyhedron or general) shape 
   !!
   !! This class can be used to initialize a 3D polyhedron shape, compute surface area 
   !! and volume using the 3D Projective Geometric Algebra module.  This module also 
   !! provides a method to compute the shape amplitude using Komrska's formula or a 
-  !! simple 3D FFT. 
+  !! simple 3D FFT. The Platonic and Archimedian solids are available in the resources/ShapeFiles 
+  !! folder and can be initialized directly; other shapes can be defined in the same 
+  !! text file format:
+  !!
+  !! cube                           <- a generic shape name 
+  !! vertex coordinates             <- starts the block of vertex coordinates 
+  !! 8                              <- number of vertices 
+  !!  0.5D0,-0.5D0,-0.5D0           <- x, y, z vertex coordinates in double precision
+  !!  0.5D0, 0.5D0,-0.5D0
+  !!  0.5D0, 0.5D0, 0.5D0
+  !!  0.5D0,-0.5D0, 0.5D0
+  !! -0.5D0,-0.5D0,-0.5D0
+  !! -0.5D0, 0.5D0,-0.5D0
+  !! -0.5D0, 0.5D0, 0.5D0
+  !! -0.5D0,-0.5D0, 0.5D0
+  !! vertices per face              <- starts the block of face descriptions
+  !! 6                              <- number of faces 
+  !! 4, 1,2,3,4                     <- # vertices, followed by the vertex labels
+  !! 4, 1,5,6,2                        using a counterclockwise winding
+  !! 4, 2,6,7,3
+  !! 4, 3,7,8,4
+  !! 4, 1,4,8,5
+  !! 4, 5,8,7,6
+  !!
+  !! The faces MUST have the correct winding orientation in order for the 
+  !! PGA3D routines to correctly generate the shape (and distinguish inside 
+  !! from outside).
+  !!
+  !! Several shapes are available as shape amplitudes: sphere, ellipsoid, rectangular 
+  !! and elliptic cylinder, torus, ...
+  !!
+  !! The module also allows for some simple "shape algebra", either in direct space
+  !! or in Fourier space:
+  !!  - add/subtract two shapes 
+  !!  - find whether or not two shape intersect 
+  !!  - compute the cross-correlation of two shapes
+  !!  - translate/rotate a shape 
+  !!  - 
 
 use mod_kinds
 use mod_global
@@ -264,25 +301,6 @@ subroutine shape_init_( self, shapename, shapefile )
 !! and the volume.  The routine then stores the parameters needed to compute the shape
 !! amplitude using the Komrska formula.  A shape file must have the following format:
 !!
-! cube
-! vertex coordinates
-! 8
-!  0.5D0,-0.5D0,-0.5D0
-!  0.5D0, 0.5D0,-0.5D0
-!  0.5D0, 0.5D0, 0.5D0
-!  0.5D0,-0.5D0, 0.5D0
-! -0.5D0,-0.5D0,-0.5D0
-! -0.5D0, 0.5D0,-0.5D0
-! -0.5D0, 0.5D0, 0.5D0
-! -0.5D0,-0.5D0, 0.5D0
-! vertices per face
-! 6
-! 4, 1,2,3,4
-! 4, 1,5,6,2
-! 4, 2,6,7,3
-! 4, 3,7,8,4
-! 4, 1,4,8,5
-! 4, 5,8,7,6
 
 
 use mod_EMsoft
