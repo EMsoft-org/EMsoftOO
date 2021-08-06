@@ -26,7 +26,7 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-module mod_shapes
+module mod_polyhedra
   !! author: MDG 
   !! version: 1.0 
   !! date: 07/27/21
@@ -36,7 +36,7 @@ module mod_shapes
   !! This class can be used to initialize a 3D polyhedron shape, compute surface area 
   !! and volume using the 3D Projective Geometric Algebra module.  This module also 
   !! provides a method to compute the shape amplitude using Komrska's formula or a 
-  !! simple 3D FFT. The Platonic and Archimedian solids are available in the resources/ShapeFiles 
+  !! simple 3D FFT. The 5 Platonic and 13 Archimedian solids are available in the resources/ShapeFiles 
   !! folder and can be initialized directly; other shapes can be defined in the same 
   !! text file format:
   !!
@@ -85,10 +85,12 @@ IMPLICIT NONE
 type, public :: face_T 
   integer(kind=irg)               :: nv 
   integer(kind=irg),allocatable   :: verts(:)
+  real(kind=dbl),allocatable      :: edgeL(:)
+  integer(kind=irg),allocatable   :: otherface(:)
 end type face_T 
 
 ! class definition
-type, public :: shape_T
+type, public :: polyhedron_T
 private 
   integer(kind=irg)               :: nvertices 
   integer(kind=irg)               :: nfaces
@@ -106,32 +108,34 @@ private
 
 contains
 private 
-  procedure, pass(self) :: shape_init_
-  procedure, pass(self) :: shape_info_
-  procedure, pass(self) :: build_shape_
-  procedure, pass(self) :: shape_function_
+  procedure, pass(self) :: polyhedron_init_
+  procedure, pass(self) :: polyhedron_info_
+  procedure, pass(self) :: build_polyhedron_
+  procedure, pass(self) :: polyhedron_shapefunction_
+  ! procedure, pass(self) :: polyhedron_shapeamplitude_
 
-  generic, public :: initialize_shape => shape_init_
-  generic, public :: shape_info => shape_info_
-  generic, public :: build_shape => build_shape_
-  generic, public :: shape_function => shape_function_
+  generic, public :: initialize_shape => polyhedron_init_
+  generic, public :: polyhedron_info => polyhedron_info_
+  generic, public :: build_shape => build_polyhedron_
+  generic, public :: polyhedron_shapefunction => polyhedron_shapefunction_
+  ! generic, public :: polyhedron_shapeamplitude => polyhedron_shapeamplitude_
 
-end type shape_T
+end type polyhedron_T
 
 ! the constructor routine for this class 
-interface shape_T
-  module procedure shape_constructor
-end interface shape_T
+interface polyhedron_T
+  module procedure polyhedron_constructor
+end interface polyhedron_T
 
 contains
 
 !--------------------------------------------------------------------------
-type(shape_T) function shape_constructor( shapename, shapefile ) result(shape)
+type(polyhedron_T) function polyhedron_constructor( shapename, shapefile ) result(shape)
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/27/21
 !!
-!! constructor for the shape_T Class; reads the name list 
+!! constructor for the polyhedron_T Class; reads the name list 
  
 IMPLICIT NONE
 
@@ -139,33 +143,33 @@ character(fnlen), INTENT(IN)            :: shapename
 character(fnlen), INTENT(IN),OPTIONAL   :: shapefile
 
 if (present(shapefile)) then 
-  call shape%shape_init_( shapename, shapefile )
+  call shape%polyhedron_init_( shapename, shapefile )
 else
-  write (*,*) 'calling shape_init_()'
-  call shape%shape_init_( shapename )
+  write (*,*) 'calling polyhedron_init_()'
+  call shape%polyhedron_init_( shapename )
 end if 
 
-end function shape_constructor
+end function polyhedron_constructor
 
 !--------------------------------------------------------------------------
-subroutine shape_destructor(self) 
+subroutine polyhedron_destructor(self) 
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/27/21
 !!
-!! destructor for the shape_T Class
+!! destructor for the polyhedron_T Class
  
 IMPLICIT NONE
 
-type(shape_T), INTENT(INOUT)  :: self 
+type(polyhedron_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('shape_T')
+call reportDestructor('polyhedron_T')
 
-end subroutine shape_destructor
+end subroutine polyhedron_destructor
 
 !--------------------------------------------------------------------------
-subroutine shape_info_( self )
-!DEC$ ATTRIBUTES DLLEXPORT :: shape_info_
+subroutine polyhedron_info_( self )
+!DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_info_
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/27/21
@@ -177,12 +181,12 @@ use mod_IO
 
 IMPLICIT NONE
 
-class(shape_T), INTENT(INOUT)  :: self 
+class(polyhedron_T), INTENT(INOUT)  :: self 
 
-type(IO_T)                    :: Message 
-integer(kind=irg)             :: io_int(20)
-real(kind=dbl)                :: io_real(10), L
-type(PGA3D_T)                 :: mv
+type(IO_T)                          :: Message 
+integer(kind=irg)                   :: io_int(20), i
+real(kind=dbl)                      :: io_real(10), L
+type(PGA3D_T)                       :: mv
 
 mv = self%vertex(self%faces(1)%verts(1)).vee.self%vertex(self%faces(1)%verts(2))
 L = mv%norm()
@@ -206,12 +210,39 @@ io_real(1:2) = (/ self%area/L**2, self%volume/L**3 /)
 call Message%WriteValue('   for L=1   : ', io_real, 2)
 
 call Message%printMessage('')
-end subroutine shape_info_
+
+call Message%printMessage('Vertex tri-vectors:',frm="(/A)")
+do i=1,self%nvertices 
+  call self%vertex(i)%log()
+end do
+
+call Message%printMessage('Edge bi-vectors:',frm="(/A)")
+do i=1,self%nedges
+  call self%edge(i)%log()
+end do
+
+call Message%printMessage('Face vectors:',frm="(/A)")
+do i=1,self%nfaces
+  call self%face(i)%log()
+end do
+
+call Message%printMessage('Face normal vectors:',frm="(/A)")
+do i=1,self%nfaces
+  mv = self%face(i) * E0123
+  write (*,*) '  norm = ', mv%norm(),'; inorm = ',mv%inorm()
+  call mv%log()
+  mv = mv.muls.(1.D0/mv%inorm())
+  call mv%log()
+end do
+
+
+
+end subroutine polyhedron_info_
 
 
 !--------------------------------------------------------------------------
-subroutine build_shape_( self )
-!DEC$ ATTRIBUTES DLLEXPORT :: build_shape_
+subroutine build_polyhedron_( self )
+!DEC$ ATTRIBUTES DLLEXPORT :: build_polyhedron_
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/27/21
@@ -219,14 +250,17 @@ subroutine build_shape_( self )
 !! build the shape starting from the vertices; to do this we use PGA3D commands 
 
 use mod_PGA3D
+use mod_IO
 
 IMPLICIT NONE 
 
-class(shape_T), INTENT(INOUT)   :: self 
+class(polyhedron_T), INTENT(INOUT)    :: self 
 
-integer(kind=irg)               :: i, j, icnt, i1, i2 
-real(kind=dbl)                  :: s
-type(PGA3D_T)                   :: mv, mv2, vsum, pt 
+integer(kind=irg)                     :: i, j, icnt, i1, i2, j1, j2, k1, k2 
+real(kind=dbl)                        :: s
+character(5)                          :: str
+type(PGA3D_T)                         :: mv, mv2, vsum, pt 
+type(IO_T)                            :: Message 
 
 ! build all the edges
 icnt = 1
@@ -261,8 +295,7 @@ do j=1,self%nfaces
   ! call self%facecenter(j)%log()
 end do
 
-
-! and we get the area and volume
+! and we get the edge lengths, areas, and volume
 self%area = 0.D0 
 self%volume = 0.D0 
 do i=1,self%nfaces 
@@ -273,24 +306,71 @@ do i=1,self%nfaces
     else
       i2 = self%faces(i)%verts(j+1)
     end if
+    ! edge length 
+    mv = self%vertex(i1).vee.self%vertex(i2)
+    self%faces(i)%edgeL(j) = mv%norm()
+
+    ! volume contribution
     mv = self%vertex(i1).vee.self%vertex(i2).vee.self%facecenter(i)
     if ((i.eq.1).and.(j.eq.1)) then 
       vsum = mv
     else 
       vsum = vsum + mv
     end if  
-    ! call vsum%log()
+
+    ! area contribution
     self%area = self%area + mv%norm()
   end do 
 end do 
 self%area = self%area /  2.D0
 self%volume = vsum%getcomp(1) / 6.D0 
 
-end subroutine build_shape_
+! finally, for each edge in the self%faces structure, determine which other face it shares;
+! this is a little tricky, since this edge will have the opposite orientation for the other face,
+! assuming that the winding is consistent.  If any otherface number is equal to zero, then there 
+! must be an error in the winding of at least one of the faces...
+do i=1,self%nfaces 
+  self%faces(i)%otherface = 0
+  do j=1,self%faces(i)%nv
+    i1 = self%faces(i)%verts(j)
+    if (j.eq.self%faces(i)%nv) then 
+      i2 = self%faces(i)%verts(1)
+    else
+      i2 = self%faces(i)%verts(j+1)
+    end if
+! (i1, i2) is an oriented edge; next we look for the edge (i2,i1) in all other faces
+    do j1=1,self%nfaces 
+      do j2=1,self%faces(j1)%nv
+        if ( (j1.ne.i).or.(j2.ne.j) ) then ! don't consider the current edge 
+          k1 = self%faces(j1)%verts(j2)
+          if (j2.eq.self%faces(j1)%nv) then 
+            k2 = self%faces(j1)%verts(1)
+          else
+            k2 = self%faces(j1)%verts(j2+1)
+          end if
+          if ( (k1.eq.i2).and.(k2.eq.i1) ) then 
+            self%faces(i)%otherface(j) = j1
+          end if 
+        end if 
+      end do 
+    end do
+  end do 
+  write (*,*) 'face ',i,' -> other faces : ',self%faces(i)%otherface 
+end do
+
+! test that the winding is consistent for all the faces 
+do i=1,self%nfaces 
+  if (minval(self%faces(i)%otherface).eq.0) then 
+    write (str,"(I5)") i 
+    call Message%printMessage('WARNING: face '//trim(str)//' has inconsistent winding !!! ')
+  end if 
+end do 
+
+end subroutine build_polyhedron_
 
 !--------------------------------------------------------------------------
-subroutine shape_init_( self, shapename, shapefile )
-!DEC$ ATTRIBUTES DLLEXPORT :: shape_init_
+subroutine polyhedron_init_( self, shapename, shapefile )
+!DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_init_
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/27/21
@@ -308,7 +388,7 @@ use mod_IO
 
 IMPLICIT NONE 
 
-class(shape_T), INTENT(INOUT)           :: self
+class(polyhedron_T), INTENT(INOUT)      :: self
 character(fnlen), INTENT(IN)            :: shapename 
 character(fnlen), INTENT(IN),OPTIONAL   :: shapefile
 
@@ -362,21 +442,23 @@ if (fexists.eqv..TRUE.) then
     read (dataunit,"(A)") line 
     read (line,*) self%faces(i)%nv 
     allocate(self%faces(i)%verts(self%faces(i)%nv))
+    allocate(self%faces(i)%otherface(self%faces(i)%nv))
+    allocate(self%faces(i)%edgeL(self%faces(i)%nv))
     read (line,*) self%faces(i)%nv, self%faces(i)%verts(1:self%faces(i)%nv)
   end do 
   close(unit=dataunit, status='keep')
   self%nedges = sum(self%faces(1:self%nfaces)%nv) / 2
   allocate(self%edge(2*self%nedges))  ! each edge will need to be counted twice !!!
-  call self%build_shape_()
+  call self%build_polyhedron_()
 else 
-  call Message%printError('shape_init_','Shape file '//trim(fname)//' not found')
+  call Message%printError('polyhedron_init_','Shape file '//trim(fname)//' not found')
 end if 
 
-end subroutine shape_init_
+end subroutine polyhedron_init_
 
 !--------------------------------------------------------------------------
-subroutine shape_function_( self, shapearray, dims, Ledge )
-!DEC$ ATTRIBUTES DLLEXPORT :: shape_function_
+subroutine polyhedron_shapefunction_( self, shapearray, dims, Ledge )
+!DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_shapefunction_
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/28/21
@@ -386,7 +468,7 @@ subroutine shape_function_( self, shapearray, dims, Ledge )
 
 IMPLICIT NONE 
 
-class(shape_T), INTENT(INOUT)           :: self
+class(polyhedron_T), INTENT(INOUT)      :: self
 integer(kind=irg),INTENT(IN)            :: dims(3)
 real(kind=dbl), INTENT(INOUT)           :: shapearray(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3))
 real(kind=dbl),INTENT(IN)               :: Ledge 
@@ -419,6 +501,34 @@ do i=-dims(1),dims(1)
   end do 
 end do 
 
-end subroutine shape_function_
+end subroutine polyhedron_shapefunction_
 
-end module mod_shapes
+! !--------------------------------------------------------------------------
+! subroutine polyhedron_shapeamplitude_( self, shamp, dims, Ledge )
+! !DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_shapeamplitude_
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 08/06/21
+! !!
+! !! generate a shape amplitude using the Komrska algorithm
+! !! 
+! ! @article{komrska1987a,
+! !   author = {Komrska, J.},
+! !   journal = {Optik},
+! !   pages = {171-183},
+! !   title = {Algebraic {E}xpressions of {S}hape {A}mplitudes of {P}olygons and {P}olyhedra},
+! !   volume = 80,
+! !   year = 1987}
+! !! 
+! !! This is based on a 1999 f77 version of the algorithm, written for the CTEM book illustrations.
+
+
+! IMPLICIT NONE 
+
+! class(polyhedron_T), INTENT(INOUT)      :: self
+
+
+
+! end subroutine polyhedron_shapeamplitude_
+
+end module mod_polyhedra

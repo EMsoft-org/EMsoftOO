@@ -3,12 +3,12 @@ program tester
     use mod_global 
     use mod_PGA3D 
     use mod_PGA3Dsupport
-    use mod_shapes
+    use mod_polyhedra
 
 
     IMPLICIT NONE 
 
-    type(shape_T)           :: shape     
+    type(polyhedron_T)      :: shape     
     type(PGA3D_T)           :: mv, mv2, mv3, tr, pt, rot, axz, orig, px, l, p, &
                                 rline, rpoint, rplane, pop, pot, poc, cr 
     integer(kind=irg)       :: i, dims(3)
@@ -19,69 +19,71 @@ program tester
     call PGA3D_initialize()
     
     sname = 'cube'
-    sname = 'icosidodecahedron'
-    shape = shape_T( sname )
-    call shape%shape_info()
+    ! sname = 'icosidodecahedron'
+    shape = polyhedron_T( sname )
+    call shape%polyhedron_info()
     dims = (/ 10, 10, 10 /)
     allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
     x = 5.D0
-    call shape%shape_function(sf, dims, x)
+    call shape%polyhedron_shapefunction(sf, dims, x)
 
     do i=-dims(1),dims(1)
         write (*,"(21F4.1)") sf(i,:,0)
     end do
 
+    
+
     ! sname = 'cuboctahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()    
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
     ! sname = 'dodecahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()    
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
     ! sname = 'icosahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()    
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
     ! sname = 'icosidodecahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()    
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
     ! sname = 'octahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()   
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
     ! sname = 'rhombicosidodecahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()   
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
     ! sname = 'rhombicuboctahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()    
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
     ! sname = 'rhombitruncated_cuboctahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()    
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
     ! sname = 'rhombitruncated_icosidodecahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()   
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
     ! sname = 'snub_cube'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()  
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
     ! sname = 'snub_dodecahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()   
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
     ! sname = 'tetrahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()  
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
     ! sname = 'truncated_cube'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()  
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
     ! sname = 'truncated_dodecahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()   
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
     ! sname = 'truncated_icosahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()  
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
     ! sname = 'truncated_octahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()  
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
     ! sname = 'truncated_tetrahedron'
-    ! shape = shape_T( sname )
-    ! call shape%shape_info()   
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
 
 
 

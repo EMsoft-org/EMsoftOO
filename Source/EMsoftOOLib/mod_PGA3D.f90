@@ -199,7 +199,7 @@ type(PGA3D_T)               :: mvout
 integer(kind=irg)           :: i
 
 do i=0,15
-  mvout%mvec(i) = self%mvec(16-i)
+  mvout%mvec(i) = self%mvec(15-i)
 end do
 
 end function mvec_dual_
