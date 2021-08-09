@@ -31,12 +31,12 @@ module mod_polyhedra
   !! version: 1.0 
   !! date: 07/27/21
   !!
-  !! class definition for a 3D (polyhedron or general) shape 
+  !! class definition for a 3D polyhedral shape (general) 
   !!
   !! This class can be used to initialize a 3D polyhedron shape, compute surface area 
   !! and volume using the 3D Projective Geometric Algebra module.  This module also 
-  !! provides a method to compute the shape amplitude using Komrska's formula or a 
-  !! simple 3D FFT. The 5 Platonic and 13 Archimedian solids are available in the resources/ShapeFiles 
+  !! provides a method to compute the shape amplitude using Komrska's formula or provides 
+  !! the shape function. The 5 Platonic and 13 Archimedian solids are available in the resources/ShapeFiles 
   !! folder and can be initialized directly; other shapes can be defined in the same 
   !! text file format:
   !!
@@ -83,10 +83,16 @@ use mod_PGA3Dsupport
 IMPLICIT NONE 
 
 type, public :: face_T 
-  integer(kind=irg)               :: nv 
-  integer(kind=irg),allocatable   :: verts(:)
-  real(kind=dbl),allocatable      :: edgeL(:)
-  integer(kind=irg),allocatable   :: otherface(:)
+  integer(kind=irg)               :: nv             ! number of vertices
+  integer(kind=irg),allocatable   :: verts(:)       ! vertex indices
+  real(kind=dbl),allocatable      :: edgeL(:)       ! edge lengths
+  real(kind=dbl)                  :: area           ! face area 
+  real(kind=dbl)                  :: dorigin        ! shortest distance to origin
+  integer(kind=irg),allocatable   :: otherface(:)   ! adjoining face for each edge
+  type(PGA3D_T)                   :: fmv            ! face multivector
+  type(PGA3D_T), allocatable      :: edgecenter(:)  ! edge center multivector
+  type(PGA3D_T), allocatable      :: edge(:)        ! edge multivector
+  type(PGA3D_T), allocatable      :: edgenormal(:)  ! unit normal to edge lying in face
 end type face_T 
 
 ! class definition
@@ -100,7 +106,6 @@ private
   type(PGA3D_T), allocatable      :: facecenter(:)
   type(PGA3D_T), allocatable      :: vertex(:)
   type(PGA3D_T), allocatable      :: facenormal(:)
-  type(PGA3D_T), allocatable      :: edge(:)
   real(kind=dbl)                  :: area 
   real(kind=dbl)                  :: volume
   character(fnlen)                :: shapename 
@@ -112,13 +117,13 @@ private
   procedure, pass(self) :: polyhedron_info_
   procedure, pass(self) :: build_polyhedron_
   procedure, pass(self) :: polyhedron_shapefunction_
-  ! procedure, pass(self) :: polyhedron_shapeamplitude_
+  procedure, pass(self) :: polyhedron_shapeamplitude_
 
-  generic, public :: initialize_shape => polyhedron_init_
+  generic, public :: initialize_polyhedron => polyhedron_init_
   generic, public :: polyhedron_info => polyhedron_info_
-  generic, public :: build_shape => build_polyhedron_
+  generic, public :: build_polyhedron => build_polyhedron_
   generic, public :: polyhedron_shapefunction => polyhedron_shapefunction_
-  ! generic, public :: polyhedron_shapeamplitude => polyhedron_shapeamplitude_
+  generic, public :: polyhedron_shapeamplitude => polyhedron_shapeamplitude_
 
 end type polyhedron_T
 
@@ -184,7 +189,7 @@ IMPLICIT NONE
 class(polyhedron_T), INTENT(INOUT)  :: self 
 
 type(IO_T)                          :: Message 
-integer(kind=irg)                   :: io_int(20), i
+integer(kind=irg)                   :: io_int(20), i, j
 real(kind=dbl)                      :: io_real(10), L
 type(PGA3D_T)                       :: mv
 
@@ -217,28 +222,40 @@ do i=1,self%nvertices
 end do
 
 call Message%printMessage('Edge bi-vectors:',frm="(/A)")
-do i=1,self%nedges
-  call self%edge(i)%log()
+do i=1,self%nfaces
+  do j=1,self%faces(i)%nv
+    call self%faces(i)%edge(j)%log()
+  end do
 end do
 
 call Message%printMessage('Face vectors:',frm="(/A)")
 do i=1,self%nfaces
-  call self%face(i)%log()
+  call self%faces(i)%fmv%log()
 end do
 
 call Message%printMessage('Face normal vectors:',frm="(/A)")
 do i=1,self%nfaces
   mv = self%face(i) * E0123
-  write (*,*) '  norm = ', mv%norm(),'; inorm = ',mv%inorm()
-  call mv%log()
   mv = mv.muls.(1.D0/mv%inorm())
   call mv%log()
 end do
 
+call Message%printMessage('Face edge normal bi-vectors:',frm="(/A)")
+do i=1,self%nfaces
+  do j=1,self%faces(i)%nv
+    call self%faces(i)%edgenormal(j)%log()
+  end do
+end do
 
+call Message%printMessage('Face areas & distance to origin :',frm="(/A)")
+do i=1,self%nfaces
+  io_int(1) = i 
+  io_real(1:2) = (/ self%faces(i)%area*0.5D0, self%faces(i)%dorigin /)
+  call Message%WriteValue(' ', io_int, 1, frm="(I3,$)")
+  call Message%WriteValue(' ', io_real, 2)
+end do
 
 end subroutine polyhedron_info_
-
 
 !--------------------------------------------------------------------------
 subroutine build_polyhedron_( self )
@@ -247,7 +264,7 @@ subroutine build_polyhedron_( self )
 !! version: 1.0 
 !! date: 07/27/21
 !!
-!! build the shape starting from the vertices; to do this we use PGA3D commands 
+!! build the shape parameters; to do this we use PGA3D commands 
 
 use mod_PGA3D
 use mod_IO
@@ -256,26 +273,44 @@ IMPLICIT NONE
 
 class(polyhedron_T), INTENT(INOUT)    :: self 
 
-integer(kind=irg)                     :: i, j, icnt, i1, i2, j1, j2, k1, k2 
+integer(kind=irg)                     :: i, j, i1, i2, j1, j2, k1, k2, io_int(13) 
 real(kind=dbl)                        :: s
 character(5)                          :: str
-type(PGA3D_T)                         :: mv, mv2, vsum, pt 
+type(PGA3D_T)                         :: mv, mv2, vsum, pt, lf 
 type(IO_T)                            :: Message 
 
-! build all the edges
-icnt = 1
+! build all the edges and edge centers 
 do i=1,self%nfaces
   do j=1,self%faces(i)%nv
-    self%edge(icnt) = self%vertex(self%faces(i)%verts(j)).vee.self%vertex(self%faces(i)%verts(mod(j+1,self%faces(i)%nv)+1))
-    ! call self%edge(icnt)%log()
-    ! self%edge(icnt) = self%edge(icnt)%normalized()
-    icnt = icnt + 1
+    i1 = self%faces(i)%verts(j)
+    if (j.eq.self%faces(i)%nv) then 
+      i2 = self%faces(i)%verts(1)
+    else
+      i2 = self%faces(i)%verts(j+1)
+    end if
+    self%faces(i)%edge(j) = self%vertex(i1).vee.self%vertex(i2)
+  end do 
+  do j=1,self%faces(i)%nv
+    i1 = self%faces(i)%verts(j)
+    if (j.eq.self%faces(i)%nv) then 
+      i2 = self%faces(i)%verts(1)
+    else
+      i2 = self%faces(i)%verts(j+1)
+    end if
+    self%faces(i)%edgecenter(j) = self%vertex(i1) + self%vertex(i2)
+    self%faces(i)%edgecenter(j) = self%faces(i)%edgecenter(j).muls.0.5D0
   end do 
 end do 
 
 ! normalize all the vertices
 do i=1,self%nvertices 
   self%vertex(i) = self%vertex(i)%normalized()
+end do 
+
+! build the face multivectors 
+do i=1,self%nfaces
+  mv = self%vertex(self%faces(i)%verts(1)).vee.self%vertex(self%faces(i)%verts(2))
+  self%faces(i)%fmv = mv.vee.self%vertex(self%faces(i)%verts(3))
 end do 
 
 pt = point(0.D0,0.D0,0.D0)
@@ -291,14 +326,13 @@ do j=1,self%nfaces
   mv2 = pt .vee. self%facecenter(j)
   self%facenormal(j) = mv2%normalized()
   self%face(j) = mv2.inner.self%facecenter(j)
-  call self%face(j)%log()
-  ! call self%facecenter(j)%log()
 end do
 
 ! and we get the edge lengths, areas, and volume
 self%area = 0.D0 
 self%volume = 0.D0 
 do i=1,self%nfaces 
+  self%faces(i)%area = 0.D0
   do j=1,self%faces(i)%nv
     i1 = self%faces(i)%verts(j)
     if (j.eq.self%faces(i)%nv) then 
@@ -310,6 +344,13 @@ do i=1,self%nfaces
     mv = self%vertex(i1).vee.self%vertex(i2)
     self%faces(i)%edgeL(j) = mv%norm()
 
+    ! unit normal to edge lying in the face 
+    ! lf is the plane normal to the face p and containg the edge line ell (p . ell)
+    lf = self%faces(i)%fmv.inner.self%faces(i)%edge(j)
+    ! the line normal to the plane lf and containing the vertex P (lf . P)
+    self%faces(i)%edgenormal(j) = lf.inner.self%vertex(self%faces(i)%verts(j))
+    self%faces(i)%edgenormal(j) = self%faces(i)%edgenormal(j)%normalized()
+
     ! volume contribution
     mv = self%vertex(i1).vee.self%vertex(i2).vee.self%facecenter(i)
     if ((i.eq.1).and.(j.eq.1)) then 
@@ -319,15 +360,18 @@ do i=1,self%nfaces
     end if  
 
     ! area contribution
-    self%area = self%area + mv%norm()
+    self%faces(i)%area = self%faces(i)%area + mv%norm()
   end do 
+  ! get the closest distance from the face to the origin 
+  mv = self%face(i)%normalized()
+  self%faces(i)%dorigin = mv%inorm()
 end do 
-self%area = self%area /  2.D0
+self%area = sum(self%faces(:)%area) /  2.D0
 self%volume = vsum%getcomp(1) / 6.D0 
 
 ! finally, for each edge in the self%faces structure, determine which other face it shares;
 ! this is a little tricky, since this edge will have the opposite orientation for the other face,
-! assuming that the winding is consistent.  If any otherface number is equal to zero, then there 
+! assuming that the winding is consistent.  If any otherface number remains zero at the end, then there 
 ! must be an error in the winding of at least one of the faces...
 do i=1,self%nfaces 
   self%faces(i)%otherface = 0
@@ -355,7 +399,9 @@ do i=1,self%nfaces
       end do 
     end do
   end do 
-  write (*,*) 'face ',i,' -> other faces : ',self%faces(i)%otherface 
+  io_int(1) = i 
+  io_int(2:self%faces(i)%nv+1) = self%faces(i)%otherface
+  call Message%writeValue('',io_int,self%faces(i)%nv+1,frm="('face ',I3,' -> other faces ',12I3)")
 end do
 
 ! test that the winding is consistent for all the faces 
@@ -442,13 +488,15 @@ if (fexists.eqv..TRUE.) then
     read (dataunit,"(A)") line 
     read (line,*) self%faces(i)%nv 
     allocate(self%faces(i)%verts(self%faces(i)%nv))
-    allocate(self%faces(i)%otherface(self%faces(i)%nv))
-    allocate(self%faces(i)%edgeL(self%faces(i)%nv))
     read (line,*) self%faces(i)%nv, self%faces(i)%verts(1:self%faces(i)%nv)
+    allocate(self%faces(i)%otherface(self%faces(i)%nv))
+    allocate(self%faces(i)%edgenormal(self%faces(i)%nv))
+    allocate(self%faces(i)%edgeL(self%faces(i)%nv))
+    allocate(self%faces(i)%edge(self%faces(i)%nv))
+    allocate(self%faces(i)%edgecenter(self%faces(i)%nv))
   end do 
   close(unit=dataunit, status='keep')
   self%nedges = sum(self%faces(1:self%nfaces)%nv) / 2
-  allocate(self%edge(2*self%nedges))  ! each edge will need to be counted twice !!!
   call self%build_polyhedron_()
 else 
   call Message%printError('polyhedron_init_','Shape file '//trim(fname)//' not found')
@@ -503,32 +551,90 @@ end do
 
 end subroutine polyhedron_shapefunction_
 
-! !--------------------------------------------------------------------------
-! subroutine polyhedron_shapeamplitude_( self, shamp, dims, Ledge )
-! !DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_shapeamplitude_
-! !! author: MDG 
-! !! version: 1.0 
-! !! date: 08/06/21
-! !!
-! !! generate a shape amplitude using the Komrska algorithm
-! !! 
-! ! @article{komrska1987a,
-! !   author = {Komrska, J.},
-! !   journal = {Optik},
-! !   pages = {171-183},
-! !   title = {Algebraic {E}xpressions of {S}hape {A}mplitudes of {P}olygons and {P}olyhedra},
-! !   volume = 80,
-! !   year = 1987}
-! !! 
-! !! This is based on a 1999 f77 version of the algorithm, written for the CTEM book illustrations.
+!--------------------------------------------------------------------------
+subroutine polyhedron_shapeamplitude_( self, shamp, dims, Ledge )
+!DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_shapeamplitude_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/06/21
+!!
+!! generate a shape amplitude using the Komrska algorithm
+!! 
+! @article{komrska1987a,
+!   author = {Komrska, J.},
+!   journal = {Optik},
+!   pages = {171-183},
+!   title = {Algebraic {E}xpressions of {S}hape {A}mplitudes of {P}olygons and {P}olyhedra},
+!   volume = 80,
+!   year = 1987}
+!! 
+!! This is based on a 1999 f77 version of the algorithm, written for the CTEM book illustrations.
+!! The algorithm has been completely rewritten using 3D projective geometric algebra which
+!! provides more flexibility and rigour to the computations (in particular in terms of 
+!! directional quantities).
 
 
-! IMPLICIT NONE 
+IMPLICIT NONE 
 
-! class(polyhedron_T), INTENT(INOUT)      :: self
+class(polyhedron_T), INTENT(INOUT)      :: self
+integer(kind=irg),INTENT(IN)            :: dims(3)
+complex(kind=dbl),INTENT(INOUT)         :: shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1)
+real(kind=dbl),INTENT(IN)               :: Ledge
 
+integer(kind=irg)                       :: i, j, k, l, f, e, vn
+complex(kind=dbl)                       :: p, esum, ff 
+real(kind=dbl)                          :: scl, knf, qq, pp, r, arg, d, ratio
+type(PGA3D_T)                           :: q, qn, mv
 
+scl = Ledge / (2.D0*cPi) 
 
-! end subroutine polyhedron_shapeamplitude_
+do i = -dims(1),dims(1)-1
+  do j = -dims(2),dims(2)-1
+    do k = -dims(3),dims(3)-1
+      q = line(scl*(dble(i)+0.5D0), scl*(dble(j)+0.5D0), scl*(dble(k)+0.5D0))
+      p = cmplx(0.D0, 0.D0)
+! length squared of q
+      qq = q%norm()  ! q(1)*q(1)+q(2)*q(2)+q(3)*q(3) 
+! loop over all faces
+      do f = 1,self%nfaces
+! first make sure that the second denominator in the Komrska equation is not zero
+        qn = q.inner.self%faces(f)%fmv ! q(1)*faces(1,f)+q(2)*faces(2,f)+q(3)*faces(3,f)
+        knf = qn%getcomp(0)
+        pp = qq-knf**2
+! it is zero, so use the special equation for this face 
+        if (dabs(pp).lt.1.0D-8) then 
+          r = knf*self%faces(f)%area/(2.D0*cPi*qq)
+          arg = 2.0D0*cPi*knf*self%faces(f)%dorigin
+          p = cmplx(r*dsin(arg), r*dcos(arg))
+        else 
+! its not zero, so do the general equation for this face
+          esum = cmplx(0.D0, 0.D0)
+! loop over all edges for this face
+          do e = 1,self%faces(f)%nv
+            mv = q.inner.self%faces(f)%edge(e)
+            d = mv%getcomp(0) ! d = q(1)*tedge(1,e,f)+q(2)*tedge(2,e,f)+q(3)*tedge(3,e,f)
+            arg = cPi*d*self%faces(f)%edgeL(e)
+            if (dabs(arg).lt.1.0D-8) then 
+             ratio = 1.D0
+            else 
+             ratio = dsin(arg)/arg
+            endif
+            mv = q.inner.self%faces(f)%edgenormal(e)
+            d = mv%getcomp(0)  ! d = q(1)*nedge(1,e,f)+q(2)*nedge(2,e,f)+q(3)*nedge(3,e,f)
+            ratio = ratio*self%faces(f)%edgeL(e)*d
+            mv = q.inner.self%faces(f)%edgecenter(e)
+            arg = cPi*mv%getcomp(0)     ! (q(1)*df(1)+q(2)*df(2)+q(3)*df(3))
+            esum = esum + cmplx(ratio*cos(arg),-ratio*sin(arg)) 
+          end do 
+          ff = -knf*esum/(pp*(2.D0*cPi)**2*qq)
+        endif
+        p = p+ff
+      end do
+      shamp(i, j, k) = p
+    end do 
+  end do 
+end do 
+
+end subroutine polyhedron_shapeamplitude_
 
 end module mod_polyhedra

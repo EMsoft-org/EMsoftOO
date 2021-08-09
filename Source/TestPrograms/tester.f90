@@ -31,7 +31,10 @@ program tester
         write (*,"(21F4.1)") sf(i,:,0)
     end do
 
-    
+    p = plane(1.D0,1.D0,1.D0,-1.D0)
+    p = p%normalized()
+    write (*,*) 'distance to origin = ',p%inorm()
+
 
     ! sname = 'cuboctahedron'
     ! shape = polyhedron_T( sname )
