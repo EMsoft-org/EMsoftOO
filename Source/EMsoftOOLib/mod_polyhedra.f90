@@ -404,9 +404,9 @@ do i=1,self%nfaces
       end do 
     end do
   end do 
-  io_int(1) = i 
-  io_int(2:self%faces(i)%nv+1) = self%faces(i)%otherface
-  call Message%writeValue('',io_int,self%faces(i)%nv+1,frm="('face ',I3,' -> other faces ',12I3)")
+  ! io_int(1) = i 
+  ! io_int(2:self%faces(i)%nv+1) = self%faces(i)%otherface
+  ! call Message%writeValue('',io_int,self%faces(i)%nv+1,frm="('face ',I3,' -> other faces ',12I3)")
 end do
 
 ! test that the winding is consistent for all the faces 
