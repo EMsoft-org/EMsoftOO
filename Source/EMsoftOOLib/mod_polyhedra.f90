@@ -135,7 +135,7 @@ end interface polyhedron_T
 contains
 
 !--------------------------------------------------------------------------
-type(polyhedron_T) function polyhedron_constructor( shapename, shapefile ) result(shape)
+type(polyhedron_T) function polyhedron_constructor( shapename, Ledge, shapefile ) result(shape)
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/27/21
@@ -145,13 +145,13 @@ type(polyhedron_T) function polyhedron_constructor( shapename, shapefile ) resul
 IMPLICIT NONE
 
 character(fnlen), INTENT(IN)            :: shapename 
+real(kind=dbl),INTENT(IN)               :: Ledge 
 character(fnlen), INTENT(IN),OPTIONAL   :: shapefile
 
 if (present(shapefile)) then 
-  call shape%polyhedron_init_( shapename, shapefile )
+  call shape%polyhedron_init_( shapename, Ledge, shapefile )
 else
-  write (*,*) 'calling polyhedron_init_()'
-  call shape%polyhedron_init_( shapename )
+  call shape%polyhedron_init_( shapename, Ledge )
 end if 
 
 end function polyhedron_constructor
@@ -258,7 +258,7 @@ end do
 end subroutine polyhedron_info_
 
 !--------------------------------------------------------------------------
-subroutine build_polyhedron_( self )
+subroutine build_polyhedron_( self, Ledge )
 !DEC$ ATTRIBUTES DLLEXPORT :: build_polyhedron_
 !! author: MDG 
 !! version: 1.0 
@@ -272,12 +272,21 @@ use mod_IO
 IMPLICIT NONE 
 
 class(polyhedron_T), INTENT(INOUT)    :: self 
+real(kind=dbl),INTENT(IN)             :: Ledge 
 
 integer(kind=irg)                     :: i, j, i1, i2, j1, j2, k1, k2, io_int(13) 
-real(kind=dbl)                        :: s
+real(kind=dbl)                        :: s, pp(3), x, y, z
 character(5)                          :: str
 type(PGA3D_T)                         :: mv, mv2, vsum, pt, lf 
 type(IO_T)                            :: Message 
+
+! first scale the vertices so that the first edge length of the first face equal Ledge 
+mv = self%vertex(self%faces(1)%verts(1)).vee.self%vertex(self%faces(1)%verts(2))
+s = Ledge / mv%norm()   ! scale factor to apply to all vertices 
+do i=1,self%nvertices 
+  call getpoint(self%vertex(i), x, y, z)
+  self%vertex(i) = point(x*s, y*s, z*s)
+end do
 
 ! build all the edges and edge centers 
 do i=1,self%nfaces
@@ -302,15 +311,11 @@ do i=1,self%nfaces
   end do 
 end do 
 
-! normalize all the vertices
-do i=1,self%nvertices 
-  self%vertex(i) = self%vertex(i)%normalized()
-end do 
-
 ! build the face multivectors 
 do i=1,self%nfaces
   mv = self%vertex(self%faces(i)%verts(1)).vee.self%vertex(self%faces(i)%verts(2))
   self%faces(i)%fmv = mv.vee.self%vertex(self%faces(i)%verts(3))
+  self%faces(i)%fmv = self%faces(i)%fmv.muls.(-1.D0)
 end do 
 
 pt = point(0.D0,0.D0,0.D0)
@@ -415,7 +420,7 @@ end do
 end subroutine build_polyhedron_
 
 !--------------------------------------------------------------------------
-subroutine polyhedron_init_( self, shapename, shapefile )
+subroutine polyhedron_init_( self, shapename, Ledge, shapefile )
 !DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_init_
 !! author: MDG 
 !! version: 1.0 
@@ -428,7 +433,6 @@ subroutine polyhedron_init_( self, shapename, shapefile )
 !! amplitude using the Komrska formula.  A shape file must have the following format:
 !!
 
-
 use mod_EMsoft
 use mod_IO 
 
@@ -436,6 +440,7 @@ IMPLICIT NONE
 
 class(polyhedron_T), INTENT(INOUT)      :: self
 character(fnlen), INTENT(IN)            :: shapename 
+real(kind=dbl),INTENT(IN)               :: Ledge        ! target edge length for first edge (allows for scaling)
 character(fnlen), INTENT(IN),OPTIONAL   :: shapefile
 
 type(EMsoft_T)                          :: EMsoft
@@ -457,8 +462,6 @@ if (.not.present(shapefile)) then
 else
   fname = trim(shapefile)
 end if 
-
-write(*,*) 'looking for file '//trim(fname)
 
 self%shapename = trim(shapename)
 self%shapefile = trim(fname) 
@@ -497,7 +500,7 @@ if (fexists.eqv..TRUE.) then
   end do 
   close(unit=dataunit, status='keep')
   self%nedges = sum(self%faces(1:self%nfaces)%nv) / 2
-  call self%build_polyhedron_()
+  call self%build_polyhedron_( Ledge )
 else 
   call Message%printError('polyhedron_init_','Shape file '//trim(fname)//' not found')
 end if 
@@ -552,7 +555,7 @@ end do
 end subroutine polyhedron_shapefunction_
 
 !--------------------------------------------------------------------------
-subroutine polyhedron_shapeamplitude_( self, shamp, dims, Ledge )
+subroutine polyhedron_shapeamplitude_( self, shamp, dims, dk )
 !DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_shapeamplitude_
 !! author: MDG 
 !! version: 1.0 
@@ -573,63 +576,65 @@ subroutine polyhedron_shapeamplitude_( self, shamp, dims, Ledge )
 !! provides more flexibility and rigour to the computations (in particular in terms of 
 !! directional quantities).
 
-
 IMPLICIT NONE 
 
 class(polyhedron_T), INTENT(INOUT)      :: self
 integer(kind=irg),INTENT(IN)            :: dims(3)
 complex(kind=dbl),INTENT(INOUT)         :: shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1)
-real(kind=dbl),INTENT(IN)               :: Ledge
+real(kind=dbl),INTENT(IN)               :: dk  ! step size in shape amplitude array
 
 integer(kind=irg)                       :: i, j, k, l, f, e, vn
 complex(kind=dbl)                       :: p, esum, ff 
 real(kind=dbl)                          :: scl, knf, qq, pp, r, arg, d, ratio
-type(PGA3D_T)                           :: q, qn, mv
-
-scl = Ledge / (2.D0*cPi) 
+type(PGA3D_T)                           :: kvec, qn, mv
 
 do i = -dims(1),dims(1)-1
   do j = -dims(2),dims(2)-1
     do k = -dims(3),dims(3)-1
-      q = line(scl*(dble(i)+0.5D0), scl*(dble(j)+0.5D0), scl*(dble(k)+0.5D0))
-      p = cmplx(0.D0, 0.D0)
-! length squared of q
-      qq = q%norm()  ! q(1)*q(1)+q(2)*q(2)+q(3)*q(3) 
-! loop over all faces
-      do f = 1,self%nfaces
-! first make sure that the second denominator in the Komrska equation is not zero
-        qn = q.inner.self%faces(f)%fmv ! q(1)*faces(1,f)+q(2)*faces(2,f)+q(3)*faces(3,f)
-        knf = qn%getcomp(0)
-        pp = qq-knf**2
-! it is zero, so use the special equation for this face 
-        if (dabs(pp).lt.1.0D-8) then 
-          r = knf*self%faces(f)%area/(2.D0*cPi*qq)
-          arg = 2.0D0*cPi*knf*self%faces(f)%dorigin
-          p = cmplx(r*dsin(arg), r*dcos(arg))
-        else 
-! its not zero, so do the general equation for this face
-          esum = cmplx(0.D0, 0.D0)
-! loop over all edges for this face
-          do e = 1,self%faces(f)%nv
-            mv = q.inner.self%faces(f)%edge(e)
-            d = mv%getcomp(0) ! d = q(1)*tedge(1,e,f)+q(2)*tedge(2,e,f)+q(3)*tedge(3,e,f)
-            arg = cPi*d*self%faces(f)%edgeL(e)
-            if (dabs(arg).lt.1.0D-8) then 
-             ratio = 1.D0
-            else 
-             ratio = dsin(arg)/arg
-            endif
-            mv = q.inner.self%faces(f)%edgenormal(e)
-            d = mv%getcomp(0)  ! d = q(1)*nedge(1,e,f)+q(2)*nedge(2,e,f)+q(3)*nedge(3,e,f)
-            ratio = ratio*self%faces(f)%edgeL(e)*d
-            mv = q.inner.self%faces(f)%edgecenter(e)
-            arg = cPi*mv%getcomp(0)     ! (q(1)*df(1)+q(2)*df(2)+q(3)*df(3))
-            esum = esum + cmplx(ratio*cos(arg),-ratio*sin(arg)) 
-          end do 
-          ff = -knf*esum/(pp*(2.D0*cPi)**2*qq)
-        endif
-        p = p+ff
-      end do
+      kvec = line(dk*dble(i), dk*dble(j), dk*dble(k))  ! this is the Fourier space frequency vector k
+      if (kvec%norm().eq.0.D0) then 
+        p = cmplx(self%volume,0.D0)
+      else
+        p = cmplx(0.D0, 0.D0)
+  ! length squared of q
+        qq = kvec%norm()**2
+  ! loop over all faces
+        do f = 1,self%nfaces
+  ! first make sure that the second denominator in the Komrska equation is not zero
+          qn = kvec.inner.self%facenormal(f)
+          knf = qn%getcomp(0)
+          pp = qq-knf**2
+
+  ! it is zero, so use the special equation for this face 
+          if (dabs(pp).lt.1.0D-8) then 
+            r = 0.5D0*knf*self%faces(f)%area/qq 
+            arg = knf*self%faces(f)%dorigin 
+            ff = cmplx(r*dsin(arg), r*dcos(arg))
+          else 
+  ! its not zero, so do the general equation for this face
+            esum = cmplx(0.D0, 0.D0)
+  ! loop over all edges for this face
+            do e = 1,self%faces(f)%nv
+              mv = kvec.inner.self%faces(f)%edge(e)
+              d = mv%norm() 
+              arg = d*self%faces(f)%edgeL(e)*0.5D0 ! *cPi
+              if (dabs(arg).lt.1.0D-8) then 
+               ratio = 1.D0
+              else 
+               ratio = dsin(arg)/arg
+              endif
+              mv = kvec.inner.self%faces(f)%edgenormal(e)
+              d = mv%norm()  
+              ratio = ratio*self%faces(f)%edgeL(e)*d
+              mv = kvec.inner.self%faces(f)%edgecenter(e)
+              arg = mv%norm() 
+              esum = esum + cmplx(ratio*cos(arg),-ratio*sin(arg)) 
+            end do 
+            ff = -0.5D0*knf*esum/(pp*qq)
+          endif
+          p = p+ff
+        end do
+      end if 
       shamp(i, j, k) = p
     end do 
   end do 

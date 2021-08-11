@@ -279,7 +279,7 @@ type(PGA3D_T)                       :: l
 if (present(ideal)) then 
   l = (E01.muls.a) + (E02.muls.b) + (E03.muls.c) 
 else
-  l = (E12.muls.a) + (E31.muls.b) + (E23.muls.c) 
+  l = (E12.muls.c) + (E31.muls.b) + (E23.muls.a) 
 end if 
 
 end function line

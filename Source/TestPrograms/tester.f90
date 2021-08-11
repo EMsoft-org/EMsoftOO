@@ -12,24 +12,33 @@ program tester
     type(PGA3D_T)           :: mv, mv2, mv3, tr, pt, rot, axz, orig, px, l, p, &
                                 rline, rpoint, rplane, pop, pot, poc, cr 
     integer(kind=irg)       :: i, dims(3)
-    real(kind=dbl)          :: a, b, c, d, x, y, z 
+    real(kind=dbl)          :: a, b, c, d, x, y, z, dk 
     real(kind=dbl),allocatable            :: gr(:),sf(:,:,:)
+    complex(kind=dbl),allocatable         :: shamp(:,:,:)
     character(fnlen)        :: sname 
     
     call PGA3D_initialize()
     
     sname = 'cube'
     ! sname = 'icosidodecahedron'
-    shape = polyhedron_T( sname )
-    call shape%polyhedron_info()
-    dims = (/ 10, 10, 10 /)
-    allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
-    x = 5.D0
-    call shape%polyhedron_shapefunction(sf, dims, x)
+    shape = polyhedron_T( sname, 3.D0)
+    ! call shape%polyhedron_info()
 
-    do i=-dims(1),dims(1)
-        write (*,"(21F4.1)") sf(i,:,0)
-    end do
+    dims = (/ 10, 10, 10 /)
+    ! allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
+    ! x = 5.D0
+    ! call shape%polyhedron_shapefunction(sf, dims, x)
+
+    ! do i=-dims(1),dims(1)
+    !     write (*,"(21F4.1)") sf(i,:,0)
+    ! end do
+
+    allocate(shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1))
+    dk = 1.D0
+    call shape%polyhedron_shapeamplitude(shamp, dims, dk)
+    do i=-dims(1),dims(1)-1
+        write (*,*) real(shamp(i,0,0))
+    end do  
 
     p = plane(1.D0,1.D0,1.D0,-1.D0)
     p = p%normalized()
