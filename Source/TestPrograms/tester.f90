@@ -11,7 +11,7 @@ program tester
     type(polyhedron_T)      :: shape     
     type(PGA3D_T)           :: mv, mv2, mv3, tr, pt, rot, axz, orig, px, l, p, &
                                 rline, rpoint, rplane, pop, pot, poc, cr 
-    integer(kind=irg)       :: i, dims(3)
+    integer(kind=irg)       :: i, dims(3), nthr
     real(kind=dbl)          :: a, b, c, d, x, y, z, dk 
     real(kind=dbl),allocatable            :: gr(:),sf(:,:,:)
     complex(kind=dbl),allocatable         :: shamp(:,:,:)
@@ -21,10 +21,11 @@ program tester
     
     sname = 'cube'
     ! sname = 'icosidodecahedron'
-    shape = polyhedron_T( sname, 3.D0)
+    shape = polyhedron_T( sname, 5.D0)
     ! call shape%polyhedron_info()
 
-    dims = (/ 10, 10, 10 /)
+    dims = (/ 128, 128, 128 /)
+    ! dims = (/ 10, 10, 10 /)
     ! allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
     ! x = 5.D0
     ! call shape%polyhedron_shapefunction(sf, dims, x)
@@ -34,15 +35,22 @@ program tester
     ! end do
 
     allocate(shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1))
-    dk = 1.D0
-    call shape%polyhedron_shapeamplitude(shamp, dims, dk)
+    dk = 0.1D0
+    nthr = 8
+    call shape%polyhedron_shapeamplitude(shamp, dims, dk, nthr)
     do i=-dims(1),dims(1)-1
-        write (*,*) real(shamp(i,0,0))
+        write (*,*) real(shamp(i,10,10))
     end do  
 
-    p = plane(1.D0,1.D0,1.D0,-1.D0)
-    p = p%normalized()
-    write (*,*) 'distance to origin = ',p%inorm()
+    write (*,*) minval(real(shamp)), maxval(real(shamp))
+
+    open(unit=10,file='cube.shamp',status='unknown',form='unformatted')
+    write (10) real(shamp)
+    close(unit=10,status='keep')
+
+    ! p = plane(1.D0,1.D0,1.D0,-1.D0)
+    ! p = p%normalized()
+    ! write (*,*) 'distance to origin = ',p%inorm()
 
 
     ! sname = 'cuboctahedron'

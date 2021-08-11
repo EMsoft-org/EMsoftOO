@@ -555,7 +555,7 @@ end do
 end subroutine polyhedron_shapefunction_
 
 !--------------------------------------------------------------------------
-subroutine polyhedron_shapeamplitude_( self, shamp, dims, dk )
+subroutine polyhedron_shapeamplitude_( self, shamp, dims, dk, nthr )
 !DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_shapeamplitude_
 !! author: MDG 
 !! version: 1.0 
@@ -576,18 +576,26 @@ subroutine polyhedron_shapeamplitude_( self, shamp, dims, dk )
 !! provides more flexibility and rigour to the computations (in particular in terms of 
 !! directional quantities).
 
+use omp_lib
+
 IMPLICIT NONE 
 
 class(polyhedron_T), INTENT(INOUT)      :: self
 integer(kind=irg),INTENT(IN)            :: dims(3)
 complex(kind=dbl),INTENT(INOUT)         :: shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1)
 real(kind=dbl),INTENT(IN)               :: dk  ! step size in shape amplitude array
+integer(kind=irg),INTENT(IN)            :: nthr
 
-integer(kind=irg)                       :: i, j, k, l, f, e, vn
+integer(kind=irg)                       :: i, j, k, l, f, e, vn, TID
 complex(kind=dbl)                       :: p, esum, ff 
-real(kind=dbl)                          :: scl, knf, qq, pp, r, arg, d, ratio
-type(PGA3D_T)                           :: kvec, qn, mv
+real(kind=dbl)                          :: scl, knf, qq, pp, r, arg, d, ratio, dd, x, y, z
+type(PGA3D_T)                           :: kvec, qn, mv, pt
 
+!$OMP PARALLEL NUM_THREADS(nthr) DEFAULT(SHARED) PRIVATE(TID,j,k,kvec,p,qq,f,e,qn,knf,pp,r,arg,ff,esum,mv,d,ratio,x,y,z)
+
+TID = OMP_GET_THREAD_NUM()
+
+!$OMP DO SCHEDULE (STATIC)
 do i = -dims(1),dims(1)-1
   do j = -dims(2),dims(2)-1
     do k = -dims(3),dims(3)-1
@@ -616,7 +624,7 @@ do i = -dims(1),dims(1)-1
   ! loop over all edges for this face
             do e = 1,self%faces(f)%nv
               mv = kvec.inner.self%faces(f)%edge(e)
-              d = mv%norm() 
+              d = mv%getcomp(0)  !  norm() 
               arg = d*self%faces(f)%edgeL(e)*0.5D0 ! *cPi
               if (dabs(arg).lt.1.0D-8) then 
                ratio = 1.D0
@@ -624,13 +632,14 @@ do i = -dims(1),dims(1)-1
                ratio = dsin(arg)/arg
               endif
               mv = kvec.inner.self%faces(f)%edgenormal(e)
-              d = mv%norm()  
-              ratio = ratio*self%faces(f)%edgeL(e)*d
-              mv = kvec.inner.self%faces(f)%edgecenter(e)
-              arg = mv%norm() 
+              dd = mv%getcomp(0) ! norm()  
+              ratio = ratio*self%faces(f)%edgeL(e)*dd
+              mv = point(0.D0,0.D0,0.D0).vee.self%faces(f)%edgecenter(e) 
+              mv = kvec.inner.mv
+              arg = mv%getcomp(0) ! norm() 
               esum = esum + cmplx(ratio*cos(arg),-ratio*sin(arg)) 
             end do 
-            ff = -0.5D0*knf*esum/(pp*qq)
+            ff = -knf*esum/(pp*qq)
           endif
           p = p+ff
         end do
@@ -638,7 +647,10 @@ do i = -dims(1),dims(1)-1
       shamp(i, j, k) = p
     end do 
   end do 
+  write(*,*) TID, 'completed plane ', i
 end do 
+!$OMP END DO
+!$OMP END PARALLEL
 
 end subroutine polyhedron_shapeamplitude_
 
