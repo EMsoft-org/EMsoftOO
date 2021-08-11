@@ -3,16 +3,101 @@ program tester
     use mod_global 
     use mod_PGA3D 
     use mod_PGA3Dsupport
+    use mod_polyhedra
+
 
     IMPLICIT NONE 
 
+    type(polyhedron_T)      :: shape     
     type(PGA3D_T)           :: mv, mv2, mv3, tr, pt, rot, axz, orig, px, l, p, &
                                 rline, rpoint, rplane, pop, pot, poc, cr 
-    integer(kind=irg)       :: i 
-    real(kind=dbl)          :: a, b, c, d, x, y, z 
-    real(kind=dbl),allocatable            :: gr(:)
+    integer(kind=irg)       :: i, dims(3)
+    real(kind=dbl)          :: a, b, c, d, x, y, z, dk 
+    real(kind=dbl),allocatable            :: gr(:),sf(:,:,:)
+    complex(kind=dbl),allocatable         :: shamp(:,:,:)
+    character(fnlen)        :: sname 
     
     call PGA3D_initialize()
+    
+    sname = 'cube'
+    ! sname = 'icosidodecahedron'
+    shape = polyhedron_T( sname, 3.D0)
+    ! call shape%polyhedron_info()
+
+    dims = (/ 10, 10, 10 /)
+    ! allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
+    ! x = 5.D0
+    ! call shape%polyhedron_shapefunction(sf, dims, x)
+
+    ! do i=-dims(1),dims(1)
+    !     write (*,"(21F4.1)") sf(i,:,0)
+    ! end do
+
+    allocate(shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1))
+    dk = 1.D0
+    call shape%polyhedron_shapeamplitude(shamp, dims, dk)
+    do i=-dims(1),dims(1)-1
+        write (*,*) real(shamp(i,0,0))
+    end do  
+
+    p = plane(1.D0,1.D0,1.D0,-1.D0)
+    p = p%normalized()
+    write (*,*) 'distance to origin = ',p%inorm()
+
+
+    ! sname = 'cuboctahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
+    ! sname = 'dodecahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
+    ! sname = 'icosahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
+    ! sname = 'icosidodecahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
+    ! sname = 'octahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
+    ! sname = 'rhombicosidodecahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
+    ! sname = 'rhombicuboctahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
+    ! sname = 'rhombitruncated_cuboctahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()    
+    ! sname = 'rhombitruncated_icosidodecahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
+    ! sname = 'snub_cube'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
+    ! sname = 'snub_dodecahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
+    ! sname = 'tetrahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
+    ! sname = 'truncated_cube'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
+    ! sname = 'truncated_dodecahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
+    ! sname = 'truncated_icosahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
+    ! sname = 'truncated_octahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()  
+    ! sname = 'truncated_tetrahedron'
+    ! shape = polyhedron_T( sname )
+    ! call shape%polyhedron_info()   
+
+
 
 !     mv = PGA3D_T()
 !     call mv%setcomp( -15.D0, 1 )
@@ -55,9 +140,31 @@ program tester
     ! rot = rotor(cPi/2.D0, E1*E2)
     ! axz = E1.wedge.E2 
     ! orig = axz.wedge.E3
-    ! px = point(0.D0,0.D0,1.D0)
-    ! line = orig.vee.px 
-    ! p = plane(0.D0,0.D0,1.D0,-3.D0)
+    ! px = point(0.D0,0.D0,0.D0)
+    ! ! line = orig.vee.px 
+    ! p = plane(0.D0,0.D0,-1.D0,-3.D0)
+    ! mv = p .wedge. px
+    ! call mv%log()
+    ! mv2 = p.inner.E3
+    ! call mv2%log()
+    ! write(*,*) mv%getcomp(15)
+    ! px = point(0.D0,0.D0, 6.D0)
+    ! mv = p .wedge. px
+    ! call mv%log()
+    ! write(*,*) mv%getcomp(15)
+
+    ! px = point(0.D0,0.D0,0.D0)
+    ! ! line = orig.vee.px 
+    ! p = plane(0.D0,0.D0,-1.D0, 3.D0)
+    ! mv = p .wedge. px
+    ! call mv%log()
+    ! write(*,*) mv%getcomp(15)
+    ! px = point(0.D0,0.D0,-6.D0)
+    ! mv = p .wedge. px
+    ! call mv%log()
+    ! write(*,*) mv%getcomp(15)
+
+
     ! rline = rot * line * conjg(rot)
     ! rpoint = rot * px * conjg(rot)
     ! rplane = rot * p * conjg(rot)
@@ -83,15 +190,15 @@ program tester
     ! call getpoint(pot, x, y, z)
     ! write (*,*) 'point coordinates : ', x, y, z
 
-    tr = translator(5.D0, E1*E0)
-    do i=0,11
-        x = dble(i)/12.D0
-        cr = circle(x, 5.D0, E1*E2)
-        poc = tr * cr * E123 * conjg(cr) * conjg(tr)
-        call poc%log()
-        ! call getpoint(cr, x, y, z)
-        ! write (*,*) 'point coordinates : ', x, y, z
-    end do 
+    ! tr = translator(5.D0, E1*E0)
+    ! do i=0,11
+    !     x = dble(i)/12.D0
+    !     cr = circle(x, 5.D0, E1*E2)
+    !     poc = tr * cr * E123 * conjg(cr) * conjg(tr)
+    !     call poc%log()
+    !     ! call getpoint(cr, x, y, z)
+    !     ! write (*,*) 'point coordinates : ', x, y, z
+    ! end do 
 
     ! p = plane(0.D0, 0.D0, 1.D0, 0.D0)
     ! l = p*E0123
