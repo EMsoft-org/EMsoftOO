@@ -25,17 +25,17 @@ program tester
 
     call PGA3D_initialize()
     
-    sname = 'icosahedron'
-    sname = 'cube'
+    sname = 'snub_cube'
+    ! sname = 'cube'
     ! sname = 'icosidodecahedron'
     shape = polyhedron_T( sname, 5.D0)
-    call shape%polyhedron_info()
+    ! call shape%polyhedron_info()
 
     dims = (/ 128, 128, 128 /)
     ! dims = (/ 10, 10, 10 /)
-    ! ! allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
-    ! ! x = 5.D0
-    ! ! call shape%polyhedron_shapefunction(sf, dims, x)
+    ! allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
+    ! x = 5.D0
+    ! call shape%polyhedron_shapefunction(sf, dims, x)
 
     ! ! do i=-dims(1),dims(1)
     ! !     write (*,"(21F4.1)") sf(i,:,0)
@@ -46,20 +46,21 @@ program tester
     nthr = 8
     call shape%polyhedron_shapeamplitude(shamp, dims, dk, nthr)
     ! do i=-dims(1),dims(1)-1
-    !     write (*,*) real(shamp(i,10,10))
+    !     write (*,*) real(shamp(i,3,5))
     ! end do  
 
     allocate(shampreal(2*dims(1)+1,2*dims(2)+1,2*dims(3)+1))
     do i=1,2*dims(1)
         do j=1,2*dims(2)
             do k=1,2*dims(3)
-                shampreal(i,j,k) = real(shamp(i-dims(1)-1,j-dims(2)-1,k-dims(3)-1))
+                shampreal(i,j,k) = real(shamp(i-dims(1)-1,j-dims(2)-1,k-dims(3)-1))**2
+                ! shampreal(i,j,k) = sf(i-dims(1)-1,j-dims(2)-1,k-dims(3)-1)
             end do 
         end do 
     end do 
 
     MCA = MCA_T()
-    call MCA%doMCA( shampreal, 2*dims+1, sngl(dk), 20.0)
+    call MCA%doMCA( shampreal, 2*dims+1, sngl(dk), 0.01*125.0**2 )
 
     header = 'Test rendering'
     sname = 'trial.stl' 

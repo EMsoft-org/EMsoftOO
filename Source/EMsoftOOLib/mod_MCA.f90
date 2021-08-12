@@ -41,7 +41,7 @@ IMPLICIT NONE
 private 
 
 ! encoding of all possible triangles
-integer(kind=irg), parameter  ::  mc1(256,16) = reshape( (/ &
+integer(kind=irg), parameter  ::  mc1(256,16) = transpose(reshape( (/ &
                                                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &
                                                 1,  9,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &
                                                 1,  2, 10,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &
@@ -297,7 +297,7 @@ integer(kind=irg), parameter  ::  mc1(256,16) = reshape( (/ &
                                                 2,  4,  9, 10,  2,  9,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &
                                                 1, 10,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &
                                                 1,  4,  9,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &
-                                                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 /), (/256, 16/) )
+                                                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 /), (/16,256/) ) )
 
 integer(kind=irg), parameter :: mc2(12,2) =  reshape( (/1,2,3,1,5,6,7,5,1,2,3,4,2,3,4,4,6,7,8,8,5,6,7,8 /), (/12,2/) )
 
@@ -417,7 +417,7 @@ real(kind=sgl),INTENT(IN)       :: isovalue
 
 type(MCAtriangle),pointer       :: tail    
 real(kind=sgl),allocatable      :: x(:), y(:), z(:), v(:) 
-real(kind=sgl)                  :: dx, dy, dz, xc(8), yc(8), zc(8), vc(8), xt, yt, zt 
+real(kind=sgl)                  :: dx, dy, dz, xc(8), yc(8), zc(8), vc(8), xt, yt, zt, pre
 integer(kind=irg)               :: i, j, k, ii, npx, npy, npz, npts, nc, nz, inum, nf, indc, num1, num2, icon, tcnt
 logical                         :: l1 
 
@@ -480,9 +480,14 @@ do i=1,nc
       else
         num1 = mc2(icon,1)
         num2 = mc2(icon,2)
-        xt = xc(num1) + (isovalue-vc(num1))*(xc(num2)-xc(num1))/(vc(num2)-vc(num1))
-        yt = yc(num1) + (isovalue-vc(num1))*(yc(num2)-yc(num1))/(vc(num2)-vc(num1))
-        zt = zc(num1) + (isovalue-vc(num1))*(zc(num2)-zc(num1))/(vc(num2)-vc(num1))
+        if (vc(num2).eq.vc(num1)) then 
+          pre = 0.5 
+        else 
+          pre = (isovalue-vc(num1))/(vc(num2)-vc(num1))
+        end if 
+        xt = xc(num1) + pre*(xc(num2)-xc(num1))
+        yt = yc(num1) + pre*(yc(num2)-yc(num1))
+        zt = zc(num1) + pre*(zc(num2)-zc(num1))
         if (tcnt.eq.1) tail%v1 = (/ xt, yt, zt /)
         if (tcnt.eq.2) tail%v2 = (/ xt, yt, zt /)
         if (tcnt.eq.3) then 

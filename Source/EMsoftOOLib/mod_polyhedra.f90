@@ -228,6 +228,13 @@ do i=1,self%nfaces
   end do
 end do
 
+call Message%printMessage('Edge center tri-vectors:',frm="(/A)")
+do i=1,self%nfaces
+  do j=1,self%faces(i)%nv
+    call self%faces(i)%edgecenter(j)%log()
+  end do
+end do
+
 call Message%printMessage('Face vectors:',frm="(/A)")
 do i=1,self%nfaces
   call self%faces(i)%fmv%log()
@@ -595,6 +602,7 @@ type(PGA3D_T)                           :: kvec, qn, mv, pt
 
 TID = OMP_GET_THREAD_NUM()
 
+
 !$OMP DO SCHEDULE (STATIC)
 do i = -dims(1),dims(1)-1
   do j = -dims(2),dims(2)-1
@@ -623,7 +631,7 @@ do i = -dims(1),dims(1)-1
             esum = cmplx(0.D0, 0.D0)
   ! loop over all edges for this face
             do e = 1,self%faces(f)%nv
-              mv = kvec.inner.self%faces(f)%edge(e)
+              mv = kvec.inner.self%faces(f)%edge(e)%normalized()
               d = mv%getcomp(0)
               arg = d*self%faces(f)%edgeL(e)*0.5D0 ! *cPi
               if (dabs(arg).lt.1.0D-8) then 
@@ -631,7 +639,7 @@ do i = -dims(1),dims(1)-1
               else 
                ratio = dsin(arg)/arg
               endif
-              mv = kvec.inner.self%faces(f)%edgenormal(e)
+              mv = kvec.inner.self%faces(f)%edgenormal(e)%normalized()
               dd = mv%getcomp(0)
               ratio = ratio*self%faces(f)%edgeL(e)*dd
               mv = point(0.D0,0.D0,0.D0).vee.self%faces(f)%edgecenter(e) 

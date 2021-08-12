@@ -170,7 +170,7 @@ do i=1,self%Ntriangles
   tr%v1(:) = real(tmp%v1(:), c_float)
   tr%v2(:) = real(tmp%v2(:), c_float)
   tr%v3(:) = real(tmp%v3(:), c_float)
-  write (*,*) i, tmp%v1, tmp%v2, tmp%v3 
+  ! write (*,*) i, tmp%v1, tmp%v2, tmp%v3 
   write(self%STLunit) tr
   if (associated(tmp%next)) tmp => tmp%next
 end do
