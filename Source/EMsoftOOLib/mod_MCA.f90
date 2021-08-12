@@ -420,6 +420,7 @@ real(kind=sgl),allocatable      :: x(:), y(:), z(:), v(:)
 real(kind=sgl)                  :: dx, dy, dz, xc(8), yc(8), zc(8), vc(8), xt, yt, zt, pre
 integer(kind=irg)               :: i, j, k, ii, npx, npy, npz, npts, nc, nz, inum, nf, indc, num1, num2, icon, tcnt
 logical                         :: l1 
+integer(kind=irg),parameter     :: ivals(8) = (/ 1, 2, 4, 8, 16, 32, 64, 128/)
 
 npts = product(dims)
 npx = dims(1)
@@ -462,18 +463,13 @@ do i=1,nc
     zc = (/ z(i+npz*npy), z(i+npz*npy+1), z(i+npz*npy+npz+1), z(i+npz*npy+npz), z(i), z(i+1), z(i+npz+1), z(i+npz) /)
     vc = (/ v(i+npz*npy), v(i+npz*npy+1), v(i+npz*npy+npz+1), v(i+npz*npy+npz), v(i), v(i+1), v(i+npz+1), v(i+npz) /)
     indc = 1
-    if (vc(1).lt.isovalue) indc = indc + 1
-    if (vc(2).lt.isovalue) indc = indc + 2
-    if (vc(3).lt.isovalue) indc = indc + 4
-    if (vc(4).lt.isovalue) indc = indc + 8
-    if (vc(5).lt.isovalue) indc = indc + 16
-    if (vc(6).lt.isovalue) indc = indc + 32
-    if (vc(7).lt.isovalue) indc = indc + 64
-    if (vc(8).lt.isovalue) indc = indc + 128
+    do j=1,8 
+      if (vc(j).lt.isovalue) indc = indc + ivals(j)
+    end do 
     !
     l1=.TRUE.    
     k = 1
-    do WHILE (l1)
+    do while (l1)
       icon = mc1(indc,k)
       if (icon.eq.0) then
         l1=.false.
