@@ -624,7 +624,7 @@ do i = -dims(1),dims(1)-1
   ! loop over all edges for this face
             do e = 1,self%faces(f)%nv
               mv = kvec.inner.self%faces(f)%edge(e)
-              d = mv%getcomp(0)  !  norm() 
+              d = mv%getcomp(0)
               arg = d*self%faces(f)%edgeL(e)*0.5D0 ! *cPi
               if (dabs(arg).lt.1.0D-8) then 
                ratio = 1.D0
@@ -632,11 +632,11 @@ do i = -dims(1),dims(1)-1
                ratio = dsin(arg)/arg
               endif
               mv = kvec.inner.self%faces(f)%edgenormal(e)
-              dd = mv%getcomp(0) ! norm()  
+              dd = mv%getcomp(0)
               ratio = ratio*self%faces(f)%edgeL(e)*dd
               mv = point(0.D0,0.D0,0.D0).vee.self%faces(f)%edgecenter(e) 
               mv = kvec.inner.mv
-              arg = mv%getcomp(0) ! norm() 
+              arg = mv%getcomp(0)
               esum = esum + cmplx(ratio*cos(arg),-ratio*sin(arg)) 
             end do 
             ff = -knf*esum/(pp*qq)
@@ -647,7 +647,7 @@ do i = -dims(1),dims(1)-1
       shamp(i, j, k) = p
     end do 
   end do 
-  write(*,*) TID, 'completed plane ', i
+  if (TID.eq.0) write(*,*) 'completed plane ', i
 end do 
 !$OMP END DO
 !$OMP END PARALLEL

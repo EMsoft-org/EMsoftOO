@@ -4,49 +4,73 @@ program tester
     use mod_PGA3D 
     use mod_PGA3Dsupport
     use mod_polyhedra
-
+    use mod_STL
+    use mod_MCA 
 
     IMPLICIT NONE 
 
+    type(STL_T)             :: STL 
+    type(MCA_T)             :: MCA 
     type(polyhedron_T)      :: shape     
     type(PGA3D_T)           :: mv, mv2, mv3, tr, pt, rot, axz, orig, px, l, p, &
                                 rline, rpoint, rplane, pop, pot, poc, cr 
-    integer(kind=irg)       :: i, dims(3), nthr
+    integer(kind=irg)       :: i, j, k, dims(3), nthr, ntriangles 
     real(kind=dbl)          :: a, b, c, d, x, y, z, dk 
     real(kind=dbl),allocatable            :: gr(:),sf(:,:,:)
     complex(kind=dbl),allocatable         :: shamp(:,:,:)
+    real(kind=sgl),allocatable            :: shampreal(:,:,:)
     character(fnlen)        :: sname 
-    
+    character(80)           :: header 
+
+
     call PGA3D_initialize()
     
+    sname = 'icosahedron'
     sname = 'cube'
     ! sname = 'icosidodecahedron'
     shape = polyhedron_T( sname, 5.D0)
-    ! call shape%polyhedron_info()
+    call shape%polyhedron_info()
 
     dims = (/ 128, 128, 128 /)
     ! dims = (/ 10, 10, 10 /)
-    ! allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
-    ! x = 5.D0
-    ! call shape%polyhedron_shapefunction(sf, dims, x)
+    ! ! allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
+    ! ! x = 5.D0
+    ! ! call shape%polyhedron_shapefunction(sf, dims, x)
 
-    ! do i=-dims(1),dims(1)
-    !     write (*,"(21F4.1)") sf(i,:,0)
-    ! end do
+    ! ! do i=-dims(1),dims(1)
+    ! !     write (*,"(21F4.1)") sf(i,:,0)
+    ! ! end do
 
     allocate(shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1))
     dk = 0.1D0
     nthr = 8
     call shape%polyhedron_shapeamplitude(shamp, dims, dk, nthr)
-    do i=-dims(1),dims(1)-1
-        write (*,*) real(shamp(i,10,10))
-    end do  
+    ! do i=-dims(1),dims(1)-1
+    !     write (*,*) real(shamp(i,10,10))
+    ! end do  
 
-    write (*,*) minval(real(shamp)), maxval(real(shamp))
+    allocate(shampreal(2*dims(1)+1,2*dims(2)+1,2*dims(3)+1))
+    do i=1,2*dims(1)
+        do j=1,2*dims(2)
+            do k=1,2*dims(3)
+                shampreal(i,j,k) = real(shamp(i-dims(1)-1,j-dims(2)-1,k-dims(3)-1))
+            end do 
+        end do 
+    end do 
 
-    open(unit=10,file='cube.shamp',status='unknown',form='unformatted')
-    write (10) real(shamp)
-    close(unit=10,status='keep')
+    MCA = MCA_T()
+    call MCA%doMCA( shampreal, 2*dims+1, sngl(dk), 20.0)
+
+    header = 'Test rendering'
+    sname = 'trial.stl' 
+    ntriangles = MCA%getNtriangles()
+    STL = STL_T(sname, header, ntriangles,MCAlist=MCA%getMCAptr()) 
+
+    ! write (*,*) minval(real(shamp)), maxval(real(shamp))
+
+    ! open(unit=10,file='cube.shamp',status='unknown',form='unformatted')
+    ! write (10) real(shamp)
+    ! close(unit=10,status='keep')
 
     ! p = plane(1.D0,1.D0,1.D0,-1.D0)
     ! p = p%normalized()
