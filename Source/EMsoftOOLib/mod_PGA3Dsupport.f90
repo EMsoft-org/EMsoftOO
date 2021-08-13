@@ -31,7 +31,8 @@ module mod_PGA3Dsupport
   !! version: 1.0 
   !! date: 07/21/21
   !!
-  !! support routines for Projective Geometric Algebra in 3D 
+  !! support routines for Projective Geometric Algebra in 3D; this module is based on 
+  !! https://bivector.net/3DPGA.pdf 
   !!
   !! as of 7/23/2021 the following operations are available
   !!

@@ -407,6 +407,8 @@ subroutine doMCA_(self, vol, dims, dxyz, isovalue )
 !!
 !! Marching Cubes Algorithm
 
+use mod_IO 
+
 IMPLICIT NONE 
 
 class(MCA_T), INTENT(INOUT)     :: self
@@ -416,9 +418,10 @@ real(kind=sgl),INTENT(IN)       :: dxyz           ! stepsize identical in all di
 real(kind=sgl),INTENT(IN)       :: isovalue 
 
 type(MCAtriangle),pointer       :: tail    
+type(IO_T)                      :: Message
 real(kind=sgl),allocatable      :: x(:), y(:), z(:), v(:) 
 real(kind=sgl)                  :: dx, dy, dz, xc(8), yc(8), zc(8), vc(8), xt, yt, zt, pre
-integer(kind=irg)               :: i, j, k, ii, npx, npy, npz, npts, nc, nz, inum, nf, indc, num1, num2, icon, tcnt
+integer(kind=irg)               :: i, j, k, ii, npx, npy, npz, npts, nc, nz, inum, nf, indc, num1, num2, icon, tcnt, io_int(1)
 logical                         :: l1 
 integer(kind=irg),parameter     :: ivals(8) = (/ 1, 2, 4, 8, 16, 32, 64, 128/)
 
@@ -496,7 +499,7 @@ do i=1,nc
         tcnt = tcnt + 1 
         inum = inum + 1
         k = k + 1
-        if (k.gt.16) l1 = .FALSE.
+        if (k.gt.16) l1 = .FALSE.  ! this test should never be .TRUE.
       end if
     end do
     nz = nz + 1
@@ -505,7 +508,8 @@ do i=1,nc
   end if
 end do
 
-write (*,*) 'Total number of triangles generated : ', self%Ntriangles
+io_int(1) = self%Ntriangles
+call Message%WriteValue('Total number of triangles generated : ',io_int,1) 
 deallocate(x, y, z, v)
 
 end subroutine doMCA_

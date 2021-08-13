@@ -33,20 +33,18 @@ module mod_PGA3D
   !!
   !! class definition for the PGA3D module (Projective Geometric Algebra in 3D) 
   !!
-  !! This is based on the file pga3d.cpp from BiVector.net
+  !! This is based on the file pga3d.cpp from BiVector.net; for a detailed explanation and
+  !! applications, see https://bivector.net/PGA4CS.pdf and other documents on bivector.net. 
 
 use mod_kinds
 use mod_global
 
 IMPLICIT NONE 
 
-
-
 private
 character(5), parameter :: basis(0:15) = (/ "  one","   e0","   e1","   e2","   e3", &
                                             "  e01","  e02","  e03","  e12","  e31","  e23", &
                                             " e021"," e013"," e032"," e123","e0123" /)
-
 
 intrinsic :: conjg 
 public :: conjg
