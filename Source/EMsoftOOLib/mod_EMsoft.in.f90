@@ -2267,6 +2267,10 @@ if (numarg.gt.0) then ! there is at least one argument
         call Message%printMessage('Creating program name list template files:', frm = "(/A)")
         call CopyTemplateFiles_(self, numt, templatelist)
       end if
+      if ( (trim(arg).eq.'-w').and.(trim(progname).eq.'EMmkxtal.f90') ) then
+! the EMmkxtal program has a special switch for Wyckoff position entry so we need to turn off haltprogram
+        haltprogram = .FALSE.
+      end if
       if (trim(arg).eq.'-pdf') then
 ! if the pandoc program is installed (for instance within the anaconda distribution)
 ! then the user can ask for the wiki manual page (if it exists) to be converted into a pdf

@@ -48,6 +48,7 @@ type, public :: ShapeAmplitudeNameListType
   integer(kind=irg)     :: dims(3)
   integer(kind=irg)     :: nthreads
   character(10)         :: shapetype
+  logical               :: shapeIntensity
   character(fnlen)      :: polyhedronFilename 
   character(fnlen)      :: STLFilename 
   character(80)         :: STLheader
@@ -74,6 +75,8 @@ private
   procedure, pass(self) :: get_STLFilename_
   procedure, pass(self) :: get_STLheader_
   procedure, pass(self) :: get_shampFilename_
+  procedure, pass(self) :: get_shapeIntensity_
+  procedure, pass(self) :: set_shapeIntensity_
   procedure, pass(self) :: set_polyEdgeL_
   procedure, pass(self) :: set_geometry_
   procedure, pass(self) :: set_dxyz_
@@ -103,6 +106,8 @@ private
   generic, public :: get_STLFilename => get_STLFilename_
   generic, public :: get_STLheader => get_STLheader_
   generic, public :: get_shampFilename => get_shampFilename_
+  generic, public :: get_shapeIntensity => get_shapeIntensity_
+  generic, public :: set_shapeIntensity => set_shapeIntensity_
   generic, public :: set_polyEdgeL => set_polyEdgeL_
   generic, public :: set_geometry => set_geometry_
   generic, public :: set_dxyz => set_dxyz_
@@ -185,7 +190,64 @@ type(EMsoft_T)                       :: EMsoft
 type(IO_T)                           :: Message       
 logical                              :: skipread = .FALSE.
 
+real(kind=dbl)        :: polyEdgeL
+real(kind=dbl)        :: geometry(10)
+real(kind=dbl)        :: dxyz
+real(kind=dbl)        :: dk
+real(kind=dbl)        :: isovalue
+integer(kind=irg)     :: dims(3)
+integer(kind=irg)     :: nthreads
+logical               :: shapeIntensity
+character(10)         :: shapetype
+character(fnlen)      :: polyhedronFilename 
+character(fnlen)      :: STLFilename 
+character(80)         :: STLheader
+character(fnlen)      :: shampFilename 
 
+namelist / shampdata / polyEdgeL, geometry, dxyz, dk, isovalue, dims, nthreads, shapetype, polyhedronFilename, &
+                       STLFilename, STLheader, shampFilename, shapeIntensity 
+
+! set the input parameters to default values
+shapetype = 'polyhedron'
+polyhedronFilename = 'undefined'
+polyEdgeL = 1.D0
+geometry = 0.D0
+dxyz = 1.D0
+dk = 0.1D0
+dims = (/ 128, 128, 128 /)
+shapeIntensity = .FALSE.
+nthreads = 1
+STLFilename = 'undefined'
+isovalue = 0.D0
+STLheader = '                                                                                '
+shampFilename = 'undefined'
+
+! read the name list, depending on the class type
+if (.not.skipread) then
+! read the namelist file
+  open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
+  read(UNIT=dataunit,NML=shampdata)
+  close(UNIT=dataunit,STATUS='keep')
+
+! check for required entries
+  if (trim(shampFilename).eq.'undefined') then
+    call Message%printError('EMShapeAmplitude:',' shampFilename is undefined in '//nmlfile)
+  end if
+end if
+
+self%nml%shapetype = shapetype
+self%nml%polyhedronFilename = polyhedronFilename
+self%nml%polyEdgeL = polyEdgeL
+self%nml%geometry = geometry
+self%nml%dxyz = dxyz
+self%nml%dk = dk
+self%nml%dims = dims
+self%nml%shapeIntensity = shapeIntensity
+self%nml%nthreads = nthreads
+self%nml%STLFilename = STLFilename
+self%nml%isovalue = isovalue
+self%nml%STLheader = STLheader
+self%nml%shampFilename = shampFilename
 
 end subroutine readNameList_
 
@@ -224,18 +286,73 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(ShapeAmplitude_T), INTENT(INOUT)        :: self 
+class(ShapeAmplitude_T), INTENT(INOUT)  :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
+integer(kind=irg),parameter             :: n_int = 2, n_real = 4
+integer(kind=irg)                       :: hdferr,  io_int(n_int), ii
+real(kind=dbl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
 character(fnlen)                        :: dataset, sval(1),groupname
 character(fnlen,kind=c_char)            :: line2(1)
 
-associate( mcnl => self%nml )
+associate( emnl => self%nml )
+
+! create the group for this namelist
+groupname = trim(HDFnames%get_NMLlist())
+hdferr = HDF%createGroup(groupname)
+
+! write all the single integers
+ii = 0 
+if (emnl%shapeIntensity.eqv..TRUE.) ii = 1
+io_int = (/ emnl%nthreads, ii /)
+intlist(1) = 'nthreads'
+intlist(1) = 'shapeIntensity'
+call HDF%writeNMLintegers(io_int, intlist, n_int)
+
+! write all the double reals
+io_real = (/ emnl%polyEdgeL, emnl%dk, emnl%dxyz, emnl%isovalue /)
+reallist(1) = 'polyEdgeL'
+reallist(2) = 'dk'
+reallist(3) = 'dxyz'
+reallist(4) = 'isovalue'
+call HDF%writeNMLdbles(io_real, reallist, n_real)
+
+! vectors
+dataset = 'dims'
+hdferr = HDF%writeDatasetIntegerArray(dataset, emnl%dims, 3)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create dims dataset', hdferr)
+
+dataset = 'geometry'
+hdferr = HDF%writeDatasetDoubleArray(dataset, emnl%geometry, 10)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create geometry dataset', hdferr)
+
+! write all the strings
+dataset = 'shapetype'
+line2(1) = trim(emnl%shapetype)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create shapetype dataset', hdferr)
+
+dataset = 'polyhedronFilename'
+line2(1) = trim(emnl%polyhedronFilename)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create polyhedronFilename dataset', hdferr)
+
+dataset = 'STLFilename'
+line2(1) = trim(emnl%STLFilename)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create STLFilename dataset', hdferr)
+
+dataset = 'STLheader'
+line2(1) = trim(emnl%STLheader)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create STLheader dataset', hdferr)
+
+dataset = 'shampFilename'
+line2(1) = trim(emnl%shampFilename)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create shampFilename dataset', hdferr)
 
 end associate
 
@@ -674,6 +791,42 @@ self%nml%shampFilename = inp
 end subroutine set_shampFilename_
 
 !--------------------------------------------------------------------------
+function get_shapeIntensity_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_shapeIntensity_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! get shapeIntensity from the ShapeAmplitude_T class
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)     :: self
+logical                                    :: out
+
+out = self%nml%shapeIntensity
+
+end function get_shapeIntensity_
+
+!--------------------------------------------------------------------------
+subroutine set_shapeIntensity_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_shapeIntensity_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! set shapeIntensity in the ShapeAmplitude_T class
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)                        :: inp
+
+self%nml%shapeIntensity = inp
+
+end subroutine set_shapeIntensity_
+
+!--------------------------------------------------------------------------
 subroutine ShapeAmplitude_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: ShapeAmplitude_
 !! author: MDG 
@@ -683,6 +836,12 @@ subroutine ShapeAmplitude_(self, EMsoft, progname)
 !! perform the computations
 
 use mod_EMsoft
+use mod_PGA3D 
+use mod_PGA3Dsupport
+use mod_polyhedra
+use mod_STL
+use mod_MCA 
+use mod_IO
 
 IMPLICIT NONE 
 
@@ -690,6 +849,136 @@ class(ShapeAmplitude_T), INTENT(INOUT)  :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname 
 
+type(STL_T)                             :: STL 
+type(MCA_T)                             :: MCA 
+type(polyhedron_T)                      :: shape     
+type(PGA3D_T)                           :: mv
+type(IO_T)                              :: Message
+
+character(fnlen)                        :: polyname, stlname, sname 
+character(80)                           :: header
+real(kind=dbl)                          :: edgeL, dk 
+real(kind=sgl)                          :: iso, mi, ma 
+real(kind=sgl),allocatable              :: sf(:,:,:)
+complex(kind=dbl),allocatable           :: shamp(:,:,:)
+real(kind=sgl),allocatable              :: shampreal(:,:,:), shint(:,:,:)
+integer(kind=irg)                       :: i, j, k, nthr, dims(3), ntriangles
+
+associate(emnl => self%nml)
+
+if (trim(emnl%shapetype).eq.'polyhedron') then 
+  call Message%printMessage(' Initializing 3D Projective Geometric Algebra module')
+  call PGA3D_initialize()
+  ! check for / in the filename !!!
+  polyname = trim(emnl%polyhedronFilename)
+  edgeL = emnl%polyEdgeL 
+  shape = polyhedron_T( polyname, edgeL )
+  dims = emnl%dims
+
+! first generate the shape function 
+  call Message%printMessage(' Generating the Shape Function')
+  allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
+  call shape%polyhedron_shapefunction(sf, dims, emnl%dxyz)
+
+! then the shape amplitude using the Komrska approach
+  call Message%printMessage(' Generating the Shape Amplitude')
+  allocate(shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1))
+  dk = emnl%dk
+  nthr = emnl%nthreads
+  call shape%polyhedron_shapeamplitude(shamp, dims, dk, nthr)
+! get the abs value for the STL file if needed
+  if (trim(emnl%STLFilename).ne.'undefined') then
+    allocate(shampreal(2*dims(1)+1,2*dims(2)+1,2*dims(3)+1))
+    do i=1,2*dims(1)
+        do j=1,2*dims(2)
+            do k=1,2*dims(3)
+                shampreal(i,j,k) = abs(shamp(i-dims(1)-1,j-dims(2)-1,k-dims(3)-1))
+            end do 
+        end do 
+    end do 
+  end if 
+  if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
+    mi = minval(shampreal)
+    ma = maxval(shampreal)
+    shampreal = (shampreal - mi) / (ma-mi)
+  end if 
+
+! shape intensity needed ? 
+  if (emnl%shapeIntensity.eqv..TRUE.) then 
+    call Message%printMessage(' Computing the Shape Intensity')
+    allocate(shint(2*dims(1)+1,2*dims(2)+1,2*dims(3)+1))
+    do i=1,2*dims(1)
+        do j=1,2*dims(2)
+            do k=1,2*dims(3)
+                shint(i,j,k) = abs(shamp(i-dims(1)-1,j-dims(2)-1,k-dims(3)-1))**2
+            end do 
+        end do 
+    end do 
+  end if 
+  if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
+    mi = minval(shint)
+    ma = maxval(shint)
+    shint = (shint - mi) / (ma-mi)
+  end if 
+
+else 
+
+end if 
+
+! generate an HDF5 file with all the necessary arrays ... 
+
+
+! do we need to create STL files?
+if (trim(emnl%STLFilename).ne.'undefined') then
+  header = emnl%STLheader
+  stlname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%STLFilename))
+  MCA = MCA_T()
+
+! first the shape function 
+  sname = trim(stlname)//'_shapefunction.stl'  
+  call Message%printMessage(' Generating '//trim(sname))
+  if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
+    iso = emnl%isovalue 
+  else
+    iso = 0.50
+  end if 
+  call MCA%doMCA( sf, 2*dims+1, sngl(emnl%dk), iso )
+
+  ntriangles = MCA%getNtriangles()
+  STL = STL_T(sname, header, ntriangles, MCAlist=MCA%getMCAptr()) 
+
+! then the shape amplitude 
+  MCA = MCA_T()
+  sname = trim(stlname)//'_shapeamplitude.stl'  
+  call Message%printMessage(' Generating '//trim(sname))
+  if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
+    iso = emnl%isovalue 
+  else
+    iso = 0.10 * sngl(shape%get_volume())
+  end if 
+  call MCA%doMCA( shampreal, 2*dims+1, sngl(emnl%dxyz), iso )
+
+  ntriangles = MCA%getNtriangles()
+  STL = STL_T(sname, header, ntriangles, MCAlist=MCA%getMCAptr()) 
+
+! finally the shape intensity if needed 
+  if (emnl%shapeIntensity.eqv..TRUE.) then 
+    MCA = MCA_T()
+    sname = trim(stlname)//'_shapeintensity.stl'  
+    call Message%printMessage(' Generating '//trim(sname))
+    if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
+      iso = emnl%isovalue 
+    else
+      iso = 0.01 * sngl(shape%get_volume())**2
+    end if 
+    call MCA%doMCA( shint, 2*dims+1, sngl(emnl%dk), iso )
+
+    ntriangles = MCA%getNtriangles()
+    STL = STL_T(sname, header, ntriangles, MCAlist=MCA%getMCAptr()) 
+  end if 
+end if 
+
+end associate 
 
 end subroutine ShapeAmplitude_
 

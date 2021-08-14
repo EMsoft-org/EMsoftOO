@@ -118,7 +118,7 @@ else
 
   write (STL%STLunit) STLheader
   write (STL%STLunit) STL%Ntriangles
-  call STL%writeSTLfile_(MCAlist)
+  call STL%writeSTLfile_(MCAlist)  ! this also deallocates the linked list of triangles
   close(STL%STLunit, status = 'keep' )
 end if 
 
@@ -149,7 +149,7 @@ subroutine writeSTLfile_(self, MCAlist)
 !! version: 1.0 
 !! date: 08/12/21
 !!
-!! write the triangles from the linked list to the STL file 
+!! write the triangles from the linked list to the STL file, and delete them from the list 
 
 IMPLICIT NONE 
 
@@ -159,21 +159,37 @@ type(MCAtriangle), INTENT(IN), pointer     :: MCAlist
 type(STLtriangle)                 :: tr 
 integer(kind=irg)                 :: i 
 real(c_float)                     :: nv(3)
-type(MCAtriangle),pointer         :: tmp
+type(MCAtriangle),pointer         :: tmp, tmp2
 
 tmp => MCAlist
 
 do i=1,self%Ntriangles
-  nv(:) = tmp%v1(:) + tmp%v2(:) + tmp%v3(:)
-  nv = nv/sqrt(sum(nv*nv))
-  tr%nv = real(nv, c_float)
-  tr%v1(:) = real(tmp%v1(:), c_float)
-  tr%v2(:) = real(tmp%v2(:), c_float)
-  tr%v3(:) = real(tmp%v3(:), c_float)
-  ! write (*,*) i, tmp%v1, tmp%v2, tmp%v3 
-  write(self%STLunit) tr
-  if (associated(tmp%next)) tmp => tmp%next
+  if (associated(tmp)) then 
+    nv(:) = tmp%v1(:) + tmp%v2(:) + tmp%v3(:)
+    nv = nv/sqrt(sum(nv*nv))
+    tr%nv = real(nv, c_float)
+    tr%v1(:) = real(tmp%v1(:), c_float)
+    tr%v2(:) = real(tmp%v2(:), c_float)
+    tr%v3(:) = real(tmp%v3(:), c_float)
+    ! write (*,*) i, tmp%v1, tmp%v2, tmp%v3 
+    write(self%STLunit) tr
+    if (associated(tmp%next)) tmp => tmp%next
+  end if 
 end do
+
+! delete the linked list 
+if (associated(MCAlist)) then
+  tmp => MCAlist 
+  if (associated(tmp%next)) then 
+    tmp2 => tmp%next
+    do 
+      if (associated(tmp)) deallocate(tmp) 
+      if (.not. associated(tmp2)) EXIT 
+      tmp => tmp2 
+      tmp2 => tmp%next
+    end do 
+  end if 
+end if
 
 end subroutine writeSTLfile_
 

@@ -457,8 +457,9 @@ nc = product(dims-1)
 nz = 1
 inum = 1 
 tcnt = 1
-allocate(self%MCAtriangles)
+if (.not.associated(self%MCAtriangles)) allocate(self%MCAtriangles)
 tail => self%MCAtriangles
+nullify(tail%next)
 do i=1,nc
   if (nz.lt.npz) then
     xc = (/ x(i+npz*npy), x(i+npz*npy+1), x(i+npz*npy+npz+1), x(i+npz*npy+npz), x(i), x(i+1), x(i+npz+1), x(i+npz) /)
@@ -494,6 +495,7 @@ do i=1,nc
           self%Ntriangles = self%Ntriangles + 1
           allocate(tail%next)
           tail => tail%next
+          nullify(tail%next)
           tcnt = 0
         end if 
         tcnt = tcnt + 1 
@@ -509,7 +511,7 @@ do i=1,nc
 end do
 
 io_int(1) = self%Ntriangles
-call Message%WriteValue('Total number of triangles generated : ',io_int,1) 
+call Message%WriteValue('   Total number of triangles generated : ',io_int,1) 
 deallocate(x, y, z, v)
 
 end subroutine doMCA_

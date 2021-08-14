@@ -64,16 +64,6 @@ module mod_polyhedra
   !! PGA3D routines to correctly generate the shape (and distinguish inside 
   !! from outside).
   !!
-  !! Several shapes are available as shape amplitudes: sphere, ellipsoid, rectangular 
-  !! and elliptic cylinder, torus, ...
-  !!
-  !! The module also allows for some simple "shape algebra", either in direct space
-  !! or in Fourier space:
-  !!  - add/subtract two shapes 
-  !!  - find whether or not two shape intersect 
-  !!  - compute the cross-correlation of two shapes
-  !!  - translate/rotate a shape 
-  !!  - 
 
 use mod_kinds
 use mod_global
@@ -113,12 +103,40 @@ private
 
 contains
 private 
+  procedure, pass(self) :: get_nvertices_
+  procedure, pass(self) :: get_nfaces_
+  procedure, pass(self) :: get_nedges_
+  procedure, pass(self) :: get_area_
+  procedure, pass(self) :: get_volume_
+  procedure, pass(self) :: get_shapename_
+  procedure, pass(self) :: get_shapefile_
+  procedure, pass(self) :: set_nvertices_
+  procedure, pass(self) :: set_nfaces_
+  procedure, pass(self) :: set_nedges_
+  procedure, pass(self) :: set_area_
+  procedure, pass(self) :: set_volume_
+  procedure, pass(self) :: set_shapename_
+  procedure, pass(self) :: set_shapefile_
   procedure, pass(self) :: polyhedron_init_
   procedure, pass(self) :: polyhedron_info_
   procedure, pass(self) :: build_polyhedron_
   procedure, pass(self) :: polyhedron_shapefunction_
   procedure, pass(self) :: polyhedron_shapeamplitude_
 
+  generic, public :: get_nvertices => get_nvertices_
+  generic, public :: get_nfaces => get_nfaces_
+  generic, public :: get_nedges => get_nedges_
+  generic, public :: get_area => get_area_
+  generic, public :: get_volume => get_volume_
+  generic, public :: get_shapename => get_shapename_
+  generic, public :: get_shapefile => get_shapefile_
+  generic, public :: set_nvertices => set_nvertices_
+  generic, public :: set_nfaces => set_nfaces_
+  generic, public :: set_nedges => set_nedges_
+  generic, public :: set_area => set_area_
+  generic, public :: set_volume => set_volume_
+  generic, public :: set_shapename => set_shapename_
+  generic, public :: set_shapefile => set_shapefile_
   generic, public :: initialize_polyhedron => polyhedron_init_
   generic, public :: polyhedron_info => polyhedron_info_
   generic, public :: build_polyhedron => build_polyhedron_
@@ -171,6 +189,258 @@ type(polyhedron_T), INTENT(INOUT)  :: self
 call reportDestructor('polyhedron_T')
 
 end subroutine polyhedron_destructor
+
+!--------------------------------------------------------------------------
+function get_nvertices_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nvertices_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! get nvertices from the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+integer(kind=irg)                      :: out
+
+out = self%nvertices
+
+end function get_nvertices_
+
+!--------------------------------------------------------------------------
+subroutine set_nvertices_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nvertices_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! set nvertices in the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)          :: inp
+
+self%nvertices = inp
+
+end subroutine set_nvertices_
+
+!--------------------------------------------------------------------------
+function get_nfaces_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nfaces_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! get nfaces from the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+integer(kind=irg)                      :: out
+
+out = self%nfaces
+
+end function get_nfaces_
+
+!--------------------------------------------------------------------------
+subroutine set_nfaces_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nfaces_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! set nfaces in the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)          :: inp
+
+self%nfaces = inp
+
+end subroutine set_nfaces_
+
+!--------------------------------------------------------------------------
+function get_nedges_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nedges_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! get nedges from the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+integer(kind=irg)                      :: out
+
+out = self%nedges
+
+end function get_nedges_
+
+!--------------------------------------------------------------------------
+subroutine set_nedges_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nedges_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! set nedges in the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)          :: inp
+
+self%nedges = inp
+
+end subroutine set_nedges_
+
+!--------------------------------------------------------------------------
+function get_area_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_area_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! get area from the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+real(kind=dbl)                         :: out
+
+out = self%area
+
+end function get_area_
+
+!--------------------------------------------------------------------------
+subroutine set_area_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_area_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! set area in the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)             :: inp
+
+self%area = inp
+
+end subroutine set_area_
+
+!--------------------------------------------------------------------------
+function get_volume_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_volume_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! get volume from the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+real(kind=dbl)                         :: out
+
+out = self%volume
+
+end function get_volume_
+
+!--------------------------------------------------------------------------
+subroutine set_volume_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_volume_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! set volume in the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)             :: inp
+
+self%volume = inp
+
+end subroutine set_volume_
+
+!--------------------------------------------------------------------------
+function get_shapename_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_shapename_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! get shapename from the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+character(fnlen)                       :: out
+
+out = self%shapename
+
+end function get_shapename_
+
+!--------------------------------------------------------------------------
+subroutine set_shapename_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_shapename_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! set shapename in the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)           :: inp
+
+self%shapename = inp
+
+end subroutine set_shapename_
+
+!--------------------------------------------------------------------------
+function get_shapefile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_shapefile_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! get shapefile from the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+character(fnlen)                       :: out
+
+out = self%shapefile
+
+end function get_shapefile_
+
+!--------------------------------------------------------------------------
+subroutine set_shapefile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_shapefile_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/21
+!!
+!! set shapefile in the polyhedron_T class
+
+IMPLICIT NONE 
+
+class(polyhedron_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)           :: inp
+
+self%shapefile = inp
+
+end subroutine set_shapefile_
 
 !--------------------------------------------------------------------------
 subroutine polyhedron_info_( self )
@@ -515,7 +785,7 @@ end if
 end subroutine polyhedron_init_
 
 !--------------------------------------------------------------------------
-subroutine polyhedron_shapefunction_( self, shapearray, dims, Ledge )
+subroutine polyhedron_shapefunction_( self, shapearray, dims, dxyz)
 !DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_shapefunction_
 !! author: MDG 
 !! version: 1.0 
@@ -528,8 +798,8 @@ IMPLICIT NONE
 
 class(polyhedron_T), INTENT(INOUT)      :: self
 integer(kind=irg),INTENT(IN)            :: dims(3)
-real(kind=dbl), INTENT(INOUT)           :: shapearray(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3))
-real(kind=dbl),INTENT(IN)               :: Ledge 
+real(kind=sgl), INTENT(INOUT)           :: shapearray(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3))
+real(kind=dbl),INTENT(IN)               :: dxyz 
 
 type(PGA3D_T)                           :: pt, mv 
 integer(kind=irg)                       :: i, j, k, f 
@@ -544,7 +814,7 @@ shapearray = 0.D0
 do i=-dims(1),dims(1)
   do j=-dims(2),dims(2)
     do k=-dims(3),dims(3)
-      pt = point(dble(i)*0.5D0,dble(j)*0.5D0,dble(k)*0.5D0)
+      pt = point(dble(i)*dxyz,dble(j)*dxyz,dble(k)*dxyz)
       sgnsum = 0.D0
       do f=1,self%nfaces 
         mv = self%face(f) .wedge. pt 
@@ -554,7 +824,7 @@ do i=-dims(1),dims(1)
           sgnsum = sgnsum - 1.D0 
         end if
       end do 
-      if (sgnsum.eq.sgn) shapearray(i,j,k) = 1.D0
+      if (sgnsum.eq.sgn) shapearray(i,j,k) = 1.0
     end do 
   end do 
 end do 
@@ -584,6 +854,7 @@ subroutine polyhedron_shapeamplitude_( self, shamp, dims, dk, nthr )
 !! directional quantities).
 
 use omp_lib
+use mod_io
 
 IMPLICIT NONE 
 
@@ -593,15 +864,17 @@ complex(kind=dbl),INTENT(INOUT)         :: shamp(-dims(1):dims(1)-1,-dims(2):dim
 real(kind=dbl),INTENT(IN)               :: dk  ! step size in shape amplitude array
 integer(kind=irg),INTENT(IN)            :: nthr
 
-integer(kind=irg)                       :: i, j, k, l, f, e, vn, TID
+type(IO_T)                              :: Message
+integer(kind=irg)                       :: i, j, k, l, f, e, vn, TID, io_int(2), zcnt
 complex(kind=dbl)                       :: p, esum, ff 
 real(kind=dbl)                          :: scl, knf, qq, pp, r, arg, d, ratio, dd, x, y, z
 type(PGA3D_T)                           :: kvec, qn, mv, pt
 
+zcnt = 0 
+
 !$OMP PARALLEL NUM_THREADS(nthr) DEFAULT(SHARED) PRIVATE(TID,j,k,kvec,p,qq,f,e,qn,knf,pp,r,arg,ff,esum,mv,d,ratio,x,y,z)
 
 TID = OMP_GET_THREAD_NUM()
-
 
 !$OMP DO SCHEDULE (STATIC)
 do i = -dims(1),dims(1)-1
@@ -655,10 +928,16 @@ do i = -dims(1),dims(1)-1
       shamp(i, j, k) = p
     end do 
   end do 
-  if (TID.eq.0) write(*,*) 'completed plane ', i
+  if (TID.eq.0) then 
+    zcnt = zcnt+1 
+    io_int = (/ nthr*zcnt, 2*dims(1)+1 /) 
+    call Message%writeValue('   completed plane ', io_int, 2, frm="(I5,' out of ',I5)")
+  end if 
 end do 
 !$OMP END DO
 !$OMP END PARALLEL
+
+call Message%printMessage(' --> done.')
 
 end subroutine polyhedron_shapeamplitude_
 
