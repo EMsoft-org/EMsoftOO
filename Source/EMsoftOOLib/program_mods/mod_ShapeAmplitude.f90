@@ -827,7 +827,7 @@ self%nml%shapeIntensity = inp
 end subroutine set_shapeIntensity_
 
 !--------------------------------------------------------------------------
-subroutine ShapeAmplitude_(self, EMsoft, progname)
+subroutine ShapeAmplitude_(self, EMsoft, progname, HDFnames)
 !DEC$ ATTRIBUTES DLLEXPORT :: ShapeAmplitude_
 !! author: MDG 
 !! version: 1.0 
@@ -836,9 +836,14 @@ subroutine ShapeAmplitude_(self, EMsoft, progname)
 !! perform the computations
 
 use mod_EMsoft
+use HDF5
+use mod_HDFsupport
+use mod_HDFnames
+use mod_timing
 use mod_PGA3D 
 use mod_PGA3Dsupport
 use mod_polyhedra
+use stringconstants
 use mod_STL
 use mod_MCA 
 use mod_IO
@@ -848,31 +853,45 @@ IMPLICIT NONE
 class(ShapeAmplitude_T), INTENT(INOUT)  :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname 
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
 type(STL_T)                             :: STL 
 type(MCA_T)                             :: MCA 
 type(polyhedron_T)                      :: shape     
 type(PGA3D_T)                           :: mv
+type(HDF_T)                             :: HDF 
 type(IO_T)                              :: Message
+type(Timing_T)                          :: timer
 
-character(fnlen)                        :: polyname, stlname, sname 
+character(fnlen,kind=c_char)            :: line2(1)
+character(fnlen)                        :: polyname, stlname, sname, datafile, dataset, datagroupname, attributename, &
+                                           HDF_FileVersion 
 character(80)                           :: header
+character(11)                           :: dstr
+character(15)                           :: tstrb
+character(15)                           :: tstre
 real(kind=dbl)                          :: edgeL, dk 
 real(kind=sgl)                          :: iso, mi, ma 
 real(kind=sgl),allocatable              :: sf(:,:,:)
 complex(kind=dbl),allocatable           :: shamp(:,:,:)
 real(kind=sgl),allocatable              :: shampreal(:,:,:), shint(:,:,:)
-integer(kind=irg)                       :: i, j, k, nthr, dims(3), ntriangles
+integer(kind=irg)                       :: i, j, k, nthr, dims(3), ntriangles, hdferr
 
 associate(emnl => self%nml)
 
 if (trim(emnl%shapetype).eq.'polyhedron') then 
   call Message%printMessage(' Initializing 3D Projective Geometric Algebra module')
   call PGA3D_initialize()
-  ! check for / in the filename !!!
-  polyname = trim(emnl%polyhedronFilename)
   edgeL = emnl%polyEdgeL 
-  shape = polyhedron_T( polyname, edgeL )
+  ! check for / in the filename !!!
+  if (index(trim(emnl%polyhedronFilename),'/').ne.0) then 
+    polyname = ''
+    shape = polyhedron_T( polyname, edgeL, shapefile=emnl%polyhedronFilename )
+  else 
+    polyname = trim(emnl%polyhedronFilename)
+    shape = polyhedron_T( polyname, edgeL )
+  end if 
+  call shape%polyhedron_info()
   dims = emnl%dims
 
 ! first generate the shape function 
@@ -897,16 +916,12 @@ if (trim(emnl%shapetype).eq.'polyhedron') then
         end do 
     end do 
   end if 
-  if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
-    mi = minval(shampreal)
-    ma = maxval(shampreal)
-    shampreal = (shampreal - mi) / (ma-mi)
-  end if 
 
 ! shape intensity needed ? 
   if (emnl%shapeIntensity.eqv..TRUE.) then 
     call Message%printMessage(' Computing the Shape Intensity')
     allocate(shint(2*dims(1)+1,2*dims(2)+1,2*dims(3)+1))
+    shint = 0.D0
     do i=1,2*dims(1)
         do j=1,2*dims(2)
             do k=1,2*dims(3)
@@ -915,19 +930,80 @@ if (trim(emnl%shapetype).eq.'polyhedron') then
         end do 
     end do 
   end if 
-  if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
-    mi = minval(shint)
-    ma = maxval(shint)
-    shint = (shint - mi) / (ma-mi)
-  end if 
 
-else 
+else   ! the shape is not a polyhedron 
 
 end if 
 
+!====================================
+!====================================
+!====================================
 ! generate an HDF5 file with all the necessary arrays ... 
+call openFortranHDFInterface()
+HDF = HDF_T()
 
+timer = Timing_T()
+tstrb = timer%getTimeString()
+dstr = timer%getDateString()
 
+! Create a new file using the default properties.
+datafile = EMsoft%generateFilePath('EMdatapathname', emnl%shampFilename)
+
+hdferr =  HDF%createFile(datafile)
+if (hdferr.ne.0) call HDF%error_check('HDF_createFile ', hdferr)
+
+dataset = SC_Manufacturer
+line2(1) = 'EMsoftOO'
+line2(1) = cstringify(line2(1))
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+
+! write the EMheader to the file
+datagroupname = trim(HDFnames%get_ProgramData()) 
+call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, datagroupname)
+
+! create a namelist group to write all the namelist files into
+hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLfiles', hdferr)
+
+call HDF%pop()
+
+! create a NMLparameters group to write all the namelist entries into
+hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLparameters', hdferr)
+
+! and leave this group
+call HDF%pop()
+
+! then the remainder of the data in a EMData group
+hdferr = HDF%createGroup(HDFnames%get_EMData())
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EMData', hdferr)
+
+! create the sub group and add a HDF_FileVersion attribute to it
+hdferr = HDF%createGroup(datagroupname)
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EBSD/TKD', hdferr)
+HDF_FileVersion = '4.1'
+attributename = SC_HDFFileVersion
+hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
+ 
+dataset = SC_ShapeFunction
+hdferr = HDF%writeDatasetFloatArray(dataset, sf, 2*dims(1)+1, 2*dims(2)+1, 2*dims(3)+1)
+
+dataset = SC_ShapeAmplitudeReal
+hdferr = HDF%writeDatasetDoubleArray(dataset, real(shamp), 2*dims(1), 2*dims(2), 2*dims(3))
+
+dataset = SC_ShapeAmplitudeImaginary
+hdferr = HDF%writeDatasetDoubleArray(dataset, aimag(shamp), 2*dims(1), 2*dims(2), 2*dims(3))
+
+if (emnl%shapeIntensity.eqv..TRUE.) then 
+  dataset = SC_ShapeIntensity
+  hdferr = HDF%writeDatasetFloatArray(dataset, shint, 2*dims(1)+1, 2*dims(2)+1, 2*dims(3)+1)
+end if 
+
+call HDF%pop(.TRUE.)
+
+!====================================
+!====================================
+!====================================
 ! do we need to create STL files?
 if (trim(emnl%STLFilename).ne.'undefined') then
   header = emnl%STLheader
@@ -953,9 +1029,13 @@ if (trim(emnl%STLFilename).ne.'undefined') then
   call Message%printMessage(' Generating '//trim(sname))
   if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
     iso = emnl%isovalue 
+    mi = minval(shampreal)
+    ma = maxval(shampreal)
+    shampreal = (shampreal - mi) / (ma-mi)
   else
     iso = 0.10 * sngl(shape%get_volume())
   end if 
+
   call MCA%doMCA( shampreal, 2*dims+1, sngl(emnl%dxyz), iso )
 
   ntriangles = MCA%getNtriangles()
@@ -968,6 +1048,9 @@ if (trim(emnl%STLFilename).ne.'undefined') then
     call Message%printMessage(' Generating '//trim(sname))
     if (emnl%isovalue.ne.0.D0) then   ! normalize the array to range [0,1]
       iso = emnl%isovalue 
+      mi = minval(shint)
+      ma = maxval(shint)
+      shint = (shint - mi) / (ma-mi)
     else
       iso = 0.01 * sngl(shape%get_volume())**2
     end if 

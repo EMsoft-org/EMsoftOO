@@ -737,7 +737,7 @@ if (.not.present(shapefile)) then
   fname = trim(fname)//'/'//trim(shapename)
   fname = EMsoft%toNativePath(fname)
 else
-  fname = trim(shapefile)
+  fname = EMsoft%generateFilePath('EMdatapathname',trim(shapefile))
 end if 
 
 self%shapename = trim(shapename)

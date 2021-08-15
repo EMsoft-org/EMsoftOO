@@ -50,6 +50,8 @@ use mod_kinds
 use mod_global
 use mod_EMsoft
 use mod_ShapeAmplitude
+use stringconstants
+use mod_HDFnames
 
 IMPLICIT NONE
 
@@ -58,6 +60,7 @@ character(fnlen)                :: progdesc = 'Computes shape amplitude/intensit
 
 type(EMsoft_T)                  :: EMsoft
 type(ShapeAmplitude_T)          :: SHAMP
+type(HDFnames_T)                :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 300 /) )
@@ -65,7 +68,14 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 300 /) )
 ! deal with the namelist stuff
 SHAMP = ShapeAmplitude_T(EMsoft%nmldeffile)
 
+HDFnames = HDFnames_T()
+
+call HDFnames%set_ProgramData(SC_ShapeAmplitude) 
+call HDFnames%set_NMLlist(SC_ShapeAmplitudeNML) 
+call HDFnames%set_NMLfilename(SC_SHAMPNML) 
+call HDFnames%set_Variable(SC_SHAMP)
+
 ! perform the computations
-call SHAMP%ShapeAmplitude(EMsoft, progname)
+call SHAMP%ShapeAmplitude(EMsoft, progname, HDFnames)
 
 end program EMShapeAmplitude
