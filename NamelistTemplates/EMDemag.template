@@ -1,0 +1,17 @@
+&Demag
+! do not change the first line in this file !
+!
+! Note: All parameter values are default values for the program
+!
+!--------------
+! Dimension of the 3D arrays for fft computations (power of 2 ideally)
+ dims = 128,
+! shape amplitude file name (generated with EMShapeAmplitude program; relative to EMdatapathname)
+ shampFilename = 'undefined',
+! if .TRUE., compute the demagnetization tensor field
+ dtf = .TRUE.,
+! 
+! output will be stored in this text file (EMsoft relative pathname)
+ outname = 'undefined'
+! this last line must be present!
+/

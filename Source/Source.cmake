@@ -19,6 +19,7 @@ if( ${EMsoftOO_ENABLE_OpenCL_SUPPORT} )
 endif()
 
 set(MODALITY_DIRS
+    Demag
     DictionaryIndexing
     # GBs
     # EEC

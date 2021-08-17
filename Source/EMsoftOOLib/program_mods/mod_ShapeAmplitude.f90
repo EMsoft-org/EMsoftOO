@@ -93,6 +93,8 @@ private
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: ShapeAmplitude_
+  procedure, pass(self) :: readShapeAmplitude_
+  ! procedure, pass(self) :: readShapeFunction_
 
   generic, public :: get_polyEdgeL => get_polyEdgeL_
   generic, public :: get_geometry => get_geometry_
@@ -124,6 +126,8 @@ private
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: ShapeAmplitude => ShapeAmplitude_
+  generic, public :: readShapeAmplitude => readShapeAmplitude_
+  ! generic, public :: readShapeFunction => readShapeFunction_
 
 end type ShapeAmplitude_T
 
@@ -146,7 +150,7 @@ IMPLICIT NONE
 
 character(fnlen), OPTIONAL   :: nmlfile 
 
-call ShapeAmplitude%readNameList(nmlfile)
+if (present(nmlfile)) call ShapeAmplitude%readNameList(nmlfile)
 
 end function ShapeAmplitude_constructor
 
@@ -980,7 +984,7 @@ if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EMData', hdferr)
 
 ! create the sub group and add a HDF_FileVersion attribute to it
 hdferr = HDF%createGroup(datagroupname)
-if (hdferr.ne.0) call HDF%error_check('HDF_createGroup EBSD/TKD', hdferr)
+if (hdferr.ne.0) call HDF%error_check('HDF_createGroup ShapeAmplitude', hdferr)
 HDF_FileVersion = '4.1'
 attributename = SC_HDFFileVersion
 hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
@@ -1000,6 +1004,7 @@ if (emnl%shapeIntensity.eqv..TRUE.) then
 end if 
 
 call HDF%pop(.TRUE.)
+call closeFortranHDFInterface()
 
 !====================================
 !====================================
@@ -1065,6 +1070,140 @@ end associate
 
 end subroutine ShapeAmplitude_
 
+!--------------------------------------------------------------------------
+subroutine readShapeAmplitude_(self, shfname, shamp) ! , shampnml)
+!DEC$ ATTRIBUTES DLLEXPORT :: readShapeAmplitude_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/16/21
+!!
+!! read an existing shape amplitude from an HDF5 file
 
+use mod_EMsoft
+use HDF5
+use mod_HDFsupport
+use mod_HDFnames
+use mod_io
+use mod_HDFnames 
+use stringconstants
+use mod_EMsoft
+
+IMPLICIT NONE
+
+class(ShapeAmplitude_T), INTENT(INOUT)          :: self        
+character(fnlen),INTENT(IN)                     :: shfname 
+complex(kind=dbl),INTENT(INOUT),allocatable     :: shamp(:,:,:)
+! type(ShapeAmplitudeNameListType),INTENT(INOUT)  :: shampnml 
+
+type(HDF_T)                                     :: HDF
+type(IO_T)                                      :: Message
+type(HDFnames_T)                                :: HDFnames
+type(EMsoft_T)                                  :: EMsoft
+character(fnlen)                                :: datafile, dataset, tmpnmlname, p
+integer(kind=irg)                               :: hdferr, nlines, i, d, io_int(3) 
+integer(HSIZE_T)                                :: sz(1), dims(3)
+logical                                         :: fexists
+real(kind=dbl),allocatable                      :: shampr(:,:,:), shampi(:,:,:)
+character(fnlen, KIND=c_char),allocatable,TARGET:: stringarray(:)
+
+p = ''
+EMsoft = EMsoft_T(p, p, silent=.TRUE.)
+
+call openFortranHDFInterface()
+HDF = HDF_T()
+
+! Open an existing file (make sure it exists)
+datafile = EMsoft%generateFilePath('EMdatapathname', trim(shfname))
+inquire(file=trim(datafile),exist=fexists)
+
+if (.not.fexists) then 
+  call Message%printMessage(' looking for file '//trim(datafile))
+  call Message%printError('readShapeAmplitude_','Shape amplitude file does not exist')
+end if 
+
+hdferr =  HDF%openFile(datafile, readonly=.TRUE.)
+if (hdferr.ne.0) call HDF%error_check('HDF_openFile ', hdferr)
+
+HDFnames = HDFnames_T() 
+call HDFnames%set_ProgramData(SC_ShapeAmplitude) 
+call HDFnames%set_NMLfilename(SC_SHAMPNML)
+
+hdferr = HDF%openGroup(HDFnames%get_EMData())
+if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EMData', hdferr)
+
+hdferr = HDF%openGroup(HDFnames%get_ProgramData())
+if (hdferr.ne.0) call HDF%error_check('HDF_openGroup EMProgramData', hdferr)
+
+dataset = SC_ShapeAmplitudeReal
+call HDF%readDatasetDoubleArray(dataset, dims, hdferr, shampr)
+
+dataset = SC_ShapeAmplitudeImaginary
+call HDF%readDatasetDoubleArray(dataset, dims, hdferr, shampi)
+
+io_int = dims 
+call Message%writeValue(' Found shape amplitude array of size ',io_int,3)
+
+! put the origin at the point (1,1,1)
+d = dims(1)/2
+shampr = cshift(shampr,d,1)
+shampr = cshift(shampr,d,2)
+shampr = cshift(shampr,d,3)
+shampi = cshift(shampi,d,1)
+shampi = cshift(shampi,d,2)
+shampi = cshift(shampi,d,3)
+
+allocate(shamp(dims(1),dims(2),dims(3)))
+shamp = cmplx(shampr,shampi)
+deallocate(shampr, shampi)
+
+write (*,*) 'Shape Amplitude value in point 1,1,1 : ', shamp(1,1,1)
+
+call HDF%pop()
+call HDF%pop()
+
+!!!! the following code is correct but for some reason the gfortran compiler
+!!!! gets confused about module dependencies between this module and mod_demag
+
+! ! next we get the namelist from the file
+! hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+! dataset = trim(HDFnames%get_NMLfilename())
+! call HDF%readdatasetstringarray(dataset, nlines, hdferr, stringarray)
+! sz = shape(stringarray)
+! tmpnmlname = trim(EMsoft%generateFilePath('EMtmppathname'))//'tmp.nml'
+! open(unit=65,file=trim(tmpnmlname),status='unknown',form='formatted')
+! do i=1,sz(1)
+!   write (65,"(A)") trim(stringarray(i))
+! end do
+! close(unit=65,status='keep')
+! call self%readNameList(tmpnmlname)
+! shampnml = self%nml 
+
+! ! delete the tmp file
+! open(unit=65,file=trim(tmpnmlname),status='unknown',form='formatted')
+! close(unit=65,status='delete')
+
+call HDF%pop(.TRUE.)
+call closeFortranHDFInterface()
+
+call Message%printMessage(' Read shape amplitude from file '//trim(datafile))
+
+end subroutine readShapeAmplitude_
+
+! !--------------------------------------------------------------------------
+! subroutine readShapeFunction_(self, shfname, shfunc, shampnml)
+! !DEC$ ATTRIBUTES DLLEXPORT :: readShapeFunction_
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 08/16/21
+! !!
+! !! read an existing shape function from an HDF5 file
+
+! use mod_EMsoft
+! use HDF5
+! use mod_HDFsupport
+! use mod_HDFnames
+
+
+! end subroutine readShapeFunction_
 
 end module mod_ShapeAmplitude

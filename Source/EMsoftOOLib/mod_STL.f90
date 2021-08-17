@@ -163,17 +163,18 @@ type(MCAtriangle),pointer         :: tmp, tmp2
 
 tmp => MCAlist
 
-do i=1,self%Ntriangles
-  if (associated(tmp)) then 
-    nv(:) = tmp%v1(:) + tmp%v2(:) + tmp%v3(:)
-    nv = nv/sqrt(sum(nv*nv))
-    tr%nv = real(nv, c_float)
-    tr%v1(:) = real(tmp%v1(:), c_float)
-    tr%v2(:) = real(tmp%v2(:), c_float)
-    tr%v3(:) = real(tmp%v3(:), c_float)
-    ! write (*,*) i, tmp%v1, tmp%v2, tmp%v3 
-    write(self%STLunit) tr
-    if (associated(tmp%next)) tmp => tmp%next
+do    !  i=1,self%Ntriangles
+  nv(:) = tmp%v1(:) + tmp%v2(:) + tmp%v3(:)
+  nv = nv/sqrt(sum(nv*nv))
+  tr%nv = real(nv, c_float)
+  tr%v1(:) = real(tmp%v1(:), c_float)
+  tr%v2(:) = real(tmp%v2(:), c_float)
+  tr%v3(:) = real(tmp%v3(:), c_float)
+  write(self%STLunit) tr
+  if (associated(tmp%next)) then 
+    tmp => tmp%next
+  else 
+    EXIT 
   end if 
 end do
 

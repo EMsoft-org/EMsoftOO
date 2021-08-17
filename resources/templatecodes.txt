@@ -96,3 +96,4 @@
 281EMEBSDmasterSHT
 282EMEBSDdefect
 300EMShapeAmplitude
+301EMDemag

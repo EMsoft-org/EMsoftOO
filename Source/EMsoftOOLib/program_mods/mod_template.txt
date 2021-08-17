@@ -103,6 +103,7 @@ end subroutine XXX_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -130,6 +131,7 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -147,6 +149,7 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -180,6 +183,7 @@ end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
 subroutine XXX_(self, EMsoft, progname)
+!DEC$ ATTRIBUTES DLLEXPORT :: XXX_
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20

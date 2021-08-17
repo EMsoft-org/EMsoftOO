@@ -83,6 +83,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_polyhedra.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_MCA.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_STL.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_demag.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
