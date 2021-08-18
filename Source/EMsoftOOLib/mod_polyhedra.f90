@@ -510,10 +510,17 @@ do i=1,self%nfaces
   call self%faces(i)%fmv%log()
 end do
 
+call Message%printMessage('Face center vectors:',frm="(/A)")
+do i=1,self%nfaces
+  call self%facecenter(i)%log()
+end do
+
 call Message%printMessage('Face normal vectors:',frm="(/A)")
 do i=1,self%nfaces
-  mv = self%face(i) * E0123
-  mv = mv.muls.(1.D0/mv%inorm())
+  ! mv = self%face(i) * E0123
+  ! mv = mv.muls.(1.D0/mv%inorm())
+  mv = self%facenormal(i) 
+  ! mv = mv.muls.(1.D0/mv%inorm())
   call mv%log()
 end do
 
@@ -595,7 +602,6 @@ do i=1,self%nfaces
   self%faces(i)%fmv = self%faces(i)%fmv.muls.(-1.D0)
 end do 
 
-pt = point(0.D0,0.D0,0.D0)
 ! find the face centers 
 do j=1,self%nfaces
   mv = self%vertex(self%faces(j)%verts(1)) 
@@ -605,7 +611,7 @@ do j=1,self%nfaces
   s = 1.D0/dble(self%faces(j)%nv)
   mv = mv.muls.s
   self%facecenter(j) = mv%normalized()
-  mv2 = pt .vee. self%facecenter(j)
+  mv2 = self%faces(j)%fmv.inner.self%facecenter(j)
   self%facenormal(j) = mv2%normalized()
   self%face(j) = mv2.inner.self%facecenter(j)
 end do
@@ -920,7 +926,7 @@ do i = -dims(1),dims(1)-1
               arg = mv%getcomp(0)
               esum = esum + cmplx(ratio*cos(arg),-ratio*sin(arg)) 
             end do 
-            ff = -knf*esum/(pp*qq)
+            ff = knf*esum/(pp*qq)  ! the minus sign is taken care of by the projective geometric algebra routines
           endif
           p = p+ff
         end do

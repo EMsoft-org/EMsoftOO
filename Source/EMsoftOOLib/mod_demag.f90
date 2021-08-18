@@ -684,10 +684,14 @@ d = emnl%dims
 if (emnl%dtf.eqv..TRUE.) then 
   call self%getDemagTensorField_()
   write (*,*) ' central trace of Nij = ', sum(self%Nij(d/2,d/2,d/2,1:3))
+  write (*,*) ' exterior trace of Nij = ', sum(self%Nij(1,1,1,1:3))
 end if 
 
 call self%getDemagFactors_()
-write (*,*) ' volume-averaged demag factors : ', self%Nav
+write (*,*) ' volume-averaged demag tensor : '
+write (*,"(3F14.8)") self%Nav(1), self%Nav(6), self%Nav(5)
+write (*,"(3F14.8)") self%Nav(6), self%Nav(2), self%Nav(4)
+write (*,"(3F14.8)") self%Nav(5), self%Nav(4), self%Nav(3)
 
 !====================================
 !====================================
