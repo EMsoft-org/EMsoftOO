@@ -496,23 +496,18 @@ subroutine getDemagTensorField_(self)
 !! compute the 3D demag tensor field; uses Voigt notation due to tensor symmetry 
 
 use mod_fftw3
-use mod_EMsoft
 
 IMPLICIT NONE 
 
 class(demag_T), INTENT(INOUT)             :: self 
 
-type(EMsoft_T)                            :: EMsoft
 integer(kind=irg)                         :: d
 type(C_PTR)                               :: plan
-character(fnlen)                          :: p
 complex(C_DOUBLE_COMPLEX),pointer         :: inp(:,:,:)
 complex(C_DOUBLE_COMPLEX),pointer         :: outp(:,:,:)
 real(kind=dbl),allocatable                :: dtfcomp(:,:,:)
 type(C_PTR)                               :: i, o
 
-p = ''
-EMsoft = EMsoft_T(p, p, silent=.TRUE.)
 d = self%nml%dims 
 
 ! allocate fftw arrays

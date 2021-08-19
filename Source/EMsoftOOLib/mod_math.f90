@@ -61,7 +61,7 @@ module mod_math
 use mod_kinds
 use mod_global
 
-public :: mInvert, cross3, infty, inftyd, nan, nan_d
+! public :: mInvert, cross3, infty, inftyd, nan, nan_d, 
 
 interface mInvert
         module procedure mInvert
@@ -858,6 +858,166 @@ else
 end if
 
 end function BesselI1
+
+
+recursive function bessj(n,x)
+!DEC$ ATTRIBUTES DLLEXPORT :: bessj
+
+!     This subroutine calculates the first kind modified Bessel function
+!     of integer order N, for any REAL X. We use here the classical
+!     recursion formula, when X > N. For X < N, the Miller's algorithm
+!     is used to avoid overflows. 
+!     REFERENCE:
+!     C.W.CLENSHAW, CHEBYSHEV SERIES FOR MATHEMATICAL FUNCTIONS,
+!     MATHEMATICAL TABLES, VOL.5, 1962.
+
+IMPLICIT NONE
+
+integer(kind=irg), parameter          :: iacc = 40
+real(kind=dbl), parameter             :: bigno = 1.d10, bigni = 1.d-10
+integer(kind=irg)                     :: m, n, j, jsum
+real(kind=dbl)                        :: x,bessj,tox,bjm,bj,bjp,sum
+
+if (n.eq.0) then
+  bessj = bessj0(x)
+  return
+endif
+
+if (n.eq.1) then
+  bessj = bessj1(x)
+  return
+endif
+
+if (x.eq.0.) then
+  bessj = 0.
+  return
+endif
+
+tox = 2.D0/x
+if (x.gt.dble(n)) then
+  bjm = bessj0(x)
+  bj  = bessj1(x)
+  do j = 1,n-1
+    bjp = j*tox*bj-bjm
+    bjm = bj
+    bj  = bjp
+  end do 
+  bessj = bj
+else
+  m = 2.D0*((n+int(sqrt(dble(iacc*n))))/2)
+  bessj = 0.D0
+  jsum = 0
+  sum = 0.D0
+  bjp = 0.D0
+  bj  = 1.D0
+  do j = m,1,-1
+    bjm = j*tox*bj-bjp
+    bjp = bj
+    bj  = bjm
+    if (abs(bj).gt.bigno) then
+      bj  = bj*bigni
+      bjp = bjp*bigni
+      bessj = bessj*bigni
+      sum = sum*bigni
+    endif
+    if (jsum.ne.0) sum = sum+bj
+    jsum = 1-jsum
+    if (j.eq.n) bessj = bjp
+  end do 
+  sum = 2.D0*sum-bj
+  bessj = bessj/sum
+endif
+end function bessj
+
+
+!************************************************************************
+recursive function bessj0(x)
+!DEC$ ATTRIBUTES DLLEXPORT :: bessj0
+
+IMPLICIT NONE
+
+real(kind=dbl)      :: x,bessj0,ax,fr,fs,z,fp,fq,xx
+
+!     This subroutine calculates the First Kind Bessel Function of
+!     order 0, for any real number X. The polynomial approximation by
+!     series of Chebyshev polynomials is used for 0<X<8 and 0<8/X<1.
+!     REFERENCES:
+!     M.ABRAMOWITZ,I.A.STEGUN, HANDBOOK OF MATHEMATICAL FUNCTIONS, 1965.
+!     C.W.CLENSHAW, NATIONAL PHYSICAL LABORATORY MATHEMATICAL TABLES,
+!     VOL.5, 1962.
+
+real(kind=dbl)           :: y
+
+real(kind=dbl),parameter :: p1 = 1.d0, p2 = -.1098628627d-2, p3 = .2734510407d-4, &
+                            p4 = -.2073370639d-5, p5 = .2093887211d-6
+real(kind=dbl),parameter :: q1 = -.1562499995d-1, q2 = .1430488765d-3, q3 = -.6911147651d-5, &
+                            q4 = .7621095161d-6, q5 = -.9349451520d-7
+real(kind=dbl),parameter :: r1 = 57568490574.d0, r2 = -13362590354.d0, r3 = 651619640.7d0, &
+                            r4 = -11214424.18d0, r5 = 77392.33017d0, r6 = -184.9052456d0 
+real(kind=dbl),parameter :: s1 = 57568490411.d0, s2 = 1029532985.d0, s3 = 9494680.718d0, & 
+                            s4 = 59272.64853d0, s5 = 267.8532712d0, s6 = 1.d0
+
+if (x.eq.0.d0) then 
+  bessj0 = 1.D0
+  return 
+else 
+  ax = abs(x)
+  if (ax.lt.8.D0) then
+    y = x*x
+    fr = r1+y*(r2+y*(r3+y*(r4+y*(r5+y*r6))))
+    fs = s1+y*(s2+y*(s3+y*(s4+y*(s5+y*s6))))
+    bessj0 = fr/fs
+  else
+    z = 8.D0/ax
+    y = z*z
+    xx = ax-.785398164D0
+    fp = p1+y*(p2+y*(p3+y*(p4+y*p5)))
+    fq = q1+y*(q2+y*(q3+y*(q4+y*q5)))
+    bessj0 = sqrt(.636619772D0/ax)*(fp*cos(xx)-z*fq*sin(xx))
+  endif
+end if
+end function bessj0
+
+! ---------------------------------------------------------------------------
+recursive function bessj1(x)
+!DEC$ ATTRIBUTES DLLEXPORT :: bessj1
+
+IMPLICIT NONE
+
+real(kind=dbl)           :: x,bessj1,ax,fr,fs,z,fp,fq,xx
+!     This subroutine calculates the First Kind Bessel Function of
+!     order 1, for any real number X. The polynomial approximation by
+!     series of Chebyshev polynomials is used for 0<X<8 and 0<8/X<1.
+!     REFERENCES:
+!     M.ABRAMOWITZ,I.A.STEGUN, HANDBOOK OF MATHEMATICAL FUNCTIONS, 1965.
+!     C.W.CLENSHAW, NATIONAL PHYSICAL LABORATORY MATHEMATICAL TABLES,
+!     VOL.5, 1962.
+real(kind=dbl)           :: y
+         
+real(kind=dbl),parameter :: p1 = 1.D0, p2 = .183105D-2, p3 = -.3516396496D-4, p4 = .2457520174D-5, & 
+                            p5 = -.240337019D-6, p6 = .636619772D0
+real(kind=dbl),parameter :: q1 = .04687499995d0, q2 = -.2002690873d-3, q3 = .8449199096d-5, q4 = -.88228987d-6, & 
+                            q5 = .105787412d-6 
+real(kind=dbl),parameter :: r1 = 72362614232.d0, r2 = -7895059235.d0, r3 = 242396853.1d0, r4 = -2972611.439d0, &
+                            r5 = 15704.48260d0, r6 = -30.16036606d0
+real(kind=dbl),parameter :: s1 = 144725228442.d0, s2 = 2300535178.d0, s3 = 18583304.74d0, s4 = 99447.43394d0, & 
+                            s5 = 376.9991397d0, s6 = 1.d0
+
+  ax = abs(x)
+  if (ax.lt.8.D0) then
+    y = x*x
+    fr = r1+y*(r2+y*(r3+y*(r4+y*(r5+y*r6))))
+    fs = s1+y*(s2+y*(s3+y*(s4+y*(s5+y*s6))))
+    bessj1 = x*(fr/fs)
+  else
+    z = 8.D0/ax
+    y = z*z
+    xx = ax-2.35619491D0
+    fp = p1+y*(p2+y*(p3+y*(p4+y*p5)))
+    fq = q1+y*(q2+y*(q3+y*(q4+y*q5)))
+    bessj1 = sqrt(p6/ax)*(cos(xx)*fp-z*sin(xx)*fq)*sign(s6,x)
+  endif
+end function bessj1
 
 !*****************************************************************************80
 !*****************************************************************************80

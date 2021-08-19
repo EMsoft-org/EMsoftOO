@@ -47,7 +47,7 @@ type, public :: ShapeAmplitudeNameListType
   real(kind=dbl)        :: isovalue
   integer(kind=irg)     :: dims(3)
   integer(kind=irg)     :: nthreads
-  character(10)         :: shapetype
+  character(80)         :: shapetype
   logical               :: shapeIntensity
   character(fnlen)      :: polyhedronFilename 
   character(fnlen)      :: STLFilename 
@@ -60,11 +60,13 @@ type, public :: ShapeAmplitude_T
 private 
   character(fnlen)                  :: nmldeffile = 'EMShapeAmplitude.nml'
   type(ShapeAmplitudeNameListType)  :: nml 
+  real(kind=sgl)                    :: volume
 
 contains
 private 
   procedure, pass(self) :: get_polyEdgeL_
   procedure, pass(self) :: get_geometry_
+  procedure, pass(self) :: get_volume_
   procedure, pass(self) :: get_dxyz_
   procedure, pass(self) :: get_dk_
   procedure, pass(self) :: get_isovalue_
@@ -78,6 +80,7 @@ private
   procedure, pass(self) :: get_shapeIntensity_
   procedure, pass(self) :: set_shapeIntensity_
   procedure, pass(self) :: set_polyEdgeL_
+  procedure, pass(self) :: set_volume_
   procedure, pass(self) :: set_geometry_
   procedure, pass(self) :: set_dxyz_
   procedure, pass(self) :: set_dk_
@@ -94,10 +97,19 @@ private
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: ShapeAmplitude_
   procedure, pass(self) :: readShapeAmplitude_
+  procedure, pass(self) :: ellipsoid_shapefunction_
+  procedure, pass(self) :: ellipsoid_shapeamplitude_
+  procedure, pass(self) :: prism_shapefunction_
+  procedure, pass(self) :: prism_shapeamplitude_
+  procedure, pass(self) :: ellipticcylinder_shapefunction_
+  procedure, pass(self) :: ellipticcylinder_shapeamplitude_
+  procedure, pass(self) :: torus_shapefunction_
+  ! procedure, pass(self) :: torus_shapeamplitude_
   ! procedure, pass(self) :: readShapeFunction_
 
   generic, public :: get_polyEdgeL => get_polyEdgeL_
   generic, public :: get_geometry => get_geometry_
+  generic, public :: get_volume => get_volume_
   generic, public :: get_dxyz => get_dxyz_
   generic, public :: get_dk => get_dk_
   generic, public :: get_isovalue => get_isovalue_
@@ -111,6 +123,7 @@ private
   generic, public :: get_shapeIntensity => get_shapeIntensity_
   generic, public :: set_shapeIntensity => set_shapeIntensity_
   generic, public :: set_polyEdgeL => set_polyEdgeL_
+  generic, public :: set_volume => set_volume_
   generic, public :: set_geometry => set_geometry_
   generic, public :: set_dxyz => set_dxyz_
   generic, public :: set_dk => set_dk_
@@ -202,7 +215,7 @@ real(kind=dbl)        :: isovalue
 integer(kind=irg)     :: dims(3)
 integer(kind=irg)     :: nthreads
 logical               :: shapeIntensity
-character(10)         :: shapetype
+character(80)         :: shapetype
 character(fnlen)      :: polyhedronFilename 
 character(fnlen)      :: STLFilename 
 character(80)         :: STLheader
@@ -361,6 +374,42 @@ if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create shamp
 end associate
 
 end subroutine writeHDFNameList_
+
+!--------------------------------------------------------------------------
+function get_volume_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_volume_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/19/21
+!!
+!! get volume from the ShapeAmplitude_T class
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)     :: self
+real(kind=sgl)                             :: out
+
+out = self%volume
+
+end function get_volume_
+
+!--------------------------------------------------------------------------
+subroutine set_volume_(self, v) 
+!DEC$ ATTRIBUTES DLLEXPORT :: set_volume_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/19/21
+!!
+!! set volume from the ShapeAmplitude_T class
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)     :: self
+real(kind=sgl),INTENT(IN)                  :: v
+
+self%volume = v
+
+end subroutine set_volume_
 
 !--------------------------------------------------------------------------
 function get_polyEdgeL_(self) result(out)
@@ -831,6 +880,304 @@ self%nml%shapeIntensity = inp
 end subroutine set_shapeIntensity_
 
 !--------------------------------------------------------------------------
+subroutine ellipsoid_shapefunction_(self, shapearray, dims, dxyz, geom)
+!DEC$ ATTRIBUTES DLLEXPORT :: ellipsoid_shapefunction_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/18/21
+!!
+!! determine the shape function of an ellipsoid
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)              :: dims(3)
+real(kind=sgl),INTENT(INOUT)              :: shapearray( -dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3) )
+real(kind=sgl),INTENT(IN)                 :: dxyz
+real(kind=sgl),INTENT(IN)                 :: geom(3) 
+
+integer(kind=irg)                         :: i, j, k 
+real(kind=sgl)                            :: x, y, z, a, b, c 
+
+shapearray = 0.0
+
+a = 1.0/geom(1)
+b = 1.0/geom(2)
+c = 1.0/geom(3)
+
+do i=-dims(1),dims(1)
+  x = (i*dxyz*a)**2
+  do j=-dims(2),dims(2)
+    y = (j*dxyz*b)**2
+    do k=-dims(3),dims(3)
+      z = (k*dxyz*c)**2
+      if (x+y+z.le.1.0) shapearray(i,j,k) = 1.0
+    end do 
+  end do 
+end do
+
+self%volume = 4.0*sngl(cPi)*product(geom)/3.0
+
+write (*,*) maxval(shapearray), sum(shapearray), 4.0*cPi*product(geom)*dxyz**3/3.0
+
+
+end subroutine ellipsoid_shapefunction_
+
+!--------------------------------------------------------------------------
+subroutine ellipticcylinder_shapefunction_(self, shapearray, dims, dxyz, geom)
+!DEC$ ATTRIBUTES DLLEXPORT :: ellipticcylinder_shapefunction_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/18/21
+!!
+!! determine the shape function of an (elliptic) cylinder 
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)              :: dims(3)
+real(kind=sgl),INTENT(INOUT)              :: shapearray( -dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3) )
+real(kind=sgl),INTENT(IN)                 :: dxyz
+real(kind=sgl),INTENT(IN)                 :: geom(3) 
+
+integer(kind=irg)                         :: i, j, k 
+real(kind=sgl)                            :: x, y, z, a, b
+
+shapearray = 0.0
+
+a = 1.0/geom(1)
+b = 1.0/geom(2)
+
+do i=-dims(1),dims(1)
+  x = (i*dxyz*a)**2
+  do j=-dims(2),dims(2)
+    y = (j*dxyz*b)**2
+    do k=-dims(3),dims(3)
+      z = abs(k*dxyz)
+      if ( (x+y.le.1.0).and.(z.lt.geom(3))) shapearray(i,j,k) = 1.0
+    end do 
+  end do 
+end do
+
+end subroutine ellipticcylinder_shapefunction_
+
+!--------------------------------------------------------------------------
+subroutine prism_shapefunction_(self, shapearray, dims, dxyz, geom)
+!DEC$ ATTRIBUTES DLLEXPORT :: prism_shapefunction_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/18/21
+!!
+!! determine the shape function of a prism
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)              :: dims(3)
+real(kind=sgl),INTENT(INOUT)              :: shapearray( -dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3) )
+real(kind=sgl),INTENT(IN)                 :: dxyz
+real(kind=sgl),INTENT(IN)                 :: geom(3) 
+
+integer(kind=irg)                         :: i, j, k 
+real(kind=sgl)                            :: x, y, z
+
+shapearray = 0.0
+
+do i=-dims(1),dims(1)
+  x = abs(i*dxyz)
+  do j=-dims(2),dims(2)
+    y = abs(j*dxyz)
+    do k=-dims(3),dims(3)
+      z = abs(k*dxyz)
+      if ( (x.le.geom(1)).and.(y.le.geom(2)).and.(z.le.geom(3)) ) shapearray(i,j,k) = 1.0
+    end do 
+  end do 
+end do
+
+end subroutine prism_shapefunction_
+
+!--------------------------------------------------------------------------
+subroutine torus_shapefunction_(self, shapearray, dims, dxyz, geom)
+!DEC$ ATTRIBUTES DLLEXPORT :: torus_shapefunction_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/18/21
+!!
+!! determine the shape function of a torus  (x^2+y^2+z^2-(a^2+b^2))^2-4a^2(b^2-z^2)
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)              :: dims(3)
+real(kind=sgl),INTENT(INOUT)              :: shapearray( -dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3) )
+real(kind=sgl),INTENT(IN)                 :: dxyz
+real(kind=sgl),INTENT(IN)                 :: geom(2) 
+
+integer(kind=irg)                         :: i, j, k 
+real(kind=sgl)                            :: x, y, z, a, b, d, ab
+
+shapearray = 0.0
+
+a = geom(1)**2
+b = geom(2)**2
+ab = a+b 
+
+do i=-dims(1),dims(1)
+  x = (i*dxyz)**2
+  do j=-dims(2),dims(2)
+    y = (j*dxyz)**2
+    do k=-dims(3),dims(3)
+      z = (k*dxyz)**2
+      d = (x+y+z-ab)**2 - 4.0*a*(b-z)
+      if ( d.ge.0.0 ) shapearray(i,j,k) = 1.0
+    end do 
+  end do 
+end do
+
+end subroutine torus_shapefunction_
+
+!--------------------------------------------------------------------------
+subroutine ellipsoid_shapeamplitude_(self, shamp, dims, dk, geom)
+!DEC$ ATTRIBUTES DLLEXPORT :: ellipsoid_shapeamplitude_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/18/21
+!!
+!! determine the shape amplitude of an ellipsoid
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)              :: dims(3)
+complex(kind=dbl),INTENT(INOUT)           :: shamp( -dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1 )
+real(kind=dbl),INTENT(IN)                 :: dk
+real(kind=sgl),INTENT(IN)                 :: geom(3) 
+
+integer(kind=irg)                         :: i, j, k 
+real(kind=dbl)                            :: kvec(3), q
+real(kind=dbl)                            :: pre
+
+pre = 4.D0*cPi*dble(product(geom))
+
+do i=-dims(1),dims(1)-1
+  do j=-dims(2),dims(2)-1
+    do k=-dims(3),dims(3)-1
+      kvec = dk * (/ geom(1)*dble(i), geom(2)*dble(j), geom(3)*dble(k) /)  ! this is the Fourier space frequency vector k
+      q = NORM2(kvec)
+      if (q.eq.0.0) then 
+        shamp(0,0,0) = cmplx(pre/3.D0)
+      else
+        shamp(i,j,k) = cmplx(pre * (sin(q)/q**3 - cos(q)/q**2)) 
+      end if 
+    end do 
+  end do 
+end do
+
+end subroutine ellipsoid_shapeamplitude_
+
+!--------------------------------------------------------------------------
+function sinc( x ) result(s)
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/19/21
+!!
+!! sinc(x) = sin(x)/x
+
+IMPLICIT NONE
+
+real(kind=dbl),INTENT(IN)       :: x
+real(kind=dbl)                  :: s 
+
+if (x.eq.0.D0) then 
+  s = 1.D0 
+else 
+  s = sin(x)/x 
+end if 
+
+end function sinc
+
+!--------------------------------------------------------------------------
+subroutine prism_shapeamplitude_(self, shamp, dims, dk, geom)
+!DEC$ ATTRIBUTES DLLEXPORT :: prism_shapeamplitude_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/18/21
+!!
+!! determine the shape amplitude of a rectangular prism
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)              :: dims(3)
+complex(kind=dbl),INTENT(INOUT)           :: shamp( -dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1 )
+real(kind=dbl),INTENT(IN)                 :: dk
+real(kind=sgl),INTENT(IN)                 :: geom(3) 
+
+integer(kind=irg)                         :: i, j, k 
+real(kind=dbl)                            :: kvec(3), q
+real(kind=dbl)                            :: pre
+
+pre = 8.D0*dble(product(geom))
+
+do i=-dims(1),dims(1)-1
+  do j=-dims(2),dims(2)-1
+    do k=-dims(3),dims(3)-1
+      kvec = dk * (/ geom(1)*dble(i), geom(2)*dble(j), geom(3)*dble(k) /)  ! this is the Fourier space frequency vector k
+      q = NORM2(kvec)
+      if (q.eq.0.0) then 
+        shamp(0,0,0) = cmplx(pre)
+      else
+        shamp(i,j,k) = cmplx(pre * sinc(kvec(1)) * sinc(kvec(2)) * sinc(kvec(3)) ) 
+      end if 
+    end do 
+  end do 
+end do
+
+end subroutine prism_shapeamplitude_
+
+!--------------------------------------------------------------------------
+subroutine ellipticcylinder_shapeamplitude_(self, shamp, dims, dk, geom)
+!DEC$ ATTRIBUTES DLLEXPORT :: ellipticcylinder_shapeamplitude_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/18/21
+!!
+!! determine the shape amplitude of a rectangular prism
+
+use mod_math
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)              :: dims(3)
+complex(kind=dbl),INTENT(INOUT)           :: shamp( -dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1 )
+real(kind=dbl),INTENT(IN)                 :: dk
+real(kind=sgl),INTENT(IN)                 :: geom(3) 
+
+integer(kind=irg)                         :: i, j, k 
+real(kind=dbl)                            :: qq(2), q
+real(kind=dbl)                            :: pre, beta
+
+beta = geom(2)/geom(1) 
+pre = 4.D0* cPi * geom(1) * geom(3)
+
+do i=-dims(1),dims(1)-1
+  do j=-dims(2),dims(2)-1
+    do k=-dims(3),dims(3)-1
+      qq = dk * (/ dble(i), beta*dble(j)/)  ! this is the Fourier space frequency vector k
+      q = NORM2(qq)
+      if ((q.eq.0.0).and.(k.eq.0)) then 
+        shamp(0,0,0) = cmplx( 2.D0*cPi*product(dble(geom)) )
+      else
+        shamp(i,j,k) = cmplx(pre * bessj(1, geom(1)*q) * sinc(geom(3)*dble(k)) / q ) 
+      end if 
+    end do 
+  end do 
+end do
+
+end subroutine ellipticcylinder_shapeamplitude_
+
+!--------------------------------------------------------------------------
 subroutine ShapeAmplitude_(self, EMsoft, progname, HDFnames)
 !DEC$ ATTRIBUTES DLLEXPORT :: ShapeAmplitude_
 !! author: MDG 
@@ -875,13 +1222,18 @@ character(11)                           :: dstr
 character(15)                           :: tstrb
 character(15)                           :: tstre
 real(kind=dbl)                          :: edgeL, dk 
-real(kind=sgl)                          :: iso, mi, ma 
+real(kind=sgl)                          :: iso, mi, ma, dxyz 
 real(kind=sgl),allocatable              :: sf(:,:,:)
 complex(kind=dbl),allocatable           :: shamp(:,:,:)
 real(kind=sgl),allocatable              :: shampreal(:,:,:), shint(:,:,:)
 integer(kind=irg)                       :: i, j, k, nthr, dims(3), ntriangles, hdferr
+logical                                 :: analytical
 
 associate(emnl => self%nml)
+dk = emnl%dk
+nthr = emnl%nthreads
+dims = emnl%dims
+dxyz = sngl(emnl%dxyz)
 
 if (trim(emnl%shapetype).eq.'polyhedron') then 
   call Message%printMessage(' Initializing 3D Projective Geometric Algebra module')
@@ -896,7 +1248,7 @@ if (trim(emnl%shapetype).eq.'polyhedron') then
     shape = polyhedron_T( polyname, edgeL )
   end if 
   call shape%polyhedron_info()
-  dims = emnl%dims
+  call self%set_volume_(sngl(shape%get_volume()))
 
 ! first generate the shape function 
   call Message%printMessage(' Generating the Shape Function')
@@ -906,9 +1258,60 @@ if (trim(emnl%shapetype).eq.'polyhedron') then
 ! then the shape amplitude using the Komrska approach
   call Message%printMessage(' Generating the Shape Amplitude')
   allocate(shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1))
-  dk = emnl%dk
-  nthr = emnl%nthreads
   call shape%polyhedron_shapeamplitude(shamp, dims, dk, nthr)
+
+else   ! the shape is not a polyhedron 
+
+! first generate the shape function 
+  allocate(sf(-dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3)))
+  allocate(shamp(-dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1))
+
+  select case (trim(emnl%shapetype))
+    case('sphere') 
+      call Message%printMessage(' Generating the Sphere Shape Function')
+      call self%ellipsoid_shapefunction_( sf, dims, dxyz, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(1) /) ))
+      call Message%printMessage(' Generating the Sphere Shape Amplitude')
+      call self%ellipsoid_shapeamplitude_( shamp, dims, dk, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(1) /) ))
+      analytical = .TRUE.
+    case('ellipsoid')
+      call Message%printMessage(' Generating the Ellipsoid Shape Function')
+      call self%ellipsoid_shapefunction_( sf, dims, dxyz, sngl(emnl%geometry(1:3) ))
+      call Message%printMessage(' Generating the Ellipsoid Shape Amplitude')
+      call self%ellipsoid_shapeamplitude_( shamp, dims, dk, sngl(emnl%geometry(1:3) ))
+      analytical = .TRUE.
+    case('prism')
+      call Message%printMessage(' Generating the Prism Shape Function')
+      call self%prism_shapefunction_( sf, dims, dxyz, sngl(emnl%geometry(1:3) ))
+      call Message%printMessage(' Generating the Prism Shape Amplitude')
+      call self%prism_shapeamplitude_( shamp, dims, dk, sngl(emnl%geometry(1:3) ))
+      analytical = .TRUE.
+    case('cylinder')
+      call Message%printMessage(' Generating the Cylinder Shape Function')
+      call self%ellipticcylinder_shapefunction_( sf, dims, dxyz, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(2) /) ))
+      call Message%printMessage(' Generating the Cylinder  Shape Amplitude')
+      call self%ellipticcylinder_shapeamplitude_( shamp, dims, dk, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(2)/)))
+      analytical = .TRUE.
+    case('ellipticcylinder')
+      call Message%printMessage(' Generating the Elliptic Cylinder Shape Function')
+      call self%ellipticcylinder_shapefunction_( sf, dims, dxyz, sngl(emnl%geometry(1:3) ))
+      call Message%printMessage(' Generating the Elliptic Cylinder  Shape Amplitude')
+      call self%ellipticcylinder_shapeamplitude_( shamp, dims, dk, sngl(emnl%geometry(1:3) ))
+      analytical = .TRUE.
+    case('torus')
+      call Message%printMessage(' Generating the Torus Shape Function')
+      call self%torus_shapefunction_( sf, dims, dxyz, sngl(emnl%geometry(1:2) ))
+      call Message%printMessage(' Generating the Torus Shape Amplitude')
+      ! call self%torus_shapeamplitude_( sf, shamp, dims, dk )
+      analytical = .FALSE.
+    case default 
+      call Message%printError(' EMShapeAmplitude', 'Unknown shapetype: '//trim(emnl%shapetype))
+  end select
+
+
+
+
+end if 
+
 ! get the abs value for the STL file if needed
   if (trim(emnl%STLFilename).ne.'undefined') then
     allocate(shampreal(2*dims(1)+1,2*dims(2)+1,2*dims(3)+1))
@@ -922,21 +1325,17 @@ if (trim(emnl%shapetype).eq.'polyhedron') then
   end if 
 
 ! shape intensity needed ? 
-  if (emnl%shapeIntensity.eqv..TRUE.) then 
-    call Message%printMessage(' Computing the Shape Intensity')
-    allocate(shint(2*dims(1)+1,2*dims(2)+1,2*dims(3)+1))
-    shint = 0.D0
-    do i=1,2*dims(1)
-        do j=1,2*dims(2)
-            do k=1,2*dims(3)
-                shint(i,j,k) = abs(shamp(i-dims(1)-1,j-dims(2)-1,k-dims(3)-1))**2
-            end do 
-        end do 
-    end do 
-  end if 
-
-else   ! the shape is not a polyhedron 
-
+if (emnl%shapeIntensity.eqv..TRUE.) then 
+  call Message%printMessage(' Computing the Shape Intensity')
+  allocate(shint(2*dims(1)+1,2*dims(2)+1,2*dims(3)+1))
+  shint = 0.D0
+  do i=1,2*dims(1)
+      do j=1,2*dims(2)
+          do k=1,2*dims(3)
+              shint(i,j,k) = abs(shamp(i-dims(1)-1,j-dims(2)-1,k-dims(3)-1))**2
+          end do 
+      end do 
+  end do 
 end if 
 
 !====================================
@@ -1023,7 +1422,7 @@ if (trim(emnl%STLFilename).ne.'undefined') then
   else
     iso = 0.50
   end if 
-  call MCA%doMCA( sf, 2*dims+1, sngl(emnl%dk), iso )
+  call MCA%doMCA( sf, 2*dims+1, sngl(emnl%dxyz), iso )
 
   ntriangles = MCA%getNtriangles()
   STL = STL_T(sname, header, ntriangles, MCAlist=MCA%getMCAptr()) 
@@ -1038,10 +1437,12 @@ if (trim(emnl%STLFilename).ne.'undefined') then
     ma = maxval(shampreal)
     shampreal = (shampreal - mi) / (ma-mi)
   else
-    iso = 0.10 * sngl(shape%get_volume())
+    iso = 0.10 * sngl(self%get_volume())
   end if 
 
-  call MCA%doMCA( shampreal, 2*dims+1, sngl(emnl%dxyz), iso )
+write (*,*) 'shamp range ', minval(shampreal), maxval(shampreal), iso
+
+  call MCA%doMCA( shampreal, 2*dims+1, sngl(emnl%dk), iso )
 
   ntriangles = MCA%getNtriangles()
   STL = STL_T(sname, header, ntriangles, MCAlist=MCA%getMCAptr()) 
@@ -1057,7 +1458,7 @@ if (trim(emnl%STLFilename).ne.'undefined') then
       ma = maxval(shint)
       shint = (shint - mi) / (ma-mi)
     else
-      iso = 0.01 * sngl(shape%get_volume())**2
+      iso = 0.01 * sngl(self%get_volume())**2
     end if 
     call MCA%doMCA( shint, 2*dims+1, sngl(emnl%dk), iso )
 

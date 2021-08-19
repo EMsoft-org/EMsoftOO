@@ -22,8 +22,10 @@
 ! depend on the actual shape and are to be entered as follows:
 !
 ! 'sphere'              : radius
-! 'cylinder'            : radius height 
-! 'prism'               : Lx Ly Lz                      (semi-edge lengths)
+! 'ellipsoid'           : semi-axes along x, y, and z
+! 'cylinder'            : radius semi-height 
+! 'ellipticcylinder'    : semi-axes along x, and y; semi-height along z
+! 'prism'               : Lx Ly Lz (semi-edge lengths)
 ! 'torus'               : major-radius minor-radius 
 ! 
  geometry = 0.D0 0.D0 0.D0 0.D0 0.D0 0.D0 0.D0 0.D0 0.D0 0.D0, 
