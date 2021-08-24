@@ -2370,7 +2370,8 @@ memth = Memory_T( nt=lnl%nthreads )
           call getRayOrientations( microstr, rotated_slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), np, orlist )
 ! pass only the relevant portions for this pixel of the slist and rotated_slist arrays etc ... 
           pp = LaueReflist%getnewLaueDCTPattern(ipar, fpar, dpar, np, slist(1:3,nst(1,iy,iz):nst(2,iy,iz)), &
-                                                rays(1:3,nst(1,iy,iz)), voxvol(nst(1,iy,iz):nst(2,iy,iz)), quat, orlist )
+                                                rays(1:3,nst(1,iy,iz)), voxvol(nst(1,iy,iz):nst(2,iy,iz)), & 
+                                                quat, orlist )
           call orlist%deleteArray() ! explicitly clean up the orientations array
           pattern = pattern + pp 
         end do 

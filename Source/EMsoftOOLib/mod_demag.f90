@@ -66,6 +66,8 @@ private
   real(kind=dbl)                    :: Nav(6)
   complex(kind=dbl),allocatable     :: shamp(:,:,:)
   real(kind=dbl)                    :: dk, sc 
+  logical                           :: analytical 
+  real(kind=dbl)                    :: volume
   ! type(ShapeAmplitudeNameListType)  :: shampnml 
 
 contains
@@ -127,7 +129,7 @@ character(fnlen), OPTIONAL    :: nmlfile
 type(IO_T)                    :: Message 
 type(ShapeAmplitude_T)        :: shamp 
 
-integer(kind=irg)             :: d, i, j, shd(3), io_int(2) 
+integer(kind=irg)             :: d, i, j, shd(3), io_int(2), ds 
 real(kind=dbl),allocatable    :: line(:) 
 
 call demag%readNameList(nmlfile)
@@ -164,16 +166,21 @@ demag%kx = demag%kx/demag%kk
 demag%ky = demag%ky/demag%kk
 demag%kz = demag%kz/demag%kk
 
-demag%gfilter = (sin(demag%kk)/demag%kk)**2 - sin(2.D0*demag%kk)/(2.0*demag%kk)
-demag%gfilter = 3.D0 * demag%gfilter/demag%kk**2/dble(d)**3
-demag%gfilter(1,1,1) = 0.D0
-
 call Message%printMessage(' done.')
 
 call Message%printMessage(' Reading shape amplitude from file... ', advance='no')
 
 shamp = ShapeAmplitude_T()
-call shamp%readShapeAmplitude(demag%nml%shampFilename, demag%shamp) ! demag%shampnml
+call shamp%readShapeAmplitude(demag%nml%shampFilename, demag%shamp, ds) ! demag%shampnml
+demag%analytical = .FALSE. 
+if (ds.eq.1) then 
+  demag%analytical = .TRUE. 
+  demag%gfilter = (sin(demag%kk)/demag%kk)**2 - sin(2.D0*demag%kk)/(2.0*demag%kk)
+  demag%gfilter = 3.D0 * demag%gfilter/demag%kk**2/dble(d)**3
+  demag%gfilter(1,1,1) = 1.D0
+else 
+  demag%gfilter = 1.D0/dble(d)**3
+end if 
 
 ! check to make sure the dimensions of the shamp array are compatible with the coordinate arrays
 shd = shape(demag%shamp) 
@@ -183,6 +190,8 @@ if (shd(1).ne.d) then
   call Message%WriteValue(' Array dimension mismatch: ', io_int, 2, frm="(I5,'<---->',I5)")
   call Message%printError(' EMdemag class constructor', 'Incompatible array dimension in shape amplitude file')
 end if 
+
+demag%volume = real(demag%shamp(1,1,1))
 
 call Message%printMessage(' done.')
 
@@ -608,30 +617,35 @@ d = self%nml%dims
 allocate(shint(d,d,d))
 shint = abs(self%shamp)**2
 
-! Nxx
+! <Nxx>
 self%Nav(1) = sum(shint * self%kx**2) 
 
-! Nyy
+! <Nyy>
 self%Nav(2) = sum(shint * self%ky**2)
 
-! Nzz
+! <Nzz>
 self%Nav(3) = sum(shint * self%kz**2)
 
-! Nyz, Nzy
+! <Nyz>, <Nzy>
 self%Nav(4) = sum(shint * self%kz*self%ky)
 
-! Nxz, Nzx
+! <Nxz>, <Nzx>
 self%Nav(5) = sum(shint * self%kz*self%kx)
 
-! Nxy, Nyx
+! <Nxy>, <Nyx>
 self%Nav(6) = sum(shint * self%kx*self%ky)
 
-! divide by volume and d^3
-self%Nav = self%Nav/self%shamp(1,1,1)/dble(d)**3
+! divide by volume and d^3, depends on the way the shape 
+! amplitude was computed ... (analytical vs. numerical)
+if (self%analytical.eqv..TRUE.) then
+  self%Nav = self%Nav/self%volume/dble(d)**3
+else
+  self%Nav = self%Nav/self%volume*self%dk**3
+end if 
 
 ! Normalize to force the trace equal to one ()
-s = sum(self%Nav(1:3))
-self%Nav = self%Nav/s 
+! s = sum(self%Nav(1:3))
+! self%Nav = self%Nav/s 
 
 deallocate(shint)
 
@@ -669,7 +683,8 @@ character(80)                       :: header
 character(11)                       :: dstr
 character(15)                       :: tstrb
 character(15)                       :: tstre
-integer(kind=irg)                   :: hdferr, d 
+integer(kind=irg)                   :: hdferr, d, i, j, k
+real(kind=sgl), allocatable         :: tr(:,:,:)    
 
 associate(emnl => self%nml)
 
@@ -678,8 +693,15 @@ d = emnl%dims
 ! do we need the demagnetization tensor field ?
 if (emnl%dtf.eqv..TRUE.) then 
   call self%getDemagTensorField_()
-  write (*,*) ' central trace of Nij = ', sum(self%Nij(d/2,d/2,d/2,1:3))
-  write (*,*) ' exterior trace of Nij = ', sum(self%Nij(1,1,1,1:3))
+  allocate(tr(d,d,d))
+  do i=1,d 
+    do j=1,d 
+      do k=1,d 
+        tr(i,j,k) = abs(sum(self%Nij(i,j,k,1:3)))
+      end do 
+    end do
+  end do 
+  write (*,*) ' maximum/ minimum trace of Nij = ', maxval(tr), minval(tr)
 end if 
 
 call self%getDemagFactors_()

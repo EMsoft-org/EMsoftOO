@@ -24,7 +24,7 @@
 ! 'sphere'              : radius
 ! 'ellipsoid'           : semi-axes along x, y, and z
 ! 'cylinder'            : radius semi-height 
-! 'ellipticcylinder'    : semi-axes along x, and y; semi-height along z
+! 'ellipticcylinder'    : semi-axes along x, and y (semi-x > semi-y); semi-height along z
 ! 'prism'               : Lx Ly Lz (semi-edge lengths)
 ! 'torus'               : major-radius minor-radius 
 ! 
@@ -32,10 +32,8 @@
 !================================
 ! voxel step size for the shape function (real space) 
  dxyz = 1.D0,
-! voxel step size for the shape amplitude (Fourier space)
- dk = 0.1D0,
-! dimensions of the shape function and shape amplitude arrays (actual dimensions will be 2*dims+1)
- dims = 128 128 128,
+! dimension of the cubic shape function and shape amplitude arrays (actual shape function dimensions will be dims+1)
+ dims = 256,
 ! compute the shape intensity as well ?
  shapeIntensity = .FALSE.,
 !================================

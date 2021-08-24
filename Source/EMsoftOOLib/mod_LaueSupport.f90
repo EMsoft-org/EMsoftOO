@@ -708,7 +708,7 @@ integer(kind=irg)                       :: i, j, k , spots, isp
 ! For each sampling point along the ray, we need to do the gvector analysis while also 
 ! keeping track of the attenuation of the direct beam along this ray. The intensity of a diffracted
 ! beam must be subtracted from the incident intensity at each sampling point and for those diffracted
-! beams that hit the detector, the attenuation must be included.
+! beams that hit the detector, the attenuation through part of the cylindrical sample must be included.
 !
 ! loop over all np sampling points
 pattern = 0.0

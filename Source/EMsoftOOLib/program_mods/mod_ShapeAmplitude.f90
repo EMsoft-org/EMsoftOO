@@ -43,9 +43,8 @@ type, public :: ShapeAmplitudeNameListType
   real(kind=dbl)        :: polyEdgeL
   real(kind=dbl)        :: geometry(10)
   real(kind=dbl)        :: dxyz
-  real(kind=dbl)        :: dk
   real(kind=dbl)        :: isovalue
-  integer(kind=irg)     :: dims(3)
+  integer(kind=irg)     :: dims
   integer(kind=irg)     :: nthreads
   character(80)         :: shapetype
   logical               :: shapeIntensity
@@ -61,6 +60,9 @@ private
   character(fnlen)                  :: nmldeffile = 'EMShapeAmplitude.nml'
   type(ShapeAmplitudeNameListType)  :: nml 
   real(kind=sgl)                    :: volume
+  logical                           :: analytical
+  real(kind=dbl)                    :: dk
+  real(kind=dbl)                    :: dxyz
 
 contains
 private 
@@ -68,7 +70,6 @@ private
   procedure, pass(self) :: get_geometry_
   procedure, pass(self) :: get_volume_
   procedure, pass(self) :: get_dxyz_
-  procedure, pass(self) :: get_dk_
   procedure, pass(self) :: get_isovalue_
   procedure, pass(self) :: get_dims_
   procedure, pass(self) :: get_nthreads_
@@ -83,7 +84,6 @@ private
   procedure, pass(self) :: set_volume_
   procedure, pass(self) :: set_geometry_
   procedure, pass(self) :: set_dxyz_
-  procedure, pass(self) :: set_dk_
   procedure, pass(self) :: set_isovalue_
   procedure, pass(self) :: set_dims_
   procedure, pass(self) :: set_nthreads_
@@ -104,14 +104,13 @@ private
   procedure, pass(self) :: ellipticcylinder_shapefunction_
   procedure, pass(self) :: ellipticcylinder_shapeamplitude_
   procedure, pass(self) :: torus_shapefunction_
-  ! procedure, pass(self) :: torus_shapeamplitude_
+  procedure, pass(self) :: fft_shapeamplitude_
   ! procedure, pass(self) :: readShapeFunction_
 
   generic, public :: get_polyEdgeL => get_polyEdgeL_
   generic, public :: get_geometry => get_geometry_
   generic, public :: get_volume => get_volume_
   generic, public :: get_dxyz => get_dxyz_
-  generic, public :: get_dk => get_dk_
   generic, public :: get_isovalue => get_isovalue_
   generic, public :: get_dims => get_dims_
   generic, public :: get_nthreads => get_nthreads_
@@ -126,7 +125,6 @@ private
   generic, public :: set_volume => set_volume_
   generic, public :: set_geometry => set_geometry_
   generic, public :: set_dxyz => set_dxyz_
-  generic, public :: set_dk => set_dk_
   generic, public :: set_isovalue => set_isovalue_
   generic, public :: set_dims => set_dims_
   generic, public :: set_nthreads => set_nthreads_
@@ -210,9 +208,8 @@ logical                              :: skipread = .FALSE.
 real(kind=dbl)        :: polyEdgeL
 real(kind=dbl)        :: geometry(10)
 real(kind=dbl)        :: dxyz
-real(kind=dbl)        :: dk
 real(kind=dbl)        :: isovalue
-integer(kind=irg)     :: dims(3)
+integer(kind=irg)     :: dims
 integer(kind=irg)     :: nthreads
 logical               :: shapeIntensity
 character(80)         :: shapetype
@@ -221,7 +218,7 @@ character(fnlen)      :: STLFilename
 character(80)         :: STLheader
 character(fnlen)      :: shampFilename 
 
-namelist / shampdata / polyEdgeL, geometry, dxyz, dk, isovalue, dims, nthreads, shapetype, polyhedronFilename, &
+namelist / shampdata / polyEdgeL, geometry, dxyz, isovalue, dims, nthreads, shapetype, polyhedronFilename, &
                        STLFilename, STLheader, shampFilename, shapeIntensity 
 
 ! set the input parameters to default values
@@ -230,8 +227,7 @@ polyhedronFilename = 'undefined'
 polyEdgeL = 1.D0
 geometry = 0.D0
 dxyz = 1.D0
-dk = 0.1D0
-dims = (/ 128, 128, 128 /)
+dims = 256
 shapeIntensity = .FALSE.
 nthreads = 1
 STLFilename = 'undefined'
@@ -257,7 +253,6 @@ self%nml%polyhedronFilename = polyhedronFilename
 self%nml%polyEdgeL = polyEdgeL
 self%nml%geometry = geometry
 self%nml%dxyz = dxyz
-self%nml%dk = dk
 self%nml%dims = dims
 self%nml%shapeIntensity = shapeIntensity
 self%nml%nthreads = nthreads
@@ -307,7 +302,7 @@ class(ShapeAmplitude_T), INTENT(INOUT)  :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 2, n_real = 4
+integer(kind=irg),parameter             :: n_int = 3, n_real = 3
 integer(kind=irg)                       :: hdferr,  io_int(n_int), ii
 real(kind=dbl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -323,24 +318,20 @@ hdferr = HDF%createGroup(groupname)
 ! write all the single integers
 ii = 0 
 if (emnl%shapeIntensity.eqv..TRUE.) ii = 1
-io_int = (/ emnl%nthreads, ii /)
+io_int = (/ emnl%nthreads, ii, emnl%dims /)
 intlist(1) = 'nthreads'
-intlist(1) = 'shapeIntensity'
+intlist(2) = 'shapeIntensity'
+intlist(3) = 'dims'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the double reals
-io_real = (/ emnl%polyEdgeL, emnl%dk, emnl%dxyz, emnl%isovalue /)
+io_real = (/ emnl%polyEdgeL, emnl%dxyz, emnl%isovalue /)
 reallist(1) = 'polyEdgeL'
-reallist(2) = 'dk'
-reallist(3) = 'dxyz'
-reallist(4) = 'isovalue'
+reallist(2) = 'dxyz'
+reallist(3) = 'isovalue'
 call HDF%writeNMLdbles(io_real, reallist, n_real)
 
 ! vectors
-dataset = 'dims'
-hdferr = HDF%writeDatasetIntegerArray(dataset, emnl%dims, 3)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create dims dataset', hdferr)
-
 dataset = 'geometry'
 hdferr = HDF%writeDatasetDoubleArray(dataset, emnl%geometry, 10)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create geometry dataset', hdferr)
@@ -520,42 +511,6 @@ self%nml%dxyz = inp
 end subroutine set_dxyz_
 
 !--------------------------------------------------------------------------
-function get_dk_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_dk_
-!! author: MDG 
-!! version: 1.0 
-!! date: 08/13/21
-!!
-!! get dk from the ShapeAmplitude_T class
-
-IMPLICIT NONE 
-
-class(ShapeAmplitude_T), INTENT(INOUT)     :: self
-real(kind=dbl)                             :: out
-
-out = self%nml%dk
-
-end function get_dk_
-
-!--------------------------------------------------------------------------
-subroutine set_dk_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dk_
-!! author: MDG 
-!! version: 1.0 
-!! date: 08/13/21
-!!
-!! set dk in the ShapeAmplitude_T class
-
-IMPLICIT NONE 
-
-class(ShapeAmplitude_T), INTENT(INOUT)     :: self
-real(kind=dbl), INTENT(IN)                 :: inp
-
-self%nml%dk = inp
-
-end subroutine set_dk_
-
-!--------------------------------------------------------------------------
 function get_isovalue_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_isovalue_
 !! author: MDG 
@@ -603,7 +558,7 @@ function get_dims_(self) result(out)
 IMPLICIT NONE 
 
 class(ShapeAmplitude_T), INTENT(INOUT)     :: self
-integer(kind=irg)                          :: out(3)
+integer(kind=irg)                          :: out
 
 out = self%nml%dims
 
@@ -621,7 +576,7 @@ subroutine set_dims_(self,inp)
 IMPLICIT NONE 
 
 class(ShapeAmplitude_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)              :: inp(3)
+integer(kind=irg), INTENT(IN)              :: inp
 
 self%nml%dims = inp
 
@@ -918,9 +873,6 @@ end do
 
 self%volume = 4.0*sngl(cPi)*product(geom)/3.0
 
-write (*,*) maxval(shapearray), sum(shapearray), 4.0*cPi*product(geom)*dxyz**3/3.0
-
-
 end subroutine ellipsoid_shapefunction_
 
 !--------------------------------------------------------------------------
@@ -959,6 +911,8 @@ do i=-dims(1),dims(1)
   end do 
 end do
 
+self%volume = 2.0*cPi * product(geom)
+
 end subroutine ellipticcylinder_shapefunction_
 
 !--------------------------------------------------------------------------
@@ -993,6 +947,8 @@ do i=-dims(1),dims(1)
     end do 
   end do 
 end do
+
+self%volume = 8.0 * product(geom)
 
 end subroutine prism_shapefunction_
 
@@ -1029,15 +985,17 @@ do i=-dims(1),dims(1)
     do k=-dims(3),dims(3)
       z = (k*dxyz)**2
       d = (x+y+z-ab)**2 - 4.0*a*(b-z)
-      if ( d.ge.0.0 ) shapearray(i,j,k) = 1.0
+      if ( d.le.0.0 ) shapearray(i,j,k) = 1.0
     end do 
   end do 
 end do
 
+self%volume =  2.0 * cPi**2 * geom(1) * geom(2)**2 
+
 end subroutine torus_shapefunction_
 
 !--------------------------------------------------------------------------
-subroutine ellipsoid_shapeamplitude_(self, shamp, dims, dk, geom)
+subroutine ellipsoid_shapeamplitude_(self, shamp, dims, geom)
 !DEC$ ATTRIBUTES DLLEXPORT :: ellipsoid_shapeamplitude_
 !! author: MDG 
 !! version: 1.0 
@@ -1050,7 +1008,6 @@ IMPLICIT NONE
 class(ShapeAmplitude_T), INTENT(INOUT)    :: self
 integer(kind=irg),INTENT(IN)              :: dims(3)
 complex(kind=dbl),INTENT(INOUT)           :: shamp( -dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1 )
-real(kind=dbl),INTENT(IN)                 :: dk
 real(kind=sgl),INTENT(IN)                 :: geom(3) 
 
 integer(kind=irg)                         :: i, j, k 
@@ -1062,7 +1019,7 @@ pre = 4.D0*cPi*dble(product(geom))
 do i=-dims(1),dims(1)-1
   do j=-dims(2),dims(2)-1
     do k=-dims(3),dims(3)-1
-      kvec = dk * (/ geom(1)*dble(i), geom(2)*dble(j), geom(3)*dble(k) /)  ! this is the Fourier space frequency vector k
+      kvec = self%dk * (/ geom(1)*dble(i), geom(2)*dble(j), geom(3)*dble(k) /)  ! this is the Fourier space frequency vector k
       q = NORM2(kvec)
       if (q.eq.0.0) then 
         shamp(0,0,0) = cmplx(pre/3.D0)
@@ -1072,6 +1029,10 @@ do i=-dims(1),dims(1)-1
     end do 
   end do 
 end do
+
+self%volume = 4.0*sngl(cPi)*product(geom)/3.0 
+
+write (*,*) ' volume = ', self%volume 
 
 end subroutine ellipsoid_shapeamplitude_
 
@@ -1097,7 +1058,7 @@ end if
 end function sinc
 
 !--------------------------------------------------------------------------
-subroutine prism_shapeamplitude_(self, shamp, dims, dk, geom)
+subroutine prism_shapeamplitude_(self, shamp, dims, geom)
 !DEC$ ATTRIBUTES DLLEXPORT :: prism_shapeamplitude_
 !! author: MDG 
 !! version: 1.0 
@@ -1110,7 +1071,6 @@ IMPLICIT NONE
 class(ShapeAmplitude_T), INTENT(INOUT)    :: self
 integer(kind=irg),INTENT(IN)              :: dims(3)
 complex(kind=dbl),INTENT(INOUT)           :: shamp( -dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1 )
-real(kind=dbl),INTENT(IN)                 :: dk
 real(kind=sgl),INTENT(IN)                 :: geom(3) 
 
 integer(kind=irg)                         :: i, j, k 
@@ -1118,11 +1078,13 @@ real(kind=dbl)                            :: kvec(3), q
 real(kind=dbl)                            :: pre
 
 pre = 8.D0*dble(product(geom))
+self%volume = pre
+write (*,*) ' volume = ', self%volume 
 
 do i=-dims(1),dims(1)-1
   do j=-dims(2),dims(2)-1
     do k=-dims(3),dims(3)-1
-      kvec = dk * (/ geom(1)*dble(i), geom(2)*dble(j), geom(3)*dble(k) /)  ! this is the Fourier space frequency vector k
+      kvec = self%dk * (/ geom(1)*dble(i), geom(2)*dble(j), geom(3)*dble(k) /)  ! this is the Fourier space frequency vector k
       q = NORM2(kvec)
       if (q.eq.0.0) then 
         shamp(0,0,0) = cmplx(pre)
@@ -1136,13 +1098,13 @@ end do
 end subroutine prism_shapeamplitude_
 
 !--------------------------------------------------------------------------
-subroutine ellipticcylinder_shapeamplitude_(self, shamp, dims, dk, geom)
+subroutine ellipticcylinder_shapeamplitude_(self, shamp, dims, geom)
 !DEC$ ATTRIBUTES DLLEXPORT :: ellipticcylinder_shapeamplitude_
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/18/21
 !!
-!! determine the shape amplitude of a rectangular prism
+!! determine the shape amplitude of a elliptic cylinder
 
 use mod_math
 
@@ -1151,31 +1113,117 @@ IMPLICIT NONE
 class(ShapeAmplitude_T), INTENT(INOUT)    :: self
 integer(kind=irg),INTENT(IN)              :: dims(3)
 complex(kind=dbl),INTENT(INOUT)           :: shamp( -dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1 )
-real(kind=dbl),INTENT(IN)                 :: dk
 real(kind=sgl),INTENT(IN)                 :: geom(3) 
 
 integer(kind=irg)                         :: i, j, k 
 real(kind=dbl)                            :: qq(2), q
-real(kind=dbl)                            :: pre, beta
+real(kind=dbl)                            :: pre, pre2, beta
 
 beta = geom(2)/geom(1) 
-pre = 4.D0* cPi * geom(1) * geom(3)
+self%volume = 2.0*sngl(cPi)*product(geom)
+pre = 4.D0 * cPi * geom(1) * geom(3)
 
 do i=-dims(1),dims(1)-1
   do j=-dims(2),dims(2)-1
     do k=-dims(3),dims(3)-1
-      qq = dk * (/ dble(i), beta*dble(j)/)  ! this is the Fourier space frequency vector k
-      q = NORM2(qq)
+      qq = self%dk * (/ dble(i), beta*dble(j)/)  ! this is the Fourier space frequency vector k
+      q = NORM2(qq) * geom(1)
       if ((q.eq.0.0).and.(k.eq.0)) then 
-        shamp(0,0,0) = cmplx( 2.D0*cPi*product(dble(geom)) )
+        shamp(0,0,0) = cmplx( self%volume )
       else
-        shamp(i,j,k) = cmplx(pre * bessj(1, geom(1)*q) * sinc(geom(3)*dble(k)) / q ) 
+        if (q.eq.0.0) then 
+          shamp(i,j,k) = cmplx( self%volume * sinc(self%dk*geom(3)*dble(k)) )
+        else
+          shamp(i,j,k) = cmplx( 2.D0 * self%volume * bessj(1, q) * sinc(self%dk*geom(3)*dble(k)) / q ) 
+        end if 
       end if 
     end do 
   end do 
 end do
 
+write (*,*) ' volume = ', self%volume 
+
 end subroutine ellipticcylinder_shapeamplitude_
+
+!--------------------------------------------------------------------------
+subroutine fft_shapeamplitude_(self, shapearray, shamp, dims)
+!DEC$ ATTRIBUTES DLLEXPORT :: fft_shapeamplitude_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/20/21
+!!
+!! determine the shape amplitude as the forward fft of a shape function; cubic arrays only 
+
+use mod_fftw3 
+
+IMPLICIT NONE 
+
+class(ShapeAmplitude_T), INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)              :: dims(3)
+real(kind=sgl),INTENT(INOUT)              :: shapearray( -dims(1):dims(1),-dims(2):dims(2),-dims(3):dims(3) )
+complex(kind=dbl),INTENT(INOUT)           :: shamp( -dims(1):dims(1)-1,-dims(2):dims(2)-1,-dims(3):dims(3)-1 )
+
+integer(kind=irg)                         :: i, j, k, d 
+real(kind=dbl)                            :: pre
+type(C_PTR)                               :: plan
+complex(C_DOUBLE_COMPLEX),pointer         :: sf(:,:,:)
+complex(C_DOUBLE_COMPLEX),pointer         :: outp(:,:,:)
+type(C_PTR)                               :: ii, oo
+
+d = 2*dims(1) 
+
+! allocate fftw arrays
+ii = fftw_alloc_complex(int(d*d*d,C_SIZE_T))
+call c_f_pointer(ii, sf, [d,d,d])
+
+oo = fftw_alloc_complex(int(d*d*d,C_SIZE_T))
+call c_f_pointer(oo, outp, [d,d,d])
+
+sf = cmplx(0.D0,0D0)
+outp = cmplx(0.D0,0.D0)
+
+! set up the fftw plan for the forward transform
+plan = fftw_plan_dft_3d(d,d,d,sf,outp,FFTW_FORWARD,FFTW_ESTIMATE)
+
+do i=-dims(1),dims(1)-1
+  do j=-dims(2),dims(2)-1
+    do k=-dims(3),dims(3)-1
+      sf(i+dims(1)+1,j+dims(2)+1,k+dims(3)+1) = cmplx(dble(shapearray(i,j,k)))
+    end do 
+  end do 
+end do 
+
+sf = cshift(sf, d/2, 1)
+sf = cshift(sf, d/2, 2)
+sf = cshift(sf, d/2, 3)
+
+call fftw_execute_dft(plan, sf, outp)
+
+! copy the array to get the correct array shift ... 
+do i=-dims(1),dims(1)-1
+  do j=-dims(2),dims(2)-1
+    do k=-dims(3),dims(3)-1
+      shamp(i,j,k) = outp(i+dims(1)+1, j+dims(2)+1, k+dims(3)+1 )
+    end do 
+  end do 
+end do
+
+shamp = cshift(shamp, d/2, 1)
+shamp = cshift(shamp, d/2, 2)
+shamp = cshift(shamp, d/2, 3)
+
+shamp = shamp * self%dxyz**3 
+
+self%volume = real(shamp(0,0,0))
+
+write (*,*) 'fft_shapeamplitude_ volume ', self%volume
+
+write (*,*) real(shamp(-10:10,0,0)) 
+
+call fftw_free(ii)
+call fftw_free(oo)
+
+end subroutine fft_shapeamplitude_
 
 !--------------------------------------------------------------------------
 subroutine ShapeAmplitude_(self, EMsoft, progname, HDFnames)
@@ -1226,14 +1274,16 @@ real(kind=sgl)                          :: iso, mi, ma, dxyz
 real(kind=sgl),allocatable              :: sf(:,:,:)
 complex(kind=dbl),allocatable           :: shamp(:,:,:)
 real(kind=sgl),allocatable              :: shampreal(:,:,:), shint(:,:,:)
-integer(kind=irg)                       :: i, j, k, nthr, dims(3), ntriangles, hdferr
+integer(kind=irg)                       :: i, j, k, nthr, dims(3), ntriangles, hdferr, ds
 logical                                 :: analytical
 
 associate(emnl => self%nml)
-dk = emnl%dk
+self%dk = 2.D0*cPi/dble(emnl%dims)
+dk = self%dk
 nthr = emnl%nthreads
-dims = emnl%dims
+dims = (/ emnl%dims/2, emnl%dims/2, emnl%dims/2 /) 
 dxyz = sngl(emnl%dxyz)
+self%dxyz = dxyz
 
 if (trim(emnl%shapetype).eq.'polyhedron') then 
   call Message%printMessage(' Initializing 3D Projective Geometric Algebra module')
@@ -1271,38 +1321,38 @@ else   ! the shape is not a polyhedron
       call Message%printMessage(' Generating the Sphere Shape Function')
       call self%ellipsoid_shapefunction_( sf, dims, dxyz, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(1) /) ))
       call Message%printMessage(' Generating the Sphere Shape Amplitude')
-      call self%ellipsoid_shapeamplitude_( shamp, dims, dk, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(1) /) ))
-      analytical = .TRUE.
+      call self%ellipsoid_shapeamplitude_( shamp, dims, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(1) /) ))
+      self%analytical = .TRUE.
     case('ellipsoid')
       call Message%printMessage(' Generating the Ellipsoid Shape Function')
       call self%ellipsoid_shapefunction_( sf, dims, dxyz, sngl(emnl%geometry(1:3) ))
       call Message%printMessage(' Generating the Ellipsoid Shape Amplitude')
-      call self%ellipsoid_shapeamplitude_( shamp, dims, dk, sngl(emnl%geometry(1:3) ))
-      analytical = .TRUE.
+      call self%ellipsoid_shapeamplitude_( shamp, dims, sngl(emnl%geometry(1:3) ))
+      self%analytical = .TRUE.
     case('prism')
       call Message%printMessage(' Generating the Prism Shape Function')
       call self%prism_shapefunction_( sf, dims, dxyz, sngl(emnl%geometry(1:3) ))
       call Message%printMessage(' Generating the Prism Shape Amplitude')
-      call self%prism_shapeamplitude_( shamp, dims, dk, sngl(emnl%geometry(1:3) ))
-      analytical = .TRUE.
+      call self%prism_shapeamplitude_( shamp, dims, sngl(emnl%geometry(1:3) ))
+      self%analytical = .TRUE.
     case('cylinder')
       call Message%printMessage(' Generating the Cylinder Shape Function')
       call self%ellipticcylinder_shapefunction_( sf, dims, dxyz, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(2) /) ))
-      call Message%printMessage(' Generating the Cylinder  Shape Amplitude')
-      call self%ellipticcylinder_shapeamplitude_( shamp, dims, dk, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(2)/)))
-      analytical = .TRUE.
+      call Message%printMessage(' Generating the Cylinder Shape Amplitude')
+      call self%ellipticcylinder_shapeamplitude_( shamp, dims, sngl((/ emnl%geometry(1), emnl%geometry(1), emnl%geometry(2)/)))
+      self%analytical = .TRUE.
     case('ellipticcylinder')
       call Message%printMessage(' Generating the Elliptic Cylinder Shape Function')
       call self%ellipticcylinder_shapefunction_( sf, dims, dxyz, sngl(emnl%geometry(1:3) ))
-      call Message%printMessage(' Generating the Elliptic Cylinder  Shape Amplitude')
-      call self%ellipticcylinder_shapeamplitude_( shamp, dims, dk, sngl(emnl%geometry(1:3) ))
-      analytical = .TRUE.
+      call Message%printMessage(' Generating the Elliptic Cylinder Shape Amplitude')
+      call self%ellipticcylinder_shapeamplitude_( shamp, dims, sngl(emnl%geometry(1:3) ))
+      self%analytical = .TRUE.
     case('torus')
       call Message%printMessage(' Generating the Torus Shape Function')
       call self%torus_shapefunction_( sf, dims, dxyz, sngl(emnl%geometry(1:2) ))
       call Message%printMessage(' Generating the Torus Shape Amplitude')
-      ! call self%torus_shapeamplitude_( sf, shamp, dims, dk )
-      analytical = .FALSE.
+      call self%fft_shapeamplitude_( sf, shamp, dims )
+      self%analytical = .FALSE.
     case default 
       call Message%printError(' EMShapeAmplitude', 'Unknown shapetype: '//trim(emnl%shapetype))
   end select
@@ -1368,13 +1418,20 @@ call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, datagroupname)
 hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLfiles', hdferr)
 
+dataset = SC_SHAMPNML 
+hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
+if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetTextFile SHAMPNML', hdferr)
+
 call HDF%pop()
 
 ! create a NMLparameters group to write all the namelist entries into
 hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
 if (hdferr.ne.0) call HDF%error_check('HDF_createGroup NMLparameters', hdferr)
 
+call self%writeHDFNameList_(HDF, HDFnames)
+
 ! and leave this group
+call HDF%pop()
 call HDF%pop()
 
 ! then the remainder of the data in a EMData group
@@ -1401,6 +1458,16 @@ if (emnl%shapeIntensity.eqv..TRUE.) then
   dataset = SC_ShapeIntensity
   hdferr = HDF%writeDatasetFloatArray(dataset, shint, 2*dims(1)+1, 2*dims(2)+1, 2*dims(3)+1)
 end if 
+
+! was the shape amplitude computed from an analytical expression (which requires the use of a 
+! filter function for the computation of the demag tensor field) or was it an fft of the shape function?
+dataset = 'analytical'
+ds = 0
+if (self%analytical.eqv..TRUE.) ds = 1 
+hdferr = HDF%writeDatasetInteger(dataset, ds)
+
+dataset = 'dk'
+hdferr = HDF%writeDatasetDouble(dataset, self%dk)
 
 call HDF%pop(.TRUE.)
 call closeFortranHDFInterface()
@@ -1442,7 +1509,7 @@ if (trim(emnl%STLFilename).ne.'undefined') then
 
 write (*,*) 'shamp range ', minval(shampreal), maxval(shampreal), iso
 
-  call MCA%doMCA( shampreal, 2*dims+1, sngl(emnl%dk), iso )
+  call MCA%doMCA( shampreal, 2*dims+1, sngl(self%dk), iso )
 
   ntriangles = MCA%getNtriangles()
   STL = STL_T(sname, header, ntriangles, MCAlist=MCA%getMCAptr()) 
@@ -1460,7 +1527,7 @@ write (*,*) 'shamp range ', minval(shampreal), maxval(shampreal), iso
     else
       iso = 0.01 * sngl(self%get_volume())**2
     end if 
-    call MCA%doMCA( shint, 2*dims+1, sngl(emnl%dk), iso )
+    call MCA%doMCA( shint, 2*dims+1, sngl(self%dk), iso )
 
     ntriangles = MCA%getNtriangles()
     STL = STL_T(sname, header, ntriangles, MCAlist=MCA%getMCAptr()) 
@@ -1472,7 +1539,7 @@ end associate
 end subroutine ShapeAmplitude_
 
 !--------------------------------------------------------------------------
-subroutine readShapeAmplitude_(self, shfname, shamp) ! , shampnml)
+subroutine readShapeAmplitude_(self, shfname, shamp, ds) ! , shampnml)
 !DEC$ ATTRIBUTES DLLEXPORT :: readShapeAmplitude_
 !! author: MDG 
 !! version: 1.0 
@@ -1494,6 +1561,7 @@ IMPLICIT NONE
 class(ShapeAmplitude_T), INTENT(INOUT)          :: self        
 character(fnlen),INTENT(IN)                     :: shfname 
 complex(kind=dbl),INTENT(INOUT),allocatable     :: shamp(:,:,:)
+integer(kind=irg),INTENT(INOUT)                 :: ds 
 ! type(ShapeAmplitudeNameListType),INTENT(INOUT)  :: shampnml 
 
 type(HDF_T)                                     :: HDF
@@ -1501,7 +1569,7 @@ type(IO_T)                                      :: Message
 type(HDFnames_T)                                :: HDFnames
 type(EMsoft_T)                                  :: EMsoft
 character(fnlen)                                :: datafile, dataset, tmpnmlname, p
-integer(kind=irg)                               :: hdferr, nlines, i, d, io_int(3) 
+integer(kind=irg)                               :: hdferr, nlines, i, d, io_int(3)
 integer(HSIZE_T)                                :: sz(1), dims(3)
 logical                                         :: fexists
 real(kind=dbl),allocatable                      :: shampr(:,:,:), shampi(:,:,:)
@@ -1541,8 +1609,13 @@ call HDF%readDatasetDoubleArray(dataset, dims, hdferr, shampr)
 dataset = SC_ShapeAmplitudeImaginary
 call HDF%readDatasetDoubleArray(dataset, dims, hdferr, shampi)
 
+dataset = 'analytical'
+call HDF%readDatasetInteger(dataset, hdferr, ds)
+self%analytical = .FALSE. 
+if (ds.eq.1) self%analytical = .TRUE.
+
 io_int = dims 
-call Message%writeValue(' Found shape amplitude array of size ',io_int,3)
+call Message%writeValue(' --> Found shape amplitude array of size ',io_int,3)
 
 ! put the origin at the point (1,1,1)
 d = dims(1)/2
@@ -1556,8 +1629,6 @@ shampi = cshift(shampi,d,3)
 allocate(shamp(dims(1),dims(2),dims(3)))
 shamp = cmplx(shampr,shampi)
 deallocate(shampr, shampi)
-
-write (*,*) 'Shape Amplitude value in point 1,1,1 : ', shamp(1,1,1)
 
 call HDF%pop()
 call HDF%pop()
@@ -1585,8 +1656,6 @@ call HDF%pop()
 
 call HDF%pop(.TRUE.)
 call closeFortranHDFInterface()
-
-call Message%printMessage(' Read shape amplitude from file '//trim(datafile))
 
 end subroutine readShapeAmplitude_
 
