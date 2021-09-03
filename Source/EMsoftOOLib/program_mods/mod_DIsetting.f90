@@ -44,6 +44,7 @@ type, public :: DIsettingNameListType
   integer(kind=irg) :: orthorhombicSetting
   character(fnlen)  :: dotproductfile
   character(fnlen)  :: newctffile
+  character(fnlen)  :: newangfile
 end type DIsettingNameListType
 
 ! class definition
@@ -51,6 +52,7 @@ type, public :: DIsetting_T
 private
   character(fnlen)       :: nmldeffile = 'EMDIsetting.nml'
   type(DIsettingNameListType)  :: nml
+  logical                :: orthocomment
 
 contains
 private
@@ -61,11 +63,14 @@ private
   procedure, pass(self) :: get_nthreads_
   procedure, pass(self) :: get_orthorhombicSetting_
   procedure, pass(self) :: get_dotproductfile_
+  procedure, pass(self) :: get_orthocomment_
   procedure, pass(self) :: get_newctffile_
+  procedure, pass(self) :: get_newangfile_
   procedure, pass(self) :: set_nthreads_
   procedure, pass(self) :: set_orthorhombicSetting_
   procedure, pass(self) :: set_dotproductfile_
   procedure, pass(self) :: set_newctffile_
+  procedure, pass(self) :: set_newangfile_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -74,11 +79,14 @@ private
   generic, public :: get_nthreads => get_nthreads_
   generic, public :: get_orthorhombicSetting => get_orthorhombicSetting_
   generic, public :: get_dotproductfile => get_dotproductfile_
+  generic, public :: get_orthocomment => get_orthocomment_
   generic, public :: get_newctffile => get_newctffile_
+  generic, public :: get_newangfile => get_newangfile_
   generic, public :: set_nthreads => set_nthreads_
   generic, public :: set_orthorhombicSetting => set_orthorhombicSetting_
   generic, public :: set_dotproductfile => set_dotproductfile_
   generic, public :: set_newctffile => set_newctffile_
+  generic, public :: set_newangfile => set_newangfile_
 
 end type DIsetting_T
 
@@ -137,7 +145,7 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(DIsetting_T), INTENT(INOUT)          :: self
+class(DIsetting_T), INTENT(INOUT)    :: self
 character(fnlen),INTENT(IN)          :: nmlfile
  !! full path to namelist file
 logical,OPTIONAL,INTENT(IN)          :: initonly
@@ -151,11 +159,13 @@ integer(kind=irg)  :: orthorhombicSetting
 integer(kind=irg)  :: nthreads
 character(fnlen)   :: dotproductfile
 character(fnlen)   :: newctffile
+character(fnlen)   :: newangfile
 
-namelist /ChangeSettingslist/ nthreads, orthorhombicSetting, dotproductfile, newctffile
+namelist /ChangeSettingslist/ nthreads, orthorhombicSetting, dotproductfile, newctffile, newangfile
 
 dotproductfile = 'undefined'
 newctffile = 'undefined'
+newangfile = 'undefined'
 orthorhombicSetting = 1
 nthreads = 1
 
@@ -173,14 +183,11 @@ if (.not.skipread) then
  if (trim(dotproductfile).eq.'undefined') then
   call Message%printError('readNameList:',' dotproductfile name is undefined in '//nmlfile)
  end if
-
- if (trim(newctffile).eq.'undefined') then
-  call Message%printError('readNameList:',' newctffile name is undefined in '//nmlfile)
- end if
 end if
 
 self%nml%dotproductfile = dotproductfile
 self%nml%newctffile = newctffile
+self%nml%newangfile = newangfile
 self%nml%nthreads = nthreads
 self%nml%orthorhombicSetting = orthorhombicSetting
 
@@ -347,6 +354,24 @@ self%nml%dotproductfile = inp
 end subroutine set_dotproductfile_
 
 !--------------------------------------------------------------------------
+function get_orthocomment_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_orthocomment_
+!! author: MDG
+!! version: 1.0
+!! date: 04/07/20
+!!
+!! get newctffile from the DIsetting_T class
+
+IMPLICIT NONE
+
+class(DIsetting_T), INTENT(INOUT)     :: self
+logical                               :: out
+
+out = self%nml%orthocomment
+
+end function get_orthocomment_
+
+!--------------------------------------------------------------------------
 function get_newctffile_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_newctffile_
 !! author: MDG
@@ -381,6 +406,42 @@ character(fnlen), INTENT(IN)          :: inp
 self%nml%newctffile = inp
 
 end subroutine set_newctffile_
+
+!--------------------------------------------------------------------------
+function get_newangfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_newangfile_
+!! author: MDG
+!! version: 1.0
+!! date: 09/02/21
+!!
+!! get newangfile from the DIsetting_T class
+
+IMPLICIT NONE
+
+class(DIsetting_T), INTENT(INOUT)     :: self
+character(fnlen)                      :: out
+
+out = self%nml%newangfile
+
+end function get_newangfile_
+
+!--------------------------------------------------------------------------
+subroutine set_newangfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_newangfile_
+!! author: MDG
+!! version: 1.0
+!! date: 09/02/21
+!!
+!! set newangfile in the DIsetting_T class
+
+IMPLICIT NONE
+
+class(DIsetting_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)          :: inp
+
+self%nml%newangfile = inp
+
+end subroutine set_newangfile_
 
 !--------------------------------------------------------------------------
 subroutine DIsetting_(self, EMsoft, progname)
@@ -468,9 +529,16 @@ call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile,  hdferr, &
                              getEulerAngles=.TRUE., &
                              getTopMatchIndices=.TRUE.)
 
-allocate(oldEulers(3,DIDT%FZcnt))
-allocate(newEulers(3,DIDT%FZcnt))
-allocate(newAvOr(3,DIDT%Nexp))
+if (DIDT%orthocomment.eqv..TRUE.) then 
+  call Message%printMessage(' ')
+  call Message%printMessage(' -> This file has already been modified by this program...')
+  call Message%printMessage(' -> another modification would render the data invalid.')
+  call Message%printMessage(' -> Please start with an unmodified dot product file.')
+  STOP 'Program ended without orthorhombic setting modification '
+end if 
+
+allocate(oldEulers(3,DIDT%Nexp))
+allocate(newEulers(3,DIDT%Nexp))
 
 transformRefined = .FALSE.
 if (allocated(DIDT%RefinedEulerAngles)) then
@@ -478,11 +546,15 @@ if (allocated(DIDT%RefinedEulerAngles)) then
   allocate(newRefined(3,DIDT%Nexp))
 end if
 
-do i=1,DIDT%FZcnt
+do i=1,DIDT%Nexp
   oldEulers(1:3,i) = DIDT%EulerAngles(1:3,i)
 end do
 newEulers = oldEulers * dtor
-newAvOr = DIDT%AverageOrientations * dtor
+
+if (allocated(DIDT%AverageOrientations)) then
+  allocate(newAvOr(3,DIDT%Nexp))
+  newAvOr = DIDT%AverageOrientations * dtor
+end if 
 
 call Message%printMessage(' ')
 call Message%printMessage(' -> completed reading of dot product file')
@@ -506,7 +578,7 @@ call cell%readDataHDF(SG, EMsoft, HDF)
 pgnum = SG%getPGnumber()
 
 if ((pgnum.lt.6).or.(pgnum.gt.8)) then
-    call Message%printError('DIsetting','Crystal structure point group # must be 6, 7, or 8 (orthorhombic')
+    call Message%printError('DIsetting','Crystal structure point group # must be 6, 7, or 8 (orthorhombic)')
 end if
 
 ! get the sequential space group number within the orthorhombic system
@@ -555,7 +627,7 @@ call OMP_setNThreads(csnl%nthreads)
 TID = OMP_GET_THREAD_NUM()
 
 !$OMP DO SCHEDULE(DYNAMIC)
-do i=1,DIDT%FZcnt
+do i=1,DIDT%Nexp
   eu = e_T( edinp = newEulers(1:3,i) )
   qin = eu%eq()
   qrin = Quaternion_T( qd = qin%q_copyd() )
@@ -598,11 +670,11 @@ if (transformRefined.eqv..TRUE.) then
   if (TID.eq.0) call Message%printMessage('  -> completed transformation of RefinedEulerAngles array')
 end if
 
+! and ends here...
 !$OMP END PARALLEL
 
 newEulers = newEulers * rtod
-newAvOr = newAvOr * rtod
-! and ends here...
+if (allocated(DIDT%AverageOrientations)) newAvOr = newAvOr * rtod
 
 !===================================================================================
 ! open the dot product file
@@ -621,28 +693,30 @@ hdferr = HDF%openGroup(groupname)
 dataset = 'EulerAnglesOriginal'
 call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists) then
-  hdferr = HDF%writeDatasetFloatArray(dataset, DIDT%EulerAngles, 3, DIDT%FZcnt, overwrite)
+  hdferr = HDF%writeDatasetFloatArray(dataset, DIDT%EulerAngles, 3, DIDT%Nexp, overwrite)
 else
-  hdferr = HDF%writeDatasetFloatArray(dataset, DIDT%EulerAngles, 3, DIDT%FZcnt)
+  hdferr = HDF%writeDatasetFloatArray(dataset, DIDT%EulerAngles, 3, DIDT%Nexp)
 end if
 
 ! then, overwrite the existing EulerAngles data set with the rotated orientations
 dataset = SC_EulerAngles
-hdferr = HDF%writeDatasetFloatArray(dataset, sngl(newEulers), 3, DIDT%FZcnt, overwrite)
+hdferr = HDF%writeDatasetFloatArray(dataset, sngl(newEulers), 3, DIDT%Nexp, overwrite)
 ! add an explanatory attribute to the data set
 
 ! do the same with the AverageOrientations data set
-dataset = 'AverageOrientationsOriginal'
-call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-if (g_exists) then
-  hdferr = HDF%writeDatasetFloatArray(dataset, DIDT%AverageOrientations, 3, DIDT%Nexp, overwrite)
-else
-  hdferr = HDF%writeDatasetFloatArray(dataset, DIDT%AverageOrientations, 3, DIDT%Nexp)
-end if
+if (allocated(DIDT%AverageOrientations)) then
+  dataset = 'AverageOrientationsOriginal'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then
+    hdferr = HDF%writeDatasetFloatArray(dataset, DIDT%AverageOrientations, 3, DIDT%Nexp, overwrite)
+  else
+    hdferr = HDF%writeDatasetFloatArray(dataset, DIDT%AverageOrientations, 3, DIDT%Nexp)
+  end if
 
 ! then, overwrite the existing EulerAngles data set with the rotated orientations
-dataset = SC_AverageOrientations
-hdferr = HDF%writeDatasetFloatArray(dataset, sngl(newAvOr), 3, DIDT%Nexp, overwrite)
+  dataset = SC_AverageOrientations
+  hdferr = HDF%writeDatasetFloatArray(dataset, sngl(newAvOr), 3, DIDT%Nexp, overwrite)
+end if 
 
 if (transformRefined.eqv..TRUE.) then
   ! next, create a new RefinedEulerAnglesOriginal array and write the original angles to its
@@ -674,22 +748,18 @@ end if
 deallocate(stringarray)
 
 ! also, update the Phi1, Phi, and Phi2 data sets
-newEulers = newEulers * sngl(dtor)
-allocate(eulers(3,DIDT%Nexp), ang(DIDT%Nexp))
-do i=1,DIDT%Nexp
-  eulers(1:3,i) = newEulers(1:3,DIDT%TopMatchIndices(1,i))
-end do
+allocate(ang(DIDT%Nexp))
 
 dataset = SC_Phi1
-ang(:) = eulers(1,:)
+ang(:) = neweulers(1,:)
 hdferr = HDF%writeDatasetFloatArray(dataset, ang, DIDT%Nexp, overwrite)
 
 dataset = SC_Phi
-ang(:) = eulers(2,:)
+ang(:) = neweulers(2,:)
 hdferr = HDF%writeDatasetFloatArray(dataset, ang, DIDT%Nexp, overwrite)
 
 dataset = SC_Phi2
-ang(:) = eulers(3,:)
+ang(:) = neweulers(3,:)
 hdferr = HDF%writeDatasetFloatArray(dataset, ang, DIDT%Nexp, overwrite)
 
 ! leave this group and file
@@ -697,6 +767,7 @@ call HDF%pop(.TRUE.)
 
 ! finally, we need to write a new .ctf file as well...
 dinl%ctffile = trim(csnl%newctffile)
+dinl%angfile = trim(csnl%newangfile)
 
 ipar = 0
 ipar(1) = 1
@@ -718,15 +789,29 @@ fpar2(2) = DIDT%MCsig
 allocate(resultmain(1,ipar(2)))
 resultmain(1,:) = DIDT%CI(:)
 
-eulers = eulers / sngl(dtor)
+if (transformRefined.eqv..TRUE.) then
+  neweulers = newRefined / sngl(dtor)
+else
+  neweulers = neweulers / sngl(dtor)
+end if 
 
 VT = Vendor_T()
 modality = 'EBSD'
 call VT%set_Modality(modality)
 
-call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,DIDT%TopMatchIndices, &
-                      eulers,resultmain,DIDT%OSM,DIDT%IQ,noindex=.TRUE.)
-call Message%printMessage('Data stored in ctf file : '//trim(dinl%ctffile))
+if (trim(csnl%newctffile).ne.'undefined') then
+  call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,DIDT%TopMatchIndices, &
+                        eulers,resultmain,DIDT%OSM,DIDT%IQ,noindex=.TRUE., & 
+                        orthoset=csnl%orthorhombicSetting, orthoSG=orthonum)  ! include orthorhombic setting in .ctf file )
+  call Message%printMessage('Data stored in ctf file : '//trim(dinl%ctffile))
+end if 
+
+if (trim(csnl%newangfile).ne.'undefined') then
+  call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,DIDT%TopMatchIndices, &
+                         sngl(neweulers),resultmain,DIDT%IQ,noindex=.TRUE., & 
+                         orthoset=csnl%orthorhombicSetting, orthoSG=orthonum)  ! include orthorhombic setting in .ang file )
+  call Message%printMessage('Data stored in ang file : '//trim(dinl%angfile))
+end if 
 
 call closeFortranHDFInterface()
 

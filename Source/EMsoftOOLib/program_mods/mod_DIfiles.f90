@@ -154,6 +154,7 @@ type, public :: DIdataType
   real(kind=sgl),allocatable    :: YPosition(:)
   real(kind=sgl),allocatable    :: RefinedEulerAngles(:,:)
   real(kind=sgl),allocatable    :: RefinedDotProducts(:)
+  logical                       :: orthocomment
 end type DIdataType
 
 ! class definition
@@ -1093,6 +1094,14 @@ dataset = 'Sample Tilt'
 ! open the Scan 1/(Modality)/Data group; dictionary indexing files only have one "scan" in them...
 groupname = SC_Data
     hdferr = HDF%openGroup(groupname)
+
+dataset = 'Comment'
+    DIDT%orthocomment = .FALSE. 
+    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+        DIDT%orthocomment = .TRUE. 
+        call Message%printMessage('  --> This file has already been modified by EMEBSDDIchangesetting !!! ')
+    end if 
 
 ! integers
 dataset = SC_FZcnt

@@ -1212,7 +1212,8 @@ end subroutine closeExpPatternFile_
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-recursive subroutine ctf_writeFile_(self,EMsoft,cell,SG,nml,ipar,fpar,indexmain,eulerarray,resultmain,OSMmap,IQmap,noindex)
+recursive subroutine ctf_writeFile_(self,EMsoft,cell,SG,nml,ipar,fpar,indexmain,eulerarray,resultmain,OSMmap,IQmap,noindex, & 
+                                    orthoset,orthoSG)
 !DEC$ ATTRIBUTES DLLEXPORT :: ctf_writeFile_
 !! author: MDG
 !! version: 1.0
@@ -1242,6 +1243,8 @@ real(kind=sgl),INTENT(IN)                           :: resultmain(ipar(1),ipar(2
 real(kind=sgl),INTENT(IN)                           :: OSMmap(ipar(7),ipar(8))
 real(kind=sgl),INTENT(IN)                           :: IQmap(ipar(3))
 logical,INTENT(IN),OPTIONAL                         :: noindex
+integer(kind=irg),INTENT(IN),OPTIONAL               :: orthoset
+integer(kind=irg),INTENT(IN),OPTIONAL               :: orthoSG
 
 type(IO_T)                                          :: Message
 integer(kind=irg)                                   :: ierr, i, ii, indx, hdferr, SGnum, LaueGroup, BCval, BSval
@@ -1250,7 +1253,7 @@ character                                           :: TAB = CHAR(9)
 character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
 real(kind=sgl)                                      :: euler(3), eu, mi, ma
 logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE., isECP=.FALSE.
-real(kind=dbl)                                      :: cellparams(6)
+real(kind=dbl)                                      :: cellparams(6), a, b, c
 integer(kind=irg),allocatable                       :: osm(:), iq(:)
 
 donotuseindexarray = .FALSE.
@@ -1299,8 +1302,12 @@ ctfname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(nml%ctffile)
 open(unit=dataunit2,file=trim(ctfname),status='unknown',action='write',iostat=ierr)
 
 write(dataunit2,'(A)') 'Channel Text File'
-write(dataunit2,'(A)') 'EMsoft v. '//trim(EMsoft%getConfigParameter('EMsoftversion'))// &
-                       '; BANDS=pattern index, MAD=CI, BC=OSM, BS=IQ; Diffraction Modality: '//trim(modality)
+str1 = 'EMsoft v. '//trim(EMsoft%getConfigParameter('EMsoftversion'))// &
+       '; BANDS=pattern index, MAD=CI, BC=OSM, BS=IQ; Diffraction Modality: '//trim(modality) 
+if (present(orthoset)) then
+       str1 = trim(str1)//'; orthorhombic space group setting '//extendedHMOrthsymbols(orthoset,orthoSG)
+end if 
+write(dataunit2,'(A)') trim(str1)
 write(dataunit2,'(A)') 'Author  '//trim(EMsoft%getConfigParameter('UserName'))
 write(dataunit2,'(A)') 'JobMode Grid'
 write(dataunit2,'(2A,I5)') 'XCells',TAB, ipar(7)
@@ -1326,9 +1333,42 @@ xtalname = trim(cell%getFileName())
 
 ! unit cell size
 cellparams(1:3) = cellparams(1:3)*10.0  ! convert to Angstrom
-write(str1,'(F8.3)') cellparams(1)
-write(str2,'(F8.3)') cellparams(2)
-write(str3,'(F8.3)') cellparams(3)
+if (present(orthoset)) then   ! permute the lattice parameters to the correct orthorhombic setting 
+! settings  " a  b  c", " b  a -c", " c  a  b", "-c  b  a", " b  c  a", " a -c  b" 
+  select case(orthoset)
+    case(1) 
+      a = cellparams(1)
+      b = cellparams(2)
+      c = cellparams(3)
+    case(2) 
+      a = cellparams(2)
+      b = cellparams(1)
+      c = cellparams(3)
+    case(3) 
+      a = cellparams(3)
+      b = cellparams(1)
+      c = cellparams(2)
+    case(4) 
+      a = cellparams(3)
+      b = cellparams(2)
+      c = cellparams(1)
+    case(5) 
+      a = cellparams(2)
+      b = cellparams(3)
+      c = cellparams(1)
+    case(6) 
+      a = cellparams(1)
+      b = cellparams(3)
+      c = cellparams(2)
+  end select 
+  write(str1,'(F8.3)') a
+  write(str2,'(F8.3)') b
+  write(str3,'(F8.3)') c
+else
+  write(str1,'(F8.3)') cellparams(1)
+  write(str2,'(F8.3)') cellparams(2)
+  write(str3,'(F8.3)') cellparams(3)
+end if 
 str1 = adjustl(str1)
 str2 = adjustl(str2)
 str3 = adjustl(str3)
@@ -1444,7 +1484,8 @@ end subroutine ctf_writeFile_
 !> @date 03/10/16 MDG 1.1 moved from program to module and updated [TO BE COMPLETED]
 !> @date 11/08/18 MDG 2.0 rewrite and testing
 !--------------------------------------------------------------------------
-recursive subroutine ang_writeFile_(self,EMsoft,cell,SG,nml,ipar,fpar,indexmain,eulerarray,resultmain,IQmap,noindex)
+recursive subroutine ang_writeFile_(self,EMsoft,cell,SG,nml,ipar,fpar,indexmain,eulerarray,resultmain,IQmap,noindex,&
+                                    orthoset,orthoSG)
 !DEC$ ATTRIBUTES DLLEXPORT :: ang_writeFile_
 !! author: MDG
 !! version: 1.0
@@ -1472,6 +1513,8 @@ real(kind=sgl),INTENT(IN)                           :: eulerarray(3,ipar(4))
 real(kind=sgl),INTENT(IN)                           :: resultmain(ipar(1),ipar(2))
 real(kind=sgl),INTENT(IN)                           :: IQmap(ipar(3))
 logical,INTENT(IN),OPTIONAL                         :: noindex
+integer(kind=irg),INTENT(IN),OPTIONAL               :: orthoset 
+integer(kind=irg),INTENT(IN),OPTIONAL               :: orthoSG
 
 type(IO_T)                                          :: Message
 integer(kind=irg)                                   :: ierr, ii, indx, SGnum
@@ -1480,7 +1523,7 @@ character(fnlen)                                    :: str1,str2,str3,str4,str5,
 character                                           :: TAB = CHAR(9)
 character(2)                                        :: TSLsymmetry
 real(kind=sgl)                                      :: euler(3), s, BSval
-real(kind=dbl)                                      :: cellparams(6)
+real(kind=dbl)                                      :: cellparams(6), a, b, c
 logical                                             :: donotuseindexarray, isEBSD=.FALSE., isTKD=.FALSE., isECP=.FALSE.
 
 donotuseindexarray = .FALSE.
@@ -1527,7 +1570,9 @@ ii = scan(trim(xtalname),'.')
 angname = xtalname(1:ii-1)
 write(dataunit2,'(A)') '# MaterialName    '//trim(angname)
 write(dataunit2,'(A)') '# Formula       '//trim(angname)
-write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMDI; Diffraction Modality: '//trim(modality)
+str1 = '# Info          patterns indexed using EMsoft::EMDI; Diffraction Modality: '//trim(modality)
+if (present(orthoset)) str1 = trim(str1)//'; orthorhombic space group setting '//extendedHMOrthsymbols(orthoset,orthoSG)
+write(dataunit2,'(A)') trim(str1)
 
 ! and get the TSL symmetry string from the TSLsymtype array
 TSLsymmetry = TSLsymtype(SG%getPGnumber())
@@ -1537,9 +1582,42 @@ write(dataunit2,'(A)') '# Symmetry              '//TSLsymmetry
 
 ! lattice parameters
 cellparams(1:3) = cellparams(1:3)*10.0  ! convert to Angstrom
-write(str1,'(F8.3)') cellparams(1)
-write(str2,'(F8.3)') cellparams(2)
-write(str3,'(F8.3)') cellparams(3)
+if (present(orthoset)) then   ! permute the lattice parameters to the correct orthorhombic setting 
+! settings  " a  b  c", " b  a -c", " c  a  b", "-c  b  a", " b  c  a", " a -c  b" 
+  select case(orthoset)
+    case(1) 
+      a = cellparams(1)
+      b = cellparams(2)
+      c = cellparams(3)
+    case(2) 
+      a = cellparams(2)
+      b = cellparams(1)
+      c = cellparams(3)
+    case(3) 
+      a = cellparams(3)
+      b = cellparams(1)
+      c = cellparams(2)
+    case(4) 
+      a = cellparams(3)
+      b = cellparams(2)
+      c = cellparams(1)
+    case(5) 
+      a = cellparams(2)
+      b = cellparams(3)
+      c = cellparams(1)
+    case(6) 
+      a = cellparams(1)
+      b = cellparams(3)
+      c = cellparams(2)
+  end select 
+  write(str1,'(F8.3)') a
+  write(str2,'(F8.3)') b
+  write(str3,'(F8.3)') c
+else
+  write(str1,'(F8.3)') cellparams(1)
+  write(str2,'(F8.3)') cellparams(2)
+  write(str3,'(F8.3)') cellparams(3)
+end if 
 str1 = adjustl(str1)
 str2 = adjustl(str2)
 str3 = adjustl(str3)
@@ -1613,6 +1691,7 @@ do ii = 1,ipar(3)
       write(str5,'(A,F12.5)') ' ',float(floor(float(ii-1)/float(nml%ipf_wd)))*nml%StepY
     end if
 ! Image Quality (using the Krieger Lassen pattern sharpness parameter iq)
+    if (resultmain(1,ii).eq.0.0) BSval = 0.0  ! to prevent NaN values in certain cases
     write(str6,'(A,F6.1)') ' ',BSval  !  IQ value in range [0.0 .. 255.0]
     write(str7,'(A,F6.3)') ' ',resultmain(1,ii)   ! this replaces MAD
     write(str8,'(A,I1)') '  ',1
