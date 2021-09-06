@@ -1100,7 +1100,7 @@ dataset = 'Comment'
     call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
     if (g_exists.eqv..TRUE.) then
         DIDT%orthocomment = .TRUE. 
-        call Message%printMessage('  --> This file has already been modified by EMEBSDDIchangesetting !!! ')
+        call Message%printMessage('  --> This dot product file was modified by EMEBSDDIchangesetting !!! ')
     end if 
 
 ! integers

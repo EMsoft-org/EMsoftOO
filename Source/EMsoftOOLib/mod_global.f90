@@ -148,7 +148,7 @@ public
 ! the standard relations in the 2019 SI units document.  In the derivation, we used 0.0072973525664D0 as the
 ! value for the hyperfine structure constant alpha.
 !
-  real(kind=dbl), parameter :: cPi=3.141592653589793238D0, cLight = 299792458.D0, &
+  real(kind=dbl), parameter :: cPi=3.14159265358979323846D0, cLight = 299792458.D0, &
                                cPlanck = 6.62607015D-34, cBoltzmann = 1.380649D-23,  &
                                cPermea = 1.2566370616D-6, cPermit = 8.8541878163D-12, &
                                cCharge = 1.602176634D-19, cRestmass = 9.1093837090D-31, &
