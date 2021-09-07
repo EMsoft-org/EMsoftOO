@@ -414,6 +414,11 @@ recursive function get_ipf_RGB_(self, sampleDir, qu, sym, Pm ) result(RGB)
 !! returns an RGB triplet for the specific Laue Class, sample direction, and grain orientation
 !! This code is based on the LaueOps routines from DREAM.3D, but combines all Laue classes into
 !! a single routine.
+!!
+!! At present, only Euler coloring and standard Laue Class RGB coloring are available.
+!! The more extensive color schemes proposed in [Nolze, G., & Hielscher, R. (2016). Orientations–perfectly colored. 
+!! Journal of Applied Crystallography, 49(5), 1786-1802.], which have minimal color discontinuities
+!! will be implemented in a future version of this module.
 
 use mod_quaternions
 use mod_rotations 

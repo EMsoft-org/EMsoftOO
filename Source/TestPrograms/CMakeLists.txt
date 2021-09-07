@@ -48,5 +48,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                    INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                                    )
 
+      Add_EMSoftOO_Executable(TARGET colortest
+                                   SOURCES ${APP_DIR}/colortest.f90
+                                   LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
+                                   SOLUTION_FOLDER EMsoftOOPublic/Utilities
+                                   INSTALL_PROGRAM TRUE
+                                   INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                                   )
+
 
 endif()
