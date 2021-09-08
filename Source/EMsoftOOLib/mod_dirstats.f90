@@ -197,7 +197,7 @@ use mod_quaternions
 
 IMPLICIT NONE
 
-character(3),INTENT(IN)                 :: DStype
+character(3),INTENT(IN),OPTIONAL        :: DStype
 integer(kind=irg),INTENT(IN),OPTIONAL   :: PGnum
 
 type(QuaternionArray_T)                 :: qsym
@@ -205,6 +205,7 @@ type(QuaternionArray_T)                 :: qq
 integer(kind=irg)                       :: i
 real(kind=dbl)                          :: y1, y2
 
+if (present(DStype)) then 
   DS%DStype = DStype
 
 ! von Mises-Fisher mode: (DStype='VMF')
@@ -219,27 +220,28 @@ real(kind=dbl)                          :: y1, y2
 !
 
 ! allocate the parameter arrays
-DS%Apnum = 35000
-allocate(DS%xAp(DS%Apnum), DS%yAp(DS%Apnum))
+  DS%Apnum = 35000
+  allocate(DS%xAp(DS%Apnum), DS%yAp(DS%Apnum))
 
 ! define the xAp array
-DS%xAp = (/ (0.001D0+dble(i-1)*0.001D0,i=1,DS%Apnum)  /)
+  DS%xAp = (/ (0.001D0+dble(i-1)*0.001D0,i=1,DS%Apnum)  /)
 
-if (DS%DStype.eq.'VMF') then ! von Mises-Fisher distribution
-  do i=1,DS%Apnum
-    DS%yAp(i) = BesselIn(DS%xAp(i), 2) / BesselI1(DS%xAp(i))
-  end do
-end if
+  if (DS%DStype.eq.'VMF') then ! von Mises-Fisher distribution
+    do i=1,DS%Apnum
+      DS%yAp(i) = BesselIn(DS%xAp(i), 2) / BesselI1(DS%xAp(i))
+    end do
+  end if
 
-if (DS%DStype.eq.'WAT') then ! Watson distribution
-  do i=1,DS%Apnum
-    y1 = BesselI1(DS%xAp(i)*0.5D0)
-    y2 = BesselI0(DS%xAp(i)*0.5D0)
-    DS%yAp(i) = y1 / (y2-y1) / DS%xAp(i)
-  end do
-end if
+  if (DS%DStype.eq.'WAT') then ! Watson distribution
+    do i=1,DS%Apnum
+      y1 = BesselI1(DS%xAp(i)*0.5D0)
+      y2 = BesselI0(DS%xAp(i)*0.5D0)
+      DS%yAp(i) = y1 / (y2-y1) / DS%xAp(i)
+    end do
+  end if
+end if 
 
-! do we need to also initialize the list of quaternion symmetry operators ?
+! do we need to initialize the list of quaternion symmetry operators ?
 if (present(PGnum)) then
   DS%pgnum = PGnum
   call qq%QSym_Init(PGnum, qsym)

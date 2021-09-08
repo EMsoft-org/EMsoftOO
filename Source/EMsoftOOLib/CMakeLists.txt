@@ -84,6 +84,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_MCA.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_STL.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_demag.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_IPFsupport.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_colorspace.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
@@ -105,6 +107,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ADP.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ANG.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_CTF.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_IPF.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_OSM.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_dpmerge.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_DIsetting.f90
@@ -118,6 +121,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Lauemaster.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Laue.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_LaueDCT.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_IPF.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ShapeAmplitude.f90
 
   ${EMsoftOOLib_Additional_SRCS}

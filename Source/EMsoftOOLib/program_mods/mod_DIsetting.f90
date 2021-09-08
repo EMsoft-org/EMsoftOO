@@ -367,7 +367,7 @@ IMPLICIT NONE
 class(DIsetting_T), INTENT(INOUT)     :: self
 logical                               :: out
 
-out = self%nml%orthocomment
+out = self%orthocomment
 
 end function get_orthocomment_
 

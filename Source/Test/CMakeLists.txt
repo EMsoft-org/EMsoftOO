@@ -54,6 +54,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
     # MODMuellerCalculus
     MODRotations
     MODkvectors
+    MODcolorspace
   )
 
   foreach(test ${EMsoftOO_UNIT_TESTS})
