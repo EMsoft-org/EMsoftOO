@@ -52,6 +52,8 @@ module mod_colorspace
   !! ijk: location to write values converted to ijk color space (can be the same as parameter abc)
   !! ill: standard illuminant as xyz (only required for conversions involving xyz<->luv or xyz<->lab, defaults to CIE illuminant D65 for 2 degree observer)
   !! : true/false if the values fall outside the ijk gamut for conversions to that pass through xyz2rgb (void for others)
+  !!
+  !! tested using the colortest.f90 program; will become part of ctest.
 
 
 use mod_kinds
@@ -61,65 +63,65 @@ IMPLICIT NONE
 
 ! six color representations
 type colorspacetype 
-  real(kind=sgl) :: rgb(3) ! {r , g , b }: standard red, green, blue (sRGB)
-  real(kind=sgl) :: xyz(3) ! {X , Y , Z }: CIE 1931 XYZ color space ('master' (original) perceptually uniform color space)
-  real(kind=sgl) :: luv(3) ! {L*, u*, v*}: 1976 CIELUV color space (perceptually uniform space for computer displays)
-  real(kind=sgl) :: lab(3) ! {L*, a*, b*}: 1976 CIELab color space (perceptually uniform space for print)
-  real(kind=sgl) :: hsv(3) ! {h , s , v }: hue, saturation, value (cylindrical)
-  real(kind=sgl) :: hsl(3) ! {h , s , l }: hue, saturation, lightness (cylindrical)
+  real(kind=dbl) :: rgb(3) ! {r , g , b }: standard red, green, blue (sRGB)
+  real(kind=dbl) :: xyz(3) ! {X , Y , Z }: CIE 1931 XYZ color space ('master' (original) perceptually uniform color space)
+  real(kind=dbl) :: luv(3) ! {L*, u*, v*}: 1976 CIELUV color space (perceptually uniform space for computer displays)
+  real(kind=dbl) :: lab(3) ! {L*, a*, b*}: 1976 CIELab color space (perceptually uniform space for print)
+  real(kind=dbl) :: hsv(3) ! {h , s , v }: hue, saturation, value (cylindrical)
+  real(kind=dbl) :: hsl(3) ! {h , s , l }: hue, saturation, lightness (cylindrical)
 end type colorspacetype
 
 
 ! constants for standard illuminants and common rgb gamuts
 type colorstandardstype 
 ! standard illuminants as xyz (normalized XYZ)
-    real(kind=sgl) :: A_2(0:2)    = (/ 0.44757, 0.40745, 0.14498 /)
-    real(kind=sgl) :: A_10(0:2)   = (/ 0.45117, 0.40594, 0.14289 /)
-    real(kind=sgl) :: B_2(0:2)    = (/ 0.34842, 0.35161, 0.29997 /)
-    real(kind=sgl) :: B_10(0:2)   = (/ 0.34980, 0.35270, 0.29750 /)
-    real(kind=sgl) :: C_2(0:2)    = (/ 0.31006, 0.31616, 0.37378 /)
-    real(kind=sgl) :: C_10(0:2)   = (/ 0.31039, 0.31905, 0.37056 /)
-    real(kind=sgl) :: D50_2(0:2)  = (/ 0.34567, 0.35850, 0.29583 /)
-    real(kind=sgl) :: D50_10(0:2) = (/ 0.34773, 0.35952, 0.29275 /)
-    real(kind=sgl) :: D55_2(0:2)  = (/ 0.33242, 0.34743, 0.32015 /)
-    real(kind=sgl) :: D55_10(0:2) = (/ 0.33411, 0.34877, 0.31712 /)
-    real(kind=sgl) :: D65_2(0:2)  = (/ 0.31271, 0.32902, 0.35827 /)
-    real(kind=sgl) :: D65_10(0:2) = (/ 0.31382, 0.33100, 0.35518 /)
-    real(kind=sgl) :: D75_2(0:2)  = (/ 0.29902, 0.31485, 0.38613 /)
-    real(kind=sgl) :: D75_10(0:2) = (/ 0.29968, 0.31740, 0.38292 /)
-    real(kind=sgl) :: E(0:2)      = (/ 1.0/3.0, 1.0/3.0, 1.0/3.0 /)
+    real(kind=dbl) :: A_2(0:2)    = (/ 0.44757D0, 0.40745D0, 0.14498D0 /)
+    real(kind=dbl) :: A_10(0:2)   = (/ 0.45117D0, 0.40594D0, 0.14289D0 /)
+    real(kind=dbl) :: B_2(0:2)    = (/ 0.34842D0, 0.35161D0, 0.29997D0 /)
+    real(kind=dbl) :: B_10(0:2)   = (/ 0.34980D0, 0.35270D0, 0.29750D0 /)
+    real(kind=dbl) :: C_2(0:2)    = (/ 0.31006D0, 0.31616D0, 0.37378D0 /)
+    real(kind=dbl) :: C_10(0:2)   = (/ 0.31039D0, 0.31905D0, 0.37056D0 /)
+    real(kind=dbl) :: D50_2(0:2)  = (/ 0.34567D0, 0.35850D0, 0.29583D0 /)
+    real(kind=dbl) :: D50_10(0:2) = (/ 0.34773D0, 0.35952D0, 0.29275D0 /)
+    real(kind=dbl) :: D55_2(0:2)  = (/ 0.33242D0, 0.34743D0, 0.32015D0 /)
+    real(kind=dbl) :: D55_10(0:2) = (/ 0.33411D0, 0.34877D0, 0.31712D0 /)
+    real(kind=dbl) :: D65_2(0:2)  = (/ 0.31271D0, 0.32902D0, 0.35827D0 /)
+    real(kind=dbl) :: D65_10(0:2) = (/ 0.31382D0, 0.33100D0, 0.35518D0 /)
+    real(kind=dbl) :: D75_2(0:2)  = (/ 0.29902D0, 0.31485D0, 0.38613D0 /)
+    real(kind=dbl) :: D75_10(0:2) = (/ 0.29968D0, 0.31740D0, 0.38292D0 /)
+    real(kind=dbl) :: E(0:2)      = (/ 1.D0/3.D0, 1.D0/3.D0, 1.D0/3.D0 /)
 
 ! RGB chromaticities as xyz (normalized XYZ)
-    real(kind=sgl) :: sRGB(0:2,0:2)     = transpose(reshape( (/ 0.6400, 0.3300, 0.0300, &
-                                                                0.3000, 0.6000, 0.1000, &
-                                                                0.1500, 0.0600, 0.7900 /), (/ 3,3 /) ) )
-    real(kind=sgl) :: cieRGB(0:2,0:2)   = transpose(reshape( (/ 0.7347, 0.2653, 0.0000, &
-                                                                0.2738, 0.7174, 0.0088, &
-                                                                0.1666, 0.0089, 0.8245 /), (/ 3,3 /) ) )
-    real(kind=sgl) :: appleRGB(0:2,0:2) = transpose(reshape( (/ 0.6250, 0.3400, 0.0350, &
-                                                                0.2800, 0.5950, 0.1250, &
-                                                                0.1550, 0.0700, 0.7750 /), (/ 3,3 /) ) )
-    real(kind=sgl) :: adobeRGB(0:2,0:2) = transpose(reshape( (/ 0.6400, 0.3300, 0.0300, &
-                                                                0.2100, 0.7100, 0.0800, &
-                                                                0.1500, 0.0600, 0.7900 /), (/ 3,3 /) ) )
-    real(kind=sgl) :: palRGB(0:2,0:2)   = transpose(reshape( (/ 0.6400, 0.3300, 0.0300, &
-                                                                0.2900, 0.6000, 0.1100, &
-                                                                0.1500, 0.0600, 0.7900 /), (/ 3,3 /) ) )
-    real(kind=sgl) :: ntscRGB(0:2,0:2)  = transpose(reshape( (/ 0.6300, 0.3400, 0.0300, &
-                                                                0.3100, 0.5950, 0.0950, &
-                                                                0.1550, 0.0700, 0.7750 /), (/ 3,3 /) ) )
+    real(kind=dbl) :: sRGB(0:2,0:2)     = transpose(reshape( (/ 0.6400D0, 0.3300D0, 0.0300D0, &
+                                                                0.3000D0, 0.6000D0, 0.1000D0, &
+                                                                0.1500D0, 0.0600D0, 0.7900D0 /), (/ 3,3 /) ) )
+    real(kind=dbl) :: cieRGB(0:2,0:2)   = transpose(reshape( (/ 0.7347D0, 0.2653D0, 0.0000D0, &
+                                                                0.2738D0, 0.7174D0, 0.0088D0, &
+                                                                0.1666D0, 0.0089D0, 0.8245D0 /), (/ 3,3 /) ) )
+    real(kind=dbl) :: appleRGB(0:2,0:2) = transpose(reshape( (/ 0.6250D0, 0.3400D0, 0.0350D0, &
+                                                                0.2800D0, 0.5950D0, 0.1250D0, &
+                                                                0.1550D0, 0.0700D0, 0.7750D0 /), (/ 3,3 /) ) )
+    real(kind=dbl) :: adobeRGB(0:2,0:2) = transpose(reshape( (/ 0.6400D0, 0.3300D0, 0.0300D0, &
+                                                                0.2100D0, 0.7100D0, 0.0800D0, &
+                                                                0.1500D0, 0.0600D0, 0.7900D0 /), (/ 3,3 /) ) )
+    real(kind=dbl) :: palRGB(0:2,0:2)   = transpose(reshape( (/ 0.6400D0, 0.3300D0, 0.0300D0, &
+                                                                0.2900D0, 0.6000D0, 0.1100D0, &
+                                                                0.1500D0, 0.0600D0, 0.7900D0 /), (/ 3,3 /) ) )
+    real(kind=dbl) :: ntscRGB(0:2,0:2)  = transpose(reshape( (/ 0.6300D0, 0.3400D0, 0.0300D0, &
+                                                                0.3100D0, 0.5950D0, 0.0950D0, &
+                                                                0.1550D0, 0.0700D0, 0.7750D0 /), (/ 3,3 /) ) )
 
 ! sRGB gamma correction constants
-    real(kind=sgl) :: sA     = 0.055  
-    real(kind=sgl) :: sGamma = 2.4    
-    real(kind=sgl) :: sPhi   = 12.92  
-    real(kind=sgl) :: sK0    = 0.04045
+    real(kind=dbl) :: sA     = 0.055D0  
+    real(kind=dbl) :: sGamma = 2.4D0    
+    real(kind=dbl) :: sPhi   = 12.92D0  
+    real(kind=dbl) :: sK0    = 0.04045D0
 
 
 ! TO BE CONVERTED !!!
 ! //sRGB conversion matrices
-    real(kind=sgl)           :: sRGBmat(0:2,0:2)  !  = rgbMat(Standards%sRGB, Standards<T>::D65_2)
-    real(kind=sgl)           :: sRGBmatInv(0:2,0:2)  !  = inv3x3(rgbMat(Standards%sRGB, Standards<T>::D65_2))
+    real(kind=dbl)           :: sRGBmat(0:2,0:2)  !  = rgbMat(Standards%sRGB, Standards<T>::D65_2)
+    real(kind=dbl)           :: sRGBmatInv(0:2,0:2)  !  = inv3x3(rgbMat(Standards%sRGB, Standards<T>::D65_2))
 
 end type colorstandardstype
 
@@ -259,14 +261,10 @@ use mod_math
 
 IMPLICIT NONE 
 
-real(kind=sgl),INTENT(IN)     :: mat(3,3)
-real(kind=sgl)                :: invmat(3,3)
+real(kind=dbl),INTENT(IN)     :: mat(3,3)
+real(kind=dbl)                :: invmat(3,3)
 
-real(kind=dbl)                :: dmat(3,3), dinvmat(3,3) 
-
-dmat = dble(mat) 
-call mInvert(dmat, dinvmat, .FALSE.)
-invmat = sngl(dinvmat)
+call mInvert(mat, invmat, .FALSE.)
 
 end function inv3x3
 
@@ -283,12 +281,12 @@ recursive function rgbMat_(rgb, w) result(rgbmat)
 
 IMPLICIT NONE 
 
-real(kind=sgl),INTENT(IN)     :: rgb(0:2,0:2)
-real(kind=sgl),INTENT(IN)     :: w(0:2)
-real(kind=sgl)                :: rgbmat(0:2,0:2)
+real(kind=dbl),INTENT(IN)     :: rgb(0:2,0:2)
+real(kind=dbl),INTENT(IN)     :: w(0:2)
+real(kind=dbl)                :: rgbmat(0:2,0:2)
 
-real(kind=sgl)                :: WW(0:2)
-real(kind=sgl)                :: invR(0:2,0:2), invG(0:2,0:2), invB(0:2,0:2)
+real(kind=dbl)                :: WW(0:2)
+real(kind=dbl)                :: invR(0:2,0:2), invG(0:2,0:2), invB(0:2,0:2)
 
 WW = w/w(1)
 
@@ -318,16 +316,16 @@ recursive function hcm2rgb_(h, c, m) result(rgb)
 
 IMPLICIT NONE 
 
-real(kind=sgl),INTENT(IN)     :: h
-real(kind=sgl),INTENT(IN)     :: c
-real(kind=sgl),INTENT(IN)     :: m
-real(kind=sgl)                :: rgb(0:2)
+real(kind=dbl),INTENT(IN)     :: h
+real(kind=dbl),INTENT(IN)     :: c
+real(kind=dbl),INTENT(IN)     :: m
+real(kind=dbl)                :: rgb(0:2)
 
-real(kind=sgl)                :: x
+real(kind=dbl)                :: x
 integer(kind=irg)             :: h6
 
 h6 = int(h * 6)   ! remember that Hue is in the range (0,1) 
-x = c * (1.0 - abs(mod(h*6, 2.0) - 1.0))
+x = c * (1.D0 - abs(mod(h*6.0D0, 2.D0) - 1.D0))
 
 select case (h6) 
   case (0) 
@@ -343,7 +341,7 @@ select case (h6)
   case (5) 
     rgb = (/ c+m,   m, x+m /)
   case default 
-    rgb = (/ 0.0, 0.0, 0.0 /)
+    rgb = (/ 0.D0, 0.D0, 0.D0 /)
 end select 
 
 end function hcm2rgb_
@@ -351,7 +349,7 @@ end function hcm2rgb_
 !--------------------------------------------------------------------------
 !------------------Implementation of Direct Conversions--------------------
 !--------------------------------------------------------------------------
-recursive function xyz2rgb_(self, xyz, clamped) result(rgb)
+recursive function xyz2rgb_(self, xyz) result(rgb)
 !DEC$ ATTRIBUTES DLLEXPORT :: xyz2rgb_
 !! author: MDG 
 !! version: 1.0 
@@ -360,26 +358,26 @@ recursive function xyz2rgb_(self, xyz, clamped) result(rgb)
 !! convert from XYZ to sRGB
 !! xyz      : XYZ (X, Y, Z) values to convert
 !! rgb      : location to write sRGB (red, green, blue) values
-!! return   : true/false if xyz falls outside/inside the sRGB color gamut
+!! return   : true/false if xyz falls outside/inside the sRGB color gamut [removed on 9/8/21]
 !!
 !! verified on 9/7/21
 
 IMPLICIT NONE 
 
 class(colorspace_T)             :: self
-real(kind=sgl),INTENT(IN)       :: xyz(0:2)
-logical,INTENT(OUT)             :: clamped
-real(kind=sgl)                  :: rgb(0:2)
+real(kind=dbl),INTENT(IN)       :: xyz(0:2)
+real(kind=dbl)                  :: rgb(0:2)
 
-real(kind=sgl)                  :: gammaInv
-real(kind=sgl)                  :: k0Inv
-real(kind=sgl)                  :: a1
-real(kind=sgl)                  :: work(0:2)
+real(kind=dbl)                  :: gammaInv
+real(kind=dbl)                  :: k0Inv
+real(kind=dbl)                  :: a1
+real(kind=dbl)                  :: work(0:2)
 integer(kind=irg)               :: i 
+! logical                         :: clamped
 
-gammaInv = 1.0 / self%Standards%sGamma
+gammaInv = 1.D0 / self%Standards%sGamma
 k0Inv    = self%Standards%sK0 / self%Standards%sPhi
-a1       = 1.0 + self%Standards%sA
+a1       = 1.D0 + self%Standards%sA
 
 work = matmul(self%Standards%sRGBmat, xyz)
 
@@ -393,16 +391,16 @@ do i=0,2
 end do 
 
 ! check if this value is outside the sRGB color gamut
-clamped = .FALSE.
-do i=0,2
-  if(rgb(i).lt.0.0) then
-    rgb(i) = 0.0
-    clamped = .TRUE.
-  else if(rgb(i).gt.1.0) then
-    rgb(i) = 1.0
-    clamped = .TRUE.
-  end if 
-end do
+! clamped = .FALSE.
+! do i=0,2
+!   if(rgb(i).lt.0.0) then
+!     rgb(i) = 0.0
+!     clamped = .TRUE.
+!   else if(rgb(i).gt.1.0) then
+!     rgb(i) = 1.0
+!     clamped = .TRUE.
+!   end if 
+! end do
 
 end function xyz2rgb_
 
@@ -422,13 +420,13 @@ recursive function rgb2xyz_(self, rgb) result(xyz)
 IMPLICIT NONE 
 
 class(colorspace_T)             :: self
-real(kind=sgl),INTENT(IN)       :: rgb(0:2)
-real(kind=sgl)                  :: xyz(0:2)
+real(kind=dbl),INTENT(IN)       :: rgb(0:2)
+real(kind=dbl)                  :: xyz(0:2)
 
-real(kind=sgl)                  :: a1
+real(kind=dbl)                  :: a1
 integer(kind=irg)               :: i 
 
-a1 = 1.0 + self%Standards%sA
+a1 = 1.D0 + self%Standards%sA
 
 ! undo the gamma correction
 do i=0,2
@@ -460,18 +458,18 @@ recursive function xyz2lab_(self, xyz, ill) result(lab)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: xyz(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: lab(0:2)
+real(kind=dbl),INTENT(IN)           :: xyz(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: lab(0:2)
 
-real(kind=sgl)                      :: delta, d2, d3, k, fXYZ(0:2), illum(0:2), t, inv3
+real(kind=dbl)                      :: delta, d2, d3, k, fXYZ(0:2), illum(0:2), t, inv3
 integer(kind=irg)                   :: i 
 
-delta = 6.0 / 29.0
-d2 = delta * delta * 3.0
+delta = 6.D0 / 29.D0
+d2 = delta * delta * 3.D0
 d3 = delta * delta * delta
-k = 4.0 / 29.0
-inv3 = 1.0/3.0
+k = 4.D0 / 29.D0
+inv3 = 1.D0/3.D0
 
 if (present(ill)) then 
   illum = ill
@@ -491,7 +489,7 @@ do i=0,2
 end do
 
 ! change basis and scale
-lab = (/ fXYZ(1) * 116.0 - 16.0, (fXYZ(0) - fXYZ(1)) * 500.0, (fXYZ(1) - fXYZ(2)) * 200.0 /)
+lab = (/ fXYZ(1) * 116.D0 - 16.D0, (fXYZ(0) - fXYZ(1)) * 500.D0, (fXYZ(1) - fXYZ(2)) * 200.D0 /)
 
 end function xyz2lab_
 
@@ -512,17 +510,17 @@ recursive function lab2xyz_(self, lab, ill) result(xyz)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: lab(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: xyz(0:2)
+real(kind=dbl),INTENT(IN)           :: lab(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: xyz(0:2)
 
-real(kind=sgl)                      :: delta, d2, d3, k, fXYZ(0:2), illum(0:2), t
+real(kind=dbl)                      :: delta, d2, d3, k, fXYZ(0:2), illum(0:2), t
 integer(kind=irg)                   :: i 
 
-delta = 6.0 / 29.0
-d2 = delta * delta * 3.0
+delta = 6.D0 / 29.D0
+d2 = delta * delta * 3.D0
 d3 = delta * delta * delta
-k = 4.0 / 29.0
+k = 4.D0 / 29.D0
 
 if (present(ill)) then 
   illum = ill
@@ -532,8 +530,8 @@ end if
 illum = illum/illum(1)
 
 ! change basis and scale
-t = (lab(0)+16.0)/116.0 
-xyz = (/ t + lab(1)/500.0, t, t-lab(2)/200.0 /)
+t = (lab(0)+16.D0)/116.D0 
+xyz = (/ t + lab(1)/500.D0, t, t-lab(2)/200.D0 /)
 
 ! compute f(i/i_N)
 do i=0,2
@@ -564,16 +562,16 @@ recursive function xyz2luv_(self, xyz, ill) result(luv)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: xyz(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: luv(0:2)
+real(kind=dbl),INTENT(IN)           :: xyz(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: luv(0:2)
 
-real(kind=sgl)                      :: d, d_8, denn, den, u, v, inv3, illum(0:2) 
+real(kind=dbl)                      :: d, d_8, denn, den, u, v, inv3, illum(0:2) 
 logical                             :: zero  
 
-d   = 216.0 / 24389.0 ! (6/29)^3
-d_8 = 8.0 / d         ! (29/3)^3
-inv3 = 1.0/3.0 
+d   = 216.D0 / 24389.D0 ! (6/29)^3
+d_8 = 8.D0 / d         ! (29/3)^3
+inv3 = 1.D0/3.D0 
 
 if (present(ill)) then 
   illum = ill
@@ -582,24 +580,24 @@ else
 end if 
 
 ! compute normalized X, Y, and Z and denomentators and u/v
-denn = (illum(0) + illum(1) * 15.0 + illum(2) * 3.0) / illum(1)
-den  =  xyz(0) + xyz(1) * 15.0 + xyz(2) * 3.0
-if (den.eq.0.0) then 
+denn = (illum(0) + illum(1) * 15.D0 + illum(2) * 3.D0) / illum(1)
+den  =  xyz(0) + xyz(1) * 15.D0 + xyz(2) * 3.D0
+if (den.eq.0.D0) then 
   u =  - (illum(0) / illum(1)) / denn
-  v =  - 1.0 / denn
+  v =  - 1.D0 / denn
 else 
   u = xyz(0) / den - (illum(0) / illum(1)) / denn
-  v = xyz(1) / den - 1.0 / denn
+  v = xyz(1) / den - 1.D0 / denn
 end if 
 
 ! compute Luv
 if (xyz(1).le.d) then 
   luv(0) = xyz(1) * d_8
 else 
-  luv(0) = xyz(1)**inv3 * 116.0 - 16.0
+  luv(0) = xyz(1)**inv3 * 116.D0 - 16.D0
 end if 
-luv(1) = luv(0) *  52.0 * u
-luv(2) = luv(0) * 117.0 * v
+luv(1) = luv(0) *  52.D0 * u
+luv(2) = luv(0) * 117.D0 * v
 
 end function xyz2luv_
 
@@ -620,17 +618,17 @@ recursive function luv2xyz_(self, luv, ill) result(xyz)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: luv(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: xyz(0:2)
+real(kind=dbl),INTENT(IN)           :: luv(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: xyz(0:2)
 
-real(kind=sgl)                      :: d, denn, up, vp, Lp, illum(0:2) 
+real(kind=dbl)                      :: d, denn, up, vp, Lp, illum(0:2) 
 logical                             :: zero  
 
-if (luv(0).eq.0.0) then 
-  xyz = (/ 0.0, 0.0, 0.0 /)
+if (luv(0).eq.0.D0) then 
+  xyz = (/ 0.D0, 0.D0, 0.D0 /)
 else
-  d = 27.0 / 24389.0 
+  d = 27.D0 / 24389.D0 
   if (present(ill)) then 
     illum = ill
   else
@@ -638,19 +636,19 @@ else
   end if 
 
 ! compute u' and v'
-  denn = (illum(0) + illum(1) * 15.0 + illum(2) * 3.0) / illum(1)
-  up = (luv(1) / 13.0 + luv(0) * (illum(0) / illum(1)) * 4.0 / denn) * 3.0
-  vp = (luv(2) / 13.0 + luv(0) * 9.0 / denn) * 4.0
-  Lp = (luv(0) + 16.0) / 116.0
+  denn = (illum(0) + illum(1) * 15.D0 + illum(2) * 3.D0) / illum(1)
+  up = (luv(1) / 13.D0 + luv(0) * (illum(0) / illum(1)) * 4.D0 / denn) * 3.D0
+  vp = (luv(2) / 13.D0 + luv(0) * 9.D0 / denn) * 4.D0
+  Lp = (luv(0) + 16.D0) / 116.D0
 
 ! compute X, Y, and Z
-  if (luv(0).le.8.0) then 
+  if (luv(0).le.8.D0) then 
     xyz(1) = luv(0) * d 
   else 
     xyz(1) = Lp**3
   end if 
-  xyz(2) = xyz(1) * (12.0 * luv(0) - up - vp * 5.0) / vp
-  xyz(0) = xyz(1) * (up * 3.0) / vp
+  xyz(2) = xyz(1) * (12.D0 * luv(0) - up - vp * 5.D0) / vp
+  xyz(0) = xyz(1) * (up * 3.D0) / vp
 
 end if
 
@@ -672,10 +670,10 @@ recursive function hsv2rgb_(self, hsv) result(rgb)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsv(0:2)
-real(kind=sgl)                      :: rgb(0:2)
+real(kind=dbl),INTENT(IN)           :: hsv(0:2)
+real(kind=dbl)                      :: rgb(0:2)
 
-real(kind=sgl)                      :: c
+real(kind=dbl)                      :: c
 
 c = hsv(1) * hsv(2)  ! chroma
 rgb = hcm2rgb_( hsv(0), c, hsv(2) - c )
@@ -698,13 +696,13 @@ recursive function hsl2rgb_(self, hsl) result(rgb)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsl(0:2)
-real(kind=sgl)                      :: rgb(0:2)
+real(kind=dbl),INTENT(IN)           :: hsl(0:2)
+real(kind=dbl)                      :: rgb(0:2)
 
-real(kind=sgl)                      :: c
+real(kind=dbl)                      :: c
 
-c = (1.0 - abs(hsl(2) * 2.0 - 1.0)) * hsl(1)  ! chroma
-rgb = hcm2rgb_( hsl(0), c, hsl(2) - c*0.5 )
+c = (1.D0 - abs(hsl(2) * 2.D0 - 1.D0)) * hsl(1)  ! chroma
+rgb = hcm2rgb_( hsl(0), c, hsl(2) - c*0.5D0 )
 
 end function hsl2rgb_
 
@@ -724,23 +722,23 @@ recursive function hsl2hsv_(self, hsl) result(hsv)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsl(0:2)
-real(kind=sgl)                      :: hsv(0:2)
+real(kind=dbl),INTENT(IN)           :: hsl(0:2)
+real(kind=dbl)                      :: hsv(0:2)
 
-real(kind=sgl)                      :: s
+real(kind=dbl)                      :: s
 
-if (hsl(2).lt.0.5) then 
+if (hsl(2).lt.0.5D0) then 
   s = hsl(1) * hsl(2)
 else 
-  s = hsl(1) * ( 1.0 - hsl(2)) 
+  s = hsl(1) * ( 1.D0 - hsl(2)) 
 end if 
 
 hsv(0) = hsl(0)
 hsv(2) = s + hsl(2)
-if (s.eq.0.0) then 
-  hsv(1) = 0.0
+if (s.eq.0.D0) then 
+  hsv(1) = 0.D0
 else 
-  hsv(1) = 2.0 * s / hsv(2)
+  hsv(1) = 2.D0 * s / hsv(2)
 end if 
 
 end function hsl2hsv_
@@ -761,23 +759,23 @@ recursive function hsv2hsl_(self, hsv) result(hsl)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsv(0:2)
-real(kind=sgl)                      :: hsl(0:2)
+real(kind=dbl),INTENT(IN)           :: hsv(0:2)
+real(kind=dbl)                      :: hsl(0:2)
 
-real(kind=sgl)                      :: sv, x
+real(kind=dbl)                      :: sv, x
 
 sv = hsv(1) * hsv(2)
-x = 2.0 * hsv(2) - sv
+x = 2.D0 * hsv(2) - sv
 
 hsl(0) = hsv(0)
-hsl(2) = hsv(2) - sv / 2.0
-if (sv.eq.0.0) then 
-  hsl(1) = 0.0
+hsl(2) = hsv(2) - sv / 2.D0
+if (sv.eq.0.D0) then 
+  hsl(1) = 0.D0
 else 
-  if (x.lt.1.0) then 
+  if (x.lt.1.D0) then 
     hsl(1) = sv / x 
   else
-    hsl(1) = sv / ( 2.0 - x )
+    hsl(1) = sv / ( 2.D0 - x )
   end if 
 end if 
 
@@ -799,37 +797,37 @@ recursive function rgb2hsv_(self, rgb) result(hsv)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: rgb(0:2)
-real(kind=sgl)                      :: hsv(0:2)
+real(kind=dbl),INTENT(IN)           :: rgb(0:2)
+real(kind=dbl)                      :: hsv(0:2)
 
-real(kind=sgl)                      :: vMin, vMax, delta
+real(kind=dbl)                      :: vMin, vMax, delta
 integer(kind=irg)                   :: iMax(1)
 
 vMax = maxval(rgb)
 
-if(vMax.eq.0.0) then ! black
-  hsv = 0.0
+if(vMax.eq.0.D0) then ! black
+  hsv = 0.D0
 else 
   vMin = minval(rgb)
   delta = vMax - vMin
-  if (delta.eq.0.0) then ! gray
-    hsv(0:1) = 0.0
+  if (delta.eq.0.D0) then ! gray
+    hsv(0:1) = 0.D0
   else 
     iMax = maxloc(rgb)
     select case (iMax(1))
       case(1)
-        hsv(0) = mod( (rgb(1)-rgb(2))/delta + 12.0, 6.0 )
+        hsv(0) = mod( (rgb(1)-rgb(2))/delta + 12.D0, 6.D0 )
       case(2)
-        hsv(0) = (rgb(2)-rgb(0))/delta + 2.0
+        hsv(0) = (rgb(2)-rgb(0))/delta + 2.D0
       case(3)
-        hsv(0) = (rgb(0)-rgb(1))/delta + 4.0
+        hsv(0) = (rgb(0)-rgb(1))/delta + 4.D0
     end select
-    if (hsv(0).lt.0.0) hsv(0) = 1.0 + hsv(0)
+    if (hsv(0).lt.0.0) hsv(0) = 1.D0 + hsv(0)
     hsv(1) = delta / vMax
   end if 
   hsv(2) = vMax
 end if 
-hsv(0) = hsv(0) / 6.0
+hsv(0) = hsv(0) / 6.D0
 
 end function rgb2hsv_
 
@@ -849,42 +847,42 @@ recursive function rgb2hsl_(self, rgb) result(hsl)
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: rgb(0:2)
-real(kind=sgl)                      :: hsl(0:2)
+real(kind=dbl),INTENT(IN)           :: rgb(0:2)
+real(kind=dbl)                      :: hsl(0:2)
 
-real(kind=sgl)                      :: vMin, vMax, delta, sigma
+real(kind=dbl)                      :: vMin, vMax, delta, sigma
 integer(kind=irg)                   :: iMax(1) 
 
 vMax = maxval(rgb)
 
-if(vMax.eq.0.0) then ! black
-  hsl = 0.0
+if(vMax.eq.0.D0) then ! black
+  hsl = 0.D0
 else 
   vMin = minval(rgb)
   delta = vMax - vMin
   sigma = vMax + vMin
-  if (delta.eq.0.0) then ! gray
-    hsl(0:1) = 0.0
+  if (delta.eq.0.D0) then ! gray
+    hsl(0:1) = 0.D0
   else 
     iMax = maxloc(rgb)
     select case (iMax(1))
       case(1)
-        hsl(0) = mod( (rgb(1)-rgb(2))/delta + 12.0, 6.0 )
+        hsl(0) = mod( (rgb(1)-rgb(2))/delta + 12.D0, 6.D0 )
       case(2)
-        hsl(0) = (rgb(2)-rgb(0))/delta + 2.0
+        hsl(0) = (rgb(2)-rgb(0))/delta + 2.D0
       case(3)
-        hsl(0) = (rgb(0)-rgb(1))/delta + 4.0
+        hsl(0) = (rgb(0)-rgb(1))/delta + 4.D0
     end select
-    if (hsl(0).lt.0.0) hsl(0) = 1.0 + hsl(0)
-    if (sigma.lt.1.0) then 
+    if (hsl(0).lt.0.0) hsl(0) = 1.D0 + hsl(0)
+    if (sigma.lt.1.D0) then 
       hsl(1) = delta / sigma
     else 
-      hsl(1) = delta / ( 2.0 - sigma )
+      hsl(1) = delta / ( 2.D0 - sigma )
     end if 
   end if 
-  hsl(2) = 0.5 * sigma
+  hsl(2) = 0.5D0 * sigma
 end if 
-hsl(0) = hsl(0) / 6.0
+hsl(0) = hsl(0) / 6.D0
 
 end function rgb2hsl_
 
@@ -895,31 +893,29 @@ end function rgb2hsl_
 !--------------------------------------------------------------------------
 ! illuminant free cie spaces -> hsl/hsv (using cie spaces -> rgb)
 !--------------------------------------------------------------------------
-recursive function xyz2hsv_( self, xyz, b) result(hsv) 
+recursive function xyz2hsv_( self, xyz) result(hsv) 
 
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: xyz(0:2)
-logical,INTENT(OUT)                 :: b 
-real(kind=sgl)                      :: hsv(0:2)
+real(kind=dbl),INTENT(IN)           :: xyz(0:2)
+real(kind=dbl)                      :: hsv(0:2)
 
-hsv = self%xyz2rgb_(xyz, b) 
+hsv = self%xyz2rgb_(xyz) 
 hsv = self%rgb2hsv_(hsv) ! xyz->rgb->hsv
 
 end function xyz2hsv_
 
 !--------------------------------------------------------------------------
-recursive function xyz2hsl_( self, xyz, b) result(hsl) 
+recursive function xyz2hsl_( self, xyz) result(hsl) 
 
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: xyz(0:2)
-logical,INTENT(OUT)                 :: b 
-real(kind=sgl)                      :: hsl(0:2)
+real(kind=dbl),INTENT(IN)           :: xyz(0:2)
+real(kind=dbl)                      :: hsl(0:2)
 
-hsl = self%xyz2rgb_(xyz, b)
+hsl = self%xyz2rgb_(xyz)
 hsl = self%rgb2hsl_(hsl) ! xyz->rgb->hsl
 
 end function xyz2hsl_
@@ -932,12 +928,11 @@ recursive function luv2rgb_( self, luv, ill) result(rgb)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: luv(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: rgb(0:2)
+real(kind=dbl),INTENT(IN)           :: luv(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: rgb(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
-logical                             :: b  
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -946,7 +941,7 @@ else
 end if 
 
 rgb = self%luv2xyz_(luv, illum)
-rgb = self%xyz2rgb_(rgb, b)  ! luv->xyz->rgb
+rgb = self%xyz2rgb_(rgb)  ! luv->xyz->rgb
 
 end function luv2rgb_
 
@@ -956,12 +951,11 @@ recursive function luv2hsv_( self, luv, ill) result(hsv)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: luv(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: hsv(0:2)
+real(kind=dbl),INTENT(IN)           :: luv(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: hsv(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
-logical                             :: b  
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -970,7 +964,7 @@ else
 end if 
 
 hsv = self%luv2xyz_(luv, illum)
-hsv = self%xyz2hsv_(hsv, b)    ! luv->xyz->rgb->hsv
+hsv = self%xyz2hsv_(hsv)    ! luv->xyz->rgb->hsv
 
 end function luv2hsv_
 
@@ -980,12 +974,11 @@ recursive function luv2hsl_( self, luv, ill) result(hsl)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: luv(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: hsl(0:2)
+real(kind=dbl),INTENT(IN)           :: luv(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: hsl(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
-logical                             :: b  
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -994,7 +987,7 @@ else
 end if 
 
 hsl = self%luv2xyz_(luv, illum)
-hsl = self%xyz2hsl_(hsl, b)    ! luv->xyz->rgb->hsl
+hsl = self%xyz2hsl_(hsl)    ! luv->xyz->rgb->hsl
 
 end function luv2hsl_
 
@@ -1004,12 +997,11 @@ recursive function lab2rgb_( self, lab, ill) result(rgb)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: lab(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: rgb(0:2)
+real(kind=dbl),INTENT(IN)           :: lab(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: rgb(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
-logical                             :: b  
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1018,7 +1010,7 @@ else
 end if 
 
 rgb = self%lab2xyz_(lab, illum)
-rgb = self%xyz2rgb_(rgb, b)    !  lab->xyz->rgb
+rgb = self%xyz2rgb_(rgb)    !  lab->xyz->rgb
 
 end function lab2rgb_
 
@@ -1028,12 +1020,11 @@ recursive function lab2hsv_( self, lab, ill) result(hsv)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: lab(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: hsv(0:2)
+real(kind=dbl),INTENT(IN)           :: lab(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: hsv(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
-logical                             :: b  
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1042,7 +1033,7 @@ else
 end if 
 
 hsv = self%lab2xyz_(lab, illum)
-hsv = self%xyz2hsv_(hsv, b)     ! lab->xyz->rgb->hsv
+hsv = self%xyz2hsv_(hsv)     ! lab->xyz->rgb->hsv
 
 end function lab2hsv_
 
@@ -1052,12 +1043,11 @@ recursive function lab2hsl_( self, lab, ill) result(hsl)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: lab(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: hsl(0:2)
+real(kind=dbl),INTENT(IN)           :: lab(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: hsl(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
-logical                             :: b 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1066,7 +1056,7 @@ else
 end if 
 
 hsl = self%lab2xyz_(lab, illum)
-hsl = self%xyz2hsl_(hsl, b)     !  lab->xyz->rgb->hsl
+hsl = self%xyz2hsl_(hsl)     !  lab->xyz->rgb->hsl
 
 end function lab2hsl_
 
@@ -1078,11 +1068,11 @@ recursive function luv2lab_( self, luv, ill) result(lab)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: luv(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: lab(0:2)
+real(kind=dbl),INTENT(IN)           :: luv(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: lab(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1101,11 +1091,11 @@ recursive function lab2luv_( self, lab, ill) result(luv)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: lab(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: luv(0:2)
+real(kind=dbl),INTENT(IN)           :: lab(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: luv(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1126,11 +1116,11 @@ recursive function rgb2luv_( self, rgb, ill) result(luv)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: rgb(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: luv(0:2)
+real(kind=dbl),INTENT(IN)           :: rgb(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: luv(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1149,11 +1139,11 @@ recursive function rgb2lab_( self, rgb, ill) result(lab)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: rgb(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: lab(0:2)
+real(kind=dbl),INTENT(IN)           :: rgb(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: lab(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1171,8 +1161,8 @@ recursive function hsv2xyz_( self, hsv) result(xyz)
 
 IMPLICIT NONE
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsv(0:2)
-real(kind=sgl)                      :: xyz(0:2)
+real(kind=dbl),INTENT(IN)           :: hsv(0:2)
+real(kind=dbl)                      :: xyz(0:2)
 
 xyz = self%hsv2rgb_(hsv) 
 xyz = self%rgb2xyz_(xyz)    ! hsv->rgb->xyz
@@ -1185,11 +1175,11 @@ recursive function hsv2luv_( self, hsv, ill) result(luv)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsv(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: luv(0:2)
+real(kind=dbl),INTENT(IN)           :: hsv(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: luv(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1209,11 +1199,11 @@ recursive function hsv2lab_( self, hsv, ill) result(lab)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsv(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: lab(0:2)
+real(kind=dbl),INTENT(IN)           :: hsv(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: lab(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1233,8 +1223,8 @@ recursive function hsl2xyz_( self, hsl) result(xyz)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsl(0:2)
-real(kind=sgl)                      :: xyz(0:2)
+real(kind=dbl),INTENT(IN)           :: hsl(0:2)
+real(kind=dbl)                      :: xyz(0:2)
 
 xyz = self%hsl2rgb_(hsl) 
 xyz = self%rgb2xyz_(xyz)    ! hsl->rgb->xyz
@@ -1247,11 +1237,11 @@ recursive function hsl2luv_( self, hsl, ill) result(luv)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsl(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: luv(0:2)
+real(kind=dbl),INTENT(IN)           :: hsl(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: luv(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
@@ -1271,11 +1261,11 @@ recursive function hsl2lab_( self, hsl, ill) result(lab)
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
-real(kind=sgl),INTENT(IN)           :: hsl(0:2)
-real(kind=sgl),INTENT(IN),OPTIONAL  :: ill(0:2)
-real(kind=sgl)                      :: lab(0:2)
+real(kind=dbl),INTENT(IN)           :: hsl(0:2)
+real(kind=dbl),INTENT(IN),OPTIONAL  :: ill(0:2)
+real(kind=dbl)                      :: lab(0:2)
 
-real(kind=sgl)                      :: illum(0:2) 
+real(kind=dbl)                      :: illum(0:2) 
 
 if (present(ill)) then 
   illum = ill
