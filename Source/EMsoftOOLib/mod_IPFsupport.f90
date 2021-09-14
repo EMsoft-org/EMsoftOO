@@ -405,7 +405,7 @@ end if
 end function in_cubic_unit_triangle
 
 !--------------------------------------------------------------------------
-recursive function get_ipf_RGB_(self, sampleDir, qu, sym, Pm ) result(RGB)
+recursive function get_ipf_RGB_(self, sampleDir, qu, sym, Pm, clr ) result(RGB)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_ipf_RGB_
 !! author: MDG 
 !! version: 1.0 
@@ -423,6 +423,7 @@ recursive function get_ipf_RGB_(self, sampleDir, qu, sym, Pm ) result(RGB)
 use mod_quaternions
 use mod_rotations 
 use mod_io
+use mod_colorspace
 
 IMPLICIT NONE 
 
@@ -432,13 +433,14 @@ type(Quaternion_T), INTENT(IN)        :: qu
 type(QuaternionArray_T), INTENT(IN)   :: sym 
 integer(kind=irg), INTENT(IN)         :: Pm
 integer(kind=ish)                     :: RGB(3)
+type(colorspace_T),INTENT(IN),OPTIONAL:: clr
 
 type(e_T)                             :: eu
 type(q_T)                             :: qq
 type(IO_T)                            :: Message
 type(Quaternion_T)                    :: qs, qc, qtest 
 
-real(kind=dbl)                        :: e(3), tp 
+real(kind=dbl)                        :: e(3), tp, hsl(0:2) 
 real(kind=dbl)                        :: refDir(3), chi, eta, etaDeg, chiDeg, RGBd(3), ma 
 real(kind=dbl)                        :: chiMin, chiMax, etaMin, etaMax
 integer(kind=irg)                     :: i 
@@ -464,7 +466,7 @@ if (trim(self%ipf_mode).eq.'Euler') then
 end if
 
 ! use the standard IPF colors based on the TSL Euler angles
-if (trim(self%ipf_mode).eq.'TSL') then 
+if ( (trim(self%ipf_mode).eq.'TSL') .or. (trim(self%ipf_mode).eq.'OPC') ) then 
   RGB = (/ 0, 0, 0 /)
 
   findloop: do i=1,Pm 
@@ -545,6 +547,10 @@ if (trim(self%ipf_mode).eq.'TSL') then
       RGBd = sqrt(RGBd) 
       ma = maxval(RGBd)
       RGBd = RGBd / ma 
+      if (trim(self%ipf_mode).eq.'OPC') then 
+        hsl = clr%rgb2hsl(RGBd)
+        RGBd = clr%sph2rgb(hsl)
+      end if 
       RGB = int(RGBd * 255)
       exit findloop
     end if 
@@ -562,7 +568,7 @@ subroutine get_IPFMap_( self, EMsoft, sampleDir, Orientations, sym )
 !!
 !! This takes an orientation list in quaternion representation and turns it into 
 !! an inverse pole figure map (using one of a few color schemes) that is then stored 
-!! in a .tiff or .bmp file.
+!! in a .tiff file.
 !!
 !! This routine assumes that the IPF map size and filename as well as the Laue Class 
 !! have been set by the calling program using the appropriate methods; the number of orientations
@@ -574,6 +580,7 @@ use mod_OMPsupport
 use omp_lib
 use mod_image
 use mod_io
+use mod_colorspace
 use ISO_C_BINDING
 use, intrinsic :: iso_fortran_env
 
@@ -589,6 +596,7 @@ integer(kind=irg),allocatable               :: IPFmap(:,:,:)
 integer(kind=irg)                           :: ix, iy, iq, TID 
 type(Quaternion_T)                          :: qu
 type(IO_T)                                  :: Message
+type(colorspace_T)                          :: clr
 
 character(fnlen)                            :: fname, TIFF_filename
 real(kind=dbl)                              :: sDir(3)
@@ -596,7 +604,7 @@ real(kind=dbl)                              :: sDir(3)
 ! declare variables for use in object oriented image module
 integer                                     :: iostat, io_int(2)
 character(len=128)                          :: iomsg
-logical                                     :: isInteger
+logical                                     :: isInteger, OPC
 type(image_t)                               :: im
 integer(int8), allocatable                  :: TIFF_image(:,:)
 integer                                     :: dim2(2), Pm
@@ -613,6 +621,9 @@ call Message%WriteValue(' Generating IPF map of dimensions : ', io_int,2,frm="(I
 
 Pm = sym%getQnumber()
 
+OPC = .FALSE.
+if (trim(self%ipf_mode).eq.'OPC') OPC = .TRUE.
+
 io_int(1) = Pm
 call Message%WriteValue(' # symops = ', io_int, 1) 
 
@@ -621,9 +632,11 @@ call Message%WriteValue(' # threads = ', io_int, 1)
 
 call OMP_SET_NUM_THREADS( self%get_ipf_nthreads_() )
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, iq, qu)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, iq, qu, clr)
 
 TID = OMP_GET_THREAD_NUM()
+
+if (OPC.eqv..TRUE.) clr = colorspace_T()
 
 !$OMP DO SCHEDULE(DYNAMIC)
   do iy = 1, self%ipf_ht 
@@ -631,7 +644,11 @@ TID = OMP_GET_THREAD_NUM()
       iq = (iy-1) * self%ipf_wd + ix 
       qu = Orientations%getQuatfromArray(iq)
       call qu%quat_pos()
-      IPFmap(1:3, ix, iy) = self%get_ipf_RGB_( sDir, qu, sym, Pm )
+      if (OPC.eqv..TRUE.) then 
+        IPFmap(1:3, ix, iy) = self%get_ipf_RGB_( sDir, qu, sym, Pm, clr )
+      else 
+        IPFmap(1:3, ix, iy) = self%get_ipf_RGB_( sDir, qu, sym, Pm )
+      end if 
     end do 
   end do
 !$OMP END DO

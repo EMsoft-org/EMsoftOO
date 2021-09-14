@@ -8,7 +8,10 @@
  sampleDir = 0 0 1,
 ! IPF map file name (.tiff)
  IPFfilename = 'undefined',
-! IPF mode:  'TSL' = standard TSL color scheme; 'Euler' = RGB mapped onto full Euler space
+! IPF mode:  
+!  'Euler' = RGB mapped onto full Euler space
+!  'TSL' = standard TSL color scheme; 
+!  'OPC' = TSL modified according to "Orientations-perfectly colored" by Nolze&Hielscher, JAC 49:1786-1802 (2016)
  IPFmode = 'TSL',
 ! point group number 
 !   #1:    '1', #2:    '-1', #3:      '2', #4:    'm', #5:  '2/m', #6:   '222', #7:    'mm2', #8:   'mmm'

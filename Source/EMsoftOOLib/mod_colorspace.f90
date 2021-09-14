@@ -170,6 +170,8 @@ private
   procedure, pass(self) :: hsl2lab_
   procedure, pass(self) :: hsl2hsv_
 
+  procedure, pass(self) :: sph2rgb_
+
   generic, public :: rgb2xyz => rgb2xyz_
   generic, public :: rgb2luv => rgb2luv_
   generic, public :: rgb2lab => rgb2lab_
@@ -206,6 +208,7 @@ private
   generic, public :: hsl2lab => hsl2lab_
   generic, public :: hsl2hsv => hsl2hsv_
 
+  generic, public :: sph2rgb => sph2rgb_
 end type colorspace_T
 
 ! the constructor routine for this class 
@@ -358,7 +361,7 @@ recursive function xyz2rgb_(self, xyz) result(rgb)
 !! convert from XYZ to sRGB
 !! xyz      : XYZ (X, Y, Z) values to convert
 !! rgb      : location to write sRGB (red, green, blue) values
-!! return   : true/false if xyz falls outside/inside the sRGB color gamut [removed on 9/8/21]
+!! return   : true/false if xyz falls outside/inside the sRGB color gamut (removed on 9/8/21)
 !!
 !! verified on 9/7/21
 
@@ -894,6 +897,11 @@ end function rgb2hsl_
 ! illuminant free cie spaces -> hsl/hsv (using cie spaces -> rgb)
 !--------------------------------------------------------------------------
 recursive function xyz2hsv_( self, xyz) result(hsv) 
+!DEC$ ATTRIBUTES DLLEXPORT :: xyz2hsv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE 
 
@@ -908,6 +916,11 @@ end function xyz2hsv_
 
 !--------------------------------------------------------------------------
 recursive function xyz2hsl_( self, xyz) result(hsl) 
+!DEC$ ATTRIBUTES DLLEXPORT :: xyz2hsl_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE 
 
@@ -924,6 +937,11 @@ end function xyz2hsl_
 ! illuminated cie spaces -> rgb/hsv/hsl (using cie spaces -> xyz -> rgb)
 !--------------------------------------------------------------------------
 recursive function luv2rgb_( self, luv, ill) result(rgb) 
+!DEC$ ATTRIBUTES DLLEXPORT :: luv2rgb_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -947,6 +965,11 @@ end function luv2rgb_
 
 !--------------------------------------------------------------------------
 recursive function luv2hsv_( self, luv, ill) result(hsv) 
+!DEC$ ATTRIBUTES DLLEXPORT :: luv2hsv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -970,6 +993,11 @@ end function luv2hsv_
 
 !--------------------------------------------------------------------------
 recursive function luv2hsl_( self, luv, ill) result(hsl) 
+!DEC$ ATTRIBUTES DLLEXPORT :: luv2hsl_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -993,6 +1021,11 @@ end function luv2hsl_
 
 !--------------------------------------------------------------------------
 recursive function lab2rgb_( self, lab, ill) result(rgb) 
+!DEC$ ATTRIBUTES DLLEXPORT :: lab2rgb_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1016,6 +1049,11 @@ end function lab2rgb_
 
 !--------------------------------------------------------------------------
 recursive function lab2hsv_( self, lab, ill) result(hsv) 
+!DEC$ ATTRIBUTES DLLEXPORT :: lab2hsv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1039,6 +1077,11 @@ end function lab2hsv_
 
 !--------------------------------------------------------------------------
 recursive function lab2hsl_( self, lab, ill) result(hsl) 
+!DEC$ ATTRIBUTES DLLEXPORT :: lab2hsl_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1064,6 +1107,11 @@ end function lab2hsl_
 ! within cie spaces (through xyz)
 !--------------------------------------------------------------------------
 recursive function luv2lab_( self, luv, ill) result(lab) 
+!DEC$ ATTRIBUTES DLLEXPORT :: luv2lab_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1087,6 +1135,11 @@ end function luv2lab_
 
 !--------------------------------------------------------------------------
 recursive function lab2luv_( self, lab, ill) result(luv) 
+!DEC$ ATTRIBUTES DLLEXPORT :: lab2luv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1112,6 +1165,11 @@ end function lab2luv_
 ! rgb/hsv/hsl to cie spaces (all go through rgb -> xyz)
 !--------------------------------------------------------------------------
 recursive function rgb2luv_( self, rgb, ill) result(luv) 
+!DEC$ ATTRIBUTES DLLEXPORT :: rgb2luv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1135,6 +1193,11 @@ end function rgb2luv_
 
 !--------------------------------------------------------------------------
 recursive function rgb2lab_( self, rgb, ill) result(lab) 
+!DEC$ ATTRIBUTES DLLEXPORT :: rgb2lab_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
  
 IMPLICIT NONE
 
@@ -1158,6 +1221,11 @@ end function rgb2lab_
 
 !--------------------------------------------------------------------------
 recursive function hsv2xyz_( self, hsv) result(xyz) 
+!DEC$ ATTRIBUTES DLLEXPORT :: hsv2xyz_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 class(colorspace_T)                 :: self
@@ -1171,6 +1239,11 @@ end function hsv2xyz_
 
 !--------------------------------------------------------------------------
 recursive function hsv2luv_( self, hsv, ill) result(luv) 
+!DEC$ ATTRIBUTES DLLEXPORT :: hsv2luv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1195,6 +1268,11 @@ end function hsv2luv_
 
 !--------------------------------------------------------------------------
 recursive function hsv2lab_( self, hsv, ill) result(lab) 
+!DEC$ ATTRIBUTES DLLEXPORT :: hsv2lab_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1219,6 +1297,11 @@ end function hsv2lab_
 
 !--------------------------------------------------------------------------
 recursive function hsl2xyz_( self, hsl) result(xyz) 
+!DEC$ ATTRIBUTES DLLEXPORT :: hsl2xyz_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1233,6 +1316,11 @@ end function hsl2xyz_
 
 !--------------------------------------------------------------------------
 recursive function hsl2luv_( self, hsl, ill) result(luv) 
+!DEC$ ATTRIBUTES DLLEXPORT :: hsl2luv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1257,6 +1345,11 @@ end function hsl2luv_
 
 !--------------------------------------------------------------------------
 recursive function hsl2lab_( self, hsl, ill) result(lab) 
+!DEC$ ATTRIBUTES DLLEXPORT :: hsl2lab_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
 IMPLICIT NONE
 
@@ -1279,7 +1372,103 @@ lab = self%xyz2lab_(lab, illum)    ! hsl->rgb->xyz->lab
 
 end function hsl2lab_
 
+!--------------------------------------------------------------------------
+recursive function sph2rgb_( self, hsl) result(rgb) 
+!DEC$ ATTRIBUTES DLLEXPORT :: sph2rgb_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
+!! phenomenologically adjusted hsl2rgb (based on Will Lenthe's original code)
+
+IMPLICIT NONE
+
+class(colorspace_T)                 :: self
+real(kind=dbl),INTENT(IN)           :: hsl(0:2)
+real(kind=dbl)                      :: rgb(0:2)
+
+logical                             :: whiteCenter, half 
+real(kind=dbl)                      :: yL, yS, h3, h6, hNew, sP, th, gray, q, c, m, h, x 
+
+!  1 / ( 1 + sqrt(2*pi) * std::erf( 5 * sqrt(2) / 3 ) * 0.3 );
+real(kind=dbl), parameter           :: iDen = 0.570990316610288181236261564684297686279447800757942106831501845990856895D0
+! sqrt(pi/2) / 10
+real(kind=dbl), parameter           :: k1   = 0.125331413731550025120788264240552262650349337030496915831496178817114683D0
+!10 * sqrt(2)
+real(kind=dbl), parameter           :: k2   = 14.1421356237309504880168872420969807856967187537694807317667973799073248D0
+! 1/3
+real(kind=dbl), parameter           :: k1_3 = 0.333333333333333333333333333333333333333333333333333333333333333333333333D0
+! 1/6
+real(kind=dbl), parameter           :: k1_6 = 0.166666666666666666666666666666666666666666666666666666666666666666666667D0
+! pi/2
+real(kind=dbl), parameter           :: pi_2 = 1.57079632679489661923132169163975144209858469968755291048747229615390820D0
+
+! get lightness and saturation rescaling parameters
+whiteCenter = .FALSE.
+if (hsl(2).ge.0.5D0) whiteCenter = .TRUE.
+if (whiteCenter.eqv..TRUE.) then 
+  yL = 0.25D0 
+  yS = 0.20D0 
+else 
+  yL = 0.5D0 
+  yS = 0.5D0 
+end if 
+
+! adjust hue gradient (A.5)
+h3   = mod(hsl(0), k1_3)
+half = .FALSE. 
+if (h3.gt.k1_6) half = .TRUE. 
+if (half.eqv..TRUE.) then 
+  h6 = k1_3 - h3 
+else 
+  h6 = h3
+end if 
+hNew = (h6 + k1 * erf(k2 * h6)) * iDen
+if (half.eqv..TRUE.) then  ! save adjusted hue
+  rgb(0) = hsl(0) - h3 + k1_3 - hNew  
+else 
+  rgb(0) = hsl(0) - h3 + hNew
+end if 
+
+! adjust lightness gradient (A.9)
+sP   = sin(hsl(2) * pi_2)
+th   = yL * hsl(2) + (1.0D0 - yL) * sP * sP
+gray = 1.0D0 - 2.0D0 * yS * abs(th - 0.5D0)
+rgb(2) = (th - 0.5D0) * gray + 0.5D0  ! save adjusted lightness
+
+! adjust saturation gradient (A.10)
+q = 1.0D0 - abs( 2.0D0 * hsl(2) - 1.0D0 ) 
+if (q.eq.0.D0) then 
+  rgb(1) = 0.D0
+else 
+  rgb(1) = gray * ( 1.0D0 - abs( 2.0D0 * th - 1.0D0 ) ) / q  ! save adjusted saturation
+end if 
+
+! convert adjusted hsl to rgb
+c = (1.D0 - abs(rgb(2) * 2.D0 - 1.D0)) * rgb(1)   ! compute chroma
+m = rgb(2) - c/2.D0   ! m
+h = rgb(0) * 6.D0     ! hue [0,1] -> [0,6]
+x = c * (1.D0 - abs(mod(h, 2.D0) - 1.D0))
+
+select case (int(h)) 
+  case (0) 
+    rgb = (/ c+m, x+m,   m /)
+  case (1) 
+    rgb = (/ x+m, c+m,   m /)
+  case (2) 
+    rgb = (/   m, c+m, x+m /)
+  case (3) 
+    rgb = (/   m, x+m, c+m /)
+  case (4) 
+    rgb = (/ x+m,   m, c+m /)
+  case (5) 
+    rgb = (/ c+m,   m, x+m /)
+  case default 
+    rgb = (/ 0.D0, 0.D0, 0.D0 /)
+end select 
+
+end function sph2rgb_
 
 
 end module mod_colorspace
