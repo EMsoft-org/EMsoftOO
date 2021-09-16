@@ -1136,7 +1136,6 @@ mainloop: do isg = numstart,numstop
       nullify(rltmpa)
       nullify(rltmpb)
       call reflist%GetDynMatDHW(cell, Diff, firstw, rltmpa, rltmpb, DHWMz, nn, DM, ga, gb)
-
   else if (self%nml%mode.eq.'fast') then
       call reflist%GetDynMat(cell, Diff, firstw, DHWMz, nns, nnw)
       ! Conversion from Bloch wave matrix to scattering matrix formalism
@@ -1154,18 +1153,18 @@ mainloop: do isg = numstart,numstop
   ! Compute Sgh
   ! Only diagonals terms are computed gives inverted contrast...
   !call mem%alloc(Sgh, (/nn/), 'Sgh')
-  !if (allocated(Sgh)) deallocate(Sgh)
-  !allocate(Sgh(nn))
+  if (allocated(Sgh)) deallocate(Sgh)
+  allocate(Sgh(nn))
 
-  !nat = 0
-  !call Diff%preCalcSghECCI(cell, SG, nn, nat, Sgh)
+  nat = 0
+  call Diff%preCalcSghECCI(cell, SG, nn, nat, Sgh)
 
   ! Computation with non diagonals terms of Sgh
   ! then we need to initialize the Sgh arrays
-  if (allocated(Sghtmp2)) deallocate(Sghtmp2)
-  allocate(Sghtmp2(nn,nn))
-  Sghtmp2 = czero
-  call reflist%getSghfromLUTsum(Diff,nn,numset,nat,Sghtmp2)
+  !if (allocated(Sghtmp2)) deallocate(Sghtmp2)
+  !allocate(Sghtmp2(nn,nn))
+  !Sghtmp2 = czero
+  !call reflist%getSghfromLUTsum(Diff,nn,numset,nat,Sghtmp2)
 
   call Message%printMessage(' --> Done',"(A)")
 
@@ -1214,9 +1213,9 @@ mainloop: do isg = numstart,numstop
     ! ir is the row index
         do ir=1,nn
           if (ic.ne.ir) then  ! exclude the diagonal
-            DDD(ir,ic) = DHWMz(ir,ic) 
-          else
             DDD(ir,ic) = DHWMz(ir,ic) * para(i)**expval(1,ir,ic) * para(j)**expval(2,ir,ic)
+          else
+            DDD(ir,ic) = DHWMz(ir,ic) 
           end if
         end do
       end do
@@ -1224,6 +1223,7 @@ mainloop: do isg = numstart,numstop
       call MatrixExponential(DDD, Azz, dble(defects%DF_slice), 'Pade', nn)
 
       Sarray(1:nn,1:nn,i,j) = Azz(1:nn,1:nn)
+      !write(*,*) Sarray(1:nn,1:nn,i,j)
     end do
   end do
   !$OMP END DO
@@ -1283,11 +1283,13 @@ mainloop: do isg = numstart,numstop
           amp2 = matmul(Azz,amp)
 
           if (k.eq.1) then
-            Lgh2(1:nn,1:nn) = (mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
-                                spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
+            Lgh = abs(amp2)**2
+            !Lgh2(1:nn,1:nn) = (mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
+                                !spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
           else
-            Lgh2(1:nn,1:nn) = Lgh2(1:nn,1:nn)+(mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
-                              spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
+            Lgh = Lgh + abs(amp2)**2
+            !Lgh2(1:nn,1:nn) = Lgh2(1:nn,1:nn)+(mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
+                              !spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
           end if
           
           amp = amp2
@@ -1296,7 +1298,7 @@ mainloop: do isg = numstart,numstop
       ! Commented section used to test Sgh non diagonals terms use...
 
       svals = 0.0
-      svals = real(sum(Lgh2(1:nn,1:nn)*Sghtmp2(1:nn,1:nn)))
+      svals = sngl(real(sum( Sgh * Lgh ))) !real(sum(Lgh2(1:nn,1:nn)*Sghtmp2(1:nn,1:nn)))
 
       svals = svals/sngl(real(sum(nat(1:numset))))
       

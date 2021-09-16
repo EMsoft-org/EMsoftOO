@@ -9,7 +9,7 @@
  nthreads = 1,
 !------------
 ! Set ECCI computation mode to 'full' or 'fast'
-mode = 'fast',
+mode = 'Full',
 !------------
 ! microscope parameters
 !------------
