@@ -461,7 +461,7 @@ real(kind=dbl)                      :: d
 
 type(PGA3D_T)                       :: p
 
-p = mv1%normalized().vee.mv2%normalized()
+p = (mv1%normalized()).vee.(mv2%normalized())
 d = p%norm()
 
 end function distpoints
@@ -482,7 +482,7 @@ real(kind=dbl)                      :: d
 
 type(PGA3D_T)                       :: p
 
-p = mv1%normalized().wedge.mv2%normalized()
+p = (mv1%normalized()).wedge.(mv2%normalized())
 d = p%inorm()
 
 end function distplanes
@@ -528,7 +528,7 @@ real(kind=dbl)                      :: d
 
 type(PGA3D_T)                       :: p
 
-p = mv1%normalized() .wedge. mv2%normalized() 
+p = (mv1%normalized()) .wedge. (mv2%normalized()) 
 
 d = p%getcomp(15)
 
@@ -550,7 +550,7 @@ real(kind=dbl)                      :: d
 
 type(PGA3D_T)                       :: p
 
-p = mv1%normalized() .vee. mv2%normalized() 
+p = (mv1%normalized()) .vee. (mv2%normalized()) 
 
 d = p%norm()
 
@@ -572,7 +572,7 @@ real(kind=dbl)                      :: d
 
 type(PGA3D_T)                       :: p
 
-p = (mv1%normalized().inner.mv2%normalized())
+p = (mv1%normalized()).inner.(mv2%normalized())
 d = acos(p%getcomp(0))
 
 end function angleplanes
