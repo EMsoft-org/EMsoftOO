@@ -79,6 +79,7 @@ contains
 
 !--------------------------------------------------------------------------
 subroutine PGA3D_initialize(verbose) 
+!DEC$ ATTRIBUTES DLLEXPORT :: PGA3D_initialize
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/21/21

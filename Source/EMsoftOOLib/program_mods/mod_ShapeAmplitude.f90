@@ -151,6 +151,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(ShapeAmplitude_T) function ShapeAmplitude_constructor( nmlfile ) result(ShapeAmplitude)
+!DEC$ ATTRIBUTES DLLEXPORT :: ShapeAmplitude_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/13/21
@@ -166,7 +167,8 @@ if (present(nmlfile)) call ShapeAmplitude%readNameList(nmlfile)
 end function ShapeAmplitude_constructor
 
 !--------------------------------------------------------------------------
-subroutine ShapeAmplitude_destructor(self) 
+subroutine ShapeAmplitude_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: ShapeAmplitude_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/13/21

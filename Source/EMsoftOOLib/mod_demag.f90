@@ -113,6 +113,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(demag_T) function demag_constructor( nmlfile ) result(demag)
+!DEC$ ATTRIBUTES DLLEXPORT :: demag_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/16/21
@@ -198,7 +199,8 @@ call Message%printMessage(' done.')
 end function demag_constructor
 
 !--------------------------------------------------------------------------
-subroutine demag_destructor(self) 
+subroutine demag_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: demag_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/16/21
@@ -215,7 +217,7 @@ end subroutine demag_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/16/21
@@ -277,7 +279,7 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/16/21
@@ -295,7 +297,7 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/16/21

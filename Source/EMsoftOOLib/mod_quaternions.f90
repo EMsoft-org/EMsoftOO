@@ -747,6 +747,7 @@ end subroutine setquatd
 
 !--------------------------------------------------------------------------
 recursive subroutine quatarrayprint(self, listN)
+!DEC$ ATTRIBUTES DLLEXPORT :: quatarrayprint
   !! author: MDG 
   !! version: 1.0 
   !! date: 01/08/20

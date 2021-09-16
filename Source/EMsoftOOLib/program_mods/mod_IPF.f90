@@ -99,6 +99,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(IPF_T) function IPF_constructor( nmlfile ) result(IPF)
+!DEC$ ATTRIBUTES DLLEXPORT :: IPF_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/03/21
@@ -115,6 +116,7 @@ end function IPF_constructor
 
 !--------------------------------------------------------------------------
 subroutine IPF_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: IPF_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/03/21

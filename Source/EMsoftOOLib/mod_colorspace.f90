@@ -217,6 +217,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(colorspace_T) function colorspace_constructor( ) result(colorspace)
+!DEC$ ATTRIBUTES DLLEXPORT :: colorspace_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/07/21
@@ -232,6 +233,7 @@ end function colorspace_constructor
 
 !--------------------------------------------------------------------------
 subroutine colorspace_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: colorspace_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/07/21
@@ -547,7 +549,7 @@ end function lab2xyz_
 
 !--------------------------------------------------------------------------
 recursive function xyz2luv_(self, xyz, ill) result(luv)
-!DEC$ ATTRIBUTES DLLEXPORT :: lab2xyz_
+!DEC$ ATTRIBUTES DLLEXPORT :: xyz2luv_
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/07/21
@@ -894,7 +896,7 @@ end function rgb2hsl_
 ! illuminant free cie spaces -> hsl/hsv (using cie spaces -> rgb)
 !--------------------------------------------------------------------------
 recursive function xyz2hsv_( self, xyz) result(hsv) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: xyz2hsv_
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
@@ -908,7 +910,7 @@ end function xyz2hsv_
 
 !--------------------------------------------------------------------------
 recursive function xyz2hsl_( self, xyz) result(hsl) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: xyz2hsl_
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
@@ -924,7 +926,7 @@ end function xyz2hsl_
 ! illuminated cie spaces -> rgb/hsv/hsl (using cie spaces -> xyz -> rgb)
 !--------------------------------------------------------------------------
 recursive function luv2rgb_( self, luv, ill) result(rgb) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: luv2rgb_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -947,7 +949,7 @@ end function luv2rgb_
 
 !--------------------------------------------------------------------------
 recursive function luv2hsv_( self, luv, ill) result(hsv) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: luv2hsv_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -970,7 +972,7 @@ end function luv2hsv_
 
 !--------------------------------------------------------------------------
 recursive function luv2hsl_( self, luv, ill) result(hsl) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: luv2hsl_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -993,7 +995,7 @@ end function luv2hsl_
 
 !--------------------------------------------------------------------------
 recursive function lab2rgb_( self, lab, ill) result(rgb) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: lab2rgb_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1016,7 +1018,7 @@ end function lab2rgb_
 
 !--------------------------------------------------------------------------
 recursive function lab2hsv_( self, lab, ill) result(hsv) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: lab2hsv_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1039,7 +1041,7 @@ end function lab2hsv_
 
 !--------------------------------------------------------------------------
 recursive function lab2hsl_( self, lab, ill) result(hsl) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: lab2hsl_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1064,7 +1066,7 @@ end function lab2hsl_
 ! within cie spaces (through xyz)
 !--------------------------------------------------------------------------
 recursive function luv2lab_( self, luv, ill) result(lab) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: luv2lab_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1087,7 +1089,7 @@ end function luv2lab_
 
 !--------------------------------------------------------------------------
 recursive function lab2luv_( self, lab, ill) result(luv) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: lab2luv_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1112,7 +1114,7 @@ end function lab2luv_
 ! rgb/hsv/hsl to cie spaces (all go through rgb -> xyz)
 !--------------------------------------------------------------------------
 recursive function rgb2luv_( self, rgb, ill) result(luv) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: rgb2luv_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1135,7 +1137,7 @@ end function rgb2luv_
 
 !--------------------------------------------------------------------------
 recursive function rgb2lab_( self, rgb, ill) result(lab) 
- 
+!DEC$ ATTRIBUTES DLLEXPORT :: rgb2lab_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1158,7 +1160,7 @@ end function rgb2lab_
 
 !--------------------------------------------------------------------------
 recursive function hsv2xyz_( self, hsv) result(xyz) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: hsv2xyz_
 IMPLICIT NONE
 class(colorspace_T)                 :: self
 real(kind=dbl),INTENT(IN)           :: hsv(0:2)
@@ -1171,7 +1173,7 @@ end function hsv2xyz_
 
 !--------------------------------------------------------------------------
 recursive function hsv2luv_( self, hsv, ill) result(luv) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: hsv2luv_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1195,7 +1197,7 @@ end function hsv2luv_
 
 !--------------------------------------------------------------------------
 recursive function hsv2lab_( self, hsv, ill) result(lab) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: hsv2lab_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1219,7 +1221,7 @@ end function hsv2lab_
 
 !--------------------------------------------------------------------------
 recursive function hsl2xyz_( self, hsl) result(xyz) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: hsl2xyz_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1233,7 +1235,7 @@ end function hsl2xyz_
 
 !--------------------------------------------------------------------------
 recursive function hsl2luv_( self, hsl, ill) result(luv) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: hsl2luv_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1257,7 +1259,7 @@ end function hsl2luv_
 
 !--------------------------------------------------------------------------
 recursive function hsl2lab_( self, hsl, ill) result(lab) 
-
+!DEC$ ATTRIBUTES DLLEXPORT :: hsl2lab_
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self

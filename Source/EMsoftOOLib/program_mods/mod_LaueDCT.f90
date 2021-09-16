@@ -1512,6 +1512,7 @@ end subroutine set_DREAM3Dfilename_
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/27/21
@@ -1680,6 +1681,7 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/27/21
@@ -1697,6 +1699,7 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/27/21
@@ -1815,6 +1818,7 @@ end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
 subroutine LaueDCT_(self, EMsoft, progname, HDFnames)
+!DEC$ ATTRIBUTES DLLEXPORT :: LaueDCT_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/27/21

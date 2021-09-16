@@ -154,6 +154,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(polyhedron_T) function polyhedron_constructor( shapename, Ledge, shapefile ) result(shape)
+!DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/27/21
@@ -176,6 +177,7 @@ end function polyhedron_constructor
 
 !--------------------------------------------------------------------------
 subroutine polyhedron_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: polyhedron_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/27/21

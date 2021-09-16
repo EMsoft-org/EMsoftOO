@@ -150,6 +150,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(Laue_T) function Laue_constructor( nmlfile ) result(Laue)
+!DEC$ ATTRIBUTES DLLEXPORT :: Laue_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/11/21
@@ -166,6 +167,7 @@ end function Laue_constructor
 
 !--------------------------------------------------------------------------
 subroutine Laue_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: Laue_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/11/21
@@ -182,7 +184,7 @@ end subroutine Laue_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/11/21
@@ -286,7 +288,7 @@ end subroutine readNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/11/21
@@ -304,7 +306,7 @@ end function getNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/11/21
@@ -394,7 +396,7 @@ end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
 function get_numpx_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numpx
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numpx_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -412,7 +414,7 @@ end function get_numpx_
 
 !--------------------------------------------------------------------------
 subroutine set_numpx_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numpx
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numpx_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -430,7 +432,7 @@ end subroutine set_numpx_
 
 !--------------------------------------------------------------------------
 function get_numpy_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_numpy
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numpy_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -448,7 +450,7 @@ end function get_numpy_
 
 !--------------------------------------------------------------------------
 subroutine set_numpy_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_numpy
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numpy_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -466,7 +468,7 @@ end subroutine set_numpy_
 
 !--------------------------------------------------------------------------
 function get_nthreads_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads
+!DEC$ ATTRIBUTES DLLEXPORT :: get_nthreads_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -484,7 +486,7 @@ end function get_nthreads_
 
 !--------------------------------------------------------------------------
 subroutine set_nthreads_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads
+!DEC$ ATTRIBUTES DLLEXPORT :: set_nthreads_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -502,7 +504,7 @@ end subroutine set_nthreads_
 
 !--------------------------------------------------------------------------
 function get_BPx_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_BPx
+!DEC$ ATTRIBUTES DLLEXPORT :: get_BPx_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -520,7 +522,7 @@ end function get_BPx_
 
 !--------------------------------------------------------------------------
 subroutine set_BPx_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_BPx
+!DEC$ ATTRIBUTES DLLEXPORT :: set_BPx_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -538,7 +540,7 @@ end subroutine set_BPx_
 
 !--------------------------------------------------------------------------
 function get_spotw_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_spotw
+!DEC$ ATTRIBUTES DLLEXPORT :: get_spotw_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -556,7 +558,7 @@ end function get_spotw_
 
 !--------------------------------------------------------------------------
 subroutine set_spotw_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_spotw
+!DEC$ ATTRIBUTES DLLEXPORT :: set_spotw_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -574,7 +576,7 @@ end subroutine set_spotw_
 
 !--------------------------------------------------------------------------
 function get_pixelsize_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_pixelsize
+!DEC$ ATTRIBUTES DLLEXPORT :: get_pixelsize_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -592,7 +594,7 @@ end function get_pixelsize_
 
 !--------------------------------------------------------------------------
 subroutine set_pixelsize_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_pixelsize
+!DEC$ ATTRIBUTES DLLEXPORT :: set_pixelsize_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -610,7 +612,7 @@ end subroutine set_pixelsize_
 
 !--------------------------------------------------------------------------
 function get_maxVoltage_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_maxVoltage
+!DEC$ ATTRIBUTES DLLEXPORT :: get_maxVoltage_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -628,7 +630,7 @@ end function get_maxVoltage_
 
 !--------------------------------------------------------------------------
 subroutine set_maxVoltage_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_maxVoltage
+!DEC$ ATTRIBUTES DLLEXPORT :: set_maxVoltage_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -646,7 +648,7 @@ end subroutine set_maxVoltage_
 
 !--------------------------------------------------------------------------
 function get_minVoltage_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_minVoltage
+!DEC$ ATTRIBUTES DLLEXPORT :: get_minVoltage_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -664,7 +666,7 @@ end function get_minVoltage_
 
 !--------------------------------------------------------------------------
 subroutine set_minVoltage_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_minVoltage
+!DEC$ ATTRIBUTES DLLEXPORT :: set_minVoltage_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -682,7 +684,7 @@ end subroutine set_minVoltage_
 
 !--------------------------------------------------------------------------
 function get_SDdistance_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_SDdistance
+!DEC$ ATTRIBUTES DLLEXPORT :: get_SDdistance_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -700,7 +702,7 @@ end function get_SDdistance_
 
 !--------------------------------------------------------------------------
 subroutine set_SDdistance_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_SDdistance
+!DEC$ ATTRIBUTES DLLEXPORT :: set_SDdistance_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -718,7 +720,7 @@ end subroutine set_SDdistance_
 
 !--------------------------------------------------------------------------
 function get_gammavalue_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_gammavalue
+!DEC$ ATTRIBUTES DLLEXPORT :: get_gammavalue_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -736,7 +738,7 @@ end function get_gammavalue_
 
 !--------------------------------------------------------------------------
 subroutine set_gammavalue_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_gammavalue
+!DEC$ ATTRIBUTES DLLEXPORT :: set_gammavalue_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -754,7 +756,7 @@ end subroutine set_gammavalue_
 
 !--------------------------------------------------------------------------
 function get_backprojection_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_backprojection
+!DEC$ ATTRIBUTES DLLEXPORT :: get_backprojection_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -772,7 +774,7 @@ end function get_backprojection_
 
 !--------------------------------------------------------------------------
 subroutine set_backprojection_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_backprojection
+!DEC$ ATTRIBUTES DLLEXPORT :: set_backprojection_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -790,7 +792,7 @@ end subroutine set_backprojection_
 
 !--------------------------------------------------------------------------
 function get_Lauemode_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_Lauemode
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Lauemode_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -808,7 +810,7 @@ end function get_Lauemode_
 
 !--------------------------------------------------------------------------
 subroutine set_Lauemode_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_Lauemode
+!DEC$ ATTRIBUTES DLLEXPORT :: set_Lauemode_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -826,7 +828,7 @@ end subroutine set_Lauemode_
 
 !--------------------------------------------------------------------------
 function get_orientationfile_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_orientationfile
+!DEC$ ATTRIBUTES DLLEXPORT :: get_orientationfile_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -844,7 +846,7 @@ end function get_orientationfile_
 
 !--------------------------------------------------------------------------
 subroutine set_orientationfile_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_orientationfile
+!DEC$ ATTRIBUTES DLLEXPORT :: set_orientationfile_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -862,7 +864,7 @@ end subroutine set_orientationfile_
 
 !--------------------------------------------------------------------------
 function get_tiffprefix_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_tiffprefix
+!DEC$ ATTRIBUTES DLLEXPORT :: get_tiffprefix_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -880,7 +882,7 @@ end function get_tiffprefix_
 
 !--------------------------------------------------------------------------
 subroutine set_tiffprefix_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_tiffprefix
+!DEC$ ATTRIBUTES DLLEXPORT :: set_tiffprefix_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -898,7 +900,7 @@ end subroutine set_tiffprefix_
 
 !--------------------------------------------------------------------------
 function get_hdfname_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_hdfname
+!DEC$ ATTRIBUTES DLLEXPORT :: get_hdfname_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -916,7 +918,7 @@ end function get_hdfname_
 
 !--------------------------------------------------------------------------
 subroutine set_hdfname_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_hdfname
+!DEC$ ATTRIBUTES DLLEXPORT :: set_hdfname_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -934,7 +936,7 @@ end subroutine set_hdfname_
 
 !--------------------------------------------------------------------------
 function get_xtalname_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_xtalname
+!DEC$ ATTRIBUTES DLLEXPORT :: get_xtalname_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
@@ -952,7 +954,7 @@ end function get_xtalname_
 
 !--------------------------------------------------------------------------
 subroutine set_xtalname_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_xtalname
+!DEC$ ATTRIBUTES DLLEXPORT :: set_xtalname_
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/25/21
