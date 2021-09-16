@@ -253,7 +253,7 @@ nv = 0.5/float(ps)
     do i=i1,i2
       do j=j1,j2
         if ((abs(i)+abs(j)).ne.0_ill)  then 
-          ik = ik+1 _ill
+          ik = ik+1_ill
           pstart(ik) = pc + (i + j * wd) * ps 
         end if
       end do 
