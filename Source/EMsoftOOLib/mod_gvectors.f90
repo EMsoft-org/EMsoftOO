@@ -1558,9 +1558,9 @@ associate( reflist => self%reflist )
       do ic=1,nns
         kkk = rltmpb%hkl - rltmpa%hkl
         Sgh(ir,ic) = sum(Diff%getSghLUT( numset, kkk ))
-        rltmpb => rltmpb%nexts  ! move to next column-entry
+        rltmpb => rltmpb%next  ! move to next column-entry
       end do
-     rltmpa => rltmpa%nexts  ! move to next row-entry
+     rltmpa => rltmpa%next  ! move to next row-entry
    end do
  end associate
 
