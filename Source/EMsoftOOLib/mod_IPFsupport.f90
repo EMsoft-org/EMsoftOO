@@ -551,6 +551,10 @@ if ( (trim(self%ipf_mode).eq.'TSL') .or. (trim(self%ipf_mode).eq.'OPC') ) then
         hsl = clr%rgb2hsl(RGBd)
         RGBd = clr%sph2rgb(hsl)
       end if 
+      if (trim(self%ipf_mode).eq.'PUC') then 
+        hsl = clr%rgb2hsl(RGBd)
+        RGBd = clr%sph2rgb(hsl)
+      end if 
       RGB = int(RGBd * 255)
       exit findloop
     end if 
