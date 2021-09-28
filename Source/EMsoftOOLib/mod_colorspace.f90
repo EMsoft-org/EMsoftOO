@@ -71,6 +71,44 @@ type colorspacetype
   real(kind=dbl) :: hsl(3) ! {h , s , l }: hue, saturation, lightness (cylindrical)
 end type colorspacetype
 
+! spline control points for 4- and 6-fold perceptually uniform color spaces
+real(kind=dbl)   :: P4(3,15) = reshape( (/ 50.000000D0,  20.260871D0, -61.121717D0, &
+                                           40.000000D0,  55.743174D0, -72.075429D0, &
+                                           50.000000D0,  66.074726D0, -25.689258D0, &
+                                           60.000000D0,  76.406278D0,  20.696912D0, &
+                                           70.000000D0,  86.737831D0,  67.083083D0, &
+                                           60.000000D0,  45.201449D0,  61.044479D0, &
+                                           50.000000D0,  3.6650678D0,  55.005876D0, &
+                                           40.000000D0, -37.871314D0,  48.967272D0, &
+                                           50.000000D0, -42.148787D0,  19.573417D0, &
+                                           60.000000D0, -46.426261D0, -9.8204386D0, &
+                                           70.000000D0, -50.703734D0, -39.214294D0, &
+                                           60.000000D0, -15.221432D0, -50.168006D0, &
+                                           50.000000D0,  20.260871D0, -61.121717D0, &
+                                           40.000000D0,  55.743174D0, -72.075429D0, &
+                                           50.000000D0,  66.074726D0, -25.689258D0/), (/ 3, 15 /) )
+
+real(kind=dbl)   :: P6(3,21) = reshape( (/ 50.000000D0,  110.55193D0,  -1.8333167D0, &
+                                           40.000000d0,  131.49157d0,   28.367970d0, &
+                                           50.000000d0,  96.706947d0,   43.686247d0, &
+                                           60.000000d0,  61.922323d0,   59.004523d0, &
+                                           70.000000d0,  27.137700d0,   74.322800d0, &
+                                           60.000000d0,  5.4672700d0,   65.871937d0, &
+                                           50.000000d0, -16.203160d0,   57.421073d0, &
+                                           40.000000d0, -37.873590d0,   48.970210d0, &
+                                           50.000000d0, -43.154747d0,   27.643087d0, &
+                                           60.000000d0, -48.435903d0,   6.3159633d0, &
+                                           70.000000d0, -53.717060d0,  -15.011160d0, &
+                                           60.000000d0, -40.878273d0,  -54.308313d0, &
+                                           50.000000d0, -28.039487d0,  -93.605467d0, &
+                                           40.000000d0, -15.200700d0,  -132.90262d0, &
+                                           50.000000d0,  12.757087d0,  -109.34704d0, &
+                                           60.000000d0,  40.714873d0,  -85.791467d0, &
+                                           70.000000d0,  68.672660d0,  -62.235890d0, &
+                                           60.000000d0,  89.612297d0,  -32.034603d0, &
+                                           50.000000d0,  110.55193d0,  -1.8333167d0, &
+                                           40.000000d0,  131.49157d0,   28.367970d0, &
+                                           50.000000d0,  96.706947d0,   43.686247d0/), (/ 3, 21 /) )
 
 ! constants for standard illuminants and common rgb gamuts
 type colorstandardstype 
@@ -117,20 +155,19 @@ type colorstandardstype
     real(kind=dbl) :: sPhi   = 12.92D0  
     real(kind=dbl) :: sK0    = 0.04045D0
 
-
-! TO BE CONVERTED !!!
-! ! sRGB conversion matrices
+! sRGB conversion matrices
     real(kind=dbl)           :: sRGBmat(0:2,0:2)  !  = rgbMat(Standards%sRGB, Standards<T>::D65_2)
     real(kind=dbl)           :: sRGBmatInv(0:2,0:2)  !  = inv3x3(rgbMat(Standards%sRGB, Standards<T>::D65_2))
 
 end type colorstandardstype
 
-! and declare the Standards structure 
-
 ! class definition
 type, public :: colorspace_T
 private 
   type(colorstandardstype)    :: Standards
+  real(kind=dbl),allocatable  :: P(:,:)
+  integer(kind=irg)           :: Nfold 
+  integer(kind=irg)           :: N
 
 contains
 private 
@@ -171,8 +208,7 @@ private
   procedure, pass(self) :: hsl2hsv_
 
   procedure, pass(self) :: sph2rgb_
-  procedure, pass(self) :: hl2luv_
-  procedure, pass(self) :: sphere_
+  procedure, pass(self) :: sphere2rgb_
 
   generic, public :: rgb2xyz => rgb2xyz_
   generic, public :: rgb2luv => rgb2luv_
@@ -211,8 +247,7 @@ private
   generic, public :: hsl2hsv => hsl2hsv_
 
   generic, public :: sph2rgb => sph2rgb_
-  generic, public :: hl2luv  => hl2luv_
-  generic, public :: sphere  => sphere_
+  generic, public :: sphere2rgb  => sphere2rgb_
 end type colorspace_T
 
 ! the constructor routine for this class 
@@ -223,17 +258,40 @@ end interface colorspace_T
 contains
 
 !--------------------------------------------------------------------------
-type(colorspace_T) function colorspace_constructor( ) result(colorspace)
+type(colorspace_T) function colorspace_constructor( Nfold ) result(colorspace)
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/07/21
 !!
 !! constructor for the colorspace_T Class
- 
+
+use mod_IO 
+
 IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN),OPTIONAL     :: Nfold 
+
+type(IO_T)                                :: Message 
+
 
 colorspace%Standards%sRGBmat = rgbMat_(colorspace%Standards%sRGB, colorspace%Standards%D65_2)
 colorspace%Standards%sRGBmatInv = inv3x3(colorspace%Standards%sRGBmat)
+
+if (present(Nfold)) then 
+  colorspace%Nfold = Nfold 
+  select case(Nfold) 
+    case(4) 
+      allocate(colorspace%P(0:14,0:2))
+      colorspace%N = 15
+      colorspace%P = transpose(P4)
+    case(6) 
+      allocate(colorspace%P(0:20,0:2))
+      colorspace%N = 21
+      colorspace%P = transpose(P6)
+    case default
+      call Message%printError('colorspace_constructor','unknown Nfold value')
+  end select
+end if 
 
 end function colorspace_constructor
 
@@ -1475,160 +1533,89 @@ end select
 end function sph2rgb_
 
 !--------------------------------------------------------------------------
-recursive function splineInterpolate_( h, clamped, ForS ) result(luv) 
-!DEC$ ATTRIBUTES DLLEXPORT :: hl2luv_
+recursive function sphere2rgb_( self, a, p, w0 ) result(rgb) 
+!DEC$ ATTRIBUTES DLLEXPORT :: sphere2rgb_
 !! author: MDG (converted to f90 from Will Lenthe's original C++ version) 
 !! version: 1.0 
-!! date: 09/07/21
+!! date: 09/28/21
 !!
-!! interpolate coordinates using de Boor's algorithm for uniform knots
-!!
-!! t      : parametric distance along spline [0, 1]
-!! clamped: true/false to use clamped/unclamped uniform knots
-!! ForS   : use four or six fold symmetry for the spline points
-!! pt     : location to write interpolated coordinates
-
-use mod_io 
-
-IMPLICIT NONE 
-
-real(kind=dbl), INTENT(IN)            :: h
-logical, INTENT(INOUT)                :: clamped 
-character(1), INTENT(IN)              :: ForS
-real(kind=dbl)                        :: luv(0:2)
-
-type(IO_T)                            :: Message 
-
-integer(kind=irg)                     :: uMAx, s, i, k, iKk, ui, uiKk, N 
-real(kind=dbl)                        :: tt, w, x, iter   
-real(kind=dbl), allocatable           :: work(:)
-integer(kind=irg),parameter           :: D = 3, K = 3 
-
-real(kind=dbl),allocatable            :: P(:), UniformBicone(:)
-
-
-if (ForS.eq.'F') then 
-  N = 4
-  allocate(P(3*2*N), UniformBicone(3*N))
-  P = dble( (/  63,  71,  -97, &  ! violet
-                79,  39,    2, &
-                95,   8,  102, &  ! yellow
-                79, -25,   89, &
-                63, -59,   76, &  ! lime green
-                47, -34,  -22, &
-                31,  -9, -121, &  ! medium blue
-                47,  16, -125 /) )
-
- ! bicone
-  UniformBicone = (/  40.D0,  55.74317350486855D0, -72.07542853960882D0, & ! m ~0xA900A9 as 24 bit rgb (L* = 40 on magenta -> black line)
-                      70.D0,  86.73783054671324D0,  67.08308275883844D0, & ! y ~0xFA9200 as 24 bit rgb (L* = 70, most saturated color in sRGB bisecting m/g)
-                      40.D0, -37.87131352881698D0,  48.96727222946806D0, & ! g ~0x006E00 as 24 bit rgb (L* = 40 on green   -> black line)
-                      70.D0, -50.70373411917466D0, -39.21429404747341D0 /) ! c ~0x00BBDB as 24 bit rgb (L* = 70, most saturated color in sRGB bisecting m/g)
-    ! }).data(), 12, 98);   WHAT DOES THIS 98 MEAN ?
-end if
-
-if (ForS.eq.'S') then 
-  N = 6
-  allocate(P(3*2*N), UniformBicone(3*N))
-  P = dble( (/  55, 109,  -55, &  ! deep pink
-                65,  89,   -2, & 
-                75,  70,   50, &  ! light salmon
-                85,  39,   76, & 
-                95,   8,  102, &  ! yellow
-                85, -31,   95, & 
-                75, -70,   89, &  ! lime grean
-                65, -55,   34, & 
-                55, -40,  -21, &  ! cadet blue
-                45, -25,  -76, & 
-                35, -10, -132, &  ! blue
-                45,  27, -126 /) ) 
-
-
-  ! bicone
-  UniformBicone = (/  
-      40.D0, 131.49157D0,   28.36797D0, & ! r ~0xC00000 as 24 bit rgb (L* = 40 on red     -> black line)
-      70.D0,  27.13770D0,   74.32280D0, & ! y ~0xC7A900 as 24 bit rgb (L* = 70 on surface of sRGB cube bisecting r/g)
-      40.D0, -37.87359D0,   48.97021D0, & ! g ~0x006E00 as 24 bit rgb (L* = 40 on green   -> black line)
-      70.D0, -53.71706D0,  -15.01116D0, & ! c ~0x00BEC2 as 24 bit rgb (L* = 70 on surface of sRGB cube bisecting g/b)
-      40.D0, -15.20070D0, -132.90262D0, & ! b ~0x0043FF as 24 bit rgb (L* = 40 on blue    -> cyan  line)
-      70.D0,  68.67266D0,  -62.23589D0 /) ! m ~0xFF79E8 as 24 bit rgb (L* = 70 on surface of sRGB cube bisecting b/r)
-    ! }).data(), 12, 98);
-end if 
-
-
-
-    ! template<typename Real, size_t N, size_t K, size_t D>
-    ! void UniformSpline<Real, N, K, D>::interpolate(const Real t, const bool clamped, Real * const pt) const {
-
-! remap h to knot domain and find segment h falls in
-if ((h.lt.0.D0) .or. (h.gt.1.D0)) then  
-  call Message%printError("splineInterpolate_","spline parameter out of bounds [0,1]")
-end if
-
-uMax = N - K          ! maximum knot value for clamped knots
-if (clamped.eqv..TRUE) then 
-  tt = h * dble(uMax) 
-  s = min( (/ K + int(tt), N-1 /) )
-else 
-  tt = h * dble(N-K) + dble(K) 
-  s = min( (/ int(tt), N-1 /) )
-end if 
-
-! copy control points to working array
-allocate(work( (K+1) * D ) ) 
-! only points s-degree -> s (inclusive) are required
-work = P( (s-K)*D:(s+1)*D ) ! std::copy(P.begin() + (s-K) * D, P.begin() + (s+1) * D, work)
-
-! recursively compute coordinates (de Boor's algorithm)
-do k = 0, K
-  do i = s,s+k-K,-1
-    iKk = min( (/ i+K-k, N /) )
-    ui = 0
-    if ( i.gt.K ) ui = i - K            ! knots[i] for clamped knots
-    uiKk = 0 
-    if ( iKk.gt.K ) uiKk = iKk - K      ! knots[iKk] for clamped knots
-    if (clamped.eqv..TRUE.) then        ! compute weight 
-      w = (tt - ui) / (uiKk - ui)
-    else 
-      w = (tt - i) / (K - k)
-    end if 
-    x = 1.D0 - w
-    iter = work((i+K-s) * D)            ! CHECK THIS LINE !!!  determine offset once
-    std::transform(iter, iter + D, iter - D, iter, [w, x](const Real& i, const Real& j) {return i * w + j * x;});//recursive calculation
-  end do 
-end do
-luv = work(K * D:K * D + D)
-
-end function splineInterpolate_
-
-!--------------------------------------------------------------------------
-recursive function hl2luv_( self, h, l, mirror, smooth ) result(luv) 
-!DEC$ ATTRIBUTES DLLEXPORT :: hl2luv_
-!! author: MDG (converted to f90 from Will Lenthe's original C++ version) 
-!! version: 1.0 
-!! date: 09/07/21
-!!
-!! h     : fractional hue [0,1]
-!! l     : fractional lightness [0,1]
-!! luv   : location to write luv color
-!! mirror: true/false if colors should be smooth at equator with/without a mirror plane at l = 0.5
-!! smooth: true/false if colors should be smooth at equator
+!! a  : fractional theta angle [0,1] (0.5 for the equator, 0 N, 1 S)
+!! p  : fractional phi angle [0,1]
+!! rgb: location to write rgb color
+!! w0 : true/false for white/black @ center 
 
 IMPLICIT NONE
 
-class(colorspace_T)                 :: self
-real(kind=dbl),INTENT(IN)           :: h
-real(kind=dbl),INTENT(IN)           :: l
-logical,INTENT(IN)                  :: mirror
-logical,INTENT(IN)                  :: smooth
-real(kind=dbl)                      :: luv(0:2)
+class(colorspace_T)         :: self
+real(kind=dbl),INTENT(IN)   :: a
+real(kind=dbl),INTENT(IN)   :: p
+logical,INTENT(IN)          :: w0
+real(kind=dbl)              :: rgb(0:2)
 
-real(kind=dbl)                      :: tl, deltaS, deltaN, l0, l1, deltaL, x, hmt, c1, d1, fcfc, minL, midL, maxL, &
-                                       a2, b2, c2, d2, ll, hpt, c4, d4, a3, b3, c3, d3, fc, ac, bc, cc, dc, mc, tc
-logical                             :: sh 
+logical                     :: sh, swap
+real(kind=dbl)              :: h, l, t, tt, delta, work(0:2,0:2), w 
+integer(kind=irg)           :: s, j 
+real(kind=dbl)              :: tl, deltaS, deltaN, l0, l1, deltaL, x, hmt, c1, d1, fcfc, minL, maxL, &
+                               a2, b2, c2, d2, ll, hpt, c4, d4, a3, b3, c3, d3, fc, ac, bc, cc, dc, mc, tc, luv(0:2)
 
-! spline interpolate color at equator (L = 0.5) for this hue; this initializes luv
-! luv = splineInterpolate_(h, false)
+h = p 
+l = a 
+if (w0.eqv..TRUE.) l = 1.D0-a 
+
+! bring t to [0,1)
+t = mod(h, 1.D0)
+if (t.lt.0.D0) t = t+1.D0 
+
+! remap t to knot domain and find segment t falls in
+tt = t * (self%N-3) + 3
+s = int(tt) 
+delta = tt - s 
+
+! unrolled de Boor's spline interpolation
+! k = 0
+w = delta / 3.D0
+x = 1.D0 - w
+do j = 0, 2
+  work(2,j) = self%P(s, j) * w + self%P(s-1, j) * x
+end do 
+
+w = (delta + 1.D0) / 3.D0
+x = 1.D0 - w
+do j = 0, 2
+  work(1,j) = self%P(s-1, j) * w + self%P(s-2, j) * x
+end do 
+
+w = (delta + 2.D0) / 3.D0
+x = 1.D0 - w
+do j = 0, 2
+  work(0,j) = self%P(s-2, j) * w + self%P(s-3, j) * x
+end do 
+
+! k = 1
+w = delta * 0.5D0
+x = 1.D0 - w
+do j = 0, 2
+  work(2,j) = work(2, j) * w + work(1,j) * x
+end do 
+
+w = (delta + 1.D0) * 0.5D0
+x = 1.D0 - w
+do j = 0, 2
+  work(1,j) = work(1, j) * w + work(0,j) * x
+end do 
+
+! k = 2
+w = delta
+x = 1.D0 - w
+do j = 0, 2
+  work(2,j) = work(2, j) * w + work(1,j) * x
+end do 
+ 
+! copy last row into luv
+luv = (/ work(2,0), work(2,1), work(2,2) /) 
+
+minL = 12.D0
+maxL = 98.D0
 
 ! apply nonlinear rescaling to lightness interpolation to impose C2 continuity at equator
 ! We'll use a piecewise polynomial with linear portions near the poles to maximize truly perceptually uniform region
@@ -1646,67 +1633,44 @@ sh = .FALSE.
 if (l.le.0.5D0) sh = .TRUE.           ! does this point fall below/above the equator (true/false)
 deltaS = minL - luv(0)                ! delta luminance from equator to south pole
 deltaN = maxL - luv(0)                ! delta luminance from equator to north pole
-if (sh.eqv..TRUE.) then 
-  l0 = deltaS                         ! delta luminance at l == 0
-  if (mirror.eqv..TRUE.) then 
-    l1 = deltaS                       ! delta luminance at l == 1
-  else 
-    l1 = deltaN
-  end if 
-else 
-  if (mirror.eqv..TRUE.) then 
-    l0 = deltaN 
-  else 
-    l0 = deltaS
-  end if                              ! delta luminance at l == 0
-  l1 = deltaN                         ! delta luminance at l == 1
-end if
 
-if (smooth.eqv..TRUE.) then 
-  x = ( l0 + l1 ) / ( tl * 2.D0 - 3.D0 )    ! this value will be needed in all for segments
-  if (sh.eqv..TRUE.) then                   ! in f1 or f2, don't bother calculating coefficients for f3 or f4
-    hmt = 0.5D0 - tl                        ! transition from linear -> cubic in southern cone
-    c1 = (x * tl - l0) * 2.D0               ! compute slope of linear region in southern cone
-    d1 = l0                                 ! compute intercept of linear region in southern cone
-    if (l.le.hmt) then                      ! in first linear region (f1)
-      deltaL = c1 * l + d1                  ! compute f1(l)
-    else                                    ! in first cubic region (f2)
-      a2 = -x / (tl * tl)
-      b2 = -a2 * hmt * 3.D0
-      c2 =  c1 - b2 * hmt
-      d2 =  d1 - a2 * hmt * hmt * hmt
-      ll = l * l                            ! compute l^2 once
-      deltaL = a2 * ll * l + b2 * ll + c2 * l + d2      ! compute f2(l)
-    end if 
-  else                                      ! in f3 or f4, don't bother calculating coefficients for f1 or f2
-    hpt = 0.5D0 + tl                        ! transition from cubic -> linear in northern cone
-    c4 = (l1 - x * tl) * 2D0                ! compute slope of linear region in northern cone
-    d4 = l1 - c4                            ! compute intercept of linear region in northern cone
-    if (l.ge.hpt) then                      ! in second linear region (f4)
-      deltaL = c4 * l + d4                  ! compute f4(l)
-    else                                    ! in second cubic region (f3)
-      a3 =  x / (tl * tl)
-      b3 = -a3 * hpt * 3.D0
-      c3 =  c4 - b3 * hpt
-      d3 =  d4 - a3 * hpt * hpt * hpt
-      ll = l * l                            ! compute l^2 once
-      deltaL = a3 * ll * l + b3 * ll + c3 * l + d3      ! compute f3(l)
-    end if
-  end if
-else 
-  if (sh.eqv..TRUE.) then
-    deltaL = (-2.D0* l + 1.D0) * l0         ! compute f1(l)
-  else 
-    deltaL = (l * 2.D0 - 1.D0) * l1         ! compute f1(l)
+x = ( deltaS + deltaN ) / ( tl * 2.D0 - 3.D0 )    ! this value will be needed in all for segments
+if (sh.eqv..TRUE.) then                   ! in f1 or f2, don't bother calculating coefficients for f3 or f4
+  hmt = 0.5D0 - tl                        ! transition from linear -> cubic in southern cone
+  c1 = (x * tl - l0) * 2.D0               ! compute slope of linear region in southern cone
+  d1 = deltaS                             ! compute intercept of linear region in southern cone
+  if (l.le.hmt) then                      ! in first linear region (f1)
+    deltaL = c1 * l + d1                  ! compute f1(l)
+  else                                    ! in first cubic region (f2)
+    a2 = -x / (tl * tl)
+    b2 = -a2 * hmt * 3.D0
+    c2 =  c1 - b2 * hmt
+    d2 =  d1 - a2 * hmt * hmt * hmt
+    ll = l * l                            ! compute l^2 once
+    deltaL = a2 * ll * l + b2 * ll + c2 * l + d2      ! compute f2(l)
   end if 
-end if 
+else                                      ! in f3 or f4, don't bother calculating coefficients for f1 or f2
+  hpt = 0.5D0 + tl                        ! transition from cubic -> linear in northern cone
+  c4 = (deltaN - x * tl) * 2.D0           ! compute slope of linear region in northern cone
+  d4 = deltaN - c4                        ! compute intercept of linear region in northern cone
+  if (l.ge.hpt) then                      ! in second linear region (f4)
+    deltaL = c4 * l + d4                  ! compute f4(l)
+  else                                    ! in second cubic region (f3)
+    a3 =  x / (tl * tl)
+    b3 = -a3 * hpt * 3.D0
+    c3 =  c4 - b3 * hpt
+    d3 =  d4 - a3 * hpt * hpt * hpt
+    ll = l * l                            ! compute l^2 once
+    deltaL = a3 * ll * l + b3 * ll + c3 * l + d3      ! compute f3(l)
+  end if
+end if
 
 ! interpolate luminance and compute scaling factor for chromaticity
 luv(0) = luv(0) + deltaL
 if (sh.eqv..TRUE.) then 
-  fc = 1.D0 - deltaL / l0                   ! 0->1 bicone scaling
+  fc = 1.D0 - deltaL / deltaS             ! 0->1 bicone scaling
 else
-  fc = 1.D0 - deltaL / l1                   ! 0->1 bicone scaling
+  fc = 1.D0 - deltaL / deltaN             ! 0->1 bicone scaling
 end if 
 
 ! adjust chromaticity scaling factor similarly to lightness to make chromaticity C1 continous at equator
@@ -1719,87 +1683,15 @@ bc = -tc * 3.D0 * ac
 cc = (tc * 6.D0 - 3.D0) * ac
 dc = -tc * tc * tc * ac
 mc = 3.D0 / (tc + 2.D0)
-if ( (fc.gt.tc) .and. (smooth.eqv..TRUE.) ) then 
+if (fc.gt.tc) then 
   fcfc = fc * fc                                  ! compute fc^2 once
   fc = ac * fcfc * fc + bc * fcfc + cc * fc + dc  ! compute f2(fc)
 end if 
 luv(1) = luv(1) * fc 
 luv(2) = luv(2) * fc
 
-end function hl2luv_
+rgb = self%luv2rgb_(luv)   ! luv -> rgb
 
-!--------------------------------------------------------------------------
-recursive function sphere_( self, a, p, w0, sym ) result(rgb) 
-!DEC$ ATTRIBUTES DLLEXPORT :: sphere_
-!! author: MDG (converted to f90 from Will Lenthe's original C++ version) 
-!! version: 1.0 
-!! date: 09/16/21
-!!
-!! a  : fractional azimuthal angle [0,1]
-!! p  : fractional polar angle [0,1]
-!! rgb: location to write rgb color
-!! w0 : true/false for white/black @ phi = 0
-!! sym: type of inversion symmetry
-
-IMPLICIT NONE
-
-class(colorspace_T)                 :: self
-real(kind=dbl),INTENT(IN)           :: a
-real(kind=dbl),INTENT(IN)           :: p
-logical,INTENT(IN)                  :: w0
-character(*),INTENT(IN)             :: sym
-real(kind=dbl)                      :: rgb(0:2)
-
-logical                             :: sh, swap
-real(kind=dbl)                      :: az, pl, azs 
-
-! first move to northern hemisphere if needed
-sh = (p.gt.0.5D0)
-swap = (sh.and.(trim(sym).ne.'None'))  
-if (swap.eqv..TRUE.) then 
-  if (a.lt.0.5D0) then 
-    az = a + 0.D50
-  else 
-    az = a - 0.5D0 
-  end if 
-  pl = 1.0D0 - p
-else
-  az = a
-  pl = p
-end if 
-
-! compute color in luv space
-if (trim(sym).eq.'None') then  ! select cone based on center color
-  if (w0.eqv..TRUE.) then 
-    rgb = self%hl2luv_(az, 1.0D0 - pl, .FALSE., .TRUE.)
-  else 
-    rgb = self%hl2luv_(az, pl, .FALSE., .TRUE.)
-  end if 
-end if 
-
-if (trim(sym).eq.'Azimuth') then ! double azimuthal angle and select cone based on center color
-  if (az.lt.0.5D0) then 
-    azs = az * 2.D0 
-  else 
-    azs = az * 2.D0 - 1.D0
-  end if 
-  if (w0.eqv..TRUE.) then 
-    rgb = self%hl2luv_(azs, 1.0D0 - pl, .FALSE., .TRUE.)
-  else 
-    rgb = self%hl2luv_(azs, pl, .TRUE., .TRUE.)
-  end if 
-end if 
-
-if (trim(sym).eq.'Polar') then ! double double polar angle
-  if (w0.eqv..TRUE.) then 
-    rgb = self%hl2luv_(az, 1.0D0 - pl * 2.D0, .FALSE., .TRUE.)
-  else 
-    rgb = self%hl2luv_(az, pl * 2.D0, .FALSE., .TRUE.)
-  end if 
-end if 
-
-rgb = self%luv2rgb_(rgb)   ! luv -> rgb
-
-end function sphere_
+end function sphere2rgb_
 
 end module mod_colorspace

@@ -466,7 +466,7 @@ if (trim(self%ipf_mode).eq.'Euler') then
 end if
 
 ! use the standard IPF colors based on the TSL Euler angles
-if ( (trim(self%ipf_mode).eq.'TSL') .or. (trim(self%ipf_mode).eq.'OPC') ) then 
+if ( (trim(self%ipf_mode).ne.'Euler')  ) then 
   RGB = (/ 0, 0, 0 /)
 
   findloop: do i=1,Pm 
@@ -552,8 +552,13 @@ if ( (trim(self%ipf_mode).eq.'TSL') .or. (trim(self%ipf_mode).eq.'OPC') ) then
         RGBd = clr%sph2rgb(hsl)
       end if 
       if (trim(self%ipf_mode).eq.'PUC') then 
-        hsl = clr%rgb2hsl(RGBd)
-        RGBd = clr%sph2rgb(hsl)
+        chi = chi/cPi
+        eta = eta/(2.D0*cPi)
+        if (chi.gt.0.5D0) then 
+          RGBd = clr%sphere2rgb(chi, eta, w0=.FALSE. )
+        else
+          RGBd = clr%sphere2rgb(chi, eta, w0=.TRUE.)
+        end if 
       end if 
       RGB = int(RGBd * 255)
       exit findloop
@@ -608,7 +613,7 @@ real(kind=dbl)                              :: sDir(3)
 ! declare variables for use in object oriented image module
 integer                                     :: iostat, io_int(2)
 character(len=128)                          :: iomsg
-logical                                     :: isInteger, OPC
+logical                                     :: isInteger, OPC, PUC
 type(image_t)                               :: im
 integer(int8), allocatable                  :: TIFF_image(:,:)
 integer                                     :: dim2(2), Pm
@@ -628,6 +633,9 @@ Pm = sym%getQnumber()
 OPC = .FALSE.
 if (trim(self%ipf_mode).eq.'OPC') OPC = .TRUE.
 
+PUC = .FALSE.
+if (trim(self%ipf_mode).eq.'PUC') PUC = .TRUE.
+
 io_int(1) = Pm
 call Message%WriteValue(' # symops = ', io_int, 1) 
 
@@ -641,6 +649,7 @@ call OMP_SET_NUM_THREADS( self%get_ipf_nthreads_() )
 TID = OMP_GET_THREAD_NUM()
 
 if (OPC.eqv..TRUE.) clr = colorspace_T()
+if (PUC.eqv..TRUE.) clr = colorspace_T( Nfold = 4 )
 
 !$OMP DO SCHEDULE(DYNAMIC)
   do iy = 1, self%ipf_ht 
@@ -648,7 +657,7 @@ if (OPC.eqv..TRUE.) clr = colorspace_T()
       iq = (iy-1) * self%ipf_wd + ix 
       qu = Orientations%getQuatfromArray(iq)
       call qu%quat_pos()
-      if (OPC.eqv..TRUE.) then 
+      if ((OPC.eqv..TRUE.).or.(PUC.eqv..TRUE.)) then 
         IPFmap(1:3, ix, iy) = self%get_ipf_RGB_( sDir, qu, sym, Pm, clr )
       else 
         IPFmap(1:3, ix, iy) = self%get_ipf_RGB_( sDir, qu, sym, Pm )
