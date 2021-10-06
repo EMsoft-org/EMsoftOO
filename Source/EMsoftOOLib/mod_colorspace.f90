@@ -53,8 +53,6 @@ module mod_colorspace
   !! ill: standard illuminant as xyz (only required for conversions involving xyz<->luv or xyz<->lab, defaults to CIE illuminant D65 for 2 degree observer)
   !! : true/false if the values fall outside the ijk gamut for conversions to that pass through xyz2rgb (void for others)
   !!
-  !! tested using the colortest.f90 program; will become part of ctest.
-
 
 use mod_kinds
 use mod_global

@@ -41,7 +41,7 @@ EMsoft = EMsoft_T( progname, progdesc )
 
 
 ! initialize the color space class 
-clr = colorspace_T( Nfold = 4 )
+clr = colorspace_T( Nfold = 6 )
 
 
 ! write (*,*) '================'
@@ -72,7 +72,7 @@ do i=-NN,NN
       if (RR.le.1.D0) then ! convert to azimuth and polar angles on [0,1]
 ! coordinates on the sphere
         X = 2.D0*ix/(1.D0+RR)
-        Y = -2.D0*iy/(1.D0+RR)
+        Y = 2.D0*iy/(1.D0+RR)
         Z = -(-1.D0+RR)/(1.D0+RR)
         a = acos(Z)/cPi 
         p = atan2(Y,X)
