@@ -75,12 +75,12 @@ private
   procedure, pass(self) :: set_ipf_filename_
   procedure, pass(self) :: set_ipf_LaueClass_
   procedure, pass(self) :: set_ipf_nthreads_
-  procedure, pass(self) :: SphericalTriangle_
-  procedure, pass(self) :: SphericalWedge_
-  procedure, pass(self) :: init_sPatch_
-  procedure, pass(self) :: toHemi_
-  procedure, pass(self) :: toColor_ 
-  procedure, pass(self) :: build_
+  ! procedure, pass(self) :: SphericalTriangle_
+  ! procedure, pass(self) :: SphericalWedge_
+  ! procedure, pass(self) :: init_sPatch_
+  ! procedure, pass(self) :: toHemi_
+  ! procedure, pass(self) :: toColor_ 
+  ! procedure, pass(self) :: build_
   procedure, pass(self) :: get_ipf_RGB_
   procedure, pass(self) :: get_IPFMap_
 
@@ -354,1521 +354,1521 @@ self%ipf_LaueClass = inp
 
 end subroutine set_ipf_LaueClass_
 
-!--------------------------------------------------------------------------
-!---------based on Will Lenthe's sphere_sector.hpp module------------------
-!--------------------------------------------------------------------------
-recursive subroutine SphericalTriangle_(self, nRed, nGreen, nBlue)
-!DEC$ ATTRIBUTES DLLEXPORT :: SphericalTriangle_
-!! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
-!! version: 1.0 
-!! date: 09/29/21
-!!
-!! construct a spherical triangle patch for IPF coloring
-
-use mod_io
-
-IMPLICIT NONE 
-
-class(IPFmap_T), INTENT(INOUT)  :: self
-real(kind=dbl), INTENT(IN)      :: nRed(0:2)
-real(kind=dbl), INTENT(IN)      :: nGreen(0:2)
-real(kind=dbl), INTENT(IN)      :: nBlue(0:2)
-
-type(IO_T)                      :: Message 
-real(kind=dbl)                  :: verts(0:2,0:2), det, ctr(0:2), eps=1.0D-12 
-integer(kind=irg)               :: i
-
-verts(0,0:2) = nRed 
-verts(1,0:2) = nGreen
-verts(2,0:2) = nBlue 
-
-det = verts(0,0) * verts(1,1) * verts(2,2) &
-    + verts(0,1) * verts(1,2) * verts(2,0) &
-    + verts(0,2) * verts(1,0) * verts(2,1) &
-    - verts(0,0) * verts(1,2) * verts(2,1) &
-    - verts(0,1) * verts(1,0) * verts(2,2) &
-    - verts(0,2) * verts(1,1) * verts(2,0) 
-
-if (det.lt.eps) call Message%printError('SphericalTriangle_','spherical triangle must be within single hemisphere')
-
-! compute center of spherical triangle (assumes triangle covers less than hemisphere)
-do i=0,2
-  ctr(i) = verts(0,i) + verts(1,i) + verts(2,i)
-end do 
-ctr = ctr/sqrt(sum(ctr*ctr))
-
-! now build a general spherical patch (this fills the omega lookup table)
-call self%build_(3, verts, ctr)
-
-end subroutine SphericalTriangle_
-
-!--------------------------------------------------------------------------
-recursive subroutine SphericalWedge_(self, nGreen, nBlue)
-!DEC$ ATTRIBUTES DLLEXPORT :: SphericalWedge_
-!! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
-!! version: 1.0 
-!! date: 09/29/21
-!!
-!! construct a spherical triangle wedge for IPF coloring
-!! red is assumed to be at (0,0,1)
-
-use mod_io
-
-IMPLICIT NONE 
-
-class(IPFmap_T), INTENT(INOUT)  :: self
-real(kind=dbl), INTENT(IN)      :: nGreen(0:1)
-real(kind=dbl), INTENT(IN)      :: nBlue(0:1)
-
-type(IO_T)                      :: Message 
-real(kind=dbl)                  :: verts(0:3,0:2), dot, ctr(0:2), eps=1.0D-12 
-integer(kind=irg)               :: i
-
-verts = 0.D0
-verts(0,2) = 1.D0 
-verts(1,0:1) = nGreen
-verts(2,2) = -1.D0
-verts(3,0:1) = nBlue 
-
-! compute center 
-ctr = (/ nGreen(0) + nBlue(0), nGreen(1) + nBlue(1), 0.D0 /)
-
-! handle special case of antipodal blue/green
-dot = nGreen(0) * nBlue(0) + nGreen(1) * nBlue(1)
-if (abs(dot + 1.D0).lt.eps) then
-  ctr(0) = -nGreen(1)
-  ctr(1) =  nGreen(0)
-end if 
-
-ctr = ctr/sqrt(sum(ctr*ctr))
-
-! now build a general spherical patch (this fills the omega lookup table)
-call self%build_(4, verts, ctr)
-
-end subroutine SphericalWedge_
-
-!--------------------------------------------------------------------------
-recursive subroutine init_sPatch_(self, N)
-!DEC$ ATTRIBUTES DLLEXPORT :: build_
-!! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
-!! version: 1.0 
-!! date: 09/29/21
-!!
-
-IMPLICIT NONE 
-
-class(IPFmap_T), INTENT(INOUT)        :: self
-
-allocate(self%sphericalPatch%rx(0:N-1))
-allocate(self%sphericalPatch%ry(0:N-1))
-allocate(self%sphericalPatch%center(0:N-1))
-allocate(self%sphericalPatch%normals(0:N-1,0:2))
-allocate(self%sphericalPatch%cutoffs(0:3*N-1))
-allocate(self%sphericalPatch%coeffs(0:N-1,0:3))
-allocate(self%sphericalPatch%cumAngles(0:N))
-allocate(self%sphericalPatch%omega(0:256*N-1))
-
-end subroutine init_sPatch_
-
-!--------------------------------------------------------------------------
-recursive subroutine build_(self, N, verts, ctr, filFin)
-!DEC$ ATTRIBUTES DLLEXPORT :: build_
-!! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
-!! version: 1.0 
-!! date: 09/29/21
-!!
-!! construct a spherical triangle patch to map to the unit hemisphere
-!! verts: vertices of spherical patch (maps to evenly spaced points to equator)
-!! ctr  : center of spherical patch (maps to north pole)
-!! filF : fillet fraction, should be 0 for original paper, ~0.05 for perceptually uniform, must be in (0,0.5)
-!!      : verts in CCW order
-
-use mod_io
-use mod_math
-
-IMPLICIT NONE 
-
-class(IPFmap_T), INTENT(INOUT)        :: self
-integer(kind=irg),INTENT(IN)          :: N
-real(kind=dbl),INTENT(IN)             :: verts(0:N-1,0:2)
-real(kind=dbl),INTENT(IN)             :: ctr(0:2)
-real(kind=dbl),INTENT(IN),OPTIONAL    :: filFin
-
-real(kind=dbl)                        :: center(0:2), vx(0:N-1,0:2), vy(0:N-1,0:2), angles(0:N-1), filF, &
-                                         deltas(0:N-1), delta, radii(0:2*N-1), dRadii(0:2*N-1), thetas(0:5), nn(0:2), &
-                                         r(0:5), c, s, x, y, z, m(0:2), nx, ny, nz, mx, my, mz, den, v1, v2, m1, &
-                                         m2, rhoN(0:N-1), v(0:2), irho(0:256*N-1), normxn(0:2), mag, sm
-integer(kind=irg)                     :: i, j, idx(0:N) 
-
-associate( sP => self%sphericalPatch )
-
-call self%init_sPatch_(N)
-
-center = ctr
-
-! build orthogonal coordinate system for center -> each vertex
-do i=0,N-1
-  vy(i,0:2) = cross3( center(0:2), verts(i,0:2) )
-  vx(i,0:2) = cross3( vy(i,0:2), center(0:2) )
-  vx(i,0:2) = vx(i,0:2)/sqrt(sum(vx(i,0:2)**2))
-  vy(i,0:2) = vy(i,0:2)/sqrt(sum(vy(i,0:2)**2))
-end do 
-sP%rx(0:2) = vx(0,0:2)    ! red is the global x direction
-sP%ry(0:2) = vy(0,0:2)    ! global y is perpendicular to x and patch center (z)
-
-! compute angles between successive verts
-do i=0, N-1
-  angles(i) = acos( DOT_PRODUCT( vx(i,0:2), vx(mod(i+1,N)) ) )
-  if (i.eq.0) then 
-    sP%cumAngles(0) = angles(0)
-  else
-    sP%cumAngles(i) = sP%cumAngles(i-1) + angles(i)  ! needs to be checked !!! std::partial_sum(angles, angles+N, cumAngles+1);
-  end if
-end do 
-
-! compute normals of circles defining edges of domain
-do i=0, N-1
-  sP%normals(i,0:2) = cross3( verts(i,0:2), verts( mod(i,N), 0:2) )
-  sP%normals(i,0:2) = sP%normals(i,0:2) / sqrt( sum( sP%normals(i,0:2)**2 ) )
-end do
-
-! compute cutoff angles for filleting
-filF = 0.D0 
-if (present(filFin)) filF = filFin
-deltas = 2.D0*cPi/dble(N)   ! for now just evenly space deltas
-do i=0, N-1                 ! loop over edges
-  do j=0, 2                 ! loop over verts
-    if (j.eq.2) then
-      delta = 0.D0 
-    else 
-      if (j.eq.0) then 
-        delta = filF * deltas(i)
-      else
-        delta = -filF * deltas(i)
-      end if
-    end if 
-    if (j.eq.0) then 
-      sP%cutoffs(i*3+j) = sP%cumAngles(i) + delta
-    else
-      sP%cutoffs(i*3+j) = sP%cumAngles(i+1) + delta
-    end if
-  end do 
-end do
-
-! numerically compute r and dr/dtheta at transition points between linear and filleted regions
-do i= 0, N-1  ! loop over edges
-! compute angles where radius needs to be calculated
-  dT = 0.10D0   ! angular offset from vertex -> transition points (for numerical derivative calculation), ~1/2 degree
-  hf = 0.010D0  ! fractional distance numerical derivative calculation (should probably be <= 1)
-  thetas = (/ sP%cutoffs(3*i+0) - hf * dT, & ! symmetric points for derivative calculation
-              sP%cutoffs(3*i+0)          , & ! first transition
-              sP%cutoffs(3*i+0) + hf * dT, & ! symmetric points for derivative calculation
-              sP%cutoffs(3*i+1) - hf * dT, & ! symmetric points for derivative calculation
-              sP%cutoffs(3*i+1)          , & ! second transition
-              sP%cutoffs(3*i+1) + hf * dT /) ! symmetric points for derivative calculation
-
-! apply rotations and compute radius/angle at each point
-  do j= 0, 5
-! compute normal of circle at desired angle (ry rotated about center)
-    c = cos(thetas(j) / 2.D0)
-    s = sin(thetas(j) / 2.D0)
-
-! q * n (w == 0 since rotation axis is perpendicular to vector)
-    x = c * sP%ry(0) + s * (center(1) * sP%ry(2) - center(2) * sP%ry(1))
-    y = c * sP%ry(1) + s * (center(2) * sP%ry(0) - center(0) * sP%ry(2))
-    z = c * sP%ry(2) + s * (center(0) * sP%ry(1) - center(1) * sP%ry(0))
-
-! q * n * q.conj() (normal of circle at desired angle)
-    m = (/  x * c + s * (z * center(1) - y * center(2)), &
-            y * c + s * (x * center(2) - z * center(0)), &
-            z * c + s * (y * center(0) - x * center(1)) /)
-
-! now compute intersection of two unit circles at origin w/ normals v and normals(edge)
-    nx = sP%normals(i,0)
-    ny = sP%normals(i,1)
-    nz = sP%normals(i,2)
-    mx = m(0)
-    my = m(1)
-    mz = m(2)
-    den = sqrt( nx * nx * ( my * my + mz * mz ) + ny * ny * ( mz * mz + mx * mx ) + nz * nz * ( mx * mx + my * my ) &
-               - 2.D0 * ( nz * nx * mz * mx + nx * ny * mx * my + ny * nz * my * mz ) )
-
-! intersection of two circles (point along edge i at angle thetas(j))
-    v = (/ (ny * mz - nz * my) / den, &
-           (nz * mx - nx * mz) / den, & 
-           (nx * my - ny * mx) / den /)
-
-    if( DOT_PRODUCT( v(0:2), center(0:2) ).lt.0.D0) v = -v  ! select intersection point closest to center
-    r(j) = acos( DOT_PRODUCT( v(0:2), center(0:2) ))        ! compute angle from center -> edge at this theta
-  end do 
-
-! save radii and compute derivative
-  radii (i*2+0) = r(1)
-  radii (i*2+1) = r(4)
-  dRadii(i*2+0) = (r(2) - r(0)) / (hf * dT * 2.D0)
-  dRadii(i*2+1) = (r(5) - r(3)) / (hf * dT * 2.D0)
-end do
-
-! compute polynomial coefficients to remove discontinuity in r
-do i= 0, N-1 ! loop over edge
-  j = mod(i+1, N)   ! index of next edge
-  v1 = radii (i*2+1)                    ! value of radius at transition point in edge i (near edge j)
-  v2 = radii (j*2+0)                    ! value of radius at transition point in edge j (near edge i)
-  m1 = dradii(i*2+1) * filf * angles(i) ! value of d(radius)/d(theta) at transition point (multiply by range of -1->0 to correct derivative scaling)
-  m2 = dradii(j*2+0) * filf * angles(j) ! value of d(radius)/d(theta) at transition point (multiply by range of  0->1 to correct derivative scaling)
-  sP%coeffs(i,0) = ( m1 + m2 + v1        - v2       ) / 4.D0
-  sP%coeffs(i,1) = (-m1 + m2                        ) / 4.D0
-  sP%coeffs(i,2) = (-m1 - m2 - v1 * 3.D0 + v2 * 3.D0) / 4.D0
-  sP%coeffs(i,3) = ( m1 - m2 + v1 * 2.D0 + v2 * 2.D0) / 4.D0
-end do
-
-! build lookup table for nonlinear hue adjustment (to keep hue at vert i i/N)
-! this is a numerical lookup table to solve A.6
-
-! compute the fractional angle of each vertex
-do i=1,N-2
-  v(0:2) = verts(i,0:2) - center(0:2)
-  angle = atan2( DOT_PRODUCT( sP%ry, v ), DOT_PRODUCT( sP%rx, v ) )
-  if (angle.lt.0.D0) angle = angle + 2.D0*cPi  
-  rhoN(i-1) = angle / (2.D0*cPi)
-end do 
-rhoN(N-1) = 1.D0
-
-! create evenly spaced list for angle from 0->1
-irho = (/ (dble(i)/dble(256.D0*N-1), i=0,256*N-1) /)
-
-! compute the distance to the sector edge at each angle (in irho)
-sP%omega(0) = 0.D0
-do i=0, 256*N-1
-! create vector normal to center at angle irho(i)
-  s = sin(2.D0*cPi * irho(i));
-  c = cos(2.D0*cPi * irho(i));
-  do j=0,2 
-    nn(j) = sP%rx(j) * s - sP%ry(j) * c   ! std::transform(rx, rx+3, ry, n, (s, c)(Real i, Real j){return i * s - j * c;});
-  end do
-
-! determine which edge is closest and compute distance to edge
-  j = 0 
-  do while (rhoN(j).lt.irho(i)) 
-    j=j+1 
-  end do
-  normxn = cross3( SP%normals(j,0:2), nn(0:2) )
-  mag = sqrt(sum(normxn*normxn))
-  sP%omega(i+1) = acos( DOT_PRODUCT(normxn(0:2), center(0:2)) / mag)
-end do
-
-! get the offset to the vertices
-idx(N) = 0
-do i=0,N-1
-  j = 0 
-  do while (irho(j).lt.rhoN(i)) 
-    j=j+1 
-  end do
-  idx(i+1) = j
-end do 
-
-! normalize
-do i=0,N-1
-  sm = sum(sP%omega(idx(i):idx(i+1)))
-  sP%omega(idx(i):idx(i+1)) = sP%omega(idx(i):idx(i+1)) / sm
-end do
-
-! integrate to obtain the final lookup table
-do i=1,N-1
-    sP%omega(i) = sP%omega(i) + sP%omega(i-1)
-end do
-
-end associate
-
-end subroutine build_
-
-!--------------------------------------------------------------------------
-recursive subroutine toHemi_(self, n, tht, phi)
-!DEC$ ATTRIBUTES DLLEXPORT :: toHemi_
-!! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! n  : unit direction to color
-!! tht: fractional azimuthal angle (0,1) maps to (0,2*pi)
-!! phi: fractional polar angle (0,1) maps to (0,pi/2)
-
-IMPLICIT NONE 
-
-class(IPFmap_T), INTENT(INOUT)        :: self
-real(kind=dbl),INTENT(IN)             :: n(0:2)
-real(kind=dbl),INTENT(OUT)            :: tht
-real(kind=dbl),INTENT(OUT)            :: phi
-
-real(kind=dbl)                        :: v(0:2), n0(0:2), angle, eps=1.D-12, nxc(0:2), x, den
-integer(kind=irg)                     :: iOmg, idx, i, j 
-
-associate( sP => self%sphericalPatch )
-
-! compute angle with red direction
-n0 = n      ! in case input and output overlap
-v = n0 - sP%center 
-angle = atan2( DOT_PRODUCT(sP%ry(0:2), v(0:2)), DOT_PRODUCT(sP%rx(0:2), v(0:2)) )
-if (angle.lt.0.D0) angle = angle + 2.D0*cPi 
-tht = angle / (2.D0*cPi)
-
-! apply adaptive hue gradient from omega lookup table
-tht = tht * dble(self%N*256-1)      ! rescale from (0,1) to lookup table size
-iOmg = int(tht)                     ! get index of lower bound in lookup table
-if ((iOmg+1).lt.(self%N*256)) then  ! don't go out of bounds if tht == 1
-! linearly interpolate from lookup table
-  tht = sP%omega(iOmg) + (sP%omega(iOmg+1) - sP%omega(iOmg)) * (dble(iOmg+1) - tht)
-else
-  tht = 1.D0
-end if 
-
-! compute polar angle
-! determine which region this angle falls in
-j=0
-do while(sP%cutoffs(j).lt.angle) j = j+1
-idx = j 
-i = idx/3  
-phi = acos( DOT_PRODUCT(n0(0:2), sP%center(0:2)) ) ! angle between center and point
-
-if (phi.gt.eps) then    ! avoid divide by zero issues
-! normalize polar angle
-  select case(idx - i * 3) 
-        case(1) ! in linear region, normalize angle by max possible angle
-          nxc = cross3(n0(0:2), sP%center(0:2))     ! normal of arc through n/center
-          v = cross3(sP%normals(i), nxc)            ! intersection of two circles (edge of patch in direction tht)
-          v = v/sqrt(sum(v*v))
-          phi = phi/( 2.D0 * acos(DOT_PRODUCT(v(0:2), sP%center(0:2))) )  ! compute fractional progress ot edge
-
-        case(0) ! in first fillet
-          j = mod( (i+self%N-1), self%N)            ! get i-1 with periodic boundary conditions
-          x =  (angle - sP%cumAngles(i)) / (sP%cutoffs(idx) - sP%cumAngles(i))
-          den = sP%coeffs(j,0) * x * x * x + sP%coeffs(j,1) * x * x + sP%coeffs(j,2) * x + sP%coeffs(j,3)
-          phi = phi/ (2.D0 * maxval( (/phi, den/) ) ! normalize, clipping at 1/2
-
-        case(2) ! in second fillet
-          x = -(angle - sP%cumAngles(i+1)) / (sP%cutoffs(idx-1) - sP%cumAngles(i+1))
-          den = sP%coeffs(i,0) * x * x * x + sP%coeffs(i,1) * x * x + sP%coeffs(i,2) * x + sP%coeffs(i,3)
-          phi = phi/ (2.D0 * maxval( (/phi, den/) ) ! normalize, clipping at 1/2
+! !--------------------------------------------------------------------------
+! !---------based on Will Lenthe's sphere_sector.hpp module------------------
+! !--------------------------------------------------------------------------
+! recursive subroutine SphericalTriangle_(self, nRed, nGreen, nBlue)
+! !DEC$ ATTRIBUTES DLLEXPORT :: SphericalTriangle_
+! !! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
+! !! version: 1.0 
+! !! date: 09/29/21
+! !!
+! !! construct a spherical triangle patch for IPF coloring
+
+! use mod_io
+
+! IMPLICIT NONE 
+
+! class(IPFmap_T), INTENT(INOUT)  :: self
+! real(kind=dbl), INTENT(IN)      :: nRed(0:2)
+! real(kind=dbl), INTENT(IN)      :: nGreen(0:2)
+! real(kind=dbl), INTENT(IN)      :: nBlue(0:2)
+
+! type(IO_T)                      :: Message 
+! real(kind=dbl)                  :: verts(0:2,0:2), det, ctr(0:2), eps=1.0D-12 
+! integer(kind=irg)               :: i
+
+! verts(0,0:2) = nRed 
+! verts(1,0:2) = nGreen
+! verts(2,0:2) = nBlue 
+
+! det = verts(0,0) * verts(1,1) * verts(2,2) &
+!     + verts(0,1) * verts(1,2) * verts(2,0) &
+!     + verts(0,2) * verts(1,0) * verts(2,1) &
+!     - verts(0,0) * verts(1,2) * verts(2,1) &
+!     - verts(0,1) * verts(1,0) * verts(2,2) &
+!     - verts(0,2) * verts(1,1) * verts(2,0) 
+
+! if (det.lt.eps) call Message%printError('SphericalTriangle_','spherical triangle must be within single hemisphere')
+
+! ! compute center of spherical triangle (assumes triangle covers less than hemisphere)
+! do i=0,2
+!   ctr(i) = verts(0,i) + verts(1,i) + verts(2,i)
+! end do 
+! ctr = ctr/sqrt(sum(ctr*ctr))
+
+! ! now build a general spherical patch (this fills the omega lookup table)
+! call self%build_(3, verts, ctr)
+
+! end subroutine SphericalTriangle_
+
+! !--------------------------------------------------------------------------
+! recursive subroutine SphericalWedge_(self, nGreen, nBlue)
+! !DEC$ ATTRIBUTES DLLEXPORT :: SphericalWedge_
+! !! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
+! !! version: 1.0 
+! !! date: 09/29/21
+! !!
+! !! construct a spherical triangle wedge for IPF coloring
+! !! red is assumed to be at (0,0,1)
+
+! use mod_io
+
+! IMPLICIT NONE 
+
+! class(IPFmap_T), INTENT(INOUT)  :: self
+! real(kind=dbl), INTENT(IN)      :: nGreen(0:1)
+! real(kind=dbl), INTENT(IN)      :: nBlue(0:1)
+
+! type(IO_T)                      :: Message 
+! real(kind=dbl)                  :: verts(0:3,0:2), dot, ctr(0:2), eps=1.0D-12 
+! integer(kind=irg)               :: i
+
+! verts = 0.D0
+! verts(0,2) = 1.D0 
+! verts(1,0:1) = nGreen
+! verts(2,2) = -1.D0
+! verts(3,0:1) = nBlue 
+
+! ! compute center 
+! ctr = (/ nGreen(0) + nBlue(0), nGreen(1) + nBlue(1), 0.D0 /)
+
+! ! handle special case of antipodal blue/green
+! dot = nGreen(0) * nBlue(0) + nGreen(1) * nBlue(1)
+! if (abs(dot + 1.D0).lt.eps) then
+!   ctr(0) = -nGreen(1)
+!   ctr(1) =  nGreen(0)
+! end if 
+
+! ctr = ctr/sqrt(sum(ctr*ctr))
+
+! ! now build a general spherical patch (this fills the omega lookup table)
+! call self%build_(4, verts, ctr)
+
+! end subroutine SphericalWedge_
+
+! !--------------------------------------------------------------------------
+! recursive subroutine init_sPatch_(self, N)
+! !DEC$ ATTRIBUTES DLLEXPORT :: build_
+! !! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
+! !! version: 1.0 
+! !! date: 09/29/21
+! !!
+
+! IMPLICIT NONE 
+
+! class(IPFmap_T), INTENT(INOUT)        :: self
+
+! allocate(self%sphericalPatch%rx(0:N-1))
+! allocate(self%sphericalPatch%ry(0:N-1))
+! allocate(self%sphericalPatch%center(0:N-1))
+! allocate(self%sphericalPatch%normals(0:N-1,0:2))
+! allocate(self%sphericalPatch%cutoffs(0:3*N-1))
+! allocate(self%sphericalPatch%coeffs(0:N-1,0:3))
+! allocate(self%sphericalPatch%cumAngles(0:N))
+! allocate(self%sphericalPatch%omega(0:256*N-1))
+
+! end subroutine init_sPatch_
+
+! !--------------------------------------------------------------------------
+! recursive subroutine build_(self, N, verts, ctr, filFin)
+! !DEC$ ATTRIBUTES DLLEXPORT :: build_
+! !! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
+! !! version: 1.0 
+! !! date: 09/29/21
+! !!
+! !! construct a spherical triangle patch to map to the unit hemisphere
+! !! verts: vertices of spherical patch (maps to evenly spaced points to equator)
+! !! ctr  : center of spherical patch (maps to north pole)
+! !! filF : fillet fraction, should be 0 for original paper, ~0.05 for perceptually uniform, must be in (0,0.5)
+! !!      : verts in CCW order
+
+! use mod_io
+! use mod_math
+
+! IMPLICIT NONE 
+
+! class(IPFmap_T), INTENT(INOUT)        :: self
+! integer(kind=irg),INTENT(IN)          :: N
+! real(kind=dbl),INTENT(IN)             :: verts(0:N-1,0:2)
+! real(kind=dbl),INTENT(IN)             :: ctr(0:2)
+! real(kind=dbl),INTENT(IN),OPTIONAL    :: filFin
+
+! real(kind=dbl)                        :: center(0:2), vx(0:N-1,0:2), vy(0:N-1,0:2), angles(0:N-1), filF, &
+!                                          deltas(0:N-1), delta, radii(0:2*N-1), dRadii(0:2*N-1), thetas(0:5), nn(0:2), &
+!                                          r(0:5), c, s, x, y, z, m(0:2), nx, ny, nz, mx, my, mz, den, v1, v2, m1, &
+!                                          m2, rhoN(0:N-1), v(0:2), irho(0:256*N-1), normxn(0:2), mag, sm
+! integer(kind=irg)                     :: i, j, idx(0:N) 
+
+! associate( sP => self%sphericalPatch )
+
+! call self%init_sPatch_(N)
+
+! center = ctr
+
+! ! build orthogonal coordinate system for center -> each vertex
+! do i=0,N-1
+!   vy(i,0:2) = cross3( center(0:2), verts(i,0:2) )
+!   vx(i,0:2) = cross3( vy(i,0:2), center(0:2) )
+!   vx(i,0:2) = vx(i,0:2)/sqrt(sum(vx(i,0:2)**2))
+!   vy(i,0:2) = vy(i,0:2)/sqrt(sum(vy(i,0:2)**2))
+! end do 
+! sP%rx(0:2) = vx(0,0:2)    ! red is the global x direction
+! sP%ry(0:2) = vy(0,0:2)    ! global y is perpendicular to x and patch center (z)
+
+! ! compute angles between successive verts
+! do i=0, N-1
+!   angles(i) = acos( DOT_PRODUCT( vx(i,0:2), vx(mod(i+1,N)) ) )
+!   if (i.eq.0) then 
+!     sP%cumAngles(0) = angles(0)
+!   else
+!     sP%cumAngles(i) = sP%cumAngles(i-1) + angles(i)  ! needs to be checked !!! std::partial_sum(angles, angles+N, cumAngles+1);
+!   end if
+! end do 
+
+! ! compute normals of circles defining edges of domain
+! do i=0, N-1
+!   sP%normals(i,0:2) = cross3( verts(i,0:2), verts( mod(i,N), 0:2) )
+!   sP%normals(i,0:2) = sP%normals(i,0:2) / sqrt( sum( sP%normals(i,0:2)**2 ) )
+! end do
+
+! ! compute cutoff angles for filleting
+! filF = 0.D0 
+! if (present(filFin)) filF = filFin
+! deltas = 2.D0*cPi/dble(N)   ! for now just evenly space deltas
+! do i=0, N-1                 ! loop over edges
+!   do j=0, 2                 ! loop over verts
+!     if (j.eq.2) then
+!       delta = 0.D0 
+!     else 
+!       if (j.eq.0) then 
+!         delta = filF * deltas(i)
+!       else
+!         delta = -filF * deltas(i)
+!       end if
+!     end if 
+!     if (j.eq.0) then 
+!       sP%cutoffs(i*3+j) = sP%cumAngles(i) + delta
+!     else
+!       sP%cutoffs(i*3+j) = sP%cumAngles(i+1) + delta
+!     end if
+!   end do 
+! end do
+
+! ! numerically compute r and dr/dtheta at transition points between linear and filleted regions
+! do i= 0, N-1  ! loop over edges
+! ! compute angles where radius needs to be calculated
+!   dT = 0.10D0   ! angular offset from vertex -> transition points (for numerical derivative calculation), ~1/2 degree
+!   hf = 0.010D0  ! fractional distance numerical derivative calculation (should probably be <= 1)
+!   thetas = (/ sP%cutoffs(3*i+0) - hf * dT, & ! symmetric points for derivative calculation
+!               sP%cutoffs(3*i+0)          , & ! first transition
+!               sP%cutoffs(3*i+0) + hf * dT, & ! symmetric points for derivative calculation
+!               sP%cutoffs(3*i+1) - hf * dT, & ! symmetric points for derivative calculation
+!               sP%cutoffs(3*i+1)          , & ! second transition
+!               sP%cutoffs(3*i+1) + hf * dT /) ! symmetric points for derivative calculation
+
+! ! apply rotations and compute radius/angle at each point
+!   do j= 0, 5
+! ! compute normal of circle at desired angle (ry rotated about center)
+!     c = cos(thetas(j) / 2.D0)
+!     s = sin(thetas(j) / 2.D0)
+
+! ! q * n (w == 0 since rotation axis is perpendicular to vector)
+!     x = c * sP%ry(0) + s * (center(1) * sP%ry(2) - center(2) * sP%ry(1))
+!     y = c * sP%ry(1) + s * (center(2) * sP%ry(0) - center(0) * sP%ry(2))
+!     z = c * sP%ry(2) + s * (center(0) * sP%ry(1) - center(1) * sP%ry(0))
+
+! ! q * n * q.conj() (normal of circle at desired angle)
+!     m = (/  x * c + s * (z * center(1) - y * center(2)), &
+!             y * c + s * (x * center(2) - z * center(0)), &
+!             z * c + s * (y * center(0) - x * center(1)) /)
+
+! ! now compute intersection of two unit circles at origin w/ normals v and normals(edge)
+!     nx = sP%normals(i,0)
+!     ny = sP%normals(i,1)
+!     nz = sP%normals(i,2)
+!     mx = m(0)
+!     my = m(1)
+!     mz = m(2)
+!     den = sqrt( nx * nx * ( my * my + mz * mz ) + ny * ny * ( mz * mz + mx * mx ) + nz * nz * ( mx * mx + my * my ) &
+!                - 2.D0 * ( nz * nx * mz * mx + nx * ny * mx * my + ny * nz * my * mz ) )
+
+! ! intersection of two circles (point along edge i at angle thetas(j))
+!     v = (/ (ny * mz - nz * my) / den, &
+!            (nz * mx - nx * mz) / den, & 
+!            (nx * my - ny * mx) / den /)
+
+!     if( DOT_PRODUCT( v(0:2), center(0:2) ).lt.0.D0) v = -v  ! select intersection point closest to center
+!     r(j) = acos( DOT_PRODUCT( v(0:2), center(0:2) ))        ! compute angle from center -> edge at this theta
+!   end do 
+
+! ! save radii and compute derivative
+!   radii (i*2+0) = r(1)
+!   radii (i*2+1) = r(4)
+!   dRadii(i*2+0) = (r(2) - r(0)) / (hf * dT * 2.D0)
+!   dRadii(i*2+1) = (r(5) - r(3)) / (hf * dT * 2.D0)
+! end do
+
+! ! compute polynomial coefficients to remove discontinuity in r
+! do i= 0, N-1 ! loop over edge
+!   j = mod(i+1, N)   ! index of next edge
+!   v1 = radii (i*2+1)                    ! value of radius at transition point in edge i (near edge j)
+!   v2 = radii (j*2+0)                    ! value of radius at transition point in edge j (near edge i)
+!   m1 = dradii(i*2+1) * filf * angles(i) ! value of d(radius)/d(theta) at transition point (multiply by range of -1->0 to correct derivative scaling)
+!   m2 = dradii(j*2+0) * filf * angles(j) ! value of d(radius)/d(theta) at transition point (multiply by range of  0->1 to correct derivative scaling)
+!   sP%coeffs(i,0) = ( m1 + m2 + v1        - v2       ) / 4.D0
+!   sP%coeffs(i,1) = (-m1 + m2                        ) / 4.D0
+!   sP%coeffs(i,2) = (-m1 - m2 - v1 * 3.D0 + v2 * 3.D0) / 4.D0
+!   sP%coeffs(i,3) = ( m1 - m2 + v1 * 2.D0 + v2 * 2.D0) / 4.D0
+! end do
+
+! ! build lookup table for nonlinear hue adjustment (to keep hue at vert i i/N)
+! ! this is a numerical lookup table to solve A.6
+
+! ! compute the fractional angle of each vertex
+! do i=1,N-2
+!   v(0:2) = verts(i,0:2) - center(0:2)
+!   angle = atan2( DOT_PRODUCT( sP%ry, v ), DOT_PRODUCT( sP%rx, v ) )
+!   if (angle.lt.0.D0) angle = angle + 2.D0*cPi  
+!   rhoN(i-1) = angle / (2.D0*cPi)
+! end do 
+! rhoN(N-1) = 1.D0
+
+! ! create evenly spaced list for angle from 0->1
+! irho = (/ (dble(i)/dble(256.D0*N-1), i=0,256*N-1) /)
+
+! ! compute the distance to the sector edge at each angle (in irho)
+! sP%omega(0) = 0.D0
+! do i=0, 256*N-1
+! ! create vector normal to center at angle irho(i)
+!   s = sin(2.D0*cPi * irho(i));
+!   c = cos(2.D0*cPi * irho(i));
+!   do j=0,2 
+!     nn(j) = sP%rx(j) * s - sP%ry(j) * c   ! std::transform(rx, rx+3, ry, n, (s, c)(Real i, Real j){return i * s - j * c;});
+!   end do
+
+! ! determine which edge is closest and compute distance to edge
+!   j = 0 
+!   do while (rhoN(j).lt.irho(i)) 
+!     j=j+1 
+!   end do
+!   normxn = cross3( SP%normals(j,0:2), nn(0:2) )
+!   mag = sqrt(sum(normxn*normxn))
+!   sP%omega(i+1) = acos( DOT_PRODUCT(normxn(0:2), center(0:2)) / mag)
+! end do
+
+! ! get the offset to the vertices
+! idx(N) = 0
+! do i=0,N-1
+!   j = 0 
+!   do while (irho(j).lt.rhoN(i)) 
+!     j=j+1 
+!   end do
+!   idx(i+1) = j
+! end do 
+
+! ! normalize
+! do i=0,N-1
+!   sm = sum(sP%omega(idx(i):idx(i+1)))
+!   sP%omega(idx(i):idx(i+1)) = sP%omega(idx(i):idx(i+1)) / sm
+! end do
+
+! ! integrate to obtain the final lookup table
+! do i=1,N-1
+!     sP%omega(i) = sP%omega(i) + sP%omega(i-1)
+! end do
+
+! end associate
+
+! end subroutine build_
+
+! !--------------------------------------------------------------------------
+! recursive subroutine toHemi_(self, n, tht, phi)
+! !DEC$ ATTRIBUTES DLLEXPORT :: toHemi_
+! !! author: MDG (based on Will Lenthe's sphere_sector.hpp module)
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! n  : unit direction to color
+! !! tht: fractional azimuthal angle (0,1) maps to (0,2*pi)
+! !! phi: fractional polar angle (0,1) maps to (0,pi/2)
+
+! IMPLICIT NONE 
+
+! class(IPFmap_T), INTENT(INOUT)        :: self
+! real(kind=dbl),INTENT(IN)             :: n(0:2)
+! real(kind=dbl),INTENT(OUT)            :: tht
+! real(kind=dbl),INTENT(OUT)            :: phi
+
+! real(kind=dbl)                        :: v(0:2), n0(0:2), angle, eps=1.D-12, nxc(0:2), x, den
+! integer(kind=irg)                     :: iOmg, idx, i, j 
+
+! associate( sP => self%sphericalPatch )
+
+! ! compute angle with red direction
+! n0 = n      ! in case input and output overlap
+! v = n0 - sP%center 
+! angle = atan2( DOT_PRODUCT(sP%ry(0:2), v(0:2)), DOT_PRODUCT(sP%rx(0:2), v(0:2)) )
+! if (angle.lt.0.D0) angle = angle + 2.D0*cPi 
+! tht = angle / (2.D0*cPi)
+
+! ! apply adaptive hue gradient from omega lookup table
+! tht = tht * dble(self%N*256-1)      ! rescale from (0,1) to lookup table size
+! iOmg = int(tht)                     ! get index of lower bound in lookup table
+! if ((iOmg+1).lt.(self%N*256)) then  ! don't go out of bounds if tht == 1
+! ! linearly interpolate from lookup table
+!   tht = sP%omega(iOmg) + (sP%omega(iOmg+1) - sP%omega(iOmg)) * (dble(iOmg+1) - tht)
+! else
+!   tht = 1.D0
+! end if 
+
+! ! compute polar angle
+! ! determine which region this angle falls in
+! j=0
+! do while(sP%cutoffs(j).lt.angle) j = j+1
+! idx = j 
+! i = idx/3  
+! phi = acos( DOT_PRODUCT(n0(0:2), sP%center(0:2)) ) ! angle between center and point
+
+! if (phi.gt.eps) then    ! avoid divide by zero issues
+! ! normalize polar angle
+!   select case(idx - i * 3) 
+!         case(1) ! in linear region, normalize angle by max possible angle
+!           nxc = cross3(n0(0:2), sP%center(0:2))     ! normal of arc through n/center
+!           v = cross3(sP%normals(i), nxc)            ! intersection of two circles (edge of patch in direction tht)
+!           v = v/sqrt(sum(v*v))
+!           phi = phi/( 2.D0 * acos(DOT_PRODUCT(v(0:2), sP%center(0:2))) )  ! compute fractional progress ot edge
+
+!         case(0) ! in first fillet
+!           j = mod( (i+self%N-1), self%N)            ! get i-1 with periodic boundary conditions
+!           x =  (angle - sP%cumAngles(i)) / (sP%cutoffs(idx) - sP%cumAngles(i))
+!           den = sP%coeffs(j,0) * x * x * x + sP%coeffs(j,1) * x * x + sP%coeffs(j,2) * x + sP%coeffs(j,3)
+!           phi = phi/ (2.D0 * maxval( (/phi, den/) ) ! normalize, clipping at 1/2
+
+!         case(2) ! in second fillet
+!           x = -(angle - sP%cumAngles(i+1)) / (sP%cutoffs(idx-1) - sP%cumAngles(i+1))
+!           den = sP%coeffs(i,0) * x * x * x + sP%coeffs(i,1) * x * x + sP%coeffs(i,2) * x + sP%coeffs(i,3)
+!           phi = phi/ (2.D0 * maxval( (/phi, den/) ) ! normalize, clipping at 1/2
         
-  end select 
-end if 
-
-end associate
-
-end subroutine toHemi_
-
-!--------------------------------------------------------------------------
-recursive function toColor_(self, n, h2r, wCn, nTh) result(rgb)
-!DEC$ ATTRIBUTES DLLEXPORT :: build_
-!! author: MDG (based on Will Lenthe's implementation in sphere_sector.hpp) 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! compute coloring for a unit direction in the fundamental sector
-!! n  : unit direction in fundamental sector (undefined behavior for directions outside of sector)
-!! rgb: location to write color (0,1)
-!! h2r: hsl2rgb like coloring function to use with h, s, and l in (0,1) and output as (0,1) rgb: void(Real const * const hsl, Real * const rgb)
-!! wCn: white/black center (north/south hemisphere)
-!! nTh: should theta be negated (to create enatiomorph / reverse color progression)
-
-IMPLICIT NONE 
-
-class(IPFmap_T), INTENT(INOUT)        :: self
-real(kind=dbl), INTENT(IN)            :: n(0:2)
-character(*),INTENT(IN)               :: h2r
-logical,INTENT(IN)                    :: wCn
-logical,INTENT(IN)                    :: nTh
-real(kind=dbl)                        :: rgb(0:2)
-
-call self%toHemi(n, rgb(0), rgb(2))
-rgb(1) = 1.D0   ! fully saturated
-if (nTh.eqv..TRUE.) rgb(0) = 1.D0 - rgb(0)
-if (wCn.eqv..TRUE.) rgb(2) = 1.D0 - rgb(2)
-
-! transform to rgb using selected coloring function
-if (trim(h2r).eq.'hsl2rgb') then 
-  rgb = self%hsl2rgb_(rgb)
-end if 
-
-
-end function toColor_
-
-!--------------------------------------------------------------------------
-!----the following routines are converted from Will Lenthe's code base-----
-!--------------------------------------------------------------------------
-recursive function rot2d(xy, c, s) result(xyr)
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! rotate a 2d vector 
-!! xy: vector to rotate
-!! c : cosine of rotation angle
-!! s : sine of rotation angle
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(IN)       :: xy(0:1)
-real(kind=dbl),INTENT(IN)       :: c
-real(kind=dbl),INTENT(IN)       :: s
-real(kind=dbl)                  :: xyr(0:1)
-
-xyr(0) = c*xy(0) - s*xy(1) 
-xyr(1) = s*xy(0) + c*xy(1) 
-
-end function rot2d
-
-!-----------------------------------------------
-recursive function mir2d(xy, c, s) result(xyr)
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! mirror a 2d vector 
-!! xy: vector to mirror
-!! c : cosine of mirror plane angle
-!! s : sine of mirror plane angle
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(IN)       :: xy(0:1)
-real(kind=dbl),INTENT(IN)       :: c
-real(kind=dbl),INTENT(IN)       :: s
-real(kind=dbl)                  :: xyr(0:1)
-
-real(kind=dbl)                  :: d, pt(0:1)
-
-d = c*xy(0) + s*xy(1) 
-pt = (/ d*c, d*s /)
-
-xyr = pt - (xy - pt)
-
-end function mir2d
-
-!-----------------------------------------------
-recursive function r111(n) result(nr)
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! move a point in the first octant to the maximum z rotation possible by 120 @ 111
-!! n: vector to rotate
-!! return: true if z was already maximize, false otherwise
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: nr
-
-integer(kind=irg)               :: idx(1)
-
-nr = .FALSE.
-idx = maxloc(n)
-if (n(2).eq.n(idx(1))) nr = .TRUE.
-if (nr.eq..FALSE.) n = cshift(n, 2-idx(1))
-
-end function r111
-
-!-----------------------------------------------
-recursive function b1   (n)  result(res)   ! -1
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the -1 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-res = .FALSE.
-if (n(2).lt.0.D0) then 
-  res = .TRUE.
-  n = -n
-end if 
-res = .not.res
-
-end function b1
-
-!-----------------------------------------------
-recursive function _211 (n)  result(res)   ! 211
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 211 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-res = .FALSE.
-if (n(2).lt.0.D0) then 
-  res = .TRUE.
-  n(1:2) = -n(1:2)
-end if 
-res = .not.res
-
-end function _211
-
-!-----------------------------------------------
-recursive function _211r(n)  result(res)   ! 211 rotated 45 @ 2 (2 fold @ xy)
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 211 fundamental sector rotated 45 @ z
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-real(kind=dbl)                  :: t
-
-res = .FALSE.
-if (n(2).lt.0.D0) then 
-  res = .TRUE.
-  t = n(0)
-  n(0) = n(1)
-  n(1) = t
-  n(2) = -n(2)
-end if 
-res = .not.res
-
-end function _211r
-
-!-----------------------------------------------
-recursive function _121 (n)  result(res)   ! 121
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 121 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-res = .FALSE.
-if (n(2).lt.0.D0) then 
-  res = .TRUE.
-  n(0) = -n(0)
-  n(2) = -n(2)
-end if 
-res = .not.res
-
-end function _121
-
-!-----------------------------------------------
-recursive function _112 (n)  result(res)   ! 112
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 112 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-res = .FALSE.
-if (n(1).lt.0.D0) then 
-  res = .TRUE.
-  n(0) = -n(0)
-  n(1) = -n(1)
-end if 
-res = .not.res
-
-end function _112
-
-!-----------------------------------------------
-recursive function _m11 (n)  result(res)   ! m11
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the m11 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-res = .FALSE.
-if (n(0).lt.0.D0) then 
-  res = .TRUE.
-  n(0) = -n(0)
-end if 
-res = .not.res
-
-end function _m11
-
-!-----------------------------------------------
-recursive function _1m1 (n)  result(res)   ! 1m1
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 1m1 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-res = .FALSE.
-if (n(1).lt.0.D0) then 
-  res = .TRUE.
-  n(1) = -n(1)
-end if 
-res = .not.res
-
-end function _1m1
-
-!-----------------------------------------------
-recursive function _11m (n)  result(res)   ! 11m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 11m fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-res = .FALSE.
-if (n(2).lt.0.D0) then 
-  res = .TRUE.
-  n(2) = -n(2)
-end if 
-res = .not.res
-
-end function _11m
-
-!-----------------------------------------------
-recursive function _222r(n)  result(res)   ! 222r
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 222r fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-logical                         :: ret 
-
-res = _211r(n)        ! first bring to +z hemisphere with rotation about xy
-if(n(1).lt.n(0)) then ! are we below the y==x line
-  ret = _112(n)
-  res = .FALSE.
-end if 
-
-end function _222r
-
-!-----------------------------------------------
-recursive function mm2r (n)  result(res)   ! mm2r
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the mm2r fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-real(kind=dbl)                  :: ax 
-
-res = _112(n)     ! first bring to +y hemisphere with rotation about z
-ax = abs(n(0))
-if(ax.gt.n(1)) then
-  if (n(0).lt.0.D0) then 
-    n(0) = -n(1) 
-  else 
-    n(0) = n(1) 
-  end if 
-  n(1) = ax
-  res = .FALSE.
-end if 
-
-end function mm2r
-
-!-----------------------------------------------
-recursive function _4   (n)  result(res)   ! 4
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 4 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-real(kind=dbl)                  :: t 
-
-res = _112(n)           ! first move to +y with 2 fold
-if(n(0).lt.0.D0) then   ! need to move to +x with 4 fold
-  n(0) = -n(0)
-  t = n(0) 
-  n(0) = n(1) 
-  n(1) = t
-  res = .FALSE.
-end if 
-
-end function _4
-
-!-----------------------------------------------
-recursive function b4   (n)  result(res)   ! -4
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the -4 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
-
-IMPLICIT NONE 
-
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
-
-real(kind=dbl)                  :: t 
-
-res = .TRUE.
-if(n(2).lt.0.D0) then   ! need to move to +z with -4
-  n(0) = -n(0)
-  t = n(0)
-  n(0) = n(1)
-  n(1) = t
-  n(2) = -n(2)
-  res = .FALSE.
-end if 
+!   end select 
+! end if 
+
+! end associate
+
+! end subroutine toHemi_
+
+! !--------------------------------------------------------------------------
+! recursive function toColor_(self, n, h2r, wCn, nTh) result(rgb)
+! !DEC$ ATTRIBUTES DLLEXPORT :: build_
+! !! author: MDG (based on Will Lenthe's implementation in sphere_sector.hpp) 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! compute coloring for a unit direction in the fundamental sector
+! !! n  : unit direction in fundamental sector (undefined behavior for directions outside of sector)
+! !! rgb: location to write color (0,1)
+! !! h2r: hsl2rgb like coloring function to use with h, s, and l in (0,1) and output as (0,1) rgb: void(Real const * const hsl, Real * const rgb)
+! !! wCn: white/black center (north/south hemisphere)
+! !! nTh: should theta be negated (to create enatiomorph / reverse color progression)
+
+! IMPLICIT NONE 
+
+! class(IPFmap_T), INTENT(INOUT)        :: self
+! real(kind=dbl), INTENT(IN)            :: n(0:2)
+! character(*),INTENT(IN)               :: h2r
+! logical,INTENT(IN)                    :: wCn
+! logical,INTENT(IN)                    :: nTh
+! real(kind=dbl)                        :: rgb(0:2)
+
+! call self%toHemi(n, rgb(0), rgb(2))
+! rgb(1) = 1.D0   ! fully saturated
+! if (nTh.eqv..TRUE.) rgb(0) = 1.D0 - rgb(0)
+! if (wCn.eqv..TRUE.) rgb(2) = 1.D0 - rgb(2)
+
+! ! transform to rgb using selected coloring function
+! if (trim(h2r).eq.'hsl2rgb') then 
+!   rgb = self%hsl2rgb_(rgb)
+! end if 
+
+
+! end function toColor_
+
+! !--------------------------------------------------------------------------
+! !----the following routines are converted from Will Lenthe's code base-----
+! !--------------------------------------------------------------------------
+! recursive function rot2d(xy, c, s) result(xyr)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! rotate a 2d vector 
+! !! xy: vector to rotate
+! !! c : cosine of rotation angle
+! !! s : sine of rotation angle
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(IN)       :: xy(0:1)
+! real(kind=dbl),INTENT(IN)       :: c
+! real(kind=dbl),INTENT(IN)       :: s
+! real(kind=dbl)                  :: xyr(0:1)
+
+! xyr(0) = c*xy(0) - s*xy(1) 
+! xyr(1) = s*xy(0) + c*xy(1) 
+
+! end function rot2d
+
+! !-----------------------------------------------
+! recursive function mir2d(xy, c, s) result(xyr)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! mirror a 2d vector 
+! !! xy: vector to mirror
+! !! c : cosine of mirror plane angle
+! !! s : sine of mirror plane angle
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(IN)       :: xy(0:1)
+! real(kind=dbl),INTENT(IN)       :: c
+! real(kind=dbl),INTENT(IN)       :: s
+! real(kind=dbl)                  :: xyr(0:1)
+
+! real(kind=dbl)                  :: d, pt(0:1)
+
+! d = c*xy(0) + s*xy(1) 
+! pt = (/ d*c, d*s /)
+
+! xyr = pt - (xy - pt)
+
+! end function mir2d
+
+! !-----------------------------------------------
+! recursive function r111(n) result(nr)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! move a point in the first octant to the maximum z rotation possible by 120 @ 111
+! !! n: vector to rotate
+! !! return: true if z was already maximize, false otherwise
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: nr
+
+! integer(kind=irg)               :: idx(1)
+
+! nr = .FALSE.
+! idx = maxloc(n)
+! if (n(2).eq.n(idx(1))) nr = .TRUE.
+! if (nr.eq..FALSE.) n = cshift(n, 2-idx(1))
+
+! end function r111
+
+! !-----------------------------------------------
+! recursive function b1   (n)  result(res)   ! -1
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the -1 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! res = .FALSE.
+! if (n(2).lt.0.D0) then 
+!   res = .TRUE.
+!   n = -n
+! end if 
+! res = .not.res
+
+! end function b1
+
+! !-----------------------------------------------
+! recursive function _211 (n)  result(res)   ! 211
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 211 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! res = .FALSE.
+! if (n(2).lt.0.D0) then 
+!   res = .TRUE.
+!   n(1:2) = -n(1:2)
+! end if 
+! res = .not.res
+
+! end function _211
+
+! !-----------------------------------------------
+! recursive function _211r(n)  result(res)   ! 211 rotated 45 @ 2 (2 fold @ xy)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 211 fundamental sector rotated 45 @ z
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! real(kind=dbl)                  :: t
+
+! res = .FALSE.
+! if (n(2).lt.0.D0) then 
+!   res = .TRUE.
+!   t = n(0)
+!   n(0) = n(1)
+!   n(1) = t
+!   n(2) = -n(2)
+! end if 
+! res = .not.res
+
+! end function _211r
+
+! !-----------------------------------------------
+! recursive function _121 (n)  result(res)   ! 121
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 121 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! res = .FALSE.
+! if (n(2).lt.0.D0) then 
+!   res = .TRUE.
+!   n(0) = -n(0)
+!   n(2) = -n(2)
+! end if 
+! res = .not.res
+
+! end function _121
+
+! !-----------------------------------------------
+! recursive function _112 (n)  result(res)   ! 112
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 112 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! res = .FALSE.
+! if (n(1).lt.0.D0) then 
+!   res = .TRUE.
+!   n(0) = -n(0)
+!   n(1) = -n(1)
+! end if 
+! res = .not.res
+
+! end function _112
+
+! !-----------------------------------------------
+! recursive function _m11 (n)  result(res)   ! m11
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the m11 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! res = .FALSE.
+! if (n(0).lt.0.D0) then 
+!   res = .TRUE.
+!   n(0) = -n(0)
+! end if 
+! res = .not.res
+
+! end function _m11
+
+! !-----------------------------------------------
+! recursive function _1m1 (n)  result(res)   ! 1m1
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 1m1 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! res = .FALSE.
+! if (n(1).lt.0.D0) then 
+!   res = .TRUE.
+!   n(1) = -n(1)
+! end if 
+! res = .not.res
+
+! end function _1m1
+
+! !-----------------------------------------------
+! recursive function _11m (n)  result(res)   ! 11m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 11m fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! res = .FALSE.
+! if (n(2).lt.0.D0) then 
+!   res = .TRUE.
+!   n(2) = -n(2)
+! end if 
+! res = .not.res
+
+! end function _11m
+
+! !-----------------------------------------------
+! recursive function _222r(n)  result(res)   ! 222r
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 222r fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! logical                         :: ret 
+
+! res = _211r(n)        ! first bring to +z hemisphere with rotation about xy
+! if(n(1).lt.n(0)) then ! are we below the y==x line
+!   ret = _112(n)
+!   res = .FALSE.
+! end if 
+
+! end function _222r
+
+! !-----------------------------------------------
+! recursive function mm2r (n)  result(res)   ! mm2r
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the mm2r fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! real(kind=dbl)                  :: ax 
+
+! res = _112(n)     ! first bring to +y hemisphere with rotation about z
+! ax = abs(n(0))
+! if(ax.gt.n(1)) then
+!   if (n(0).lt.0.D0) then 
+!     n(0) = -n(1) 
+!   else 
+!     n(0) = n(1) 
+!   end if 
+!   n(1) = ax
+!   res = .FALSE.
+! end if 
+
+! end function mm2r
+
+! !-----------------------------------------------
+! recursive function _4   (n)  result(res)   ! 4
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 4 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! real(kind=dbl)                  :: t 
+
+! res = _112(n)           ! first move to +y with 2 fold
+! if(n(0).lt.0.D0) then   ! need to move to +x with 4 fold
+!   n(0) = -n(0)
+!   t = n(0) 
+!   n(0) = n(1) 
+!   n(1) = t
+!   res = .FALSE.
+! end if 
+
+! end function _4
+
+! !-----------------------------------------------
+! recursive function b4   (n)  result(res)   ! -4
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the -4 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
+
+! IMPLICIT NONE 
+
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
+
+! real(kind=dbl)                  :: t 
+
+! res = .TRUE.
+! if(n(2).lt.0.D0) then   ! need to move to +z with -4
+!   n(0) = -n(0)
+!   t = n(0)
+!   n(0) = n(1)
+!   n(1) = t
+!   n(2) = -n(2)
+!   res = .FALSE.
+! end if 
  
-if(n(1).lt.0.D0) then   ! need to move to +y with 2
-  n(0:1) = -n(0:1)
-  ret = false;
-  res = .FALSE.
-end if 
+! if(n(1).lt.0.D0) then   ! need to move to +y with 2
+!   n(0:1) = -n(0:1)
+!   ret = false;
+!   res = .FALSE.
+! end if 
 
-end function b4
+! end function b4
 
-!-----------------------------------------------
-recursive function _4mm (n)  result(res)   ! 4mm
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 4mm fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
+! !-----------------------------------------------
+! recursive function _4mm (n)  result(res)   ! 4mm
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 4mm fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
-real(kind=dbl)                  :: t 
+! real(kind=dbl)                  :: t 
 
-res = _4(n)               ! first move to first quadrant with 4 fold
-if(n(1).gt.n(0)) then     ! use xy mirror if needed
-  t = n(0)
-  n(0) = n(1)
-  n(1) = t 
-  res = .FALSE.
-end if 
+! res = _4(n)               ! first move to first quadrant with 4 fold
+! if(n(1).gt.n(0)) then     ! use xy mirror if needed
+!   t = n(0)
+!   n(0) = n(1)
+!   n(1) = t 
+!   res = .FALSE.
+! end if 
 
-end function _4mm
+! end function _4mm
 
-!-----------------------------------------------
-recursive function _3   (n)  result(res)   ! 3
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 3 fundamental sector
-!! n : unit direction to reduce (in place)
-!! return  : true/false if n was/wasn't already in the fundamental sector
+! !-----------------------------------------------
+! recursive function _3   (n)  result(res)   ! 3
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 3 fundamental sector
+! !! n : unit direction to reduce (in place)
+! !! return  : true/false if n was/wasn't already in the fundamental sector
 
-use mod_IO 
+! use mod_IO 
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
-type(IO_T)                      :: Message 
+! type(IO_T)                      :: Message 
 
-real(kind=dbl)                  :: t 
-integer(kind=irg)               :: idx
+! real(kind=dbl)                  :: t 
+! integer(kind=irg)               :: idx
 
-! determine sector
-t = abs(n(1) / n(0))      ! |tan(theta)|
-! 0, 1, or 2 for first, second, or third sector, initialize with easy cases
-idx = 0
-if (n(1).lt.0D0) idx = 2
-if( (n(0).lt.0.D0).and.(t.le.sqrt(3.D0)) ) idx = 1    ! check for second sector
+! ! determine sector
+! t = abs(n(1) / n(0))      ! |tan(theta)|
+! ! 0, 1, or 2 for first, second, or third sector, initialize with easy cases
+! idx = 0
+! if (n(1).lt.0D0) idx = 2
+! if( (n(0).lt.0.D0).and.(t.le.sqrt(3.D0)) ) idx = 1    ! check for second sector
 
-! apply rotation
-select case(idx) 
-  case(0)     ! in first sector, we're done
-    res = .TRUE.
-  case(1)     ! in second sector, rotate -120 @ z
-    n = rot2d(n, -0.50, -sqrt(0.75D0)) 
-    res = .FALSE. 
-  case(2)     ! in third sector, rotate 120 @ z
-    n = rot2d(n, -0.50,  sqrt(0.75D0)) 
-    res = .FALSE. 
-  case default 
-    call Message%printError('_3','unhandled 3 fold case')
-end select
+! ! apply rotation
+! select case(idx) 
+!   case(0)     ! in first sector, we're done
+!     res = .TRUE.
+!   case(1)     ! in second sector, rotate -120 @ z
+!     n = rot2d(n, -0.50, -sqrt(0.75D0)) 
+!     res = .FALSE. 
+!   case(2)     ! in third sector, rotate 120 @ z
+!     n = rot2d(n, -0.50,  sqrt(0.75D0)) 
+!     res = .FALSE. 
+!   case default 
+!     call Message%printError('_3','unhandled 3 fold case')
+! end select
 
-end function _3
+! end function _3
 
-!-----------------------------------------------
-recursive function _3r  (n)  result(res)   ! 3 rotated 30 degrees (use for other sectors)
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 3 fundamental sector rotated 30 degrees about z
-!! n : unit direction to reduce [in place]
-!! return  : true/false if n was/wasn't already in the fundamental sector
+! !-----------------------------------------------
+! recursive function _3r  (n)  result(res)   ! 3 rotated 30 degrees (use for other sectors)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 3 fundamental sector rotated 30 degrees about z
+! !! n : unit direction to reduce [in place]
+! !! return  : true/false if n was/wasn't already in the fundamental sector
 
-use mod_IO 
+! use mod_IO 
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
-type(IO_T)                      :: Message 
+! type(IO_T)                      :: Message 
 
-real(kind=dbl)                  :: t, eps = 1.D-12 
-integer(kind=irg)               :: idx
+! real(kind=dbl)                  :: t, eps = 1.D-12 
+! integer(kind=irg)               :: idx
 
-! determine sector
-t = abs(n(1) / maxval( (/ abs(n(0)), eps /) )      ! |tan(theta)|
-! 0, 1, or 2 for first, second, or third sector, initialize with easy cases
-idx = 2
-if (n(0).lt.0D0) idx = 1
-if( (n(1).lt.0.D0).and.(t.ge.1.D0/sqrt(3.D0)) ) idx = 0    ! check for first sector
+! ! determine sector
+! t = abs(n(1) / maxval( (/ abs(n(0)), eps /) )      ! |tan(theta)|
+! ! 0, 1, or 2 for first, second, or third sector, initialize with easy cases
+! idx = 2
+! if (n(0).lt.0D0) idx = 1
+! if( (n(1).lt.0.D0).and.(t.ge.1.D0/sqrt(3.D0)) ) idx = 0    ! check for first sector
 
-! apply rotation
-select case(idx) 
-  case(0)     ! in first sector, we're done
-    res = .TRUE.
-  case(1)     ! in second sector, rotate -120 @ z
-    n = rot2d(n, -0.50, -sqrt(0.75D0)) 
-    res = .FALSE. 
-  case(2)     ! in third sector, rotate 120 @ z
-    n = rot2d(n, -0.50,  sqrt(0.75D0)) 
-    res = .FALSE. 
-  case default 
-    call Message%printError('_3r','unhandled 3 fold case')
-end select
+! ! apply rotation
+! select case(idx) 
+!   case(0)     ! in first sector, we're done
+!     res = .TRUE.
+!   case(1)     ! in second sector, rotate -120 @ z
+!     n = rot2d(n, -0.50, -sqrt(0.75D0)) 
+!     res = .FALSE. 
+!   case(2)     ! in third sector, rotate 120 @ z
+!     n = rot2d(n, -0.50,  sqrt(0.75D0)) 
+!     res = .FALSE. 
+!   case default 
+!     call Message%printError('_3r','unhandled 3 fold case')
+! end select
 
-end function _3r
+! end function _3r
 
-!-----------------------------------------------
-recursive function _31m (n)  result(res)   ! 31m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 31m fundamental sector
-!! n : unit direction to reduce [in place]
-!! return  : true/false if n was/wasn't already in the fundamental sector
+! !-----------------------------------------------
+! recursive function _31m (n)  result(res)   ! 31m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 31m fundamental sector
+! !! n : unit direction to reduce [in place]
+! !! return  : true/false if n was/wasn't already in the fundamental sector
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
-real(kind=dbl)                  :: t, eps = 1.D-12 
+! real(kind=dbl)                  :: t, eps = 1.D-12 
 
-res = _3(n)       ! first reduce to 3 fold fz
-t = n(1) / n(0)
-! check if we're above 60 degrees (< eps instead of signbit to handle divide by 0)
-if ( (n(1).lt.eps) .or. (.not( (0.D0.le.t).and.(t.le.sqrt(3.D0))) ) ) then 
-  n = mir2d(n, 0.5D0, sqrt(0.75D0))
-  res = .FALSE.
-end if 
+! res = _3(n)       ! first reduce to 3 fold fz
+! t = n(1) / n(0)
+! ! check if we're above 60 degrees (< eps instead of signbit to handle divide by 0)
+! if ( (n(1).lt.eps) .or. (.not( (0.D0.le.t).and.(t.le.sqrt(3.D0))) ) ) then 
+!   n = mir2d(n, 0.5D0, sqrt(0.75D0))
+!   res = .FALSE.
+! end if 
 
-end function _31m
+! end function _31m
 
-!-----------------------------------------------
-recursive function _6   (n)  result(res)   ! 6
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
-!! reduce a direction to the 6 fundamental sector
-!! n : unit direction to reduce [in place]
-!! return  : true/false if n was/wasn't already in the fundamental sector
+! !-----------------------------------------------
+! recursive function _6   (n)  result(res)   ! 6
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
+! !! reduce a direction to the 6 fundamental sector
+! !! n : unit direction to reduce [in place]
+! !! return  : true/false if n was/wasn't already in the fundamental sector
 
-use mod_IO
+! use mod_IO
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
-type(IO_T)                      :: Message 
+! type(IO_T)                      :: Message 
 
-real(kind=dbl)                  :: t, eps = 1.D-12
-integer(kind=irg)               :: idx 
+! real(kind=dbl)                  :: t, eps = 1.D-12
+! integer(kind=irg)               :: idx 
 
-res = _112(n)       ! first bring to +y hemisphere
+! res = _112(n)       ! first bring to +y hemisphere
 
-! determine sector
-t = abs(n(1)) / maxval( (/ abs(n(0)), eps /) ) ! |tan(theta)| if in +y hemisphere
-idx = 0
-if (n(0).lt.0.D0) idx = 2 
-if(t.gt.sqrt(3.D0)) idx = 1                    ! check for second sector
+! ! determine sector
+! t = abs(n(1)) / maxval( (/ abs(n(0)), eps /) ) ! |tan(theta)| if in +y hemisphere
+! idx = 0
+! if (n(0).lt.0.D0) idx = 2 
+! if(t.gt.sqrt(3.D0)) idx = 1                    ! check for second sector
 
-! apply rotation
-select case(idx) 
-  case(0)     ! in first sector, we're done
-    res = .TRUE.
-  case(1)     ! in second sector, rotate -120 @ z
-    n = rot2d(n,  0.50, -sqrt(0.75D0)) 
-    res = .FALSE. 
-  case(2)     ! in third sector, rotate 120 @ z
-    n = rot2d(n, -0.50, -sqrt(0.75D0)) 
-    res = .FALSE. 
-  case default 
-    call Message%printError('_6','unhandled 6 fold case')
-end select
+! ! apply rotation
+! select case(idx) 
+!   case(0)     ! in first sector, we're done
+!     res = .TRUE.
+!   case(1)     ! in second sector, rotate -120 @ z
+!     n = rot2d(n,  0.50, -sqrt(0.75D0)) 
+!     res = .FALSE. 
+!   case(2)     ! in third sector, rotate 120 @ z
+!     n = rot2d(n, -0.50, -sqrt(0.75D0)) 
+!     res = .FALSE. 
+!   case default 
+!     call Message%printError('_6','unhandled 6 fold case')
+! end select
   
-end function _6
+! end function _6
 
-HERE
+! HERE
 
 
-!-----------------------------------------------
-recursive function _12m1(n)  result(res)   ! 12/m1
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _12m1(n)  result(res)   ! 12/m1
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _12m1
+! end function _12m1
 
-!-----------------------------------------------
-recursive function _112m(n)  result(res)   ! 112/m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _112m(n)  result(res)   ! 112/m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _112m
+! end function _112m
 
-!-----------------------------------------------
-recursive function _222 (n)  result(res)   ! 222
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _222 (n)  result(res)   ! 222
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _222
+! end function _222
 
 
 
-!-----------------------------------------------
-recursive function mm2  (n)  result(res)   ! mm2
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function mm2  (n)  result(res)   ! mm2
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function mm2
+! end function mm2
 
 
 
-!-----------------------------------------------
-recursive function mmm  (n)  result(res)   ! mmm
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function mmm  (n)  result(res)   ! mmm
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function mmm
+! end function mmm
 
-!-----------------------------------------------
-recursive function mmmr (n)  result(res)   ! mmmr
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function mmmr (n)  result(res)   ! mmmr
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function mmmr
+! end function mmmr
 
 
 
-!-----------------------------------------------
-recursive function _4m  (n)  result(res)   ! 4/m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _4m  (n)  result(res)   ! 4/m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _4m
+! end function _4m
 
-!-----------------------------------------------
-recursive function _422 (n)  result(res)   ! 422
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _422 (n)  result(res)   ! 422
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _422
+! end function _422
 
 
 
-!-----------------------------------------------
-recursive function b42m (n)  result(res)   ! -42m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b42m (n)  result(res)   ! -42m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b42m
+! end function b42m
 
-!-----------------------------------------------
-recursive function b4m2 (n)  result(res)   ! -4m2
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b4m2 (n)  result(res)   ! -4m2
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b4m2
+! end function b4m2
 
-!-----------------------------------------------
-recursive function _4mmm(n)  result(res)   ! 4/mmm
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _4mmm(n)  result(res)   ! 4/mmm
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _4mm
+! end function _4mm
 
-!-----------------------------------------------
-recursive function _3   (n)  result(res)   ! 3
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _3   (n)  result(res)   ! 3
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _3
+! end function _3
 
-!-----------------------------------------------
-recursive function _3r  (n)  result(res)   ! 3 rotated 30 degrees (use for other sectors)
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _3r  (n)  result(res)   ! 3 rotated 30 degrees (use for other sectors)
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _3r
+! end function _3r
 
-!-----------------------------------------------
-recursive function b3   (n)  result(res)   ! -3
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b3   (n)  result(res)   ! -3
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b3
+! end function b3
 
-!-----------------------------------------------
-recursive function _321 (n)  result(res)   ! 321
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _321 (n)  result(res)   ! 321
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _321
+! end function _321
 
-!-----------------------------------------------
-recursive function _312 (n)  result(res)   ! 312
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _312 (n)  result(res)   ! 312
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _312
+! end function _312
 
-!-----------------------------------------------
-recursive function _3m1 (n)  result(res)   ! 3m1
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _3m1 (n)  result(res)   ! 3m1
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _3m1
+! end function _3m1
 
-!-----------------------------------------------
-recursive function _31m (n)  result(res)   ! 31m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _31m (n)  result(res)   ! 31m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _31m
+! end function _31m
 
-!-----------------------------------------------
-recursive function b3m1 (n)  result(res)   ! -3m1
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b3m1 (n)  result(res)   ! -3m1
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b3m1
+! end function b3m1
 
-!-----------------------------------------------
-recursive function b31m (n)  result(res)   ! -31m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b31m (n)  result(res)   ! -31m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b31m
+! end function b31m
 
 
 
-!-----------------------------------------------
-recursive function b6   (n)  result(res)   ! -6
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b6   (n)  result(res)   ! -6
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b6
+! end function b6
 
-!-----------------------------------------------
-recursive function _6m  (n)  result(res)   ! 6/m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _6m  (n)  result(res)   ! 6/m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _6m
+! end function _6m
 
-!-----------------------------------------------
-recursive function _622 (n)  result(res)   ! 622
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _622 (n)  result(res)   ! 622
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _622
+! end function _622
 
-!-----------------------------------------------
-recursive function _6mm (n)  result(res)   ! 6mm
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _6mm (n)  result(res)   ! 6mm
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _6mm
+! end function _6mm
 
-!-----------------------------------------------
-recursive function b6m2 (n)  result(res)   ! -6m2
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b6m2 (n)  result(res)   ! -6m2
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b6m2
+! end function b6m2
 
-!-----------------------------------------------
-recursive function b62m (n)  result(res)   ! -62m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b62m (n)  result(res)   ! -62m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b62m
+! end function b62m
 
-!-----------------------------------------------
-recursive function _6mmm(n)  result(res)   ! 6/mmm
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _6mmm(n)  result(res)   ! 6/mmm
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _6mmm
+! end function _6mmm
 
-!-----------------------------------------------
-recursive function _23  (n)  result(res)   ! 23
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _23  (n)  result(res)   ! 23
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _23
+! end function _23
 
-!-----------------------------------------------
-recursive function mb3  (n)  result(res)   ! m3
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function mb3  (n)  result(res)   ! m3
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function mb3
+! end function mb3
 
-!-----------------------------------------------
-recursive function _432 (n)  result(res)   ! 432
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function _432 (n)  result(res)   ! 432
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function _432
+! end function _432
 
-!-----------------------------------------------
-recursive function b43m (n)  result(res)   ! -43m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function b43m (n)  result(res)   ! -43m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function b43m
+! end function b43m
 
-!-----------------------------------------------
-recursive function mb3m (n)  result(res)   ! m3m
-!! author: MDG 
-!! version: 1.0 
-!! date: 10/01/21
-!!
+! !-----------------------------------------------
+! recursive function mb3m (n)  result(res)   ! m3m
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 10/01/21
+! !!
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-real(kind=dbl),INTENT(INOUT)    :: n(0:2)
-logical                         :: res 
+! real(kind=dbl),INTENT(INOUT)    :: n(0:2)
+! logical                         :: res 
 
 
-end function mb3m
+! end function mb3m
 
 
 
@@ -2030,6 +2030,7 @@ if ( (trim(self%ipf_mode).ne.'Euler')  ) then
           chiMin=0.D0
           chiMax=90.D0
           inside = in_generic_unit_triangle( etaDeg, chiDeg, etaMin, etaMax, chiMin, chiMax )
+          inside = .TRUE.
       case(3,4)     ! orthorhombic, tetragonal-low
           etaMin=0.D0
           etaMax=90.D0

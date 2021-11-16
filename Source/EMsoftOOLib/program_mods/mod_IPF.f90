@@ -494,14 +494,7 @@ call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 
 DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(csnl%dotproductfile)
 
-! the readDotProductFile method does not yet read the namelist parameters so we set them here
-dinl%ipf_wd = 1764
-dinl%ipf_ht = 1305
-
-! dinl%ipf_wd = 186
-! dinl%ipf_ht = 151
 DIDT%Nexp = dinl%ipf_wd*dinl%ipf_ht
-
 
 call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
                              getRefinedEulerAngles=.TRUE., &

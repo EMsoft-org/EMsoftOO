@@ -45,6 +45,7 @@ use mod_EMsoft
 use mod_DI
 use mod_HDFsupport
 use ISO_C_BINDING
+use mod_FitOrientation
 
 IMPLICIT NONE
 
@@ -54,6 +55,8 @@ character(fnlen)        :: progdesc = 'Indexing of EBSD/ECP/TKD patterns using a
 type(EMsoft_T)          :: EMsoft
 character(kind=c_char)  :: Cprogname(fnlen)
 character(kind=c_char)  :: Cnmldeffile(fnlen)
+type(DIfile_T)          :: DIFT
+type(FitOrientation_T)  :: FitOr
 
 progname = 'EMDI.f90'
 
@@ -64,5 +67,21 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /) )
 Cnmldeffile = carstringify(EMsoft%nmldeffile)
 Cprogname = carstringify(progname)
 call DIdriver(Cnmldeffile, Cprogname, C_NULL_FUNPTR, C_NULL_FUNPTR, C_NULL_FUNPTR, 0_c_size_t)
+
+! next, get the nml file to see if we also need to start up the refinement
+DIFT = DIfile_T(EMsoft%nmldeffile)
+
+if (DIFT%getrefinementfilename().ne.'undefined') then 
+    progname = 'EMFitOrientation.f90'
+    progdesc = 'Refine orientations by searching orientation space about a point including the pseudosymmetric variant(s)'
+    call EMsoft%printEMsoftHeader(progname, progdesc)
+
+! deal with the namelist stuff
+    call EMsoft%setnmldeffile(trim(DIFT%getrefinementfilename()))
+    FitOr = FitOrientation_T(EMsoft%nmldeffile)
+
+! perform the computations
+    call FitOr%FitOrientation(EMsoft, progname)
+end if 
 
 end program EMDI

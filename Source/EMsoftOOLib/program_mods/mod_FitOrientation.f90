@@ -1054,7 +1054,7 @@ call setRotationPrecision('d')
 call OMP_showAvailableThreads()
 
 associate(ronl=>self%nml, dinl=>DIFT%nml, DIDT=>DIFT%DIDT, MCDT=>MCFT%MCDT, &
-          MPDT=>MPFT%MPDT, det=>EBSD%det, mydet=> myEBSD%det, enl=>EBSD%nml, myenl=>myEBSD%nml, ecpnl=>ECP%nml)
+          MPDT=>MPFT%MPDT, det=>EBSD%det, mydet=> myEBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml)
 
 init = .TRUE.
 overwrite = .TRUE.
@@ -1678,7 +1678,7 @@ if (ronl%method.eq.'FIT') then
         deallocate(tmpimageexpt)
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex) &
-!$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,kk,ll,mm, mydet, myenl) &
+!$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,kk,ll,mm, myEBSD) &
 !$OMP& PRIVATE(X,INITMEANVAL,XL,XU,STEPSIZE,dpPS,eulerPS,rfz,euinp,pos, q, qu, qq2, qq, eu, ho, mystat)
 
           allocate(X(N),XL(N),XU(N),INITMEANVAL(N),STEPSIZE(N))
@@ -1780,14 +1780,15 @@ if (ronl%method.eq.'FIT') then
                         samplex = mod(eindex-1, dinl%ipf_wd)+1
                         sampley = (eindex-1)/dinl%ipf_wd+1
                       end if 
-                      myenl = enl 
+                      myEBSD%nml = enl 
                       dx = DPCX(samplex)
                       dy = DPCY(sampley)
-                      myenl%xpc = enl%xpc - dx
-                      myenl%ypc = enl%ypc - dy
-                      myenl%L = enl%L - DPCL(sampley)
-                      call  EBSD%GeneratemyEBSDDetector(MCFT, dinl%numsx, dinl%numsy, MCDT%numEbins, mydet%rgx, &
-                      mydet%rgy, mydet%rgz, mydet%accum_e_detector, (/ myenl%xpc, myenl%ypc, myenl%L /))
+                      myEBSD%nml%xpc = enl%xpc - dx
+                      myEBSD%nml%ypc = enl%ypc - dy
+                      myEBSD%nml%L = enl%L - DPCL(sampley)
+                      call  EBSD%GeneratemyEBSDDetector(MCFT, dinl%numsx, dinl%numsy, MCDT%numEbins, myEBSD%det%rgx, &
+                      myEBSD%det%rgy, myEBSD%det%rgz, myEBSD%det%accum_e_detector, &
+                      (/ myEBSD%nml%xpc, myEBSD%nml%ypc, myEBSD%nml%L /))
                       
                       ! first undo the pattern center shift by an equivalent rotation (see J. Appl. Cryst. (2017). 50, 1664–1676, eq.15)
                       if ((dx.ne.0.0).or.(dy.ne.0.0)) then 
@@ -1795,7 +1796,7 @@ if (ronl%method.eq.'FIT') then
                         myqu = myeu%eq()
                         rho = dx**2+dy**2
                         nn = -(/dx*ca,-dy,-dx*sa/)/sqrt(rho)
-                        omega = acos(enl%L/sqrt(enl%L**2 + dinl%delta**2 * rho))
+                        omega = acos(myEBSD%nml%L/sqrt(myEBSD%nml%L**2 + dinl%delta**2 * rho))
                         qqq = Quaternion_T( qd = dble((/ cos(omega*0.5), sin(omega*0.5) * nn, 0.0, 0.0 /)) ) 
                         myquat = Quaternion_T(qd = myqu%q_copyd())
 
@@ -1811,31 +1812,31 @@ if (ronl%method.eq.'FIT') then
                       end if 
 
                       ! refine the orientation using the new detector array and initial orientation 
-                                            INITMEANVAL(1:3) = ho%h_copyd()
-                                            X = 0.5D0
-                                            call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
-                                                      XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, &
-                                                      mydet%accum_e_detector,MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, &
-                                                      mydet%rgx, mydet%rgy, mydet%rgz, STEPSIZE, DIFT%nml%gammavalue, &
-                                                      verbose)
-                                            ho = h_T( hdinp = dble(X*2.0*STEPSIZE - STEPSIZE + INITMEANVAL) )
-                                            eu = ho%he()
-                                            eulerPS(1:3,kk,ll) = eu%e_copyd()
-                                            call EMFitOrientationcalfunEBSD(IPAR2, INITMEANVAL, tmpimageexpt, &
-                                                 mydet%accum_e_detector, MPDT%mLPNH, MPDT%mLPSH, N, X, F, mask, &
-                                                 prefactor, mydet%rgx, mydet%rgy, mydet%rgz, STEPSIZE, &
-                                                 DIFT%nml%gammavalue, verbose)
+                      INITMEANVAL(1:3) = ho%h_copyd()
+                      X = 0.5D0
+                      call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
+                                XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, &
+                                myEBSD%det%accum_e_detector,MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, &
+                                myEBSD%det%rgx, myEBSD%det%rgy, myEBSD%det%rgz, STEPSIZE, DIFT%nml%gammavalue, &
+                                verbose)
+                      ho = h_T( hdinp = dble(X*2.0*STEPSIZE - STEPSIZE + INITMEANVAL) )
+                      eu = ho%he()
+                      eulerPS(1:3,kk,ll) = eu%e_copyd()
+                      call EMFitOrientationcalfunEBSD(IPAR2, INITMEANVAL, tmpimageexpt, &
+                           myEBSD%det%accum_e_detector, MPDT%mLPNH, MPDT%mLPSH, N, X, F, mask, &
+                           prefactor, myEBSD%det%rgx, myEBSD%det%rgy, myEBSD%det%rgz, STEPSIZE, &
+                           DIFT%nml%gammavalue, verbose)
 
-                                            dpPS(kk,ll) = 1.D0 - F
-                      
+                      dpPS(kk,ll) = 1.D0 - F
+              
                       ! and return this orientation to the RFZ
-                                            euinp(1:3) = eulerPS(1:3,kk,ll)
-                                            euinp2 = e_T( edinp = euinp(1:3) )
-                                            q = euinp2%eq() ! RFZ reduction requires q_T class
-                                            call SO%ReduceOrientationtoRFZ(q, qAR, rfz)
-                                            ho = rfz%rh()
-                                            eu = ho%he()
-                                            eulerPS(1:3,kk,ll) = sngl(eu%e_copyd())
+                      euinp(1:3) = eulerPS(1:3,kk,ll)
+                      euinp2 = e_T( edinp = euinp(1:3) )
+                      q = euinp2%eq() ! RFZ reduction requires q_T class
+                      call SO%ReduceOrientationtoRFZ(q, qAR, rfz)
+                      ho = rfz%rh()
+                      eu = ho%he()
+                      eulerPS(1:3,kk,ll) = sngl(eu%e_copyd())
                     end if 
                       
                 end do
@@ -1866,8 +1867,8 @@ if (ronl%method.eq.'FIT') then
         deallocate(tmpimageexpt,binned,EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt)    
         deallocate(X,XL,XU,INITMEANVAL,STEPSIZE, eulerPS, dpPS)
         if (trim(ronl%PCcorrection).eq.'on') then
-          deallocate(mydet%rgx, mydet%rgy)
-          deallocate(mydet%rgz, mydet%accum_e_detector)
+          deallocate(myEBSD%det%rgx, myEBSD%det%rgy)
+          deallocate(myEBSD%det%rgz, myEBSD%det%accum_e_detector)
         end if
 
     !$OMP BARRIER    

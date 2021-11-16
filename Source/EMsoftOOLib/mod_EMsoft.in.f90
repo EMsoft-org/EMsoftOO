@@ -174,7 +174,6 @@ private
 
 ! private methods
       procedure, pass(self) :: init
-      procedure, pass(self) :: printEMsoftHeader
       procedure, pass(self) :: getEMsoftpathname
       procedure, pass(self) :: getXtalpathname
       procedure, pass(self) :: getEMdatapathname
@@ -222,6 +221,10 @@ private
 ! public methods
 ! [there aren't many... just one to set each parameter, and one to get each parameter;
 !  in addition there is one to init the EMsoft configuration file (used by the EMsoftinit program) ]
+      procedure, pass(self), public :: setnmldeffile
+
+      procedure, pass(self), public :: printEMsoftHeader
+
       procedure, pass(self), public :: getConfigParameter
 
       procedure, pass(self), public :: setConfigParameter
@@ -1537,6 +1540,24 @@ if (trim(envReturn).ne.'') then
 end if
 
 end subroutine getEMsoftAllocatetest
+
+!--------------------------------------------------------------------------
+subroutine setnmldeffile(self, nmlfile)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnmldeffile
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/07/21
+  !!
+  !! sets the nmldeffile parameter 
+
+IMPLICIT NONE
+
+class(EMsoft_T),intent(inout)  :: self
+character(*),intent(in)        :: nmlfile
+
+self%nmldeffile = trim(nmlfile)
+
+end subroutine setnmldeffile
 
 !--------------------------------------------------------------------------
 function getJSONparameter(self, ep, nobackslash) result(param)

@@ -62,6 +62,8 @@ type, public :: DictionaryIndexingNameListType
   integer(kind=irg)  :: maskradius
   integer(kind=irg)  :: numsx
   integer(kind=irg)  :: numsy
+  integer(kind=irg)  :: exptnumsx
+  integer(kind=irg)  :: exptnumsy
   integer(kind=irg)  :: binning
   integer(kind=irg)  :: nthreads
   integer(kind=irg)  :: devid
@@ -92,7 +94,9 @@ type, public :: DictionaryIndexingNameListType
   character(1)       :: maskpattern
   character(3)       :: scalingmode
   character(3)       :: Notify
+  character(3)       :: similaritymetric
   character(1)       :: keeptmpfile
+  character(1)       :: usetmpfile
   character(fnlen)   :: exptfile
   character(fnlen)   :: masterfile
   character(fnlen)   :: energyfile
@@ -168,6 +172,7 @@ private
 contains
 private
 
+  procedure, pass(self) :: getrefinementfilename_
   procedure, pass(self) :: getfilename_
   procedure, pass(self) :: setfilename_
   procedure, pass(self) :: getModality_
@@ -182,6 +187,7 @@ private
 
   generic, public :: getNameList => getNameList_
   generic, public :: readNameList => readNameList_
+  generic, public :: getrefinementfilename => getrefinementfilename_
   generic, public :: getfilename => getfilename_
   generic, public :: setfilename => setfilename_
   generic, public :: getModality => getModality_
@@ -245,6 +251,24 @@ type(DIfile_T), INTENT(INOUT)  :: self
 call reportDestructor('DIfile_T')
 
 end subroutine DIfile_destructor
+
+!--------------------------------------------------------------------------
+function getrefinementfilename_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getrefinementfilename_
+!! author: MDG
+!! version: 1.0
+!! date: 11/07/21
+!!
+!! get refinement filename from the DIfile_T class
+
+IMPLICIT NONE
+
+class(DIfile_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%refinementNMLfile)
+
+end function getrefinementfilename_
 
 !--------------------------------------------------------------------------
 function getfilename_(self) result(out)
@@ -414,6 +438,8 @@ logical                             :: skipread = .FALSE.
 
 integer(kind=irg)  :: numsx
 integer(kind=irg)  :: numsy
+integer(kind=irg)  :: exptnumsx
+integer(kind=irg)  :: exptnumsy
 integer(kind=irg)  :: ROI(4)
 integer(kind=irg)  :: binning
 integer(kind=irg)  :: devid
@@ -453,8 +479,10 @@ real(kind=sgl)     :: lambda
 logical            :: doNLPAR
 character(1)       :: maskpattern
 character(1)       :: keeptmpfile
+character(1)       :: usetmpfile
 character(3)       :: scalingmode
 character(3)       :: Notify
+character(3)       :: similaritymetric
 character(fnlen)   :: dotproductfile
 character(fnlen)   :: masterfile
 character(fnlen)   :: tmpfile
@@ -487,7 +515,8 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
-                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda
+                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
+                     exptnumsx, exptnumsy, usetmpfile
 
 namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
                      beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
@@ -514,6 +543,8 @@ nism            = 5
 exptfile        = 'undefined'
 numsx           = 0             ! [dimensionless]
 numsy           = 0             ! [dimensionless]
+exptnumsx       = 0             ! [dimensionless]
+exptnumsy       = 0             ! [dimensionless]
 ROI             = (/ 0, 0, 0, 0 /)  ! Region of interest (/ x0, y0, w, h /)
 maskradius      = 240
 binning         = 1             ! binning mode  (1, 2, 4, or 8)
@@ -533,6 +564,7 @@ stepY           = 1.0           ! sampling step size along Y
 lambda          = 0.375
 doNLPAR         = .FALSE.
 keeptmpfile     = 'n'
+usetmpfile      = 'n'
 maskpattern     = 'n'           ! 'y' or 'n' to include a circular mask
 Notify          = 'Off'
 scalingmode     = 'not'         ! intensity selector ('lin', 'gam', or 'not')
@@ -554,6 +586,7 @@ dictfile        = 'undefined'
 maskfile        = 'undefined'
 refinementNMLfile = 'undefined'
 indexingmode    = 'dynamic'
+similaritymetric= 'ndp'
 inputtype       = 'Binary'    ! Binary, EMEBSD, TSLHDF, TSLup2, OxfordHDF, OxfordBinary, BrukerHDF
 HDFstrings      = ''
 DIModality      = 'EBSD'      ! EBSD, TKD, ECP, ...
@@ -615,6 +648,7 @@ self%nml%nregions      = nregions
 self%nml%nlines        = nlines
 self%nml%maskpattern   = maskpattern
 self%nml%keeptmpfile   = keeptmpfile
+self%nml%usetmpfile    = usetmpfile
 self%nml%exptfile      = trim(exptfile)
 self%nml%nnk           = nnk
 self%nml%nnav          = nnav
@@ -643,12 +677,15 @@ self%nml%maskfile      = trim(maskfile)
 self%nml%StepX         = stepX
 self%nml%StepY         = stepY
 self%nml%indexingmode  = trim(indexingmode)
+self%nml%similaritymetric = similaritymetric
 self%nml%Notify        = Notify
 self%nml%inputtype     = inputtype
 self%nml%HDFstrings    = HDFstrings
 self%nml%L             = L
 self%nml%numsx         = numsx
 self%nml%numsy         = numsy
+self%nml%exptnumsx     = exptnumsx
+self%nml%exptnumsy     = exptnumsy
 self%nml%ROI           = ROI
 self%nml%binning       = binning
 self%nml%thetac        = thetac
@@ -1018,11 +1055,11 @@ dataset = SC_DIModality
     ! end select
   end if 
 
-! ! make sure this is an EBSD dot product file
-! hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+! make sure this is an EBSD dot product file
+hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 
-! dataset = trim(HDFnames%get_NMLfilename())
-!   call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+dataset = trim(HDFnames%get_NMLfilename())
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
 
 ! dataset = SC_IndexEBSD
 !   call H5Lexists_f(HDF%getObjectID(),trim(dataset),h_exists, hdferr)
@@ -1039,7 +1076,7 @@ dataset = SC_DIModality
 !     call Message%printMessage(' --> EBSD spherical indexing file found')
 !   end if
 
-! call HDF%pop()
+call HDF%pop()
 
 ! set this value to -1 initially to trigger steps in the calling routine
 
@@ -1057,7 +1094,8 @@ if (g_exists.eqv..TRUE.) then
     sz = shape(stringarray)
     tmpnmlname = trim(EMsoft%generateFilePath('EMtmppathname'))//'tmp.nml'
     open(unit=65,file=trim(tmpnmlname),status='unknown',form='formatted')
-    do i=1,sz(1)
+    write (65,"(A)") '&DIdata'
+    do i=2,sz(1)
       write (65,"(A)") trim(stringarray(i))
     end do
     close(unit=65,status='keep')
