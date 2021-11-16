@@ -34,7 +34,7 @@ module mod_colorspace
   !! class definition for colorspace conversions
   !!
   !! This module is a direct fortran translation of Will Lenthe's colorspace.hpp
-  !! <https://github.com/wlenthe/UniformBicone>
+  !! <https:! github.com/wlenthe/UniformBicone>
   !!
   !! rgb, hsv, and hsl are restricted to the range (0,1) with values outside representing imaginary colors
   !! the range (0,1) is used for hue in hsv/hsl (not (0,2*pi) or (0,360))
@@ -53,8 +53,6 @@ module mod_colorspace
   !! ill: standard illuminant as xyz (only required for conversions involving xyz<->luv or xyz<->lab, defaults to CIE illuminant D65 for 2 degree observer)
   !! : true/false if the values fall outside the ijk gamut for conversions to that pass through xyz2rgb (void for others)
   !!
-  !! tested using the colortest.f90 program; will become part of ctest.
-
 
 use mod_kinds
 use mod_global
@@ -71,6 +69,44 @@ type colorspacetype
   real(kind=dbl) :: hsl(3) ! {h , s , l }: hue, saturation, lightness (cylindrical)
 end type colorspacetype
 
+! spline control points for 4- and 6-fold perceptually uniform color spaces
+real(kind=dbl)   :: P4(3,15) = reshape( (/ 50.000000D0,  20.260871D0, -61.121717D0, &
+                                           40.000000D0,  55.743174D0, -72.075429D0, &
+                                           50.000000D0,  66.074726D0, -25.689258D0, &
+                                           60.000000D0,  76.406278D0,  20.696912D0, &
+                                           70.000000D0,  86.737831D0,  67.083083D0, &
+                                           60.000000D0,  45.201449D0,  61.044479D0, &
+                                           50.000000D0,  3.6650678D0,  55.005876D0, &
+                                           40.000000D0, -37.871314D0,  48.967272D0, &
+                                           50.000000D0, -42.148787D0,  19.573417D0, &
+                                           60.000000D0, -46.426261D0, -9.8204386D0, &
+                                           70.000000D0, -50.703734D0, -39.214294D0, &
+                                           60.000000D0, -15.221432D0, -50.168006D0, &
+                                           50.000000D0,  20.260871D0, -61.121717D0, &
+                                           40.000000D0,  55.743174D0, -72.075429D0, &
+                                           50.000000D0,  66.074726D0, -25.689258D0/), (/ 3, 15 /) )
+
+real(kind=dbl)   :: P6(3,21) = reshape( (/ 50.000000D0,  110.55193D0,  -1.8333167D0, &
+                                           40.000000d0,  131.49157d0,   28.367970d0, &
+                                           50.000000d0,  96.706947d0,   43.686247d0, &
+                                           60.000000d0,  61.922323d0,   59.004523d0, &
+                                           70.000000d0,  27.137700d0,   74.322800d0, &
+                                           60.000000d0,  5.4672700d0,   65.871937d0, &
+                                           50.000000d0, -16.203160d0,   57.421073d0, &
+                                           40.000000d0, -37.873590d0,   48.970210d0, &
+                                           50.000000d0, -43.154747d0,   27.643087d0, &
+                                           60.000000d0, -48.435903d0,   6.3159633d0, &
+                                           70.000000d0, -53.717060d0,  -15.011160d0, &
+                                           60.000000d0, -40.878273d0,  -54.308313d0, &
+                                           50.000000d0, -28.039487d0,  -93.605467d0, &
+                                           40.000000d0, -15.200700d0,  -132.90262d0, &
+                                           50.000000d0,  12.757087d0,  -109.34704d0, &
+                                           60.000000d0,  40.714873d0,  -85.791467d0, &
+                                           70.000000d0,  68.672660d0,  -62.235890d0, &
+                                           60.000000d0,  89.612297d0,  -32.034603d0, &
+                                           50.000000d0,  110.55193d0,  -1.8333167d0, &
+                                           40.000000d0,  131.49157d0,   28.367970d0, &
+                                           50.000000d0,  96.706947d0,   43.686247d0/), (/ 3, 21 /) )
 
 ! constants for standard illuminants and common rgb gamuts
 type colorstandardstype 
@@ -117,20 +153,19 @@ type colorstandardstype
     real(kind=dbl) :: sPhi   = 12.92D0  
     real(kind=dbl) :: sK0    = 0.04045D0
 
-
-! TO BE CONVERTED !!!
-! //sRGB conversion matrices
+! sRGB conversion matrices
     real(kind=dbl)           :: sRGBmat(0:2,0:2)  !  = rgbMat(Standards%sRGB, Standards<T>::D65_2)
     real(kind=dbl)           :: sRGBmatInv(0:2,0:2)  !  = inv3x3(rgbMat(Standards%sRGB, Standards<T>::D65_2))
 
 end type colorstandardstype
 
-! and declare the Standards structure 
-
 ! class definition
 type, public :: colorspace_T
 private 
   type(colorstandardstype)    :: Standards
+  real(kind=dbl),allocatable  :: P(:,:)
+  integer(kind=irg)           :: Nfold 
+  integer(kind=irg)           :: N
 
 contains
 private 
@@ -170,6 +205,9 @@ private
   procedure, pass(self) :: hsl2lab_
   procedure, pass(self) :: hsl2hsv_
 
+  procedure, pass(self) :: sph2rgb_
+  procedure, pass(self) :: sphere2rgb_
+
   generic, public :: rgb2xyz => rgb2xyz_
   generic, public :: rgb2luv => rgb2luv_
   generic, public :: rgb2lab => rgb2lab_
@@ -206,6 +244,8 @@ private
   generic, public :: hsl2lab => hsl2lab_
   generic, public :: hsl2hsv => hsl2hsv_
 
+  generic, public :: sph2rgb => sph2rgb_
+  generic, public :: sphere2rgb  => sphere2rgb_
 end type colorspace_T
 
 ! the constructor routine for this class 
@@ -216,18 +256,40 @@ end interface colorspace_T
 contains
 
 !--------------------------------------------------------------------------
-type(colorspace_T) function colorspace_constructor( ) result(colorspace)
-!DEC$ ATTRIBUTES DLLEXPORT :: colorspace_constructor
+type(colorspace_T) function colorspace_constructor( Nfold ) result(colorspace)
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/07/21
 !!
 !! constructor for the colorspace_T Class
- 
+
+use mod_IO 
+
 IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN),OPTIONAL     :: Nfold 
+
+type(IO_T)                                :: Message 
+
 
 colorspace%Standards%sRGBmat = rgbMat_(colorspace%Standards%sRGB, colorspace%Standards%D65_2)
 colorspace%Standards%sRGBmatInv = inv3x3(colorspace%Standards%sRGBmat)
+
+if (present(Nfold)) then 
+  colorspace%Nfold = Nfold 
+  select case(Nfold) 
+    case(4) 
+      allocate(colorspace%P(0:14,0:2))
+      colorspace%N = 15
+      colorspace%P = transpose(P4)
+    case(6) 
+      allocate(colorspace%P(0:20,0:2))
+      colorspace%N = 21
+      colorspace%P = transpose(P6)
+    case default
+      call Message%printError('colorspace_constructor','unknown Nfold value')
+  end select
+end if 
 
 end function colorspace_constructor
 
@@ -360,7 +422,7 @@ recursive function xyz2rgb_(self, xyz) result(rgb)
 !! convert from XYZ to sRGB
 !! xyz      : XYZ (X, Y, Z) values to convert
 !! rgb      : location to write sRGB (red, green, blue) values
-!! return   : true/false if xyz falls outside/inside the sRGB color gamut [removed on 9/8/21]
+!! return   : true/false if xyz falls outside/inside the sRGB color gamut (removed on 9/8/21)
 !!
 !! verified on 9/7/21
 
@@ -897,6 +959,11 @@ end function rgb2hsl_
 !--------------------------------------------------------------------------
 recursive function xyz2hsv_( self, xyz) result(hsv) 
 !DEC$ ATTRIBUTES DLLEXPORT :: xyz2hsv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
@@ -911,6 +978,11 @@ end function xyz2hsv_
 !--------------------------------------------------------------------------
 recursive function xyz2hsl_( self, xyz) result(hsl) 
 !DEC$ ATTRIBUTES DLLEXPORT :: xyz2hsl_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE 
 
 class(colorspace_T)                 :: self
@@ -927,6 +999,11 @@ end function xyz2hsl_
 !--------------------------------------------------------------------------
 recursive function luv2rgb_( self, luv, ill) result(rgb) 
 !DEC$ ATTRIBUTES DLLEXPORT :: luv2rgb_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -950,6 +1027,11 @@ end function luv2rgb_
 !--------------------------------------------------------------------------
 recursive function luv2hsv_( self, luv, ill) result(hsv) 
 !DEC$ ATTRIBUTES DLLEXPORT :: luv2hsv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -973,6 +1055,11 @@ end function luv2hsv_
 !--------------------------------------------------------------------------
 recursive function luv2hsl_( self, luv, ill) result(hsl) 
 !DEC$ ATTRIBUTES DLLEXPORT :: luv2hsl_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -996,6 +1083,11 @@ end function luv2hsl_
 !--------------------------------------------------------------------------
 recursive function lab2rgb_( self, lab, ill) result(rgb) 
 !DEC$ ATTRIBUTES DLLEXPORT :: lab2rgb_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1019,6 +1111,11 @@ end function lab2rgb_
 !--------------------------------------------------------------------------
 recursive function lab2hsv_( self, lab, ill) result(hsv) 
 !DEC$ ATTRIBUTES DLLEXPORT :: lab2hsv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1042,6 +1139,11 @@ end function lab2hsv_
 !--------------------------------------------------------------------------
 recursive function lab2hsl_( self, lab, ill) result(hsl) 
 !DEC$ ATTRIBUTES DLLEXPORT :: lab2hsl_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1067,6 +1169,11 @@ end function lab2hsl_
 !--------------------------------------------------------------------------
 recursive function luv2lab_( self, luv, ill) result(lab) 
 !DEC$ ATTRIBUTES DLLEXPORT :: luv2lab_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1090,6 +1197,11 @@ end function luv2lab_
 !--------------------------------------------------------------------------
 recursive function lab2luv_( self, lab, ill) result(luv) 
 !DEC$ ATTRIBUTES DLLEXPORT :: lab2luv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1115,6 +1227,11 @@ end function lab2luv_
 !--------------------------------------------------------------------------
 recursive function rgb2luv_( self, rgb, ill) result(luv) 
 !DEC$ ATTRIBUTES DLLEXPORT :: rgb2luv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1138,6 +1255,11 @@ end function rgb2luv_
 !--------------------------------------------------------------------------
 recursive function rgb2lab_( self, rgb, ill) result(lab) 
 !DEC$ ATTRIBUTES DLLEXPORT :: rgb2lab_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+ 
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1161,6 +1283,11 @@ end function rgb2lab_
 !--------------------------------------------------------------------------
 recursive function hsv2xyz_( self, hsv) result(xyz) 
 !DEC$ ATTRIBUTES DLLEXPORT :: hsv2xyz_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 class(colorspace_T)                 :: self
 real(kind=dbl),INTENT(IN)           :: hsv(0:2)
@@ -1174,6 +1301,11 @@ end function hsv2xyz_
 !--------------------------------------------------------------------------
 recursive function hsv2luv_( self, hsv, ill) result(luv) 
 !DEC$ ATTRIBUTES DLLEXPORT :: hsv2luv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1198,6 +1330,11 @@ end function hsv2luv_
 !--------------------------------------------------------------------------
 recursive function hsv2lab_( self, hsv, ill) result(lab) 
 !DEC$ ATTRIBUTES DLLEXPORT :: hsv2lab_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1222,6 +1359,11 @@ end function hsv2lab_
 !--------------------------------------------------------------------------
 recursive function hsl2xyz_( self, hsl) result(xyz) 
 !DEC$ ATTRIBUTES DLLEXPORT :: hsl2xyz_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1236,6 +1378,11 @@ end function hsl2xyz_
 !--------------------------------------------------------------------------
 recursive function hsl2luv_( self, hsl, ill) result(luv) 
 !DEC$ ATTRIBUTES DLLEXPORT :: hsl2luv_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1260,6 +1407,11 @@ end function hsl2luv_
 !--------------------------------------------------------------------------
 recursive function hsl2lab_( self, hsl, ill) result(lab) 
 !DEC$ ATTRIBUTES DLLEXPORT :: hsl2lab_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
+
 IMPLICIT NONE
 
 class(colorspace_T)                 :: self
@@ -1281,7 +1433,264 @@ lab = self%xyz2lab_(lab, illum)    ! hsl->rgb->xyz->lab
 
 end function hsl2lab_
 
+!--------------------------------------------------------------------------
+recursive function sph2rgb_( self, hsl) result(rgb) 
+!DEC$ ATTRIBUTES DLLEXPORT :: sph2rgb_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/07/21
+!!
 
+!! phenomenologically adjusted hsl2rgb (based on Will Lenthe's original code)
 
+IMPLICIT NONE
+
+class(colorspace_T)                 :: self
+real(kind=dbl),INTENT(IN)           :: hsl(0:2)
+real(kind=dbl)                      :: rgb(0:2)
+
+logical                             :: whiteCenter, half 
+real(kind=dbl)                      :: yL, yS, h3, h6, hNew, sP, th, gray, q, c, m, h, x 
+
+!  1 / ( 1 + sqrt(2*pi) * std::erf( 5 * sqrt(2) / 3 ) * 0.3 );
+real(kind=dbl), parameter           :: iDen = 0.570990316610288181236261564684297686279447800757942106831501845990856895D0
+! sqrt(pi/2) / 10
+real(kind=dbl), parameter           :: k1   = 0.125331413731550025120788264240552262650349337030496915831496178817114683D0
+!10 * sqrt(2)
+real(kind=dbl), parameter           :: k2   = 14.1421356237309504880168872420969807856967187537694807317667973799073248D0
+! 1/3
+real(kind=dbl), parameter           :: k1_3 = 0.333333333333333333333333333333333333333333333333333333333333333333333333D0
+! 1/6
+real(kind=dbl), parameter           :: k1_6 = 0.166666666666666666666666666666666666666666666666666666666666666666666667D0
+! pi/2
+real(kind=dbl), parameter           :: pi_2 = 1.57079632679489661923132169163975144209858469968755291048747229615390820D0
+
+! get lightness and saturation rescaling parameters
+whiteCenter = .FALSE.
+if (hsl(2).ge.0.5D0) whiteCenter = .TRUE.
+if (whiteCenter.eqv..TRUE.) then 
+  yL = 0.25D0 
+  yS = 0.20D0 
+else 
+  yL = 0.5D0 
+  yS = 0.5D0 
+end if 
+
+! adjust hue gradient (A.5)
+h3   = mod(hsl(0), k1_3)
+half = .FALSE. 
+if (h3.gt.k1_6) half = .TRUE. 
+if (half.eqv..TRUE.) then 
+  h6 = k1_3 - h3 
+else 
+  h6 = h3
+end if 
+hNew = (h6 + k1 * erf(k2 * h6)) * iDen
+if (half.eqv..TRUE.) then  ! save adjusted hue
+  rgb(0) = hsl(0) - h3 + k1_3 - hNew  
+else 
+  rgb(0) = hsl(0) - h3 + hNew
+end if 
+
+! adjust lightness gradient (A.9)
+sP   = sin(hsl(2) * pi_2)
+th   = yL * hsl(2) + (1.0D0 - yL) * sP * sP
+gray = 1.0D0 - 2.0D0 * yS * abs(th - 0.5D0)
+rgb(2) = (th - 0.5D0) * gray + 0.5D0  ! save adjusted lightness
+
+! adjust saturation gradient (A.10)
+q = 1.0D0 - abs( 2.0D0 * hsl(2) - 1.0D0 ) 
+if (q.eq.0.D0) then 
+  rgb(1) = 0.D0
+else 
+  rgb(1) = gray * ( 1.0D0 - abs( 2.0D0 * th - 1.0D0 ) ) / q  ! save adjusted saturation
+end if 
+
+! convert adjusted hsl to rgb
+c = (1.D0 - abs(rgb(2) * 2.D0 - 1.D0)) * rgb(1)   ! compute chroma
+m = rgb(2) - c/2.D0   ! m
+h = rgb(0) * 6.D0     ! hue (0,1) -> (0,6)
+x = c * (1.D0 - abs(mod(h, 2.D0) - 1.D0))
+
+select case (int(h)) 
+  case (0) 
+    rgb = (/ c+m, x+m,   m /)
+  case (1) 
+    rgb = (/ x+m, c+m,   m /)
+  case (2) 
+    rgb = (/   m, c+m, x+m /)
+  case (3) 
+    rgb = (/   m, x+m, c+m /)
+  case (4) 
+    rgb = (/ x+m,   m, c+m /)
+  case (5) 
+    rgb = (/ c+m,   m, x+m /)
+  case default 
+    rgb = (/ 0.D0, 0.D0, 0.D0 /)
+end select 
+
+end function sph2rgb_
+
+!--------------------------------------------------------------------------
+recursive function sphere2rgb_( self, a, p, w0 ) result(rgb) 
+!DEC$ ATTRIBUTES DLLEXPORT :: sphere2rgb_
+!! author: MDG (converted to f90 from Will Lenthe's original C++ version) 
+!! version: 1.0 
+!! date: 09/28/21
+!!
+!! a  : fractional theta angle [0,1] (0.5 for the equator, 0 N, 1 S)
+!! p  : fractional phi angle [0,1]
+!! rgb: location to write rgb color
+!! w0 : true/false for white/black @ center 
+
+IMPLICIT NONE
+
+class(colorspace_T)         :: self
+real(kind=dbl),INTENT(IN)   :: a
+real(kind=dbl),INTENT(IN)   :: p
+logical,INTENT(IN)          :: w0
+real(kind=dbl)              :: rgb(0:2)
+
+logical                     :: sh, swap
+real(kind=dbl)              :: h, l, t, tt, delta, work(0:2,0:2), w 
+integer(kind=irg)           :: s, j 
+real(kind=dbl)              :: tl, deltaS, deltaN, l0, l1, deltaL, x, hmt, c1, d1, fcfc, minL, maxL, &
+                               a2, b2, c2, d2, ll, hpt, c4, d4, a3, b3, c3, d3, fc, ac, bc, cc, dc, mc, tc, luv(0:2)
+
+h = p 
+l = a 
+if (w0.eqv..TRUE.) l = 1.D0-a 
+
+! bring t to [0,1)
+t = mod(h, 1.D0)
+if (t.lt.0.D0) t = t+1.D0 
+
+! remap t to knot domain and find segment t falls in
+tt = t * (self%N-3) + 3
+s = int(tt) 
+delta = tt - s 
+
+! unrolled de Boor's spline interpolation
+! k = 0
+w = delta / 3.D0
+x = 1.D0 - w
+do j = 0, 2
+  work(2,j) = self%P(s, j) * w + self%P(s-1, j) * x
+end do 
+
+w = (delta + 1.D0) / 3.D0
+x = 1.D0 - w
+do j = 0, 2
+  work(1,j) = self%P(s-1, j) * w + self%P(s-2, j) * x
+end do 
+
+w = (delta + 2.D0) / 3.D0
+x = 1.D0 - w
+do j = 0, 2
+  work(0,j) = self%P(s-2, j) * w + self%P(s-3, j) * x
+end do 
+
+! k = 1
+w = delta * 0.5D0
+x = 1.D0 - w
+do j = 0, 2
+  work(2,j) = work(2, j) * w + work(1,j) * x
+end do 
+
+w = (delta + 1.D0) * 0.5D0
+x = 1.D0 - w
+do j = 0, 2
+  work(1,j) = work(1, j) * w + work(0,j) * x
+end do 
+
+! k = 2
+w = delta
+x = 1.D0 - w
+do j = 0, 2
+  work(2,j) = work(2, j) * w + work(1,j) * x
+end do 
+ 
+! copy last row into luv
+luv = (/ work(2,0), work(2,1), work(2,2) /) 
+
+minL = 12.D0
+maxL = 98.D0
+
+! apply nonlinear rescaling to lightness interpolation to impose C2 continuity at equator
+! We'll use a piecewise polynomial with linear portions near the poles to maximize truly perceptually uniform region
+!         / f1 =                       c1 * x + d1 : 0       <= x <= 1/2 - t (linear from pole to first transition)
+!  f(x) = | f2 = a2 * x^3 + b2 * x^2 + c2 * x + d2 : 1/2 - t <  x <= 1/2     (cubic from first transition to equator)
+!         | f3 = a3 * x^3 + b3 * x^2 + c3 * x + d3 : 1/2     <  x <  1/2 + t (cubic from equator to second transition)
+!         \ f4 =                       c4 * x + d4 : 1/2 + t <= x <= 1       (linear from second transition to pole)
+! 12 unknowns solved for with the following 12 constraints
+! -C2 continuity between f1/f2, f2/f3, and f3, f4 (9 constraints)
+! -f(0) = minL, f(1/2) = luv(0), f(1) = maxL (3 constraints)
+tl = 0.1D0 ! offset from equator to end of transition for C2 continuity of L* (0,0.5) 
+! 0 -> true perceptually uniformity with visual discontinuity, 
+! 0.5 -> largest deviation from perceptually uniformity but spreads discontinuity over largest area
+sh = .FALSE. 
+if (l.le.0.5D0) sh = .TRUE.           ! does this point fall below/above the equator (true/false)
+deltaS = minL - luv(0)                ! delta luminance from equator to south pole
+deltaN = maxL - luv(0)                ! delta luminance from equator to north pole
+
+x = ( deltaS + deltaN ) / ( tl * 2.D0 - 3.D0 )    ! this value will be needed in all for segments
+if (sh.eqv..TRUE.) then                   ! in f1 or f2, don't bother calculating coefficients for f3 or f4
+  hmt = 0.5D0 - tl                        ! transition from linear -> cubic in southern cone
+  c1 = (x * tl - l0) * 2.D0               ! compute slope of linear region in southern cone
+  d1 = deltaS                             ! compute intercept of linear region in southern cone
+  if (l.le.hmt) then                      ! in first linear region (f1)
+    deltaL = c1 * l + d1                  ! compute f1(l)
+  else                                    ! in first cubic region (f2)
+    a2 = -x / (tl * tl)
+    b2 = -a2 * hmt * 3.D0
+    c2 =  c1 - b2 * hmt
+    d2 =  d1 - a2 * hmt * hmt * hmt
+    ll = l * l                            ! compute l^2 once
+    deltaL = a2 * ll * l + b2 * ll + c2 * l + d2      ! compute f2(l)
+  end if 
+else                                      ! in f3 or f4, don't bother calculating coefficients for f1 or f2
+  hpt = 0.5D0 + tl                        ! transition from cubic -> linear in northern cone
+  c4 = (deltaN - x * tl) * 2.D0           ! compute slope of linear region in northern cone
+  d4 = deltaN - c4                        ! compute intercept of linear region in northern cone
+  if (l.ge.hpt) then                      ! in second linear region (f4)
+    deltaL = c4 * l + d4                  ! compute f4(l)
+  else                                    ! in second cubic region (f3)
+    a3 =  x / (tl * tl)
+    b3 = -a3 * hpt * 3.D0
+    c3 =  c4 - b3 * hpt
+    d3 =  d4 - a3 * hpt * hpt * hpt
+    ll = l * l                            ! compute l^2 once
+    deltaL = a3 * ll * l + b3 * ll + c3 * l + d3      ! compute f3(l)
+  end if
+end if
+
+! interpolate luminance and compute scaling factor for chromaticity
+luv(0) = luv(0) + deltaL
+if (sh.eqv..TRUE.) then 
+  fc = 1.D0 - deltaL / deltaS             ! 0->1 bicone scaling
+else
+  fc = 1.D0 - deltaL / deltaN             ! 0->1 bicone scaling
+end if 
+
+! adjust chromaticity scaling factor similarly to lightness to make chromaticity C1 continous at equator
+!  f(x) = / f1 =                         x     : 0  < x <= tc (linear from pole to tc)
+!         \ f2 = a * x^3 + b * x^2 + c * x + d : tc < x <= 1  (cubic from tc to equator)
+! 4 unknowns solved for with C2 continuity between f1/f2 (3 constraints) and f'(1) = 0 (C1 continuity at equator)
+tc = 0.8D0        ! this parameter is less sensitive than tl since local uniformity is more strongly L* dependant
+ac = -1.D0 / ( (tc - 1.D0) * (tc - 1.D0) * 3.D0 )
+bc = -tc * 3.D0 * ac
+cc = (tc * 6.D0 - 3.D0) * ac
+dc = -tc * tc * tc * ac
+mc = 3.D0 / (tc + 2.D0)
+if (fc.gt.tc) then 
+  fcfc = fc * fc                                  ! compute fc^2 once
+  fc = ac * fcfc * fc + bc * fcfc + cc * fc + dc  ! compute f2(fc)
+end if 
+luv(1) = luv(1) * fc 
+luv(2) = luv(2) * fc
+
+rgb = self%luv2rgb_(luv)   ! luv -> rgb
+
+end function sphere2rgb_
 
 end module mod_colorspace
