@@ -250,6 +250,10 @@ IMPLICIT NONE
        !! double precision quaternion
       character(1)                 :: s
        !! precision indicator ('s' or 'd')
+      real(kind=sgl), dimension(3,3)  :: mu
+       !! simplectic transformation array single precision
+      real(kind=dbl), dimension(3,3)  :: mud
+       !! simplectic transformation array double precision
 
     contains
     private
@@ -259,6 +263,8 @@ IMPLICIT NONE
       procedure, pass(self) :: getquatd
       procedure, pass(self) :: setquats
       procedure, pass(self) :: setquatd
+      procedure, pass(self) :: setsimplectics
+      procedure, pass(self) :: setsimplecticd
 ! quaternion arithmetic routines
       procedure, pass(self) :: quatflip
       procedure, pass(self) :: quatpos
@@ -278,6 +284,10 @@ IMPLICIT NONE
       procedure, pass(self) :: quatLpd
       procedure, pass(self) :: quatLp_vecarray
       procedure, pass(self) :: quatLpd_vecarray
+      procedure, pass(self) :: quat2simplectic
+      procedure, pass(self) :: quat2simplecticd
+      procedure, pass(self) :: simplectic2quat
+      procedure, pass(self) :: simplectic2quatd
 ! routines with two or more input quaternions
       procedure, pass(self) :: quatinnerproduct
       procedure, pass(self) :: quatangle
@@ -292,6 +302,7 @@ IMPLICIT NONE
       generic, public :: get_quatd => getquatd
       generic, public :: set_quats => setquats
       generic, public :: set_quatd => setquatd
+      generic, public :: set_simplectic => setsimplectics, setsimplecticd
       generic, public :: quat_norm => quatnorm
       generic, public :: operator(+) => quatadd
       generic, public :: operator(-) => quatsubtract
@@ -302,18 +313,13 @@ IMPLICIT NONE
       generic, public :: quat_normalize => quatnormalize
       generic, public :: quat_Lp => quatLp, quatLpd
       generic, public :: quat_Lp_vecarray => quatLp_vecarray, quatLpd_vecarray
+      generic, public :: quat_to_simplectic => quat2simplectic, quat2simplecticd
+      generic, public :: simplectic_to_quat => simplectic2quat, simplectic2quatd
       generic, public :: quat_innerproduct => quatinnerproduct
       generic, public :: quat_angle => quatangle
       generic, public :: quat_slerp => quatslerp
 
   end type Quaternion_T
-
-! the constructor routine for this class
-  interface Quaternion_T
-    module procedure Quaternion_constructor
-  end interface Quaternion_T
-
-
 
 ! next we define the quaternion array class
   type, public :: QuaternionArray_T
@@ -408,12 +414,15 @@ IMPLICIT NONE
   end type Quaternion3DArray_T
 
 
-! the constructor routine for this class
+! the constructor routines for these classes
+  interface Quaternion_T
+    module procedure Quaternion_constructor
+  end interface Quaternion_T
+
   interface QuaternionArray_T
     module procedure QuaternionArray_constructor
   end interface QuaternionArray_T
 
-! the constructor routine for this class
   interface Quaternion3DArray_T
     module procedure Quaternion3DArray_constructor
   end interface Quaternion3DArray_T
@@ -744,6 +753,50 @@ self%qd = qd
 self%s = 'd'
 
 end subroutine setquatd
+
+!--------------------------------------------------------------------------
+recursive subroutine setsimplectics(self, mu1, mu2, mu3)
+!DEC$ ATTRIBUTES DLLEXPORT :: setsimplectics
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/22/21
+  !!
+  !! set the simplectic transformation array
+
+IMPLICIT NONE
+
+class(Quaternion_T),intent(inout)    :: self
+real(kind=sgl),intent(in)            :: mu1(3)
+real(kind=sgl),intent(in)            :: mu2(3)
+real(kind=sgl),intent(in)            :: mu3(3)
+
+self%mu(1,1:3) = mu1
+self%mu(2,1:3) = mu2
+self%mu(3,1:3) = mu3
+
+end subroutine setsimplectics
+
+!--------------------------------------------------------------------------
+recursive subroutine setsimplecticd(self, mu1, mu2, mu3)
+!DEC$ ATTRIBUTES DLLEXPORT :: setsimplecticd
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/22/21
+  !!
+  !! set the simplectic transformation array
+
+IMPLICIT NONE
+
+class(Quaternion_T),intent(inout)    :: self
+real(kind=dbl),intent(in)            :: mu1(3)
+real(kind=dbl),intent(in)            :: mu2(3)
+real(kind=dbl),intent(in)            :: mu3(3)
+
+self%mud(1,1:3) = mu1
+self%mud(2,1:3) = mu2
+self%mud(3,1:3) = mu3
+
+end subroutine setsimplecticd
 
 !--------------------------------------------------------------------------
 recursive subroutine quatarrayprint(self, listN)
@@ -1950,6 +2003,114 @@ IMPLICIT NONE
   end do
 
 end function quatLpd_vecarray
+
+!--------------------------------------------------------------------------!
+recursive subroutine quat2simplectic(self, c1, c2)
+!DEC$ ATTRIBUTES DLLEXPORT :: quat2simplectic
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/22/21
+  !!
+  !! split a quaternion into two complex numbers (single precision)
+  !! Note: the simplectic transformation array has to be set first !
+
+IMPLICIT NONE
+
+  class(Quaternion_T),intent(in)    :: self
+  complex(kind=sgl),INTENT(INOUT)   :: c1
+  complex(kind=sgl),INTENT(INOUT)   :: c2
+
+  real(kind=sgl)                    :: v(3)
+
+  v = self%q(2:4)
+
+! simplex part
+  c1 = cmplx(self%q(1), DOT_PRODUCT(v,self%mu(1,1:3)))
+
+! perplex part
+  c2 = cmplx(DOT_PRODUCT(v,self%mu(2,1:3)), DOT_PRODUCT(v,self%mu(3,1:3)))
+
+end subroutine quat2simplectic
+
+!--------------------------------------------------------------------------!
+recursive subroutine quat2simplecticd(self, c1, c2)
+!DEC$ ATTRIBUTES DLLEXPORT :: quat2simplecticd
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/22/21
+  !!
+  !! split a quaternion into two complex numbers (double precision)
+  !! Note: the simplectic transformation array has to be set first !
+
+IMPLICIT NONE
+
+  class(Quaternion_T),intent(in)    :: self
+  complex(kind=dbl),INTENT(INOUT)   :: c1
+  complex(kind=dbl),INTENT(INOUT)   :: c2
+
+  real(kind=dbl)                    :: v(3)
+
+  v = self%qd(2:4)
+
+! simplex part
+  c1 = cmplx(self%qd(1), DOT_PRODUCT(v,self%mud(1,1:3)))
+
+! perplex part
+  c2 = cmplx(DOT_PRODUCT(v,self%mud(2,1:3)), DOT_PRODUCT(v,self%mud(3,1:3)))
+
+end subroutine quat2simplecticd
+
+!--------------------------------------------------------------------------!
+recursive subroutine simplectic2quat(self, c1, c2)
+!DEC$ ATTRIBUTES DLLEXPORT :: simplectic2quat
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/22/21
+  !!
+  !! perform an inverse simplectic transformation (single precision)
+  !! Note: the simplectic transformation array has to be set first !
+
+use, intrinsic :: iso_c_binding 
+
+IMPLICIT NONE
+
+  class(Quaternion_T),INTENT(INOUT) :: self
+  complex(kind=sgl),INTENT(INOUT)   :: c1
+  complex(kind=sgl),INTENT(INOUT)   :: c2
+
+  real(kind=sgl)                    :: tmu(3,3), xyz(3)
+
+  tmu = transpose(self%mu)
+  xyz = (/ aimag(c1), real(c2), aimag(c2) /)
+
+  self%q = (/ real(c1), DOT_PRODUCT(xyz, tmu(1,1:3)), DOT_PRODUCT(xyz, tmu(2,1:3)), DOT_PRODUCT(xyz, tmu(3,1:3)) /)
+
+end subroutine simplectic2quat
+
+!--------------------------------------------------------------------------!
+recursive subroutine simplectic2quatd(self, c1, c2)
+!DEC$ ATTRIBUTES DLLEXPORT :: simplectic2quatd
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/22/21
+  !!
+  !! perform an inverse simplectic transformation (double precision)
+  !! Note: the simplectic transformation array has to be set first !
+
+IMPLICIT NONE
+
+  class(Quaternion_T),INTENT(INOUT) :: self
+  complex(kind=dbl),INTENT(IN)      :: c1
+  complex(kind=dbl),INTENT(IN)      :: c2
+
+  real(kind=dbl)                    :: tmu(3,3), xyz(3)
+
+  tmu = transpose(self%mud)
+  xyz = (/ aimag(c1), real(c2), aimag(c2) /)
+
+  self%qd = (/ dble(c1), DOT_PRODUCT(xyz, tmu(1,1:3)), DOT_PRODUCT(xyz, tmu(2,1:3)), DOT_PRODUCT(xyz, tmu(3,1:3)) /)
+
+end subroutine simplectic2quatd
 
 !--------------------------------------------------------------------------!
 recursive function quatArrayLpd(self, v) result (res)
