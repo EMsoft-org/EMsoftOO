@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2021, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2022, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -2078,12 +2078,11 @@ IMPLICIT NONE
   complex(kind=sgl),INTENT(INOUT)   :: c1
   complex(kind=sgl),INTENT(INOUT)   :: c2
 
-  real(kind=sgl)                    :: tmu(3,3), xyz(3)
+  real(kind=sgl)                    :: xyz(3)
 
-  tmu = transpose(self%mu)
   xyz = (/ aimag(c1), real(c2), aimag(c2) /)
 
-  self%q = (/ real(c1), DOT_PRODUCT(xyz, tmu(1,1:3)), DOT_PRODUCT(xyz, tmu(2,1:3)), DOT_PRODUCT(xyz, tmu(3,1:3)) /)
+  self%q = (/ real(c1), DOT_PRODUCT(xyz, self%mu(1:3,1)), DOT_PRODUCT(xyz, self%mu(1:3,2)), DOT_PRODUCT(xyz, self%mu(1:3,3)) /)
 
 end subroutine simplectic2quat
 
@@ -2103,12 +2102,11 @@ IMPLICIT NONE
   complex(kind=dbl),INTENT(IN)      :: c1
   complex(kind=dbl),INTENT(IN)      :: c2
 
-  real(kind=dbl)                    :: tmu(3,3), xyz(3)
+  real(kind=dbl)                    :: xyz(3)
 
-  tmu = transpose(self%mud)
   xyz = (/ aimag(c1), real(c2), aimag(c2) /)
 
-  self%qd = (/ dble(c1), DOT_PRODUCT(xyz, tmu(1,1:3)), DOT_PRODUCT(xyz, tmu(2,1:3)), DOT_PRODUCT(xyz, tmu(3,1:3)) /)
+  self%qd = (/ dble(c1), DOT_PRODUCT(xyz, self%mu(1:3,1)), DOT_PRODUCT(xyz, self%mu(1:3,2)), DOT_PRODUCT(xyz, self%mu(1:3,3)) /)
 
 end subroutine simplectic2quatd
 
