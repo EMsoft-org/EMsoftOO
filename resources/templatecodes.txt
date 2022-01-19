@@ -98,3 +98,4 @@
 290EMgetIPF
 300EMShapeAmplitude
 301EMDemag
+310EMEBSDkin

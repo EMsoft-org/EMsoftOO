@@ -67,6 +67,15 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                         )
 
+  Add_EMsoftOO_Executable(TARGET EMEBSDkin
+                        SOURCES ${APP_DIR}/EMEBSDkin.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EMEBSDkin.template
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
+
   Add_EMsoftOO_Executable(TARGET EMreflectors
                         SOURCES ${APP_DIR}/EMreflectors.f90
                         LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
