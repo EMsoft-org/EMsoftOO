@@ -1801,8 +1801,8 @@ call mem%dealloc(mLPSH, 'mLPSH')
 call mem%dealloc(masterSPNH, 'masterSPNH')
 call mem%dealloc(masterSPSH, 'masterSPSH')
 
-call mem%allocated_memory_use()
-call memth%thread_memory_use()
+! call mem%allocated_memory_use()
+! call memth%thread_memory_use()
 
 end subroutine EBSDmaster_
 

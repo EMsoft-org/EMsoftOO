@@ -45,10 +45,10 @@ character(fnlen)        :: progdesc = 'Dynamical ECCI defect image simulation'
 character(fnlen)        :: nmldeffile
 
 type(EMsoft_T)          :: EMsoft
-type(ECCI_T)     		:: ECCI
+type(ECCI_T)     		    :: ECCI
 
 ! print the EMsoft header and handle any command line arguments
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 40 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 41, 200 /) )
 
 ! deal with the namelist stuff
 ECCI = ECCI_T(EMsoft%nmldeffile)
