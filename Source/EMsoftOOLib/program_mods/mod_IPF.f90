@@ -71,6 +71,7 @@ private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: getIPF_
+  procedure, pass(self) :: updateIPFmap_
 
   generic, public :: get_dotproductfile => get_dotproductfile_
   generic, public :: get_IPFfilename => get_IPFfilename_
@@ -87,6 +88,7 @@ private
   generic, public :: getNameList => getNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: getIPF => getIPF_
+  generic, public :: updateIPFmap => updateIPFmap_
 
 end type IPF_T
 
@@ -110,7 +112,10 @@ IMPLICIT NONE
 
 character(fnlen), OPTIONAL   :: nmlfile 
 
-call IPF%readNameList(nmlfile)
+! the calling program must assign values to all entries if no nmlfile parameter is present
+if (present(nmlfile)) then ! read the namelist file
+  call IPF%readNameList(nmlfile)
+end if 
 
 end function IPF_constructor
 
@@ -543,5 +548,55 @@ call IPFmap%get_IPFMap(EMsoft, csnl%sampleDir, qAR, sym)
 end associate
 
 end subroutine getIPF_
+
+!--------------------------------------------------------------------------
+subroutine updateIPFmap_(self, EMsoft, progname, ipf_wd, ipf_ht, pgnum, IPFname, qAR, sym)
+!DEC$ ATTRIBUTES DLLEXPORT :: updateIPFmap_
+!! author: MDG 
+!! version: 1.0 
+!! date: 01/23/22
+!!
+!! updates an IPF map file during dictionary indexing ...
+
+use mod_EMsoft
+use mod_IPFsupport
+use mod_quaternions
+use mod_symmetry
+use ISO_C_BINDING
+
+IMPLICIT NONE 
+
+class(IPF_T), INTENT(INOUT)             :: self
+type(EMsoft_T), INTENT(INOUT)           :: EMsoft
+character(fnlen), INTENT(INOUT)         :: progname 
+integer(kind=irg), INTENT(IN)           :: ipf_wd
+integer(kind=irg), INTENT(IN)           :: ipf_ht
+integer(kind=irg), INTENT(IN)           :: pgnum 
+character(fnlen),INTENT(INOUT)          :: IPFname 
+type(QuaternionArray_T),INTENT(INOUT)   :: qAR
+type(QuaternionArray_T),INTENT(INOUT)   :: sym
+
+type(IPFmap_T)                          :: IPFmap 
+character(fnlen)                        :: IPFmode
+
+!====================================
+! this is called from inside the dictionary indexing routine, so 
+! we do not read any HDF5 file; instead, we use the arrays that 
+! are passed into this routine
+
+! create the IPFmap class, set the parameters, and generate the IPF-Z map 
+IPFmap = IPFmap_T()
+
+call IPFmap%set_ipf_LaueClass(PGLaueinv(pgnum))
+call IPFmap%set_ipf_wd(ipf_wd)
+call IPFmap%set_ipf_ht(ipf_ht)
+IPFmode = 'TSL'
+call IPFmap%set_ipf_mode(IPFmode)
+call IPFmap%set_ipf_filename(IPFname)
+call IPFmap%set_ipf_nthreads(1)
+
+call IPFmap%get_IPFMap(EMsoft, (/ 0, 0, 1/), qAR, sym, cDir=.TRUE.)
+
+end subroutine updateIPFmap_
 
 end module mod_IPF

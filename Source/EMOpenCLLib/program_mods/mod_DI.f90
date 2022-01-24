@@ -58,6 +58,8 @@ subroutine DIdriver(Cnmldeffile, Cprogname, cproc, ctimeproc, cerrorproc, objAdd
 !! this routine must be callable from C++ as well, so the parameter list
 !! is a bit different from that of the most other programs.  Furthermore, this
 !! driver routine must be able to handle EBSD, ECP, and TKD patterns (at least).
+!! A new feature is the creation of an intermediate IPF map file so that the user
+!! can keep real-time track of the results.
 
 use mod_EMsoft
 use mod_io
@@ -89,12 +91,15 @@ use mod_MCfiles
 use mod_MPfiles
 use mod_DIfiles
 use mod_DIsupport
+use mod_IPF
+use mod_IPFsupport
 use mod_HDFnames
 use mod_EBSD
 use mod_ECP
 use mod_so3
 use mod_vendors
 use mod_NLPAR
+use mod_IPF
 use mod_memory
 
 IMPLICIT NONE
@@ -154,14 +159,17 @@ type(IO_T)                                          :: Message
 type(OpenCL_T)                                      :: CL
 type(SpaceGroup_T)                                  :: SG
 type(so3_T)                                         :: SO
-type(q_T)                                           :: quat
-type(e_T)                                           :: eu
+type(q_T)                                           :: quat, qqq
+type(e_T)                                           :: eu, eee
 type(r_T)                                           :: ro
 type(Vendor_T)                                      :: VT
-type(Quaternion_T)                                  :: qu
+type(Quaternion_T)                                  :: qu, ququ
+type(QuaternionArray_T)                             :: qAR, sym
 type(IncidentListECP),pointer                       :: ktmp
 type(NLPAR_T)                                       :: NLPAR
 type(memory_T)                                      :: mem, memth
+type(IPF_T)                                         :: IPF 
+type(IPFmap_T)                                      :: IPFmap 
 
 type(MCOpenCLNameListType)                          :: mcnl
 type(SEMmasterNameListType)                         :: mpnl
@@ -231,7 +239,7 @@ character(15)                                       :: tstre
 character(3)                                        :: vendor
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 character(fnlen)                                    :: groupname, dataset, fname, clname, ename, sourcefile, &
-                                                       datagroupname, dictfile, attname
+                                                       datagroupname, dictfile, attname, IPFmode
 integer(hsize_t)                                    :: expwidth, expheight
 integer(hsize_t),allocatable                        :: iPhase(:), iValid(:)
 integer(c_size_t),target                            :: slength
@@ -239,14 +247,14 @@ integer(c_int)                                      :: numd, nump
 type(C_PTR)                                         :: planf, HPplanf, HPplanb
 integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3)
 
-integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn
+integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn, icnt
 integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(4)
 type(FZpointd),pointer                              :: FZlist, FZtmp
 integer(kind=irg),allocatable                       :: indexlist(:),indexarray(:),indexmain(:,:),indextmp(:,:)
 real(kind=sgl)                                      :: dmin,voltage,scl,ratio, mi, ma, ratioE, io_real(2), tstart, tmp, &
                                                        totnum_el, vlen, tstop, ttime
 real(kind=dbl)                                      :: prefactor
-character(fnlen)                                    :: xtalname
+character(fnlen)                                    :: xtalname, IPFmapfile
 integer(kind=irg)                                   :: binx,biny,TID,nthreads,Emin,Emax, iiistart, iiiend, jjend
 real(kind=sgl)                                      :: sx,dx,dxm,dy,dym,rhos,x,projweight, dp, mvres, nel, emult
 real(kind=sgl)                                      :: dc(3),ixy(2),bindx, MCsig, WD, fpar1(1), fpar2(2)
@@ -278,6 +286,23 @@ HDF = HDF_T()
 
 ! we've already shown the standard splash screen, so we do this one silently
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /), silent=.TRUE.)
+
+! initialize the IPF map class; since we are not using an nmlfile argument here,
+! we must manually initialize the parameters in this class
+! IPF = IPF_T()
+
+! here we initialize the parameters of the IPF class; we will take a default file name 
+! of IPFmapfile = 'currentIPFZmap.tiff' with the current data path pre-pended.
+! IPFmapfile = EMsoft%generateFilePath('EMdatapathname','currentIPFZmap.tiff')
+IPFmapfile = 'currentIPFZmap.tiff'
+! call IPF%set_dotproductfile('undefined') ! we haven't created this file yet !!
+call IPF%set_IPFfilename(IPFmapfile)
+call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+call IPF%set_nthreads(1)
+IPFmode = 'TSL'
+call IPF%set_IPFmode(IPFmode)
+call IPF%set_pgnum(pgnum)
+
 
 ! link the proc procedure to the cproc argument
 Clinked = .FALSE.
@@ -551,6 +576,7 @@ if (trim(dinl%indexingmode).eq.'static') then
     call Message%printMessage('-->  completed initial reading of dictionary file ')
 end if
 
+
 if (sum(dinl%ROI).ne.0) then
   ROIselected = .TRUE.
   iiistart = dinl%ROI(2)
@@ -582,6 +608,10 @@ recordsize = L*4
 itmpexpt = 43
 w = dinl%hipassw
 source_l = source_length
+
+! initialize the qAR and sym quaternion arrays to periodically generate an IPF map file
+qAR = QuaternionArray_T( totnumexpt, s = 'd')
+call qAR%QSym_Init(pgnum, sym)
 
 ! these will eventually need to be read from an experimental data file but we'll set default values here.
 WD = 10.0
@@ -725,6 +755,18 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     call SO%delete_FZlist()
 end if
 
+! IPFmap = IPFmap_T()
+
+! call IPFmap%set_ipf_LaueClass(PGLaueinv(pgnum))
+! call IPFmap%set_ipf_wd(dinl%ipf_wd)
+! call IPFmap%set_ipf_ht(dinl%ipf_ht)
+! IPFmode = 'TSL'
+! call IPFmap%set_ipf_mode(IPFmode)
+! call IPFmap%set_ipf_filename(IPFmapfile)
+! call IPFmap%set_ipf_nthreads(1)
+
+! qu = Quaternion_T( qd = (/1.D0,0.D0,0.D0,0.D0/) )
+! write (*,*) 'RGB = ',IPFmap%get_ipf_RGB( (/0.D0, 0.D0, 1.D0/), qu, sym, sym%getQnumber() )
 
 !================================
 ! INITIALIZATION OF OpenCL DEVICE
@@ -1025,7 +1067,8 @@ dictionaryloop: do ii = 1,cratio+1
     end if
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, vlen, tock, ttime, dicttranspose, dictpatflt) &
-!$OMP& PRIVATE(binned, ma, mi, patternintd, patterninteger, patternad, qu, ro, quat, imagedictflt,imagedictfltflip)
+!$OMP& PRIVATE(binned, ma, mi, patternintd, patterninteger, patternad, qu, ro, quat, imagedictflt,imagedictfltflip,icnt) &
+!$OMP& PRIVATE(eee, qqq, ququ)
 
     TID = OMP_GET_THREAD_NUM()
 
@@ -1140,6 +1183,20 @@ dictionaryloop: do ii = 1,cratio+1
               io_int(1:4) = (/iii,cratio, int(ttime/3600.0), int(mod(ttime,3600.0)/60.0)/)
               call Message%WriteValue('',io_int,4,"(' -> Completed cycle ',I5,' out of ',I5,'; est. remaining time ', &
                                       I4,' hrs',I3,' min')")
+          end if
+! here we insert code to generate a color IPFZ map with the current indexing results;
+! as the indexing proceeds, an increasing number of grains will stay the same color.
+! First we put the current indexing results in the qAR array and then we update the IPF map file
+          do icnt=1,totnumexpt
+            ro = r_T( rdinp = dble(FZarray(1:4,indexmain(1,icnt)) ) )
+            qqq = ro%rq()
+            ququ = quaternion_T( qd = qqq%q_copyd() )
+            call qAR%insertQuatinArray( icnt, ququ )
+          end do 
+          if (ROIselected.eqv..TRUE.) then
+            call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+          else
+            call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
           end if
         end if
       end if

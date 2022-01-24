@@ -1935,7 +1935,7 @@ else
   chiMax = dsqrt(1.D0 / (2.D0 + tan(etaDeg*dtor)**2 ))
 end if 
 if (chiMax.gt.1.D0) chiMax = 1.D0
-chiMax = dacos(chiMax)
+chiMax = dacos(chiMax) * rtod
 if ( (etaDeg.ge.0.D0) .and. (etaDeg.le.(etaMax + eps)) ) then 
   if ( (chiDeg.ge.0.D0) .and. (chiDeg.le.((chiMax + eps ) * rtod) ) )  then 
     inside = .TRUE.
@@ -2081,6 +2081,7 @@ if ( (trim(self%ipf_mode).ne.'Euler')  ) then
 
     if (inside.eqv..TRUE.) then ! if .TRUE., then get the correct color and exit the loop
       chiDeg = chiDeg / chiMax
+      if (chiDeg.gt.1.D0) chiDeg = 1.D0
       RGBd(1) = 1.D0 - chiDeg 
       RGBd(3) = abs(etaDeg - etaMin) / (etaMax-etaMin)
       RGBd(2) = (1.D0 - RGBd(3)) * chiDeg
@@ -2109,7 +2110,7 @@ end if
 end function get_ipf_RGB_
 
 !--------------------------------------------------------------------------
-subroutine get_IPFMap_( self, EMsoft, sampleDir, Orientations, sym ) 
+subroutine get_IPFMap_( self, EMsoft, sampleDir, Orientations, sym, cDir ) 
 !DEC$ ATTRIBUTES DLLEXPORT :: get_IPFMap_
 !! author: MDG
 !! version: 1.0
@@ -2140,9 +2141,10 @@ type(EMsoft_T), INTENT(INOUT)               :: EMsoft
 integer(kind=irg), INTENT(IN)               :: sampleDir(3)
 type(QuaternionArray_T), INTENT(IN)         :: Orientations
 type(QuaternionArray_T), INTENT(INOUT)      :: sym
+logical,INTENT(IN),OPTIONAL                 :: cDir
 
 integer(kind=irg),allocatable               :: IPFmap(:,:,:)
-integer(kind=irg)                           :: ix, iy, iq, TID 
+integer(kind=irg)                           :: ix, iy, iq, TID, RGB(0:2) 
 type(Quaternion_T)                          :: qu
 type(IO_T)                                  :: Message
 type(colorspace_T)                          :: clr
@@ -2164,9 +2166,11 @@ allocate(IPFmap(3, self%ipf_wd, self%ipf_ht))
 ! make sure sampleDir is normalized 
 sDir = dble(sampleDir)/NORM2(dble(sampleDir))
 
-io_int = (/ self%ipf_wd, self%ipf_ht /)
-call Message%printMessage(' ')
-call Message%WriteValue(' Generating IPF map of dimensions : ', io_int,2,frm="(I5,' x ',I5)")
+if (.not.present(cDir)) then
+  io_int = (/ self%ipf_wd, self%ipf_ht /)
+  call Message%printMessage(' ')
+  call Message%WriteValue(' Generating IPF map of dimensions : ', io_int,2,frm="(I5,' x ',I5)")
+end if 
 
 Pm = sym%getQnumber()
 
@@ -2176,22 +2180,17 @@ if (trim(self%ipf_mode).eq.'OPC') OPC = .TRUE.
 PUC = .FALSE.
 if (trim(self%ipf_mode).eq.'PUC') PUC = .TRUE.
 
-io_int(1) = Pm
-call Message%WriteValue(' # symops = ', io_int, 1) 
+! io_int(1) = Pm
+! call Message%WriteValue(' # symops = ', io_int, 1) 
 
-io_int(1) = self%get_ipf_nthreads_()
-call Message%WriteValue(' # threads = ', io_int, 1)
+! io_int(1) = self%get_ipf_nthreads_()
+! call Message%WriteValue(' # threads = ', io_int, 1)
 
-call OMP_SET_NUM_THREADS( self%get_ipf_nthreads_() )
+if (present(cDir)) then  ! don't do a parallel run ...
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, iq, qu, clr)
+  if (OPC.eqv..TRUE.) clr = colorspace_T()
+  if (PUC.eqv..TRUE.) clr = colorspace_T( Nfold = 4 )
 
-TID = OMP_GET_THREAD_NUM()
-
-if (OPC.eqv..TRUE.) clr = colorspace_T()
-if (PUC.eqv..TRUE.) clr = colorspace_T( Nfold = 4 )
-
-!$OMP DO SCHEDULE(DYNAMIC)
   do iy = 1, self%ipf_ht 
     do ix = 1, self%ipf_wd 
       iq = (iy-1) * self%ipf_wd + ix 
@@ -2204,12 +2203,40 @@ if (PUC.eqv..TRUE.) clr = colorspace_T( Nfold = 4 )
       end if 
     end do 
   end do
-!$OMP END DO
+else
+  call OMP_SET_NUM_THREADS( self%get_ipf_nthreads_() )
 
-!$OMP END PARALLEL
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID, iy, iq, qu, clr)
+
+  TID = OMP_GET_THREAD_NUM()
+
+  if (OPC.eqv..TRUE.) clr = colorspace_T()
+  if (PUC.eqv..TRUE.) clr = colorspace_T( Nfold = 4 )
+
+  !$OMP DO SCHEDULE(DYNAMIC)
+    do iy = 1, self%ipf_ht 
+      do ix = 1, self%ipf_wd 
+        iq = (iy-1) * self%ipf_wd + ix 
+        qu = Orientations%getQuatfromArray(iq)
+        call qu%quat_pos()
+        if ((OPC.eqv..TRUE.).or.(PUC.eqv..TRUE.)) then 
+          IPFmap(1:3, ix, iy) = self%get_ipf_RGB_( sDir, qu, sym, Pm, clr )
+        else 
+          IPFmap(1:3, ix, iy) = self%get_ipf_RGB_( sDir, qu, sym, Pm )
+        end if 
+      end do 
+    end do
+  !$OMP END DO
+
+  !$OMP END PARALLEL
+end if
 
 ! finally, store the IPFmap in a color TIFF file.
-fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(self%get_ipf_filename_())
+if (present(cDir)) then 
+  fname = trim(self%get_ipf_filename_())
+else 
+  fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(self%get_ipf_filename_())
+end if
 TIFF_filename = trim(fname)
 
 ! allocate memory for a color image; each pixel has 3 bytes (RGB)
@@ -2227,7 +2254,7 @@ call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detecte
 if(0.ne.iostat) then
   call Message%printMessage(" Failed to write image to file : "//iomsg)
 else
-  call Message%printMessage(' IPF map written to '//trim(TIFF_filename),"(/A)")
+  call Message%printMessage(' IPF map written to '//trim(TIFF_filename),"(A)")
 end if
 
 deallocate(TIFF_image, IPFmap)
