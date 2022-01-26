@@ -713,8 +713,11 @@ call OMP_setNThreads(cbednl%nthreads)
 io_int(1) = cbednl%nthreads
 call Message%WriteValue(' Attempting to set number of threads to ',io_int, 1, frm = "(I4)")
 
-!$OMP  PARALLEL DEFAULT(PRIVATE) SHARED(numk, klistarray, FN, kkk, verbose) &
-!$OMP& SHARED(nml, intensity, cell, BetheParameters, thick, numt, ik, Diff, SG)
+! $OMP  PARALLEL DEFAULT(PRIVATE) SHARED(numk, klistarray, FN, kkk, verbose) &
+! $OMP& SHARED(nml, intensity, cell, BetheParameters, thick, numt, ik, Diff, SG)
+
+!$OMP  PARALLEL DEFAULT(SHARED) PRIVATE(kk, firstloop, NUMTHREADS, TID, reflist, rl, nns, nnw) &
+!$OMP& PRIVATE(DynMat, Tnref, inten, jj, intensity, ii, io_real)
 
 NUMTHREADS = OMP_GET_NUM_THREADS()
 TID = OMP_GET_THREAD_NUM()

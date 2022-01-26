@@ -48,7 +48,7 @@ program EMLACBED
   type(LACBED_T)          :: LACBED
 
   ! print the EMsoft header and handle any command line arguments  
-  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 40 /) )
+  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 10 /) )
   
   ! deal with the namelist stuff
   LACBED = LACBED_T(EMsoft%nmldeffile)

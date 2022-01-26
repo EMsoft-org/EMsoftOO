@@ -149,7 +149,7 @@ if (present(PS)) then
   call PS%setpspage(0)
 end if
 
-call HOLZ%DeleteList()
+! call HOLZ%DeleteList()
 
 allocate(HOLZ%HOLZlist)
 nullify(HOLZ%HOLZlist%next)
