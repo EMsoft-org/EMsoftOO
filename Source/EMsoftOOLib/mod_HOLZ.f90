@@ -88,6 +88,10 @@ private
     procedure, pass(self) :: ReCalcHOLZ_
     procedure, pass(self) :: PlotHOLZ_
     procedure, pass(self) :: PlotHOLZlines_
+    procedure, pass(self) :: CalcsgHOLZ_
+    procedure, pass(self) :: GetHOLZcoordinates_
+    procedure, pass(self) :: GetHOLZGeometry_
+
     final :: HOLZ_destructor
 
     generic, public :: getListHead => getListHead_
@@ -106,7 +110,9 @@ private
     generic, public :: ReCalcHOLZ => ReCalcHOLZ_
     generic, public :: PlotHOLZ => PlotHOLZ_
     generic, public :: PlotHOLZlines => PlotHOLZlines_
-
+    generic, public :: CalsgHOLZ => CalcHOLZ_
+    generic, public :: GetHOLZcoordinates => GetHOLZcoordinates_
+    generic, public :: GetHOLZGeometry => GetHOLZGeometry_
 end type HOLZ_T
 
 ! the constructor routine for this class
@@ -130,8 +136,8 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-character(fnlen), INTENT(IN)                    :: progdesc
-type(EMsoft_T), INTENT(INOUT)                   :: EMsoft
+character(fnlen), INTENT(IN), OPTIONAL          :: progdesc
+type(EMsoft_T), INTENT(INOUT), OPTIONAL         :: EMsoft
 type(PostScript_T), INTENT(INOUT), OPTIONAL     :: PS
 
 integer(kind=irg)                               :: imanum
@@ -1259,5 +1265,208 @@ associate(HOLZvar => self%HOLZvar)
 end associate
 
 end subroutine PlotHOLZlines_
+
+!--------------------------------------------------------------------------
+recursive function CalcsgHOLZ_(self,cell,HOLZdata,gg,kt,lambda) result(exer)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcsgHOLZ_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/26/22
+  !!
+  !! compute the excitation error including HOLZ and Laue Center information
+
+use mod_crystallography
+
+IMPLICIT NONE
+
+class(HOLZ_T),INTENT(INOUT)             :: self
+type(Cell_T),INTENT(INOUT)              :: cell
+type(HOLZentries),INTENT(INOUT)         :: HOLZdata
+!f2py intent(in,out) ::  HOLZdata
+real(kind=sgl),INTENT(IN)               :: gg(3), kt(3), lambda
+
+real(kind=sgl)                          :: exer, g1len, g2len
+real(kind=sgl)                          :: ll(3), lpg(3), glen, gplen, LC1, LC2, LC3, sgdenom
+
+
+glen = cell%CalcLength(gg,'r')
+g1len = cell%CalcLength(HOLZdata%g1,'r')
+g2len = cell%CalcLength(HOLZdata%g2,'r')
+if (glen.ne.0.0) then
+  LC1 = cell%CalcDot(kt,HOLZdata%g1,'r')/g1len
+  LC2 = cell%CalcDot(kt,HOLZdata%g2,'r')/g2len
+  ll = LC1*HOLZdata%g1 + LC2*HOLZdata%g2
+  lpg = ll + gg
+  gplen = cell%CalcLength(lpg,'r')
+  LC3 = sqrt(1.0-lambda**2*cell%CalcLength(ll,'r')**2)
+  if (gplen.eq.0.0) then
+    exer = -lambda*cell%CalcDot(gg,2.0*ll+gg,'r')/(2.0*LC3*cell%CalcDot(HOLZdata%g3,HOLZdata%FNr,'r'))
+  else
+    sgdenom = 2.0*cell%CalcDot(LC3*HOLZdata%g3-lambda*lpg,HOLZdata%FNr,'r')
+    exer = (cell%CalcDot(lpg,2.0*LC3*HOLZdata%g3-lambda*gg,'r')-lambda*cell%CalcDot(gg,ll,'r'))/sgdenom
+  end if
+else
+  exer = 10000.0
+end if
+
+end function CalcsgHOLZ_
+
+!--------------------------------------------------------------------------
+recursive function GetHOLZcoordinates_(self,cell,HOLZdata,gg,kt,lambda) result(pxy)
+!DEC$ ATTRIBUTES DLLEXPORT :: GetHOLZcoordinates_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/26/22
+  !!
+  !! find the projected coordinates of an arbitrary HOLZ g-vector
+
+use mod_crystallography
+
+IMPLICIT NONE
+
+class(HOLZ_T)                           :: self
+type(Cell_T),INTENT(INOUT)              :: cell          
+type(HOLZentries),INTENT(INOUT)         :: HOLZdata
+!f2py intent(in,out) ::  HOLZdata
+real(kind=sgl),INTENT(IN)               :: gg(3), kt(3), lambda
+
+real(kind=sgl)                          :: pxy(2), h1, h2, g11, g12, g22, z
+real(kind=sgl)                          :: exer, correction, gxy(2), nx, ny, hh(3)
+integer(kind=irg)                       :: N
+
+! get the Laue zone number
+  N = abs( HOLZdata%uvw(1)*gg(1) + HOLZdata%uvw(2)*gg(2) + HOLZdata%uvw(3)*gg(3) )
+
+! get components of gg w.r.t. g1 and g2
+  hh = gg - N * HOLZdata%gshort
+  h1 = cell%CalcDot(hh,HOLZdata%g1,'c')
+  h2 = cell%CalcDot(hh,HOLZdata%g2,'c')
+  g11 = cell%CalcDot(HOLZdata%g1,HOLZdata%g1,'c')
+  g12 = cell%CalcDot(HOLZdata%g1,HOLZdata%g2,'c')
+  g22 = cell%CalcDot(HOLZdata%g2,HOLZdata%g2,'c')
+  z = 1.0/(g12**2-g11*g22)
+  nx = (g12*h2-g22*h1)*z
+  ny = (g12*h1-g11*h2)*z
+
+! compute excitation error, including Laue center, foil normal, and HOLZ reflection.
+  exer = self%CalcsgHOLZ_(cell,HOLZdata,gg,kt,lambda)
+
+! next, determine the drawing coordinates, first in terms of g1 and g2
+  correction = 1.0/(1.0-lambda*HOLZdata%H*(float(N)+exer*HOLZdata%FNg(3)))
+  gxy = (/ (nx+N*HOLZdata%gp(1)+exer*HOLZdata%FNg(1)), (ny+N*HOLZdata%gp(2)+exer*HOLZdata%FNg(2))  /) * correction
+
+! convert to Cartesian drawing coordinates
+  pxy = matmul(HOLZdata%gtoc,gxy)
+
+end function GetHOLZcoordinates_
+
+!--------------------------------------------------------------------------
+recursive subroutine GetHOLZGeometry_(self,cell,HOLZdata,g1,g2,uvw,fn)
+!DEC$ ATTRIBUTES DLLEXPORT :: GetHOLZGeometry_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/26/22
+  !!
+  !! initialize HOLZ geometrical data for a given zone axis
+
+use mod_crystallography
+use mod_io
+
+IMPLICIT NONE
+
+class(HOLZ_T),INTENT(INOUT)             :: self
+type(Cell_T),INTENT(INOUT)              :: cell
+type(HOLZentries),INTENT(INOUT)         :: HOLZdata
+!f2py intent(in,out) ::  HOLZdata
+integer(kind=irg),INTENT(IN)            :: uvw(3), fn(3)
+real(kind=sgl),INTENT(IN)               :: g1(3), g2(3)
+
+type(IO_T)                              :: Message 
+
+real(kind=sgl)                          :: gmin,gam11,gam12,gam22, phi, glen, g3(3), c(3), gx(3), gy(3), gshort(3)
+integer(kind=irg),parameter             :: inm = 8
+integer(kind=irg)                       :: ih,ik,il,NN, oi_int(1)
+
+! set some basic values
+    HOLZdata%g1 = g1
+    HOLZdata%g2 = g2
+    HOLZdata%uvw = uvw
+    HOLZdata%FN = fn
+
+! distance between consecutive HOLZ layers in nm-1
+    HOLZdata%H = 1.0/cell%CalcLength(float(uvw),'d')
+
+! determine g3 basis vector
+    call cell%CalcCross(HOLZdata%g1,HOLZdata%g2,g3,'r','r',1)
+    call cell%NormVec(g3,'r')
+    HOLZdata%g3 = HOLZdata%H * g3
+
+! compute components of FN with respect to ga, gb, g3
+    call cell%TransSpace(float(HOLZdata%FN),HOLZdata%FNr,'d','r')
+    call cell%NormVec(HOLZdata%FNr,'r')
+    HOLZdata%FNg = (/ cell%CalcDot(HOLZdata%FNr,HOLZdata%g1,'r'), cell%CalcDot(HOLZdata%FNr,HOLZdata%g2,'r'), &
+                        cell%CalcDot(HOLZdata%FNr,g3,'r') /)
+
+! look for the shortest reflection satisfying hu+kv+lw = 1
+! This could be replaced by code from Jackson's paper (1987),
+! but it does essentially the same thing.
+ gmin = 100.0
+ NN=1
+ do while((gmin.eq.100.0).and.(NN.lt.4))
+  do ih=-inm,inm
+   do ik=-inm,inm
+    do il=-inm,inm
+! does this reflection lie in the plane NN ?
+     if ((ih*uvw(1)+ik*uvw(2)+il*uvw(3)).eq.NN) then
+      glen = cell%CalcLength(float((/ih,ik,il/)),'r')
+      if (glen.lt.gmin) then
+       gmin = glen
+       gshort = float( (/ ih,ik,il /) )
+      end if
+     end if
+    end do
+   end do
+  end do
+  oi_int(1) = NN
+  call Message%WriteValue(' Could not find any reflections with hu+kv+lw = ', oi_int, 1, frm = "(I2)")
+  NN = NN+1
+ end do
+ if (gmin.eq.100.0) then ! for some reason there is no reflection with N<=3 ...
+  call Message%printError('ShortestGFOLZ: ',' could not find any reflections with hu+kv+lw<=3 ...')
+ end if
+ HOLZdata%gshort = gshort
+
+! projected components of G
+ gam11 = cell%CalcDot(g1,g1,'r')
+ gam12 = cell%CalcDot(g1,g2,'r')
+ gam22 = cell%CalcDot(g2,g2,'r')
+ gmin = 1.0/(gam11*gam22-gam12**2)
+ HOLZdata%gp(1) = (cell%CalcDot(gshort,g1,'r')*gam22-cell%CalcDot(gshort,g2,'r')*gam12)*gmin
+ HOLZdata%gp(2) = (cell%CalcDot(gshort,g2,'r')*gam11-cell%CalcDot(gshort,g1,'r')*gam12)*gmin
+
+! coordinate transformation matrix for g1 along x (our standard orientation for all programs)
+ phi = cell%CalcAngle(g1,g2,'r')
+ glen = cell%CalcLength(g2,'r')
+ HOLZdata%gtoc(1,1) = cell%CalcLength(g1,'r')
+ HOLZdata%gtoc(1,2) = glen * cos(phi)
+ HOLZdata%gtoc(2,1) = 0.0
+ HOLZdata%gtoc(2,2) = glen * sin(phi)
+
+! first normalize the zone axis in cartesian components; this is the z-axis
+  call cell%TransSpace(float(uvw),c,'d','c')
+  call cell%NormVec(c,'c')
+
+! then make ga the x-axis
+  call cell%TransSpace(g1,gx,'r','c')
+  call cell%NormVec(gx,'c')
+  HOLZdata%gx = gx
+
+! compute the cross product between k and gx; this is the y-axis
+  call cell%CalcCross(c,gx,gy,'c','c',0)
+  HOLZdata%gy = gy
+
+
+end subroutine GetHOLZGeometry_
+
 
 end module mod_HOLZ

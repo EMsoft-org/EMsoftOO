@@ -38,14 +38,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
 
-  # Add_EMsoftOO_Executable(TARGET EMLACBED
-  #                     SOURCES ${APP_DIR}/EMLACBED.f90 
-  #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-  #                     TEMPLATE ${TMPLT_DIR}/EMLACBED.template 
-  #                     SOLUTION_FOLDER EMsoftPublic/TEM 
-  #                     INSTALL_PROGRAM TRUE
-  #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
-  #                     )
+  Add_EMsoftOO_Executable(TARGET EMLACBED
+                      SOURCES ${APP_DIR}/EMLACBED.f90 
+                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                      TEMPLATE ${TMPLT_DIR}/EMLACBED.template 
+                      SOLUTION_FOLDER EMsoftPublic/TEM 
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
+                      )
 
   # Add_EMsoftOO_Executable(TARGET EMPEDZA 
   #                     SOURCES ${APP_DIR}/EMPEDZA.f90 

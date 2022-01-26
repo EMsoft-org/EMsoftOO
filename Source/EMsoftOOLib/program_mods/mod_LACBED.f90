@@ -475,6 +475,7 @@ type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname
 character(fnlen), INTENT(INOUT)         :: nmldeffile
 
+type(LACBEDNameListType)                  :: nml
 type(Cell_T)                              :: cell
 type(reflisttype),pointer                 :: firstw, nexts, rl, rltmpa, rltmpb
 type(gvectors_T)                          :: reflist
@@ -489,6 +490,7 @@ type(kvectors_T)                          :: kvec
 type(Timing_T)                            :: timer
 type(SpaceGroup_T)                        :: SG
 type(IO_T)                                :: Message
+type(HOLZ_T)                              :: HOLZ
 logical                                   :: verbose
 
 integer(kind=irg)                         :: sLUT, i, ii, jj, ik, ithick, parity, hkl(6,23), Pmdims, h(6), gindex, io_int(6)
@@ -534,6 +536,8 @@ character(2)                              :: str
 
 ! simplify the notation a little
 associate( cbednl => self%nml )
+
+nml = self%getNameList_()
 
 call openFortranHDFInterface()
 ! set the HDF group names for this program
@@ -710,7 +714,7 @@ io_int(1) = cbednl%nthreads
 call Message%WriteValue(' Attempting to set number of threads to ',io_int, 1, frm = "(I4)")
 
 !$OMP  PARALLEL DEFAULT(PRIVATE) SHARED(numk, klistarray, FN, kkk, verbose) &
-!$OMP& SHARED(cbednl, intensity, cell, BetheParameters, thick, numt, ik, Diff, SG)
+!$OMP& SHARED(nml, intensity, cell, BetheParameters, thick, numt, ik, Diff, SG)
 
 NUMTHREADS = OMP_GET_NUM_THREADS()
 TID = OMP_GET_THREAD_NUM()
@@ -726,7 +730,7 @@ do ik = 1,numk
 ! in combination with the Bethe potential approach; this needs to be done only once for each thread
   if (firstloop.eqv..TRUE.) then 
     reflist = gvectors_T()
-    call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, cbednl%dmin, verbose=.False.)
+    call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, nml%dmin, verbose=.False.)
     firstloop = .FALSE.
   end if
 
@@ -896,7 +900,8 @@ sc = mLambda * 1000.0 * 300.0 / 25.4  ! the absolute value does not matter and i
     call self%CheckPatternSymmetry(cell,SG,cbednl%k,ga,isym,thetam)
 
     ! initialize the HOLZ geometry type
-    call GetHOLZGeometry(cell,HOLZdata,float(ga),float(gb),cbednl%k,cbednl%fn) 
+    HOLZ = HOLZ_T()
+    call HOLZ%GetHOLZGeometry(cell,HOLZdata,float(ga),float(gb),cbednl%k,cbednl%fn) 
 
 ! keep track of the reflection identifier in ranking
 refcnt = 1
@@ -912,7 +917,7 @@ outerloop2: do while (associated(rltmpa))
     familymult(ifamily) = 1
     ranking(ifamily) = refcnt
 ! get the disk offset parameters
-    pxy = sc * GetHOLZcoordinates(cell,HOLZdata,float(famhkl), (/ 0.0, 0.0, 0.0 /), sngl(mLambda))
+    pxy = sc * HOLZ%GetHOLZcoordinates(cell,HOLZdata,float(famhkl), (/ 0.0, 0.0, 0.0 /), sngl(mLambda))
     diskoffset(1:2,ifamily) = pxy
   
 ! and remove the equivalent reflections from the list
@@ -948,7 +953,8 @@ outerloop2: do while (associated(rltmpa))
   do ir=1,ifamily
     whichHOLZ(ir) = iabs(cbednl%k(1)*familyhkl(1,ir)+cbednl%k(2)*familyhkl(2,ir)+cbednl%k(3)*familyhkl(3,ir))
     if (whichHOLZ(ir).le.cbednl%maxHOLZ) then 
-      if ((maxval(intensity(ranking(ir),:,:)).ge.minten).or.(Diff%getdbdiff((/familyhkl(1,ir),familyhkl(2,ir),familyhkl(3,ir)/)))) then
+      if ((maxval(intensity(ranking(ir),:,:)).ge.minten).or. &
+          (Diff%getdbdiff((/familyhkl(1,ir),familyhkl(2,ir),familyhkl(3,ir)/)))) then
         icnt = icnt+1
       else  ! just change the HOLZ value to some large value to make sure it does not get written to the file
         whichHOLZ(ir) = 100
