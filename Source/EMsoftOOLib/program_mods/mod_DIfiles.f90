@@ -628,12 +628,12 @@ if (.not.skipread) then
         call Message%printError('readNameList:',' experimental file name is undefined in '//nmlfile)
     end if
 
-    if (numsx.eq.0) then
-        call Message%printError('readNameList:',' pattern size numsx is zero in '//nmlfile)
+    if (exptnumsx.eq.0) then
+        call Message%printError('readNameList:',' pattern size exptnumsx is zero in '//nmlfile)
     end if
 
-    if (numsy.eq.0) then
-        call Message%printError('readNameList:',' pattern size numsy is zero in '//nmlfile)
+    if (exptnumsy.eq.0) then
+        call Message%printError('readNameList:',' pattern size exptnumsy is zero in '//nmlfile)
     end if
 
 end if

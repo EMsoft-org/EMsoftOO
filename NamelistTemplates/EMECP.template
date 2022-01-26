@@ -40,6 +40,8 @@
 !==============================================================
 ! the nml parameters only used in case of two layered structure
 ! ignore them for normal ECP calculation
+! this is an experimental part of the code and is not guaranteed 
+! to work properly...
 !==============================================================
 ! foil normal of film
  fn_f = 0,0,1,

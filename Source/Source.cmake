@@ -28,7 +28,7 @@ set(MODALITY_DIRS
     #pyEMsoftOO
     SEM
     Shapes
-    # TEM
+    TEM
     # QC
     Utilities
     TestPrograms

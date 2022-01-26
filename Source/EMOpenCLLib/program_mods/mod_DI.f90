@@ -289,20 +289,16 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /), silent=.TRUE.)
 
 ! initialize the IPF map class; since we are not using an nmlfile argument here,
 ! we must manually initialize the parameters in this class
-! IPF = IPF_T()
+IPF = IPF_T()
 
 ! here we initialize the parameters of the IPF class; we will take a default file name 
 ! of IPFmapfile = 'currentIPFZmap.tiff' with the current data path pre-pended.
-! IPFmapfile = EMsoft%generateFilePath('EMdatapathname','currentIPFZmap.tiff')
 IPFmapfile = 'currentIPFZmap.tiff'
-! call IPF%set_dotproductfile('undefined') ! we haven't created this file yet !!
 call IPF%set_IPFfilename(IPFmapfile)
 call IPF%set_sampleDir( (/ 0, 0, 1 /) )
 call IPF%set_nthreads(1)
 IPFmode = 'TSL'
 call IPF%set_IPFmode(IPFmode)
-call IPF%set_pgnum(pgnum)
-
 
 ! link the proc procedure to the cproc argument
 Clinked = .FALSE.
@@ -403,6 +399,13 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     ! 3. for EBSD/TKD copy a few parameters from dinl to enl
     ! and generate the detector arrays
     if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.)) then
+      binx = dinl%exptnumsx/dinl%binning
+      biny = dinl%exptnumsy/dinl%binning
+      bindx = 1.0/float(dinl%binning)**2
+      ! we also force the dictionary patterns to have this size 
+      dinl%numsx = binx
+      dinl%numsy = biny
+
       call mem%alloc(det%rgx, (/ dinl%numsx,dinl%numsy /), 'det%rgx') 
       call mem%alloc(det%rgy, (/ dinl%numsx,dinl%numsy /), 'det%rgy') 
       call mem%alloc(det%rgz, (/ dinl%numsx,dinl%numsy /), 'det%rgz') 
@@ -576,7 +579,10 @@ if (trim(dinl%indexingmode).eq.'static') then
     call Message%printMessage('-->  completed initial reading of dictionary file ')
 end if
 
+! set the point group for the intermediate IPF map generation
+call IPF%set_pgnum(pgnum)
 
+! handle the ROI parameters
 if (sum(dinl%ROI).ne.0) then
   ROIselected = .TRUE.
   iiistart = dinl%ROI(2)
@@ -599,8 +605,8 @@ if (ROIselected.eqv..TRUE.) then
 else
     totnumexpt = dinl%ipf_wd*dinl%ipf_ht
 end if
-imght = dinl%numsx/dinl%binning
-imgwd = dinl%numsy/dinl%binning
+imght = dinl%numsx
+imgwd = dinl%numsy
 dims = (/imght, imgwd/)
 nnk = dinl%nnk
 ncubochoric = dinl%ncubochoric
@@ -677,11 +683,6 @@ end if
 !====================================
 ! init a bunch of parameters
 !====================================
-! binned pattern array
-binx = dinl%numsx/dinl%binning
-biny = dinl%numsy/dinl%binning
-bindx = 1.0/float(dinl%binning)**2
-
 ! allocate the square-Lambert arrays
 npy = mpnl%npx
 if (trim(dinl%indexingmode).eq.'dynamic') then
@@ -754,19 +755,6 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
 ! we can now delete the linked list since we have the FZarray
     call SO%delete_FZlist()
 end if
-
-! IPFmap = IPFmap_T()
-
-! call IPFmap%set_ipf_LaueClass(PGLaueinv(pgnum))
-! call IPFmap%set_ipf_wd(dinl%ipf_wd)
-! call IPFmap%set_ipf_ht(dinl%ipf_ht)
-! IPFmode = 'TSL'
-! call IPFmap%set_ipf_mode(IPFmode)
-! call IPFmap%set_ipf_filename(IPFmapfile)
-! call IPFmap%set_ipf_nthreads(1)
-
-! qu = Quaternion_T( qd = (/1.D0,0.D0,0.D0,0.D0/) )
-! write (*,*) 'RGB = ',IPFmap%get_ipf_RGB( (/0.D0, 0.D0, 1.D0/), qu, sym, sym%getQnumber() )
 
 !================================
 ! INITIALIZATION OF OpenCL DEVICE
@@ -1016,7 +1004,7 @@ else
 end if
 
 ! define the jpar array of integer parameters
-jpar(1) = dinl%binning
+jpar(1) = 1 ! dinl%binning
 jpar(2) = dinl%numsx
 jpar(3) = dinl%numsy
 jpar(4) = mpnl%npx
@@ -1262,9 +1250,9 @@ dictionaryloop: do ii = 1,cratio+1
          end if
 
 ! hi pass filtering
-!      rdata = dble(binned)
-!      fdata = HiPassFilter(rdata,dims,w)
-!      binned = sngl(fdata)
+         rdata = dble(binned)
+         fdata = HiPassFilter(rdata,dims,w)
+         binned = sngl(fdata)
 
 ! adaptive histogram equalization
          ma = maxval(binned)

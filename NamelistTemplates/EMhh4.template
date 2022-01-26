@@ -99,7 +99,7 @@
 !======================================================================
 !======================================================================
 ! DO NOT UNCOMMENT THE FOLLOWING LIST OF PARAMETERS; THEY ARE NOT USED
-! IN THE EMsoft 4.3 RELEASE OF THE HH PROGRAM.
+! IN THE EMsoftOO RELEASE OF THE HH PROGRAM.
 !======================================================================
 !======================================================================
 !======================================================================
@@ -141,7 +141,7 @@
 !
 !=====================================================
 ! original input parameters that no longer need to be defined in 
-! this EMsoft implementation of hh4
+! this EMsoftOO implementation of hh4
 !
 ! the crystal structure data is handled via the standard .xtal input file
 !       A,B,C           = unit cell parameters in Angstroem, 

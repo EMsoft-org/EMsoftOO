@@ -45,15 +45,11 @@ type, public :: MPoverlapNameListType
   integer(kind=irg)       :: HorizontalAxisA(3)
   real(kind=sgl)          :: tA(3)
   real(kind=sgl)          :: tB(3)
-  real(kind=sgl)          :: tA2(3)
   real(kind=sgl)          :: tC(3)
-  real(kind=sgl)          :: tA3(3)
   real(kind=sgl)          :: tD(3)
   real(kind=sgl)          :: gA(3)
   real(kind=sgl)          :: gB(3)
-  real(kind=sgl)          :: gA2(3)
   real(kind=sgl)          :: gC(3)
-  real(kind=sgl)          :: gA3(3)
   real(kind=sgl)          :: gD(3)
   real(kind=sgl)          :: fracB
   real(kind=sgl)          :: fracC
@@ -158,15 +154,11 @@ integer(kind=irg)       :: PatternAxisA(3)
 integer(kind=irg)       :: HorizontalAxisA(3)
 real(kind=sgl)          :: tA(3)
 real(kind=sgl)          :: tB(3)
-real(kind=sgl)          :: tA2(3)
 real(kind=sgl)          :: tC(3)
-real(kind=sgl)          :: tA3(3)
 real(kind=sgl)          :: tD(3)
 real(kind=sgl)          :: gA(3)
 real(kind=sgl)          :: gB(3)
-real(kind=sgl)          :: gA2(3)
 real(kind=sgl)          :: gC(3)
-real(kind=sgl)          :: gA3(3)
 real(kind=sgl)          :: gD(3)
 real(kind=sgl)          :: fracB
 real(kind=sgl)          :: fracC
@@ -183,7 +175,7 @@ character(fnlen)        :: modality
 ! define the IO namelist to facilitate passing variables to the program.
 namelist / MPoverlapdata / PatternAxisA, tA, tB, gA, gB, masterfileA, masterfileB, modality, &
                            datafile, HorizontalAxisA, overlapmode, newpgnum, tC, gC, tD, gD, fracB, &
-                           fracC, fracD, masterfileC, masterfileD, gA2, gA3, tA2, tA3, h5copypath
+                           fracC, fracD, masterfileC, masterfileD, h5copypath
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 newpgnum        = -1                            ! -1 means 'use the point group of phase A'
@@ -191,15 +183,11 @@ PatternAxisA    = (/ 0, 0, 1 /)                 ! center axis for output pattern
 HorizontalAxisA = (/ 1, 0, 0 /)                 ! horizontal axis for output pattern
 tA              = (/0.0, 0.0, 1.0/)             ! direction vector in crystal A
 tB              = (/0.0, 0.0, 1.0/)             ! direction vector in crystal B
-tA2             = (/0.0, 0.0, 1.0/)             ! direction vector in crystal A
 tC              = (/0.0, 0.0, 1.0/)             ! direction vector in crystal C
-tA3             = (/0.0, 0.0, 1.0/)             ! direction vector in crystal A
 tD              = (/0.0, 0.0, 1.0/)             ! direction vector in crystal D
 gA              = (/1.0, 0.0, 0.0/)             ! plane normal in crystal A
 gB              = (/1.0, 0.0, 0.0/)             ! plane normal in crystal B
-gA2             = (/1.0, 0.0, 0.0/)             ! plane normal in crystal A
 gC              = (/1.0, 0.0, 0.0/)             ! plane normal in crystal C
-gA3             = (/1.0, 0.0, 0.0/)             ! plane normal in crystal A
 gD              = (/1.0, 0.0, 0.0/)             ! plane normal in crystal D
 fracB           = 0.25                          ! volume fraction of phase B
 fracC           = 0.25                          ! volume fraction of phase C
@@ -243,15 +231,11 @@ self%nml%PatternAxisA = PatternAxisA
 self%nml%HorizontalAxisA = HorizontalAxisA
 self%nml%tA = tA
 self%nml%tB = tB
-self%nml%tA2= tA2
 self%nml%tC = tC
-self%nml%tA3= tA3
 self%nml%tD = tD
 self%nml%gA = gA
 self%nml%gB = gB
-self%nml%gA2= gA2
 self%nml%gC = gC
-self%nml%gA3= gA3
 self%nml%gD = gD
 self%nml%fracB = fracB
 self%nml%fracC = fracC
@@ -361,14 +345,6 @@ dataset = 'tA'
 hdferr = HDF%writeDatasetFloatArray(dataset, emnl%tA, 3)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tA dataset',hdferr)
 
-dataset = 'tA2'
-hdferr = HDF%writeDatasetFloatArray(dataset, emnl%tA2, 3)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tA2 dataset',hdferr)
-
-dataset = 'tA3'
-hdferr = HDF%writeDatasetFloatArray(dataset, emnl%tA3, 3)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tA3 dataset',hdferr)
-
 dataset = 'tB'
 hdferr = HDF%writeDatasetFloatArray(dataset, emnl%tB, 3)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tB dataset',hdferr)
@@ -385,14 +361,6 @@ if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tD dat
 dataset = 'gA'
 hdferr = HDF%writeDatasetFloatArray(dataset, emnl%gA, 3)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create gA dataset',hdferr)
-
-dataset = 'gA2'
-hdferr = HDF%writeDatasetFloatArray(dataset, emnl%gA2, 3)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create gA2 dataset',hdferr)
-
-dataset = 'gA3'
-hdferr = HDF%writeDatasetFloatArray(dataset, emnl%gA3, 3)
-if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create gA3 dataset',hdferr)
 
 dataset = 'gB'
 hdferr = HDF%writeDatasetFloatArray(dataset, emnl%gB, 3)
