@@ -40,7 +40,6 @@ module mod_PEDZA
   
   ! namelist for the EMPEDZA program
   type, public :: PEDZANameListType
-      integer(kind=irg)       :: stdout
     integer(kind=irg)       :: k(3)
     integer(kind=irg)       :: fn(3)
     integer(kind=irg)       :: precsample
@@ -62,8 +61,8 @@ module mod_PEDZA
   ! class definition
   type, public :: PEDZA_T
   private 
-    character(fnlen)       :: nmldeffile = 'EMPEDZA.self%nml'
-    type(PEDZANameListType)  :: nml 
+    character(fnlen)          :: nmldeffile = 'EMPEDZA.nml'
+    type(PEDZANameListType)   :: nml 
   
   contains
   private 
@@ -134,7 +133,7 @@ module mod_PEDZA
   
   IMPLICIT NONE 
   
-  class(PEDZA_T), INTENT(INOUT)          :: self
+  class(PEDZA_T), INTENT(INOUT)        :: self
   character(fnlen),INTENT(IN)          :: nmlfile
    !! full path to namelist file 
   logical,OPTIONAL,INTENT(IN)          :: initonly
@@ -144,7 +143,6 @@ module mod_PEDZA
   type(IO_T)                           :: Message       
   logical                              :: skipread = .FALSE.
   
-  integer(kind=irg)       :: stdout
   integer(kind=irg)       :: k(3)
   integer(kind=irg)       :: fn(3)
   integer(kind=irg)       :: precsample
@@ -162,13 +160,12 @@ module mod_PEDZA
   character(fnlen)        :: outname
   
   ! define the IO namelist to facilitate passing variables to the program.
-  namelist /EMPEDZA/ stdout, xtalname, voltage, k, fn, dmin, precangle, prechalfwidth, precsample, precazimuthal, &
-                                thickness,  outname, npix, camlen, filemode, nthreads
+  namelist /EMPEDZA/ xtalname, voltage, k, fn, dmin, precangle, prechalfwidth, precsample, precazimuthal, &
+                     thickness,  outname, npix, camlen, filemode, nthreads
 
   ! set the input parameters to default values (except for xtalname, which must be present)
   xtalname = 'undefined'          ! initial value to check that the keyword is present in the self%nml file
-  stdout = 6                      ! standard output
-  voltage = 200000.0              ! acceleration voltage [V]
+  voltage = 200.0                 ! acceleration voltage [kV]
   k = (/ 0, 0, 1 /)               ! beam direction [direction indices]
   fn = (/ 0, 0, 1 /)              ! foil normal [direction indices]
   dmin = 0.025                    ! smallest d-spacing to include in dynamical matrix [nm]
@@ -202,7 +199,6 @@ module mod_PEDZA
 
   ! if we get here, then all appears to be ok, and we need to fill in the self%self%nml fields
   self%nml%xtalname = xtalname
-  self%nml%stdout = stdout
   self%nml%voltage = voltage
   self%nml%k = k
   self%nml%fn = fn
@@ -253,16 +249,16 @@ module mod_PEDZA
   
   IMPLICIT NONE
   
-  class(PEDZA_T), INTENT(INOUT)        :: self 
+  class(PEDZA_T), INTENT(INOUT)           :: self 
   type(HDF_T), INTENT(INOUT)              :: HDF
   type(HDFnames_T), INTENT(INOUT)         :: HDFnames
   
-  integer(kind=irg),parameter                           :: n_int = 5, n_real = 6
-  integer(kind=irg)                                     :: hdferr, io_int(n_int)
-  real(kind=sgl)                                        :: io_real(n_real)
-  character(20)                                         :: intlist(n_int), reallist(n_real)
-  character(fnlen)                                      :: dataset, groupname
-  character(fnlen,kind=c_char)                          :: line2(1)  
+  integer(kind=irg),parameter             :: n_int = 4, n_real = 6
+  integer(kind=irg)                       :: hdferr, io_int(n_int)
+  real(kind=sgl)                          :: io_real(n_real)
+  character(20)                           :: intlist(n_int), reallist(n_real)
+  character(fnlen)                        :: dataset, groupname
+  character(fnlen,kind=c_char)            :: line2(1)  
   
   associate( pednl => self%nml )
   
@@ -271,12 +267,11 @@ module mod_PEDZA
   hdferr = HDF%createGroup(groupname)
 
   ! write all the single integers
-  io_int = (/ pednl%stdout, pednl%precsample, pednl%precazimuthal, pednl%npix, pednl%nthreads /)
-  intlist(1) = 'stdout'
-  intlist(2) = 'precsample'
-  intlist(3) = 'precazimuthal'
-  intlist(4) = 'npix'
-  intlist(5) = 'nthreads'
+  io_int = (/  pednl%precsample, pednl%precazimuthal, pednl%npix, pednl%nthreads /)
+  intlist(1) = 'precsample'
+  intlist(2) = 'precazimuthal'
+  intlist(3) = 'npix'
+  intlist(4) = 'nthreads'
   call HDF%writeNMLintegers(io_int, intlist, n_int)
 
   ! vectors
@@ -340,6 +335,7 @@ module mod_PEDZA
   use mod_kvectors
   use mod_io
   use mod_timing
+  use mod_memory
   use mod_diffraction
   use mod_symmetry
   use mod_quaternions
@@ -352,28 +348,29 @@ module mod_PEDZA
 
   IMPLICIT NONE 
   
-  class(PEDZA_T), INTENT(INOUT)       :: self
-  type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-  character(fnlen), INTENT(INOUT)         :: progname 
-  character(fnlen), INTENT(INOUT)         :: nmldeffile
+  class(PEDZA_T), INTENT(INOUT)   :: self
+  type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+  character(fnlen), INTENT(INOUT) :: progname 
+  character(fnlen), INTENT(INOUT) :: nmldeffile
 
-  type(Timing_T)                          :: timer
-  type(SpaceGroup_T)                      :: SG
-  type(IO_T)                              :: Message
-  type(Cell_T)                            :: Cell
-  type(Diffraction_T)                     :: Diff    
-  type(gvectors_T)                        :: reflist
-  type(HDF_T)                             :: HDF
-  type(HDFnames_T)                        :: HDFnames
-  type(kvectors_T)                        :: kvec
-  type(kvectorlist),pointer               :: ktmp
+  type(Timing_T)                  :: timer
+  type(SpaceGroup_T)              :: SG
+  type(IO_T)                      :: Message
+  type(Cell_T)                    :: Cell
+  type(Diffraction_T)             :: Diff    
+  type(gvectors_T)                :: reflist
+  type(HDF_T)                     :: HDF
+  type(HDFnames_T)                :: HDFnames
+  type(kvectors_T)                :: kvec
+  type(kvectorlist),pointer       :: ktmp
+  type(memory_T)                  :: mem 
   
   real(kind=sgl)                  :: ktmax, io_real(3), bragg, thetac, sc, minten, pxy(2), galen, DM(2,2),DD,X(2),tstart,tstop, &
-                                   frac, startthick, thick(1), klaue(2), thetam, kk(3), goffset,FN(3), kn, pmult
+                                     frac, startthick, thick(1), klaue(2), thetam, kk(3), goffset,FN(3), kn, pmult
   integer(kind=irg)               :: ijmax,ga(3),gb(3),cnt, PX, numthick, ss, icnt, pgnum, ih, nunique, famnum, tickstart, &
-                                    newcount,count_rate,count_max, io_int(6), i, j, isym, ir, skip, ghkl(3),hdferr, &
-                                    npx, npy, numt, numk, ik, ip, jp, istat, dgn, nbeams, refcnt, gzero, TID, &
-                                    ifamily, famhkl(3), inum, maxHOLZ, numksame, nns, nnw, nref, nt, NUMTHREADS
+                                     newcount,count_rate,count_max, io_int(6), i, j, isym, ir, skip, ghkl(3),hdferr, &
+                                     npx, npy, numt, numk, ik, ip, jp, istat, dgn, nbeams, refcnt, gzero, TID, &
+                                     ifamily, famhkl(3), inum, maxHOLZ, numksame, nns, nnw, nref, nt, NUMTHREADS
   character(3)                    :: method
   character(fnlen)                :: datafile, groupname, dataset, outname
   character(fnlen)                :: datagroupname
@@ -414,6 +411,8 @@ module mod_PEDZA
   timer = Timing_T()
   tstrb = timer%getTimeString()
 
+  mem = memory_T()
+
 !===========================================================================================
 ! CRYSTALLOGRAPHY
 !===========================================================================================
@@ -440,7 +439,7 @@ module mod_PEDZA
   end do
   isym = j  
 
-  ! use the new routine to get the whole pattern 2D symmetry group, since that
+! use the new routine to get the whole pattern 2D symmetry group, since that
 ! is the one that determines the independent beam directions.
   dgn = SG%GetPatternSymmetry(pednl%k,j,.TRUE.)
   pgnum = j
@@ -456,7 +455,8 @@ module mod_PEDZA
   !=============================================
   !=============================================
   ! determine the list of contributing wave vectors
-  call kvec%CalckvectorsPrecession(cell,Diff,dble(pednl%k),dble(ga),pednl%precangle,pednl%prechalfwidth,pednl%precsample,pednl%precazimuthal,numk)
+  call kvec%CalckvectorsPrecession(cell,Diff,dble(pednl%k),dble(ga),pednl%precangle,pednl%prechalfwidth,&
+                                   pednl%precsample,pednl%precazimuthal,numk)
   
   !=============================================
   !=============================================
@@ -467,9 +467,8 @@ module mod_PEDZA
   ! do not actually use the true value, but in the IDL visualization program, we scale the user defined camera length by
   ! 1000.0, and use this ratio to scale the diskoffset coordinates.  So, there's no absolute length scale, only a relative scale.
 
-  ! next we create the output array (not sure yet how to do this)
-  allocate(disk(-pednl%npix:pednl%npix,-pednl%npix:pednl%npix))
-  disk=0.0
+  ! next we create the output array 
+  call mem%alloc(disk, (/ pednl%npix, pednl%npix /), 'disk', initval = 0.0, startdims = (/ -pednl%npix, -pednl%npix /))
 
   !===============================
   ! HDF5 I/O
@@ -547,7 +546,8 @@ module mod_PEDZA
   ! first convert the linked wave vector list to a set of regular arrays, so that we can 
 ! use OpenMP for this computation
   numk = kvec%get_numk()
-  allocate(karray(4,numk), kij(2,numk),stat=istat)
+  call mem%alloc(karray, (/ 4,numk /), 'karray', initval = 0.0) 
+  call mem%alloc(kij, (/ 2,numk /), 'kij', initval = 0)
 ! point to the first beam direction
   ktmp => kvec%get_ListHead()
 ! and loop through the list, keeping k, kn, and i,j
@@ -596,9 +596,10 @@ module mod_PEDZA
   nullify(firstw)
 
   first = .TRUE.
+  frac = 0.0
   
   ! loop over all beam orientations 
-kvectorloop:  do ik = 1,2
+kvectorloop:  do ik = 1,numk
 ! generate the reflectionlist; this actually calls for a special routine, since the traditional ones
 ! are separate for the list generation and the subsequent application of the Bethe potentials; in the
 ! present case, we need to use an existing reflist, and in one pass determine the BethePotentials
@@ -610,12 +611,11 @@ kvectorloop:  do ik = 1,2
    if (ik.eq.1) first = .FALSE.
 
  ! generate the dynamical matrix
-    allocate(DynMat(nns,nns))
+    call mem%alloc(DynMat, (/ nns,nns /), 'DynMat', initval = complex(0.D0,0.D0))
     call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
 
  ! allocate the intensity array to include both strong beams and weak beams (in that order)
-    allocate(inten(numt,nns))
-    inten = 0.0
+    call mem%alloc(inten, (/ numt,nns /), 'inten', initval = 0.0)
  
  ! solve the dynamical eigenvalue equation for this beam direction
     kn = karray(4,ik)
@@ -629,10 +629,9 @@ kvectorloop:  do ik = 1,2
       rltmpa=>rltmpa%nexts
     end do
 
-
 ! ! and remove the intensity array
-    deallocate(DynMat)
-    deallocate(inten)
+    call mem%dealloc(DynMat, 'DynMat')
+    call mem%dealloc(inten, 'inten')
 
 ! ! remove all the computed intensities for per pattern storage    
     if (pednl%filemode.eq.'eachp') then
@@ -675,13 +674,13 @@ kvectorloop:  do ik = 1,2
 ! update computation progress
    if (float(ik)/float(numk) .gt. frac) then
     io_int(1) = nint(100.0*frac) 
-    call Message%WriteValue('       ', io_int, 1, "(1x,I3,' percent completed')") 
+    call Message%WriteValue('       ', io_int, 1, "(1x,I3,'% completed')") 
     frac = frac + 0.05
    end if  
 
 ! reset the strong reflection pointers to null
-    rltmpa => reflist%Get_ListHead()
-    rltmpa => rltmpa%next
+   rltmpa => reflist%Get_ListHead()
+   rltmpa => rltmpa%next
    do i=1,nref
      rltmpa%strong = .FALSE.
      rltmpa%weak = .FALSE.
@@ -710,13 +709,15 @@ if (pednl%filemode.eq.'total') then
      hdferr = HDF%writeDatasetInteger(dataset, refcnt) 
   
   ! ! allocate arrays for output
-     allocate(hklarray(3,refcnt), intarray(refcnt), positions(2,refcnt))
+     call mem%alloc(hklarray, (/ 3,refcnt /), 'hklarray', initval = 0) 
+     call mem%alloc(intarray, (/ refcnt /), 'intarray', initval = 0.0)
+     call mem%alloc(positions, (/ 2,refcnt /), 'positions', initval = 0.0)
   
      rltmpa => reflist%Get_ListHead()
      rltmpa =>  rltmpa%next
-      icnt = 1
-      do i=1,nref
-        if (rltmpa%xg.ne.0.D0) then
+     icnt = 1
+     do i=1,nref
+       if (rltmpa%xg.ne.0.D0) then
     ! decompose this point w.r.t ga and gb
           X(1) = cell%CalcDot(float(rltmpa%hkl),float(ga),'c')
           X(2) = cell%CalcDot(float(rltmpa%hkl),float(gb),'c')
@@ -725,9 +726,9 @@ if (pednl%filemode.eq.'total') then
           intarray(icnt) = rltmpa%xg
           positions(1:2,icnt) = X
           icnt = icnt+1
-        end if
-        rltmpa => rltmpa%next
-      end do
+       end if
+       rltmpa => rltmpa%next
+     end do
   
   ! and write these arrays to the HDF5 file
   dataset = SC_hklarray
@@ -745,7 +746,10 @@ if (pednl%filemode.eq.'total') then
     rnmpp = 1.0/0.075
     ww = 6
     tdp = 2*ww+1
-    allocate(xx(-ww:ww,-ww:ww), yy(-ww:ww,-ww:ww), line(-ww:ww), dot(-ww:ww,-ww:ww))
+    call mem%alloc(xx, (/ ww,ww /), 'xx', initval = 0.0, startdims = (/-ww, -ww/)) 
+    call mem%alloc(yy, (/ ww,ww /), 'yy', initval = 0.0, startdims = (/-ww, -ww/)) 
+    call mem%alloc(line, (/ ww /), 'line', initval = 0.0, startdims = (/ -ww /)) 
+    call mem%alloc(dot, (/ ww,ww /), 'dot', initval = 0.0, startdims = (/-ww, -ww/)) 
     line = (/ (float(i),i=-ww,ww) /) * rnmpp
     xx = spread(line,dim=1,ncopies=2*ww+1)
     yy = transpose(xx)
@@ -754,10 +758,11 @@ if (pednl%filemode.eq.'total') then
   !=============================================
   ! create the output array
     nsize = pednl%npix/2 + ww 
-    allocate(pedpattern(-nsize:nsize,-nsize:nsize))
+    call mem%alloc(pedpattern, (/ nsize, nsize /), 'pedpattern', initval = 0.0, startdims = (/-nsize,-nsize/))
     Igmax = maxval(intarray(2:refcnt))
     write (*,*) ' Maximum diffracted intensity : ',Igmax
-    allocate(ped(1:pednl%npix,1:pednl%npix),pedpat(-nsize:nsize,-nsize:nsize))
+    call mem%alloc(ped, (/ pednl%npix, pednl%npix /), 'ped', initval = char(0))
+    call mem%alloc(pedpat, (/ nsize, nsize /), 'pedpat', initval = char(0), startdims = (/-nsize,-nsize/))
   
     k(1:3) = float(pednl%k)/mLambda
     rltmpa => reflist%Get_ListHead()
@@ -818,12 +823,23 @@ if (pednl%filemode.eq.'total') then
      call HDF%pop(.TRUE.)
 
      call Message%PrintMessage(' Data stored in '//pednl%outname,"(/A/)") 
-  
-  
+
+     call mem%dealloc(hklarray, 'hklarray')
+     call mem%dealloc(intarray, 'intarray')
+     call mem%dealloc(positions, 'positions')
+     call mem%dealloc(pedpattern, 'pedpattern')
+     call mem%dealloc(pedpat, 'pedpat')
+     call mem%dealloc(ped, 'ped')
+     call mem%dealloc(line, 'line')
+     call mem%dealloc(xx, 'xx')
+     call mem%dealloc(yy, 'yy')
+     call mem%dealloc(dot, 'dot')
   end if
 
-
   end associate
+
+  call mem%dealloc(karray, 'karray')
+  call mem%dealloc(kij, 'kij')
 
   end subroutine PEDZA_
   

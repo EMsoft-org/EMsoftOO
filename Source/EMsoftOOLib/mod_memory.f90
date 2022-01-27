@@ -624,7 +624,7 @@ end subroutine toggle_verbose_
 ! Here we have the individual routines for all relevant data types 
 ! Since f90 does not have templates, we need separate routines for all types.
 ! 
-! For the character type, we only do 1D and 2D arrays; it is unlikely that we 
+! For the character string type, we only do 1D and 2D arrays; it is unlikely that we 
 ! will ever need a 3D array of strings...
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -649,7 +649,7 @@ recursive subroutine alloc_char1_(self, ar, dims, varname, initval, TID, startdi
 IMPLICIT NONE
 
 class(memory_T), INTENT(INOUT)                   :: self
-character(fnlen), INTENT(INOUT), allocatable     :: ar(:)
+character(*), INTENT(INOUT), allocatable         :: ar(:)
 integer(kind=irg), INTENT(IN)                    :: dims(1)
 character(*),INTENT(IN)                          :: varname
 character(*), INTENT(IN), OPTIONAL               :: initval
@@ -736,7 +736,7 @@ subroutine dealloc_char1_(self, ar, varname, TID)
 IMPLICIT NONE
 
 class(memory_T), INTENT(INOUT)                   :: self
-character(fnlen), INTENT(INOUT), allocatable     :: ar(:)
+character(*), INTENT(INOUT), allocatable         :: ar(:)
 character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
@@ -774,7 +774,7 @@ recursive subroutine alloc_char2_(self, ar, dims, varname, initval, TID, startdi
 IMPLICIT NONE
 
 class(memory_T), INTENT(INOUT)                   :: self
-character(fnlen), INTENT(INOUT), allocatable     :: ar(:,:)
+character(*), INTENT(INOUT), allocatable         :: ar(:,:)
 integer(kind=irg), INTENT(IN)                    :: dims(2)
 character(*),INTENT(IN)                          :: varname
 character(*), INTENT(IN), OPTIONAL               :: initval
@@ -861,7 +861,7 @@ subroutine dealloc_char2_(self, ar, varname, TID)
 IMPLICIT NONE
 
 class(memory_T), INTENT(INOUT)                   :: self
-character(fnlen), INTENT(INOUT), allocatable     :: ar(:,:)
+character(*), INTENT(INOUT), allocatable         :: ar(:,:)
 character(*),INTENT(IN)                          :: varname
 integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
 
@@ -6519,6 +6519,255 @@ endif
 
 end subroutine dealloc_logical3_
 
+!--------------------------------------------------------------------------
+recursive subroutine alloc_byte1_(self, ar, dims, varname, initval, TID, startdims)
+!DEC$ ATTRIBUTES DLLEXPORT :: alloc_byte1_
+!! author: MDG
+!! version: 1.0
+!! date: 01/27/22
+!!
+!! allocate an array of type char for single byte arrays
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+character(len=1), INTENT(INOUT), allocatable     :: ar(:)
+integer(kind=irg), INTENT(IN)                    :: dims(1)
+character(*),INTENT(IN)                          :: varname
+character(*), INTENT(IN), OPTIONAL               :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    szar = size(ar)
+    sz = product(szar) * self%bytes_ish
+    self%totmem_ish(LID) = self%totmem_ish(LID) - sz
+    deallocate(ar)
+endif
+
+! allocate the array 
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
+    call Message%printError('mod_memory:alloc_char1_:', &
+      ' Unable to allocate character(fnlen) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_char(LID) = self%totmem_char(LID) + (dims(1)-startdims(1)+1)*fnlen
+  call self%update_total_memory_use_((dims(1)-startdims(1)+1)*fnlen, LID)
+else
+  allocate(ar(dims(1)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_char1_:', &
+        ' Unable to allocate character(fnlen) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_char(LID) = self%totmem_char(LID) + dims(1)*fnlen
+  call self%update_total_memory_use_(dims(1)*fnlen, LID)
+end if
+
+! initalize the array to zeros or initval if present  
+if (present(initval)) then 
+    ar = trim(initval)
+else 
+    ar = ''
+end if
+
+if (self%verbose) then 
+  if (present(startdims)) then 
+    write (szstr,*) (dims(1)-startdims(1)+1)*fnlen
+  else 
+    write (szstr,*) dims(1)*fnlen
+  end if
+  if (present(initval)) then 
+    write (initstr,*) trim(initval)
+  else 
+    write (initstr,*) ''
+  end if
+  outstr = ' -> allocated array '//trim(varname)//' of size '//trim(szstr)//'; initialized to '//trim(initstr)
+  call Message%printMessage(outstr)
+end if
+
+end subroutine alloc_byte1_
+
+!--------------------------------------------------------------------------
+subroutine dealloc_byte1_(self, ar, varname, TID)
+!DEC$ ATTRIBUTES DLLEXPORT :: dealloc_byte1_
+!! author: MDG
+!! version: 1.0
+!! date: 01/27/22
+!!
+!! deallocate an array of type char
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+character(len=1), INTENT(INOUT), allocatable     :: ar(:)
+character(*),INTENT(IN)                          :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr
+integer(kind=irg)                                :: err, LID, sz 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    sz = size(ar)*fnlen 
+    self%totmem_char(LID) = self%totmem_char(LID) - sz
+    call self%update_total_memory_use_( -sz, LID )
+    if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
+    deallocate(ar)
+else 
+    call Message%printMessage(' mod_memory:dealloc_char1_:Warning: attempting to deallocate array that is not allocated. ')
+endif
+
+end subroutine dealloc_byte1_
+
+!--------------------------------------------------------------------------
+recursive subroutine alloc_byte2_(self, ar, dims, varname, initval, TID, startdims)
+!DEC$ ATTRIBUTES DLLEXPORT :: alloc_byte2_
+!! author: MDG
+!! version: 1.0
+!! date: 01/27/22
+!!
+!! allocate an array of type char
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+character(len=1), INTENT(INOUT), allocatable     :: ar(:,:)
+integer(kind=irg), INTENT(IN)                    :: dims(2)
+character(*),INTENT(IN)                          :: varname
+character(*), INTENT(IN), OPTIONAL               :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    szar = size(ar)
+    sz = product(szar) * self%bytes_ish
+    self%totmem_ish(LID) = self%totmem_ish(LID) - sz
+    deallocate(ar)
+endif
+
+! allocate the array 
+! use the startdims array if present 
+if (present(startdims)) then 
+  allocate(ar(startdims(1):dims(1),startdims(2):dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    estr2 = ' '
+    write (estr,*) dims
+    write (estr2,*) startdims
+    outstr = trim(estr)//':'//trim(estr2)
+    call Message%printError('mod_memory:alloc_char2_:', &
+      ' Unable to allocate character(fnlen) array '//trim(varname)//' of dimension '//trim(outstr))
+  end if
+  self%totmem_char(LID) = self%totmem_char(LID) + (dims(1)-startdims(1)+1)*(dims(2)-startdims(2)+1)*fnlen
+  call self%update_total_memory_use_((dims(1)-startdims(1)+1)*(dims(2)-startdims(2)+1)*fnlen, LID)
+else
+  allocate(ar(dims(1),dims(2)), stat = err)
+  if (err.ne.0) then 
+    estr = ' '
+    write (estr,*) dims
+    call Message%printError('mod_memory:alloc_char2_:', &
+        ' Unable to allocate character(fnlen) array'//trim(varname)//' of dimension '//trim(estr))
+  end if
+  self%totmem_char(LID) = self%totmem_char(LID) + dims(1)*dims(2)*fnlen
+  call self%update_total_memory_use_(dims(1)*dims(2)*fnlen, LID)
+end if
+
+! initalize the array to zeros or initval if present  
+if (present(initval)) then 
+    ar = trim(initval)
+else 
+    ar = ''
+end if
+
+if (self%verbose) then 
+  if (present(startdims)) then 
+    write (szstr,*) (dims(1)-startdims(1)+1)*(dims(2)-startdims(2)+1)*fnlen
+  else 
+    write (szstr,*) dims(1)*dims(2)*fnlen
+  end if
+  if (present(initval)) then 
+    write (initstr,*) trim(initval)
+  else 
+    write (initstr,*) ''
+  end if
+  outstr = ' -> allocated array '//trim(varname)//' of size '//trim(szstr)//'; initialized to '//trim(initstr)
+  call Message%printMessage(outstr)
+end if
+
+end subroutine alloc_byte2_
+
+!--------------------------------------------------------------------------
+subroutine dealloc_byte2_(self, ar, varname, TID)
+!DEC$ ATTRIBUTES DLLEXPORT :: dealloc_byte2_
+!! author: MDG
+!! version: 1.0
+!! date: 01/27/22
+!!
+!! deallocate an array of type char
+
+IMPLICIT NONE
+
+class(memory_T), INTENT(INOUT)                   :: self
+character(len=1), INTENT(INOUT), allocatable     :: ar(:,:)
+character(*),INTENT(IN)                          :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: estr
+integer(kind=irg)                                :: err, LID, sz 
+
+! set the local thread identifier
+LID = 1
+if (present(TID)) LID = TID
+
+! if already allocated, then deallocate 
+if (allocated(ar)) then 
+    ! get the size of the allocated array and decrement the correct counter 
+    sz = size(ar)*fnlen 
+    self%totmem_char(LID) = self%totmem_char(LID) - sz
+    call self%update_total_memory_use_( -sz, LID )
+    if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
+    deallocate(ar)
+else 
+    call Message%printMessage(' mod_memory:dealloc_char2_:Warning: attempting to deallocate array that is not allocated. ')
+endif
+
+end subroutine dealloc_byte2_
 
 
 

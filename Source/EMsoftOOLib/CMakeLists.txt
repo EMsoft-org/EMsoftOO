@@ -127,6 +127,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_hh.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_LACBED.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_PEDkin.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_PEDZA.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

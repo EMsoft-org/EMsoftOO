@@ -47,7 +47,7 @@ program EMPEDZA
   type(PEDZA_T)     :: PEDZA 
   
   ! print the EMsoft header and handle any command line arguments  
-  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
+  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 0, 13 /) )
   
   ! deal with the namelist stuff
   PEDZA = PEDZA_T(EMsoft%nmldeffile)
