@@ -482,7 +482,7 @@ type(gvectors_T)                          :: reflist
 type(BetheParameterType)                  :: BetheParameters
 type(gnode),save                          :: rlp
 type(DynType),save                        :: Dyn
-type(Diffraction_T)                       :: Diff
+type(Diffraction_T)                       :: Diff, lDiff
 type(HDF_T)                               :: HDF
 type(HDFnames_T)                          :: HDFnames
 type(kvectorlist),pointer                 :: klist, ktmp
@@ -548,6 +548,8 @@ HDFnames = HDFnames_T()
 timer = Timing_T()
 tstrb = timer%getTimeString()
 
+call timer%Time_tick(1)
+
 voltage         = cbednl%voltage
 minten          = cbednl%minten
 dmin            = cbednl%dmin
@@ -565,7 +567,7 @@ call Diff%setV(dble(voltage))
 
 call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
 
-call Diff%Printrlp()
+! call Diff%Printrlp()
 
 ! determine the point group number
 j=0
@@ -660,7 +662,8 @@ call kvec%Delete_kvectorlist()
 
 !===========================================================================================
 !force dynamical matrix routine to read new Bethe parameters from file
-call Diff%SetBetheParameters(EMsoft, .FALSE., cbednl%BetheParametersFile)
+! call Diff%SetBetheParameters(EMsoft, .FALSE., cbednl%BetheParametersFile)
+call Diff%SetBetheParameters(EMsoft, .TRUE., cbednl%BetheParametersFile)
 ! nullify(mainreflist)
 kkk = klistarray(1:3,1)
 FN = kkk
@@ -713,15 +716,13 @@ call OMP_setNThreads(cbednl%nthreads)
 io_int(1) = cbednl%nthreads
 call Message%WriteValue(' Attempting to set number of threads to ',io_int, 1, frm = "(I4)")
 
-! $OMP  PARALLEL DEFAULT(PRIVATE) SHARED(numk, klistarray, FN, kkk, verbose) &
-! $OMP& SHARED(nml, intensity, cell, BetheParameters, thick, numt, ik, Diff, SG)
-
 !$OMP  PARALLEL DEFAULT(SHARED) PRIVATE(kk, firstloop, NUMTHREADS, TID, reflist, rl, nns, nnw) &
-!$OMP& PRIVATE(DynMat, Tnref, inten, jj, intensity, ii, io_real)
+!$OMP& PRIVATE(DynMat, Tnref, inten, jj, ii, io_real, firstw, lDiff)
 
 NUMTHREADS = OMP_GET_NUM_THREADS()
 TID = OMP_GET_THREAD_NUM()
 firstloop = .TRUE.
+lDiff = Diff
 
 ! perform the main loop over the incident beam directions in parallel
 !$OMP DO SCHEDULE(DYNAMIC)
@@ -733,7 +734,7 @@ do ik = 1,numk
 ! in combination with the Bethe potential approach; this needs to be done only once for each thread
   if (firstloop.eqv..TRUE.) then 
     reflist = gvectors_T()
-    call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, nml%dmin, verbose=.False.)
+    call reflist%Initialize_ReflectionList(cell, SG, lDiff, FN, kkk, nml%dmin, verbose=.False.)
     firstloop = .FALSE.
   end if
 
@@ -754,16 +755,16 @@ do ik = 1,numk
   nullify(firstw)
   nns = 0
   nnw = 0
-  call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
+  call reflist%Apply_BethePotentials(lDiff, firstw, nns, nnw)
 
 ! generate the dynamical matrix
   allocate(DynMat(nns,nns))
-  call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
+  call reflist%GetDynMat(cell, lDiff, firstw, DynMat, nns, nnw)
   Tnref = reflist%get_nref()
 !========================
 ! this line is here as a workaround for some unidentified bug in the GetDynMat routine ...
 ! without this write, the remainder of this loop occasionally produces NaN results
-  if (mod(ik,1000) .eq. 0) write (600,"(4I10,F12.4)") ik, TID, nns, nnw, maxval(abs(DynMat))
+  ! if (mod(ik,1000) .eq. 0) write (600,"(4I10,F12.4)") ik, TID, nns, nnw, maxval(abs(DynMat))
 !========================
 
 ! ! solve the dynamical eigenvalue equation for this beam direction  
@@ -793,11 +794,14 @@ end do
 !$OMP END DO
 !$OMP END PARALLEL
 
+write (*,*) 'maximum intensity value = ', maxval(intensity)
+
+
 ! call timestamp(datestring=dstr, timestring=tstre)
 
 ! !===============================
 ! ! get rid of the bug workaround file
-! close(unit=600,status='delete')
+ close(unit=600,status='delete')
 ! !===============================
 
 
@@ -1113,7 +1117,7 @@ dataset = 'diskoffset'
 hdferr = HDF%writeDatasetFloatArray(dataset, rdiskoffset, 2, numir)
 
 dataset = SC_klist  
-hdferr = HDF%writeDatasetFloatArray(dataset, klistarray, 3, numk)
+hdferr = HDF%writeDatasetFloatArray(dataset, klistarray, 4, numk)
 
 ! before we write the intensities, we need to reorganize the array into a 4D array of diffraction disks 
 ! dataset = SC_Intensities
@@ -1161,11 +1165,10 @@ call HDF%pop(.TRUE.)
 call Message%printMessage(' Output data stored in '//trim(outname))
 call Message%printMessage(' ')
 
-! print some output to the command line
-call system_clock(tstop, clock_rate)
-exec_time   = real(tstop - tstart)/real(clock_rate)
-io_real(1)  = exec_time
-call Message%WriteValue('Execution time = ',io_real,1,'(F8.2,"sec")')
+! timing data output
+call timer%Time_tock(1)
+io_real(1) = timer%getInterval(1)
+call Message%WriteValue('Total run time [s] : ', io_real, 1)
 
 end associate
 

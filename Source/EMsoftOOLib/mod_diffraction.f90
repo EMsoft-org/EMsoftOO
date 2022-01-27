@@ -1559,9 +1559,9 @@ module mod_diffraction
     inquire(file=trim(Bethefilename),exist=fexist)
     
     ! set all default values (must be done here, since nml file may not contain all of them)
-    c1 = 40.0_sgl           ! changed from 8 and 12 for a test on 8/14/15
-    c2 = 50.0_sgl           !
-    c3 = 100.0_sgl          !
+    c1 = 20.0_sgl           ! changed from 8 and 12 for a test on 8/14/15
+    c2 = 40.0_sgl           !
+    c3 = 200.0_sgl          !
     sgdbdiff = 1.00_sgl    !
     
     if (fexist) then ! check for the file in the local folder

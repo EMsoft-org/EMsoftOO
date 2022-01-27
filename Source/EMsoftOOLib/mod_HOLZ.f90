@@ -208,7 +208,7 @@ class(HOLZ_T),INTENT(INOUT)       :: self
 type(HOLZreflection), pointer     :: temp
 
 if (associated(self%HOLZlist)) then
-    temp => self%HOLZlist%next
+    temp => self%HOLZlist ! %next
     do while (associated(temp%next))
       deallocate(self%HOLZlist)
       self%HOLZlist => temp

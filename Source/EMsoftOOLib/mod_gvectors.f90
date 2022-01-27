@@ -1585,14 +1585,13 @@ IMPLICIT NONE
 class(gvectors_T),INTENT(INOUT) :: self
 integer(kind=irg),INTENT(IN)    :: nn                   !< number of strong beams
 complex(kind=dbl),INTENT(IN)    :: DynMat(nn,nn)
-type(Diffraction_T) :: Diff
 type(Cell_T)                    :: cell
 real(kind=sgl),INTENT(IN)       :: kn
-
 integer(kind=irg),INTENT(IN)    :: nt                   !< number of thickness values
 real(kind=sgl),INTENT(IN)       :: thick(nt)            !< thickness array
 real(kind=sgl),INTENT(INOUT)    :: inten(nt,nn)         !< output intensities (both strong and weak)
 
+type(Diffraction_T)             :: Diff
 integer(kind=irg)               :: i,j,IPIV(nn), ll(3), jp
 complex(kind=dbl)               :: CGinv(nn,nn), Minp(nn,nn),diag(nn),Wloc(nn), lCG(nn,nn), lW(nn), &
                                    lalpha(nn), delta(nn,nn) 
