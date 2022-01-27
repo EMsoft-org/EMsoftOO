@@ -29,14 +29,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   GetHDF5LinkLibraries(EMSOFTOO)
   set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFTOO_hdf5LinkLibs} )
 
-  # Add_EMsoftOO_Executable(TARGET EMPEDkin 
-  #                     SOURCES ${APP_DIR}/EMPEDkin.f90 
-  #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-  #                     TEMPLATE ${TMPLT_DIR}/EMPEDkin.template
-  #                     SOLUTION_FOLDER EMsoftPublic/TEM
-  #                     INSTALL_PROGRAM TRUE
-  #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
-  #                     )
+  Add_EMsoftOO_Executable(TARGET EMPEDkin 
+                      SOURCES ${APP_DIR}/EMPEDkin.f90 
+                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                      TEMPLATE ${TMPLT_DIR}/EMPEDkin.template
+                      SOLUTION_FOLDER EMsoftPublic/TEM
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
+                      )
 
   Add_EMsoftOO_Executable(TARGET EMLACBED
                       SOURCES ${APP_DIR}/EMLACBED.f90 

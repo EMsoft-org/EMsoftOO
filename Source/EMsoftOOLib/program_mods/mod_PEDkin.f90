@@ -352,9 +352,9 @@ module mod_PEDkin
   type(FZpointd),pointer                  :: FZlist, FZtmp, FZtmp2
   real(kind=dbl)                          :: mLambda
   real(kind=sgl)                          :: la, dval, dmin, glen, gmax, io_real(3), k(3), sgmax, FN(3), xgmin, Ig, Igmax, & 
-                                           maxint, w, ku(3), kp(3), rnmpp, dx, dy, tstart, tstop, x, y, ma, mi
-  integer(kind=irg)                       :: gp(3), imh, imk, iml, nref, gg(3), ix, iy, iz, io_int(5), ww, nsize, tdp, sx, sy, hdferr, &
-                                         ninbatch, nbatches, nremainder,ibatch,istat, gridtype, tickstart 
+                                             maxint, w, ku(3), kp(3), rnmpp, dx, dy, tstart, tstop, x, y, ma, mi
+  integer(kind=irg)                       :: gp(3), imh, imk, iml, nref, gg(3), ix, iy, iz, io_int(5), ww, nsize, tdp, sx, sy, &
+                                             hdferr, ninbatch, nbatches, nremainder,ibatch,istat, gridtype, tickstart
   integer(HSIZE_T)                        :: dims3(3), hdims(3), offset(3)
   logical                                 :: verbose, insert=.TRUE., overwrite=.TRUE., exists
   character(fnlen)                        :: groupname, dataset, outname
@@ -427,7 +427,7 @@ module mod_PEDkin
 
 
   reflist = gvectors_T()
-  call reflist%Initialize_ReflectionList(cell, SG, Diff, gmax, Igmax, verbose)
+  call reflist%Initialize_ReflectionList(cell, SG, Diff, gmax, Igmax, verbose=.FALSE.)
   nref = reflist%get_nref()
   !=============================================
   !=============================================
@@ -447,10 +447,9 @@ module mod_PEDkin
   nsize = cbednl%npix/2 + ww 
   allocate(pedpattern(-nsize:nsize,-nsize:nsize))
   maxint = Igmax 
-  write (*,*) 'Maximum diffracted intensity : ',maxint
+  io_real(1) = maxint
+  call Message%WriteValue(' Maximum diffracted intensity              : ', io_real, 1)
 
-
-  
   !===============================
   ! HDF5 I/O
   ! write out the data to the file
@@ -483,6 +482,7 @@ module mod_PEDkin
   ! leave this group
   call HDF%pop()
 
+  call self%writeHDFNameList_(HDF, HDFnames)
 
 ! then the remainder of the data in a EMData group
 ! [this is the list of variables needed for the IDL visualization program CBEDDisplay.pro and the EMCBEDpattern.f90 program]

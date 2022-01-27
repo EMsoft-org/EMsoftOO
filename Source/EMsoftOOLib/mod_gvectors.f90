@@ -822,7 +822,7 @@ izl:   do iz=-iml,iml
               call self%AddReflection(Diff, gg)
   ! we'll use the sangle field of the rltail structure to store |Ug|^2; we will also need the extinction distance
               self%rltail%sangle = abs(Diff%getLUT((/ix, iy, iz/)))**2
-              print*,Diff%getLUT((/ix, iy, iz/))
+              ! print*,Diff%getLUT((/ix, iy, iz/))
               if (self%rltail%sangle.gt.Igmax) Igmax = self%rltail%sangle
               self%rltail%xg = 1.0/(abs(Diff%getLUT((/ix, iy, iz/)))*Diff%getWaveLength())
               if ( self%rltail%xg.lt.xgmin) xgmin =  self%rltail%xg
@@ -838,8 +838,6 @@ izl:   do iz=-iml,iml
       call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I8)")
     end if
   end if
-
-  print*,Igmax
 
 end subroutine Initialize_ReflectionList_PED_
 
