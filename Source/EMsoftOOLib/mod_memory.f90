@@ -33,21 +33,21 @@ module mod_memory
   !! Various memory allocation/deallocation/initialization routines.  These 
   !! routines replace the ordinary f90 allocate and deallocate calls to 
   !! make sure that arrays are only allocated if they don't already exist,
-  !! and that they are properly initalized to zero or whatever the default value
+  !! and that they are properly initialized to zero or whatever the default value
   !! might be (optional argument).  This will hopefully help alleviate hard
   !! to track runtime bugs, in particular on the Windows platform.
   !!
-  !! Note: March 2021, started to add support for memory allocation inside 
+  !! Note: March 2021, added support for memory allocation inside 
   !! OpenMP parallel regions, where each thread needs to allocate its own
   !! arrays. This requires that the constructor be called with the number of 
   !! OMP threads.
   !!
   !! This class is not meant to be used to track all memory use for every program 
-  !! and module... it should only be used within a single program and will allow 
+  !! and module... it should only be used within a single program/routine and will allow 
   !! the developer to track general memory use from explicit array allocations as 
   !! well as array allocations inside parallel program sections.  Memory allocated 
   !! inside a routine that is called from the main program will not be tracked
-  !! (unless the routine is properly instrumented).
+  !! (unless the routine itself is properly instrumented).
   !!
   !! Usage example:  [without threading]
   !! program t 
@@ -96,18 +96,21 @@ module mod_memory
   !!
   !! nthreads = 3 
   !!
-  !! ! initiate the memory class 
+  !! ! initiate the memory class outside the parallel region
   !! memth = memory_T( nt = nthreads ) 
   !!
+  !! start parallel region
   !! ! inside the parallel OMP region, allocate the array for each thread 
   !! ! we'll assume that TID contains the thread ID 
-  !! call memth%alloc( ar, (/ 10, 10 /), 'ar', 15.0, TID=TID)
+  !! ! you can use the startdims optional parameter for arrays with a dimension start different from 1
+  !! call memth%alloc( ar, (/ 10, 10 /), 'ar', 15.0, TID=TID, startdims=(/ -10, -10/))
   !! call memth%alloc( cc, (/ 10 + 5*TID /), 'cc', TID=TID)
   !!
   !! ! print memory usage information
   !! if (TID.eq.0) call memth%thread_memory_use()
   !! 
   !! ! do stuff with the arrays
+  !!
   !! ! then just before closing the parallel section 
   !! call memth%dealloc(ar, 'ar', TID=TID)
   !! call memth%dealloc(cc, 'cc', TID=TID)
