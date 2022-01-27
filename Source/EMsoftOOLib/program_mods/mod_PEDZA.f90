@@ -410,6 +410,7 @@ module mod_PEDZA
   ! initialize the timing routines
   timer = Timing_T()
   tstrb = timer%getTimeString()
+  call timer%Time_tick(1)
 
   mem = memory_T()
 
@@ -802,38 +803,39 @@ if (pednl%filemode.eq.'total') then
   
     call HDF%pop()
   
+    call timer%Time_tock(1)
+
   ! and update the end time
-  !  call timestamp(datestring=dstr, timestring=tstre)
-  ! groupname = SC_EMheader
-  !   hdferr = HDF%openGroup(groupname)
+  groupname = SC_EMheader
+    hdferr = HDF%openGroup(groupname)
   
-  ! groupname = SC_PEDZA
-  !   hdferr = HDF%openGroup(groupname)
+  groupname = SC_PEDZA
+    hdferr = HDF%openGroup(groupname)
   
   ! ! stop time /EMheader/StopTime 'character'
   ! dataset = SC_StopTime
   !   line2(1) = dstr//', '//tstre
   !   hdferr = HDF_writeDatasetStringArray(dataset, line2, 1, HDF_head, overwrite)
   
-  !   tstop = Time_tock(tickstart)
-  ! dataset = SC_Duration
-  !   hdferr = HDF_writeDatasetFloat(dataset, tstop, HDF_head)
+    tstop = timer%getInterval(1)
+  dataset = SC_Duration
+    hdferr = HDF%writeDatasetFloat(dataset, tstop)
   
   ! ! close the datafile
-     call HDF%pop(.TRUE.)
+    call HDF%pop(.TRUE.)
 
-     call Message%PrintMessage(' Data stored in '//pednl%outname,"(/A/)") 
+    call Message%PrintMessage(' Data stored in '//pednl%outname,"(/A/)") 
 
-     call mem%dealloc(hklarray, 'hklarray')
-     call mem%dealloc(intarray, 'intarray')
-     call mem%dealloc(positions, 'positions')
-     call mem%dealloc(pedpattern, 'pedpattern')
-     call mem%dealloc(pedpat, 'pedpat')
-     call mem%dealloc(ped, 'ped')
-     call mem%dealloc(line, 'line')
-     call mem%dealloc(xx, 'xx')
-     call mem%dealloc(yy, 'yy')
-     call mem%dealloc(dot, 'dot')
+    call mem%dealloc(hklarray, 'hklarray')
+    call mem%dealloc(intarray, 'intarray')
+    call mem%dealloc(positions, 'positions')
+    call mem%dealloc(pedpattern, 'pedpattern')
+    call mem%dealloc(pedpat, 'pedpat')
+    call mem%dealloc(ped, 'ped')
+    call mem%dealloc(line, 'line')
+    call mem%dealloc(xx, 'xx')
+    call mem%dealloc(yy, 'yy')
+    call mem%dealloc(dot, 'dot')
   end if
 
   end associate
