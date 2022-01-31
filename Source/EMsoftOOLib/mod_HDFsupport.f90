@@ -505,6 +505,7 @@ end if
 self%head%next%objectType = oT
 self%head%next%objectID   = oID
 self%head%next%objectname = trim(oName)
+nullify(self%head%next%next)
 
 if (dumpHDFstack.eqv..TRUE.) call stackdump_(self)
 
