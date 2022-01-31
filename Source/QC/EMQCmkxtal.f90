@@ -42,25 +42,25 @@ use mod_io
 
 IMPLICIT NONE
 
-character(fnlen)     :: progname = 'EMQCmkxtal.f90'
-character(fnlen)     :: progdesc = 'Create an axial or icosahedral quasi-crystal structure file'
+character(fnlen)           :: progname = 'EMQCmkxtal.f90'
+character(fnlen)           :: progdesc = 'Create an axial or icosahedral quasi-crystal structure file'
 
-type(EMsoft_T)       :: EMsoft
-type(QCcell_T)       :: QCcell
-! type(TDQCcell_T)     :: TDQCcell
-type(QCspacegroup_T) :: QCSG
-type(IO_T)           :: Message
+type(EMsoft_T)             :: EMsoft
+type(QCcell_icosahedral_T) :: QCcell_ico
+type(QCcell_axial_T)       :: QCcell_ax
+type(QCspacegroup_T)       :: QCSG
+type(IO_T)                 :: Message
 
-integer(kind=irg)    :: qcdim, ii, jj, io_int(1)
-character(fnlen)     :: fname
+integer(kind=irg)          :: qcdim, ii, jj, io_int(1)
+character(fnlen)           :: fname
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc )
 
 ! Is this a 2D or 3D quasicrystal ?  [was GetQCType in EMsoft 5.0]
 call Message%printMessage(' Select the quasicrystal dimensionality : ', frm = "(A)")
-call Message%printMessage('  2-dimensional (axial) quasicrystal', frm = "(A/)")
-call Message%printMessage('  3-dimensional (icosahedral) quasicrystal', frm = "(A//)")
+call Message%printMessage('  2-dimensional (axial) quasicrystal', frm = "(A)")
+call Message%printMessage('  3-dimensional (icosahedral) quasicrystal', frm = "(A/)")
 call Message%ReadValue(' quasi-crystal dimensionality ---> ', io_int, 1)
 qcdim = io_int(1) 
 
@@ -68,26 +68,28 @@ qcdim = io_int(1)
  select case (qcdim)
   case(2)
     ! 2D QC
-    ! TDQCcell = TDQCcell_T()
-    ! call GetQCLatParm(TDQCcell)
-    ! call PrintSGTable(TDQCcell)
-    ! call GetQCSpaceGroup(TDQCcell)
-    ! call GetQCAsymPos(TDQCcell)
-    ! call ReadValue('Enter output file name (*.qxtal) ', fname)
-    ! TDQCcell%fname = fname
-    ! call SaveQCDataHDF(TDQCcell)
+    QCcell_ax = QCcell_axial_T()
+    call QCcell_ax%GetQCLatParm()
+    QCSG = QCspacegroup_T( nD = 2, QCtype = QCcell_ax%getQCtype() )
+    call QCSG%PrintSGTable()
+    call QCSG%GetQCSpaceGroup()
+    call QCcell_ax%GetQCAsymPos()
+    call Message%ReadValue('Enter output file name (*.qxtal) ', fname)
+    call QCcell_ax%setfname(fname)
+    call QCcell_ax%SaveQCDataHDF(QCSG, EMsoft)
 
   case(3)
     ! 3D QC
-    QCcell = QCcell_T()
-    QCSG = QCspacegroup_T()
-    call QCcell%GetQCLatParm()
+    QCcell_ico = QCcell_icosahedral_T()
+    call QCcell_ico%GetQCLatParm()
+    QCSG = QCspacegroup_T( nD = 3 )
+    call QCSG%setQCtype('Ico')
     call QCSG%PrintSGTable()
     call QCSG%GetQCSpaceGroup()
-    call QCcell%GetQCAsymPos()
+    call QCcell_ico%GetQCAsymPos()
     call Message%ReadValue('Enter output file name (*.qxtal) ', fname)
-    call QCcell%setfname(fname)
-    call QCcell%SaveQCDataHDF(QCSG, EMsoft)
+    call QCcell_ico%setfname(fname)
+    call QCcell_ico%SaveQCDataHDF(QCSG, EMsoft)
 
   case DEFAULT
     ! anything else

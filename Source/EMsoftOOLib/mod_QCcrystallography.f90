@@ -46,23 +46,13 @@ private :: QCextractposition
 ! class definition
 type, public :: QCcell_T
 private 
-
   integer(kind=irg)                     :: atno
-  integer(kind=irg)                     :: imax
   integer(kind=irg)                     :: numindices
+  integer(kind=irg)                     :: N_Axial 
   integer(kind=irg),allocatable         :: facts(:,:)
   integer(kind=irg),allocatable         :: Ucgindex(:)
   logical,allocatable                   :: Ucgcalc(:)
   integer(kind=irg),allocatable         :: inverseIndex(:,:)
-  real(kind=dbl)                        :: epvec(3,6), epar(6,3)
-  real(kind=dbl)                        :: eovec(3,6), eperp(6,3)
-  real(kind=dbl)                        :: Mp(6,6), Picos(6,6)
-  real(kind=dbl)                        :: Mo(6,6), Qicos(6,6)
-  real(kind=dbl)                        :: dsm(6,6), rsm(6,6)
-  real(kind=dbl)                        :: dmt(6,6), rmt(6,6)
-  real(kind=dbl)                        :: scaling(6,6)
-  real(kind=dbl)                        :: SYM_icos(6,6,120)      ! 532 rotational group in matrix representation
-  real(kind=dbl)                        :: QClatparm, alphaij, alphastarij
   real(kind=dbl)                        :: dmin
   real(kind=dbl)                        :: vol
   real(kind=dbl)                        :: gmax_orth
@@ -79,36 +69,82 @@ private
   complex(kind=dbl),allocatable         :: LUT(:)
   complex(kind=dbl),allocatable         :: LUTqg(:)
   logical, allocatable                  :: dbdiff(:)
-  character(fnlen)                      :: SGname(11), QCtype, fname
+  character(3)                          :: QCtype
+  character(fnlen)                      :: fname
   integer(kind=irg)                     :: ATOM_ntype, ATOM_type(maxpasym), numat(maxpasym)
-  real(kind=sgl),allocatable            :: apos(:,:,:)
+  character(fnlen),allocatable          :: SGname(:)
   real(kind=sgl)                        :: ATOM_pos(maxpasym,10)
+  real(kind=sgl),allocatable            :: apos(:,:,:)
 
 contains
 private 
-  procedure, pass(self) :: get6Dindex_
-  procedure, pass(self) :: invert6Dindex_
+  procedure, pass(self) :: getnDindex_
+  procedure, pass(self) :: invertnDindex_
   procedure, pass(self) :: GetQCLatParm_
   procedure, pass(self) :: GetQCAsymPos_
   procedure, pass(self) :: SaveQCDataHDF_
   procedure, pass(self) :: setfname_
   procedure, pass(self) :: getfname_
+  procedure, pass(self) :: setQCtype_
+  procedure, pass(self) :: getQCtype_
   procedure, pass(self) :: displayPeriodicTable
 
-  generic, public :: get6Dindex => get6Dindex_
-  generic, public :: invert6Dindex => invert6Dindex_
+  generic, public :: getnDindex => getnDindex_
+  generic, public :: invertnDindex => invertnDindex_
   generic, public :: GetQCLatParm => GetQCLatParm_
   generic, public :: GetQCAsymPos => GetQCAsymPos_
   generic, public :: SaveQCDataHDF => SaveQCDataHDF_
   generic, public :: setfname => setfname_
   generic, public :: getfname => getfname_
+  generic, public :: setQCtype => setQCtype_
+  generic, public :: getQCtype => getQCtype_
 
 end type QCcell_T
+
+type, public, extends(QCcell_T) :: QCcell_axial_T
+private 
+  integer(kind=irg)                     :: imax_qc, imax_p
+  integer(kind=irg)                     :: imaxz
+  real(kind=dbl)                        :: epvec(3,5), epar(5,3), scaling(5,5), scalingfact
+  real(kind=dbl)                        :: dsm(5,5), rsm(5,5)
+  real(kind=dbl)                        :: rmt(5,5), dmt(5,5)
+  real(kind=dbl)                        :: SYM_icos(5,5,40)
+  real(kind=dbl)                        :: QClatparm_a
+  real(kind=dbl)                        :: QClatparm_c
+  real(kind=dbl)                        :: alphaij, alphai5, alphastarij
+  real(kind=dbl)                        :: dmin_qc, dmin_p
+
+end type QCcell_axial_T 
+
+type, public, extends(QCcell_T) :: QCcell_icosahedral_T
+private 
+  integer(kind=irg)                     :: imax
+  real(kind=dbl)                        :: epvec(3,6), epar(6,3)
+  real(kind=dbl)                        :: eovec(3,6), eperp(6,3)
+  real(kind=dbl)                        :: Mp(6,6), Picos(6,6)
+  real(kind=dbl)                        :: Mo(6,6), Qicos(6,6)
+  real(kind=dbl)                        :: dsm(6,6), rsm(6,6)
+  real(kind=dbl)                        :: dmt(6,6), rmt(6,6)
+  real(kind=dbl)                        :: scaling(6,6)
+  real(kind=dbl)                        :: SYM_icos(6,6,120)      ! 532 rotational group in matrix representation
+  real(kind=dbl)                        :: QClatparm
+  real(kind=dbl)                        :: alphaij, alphastarij
+
+end type QCcell_icosahedral_T 
 
 ! the constructor routine for this class 
 interface QCcell_T
   module procedure QCcell_constructor
 end interface QCcell_T
+
+interface QCcell_axial_T
+  module procedure QCcell_axial_constructor
+end interface QCcell_axial_T
+
+interface QCcell_icosahedral_T
+  module procedure QCcell_icosahedral_constructor
+end interface QCcell_icosahedral_T
+
 
 contains
 
@@ -125,6 +161,34 @@ IMPLICIT NONE
 ! allocate( QCcell%inverseIndex(nLUT, 6) )
 
 end function QCcell_constructor
+
+!--------------------------------------------------------------------------
+type(QCcell_axial_T) function QCcell_axial_constructor( ) result(QCcell)
+!! author: MDG 
+!! version: 1.0 
+!! date: 01/30/22
+!!
+!! constructor for the QCcell_axial_T Class
+ 
+IMPLICIT NONE
+
+! allocate( QCcell%inverseIndex(nLUT, 6) )
+
+end function QCcell_axial_constructor
+
+!--------------------------------------------------------------------------
+type(QCcell_icosahedral_T) function QCcell_icosahedral_constructor( ) result(QCcell)
+!! author: MDG 
+!! version: 1.0 
+!! date: 01/30/22
+!!
+!! constructor for the QCcell_icosahedral_T Class
+ 
+IMPLICIT NONE
+
+! allocate( QCcell%inverseIndex(nLUT, 6) )
+
+end function QCcell_icosahedral_constructor
 
 !--------------------------------------------------------------------------
 subroutine QCcell_destructor(self) 
@@ -178,83 +242,195 @@ fname = trim(self%fname)
 
 end function getfname_
 
+!--------------------------------------------------------------------------
+recursive subroutine setQCtype_(self, QCtype)
+!DEC$ ATTRIBUTES DLLEXPORT :: setQCtype_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/31/22
+  !!
+  !! set QCtype
+
+IMPLICIT NONE
+
+class(QCcell_T), INTENT(INOUT)  :: self
+character(3),INTENT(IN)         :: QCtype
+
+self%QCtype = QCtype
+
+end subroutine setQCtype_
+
+!--------------------------------------------------------------------------
+recursive function getQCtype_(self) result(QCtype)
+!DEC$ ATTRIBUTES DLLEXPORT :: getQCtype_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/31/22
+  !!
+  !! get QCtype
+
+IMPLICIT NONE
+
+class(QCcell_T), INTENT(INOUT)  :: self
+character(3)                    :: QCtype
+
+QCtype = self%QCtype
+
+end function getQCtype_
+
+
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-recursive function get6Dindex_(self, QCindex ) result(gindex)
-!DEC$ ATTRIBUTES DLLEXPORT :: get6Dindex_
+recursive function getnDindex_(self, QCindex ) result(gindex)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnDindex_
 !! author: MDG/SS 
 !! version: 1.0 
-!! date: 01/30/22
+!! date: 01/31/22
 !!
-!! Convert a 6-component Miller index to a single lookup index
+!! Convert a 5 or 6-component Miller index to a single lookup index
  
 IMPLICIT NONE
 
 class(QCcell_T),INTENT(INOUT)     :: self
-integer(kind=irg),INTENT(IN)      :: QCindex(6)
-integer(kind=irg)                 :: gindex, imax, isize, g(6)
+integer(kind=irg),INTENT(IN)      :: QCindex(*)
+integer(kind=irg)                 :: gindex
 
-imax   = self%imax
-isize  = 2 * imax + 1
-g      = QCindex + imax 
-gindex = g(1)*isize**5 + g(2)*isize**4 + g(3)*isize**3 + g(4)*isize**2 + g(5)*isize + g(6) + 1
+integer(kind=irg)                 :: isize, isize_qc, isize_p 
+integer(kind=irg), allocatable    :: g(:)
 
-end function get6Dindex_
+select type (self)
+  class is (QCcell_icosahedral_T)
+    allocate(g(6))
+    isize  = 2 * self%imax + 1
+    g(1:6) = QCindex(1:6) + self%imax 
+    gindex = g(1)*isize**5 + g(2)*isize**4 + g(3)*isize**3 + g(4)*isize**2 + g(5)*isize + g(6) + 1
+  class is (QCcell_axial_T)
+    allocate(g(5))
+    isize_qc = 2 * self%imax_qc + 1
+    isize_p  = 2 * self%imax_p  + 1
+    g(1:4)   = QCindex(1:4) + self%imax_qc
+    g(5)    = QCindex(5)   + self%imax_p 
+    gindex    = g(1) * isize_qc**3 * isize_p + g(2)*isize_qc**2 * isize_p + g(3)*isize_qc * isize_p + &
+              g(4)*isize_p + g(5) + 1
+  class default
+end select 
+
+end function getnDindex_
 
 !--------------------------------------------------------------------------
-recursive function invert6Dindex_(self, gindex ) result(QCindex)
-!DEC$ ATTRIBUTES DLLEXPORT :: invert6Dindex_
+recursive function invertnDindex_(self, gindex ) result(QCindex)
+!DEC$ ATTRIBUTES DLLEXPORT :: invertnDindex_
 !! author: MDG/SS 
 !! version: 1.0 
-!! date: 01/30/22
+!! date: 01/31/22
 !!
-!! Convert a single lookup index into the corresponding 6-component Miller index 
+!! Convert a single lookup index into the corresponding a 5 or 6-component Miller index 
  
 IMPLICIT NONE
 
 class(QCcell_T),INTENT(INOUT)     :: self
 integer(kind=irg),INTENT(IN)      :: gindex
-integer(kind=irg)                 :: QCindex(6)
+integer(kind=irg),allocatable     :: QCindex(:)
 
-QCindex(1:6) = self%inverseIndex(gindex,1:6)
+select type (self)
+  class is (QCcell_icosahedral_T)
+    allocate(QCindex(6))
+    QCindex(1:6) = self%inverseIndex(gindex,1:6)
+  class is (QCcell_axial_T)
+    allocate(QCindex(5))
+    QCindex(1:5) = self%inverseIndex(gindex,1:5)
+  class default
+end select 
 
-end function invert6Dindex_
+end function invertnDindex_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetQCLatParm_(self)
 !DEC$ ATTRIBUTES DLLEXPORT :: GetQCLatParm_
 !! author: MDG/SS 
 !! version: 1.0 
-!! date: 01/30/22
+!! date: 01/31/22
 !!
-!! input of lattice parameters for 3D (icosahedral) quasi-crystal 
+!! input of lattice parameters for 3D (icosahedral) and 2D (axial) quasi-crystal 
 
 use mod_io
 
 IMPLICIT NONE
 
-class(QCcell_T)          :: self
+class(QCcell_T),INTENT(INOUT)     :: self
 
-type(IO_T)               :: Message
-real(kind=dbl)           :: io_real(1)   !< double precision real input array
-integer(kind=irg)        :: std
+type(IO_T)                        :: Message
+real(kind=dbl)                    :: io_real(1)   !< double precision real input array
+integer(kind=irg)                 :: std, io_int(1)
 
- self%QCtype         = 'Ico'
- self%alphaij        =  90.D0
- self%alphastarij    =  90.D0
+select type (self)
+  class is (QCcell_icosahedral_T)
+    self%QCtype         = 'Ico'
+    self%alphaij        =  90.D0
+    self%alphastarij    =  90.D0
 
- call Message%printMessage(' Using the higher dimensional cut-and-project approach:', frm = "(A)")
- call Message%printMessage(' -------------------------------', frm = "(A)")
- 
-  ! get the lattice parameters
- call Message%printMessage('Enter lattice parameters', frm = "(//A)")
+    call Message%printMessage(' Using the higher dimensional cut-and-project approach', frm = "(A/)")
 
-  ! in-plane lattice parameters
- call Message%ReadValue('    a_i | i = {1,2,3,4,5,6} (hyper-cube) [nm] = ', io_real, 1)
- self%QClatparm = io_real(1)
-  
+    ! get the lattice parameters
+    call Message%printMessage('Enter lattice parameters', frm = "(//A)")
+
+    ! in-plane lattice parameters
+    call Message%ReadValue('    a_i | i = {1,2,3,4,5,6} (hyper-cube) [nm] = ', io_real, 1)
+    self%QClatparm = io_real(1)
+  class is (QCcell_axial_T)
+    call Message%printMessage(' Select the 2D quasicrystal type (axial symmetry) : ', frm = "(//A)")
+    call Message%printMessage('  1. octagonal (8-fold) quasicrystal', frm = "(A)")
+    call Message%printMessage('  2. decagonal (10-fold) quasicrystal', frm = "(A)")
+    call Message%printMessage('  3. dodecagonal (12-fold) quasicrystal', frm = "(A/)")
+    call Message%ReadValue(' quasi-crystal type ---> ', io_int, 1)
+
+    select case (io_int(1))
+      case(1)
+    ! 8-fold
+        self%QCtype         = 'Oct'
+        self%N_Axial        =  8
+        self%alphaij        =  90.D0
+        self%alphastarij    =  90.D0
+        self%alphai5        =  90.D0
+
+      case(2)
+    ! 10-fold
+        self%QCtype         = 'Dec'
+        self%N_Axial        =  10
+        self%alphaij        =  60.D0
+        self%alphastarij    =  104.5D0
+        self%alphai5        =  90.D0
+
+      case(3)
+    ! 12-fold
+        self%QCtype         = 'DoD'
+        self%N_Axial        =  12
+        self%alphaij        =  120.D0
+        self%alphastarij    =  60.D0
+        self%alphai5        =  90.D0
+    end select
+
+    call Message%printMessage(' Using the higher dimensional cut and project approach', frm = "(A/)")
+
+
+    ! get the lattice parameters
+    call Message%printMessage('Enter lattice parameters', frm = "(/A)")
+
+    ! in-plane lattice parameters
+    call Message%ReadValue('    a_i | i = {1,2,3,4} (quasicrystal plane) [nm] = ', io_real, 1)
+    self%QClatparm_a = io_real(1)
+
+    ! out of plane lattice parameters
+    call Message%ReadValue('    a_5 (axial direction) [nm] = ', io_real, 1)
+    self%QClatparm_c = io_real(1)
+
+    call Message%printMessage('', frm = "(/A)")
+
+  class default
+end select
+
 end subroutine GetQCLatParm_
 
 !--------------------------------------------------------------------------
@@ -262,7 +438,7 @@ recursive subroutine GetQCAsymPos_(self)
 !DEC$ ATTRIBUTES DLLEXPORT :: GetQCAsymPos_
 !! author: MDG/SS 
 !! version: 1.0 
-!! date: 01/30/22
+!! date: 01/31/22
 !!
 !! read the atom coordinates from standard input
 
@@ -277,32 +453,39 @@ character(1)                    :: ans, list(256)       !< used for IO
 real(kind=sgl)                  :: pt(10), out_real(10)   !< used to read and write asymmetric position data
 integer(kind=irg)               :: j, io_int(1) , std   !< auxiliary variables
 
- more=.TRUE.
- self%ATOM_ntype = 0
- call Message%printMessage(' Enter atoms in asymmetric unit ', frm = "(/A)")
- call self%displayPeriodicTable()
+more=.TRUE.
+self%ATOM_ntype = 0
+call Message%printMessage(' Enter atoms in asymmetric unit ', frm = "(/A)")
+call self%displayPeriodicTable()
 
- do while (more)
+do while (more)
   self%ATOM_ntype = self%ATOM_ntype + 1
 
-! atomic number
+  ! atomic number
   call Message%ReadValue(' ->  Atomic number : ', io_int, 1)
   self%ATOM_type(self%ATOM_ntype) = io_int(1)
 
-! general atom coordinate
+  ! general atom coordinate
   list = (/ (' ',j=1,256) /)
-  call Message%printMessage(' ->  Fractional coordinates, site occupation, Bpar [nm^2],'&
-  'Bperp [nm^2], radial atomic size (fraction of a_i) : ',&
-  frm = "(A,' ')",advance="no")
+  select type(self)
+    class is (QCcell_icosahedral_T)
+      call Message%printMessage(' ->  Fractional coordinates, site occupation, Bpar [nm^2],'&
+      'Bperp [nm^2], radial atomic size (fraction of a_i) : ',&
+      frm = "(A,' ')",advance="no")
+    class is (QCcell_axial_T)
+      call Message%printMessage(' ->  Fractional coordinates, site occupation, Bpar_11 [nm^2],'&
+      'Bperp_33 [nm^2], Bperp [nm^2], radial atomic size (fraction of a_i) : ',&
+      frm = "(A,' ')",advance="no")
+  end select
   read (*,"(256A)") list
 
-! interpret this string and extract coordinates and such ...
+  ! interpret this string and extract coordinates and such ...
   call QCextractposition(list,pt,iQC=.TRUE.) 
-  
-! store in the appropriate component of the cell variable  
+
+  ! store in the appropriate component of the cell variable  
   self%ATOM_pos(self%ATOM_ntype,1:10) = pt(1:10)
 
-! and write the coordinate back to the terminal  
+  ! and write the coordinate back to the terminal  
   out_real = (/ (self%ATOM_pos(self%ATOM_ntype,j),j=1,10) /)
   call Message%WriteValue('    -> ', out_real, 10, frm = "(1x,6(F10.7,2x),3(F10.7,2x),F10.7)") 
 
@@ -312,7 +495,7 @@ integer(kind=irg)               :: j, io_int(1) , std   !< auxiliary variables
   else
    more=.FALSE.
   end if 
- end do
+end do
 
 end subroutine GetQCAsymPos_
 
@@ -323,7 +506,7 @@ recursive subroutine SaveQCDataHDF_(self, QCSG, EMsoft)
 !! version: 1.0 
 !! date: 01/31/22
 !!
-!! save 3D QCcrystal structure data to an HDF file
+!! save 2D or 3D QCcrystal structure data to an HDF file
 
 use mod_EMsoft
 use mod_QCsymmetry
@@ -348,7 +531,7 @@ character(11)                           :: dstr
 character(15)                           :: tstr
 character(fnlen)                        :: progname = 'EMQCmkxtal.f90', groupname, dataset, fname
 integer(kind=irg)                       :: hdferr
-real(kind=dbl)                          :: cellparams(3)
+real(kind=dbl)                          :: cellparams(3), cellparams5(5)
 integer(kind=irg),allocatable           :: atomtypes(:)
 real(kind=sgl),allocatable              :: atompos(:,:)
 integer(kind=irg)                       :: naxial
@@ -366,82 +549,60 @@ call openFortranHDFInterface()
 fname = EMsoft%generateFilePath('EMXtalFolderpathname',self%fname)
 hdferr = HDF%createFile(fname)
 
-write (*,*) '-----SC_CrystalData----'
-call HDF%stackdump()
-
-
 groupname = SC_CrystalData
 hdferr = HDF%createGroup(groupname)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%createGroup:'//trim(groupname), hdferr)
-
-write (*,*) '-----SC_ProgramName----'
-call HDF%stackdump()
 
 dataset = SC_ProgramName
 line2(1) = trim(progname)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetStringArray:'//trim(dataset), hdferr)
 
-write (*,*) '-----SC_CreationDate----'
-call HDF%stackdump()
-
 dataset = SC_CreationDate
 line2(1) = dstr
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetStringArray:'//trim(dataset), hdferr)
-
-write (*,*) '-----SC_CreationTime----'
-call HDF%stackdump()
 
 dataset = SC_CreationTime
 line2(1) = tstr
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetStringArray:'//trim(dataset), hdferr)
 
-write (*,*) '-----SC_Creator----'
-call HDF%stackdump()
-
 dataset = SC_Creator
 line2(1) = trim(EMsoft%getConfigParameter('UserName'))
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetStringArray:'//trim(dataset), hdferr)
 
-write (*,*) '-----SC_LatticeParameters----'
-call HDF%stackdump()
+select type (self)
+  class is (QCcell_icosahedral_T)
+    dataset = SC_LatticeParameters
+    cellparams = (/ self%QClatparm, self%alphaij, self%alphastarij /)
+    hdferr = HDF%writeDatasetDoubleArray(dataset, cellparams, 3)
+    if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetDoubleArray:'//trim(dataset), hdferr)
 
-dataset = SC_LatticeParameters
-cellparams = (/ self%QClatparm, self%alphaij, self%alphastarij /)
-hdferr = HDF%writeDatasetDoubleArray(dataset, cellparams, 3)
-if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetDoubleArray:'//trim(dataset), hdferr)
+    dataset = SC_AxialSymmetry 
+    naxial = 0
+    hdferr = HDF%writeDatasetInteger(dataset, naxial)
 
-write (*,*) '-----SC_SpaceGroupNumber----'
-call HDF%stackdump()
+  class is (QCcell_axial_T)
+    dataset = SC_LatticeParameters
+    cellparams5 = (/ self%QClatparm_a, self%QClatparm_c, self%alphaij, self%alphai5, self%alphastarij /)
+    hdferr = HDF%writeDatasetDoubleArray(dataset, cellparams5, 5)
+    if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetDoubleArray:'//trim(dataset), hdferr)
+
+    dataset = SC_AxialSymmetry !'Axial Symmetry'
+    hdferr = HDF%writeDatasetInteger(dataset, self%N_Axial)
+
+  class default
+end select
 
 dataset = SC_SpaceGroupNumber
 hdferr = HDF%writeDatasetInteger(dataset, QCSG%getSGnum())
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetInteger:'//trim(dataset), hdferr)
 
-! the axial symmetry will be used to differentiate between QCs and regular crystals
-! for the 2D QCs, the axial symmetry will be equal to the axial symmetry along the 
-! periodic direction. for icosahedral QCs, this will be set to 0, which will be 
-! reserved for this case. this is done for minimum code change for dictionary indexing
-! of iQCs.
-write (*,*) '-----naxial----'
-call HDF%stackdump()
-
-dataset = SC_AxialSymmetry 
-naxial = 0
-hdferr = HDF%writeDatasetInteger(dataset, naxial)
-
-write (*,*) '-----ATOM_ntype----'
-call HDF%stackdump()
-
 dataset = SC_Natomtypes
 hdferr = HDF%writeDatasetInteger(dataset, self%ATOM_ntype)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetInteger:'//trim(dataset), hdferr)
-
-write (*,*) '-----atomtypes----'
-call HDF%stackdump()
 
 allocate(atomtypes(self%ATOM_ntype))
 atomtypes(1:self%ATOM_ntype) = self%ATOM_type(1:self%ATOM_ntype)
@@ -450,19 +611,12 @@ hdferr = HDF%writeDatasetIntegerArray(dataset, atomtypes, self%ATOM_ntype)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetIntegerArray:'//trim(dataset), hdferr)
 deallocate(atomtypes)
 
-write (*,*) '-----atompos----'
-call HDF%stackdump()
-
 allocate(atompos(self%ATOM_ntype,10))
 atompos(1:self%ATOM_ntype,1:10) = self%ATOM_pos(1:self%ATOM_ntype,1:10)
 dataset = SC_AtomData
 hdferr = HDF%writeDatasetFloatArray(dataset, atompos, self%ATOM_ntype, 10)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetFloatArray:'//trim(dataset), hdferr)
 deallocate(atompos)
-
-call HDF%stackdump()
-
-
 
 call HDF%pop(.TRUE.)
 call closeFortranHDFInterface()
