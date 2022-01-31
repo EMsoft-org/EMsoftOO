@@ -33,7 +33,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       SOURCES ${APP_DIR}/EMPEDkin.f90 
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
                       TEMPLATE ${TMPLT_DIR}/EMPEDkin.template
-                      SOLUTION_FOLDER EMsoftPublic/TEM
+                      SOLUTION_FOLDER EMsoftOOPublic/TEM
                       INSTALL_PROGRAM TRUE
                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
                       )
@@ -42,7 +42,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       SOURCES ${APP_DIR}/EMLACBED.f90 
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
                       TEMPLATE ${TMPLT_DIR}/EMLACBED.template 
-                      SOLUTION_FOLDER EMsoftPublic/TEM 
+                      SOLUTION_FOLDER EMsoftOOPublic/TEM 
                       INSTALL_PROGRAM TRUE
                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
                       )
@@ -51,7 +51,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       SOURCES ${APP_DIR}/EMPEDZA.f90 
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
                       TEMPLATE ${TMPLT_DIR}/EMEBSDmaster.template 
-                      SOLUTION_FOLDER EMsoftPublic/TEM 
+                      SOLUTION_FOLDER EMsoftOOPublic/TEM 
                       INSTALL_PROGRAM TRUE
                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
                       )
@@ -60,7 +60,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       SOURCES ${APP_DIR}/EMhh4.f90 
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
                       TEMPLATE ${TMPLT_DIR}/EMhh4.template
-                      SOLUTION_FOLDER EMsoftPublic/TEM
+                      SOLUTION_FOLDER EMsoftOOPublic/TEM
                       INSTALL_PROGRAM TRUE
                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
                       )

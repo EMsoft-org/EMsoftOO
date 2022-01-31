@@ -86,6 +86,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_demag.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_IPFsupport.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_colorspace.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_QCcrystallography.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_QCsymmetry.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90

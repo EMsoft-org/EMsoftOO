@@ -49,14 +49,17 @@ private
 
 !>  GL encoded generator strings
   character(57), public, dimension(11) :: GL= (/  &
-        "2b000000c000000", "2bA00000c000000", &
-        "3aBBBBBBb000000c000000", "3aBBBBBBbA00000c000000", &
-        "7aBB0000a0BB000a00BB00a000BB0a0000BBb000000c000000", &
-        "7aBB0000a0BB000a00BB00a000BB0a0000BBbA00000c000000", &
-        "3b000000c000000d000000", "3b000000c000000d000000", &
-        "4aBBBBBBb000000c000000d000000", &
+        "2b000000c000000                                          ", &
+        "2bA00000c000000                                          ", &
+        "3aBBBBBBb000000c000000                                   ", &
+        "3aBBBBBBbA00000c000000                                   ", &
+        "7aBB0000a0BB000a00BB00a000BB0a0000BBb000000c000000       ", &
+        "7aBB0000a0BB000a00BB00a000BB0a0000BBbA00000c000000       ", &
+        "3b000000c000000d000000                                   ", &
+        "3b000000c000000d000000                                   ", &
+        "4aBBBBBBb000000c000000d000000                            ", &
         "8aBB0000a0BB000a00BB00a000BB0a0000BBb000000c000000d000000", &
-        "3b000000c000000d000000" /)
+        "3b000000c000000d000000                                   " /)
 
 
 ! class definition
@@ -69,11 +72,19 @@ contains
 private 
   procedure, pass(self) :: printSGtable_
   procedure, pass(self) :: GetQCSpaceGroup_
-  procedure, pass(self) :: 
+  procedure, pass(self) :: setnsg_
+  procedure, pass(self) :: setSGnum_
+  procedure, pass(self) :: getnsg_
+  procedure, pass(self) :: getSGnum_
+  ! procedure, pass(self) :: 
 
   generic, public :: printSGtable => printSGtable_
   generic, public :: GetQCSpaceGroup => GetQCSpaceGroup_
-  generic, public :: 
+  generic, public :: setnsg => setnsg_
+  generic, public :: setSGnum => setSGnum_
+  generic, public :: getnsg => getnsg_
+  generic, public :: getSGnum => getSGnum_
+  ! generic, public :: 
 
 end type QCspacegroup_T
 
@@ -121,6 +132,82 @@ call reportDestructor('QCspacegroup_T')
 end subroutine QCspacegroup_destructor
 
 !--------------------------------------------------------------------------
+recursive subroutine setnsg_(self, nsg)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnsg_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/13/20
+  !!
+  !! set nsg
+
+IMPLICIT NONE
+
+class(QCspacegroup_T), INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)          :: nsg
+
+self%nsg= nsg
+
+end subroutine setnsg_
+
+!--------------------------------------------------------------------------
+recursive function getnsg_(self) result(nsg)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnsg_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/13/20
+  !!
+  !! get nsg
+
+IMPLICIT NONE
+
+class(QCspacegroup_T), INTENT(INOUT)  :: self
+integer(kind=irg)                     :: nsg
+
+nsg = self%nsg
+
+end function getnsg_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSGnum_(self, SGnum)
+!DEC$ ATTRIBUTES DLLEXPORT :: setSGnum_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/13/20
+  !!
+  !! set SGnum
+
+IMPLICIT NONE
+
+class(QCspacegroup_T), INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)          :: SGnum
+
+self%SGnum= SGnum
+
+end subroutine setSGnum_
+
+!--------------------------------------------------------------------------
+recursive function getSGnum_(self) result(SGnum)
+!DEC$ ATTRIBUTES DLLEXPORT :: getSGnum_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/13/20
+  !!
+  !! get SGnum
+
+IMPLICIT NONE
+
+class(QCspacegroup_T), INTENT(INOUT)  :: self
+integer(kind=irg)                     :: SGnum
+
+SGnum = self%SGnum
+
+end function getSGnum_
+
+
+
+
+
+!--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -156,12 +243,12 @@ if(mod(self%nsg,2) .ne. 0) then
       sgname2 = ''
       sgname1 = trim(SGname(2*ii-1))
       sgname2 = trim(SGname(2*ii))
-      call Message(trim(str)//' '//sgname1//trim(str1)//' '//sgname2)
+      call Message%printMessage(trim(str)//' '//sgname1//trim(str1)//' '//sgname2)
     else
       write(str,'(I3,A)')2*ii-1,':'
       sgname1 = ''
       sgname1 = trim(SGname(2*ii-1))
-      call Message(trim(str)//sgname1)
+      call Message%printMessage(trim(str)//sgname1)
     end if
   end do
 else
@@ -172,7 +259,7 @@ else
     sgname2 = ''
     sgname1 = trim(SGname(2*ii-1))
     sgname2 = trim(SGname(2*ii))
-    call Message(trim(str)//' '//sgname1//trim(str1)//' '//sgname2)
+    call Message%printMessage(trim(str)//' '//sgname1//trim(str1)//' '//sgname2)
   end do
 end if
 
@@ -185,6 +272,8 @@ recursive subroutine GetQCSpaceGroup_(self)
 !! version: 1.0 
 !! date: 01/30/22
 
+use mod_io 
+
 class(QCspacegroup_T), INTENT(INOUT)  :: self 
 
 type(IO_T)                            :: Message 
@@ -192,9 +281,9 @@ type(IO_T)                            :: Message
 integer(kind=irg)                     :: io_int(1) 
 
  ! get the space group number
- call Message('Enter space group number', frm = "(//A)")
+ call Message%printMessage('Enter space group number', frm = "(//A)")
 
- call ReadValue('    Space group number --> ', io_int, 1)
+ call Message%ReadValue('    Space group number --> ', io_int, 1)
  self%SGnum = io_int(1)
 
 end subroutine GetQCSpaceGroup_

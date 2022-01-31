@@ -29,7 +29,7 @@ set(MODALITY_DIRS
     SEM
     Shapes
     TEM
-    # QC
+    QC
     Utilities
     TestPrograms
     XRay

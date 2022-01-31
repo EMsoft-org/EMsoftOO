@@ -47,21 +47,21 @@ character(fnlen)     :: progdesc = 'Create an axial or icosahedral quasi-crystal
 
 type(EMsoft_T)       :: EMsoft
 type(QCcell_T)       :: QCcell
-type(TDQCcell_T)     :: TDQCcell
+! type(TDQCcell_T)     :: TDQCcell
 type(QCspacegroup_T) :: QCSG
 type(IO_T)           :: Message
 
-integer(kind=irg)                         :: qcdim, ii, jj, io_int(1)
-character(fnlen)                          :: progname, progdesc, fname
+integer(kind=irg)    :: qcdim, ii, jj, io_int(1)
+character(fnlen)     :: fname
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc )
 
 ! Is this a 2D or 3D quasicrystal ?  [was GetQCType in EMsoft 5.0]
-call Message(' Select the quasicrystal dimensionality : ', frm = "(A)")
-call Message('  2-dimensional (axial) quasicrystal', frm = "(A/)")
-call Message('  3-dimensional (icosahedral) quasicrystal', frm = "(A//)")
-call ReadValue(' quasi-crystal dimensionality ---> ', io_int, 1)
+call Message%printMessage(' Select the quasicrystal dimensionality : ', frm = "(A)")
+call Message%printMessage('  2-dimensional (axial) quasicrystal', frm = "(A/)")
+call Message%printMessage('  3-dimensional (icosahedral) quasicrystal', frm = "(A//)")
+call Message%ReadValue(' quasi-crystal dimensionality ---> ', io_int, 1)
 qcdim = io_int(1) 
 
 ! initialize the appropriate QC cell class and construct the HDF5 .qxtal file
@@ -84,18 +84,18 @@ qcdim = io_int(1)
     call QCcell%GetQCLatParm()
     call QCSG%PrintSGTable()
     call QCSG%GetQCSpaceGroup()
-    ! call GetQCAsymPos(QCcell)
-    ! call ReadValue('Enter output file name (*.qxtal) ', fname)
-    ! QCcell%fname = fname
-    ! call SaveQCDataHDF(QCcell)
+    call QCcell%GetQCAsymPos()
+    call Message%ReadValue('Enter output file name (*.qxtal) ', fname)
+    call QCcell%setfname(fname)
+    call QCcell%SaveQCDataHDF(QCSG, EMsoft)
 
   case DEFAULT
     ! anything else
-    call FatalError('EMQCmkxtal:','unknown quasicrystal dimensionality (only 2 and 3 are implemented)')
+    call Message%printError('EMQCmkxtal:','unknown quasicrystal dimensionality (only 2 and 3 are implemented)')
 
  end select
 
 ! perform the computations
-call YYY%QCmkxtal(EMsoft, progname)
+! call YYY%QCmkxtal(EMsoft, progname)
 
 end program EMQCmkxtal
