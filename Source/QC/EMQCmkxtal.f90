@@ -51,7 +51,7 @@ type(QCcell_axial_T)       :: QCcell_ax
 type(QCspacegroup_T)       :: QCSG
 type(IO_T)                 :: Message
 
-integer(kind=irg)          :: qcdim, ii, jj, io_int(1)
+integer(kind=irg)          :: qcdim, io_int(1)
 character(fnlen)           :: fname
 
 ! print the EMsoft header and handle any command line arguments  
@@ -65,37 +65,33 @@ call Message%ReadValue(' quasi-crystal dimensionality ---> ', io_int, 1)
 qcdim = io_int(1) 
 
 ! initialize the appropriate QC cell class and construct the HDF5 .qxtal file
- select case (qcdim)
+select case (qcdim)
   case(2)
     ! 2D QC
     QCcell_ax = QCcell_axial_T()
     call QCcell_ax%GetQCLatParm()
-    QCSG = QCspacegroup_T( nD = 2, QCtype = QCcell_ax%getQCtype() )
-    call QCSG%PrintSGTable()
-    call QCSG%GetQCSpaceGroup()
-    call QCcell_ax%GetQCAsymPos()
-    call Message%ReadValue('Enter output file name (*.qxtal) ', fname)
-    call QCcell_ax%setfname(fname)
-    call QCcell_ax%SaveQCDataHDF(QCSG, EMsoft)
+    QCSG = QCspacegroup_T( nD = qcdim, QCtype = QCcell_ax%getQCtype() )
 
   case(3)
     ! 3D QC
     QCcell_ico = QCcell_icosahedral_T()
     call QCcell_ico%GetQCLatParm()
-    QCSG = QCspacegroup_T( nD = 3 )
+    QCSG = QCspacegroup_T( nD = qcdim )
     call QCSG%setQCtype('Ico')
-    call QCSG%PrintSGTable()
-    call QCSG%GetQCSpaceGroup()
-    call QCcell_ico%GetQCAsymPos()
-    call Message%ReadValue('Enter output file name (*.qxtal) ', fname)
-    call QCcell_ico%setfname(fname)
-    call QCcell_ico%SaveQCDataHDF(QCSG, EMsoft)
 
   case DEFAULT
     ! anything else
     call Message%printError('EMQCmkxtal:','unknown quasicrystal dimensionality (only 2 and 3 are implemented)')
 
- end select
+end select
+
+call QCSG%PrintSGTable()
+call QCSG%GetQCSpaceGroup()
+call QCcell_ico%GetQCAsymPos()
+call Message%ReadValue('Enter output file name (*.qxtal) ', fname)
+call QCcell_ico%setfname(fname)
+call QCcell_ico%SaveQCDataHDF(QCSG, EMsoft)
+
 
 ! perform the computations
 ! call YYY%QCmkxtal(EMsoft, progname)

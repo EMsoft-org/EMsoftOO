@@ -69,6 +69,7 @@ private
   complex(kind=dbl),allocatable         :: LUT(:)
   complex(kind=dbl),allocatable         :: LUTqg(:)
   logical, allocatable                  :: dbdiff(:)
+  logical                               :: reduce
   character(3)                          :: QCtype
   character(fnlen)                      :: fname
   integer(kind=irg)                     :: ATOM_ntype, ATOM_type(maxpasym), numat(maxpasym)
@@ -88,6 +89,9 @@ private
   procedure, pass(self) :: setQCtype_
   procedure, pass(self) :: getQCtype_
   procedure, pass(self) :: displayPeriodicTable
+  procedure, pass(self) :: CalcQCPositions_
+  procedure, pass(self) :: GetQCOrbit_
+  procedure, pass(self) :: isnewvector_
 
   generic, public :: getnDindex => getnDindex_
   generic, public :: invertnDindex => invertnDindex_
@@ -98,6 +102,9 @@ private
   generic, public :: getfname => getfname_
   generic, public :: setQCtype => setQCtype_
   generic, public :: getQCtype => getQCtype_
+  generic, public :: CalcQCPositions => CalcQCPositions_
+  generic, public :: GetQCOrbit => GetQCOrbit_
+  generic, public :: isnewvector => isnewvector_
 
 end type QCcell_T
 
@@ -108,7 +115,6 @@ private
   real(kind=dbl)                        :: epvec(3,5), epar(5,3), scaling(5,5), scalingfact
   real(kind=dbl)                        :: dsm(5,5), rsm(5,5)
   real(kind=dbl)                        :: rmt(5,5), dmt(5,5)
-  real(kind=dbl)                        :: SYM_icos(5,5,40)
   real(kind=dbl)                        :: QClatparm_a
   real(kind=dbl)                        :: QClatparm_c
   real(kind=dbl)                        :: alphaij, alphai5, alphastarij
@@ -126,7 +132,6 @@ private
   real(kind=dbl)                        :: dsm(6,6), rsm(6,6)
   real(kind=dbl)                        :: dmt(6,6), rmt(6,6)
   real(kind=dbl)                        :: scaling(6,6)
-  real(kind=dbl)                        :: SYM_icos(6,6,120)      ! 532 rotational group in matrix representation
   real(kind=dbl)                        :: QClatparm
   real(kind=dbl)                        :: alphaij, alphastarij
 
@@ -498,6 +503,142 @@ do while (more)
 end do
 
 end subroutine GetQCAsymPos_
+
+!--------------------------------------------------------------------------
+recursive subroutine CalcQCPositions_(self, QCSG)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcQCPositions_
+!! author: MDG/SS
+!! version: 1.0 
+!! date: 02/01/22
+!!
+!! compute atom positions, always reduced to unit cell
+
+use mod_QCsymmetry
+use mod_io
+
+IMPLICIT NONE
+
+class(QCcell_T),INTENT(INOUT)         :: self
+type(QCspacegroup_T),INTENT(INOUT)    :: QCSG
+
+type(IO_T)                            :: Message
+
+logical                               :: inside         !< auxiliary logical
+integer(kind=irg)                     :: i,j,k,l,mm,icnt,ncells,n,kk,ier, io_int(3)  !< various auxiliary variables
+real(kind=dbl),allocatable            :: ctmp(:,:)      !< auxiliary variables  
+
+! make sure all coordinates are reduced to the fundamental unit cell
+ self%reduce=.TRUE.
+
+ allocate(ctmp(QCSG%getMATnum(),6))
+
+! main loop
+! first allocate the apos variable (contains CARTESIAN coordinates
+ if (allocated(self%apos)) deallocate(self%apos)
+ allocate (self%apos(self%ATOM_ntype, QCSG%getMATnum(), 6),stat=ier)
+ if (ier.ne.0) call Message%printError('CalcQCPositions',' unable to allocate memory for array apos')
+ ctmp = 0.D0
+
+ do i=1,self%ATOM_ntype
+! for each atom in the asymmetric unit
+  call self%GetQCOrbit_(QCSG, ctmp, i, n)
+  self%apos(i,1:n,1:6) = ctmp(1:n,1:6)
+  self%numat(i)        = n
+ end do  
+
+end subroutine CalcQCPositions_
+
+!--------------------------------------------------------------------------
+recursive subroutine GetQCOrbit_(self, QCSG, orbit, mm, nn)
+!DEC$ ATTRIBUTES DLLEXPORT ::GetQCOrbit_
+!! author: MDG/SS
+!! version: 1.0 
+!! date: 02/01/22
+!!
+!! generate all symmetrically equivalent direct space vectors
+
+use mod_QCsymmetry
+
+IMPLICIT NONE
+
+class(QCcell_T),INTENT(INOUT)         :: self
+type(QCspacegroup_T),INTENT(INOUT)    :: QCSG
+integer(kind=irg),INTENT(IN)          :: mm
+real(kind=dbl),allocatable,INTENT(OUT):: orbit(:,:)
+integer(kind=irg),INTENT(OUT)         :: nn
+
+
+integer(kind=irg)                     :: ii, jj, kk, Pmdims, m
+real(kind=dbl),allocatable            :: r(:), s(:)
+
+Pmdims = QCSG%getMATnum()
+if (QCSG%getQCtype().eq.'Ico') then 
+  m = 6
+else
+  m = 5
+end if 
+allocate(orbit(Pmdims,m), r(m), s(m))
+
+nn = 1
+orbit(1,1:m) = self%ATOM_pos(mm,1:m)
+r(1:m)       = orbit(1,1:m)
+
+! get all the equivalent atom positions
+do ii = 1,Pmdims
+  do jj = 1,m
+    s(jj) = QCSG%data(ii,jj,m+1)
+    do kk = 1,m
+      s(jj) = s(jj) + QCSG%data(ii,jj,kk) * r(kk)
+    end do
+  end do
+
+  do jj = 1,m
+    if(s(jj) .lt. 0.D0) then
+      do while(s(jj) .lt. 0.D0) 
+        s(jj) = s(jj) + 1.D0
+      end do
+    else if(s(jj) .gt. 0.D0) then
+      s(jj) = mod(s(jj),1.D0)
+    end if
+  end do
+
+  if(self%isnewvector(Pmdims, m, s, orbit, nn)) then
+    nn = nn + 1
+    orbit(nn,1:m) = s
+  end if
+end do
+
+end subroutine GetQCOrbit_
+
+!--------------------------------------------------------------------------
+recursive function isnewvector_(self, Pmdims, m, hkl, orbit, nn) result(isnew)
+!DEC$ ATTRIBUTES DLLEXPORT :: isnewvector_
+
+use mod_QCsymmetry
+
+IMPLICIT NONE
+
+class(QCcell_T),INTENT(INOUT)         :: self
+integer(kind=irg),INTENT(IN)          :: Pmdims
+integer(kind=irg),INTENT(IN)          :: m
+real(kind=dbl),INTENT(IN)             :: hkl(m)
+real(kind=dbl),INTENT(IN)             :: orbit(Pmdims,m)
+integer(kind=irg),INTENT(IN)          :: nn
+logical                               :: isnew
+
+integer(kind=irg)                     :: ii
+real(kind=dbl),parameter              :: eps = 1.0D-6
+
+isnew = .TRUE.
+
+do ii = 1,nn
+  if(sum(abs(hkl - orbit(ii,1:6))) .lt. eps) then
+    isnew = .FALSE.
+    EXIT
+  end if
+end do
+
+end function isnewvector_
 
 !--------------------------------------------------------------------------
 recursive subroutine SaveQCDataHDF_(self, QCSG, EMsoft)
