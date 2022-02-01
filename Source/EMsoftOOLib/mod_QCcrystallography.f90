@@ -92,6 +92,7 @@ private
   procedure, pass(self) :: CalcQCPositions_
   procedure, pass(self) :: GetQCOrbit_
   procedure, pass(self) :: isnewvector_
+  procedure, pass(self) :: setMetricParametersQC_
 
   generic, public :: getnDindex => getnDindex_
   generic, public :: invertnDindex => invertnDindex_
@@ -105,7 +106,7 @@ private
   generic, public :: CalcQCPositions => CalcQCPositions_
   generic, public :: GetQCOrbit => GetQCOrbit_
   generic, public :: isnewvector => isnewvector_
-
+  generic, public :: setMetricParametersQC => setMetricParametersQC_
 end type QCcell_T
 
 type, public, extends(QCcell_T) :: QCcell_axial_T
@@ -120,6 +121,19 @@ private
   real(kind=dbl)                        :: alphaij, alphai5, alphastarij
   real(kind=dbl)                        :: dmin_qc, dmin_p
 
+contains
+  private 
+    procedure, pass(self) :: TransSpaceQC5_
+    procedure, pass(self) :: getGvectorQC5_
+    procedure, pass(self) :: getvectorLengthQC5_
+    procedure, pass(self) :: ShapeTransformTriangle_
+    procedure, pass(self) :: ShapeTransformPolygonCa_
+
+    generic, public :: TransSpace => TransSpaceQC5_
+    generic, public :: getGvector => getGvectorQC5_
+    generic, public :: getvectorLength => getvectorLengthQC5_
+    generic, public :: ShapeTransformTriangle => ShapeTransformTriangle_
+    generic, public :: ShapeTransformPolygonCa => ShapeTransformPolygonCa_
 end type QCcell_axial_T 
 
 type, public, extends(QCcell_T) :: QCcell_icosahedral_T
@@ -135,26 +149,39 @@ private
   real(kind=dbl)                        :: QClatparm
   real(kind=dbl)                        :: alphaij, alphastarij
 
+contains
+  private 
+    procedure, pass(self) :: TransSpaceQC6_
+    procedure, pass(self) :: getGvectorQC6_
+    procedure, pass(self) :: getvectorLengthQC6_
+    procedure, pass(self) :: ShapeTransformPyramid_
+    procedure, pass(self) :: ShapeTransformTriacontahedron_
+
+    generic, public :: TransSpace => TransSpaceQC6_
+    generic, public :: getGvector => getGvectorQC6_
+    generic, public :: getvectorLength => getvectorLengthQC6_
+    generic, public :: ShapeTransformPyramid => ShapeTransformPyramid_
+    generic, public :: ShapeTransformTriacontahedron => ShapeTransformTriacontahedron_
 end type QCcell_icosahedral_T 
 
 ! the constructor routine for this class 
 interface QCcell_T
-  module procedure QCcell_constructor
+  module procedure QCcell_T_constructor
 end interface QCcell_T
 
 interface QCcell_axial_T
-  module procedure QCcell_axial_constructor
+  module procedure QCcell_T_axial_constructor
 end interface QCcell_axial_T
 
 interface QCcell_icosahedral_T
-  module procedure QCcell_icosahedral_constructor
+  module procedure QCcell_T_icosahedral_constructor
 end interface QCcell_icosahedral_T
 
 
 contains
 
 !--------------------------------------------------------------------------
-type(QCcell_T) function QCcell_constructor( ) result(QCcell)
+type(QCcell_T) function QCcell_T_constructor( ) result(self)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/30/22
@@ -163,12 +190,12 @@ type(QCcell_T) function QCcell_constructor( ) result(QCcell)
  
 IMPLICIT NONE
 
-! allocate( QCcell%inverseIndex(nLUT, 6) )
+! allocate( self%inverseIndex(nLUT, 6) )
 
-end function QCcell_constructor
+end function QCcell_T_constructor
 
 !--------------------------------------------------------------------------
-type(QCcell_axial_T) function QCcell_axial_constructor( ) result(QCcell)
+type(QCcell_axial_T) function QCcell_T_axial_constructor( ) result(self)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/30/22
@@ -177,12 +204,12 @@ type(QCcell_axial_T) function QCcell_axial_constructor( ) result(QCcell)
  
 IMPLICIT NONE
 
-! allocate( QCcell%inverseIndex(nLUT, 6) )
+! allocate( self%inverseIndex(nLUT, 6) )
 
-end function QCcell_axial_constructor
+end function QCcell_T_axial_constructor
 
 !--------------------------------------------------------------------------
-type(QCcell_icosahedral_T) function QCcell_icosahedral_constructor( ) result(QCcell)
+type(QCcell_icosahedral_T) function QCcell_T_icosahedral_constructor( ) result(self)
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/30/22
@@ -191,12 +218,12 @@ type(QCcell_icosahedral_T) function QCcell_icosahedral_constructor( ) result(QCc
  
 IMPLICIT NONE
 
-! allocate( QCcell%inverseIndex(nLUT, 6) )
+! allocate( self%inverseIndex(nLUT, 6) )
 
-end function QCcell_icosahedral_constructor
+end function QCcell_T_icosahedral_constructor
 
 !--------------------------------------------------------------------------
-subroutine QCcell_destructor(self) 
+subroutine QCcell_T_destructor(self) 
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/30/22
@@ -209,7 +236,7 @@ type(QCcell_T), INTENT(INOUT)  :: self
 
 call reportDestructor('QCcell_T')
 
-end subroutine QCcell_destructor
+end subroutine QCcell_T_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine setfname_(self, fname)
@@ -660,7 +687,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(QCcell_T),INTENT(INOUT)           :: self
+class(QCcell_T),INTENT(INOUT)             :: self
 type(QCspacegroup_T),INTENT(INOUT)      :: QCSG
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
 
@@ -764,22 +791,1011 @@ call closeFortranHDFInterface()
 
 end subroutine SaveQCDataHDF_
 
+!--------------------------------------------------------------------------
+recursive subroutine setMetricParametersQC_(self)
+!DEC$ ATTRIBUTES DLLEXPORT ::setMetricParametersQC_ 
+
+use mod_math
+
+IMPLICIT NONE
+
+class(QCcell_T),INTENT(INOUT)       :: self
+
+real(kind=dbl)                    :: QClatparm_a, QClatparm_c, QClatparm
+real(kind=dbl),allocatable        :: s(:), c(:), s2(:), c2(:)
+real(kind=dbl)                    :: tmp(5,3), c3(4), s3(4), c4(4), s4(4), A, B, CC
+integer(kind=irg)                 :: i, j
+real(kind=dbl),parameter          :: ct = 1.D0/dsqrt(5.D0),&
+                                     st = dsqrt(1.D0 - ct * ct)
+
+select type (self) 
+  class is (QCcell_icosahedral_T)
+    allocate(s(5), c(5), c2(5), s2(5))
+    QClatparm = self%QClatparm
+  class is (QCcell_axial_T)
+    allocate(s(4), c(4), c2(4), s2(4))
+    QClatparm_a = self%QClatparm_a
+    QClatparm_c = self%QClatparm_c
+end select
+
+if(self%getQCtype() .eq. 'DoD') then
+  do i = 1,4
+    c3(i) = dcos(2.D0*cPi*dble(i-1)/12.D0)
+    s3(i) = dsin(2.D0*cPi*dble(i-1)/12.D0)
+    c4(i) = -dcos(10.D0*cPi*dble(i-1)/12.D0)
+    s4(i) = -dsin(10.D0*cPi*dble(i-1)/12.D0)
+  end do
+
+  do i = 0,1
+    c(i+1)  = dcos(2.D0*cPi*dble(i-1)/12.D0)
+    s(i+1)  = dsin(2.D0*cPi*dble(i-1)/12.D0)
+    c2(i+1) = dcos(10.D0*cPi*dble(i-1)/12.D0)
+    s2(i+1) = dsin(10.D0*cPi*dble(i-1)/12.D0)    
+  end do
+
+  do i = 2,3
+    c(i+1)  = dcos(2.D0*cPi*dble(i+1)/12.D0)
+    s(i+1)  = dsin(2.D0*cPi*dble(i+1)/12.D0)
+    c2(i+1) = dcos(10.D0*cPi*dble(i+1)/12.D0)
+    s2(i+1) = dsin(10.D0*cPi*dble(i+1)/12.D0)
+  end do
+
+  select type (self) 
+    class is (QCcell_axial_T)
+      self%scaling(1,1:5) = (/1.D0, 1.D0, 0.D0, -1.D0, 0.D0/)
+      self%scaling(2,1:5) = (/1.D0, 1.D0, 1.D0, 0.D0, 0.D0/)
+      self%scaling(3,1:5) = (/0.D0, 1.D0, 1.D0, 1.D0, 0.D0/)
+      self%scaling(4,1:5) = (/-1.D0, 0.D0, 1.D0, 1.D0, 0.D0/)
+      self%scaling(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, 1.D0/)
+
+      self%dsm(1,1:5) = (/c(1), s(1), c2(1), s2(1), 0.D0/)
+      self%dsm(2,1:5) = (/c(2), s(2), c2(2), s2(2), 0.D0/)
+      self%dsm(3,1:5) = (/c(3), s(3), c2(3), s2(3), 0.D0/)
+      self%dsm(4,1:5) = (/c(4), s(4), c2(4), s2(4), 0.D0/)
+      self%dsm(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, sqrt(3.D0)*QClatparm_c/(sqrt(2.D0)*QClatparm_a)/) ! 
+
+      self%dsm(1:5,1:5) = (sqrt(2.D0)*self%QClatparm_a/sqrt(3.D0)) * self%dsm(1:5,1:5)
+
+      self%rsm(1,1:5) = (/c3(1), s3(1), c4(1), s4(1), 0.D0/)
+      self%rsm(2,1:5) = (/c3(2), s3(2), c4(2), s4(2), 0.D0/)
+      self%rsm(3,1:5) = (/c3(3), s3(3), c4(3), s4(3), 0.D0/)
+      self%rsm(4,1:5) = (/c3(4), s3(4), c4(4), s4(4), 0.D0/)
+      self%rsm(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, sqrt(2.D0)*QClatparm_a/QClatparm_c/) 
+
+      self%rsm(1:5,1:5) = (1.D0/QClatparm_a/dsqrt(2.D0)) * self%rsm(1:5,1:5) 
+
+      self%dsm = transpose(self%dsm)
+      self%rsm = transpose(self%rsm)
+
+      A   = (sqrt(2.D0) * QClatparm_a / dsqrt(3.D0)) ** 2
+      B   = QClatparm_c ** 2
+      CC  = A * dcos(self%alphaij * cPi / 180.D0)
+
+      self%dmt(1,1:5) = (/A, 0.D0, CC, 0.D0, 0.D0/)
+      self%dmt(2,1:5) = (/0.D0, A, 0.D0, CC, 0.D0/)
+      self%dmt(3,1:5) = (/CC, 0.D0, A, 0.D0, 0.D0/)
+      self%dmt(4,1:5) = (/0.D0, CC, 0.D0, A, 0.D0/)
+      self%dmt(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, B/)
+
+      self%vol  = sqrt(CalcDeterminant(self%dmt, 5, 5))
+
+      A   = 2.D0 * (1.D0 / QClatparm_a) ** 2
+      B   = (1.D0 / QClatparm_c) ** 2
+      CC  = A * dcos(self%alphastarij * cPi / 180.D0)
+
+      self%rmt(1,1:5) = (/A, 0.D0, CC, 0.D0, 0.D0/)
+      self%rmt(2,1:5) = (/0.D0, A, 0.D0, CC, 0.D0/)
+      self%rmt(3,1:5) = (/CC, 0.D0, A, 0.D0, 0.D0/)
+      self%rmt(4,1:5) = (/0.D0, CC, 0.D0, A, 0.D0/)
+      self%rmt(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, B/)
+    end select
+end if
+
+if(self%getQCtype() .eq. 'Dec') then
+  do i = 1,4
+    c(i)  = dcos(2.D0*cPi*dble(i)/5.D0) 
+    s(i)  = dsin(2.D0*cPi*dble(i)/5.D0) 
+    c2(i) = dcos(6.D0*cPi*dble(i)/5.D0)
+    s2(i) = dsin(6.D0*cPi*dble(i)/5.D0)
+  end do
+
+  select type (self)
+    class is (QCcell_axial_T)
+      self%scaling(1,1:5)    = (/0.D0, 1.D0, 0.D0, -1.D0, 0.D0/)
+      self%scaling(2,1:5)    = (/0.D0, 1.D0, 1.D0, -1.D0, 0.D0/)
+      self%scaling(3,1:5)    = (/-1.D0, 1.D0, 1.D0, 0.D0, 0.D0/)
+      self%scaling(4,1:5)    = (/-1.D0, 0.D0, 1.D0, -1.D0, 0.D0/)
+      self%scaling(5,1:5)    = (/0.D0, 0.D0, 0.D0, 0.D0, 1.D0/)
+
+      self%dsm(1,1:5) = (/c(1)-1.D0, s(1), c2(1)-1.D0, s2(1), 0.D0/)
+      self%dsm(2,1:5) = (/c(2)-1.D0, s(2), c2(2)-1.D0, s2(2), 0.D0/)
+      self%dsm(3,1:5) = (/c(3)-1.D0, s(3), c2(3)-1.D0, s2(3), 0.D0/)
+      self%dsm(4,1:5) = (/c(4)-1.D0, s(4), c2(4)-1.D0, s2(4), 0.D0/)
+      self%dsm(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, 5.D0 * QClatparm_c/(2.D0*QClatparm_a)/) ! 
+
+      self%dsm(1:5,1:5) = (2.D0*QClatparm_a/5.D0) * self%dsm(1:5,1:5) 
+
+      self%rsm(1,1:5) = (/c(1), s(1), c2(1), s2(1), 0.D0/)
+      self%rsm(2,1:5) = (/c(2), s(2), c2(2), s2(2), 0.D0/)
+      self%rsm(3,1:5) = (/c(3), s(3), c2(3), s2(3), 0.D0/)
+      self%rsm(4,1:5) = (/c(4), s(4), c2(4), s2(4), 0.D0/)
+      self%rsm(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, QClatparm_a/QClatparm_c/) 
+
+      self%rsm(1:5,1:5) = (1.D0/QClatparm_a) * self%rsm(1:5,1:5) 
+
+      self%dsm = transpose(self%dsm)
+      self%rsm = transpose(self%rsm)
+
+      A   = (2.D0 * QClatparm_a / dsqrt(5.D0)) ** 2
+      B   = QClatparm_c ** 2
+      CC  = A * dcos(self%alphaij * cPi / 180.D0)
+
+      self%dmt(1,1:5) = (/A, CC, CC, CC, 0.D0/)
+      self%dmt(2,1:5) = (/CC, A, CC, CC, 0.D0/)
+      self%dmt(3,1:5) = (/CC, CC, A, CC, 0.D0/)
+      self%dmt(4,1:5) = (/CC, CC, CC, A, 0.D0/)
+      self%dmt(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, B/)
+
+      self%vol  = sqrt(CalcDeterminant(self%dmt, 5, 5))
+
+      A   = 2.D0 * (1.D0 / QClatparm_a) ** 2
+      B   = (1.D0 / QClatparm_c) ** 2
+      CC  = A * dcos(self%alphastarij * cPi / 180.D0)
+
+      self%rmt(1,1:5) = (/A, CC, CC, CC, 0.D0/)
+      self%rmt(2,1:5) = (/CC, A, CC, CC, 0.D0/)
+      self%rmt(3,1:5) = (/CC, CC, A, CC, 0.D0/)
+      self%rmt(4,1:5) = (/CC, CC, CC, A, 0.D0/)
+      self%rmt(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, B/)
+    end select
+end if 
+
+if(self%getQCtype() .eq. 'Oct') then
+  do i = 1,4
+    c(i)  = dcos(2.D0*cPi*dble(i)/8.D0)
+    s(i)  = dsin(2.D0*cPi*dble(i)/8.D0)
+    c2(i) = dcos(6.D0*cPi*dble(i)/8.D0)
+    s2(i) = dsin(6.D0*cPi*dble(i)/8.D0)
+    c3(i) = dcos(2.D0*cPi*dble(i-1)/8.D0)
+    s3(i) = dsin(2.D0*cPi*dble(i-1)/8.D0)
+    c4(i) = dcos(6.D0*cPi*dble(i-1)/8.D0)
+    s4(i) = dsin(6.D0*cPi*dble(i-1)/8.D0)
+  end do
+
+  select type (self)
+    class is (QCcell_axial_T)
+      self%scaling(1,1:5)    = (/1.D0, 1.D0, 0.D0, -1.D0, 0.D0/)
+      self%scaling(2,1:5)    = (/1.D0, 1.D0, 1.D0, 0.D0, 0.D0/)
+      self%scaling(3,1:5)    = (/0.D0, 1.D0, 1.D0, 1.D0, 0.D0/)
+      self%scaling(4,1:5)    = (/-1.D0, 0.D0, 1.D0, 1.D0, 0.D0/)
+      self%scaling(5,1:5)    = (/0.D0, 0.D0, 0.D0, 0.D0, 1.D0/)
+
+      self%dsm(1,1:5) = (/c(1), s(1), c2(1), s2(1), 0.D0/)
+      self%dsm(2,1:5) = (/c(2), s(2), c2(2), s2(2), 0.D0/)
+      self%dsm(3,1:5) = (/c(3), s(3), c2(3), s2(3), 0.D0/)
+      self%dsm(4,1:5) = (/c(4), s(4), c2(4), s2(4), 0.D0/)
+      self%dsm(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, dsqrt(2.D0)*QClatparm_c/QClatparm_a/) ! 
+
+      self%dsm(1:5,1:5) = (QClatparm_a / dsqrt(2.D0))*self%dsm(1:5,1:5) 
+
+      self%rsm(1,1:5) = (/c(1), s(1), c2(1), s2(1), 0.D0/)
+      self%rsm(2,1:5) = (/c(2), s(2), c2(2), s2(2), 0.D0/)
+      self%rsm(3,1:5) = (/c(3), s(3), c2(3), s2(3), 0.D0/)
+      self%rsm(4,1:5) = (/c(4), s(4), c2(4), s2(4), 0.D0/)
+      self%rsm(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, dsqrt(2.D0)*QClatparm_a/QClatparm_c/) 
+
+      self%rsm(1:5,1:5) = (1.D0 / QClatparm_a / dsqrt(2.D0)) * self%rsm(1:5,1:5) 
+
+      self%dsm = transpose(self%dsm)
+      self%rsm = transpose(self%rsm)
+
+      A   = (QClatparm_a / dsqrt(2.D0)) ** 2
+      B   = QClatparm_c ** 2
+
+      self%dmt(1,1:5) = (/A, 0.D0, 0.D0, 0.D0, 0.D0/)
+      self%dmt(2,1:5) = (/0.D0, A, 0.D0, 0.D0, 0.D0/)
+      self%dmt(3,1:5) = (/0.D0, 0.D0, A, 0.D0, 0.D0/)
+      self%dmt(4,1:5) = (/0.D0, 0.D0, 0.D0, A, 0.D0/)
+      self%dmt(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, B/)
+
+      self%vol  = sqrt(CalcDeterminant(self%dmt, 5, 5))
+
+      A   = 2.D0 * (1.D0 / QClatparm_a) ** 2
+      B   = (1.D0 / QClatparm_c) ** 2
+
+      self%rmt(1,1:5) = (/A, 0.D0, 0.D0, 0.D0, 0.D0/)
+      self%rmt(2,1:5) = (/0.D0, A, 0.D0, 0.D0, 0.D0/)
+      self%rmt(3,1:5) = (/0.D0, 0.D0, A, 0.D0, 0.D0/)
+      self%rmt(4,1:5) = (/0.D0, 0.D0, 0.D0, A, 0.D0/)
+      self%rmt(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, B/)
+    end select
+end if 
+
+if(self%getQCtype() .eq. 'Ico') then
+  do i = 2,6
+    c(i-1)  = dcos(2.D0*cPi*dble(i)/5.D0)
+    s(i-1)  = dsin(2.D0*cPi*dble(i)/5.D0)
+    c2(i-1) = dcos(4.D0*cPi*dble(i)/5.D0)
+    s2(i-1) = dsin(4.D0*cPi*dble(i)/5.D0)
+  end do  
+
+  select type (self)
+    class is (QCcell_icosahedral_T)
+      self%scaling(1,1:6) = (/1.D0, 1.D0, 1.D0, 1.D0, 1.D0, 1.D0/)
+      self%scaling(2,1:6) = (/1.D0, 1.D0, 1.D0, -1.D0, -1.D0, 1.D0/)
+      self%scaling(3,1:6) = (/1.D0, 1.D0, 1.D0, 1.D0, -1.D0, -1.D0/)
+      self%scaling(4,1:6) = (/1.D0, -1.D0, 1.D0, 1.D0, 1.D0, -1.D0/)
+      self%scaling(5,1:6) = (/1.D0, -1.D0, -1.D0, 1.D0, 1.D0, 1.D0/)
+      self%scaling(6,1:6) = (/1.D0, 1.D0, -1.D0, -1.D0, 1.D0, 1.D0/)
+
+      self%scaling      = 0.5D0 * self%scaling
+
+      self%dsm(1,1:6) = (/0.D0, 0.D0, 1.D0, 0.D0, 0.D0, 1.D0/)
+      self%dsm(2,1:6) = (/c(1)*st, s(1)*st, ct, c2(1)*st, s2(1)*st, -ct/)
+      self%dsm(3,1:6) = (/c(2)*st, s(2)*st, ct, c2(2)*st, s2(2)*st, -ct/)
+      self%dsm(4,1:6) = (/c(3)*st, s(3)*st, ct, c2(3)*st, s2(3)*st, -ct/)
+      self%dsm(5,1:6) = (/c(4)*st, s(4)*st, ct, c2(4)*st, s2(4)*st, -ct/)
+      self%dsm(6,1:6) = (/c(5)*st, s(5)*st, ct, c2(5)*st, s2(5)*st, -ct/)
+
+      self%dsm = self%dsm * QClatparm
+
+      self%rsm(1,1:6) = (/0.D0, 0.D0, 1.D0, 0.D0, 0.D0, 1.D0/)
+      self%rsm(2,1:6) = (/c(1)*st, s(1)*st, ct, c2(1)*st, s2(1)*st, -ct/)
+      self%rsm(3,1:6) = (/c(2)*st, s(2)*st, ct, c2(2)*st, s2(2)*st, -ct/)
+      self%rsm(4,1:6) = (/c(3)*st, s(3)*st, ct, c2(3)*st, s2(3)*st, -ct/)
+      self%rsm(5,1:6) = (/c(4)*st, s(4)*st, ct, c2(4)*st, s2(4)*st, -ct/)
+      self%rsm(6,1:6) = (/c(5)*st, s(5)*st, ct, c2(5)*st, s2(5)*st, -ct/)
+
+      self%rsm = ( self%rsm / (QClatparm * 2.D0) ) 
+
+      self%dsm = transpose(self%dsm)
+      self%rsm = transpose(self%rsm)
+
+      A   = QClatparm ** 2
+
+      self%dmt(1,1:6) = (/A, 0.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+      self%dmt(2,1:6) = (/0.D0, A, 0.D0, 0.D0, 0.D0, 0.D0/)
+      self%dmt(3,1:6) = (/0.D0, 0.D0, A, 0.D0, 0.D0, 0.D0/)
+      self%dmt(4,1:6) = (/0.D0, 0.D0, 0.D0, A, 0.D0, 0.D0/)
+      self%dmt(5,1:6) = (/0.D0, 0.D0, 0.D0, 0.D0, A, 0.D0/)
+      self%dmt(6,1:6) = (/0.D0, 0.D0, 0.D0, 0.D0, 0.D0, A/)
+
+      self%vol  = sqrt(CalcDeterminant(self%dmt, 6, 6))
+
+      A   = (1.D0 / QClatparm) ** 2
+
+      self%rmt(1,1:6) = (/A, 0.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+      self%rmt(2,1:6) = (/0.D0, A, 0.D0, 0.D0, 0.D0, 0.D0/)
+      self%rmt(3,1:6) = (/0.D0, 0.D0, A, 0.D0, 0.D0, 0.D0/)
+      self%rmt(4,1:6) = (/0.D0, 0.D0, 0.D0, A, 0.D0, 0.D0/)
+      self%rmt(5,1:6) = (/0.D0, 0.D0, 0.D0, 0.D0, A, 0.D0/)
+      self%rmt(6,1:6) = (/0.D0, 0.D0, 0.D0, 0.D0, 0.D0, A/)
+    end select
+end if 
+
+end subroutine setMetricParametersQC_
+
+!--------------------------------------------------------------------------
+recursive subroutine TransSpaceQC5_(self, t, d, inspace, outspace)
+!DEC$ ATTRIBUTES DLLEXPORT ::TransSpaceQC5_
+  !! author: MDG/SS
+  !! version: 1.0
+  !! date: 02/01/22
+  !!
+  !! convert between different vector spaces 'd', 'r', 'c'
+
+IMPLICIT NONE
+
+class(QCcell_axial_T),intent(inout)   :: self
+real(kind=dbl),INTENT(IN)             :: t(5)
+real(kind=dbl),INTENT(OUT)            :: d(5)
+character(1),INTENT(IN)               :: inspace
+character(1),INTENT(IN)               :: outspace
+
+! intercept the case where inspace and outspace are the same 
+if (inspace.eq.outspace) then
+  d = t
+  return
+end if
+
+if (inspace.eq.'d') then
+! direct to Cartesian (pre-multiplication)
+  if (outspace.eq.'c') then
+   d = matmul(self%dsm,t)
+   return
+  end if
+! direct to reciprocal (post-multiplication)
+  if (outspace.eq.'r') then
+   d = matmul(t,self%dmt)
+   return
+  end if
+ end if
+
+ if (inspace.eq.'r') then
+! reciprocal to Cartesian (pre-multiplication)
+  if (outspace.eq.'c') then
+   d = matmul(self%rsm,t)
+   return
+  end if
+! reciprocal to direct (post-multiplication)
+  if (outspace.eq.'d') then
+   d = matmul(t,self%rmt)
+   return
+  end if
+ end if
+
+ if (inspace.eq.'c') then
+! Cartesian to direct (post-multiplication)
+  if (outspace.eq.'d') then
+   d = matmul(t,self%rsm)
+   return
+  end if
+! Cartesian to reciprocal (post-multiplication)
+  if (outspace.eq.'r') then
+   d = matmul(t,self%dsm)
+   return
+  end if
+ end if
+
+end subroutine TransSpaceQC5_
+
+!--------------------------------------------------------------------------
+recursive subroutine TransSpaceQC6_(self, t, d, inspace, outspace)
+!DEC$ ATTRIBUTES DLLEXPORT ::TransSpaceQC6_
+  !! author: MDG/SS
+  !! version: 1.0
+  !! date: 02/01/22
+  !!
+  !! convert between different vector spaces 'd', 'r', 'c'
+
+IMPLICIT NONE
+
+class(QCcell_icosahedral_T),intent(inout)   :: self
+real(kind=dbl),INTENT(IN)                   :: t(6)
+real(kind=dbl),INTENT(OUT)                  :: d(6)
+character(1),INTENT(IN)                     :: inspace
+character(1),INTENT(IN)                     :: outspace
+
+! intercept the case where inspace and outspace are the same 
+if (inspace.eq.outspace) then
+  d = t
+  return
+end if
+
+if (inspace.eq.'d') then
+! direct to Cartesian (pre-multiplication)
+  if (outspace.eq.'c') then
+   d = matmul(self%dsm,t)
+   return
+  end if
+! direct to reciprocal (post-multiplication)
+  if (outspace.eq.'r') then
+   d = matmul(t,self%dmt)
+   return
+  end if
+ end if
+
+ if (inspace.eq.'r') then
+! reciprocal to Cartesian (pre-multiplication)
+  if (outspace.eq.'c') then
+   d = matmul(self%rsm,t)
+   return
+  end if
+! reciprocal to direct (post-multiplication)
+  if (outspace.eq.'d') then
+   d = matmul(t,self%rmt)
+   return
+  end if
+ end if
+
+ if (inspace.eq.'c') then
+! Cartesian to direct (post-multiplication)
+  if (outspace.eq.'d') then
+   d = matmul(t,self%rsm)
+   return
+  end if
+! Cartesian to reciprocal (post-multiplication)
+  if (outspace.eq.'r') then
+   d = matmul(t,self%dsm)
+   return
+  end if
+ end if
+
+end subroutine TransSpaceQC6_
+
+!--------------------------------------------------------------------------
+recursive function getGvectorQC5_(self, QCindex, OP) result(gvector)
+!DEC$ ATTRIBUTES DLLEXPORT ::getGvectorQC5_ 
+  !! author: MDG/SS
+  !! version: 1.0
+  !! date: 02/01/22
+  !!
+  !! Generate the parallel/orthogonal reciprocal lattice vector for a set of indices
+
+use mod_io
+
+IMPLICIT NONE
+
+class(QCcell_axial_T),INTENT(INOUT)    :: self
+real(kind=dbl),INTENT(IN)              :: QCindex(5)
+character(1),INTENT(IN)                :: OP
+
+real(kind=dbl)                         :: gvector(3), dvec(5)
+
+type(IO_T)                             :: Message
+
+call self%TransSpace(QCindex,dvec,'r','c')
+if (OP .eq. 'O') then
+  gvector = (/dvec(3), dvec(4), 0.D0/)
+else if (OP .eq. 'P') then
+  gvector  = (/dvec(1), dvec(2), dvec(5)/)
+else
+  call Message%printError('getGvectorQC5','Unknown OP parameter passed to function')
+end if
+
+end function getGvectorQC5_
+
+!--------------------------------------------------------------------------
+recursive function getGvectorQC6_(self, QCindex, OP) result(gvector)
+!DEC$ ATTRIBUTES DLLEXPORT ::getGvectorQC6_ 
+  !! author: MDG/SS
+  !! version: 1.0
+  !! date: 02/01/22
+  !!
+  !! Generate the parallel/orthogonal reciprocal lattice vector for a set of indices
+
+use mod_io
+
+IMPLICIT NONE
+
+class(QCcell_icosahedral_T),INTENT(INOUT) :: self
+real(kind=dbl),INTENT(IN)                 :: QCindex(6)
+character(1),INTENT(IN)                   :: OP
+
+real(kind=dbl)                            :: gvector(3), dvec(6)
+
+type(IO_T)                                :: Message
+
+call self%TransSpace(QCindex,dvec,'r','c')
+if (OP .eq. 'O') then
+  gvector = (/dvec(3), dvec(4), dvec(6)/)
+else if (OP .eq. 'P') then
+  gvector  = (/dvec(1), dvec(2), dvec(3)/)
+else
+  call Message%printError('getGvectorQC6','Unknown OP parameter passed to function')
+end if
+
+end function getGvectorQC6_
+
+!--------------------------------------------------------------------------
+recursive function getvectorLengthQC5_(self, QCindex, OP, space) result(gl)
+!DEC$ ATTRIBUTES DLLEXPORT ::getvectorLengthQC5_
+ !! author: MDG/SS
+ !! version: 1.0
+ !! date: 02/01/22
+ !!
+ !! Get the length of a parallel/orthogonal reciprocal lattice vector for a set of indices
+
+use mod_io
+
+IMPLICIT NONE
+
+class(QCcell_axial_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)          :: QCindex(5)
+character(1),INTENT(IN)               :: OP
+character(1),INTENT(IN)               :: space  ! 'r' or 'd'
+
+type(IO_T)                            :: Message
+
+real(kind=dbl)                        :: gl
+real(kind=dbl)                        :: dvec(5), dvec2(5)
+
+dvec = dble(QCindex)
+
+if(space .eq. 'r') then
+  call self%TransSpace(dvec,dvec2,'r','c')
+  if (OP.eq.'O') then
+    !gl = dsqrt(DOT_PRODUCT(dvec, matmul(QCcell%rmto, dvec)))
+    gl = sqrt(dvec2(3)**2 + dvec2(4)**2)
+  else if (OP .eq. 'P') then
+    !gl = dsqrt(DOT_PRODUCT(dvec, matmul(QCcell%rmtp, dvec)))
+    gl = sqrt(dvec2(1)**2 + dvec2(2)**2 + dvec2(5)**2)
+  else
+    call Message%printError('QC_getvectorLength : ','Unknown OP parameter passed to function')
+  end if
+else if(space .eq. 'd') then
+  !dvec2 = matmul(dvec,QCcell%Mdirect)
+  call self%TransSpace(dvec,dvec2,'d','c')
+  if (OP.eq.'O') then
+    !gl = dsqrt(DOT_PRODUCT(dvec, matmul(QCcell%dmto, dvec)))
+    gl = sqrt(dvec2(3)**2 + dvec2(4)**2)
+  else if (OP .eq. 'P') then
+    !gl = dsqrt(DOT_PRODUCT(dvec, matmul(QCcell%dmtp, dvec)))
+    gl = sqrt(dvec2(1)**2 + dvec2(2)**2 + dvec2(5)**2)
+  else
+    call Message%printError('QC_getvectorLength : ','Unknown OP parameter passed to function')
+  end if
+else
+  call Message%printError('QC_getvectorLength: ', 'Unkown space input.')
+end if
+
+end function getvectorLengthQC5_
+
+!--------------------------------------------------------------------------
+recursive function getvectorLengthQC6_(self, QCindex, OP, space) result(gl)
+!DEC$ ATTRIBUTES DLLEXPORT ::getvectorLengthQC6_
+ !! author: MDG/SS
+ !! version: 1.0
+ !! date: 02/01/22
+ !!
+ !! Get the length of a parallel/orthogonal reciprocal lattice vector for a set of indices
+
+use mod_io
+
+IMPLICIT NONE
+
+class(QCcell_icosahedral_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)                :: QCindex(6)
+character(1),INTENT(IN)                     :: OP
+character(1),INTENT(IN)                     :: space  ! 'r' or 'd'
+
+type(IO_T)                                  :: Message
+
+real(kind=dbl)                              :: gl
+real(kind=dbl)                              :: dvec(6), dvec2(6)
+
+dvec = dble(QCindex)
+
+if(space .eq. 'r') then
+  call self%TransSpace(dvec,dvec2,'r','c')
+  if (OP.eq.'O') then
+    gl = sqrt(dvec2(4)**2 + dvec2(5)**2 + dvec2(6)**2)
+  else if (OP .eq. 'P') then
+    gl = sqrt(dvec2(1)**2 + dvec2(2)**2 + dvec2(3)**2)
+  else
+    call Message%printError('getvectorLengthQC6 : ','Unknown OP parameter passed to function')
+  end if
+else if(space .eq. 'd') then
+  call self%TransSpace(dvec,dvec2,'d','c')
+  if (OP.eq.'O') then
+    gl = sqrt(dvec2(4)**2 + dvec2(5)**2 + dvec2(6)**2)
+  else if (OP .eq. 'P') then
+    gl = sqrt(dvec2(1)**2 + dvec2(2)**2 + dvec2(3)**2)
+  else
+    call Message%printError('getvectorLengthQC6 : ','Unknown OP parameter passed to function')
+  end if
+else
+  call Message%printError('getvectorLengthQC6 : ', 'Unkown space input.')
+end if
+
+end function getvectorLengthQC6_
+
+!--------------------------------------------------------------------------
+recursive function ShapeTransformTriangle_(self, ap, g) result(stt)
+!DEC$ ATTRIBUTES DLLEXPORT :: ShapeTransformTriangle_
+ !! author: MDG/SS
+ !! version: 1.0
+ !! date: 02/01/22
+ !!
+ !! calculate shape transform of the a triangle, which
+ !! is the building block for any polygon occupation domain. this result is known
+ !! analytically. we will simply sum it up for the 24 triangles. the
+ !! limits of the expression was calculated using mathematica
+
+use mod_io
+
+IMPLICIT NONE
+
+class(QCcell_axial_T),INTENT(INOUT)   :: self
+real(kind=dbl),INTENT(IN)             :: g(5)
+real(kind=dbl),INTENT(IN)             :: ap
+
+type(IO_T)                            :: Message 
+
+complex(kind=dbl)                     :: stt, imagj
+real(kind=dbl)                        :: e1(5), e2(5), etmp(5), vlen, dvec1(2), dvec2(2), dvec3(2)
+real(kind=dbl)                        :: a1, a2, a3, Ar, prod, t
+complex(kind=dbl)                     :: t1, t2
+integer(kind=irg)                     :: icase
+real(kind=dbl),parameter              :: eps = 1.0D-12
+real(kind=dbl),parameter              :: tau = (1.D0 + dsqrt(5.D0))/2.D0
+
+imagj = cmplx(0.D0, 1.D0)
+
+if(self%getQCtype() .eq. 'DoD') then
+
+  !e1    = (/0.D0, -1.D0, 0.D0, 1.D0, 0.D0/)
+  e1 = (/1.D0, -1.D0, 0.D0, 1.D0, 0.D0/)
+  call self%TransSpace(e1, etmp, 'd', 'c')
+  dvec1 = (/etmp(3), etmp(4)/)
+
+  !e2    = (/0.D0, 0.D0, 0.D0, 1.D0, 0.D0/)!/dsqrt(3.D0)
+  e2    = (/0.D0, -1.D0, -1.D0, 1.D0, 0.D0/)
+  call self%TransSpace(e2, etmp, 'd', 'c')
+  dvec2 = (/etmp(3), etmp(4)/)
+
+  Ar    = ap**2 * dsin(cPi/6.D0)
+
+else if(self%getQCtype() .eq. 'Dec') then
+
+  !e1    = (/1.D0, 0.D0, 0.D0, 1.D0, 0.D0/)
+  e1    = (/1.D0, 0.D0, 0.D0, 0.D0, 0.D0/) - (/1.D0, 1.D0, 1.D0, 1.D0, 0.D0/)/5.D0
+  call self%TransSpace(e1, etmp, 'd', 'c')
+  dvec1 = (/etmp(3), etmp(4)/)
+
+  e2    = (/0.D0, 0.D0, 1.D0, 0.D0, 0.D0/) - (/1.D0, 1.D0, 1.D0, 1.D0, 0.D0/)/5.D0
+  !e2    = (/0.D0, 1.D0, 0.D0, 1.D0, 0.D0/) - (/1.D0, 1.D0, 1.D0, 1.D0, 0.D0/)/5.D0
+  call self%TransSpace(e2, etmp, 'd', 'c')
+  dvec2 = (/etmp(3), etmp(4)/)
+  
+  Ar    = ap**2 * dsin(cPi/5.D0)
+
+else if(self%getQCtype() .eq. 'Oct') then
+
+  e1    = (/1.D0, -1.D0, 0.D0, 1.D0, 0.D0/)/2.D0
+  call self%TransSpace(e1, etmp, 'd', 'c')
+  dvec1 = (/etmp(3), etmp(4)/)
+
+  e2    = (/1.D0, -1.D0, -1.D0, 1.D0, 0.D0/)/2.D0
+  call self%TransSpace(e2, etmp, 'd', 'c')
+  dvec2 = (/etmp(3), etmp(4)/)
+
+  Ar    = ap**2 * dsin(cPi/4.D0)
+
+else
+  call Message%printError('ShapeTransformPolygon','unknown symmetry type.')
+end if
+
+call self%TransSpace(g, etmp, 'r', 'c')
+dvec3 = (/etmp(3), etmp(4)/)
+
+a1  = 2.D0 * cPi * DOT_PRODUCT(dvec1, dvec3)
+a2  = 2.D0 * cPi * DOT_PRODUCT(dvec2, dvec3)
+
+a3 = a1 - a2
+
+icase = 0
+
+! (a1 -> 0) or (a2 -> 0) or (a1 -> a2 ~-> 0) or (a1 -> a2 -> 0) 
+if((abs(a1) .lt. eps) .and. (abs(a2) .gt. eps) .and. (abs(a3) .gt. eps)) then
+  icase = 1
+else if((abs(a1) .gt. eps) .and. (abs(a2) .lt. eps) .and. (abs(a3) .gt. eps)) then
+  icase = 2
+else if((abs(a1) .gt. eps) .and. (abs(a2) .gt. eps) .and. (abs(a3) .lt. eps)) then
+  icase = 3
+else if((abs(a1) .lt. eps) .and. (abs(a2) .lt. eps)) then
+  icase = 4
+end if
+
+select case (icase)
+  case(1)
+    t1    = 1 + imagj * a2 - exp(imagj * a2) 
+    prod  = a2 * a2
+    stt   = Ar * t1 / prod 
+
+  case(2)
+    t1    = 1 + imagj * a1 - exp(imagj * a1) 
+    prod  = a1 * a1
+    stt   = Ar * t1 / prod
+
+  case(3)
+    t1    = imagj * a2 * exp(imagj * a2) - exp(imagj * a2) + cmplx(1.D0, 0.D0)
+    prod  = a2 * a2
+    stt   = -Ar * t1 / prod
+
+  case(4)
+    stt = cmplx(Ar/2, 0.D0)
+
+  case DEFAULT
+    t1    = a2 * exp(imagj * a1)
+    t2    = a1 * exp(imagj * a2)
+    prod  = a1 * a2 * a3
+    stt   = -Ar * (t1 - t2 + a3)/prod
+end select
+
+end function ShapeTransformTriangle_
+
+!--------------------------------------------------------------------------
+recursive function ShapeTransformPolygonCa_(self, QCSG, hkl, asite) result(stp)
+!DEC$ ATTRIBUTES DLLEXPORT :: ShapeTransformPolygonCa_
+ !! author: MDG/SS
+ !! version: 1.0
+ !! date: 02/01/22
+ !!
+ !! calculate shape transform of the polygon Ca (see Franz gahler, 
+ !! Crystallography of Dodecagonal Quasicrystals)
+
+use mod_io
+use mod_QCsymmetry
+
+IMPLICIT NONE
+
+class(QCcell_axial_T),INTENT(INOUT)   :: self
+type(QCspacegroup_T),INTENT(IN)       :: QCSG
+integer(kind=irg),INTENT(IN)          :: hkl(5)
+integer(kind=irg),INTENT(IN)          :: asite
+
+type(IO_T)                            :: Message 
+
+real(kind=dbl)                        :: ar
+real(kind=dbl),parameter              :: tau = (1.D0 + dsqrt(5.D0))/2.D0
+complex(kind=dbl)                     :: stp
+integer(kind=irg)                     :: Pmdims, ii
+real(kind=dbl)                        :: A_Polygon, hkl2(5), mat(5,5), mat2(5,5)
+
+stp = cmplx(0.D0,0.D0)
+
+if(self%getQCtype() .eq. 'DoD') then
+  ar        = self%ATOM_pos(asite, 10) * dsqrt(2.D0/3.D0) * (self%QClatparm_a)
+  Pmdims    = 24
+
+else if(self%getQCtype() .eq. 'Dec') then
+  ar        = self%ATOM_pos(asite, 10)  * self%QClatparm_a !* 2.D0/ sqrt(5.D0)
+  Pmdims    = 5
+
+else if(self%getQCtype() .eq. 'Oct') then
+  ar        = self%ATOM_pos(asite, 10) * self%QClatparm_a/dsqrt(2.D0)
+  Pmdims    = 16 
+
+else
+  call Message%printError('ShapeTransformPolygonCa_','unknown symmetry type.')
+
+end if
+
+do ii = 1,Pmdims
+  hkl2 = matmul(QCSG%icos(:,:,ii),dble(hkl))
+  stp  = stp + self%ShapeTransformTriangle(ar, hkl2)
+end do
+
+!stp = stp / A_Polygon
+
+end function ShapeTransformPolygonCa_
+
+!--------------------------------------------------------------------------
+recursive function ShapeTransformPyramid_(self, ap, g) result(stp)
+!DEC$ ATTRIBUTES DLLEXPORT :: ShapeTransformPyramid_
+ !! author: MDG/SS
+ !! version: 1.0
+ !! date: 02/01/22
+ !!
+ !! calculate shape transform of the a triangular pyramid, which
+ !! is the building block for the Triacontahedron. this result is known
+ !! analytically. we will simply sum it up for the 120 pyramids. the
+ !! limits of the expression was calculated using mathematica
+
+use mod_io
+
+IMPLICIT NONE
+
+class(QCcell_icosahedral_T),INTENT(INOUT)   :: self
+real(kind=dbl),INTENT(IN)                   :: g(6)
+real(kind=dbl),INTENT(IN)                   :: ap
+complex(kind=dbl)                           :: stp
+
+type(IO_T)                                  :: Message
+
+real(kind=dbl)                              :: a1, a2, a3, a4, a5, a6, prod, Vr
+complex(kind=dbl)                           :: t1, t2, t3, t4, imagj
+real(kind=dbl)                              :: e1(6), e2(6), e3(6), etmp(6)              ! basis vectors
+real(kind=dbl)                              :: e1_c(3), e2_c(3), e3_c(3), gperp(3), vlen
+real(kind=dbl),parameter                    :: eps = 1.0D-12
+integer(kind=irg)                           :: icase
+
+imagj = cmplx(0.D0, 1.D0)
+
+! edges of tetrahedron in perp space
+e1    = (/1.D0, -1.D0, -1.D0, -1.D0, -1.D0, -1.D0/) * 0.5D0 
+call self%TransSpace(e1, etmp, 'd', 'c')
+e1_c  = etmp(4:6) 
+
+e2    =  (/1.D0, 1.D0, -1.D0, -1.D0, -1.D0, -1.D0/) * 0.5D0 
+call self%TransSpace(e2, etmp, 'd', 'c')
+e2_c  =  etmp(4:6) 
+
+e3    =  (/1.D0, 0.D0, -1.D0, -1.D0, 0.D0, -1.D0/) * 0.5D0 
+call self%TransSpace(e3, etmp, 'd', 'c')
+e3_c  =  etmp(4:6) 
+
+gperp =  self%getGvector(g, 'O')
+
+a1    =  2.D0 * cPi * DOT_PRODUCT(e1_c, gperp)
+a2    =  2.D0 * cPi * DOT_PRODUCT(e2_c, gperp)
+a3    =  2.D0 * cPi * DOT_PRODUCT(e3_c, gperp)
+
+a4    =  a2 - a3
+a5    =  a3 - a1
+a6    =  a1 - a2
+
+! volume of tetrahedron
+Vr    =  ap**3 * DOT_PRODUCT(e1_c,(/e2_c(2)*e3_c(3) - e2_c(3)*e3_c(2), e2_c(3)*e3_c(1) - e2_c(1)*e3_c(3), &
+                          e2_c(1)*e3_c(2) - e2_c(2)*e3_c(1)/))
+
+! define different cases with limits (icase variable)
+! the limits were calculated in Mathematica
+
+icase = 0
+
+! case 1: a1 -> 0, a2 -> 0, a3 -> 0
+if((abs(a1) .lt. eps) .and. (abs(a2) .lt. eps) .and. (abs(a3) .lt. eps)) then
+  icase = 1
+! case 2: a1 -> 0, a2 -> 0
+else if((abs(a1) .lt. eps) .and. (abs(a2) .lt. eps) .and. (abs(a3) .gt. eps)) then
+  icase = 2
+! case3: a1 -> 0, a3 -> 0
+else if((abs(a1) .lt. eps) .and. (abs(a3) .lt. eps) .and. (abs(a2) .gt. eps)) then
+  icase = 3
+! case 4: a2 -> 0, a3 -> 0
+else if((abs(a2) .lt. eps) .and. (abs(a3) .lt. eps) .and. (abs(a1) .gt. eps)) then
+  icase = 4
+! case 5/6: a1 -> 0
+else if((abs(a1) .lt. eps) .and. (abs(a2) .gt. eps) .and. (abs(a3) .gt. eps)) then
+
+  if(abs(a4) .lt. eps) then
+    icase = 5
+  else
+    icase = 6
+  end if
+
+! case 7/8: a2 -> 0
+else if((abs(a2) .lt. eps) .and. (abs(a1) .gt. eps) .and. (abs(a3) .gt. eps)) then
+
+  if(abs(a5) .lt. eps) then
+    icase = 7
+  else
+    icase = 8
+  end if
+
+! case 9/10: a3 -> 0
+else if((abs(a3) .lt. eps) .and. (abs(a2) .gt. eps) .and. (abs(a1) .gt. eps)) then
+
+  if(abs(a6) .lt. eps) then
+    icase = 9
+  else
+    icase = 10
+  end if
+
+! case 11/14: a3 -> 0
+else if((abs(a1) .gt. eps) .and. (abs(a2) .gt. eps) .and. (abs(a3) .gt. eps)) then
+
+  if((abs(a4) .lt. eps) .and. (abs(a5) .gt. eps) .and. (abs(a6) .gt. eps)) then
+    icase = 11
+  else if((abs(a5) .lt. eps) .and. (abs(a4) .gt. eps) .and. (abs(a6) .gt. eps)) then
+    icase = 12
+  else if((abs(a6) .lt. eps) .and. (abs(a4) .gt. eps) .and. (abs(a5) .gt. eps)) then
+    icase = 13
+  else if((abs(a4) .lt. eps) .and. (abs(a5) .lt. eps)) then
+    icase = 14
+  end if
+end if
+
+select case (icase)
+  case(1)
+    stp = cmplx(Vr/6.D0, 0.D0)
+    
+  case(2)
+    t1    = 2.D0 * exp(imagj * a3)
+    t2    = a3 * (2.D0 * imagj - a3)
+    t3    = 2.D0 * a3**3.D0
+    stp   = -imagj * Vr * (2.D0 - t1 + t2)/t3
+    
+  case(3)
+    t1    = 2.D0 * exp(imagj * a2)
+    t2    = a2 * (2.D0 * imagj - a2)
+    t3    = 2.D0 * a2**3.D0
+    stp   = -imagj * Vr * (2.D0 - t1 + t2)/t3
+    
+  case(4)
+    t1    = 2.D0 * exp(imagj * a1)
+    t2    = a1 * (2.D0 * imagj - a1)
+    t3    = 2.D0 * a1**3.D0
+    stp   = -imagj * Vr * (2.D0 - t1 + t2)/t3
+    
+  case(5)
+    t1    = (2.D0 - imagj * a3) * exp(imagj * a3)
+    t2    = -2.D0 - imagj * a3
+    t3    = a3**3
+    stp   = -imagj * Vr * (t1 + t2)/t3
+    
+  case(6)
+    t1    = (-1.D0 + exp(imagj * a3) - imagj*a3) * a2**2
+    t2    = (1.D0 - exp(imagj * a2)) * a3**2
+    t3    = imagj * a2 * a3**2
+    t4    = a4 * (a2 * a3)**2
+    stp   = -imagj * Vr * (t1 + t2 + t3)/t4
+    
+  case(7)
+    t1    = (2.D0 - imagj * a1) * exp(imagj * a1)
+    t2    = -2.D0 - imagj * a1
+    t3    = a1**3
+    stp   = -imagj * Vr * (t1 + t2)/t3
+    
+  case(8)
+    t1    = (-1.D0 + exp(imagj * a3) - imagj*a3) * a1**2
+    t2    = (1.D0 - exp(imagj * a1)) * a3**2
+    t3    = imagj * a1 * a3**2
+    t4    = -a5 * (a1 * a3)**2
+    stp   = -imagj * Vr * (t1 + t2 + t3)/t4
+    
+  case(9)
+    t1    = (2.D0 - imagj * a2) * exp(imagj * a2)
+    t2    = -2.D0 - imagj * a2
+    t3    = a2**3
+    stp   = -imagj * Vr * (t1 + t2)/t3
+    
+  case(10)
+    t1    = (-1.D0 + exp(imagj * a2) - imagj*a2) * a1**2
+    t2    = (1.D0 - exp(imagj * a1)) * a2**2
+    t3    = imagj * a1 * a2**2
+    t4    = a6 * (a1 * a2)**2
+    stp   = -imagj * Vr * (t1 + t2 + t3)/t4
+    
+  case(11)
+    t1    = a3 * a1 * (-2.D0 + exp(imagj * a3) * (2.D0 - imagj * a3))
+    t2    = (1.D0 - exp(imagj * a1)) * a3**2
+    t3    = (1.D0 + imagj * exp(imagj * a3) * (imagj + a3)) * a1**2
+    t4    = a1 * (a3 * a5)**2
+    stp   = -imagj * Vr * (t1 + t2 + t3)/t4
+    
+  case(12)
+    t1    = a3 * a2 * (-2.D0 + exp(imagj * a3) * (2.D0 - imagj * a3))
+    t2    = (1.D0 - exp(imagj * a2)) * a3**2
+    t3    = (1.D0 + imagj * exp(imagj * a3) * (imagj + a3)) * a2**2
+    t4    = a2 * (a3 * a4)**2
+    stp   = -imagj * Vr * (t1 + t2 + t3)/t4
+
+  case(13)
+    t1    = a3 * a2 * (-2.D0 + exp(imagj * a2) * (2.D0 + imagj * a3))
+    t2    = (1.D0 - exp(imagj * a2)) * a3**2
+    t3    = (1.D0 - imagj * exp(imagj * a2) * a3 - exp(imagj * a3) ) * a2**2
+    t4    = a1 * (a3 * a5)**2
+    stp   = -imagj * Vr * (t1 + t2 + t3)/t4
+
+  case(14) 
+    t1    =  (-2.D0 + a2 * (2.D0 * imagj + a2)) * exp(imagj * a2)
+    t2    =  2.D0 * a2**3
+    stp   =  -imagj * Vr * (2.D0 + t1)/t2
+
+  case DEFAULT
+    t1    =  a2 * a3 * a4 * exp(imagj * a1)
+    t2    =  a1 * a3 * a5 * exp(imagj * a2)
+    t3    =  a1 * a2 * a6 * exp(imagj * a3)
+    t4    =  a4 * a5 * a6
+    prod  =  a1 * a2 * a3 * a4 * a5 * a6
+    stp   =  -imagj * Vr * (t1 + t2 + t3 + t4) / prod
+end select 
+
+end function ShapeTransformPyramid_
+
+!--------------------------------------------------------------------------
+recursive function ShapeTransformTriacontahedron_(self, QCSG, hkl, asite) result(stt)
+!DEC$ ATTRIBUTES DLLEXPORT :: ShapeTransformTriacontahedron_
+
+use mod_QCsymmetry
+
+IMPLICIT NONE
+
+class(QCcell_icosahedral_T),INTENT(INOUT)   :: self
+type(QCspacegroup_T),INTENT(INOUT)          :: QCSG
+integer(kind=irg),INTENT(IN)                :: hkl(6)
+integer(kind=irg),INTENT(IN)                :: asite
+complex(kind=dbl)                           :: stt
+
+integer(kind=irg)                           :: Pmdims, ii, jj, nn
+real(kind=dbl)                              :: V_Triacontahedron, hkl2(6), ar
 
 
+ar = self%ATOM_pos(asite,10) * self%QClatparm
 
+stt = cmplx(0.D0,0.D0)
 
+Pmdims = QCSG%getNUMpt()
 
+do ii = 1,Pmdims
+  hkl2 = matmul(QCSG%direc(ii,:,:),dble(hkl))
+  stt  = stt + self%ShapeTransformPyramid(ar, hkl2)
+end do
 
-
-
-
-
-
-
-
-
-
-
+end function ShapeTransformTriacontahedron_
 
 !--------------------------------------------------------------------------
 recursive subroutine displayPeriodicTable(self)
@@ -794,7 +1810,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(QCCell_T),intent(inout)           :: self
+class(QCcell_T),intent(inout)           :: self
 type (IO_T)                             :: Message
 
 call Message%printMessage( (/ &

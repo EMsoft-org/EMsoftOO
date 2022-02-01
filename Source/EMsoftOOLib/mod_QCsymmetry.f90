@@ -65,7 +65,6 @@ private
         "8aBB0000a0BB000a00BB00a000BB0a0000BBb000000c000000d000000", &
         "3b000000c000000d000000                                   " /)
 
-
 ! class definition
 type, public :: QCspacegroup_T
 private 
@@ -78,9 +77,9 @@ private
   integer(kind=irg)           :: N_Axial
   logical                     :: reduce             !< switch to enable/disable reduction to fundamental cell
   real(kind=dbl),allocatable, public  :: data(:,:,:)        !< all symmetry matrices for a given spacegroup
-  real(kind=dbl),allocatable  :: direc(:,:,:)       !< direct space point group matrices
-  real(kind=dbl),allocatable  :: recip(:,:,:)       !< reciprocal space point group matrices
-  real(kind=dbl),allocatable  :: icos(:,:,:)        !< dummy 6x6 matrix used for various computations
+  real(kind=dbl),allocatable, public  :: direc(:,:,:)       !< direct space point group matrices
+  real(kind=dbl),allocatable, public  :: recip(:,:,:)       !< reciprocal space point group matrices
+  real(kind=dbl),allocatable, public  :: icos(:,:,:)        !< dummy 6x6 matrix used for various computations
   real(kind=dbl),allocatable  :: c(:,:)             !< dummy 6x6 matrix used for various computations
   character(11)               :: name
   character(fnlen),allocatable:: SGname(:)
@@ -93,10 +92,12 @@ private
   procedure, pass(self) :: GetQCSpaceGroup_
   procedure, pass(self) :: setnsg_
   procedure, pass(self) :: setSGnum_
+  procedure, pass(self) :: setNUMpt_
   procedure, pass(self) :: setMATnum_
   procedure, pass(self) :: setQCtype_
   procedure, pass(self) :: getnsg_
   procedure, pass(self) :: getSGnum_
+  procedure, pass(self) :: getNUMpt_
   procedure, pass(self) :: getMATnum_
   procedure, pass(self) :: getQCtype_
   procedure, pass(self) :: getAxialGroupNames_
@@ -115,10 +116,12 @@ private
   generic, public :: GetQCSpaceGroup => GetQCSpaceGroup_
   generic, public :: setnsg => setnsg_
   generic, public :: setSGnum => setSGnum_
+  generic, public :: setNUMpt => setNUMpt_
   generic, public :: setMATnum => setMATnum_
   generic, public :: setQCtype => setQCtype_
   generic, public :: getnsg => getnsg_
   generic, public :: getSGnum => getSGnum_
+  generic, public :: getNUMpt => getNUMpt_
   generic, public :: getMATnum => getMATnum_
   generic, public :: getQCtype => getQCtype_
   generic, public :: fillgen_QC => fillgen_QC_
@@ -128,7 +131,6 @@ private
   generic, public :: isnew => isnew_
   generic, public :: isitnew => isitnew_
   generic, public :: GetSymmetryOperators => GetSymmetryOperators_
-  ! generic, public :: 
   ! generic, public :: 
   ! generic, public :: 
 
@@ -269,6 +271,42 @@ integer(kind=irg)                     :: SGnum
 SGnum = self%SGnum
 
 end function getSGnum_
+
+!--------------------------------------------------------------------------
+recursive subroutine setNUMpt_(self, NUMpt)
+!DEC$ ATTRIBUTES DLLEXPORT :: setNUMpt_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/13/20
+  !!
+  !! set NUMpt
+
+IMPLICIT NONE
+
+class(QCspacegroup_T), INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)          :: NUMpt
+
+self%NUMpt= NUMpt
+
+end subroutine setNUMpt_
+
+!--------------------------------------------------------------------------
+recursive function getNUMpt_(self) result(NUMpt)
+!DEC$ ATTRIBUTES DLLEXPORT :: getNUMpt_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/13/20
+  !!
+  !! get NUMpt
+
+IMPLICIT NONE
+
+class(QCspacegroup_T), INTENT(INOUT)  :: self
+integer(kind=irg)                     :: NUMpt
+
+NUMpt = self%NUMpt
+
+end function getNUMpt_
 
 !--------------------------------------------------------------------------
 recursive subroutine setMATnum_(self, MATnum)
