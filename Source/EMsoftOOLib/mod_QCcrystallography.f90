@@ -84,6 +84,8 @@ private
   procedure, pass(self) :: GetQCLatParm_
   procedure, pass(self) :: GetQCAsymPos_
   procedure, pass(self) :: SaveQCDataHDF_
+  procedure, pass(self) :: ReadQCDataHDF_
+  procedure, pass(self) :: DumpQXtalInfo_
   procedure, pass(self) :: setfname_
   procedure, pass(self) :: getfname_
   procedure, pass(self) :: setQCtype_
@@ -99,6 +101,8 @@ private
   generic, public :: GetQCLatParm => GetQCLatParm_
   generic, public :: GetQCAsymPos => GetQCAsymPos_
   generic, public :: SaveQCDataHDF => SaveQCDataHDF_
+  generic, public :: ReadQCDataHDF => ReadQCDataHDF_
+  generic, public :: DumpQXtalInfo => DumpQXtalInfo_
   generic, public :: setfname => setfname_
   generic, public :: getfname => getfname_
   generic, public :: setQCtype => setQCtype_
@@ -687,7 +691,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(QCcell_T),INTENT(INOUT)             :: self
+class(QCcell_T),INTENT(INOUT)           :: self
 type(QCspacegroup_T),INTENT(INOUT)      :: QCSG
 type(EMsoft_T),INTENT(INOUT)            :: EMsoft
 
@@ -791,6 +795,204 @@ call closeFortranHDFInterface()
 
 end subroutine SaveQCDataHDF_
 
+
+!--------------------------------------------------------------------------
+recursive subroutine ReadQCDataHDF_(self, QCSG, EMsoft)
+!DEC$ ATTRIBUTES DLLEXPORT :: ReadQCDataHDF_
+!! author: MDG/SS 
+!! version: 1.0 
+!! date: 01/31/22
+!!
+!! read 2D or 3D QCcrystal structure data from an HDF file
+
+use mod_EMsoft
+use mod_io
+use HDF5
+use mod_HDFsupport
+use mod_QCsymmetry
+use stringconstants
+ 
+IMPLICIT NONE
+
+class(QCcell_T),INTENT(INOUT)           :: self
+type(QCspacegroup_T),INTENT(INOUT)      :: QCSG
+type(EMsoft_T),INTENT(INOUT)            :: EMsoft
+
+type(HDF_T)                             :: HDF
+type(IO_T)                              :: Message
+
+character(fnlen)                        :: dataset, groupname, fname
+integer(HSIZE_T)                        :: dims(1), dims2(2)
+integer(kind=irg)                       :: hdferr, SGnum
+real(kind=dbl),allocatable              :: cellparams(:)
+integer(kind=irg),allocatable           :: atomtypes(:)
+real(kind=sgl),allocatable              :: atompos(:,:)
+character(fnlen)                        :: pp
+
+! Initialize FORTRAN interface if needed.
+call openFortranHDFInterface()
+
+HDF = HDF_T()
+
+fname = EMsoft%generateFilePath('EMXtalFolderpathname',self%fname)
+hdferr = HDF%openFile(fname, readonly = .TRUE.)
+if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%openFile:'//trim(fname), hdferr)
+
+groupname = SC_CrystalData
+hdferr = HDF%openGroup(groupname)
+if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%openGroup:'//trim(groupname), hdferr)
+
+dataset = SC_LatticeParameters
+call HDF%readDatasetDoubleArray(dataset, dims, hdferr, cellparams)
+if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%readDatasetDoubleArray1D:'//trim(dataset), hdferr)
+
+select type (self)
+  class is (QCcell_axial_T)
+    self%QClatparm_a = cellparams(1)
+    self%QClatparm_c = cellparams(2)
+    self%alphaij     = cellparams(3)
+    self%alphai5     = cellparams(4)
+    self%alphastarij = cellparams(5)
+
+    dataset = SC_AxialSymmetry
+    call HDF%readDatasetInteger(dataset, hdferr, self%N_Axial) 
+    if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%readDatasetInteger:'//trim(dataset), hdferr)
+
+    if(self%N_Axial .eq. 8) then
+      call self%setQCType('Oct')
+    else if(self%N_Axial .eq. 10) then
+      call self%setQCType('Dec')
+    else if(self%N_Axial .eq. 12) then
+      call self%setQCType('DoD')
+    else
+      call Message%printError('ReadQCDataHDF',&
+      'The axial symmetry is not one of the implemented ones (only 8, 10 and 12 fold implemented.)')
+    end if
+
+  class is (QCcell_icosahedral_T)
+    self%QClatparm   = cellparams(1)
+    self%alphaij     = cellparams(2)
+    self%alphastarij = cellparams(3)
+    call self%setQCType('Ico')
+end select
+
+dataset = SC_SpaceGroupNumber
+call HDF%readDatasetInteger(dataset, hdferr, SGnum) 
+call QCSG%setSGnum(SGnum)
+if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%readDatasetInteger:'//trim(dataset), hdferr)
+
+dataset = SC_Natomtypes
+call HDF%readDatasetInteger(dataset, hdferr, self%ATOM_ntype)
+if (hdferr.ne.0) call HDF%error_check('ReadDataHDF:HDF%readDatasetInteger:'//trim(dataset), hdferr)
+
+dataset = SC_Atomtypes
+call HDF%readDatasetIntegerArray(dataset, dims, hdferr, atomtypes)
+if (hdferr.ne.0) call HDF%error_check('ReadDataHDF:HDF%readDatasetIntegerArray1D:'//trim(dataset), hdferr)
+
+self%ATOM_type(1:self%ATOM_ntype) = atomtypes(1:self%ATOM_ntype) 
+deallocate(atomtypes)
+
+dataset = SC_AtomData
+call HDF%readDatasetFloatArray(dataset, dims2, hdferr, atompos)
+if (hdferr.ne.0) call HDF%error_check('ReadDataHDF:HDF%readDatasetFloatArray2D:'//trim(dataset), hdferr)
+
+self%ATOM_pos(1:self%ATOM_ntype,1:10) = atompos(1:self%ATOM_ntype,1:10) 
+deallocate(atompos)
+
+call HDF%pop(.TRUE.)
+
+end subroutine ReadQCDataHDF_
+
+!--------------------------------------------------------------------------
+recursive subroutine DumpQXtalInfo_(self, QCSG)    
+!DEC$ ATTRIBUTES DLLEXPORT :: DumpQXtalInfo_
+
+use mod_io
+use mod_QCsymmetry
+
+IMPLICIT NONE
+
+class(QCcell_T),INTENT(INOUT)           :: self
+type(QCspacegroup_T),INTENT(INOUT)      :: QCSG
+
+type(IO_T)                              :: Message
+
+integer(kind=irg)                       :: i, j, oi_int(3)
+real(kind=dbl)                          :: oi_real(10)
+
+select type (self)
+  class is (QCcell_axial_T)
+     call Message%printMessage('', frm = "(A/)")
+     call Message%printMessage('Quasicrystal Structure Information', frm = "('-->',A,'<--')")
+     oi_real(1) = self%QClatparm_a
+     call Message%WriteValue('  a_i | i = {1,2,3,4} [nm]             : ', oi_real, 1, "(F9.5)")
+     oi_real(1) = self%QClatparm_c
+     call Message%WriteValue('  a_5 [nm]                             : ', oi_real, 1, "(F9.5)")
+     oi_real(1) = self%alphaij
+     call Message%WriteValue('  alpha_ij | (i,j) = {1,2,3,4} [deg]   : ', oi_real, 1, "(F10.5)")
+      oi_real(1) = self%alphai5
+     call Message%WriteValue('  alpha_i5 | (i)   = {1,2,3,4} [deg]   : ', oi_real, 1, "(F10.5)")
+     oi_int(1)  = self%N_Axial
+     call Message%WriteValue('  Highest axial rotational symmetry    : ', oi_int, 1, "(I4)")
+     oi_real(1) = self%vol
+     call Message%WriteValue('  Volume [nm^5]                        : ', oi_real, 1, "(F12.8)")
+     oi_int(1) = QCSG%getSGnum()
+     call Message%WriteValue('  Space group #                        : ', oi_int, 1, "(1x,I3)")
+     call Message%WriteValue('  Space group symbol                   : ', '  '//trim(self%SGname(oi_int(1))) )
+     
+    ! generate atom positions and dump output  
+     call Message%printMessage('', frm = "(A/)")
+     call self%CalcQCPositions(QCSG)
+     oi_int(1) = self%ATOM_ntype
+     call Message%WriteValue('  Number of asymmetric atom positions ', oi_int, 1)
+     do i=1,self%ATOM_ntype
+      oi_int(1:3) = (/i, self%ATOM_type(i), self%numat(i)/)
+      call Message%WriteValue('  General position / atomic number / multiplicity :', oi_int, 3,"(1x,I3,'/',I2,'/',I3)",advance="no")
+      call Message%printMessage(' ('//ATOM_sym(self%ATOM_type(i))//')', frm = "(A)")
+      call Message%printMessage('   Equivalent positions  (a_1 a_2 a_3 a_4 a_5  occ  Bpar_11 Bpar_33 Bperp lambda_k) ', frm = "(A)")
+      do j=1,self%numat(i)
+        oi_real(1:10) = (/dble(self%apos(i, j,1:5)),dble(self%ATOM_pos(i,6:10))/)
+        call Message%WriteValue('         > ', oi_real, 10,"(2x,6(F9.5,','),4F9.5)")
+      end do
+    end do
+    call Message%printMessage('', frm = "(A/)")
+  class is (QCcell_icosahedral_T)
+     call Message%printMessage('', frm = "(A/)")
+     call Message%printMessage('Quasicrystal Structure Information', frm = "('-->',A,'<--')")
+     oi_real(1) = self%QClatparm
+     call Message%WriteValue('  a_i | i = {1,2,3,4,5} [nm]           : ', oi_real, 1, "(F9.5)")
+     oi_real(1) = self%alphaij
+     call Message%WriteValue('  alpha_ij  [deg]                      : ', oi_real, 1, "(F10.5)")
+     oi_real(1) = self%vol
+     call Message%WriteValue('  Volume [nm^5]                        : ', oi_real, 1, "(F12.8)")
+     oi_int(1) = QCSG%getSGnum()
+     call Message%WriteValue('  Space group #                        : ', oi_int, 1, "(1x,I3)")
+     call Message%WriteValue('  Space group symbol                   : ', '  '//trim(self%SGname(oi_int(1))) )
+     call Message%WriteValue('  Space group generator string         : ', '  '//trim(QCSG%GL(oi_int(1))) )
+     
+    ! generate atom positions and dump output  
+     call Message%printMessage('', frm = "(A/)")
+     call self%CalcQCPositions(QCSG)
+     oi_int(1) = self%ATOM_ntype
+     call Message%WriteValue('  Number of asymmetric atom positions ', oi_int, 1)
+     do i=1,self%ATOM_ntype
+      oi_int(1:3) = (/i, self%ATOM_type(i), self%numat(i)/)
+      call Message%WriteValue('  General position / atomic number / multiplicity :', oi_int, 3,"(1x,I3,'/',I2,'/',I3)",advance="no")
+      call Message%printMessage(' ('//ATOM_sym(self%ATOM_type(i))//')', frm = "(A)")
+      call Message%printMessage('   Equivalent positions  (a_1 a_2 a_3 a_4 a_5 a_6  occ  Bpar Bperp lambda_k) ', frm = "(A)")
+      do j=1,self%numat(i)
+        oi_real(1:10) = (/dble(self%apos(i, j,1:6)),dble(self%ATOM_pos(i,7:10))/)
+        call Message%WriteValue('         > ', oi_real, 10,"(2x,6(F9.5,','),4F9.5)")
+      end do
+    end do
+    call Message%printMessage('', frm = "(A/)")
+end select
+
+end subroutine DumpQXtalInfo_
+
+
+!--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 recursive subroutine setMetricParametersQC_(self)
 !DEC$ ATTRIBUTES DLLEXPORT ::setMetricParametersQC_ 

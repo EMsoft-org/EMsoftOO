@@ -84,7 +84,7 @@ private
   character(11)               :: name
   character(fnlen),allocatable:: SGname(:)
   character(3)                :: QCtype
-  character(57),allocatable   :: GL(:)
+  character(57),allocatable, public   :: GL(:)
 
 contains
 private 
