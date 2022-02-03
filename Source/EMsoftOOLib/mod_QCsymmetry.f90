@@ -65,6 +65,11 @@ private
         "8aBB0000a0BB000a00BB00a000BB0a0000BBb000000c000000d000000", &
         "3b000000c000000d000000                                   " /)
 
+!> SGorder_ico is the order of the icosahedral 6D space groups
+  integer(kind=irg), public, dimension(11) :: SGorder_ico = (/ &
+        3182, 3182, 3183, 3183, 3187, 3187, 5442, 5442, 5543, 5547, 5442 /)
+
+
 ! class definition
 type, public :: QCspacegroup_T
 private 
@@ -82,7 +87,7 @@ private
   real(kind=dbl),allocatable, public  :: icos(:,:,:)        !< dummy 6x6 matrix used for various computations
   real(kind=dbl),allocatable  :: c(:,:)             !< dummy 6x6 matrix used for various computations
   character(11)               :: name
-  character(fnlen),allocatable:: SGname(:)
+  character(fnlen),allocatable, public :: SGname(:)
   character(3)                :: QCtype
   character(57),allocatable, public   :: GL(:)
 
@@ -99,6 +104,7 @@ private
   procedure, pass(self) :: getSGnum_
   procedure, pass(self) :: getNUMpt_
   procedure, pass(self) :: getMATnum_
+  procedure, pass(self) :: getnsym_
   procedure, pass(self) :: getQCtype_
   procedure, pass(self) :: getAxialGroupNames_
   procedure, pass(self) :: fillgen_QC_
@@ -107,6 +113,7 @@ private
   procedure, pass(self) :: matrixmult_
   procedure, pass(self) :: isnew_  
   procedure, pass(self) :: isitnew_  
+  procedure, pass(self) :: IsGAllowedQC_
   procedure, pass(self) :: GetSymmetryOperators_
   ! procedure, pass(self) :: 
   ! procedure, pass(self) :: 
@@ -123,6 +130,7 @@ private
   generic, public :: getSGnum => getSGnum_
   generic, public :: getNUMpt => getNUMpt_
   generic, public :: getMATnum => getMATnum_
+  generic, public :: getnsym => getnsym_
   generic, public :: getQCtype => getQCtype_
   generic, public :: fillgen_QC => fillgen_QC_
   generic, public :: MakeQCGenerators => MakeQCGenerators_
@@ -130,7 +138,9 @@ private
   generic, public :: matrixmult => matrixmult_
   generic, public :: isnew => isnew_
   generic, public :: isitnew => isitnew_
+  generic, public :: IsGAllowedQC => IsGAllowedQC_
   generic, public :: GetSymmetryOperators => GetSymmetryOperators_
+  ! generic, public :: 
   ! generic, public :: 
   ! generic, public :: 
 
@@ -160,9 +170,9 @@ character(3),INTENT(IN),OPTIONAL:: QCtype
 if (nD.eq.3) then 
 ! get the number of space groups in the SGname array
   QCSG%nsg = 11
-  allocate( QCSG%data(5000,7,7)  )         !< all symmetry matrices for a given spacegroup
-  allocate( QCSG%direc(5000,6,6) )         !< direct space point group matrices
-  allocate( QCSG%recip(5000,6,6) )         !< reciprocal space point group matrices
+  allocate( QCSG%data(6000,7,7)  )         !< all symmetry matrices for a given spacegroup
+  allocate( QCSG%direc(6000,6,6) )         !< direct space point group matrices
+  allocate( QCSG%recip(6000,6,6) )         !< reciprocal space point group matrices
   allocate( QCSG%icos(6,6,120))
   allocate( QCSG%c(7,7) )                  !< dummy matrix used for various computations
   allocate( QCSG%GL(QCSG%nsg), QCSG%SGname(QCSG%nsg) )
@@ -343,6 +353,24 @@ integer(kind=irg)                     :: MATnum
 MATnum = self%MATnum
 
 end function getMATnum_
+
+!--------------------------------------------------------------------------
+recursive function getnsym_(self) result(nsym)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnsym_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/13/20
+  !!
+  !! get nsym
+
+IMPLICIT NONE
+
+class(QCspacegroup_T), INTENT(INOUT)  :: self
+integer(kind=irg)                     :: nsym
+
+nsym = self%nsym
+
+end function getnsym_
 
 !--------------------------------------------------------------------------
 recursive subroutine setQCtype_(self, QCtype)
@@ -722,7 +750,7 @@ logical,INTENT(IN)                        :: dopg
 
 type(IO_T)                                :: Message
 
-integer(kind=irg)                         :: i,j,k,nsym,k1,k2,l1,l2,sg(4) !< loop counters (mostly)
+integer(kind=irg)                         :: i,j,k,nsym,k1,k2,l1,l2,sg(4),sgnum !< loop counters (mostly)
 real(kind=dbl)                            :: q,sm, eps                    !< auxiliary variables.
 
 eps = 0.1D0
@@ -738,6 +766,7 @@ do k = 1,4
 end do
 
 nsym = self%GENnum
+sgnum = self%getSGnum()
 
 ! generate new elements from the squares of the generators 
  do k=1,self%GENnum 
@@ -758,9 +787,14 @@ nsym = self%GENnum
     nsym=nsym+1
     self%data(nsym,:,:) = self%c(:,:)
    end if
+   ! if (nsym.eq.SGorder_ico(sgnum)) then  ! we stop when we have them all
+   !  k1 = nsym
+   !  k2 = nsym 
+   ! end if
    k2=k2+1
   end do
   k1=k1+1
+  write (*,*) k1, k2, nsym
  end do
  self%MATnum = nsym
 
@@ -805,6 +839,8 @@ character(1)                              :: t(7), ngen
 integer(kind=irg)                         :: i, k, l
 
 genst = trim(self%GL(self%SGnum))
+
+write (*,*) ' genst = ', genst 
 
 ngen = genst(1:1)
 
@@ -1325,41 +1361,70 @@ logical recursive function isitnew_(self, nsym)
 IMPLICIT NONE
 
 class(QCspacegroup_T),INTENT(INOUT)     :: self
-integer(kind=irg),INTENT(IN)            :: nsym                 !< index of matrix to be compared
+integer(kind=irg),INTENT(IN)            :: nsym               !< index of matrix to be compared
 
-integer(kind=irg)                       :: i,j,k,n,im,jm,nm     !< loop counters
-real(kind=dbl),parameter                :: eps=0.0005_dbl       !< comparison threshold
+integer(kind=irg)                       :: k                  !< loop counters
+real(kind=dbl),parameter                :: eps=1.0D-14       !< comparison threshold
 
-if (self%getQCtype_().eq.'Ico') then 
-  im = 6 
-  jm = 7 
-  nm = 42
-else
-  im = 5 
-  jm = 6 
-  nm = 42
-end if
+isitnew_ = .TRUE.
 
-k=0
-n=0
-do while ((k.le.nsym).and.(n.ne.nm))
-  n=0
+k=1
+comparison: do while (k.le.nsym)
+  ! write (*,*) k, nsym
+  ! write (*,*) (abs( self%c(:,:) - self%data(k,:,:) ) .lt. eps)
+  ! if (all( abs( self%c(:,:) - self%data(k,:,:) ) .lt. eps)) then 
+  if (sum( abs( self%c(:,:) - self%data(k,:,:) )) .le. eps) then 
+    isitnew_ = .FALSE. 
+    ! write (*,*) k, 'FALSE'
+    EXIT comparison
+  end if
   k=k+1
-  do i=1,im
-    do j=1,jm
-      if (abs(self%c(i,j)- self%data(k,i,j)).lt.eps) n=n+1
-    end do
-  end do
-end do
+end do comparison
  
- if (n.ne.nm) then 
-  isitnew_ = .TRUE.
- else
-  isitnew_ = .FALSE.
- end if
-
 end function isitnew_
 
+!--------------------------------------------------------------------------
+recursive function IsGAllowedQC_(self,g) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: IsGAllowedQC_
+!! author: MDG/SS 
+!! version: 1.0 
+!! date: 02/02/22
+!!
+!! 
+
+IMPLICIT NONE
+
+class(QCspacegroup_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)          :: g(6)           !< input reciprocal lattice vector
+
+integer(kind=irg)                     :: seo,sgnum,icase  !< auxiliary variable
+logical                               :: res
+
+! Determine whether or not this vector is
+! actually allowed by the lattice centering
+sgnum = self%getSGnum()
+icase = 0
+
+if((sgnum .eq. 1) .or. (sgnum .eq. 2) .or. (sgnum .eq. 7) .or. (sgnum .eq. 8)) icase = 1 ! primitive
+
+if((sgnum .eq. 3) .or. (sgnum .eq. 4) .or. (sgnum .eq. 9)) icase = 2 ! body-centered
+
+if((sgnum .eq. 5) .or. (sgnum .eq. 6) .or. (sgnum .eq. 10) .or. (sgnum .eq. 11)) icase = 3 ! face-centered
+
+res = .TRUE.
+select case (icase)
+  case (1)
+                                ! all reflections allowed for a primitive lattice
+  case (2)
+   seo = mod(sum(g)+100,2); if (seo.eq.1)   res = .FALSE.     ! body-centered sum all even
+
+  case (3)
+   seo = sum(mod(g+100,2)); if (seo .le. 5) res = .FALSE.     ! face-centered all even or all odd
+    
+  case DEFAULT
+end select
+ 
+end function IsGAllowedQC_
 
 
 end module mod_QCsymmetry

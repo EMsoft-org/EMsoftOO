@@ -569,7 +569,7 @@ real(kind=dbl),allocatable            :: ctmp(:,:)      !< auxiliary variables
  allocate (self%apos(self%ATOM_ntype, QCSG%getMATnum(), 6),stat=ier)
  if (ier.ne.0) call Message%printError('CalcQCPositions',' unable to allocate memory for array apos')
  ctmp = 0.D0
-
+write (*,*) 'apos : ', shape(self%apos), shape(ctmp)
  do i=1,self%ATOM_ntype
 ! for each atom in the asymmetric unit
   call self%GetQCOrbit_(QCSG, ctmp, i, n)
@@ -603,12 +603,14 @@ integer(kind=irg)                     :: ii, jj, kk, Pmdims, m
 real(kind=dbl),allocatable            :: r(:), s(:)
 
 Pmdims = QCSG%getMATnum()
+write (*,*) 'Pmdims = ', Pmdims, QCSG%getQCtype() 
 if (QCSG%getQCtype().eq.'Ico') then 
   m = 6
 else
   m = 5
 end if 
 allocate(orbit(Pmdims,m), r(m), s(m))
+write (*,*) shape(orbit)
 
 nn = 1
 orbit(1,1:m) = self%ATOM_pos(mm,1:m)
@@ -967,7 +969,7 @@ select type (self)
      call Message%WriteValue('  Volume [nm^5]                        : ', oi_real, 1, "(F12.8)")
      oi_int(1) = QCSG%getSGnum()
      call Message%WriteValue('  Space group #                        : ', oi_int, 1, "(1x,I3)")
-     call Message%WriteValue('  Space group symbol                   : ', '  '//trim(self%SGname(oi_int(1))) )
+     call Message%WriteValue('  Space group symbol                   : ', '  '//trim(QCSG%SGname(oi_int(1))) )
      call Message%WriteValue('  Space group generator string         : ', '  '//trim(QCSG%GL(oi_int(1))) )
      
     ! generate atom positions and dump output  
