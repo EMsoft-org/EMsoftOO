@@ -148,6 +148,9 @@ else  ! quasi-crystal structure file
 
     call QCcell_axial%setfname(xtalname)
     call QCcell_axial%ReadQCDataHDF(QCSG, EMsoft)
+    ! call QCSG%printSGtable()
+    call QCcell_axial%setMetricParametersQC()
+    call QCSG%GenerateQCSymmetry(dopg=.FALSE.)
     call QCcell_axial%DumpQXtalInfo(QCSG)
   else
     call HDF%pop(.TRUE.)
@@ -156,10 +159,9 @@ else  ! quasi-crystal structure file
     call QCcell_icosahedral%setfname(xtalname)
     QCSG = QCspacegroup_T( nD = 3, QCtype = 'Ico')
     call QCcell_icosahedral%ReadQCDataHDF(QCSG, EMsoft)
-    call QCSG%printSGtable()
+    ! call QCSG%printSGtable()
     call QCcell_icosahedral%setMetricParametersQC()
     call QCSG%GenerateQCSymmetry(dopg=.FALSE.)
-    write(*,*) 'QCtype = ', QCcell_icosahedral%getQCtype()
     call QCcell_icosahedral%DumpQXtalInfo(QCSG)
   end if
 end if

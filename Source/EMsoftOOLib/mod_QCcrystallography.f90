@@ -555,25 +555,29 @@ type(QCspacegroup_T),INTENT(INOUT)    :: QCSG
 type(IO_T)                            :: Message
 
 logical                               :: inside         !< auxiliary logical
-integer(kind=irg)                     :: i,j,k,l,mm,icnt,ncells,n,kk,ier, io_int(3)  !< various auxiliary variables
+integer(kind=irg)                     :: i,j,k,l,m,mm,icnt,ncells,n,kk,ier, io_int(3)  !< various auxiliary variables
 real(kind=dbl),allocatable            :: ctmp(:,:)      !< auxiliary variables  
 
 ! make sure all coordinates are reduced to the fundamental unit cell
  self%reduce=.TRUE.
 
- allocate(ctmp(QCSG%getMATnum(),6))
+if (QCSG%getQCtype().eq.'Ico') then 
+  m = 6
+else
+  m = 5
+end if 
+allocate(ctmp(QCSG%getMATnum(),m))
 
 ! main loop
 ! first allocate the apos variable (contains CARTESIAN coordinates
  if (allocated(self%apos)) deallocate(self%apos)
- allocate (self%apos(self%ATOM_ntype, QCSG%getMATnum(), 6),stat=ier)
+ allocate (self%apos(self%ATOM_ntype, QCSG%getMATnum(), m),stat=ier)
  if (ier.ne.0) call Message%printError('CalcQCPositions',' unable to allocate memory for array apos')
  ctmp = 0.D0
-write (*,*) 'apos : ', shape(self%apos), shape(ctmp)
  do i=1,self%ATOM_ntype
 ! for each atom in the asymmetric unit
   call self%GetQCOrbit_(QCSG, ctmp, i, n)
-  self%apos(i,1:n,1:6) = ctmp(1:n,1:6)
+  self%apos(i,1:n,1:m) = ctmp(1:n,1:m)
   self%numat(i)        = n
  end do  
 
@@ -603,14 +607,12 @@ integer(kind=irg)                     :: ii, jj, kk, Pmdims, m
 real(kind=dbl),allocatable            :: r(:), s(:)
 
 Pmdims = QCSG%getMATnum()
-write (*,*) 'Pmdims = ', Pmdims, QCSG%getQCtype() 
 if (QCSG%getQCtype().eq.'Ico') then 
   m = 6
 else
   m = 5
 end if 
 allocate(orbit(Pmdims,m), r(m), s(m))
-write (*,*) shape(orbit)
 
 nn = 1
 orbit(1,1:m) = self%ATOM_pos(mm,1:m)
@@ -665,7 +667,7 @@ real(kind=dbl),parameter              :: eps = 1.0D-6
 isnew = .TRUE.
 
 do ii = 1,nn
-  if(sum(abs(hkl - orbit(ii,1:6))) .lt. eps) then
+  if(sum(abs(hkl - orbit(ii,1:m))) .lt. eps) then
     isnew = .FALSE.
     EXIT
   end if
@@ -940,7 +942,9 @@ select type (self)
      call Message%WriteValue('  Volume [nm^5]                        : ', oi_real, 1, "(F12.8)")
      oi_int(1) = QCSG%getSGnum()
      call Message%WriteValue('  Space group #                        : ', oi_int, 1, "(1x,I3)")
-     call Message%WriteValue('  Space group symbol                   : ', '  '//trim(self%SGname(oi_int(1))) )
+     call Message%WriteValue('  Space group symbol                   : ', '  '//trim(QCSG%SGname(oi_int(1))) )
+     oi_int(1) = QCSG%getnsym()
+     call Message%WriteValue('  Number of symmetry operators         : ', oi_int, 1, "(1x,I4)")
      
     ! generate atom positions and dump output  
      call Message%printMessage('', frm = "(A/)")

@@ -512,13 +512,14 @@ else
   call Message%printError('getAxialGroupNames_:','only 8, 10 and 12 fold symmetries have been implemented thus far.')
 end if
 
+call Message%printMessage('')
 select case(styp)
   case(2)
     nsg = 57 + 3*(n - 1) + 2*(n/2 - 1)
     call self%setnsg_(nsg)
     io_int(1) = nsg
     write(str,'(I2)') n
-    call Message%WriteValue('Number of space groups for axial symmetry of '//trim(str)//' = ',io_int,1,'(I3,//)')
+    call Message%WriteValue('Number of space groups for axial symmetry of '//trim(str)//' = ',io_int,1,'(I3,/)')
     if(.not.(allocated(self%SGname))) allocate(self%SGname(nsg))
     self%SGname = ''
 
@@ -527,7 +528,7 @@ select case(styp)
     call self%setnsg_(nsg)
     io_int(1) = nsg
     write(str,'(I2)') n
-    call Message%WriteValue('Number of space groups for axial symmetry of '//trim(str)//' = ',io_int,1,'(I3,//)')
+    call Message%WriteValue('Number of space groups for axial symmetry of '//trim(str)//' = ',io_int,1,'(I3,/)')
     if(.not.(allocated(self%SGname))) allocate(self%SGname(nsg))
 
     ! fill out the names and print on screen
@@ -596,7 +597,7 @@ select case(styp)
     call self%setnsg_(nsg)
     io_int(1) = nsg
     write(str,'(I2)') n
-    call Message%WriteValue('Number of space groups for axial symmetry of '//trim(str)//' = ',io_int,1,'(I3,//)')
+    call Message%WriteValue('Number of space groups for axial symmetry of '//trim(str)//' = ',io_int,1,'(I3,/)')
     if(.not.(allocated(self%SGname))) allocate(self%SGname(nsg))
 
     write(str1,'(I6)') n
@@ -750,73 +751,129 @@ logical,INTENT(IN)                        :: dopg
 
 type(IO_T)                                :: Message
 
-integer(kind=irg)                         :: i,j,k,nsym,k1,k2,l1,l2,sg(4),sgnum !< loop counters (mostly)
+integer(kind=irg)                         :: i,j,k,nsym,k1,k2,l1,l2,sg(4),sgnum, io_int(1) !< loop counters (mostly)
 real(kind=dbl)                            :: q,sm, eps                    !< auxiliary variables.
 
 eps = 0.1D0
 
 ! create the space group generator matrices
 call self%MakeQCGenerators()
+call Message%printMessage(' Created generator matrices ')
 
-sg = (/5,6,10,11/)
-do k = 1,4
- if(self%SGnum .eq. sg(k) ) then
-  call Message%printMessage('--> Face-centered Icosahedral quasicrystal detected. Generating space group symmetry. ')
- end if
-end do
-
-nsym = self%GENnum
-sgnum = self%getSGnum()
-
-! generate new elements from the squares of the generators 
- do k=1,self%GENnum 
-  call self%matrixmult(k,k)
-  if (self%isitnew_(nsym).eqv..TRUE.) then 
-   nsym=nsym+1
-   self%data(nsym,:,:) = self%c(:,:)
-  end if
- end do
-
-! generate the remainder of the factorgroup
- k1=1
- do while (k1.le.nsym) 
-  k2=k1+1
-  do while (k2.le.nsym)
-   call self%matrixmult(k2,k1)
-   if (self%isitnew_(nsym).eqv..TRUE.) then 
-    nsym=nsym+1
-    self%data(nsym,:,:) = self%c(:,:)
+if (self%getQCtype().eq.'Ico') then
+  sg = (/5,6,10,11/)
+  do k = 1,4
+   if(self%SGnum .eq. sg(k) ) then
+    call Message%printMessage('--> Face-centered Icosahedral quasicrystal detected. Generating space group symmetry. ')
    end if
-   ! if (nsym.eq.SGorder_ico(sgnum)) then  ! we stop when we have them all
-   !  k1 = nsym
-   !  k2 = nsym 
-   ! end if
-   k2=k2+1
   end do
-  k1=k1+1
-  write (*,*) k1, k2, nsym
- end do
- self%MATnum = nsym
 
-! reduce the translation operators to the fundamental unit cell
- do i=1,self%MATnum
-   self%data(i,6,7)=mod( self%data(i,6,7),1.0_dbl)
- end do 
+  nsym = self%GENnum
+  sgnum = self%getSGnum()
 
-! generate point group symmetry if flag is passed
-if(dopg.eqv..TRUE.) then
-  self%NUMpt = 0
-  do i = 1,self%MATnum
-    sm = 0.D0
-    do j = 1,6
-      sm = sm + self%data(i,j,7)**2
-    end do
-    if(sm .lt. eps) then
-      self%NUMpt = self%NUMpt + 1
-      self%direc(self%NUMpt,1:6,1:6) = self%data(i,1:6,1:6)
+  ! generate new elements from the squares of the generators 
+   do k=1,self%GENnum 
+    call self%matrixmult(k,k)
+    if (self%isitnew_(nsym).eqv..TRUE.) then 
+     nsym=nsym+1
+     self%data(nsym,:,:) = self%c(:,:)
     end if
-  end do
-end if
+   end do
+
+   io_int(1) = SGorder_ico(sgnum)
+   call Message%WriteValue(' Creating factor group with ', io_int, 1,"(I5,' elements')")
+  ! generate the remainder of the factorgroup
+   k1=1
+   do while (k1.le.nsym) 
+    k2=k1+1
+    do while (k2.le.nsym)
+     call self%matrixmult(k2,k1)
+     if (self%isitnew_(nsym).eqv..TRUE.) then 
+      nsym=nsym+1
+      self%data(nsym,:,:) = self%c(:,:)
+     end if
+     if (nsym.eq.SGorder_ico(sgnum)) then  ! we stop when we have them all
+      k1 = nsym
+      k2 = nsym 
+     end if
+     k2=k2+1
+    end do
+    k1=k1+1
+   end do
+   self%MATnum = nsym
+   self%nsym = nsym
+   call Message%printMessage(' ---> Factor group completed ')
+
+  ! reduce the translation operators to the fundamental unit cell
+   do i=1,self%MATnum
+     self%data(i,6,7)=mod( self%data(i,6,7),1.0_dbl)
+   end do 
+
+  ! generate point group symmetry if flag is passed
+  if(dopg.eqv..TRUE.) then
+    call Message%printMessage(' creating point group matrices')
+    self%NUMpt = 0
+    do i = 1,self%MATnum
+      sm = 0.D0
+      do j = 1,6
+        sm = sm + self%data(i,j,7)**2
+      end do
+      if(sm .lt. eps) then
+        self%NUMpt = self%NUMpt + 1
+        self%direc(self%NUMpt,1:6,1:6) = self%data(i,1:6,1:6)
+      end if
+    end do
+    call Message%printMessage(' ----> completed')
+  end if
+else ! axial space groups
+   nsym = self%GENnum
+! generate new elements from the squares of the generators 
+   do k=1,self%GENnum 
+    call self%matrixmult(k,k)
+    if (self%isitnew(nsym).eqv..TRUE.) then 
+     nsym=nsym+1
+     self%data(nsym,:,:) = self%c(:,:)
+    end if
+   end do
+
+  ! generate the remainder of the factorgroup
+   k1=1
+   do while (k1.le.nsym) 
+    k2=k1+1
+    do while (k2.le.nsym)
+     call self%matrixmult(k2,k1)
+     if (self%isitnew(nsym).eqv..TRUE.) then 
+      nsym=nsym+1
+      self%data(nsym,:,:) = self%c(:,:)
+     end if
+     k2=k2+1
+    end do
+    k1=k1+1
+   end do
+   self%MATnum = nsym
+
+  ! reduce the translation operators to the fundamental unit cell
+   do i=1,self%MATnum
+     self%data(i,5,6)=mod( self%data(i,5,6),1.0_dbl)
+   end do 
+
+  ! generate point group symmetry if flag is passed
+  if(dopg) then
+    self%NUMpt = 0
+    do i = 1,self%MATnum
+      sm = 0.D0
+      do j = 1,5
+        sm = sm + self%data(i,j,6)**2
+      end do
+      if(sm .lt. eps) then
+        self%NUMpt = self%NUMpt + 1
+        self%direc(self%NUMpt,1:5,1:5) = self%data(i,1:5,1:5)
+      end if
+    end do
+  end if
+  self%MATnum = nsym
+  self%nsym = nsym
+end if 
 
 end subroutine GenerateQCSymmetry_
 
@@ -833,28 +890,151 @@ IMPLICIT NONE
 
 class(QCspacegroup_T),INTENT(INOUT)       :: self 
 
-real(kind=dbl)                            :: g1(6,6), g2(6,6), g3(6,6)
+real(kind=dbl),allocatable                :: g1(:,:), g2(:,:), g3(:,:)
 character(100)                            :: genst                        !< full generator string
 character(1)                              :: t(7), ngen
 integer(kind=irg)                         :: i, k, l
 
-genst = trim(self%GL(self%SGnum))
+if (self%getQCtype().eq.'Ico') then 
+  allocate( g1(6,6), g2(6,6), g3(6,6) )
+  genst = trim(self%GL(self%SGnum))
 
-write (*,*) ' genst = ', genst 
+  write (*,*) ' genst = ', genst 
 
-ngen = genst(1:1)
+  ngen = genst(1:1)
 
-read(ngen,*) self%GENnum
+  read(ngen,*) self%GENnum
 
-! create the generator matrices 
-do i = 1,self%GENnum
-  do  k = 1,7
-      l = 1 + 7*(i-1) + k
-      t(k) = genst(l:l)
+  ! create the generator matrices 
+  do i = 1,self%GENnum
+    do  k = 1,7
+        l = 1 + 7*(i-1) + k
+        t(k) = genst(l:l)
+    end do
+    call self%fillgen_QC(t)
+    self%data(i,:,:) = self%c(:,:)
   end do
-  call self%fillgen_QC(t)
-  self%data(i,:,:) = self%c(:,:)
-end do
+else
+  allocate( g1(5,5), g2(5,5), g3(5,5) )
+  if(self%getQCtype().eq.'Dec') then
+    g1(1,1:5) = (/0.D0, 0.D0, 0.D0, -1.D0, 0.D0/)
+    g1(2,1:5) = (/1.D0, 1.D0, 1.D0, 1.D0, 0.D0/)
+    g1(3,1:5) = (/-1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g1(4,1:5) = (/0.D0, -1.D0, 0.D0, 0.D0, 0.D0/)
+    g1(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, 1.D0/)
+
+    g2(1,1:5) = (/0.D0, 0.D0, 0.D0, -1.D0, 0.D0/)
+    g2(2,1:5) = (/0.D0, 0.D0, -1.D0, 0.D0, 0.D0/)
+    g2(3,1:5) = (/0.D0, -1.D0, 0.D0, 0.D0, 0.D0/)
+    g2(4,1:5) = (/-1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g2(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, 1.D0/)
+
+    g3(1,1:5) = (/-1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g3(2,1:5) = (/0.D0, -1.D0, 0.D0, 0.D0, 0.D0/)
+    g3(3,1:5) = (/0.D0, 0.D0, -1.D0, 0.D0, 0.D0/)
+    g3(4,1:5) = (/0.D0, 0.D0, 0.D0, -1.D0, 0.D0/)
+    g3(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, -1.D0/)
+
+    ! generator r^1/2
+    self%data(1,1:6,1:6) = 0.D0
+    self%data(1,6,6)     = 1.D0
+
+    self%data(1,1:5,1:5) = g1(1:5,1:5)
+    self%data(1,5,6)     = 0.5D0
+
+    ! generator h (primary m) + translation
+    self%data(2,1:6,1:6) = 0.D0
+    self%data(2,6,6)     = 1.D0
+
+    self%data(2,1:5,1:5) = g2(1:5,1:5)
+    self%data(2,5,6)     = 0.5D0
+
+    ! generator m (secondary m)
+    self%data(3,1:6,1:6) = 0.D0
+    self%data(3,6,6)     = 1.D0
+
+    self%data(3,1:5,1:5) = g3(1:5,1:5)
+
+  else if(self%getQCtype().eq.'Oct') then
+    g1(1,1:5) = (/0.D0, 0.D0, 0.D0, -1.D0, 0.D0/)
+    g1(2,1:5) = (/1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g1(3,1:5) = (/0.D0, 1.D0, 0.D0, 0.D0, 0.D0/)
+    g1(4,1:5) = (/0.D0, 0.D0, 1.D0, 0.D0, 0.D0/)
+    g1(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, 1.D0/)
+
+    g2(1,1:5) = (/0.D0, 0.D0, 0.D0, 1.D0, 0.D0/)
+    g2(2,1:5) = (/0.D0, 0.D0, 1.D0, 0.D0, 0.D0/)
+    g2(3,1:5) = (/0.D0, 1.D0, 0.D0, 0.D0, 0.D0/)
+    g2(4,1:5) = (/1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g2(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+
+    g3(1,1:5) = (/-1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g3(2,1:5) = (/0.D0, -1.D0, 0.D0, 0.D0, 0.D0/)
+    g3(3,1:5) = (/0.D0, 0.D0, -1.D0, 0.D0, 0.D0/)
+    g3(4,1:5) = (/0.D0, 0.D0, 0.D0, -1.D0, 0.D0/)
+    g3(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, -1.D0/)
+
+    self%data(1,1:6,1:6) = 0.D0
+    self%data(1,6,6)     = 1.D0
+
+    self%data(1,1:5,1:5) = g1(1:5,1:5)
+    self%data(1,5,6)     = 0.5D0
+
+    ! generator h (primary m) + translation
+    self%data(2,1:6,1:6) = 0.D0
+    self%data(2,6,6)     = 1.D0
+
+    self%data(2,1:5,1:5) = g2(1:5,1:5)
+    self%data(2,5,6)     = 0.5D0
+
+    ! generator m (secondary m)
+    self%data(3,1:6,1:6) = 0.D0
+    self%data(3,6,6)     = 1.D0
+
+    self%data(3,1:5,1:5) = g3(1:5,1:5)
+
+  else if(self%getQCtype().eq.'DoD') then
+
+    g1(1,1:5) = (/0.D0, 1.D0, 0.D0, -1.D0, 0.D0/)
+    g1(2,1:5) = (/1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g1(3,1:5) = (/0.D0, 1.D0, 0.D0, 0.D0, 0.D0/)
+    g1(4,1:5) = (/0.D0, 0.D0, 1.D0, 0.D0, 0.D0/)
+    g1(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, 1.D0/)
+
+    g2(1,1:5) = (/0.D0, 0.D0, 0.D0, 1.D0, 0.D0/)
+    g2(2,1:5) = (/0.D0, 0.D0, 1.D0, 0.D0, 0.D0/)
+    g2(3,1:5) = (/0.D0, 1.D0, 0.D0, 0.D0, 0.D0/)
+    g2(4,1:5) = (/1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g2(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, 1.D0/)
+
+    g3(1,1:5) = (/-1.D0, 0.D0, 0.D0, 0.D0, 0.D0/)
+    g3(2,1:5) = (/0.D0, -1.D0, 0.D0, 0.D0, 0.D0/)
+    g3(3,1:5) = (/0.D0, 0.D0, -1.D0, 0.D0, 0.D0/)
+    g3(4,1:5) = (/0.D0, 0.D0, 0.D0, -1.D0, 0.D0/)
+    g3(5,1:5) = (/0.D0, 0.D0, 0.D0, 0.D0, -1.D0/)
+
+    self%data(1,1:6,1:6) = 0.D0
+    self%data(1,6,6)     = 1.D0
+
+    self%data(1,1:5,1:5) = g1(1:5,1:5)
+    self%data(1,5,6)     = 0.0D0
+
+    ! generator h (primary m) + translation
+    self%data(2,1:6,1:6) = 0.D0
+    self%data(2,6,6)     = 1.D0
+
+    self%data(2,1:5,1:5) = g2(1:5,1:5)
+    self%data(2,5,6)     = 0.0D0
+
+    ! generator m (secondary m)
+    self%data(3,1:6,1:6) = 0.D0
+    self%data(3,6,6)     = 1.D0
+
+    self%data(3,1:5,1:5) = g3(1:5,1:5)
+  end if
+
+  self%GENnum = 3
+end if 
 
 end subroutine MakeQCGenerators_
 
