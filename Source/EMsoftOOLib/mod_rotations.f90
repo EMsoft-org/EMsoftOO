@@ -61,7 +61,7 @@ module mod_rotations
   !!
   !! hence, conversion from homochoric to euler angle is called as ho2eu(); the argument of
   !! each routine must have the correct number of dimensions and entries.
-  !! All 42 conversion routines exist in both single and double precision.
+  !! All 72 conversion routines exist in both single and double precision.
   !!
   !! Some routines were modified in July 2014, to simplify the paths in case the direct conversion
   !! routine does not exist.  Given the complexity of the cubochoric transformations, all routines

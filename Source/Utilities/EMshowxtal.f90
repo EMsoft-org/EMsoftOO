@@ -44,18 +44,23 @@ program EMshowxtal
   !! version: 1.0 
   !! date: 01/23/20
   !!
-  !! Display crystal structure information
+  !! Display (quasi-)crystal structure information
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
 use mod_symmetry
 use mod_io
+use mod_HDFsupport
+use HDF5
 use mod_crystallography
 use mod_rotations
 use mod_quaternions
 use mod_so3
 use mod_misc 
+use mod_QCsymmetry
+use mod_QCcrystallography
+use stringconstants
 
 IMPLICIT NONE
 
@@ -66,10 +71,14 @@ type(EMsoft_T)                  :: EMsoft
 type(IO_T)                      :: Message 
 type(Cell_T)                    :: cell 
 type(SpaceGroup_T)              :: SG
+type(QCcell_axial_T)            :: QCcell_axial 
+type(QCcell_icosahedral_T)      :: QCcell_icosahedral
+type(QCSpaceGroup_T)            :: QCSG
+type(HDF_T)                     :: HDF
 
-character(fnlen)                :: xtalname
-logical                         :: verbose=.TRUE.
-integer(kind=irg)                      :: i, j
+character(fnlen)                :: xtalname, fname, dataset, groupname
+logical                         :: verbose=.TRUE., g_exists
+integer(kind=irg)               :: i, j, hdferr, N_Axial
 character(1)                    :: yesno
 real(kind=dbl),allocatable      :: data(:,:,:), direc(:,:,:)
 
@@ -77,32 +86,84 @@ real(kind=dbl),allocatable      :: data(:,:,:), direc(:,:,:)
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 921 /) ) 
  
 ! ask for the crystal structure file
-call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
-call cell%getCrystalData(xtalname, SG, EMsoft, verbose=.TRUE.)
+call Message%ReadValue(' Enter xtal file name [*.xtal, *.qxtal]: ', xtalname,"(A)")
+
+! is this a regular .xtal file or a quasi-crystal file .qxtal? 
+i = INDEX(trim(xtalname), 'qxtal')
+
+if (i.eq.0) then ! regular crystal structure file
+  call cell%getCrystalData(xtalname, SG, EMsoft, verbose=.TRUE.)
  
+  call Message%ReadValue('Do you want to print the symmetry matrices as well ? (y/n) ', yesno)
 
-call Message%ReadValue('Do you want to print the symmetry matrices as well ? (y/n) ', yesno)
+  if (yesno.eq.'y') then
+    call Message%printMessage('Space group operators (last column = translation)')
+    data = SG%getSpaceGroupDataMatrices()
+    do i=1,SG%getSpaceGroupMATnum() 
+       write (*,*) i,':'
+       write (*,*) (data(i,1,j),j=1,4)
+       write (*,*) (data(i,2,j),j=1,4)
+       write (*,*) (data(i,3,j),j=1,4)
+       write (*,*) ' '
+    end do
 
-if (yesno.eq.'y') then
-  call Message%printMessage('Space group operators (last column = translation)')
-  data = SG%getSpaceGroupDataMatrices()
-  do i=1,SG%getSpaceGroupMATnum() 
-     write (*,*) i,':'
-     write (*,*) (data(i,1,j),j=1,4)
-     write (*,*) (data(i,2,j),j=1,4)
-     write (*,*) (data(i,3,j),j=1,4)
-     write (*,*) ' '
-  end do
+    call Message%printMessage('Point group operators')
+    direc = SG%getSpaceGroupPGdirecMatrices()
+    do i=1,SG%getSpaceGroupNUMpt() 
+       write (*,*) i,':'
+       write (*,*) (direc(i,1,j),j=1,3)
+       write (*,*) (direc(i,2,j),j=1,3)
+       write (*,*) (direc(i,3,j),j=1,3)
+       write (*,*) ' '
+    end do
+  endif    
+else  ! quasi-crystal structure file
+  fname = trim(EMsoft%generateFilePath('EMXtalFolderpathname',trim(xtalname)))
 
-  call Message%printMessage('Point group operators')
-  direc = SG%getSpaceGroupPGdirecMatrices()
-  do i=1,SG%getSpaceGroupNUMpt() 
-     write (*,*) i,':'
-     write (*,*) (direc(i,1,j),j=1,3)
-     write (*,*) (direc(i,2,j),j=1,3)
-     write (*,*) (direc(i,3,j),j=1,3)
-     write (*,*) ' '
-  end do
-endif    
+! first we need to check if the N_Axial field exists in this file 
+  call openFortranHDFInterface()
+  HDF = HDF_T()
+
+  hdferr = HDF%openFile(fname, readonly = .TRUE.)
+  if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%openFile:'//trim(fname), hdferr)
+
+  groupname = SC_CrystalData
+  hdferr = HDF%openGroup(groupname)
+  if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%openGroup:'//trim(groupname), hdferr)
+
+  ! is this an axial or icosahedral structure?
+  dataset = SC_AxialSymmetry
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+
+  if (g_exists) then
+    QCcell_axial = QCcell_axial_T()
+    call HDF%readDatasetInteger(dataset, hdferr, N_Axial) 
+    if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%readDatasetInteger:'//trim(dataset), hdferr)
+    call HDF%pop(.TRUE.)
+    call closeFortranHDFInterface()
+   
+    if (N_Axial.eq.8)  QCSG = QCspacegroup_T( nD = 2, QCtype = 'Oct')
+    if (N_Axial.eq.10) QCSG = QCspacegroup_T( nD = 2, QCtype = 'Dec')
+    if (N_Axial.eq.12) QCSG = QCspacegroup_T( nD = 2, QCtype = 'DoD')
+
+    call QCcell_axial%setfname(xtalname)
+    call QCcell_axial%ReadQCDataHDF(QCSG, EMsoft)
+    ! call QCSG%printSGtable()
+    call QCcell_axial%setMetricParametersQC()
+    call QCSG%GenerateQCSymmetry(dopg=.FALSE.)
+    call QCcell_axial%DumpQXtalInfo(QCSG)
+  else
+    call HDF%pop(.TRUE.)
+    call closeFortranHDFInterface()
+    QCcell_icosahedral = QCcell_icosahedral_T()
+    call QCcell_icosahedral%setfname(xtalname)
+    QCSG = QCspacegroup_T( nD = 3, QCtype = 'Ico')
+    call QCcell_icosahedral%ReadQCDataHDF(QCSG, EMsoft)
+    ! call QCSG%printSGtable()
+    call QCcell_icosahedral%setMetricParametersQC()
+    call QCSG%GenerateQCSymmetry(dopg=.FALSE.)
+    call QCcell_icosahedral%DumpQXtalInfo(QCSG)
+  end if
+end if
 
 end program EMshowxtal

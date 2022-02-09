@@ -89,6 +89,7 @@ IMPLICIT NONE
        !! should we use Wyckoff positions when creating a crystal data file ?
 
       contains
+        ! public
         private
 ! routines for crystallographic computations
           procedure, pass(self) :: computeMatrices
@@ -135,9 +136,9 @@ IMPLICIT NONE
           procedure, pass(self) :: getDirectMetricTensor
           procedure, pass(self) :: getReciprocalMetricTensor
           procedure, pass(self) :: getAsymPosArray
-          procedure, pass(self) :: displayPeriodicTable
           ! procedure, pass(self) :: extractAtomPositionData
           procedure, pass(self) :: calcTheoreticalDensity
+          procedure, pass(self) :: displayPeriodicTable
 ! routines to read/write .xtal files
           procedure, pass(self) :: readDataHDF_
           procedure, pass(self) :: saveDataHDF_

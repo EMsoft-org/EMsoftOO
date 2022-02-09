@@ -2022,7 +2022,7 @@ if ( (trim(self%ipf_mode).ne.'Euler')  ) then
     eta = atan2(refDir(2),refDir(1))
     etaDeg = eta * rtod
     chiDeg = chi * rtod
-! does this lie in the orthorhombic unit triangle ? 
+! does this lie in the unit triangle ? 
     select case (self%ipf_LaueClass)
       case(1,2)     ! triclinic, monoclinic
           etaMin=0.D0
