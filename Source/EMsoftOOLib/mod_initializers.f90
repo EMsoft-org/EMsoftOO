@@ -325,6 +325,256 @@ izl:   do iz=-2*iml,2*iml
 ! that's it
 end subroutine Initialize_Cell_NoHDF
 
+!--------------------------------------------------------------------------
+recursive subroutine Initialize_QCCell(QCcell, QCDiff, QCSG, EMsoft, xtalname, dmin_qc, dmin_p, &
+                                       voltage, nthreads, verbose, initLUT)
+!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_QCCell
 
+use mod_io
+use mod_EMsoft
+use mod_QCcrystallography
+use mod_QCsymmetry
+use mod_QCdiffraction
+use omp_lib
+
+IMPLICIT NONE
+
+class(QCcell_T),INTENT(INOUT)              :: QCcell
+type(QCDiffraction_T),INTENT(INOUT)        :: QCDiff
+type(QCspacegroup_T),INTENT(INOUT)         :: QCSG
+type(EMsoft_T),INTENT(INOUT)               :: EMsoft
+character(fnlen),INTENT(IN)                :: xtalname
+real(kind=sgl),INTENT(IN)                  :: dmin_qc
+real(kind=sgl),INTENT(IN)                  :: dmin_p
+real(kind=dbl),INTENT(IN)                  :: voltage
+integer(kind=irg),INTENT(IN)               :: nthreads
+logical,INTENT(IN),OPTIONAL                :: verbose
+logical,INTENT(IN),OPTIONAL                :: initLUT
+
+type(IO_T)                                 :: Message 
+
+integer(kind=irg)                          :: m, istat, skip, QCindex, nLUT
+integer(kind=irg)                          :: imh, imk, ia1, ia2, ia3, ia4, ia5, ia6, id, TID
+integer(kind=irg),allocatable              :: io_int(:), gg(:)
+real(kind=sgl)                             :: dhkl, ddt
+real(kind=sgl),allocatable                 :: io_real(:)
+logical                                    :: loadingfile, justinit
+complex(kind=dbl)                          :: Ucg
+complex(kind=dbl)                          :: qg
+real(kind=dbl)                             :: Vmod
+real(kind=dbl)                             :: Vpmod, Upz
+real(kind=dbl)                             :: xig
+real(kind=dbl)                             :: xgp
+
+justinit = .FALSE.
+if(present(initLUT)) then
+  if(initLUT) justinit = .TRUE.
+end if
+
+if(.not. justinit) then
+! load the crystal structure file, which also computes all the important 
+! matrices as well as all the symmetry arrays
+ call QCcell%setfname(xtalname)
+ call QCcell%ReadQCDataHDF(QCSG, EMsoft)
+end if
+
+! initialize the accelerating voltage
+QCDiff = QCDiffraction_T( dble(voltage), QCcell, QCSG, verbose=.TRUE. )
+
+! always use Weickenmeier&Kohl scattering coefficients, including absorptive form factors
+call QCDiff%QCCalcWaveLength(QCcell, QCSG, verbose)
+
+! compute the range of reflections for the lookup table and allocate the table
+! The master list is easily created by brute force
+select type (QCcell)
+  class is (QCcell_axial_T)
+    m = 5
+    call QCcell%setdmin( dmin_qc, dmin_p )
+    call QCcell%get_imax( imh, imk )
+    imh = imh/2
+    imk = imk/2
+
+    if(.not. justinit) then
+       imh = 1
+       do 
+          dhkl = 1.D0/QCcell%getvectorLength((/imh,0,0,0,0/), 'P', 'r')
+          if (dhkl.lt.dmin_qc) EXIT
+          imh = imh + 1
+        end do
+
+       imk = 1
+       do 
+          dhkl = 1.D0/QCcell%getvectorLength((/0,0,0,0,imk/), 'P', 'r')
+          if (dhkl.lt.dmin_p) EXIT
+          imk = imk + 1
+       end do
+       call QCcell%set_imax( 2*imh, 2*imk )
+    end if
+
+    if (present(verbose)) then
+      if (verbose) then
+        io_int(1:2) = (/imh,imk/)
+        call Message%WriteValue(' Number of reflections along a*_i | i = {1,2,3,4} and a*_5 = ',io_int,2)
+      end if
+    end if
+
+    nLUT = QCcell%getnDIndex( (/2*imh, 2*imh, 2*imh, 2*imh, 2*imk/) ) 
+
+  class is (QCcell_icosahedral_T)
+    m = 6
+    call QCcell%setdmin( dmin_qc )
+    imh = QCcell%get_imax()/2
+
+    if(.not. justinit) then
+       imh = 1
+       do 
+         dhkl = 1.D0/QCcell%getvectorLength( (/imh,0,0,0,0,0/), 'P', 'r')
+         if (dhkl.lt.dmin_qc) EXIT
+         imh = imh + 1
+       end do
+       call QCcell%set_imax( 2*imh )
+    end if     
+
+    nLUT = QCcell%getnDIndex( (/2*imh, 2*imh, 2*imh, 2*imh, 2*imh, 2*imh /) ) 
+
+end select
+
+allocate( gg(m), io_int(m), io_real(m) )
+
+if(.not. justinit) then
+  call QCDiff%allocateLUT(nLUT)
+  select type (QCcell)
+    class is (QCcell_axial_T)
+     call QCcell%allocateinverseIndex(nLUT)
+    class is (QCcell_icosahedral_T)
+     call QCcell%allocateinverseIndex(nLUT)
+   end select
+end if 
+
+ddt = 1.0e-5 
+
+if (present(verbose)) then
+  if (verbose) then
+   call Message%printMessage('Generating Fourier coefficient lookup table ... ', frm = "(/A)",advance="no")
+  end if
+end if
+
+! first, we deal with the transmitted beam
+select type (QCcell)
+  class is (QCcell_axial_T)
+    gg  = (/ 0,0,0,0,0 /)
+    Ucg = QCDiff%CalcQCUcg(QCcell, QCSG, gg, qg, Vmod, Vpmod, xig, xgp) 
+    Upz = Vpmod         ! U'0 normal absorption parameter 
+    id  = QCcell%getnDIndex(gg)
+! and add this reflection to the look-up table
+    call QCDiff%setLUT(id, Ucg)
+    call QCDiff%setLUTqg(id, qg)
+ 
+    if(.not. justinit) then
+! now do the same for the other allowed reflections
+! note that the lookup table must be twice as large as the list of participating reflections,
+! since the dynamical matrix uses g-h as its index !!!  
+     ia1l: do ia1 = -2*imh,2*imh
+       ia2l: do ia2 = -2*imh,2*imh
+         ia3l: do ia3 = -2*imh,2*imh
+           ia4l: do ia4 = -2*imh, 2*imh
+             ia5l: do ia5 = -2*imk, 2*imk
+                gg  = (/ ia1, ia2, ia3, ia4, ia5 /)
+                id  = QCcell%getnDIndex(gg)
+                call QCcell%setinverseIndex(id, gg(1:5))
+              end do ia5l
+            end do ia4l
+         end do ia3l
+        end do ia2l
+      end do ia1l
+    end if
+
+  class is (QCcell_icosahedral_T)
+    gg  = (/ 0,0,0,0,0,0 /)
+    Ucg = QCDiff%CalcQCUcg(QCcell, QCSG, gg, qg, Vmod, Vpmod, xig, xgp) 
+    Upz = Vpmod         ! U'0 normal absorption parameter 
+    id  = QCcell%getnDIndex(gg)
+! and add this reflection to the look-up table
+    call QCDiff%setLUT(id, Ucg)
+    call QCDiff%setLUTqg(id, qg)
+
+    if(.not. justinit) then
+! now do the same for the other allowed reflections
+! note that the lookup table must be twice as large as the list of participating reflections,
+! since the dynamical matrix uses g-h as its index !!!  
+     ia1r: do ia1 = -2*imh,2*imh
+       ia2r: do ia2 = -2*imh,2*imh
+         ia3r: do ia3 = -2*imh,2*imh
+           ia4r: do ia4 = -2*imh, 2*imh
+             ia5r: do ia5 = -2*imh, 2*imh
+               ia6r: do ia6 = -2*imh, 2*imh
+                  gg = (/ ia1, ia2, ia3, ia4, ia5, ia6 /)
+                  id = QCcell%getnDIndex(gg)
+                  call QCcell%setinverseIndex(id, gg(1:6))
+                end do ia6r
+              end do ia5r
+            end do ia4r
+         end do ia3r
+        end do ia2r
+      end do ia1r
+    end if
+
+end select
+
+! set the number of OpenMP threads 
+call OMP_SET_NUM_THREADS(nthreads)
+if (present(verbose)) then
+     if (verbose) then
+        io_int(1) = nthreads
+        call Message%WriteValue(' Attempting to set number of threads to ',io_int, 1, frm = "(I4)")
+     end if
+end if
+
+! use OpenMP to run on multiple cores ... 
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP& PRIVATE(TID, gg, Ucg, io_real, qg, Vmod, VPmod, xig, xgp)
+
+TID = OMP_GET_THREAD_NUM()
+
+!$OMP DO SCHEDULE(DYNAMIC)
+
+do id = 1,nLUT
+  select type (QCcell)
+    class is (QCcell_axial_T)
+     gg = QCCell%getinverseIndex(id)
+    class is (QCcell_icosahedral_T)
+     gg = QCCell%getinverseIndex(id)
+  end select
+
+  Ucg = QCDiff%CalcQCUcg(QCcell, QCSG, gg, qg, Vmod, Vpmod, xig, xgp)
+  call QCDiff%setLUT(id, Ucg)
+  call QCDiff%setLUTqg(id, qg)
+
+! flag this reflection as a double diffraction candidate if cabs(Ucg)<ddt threshold
+   if (abs(Ucg).le.ddt) then 
+     call QCDiff%setdbdiff(id, .TRUE.)
+   end if
+
+   if(present(verbose)) then
+     if(verbose) then
+       if(mod(id,250000) .eq. 0) then
+         io_real(1) = 100.D0 * dble(id)/dble(nLUT)
+         call Message%WriteValue(' Finished computing ',io_real, 1, '(F8.2, " % of the total coefficients ")')
+       end if
+     end if
+   end if
+end do
+! end of OpenMP portion
+!$OMP END DO
+!$OMP END PARALLEL
+
+if (present(verbose)) then
+  if (verbose) then
+    call Message%printMessage('Done', frm = "(A/)")
+  end if
+end if
+
+! that's it
+end subroutine Initialize_QCCell
 
 end module mod_initializers

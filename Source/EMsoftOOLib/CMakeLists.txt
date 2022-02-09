@@ -50,8 +50,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_notifications.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_others.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_TB.f90
-  ${EMsoftOOLib_SOURCE_DIR}/mod_diffraction.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_HOLZ.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_diffraction.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Kikuchi.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_gvectors.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_kvectors.f90
@@ -88,6 +88,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_colorspace.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_QCcrystallography.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_QCsymmetry.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_QCdiffraction.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_QCgvectors.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90

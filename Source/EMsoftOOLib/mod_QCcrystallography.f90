@@ -51,31 +51,26 @@ private
   integer(kind=irg)                     :: N_Axial 
   integer(kind=irg),allocatable         :: facts(:,:)
   integer(kind=irg),allocatable         :: Ucgindex(:)
+  integer(kind=irg)                     :: imax_qc, imax_p
+  integer(kind=irg)                     :: imaxz
+  integer(kind=irg)                     :: imax
   logical,allocatable                   :: Ucgcalc(:)
   integer(kind=irg),allocatable         :: inverseIndex(:,:)
-  real(kind=dbl)                        :: dmin
   real(kind=dbl)                        :: vol
+  real(kind=dbl)                        :: dmin
+  real(kind=dbl)                        :: dmin_qc, dmin_p  
   real(kind=dbl)                        :: gmax_orth
   real(kind=dbl)                        :: DWF
-  real(kind=dbl)                        :: voltage
-  real(kind=dbl)                        :: mRelCor
-  real(kind=dbl)                        :: mSigma
-  real(kind=dbl)                        :: mPsihat
-  real(kind=dbl)                        :: mLambda
-  real(kind=dbl)                        :: Upzero
-  real(kind=dbl)                        :: xizerop
   real(kind=dbl)                        :: multiplicity
   character(1)                          :: centering   ! 'P','I','F'
-  complex(kind=dbl),allocatable         :: LUT(:)
-  complex(kind=dbl),allocatable         :: LUTqg(:)
-  logical, allocatable                  :: dbdiff(:)
   logical                               :: reduce
   character(3)                          :: QCtype
   character(fnlen)                      :: fname
-  integer(kind=irg)                     :: ATOM_ntype, ATOM_type(maxpasym), numat(maxpasym)
-  character(fnlen),allocatable          :: SGname(:)
-  real(kind=sgl)                        :: ATOM_pos(maxpasym,10)
-  real(kind=sgl),allocatable            :: apos(:,:,:)
+  integer(kind=irg)                     :: ATOM_ntype 
+  integer(kind=irg),public              :: ATOM_type(maxpasym)
+  integer(kind=irg),public              :: numat(maxpasym)  
+  real(kind=sgl),public                 :: ATOM_pos(maxpasym,10)
+  real(kind=sgl),allocatable,public     :: apos(:,:,:)
 
 contains
 private 
@@ -86,6 +81,7 @@ private
   procedure, pass(self) :: SaveQCDataHDF_
   procedure, pass(self) :: ReadQCDataHDF_
   procedure, pass(self) :: DumpQXtalInfo_
+  procedure, pass(self) :: setdmin_
   procedure, pass(self) :: setfname_
   procedure, pass(self) :: getfname_
   procedure, pass(self) :: setQCtype_
@@ -95,6 +91,25 @@ private
   procedure, pass(self) :: GetQCOrbit_
   procedure, pass(self) :: isnewvector_
   procedure, pass(self) :: setMetricParametersQC_
+  procedure, pass(self) :: get_atno_
+  procedure, pass(self) :: get_numindices_
+  procedure, pass(self) :: get_N_Axial_
+  procedure, pass(self) :: get_vol_
+  procedure, pass(self) :: get_gmax_orth_
+  procedure, pass(self) :: get_multiplicity_
+  procedure, pass(self) :: get_centering_
+  procedure, pass(self) :: get_ATOM_ntype_
+  procedure, pass(self) :: set_atno_
+  procedure, pass(self) :: set_numindices_
+  procedure, pass(self) :: set_N_Axial_
+  procedure, pass(self) :: set_vol_
+  procedure, pass(self) :: set_gmax_orth_
+  procedure, pass(self) :: set_multiplicity_
+  procedure, pass(self) :: set_centering_
+  procedure, pass(self) :: set_ATOM_ntype_
+  procedure, pass(self) :: setinverseIndex_
+  procedure, pass(self) :: set_imaxQC5_
+  procedure, pass(self) :: set_imaxQC6_
 
   generic, public :: getnDindex => getnDindex_
   generic, public :: invertnDindex => invertnDindex_
@@ -103,6 +118,7 @@ private
   generic, public :: SaveQCDataHDF => SaveQCDataHDF_
   generic, public :: ReadQCDataHDF => ReadQCDataHDF_
   generic, public :: DumpQXtalInfo => DumpQXtalInfo_
+  generic, public :: setdmin => setdmin_
   generic, public :: setfname => setfname_
   generic, public :: getfname => getfname_
   generic, public :: setQCtype => setQCtype_
@@ -111,28 +127,49 @@ private
   generic, public :: GetQCOrbit => GetQCOrbit_
   generic, public :: isnewvector => isnewvector_
   generic, public :: setMetricParametersQC => setMetricParametersQC_
+  generic, public :: get_atno => get_atno_
+  generic, public :: get_numindices => get_numindices_
+  generic, public :: get_N_Axial => get_N_Axial_
+  generic, public :: get_vol => get_vol_
+  generic, public :: get_gmax_orth => get_gmax_orth_
+  generic, public :: get_multiplicity => get_multiplicity_
+  generic, public :: get_centering => get_centering_
+  generic, public :: get_ATOM_ntype => get_ATOM_ntype_
+  generic, public :: set_atno => set_atno_
+  generic, public :: set_numindices => set_numindices_
+  generic, public :: set_N_Axial => set_N_Axial_
+  generic, public :: set_vol => set_vol_
+  generic, public :: set_gmax_orth => set_gmax_orth_
+  generic, public :: set_multiplicity => set_multiplicity_
+  generic, public :: set_centering => set_centering_
+  generic, public :: set_ATOM_ntype => set_ATOM_ntype_
+  generic, public :: setinverseIndex => setinverseIndex_
+  generic, public :: set_imax => set_imaxQC5_, set_imaxQC6_
 end type QCcell_T
 
 type, public, extends(QCcell_T) :: QCcell_axial_T
 private 
-  integer(kind=irg)                     :: imax_qc, imax_p
-  integer(kind=irg)                     :: imaxz
   real(kind=dbl)                        :: epvec(3,5), epar(5,3), scaling(5,5), scalingfact
   real(kind=dbl)                        :: dsm(5,5), rsm(5,5)
   real(kind=dbl)                        :: rmt(5,5), dmt(5,5)
   real(kind=dbl)                        :: QClatparm_a
   real(kind=dbl)                        :: QClatparm_c
   real(kind=dbl)                        :: alphaij, alphai5, alphastarij
-  real(kind=dbl)                        :: dmin_qc, dmin_p
 
 contains
   private 
+    procedure, pass(self) :: get_imaxQC5_
+    procedure, pass(self) :: allocateinverseIndexQC5_
     procedure, pass(self) :: TransSpaceQC5_
     procedure, pass(self) :: getGvectorQC5_
     procedure, pass(self) :: getvectorLengthQC5_
     procedure, pass(self) :: ShapeTransformTriangle_
     procedure, pass(self) :: ShapeTransformPolygonCa_
+    procedure, pass(self) :: getinverseIndexQC5_
 
+    generic, public :: get_imax => get_imaxQC5_
+    generic, public :: allocateinverseIndex => allocateinverseIndexQC5_
+    generic, public :: getinverseIndex => getinverseIndexQC5_
     generic, public :: TransSpace => TransSpaceQC5_
     generic, public :: getGvector => getGvectorQC5_
     generic, public :: getvectorLength => getvectorLengthQC5_
@@ -142,7 +179,6 @@ end type QCcell_axial_T
 
 type, public, extends(QCcell_T) :: QCcell_icosahedral_T
 private 
-  integer(kind=irg)                     :: imax
   real(kind=dbl)                        :: epvec(3,6), epar(6,3)
   real(kind=dbl)                        :: eovec(3,6), eperp(6,3)
   real(kind=dbl)                        :: Mp(6,6), Picos(6,6)
@@ -155,12 +191,18 @@ private
 
 contains
   private 
+    procedure, pass(self) :: get_imaxQC6_
+    procedure, pass(self) :: allocateinverseIndexQC6_
     procedure, pass(self) :: TransSpaceQC6_
     procedure, pass(self) :: getGvectorQC6_
     procedure, pass(self) :: getvectorLengthQC6_
     procedure, pass(self) :: ShapeTransformPyramid_
     procedure, pass(self) :: ShapeTransformTriacontahedron_
+    procedure, pass(self) :: getinverseIndexQC6_
 
+    generic, public :: get_imax => get_imaxQC6_
+    generic, public :: allocateinverseIndex => allocateinverseIndexQC6_
+    generic, public :: getinverseIndex => getinverseIndexQC6_
     generic, public :: TransSpace => TransSpaceQC6_
     generic, public :: getGvector => getGvectorQC6_
     generic, public :: getvectorLength => getvectorLengthQC6_
@@ -194,8 +236,6 @@ type(QCcell_T) function QCcell_T_constructor( ) result(self)
  
 IMPLICIT NONE
 
-! allocate( self%inverseIndex(nLUT, 6) )
-
 end function QCcell_T_constructor
 
 !--------------------------------------------------------------------------
@@ -208,8 +248,6 @@ type(QCcell_axial_T) function QCcell_T_axial_constructor( ) result(self)
  
 IMPLICIT NONE
 
-! allocate( self%inverseIndex(nLUT, 6) )
-
 end function QCcell_T_axial_constructor
 
 !--------------------------------------------------------------------------
@@ -221,8 +259,6 @@ type(QCcell_icosahedral_T) function QCcell_T_icosahedral_constructor( ) result(s
 !! constructor for the QCcell_icosahedral_T Class
  
 IMPLICIT NONE
-
-! allocate( self%inverseIndex(nLUT, 6) )
 
 end function QCcell_T_icosahedral_constructor
 
@@ -241,6 +277,30 @@ type(QCcell_T), INTENT(INOUT)  :: self
 call reportDestructor('QCcell_T')
 
 end subroutine QCcell_T_destructor
+
+!--------------------------------------------------------------------------
+recursive subroutine setdmin_(self, dmin1, dmin2)
+!DEC$ ATTRIBUTES DLLEXPORT :: setdmin_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/31/22
+  !!
+  !! set fname
+
+IMPLICIT NONE
+
+class(QCcell_T), INTENT(INOUT)       :: self
+real(kind=sgl),INTENT(IN)            :: dmin1 
+real(kind=sgl),INTENT(IN),OPTIONAL   :: dmin2
+
+if (present(dmin2)) then 
+  self%dmin_qc = dmin1
+  self%dmin_p = dmin2 
+else
+  self%dmin = dmin1
+end if
+
+end subroutine setdmin_
 
 !--------------------------------------------------------------------------
 recursive subroutine setfname_(self, fname)
@@ -314,7 +374,476 @@ QCtype = self%QCtype
 
 end function getQCtype_
 
+!--------------------------------------------------------------------------
+function get_atno_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_atno_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! get atno from the QCcell_T class
 
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+integer(kind=irg)                  :: out
+
+out = self%atno
+
+end function get_atno_
+
+!--------------------------------------------------------------------------
+subroutine set_atno_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_atno_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! set atno in the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)      :: inp
+
+self%atno = inp
+
+end subroutine set_atno_
+
+!--------------------------------------------------------------------------
+function get_numindices_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_numindices_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! get numindices from the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+integer(kind=irg)                  :: out
+
+out = self%numindices
+
+end function get_numindices_
+
+!--------------------------------------------------------------------------
+subroutine set_numindices_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_numindices_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! set numindices in the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)      :: inp
+
+self%numindices = inp
+
+end subroutine set_numindices_
+
+!--------------------------------------------------------------------------
+function get_N_Axial_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_N_Axial_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! get N_Axial from the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+integer(kind=irg)                  :: out
+
+out = self%N_Axial
+
+end function get_N_Axial_
+
+!--------------------------------------------------------------------------
+subroutine set_N_Axial_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_N_Axial_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! set N_Axial in the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)      :: inp
+
+self%N_Axial = inp
+
+end subroutine set_N_Axial_
+
+!--------------------------------------------------------------------------
+function get_vol_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_vol_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! get vol from the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+real(kind=dbl)                     :: out
+
+out = self%vol
+
+end function get_vol_
+
+!--------------------------------------------------------------------------
+subroutine set_vol_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_vol_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! set vol in the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)         :: inp
+
+self%vol = inp
+
+end subroutine set_vol_
+
+!--------------------------------------------------------------------------
+function get_gmax_orth_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_gmax_orth_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! get gmax_orth from the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+real(kind=dbl)                     :: out
+
+out = self%gmax_orth
+
+end function get_gmax_orth_
+
+!--------------------------------------------------------------------------
+subroutine set_gmax_orth_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_gmax_orth_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! set gmax_orth in the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)         :: inp
+
+self%gmax_orth = inp
+
+end subroutine set_gmax_orth_
+
+!--------------------------------------------------------------------------
+function get_multiplicity_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_multiplicity_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! get multiplicity from the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+real(kind=dbl)                     :: out
+
+out = self%multiplicity
+
+end function get_multiplicity_
+
+!--------------------------------------------------------------------------
+subroutine set_multiplicity_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_multiplicity_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! set multiplicity in the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)         :: inp
+
+self%multiplicity = inp
+
+end subroutine set_multiplicity_
+
+!--------------------------------------------------------------------------
+function get_centering_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_centering_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! get centering from the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+character(1)                       :: out
+
+out = self%centering
+
+end function get_centering_
+
+!--------------------------------------------------------------------------
+subroutine set_centering_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_centering_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! set centering in the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+character(1), INTENT(IN)           :: inp
+
+self%centering = inp
+
+end subroutine set_centering_
+
+!--------------------------------------------------------------------------
+function get_ATOM_ntype_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ATOM_ntype_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! get ATOM_ntype from the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+integer(kind=irg)                  :: out
+
+out = self%ATOM_ntype
+
+end function get_ATOM_ntype_
+
+!--------------------------------------------------------------------------
+subroutine set_ATOM_ntype_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_ATOM_ntype_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/06/22
+!!
+!! set ATOM_ntype in the QCcell_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)      :: inp
+
+self%ATOM_ntype = inp
+
+end subroutine set_ATOM_ntype_
+
+!--------------------------------------------------------------------------
+recursive subroutine set_imaxQC5_(self, imax_qc, imax_p)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_imaxQC5_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/07/22
+!!
+!! set imax parameters in the QCcell_axial_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)        :: self
+integer(kind=irg), INTENT(IN)         :: imax_qc
+integer(kind=irg), INTENT(IN)         :: imax_p
+
+self%imax_qc = imax_qc
+self%imax_p  = imax_p
+
+end subroutine set_imaxQC5_
+
+!--------------------------------------------------------------------------
+recursive subroutine set_imaxQC6_(self, imax)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_imaxQC6_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/07/22
+!!
+!! set imax parameters in the QCcell_icosahedral_T class
+
+IMPLICIT NONE 
+
+class(QCcell_T), INTENT(INOUT)           :: self
+integer(kind=irg), INTENT(IN)            :: imax
+
+self%imax = imax
+
+end subroutine set_imaxQC6_
+
+!--------------------------------------------------------------------------
+recursive subroutine get_imaxQC5_(self, imax_qc, imax_p)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_imaxQC5_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/07/22
+!!
+!! get imax parameters in the QCcell_axial_T class
+
+IMPLICIT NONE 
+
+class(QCcell_axial_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(INOUT)      :: imax_qc
+integer(kind=irg), INTENT(INOUT)      :: imax_p
+
+imax_qc = self%imax_qc
+imax_p  = self%imax_p
+
+end subroutine get_imaxQC5_
+
+!--------------------------------------------------------------------------
+recursive function get_imaxQC6_(self) result(imax)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_imaxQC6_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/07/22
+!!
+!! get imax parameters in the QCcell_icosahedral_T class
+
+IMPLICIT NONE 
+
+class(QCcell_icosahedral_T), INTENT(INOUT)  :: self
+integer(kind=irg)                           :: imax
+
+imax = self%imax 
+
+end function get_imaxQC6_
+
+!--------------------------------------------------------------------------
+recursive subroutine allocateinverseIndexQC5_(self, nLUT)
+!DEC$ ATTRIBUTES DLLEXPORT :: allocateinverseIndexQC5_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/09/22 
+  !!
+  !! allocates the inverseIndex array
+
+use mod_memory
+
+IMPLICIT NONE
+
+class(QCcell_axial_T),INTENT(INOUT)         :: self
+integer(kind=irg),INTENT(IN)                :: nLUT
+
+type(memory_T)                              :: mem
+
+mem = memory_T() 
+
+! the LUT arrays store all the Fourier coefficients etc...
+call mem%alloc(self%inverseIndex, (/ nLUT, 5 /), 'self%inverseIndex', initval = 0)
+
+end subroutine allocateinverseIndexQC5_
+
+!--------------------------------------------------------------------------
+recursive subroutine allocateinverseIndexQC6_(self, nLUT)
+!DEC$ ATTRIBUTES DLLEXPORT :: allocateinverseIndexQC6_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/09/22 
+  !!
+  !! allocates the inverseIndex array
+
+use mod_memory
+
+IMPLICIT NONE
+
+class(QCcell_icosahedral_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)                :: nLUT
+
+type(memory_T)                              :: mem
+
+mem = memory_T() 
+
+! the LUT arrays store all the Fourier coefficients etc...
+call mem%alloc(self%inverseIndex, (/ nLUT, 6 /), 'self%inverseIndex', initval = 0)
+
+end subroutine allocateinverseIndexQC6_
+
+!--------------------------------------------------------------------------
+recursive subroutine setinverseIndex_(self, id, g)
+!DEC$ ATTRIBUTES DLLEXPORT :: setinverseIndex_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/09/22
+  !!
+  !! set an entry in the inverseIndex array
+
+IMPLICIT NONE
+
+class(QCcell_T),INTENT(INOUT)         :: self
+integer(kind=irg),INTENT(IN)          :: id
+integer(kind=irg),INTENT(IN)          :: g(:)
+
+self%inverseIndex( id, : ) = g(:)
+
+end subroutine setinverseIndex_
+
+!--------------------------------------------------------------------------
+recursive function getinverseIndexQC5_(self, id) result(g)
+!DEC$ ATTRIBUTES DLLEXPORT :: getinverseIndexQC5_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/09/22
+  !!
+  !! get an entry in the inverseIndex array
+
+IMPLICIT NONE
+
+class(QCcell_axial_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)          :: id
+integer(kind=irg)                     :: g(5)
+
+g(1:5) = self%inverseIndex( id, 1:5 )
+
+end function getinverseIndexQC5_
+
+!--------------------------------------------------------------------------
+recursive function getinverseIndexQC6_(self, id) result(g)
+!DEC$ ATTRIBUTES DLLEXPORT :: getinverseIndexQC6_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/09/22
+  !!
+  !! get an entry in the inverseIndex array
+
+IMPLICIT NONE
+
+class(QCcell_icosahedral_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)                :: id
+integer(kind=irg)                           :: g(6)
+
+g(1:6) = self%inverseIndex( id, 1:6 )
+
+end function getinverseIndexQC6_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -864,20 +1393,25 @@ select type (self)
 
     if(self%N_Axial .eq. 8) then
       call self%setQCType('Oct')
+      QCSG = QCspacegroup_T( nD = 2, QCtype = 'Oct' )
     else if(self%N_Axial .eq. 10) then
       call self%setQCType('Dec')
+      QCSG = QCspacegroup_T( nD = 2, QCtype = 'Dec' )
     else if(self%N_Axial .eq. 12) then
       call self%setQCType('DoD')
+      QCSG = QCspacegroup_T( nD = 2, QCtype = 'DoD' )
     else
       call Message%printError('ReadQCDataHDF',&
       'The axial symmetry is not one of the implemented ones (only 8, 10 and 12 fold implemented.)')
     end if
+
 
   class is (QCcell_icosahedral_T)
     self%QClatparm   = cellparams(1)
     self%alphaij     = cellparams(2)
     self%alphastarij = cellparams(3)
     call self%setQCType('Ico')
+    QCSG = QCspacegroup_T( nD = 3 )
 end select
 
 dataset = SC_SpaceGroupNumber
