@@ -182,7 +182,7 @@ end associate
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-subroutine XXX_(self, EMsoft, progname)
+subroutine XXX_(self, EMsoft, progname, HDFnames)
 !DEC$ ATTRIBUTES DLLEXPORT :: XXX_
 !! author: MDG 
 !! version: 1.0 
@@ -191,13 +191,14 @@ subroutine XXX_(self, EMsoft, progname)
 !! perform the computations
 
 use mod_EMsoft
+use mod_HDFnames
 
 IMPLICIT NONE 
 
 class(XXX_T), INTENT(INOUT)       :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname 
-
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
 end subroutine XXX_
 

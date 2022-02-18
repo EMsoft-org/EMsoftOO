@@ -77,7 +77,7 @@ IMPLICIT NONE
 ! other useful derived quantities
       integer(kind=irg)                    :: numat(maxpasym)
        !! number of atoms of each type in asymmetric unit
-      real(kind=dbl),allocatable           :: apos(:,:,:)
+      real(kind=dbl),allocatable, public   :: apos(:,:,:)
        !! array with atom coordinates
       real(kind=dbl)                       :: density
        !! theoretical density
@@ -2675,7 +2675,7 @@ call SG%setSpaceGroupsecond(.FALSE.)
 end subroutine readDataHDF_
 
 !--------------------------------------------------------------------------
-recursive subroutine calcPositions_(self, SG, switch)
+recursive subroutine calcPositions_(self, SG, switch, numcells)
 !DEC$ ATTRIBUTES DLLEXPORT :: calcPositions_
   !! author: MDG
   !! version: 1.0
@@ -2693,32 +2693,43 @@ IMPLICIT NONE
 class(Cell_T),INTENT(INOUT)     :: self
 type(SpaceGroup_T),INTENT(INOUT):: SG
 character(1),INTENT(IN)         :: switch ! if switch='m', then multiple unit cells, otherwise single cell
+integer(kind=irg),INTENT(IN),OPTIONAL :: numcells(3)
 
 type(IO_T)                      :: Message
 logical                         :: inside                       ! auxiliary logical
-integer(kind=irg)               :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3)  ! various auxiliary variables
+integer(kind=irg)               :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3), &
+                                   jstart, kstart, lstart       ! various auxiliary variables
 real(kind=dbl)                  :: ff(3),sh(3)                  ! auxiliary variables
 real(kind=sgl)                  :: r(3),g(3)                    ! auxiliary variables
 real(kind=dbl),allocatable      :: ctmp(:,:)
 
-! make sure all coordinates are reduced to the fundamental unit cell
- call SG%setSpaceGroupreduce(.TRUE.)
 
 ! multiple cells ?
- if (switch.eq.'m') then
-  call Message%ReadValue('Number of unit cells in a, b and c direction ?: ', io_int,3)
-  do j=1,3
-   celln(j) = io_int(j)
-   sh(j) = 0.5_dbl*celln(j)+1.0_dbl
-  end do
-  ncells = celln(1)*celln(2)*celln(3)
+ if (present(numcells)) then 
+   call SG%setSpaceGroupreduce(.FALSE.)
+   celln = numcells
+   sh = 0.5_dbl*celln+1.0_dbl
+   ncells = (2*celln(1)+1)*(2*celln(2)+1)*(2*celln(3)+1)
+   jstart = -celln(1)
+   kstart = -celln(2)
+   lstart = -celln(3)
  else
-! no, just one cell
-  do j=1,3
-   celln(j)=0
-   sh(j)=1.0_dbl
-  end do
-  ncells = 1
+! make sure all coordinates are reduced to the fundamental unit cell
+   call SG%setSpaceGroupreduce(.TRUE.)
+   jstart = 1
+   kstart = 1
+   lstart = 1
+   if (switch.eq.'m') then
+    call Message%ReadValue('Number of unit cells in a, b and c direction ?: ', io_int,3)
+    celln = io_int
+    sh = 0.5_dbl*celln+1.0_dbl
+    ncells = celln(1)*celln(2)*celln(3)
+   else
+  ! no, just one cell
+    celln=0
+    sh=1.0_dbl
+    ncells = 1
+   end if
  end if
 
 ! main loop
@@ -2736,11 +2747,11 @@ real(kind=dbl),allocatable      :: ctmp(:,:)
   icnt=1
 
 ! replicate in all cells
-  do j=1,celln(1)+1
+  do j=jstart,celln(1)+1
    ff(1)=dble(j)
-   do k=1,celln(2)+1
+   do k=kstart,celln(2)+1
     ff(2)=dble(k)
-    do l=1,celln(3)+1
+    do l=lstart,celln(3)+1
      ff(3)=dble(l)
      do kk=1,self%numat(i)
       do mm=1,3
@@ -2751,7 +2762,7 @@ real(kind=dbl),allocatable      :: ctmp(:,:)
 ! cells, or on one of the edges/faces/corners
        inside=.TRUE.
        do mm=1,3
-        if ((r(mm)+sh(mm)).gt.(celln(mm)+1.0)) inside=.FALSE.
+        if (abs(r(mm)+sh(mm)).gt.(celln(mm)+1.0)) inside=.FALSE.
        end do
        if (inside) then
         call self%TransSpace(r,g,'d','c')
@@ -2761,7 +2772,6 @@ real(kind=dbl),allocatable      :: ctmp(:,:)
         icnt=icnt+1
        end if
       else ! switch
-
 ! prepare for structure factor computation
        do mm=1,3
         self%apos(i,icnt,mm)=r(mm)

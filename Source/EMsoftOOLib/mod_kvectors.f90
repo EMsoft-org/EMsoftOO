@@ -781,7 +781,7 @@ module mod_kvectors
     ktail%hs = 1                                 ! this lies in the Northern Hemisphere
     ktail%i = 0                                  ! i-index of beam
     ktail%j = 0                                  ! j-index of beam
-    self%kstar = (/ 0.0, 0.0, 1.0 /)                  ! we always use c* as the center of the RoscaLambert projection
+    self%kstar = (/ 0.D0, 0.D0, 1.D0 /)          ! we always use c* as the center of the RoscaLambert projection
     call cell%NormVec(self%kstar,'c')            ! normalize incident direction
     self%kstar = self%kstar/Diff%getWaveLength() ! divide by wavelength
  ! and transform to reciprocal crystal space using the direct structure matrix

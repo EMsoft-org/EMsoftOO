@@ -26,42 +26,43 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMXXX
+program EMISEmaster
   !! author: MDG
   !! version: 1.0 
-  !! date: 01/24/20
+  !! date: 02/17/22
   !!
+  !! EMISEmaster computes a master pattern for ion-induced secondary electrons
   !! 
+  !! This is based on the iCHORD model for ballistic ion channeling
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_XXX
+use mod_ISEmaster
 use mod_HDFnames
 use stringconstants
 
 IMPLICIT NONE
 
-character(fnlen)                :: progname = 'EMXXX.f90'
-character(fnlen)                :: progdesc = ''
+character(fnlen)       :: progname = 'EMISEmaster.f90'
+character(fnlen)       :: progdesc = 'computes a master pattern for ion-induced secondary electrons'
 
-type(EMsoft_T)                  :: EMsoft
-type(XXX_T)     :: YYY 
+type(EMsoft_T)         :: EMsoft
+type(ISEmaster_T)      :: ISE 
 type(HDFnames_T)       :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 311 /) )
 
 ! deal with the namelist stuff
-YYY = XXX_T(EMsoft%nmldeffile)
+ISE = ISEmaster_T(EMsoft%nmldeffile)
 
 HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_EBSDmaster) 
-call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
+call HDFnames%set_ProgramData(SC_ISEmaster) 
+call HDFnames%set_NMLlist(SC_ISEmasterNameList) 
+call HDFnames%set_NMLfilename(SC_ISEmasterNML) 
 
 ! perform the computations
-call YYY%XXX(EMsoft, progname, HDFnames)
+call ISE%ISEmaster(EMsoft, progname, HDFnames)
 
-end program EMXXX
+end program EMISEmaster

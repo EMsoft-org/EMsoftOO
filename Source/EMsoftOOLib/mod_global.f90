@@ -207,7 +207,6 @@ public
                                                           247.0, 251.0, 252.0 /)
 !DEC$ ATTRIBUTES DLLEXPORT :: ATOM_weights
 
-
 ! these are a bunch of constants used for Lambert and related projections; they are all in double precision
   type LambertParametersType
           real(kind=dbl)          :: Pi=3.141592653589793D0       !  pi

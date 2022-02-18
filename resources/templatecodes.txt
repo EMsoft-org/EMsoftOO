@@ -99,3 +99,4 @@
 300EMShapeAmplitude
 301EMDemag
 310EMEBSDkin
+311EMISEmaster
