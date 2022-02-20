@@ -1200,7 +1200,10 @@ dataset = trim(HDFnames%get_NMLfilename())
   HDF_FileVersion = '4.0'
   HDF_FileVersion = cstringify(HDF_FileVersion)
   attributename = SC_HDFFileVersion
-  hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
+  call H5Aexists_f(HDF%getobjectID(),trim(attributename),g_exists, hdferr)
+  if (.not.g_exists) then
+    hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
+  end if
 
 ! =====================================================
 ! The following write commands constitute HDF_FileVersion = 4.0
