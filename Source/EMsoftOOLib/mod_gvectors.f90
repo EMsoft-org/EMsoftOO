@@ -1772,7 +1772,7 @@ integer(kind=sgl)                   :: ilaenv
  if (.not.allocated(MIWORK)) allocate(MIWORK(nn*MILWORK))
  MIWORK = cmplx(0.D0,0.D0)
  LDA=nn
- call zgetri(nn,CGinv,LDA,JPIV,MIWORK,MILWORK,INFO)
+ call zgetri(nn,CGinv,LDA,JPIV,MIWORK,nn*MILWORK,INFO)
  deallocate(MIWORK)
 
 ! in all the time that we've used these routines, we haven't
