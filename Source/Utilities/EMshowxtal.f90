@@ -80,7 +80,7 @@ character(fnlen)                :: xtalname, fname, dataset, groupname
 logical                         :: verbose=.TRUE., g_exists
 integer(kind=irg)               :: i, j, hdferr, N_Axial
 character(1)                    :: yesno
-real(kind=dbl),allocatable      :: data(:,:,:), direc(:,:,:)
+real(kind=dbl),allocatable      :: data(:,:,:), direc(:,:,:), recip(:,:,:)
 
 ! header and command line arguments, if any
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 921 /) ) 
@@ -108,12 +108,14 @@ if (i.eq.0) then ! regular crystal structure file
     end do
 
     call Message%printMessage('Point group operators')
+    call Message%printMessage(' Direct space           Reciprocal space')
     direc = SG%getSpaceGroupPGdirecMatrices()
+    recip = SG%getSpaceGroupPGrecipMatrices()
     do i=1,SG%getSpaceGroupNUMpt() 
        write (*,*) i,':'
-       write (*,*) (direc(i,1,j),j=1,3)
-       write (*,*) (direc(i,2,j),j=1,3)
-       write (*,*) (direc(i,3,j),j=1,3)
+       write (*,*) (direc(i,1,j),j=1,3),'       ',(recip(i,1,j),j=1,3)
+       write (*,*) (direc(i,2,j),j=1,3),'       ',(recip(i,2,j),j=1,3)
+       write (*,*) (direc(i,3,j),j=1,3),'       ',(recip(i,3,j),j=1,3)
        write (*,*) ' '
     end do
   endif    
