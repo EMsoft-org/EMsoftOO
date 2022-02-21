@@ -1485,7 +1485,7 @@ energyloop: do iE=Estart,1,-1
 
 ! use OpenMP to run on multiple cores ...
 !$OMP PARALLEL COPYIN(rlp) &
-!$OMP& PRIVATE(DynMat,Sgh,Lgh,ik,FN,TID,kn,ipx,ipy,ix,iequiv,nequiv,reflist,firstw) &
+!$OMP& PRIVATE(DynMat,Sgh,Lgh,ik,FN,TID,kn,ipx,ipy,ipz,ix,iequiv,nequiv,reflist,firstw) &
 !$OMP& PRIVATE(kkk,nns,nnw,nref,svals,io_int)
 
   NUMTHREADS = OMP_GET_NUM_THREADS()
@@ -1585,7 +1585,6 @@ energyloop: do iE=Estart,1,-1
      end do
   end if
 !$OMP END CRITICAL
-
      if (mod(ik,5000).eq.0) then
        io_int(1) = ik
        io_int(2) = numk

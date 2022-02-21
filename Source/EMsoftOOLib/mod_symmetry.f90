@@ -553,6 +553,15 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
 !DEC$ ATTRIBUTES DLLEXPORT :: TSLsymtype
 
 
+!>  SYM_GL  encoded point group generator strings
+  character(4), dimension(32) :: SYM_PGGL= (/  &
+    '----', 'h---', 'c---', 'j---', 'ch--', 'bc--', 'bj--', 'bch-', &
+    'g---', 'm---', 'gh--', 'cg--', 'gj--', 'cm--', 'cgh-', 'n---', &
+    'hn--', 'en--', 'kn--', 'fhn-', 'bn--', 'in--', 'bhn-', 'ben-', &
+    'bkn-', 'ikn-', 'benh', 'cd--', 'cdh-', 'dg--', 'dml-', 'dghl' /)
+
+!DEC$ ATTRIBUTES DLLEXPORT :: SYM_PGGL
+
 ! here is the main symmetry class definition; this class must be able to function on its
 ! own, without knowledge of a particular crystal structure, but also in conjunction with the
 ! crystallography (Cell_T) class
@@ -592,7 +601,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
        !! switch for presence of centrosymmetry
       real(kind=dbl),allocatable :: data(:,:,:)   ! data(192,4,4)
        !! all symmetry matrices for a given spacegroup
-      real(kind=dbl),allocatable :: direc(:,:,:)  ! direc(48,3,3)
+      real(kind=dbl),allocatable,public :: direc(:,:,:)  ! direc(48,3,3)
        !! direct space point group matrices
       real(kind=dbl),allocatable :: recip(:,:,:)  ! recip(48,3,3)
        !! reciprocal space point group matrices
@@ -720,10 +729,43 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
 
   end type SpaceGroup_T
 
-! the constructor routine for this class
+! here is the main point symmetry class definition; this class fills in the direc arrays 
+! in the Spacegroup_T class starting from the point group generators
+
+  type, private :: PointGroup_T
+    !! point group symmetry class definition (only generates the PG matrices, everything
+    !! else is handled in the SpaceGroup_T class)
+    private
+      integer(kind=irg)           :: pgnum
+      integer(kind=irg)           :: GENnum
+      integer(kind=irg)           :: PGMATnum
+      real(kind=dbl),allocatable  :: direc(:,:,:)  ! direc(48,3,3)
+      real(kind=dbl)              :: c(3,3)
+
+    contains
+    private
+! basic space group generating routines and related stuff
+      procedure, pass(self) :: PGfillgen_
+      procedure, pass(self) :: MakePGGenerators_
+      procedure, pass(self) :: PGmatrixmult_
+      procedure, pass(self) :: PGisitnew_
+      procedure, pass(self) :: GeneratePGSymmetry_
+! finally, define the destructor routine
+      final :: PointGroup_destructor
+
+! no generic (public) function definitions and overloads
+
+  end type PointGroup_T
+
+! the constructor routine for the SpaceGroup_T class
   interface SpaceGroup_T
     module procedure SpaceGroup_constructor
   end interface SpaceGroup_T
+
+! the constructor routine for the PointGroup_T class
+  interface PointGroup_T
+    module procedure PointGroup_constructor
+  end interface PointGroup_T
 
 contains
 
@@ -838,6 +880,69 @@ if (allocated(self%direc)) deallocate(self%direc)
 if (allocated(self%recip)) deallocate(self%recip)
 
 end subroutine SpaceGroup_destructor
+
+!--------------------------------------------------------------------------
+type(PointGroup_T) function PointGroup_constructor( SG ) result(PG)
+!DEC$ ATTRIBUTES DLLEXPORT :: PointGroup_constructor
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/20/22
+  !!
+  !! constructor for the PointGroup Class
+
+IMPLICIT NONE
+
+class(SpaceGroup_T), INTENT(INOUT)  :: SG
+
+integer(kind=irg)                   :: i, pgnum, SGnumber 
+
+! get the space group number
+SGnumber = SG%getSpaceGroupNumber()
+
+! and convert the space group number into a point group number
+pgnum = 0
+do i=1,32
+  if (SGPG(i).le.SGnumber) pgnum = i
+end do
+call SG%setPGnumber(pgnum)
+PG%pgnum = pgnum
+
+! allocate the array for symmetry operators
+allocate( PG%direc(PGTHDorder(pgnum),3,3) )
+PG%direc = 0.D0
+
+! generate all the point group symmetry operators 
+call PG%GeneratePGSymmetry_()
+
+! and copy the direc array into the space group class 
+if (allocated(SG%direc)) deallocate(SG%direc)
+allocate(SG%direc(PGTHDorder(pgnum),3,3))
+SG%direc = PG%direc
+SG%NUMpt = PG%PGMATnum
+
+! and clean up 
+deallocate(PG%direc)
+
+end function PointGroup_constructor
+
+!--------------------------------------------------------------------------
+recursive subroutine PointGroup_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: PointGroup_destructor
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/20/22
+  !!
+  !! clean up allocated arrays
+
+IMPLICIT NONE
+
+type(PointGroup_T), intent(inout)     :: self
+
+call reportDestructor('SpaceGroup_T')
+
+if (allocated(self%direc)) deallocate(self%direc)
+
+end subroutine PointGroup_destructor
 
 !--------------------------------------------------------------------------
 recursive subroutine resetSpaceGroup_(self)
@@ -1335,6 +1440,8 @@ class(SpaceGroup_T),INTENT(INOUT) :: self
 logical,INTENT(IN)                :: dopg
  !! logical to determine if point group matrices are to be computed as well
 
+type(PointGroup_T)                :: PG 
+
 integer(kind=irg)                 :: i,j,k,nsym,k1,k2,l1,l2       ! loop counters (mostly)
 real(kind=dbl)                    :: q,sm                         ! auxiliary variables.
 
@@ -1378,41 +1485,21 @@ real(kind=dbl)                    :: q,sm                         ! auxiliary va
   end do
  end do
 
+ self%recip_pending = .FALSE.
+
  if (dopg.eqv..TRUE.) then
 ! tag the point symmetry operators
 ! this is used to determine families of directions;
 ! for planes we must determine the transformed point symmetry
 ! operators SYM_recip() (this requires the metric tensors which we don't have at this point !!!)
   self%recip_pending = .TRUE.
-  self%NUMpt=0
-  do i=1,self%MATnum
-   sm=self%data(i,1,4)**2+self%data(i,2,4)**2+self%data(i,3,4)**2
-
-   if (sm.lt.0.1_dbl) then
-    self%NUMpt=self%NUMpt+1
-
-! direct space point group symmetry elements
-    self%direc(self%NUMpt,:,:)=self%data(i,1:3,1:3)
-
+  PG = PointGroup_T( self )
+  self%NUMpt = PG%PGMATnum
 ! reciprocal space point group symmetry elements
 ! THIS REQUIRES THE CRYSTALLOGRAPHIC INFORMATION !!!!!!!!!!!
 ! we have a new routine below (fixrecipPG_) to cover this little bit...
 ! this method must be called after the metric tensors have been computed (calcMatrices)
 ! in the mod_crystallography module
-    ! do j=1,3
-    !  do k=1,3
-    !   q=0.0_dbl
-    !   do l1=1,3
-    !    do l2=1,3
-    !     q=q+cell%dmt(j,l1)*self%data(i,l1,l2)*cell%rmt(l2,k)
-    !    end do
-    !   end do
-    !   self%recip(self%NUMpt,j,k)=q
-    !  end do
-    ! end do
-
-   end if  ! (sm.lt.0.1)
-  end do
  end if ! if (dopg.eq..TRUE.)
 ! this completes generation of the factor group
 
@@ -1441,26 +1528,19 @@ real(kind=dbl),INTENT(IN)         :: rmt(3,3)
 integer(kind=irg)                 :: i, j, k, l1, l2
 real(kind=dbl)                    :: q, sm
 
-self%NUMpt=0
-do i=1,self%MATnum
- sm=self%data(i,1,4)**2+self%data(i,2,4)**2+self%data(i,3,4)**2
- if (sm.lt.0.1_dbl) then
-  self%NUMpt=self%NUMpt+1
-
+do i=1,self%NUMpt
 ! reciprocal space point group symmetry elements
   do j=1,3
    do k=1,3
     q=0.0_dbl
     do l1=1,3
      do l2=1,3
-      q=q+dmt(j,l1)*self%data(i,l1,l2)*rmt(l2,k)
+      q=q+dmt(j,l1)*self%direc(i,l1,l2)*rmt(l2,k)
      end do
     end do
-    self%recip(self%NUMpt,j,k)=q
+    self%recip(i,j,k)=q
    end do
   end do
-
- end if  ! (sm.lt.0.1)
 end do
 
 self%recip_pending = .FALSE.
@@ -3371,5 +3451,193 @@ end select
 
 end function GetDiffractionGroup_
 
+!--------------------------------------------------------------------------
+recursive subroutine PGfillgen_(self, t)
+!DEC$ ATTRIBUTES DLLEXPORT :: PGfillgen_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/20/22
+  !!
+  !! (private) fills in a generator matrix based on a single character code 
+
+IMPLICIT NONE
+
+class(PointGroup_T),INTENT(INOUT)       :: self
+character(1),INTENT(IN)                 :: t
+
+! first fill the array with zeroes 
+ self%c = 0.D0
+
+! then check for the particular matrix type
+ select case (t)
+  case ('a'); self%c(1,1) = 1.D0; self%c(2,2) = 1.D0; self%c(3,3) = 1.D0
+  case ('b'); self%c(1,1) =-1.D0; self%c(2,2) =-1.D0; self%c(3,3) = 1.D0
+  case ('c'); self%c(1,1) =-1.D0; self%c(2,2) = 1.D0; self%c(3,3) =-1.D0
+  case ('d'); self%c(1,3) = 1.D0; self%c(2,1) = 1.D0; self%c(3,2) = 1.D0
+  case ('e'); self%c(1,2) = 1.D0; self%c(2,1) = 1.D0; self%c(3,3) =-1.D0
+  case ('f'); self%c(1,2) =-1.D0; self%c(2,1) =-1.D0; self%c(3,3) =-1.D0
+  case ('g'); self%c(1,2) =-1.D0; self%c(2,1) = 1.D0; self%c(3,3) = 1.D0
+  case ('h'); self%c(1,1) =-1.D0; self%c(2,2) =-1.D0; self%c(3,3) =-1.D0
+  case ('i'); self%c(1,1) = 1.D0; self%c(2,2) = 1.D0; self%c(3,3) =-1.D0
+  case ('j'); self%c(1,1) = 1.D0; self%c(2,2) =-1.D0; self%c(3,3) = 1.D0
+  case ('k'); self%c(1,2) =-1.D0; self%c(2,1) =-1.D0; self%c(3,3) = 1.D0
+  case ('l'); self%c(1,2) = 1.D0; self%c(2,1) = 1.D0; self%c(3,3) = 1.D0
+  case ('m'); self%c(1,2) = 1.D0; self%c(2,1) =-1.D0; self%c(3,3) =-1.D0
+  case ('n'); self%c(1,2) =-1.D0; self%c(2,1) = 1.D0; self%c(2,2) =-1.D0; self%c(3,3) = 1.D0
+ end select
+
+end subroutine PGfillgen_
+
+!--------------------------------------------------------------------------
+recursive subroutine MakePGGenerators_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: MakePGGenerators_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/20/22
+  !!
+  !! (private) interprets the generator string and initializes all generator matrices
+
+IMPLICIT NONE
+
+class(PointGroup_T), INTENT(INOUT)  :: self
+
+integer(kind=irg)                   :: i
+character(1)                        :: t
+character(4)                        :: genst
+
+! initialize the encoded identity operator 
+t = 'a'
+! compute its matrix
+call PGfillgen_(self,t)
+! and put it first in the list of matrices
+self%direc(1,:,:) = self%c(:,:)
+
+! get the point group generator string
+genst = SYM_PGGL(self%pgnum)
+
+! initialize the number of generators
+self%GENnum = 0
+do i=1,4
+ if (genst(i:i).ne.'-') self%GENnum = self%GENnum+1
+end do 
+
+! create the generator matrices
+if (self%GENnum.ne.0) then 
+  do i=1,self%GENnum
+   t = genst(i:i)
+   call PGfillgen_(self,t)
+   self%direc(i+1,:,:) = self%c(:,:)
+  end do
+end if 
+
+! we need to include the identity as a generator
+self%GENnum = self%GENnum+1
+
+end subroutine MakePGGenerators_
+
+!--------------------------------------------------------------------------
+recursive subroutine PGmatrixmult_(self, k1, k2)
+!DEC$ ATTRIBUTES DLLEXPORT :: PGmatrixmult_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/20/22
+  !!
+  !! (private) multiplies two 3x3 symmetry matrices 
+
+IMPLICIT NONE
+
+class(PointGroup_T),INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)      :: k1
+integer(kind=irg),INTENT(IN)      :: k2
+
+self%c = matmul(self%direc(k1,:,:), self%direc(k2,:,:))
+
+end subroutine PGmatrixmult_
+
+!--------------------------------------------------------------------------
+recursive function PGisitnew_(self,nsym) result(isnew)
+!DEC$ ATTRIBUTES DLLEXPORT :: PGisitnew_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/20/22
+  !!
+  !! (private) check whether or not this is a new operator by simply comparing it
+  !! with all existing operators
+
+IMPLICIT NONE
+
+class(PointGroup_T),INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)      :: nsym
+logical                           :: isnew
+
+integer(kind=irg)                 :: k,n
+ !! loop counters
+real(kind=dbl),parameter          :: eps=0.0005_dbl
+ !! comparison threshold
+
+k=0
+n=0
+isnew = .TRUE.
+
+kloop: do while (k.le.nsym)
+  k=k+1
+  if (sum(abs(self%c - self%direc(k,:,:) )).lt.eps) then 
+    isnew = .FALSE.
+    EXIT kloop
+  end if 
+end do kloop
+
+end function PGisitnew_
+
+!--------------------------------------------------------------------------
+recursive subroutine GeneratePGSymmetry_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: GeneratePGSymmetry_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/20/22
+  !!
+  !! compute all symmetry operators and store them in self%direc.
+
+IMPLICIT NONE
+
+class(PointGroup_T),INTENT(INOUT) :: self
+
+integer(kind=irg)                 :: i,j,k,nsym,k1,k2,l1,l2       ! loop counters (mostly)
+real(kind=dbl)                    :: q,sm                         ! auxiliary variables.
+
+! create the space group generator matrices
+call self%MakePGGenerators_()
+nsym = self%GENnum
+
+! generate new elements from the squares of the generators
+do k=1,self%GENnum
+  call self%PGmatrixmult_(k,k)
+  if (self%PGisitnew_(nsym).eqv..TRUE.) then
+   nsym=nsym+1
+   self%direc(nsym,:,:) = self%c(:,:)
+  end if
+end do
+
+! generate the remainder of the factorgroup
+ k1=1
+ do while (k1.le.nsym)
+  k2=k1+1
+  do while (k2.le.nsym)
+   call PGmatrixmult_(self,k2,k1)
+   if (PGisitnew_(self,nsym).eqv..TRUE.) then
+    nsym=nsym+1
+    self%direc(nsym,:,:) = self%c(:,:)
+    if (nsym.ge.48) then
+     k2 = nsym
+     k1 = nsym
+    end if
+   end if
+   k2=k2+1
+  end do
+  k1=k1+1
+ end do
+ self%PGMATnum = nsym
+
+end subroutine GeneratePGSymmetry_
 
 end module mod_symmetry
