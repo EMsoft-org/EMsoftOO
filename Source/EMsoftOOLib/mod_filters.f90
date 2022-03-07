@@ -906,34 +906,36 @@ end if
 ! if init=.TRUE. then initialize the hpmask variable and the fftw plans
 if (present(init)) then
   if (init) then
+    if (.not.allocated(inp)) then
 ! allocate arrays
-    allocate(hpmask(dims(1),dims(2)), inp(dims(1),dims(2)), outp(dims(1),dims(2)))
+      allocate(hpmask(dims(1),dims(2)), inp(dims(1),dims(2)), outp(dims(1),dims(2)))
 
 ! generate the complex inverted Gaussian mask; w = 0.05 produces good results (usually)
-  do i=1,dims(1)/2
-    x = dble(i)**2
-    do j=1,dims(2)/2
-      y = dble(j)**2
-      if ((x+y).lt.30.D0) then
-        val = 1.D0-dexp(-w*(x+y))
-        hpmask(i,j) = cmplx(val, 0.D0)
-        hpmask(dims(1)+1-i,j) = cmplx(val, 0.D0)
-        hpmask(i,dims(2)+1-j) = cmplx(val, 0.D0)
-        hpmask(dims(1)+1-i,dims(2)+1-j) = cmplx(val, 0.D0)
-        fdata(i,j) = val
-        fdata(dims(1)+1-i,j) = val
-        fdata(i,dims(2)+1-j) = val
-        fdata(dims(1)+1-i,dims(2)+1-j) = val
-      end if
-    end do
-  end do
+      do i=1,dims(1)/2
+        x = dble(i)**2
+        do j=1,dims(2)/2
+          y = dble(j)**2
+          if ((x+y).lt.30.D0) then
+            val = 1.D0-dexp(-w*(x+y))
+            hpmask(i,j) = cmplx(val, 0.D0)
+            hpmask(dims(1)+1-i,j) = cmplx(val, 0.D0)
+            hpmask(i,dims(2)+1-j) = cmplx(val, 0.D0)
+            hpmask(dims(1)+1-i,dims(2)+1-j) = cmplx(val, 0.D0)
+            fdata(i,j) = val
+            fdata(dims(1)+1-i,j) = val
+            fdata(i,dims(2)+1-j) = val
+            fdata(dims(1)+1-i,dims(2)+1-j) = val
+          end if
+        end do
+      end do
 
 ! then we set up the fftw plans for forward and reverse transforms
-    planf = fftw_plan_dft_2d(dims(2),dims(1),inp,outp, FFTW_FORWARD, FFTW_ESTIMATE)
-    planb = fftw_plan_dft_2d(dims(2),dims(1),inp,outp, FFTW_BACKWARD, FFTW_ESTIMATE)
+      planf = fftw_plan_dft_2d(dims(2),dims(1),inp,outp, FFTW_FORWARD, FFTW_ESTIMATE)
+      planb = fftw_plan_dft_2d(dims(2),dims(1),inp,outp, FFTW_BACKWARD, FFTW_ESTIMATE)
 
 ! and return
-    return
+        ! return
+      end if 
   end if
 end if
 

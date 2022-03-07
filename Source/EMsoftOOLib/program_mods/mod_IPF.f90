@@ -595,7 +595,7 @@ call IPFmap%set_ipf_mode(IPFmode)
 call IPFmap%set_ipf_filename(IPFname)
 call IPFmap%set_ipf_nthreads(1)
 
-call IPFmap%get_IPFMap(EMsoft, (/ 0, 0, 1/), qAR, sym, cDir=.TRUE.)
+call IPFmap%get_IPFMap(EMsoft, self%nml%sampleDir, qAR, sym, cDir=.TRUE.)
 
 end subroutine updateIPFmap_
 

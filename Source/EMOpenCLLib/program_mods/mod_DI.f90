@@ -1172,9 +1172,9 @@ dictionaryloop: do ii = 1,cratio+1
               call Message%WriteValue('',io_int,4,"(' -> Completed cycle ',I5,' out of ',I5,'; est. remaining time ', &
                                       I4,' hrs',I3,' min')")
           end if
-! here we insert code to generate a color IPFZ map with the current indexing results;
+! here we insert code to generate color IPF maps with the current indexing results;
 ! as the indexing proceeds, an increasing number of grains will stay the same color.
-! First we put the current indexing results in the qAR array and then we update the IPF map file
+! First we put the current indexing results in the qAR array and then we update the IPF map files
           do icnt=1,totnumexpt
             ro = r_T( rdinp = dble(FZarray(1:4,indexmain(1,icnt)) ) )
             qqq = ro%rq()
@@ -1182,8 +1182,30 @@ dictionaryloop: do ii = 1,cratio+1
             call qAR%insertQuatinArray( icnt, ququ )
           end do 
           if (ROIselected.eqv..TRUE.) then
+            IPFmapfile = 'currentIPFXmap.tiff'
+            call IPF%set_IPFfilename(IPFmapfile)
+            call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+            call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+            IPFmapfile = 'currentIPFYmap.tiff'
+            call IPF%set_IPFfilename(IPFmapfile)
+            call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+            call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+            IPFmapfile = 'currentIPFZmap.tiff'
+            call IPF%set_IPFfilename(IPFmapfile)
+            call IPF%set_sampleDir( (/ 0, 0, 1 /) )
             call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
           else
+            IPFmapfile = 'currentIPFXmap.tiff'
+            call IPF%set_IPFfilename(IPFmapfile)
+            call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+            call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+            IPFmapfile = 'currentIPFYmap.tiff'
+            call IPF%set_IPFfilename(IPFmapfile)
+            call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+            call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+            IPFmapfile = 'currentIPFZmap.tiff'
+            call IPF%set_IPFfilename(IPFmapfile)
+            call IPF%set_sampleDir( (/ 0, 0, 1 /) )
             call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
           end if
         end if
@@ -1250,9 +1272,10 @@ dictionaryloop: do ii = 1,cratio+1
          end if
 
 ! hi pass filtering
-         rdata = dble(binned)
-         fdata = HiPassFilter(rdata,dims,w)
-         binned = sngl(fdata)
+         ! rdata = dble(binned)
+         ! write (*,*) ' ---> ', shape(binned), dims, w
+         ! fdata = HiPassFilter(rdata,dims,w, init=.TRUE.)
+         ! binned = sngl(fdata)
 
 ! adaptive histogram equalization
          ma = maxval(binned)
@@ -1334,6 +1357,40 @@ dictionaryloop: do ii = 1,cratio+1
 if (cancelled.eqv..TRUE.) EXIT dictionaryloop
 
 end do dictionaryloop
+
+do icnt=1,totnumexpt
+  ro = r_T( rdinp = dble(FZarray(1:4,indexmain(1,icnt)) ) )
+  qqq = ro%rq()
+  ququ = quaternion_T( qd = qqq%q_copyd() )
+  call qAR%insertQuatinArray( icnt, ququ )
+end do 
+if (ROIselected.eqv..TRUE.) then
+  IPFmapfile = 'currentIPFXmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+  call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+  IPFmapfile = 'currentIPFYmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+  call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+  IPFmapfile = 'currentIPFZmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+  call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+else
+  IPFmapfile = 'currentIPFXmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+  call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+  IPFmapfile = 'currentIPFYmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+  call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+  IPFmapfile = 'currentIPFZmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+  call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+end if
 
 !-----
 ierr = clReleaseMemObject(cl_dict)
