@@ -150,6 +150,7 @@ type, public :: memory_T
     integer(kind=irg) :: bytes_char = 1
     integer(kind=irg) :: bytes_logical = 1
     integer(kind=irg), public :: nthreads = 1
+    logical, public   :: OpenMP
     logical, public   :: verbose
 
   contains
@@ -337,6 +338,7 @@ if (allocated(mem%current_memory_allocated)) deallocate(mem%current_memory_alloc
 ! allocate for nthreads OpenMP threads or just a single scalar 
 if (present(nt)) then 
     mem%nthreads = nt
+    mem%OpenMP = .TRUE.
     allocate(mem%totmem_ish(0:nt-1))
     allocate(mem%totmem_irg(0:nt-1))
     allocate(mem%totmem_ill(0:nt-1))
@@ -349,6 +351,7 @@ if (present(nt)) then
     allocate(mem%current_memory_allocated(0:nt-1))
 else 
     mem%nthreads = 1
+    mem%OpenMP = .FALSE.
     allocate(mem%totmem_ish(1))
     allocate(mem%totmem_irg(1))
     allocate(mem%totmem_ill(1))
@@ -485,7 +488,7 @@ if (present(expl)) then
   call Message%printMessage(' [ '//trim(expl)//' ]',"(A)")
 end if 
 call Message%printMessage(' ----------------------------------   ',"(A)")
-if (self%nthreads.gt.1) then 
+if (self%OpenMP.eqv..TRUE.) then 
     do i=0, self%nthreads-1
         io_int = i
         call Message%WriteValue(' Allocations for OpenMP thread ', io_int, 1)
@@ -504,9 +507,9 @@ if (self%nthreads.gt.1) then
         io_int = self%totmem_cmplxd(i)
         call Message%WriteValue('    complex(kind=dbl) : ', io_int, 1)
         io_int = self%totmem_char(i)
-        call Message%WriteValue(' character             : ', io_int, 1)
+        call Message%WriteValue('    character         : ', io_int, 1)
         io_int = self%totmem_logical(i)
-        call Message%WriteValue(' logical               : ', io_int, 1)
+        call Message%WriteValue('    logical           : ', io_int, 1)
         call Message%printMessage(' ')
     end do 
 else
@@ -525,9 +528,9 @@ else
     io_int = self%totmem_cmplxd(1)
     call Message%WriteValue('    complex(kind=dbl) : ', io_int, 1)
     io_int = self%totmem_char(1)
-    call Message%WriteValue(' character             : ', io_int, 1)
+    call Message%WriteValue('    character         : ', io_int, 1)
     io_int = self%totmem_logical(1)
-    call Message%WriteValue(' logical               : ', io_int, 1)
+    call Message%WriteValue('    logical           : ', io_int, 1)
     call Message%printMessage(' ')
 end if 
     
