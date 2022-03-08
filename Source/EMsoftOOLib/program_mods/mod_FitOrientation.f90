@@ -943,6 +943,7 @@ use mod_so3
 use omp_lib
 use mod_filters
 use mod_timing
+use mod_memory
 use mod_io
 use omp_lib
 use mod_OMPsupport
@@ -978,6 +979,7 @@ type(Timing_T)                          :: timer
 type(EBSD_T)                            :: EBSD, myEBSD
 type(ECP_T)                             :: ECP
 type(Vendor_T)                          :: VT
+type(memory_T)                          :: mem, memth
 
 ! type(EBSDIndexingNameListType)          :: dinl
 type(MCOpenCLNameListType)              :: mcnl
@@ -1088,6 +1090,12 @@ call HDFnames%set_NMLfilename(SC_DictionaryIndexingNML)
 call HDFnames%set_NMLparameters(SC_NMLparameters)
 call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 
+! allocate memory handling classes
+mem = memory_T()
+memth = memory_T( nt = ronl%nthreads )
+call mem%toggle_verbose()
+call memth%toggle_verbose()
+
 !====================================
 ! read the relevant fields from the dot product HDF5 file
 !====================================
@@ -1103,14 +1111,9 @@ if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD') )  then
 
     w = dinl%hipassw
     Nexp = DIDT%Nexp
-    allocate(euler_bestmatch(3,1,Nexp),stat=istat)
-    allocate(euler_best(3,Nexp),CIlist(Nexp),stat=istat)
-    if (istat .ne. 0) then
-        call Message%printError('FitOrientation','Failed to allocate euler_bestmatch array')
-    end if
-    euler_bestmatch = 0.0
-    euler_best = 0.0
-    CIlist = 0.0
+    call mem%alloc(euler_bestmatch, (/ 3,1,Nexp /),'euler_bestmatch',0.0)
+    call mem%alloc(euler_best, (/ 3,Nexp /), 'euler_best', 0.0)
+    call mem%alloc(CIlist, (/ Nexp /), 'CIlist', 0.0)
     euler_bestmatch(1,1,1:Nexp) = DIDT%Phi1(1:Nexp)
     euler_bestmatch(2,1,1:Nexp) = DIDT%Phi(1:Nexp)
     euler_bestmatch(3,1,1:Nexp) = DIDT%Phi2(1:Nexp)
@@ -1126,14 +1129,9 @@ if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD') )  then
 
     w = dinl%hipassw
     Nexp = DIDT%Nexp
-    allocate(euler_bestmatch(3,ronl%matchdepth,Nexp),stat=istat)
-    allocate(euler_best(3,Nexp),CIlist(Nexp),stat=istat)
-    if (istat .ne. 0) then
-        call Message%printError('FitOrientation','Failed to allocate euler_bestmatch array')
-    end if
-    euler_bestmatch = 0.0
-    euler_best = 0.0
-    CIlist = 0.0
+    call mem%alloc(euler_bestmatch, (/ 3,ronl%matchdepth,Nexp /),'euler_bestmatch',0.0)
+    call mem%alloc(euler_best, (/ 3,Nexp /), 'euler_best', 0.0)
+    call mem%alloc(CIlist, (/ Nexp /), 'CIlist', 0.0)
 ! read the appropriate set of Euler angles from the array of near matches
     do ii=1,ronl%matchdepth
       do jj=1,Nexp
@@ -1251,10 +1249,10 @@ call Message%WriteValue(' Setting point group number to ',io_int,1)
 ! 3. for EBSD/TKD copy a few parameters from dinl to enl
 ! and then generate the detector arrays
 if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.)) then
-  allocate(det%rgx(dinl%numsx,dinl%numsy), &
-           det%rgy(dinl%numsx,dinl%numsy), &
-           det%rgz(dinl%numsx,dinl%numsy), &
-           det%accum_e_detector(MCDT%numEbins,dinl%numsx,dinl%numsy), stat=istat)
+  call mem%alloc(det%rgx, (/ dinl%numsx,dinl%numsy /), 'det%rgx', 0.0)
+  call mem%alloc(det%rgy, (/ dinl%numsx,dinl%numsy /), 'det%rgy', 0.0)
+  call mem%alloc(det%rgz, (/ dinl%numsx,dinl%numsy /), 'det%rgz', 0.0)
+  call mem%alloc(det%accum_e_detector, (/ MCDT%numEbins,dinl%numsx,dinl%numsy /), 'det%accum_e_detector')
   enl%numsx = dinl%numsx
   enl%numsy = dinl%numsy
   enl%xpc = dinl%xpc
@@ -1284,7 +1282,7 @@ else  ! this must be an ECP indexing run so we initialize the appropriate detect
 
     call ECP%ECPGenerateDetector(verbose=.TRUE.)
     nsig = nint((ecpnl%conesemiangle) + abs(ecpnl%sampletilt)) + 1
-    allocate(anglewf(1:nsig),stat=istat)
+    call mem%alloc(anglewf, (/ nsig /), 'anglewf', 0.0)
 
     call Message%printMessage(' -> Calculating weight factors', frm = "(A)" )
     call ECP%ECPGetWeightFactors(mcnl, MCFT, anglewf, nsig, verbose=.TRUE.)
@@ -1310,7 +1308,8 @@ else  ! this must be an ECP indexing run so we initialize the appropriate detect
     numk = 0
     call ECP%GetVectorsCone()
     numk = ECP%get_numk()
-    allocate(kij(2,numk),klist(3,numk),stat=istat)
+    call mem%alloc(kij, (/ 2,numk /), 'kij', 0)
+    call mem%alloc(klist, (/ 3,numk /), 'klist', 0.D0)
 
     io_int(1) = numk
     call Message%WriteValue('Number of beams for which interpolation will be done = ',io_int,1)
@@ -1374,7 +1373,6 @@ size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
 patsz              = correctsize
 
 allocate(IPAR2(10))
-IPAR2 = 0
 
 ! define the jpar array
 jpar(1) = dinl%binning
@@ -1428,8 +1426,7 @@ if (trim(ronl%PSvariantfile).ne.'undefined') then
 
     if (anglemode.eq.'ax') then
     ! allocate some arrays
-        allocate(axPS(4,nvar))
-        axPS = 0.0
+        call mem%alloc(axPS, (/ 4,nvar /), 'axPS', 0.0)
         axPS(1:4,1) = (/ 0.0, 0.0, 1.0, 0.0 /)
 
         do ii = 2,nvar
@@ -1457,11 +1454,10 @@ if (trim(ronl%PSvariantfile).ne.'undefined') then
           io_real(1:4) = qq%get_quatd()
           call Message%WriteValue('',io_real,4)
         end do
-        deallocate(axPS)
+        call mem%dealloc(axPS, 'axPS')
     else
         ! allocate some arrays
-        allocate(euPS(3,nvar))
-        euPS = 0.0
+        call mem%alloc(euPS, (/ 3,nvar /), 'euPS', 0.0)
         euPS(1:3,1) = (/ 0.0, 0.0, 0.0 /)
 
         do ii = 2,nvar
@@ -1478,7 +1474,7 @@ if (trim(ronl%PSvariantfile).ne.'undefined') then
           io_real(1:4) = qq%get_quatd()
           call Message%WriteValue('',io_real,4)
         end do
-        deallocate(euPS)
+        call mem%dealloc(euPS, 'euPS')
     end if
     close(52,status='keep')
     call Message%printMessage('--------')
@@ -1502,9 +1498,8 @@ call qAR%quat_print()
 !=====================================================
 !==========ALLOCATE ALL ARRAYS HERE===================
 !=====================================================
-allocate(mask(binx,biny),masklin(binx*biny))
-mask = 1.0
-masklin = 0.0
+call mem%alloc(mask, (/ binx,biny /), 'mask', 1.0)
+call mem%alloc(masklin, (/ binx*biny /), 'masklin', 0.0)
 
 !===============================================================
 ! define the circular mask if necessary and convert to 1D vector
@@ -1531,8 +1526,7 @@ end do
 ! is the output to a temporary file or will it be kept in memory?
 if (ronl%inRAM.eqv..TRUE.) then
 ! allocate the array that will hold all the processed experimental patterns
-  allocate(epatterns(correctsize,totnumexpt),stat=istat)
-  if (istat .ne. 0) stop 'could not allocate array to hold processed experimental patterns'
+  call mem%alloc(epatterns, (/ correctsize,totnumexpt /), 'epatterns', 0.0)
   call PreProcessPatterns(EMsoft, HDF, .TRUE., dinl, binx, biny, masklin, correctsize, totnumexpt, epatterns=epatterns)
   io_real(1) = minval(epatterns)
   io_real(2) = maxval(epatterns)
@@ -1557,7 +1551,9 @@ if (trim(ronl%PCcorrection).eq.'on') then
 ! determine the shift vector for each sampling point (on the sample!) with respect to the 
 ! (initialx, initialy) position
   if (ROIselected.eqv..TRUE.) then 
-    allocate(DPCX(dinl%ROI(3)), DPCY(dinl%ROI(4)), DPCL(dinl%ROI(4)) )
+    call mem%alloc(DPCX, (/ dinl%ROI(3) /), 'DPCX', 0.0)
+    call mem%alloc(DPCY, (/ dinl%ROI(4) /), 'DPCY', 0.0)
+    call mem%alloc(DPCL, (/ dinl%ROI(4) /), 'DPCL', 0.0)
     do i=1,dinl%ROI(3)
       DPCX(i) = - ( ronl%initialx - (dinl%ROI(1)+(i-1)) ) * dinl%StepX
     end do 
@@ -1565,7 +1561,9 @@ if (trim(ronl%PCcorrection).eq.'on') then
       DPCY(j) = - ( ronl%initialy - (dinl%ROI(2)+(j-1)) ) * dinl%StepY
     end do 
   else
-    allocate(DPCX(dinl%ipf_wd), DPCY(dinl%ipf_ht), DPCL(dinl%ipf_ht) )
+    call mem%alloc(DPCX, (/ dinl%ipf_wd /), 'DPCX', 0.0)
+    call mem%alloc(DPCY, (/ dinl%ipf_ht /), 'DPCY', 0.0)
+    call mem%alloc(DPCL, (/ dinl%ipf_ht /), 'DPCL', 0.0)
     do i=1,dinl%ipf_wd
       DPCX(i) = - ( ronl%initialx - i ) * dinl%StepX
     end do 
@@ -1579,10 +1577,6 @@ if (trim(ronl%PCcorrection).eq.'on') then
   DPCL = - DPCY * sa 
   DPCY = - DPCY * ca / dinl%delta
 end if  
-
-! write (*,*) 'DPCX : ', DPCX
-! write (*,*) 'DPCY : ', DPCY
-! write (*,*) 'DPCL : ', DPCL
 
 !=================================
 !========LOOP VARIABLES===========
@@ -1603,10 +1597,7 @@ end if
 if (ronl%method.eq.'SUB') then
     Nmis = ronl%nmis
     niter = ronl%niter
-    allocate(cubneighbor(1:3,(2*Nmis + 1)**3),stat=istat)
-    if (istat.ne.0) then
-        call Message%printError('FitOrientation','Failed to allocate cubneighbor array')
-    end if
+    call mem%alloc(cubneighbor, (/ 3,(2*Nmis + 1)**3 /), 'cubneighbor', 0.D0)
 end if
 
 !===================================================================================
@@ -1641,10 +1632,11 @@ end if
 timer = Timing_T()
 call timer%Time_tick()
 
-allocate(exptpatterns(binx*biny,dinl%numexptsingle),stat=istat)
-unchanged = 0 
+call mem%alloc(exptpatterns, (/ binx*biny, dinl%numexptsingle /), 'exptpatterns', 0.0)
 
 unchanged = 0 
+
+! call mem%allocated_memory_use()
 
 ! parameters for orientation correction
 ! if (trim(ronl%PCcorrection).eq.'on') then 
@@ -1667,7 +1659,7 @@ if (ronl%method.eq.'FIT') then
     call Message%printMessage(' --> Starting regular refinement loop')
 
     do iii = 1,cratioE
-        allocate(tmpimageexpt(binx*biny))
+        call mem%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', 0.0)
         if (ronl%inRAM.eqv..FALSE.) then
             do jj = 1,ppendE(iii)
                 eindex = (iii - 1)*Ne + jj
@@ -1675,43 +1667,47 @@ if (ronl%method.eq.'FIT') then
                 exptpatterns(1:binx*biny,jj) = tmpimageexpt(1:binx*biny)
             end do
         end if
-        deallocate(tmpimageexpt)
+        call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex) &
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex,imageexpt) &
 !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,kk,ll,mm, myEBSD) &
 !$OMP& PRIVATE(X,INITMEANVAL,XL,XU,STEPSIZE,dpPS,eulerPS,rfz,euinp,pos, q, qu, qq2, qq, eu, ho, mystat)
 
-          allocate(X(N),XL(N),XU(N),INITMEANVAL(N),STEPSIZE(N))
-          XL = 0.D0
-          XU = 1.D0
-          STEPSIZE = ronl%step         
+          TID = OMP_GET_THREAD_NUM()
 
-          allocate(dpPS(ronl%matchdepth, nvar),eulerPS(3, ronl%matchdepth, nvar))
+! if (TID.eq.0) call memth%thread_memory_use()
 
-          allocate(EBSDPattern(binx,biny),tmpimageexpt(binx*biny),imageexpt(binx*biny),binned(binx,biny))
-          EBSDPattern = 0.0
-          tmpimageexpt = 0.0
-          imageexpt = 0.0
-          binned = 0.0
+          call memth%alloc(X, (/ N /), 'X', 0.D0, TID=TID)
+          call memth%alloc(XL, (/ N /), 'XL', 0.D0, TID=TID)
+          call memth%alloc(XU, (/ N /), 'XU', 1.D0, TID=TID)
+          call memth%alloc(INITMEANVAL, (/ N /), 'INITMEANVAL', 0.0, TID=TID)
+          call memth%alloc(STEPSIZE, (/ N /), 'STEPSIZE', ronl%step, TID=TID)
+
+          call memth%alloc(dpPS, (/ ronl%matchdepth, nvar /), 'dpPS', 0.0, TID=TID)
+          call memth%alloc(eulerPS, (/ 3, ronl%matchdepth, nvar /), 'eulerPS', 0.0, TID=TID)
+
+          call memth%alloc(EBSDPattern, (/ binx,biny /), 'EBSDpattern', 0.0, TID=TID)
+          call memth%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', 0.0, TID=TID)
+          call memth%alloc(imageexpt, (/ binx*biny /), 'imageexpt', 0.0, TID=TID)
+          call memth%alloc(binned, (/ binx,biny /), 'binned', 0.0, TID=TID)
           
-          
-          allocate(EBSDpatternintd(binx,biny),EBSDpatterninteger(binx,biny),EBSDpatternad(binx,biny))
-          EBSDpatternintd = 0.0
-          EBSDpatterninteger = 0
-          EBSDpatternad = 0.0
-          
-          allocate(imagedictflt(binx*biny))
-          imagedictflt = 0.0
+          call memth%alloc(EBSDpatternintd, (/ binx,biny /), 'EBSDpatternintd', 0.0, TID=TID)
+          call memth%alloc(EBSDpatterninteger, (/ binx,biny /), 'EBSDpatterninteger', 0, TID=TID)
+          call memth%alloc(EBSDpatternad, (/ binx,biny /), 'EBSDpatternad', 0, TID=TID)
+          call memth%alloc(imagedictflt, (/ binx*biny /), 'imagedictflt', 0.0, TID=TID)
 
           if (trim(ronl%PCcorrection).eq.'on') then 
 ! allocate the necessary arrays 
-            allocate(mydet%rgx(dinl%numsx,dinl%numsy), &
-                     mydet%rgy(dinl%numsx,dinl%numsy), &
-                     mydet%rgz(dinl%numsx,dinl%numsy), &
-                     mydet%accum_e_detector(MCDT%numEbins,dinl%numsx,dinl%numsy), stat=mystat)
+            call memth%alloc(myEBSD%det%rgx, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgx', 0.0, TID=TID)
+            call memth%alloc(myEBSD%det%rgy, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgy', 0.0, TID=TID)
+            call memth%alloc(myEBSD%det%rgz, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgz', 0.0, TID=TID)
+            call memth%alloc(myEBSD%det%accum_e_detector, (/ MCDT%numEbins, dinl%numsx, dinl%numsy /), &
+                             'mydet%accum_e_detector', 0.0, TID=TID)
+            myEBSD%det%accum_e_detector = EBSD%det%accum_e_detector
           end if 
 
-          TID = OMP_GET_THREAD_NUM()
+! if (TID.eq.0) call memth%thread_memory_use()
+
 !$OMP BARRIER
 
 !$OMP DO SCHEDULE(DYNAMIC)
@@ -1734,7 +1730,6 @@ if (ronl%method.eq.'FIT') then
                 qu = eu%eq()
                 quat = Quaternion_T( qd = qu%q_copyd() )
                 call quat%quat_normalize()
-
                 do ll = 1,nvar
                     qq2 = quPS%getQuatfromArray(ll)
                     quat2 = qq2 * quat
@@ -1747,17 +1742,16 @@ if (ronl%method.eq.'FIT') then
 
                     X(1:3) = 0.5D0
                     call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
-                                 XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, det%accum_e_detector,&
-                                 MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, det%rgx, det%rgy, &
-                                 det%rgz, STEPSIZE, DIFT%nml%gammavalue, verbose)
-
+                                 XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, EBSD%det%accum_e_detector,&
+                                 MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, EBSD%det%rgx, EBSD%det%rgy, &
+                                 EBSD%det%rgz, STEPSIZE, DIFT%nml%gammavalue, verbose)
                     ho = h_T( hdinp = dble(X*2.0*STEPSIZE - STEPSIZE + INITMEANVAL) )
                     eu = ho%he()
                     eulerPS(1:3,kk,ll) = eu%e_copyd()
 
-                    call EMFitOrientationcalfunEBSD(IPAR2, INITMEANVAL, tmpimageexpt, det%accum_e_detector, &
-                                                    MPDT%mLPNH, MPDT%mLPSH, N, X, F, mask, prefactor, &
-                                                    det%rgx, det%rgy, det%rgz, STEPSIZE, DIFT%nml%gammavalue, verbose)
+                    call EMFitOrientationcalfunEBSD(IPAR2, INITMEANVAL, tmpimageexpt, EBSD%det%accum_e_detector, &
+                                                    MPDT%mLPNH, MPDT%mLPSH, N, X, F, mask, prefactor, EBSD%det%rgx, &
+                                                    EBSD%det%rgy, EBSD%det%rgz, STEPSIZE, DIFT%nml%gammavalue, verbose)
 
                     dpPS(kk,ll) = 1.D0 - F
 
@@ -1768,7 +1762,6 @@ if (ronl%method.eq.'FIT') then
 ! the appropriate RFZ.
                     if ( (trim(ronl%PCcorrection).eq.'on') .and. (eindex.le.maxeindex) ) then  
                       ! get the corrected pattern center coordinates
-                      
                       ! first undo the pattern center shift by an equivalent rotation (see J. Appl. Cryst. (2017). 50, 1664–1676)
                       
                       ! generate the new detector arrays 
@@ -1786,7 +1779,7 @@ if (ronl%method.eq.'FIT') then
                       myEBSD%nml%xpc = enl%xpc - dx
                       myEBSD%nml%ypc = enl%ypc - dy
                       myEBSD%nml%L = enl%L - DPCL(sampley)
-                      call  EBSD%GeneratemyEBSDDetector(MCFT, dinl%numsx, dinl%numsy, MCDT%numEbins, myEBSD%det%rgx, &
+                      call EBSD%GeneratemyEBSDDetector(MCFT, dinl%numsx, dinl%numsy, MCDT%numEbins, myEBSD%det%rgx, &
                       myEBSD%det%rgy, myEBSD%det%rgz, myEBSD%det%accum_e_detector, &
                       (/ myEBSD%nml%xpc, myEBSD%nml%ypc, myEBSD%nml%L /))
                       
@@ -1819,6 +1812,7 @@ if (ronl%method.eq.'FIT') then
                                 myEBSD%det%accum_e_detector,MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, &
                                 myEBSD%det%rgx, myEBSD%det%rgy, myEBSD%det%rgz, STEPSIZE, DIFT%nml%gammavalue, &
                                 verbose)
+                      
                       ho = h_T( hdinp = dble(X*2.0*STEPSIZE - STEPSIZE + INITMEANVAL) )
                       eu = ho%he()
                       eulerPS(1:3,kk,ll) = eu%e_copyd()
@@ -1863,12 +1857,25 @@ if (ronl%method.eq.'FIT') then
 
         end do
     !$OMP END DO
-
-        deallocate(tmpimageexpt,binned,EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt)    
-        deallocate(X,XL,XU,INITMEANVAL,STEPSIZE, eulerPS, dpPS)
+        call memth%dealloc(tmpimageexpt, 'tmpimageexpt', TID=TID)
+        call memth%dealloc(binned, 'binned', TID=TID)
+        call memth%dealloc(EBSDpatternintd, 'EBSDpatternintd', TID=TID)
+        call memth%dealloc(EBSDpatterninteger, 'EBSDpatterninteger', TID=TID)
+        call memth%dealloc(EBSDpatternad, 'EBSDpatternad', TID=TID)
+        call memth%dealloc(imagedictflt, 'imagedictflt', TID=TID)
+        call memth%dealloc(X, 'X', TID=TID)
+        call memth%dealloc(XU, 'XU', TID=TID)
+        call memth%dealloc(XL, 'XL', TID=TID)
+        call memth%dealloc(INITMEANVAL, 'INITMEANVAL', TID=TID)
+        call memth%dealloc(STEPSIZE, 'STEPSIZE', TID=TID)
+        call memth%dealloc(eulerPS, 'eulerPS', TID=TID)
+        call memth%dealloc(dpPS, 'dpPS', TID=TID)
+        call memth%dealloc(imageexpt, 'imageexpt', TID=TID)
         if (trim(ronl%PCcorrection).eq.'on') then
-          deallocate(myEBSD%det%rgx, myEBSD%det%rgy)
-          deallocate(myEBSD%det%rgz, myEBSD%det%accum_e_detector)
+          call memth%dealloc(myEBSD%det%rgx, 'myEBSD%det%rgx', TID=TID)
+          call memth%dealloc(myEBSD%det%rgy, 'myEBSD%det%rgy', TID=TID)
+          call memth%dealloc(myEBSD%det%rgz, 'myEBSD%det%rgz', TID=TID)
+          call memth%dealloc(myEBSD%det%accum_e_detector, 'myEBSD%det%accum_e_detector', TID=TID)
         end if
 
     !$OMP BARRIER    
@@ -1883,13 +1890,13 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
         stpsz = LPs%ap/2.D0/DIFT%nml%ncubochoric/2.D0
 
         if (self%nml%inRAM.eqv..FALSE.) then
-            allocate(tmpimageexpt(binx*biny))
+            call mem%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', 0.0)
             do jj = 1,ppendE(iii)
                 eindex = (iii - 1)*DIFT%nml%numexptsingle + jj
                 read(itmpexpt,rec=eindex) tmpimageexpt
                 exptpatterns(1:binx*biny,jj) = tmpimageexpt(1:binx*biny)
             end do
-            deallocate(tmpimageexpt)
+            call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
         end if
 
         do kk = 1,niter
@@ -1902,15 +1909,13 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
     !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,ll,mm,dp) &
     !$OMP& PRIVATE(cubneighbor,cu0, cu, eu)
 
-            allocate(tmpimageexpt(binx*biny),binned(binx,biny))
-            allocate(EBSDpatternintd(binx,biny),EBSDpatterninteger(binx,biny),EBSDpatternad(binx,biny))
-            allocate(imagedictflt(binx*biny))
-            tmpimageexpt = 0.0
-            binned = 0.0
-            EBSDpatternintd = 0.0
-            EBSDpatterninteger = 0
-            EBSDpatternad = 0.0
-            imagedictflt = 0.0
+          call memth%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', 0.0, TID=TID)
+          call memth%alloc(binned, (/ binx,biny /), 'binned', 0.0, TID=TID)
+          call memth%alloc(EBSDpatternintd, (/ binx,biny /), 'EBSDpatternintd', 0.0, TID=TID)
+          call memth%alloc(EBSDpatterninteger, (/ binx,biny /), 'EBSDpatterninteger', 0, TID=TID)
+          call memth%alloc(EBSDpatternad, (/ binx,biny /), 'EBSDpatternad', 0, TID=TID)
+          call memth%alloc(imagedictflt, (/ binx*biny /), 'imagedictflt', 0.0, TID=TID)
+
     !$OMP DO SCHEDULE(DYNAMIC)      
             do ii = 1,ppendE(iii)
 
@@ -1976,7 +1981,12 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
 
     !$OMP END DO
 
-            deallocate(tmpimageexpt,binned,EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt)
+        call memth%dealloc(tmpimageexpt, 'tmpimageexpt', TID=TID)
+        call memth%dealloc(binned, 'binned', TID=TID)
+        call memth%dealloc(EBSDpatternintd, 'EBSDpatternintd', TID=TID)
+        call memth%dealloc(EBSDpatterninteger, 'EBSDpatterninteger', TID=TID)
+        call memth%dealloc(EBSDpatternad, 'EBSDpatternad', TID=TID)
+        call memth%dealloc(imagedictflt, 'imagedictflt', TID=TID)
 
     !$OMP END PARALLEL
 
@@ -2066,8 +2076,8 @@ else
     ipar(8) = dinl%ipf_ht
 end if
 
-allocate(indexmain(ipar(1),1:ipar(2)),resultmain(ipar(1),1:ipar(2)))
-indexmain = 0
+call mem%alloc(indexmain, (/ ipar(1), ipar(2) /), 'indexmain', 0)
+call mem%alloc(resultmain, (/ ipar(1), ipar(2) /), 'resultmain', 0.0)
 resultmain(1,1:ipar(2)) = CIlist(1:Nexp)
 
 VT = Vendor_T()
@@ -2094,6 +2104,7 @@ tstop = timer%getInterval()
 io_real(1) = tstop
 call Message%WriteValue('Execution time [system_clock()] = ',io_real,1,"(I8,' [s]')")
 
+call mem%allocated_memory_use()
 
 end associate
 

@@ -1906,7 +1906,7 @@ integer(K4B),INTENT(INOUT),OPTIONAL             :: applynoise
 
 real(kind=sgl),allocatable                      :: EBSDpattern(:,:)
 real(kind=sgl),allocatable                      :: wf(:)
-real(kind=sgl)                                  :: dc(3),ixy(2),scl,bindx, tmp
+real(kind=sgl)                                  :: dc(3),ixy(2),scl,bindx, tmp, mv
 real(kind=sgl)                                  :: dx,dy,dxm,dym, x, y, z
 integer(kind=irg)                               :: ii,jj,kk,istat
 integer(kind=irg)                               :: nix,niy,nixp,niyp
@@ -1992,6 +1992,9 @@ do ii = 1,ipar(2)
     end do
 end do
 
+mv = minval(EBSDpattern)
+if (mv.lt.0.0) EBSDpattern = EBSDpattern - mv
+
 EBSDpattern = prefactor * EBSDpattern
 
 ! do we need to apply Poisson noise ?  (slow...)
@@ -2005,7 +2008,9 @@ EBSDpattern = prefactor * EBSDpattern
 ! values when EBSD pattern size is large
 do ii=1,ipar(2)
     do jj=1,ipar(3)
-        if (isnan(EBSDpattern(ii,jj)).or.EBSDpattern(ii,jj).lt.0.0) then
+        ! if (isnan(EBSDpattern(ii,jj)).or.EBSDpattern(ii,jj).lt.0.0) then
+        if (isnan(EBSDpattern(ii,jj))) then
+          write (*,*) ii, jj, ' isnan'
           EBSDpattern(ii,jj) = 0.0
         end if
     end do
