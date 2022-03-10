@@ -149,9 +149,12 @@ type, public :: memory_T
     integer(kind=irg) :: bytes_cmplxd = 16
     integer(kind=irg) :: bytes_char = 1
     integer(kind=irg) :: bytes_logical = 1
-    integer(kind=irg), public :: nthreads = 1
-    logical, public   :: OpenMP
-    logical, public   :: verbose
+    ! integer(kind=irg), public :: nthreads = 1
+    ! logical, public   :: OpenMP
+    ! logical, public   :: verbose
+    integer(kind=irg) :: nthreads = 1
+    logical           :: OpenMP
+    logical           :: verbose
 
   contains
   private 
@@ -303,7 +306,7 @@ end interface memory_T
 contains
 
 !--------------------------------------------------------------------------
-type(memory_T) function memory_constructor( nt, silent )  result(mem) 
+recursive function memory_constructor( nt, silent ) result(mem)
 !DEC$ ATTRIBUTES DLLEXPORT :: memory_constructor
 !! author: MDG
 !! version: 1.0
@@ -318,6 +321,7 @@ IMPLICIT NONE
 
 integer(kind=irg), INTENT(IN), OPTIONAL  :: nt 
 logical, INTENT(IN), OPTIONAL            :: silent 
+type(memory_T)                           :: mem
 
 type(IO_T)                               :: Message
 type(EMsoft_T)                           :: EMsoft
@@ -731,7 +735,7 @@ end if
 end subroutine alloc_char1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_char1_(self, ar, varname, TID)
+recursive subroutine dealloc_char1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_char1_
 !! author: MDG
 !! version: 1.0
@@ -856,7 +860,7 @@ end if
 end subroutine alloc_char2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_char2_(self, ar, varname, TID)
+recursive subroutine dealloc_char2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_char2_
 !! author: MDG
 !! version: 1.0
@@ -981,7 +985,7 @@ end if
 end subroutine alloc_ish1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ish1_(self, ar, varname, TID)
+recursive subroutine dealloc_ish1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ish1_
 !! author: MDG
 !! version: 1.0
@@ -1106,7 +1110,7 @@ end if
 end subroutine alloc_ish2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ish2_(self, ar, varname, TID)
+recursive subroutine dealloc_ish2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ish2_
 !! author: MDG
 !! version: 1.0
@@ -1231,7 +1235,7 @@ end if
 end subroutine alloc_ish3_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ish3_(self, ar, varname, TID)
+recursive subroutine dealloc_ish3_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ish3_
 !! author: MDG
 !! version: 1.0
@@ -1356,7 +1360,7 @@ end if
 end subroutine alloc_ish4_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ish4_(self, ar, varname, TID)
+recursive subroutine dealloc_ish4_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ish4_
 !! author: MDG
 !! version: 1.0
@@ -1481,7 +1485,7 @@ end if
 end subroutine alloc_ish5_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ish5_(self, ar, varname, TID)
+recursive subroutine dealloc_ish5_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ish5_
 !! author: MDG
 !! version: 1.0
@@ -1607,7 +1611,7 @@ end if
 end subroutine alloc_ish6_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ish6_(self, ar, varname, TID)
+recursive subroutine dealloc_ish6_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ish6_
 !! author: MDG
 !! version: 1.0
@@ -1732,7 +1736,7 @@ end if
 end subroutine alloc_irg1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_irg1_(self, ar, varname, TID)
+recursive subroutine dealloc_irg1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_irg1_
 !! author: MDG
 !! version: 1.0
@@ -1857,7 +1861,7 @@ end if
 end subroutine alloc_irg2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_irg2_(self, ar, varname, TID)
+recursive subroutine dealloc_irg2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_irg2_
 !! author: MDG
 !! version: 1.0
@@ -1982,7 +1986,7 @@ end if
 end subroutine alloc_irg3_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_irg3_(self, ar, varname, TID)
+recursive subroutine dealloc_irg3_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_irg3_
 !! author: MDG
 !! version: 1.0
@@ -2107,7 +2111,7 @@ end if
 end subroutine alloc_irg4_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_irg4_(self, ar, varname, TID)
+recursive subroutine dealloc_irg4_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_irg4_
 !! author: MDG
 !! version: 1.0
@@ -2232,7 +2236,7 @@ end if
 end subroutine alloc_irg5_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_irg5_(self, ar, varname, TID)
+recursive subroutine dealloc_irg5_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_irg5_
 !! author: MDG
 !! version: 1.0
@@ -2358,7 +2362,7 @@ end if
 end subroutine alloc_irg6_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_irg6_(self, ar, varname, TID)
+recursive subroutine dealloc_irg6_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_irg6_
 !! author: MDG
 !! version: 1.0
@@ -2483,7 +2487,7 @@ end if
 end subroutine alloc_ill1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ill1_(self, ar, varname, TID)
+recursive subroutine dealloc_ill1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ill1_
 !! author: MDG
 !! version: 1.0
@@ -2608,7 +2612,7 @@ end if
 end subroutine alloc_ill2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ill2_(self, ar, varname, TID)
+recursive subroutine dealloc_ill2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ill2_
 !! author: MDG
 !! version: 1.0
@@ -2733,7 +2737,7 @@ end if
 end subroutine alloc_ill3_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ill3_(self, ar, varname, TID)
+recursive subroutine dealloc_ill3_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ill3_
 !! author: MDG
 !! version: 1.0
@@ -2858,7 +2862,7 @@ end if
 end subroutine alloc_ill4_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ill4_(self, ar, varname, TID)
+recursive subroutine dealloc_ill4_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ill4_
 !! author: MDG
 !! version: 1.0
@@ -2983,7 +2987,7 @@ end if
 end subroutine alloc_ill5_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ill5_(self, ar, varname, TID)
+recursive subroutine dealloc_ill5_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ill5_
 !! author: MDG
 !! version: 1.0
@@ -3109,7 +3113,7 @@ end if
 end subroutine alloc_ill6_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_ill6_(self, ar, varname, TID)
+recursive subroutine dealloc_ill6_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_ill6_
 !! author: MDG
 !! version: 1.0
@@ -3234,7 +3238,7 @@ end if
 end subroutine alloc_sgl1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_sgl1_(self, ar, varname, TID)
+recursive subroutine dealloc_sgl1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_sgl1_
 !! author: MDG
 !! version: 1.0
@@ -3359,7 +3363,7 @@ end if
 end subroutine alloc_sgl2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_sgl2_(self, ar, varname, TID)
+recursive subroutine dealloc_sgl2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_sgl2_
 !! author: MDG
 !! version: 1.0
@@ -3484,7 +3488,7 @@ end if
 end subroutine alloc_sgl3_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_sgl3_(self, ar, varname, TID)
+recursive subroutine dealloc_sgl3_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_sgl3_
 !! author: MDG
 !! version: 1.0
@@ -3609,7 +3613,7 @@ end if
 end subroutine alloc_sgl4_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_sgl4_(self, ar, varname, TID)
+recursive subroutine dealloc_sgl4_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_sgl4_
 !! author: MDG
 !! version: 1.0
@@ -3734,7 +3738,7 @@ end if
 end subroutine alloc_sgl5_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_sgl5_(self, ar, varname, TID)
+recursive subroutine dealloc_sgl5_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_sgl5_
 !! author: MDG
 !! version: 1.0
@@ -3860,7 +3864,7 @@ end if
 end subroutine alloc_sgl6_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_sgl6_(self, ar, varname, TID)
+recursive subroutine dealloc_sgl6_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_sgl6_
 !! author: MDG
 !! version: 1.0
@@ -3985,7 +3989,7 @@ end if
 end subroutine alloc_dbl1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_dbl1_(self, ar, varname, TID)
+recursive subroutine dealloc_dbl1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_dbl1_
 !! author: MDG
 !! version: 1.0
@@ -4110,7 +4114,7 @@ end if
 end subroutine alloc_dbl2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_dbl2_(self, ar, varname, TID)
+recursive subroutine dealloc_dbl2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_dbl2_
 !! author: MDG
 !! version: 1.0
@@ -4235,7 +4239,7 @@ end if
 end subroutine alloc_dbl3_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_dbl3_(self, ar, varname, TID)
+recursive subroutine dealloc_dbl3_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_dbl3_
 !! author: MDG
 !! version: 1.0
@@ -4360,7 +4364,7 @@ end if
 end subroutine alloc_dbl4_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_dbl4_(self, ar, varname, TID)
+recursive subroutine dealloc_dbl4_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_dbl4_
 !! author: MDG
 !! version: 1.0
@@ -4485,7 +4489,7 @@ end if
 end subroutine alloc_dbl5_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_dbl5_(self, ar, varname, TID)
+recursive subroutine dealloc_dbl5_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_dbl5_
 !! author: MDG
 !! version: 1.0
@@ -4611,7 +4615,7 @@ end if
 end subroutine alloc_dbl6_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_dbl6_(self, ar, varname, TID)
+recursive subroutine dealloc_dbl6_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_dbl6_
 !! author: MDG
 !! version: 1.0
@@ -4736,7 +4740,7 @@ end if
 end subroutine alloc_cmplx1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplx1_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplx1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplx1_
 !! author: MDG
 !! version: 1.0
@@ -4861,7 +4865,7 @@ end if
 end subroutine alloc_cmplx2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplx2_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplx2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplx2_
 !! author: MDG
 !! version: 1.0
@@ -4986,7 +4990,7 @@ end if
 end subroutine alloc_cmplx3_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplx3_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplx3_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplx3_
 !! author: MDG
 !! version: 1.0
@@ -5111,7 +5115,7 @@ end if
 end subroutine alloc_cmplx4_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplx4_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplx4_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplx4_
 !! author: MDG
 !! version: 1.0
@@ -5236,7 +5240,7 @@ end if
 end subroutine alloc_cmplx5_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplx5_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplx5_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplx5_
 !! author: MDG
 !! version: 1.0
@@ -5362,7 +5366,7 @@ end if
 end subroutine alloc_cmplx6_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplx6_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplx6_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplx6_
 !! author: MDG
 !! version: 1.0
@@ -5487,7 +5491,7 @@ end if
 end subroutine alloc_cmplxd1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplxd1_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplxd1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplxd1_
 !! author: MDG
 !! version: 1.0
@@ -5612,7 +5616,7 @@ end if
 end subroutine alloc_cmplxd2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplxd2_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplxd2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplxd2_
 !! author: MDG
 !! version: 1.0
@@ -5737,7 +5741,7 @@ end if
 end subroutine alloc_cmplxd3_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplxd3_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplxd3_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplxd3_
 !! author: MDG
 !! version: 1.0
@@ -5862,7 +5866,7 @@ end if
 end subroutine alloc_cmplxd4_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplxd4_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplxd4_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplxd4_
 !! author: MDG
 !! version: 1.0
@@ -5987,7 +5991,7 @@ end if
 end subroutine alloc_cmplxd5_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplxd5_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplxd5_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplxd5_
 !! author: MDG
 !! version: 1.0
@@ -6113,7 +6117,7 @@ end if
 end subroutine alloc_cmplxd6_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_cmplxd6_(self, ar, varname, TID)
+recursive subroutine dealloc_cmplxd6_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_cmplxd6_
 !! author: MDG
 !! version: 1.0
@@ -6238,7 +6242,7 @@ end if
 end subroutine alloc_logical1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_logical1_(self, ar, varname, TID)
+recursive subroutine dealloc_logical1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_logical1_
 !! author: MDG
 !! version: 1.0
@@ -6363,7 +6367,7 @@ end if
 end subroutine alloc_logical2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_logical2_(self, ar, varname, TID)
+recursive subroutine dealloc_logical2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_logical2_
 !! author: MDG
 !! version: 1.0
@@ -6488,7 +6492,7 @@ end if
 end subroutine alloc_logical3_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_logical3_(self, ar, varname, TID)
+recursive subroutine dealloc_logical3_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_logical3_
 !! author: MDG
 !! version: 1.0
@@ -6613,7 +6617,7 @@ end if
 end subroutine alloc_byte1_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_byte1_(self, ar, varname, TID)
+recursive subroutine dealloc_byte1_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_byte1_
 !! author: MDG
 !! version: 1.0
@@ -6738,7 +6742,7 @@ end if
 end subroutine alloc_byte2_
 
 !--------------------------------------------------------------------------
-subroutine dealloc_byte2_(self, ar, varname, TID)
+recursive subroutine dealloc_byte2_(self, ar, varname, TID)
 !DEC$ ATTRIBUTES DLLEXPORT :: dealloc_byte2_
 !! author: MDG
 !! version: 1.0

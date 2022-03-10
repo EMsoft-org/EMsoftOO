@@ -1062,7 +1062,6 @@ init = .TRUE.
 overwrite = .TRUE.
 verbose = .FALSE.
 
-
 !====================================
 ! read the relevant fields from the dot product HDF5 file
 
@@ -1092,9 +1091,9 @@ call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 
 ! allocate memory handling classes
 mem = memory_T()
+! call mem%toggle_verbose()
 memth = memory_T( nt = ronl%nthreads )
-call mem%toggle_verbose()
-call memth%toggle_verbose()
+! call memth%toggle_verbose()
 
 !====================================
 ! read the relevant fields from the dot product HDF5 file
@@ -1669,14 +1668,14 @@ if (ronl%method.eq.'FIT') then
         end if
         call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex,imageexpt) &
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex) &
 !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,kk,ll,mm, myEBSD) &
 !$OMP& PRIVATE(X,INITMEANVAL,XL,XU,STEPSIZE,dpPS,eulerPS,rfz,euinp,pos, q, qu, qq2, qq, eu, ho, mystat)
 
           TID = OMP_GET_THREAD_NUM()
 
-! if (TID.eq.0) call memth%thread_memory_use()
-
+! allocate all private arrays; one thread at a time to prevent conflicts accessing the memth class
+!$OMP CRITICAL
           call memth%alloc(X, (/ N /), 'X', 0.D0, TID=TID)
           call memth%alloc(XL, (/ N /), 'XL', 0.D0, TID=TID)
           call memth%alloc(XU, (/ N /), 'XU', 1.D0, TID=TID)
@@ -1686,9 +1685,7 @@ if (ronl%method.eq.'FIT') then
           call memth%alloc(dpPS, (/ ronl%matchdepth, nvar /), 'dpPS', 0.0, TID=TID)
           call memth%alloc(eulerPS, (/ 3, ronl%matchdepth, nvar /), 'eulerPS', 0.0, TID=TID)
 
-          call memth%alloc(EBSDPattern, (/ binx,biny /), 'EBSDpattern', 0.0, TID=TID)
           call memth%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', 0.0, TID=TID)
-          call memth%alloc(imageexpt, (/ binx*biny /), 'imageexpt', 0.0, TID=TID)
           call memth%alloc(binned, (/ binx,biny /), 'binned', 0.0, TID=TID)
           
           call memth%alloc(EBSDpatternintd, (/ binx,biny /), 'EBSDpatternintd', 0.0, TID=TID)
@@ -1706,8 +1703,8 @@ if (ronl%method.eq.'FIT') then
             myEBSD%det%accum_e_detector = EBSD%det%accum_e_detector
           end if 
 
-! if (TID.eq.0) call memth%thread_memory_use()
-
+! call memth%thread_memory_use()
+!$OMP END CRITICAL 
 !$OMP BARRIER
 
 !$OMP DO SCHEDULE(DYNAMIC)
@@ -1739,7 +1736,6 @@ if (ronl%method.eq.'FIT') then
 
                     ho = rfz%rh()
                     INITMEANVAL(1:3) = ho%h_copyd()
-
                     X(1:3) = 0.5D0
                     call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
                                  XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, EBSD%det%accum_e_detector,&
@@ -1857,29 +1853,30 @@ if (ronl%method.eq.'FIT') then
 
         end do
     !$OMP END DO
+
+!$OMP CRITICAL
+        call memth%dealloc(X, 'X', TID=TID)
+        call memth%dealloc(XL, 'XL', TID=TID)
+        call memth%dealloc(XU, 'XU', TID=TID)
+        call memth%dealloc(INITMEANVAL, 'INITMEANVAL', TID=TID)
+        call memth%dealloc(STEPSIZE, 'STEPSIZE', TID=TID)
+        call memth%dealloc(dpPS, 'dpPS', TID=TID)
+        call memth%dealloc(eulerPS, 'eulerPS', TID=TID)
         call memth%dealloc(tmpimageexpt, 'tmpimageexpt', TID=TID)
         call memth%dealloc(binned, 'binned', TID=TID)
         call memth%dealloc(EBSDpatternintd, 'EBSDpatternintd', TID=TID)
         call memth%dealloc(EBSDpatterninteger, 'EBSDpatterninteger', TID=TID)
         call memth%dealloc(EBSDpatternad, 'EBSDpatternad', TID=TID)
         call memth%dealloc(imagedictflt, 'imagedictflt', TID=TID)
-        call memth%dealloc(X, 'X', TID=TID)
-        call memth%dealloc(XU, 'XU', TID=TID)
-        call memth%dealloc(XL, 'XL', TID=TID)
-        call memth%dealloc(INITMEANVAL, 'INITMEANVAL', TID=TID)
-        call memth%dealloc(STEPSIZE, 'STEPSIZE', TID=TID)
-        call memth%dealloc(eulerPS, 'eulerPS', TID=TID)
-        call memth%dealloc(dpPS, 'dpPS', TID=TID)
-        call memth%dealloc(imageexpt, 'imageexpt', TID=TID)
         if (trim(ronl%PCcorrection).eq.'on') then
           call memth%dealloc(myEBSD%det%rgx, 'myEBSD%det%rgx', TID=TID)
           call memth%dealloc(myEBSD%det%rgy, 'myEBSD%det%rgy', TID=TID)
           call memth%dealloc(myEBSD%det%rgz, 'myEBSD%det%rgz', TID=TID)
           call memth%dealloc(myEBSD%det%accum_e_detector, 'myEBSD%det%accum_e_detector', TID=TID)
         end if
+!$OMP END CRITICAL
 
     !$OMP BARRIER    
-
     !$OMP END PARALLEL
         
     end do
@@ -1905,18 +1902,20 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
             io_int(2) = niter
             call Message%Writevalue(' --> Starting cubochoric grid refinement ',io_int,2,'(I3,'' of '',I3)')
 
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ii,tmpimageexpt,jj,quat,binned,ma,mi,eindex) &
-    !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,ll,mm,dp) &
-    !$OMP& PRIVATE(cubneighbor,cu0, cu, eu)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ii,tmpimageexpt,jj,quat,binned,ma,mi,eindex) &
+!$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,ll,mm,dp) &
+!$OMP& PRIVATE(cubneighbor,cu0, cu, eu)
 
+!$OMP CRITICAL
           call memth%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', 0.0, TID=TID)
           call memth%alloc(binned, (/ binx,biny /), 'binned', 0.0, TID=TID)
           call memth%alloc(EBSDpatternintd, (/ binx,biny /), 'EBSDpatternintd', 0.0, TID=TID)
           call memth%alloc(EBSDpatterninteger, (/ binx,biny /), 'EBSDpatterninteger', 0, TID=TID)
           call memth%alloc(EBSDpatternad, (/ binx,biny /), 'EBSDpatternad', 0, TID=TID)
           call memth%alloc(imagedictflt, (/ binx*biny /), 'imagedictflt', 0.0, TID=TID)
+!$OMP END CRITICAL
 
-    !$OMP DO SCHEDULE(DYNAMIC)      
+!$OMP DO SCHEDULE(DYNAMIC)      
             do ii = 1,ppendE(iii)
 
                eindex = (iii - 1)*DIFT%nml%numexptsingle + ii
@@ -1979,16 +1978,18 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
                 end if
             end do
 
-    !$OMP END DO
+!$OMP END DO
 
+!$OMP CRITICAL
         call memth%dealloc(tmpimageexpt, 'tmpimageexpt', TID=TID)
         call memth%dealloc(binned, 'binned', TID=TID)
         call memth%dealloc(EBSDpatternintd, 'EBSDpatternintd', TID=TID)
         call memth%dealloc(EBSDpatterninteger, 'EBSDpatterninteger', TID=TID)
         call memth%dealloc(EBSDpatternad, 'EBSDpatternad', TID=TID)
         call memth%dealloc(imagedictflt, 'imagedictflt', TID=TID)
-
-    !$OMP END PARALLEL
+!$OMP END CRITICAL
+!$OMP BARRIER 
+!$OMP END PARALLEL
 
         stpsz = stpsz/2.D0
         end do
