@@ -1489,7 +1489,7 @@ end if
 SO = so3_T(pgnum, zerolist='FZ')
 call SO%getFZtypeandorder(FZt, FZo)
 io_int(1:2) = (/ FZt, FZo /)
-call Message%WriteValue('FZt, FZo : ',io_int, 2)
+call Message%WriteValue('Fundamental Zone parameters FZt, FZo : ',io_int, 2)
 call qdummy%QSym_Init( pgnum, qAR )
 ! print out the symmetry array qAR
 call qAR%quat_print()
@@ -1596,7 +1596,7 @@ end if
 if (ronl%method.eq.'SUB') then
     Nmis = ronl%nmis
     niter = ronl%niter
-    call mem%alloc(cubneighbor, (/ 3,(2*Nmis + 1)**3 /), 'cubneighbor', 0.D0)
+    call mem%alloc(cubneighbor, (/ 3, (2*Nmis + 1)**3 /), 'cubneighbor', 0.D0)
 end if
 
 !===================================================================================
@@ -1727,6 +1727,7 @@ if (ronl%method.eq.'FIT') then
                 qu = eu%eq()
                 quat = Quaternion_T( qd = qu%q_copyd() )
                 call quat%quat_normalize()
+
                 do ll = 1,nvar
                     qq2 = quPS%getQuatfromArray(ll)
                     quat2 = qq2 * quat
@@ -1735,6 +1736,7 @@ if (ronl%method.eq.'FIT') then
                     call SO%ReduceOrientationtoRFZ(q, qAR, rfz)
 
                     ho = rfz%rh()
+
                     INITMEANVAL(1:3) = ho%h_copyd()
                     X(1:3) = 0.5D0
                     call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
@@ -1792,7 +1794,7 @@ if (ronl%method.eq.'FIT') then
                         qquat2 = myquat * qqq
 
                         myqu = q_T( qdinp = qquat2%get_quatd())
-                        myho = qu%qh()
+                        myho = myqu%qh()
                         INITMEANVAL(1:3) = sngl(myho%h_copyd())
                       else
                         myeu = e_T(edinp = dble(eulerPS(1:3,kk,ll)))
@@ -1801,7 +1803,7 @@ if (ronl%method.eq.'FIT') then
                       end if 
 
                       ! refine the orientation using the new detector array and initial orientation 
-                      INITMEANVAL(1:3) = ho%h_copyd()
+                      ! INITMEANVAL(1:3) = ho%h_copyd()
                       X = 0.5D0
                       call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
                                 XU, RHOBEG, RHOEND, IPRINT, MAXFUN, EMFitOrientationcalfunEBSD, &
@@ -1812,6 +1814,7 @@ if (ronl%method.eq.'FIT') then
                       ho = h_T( hdinp = dble(X*2.0*STEPSIZE - STEPSIZE + INITMEANVAL) )
                       eu = ho%he()
                       eulerPS(1:3,kk,ll) = eu%e_copyd()
+
                       call EMFitOrientationcalfunEBSD(IPAR2, INITMEANVAL, tmpimageexpt, &
                            myEBSD%det%accum_e_detector, MPDT%mLPNH, MPDT%mLPSH, N, X, F, mask, &
                            prefactor, myEBSD%det%rgx, myEBSD%det%rgy, myEBSD%det%rgz, STEPSIZE, &
@@ -1824,8 +1827,7 @@ if (ronl%method.eq.'FIT') then
                       euinp2 = e_T( edinp = euinp(1:3) )
                       q = euinp2%eq() ! RFZ reduction requires q_T class
                       call SO%ReduceOrientationtoRFZ(q, qAR, rfz)
-                      ho = rfz%rh()
-                      eu = ho%he()
+                      eu = rfz%re()
                       eulerPS(1:3,kk,ll) = sngl(eu%e_copyd())
                     end if 
                       
@@ -1878,7 +1880,7 @@ if (ronl%method.eq.'FIT') then
 
     !$OMP BARRIER    
     !$OMP END PARALLEL
-        
+
     end do
 else  ! sub-divide the cubochoric grid in half steps and determine for which gridpoint the dot product is largest
     do iii = 1,cratioE
@@ -2050,9 +2052,9 @@ end if
 dataset = SC_RefinedEulerAngles
 call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists) then
-  hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best*dtor), 3, Nexp, overwrite)
+  hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best), 3, Nexp, overwrite)
 else
-  hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best*dtor), 3, Nexp)
+  hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best), 3, Nexp)
 end if
 
 call HDF%pop(.TRUE.)
@@ -2086,7 +2088,8 @@ call VT%set_Modality(MPFT%getModality())
 if (ronl%ctffile.ne.'undefined') then
   fpar2(1) = mcnl%EkeV
   fpar2(2) = MCsig
-  call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,indexmain,euler_best,resultmain, DIDT%OSM, DIDT%IQ, noindex=.TRUE.)
+  call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,indexmain,euler_best*sngl(rtod),resultmain, &
+                        DIDT%OSM, DIDT%IQ, noindex=.TRUE.)
   call Message%printMessage(' Data stored in ctf file : '//trim(ronl%ctffile))
 end if
 
@@ -2103,7 +2106,7 @@ call timer%Time_tock()
 tstop = timer%getInterval()
 
 io_real(1) = tstop
-call Message%WriteValue('Execution time [system_clock()] = ',io_real,1,"(I8,' [s]')")
+call Message%WriteValue('Execution time [system_clock()] = ',io_real,1,"(F14.6,' [s]')")
 
 call mem%allocated_memory_use()
 
