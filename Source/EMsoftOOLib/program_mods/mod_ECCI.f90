@@ -228,9 +228,9 @@ mode = 'full'
 xtalname = 'undefined'
 montagename = 'undefined'
 defectfilename = 'undefined'
-dispfile = 'displacements.data'
+dispfile = 'undefined'
 energyfile = 'undefined'
-dataname = 'ECCIout.data'
+dataname = 'undefined'
 ECPname = 'undefined'
 sgname = 'nofile'
 BetheParametersFile = 'undefined'
@@ -1111,6 +1111,8 @@ mainloop: do isg = numstart,numstop
     call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
     nn = nns
   end if
+
+write (*,*) ' loopcounter, # strong beams ', isg, nn 
 
   ! allocate the various DHW Matrices
   !call mem%alloc(DHWMz, (/nn,nn/), 'DHWMz')
