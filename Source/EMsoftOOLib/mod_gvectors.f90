@@ -471,7 +471,7 @@ listrootw => self%reflist
 end function Get_ListHead_
 
 !--------------------------------------------------------------------------
-recursive subroutine Apply_BethePotentials_(self, Diff, listrootw, nns, nnw)
+recursive subroutine Apply_BethePotentials_(self, Diff, listrootw, nns, nnw, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: Apply_BethePotentials_
   !! author: MDG
   !! version: 1.0
@@ -495,12 +495,13 @@ type(Diffraction_T), INTENT(INOUT)             :: Diff
 type(reflisttype),pointer                      :: listrootw
 integer(kind=irg),INTENT(OUT)                  :: nns
 integer(kind=irg),INTENT(OUT)                  :: nnw
+logical,INTENT(IN),OPTIONAL                    :: verbose
 
 type(IO_T)                                     :: Message
 integer(kind=irg),allocatable                  :: glist(:,:)
 real(kind=dbl),allocatable                     :: rh(:)
 type(reflisttype),pointer                      :: rl, lastw, lasts
-integer(kind=irg)                              :: icnt, istat, gmh(3), ir, ih
+integer(kind=irg)                              :: icnt, istat, gmh(3), ir, ih, io_int(1)
 real(kind=dbl)                                 :: sgp, la, m
 
 nullify(lasts)
@@ -586,6 +587,13 @@ irloop: do ir = 2,icnt
 end do irloop
 
 deallocate(glist, rh)
+
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then 
+    io_int(1) = nns 
+    call Message%WriteValue(' Number of strong beams : ', io_int, 1)
+  end if 
+end if 
 
 end subroutine Apply_BethePotentials_
 
@@ -1564,6 +1572,7 @@ associate( reflist => self%reflist )
 
 end subroutine getSghfromLUTsum_
 
+!--------------------------------------------------------------------------
 recursive subroutine CalcCBEDint_(self,cell,DynMat,kn,nn,nt,thick,inten)
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcCBEDint_
   !! author: MDG
