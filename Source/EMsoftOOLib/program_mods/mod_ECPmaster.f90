@@ -711,6 +711,7 @@ allocate(svals(numset))
        call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
        totstrong = totstrong + nns
        totweak = totweak + nnw
+       if (ik.eq.1) write (*,*) ' maxval(DynMat) = ', maxval(abs(DynMat))
      else
 ! all reflections are strong, but they are not coupled to each other, only to the
 ! incident beam; all q_{g-g'} are zero except the ones with g'=0.  In addition, there

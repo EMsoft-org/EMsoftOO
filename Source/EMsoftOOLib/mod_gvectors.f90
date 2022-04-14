@@ -452,21 +452,21 @@ end do irloop
 end subroutine GetSubRefList_
 
 !--------------------------------------------------------------------------
-recursive function Get_ListHead_(self) result(listrootw)
+recursive function Get_ListHead_(self) result(listroot)
 !DEC$ ATTRIBUTES DLLEXPORT :: Get_ListHead_
   !! author: MDG
   !! version: 1.0
   !! date: 02/02/20
   !!
-  !! return the number of g-vectors
+  !! return the head of the linked list
 
 
 IMPLICIT NONE
 
 class(gvectors_T),INTENT(INOUT)                :: self
-type(reflisttype),pointer                      :: listrootw
+type(reflisttype),pointer                      :: listroot
 
-listrootw => self%reflist
+listroot => self%reflist
 
 end function Get_ListHead_
 
@@ -959,7 +959,7 @@ izl:   do iz=-iml,iml
 end subroutine Initialize_Reflectionlist_EwaldSweep_
 
 !--------------------------------------------------------------------------
-recursive subroutine GetDynMat_(self, cell, Diff, listrootw, DynMat, nns, nnw, BlochMode, noNormAbs)
+recursive subroutine GetDynMat_(self, cell, Diff, listrootw, DynMat, nns, nnw, MatrixType, noNormAbs)
 !DEC$ ATTRIBUTES DLLEXPORT :: GetDynMat_
   !! author: MDG
   !! version: 1.0
@@ -986,7 +986,7 @@ type(reflisttype),pointer        :: listrootw
 integer(kind=irg),INTENT(IN)     :: nns
 complex(kind=dbl),INTENT(INOUT)  :: DynMat(nns,nns)
 integer(kind=irg),INTENT(IN)     :: nnw
-character(5),INTENT(IN),OPTIONAL :: BlochMode   ! 'Bloch' or 'Struc'
+character(5),INTENT(IN),OPTIONAL :: MatrixType   ! 'Bloch' or 'Struc'
 logical,INTENT(IN),OPTIONAL      :: noNormAbs
 
 type(gnode)                      :: rlp
@@ -1006,22 +1006,19 @@ nullify(rlr)
 nullify(rlc)
 nullify(rlw)
 
-! if BlochMode is absent, then we compute the Bloch dynamical matrix D directly
-! if Blochmode = Struc, we compute the structure matrix A directly
-! if Blochmode = Bloch, we do compute the structure matrix A and convert it to D
-! [in the absence of the BlochMode keyword, the dynamical matrix D
-! will not be invariant to origin shifts; A, on the other hand, is always shift
-! invariant, so that D derived from A will also be shift invariant]
+! if MatrixType is absent, then we compute the Bloch dynamical matrix D directly
+! if MatrixType = Struc, we compute the structure matrix A directly
 
 call Diff%setrlpmethod('WK')
 listroot => self%reflist
 
 AorD = 'D'
-if (present(Blochmode)) AorD = 'A'
+if (present(MatrixType)) then
+  if (MatrixType.eq.'Struc') AorD = 'D'
+end if 
 
 ! Standard Bloch wave mode
 if (AorD.eq.'D') then
-
         DynMat = czero
         call Diff%CalcUcg(cell, (/0,0,0/) )
         rlp = Diff%getrlp()
@@ -1157,16 +1154,6 @@ else ! AorD = 'A' so we need to compute the structure matrix using LUTqg ...
           ir = ir+1
         end do
         DynMat = DynMat * ccpi ! cmplx(cPi, 0.D0)
-        !DynMat = DynMat * cmplx(0.D0,cPi)
-end if
-!cv = cmplx(1.D0/cPi/mLambda,0.D0)
-!DynMat = DynMat * cv
-
-if (present(BlochMode)) then
-  if (BlochMode.eq.'Bloch') then
-    cv = cmplx(1.D0/cPi/mLambda,0.D0)
-    DynMat = DynMat * cv
-  end if
 end if
 
 end subroutine GetDynMat_
@@ -1303,7 +1290,7 @@ end subroutine GetDynMatKin_
 
 
 !--------------------------------------------------------------------------
-recursive subroutine GetDynMatDHW_(self, cell, Diff, listroot, rltmpa, rltmpb, DynMat, nn, DM, ga, gb)
+recursive subroutine GetDynMatDHW_(self, cell, Diff, DynMat, nn, DM, ga, gb)
 !DEC$ ATTRIBUTES DLLEXPORT :: GetDynMatDHW_
   !! author: MDG
   !! version: 1.0
@@ -1322,12 +1309,12 @@ IMPLICIT NONE
 class(gvectors_T), INTENT(INOUT) :: self
 type(Cell_T),INTENT(INOUT)       :: cell
 type(Diffraction_T),INTENT(INOUT):: Diff
-type(reflisttype),pointer        :: listroot, rltmpa, rltmpb
 integer(kind=irg),INTENT(IN)     :: nn, ga(3), gb(3)
 real(kind=sgl),INTENT(IN)        :: DM(2,2)
 complex(kind=dbl),INTENT(INOUT)  :: DynMat(nn,nn)
 type(IO_T)                       :: Message
 
+type(reflisttype),pointer        :: listroot, rltmpa, rltmpb
 type(gnode)                      :: rlp
 complex(kind=dbl)                :: cone
 real(kind=dbl)                   :: mlambda
@@ -1378,7 +1365,7 @@ end subroutine GetDynMatDHW_
 
 
 !--------------------------------------------------------------------------
-recursive subroutine GetSgArray_ECCI_(self, cell, sg, klist, numk, isg, DynFN, Diff, listroot, nns)
+recursive subroutine GetSgArray_ECCI_(self, cell, sg, kl, FN, Diff, nns)
 !DEC$ ATTRIBUTES DLLEXPORT :: GetSgArray_ECCI_
   !! author: MDG
   !! version: 1.0
@@ -1396,29 +1383,29 @@ IMPLICIT NONE
 class(gvectors_T), INTENT(INOUT) :: self
 type(Cell_T),INTENT(INOUT)       :: cell
 type(Diffraction_T),INTENT(INOUT):: Diff
-type(reflisttype),pointer        :: listroot, rltmpa
-type(IO_T)                       :: Message
-
+integer(kind=irg),INTENT(IN)     :: nns
 real(kind=sgl),INTENT(INOUT)     :: sg(nns)
-real(kind=dbl),INTENT(IN)        :: DynFN(3)
-integer(kind=irg),INTENT(IN)     :: nns, numk, isg
-real(kind=dbl),INTENT(IN)        :: klist(3,numk)
+real(kind=sgl),INTENT(IN)        :: kl(3)
+real(kind=sgl),INTENT(IN)        :: FN(3)
+
+type(reflisttype),pointer        :: rltmpa
+type(IO_T)                       :: Message
 integer(kind=irg)                :: ig, gg(3)
 
   nullify(rltmpa)
-  listroot => self%reflist
-  rltmpa => listroot%next
+  rltmpa => self%reflist
+  rltmpa => rltmpa%next
   reflectionloopCL: do ig=1,nns
     gg = float(rltmpa%hkl)
-    sg(ig) = Diff%Calcsg(cell,float(gg),sngl(klist(1:3,isg)),sngl(DynFN))
-! ! and we move to the next reflection in the list
-    rltmpa => rltmpa%next
+    sg(ig) = Diff%Calcsg(cell,float(gg),kl,FN)
+! ! and we move to the next strong reflection in the list
+    rltmpa => rltmpa%nexts
   end do reflectionloopCL
 
 end subroutine GetSgArray_ECCI_
 
 !--------------------------------------------------------------------------
-recursive subroutine GetExpval_ECCI_(self, cell, expval, Diff, listroot, nn, DM, ga, gb)
+recursive subroutine GetExpval_ECCI_(self, cell, expval, Diff, nn, DM, ga, gb)
 !DEC$ ATTRIBUTES DLLEXPORT :: GetExpval_ECCI_
   !! author: MDG
   !! version: 1.0
@@ -1436,13 +1423,14 @@ IMPLICIT NONE
 class(gvectors_T), INTENT(INOUT) :: self
 type(Cell_T),INTENT(INOUT)       :: cell
 type(Diffraction_T),INTENT(INOUT):: Diff
-type(reflisttype),pointer        :: listroot, rltmpa, rltmpb
+integer(kind=irg),INTENT(IN)     :: nn, ga(3), gb(3)
+integer(kind=sgl),INTENT(INOUT)  :: expval(2, nn, nn)
+real(kind=sgl),INTENT(IN)        :: DM(2,2)
+
 type(IO_T)                       :: Message
 
-integer(kind=sgl),INTENT(INOUT)     :: expval(2, nn, nn)
-integer(kind=irg),INTENT(IN)     :: nn, ga(3), gb(3)
-integer(kind=irg)    :: ir, ic
-real(kind=sgl),INTENT(IN)        :: DM(2,2)
+type(reflisttype),pointer        :: listroot, rltmpa, rltmpb
+integer(kind=irg)                :: ir, ic
 real(kind=sgl)                   :: X(2)
 real(kind=sgl)                   :: DD
 
@@ -1452,21 +1440,21 @@ real(kind=sgl)                   :: DD
   listroot => self%reflist
   rltmpa => listroot%next
 
-
+! this part has already been done in the Apply_BethePotentials routine ...
   ! ir is the row index
     do ir=1,nn
-     rltmpb => listroot%next   ! point to the front of the list
+     ! rltmpb => listroot%next   ! point to the front of the list
   ! ic is the column index
-     do ic=1,nn
-      rltmpb => rltmpb%next  ! move to next column-entry
-     end do
+     ! do ic=1,nn
+     !  rltmpb => rltmpb%next  ! move to next column-entry
+     ! end do
   ! decompose this point w.r.t ga and gb
      X(1) = cell%CalcDot(float(rltmpa%hkl),float(ga),'c')
      X(2) = cell%CalcDot(float(rltmpa%hkl),float(gb),'c')
      X = matmul(DM,X)/DD
 
      rltmpa%nab(1:2) = int(X(1:2))
-     rltmpa => rltmpa%next   ! move to next row-entry
+     rltmpa => rltmpa%nexts   ! move to next row-entry
     end do
   nullify(rltmpa)
   rltmpa => listroot%next
@@ -1480,9 +1468,9 @@ real(kind=sgl)                   :: DD
            expval(1,ir,ic) = rltmpa%nab(1)-rltmpb%nab(1)
            expval(2,ir,ic) = rltmpa%nab(2)-rltmpb%nab(2)
          end if
-         rltmpb => rltmpb%next  ! move to next column-entry
+         rltmpb => rltmpb%nexts ! move to next column-entry
       end do
-      rltmpa => rltmpa%next   ! move to next row-entry
+      rltmpa => rltmpa%nexts  ! move to next row-entry
     end do
 end subroutine GetExpval_ECCI_
 
@@ -1530,7 +1518,7 @@ associate( reflist => self%reflist )
 end subroutine getSghfromLUT_
 
 !--------------------------------------------------------------------------
-recursive subroutine getSghfromLUTsum_(self,Diff,nns,numset,nat,Sgh)
+recursive subroutine getSghfromLUTsum_(self,Diff,nns,numset,Sgh)
 !DEC$ ATTRIBUTES DLLEXPORT :: getSghfromLUTsum_
   !! author: MDG
   !! version: 1.0
@@ -1548,13 +1536,13 @@ class(gvectors_T),INTENT(INOUT)         :: self
 type(Diffraction_T),INTENT(INOUT)       :: Diff
 integer(kind=irg),INTENT(IN)            :: nns
 integer(kind=irg),INTENT(IN)            :: numset
-integer(kind=irg),INTENT(IN)            :: nat(maxpasym)
 complex(kind=dbl),INTENT(INOUT)         :: Sgh(nns,nns)
 
 type(reflisttype),pointer               :: rltmpa, rltmpb
 integer(kind=irg)                       :: ir, ic, kkk(3)
 
 associate( reflist => self%reflist )
+
 ! loop over all contributing reflections
 ! ir is the row index
     rltmpa => reflist%next    ! point to the front of the list
@@ -1564,9 +1552,9 @@ associate( reflist => self%reflist )
       do ic=1,nns
         kkk = rltmpb%hkl - rltmpa%hkl
         Sgh(ir,ic) = sum(Diff%getSghLUT( numset, kkk ))
-        rltmpb => rltmpb%next  ! move to next column-entry
+        rltmpb => rltmpb%nexts  ! move to next column-entry
       end do
-     rltmpa => rltmpa%next  ! move to next row-entry
+     rltmpa => rltmpa%nexts  ! move to next row-entry
    end do
  end associate
 

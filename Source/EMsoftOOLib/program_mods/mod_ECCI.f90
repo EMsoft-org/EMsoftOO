@@ -248,9 +248,9 @@ if (.not.skipread) then
     call Message%printError('EMECCI:',' crystal file name is undefined in '//nmlfile)
   end if
 
-  ! make sure the ECPname variable has been properly defined
-  if (trim(ECPname).eq.'undefined') then
-    call Message%printError('EMECCI:',' ECP pattern file name is undefined in '//nmlfile)
+  ! make sure the energyfile variable has been properly defined
+  if (trim(energyfile).eq.'undefined') then
+    call Message%printError('EMECCI:',' energyfile name is undefined in '//nmlfile)
   end if
 end if
 
@@ -573,7 +573,7 @@ type(MCfile_T)                          :: MCFT
 type(e_T)                               :: eu
 type(q_t)                               :: qu
 type(Quaternion_T)                      :: quat
-type(memory_T)                          :: mem 
+type(memory_T)                          :: mem, memth 
 
 type(MCOpenCLNameListType) :: mcnl
 
@@ -590,13 +590,13 @@ integer(kind=irg)                       :: kkk, nn,i,j,npix,npiy,ii,jj, numset, 
                                            NTHR, SETNTHR, isym, ir, ga(3), gb(3),ic,g,numd,ix,iy,nkt,nbeams, ik, ig, &
                                            k, numk,ixp,iyp, io_int(6), skip, gg(3), error_cnt, dinfo, nref, maxXY, hdferr, ijmax
 
-real(kind=dbl)                          :: io_real(5), lambda ! real output variable
+real(kind=dbl)                          :: io_real(5), lambda, mLambda ! real output variable
 
 integer(kind=irg),parameter             :: numdd=360 ! 180
 
 real(kind=sgl)                          :: thetacr,  nabsl, thick, X(2), bragg, thetac, kstar(3), gperp(3), av, mi, ma, &
                                            gdotR,DF_gf(3), tpi, DM(2,2), DD, c(3), gx(3), gy(3), &
-                                           gac(3), gbc(3),zmax, tstop, kk(3), FN(3), gc(3) 
+                                           gac(3), gbc(3),zmax, tstop, kk(3), kkz(3), FN(3), gc(3) 
 real(kind=dbl)                          ::  kt(3), delta , ktmax, arg, glen, DynFN(3), xx
 complex(kind=dbl),allocatable           :: amp(:),amp2(:),Azz(:,:),DF_R(:,:)
 real(kind=sgl),allocatable              :: lambdaZ(:), disparray(:,:,:,:),imatvals(:,:), ECCIimages(:,:,:), XYarray(:,:), &
@@ -604,8 +604,8 @@ real(kind=sgl),allocatable              :: lambdaZ(:), disparray(:,:,:,:),imatva
 real(kind=sgl),allocatable              :: svals(:), sgarray(:), klist(:,:), knlist(:)
 integer(kind=sgl),allocatable           :: expval(:,:,:),  hklarray(:,:), nab(:,:), XYint(:,:)
 complex(kind=dbl)                       :: para(0:numdd),dx,dy,dxm,dym, xgp
-complex(kind=dbl),allocatable           :: DHWM(:,:),DHWMvoid(:,:),DDD(:,:),Sarray(:,:,:,:), Sarrayk(:,:,:,:,:)
-complex(kind=dbl),allocatable           :: Lgh(:), Lgh2(:,:), Sgh(:), Sghtmp(:), DHWMz(:,:), Sgh2(:,:), Sghtmp2(:,:)
+complex(kind=dbl),allocatable           :: DHWM(:,:),DHWMvoid(:,:),DDD(:,:),Sarray(:,:,:,:) 
+complex(kind=dbl),allocatable           :: Lgh(:,:), Sgh(:,:), DHWMz(:,:)
 complex(kind=dbl)                       :: czero=cmplx(0.D0,0.D0),cone=dcmplx(1.D0,0.D0)
 type(kvectorlist),pointer               :: khead, ktmp
 logical                                 :: verbose
@@ -705,8 +705,6 @@ end if
 ! allocate and compute the Sgh loop-up table
 numset = cell%getNatomtype()
 call Diff%Initialize_SghLUT(cell, SG, emnl%dmin, numset, nat, verbose)
-
-write(*,*) sum(nat(1:numset))
  
 ! determine the point group number
 j=0
@@ -751,18 +749,12 @@ call Diff%SetBetheParameters(EMsoft, .TRUE., emnl%BetheParametersFile)
 ! ---------- create the incident beam directions list
 ! determine all independent incident beam directions (use a linked list starting at khead)
 ! numk is the total number of k-vectors to be included in this computation;
-! note that this needs to be redone for each energy, since the wave vector changes with energy
-kvec = kvectors_T()   ! initialize the wave vector list
-
-!call eu%e_setd( emnl%euler*dtor )
-!qu = eu%eq()
-!call qu%q_print('Quaternion            : ')
-!quat = Quaternion_T( qd = qu%q_copyd() )
-
 call SG%BFsymmetry(emnl%k,j,isym,ir)
 
 ! determine and display the shortest reciprocal lattice vectors for this zone
 call cell%ShortestG(SG,emnl%k,ga,gb,isym)
+
+kvec = kvectors_T()   ! initialize the wave vector list
 
 ! here we figure out how many beams there are
 if (trim(emnl%progmode).eq.'array') then
@@ -772,13 +764,13 @@ if (trim(emnl%progmode).eq.'array') then
 
   npx = nint(emnl%ktmax/emnl%dkt)
   npy = npx
-  ijmax = float(npx)**2  
+  ijmax = float(npx)**2
 
   call kvec%set_mapmode('ECCI')
   if (usehex) then
-  call kvec%Calckvectors(cell, SG, Diff, dble(ga),npx,npy, ijmax,usehex)
+    call kvec%Calckvectors(cell, SG, Diff, dble(ga),npx,npy, ijmax,usehex)
   else
-  call kvec%Calckvectors(cell, SG, Diff, dble(ga),npx,npy, ijmax,usehex)
+    call kvec%Calckvectors(cell, SG, Diff, dble(ga),npx,npy, ijmax,usehex)
   end if
   numk = kvec%get_numk()
 end if 
@@ -797,7 +789,6 @@ call Message%WriteValue('# independent beam directions to be considered = ', io_
 ! Convert to array for OpenMP
 mem = memory_T()
 
-call mem%alloc( kij, (/3, numk/), 'kij')
 call mem%alloc( klist, (/3, numk/), 'klist')
 call mem%alloc( knlist, (/numk/), 'knlist')
 call mem%alloc( XYarray, (/2, numk/), 'XYarray')
@@ -807,14 +798,18 @@ if (trim(emnl%progmode).eq.'array') ktmp => kvec%get_ListHead()
 if (trim(emnl%progmode).eq.'circl') ktmp => khead
 
 ! ! and loop through the list, keeping k, kn, and i,j
-kij(1:3,1) = (/ ktmp%i, ktmp%j, ktmp%hs /)
 klist(1:3,1) = ktmp%k
 knlist(1) = ktmp%kn
 
+! we also need to rescale the normal components of k since those are still
+! in units of multiples of ga
+glen = 1.0/cell%CalcLength(float(ga),'r')
 do i = 2,numk
   ktmp => ktmp%next
-  kij(1:3,i) = (/ ktmp%i, ktmp%j, ktmp%hs /)
-  klist(1:3,i) = ktmp%k
+  gx = ktmp%k
+  gx(1:2) = gx(1:2) * glen 
+  call cell%NormVec(gx,'r')
+  klist(1:3,i) = gx/Diff%getWaveLength()
   knlist(i) = ktmp%kn
 end do
 
@@ -828,7 +823,7 @@ call cell%NormVec(gx,'c')
 call cell%CalcCross(c,gx,gy,'c','c',0)
 
 ! this needs to be fixed !!!!!
-call cell%TransSpace(float(emnl%k),kstar,'d','r')        ! transform incident direction to reciprocal space
+call cell%TransSpace(float(emnl%k),kstar,'d','r')   ! transform incident direction to reciprocal space
 call cell%CalcCross(float(ga),kstar,gperp,'r','r',0)! compute g_perp = ga x k
 call cell%NormVec(gperp,'r')                        ! normalize g_perp
 
@@ -837,6 +832,7 @@ glen = cell%CalcLength(float(ga),'r')
 if (trim(emnl%progmode).eq.'array') ktmp => kvec%get_ListHead()
 if (trim(emnl%progmode).eq.'circl') ktmp => khead 
 
+! need to potentially check the sign of the first component ... 
 do ic=1,numk
     XYarray(1,ic) = -cell%CalcDot(sngl(ktmp%kt),float(ga),'c') ! / glen
     XYarray(2,ic) = -cell%CalcDot(sngl(ktmp%kt),gperp,'c') * glen
@@ -854,14 +850,14 @@ call Diff%CalcUcg(cell,(/0,0,0/))
 rlp = Diff%getrlp()
 nabsl = rlp%xgp    
 io_real(1) = nabsl
-
 call Message%WriteValue('Normal absorption length : ', io_real, 1, "(F10.5/)")
 
 call mem%alloc(lambdaZ, (/numzbins/), 'lambdaZ', 0.0_sgl)
 
+! commented line to be verified
 do iz=1,numzbins
   lambdaZ(iz) = float(sum(accum_z(numangle,iz,:,:)))/float(etotal)
-  lambdaZ(iz) = lambdaZ(iz) * exp(2.0*sngl(cPi)*(iz-1)*mcnl%depthstep/nabsl)
+  ! lambdaZ(iz) = lambdaZ(iz) * exp(2.0*sngl(cPi)*(iz-1)*mcnl%depthstep/nabsl)
 end do
 
 !=============================================
@@ -894,13 +890,10 @@ if (emnl%dispfile.eq.'undefined') then
   thick = Defects%foil%zb    ! this is the same everywhere for this version; needs to be updated in the next version
   Defects%DF_nums = nint(thick/Defects%DF_slice)  ! this is the number of slices for this particular column
 
-  allocate(Defects%DF_R(Defects%DF_nums,3))     ! each thread has its own DF_R array
-
-  allocate(disparray(2,Defects%DF_nums,Defects%DF_npix,Defects%DF_npiy))
-  disparray = 0.0
+  call mem%alloc(Defects%DF_R, (/ Defects%DF_nums,3  /), 'Defects%DF_slice', initval=0.0)     ! each thread has its own DF_R array
+  call mem%alloc(disparray, (/ 2,Defects%DF_nums,Defects%DF_npix,Defects%DF_npiy /), 'disparray', initval = 0.0)
 
   call self%getDisplacementField(cell, Defects, ga, gb, disparray)
-
 else
 
   ! read the displacement field arrays from the displacement HDF file
@@ -913,16 +906,14 @@ else
   thick = ipar(3)
   Defects%DF_nums = nint(thick/Defects%DF_slice)  ! this is the number of slices for this particular column
   
-  allocate(imatvals(2,Defects%DF_nums))
-  imatvals = 0
+  call mem%alloc(imatvals, (/ 2,Defects%DF_nums /), 'imatvals', initval = 0.0)
 
   call cell%TransSpace(float(ga),gac,'r','c')
   call cell%TransSpace(float(gb),gbc,'r','c')
 
   numd = 360
 
-  allocate(disparray(2,Defects%DF_nums,ipar(1),ipar(2)))
-  disparray = 0.0
+  call mem%alloc(disparray, (/ 2,Defects%DF_nums,ipar(1),ipar(2)/), 'disparray', initval=0.0)
 
   do i=1,ipar(1)
     do j=1,ipar(2)
@@ -944,20 +935,14 @@ else
   io_real(1) = minval(disparray)
   io_real(2) = maxval(disparray)
   call Message%WriteValue(' --> Disparray bounds: ', io_real, 2, "(2(F10.5,' '))")
-
 end if
 
 ! ok, all the set up is now complete;
 npix = Defects%DF_npix
 npiy = Defects%DF_npiy
-allocate(svals(defects%DF_nums))
-allocate(ECCIimages(npix,npiy,1))
-ECCIimages = 0.0
-
-!if (trim(emnl%montagename).ne.'undefined') then
-  allocate(ECCIstore(npix,npiy,numk))
-  ECCIstore = 0.0
-!end if
+call mem%alloc(svals, (/ defects%DF_nums /), 'svals', initval = 0.0)
+call mem%alloc(ECCIimages, (/ npix,npiy,1 /), 'ECCIimages', initval = 0.0)
+call mem%alloc(ECCIstore, (/ npix,npiy,numk /), 'ECCIstore', initval = 0.0)
 
 !----------------------------------------------------------------------------
 !----------------------------------------------------------------------------
@@ -993,12 +978,12 @@ ECCIimages = 0.0
     outname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%defectfilename))
     hdferr = HDF%writeDatasetTextFile(dataset, outname)
 ! If there is no displacement field file we compute displacement field
-if (emnl%dispfile.eq.'undefined') then
-  ! and also the foil descriptor file
-  dataset = SC_ECCIfoilJSON
-    outname = EMsoft%generateFilePath('EMdatapathname',trim(Defects%foilname))
-    hdferr = HDF%writeDatasetTextFile(dataset, outname)
-end if
+  if (emnl%dispfile.eq.'undefined') then
+    ! and also the foil descriptor file
+    dataset = SC_ECCIfoilJSON
+      outname = EMsoft%generateFilePath('EMdatapathname',trim(Defects%foilname))
+      hdferr = HDF%writeDatasetTextFile(dataset, outname)
+  end if
  ! leave this group
   call HDF%pop()
 
@@ -1037,7 +1022,7 @@ end if
 
 ! create the ECCIimage hyperslab and write zeroes to them for now
 
-    dataset ='Disparray'
+  dataset ='Disparray'
     dims4 = (/  2, Defects%DF_nums, Defects%DF_npix, Defects%DF_npiy /)
     cnt4 = (/ 2,Defects%DF_nums,Defects%DF_npix,Defects%DF_npiy /)
     offset4 = (/ 0, 0, 0,0 /)
@@ -1068,8 +1053,6 @@ numstop = numk
 io_int(1) = numk
 call Message%WriteValue(' --> ECCI: number of beam directions =  ', io_int, 1, "(I5)")
 
-!DynFN = (/0.0,0.0,1.0/)
-
 ! define the numd complex defect parameters (i.e., precompute the sin and cos arrays
 numd = 360
 para = czero
@@ -1077,14 +1060,22 @@ do i=0,numd
   arg = 2.D0*cPi*dble(i)/dble(numd)
   para(i) = cmplx(dcos(arg),-dsin(arg))
 end do
-!rite(*,*) para
 cone = cmplx(1.D0,0.D0)
 
+DM = 0.0
+DD = 0.0
+DM(1,1) = cell%CalcDot(float(gb),float(gb),'c')
+DM(1,2) = -cell%CalcDot(float(ga),float(gb),'c')
+DM(2,1) = DM(1,2)
+DM(2,2) = cell%CalcDot(float(ga),float(ga),'c')
+DD = DM(1,1)*DM(2,2) - DM(1,2)*DM(2,1)
+
 mainloop: do isg = numstart,numstop 
-  ECCIimages = 0.0
 
   !=============================================
-! ---------- create the master reflection list for this beam direction
+! ---------- create the master reflection list for the zone axis beam direction
+! we'll use the first beam direction for this (this should be a zone axis orientation)
+! and then we won't have to recompute the off-diagonal part of the dynamical matrix.
   reflist = gvectors_T()
 
   kk = klist(1:3,isg)
@@ -1093,120 +1084,70 @@ mainloop: do isg = numstart,numstop
   call cell%TransSpace(kk,kstar,'c','r')
   kk = kstar
   FN = kstar
-  
-  call reflist%Initialize_ReflectionList(cell, SG, Diff, sngl(DynFN), kk, sngl(emnl%dmin), verbose)
+  verbose = .FALSE.
+  call reflist%Initialize_ReflectionList(cell, SG, Diff, sngl(FN), kk, sngl(emnl%dmin), verbose)
   nn = reflist%get_nref()
 
-  ! ---------- end of "create the master reflection list"
-  !=============================================
-  
+! ---------- end of "create the master reflection list"
+!=============================================
+
   nullify(firstw)
-  
-  ! There is now two modes available: 'full' which is the standard full dynmical mode (slow)
-  ! and 'fast' that use Bethe Parameters
 
-  if (self%nml%mode.eq.'fast') then
-    nns = 0
-    nnw = 0
-    call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
-    nn = nns
-  end if
+! use the Bethe parameters to (potentially) trim down the list a little 
+  nns = 0
+  nnw = 0
+  call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
+  nn = nns
 
-write (*,*) ' loopcounter, # strong beams ', isg, nn 
+! allocate the various DHW Matrices
+  call mem%alloc(DHWMz, (/nn,nn/), 'DHWMz', initval = czero)
+  call mem%alloc(DHWMvoid, (/nn,nn/), 'DHWMvoid', initval = czero)
 
-  ! allocate the various DHW Matrices
-  !call mem%alloc(DHWMz, (/nn,nn/), 'DHWMz')
-  if (allocated(DHWMz)) deallocate(DHWMz)
-  allocate(DHWMz(nn,nn))
-  DHWMz = czero
-  
-  !call mem%alloc(DHWMvoid, (/nn,nn/), 'DHWMvoid')
-  if (allocated(DHWMvoid)) deallocate(DHWMvoid)
-  allocate(DHWMvoid(nn,nn))
+! get the Bloch wave dynamical matrix
+  call reflist%GetDynMat(cell, Diff, firstw, DHWMz, nns, nnw)
+! Conversion from Bloch wave matrix to scattering matrix formalism
+! the scale factor is pi*lambda, and the complex unit i that is present in 
+! the matrix exponential exp(i A epsilon) is also included here.
+  DHWMz = DHWMz * dcmplx(0.D0,cPi * lambda)
 
-  DM = 0.0
-  DD = 0.0
-  DHWMvoid = czero; DHWMz=czero
-  DM(1,1) = cell%CalcDot(float(gb),float(gb),'c')
-  DM(1,2) = -cell%CalcDot(float(ga),float(gb),'c')
-  DM(2,1) = DM(1,2)
-  DM(2,2) = cell%CalcDot(float(ga),float(ga),'c')
-  DD = DM(1,1)*DM(2,2) - DM(1,2)*DM(2,1)
+! loop over all reflections to get the appropriate powers
+  call mem%alloc(expval, (/2,nn,nn/), 'expval', initval = 0)
+  call reflist%GetExpval_ECCI(cell, expval, Diff, nn, DM, ga, gb )
 
+! then we need to initialize the Sgh array
+  call mem%alloc(Sgh, (/ nn, nn /), 'Sgh', initval = czero)
+  call reflist%getSghfromLUTsum(Diff,nn,numset,Sgh)
 
-  if (self%nml%mode.eq.'Full') then
-      nullify(rltmpa)
-      nullify(rltmpb)
-      call reflist%GetDynMatDHW(cell, Diff, firstw, rltmpa, rltmpb, DHWMz, nn, DM, ga, gb)
-  else if (self%nml%mode.eq.'fast') then
-      call reflist%GetDynMat(cell, Diff, firstw, DHWMz, nns, nnw)
-      ! Conversion from Bloch wave matrix to scattering matrix formalism
-      DHWMz = DHWMz * dcmplx(0.D0,cPi * lambda)
-  end if 
-  
-  ! loop over all reflections to get the appropriate powers
-  !call mem%alloc(expval, (/2,nn,nn/), 'expval')
-  if (allocated(expval)) deallocate(expval)
-  allocate(expval(2,nn,nn))
-  expval = 0.0
-  
-  call reflist%GetExpval_ECCI(cell, expval, Diff, firstw, nn, DM, ga, gb )
-
-  ! Compute Sgh
-  ! Only diagonals terms are computed gives inverted contrast...
-  !call mem%alloc(Sgh, (/nn/), 'Sgh')
-  if (allocated(Sgh)) deallocate(Sgh)
-  allocate(Sgh(nn))
-
-  nat = 0
-  call Diff%preCalcSghECCI(cell, SG, nn, nat, Sgh)
-
-  ! Computation with non diagonals terms of Sgh
-  ! then we need to initialize the Sgh arrays
-  !if (allocated(Sghtmp2)) deallocate(Sghtmp2)
-  !allocate(Sghtmp2(nn,nn))
-  !Sghtmp2 = czero
-  !call reflist%getSghfromLUTsum(Diff,nn,numset,nat,Sghtmp2)
-
-  call Message%printMessage(' --> Done',"(A)")
-
-  if (self%nml%mode.eq.'Full') then
+  ECCIimages = 0.0
 
   ! compute the excitation error for the incident beam directions
-  !call mem%alloc(sgarray, (/nn/), 'sgarray')
-  if (allocated(sgarray)) deallocate(sgarray)
-  allocate(sgarray(nn))
-
-  call reflist%GetSgArray_ECCI(cell, sgarray, dble(klist), numk, isg, DynFN, Diff, firstw, nn)
-  forall (i=1:nn)
-    DHWMz(i,i)= cmplx(0.D0,2.D0*cPi*sgarray(i)) + xgp ! xgp already has i Pi in it.
-    DHWMvoid(i,i) = DHWMz(i,i)
-  end forall
-
-  else if (self%nml%mode.eq.'fast') then
+    call mem%alloc(sgarray, (/nn/), 'sgarray', initval = 0.0)
+    ! call reflist%GetSgArray_ECCI(cell, sgarray, klist(1:3, isg), FN, Diff, nn)
+    call reflist%GetSgArray_ECCI(cell, sgarray, kk, FN, Diff, nn)
     forall (i=1:nn)
+      DHWMz(i,i)= cmplx(-cPi/rlp%xgp,2.D0*cPi*sgarray(i))
       DHWMvoid(i,i) = DHWMz(i,i)
     end forall
-  end if
 
-  allocate(Sarray(nn,nn,0:numd,0:numd))
-  Sarray = czero
-  !call mem%alloc(Sarray, (/nn,nn,numd,numd/), 'Sarray')
+  call mem%alloc(Sarray, (/nn,nn,numd,numd/), 'Sarray', initval = czero, startdims = (/ 1, 1, 0, 0/) )
+
   NTHR = emnl%nthreads
-  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,jj,ic,ir,g,Azz,DDD,zmax,Sarrayk)
+!$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,jj,ic,ir,g,Azz,DDD,zmax, memth)
   TID = OMP_GET_THREAD_NUM()
 
-  allocate(Azz(nn,nn), DDD(nn,nn))   ! these are private variables, so each thread must allocate them !
+  ! these are private variables, so each thread must allocate them !
+  memth = Memory_T( nt = emnl%nthreads, silent = .TRUE. )
+  call memth%alloc(Azz, (/ nn,nn /), 'Azz', initval = czero, TID = TID)
+  call memth%alloc(DDD, (/ nn,nn /), 'DDD', initval = czero, TID = TID)   
 
-  if (TID.eq.0) then
+  if ((TID.eq.0).and.((mod(isg,10).eq.0).or.(isg.eq.1))) then
+    if (isg.eq.1) call Message%printMessage(' Computation progress will be updated every 10 ECCI images')
     io_int(1) = isg
     call Message%WriteValue(' -> ',io_int,1,"(I4,' ')",advance="no")
     call Message%printMessage('starting Sarray computation',"(A)",advance="no")
   end if
 
-  !call mem%alloc(Azz, (/nn,nn/), 'Azz')
-  !call mem%alloc(DDD, (/nn,nn/), 'DDD')
-  !$OMP DO SCHEDULE(STATIC) 
+!$OMP DO SCHEDULE(STATIC) 
   do j=0,numd
     do i=0,numd
     ! loop over all reflections in the array DD using the information in expval
@@ -1225,16 +1166,16 @@ write (*,*) ' loopcounter, # strong beams ', isg, nn
       call MatrixExponential(DDD, Azz, dble(defects%DF_slice), 'Pade', nn)
 
       Sarray(1:nn,1:nn,i,j) = Azz(1:nn,1:nn)
-      !write(*,*) Sarray(1:nn,1:nn,i,j)
     end do
   end do
-  !$OMP END DO
-  !call mem%dealloc2(Azz, 'Azz')
-  !call mem%dealloc2(DDD, 'DDD')
-  deallocate(Azz,DDD)
-  !$OMP END PARALLEL
+!$OMP END DO
+  call memth%dealloc(Azz, 'Azz')
+  call memth%dealloc(DDD, 'DDD')
+!$OMP END PARALLEL
   
-  call Message%printMessage(' --> Done; scattering matrix computation ',"(A)",advance="no")
+  if ((mod(isg,10).eq.0).or.(isg.eq.1)) then
+    call Message%printMessage(' --> Done; scattering matrix computation ',"(A)",advance="no")
+  end if 
 
   !----------------------------------------------------!
   ! Finally, here it is: the actual image computation  !
@@ -1243,22 +1184,20 @@ write (*,*) ' loopcounter, # strong beams ', isg, nn
   ! summation of the product of Sgh and Lgh.           !
   !----------------------------------------------------!
 
-  NTHR = 12
-  !$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm)&
-  !$OMP& PRIVATE(dym,ixp,iyp,Lgh,Lgh2,ir,ic,svals)
+!$OMP  PARALLEL NUM_THREADS(NTHR) DEFAULT(SHARED) PRIVATE(TID,i,j,k,ii,Azz,amp,amp2,ix,iy,dx,dy,dxm)&
+!$OMP& PRIVATE(dym,ixp,iyp,Lgh,ir,ic,svals,memth)
   TID = OMP_GET_THREAD_NUM()
-  !call mem%alloc(Azz, (/nn,nn/), 'Azz')
-  !call mem%alloc(amp, (/nn/), 'amp')
-  !call mem%alloc(amp2, (/nn/), 'amp2')
-  !call mem%alloc(Lgh, (/nn/), 'Lgh')
-  allocate(Azz(nn,nn),amp(nn),amp2(nn),Lgh(nn),Lgh2(nn,nn))
+  memth = Memory_T( nt = emnl%nthreads, silent = .TRUE. )
+  call memth%alloc(Azz, (/nn,nn/), 'Azz', initval = czero, TID = TID)
+  call memth%alloc(amp, (/nn/), 'amp', initval = czero, TID = TID)
+  call memth%alloc(amp2, (/nn/), 'amp2', initval = czero, TID = TID)
+  call memth%alloc(Lgh, (/nn,nn/), 'Lgh', initval = czero, TID = TID)
 
-  !$OMP DO SCHEDULE (STATIC)
+!$OMP DO SCHEDULE (STATIC)
   donpix: do i=1,npix
     donpiy:   do j=1,npiy
       ! initialize the wave function for this pixel with (1.0,0.0) for the incident beam
       Lgh = czero
-      Lgh2 = czero
       amp = czero
       amp(1) = cone
       amp2 = czero
@@ -1285,42 +1224,32 @@ write (*,*) ' loopcounter, # strong beams ', isg, nn
           amp2 = matmul(Azz,amp)
 
           if (k.eq.1) then
-            Lgh = abs(amp2)**2
-            !Lgh2(1:nn,1:nn) = (mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
-                                !spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
+            Lgh(1:nn,1:nn) = (mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
+                              spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
           else
-            Lgh = Lgh + abs(amp2)**2
-            !Lgh2(1:nn,1:nn) = Lgh2(1:nn,1:nn)+(mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
-                              !spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
+            Lgh(1:nn,1:nn) = Lgh(1:nn,1:nn)+(mcnl%depthstep/mcnl%depthmax)*lambdaZ(k)*spread(amp2(1:nn),dim=2,ncopies=nn)*&
+                             spread(conjg(amp2(1:nn)),dim=1,ncopies=nn)
           end if
           
           amp = amp2
       end do doslices ! loop over slices
 
-      ! Commented section used to test Sgh non diagonals terms use...
-
-      svals = 0.0
-      svals = sngl(real(sum( Sgh * Lgh ))) !real(sum(Lgh2(1:nn,1:nn)*Sghtmp2(1:nn,1:nn)))
-
+      svals = real(sum(Lgh(1:nn,1:nn)*Sgh(1:nn,1:nn)))
       svals = svals/sngl(real(sum(nat(1:numset))))
-      
-    ! then we need to multiply Sgh and Lgh, sum, and take the real part which will
-    ! produce the desired BSE intensity
       ECCIimages(i,j,1) =  sngl(sum(svals))
-
     end do donpiy
   end do donpix
-  !$OMP END DO
-  !call mem%dealloc2(Azz, 'Azz')
-  !call mem%dealloc1(amp, 'amp')
-  !call mem%dealloc1(amp2, 'amp2')
-  !call mem%dealloc1(Lgh, 'Lgh') 
-  deallocate(Azz,amp,amp2,Lgh)
-  !$OMP END PARALLEL
-  deallocate(Sarray)
-  !call mem%dealloc4(Sarray, 'Sarray')
+!$OMP END DO
+  call memth%dealloc(Azz, 'Azz', TID = TID)
+  call memth%dealloc(amp, 'amp', TID = TID)
+  call memth%dealloc(amp2, 'amp2', TID = TID)
+  call memth%dealloc(Lgh, 'Lgh', TID = TID) 
+!$OMP END PARALLEL
+  if ((mod(isg,10).eq.0).or.(isg.eq.1)) then
+    call Message%printMessage(' Done')
+  end if 
 
-  ECCIimages = ECCIimages / float(Defects%DF_nums) !/ float(sum(nat))
+  ECCIimages = ECCIimages / float(Defects%DF_nums) 
 
   if ((trim(emnl%montagename).ne.'undefined')) then
     do i=1,emnl%DF_npix
@@ -1330,8 +1259,6 @@ write (*,*) ' loopcounter, # strong beams ', isg, nn
     end do
   end if
   
-  call reflist%Delete_gvectorlist()
-
   ! open the HDF interface
   call openFortranHDFInterface()
 
@@ -1388,7 +1315,16 @@ write (*,*) ' loopcounter, # strong beams ', isg, nn
 
   ! close the Fortran interface
   call closeFortranHDFInterface()
-200 end do mainloop
+
+  ! and clean up several arrays
+  call reflist%Delete_gvectorlist()
+  call mem%dealloc(DHWMz , 'DHWMz')
+  call mem%dealloc(DHWMvoid , 'DHWMvoid')
+  call mem%dealloc(expval , 'expval')
+  call mem%dealloc(Sgh, 'Sgh')
+  call mem%dealloc(sgarray , 'sgarray')
+  call mem%dealloc(Sarray, 'Sarray')
+end do mainloop
 
 if (trim(emnl%montagename).ne.'undefined') then
 
@@ -1403,17 +1339,17 @@ if (trim(emnl%montagename).ne.'undefined') then
   if ((emnl%progmode.eq.'array').or.(emnl%progmode.eq.'circl')) then
 ! divide the beam offsets by the dkt step size so that we can turn them into integers
     XYarray = XYarray / emnl%dkt
-    allocate(XYint(2,numk))
+    call mem%alloc(XYint, (/ 2,numk /), 'XYint', initval = 0 )
     XYint = nint(XYarray)
     maxXY = maxval(XYint)
     montage_nx = emnl%DF_npix*(2*maxXY+1)
     montage_ny = emnl%DF_npiy*(2*maxXY+1)
-    allocate(montage(montage_nx,montage_ny))
   else ! progmode = 'trace'
     montage_nx = emnl%DF_npix*numk
     montage_ny = emnl%DF_npiy
-    allocate(montage(montage_nx,montage_ny))
   end if
+  allocate(montage(montage_nx,montage_ny))
+  montage = 0_int8
 
 ! assign the average value of the ECCIimages array to the montage
   av = sum(ECCIstore)/float(emnl%DF_npix)/float(emnl%DF_npiy)/float(numk)
@@ -1439,8 +1375,7 @@ if (trim(emnl%montagename).ne.'undefined') then
       end do
     end do
   end do
-  deallocate(ECCIstore)
-
+  call mem%dealloc(XYint, 'XYint')
 
 ! set up the image_t structure
   im = image_t(montage)
@@ -1483,6 +1418,19 @@ else
       end if
   end do
 end if
+
+call mem%dealloc(ECCIstore, 'ECCIstore')
+call mem%dealloc(klist , 'klist')
+call mem%dealloc(knlist , 'knlist')
+call mem%dealloc(XYarray , 'XYarray')
+call mem%dealloc(lambdaZ , 'lambdaZ')
+call mem%dealloc(Defects%DF_R , 'Defects%DF_R')
+call mem%dealloc(disparray , 'disparray')
+call mem%dealloc(svals , 'svals')
+if (emnl%dispfile.ne.'undefined') call mem%dealloc(imatvals , 'imatvals')
+call mem%dealloc(ECCIimages , 'ECCIimages')
+
+! call mem%allocated_memory_use()
 
 end associate
 
