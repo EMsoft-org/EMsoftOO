@@ -473,13 +473,13 @@ module mod_kvectors
    call Message%printError('Calckvectors','mapmode unknown')
  end if
  
- if (trim(self%mapmode).eq.'ECCI') then ! used for CBED without symmetry application, including EMZAdefect
+ if (trim(self%mapmode).eq.'ECCI') then ! used for ECCI without symmetry application, including EMZAdefect
    ! compute geometrical factors
     glen = cell%CalcLength(ga,'r')                         ! length of ga
     self%gan = ga/glen                                     ! normalized ga
     !self%delta = 2.0*self%ktmax*glen/(2.0*float(npx)+1.0)
     self%delta = self%ktmax*glen/dble(npx)
-    print*,self%delta   ! grid step size in nm-1
+    ! print*,self%delta, self%gan   ! grid step size in nm-1
     call cell%TransSpace(self%kinp,self%kstar,'d','r')     ! transform incident direction to reciprocal space
     call cell%CalcCross(ga,self%kstar,self%gperp,'r','r',0)! compute g_perp = ga x k
     call cell%NormVec(self%gperp,'r')                      ! normalize g_perp
@@ -493,6 +493,7 @@ module mod_kvectors
     self%numk = 1                                          ! keep track of number of k-vectors so far
     ktail%i = 0                                            ! i-index of beam
     ktail%j = 0                                            ! j-index of beam
+    ktail%hs = 0                                           ! spare index
     ktail%kt = (/0.0,0.0,0.0/)                             ! no tangential component for central beam direction
     ktail%k = self%kstar/Diff%getWaveLength()              ! divide by wavelength
     ktail%kn = cell%CalcDot(ktail%k,self%kstar,'r')        ! normal component
@@ -510,7 +511,7 @@ module mod_kvectors
       end if
      end do
     end do
-   end if  ! mapmode = ECCI
+ end if  ! mapmode = ECCI
    
  
  if (trim(self%mapmode).eq.'Conical') then ! used for CBED without symmetry application, including EMZAdefect
