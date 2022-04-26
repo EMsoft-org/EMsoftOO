@@ -3,17 +3,23 @@
 !
 ! The values below are the default values for this program
 !
-! up to 10 (x,y) coordinates of the points with respect to which the 
-! disorientation is to be computed (0,0 coordinates will be ignored)
-! The origin is in the top left corner of the standard IPF map (or 
-! the selected ROI if the dotproductfile has one defined) and the
-! pixel in the top left corner of that region has coordinates (1,1)
+! set the map type:
+! - 'KAM' compute the kernel average disorientation map using the refined orientations
+! - 'point' set one or more reference points (px,py) and compute the smallest disorientation overall
+ DisOrType = 'KAM',
+! if DisOrType = 'point':
+!   up to 10 (x,y) coordinates of the points with respect to which the 
+!   disorientation is to be computed (0,0 coordinates will be ignored)
+!   The origin is in the top left corner of the standard IPF map (or 
+!   the selected ROI if the dotproductfile has one defined) and the
+!   pixel in the top left corner of that region has coordinates (1,1)
  px = 0 0 0 0 0 0 0 0 0 0,
  py = 0 0 0 0 0 0 0 0 0 0,
 !
 ! input dot product file name (w.r.t. standard EMdatapathname)
  dotproductfile = 'undefined',
-! generate a montage of all the disorientation values; for each pixel, the
-! lowest disorientation value from the complete set will be used
+! generate a map of the disorientation values; for each pixel, the
+! lowest disorientation value from the complete set will be used if DisOrType='point';
+! otherwise the average disorientation w.r.t. the nearest neighbors will be used
  DisOrMapfile= 'undefined',
  /

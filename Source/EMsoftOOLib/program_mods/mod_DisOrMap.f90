@@ -44,6 +44,7 @@ type, public :: DisOrMapNameListType
   integer(kind=irg)   :: py(10)
   character(fnlen)    :: dotproductfile
   character(fnlen)    :: DisOrMapfile
+  character(fnlen)    :: DisOrType
 end type DisOrMapNameListType
 
 ! class definition
@@ -61,10 +62,12 @@ private
   procedure, pass(self) :: get_py_
   procedure, pass(self) :: get_dotproductfile_
   procedure, pass(self) :: get_DisOrMapfile_
+  procedure, pass(self) :: get_DisOrType_
   procedure, pass(self) :: set_px_
   procedure, pass(self) :: set_py_
   procedure, pass(self) :: set_dotproductfile_
   procedure, pass(self) :: set_DisOrMapfile_
+  procedure, pass(self) :: set_DisOrType_
 
   generic, public :: getNameList => getNameList_
   generic, public :: readNameList => readNameList_
@@ -73,10 +76,12 @@ private
   generic, public :: get_py => get_py_
   generic, public :: get_dotproductfile => get_dotproductfile_
   generic, public :: get_DisOrMapfile => get_DisOrMapfile_
+  generic, public :: get_DisOrType => get_DisOrType_
   generic, public :: set_px => set_px_
   generic, public :: set_py => set_py_
   generic, public :: set_dotproductfile => set_dotproductfile_
   generic, public :: set_DisOrMapfile => set_DisOrMapfile_
+  generic, public :: set_DisOrType => set_DisOrType_
 
 end type DisOrMap_T
 
@@ -147,14 +152,16 @@ integer(kind=irg)   :: px(10)
 integer(kind=irg)   :: py(10)
 character(fnlen)    :: dotproductfile
 character(fnlen)    :: DisOrMapfile
+character(fnlen)    :: DisOrType
 
-namelist / DisOrMap / px, py, dotproductfile, DisOrMapfile
+namelist / DisOrMap / px, py, dotproductfile, DisOrMapfile, DisOrType
 
 ! set the input parameters to default values
 px = (/ 0,0,0,0,0,0,0,0,0,0 /)
 py = (/ 0,0,0,0,0,0,0,0,0,0 /)
 dotproductfile = 'undefined'
 DisOrMapfile = 'undefined'
+DisOrType = 'KAM'
 
 ! read the name list, depending on the class type
 if (.not.skipread) then
@@ -178,6 +185,7 @@ self%nml%px = px
 self%nml%py = py
 self%nml%dotproductfile = dotproductfile
 self%nml%DisOrMapfile = DisOrMapfile
+self%nml%DisOrType = DisOrType
 
 end subroutine readNameList_
 
@@ -348,6 +356,42 @@ self%nml%DisOrMapfile = inp
 end subroutine set_DisOrMapfile_
 
 !--------------------------------------------------------------------------
+function get_DisOrType_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_DisOrType_
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/26/22
+!!
+!! get DisOrType from the DisOrMap_T class
+
+IMPLICIT NONE 
+
+class(DisOrMap_T), INTENT(INOUT)     :: self
+character(fnlen)                     :: out
+
+out = self%nml%DisOrType
+
+end function get_DisOrType_
+
+!--------------------------------------------------------------------------
+subroutine set_DisOrType_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_DisOrType_
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/26/22
+!!
+!! set DisOrType in the DisOrMap_T class
+
+IMPLICIT NONE 
+
+class(DisOrMap_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)         :: inp
+
+self%nml%DisOrType = inp
+
+end subroutine set_DisOrType_
+
+!--------------------------------------------------------------------------
 subroutine DisOrMap_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: DisOrMap_
 !! author: MDG 
@@ -366,6 +410,7 @@ use mod_so3
 use mod_quaternions
 use mod_rotations
 use ISO_C_BINDING
+use mod_DIsupport
 use mod_image
 use, intrinsic :: iso_fortran_env
 
@@ -392,6 +437,7 @@ character(fnlen)                      :: DIfile, TIFF_filename
 integer(kind=irg)                     :: hdferr, ipf_x, ipf_y, ipf_wd, ipf_ht, i, j, nump, &
                                          io_int(2), numdis, Pmdims, FZt, FZo, ix, iy, mp(1), ipos
 real(kind=dbl),allocatable            :: disor(:,:), qdinp(:,:), dmap(:,:)
+real(kind=sgl),allocatable            :: kam(:,:)
 integer(kind=irg),allocatable         :: indexmap(:,:), line(:)
 real(kind=dbl)                        :: ax(4), mi, ma, io_real(2), qq(4)
 
@@ -439,25 +485,8 @@ numdis = ipf_wd * ipf_ht
 io_int(1:2) = (/ ipf_wd, ipf_ht /)
 call Message%WriteValue('Size of the IPF map : ', io_int, 2, frm="(I5,' by ',I5)")
 
-! check that all the requested (px,py) pairs are inside the ROI and count how many
-! reference points there are
-nump = 0
-do i = 1,10
-  if (maxval((/ domnl%px(i), domnl%py(i) /)).ne.0) then
-    nump = nump + 1
-    if (.not.((domnl%px(i).le.ipf_wd).and.(domnl%py(i).le.ipf_ht))) then
-      io_int(1:2) = (/ domnl%px(i), domnl%py(i) /)
-      call Message%WriteValue('selected point : ', io_int, 2)
-      call Message%printError('EMgetDisOrMap','this input point is outside the valid range')
-    end if
-  end if
-end do
-
-io_int(1) = nump 
-call Message%WriteValue(' Number of valid reference points found : ', io_int, 1)
-
-! perform all rotation operations in double precision
 call setRotationPrecision( 'd' )
+! perform all rotation operations in double precision
 call mem%alloc(qdinp, (/ 4, numdis /), 'qdinp', initval=0.D0)
 do i=1,numdis
   eu = e_T( edinp = dble(DIDT%RefinedEulerAngles(1:3,i)) )
@@ -468,60 +497,90 @@ end do
 ! put the refined orientations in a quaternion array
 qInp = QuaternionArray_T( n = numdis, qd = qdinp )
 
-! allocate array for the disorientation values
-call mem%alloc(disor, (/ numdis, nump /), 'disor', initval=0.D0)
-
 ! set up the correct SO3 parameters for fundamentalzone reduction
 SO = so3_T( DIDT%pgnum )
 call qdummy%QSym_Init( DIDT%pgnum, qAR )
 Pmdims = qAR%getQnumber()
 call SO%getFZtypeandOrder(FZt, FZo)
 
+call mem%alloc(dmap, (/ ipf_wd, ipf_ht /), 'dmap', initval = 0.D0)
+
+if (trim(domnl%DisOrType).eq.'point') then 
+! check that all the requested (px,py) pairs are inside the ROI and count how many
+! reference points there are
+  nump = 0
+  do i = 1,10
+    if (maxval((/ domnl%px(i), domnl%py(i) /)).ne.0) then
+      nump = nump + 1
+      if (.not.((domnl%px(i).le.ipf_wd).and.(domnl%py(i).le.ipf_ht))) then
+        io_int(1:2) = (/ domnl%px(i), domnl%py(i) /)
+        call Message%WriteValue('selected point : ', io_int, 2)
+        call Message%printError('EMgetDisOrMap','this input point is outside the valid range')
+      end if
+    end if
+  end do
+
+  io_int(1) = nump 
+  call Message%WriteValue(' Number of valid reference points found : ', io_int, 1)
+
+! allocate array for the disorientation values
+  call mem%alloc(disor, (/ numdis, nump /), 'disor', initval=0.D0)
+
+
 ! here is the main loop over all reference points
-do i=1,nump 
+  do i=1,nump 
 ! get the reference point Euler angles and convert to quaternion quref
-  ipos = (domnl%py(i)-1) * ipf_wd + domnl%px(i)
-  eu = e_T( edinp = dble(DIDT%RefinedEulerAngles(1:3, ipos)) )
-  quref = eu%eq()
+    ipos = (domnl%py(i)-1) * ipf_wd + domnl%px(i)
+    eu = e_T( edinp = dble(DIDT%RefinedEulerAngles(1:3, ipos)) )
+    quref = eu%eq()
 ! loop over all the input orientations to get the disorientation w.r.t. the 
 ! reference orientation quref
-  do j=1,numdis
-    quat = qInp%getQuatfromArray(j)
-    qu = q_T( qdinp = quat%get_quatd() )
-    call SO%getDisorientation(qAR, quref, qu, disax, fix1=.TRUE.)
-    ax = disax%a_copyd()
-    disor(j, i) = ax(4)/dtor
+    do j=1,numdis
+      quat = qInp%getQuatfromArray(j)
+      qu = q_T( qdinp = quat%get_quatd() )
+      call SO%getDisorientation(qAR, quref, qu, disax, fix1=.TRUE.)
+      ax = disax%a_copyd()
+      disor(j, i) = ax(4)/dtor
+    end do 
   end do 
-end do 
 
 ! for each pixel, we determine for which reference point the disorientation 
 ! angle is the smallest one (if nump gt 1); we then create a map of the indices
 ! of the reference points
-if (nump.eq.1) then 
-  call mem%alloc(indexmap, (/ ipf_wd, ipf_ht /), 'indexmap', initval=1)
-else
-  call mem%alloc(indexmap, (/ ipf_wd, ipf_ht /), 'indexmap', initval=0)
-  call mem%alloc(line, (/ nump /), 'line', initval=0)
+  if (nump.eq.1) then 
+    call mem%alloc(indexmap, (/ ipf_wd, ipf_ht /), 'indexmap', initval=1)
+  else
+    call mem%alloc(indexmap, (/ ipf_wd, ipf_ht /), 'indexmap', initval=0)
+    call mem%alloc(line, (/ nump /), 'line', initval=0)
+    do iy=1, ipf_ht 
+      do ix=1, ipf_wd 
+        i = (iy-1) * ipf_wd + ix
+        line = disor(i,1:nump)
+        mp = minloc(line)
+        indexmap(ix, iy) = mp(1)
+      end do 
+    end do 
+    call mem%dealloc(line, 'line')
+  end if 
+
   do iy=1, ipf_ht 
     do ix=1, ipf_wd 
-      i = (iy-1) * ipf_wd + ix
-      line = disor(i,1:nump)
-      mp = minloc(line)
-      indexmap(ix, iy) = mp(1)
+      dmap(ix,iy) = disor( (iy-1) * ipf_wd + ix, indexmap(ix,iy) )
     end do 
   end do 
-  call mem%dealloc(line, 'line')
+else ! DisOrType = 'KAM'
+  call Message%printMessage(' Computing KAM map with refined orientation data')
+  call mem%alloc(kam, (/ ipf_wd, ipf_ht /), 'kam', initval=0.0)
+  call getKAMMap(numdis, DIDT%RefinedEulerAngles, ipf_wd, ipf_ht, DIDT%pgnum, kam)
+  dmap = dble(kam)
+  call mem%dealloc(kam, 'kam')
+  open(dataunit, file='kam.txt', status='unknown', form='formatted')
+  write(dataunit,"(F10.6)") dmap
+  close(dataunit, status='keep')
 end if 
 
-! next we generate the disorientation maps for each reference point
-call mem%alloc(dmap, (/ ipf_wd, ipf_ht /), 'dmap', initval = 0.D0)
+! next we write the dmap to a tiff file
 allocate(TIFF_image(ipf_wd, ipf_ht))
-
-do iy=1, ipf_ht 
-  do ix=1, ipf_wd 
-    dmap(ix,iy) = disor( (iy-1) * ipf_wd + ix, indexmap(ix,iy) )
-  end do 
-end do 
 
 TIFF_filename = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(domnl%DisOrMapfile)
 
@@ -534,11 +593,13 @@ call Message%WriteValue(' Range of disorientations in montage : ',io_real, 2)
 TIFF_image = int( 255 * (dmap-mi)/(ma-mi) ) 
 
 ! draw a small cross at each of the reference point positions
-ival = 127_int8
-do i=1,nump
-  TIFF_image(maxval((/domnl%px(i)-3,1/)):minval((/domnl%px(i)+3,ipf_wd/)),domnl%py(i)) = ival
-  TIFF_image(domnl%px(i),maxval((/domnl%py(i)-3,1/)):minval((/domnl%py(i)+3,ipf_ht/))) = ival
-end do
+if (trim(domnl%DisOrType).eq.'point') then 
+  ival = 127_int8
+  do i=1,nump
+    TIFF_image(maxval((/domnl%px(i)-3,1/)):minval((/domnl%px(i)+3,ipf_wd/)),domnl%py(i)) = ival
+    TIFF_image(domnl%px(i),maxval((/domnl%py(i)-3,1/)):minval((/domnl%py(i)+3,ipf_ht/))) = ival
+  end do
+end if
 
 im = image_t(TIFF_image)
 if(im%empty()) call Message%printMessage("EMgetDisOrMap","failed to convert array to image")
@@ -555,8 +616,8 @@ call im%clear()
 
 deallocate(TIFF_image)
 call mem%dealloc(dmap, 'dmap')
-call mem%dealloc(disor, 'disor')
 call mem%dealloc(qdinp, 'qdinp')
+if (trim(domnl%DisOrType).eq.'point') call mem%dealloc(disor, 'disor')
 
 end associate
 
