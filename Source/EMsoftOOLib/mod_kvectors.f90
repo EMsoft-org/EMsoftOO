@@ -65,42 +65,49 @@ module mod_kvectors
    contains
    private
  
-     procedure, pass(self) :: MakeRefList_
-     procedure, pass(self) :: Calckvectors_
-     procedure, pass(self) :: CalckvectorsSymmetry_
-     procedure, pass(self) :: get_ListHead_
-     procedure, pass(self) :: check_mapmode_
-     procedure, pass(self) :: get_numk_
-     procedure, pass(self) :: get_mapmode_
-     procedure, pass(self) :: set_kinp_
-     procedure, pass(self) :: set_ktmax_
-     procedure, pass(self) :: set_SamplingType_
-     procedure, pass(self) :: set_mapmode_
-     procedure, pass(self) :: Add_knode_
-     procedure, pass(self) :: AddkVector_
-     procedure, pass(self) :: Delete_kvectorlist_
-     procedure, pass(self) :: CalckvectorsECP_
-     procedure, pass(self) :: CalckvectorsPrecession_
-     procedure, pass(self) :: CalckvectorsGPU_
-     final :: kvectors_destructor
+    procedure, pass(self) :: MakeRefList_
+    procedure, pass(self) :: Calckvectors_
+    procedure, pass(self) :: CalckvectorsSymmetry_
+    procedure, pass(self) :: get_ListHead_
+    procedure, pass(self) :: check_mapmode_
+    procedure, pass(self) :: get_numk_
+    procedure, pass(self) :: get_mapmode_
+    procedure, pass(self) :: set_kinp_
+    procedure, pass(self) :: set_ktmax_
+    procedure, pass(self) :: set_SamplingType_
+    procedure, pass(self) :: set_mapmode_
+    procedure, pass(self) :: Add_knode_
+    procedure, pass(self) :: AddkVector_
+    procedure, pass(self) :: Delete_kvectorlist_
+    procedure, pass(self) :: CalckvectorsECP_
+    procedure, pass(self) :: CalckvectorsPrecession_
+    procedure, pass(self) :: CalckvectorsGPU_
+    procedure, pass(self) :: Calckvectorcircle_
+    procedure, pass(self) :: Calckvectorcone_
+    procedure, pass(self) :: Calckvectortrace_
+
+    final :: kvectors_destructor
  
-     generic, public :: MakeRefList => MakeRefList_
-     generic, public :: Calckvectors => Calckvectors_
-     generic, public :: CalckvectorsSymmetry => CalckvectorsSymmetry_
-     generic, public :: get_ListHead => get_ListHead_
-     generic, public :: get_numk => get_numk_
-     generic, public :: set_kinp => set_kinp_
-     generic, public :: set_ktmax => set_ktmax_
-     generic, public :: set_SamplingType => set_SamplingType_
-     generic, public :: check_mapmode => check_mapmode_
-     generic, public :: set_mapmode => set_mapmode_
-     generic, public :: get_mapmode => get_mapmode_
-     generic, public :: Add_knode => Add_knode_
-     generic, public :: AddkVector => AddkVector_
-     generic, public :: Delete_kvectorlist => Delete_kvectorlist_
-     generic, public :: CalckvectorsECP => CalckvectorsECP_
-     generic, public :: CalckvectorsPrecession => CalckvectorsPrecession_
-     generic, public :: CalckvectorsGPU => CalckvectorsGPU_
+    generic, public :: MakeRefList => MakeRefList_
+    generic, public :: Calckvectors => Calckvectors_
+    generic, public :: CalckvectorsSymmetry => CalckvectorsSymmetry_
+    generic, public :: get_ListHead => get_ListHead_
+    generic, public :: get_numk => get_numk_
+    generic, public :: set_kinp => set_kinp_
+    generic, public :: set_ktmax => set_ktmax_
+    generic, public :: set_SamplingType => set_SamplingType_
+    generic, public :: check_mapmode => check_mapmode_
+    generic, public :: set_mapmode => set_mapmode_
+    generic, public :: get_mapmode => get_mapmode_
+    generic, public :: Add_knode => Add_knode_
+    generic, public :: AddkVector => AddkVector_
+    generic, public :: Delete_kvectorlist => Delete_kvectorlist_
+    generic, public :: CalckvectorsECP => CalckvectorsECP_
+    generic, public :: CalckvectorsPrecession => CalckvectorsPrecession_
+    generic, public :: CalckvectorsGPU => CalckvectorsGPU_
+    generic, public :: Calckvectorcircle => Calckvectorcircle_
+    generic, public :: Calckvectorcone => Calckvectorcone_
+    generic, public :: Calckvectortrace => Calckvectortrace_
  
  end type kvectors_T
  
@@ -1010,18 +1017,40 @@ module mod_kvectors
          end if
  
    case (15)   ! hexagonal 31m, 6
-           istart = 0
-           iend = npx
-           jstart = 1
-           jend = npx
-             do j=jstart,jend
-               do i=istart+j,jend
-                 xy = (/ dble(i),  dble(j) /) * self%delta
-                 if (InsideHexGrid(xy)) then
-                   call self%AddkVector(cell,Diff,ktail,xy,i,j,hexgrid, addSH = yes)
+         istart = 0
+         iend = npx
+         jstart = 0
+         jend = npx
+         eps = 1.0D-4
+           do j=jstart,jend
+             do i=istart,iend
+                 xy = (/ dble(i), dble(j) /) * self%delta
+                 xx = dble(i)-dble(j)/2.D0
+                 yy = dble(j)*LPs%srt
+                 check = .TRUE.
+                 if (xx.lt.0.D0) then
+                    check = .FALSE.
+                 else
+                    if (xx.ge.0.D0) then
+                      yy = datan2(yy,xx)
+                      if (yy.gt.(cPi/3.D0+eps)) check = .FALSE.
+                    end if
                  end if
-               end do
+                 if (InsideHexGrid(xy).and.(check)) call self%AddkVector(cell,Diff,ktail,xy,i,j,hexgrid, addSH = yes)
              end do
+           ! end do    
+           ! istart = 0
+           ! iend = npx
+           ! jstart = 1
+           ! jend = npx
+           !   do j=jstart,jend
+           !     do i=istart+j,jend
+           !       xy = (/ dble(i),  dble(j) /) * self%delta
+           !       if (InsideHexGrid(xy)) then
+           !         call self%AddkVector(cell,Diff,ktail,xy,i,j,hexgrid, addSH = yes)
+           !       end if
+           !     end do
+           !   end do
  
    case (16)   ! hexagonal -3m1, 622, -6m2 [not implemented: rhombohedral -3m]
          if ((SG%getSpaceGrouptrigonal()).and.(SG%getSpaceGroupsecond())) then
@@ -2248,5 +2277,355 @@ module mod_kvectors
  
  end subroutine CalckvectorsGPU_
  
+ !--------------------------------------------------------------------------
+!
+! SUBROUTINE: Calckvectorcone
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief compute a set of incident beam directions for single image ECCI mode
+!
+!> @param cell unit cell pointer
+!> @param k incident wave vector (zone axis)
+!> @param ga principal g vector
+!> @param ktxy tangential components
+!> @param ktrad cone opening angle
+!> @param ktstep number of steps along cone radius
+!
+!> @date 11/29/01 MDG 1.0 original
+!> @date 12/05/13 MDG 2.0 adapted for ECCI simulations
+!> @date 12/01/15 MDG 2.1 simplification of input parameters
+!--------------------------------------------------------------------------
+recursive subroutine Calckvectorcone_(self, cell, mLambda, k, ga, ktxy, ktrad, ktstep)
+!DEC$ ATTRIBUTES DLLEXPORT :: Calckvectorcone_
+
+use mod_io
+use mod_diffraction
+use mod_crystallography
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)    :: self
+type(Cell_T),INTENT(IN)             :: cell
+type(IO_T)                          :: Message
+real(kind=dbl), INTENT(IN)          :: mlambda
+integer(kind=irg),INTENT(IN)        :: k(3)
+integer(kind=irg),INTENT(IN)        :: ga(3)
+real(kind=sgl),INTENT(IN)           :: ktxy(2)
+real(kind=sgl),INTENT(IN)           :: ktrad
+integer(kind=irg),INTENT(IN)        :: ktstep
+
+type(kvectorlist),pointer           :: ktmp,ktail
+integer                             :: istat,imin,imax,jmin,jmax,ijmax,i,j,ic,jc,ki
+real                                :: kr(3),glen,delta,kstar(3),kt(3),gan(3),gperp(3),ktlen, dkt
+
+! compute geometrical factors
+ glen = cell%CalcLength(float(ga),'r')              ! length of ga
+ self%gan = ga/glen                                 ! normalized ga
+ self%delta = ktrad*glen/float(ktstep)              ! grid step size in nm-1
+ dkt = ktrad/float(ktstep)
+ call cell%TransSpace(dble(k),self%kstar,'d','r')       ! transform incident direction to reciprocal space
+ call cell%CalcCross(dble(ga),self%kstar,self%gperp,'r','r',0)! compute g_perp = ga x k
+ call cell%NormVec(self%gperp,'r')                       ! normalize g_perp
+ call cell%NormVec(self%kstar,'r')                       ! normalize reciprocal beam vector
+
+! deal only with the incident beam (parallel illumination)
+if (ktstep.eq.0) then
+ ! if (.not.associated(self%klist)) then     ! allocate the head and ktail of the linked list
+   ! allocate(self%klist,stat=istat)         ! allocate new value
+   ! if (istat.ne.0) call Message%printError('Calckvectorcone: unable to allocate head pointer',' ')
+   ktail => self%klist                     ! ktail points to new value
+   nullify(ktail%next)                     ! nullify next in new value
+   self%numk = 1                           ! keep track of number of k-vectors so far
+ ! this should be the center vector of the illumination cone !!!
+   kt = - glen * (ktxy(1)*self%gan + ktxy(2) * self%gperp)
+   ktail%kt = kt                           ! store tangential component of k
+   ktlen = glen**2*(ktxy(1)**2+ktxy(2)**2) ! squared length of tangential component
+
+   kr = kt + sqrt(1.0/mLambda**2 - ktlen)*self%kstar ! complete wave vector
+   ktail%k = kr                            ! store in pointer list
+   ktail%kn = cell%CalcDot(ktail%k,dble(self%kstar),'r')    ! normal component of k
+ ! end if
+else
+! next, put the center of the cone in units of (i,j) (original ECP "screen" coordinates)
+  ic = int(ktxy(1)*glen/self%delta)
+  jc = int(ktxy(2)*glen/self%delta)
+  ki = ktstep
+
+ ! if (.not.associated(self%klist)) then     ! allocate the head and ktail of the linked list
+   ! allocate(self%klist,stat=istat)         ! allocate new value
+   ! if (istat.ne.0) call Message%printError('Calckvectorcone: unable to allocate head pointer',' ')
+   ktail => self%klist                      ! ktail points to new value
+   nullify(ktail%next)                ! nullify next in new value
+   self%numk = 1                          ! keep track of number of k-vectors so far
+ ! this should be the center vector of the illumination cone !!!
+   ktail%i = ic                            ! i-index of beam
+   ktail%j = jc                            ! j-index of beam
+   kt = -float(ktail%i)*self%delta*self%gan - float(ktail%j)*self%delta*self%gperp  ! tangential component of k
+   ktail%kt = kt                           ! store tangential component of k
+   ktlen = self%delta**2*(ktail%i**2+ktail%j**2)         ! squared length of tangential component
+
+   kr = kt + sqrt(1.0/mLambda**2 - ktlen)*self%kstar ! complete wave vector
+   ktail%k = kr                            ! store in pointer list
+   ktail%kn = cell%CalcDot(ktail%k,dble(self%kstar),'r')    ! normal component of k
+ ! else
+   ! call Message%printError('Calckvectorcone: pointer head already allocated',' ')
+ ! end if
+
+! the following lines are quite different if symmetry is taken into account;
+! check the MBsym.f90 program to determine how that can be done.
+  imin =  -ki; imax = ki; jmin = -ki; jmax = ki;
+  ijmax = ki**2
+! now do the real work
+  do i=imin,imax
+   do j=jmin,jmax
+    if (.not.((i.eq.0).and.(j.eq.0))) then  ! the point (0,0) has already been taken care of
+     if ((i**2+j**2).le.ijmax) then   ! is point inside the incident cone ?
+      allocate(ktail%next,stat=istat)  ! allocate new value
+      if (istat.ne.0) call Message%printError('Calckvectorcone: unable to allocate pointer',' ')
+      ktail => ktail%next               ! ktail points to new value
+      nullify(ktail%next)              ! nullify next in new value
+      self%numk = self%numk + 1                 ! keep track of number of k-vectors so far
+      ktail%i = ic+i                   ! i-index of beam
+      ktail%j = jc+j                   ! j-index of beam
+      kt = - float(ktail%i)*self%delta*self%gan - float(ktail%j)*self%delta*self%gperp  ! tangential component of k
+      ktail%kt = kt                    ! store tangential component of k
+      ! ktlen = self%delta**2*(ktail%i**2+ktail%j**2)         ! squared length of tangential component
+      ktlen = cell%CalcLength(kt,'r')**2
+
+      kr = kt + sqrt(1.0/mLambda**2 - ktlen)*self%kstar ! complete wave vector
+      ktail%k = kr                     ! store in pointer list
+      ktail%kn = cell%CalcDot(ktail%k,dble(self%kstar),'r')    ! normal component of k
+     end if
+    end if
+   end do
+  end do
+end if
+
+end subroutine Calckvectorcone_
+
+
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: Calckvectortrace
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief compute a set of incident beam directions for line scan ECCI mode
+!
+!> @param cell unit cell pointer
+!> @param k incident wave vector (zone axis)
+!> @param ga principal g vector
+!> @param ktxy tangential components of trace start point
+!> @param ktxy2 tangential components of trace end point
+!> @param ktrad cone opening angle
+!> @param ktstep number of steps along cone radius
+!
+!> @date 12/08/13 MDG 1.0 original
+!> @date 12/01/15 MDG 1.1 simplifcation of input variables
+!--------------------------------------------------------------------------
+recursive subroutine Calckvectortrace_(self,cell,mlambda,k,ga,ktxy,ktxy2,ktrad,ktstep)
+!DEC$ ATTRIBUTES DLLEXPORT :: Calckvectortrace_
+
+use mod_io
+use mod_diffraction
+use mod_crystallography
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)    :: self
+type(Cell_T),INTENT(IN)             :: cell
+type(IO_T)                          :: Message
+real(kind=dbl), INTENT(IN)          :: mlambda
+integer(kind=irg),INTENT(IN)        :: k(3)
+integer(kind=irg),INTENT(IN)        :: ga(3)
+real(kind=sgl),INTENT(IN)           :: ktxy(2)
+real(kind=sgl),INTENT(IN)           :: ktxy2(2)
+real(kind=sgl),INTENT(IN)           :: ktrad
+integer(kind=irg),INTENT(IN)        :: ktstep
+
+type(kvectorlist),pointer           :: ktail
+integer                             :: istat,j
+real                                :: kr(3),glen,delta,kstar(3),kt(3),gan(3),gperp(3),ktlen, dktx, dkty
+
+! compute geometrical factors
+ glen = cell%CalcLength(float(ga),'r')              ! length of ga
+ self%gan = ga/glen                                 ! normalized ga
+ self%delta = 2.0*ktrad*glen/float(2*ktstep+1)      ! grid step size in nm-1
+ call cell%TransSpace(dble(k),self%kstar,'d','r')       ! transform incident direction to reciprocal space
+ call cell%CalcCross(dble(ga),self%kstar,self%gperp,'r','r',0)! compute g_perp = ga x k
+ call cell%NormVec(self%gperp,'r')                       ! normalize g_perp
+ call cell%NormVec(self%kstar,'r')                       ! normalize reciprocal beam vector
+
+ j = 0
+ if (.not.associated(self%klist)) then     ! allocate the head and ktail of the linked list
+   allocate(self%klist,stat=istat)         ! allocate new value
+   if (istat.ne.0) call Message%printError('Calckvectortrace: unable to allocate head pointer',' ')
+   ktail => self%klist                     ! ktail points to new value
+   nullify(ktail%next)                ! nullify next in new value
+   self%numk = 1                           ! keep track of number of k-vectors so far
+! this should be the starting point of the line trace
+!   kt = - glen * ( ktxy(1)*gan + ktxy(2) * gperp)
+   kt = - glen * ( ktxy(1)*self%gan - ktxy(2) * self%gperp)
+   ktail%kt = kt                           ! store tangential component of k
+   ktlen = glen**2*(ktxy(1)**2+ktxy(2)**2)         ! squared length of tangential component
+   kr = kt + sqrt(1.0/mLambda**2 - ktlen)*self%kstar ! complete wave vector
+   ktail%k = kr                            ! store in pointer list
+   ktail%kn = cell%CalcDot(ktail%k,dble(self%kstar),'r')    ! normal component of k
+ end if
+
+ dktx = (ktxy2(1) - ktxy(1))/float(ktstep-1)
+ dkty = (ktxy2(2) - ktxy(2))/float(ktstep-1)
+
+ do j=1,ktstep-1
+      allocate(ktail%next,stat=istat)  ! allocate new value
+      if (istat.ne.0) call Message%printError('Calckvectortrace: unable to allocate pointer',' ')
+      ktail => ktail%next              ! ktail points to new value
+      nullify(ktail%next)              ! nullify next in new value
+      self%numk = self%numk + 1                  ! keep track of number of k-vectors so far
+!     kt = - glen * ( (ktxy(1)+float(j)*dktx)*gan + (ktxy(2)+float(j)*dkty) * gperp) ! tangential component of k
+      kt = - glen * ( (ktxy(1)+float(j)*dktx)*self%gan - (ktxy(2)+float(j)*dkty) * self%gperp) ! tangential component of k
+      ktail%kt = kt                    ! store tangential component of k
+      ktlen = self%delta**2*(ktail%i**2+ktail%j**2)         ! squared length of tangential component
+      kr = kt + sqrt(1.0/mLambda**2 - ktlen)*self%kstar ! complete wave vector
+      ktail%k = kr                     ! store in pointer list
+      ktail%kn = cell%CalcDot(ktail%k,dble(self%kstar),'r')    ! normal component of k
+ end do
+
+end subroutine Calckvectortrace_
+
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: Calckvectorcone
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief compute a set of incident beam directions for single image ECCI mode
+!
+!> @param cell unit cell pointer
+!> @param khead head of kvector linked list
+!> @param k incident wave vector (zone axis)
+!> @param ga principal g vector
+!> @param ktxy tangential components
+!> @param ktrad cone opening angle
+!> @param ktstep number of steps along cone radius
+!> @param numk resulting number of incident beam directions
+!
+!> @date 11/29/01 MDG 1.0 original
+!> @date 12/05/13 MDG 2.0 adapted for ECCI simulations
+!> @date 12/01/15 MDG 2.1 simplification of input parameters
+!--------------------------------------------------------------------------
+recursive subroutine Calckvectorcircle_(self, cell, mLambda, k, ga, ktxy, ktrad, ktstep)
+!DEC$ ATTRIBUTES DLLEXPORT :: Calckvectorcircle_
+
+use mod_io
+use mod_diffraction
+use mod_crystallography
+
+IMPLICIT NONE
+
+class(kvectors_T), INTENT(INOUT)    :: self
+type(Cell_T),INTENT(IN)             :: cell
+type(IO_T)                          :: Message
+real(kind=dbl), INTENT(IN)          :: mlambda
+integer(kind=irg),INTENT(IN)        :: k(3)
+integer(kind=irg),INTENT(IN)        :: ga(3)
+real(kind=sgl),INTENT(IN)           :: ktxy(2)
+real(kind=sgl),INTENT(IN)           :: ktrad
+integer(kind=irg),INTENT(IN)        :: ktstep
+
+type(kvectorlist),pointer           :: ktmp,ktail
+integer                             :: istat,imin,imax,jmin,jmax,ijmax,i,j,ic,jc, iang
+real                                :: kr(3),glen,delta, dtang, kstar(3),kt(3),gan(3),gperp(3),ktlen, dkt, ii, &
+                                       jj, ii1, ii2, jj1, jj2
+real(kind=dbl)                      :: ki, iangrad
+! compute geometrical factors
+ glen = cell%CalcLength(float(ga),'r')         ! length of ga
+ self%gan = ga/glen                                 ! normalized ga
+ self%delta = ktrad*glen/float(ktstep)              ! grid step size in nm-1
+ dkt = ktrad/float(ktstep)
+ call cell%TransSpace(dble(k),self%kstar,'d','r')       ! transform incident direction to reciprocal space
+ call cell%CalcCross(dble(ga),self%kstar,self%gperp,'r','r',0)! compute g_perp = ga x k
+ call cell%NormVec(self%gperp,'r')                       ! normalize g_perp
+ call cell%NormVec(self%kstar,'r')                       ! normalize reciprocal beam vector
+
+! deal only with the incident beam (parallel illumination)
+if (ktstep.eq.0) then
+ if (.not.associated(self%klist)) then     ! allocate the head and ktail of the linked list
+   allocate(self%klist,stat=istat)         ! allocate new value
+   if (istat.ne.0) call Message%printError('Calckvectorcone: unable to allocate head pointer',' ')
+   ktail => self%klist                      ! ktail points to new value
+   nullify(ktail%next)                ! nullify next in new value
+   self%numk = 1                          ! keep track of number of k-vectors so far
+ ! this should be the center vector of the illumination cone !!!
+   kt = - glen * (ktxy(1)*self%gan + ktxy(2) * self%gperp)
+   ktail%kt = kt                           ! store tangential component of k
+   ktlen = glen**2*(ktxy(1)**2+ktxy(2)**2)         ! squared length of tangential component
+
+   kr = kt + sqrt(1.0/mLambda**2 - ktlen)*self%kstar ! complete wave vector
+   ktail%k = kr                            ! store in pointer list
+   ktail%kn = cell%CalcDot(ktail%k,dble(self%kstar),'r')    ! normal component of k
+ end if
+else
+! next, put the center of the cone in units of (i,j) (original ECP "screen" coordinates)
+  ic = int(ktxy(1)*glen/self%delta)
+  jc = int(ktxy(2)*glen/self%delta)
+
+  imin =  -ki; imax = ki; jmin = -ki; jmax = ki;
+  ijmax = (ki)**2
+
+  if (.not.associated(self%klist)) then 
+    allocate(self%klist,stat=istat)
+    ktail => self%klist
+  end if
+
+  imax = 360
+  ki = dble(ktrad)*dtor
+  self%numk = 0
+
+  iangrad = 1.0*dtor
+  ii1 = ki*(dcos(iangrad))
+  jj1 = ki*(dsin(iangrad))
+  ii1 = dble(ii1)*rtod
+  jj1 = dble(jj1)*rtod
+  iangrad = 3.0*dtor
+  ii2 = ki*(dcos(iangrad))
+  jj2 = ki*(dsin(iangrad))
+  ii2 = dble(ii2)*rtod
+  jj2 = dble(jj2)*rtod
+  dtang = sqrt(((ii2-ii1)**2+(jj2-jj1)**2))
+  
+  do iang = 1, 360, 1
+    iangrad = iang*dtor
+    ii = ki*(dcos(iangrad))
+    jj = ki*(dsin(iangrad))
+
+    ii = dble(ii)*rtod
+    jj = dble(jj)*rtod
+
+    if (.not.((ii.eq.0).and.(jj.eq.0))) then  ! the point (0,0) has already been taken care of
+      allocate(ktail%next,stat=istat)  ! allocate new value
+      if (istat.ne.0) call Message%printError('Calckvectorcone: unable to allocate pointer',' ')
+      
+      self%numk = self%numk + 1                 ! keep track of number of k-vectors so far
+      kt = - (ii)*self%gan*self%delta- (jj)*self%gperp*self%delta  ! tangential component of k
+      ktail%kt = kt                    ! store tangential component of k
+      ktlen = self%delta**2*(ii**2+jj**2)         ! squared length of tangential component
+
+      kr = kt + sqrt(1.0/mLambda**2 - ktlen)*self%kstar ! complete wave vector
+      ktail%k = kr                     ! store in pointer list
+      ktail%kn = cell%CalcDot(ktail%k,dble(self%kstar),'r')
+      ktail => ktail%next               ! ktail points to new value
+      nullify(ktail%next)              ! nullify next in new value
+    end if
+  end do
+ end if
+
+end subroutine Calckvectorcircle_
+
+
+
  end module mod_kvectors
  
