@@ -1050,6 +1050,11 @@ end if
 usehex = .FALSE.
 if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) usehex = .TRUE.
 
+! write (*,*) '========================'
+! write (*,*) 'isym = ',isym
+! write (*,*) 'SamplingType = ', SamplingType
+! write (*,*) '========================'
+
 ! ---------- end of symmetry and crystallography section
 !=============================================
 !=============================================
