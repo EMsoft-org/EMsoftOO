@@ -1038,7 +1038,7 @@ module mod_kvectors
                  end if
                  if (InsideHexGrid(xy).and.(check)) call self%AddkVector(cell,Diff,ktail,xy,i,j,hexgrid, addSH = yes)
              end do
-           ! end do    
+           end do    
            ! istart = 0
            ! iend = npx
            ! jstart = 1
