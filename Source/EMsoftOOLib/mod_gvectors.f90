@@ -1519,8 +1519,8 @@ associate( reflist => self%reflist )
       rltmpb => reflist%next    ! point to the front of the list
       do ic=1,nns
         kkk = rltmpb%hkl - rltmpa%hkl
-        ! Sgh(ir,ic,1:numset) = Diff%getSghLUT( numset, kkk )
-        Sgh(ic,ir,1:numset) = Diff%getSghLUT( numset, kkk )
+        Sgh(ir,ic,1:numset) = Diff%getSghLUT( numset, kkk )
+        ! Sgh(ic,ir,1:numset) = Diff%getSghLUT( numset, kkk )
         rltmpb => rltmpb%nexts  ! move to next column-entry
       end do
      rltmpa => rltmpa%nexts  ! move to next row-entry
