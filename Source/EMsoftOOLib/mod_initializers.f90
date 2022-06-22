@@ -153,7 +153,7 @@ if(.not. justinit) then
   call Diff%allocateLUT( (/ imh, imk, iml /) )
 end if
 
-ddt = 1.0e-5
+ddt = 1.0e-10
 
 ! next, we compute the overall lookup table Diff%LUT; we do not, at this point, create a
 ! list of linked reflections; in the old code, this was done at the same time, but it appears

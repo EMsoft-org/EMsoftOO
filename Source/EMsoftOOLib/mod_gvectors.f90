@@ -992,7 +992,7 @@ logical,INTENT(IN),OPTIONAL      :: noNormAbs
 type(gnode)                      :: rlp
 complex(kind=dbl)                :: czero, ughp, uhph, weaksum, cv, Agh, Ahgp, Ahmgp, Ahg, weakdiagsum, pq0, Ahh, Agpgp, ccpi
 real(kind=dbl)                   :: weaksgsum, tpi, Pioxgp, mlambda
-real(kind=sgl)                   :: Upz
+real(kind=dbl)                   :: Upz
 integer(kind=sgl)                :: ir, ic, ll(3), istat, wc
 type(reflisttype),pointer        :: listroot, rlr, rlc, rlw
 character(1)                     :: AorD
@@ -1014,7 +1014,7 @@ listroot => self%reflist
 
 AorD = 'D'
 if (present(MatrixType)) then
-  if (MatrixType.eq.'Struc') AorD = 'D'
+  if (MatrixType.eq.'Struc') AorD = 'A'
 end if 
 
 ! Standard Bloch wave mode
@@ -1508,7 +1508,8 @@ associate( reflist => self%reflist )
       rltmpb => reflist%next    ! point to the front of the list
       do ic=1,nns
         kkk = rltmpb%hkl - rltmpa%hkl
-        Sgh(ir,ic,1:numset) = Diff%getSghLUT( numset, kkk )
+        ! Sgh(ir,ic,1:numset) = Diff%getSghLUT( numset, kkk )
+        Sgh(ic,ir,1:numset) = Diff%getSghLUT( numset, kkk )
         rltmpb => rltmpb%nexts  ! move to next column-entry
       end do
      rltmpa => rltmpa%nexts  ! move to next row-entry
