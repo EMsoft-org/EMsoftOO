@@ -1692,7 +1692,7 @@ character(fnlen)                        :: nmldefault
  Message = IO_T()
 
  call Message % printMessage('<EMsoftHeader>',frm="(/A/)")
- call Message % printMessage('Copyright (C) 2001-2020 Marc De Graef Research Group/CMU',frm="(A)")
+ call Message % printMessage('Copyright (C) 2001-2022 Marc De Graef Research Group/CMU',frm="(A)")
  call Message % printMessage('EMsoft comes with ABSOLUTELY NO WARRANTY.')
  call Message % printMessage('This is free software, and you are welcome to redistribute it')
  call Message % printMessage('under certain conditions; see License.txt file for details.',frm="(A/)")
@@ -1704,7 +1704,7 @@ character(fnlen)                        :: nmldefault
  call Message % printMessage('Source code Revision : '//trim(self % EMsoftRevision))
  call Message % printMessage('Build Date/Time      : '//trim(self % EMsoftBuildDate),frm="(A/)")
 
- call Message % printMessage( 'See https://github.com/EMsoft-org/EMsoft/wiki for selected help pages.',frm="(A/)")
+ call Message % printMessage( 'See https://github.com/EMsoft-org/EMsoftOO/wiki for selected help pages.',frm="(A/)")
 
  Timing = Timing_T(showDateTime=.TRUE.)
 

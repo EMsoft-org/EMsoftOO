@@ -237,6 +237,7 @@ module mod_diffraction
       integer(kind=irg)               :: numscatfac
       complex(kind=sgl),allocatable   :: LUT(:,:,:), SghLUT(:,:,:,:)
       complex(kind=sgl),allocatable   :: LUTqg(:,:,:)
+      real(kind=dbl),allocatable      :: Vphase(:,:,:)
       logical,allocatable             :: dbdiff(:,:,:)
   
   contains
@@ -264,12 +265,14 @@ module mod_diffraction
       procedure, pass(self) :: getshapeLUT_
       procedure, pass(self) :: getrlp_
       procedure, pass(self) :: getLUT_
+      procedure, pass(self) :: getVphase_
       procedure, pass(self) :: getSghLUT_
       procedure, pass(self) :: getLUTqg_
       procedure, pass(self) :: getdbdiff_
       procedure, pass(self) :: setrlpmethod_
       procedure, pass(self) :: setV_
       procedure, pass(self) :: setLUT_
+      procedure, pass(self) :: setVphase_
       procedure, pass(self) :: setLUTqg_
       procedure, pass(self) :: setdbdiff_
       procedure, pass(self) :: Initialize_SghLUT_
@@ -302,10 +305,12 @@ module mod_diffraction
       generic, public :: allocateLUT => allocateLUT_
       generic, public :: getshapeLUT => getshapeLUT_
       generic, public :: getLUT => getLUT_
+      generic, public :: getVphase => getVphase_
       generic, public :: getSghLUT => getSghLUT_
       generic, public :: getLUTqg => getLUTqg_
       generic, public :: getdbdiff => getdbdiff_
       generic, public :: setLUT => setLUT_
+      generic, public :: setVphase => setVphase_
       generic, public :: setLUTqg => setLUTqg_
       generic, public :: setdbdiff => setdbdiff_
       generic, public :: Initialize_SghLUT => Initialize_SghLUT_
@@ -386,6 +391,7 @@ module mod_diffraction
   if (allocated(self%scatfacg)) deallocate(self%scatfacg)
   if (allocated(self%scatfac)) deallocate(self%scatfac)
   if (allocated(self%LUT)) deallocate(self%LUT)
+  if (allocated(self%Vphase)) deallocate(self%Vphase)
   if (allocated(self%SghLUT)) deallocate(self%SghLUT)
   if (allocated(self%LUTqg)) deallocate(self%LUTqg)
   if (allocated(self%dbdiff)) deallocate(self%dbdiff)
@@ -551,6 +557,7 @@ module mod_diffraction
   ! the LUT array stores all the Fourier coefficients, so that we only need to compute them once... i.e., here and now
   call mem%alloc(self%LUT, (/ imh, imk, iml /), 'self%LUT', cmplx(0.D0,0.D0), startdims=(/ -imh, -imk, -iml /))
   call mem%alloc(self%LUTqg, (/ imh, imk, iml /), 'self%LUTqg', cmplx(0.D0,0.D0), startdims=(/ -imh, -imk, -iml /))
+  call mem%alloc(self%Vphase, (/ imh, imk, iml /), 'self%Vphase', 0.D0, startdims=(/ -imh, -imk, -iml /))
   call mem%alloc(self%dbdiff, (/ imh, imk, iml /), 'self%dbdiff', .FALSE., startdims=(/ -imh, -imk, -iml /))
   
   end subroutine allocateLUT_
@@ -592,6 +599,25 @@ module mod_diffraction
   
   end function getLUT_
   
+  !--------------------------------------------------------------------------
+  recursive function getVphase_(self, hkl) result(c)
+  !DEC$ ATTRIBUTES DLLEXPORT :: getVphase_
+    !! author: MDG
+    !! version: 1.0
+    !! date: 04/20/22
+    !!
+    !! return an entry from the Vphase array
+  
+  IMPLICIT NONE
+  
+  class(Diffraction_T),INTENT(INOUT)  :: self
+  integer(kind=irg)                   :: hkl(3)
+  real(kind=dbl)                      :: c
+  
+   c = self%Vphase( hkl(1), hkl(2), hkl(3) )
+  
+  end function getVphase_
+
   !--------------------------------------------------------------------------
   recursive function getSghLUT_(self, n, hkl) result(c)
   !DEC$ ATTRIBUTES DLLEXPORT :: getSghLUT_
@@ -669,6 +695,25 @@ module mod_diffraction
   
   end subroutine setLUT_
   
+  !--------------------------------------------------------------------------
+  recursive subroutine setVphase_(self, hkl, c)
+  !DEC$ ATTRIBUTES DLLEXPORT :: setVphase_
+    !! author: MDG
+    !! version: 1.0
+    !! date: 04/20/22
+    !!
+    !! set an entry in the Vphase array
+  
+  IMPLICIT NONE
+  
+  class(Diffraction_T),INTENT(INOUT)  :: self
+  integer(kind=irg),INTENT(IN)        :: hkl(3)
+  real(kind=dbl),INTENT(IN)           :: c
+  
+  self%Vphase( hkl(1), hkl(2), hkl(3) ) = c
+  
+  end subroutine setVphase_
+
   !--------------------------------------------------------------------------
   recursive subroutine setLUTqg_(self, hkl, c)
   !DEC$ ATTRIBUTES DLLEXPORT :: setLUTqg_

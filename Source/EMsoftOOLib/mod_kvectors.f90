@@ -1002,9 +1002,9 @@ module mod_kvectors
          if ((SG%getSpaceGrouptrigonal()).and.(SG%getSpaceGroupsecond())) then
            call Message%printError('Calckvectors: ','rhombohedral setting not yet implemented, use hexagonal setting instead')
          else
-           istart = 1
+           istart = 0
            iend = npx
-           jstart = 1
+           jstart = 0
            jend = npx
              do j=jstart,jend
                do i=istart+(j-1)/2,2*j
@@ -1017,40 +1017,18 @@ module mod_kvectors
          end if
  
    case (15)   ! hexagonal 31m, 6
-         istart = 0
-         iend = npx
-         jstart = 0
-         jend = npx
-         eps = 1.0D-4
-           do j=jstart,jend
-             do i=istart,iend
-                 xy = (/ dble(i), dble(j) /) * self%delta
-                 xx = dble(i)-dble(j)/2.D0
-                 yy = dble(j)*LPs%srt
-                 check = .TRUE.
-                 if (xx.lt.0.D0) then
-                    check = .FALSE.
-                 else
-                    if (xx.ge.0.D0) then
-                      yy = datan2(yy,xx)
-                      if (yy.gt.(cPi/3.D0+eps)) check = .FALSE.
-                    end if
+           istart = 0
+           iend = npx
+           jstart = 0
+           jend = npx
+             do j=jstart,jend
+               do i=istart+j,jend
+                 xy = (/ dble(i),  dble(j) /) * self%delta
+                 if (InsideHexGrid(xy)) then
+                   call self%AddkVector(cell,Diff,ktail,xy,i,j,hexgrid, addSH = yes)
                  end if
-                 if (InsideHexGrid(xy).and.(check)) call self%AddkVector(cell,Diff,ktail,xy,i,j,hexgrid, addSH = yes)
+               end do
              end do
-           end do    
-           ! istart = 0
-           ! iend = npx
-           ! jstart = 1
-           ! jend = npx
-           !   do j=jstart,jend
-           !     do i=istart+j,jend
-           !       xy = (/ dble(i),  dble(j) /) * self%delta
-           !       if (InsideHexGrid(xy)) then
-           !         call self%AddkVector(cell,Diff,ktail,xy,i,j,hexgrid, addSH = yes)
-           !       end if
-           !     end do
-           !   end do
  
    case (16)   ! hexagonal -3m1, 622, -6m2 [not implemented: rhombohedral -3m]
          if ((SG%getSpaceGrouptrigonal()).and.(SG%getSpaceGroupsecond())) then

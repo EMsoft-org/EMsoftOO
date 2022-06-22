@@ -403,6 +403,7 @@ IMPLICIT NONE
     if (present(verbose)) then
         if (verbose.eqv..TRUE.) call Message%printMessage(' *** Fortran HDF interface OPEN *** ')
     end if
+call Message%printMessage(' *** Fortran HDF interface OPEN *** ')
 
 end subroutine openFortranHDFInterface
 
@@ -449,6 +450,7 @@ IMPLICIT NONE
     if (present(verbose)) then
         if (verbose.eqv..TRUE.) call Message%printMessage(' *** Fortran HDF interface CLOSED *** ')
     end if
+call Message%printMessage(' *** Fortran HDF interface CLOSED *** ')
 
 end subroutine closeFortranHDFInterface
 

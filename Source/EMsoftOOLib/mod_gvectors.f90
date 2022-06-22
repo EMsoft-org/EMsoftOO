@@ -99,6 +99,7 @@ private
   procedure, pass(self) :: GetDynMatKin_
   procedure, pass(self) :: GetDynMatDHW_
   procedure, pass(self) :: GetDynMatFull_
+  procedure, pass(self) :: GetExpthetagh_
   procedure, pass(self) :: get_nref_
   procedure, pass(self) :: CalcLgh_
   procedure, pass(self) :: CalcLghdepth_
@@ -125,6 +126,7 @@ private
   generic, public :: GetDynMatKin => GetDynMatKin_
   generic, public :: GetDynMatDHW => GetDynMatDHW_
   generic, public :: GetDynMatFull => GetDynMatFull_
+  generic, public :: GetExpthetagh => GetExpthetagh_
   generic, public :: get_nref => get_nref_
   generic, public :: CalcLgh => CalcLgh_
   generic, public :: CalcLghdepth => CalcLghdepth_
@@ -740,23 +742,23 @@ izl:   do iz=-iml,iml
          if ((abs(ix)+abs(iy)+abs(iz)).ne.0) then  ! avoid double counting the origin
           gg = (/ ix, iy, iz /)
           dval = 1.0/cell%CalcLength(float(gg), 'r' )
-         if ((SG%IsGAllowed(gg)).and.(dval.gt.dmin)) then ! allowed by the lattice centering, if any
-          sgp = Diff%Calcsg(cell,float(gg),k,FN)
-          if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
-           if (abs(sgp).le.rBethe_d) then
-             call self%AddReflection(Diff, gg )
-             self%rltail%sg = sgp
-             self%rltail%dbdiff = .TRUE.
-           end if
-          else
-           r_g = la * abs(sgp)/abs(Diff%getLUT(gg))
-           if (r_g.le.rBethe_i) then
-             call self%AddReflection(Diff, gg )
-             self%rltail%sg = sgp
-             self%rltail%dbdiff = .FALSE.
-           end if
-          end if
-        end if ! IsGAllowed
+          if ((SG%IsGAllowed(gg)).and.(dval.gt.dmin)) then ! allowed by the lattice centering, if any
+            sgp = Diff%Calcsg(cell,float(gg),k,FN)
+            if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
+              if (abs(sgp).le.rBethe_d) then
+                call self%AddReflection(Diff, gg )
+                self%rltail%sg = sgp
+                self%rltail%dbdiff = .TRUE.
+              end if
+            else
+              r_g = la * abs(sgp)/abs(Diff%getLUT(gg))
+              if (r_g.le.rBethe_i) then
+                call self%AddReflection(Diff, gg )
+                self%rltail%sg = sgp
+                self%rltail%dbdiff = .FALSE.
+              end if
+            end if
+          end if ! IsGAllowed
          end if
        end do izl
       end do iyl
@@ -959,7 +961,7 @@ izl:   do iz=-iml,iml
 end subroutine Initialize_Reflectionlist_EwaldSweep_
 
 !--------------------------------------------------------------------------
-recursive subroutine GetDynMat_(self, cell, Diff, listrootw, DynMat, nns, nnw, MatrixType, noNormAbs)
+recursive subroutine GetDynMat_(self, cell, Diff, listrootw, DynMat, nns, nnw, MatrixType, noNormAbs, noDiagonal)
 !DEC$ ATTRIBUTES DLLEXPORT :: GetDynMat_
   !! author: MDG
   !! version: 1.0
@@ -988,6 +990,7 @@ complex(kind=dbl),INTENT(INOUT)  :: DynMat(nns,nns)
 integer(kind=irg),INTENT(IN)     :: nnw
 character(5),INTENT(IN),OPTIONAL :: MatrixType   ! 'Bloch' or 'Struc'
 logical,INTENT(IN),OPTIONAL      :: noNormAbs
+logical,INTENT(IN),OPTIONAL      :: noDiagonal
 
 type(gnode)                      :: rlp
 complex(kind=dbl)                :: czero, ughp, uhph, weaksum, cv, Agh, Ahgp, Ahmgp, Ahg, weakdiagsum, pq0, Ahh, Agpgp, ccpi
@@ -1155,6 +1158,14 @@ else ! AorD = 'A' so we need to compute the structure matrix using LUTqg ...
         end do
         DynMat = DynMat * ccpi ! cmplx(cPi, 0.D0)
 end if
+
+if (present(noDiagonal)) then 
+  if (noDiagonal.eqv..TRUE.) then 
+    do ic=1,nns 
+      DynMat(ic,ic) = czero 
+    end do 
+  end if 
+end if 
 
 end subroutine GetDynMat_
 
@@ -1560,6 +1571,49 @@ associate( reflist => self%reflist )
  end associate
 
 end subroutine getSghfromLUTsum_
+
+!--------------------------------------------------------------------------
+recursive subroutine GetExpthetagh_(self,Diff,nns,thetagh)
+!DEC$ ATTRIBUTES DLLEXPORT :: GetExpthetagh_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 04/20/22
+  !!
+  !! compute phase factor thetagh array for scattering matrix ECCI simulations
+
+use mod_crystallography
+use mod_diffraction
+! use symmetry
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT)         :: self
+type(Diffraction_T),INTENT(INOUT)       :: Diff
+integer(kind=irg),INTENT(IN)            :: nns
+complex(kind=dbl),INTENT(INOUT)         :: thetagh(nns,nns)
+
+type(reflisttype),pointer               :: rltmpa, rltmpb
+integer(kind=irg)                       :: ir, ic 
+real(kind=dbl)                          :: thdiff
+
+associate( reflist => self%reflist )
+
+! loop over all contributing reflections
+! ir is the row index
+    rltmpa => reflist%next    ! point to the front of the list
+    do ir=1,nns
+! ic is the column index
+      rltmpb => reflist%next    ! point to the front of the list
+      do ic=1,nns
+        thdiff = rltmpa%thetag - rltmpb%thetag
+        thetagh(ir,ic) = cmplx( cos(thdiff), sin(thdiff) )
+        rltmpb => rltmpb%nexts  ! move to next strong beam column-entry
+      end do
+     rltmpa => rltmpa%nexts  ! move to next strong beam row-entry
+   end do
+ end associate
+
+end subroutine GetExpthetagh_
 
 !--------------------------------------------------------------------------
 recursive subroutine CalcCBEDint_(self,cell,DynMat,kn,nn,nt,thick,inten)

@@ -2563,7 +2563,7 @@ character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 
 openHDFfile = .TRUE.
 
-call openFortranHDFInterface()
+! call openFortranHDFInterface()
 
 if (present(useHDF)) then
   openHDFfile = .FALSE.
