@@ -1726,7 +1726,7 @@ type(FZpointd),pointer                              :: FZlist, FZtmp
 integer(kind=irg),allocatable,target                :: indexlist1(:),indexlist2(:),indexarray(:),indexmain(:,:),indextmp(:,:)
 real(kind=sgl)                                      :: dmin,voltage,scl,ratio, mi, ma, ratioE, io_real(2), tstart, tmp, &
                                                        totnum_el, vlen, tstop, ttime, msa
-real(kind=dbl)                                      :: prefactor
+real(kind=dbl)                                      :: prefactor, dmt(3,3), rmt(3,3)
 character(fnlen)                                    :: xtalname
 integer(kind=irg)                                   :: binx,biny,TID,TID2,nthreads,Emin,Emax, iiistart, iiiend, jjend
 real(kind=sgl)                                      :: sx,dx,dxm,dy,dym,rhos,x,projweight, dp, mvres, nel, emult
@@ -1853,7 +1853,12 @@ else
     call Message%WriteValue(' Setting point group number to ',io_int,1)
     io_int = SGnum
     call Message%WriteValue(' Setting space group number to ',io_int,1)
-    SG = SpaceGroup_T( SGnumber = SGnum )
+    dmt = 0.D0 
+    dmt(1,1) = 1.D0
+    dmt(2,2) = 1.D0
+    dmt(3,3) = 1.D0
+    rmt = dmt
+    SG = SpaceGroup_T( SGnumber = SGnum, dmt = dmt, rmt = rmt )
 
 end if
 

@@ -1001,7 +1001,8 @@ nsy = nsx
 ! density parameters needed by the Monte Carlo routine; 
 ! initialize cell and SG classes 
 cell = Cell_T( dble(latparm) )
-SG = SpaceGroup_T( SGnumber = ipar(10), xtalSystem = ipar(8), setting = ipar(11) )
+SG = SpaceGroup_T( SGnumber = ipar(10), xtalSystem = ipar(8), setting = ipar(11), &
+                   dmt = cell%getdmt(), rmt = cell%getrmt() )
 ! fill in additional symmetry and cell parameters
 if ((ipar(10).ge.143).and.(ipar(10).le.167)) then
   call SG%setSpaceGrouptrigonal(.TRUE.)
@@ -1024,13 +1025,13 @@ ipg = SG%getPGnumber()
 ! steps can be done simultaneously, otherwise two calls to 
 ! GenerateSymmetry are needed.
 if (SGPG(ipg).eq.ipar(10)) then
-  call SG%GenerateSymmetry( .TRUE. )
+  call SG%GenerateSymmetry( .TRUE., cell%getdmt(), cell%getrmt() )
 else
   isave = SG%getSpaceGroupNumber()
   call SG%setSpaceGroupNumber( SGPG(ipg) )
-  call SG%GenerateSymmetry( .TRUE. )
+  call SG%GenerateSymmetry( .TRUE., cell%getdmt(), cell%getrmt() )
   call SG%setSpaceGroupNumber( int(isave) )
-  call SG%GenerateSymmetry( .FALSE. )
+  call SG%GenerateSymmetry( .FALSE., cell%getdmt(), cell%getrmt() )
 end if
 ! next we get all the atom positions
 call cell%CalcPositions( SG, 'v' )

@@ -776,7 +776,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(SpaceGroup_T) function SpaceGroup_constructor( SGnumber, xtalSystem, setting ) result(SG)
+type(SpaceGroup_T) function SpaceGroup_constructor( SGnumber, xtalSystem, setting, dmt, rmt ) result(SG)
 !DEC$ ATTRIBUTES DLLEXPORT :: SpaceGroup_constructor
   !! author: MDG
   !! version: 1.0
@@ -791,10 +791,13 @@ IMPLICIT NONE
 integer(kind=irg), intent(in), OPTIONAL :: SGnumber
 integer(kind=irg), intent(in), OPTIONAL :: xtalSystem
 integer(kind=irg), intent(in), OPTIONAL :: setting
+real(kind=dbl), intent(in)              :: dmt(3,3)
+real(kind=dbl), intent(in)              :: rmt(3,3)
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: i, pgnum
 integer(kind=irg),parameter             :: icv(7) = (/ 7, 6, 3, 2, 5, 4, 1 /)
+real(kind=dbl)                          :: ddt(3,3), rrt(3,3)
 
 ! if there are no input parameters, then we start by asking for the crystal system
 if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) .and. .not.(present(setting)) ) then
@@ -856,7 +859,20 @@ SG%direc = 0.D0
 SG%recip = 0.D0
 
 ! generate all the symmetry operators as well as the corresponding point group symmetry
-call GenerateSymmetry_(SG,.TRUE.)
+!
+! [code modified on 8/1/18 (MDG), to correct k-vector sampling symmetry errors]
+! First generate the point symmetry matrices, then the actual space group.
+! if the actual group is also the symmorphic group, then both
+! steps can be done simultaneously, otherwise two calls to
+! GenerateSymmetry are needed.
+if (SGsymnum(SGnumber).eq.SGnumber) then
+  call GenerateSymmetry_(SG, .TRUE., dmt, rmt)
+else
+  SG%SGnumber=SGsymnum(SGnumber)
+  call GenerateSymmetry_(SG, .TRUE., dmt, rmt)
+  SG%SGnumber=SGnumber
+  call GenerateSymmetry_(SG, .FALSE., dmt, rmt)
+end if
 
 end function SpaceGroup_constructor
 
@@ -912,7 +928,7 @@ allocate( PG%direc(PGTHDorder(pgnum),3,3) )
 PG%direc = 0.D0
 
 ! generate all the point group symmetry operators 
-call PG%GeneratePGSymmetry_()
+call PG%GeneratePGSymmetry_( Sgnumber )
 
 ! and copy the direc array into the space group class 
 if (allocated(SG%direc)) deallocate(SG%direc)
@@ -1426,7 +1442,7 @@ real(kind=dbl),parameter          :: eps=0.0005_dbl
 end function isitnew_
 
 !--------------------------------------------------------------------------
-recursive subroutine GenerateSymmetry_(self,dopg)
+recursive subroutine GenerateSymmetry_(self,dopg, dmt, rmt)
 !DEC$ ATTRIBUTES DLLEXPORT :: GenerateSymmetry_
   !! author: MDG
   !! version: 1.0
@@ -1439,8 +1455,10 @@ IMPLICIT NONE
 class(SpaceGroup_T),INTENT(INOUT) :: self
 logical,INTENT(IN)                :: dopg
  !! logical to determine if point group matrices are to be computed as well
+real(kind=dbl),INTENT(IN)         :: dmt(3,3)
+real(kind=dbl),INTENT(IN)         :: rmt(3,3)
 
-type(PointGroup_T)                :: PG 
+! type(PointGroup_T)                :: PG 
 
 integer(kind=irg)                 :: i,j,k,nsym,k1,k2,l1,l2       ! loop counters (mostly)
 real(kind=dbl)                    :: q,sm                         ! auxiliary variables.
@@ -1492,9 +1510,29 @@ real(kind=dbl)                    :: q,sm                         ! auxiliary va
 ! this is used to determine families of directions;
 ! for planes we must determine the transformed point symmetry
 ! operators SYM_recip() (this requires the metric tensors which we don't have at this point !!!)
-  self%recip_pending = .TRUE.
-  PG = PointGroup_T( self )
-  self%NUMpt = PG%PGMATnum
+  self%NUMpt =0 
+  do i=1,self%MATnum 
+   sm=self%data(i,1,4)**2+self%data(i,2,4)**2+self%data(i,3,4)**2
+   if (sm.lt.0.1_dbl) then
+    self%NUMpt=self%NUMpt+1
+
+! direct space point group symmetry elements
+    self%direc(self%NUMpt,:,:)=self%data(i,1:3,1:3)
+
+! reciprocal space point group symmetry elements
+    do j=1,3
+     do k=1,3 
+      q=0.0_dbl
+      do l1=1,3
+       do l2=1,3
+        q=q+dmt(j,l1)*self%data(i,l1,l2)*rmt(l2,k)
+       end do
+      end do
+      self%recip(self%NUMpt,j,k)=q
+     end do
+    end do
+   end if  ! (sm.lt.0.1)
+  end do
 ! reciprocal space point group symmetry elements
 ! THIS REQUIRES THE CRYSTALLOGRAPHIC INFORMATION !!!!!!!!!!!
 ! we have a new routine below (fixrecipPG_) to cover this little bit...
@@ -3590,7 +3628,7 @@ end do kloop
 end function PGisitnew_
 
 !--------------------------------------------------------------------------
-recursive subroutine GeneratePGSymmetry_(self)
+recursive subroutine GeneratePGSymmetry_(self, SGnumber)
 !DEC$ ATTRIBUTES DLLEXPORT :: GeneratePGSymmetry_
   !! author: MDG
   !! version: 1.0
@@ -3601,13 +3639,41 @@ recursive subroutine GeneratePGSymmetry_(self)
 IMPLICIT NONE
 
 class(PointGroup_T),INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)      :: SGnumber
 
 integer(kind=irg)                 :: i,j,k,nsym,k1,k2,l1,l2       ! loop counters (mostly)
-real(kind=dbl)                    :: q,sm                         ! auxiliary variables.
+integer(kind=irg)                 :: Rnums(7) = (/143, 157, 159, 164, 165, 166, 167 /)
+real(kind=dbl)                    :: q,sm,R(3,3),sr2              ! auxiliary variables.
 
 ! create the space group generator matrices
 call self%MakePGGenerators_()
 nsym = self%GENnum
+
+! next we need to intercept a few special cases for point groups -4m2/-42m and -3m1/-31m
+! by rotating the direct space point symmetry perators generators by the correct angle around the z axis.
+if ( (SGnumber.ge.115).and.(SGnumber.le.120) ) then 
+  sr2 = 1.D0/sqrt(2.D0)
+  R = reshape( (/ sr2, sr2, 0.D0, -sr2, sr2, 0.D0, 0.D0, 0.D0, 1.D0 /), (/3,3/) )
+  do k=1, nsym
+    self%c(:,:) = self%direc(k,:,:)
+    self%c = matmul( transpose(R), matmul(self%c, R) )
+    self%direc(k,:,:) = self%c(:,:)
+  end do 
+end if 
+
+! next the rhombohedral cases
+if (minval(abs(Rnums-SGnumber)).eq.0) then 
+  sr2 = sqrt(3.D0)*0.5D0
+  R = reshape( (/ sr2, -0.5D0, 0.D0,  0.5D0, sr2, 0.D0, 0.D0, 0.D0, 1.D0 /), (/3,3/) )
+  do k=1, nsym
+    self%c(:,:) = self%direc(k,:,:)
+    write (*,*) k 
+    write (*,*) self%c
+    self%c = matmul( transpose(R), matmul(self%c, R) )
+    self%direc(k,:,:) = self%c(:,:)
+    write (*,*) self%c
+  end do 
+end if 
 
 ! generate new elements from the squares of the generators
 do k=1,self%GENnum
@@ -3637,6 +3703,11 @@ end do
   k1=k1+1
  end do
  self%PGMATnum = nsym
+
+
+
+
+
 
 end subroutine GeneratePGSymmetry_
 

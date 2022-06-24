@@ -2474,42 +2474,16 @@ type(HDF_T)                             :: me
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: i, ipg, SGnum
 
- self%xtalname = trim(xtalname)
- if (present(useHDF)) then
+self%xtalname = trim(xtalname)
+if (present(useHDF)) then
   call self%readDataHDF(SG, EMsoft, useHDF)
- else
+else
   call self%readDataHDF(SG, EMsoft)
- end if
+end if
 
- call SG%setSpaceGrouphexset(.FALSE.)
- if (SG%getSpaceGroupXtalSystem().eq.4)  call SG%setSpaceGrouphexset(.TRUE.)
- if ((SG%getSpaceGroupXtalSystem().eq.5).AND.(SG%getSpaceGroupSetting().ne.2)) call SG%setSpaceGrouphexset(.TRUE.)
-
-! compute the metric matrices
- call self%CalcMatrices()
-
-! [code modified on 8/1/18 (MDG), to correct k-vector sampling symmetry errors]
-! First generate the point symmetry matrices, then the actual space group.
-! if the actual group is also the symmorphic group, then both
-! steps can be done simultaneously, otherwise two calls to
-! GenerateSymmetry are needed.
- ! SGnum = SG%getSpaceGroupNumber()
- ! if (SGsymnum(SGnum).eq.SGnum) then
- !  call SG%GenerateSymmetry(.TRUE.)
- ! else
- !  call SG%setSpaceGroupNumber(SGsymnum(SGnum))
- !  write (*,*) ' SG order = ', SGorder(SG%getSpaceGroupNumber())
- !  call SG%GenerateSymmetry(.TRUE.)
- !  call SG%setSpaceGroupNumber(SGnum)
- !  call SG%GenerateSymmetry(.FALSE.)
- !  write (*,*) ' SG order = ', SGorder(SG%getSpaceGroupNumber())
- ! end if
-
-! the reciprocal space symmetry matrices can not be computed unless the
-! direct and reciprocal structure matrices are available (this really only matters
-! for hexagonal and rhombohedral reference frames).  So, we generate the
-! reciprocal symmetry matrices here ...
-if (SG%recip_pending.eqv..TRUE.) call SG%fixRecipPG( self%dmt, self%rmt)
+call SG%setSpaceGrouphexset(.FALSE.)
+if (SG%getSpaceGroupXtalSystem().eq.4)  call SG%setSpaceGrouphexset(.TRUE.)
+if ((SG%getSpaceGroupXtalSystem().eq.5).AND.(SG%getSpaceGroupSetting().ne.2)) call SG%setSpaceGrouphexset(.TRUE.)
 
 call self%calcPositions(SG,'s')
 
@@ -2600,6 +2574,9 @@ self%alpha = cellparams(4)
 self%beta = cellparams(5)
 self%gamma = cellparams(6)
 
+! compute the metric matrices
+call self%CalcMatrices()
+
 dataset = SC_SpaceGroupNumber
 call me%readDatasetInteger(dataset, hdferr, SGnum)
 call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
@@ -2608,7 +2585,9 @@ call me%readDatasetInteger(dataset, hdferr, setting)
 call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
 
 if (setting.eq.0) setting = 1
-SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system, setting = setting )
+SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system, setting = setting, &
+                   dmt=self%dmt, rmt=self%rmt )
+
 !call SG%setSpaceGroupNumber(SGnum)
 
 !all SG%setSpaceGroupSetting(setting)
