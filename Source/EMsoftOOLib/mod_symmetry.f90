@@ -791,11 +791,11 @@ IMPLICIT NONE
 integer(kind=irg), intent(in), OPTIONAL :: SGnumber
 integer(kind=irg), intent(in), OPTIONAL :: xtalSystem
 integer(kind=irg), intent(in), OPTIONAL :: setting
-real(kind=dbl), intent(in)              :: dmt(3,3)
-real(kind=dbl), intent(in)              :: rmt(3,3)
+real(kind=dbl), intent(in),OPTIONAL     :: dmt(3,3)
+real(kind=dbl), intent(in),OPTIONAL     :: rmt(3,3)
 
 type(IO_T)                              :: Message
-integer(kind=irg)                       :: i, pgnum
+integer(kind=irg)                       :: i, pgnum, sgnum
 integer(kind=irg),parameter             :: icv(7) = (/ 7, 6, 3, 2, 5, 4, 1 /)
 real(kind=dbl)                          :: ddt(3,3), rrt(3,3)
 
@@ -804,12 +804,13 @@ if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) .and. .not.(prese
   call getXtalSystem_(SG)
   call getSpaceGroup_(SG)
   call getSetting_(SG)
-
+  sgnum = SG%SGnumber
 else  ! at least one of the optional parameters are present
 
   if (present(SGnumber) .and. (.not.(present(xtalSystem))) ) then
 ! find the crystal system number from the space group number SGXsym = (/ 1, 3, 16, 75, 143, 168, 195 /)
     SG%SGnumber = SGnumber
+    sgnum = SGnumber
     if (SGnumber.ge.SGXsym(7)) then 
         i = 7
     else
@@ -825,10 +826,12 @@ else  ! at least one of the optional parameters are present
   if ( (.not.(present(SGnumber))) .and. (present(xtalSystem)) ) then
     SG%xtal_system = xtalSystem
     call getSpaceGroup_(SG)
+    sgnum = SG%SGnumber
   end if
 
   if (present(SGnumber) .and. (present(xtalSystem)) ) then
     SG%SGnumber = SGnumber
+    sgnum = SGnumber
     SG%xtal_system = xtalSystem
   end if
 
@@ -841,13 +844,13 @@ else  ! at least one of the optional parameters are present
 end if
 
 ! fill in the space group name  and order
-SG%SGname = SYM_SGname(SG%SGnumber)
-SG%SGorder = SGorder(SG%SGnumber)
+SG%SGname = SYM_SGname(sgnum)
+SG%SGorder = SGorder(sgnum)
 
 ! and convert the space group number into a point group number
 pgnum = 0
 do i=1,32
-  if (SGPG(i).le.SG%SGnumber) pgnum = i
+  if (SGPG(i).le.sgnum) pgnum = i
 end do
 call SG%setPGnumber(pgnum)
 
@@ -865,13 +868,20 @@ SG%recip = 0.D0
 ! if the actual group is also the symmorphic group, then both
 ! steps can be done simultaneously, otherwise two calls to
 ! GenerateSymmetry are needed.
-if (SGsymnum(SGnumber).eq.SGnumber) then
-  call GenerateSymmetry_(SG, .TRUE., dmt, rmt)
+if (.not.present(dmt)) then 
+  ddt = reshape( (/1.D0,0.D0,0.D0,0.D0,1.D0,0.D0,0.D0,0.D0,1.D0 /), (/3,3/) )
+  rrt = ddt 
 else
-  SG%SGnumber=SGsymnum(SGnumber)
-  call GenerateSymmetry_(SG, .TRUE., dmt, rmt)
-  SG%SGnumber=SGnumber
-  call GenerateSymmetry_(SG, .FALSE., dmt, rmt)
+  ddt = dmt 
+  rrt = rmt 
+end if 
+if (SGsymnum(sgnum).eq.sgnum) then
+  call GenerateSymmetry_(SG, .TRUE., ddt, rrt)
+else
+  SG%SGnumber=SGsymnum(sgnum)
+  call GenerateSymmetry_(SG, .TRUE., ddt, rrt)
+  SG%SGnumber=sgnum
+  call GenerateSymmetry_(SG, .FALSE., ddt, rrt)
 end if
 
 end function SpaceGroup_constructor

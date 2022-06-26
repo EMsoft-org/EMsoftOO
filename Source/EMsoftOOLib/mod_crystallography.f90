@@ -603,6 +603,10 @@ real(kind=dbl)                          :: oi_real(5)
 end do
 call Message%printMessage('', frm = "(A/)")
 
+call self%calcDensity()
+oi_real(1:3) = self%getDensity()
+call Message%WriteValue(' Density, avA, avZ = ',oi_real,3,"(2f10.5,',',f10.5)")
+
 end subroutine dumpXtalInfo_
 
 !--------------------------------------------------------------------------
