@@ -800,7 +800,7 @@ type(IO_T)              :: Message
 type(Lambert_T)         :: L
 type(HDF_T)             :: HDF
 type(SpaceGroup_T)      :: SG
-type(Diffraction_T)     :: Diff
+type(Diffraction_T),save:: Diff
 type(MCfile_T)          :: MCFT
 type(MPfile_T)          :: MPFT
 type(kvectors_T)        :: kvec
@@ -855,7 +855,7 @@ integer(kind=irg)               :: NumLines, info
 character(fnlen)                :: SlackUsername, exectime
 character(100)                  :: c
 
-!$OMP THREADPRIVATE(rlp)
+!$OMP THREADPRIVATE(Diff)
 
 if (present(thickness)) then
   isTKD = .TRUE.
@@ -1489,7 +1489,7 @@ energyloop: do iE=Estart,1,-1
   call OMP_setNThreads(emnl%nthreads)
 
 ! use OpenMP to run on multiple cores ...
-!$OMP PARALLEL COPYIN(rlp) &
+!$OMP PARALLEL COPYIN(Diff) &
 !$OMP& PRIVATE(DynMat,Sgh,Lgh,ik,FN,TID,kn,ipx,ipy,ipz,ix,iequiv,nequiv,reflist,firstw) &
 !$OMP& PRIVATE(kkk,nns,nnw,nref,svals,io_int)
 
