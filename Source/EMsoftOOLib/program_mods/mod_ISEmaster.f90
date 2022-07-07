@@ -564,7 +564,7 @@ self%nml%xtalname = inp
 end subroutine set_xtalname_
 
 !--------------------------------------------------------------------------
-recursive function getISEintensity_(self, k, atomcnt, atomlist, atomrad, rsphere, a, b) result(inten)
+recursive function getISEintensity_(self, kloc, atomcnt, atomlist, atomrad, rsphere, a, b, usehex) result(inten)
 !DEC$ ATTRIBUTES DLLEXPORT :: getISEintensity_
 !! author: MDG 
 !! version: 1.0 
@@ -579,25 +579,35 @@ use mod_others
 IMPLICIT NONE
 
 class(ISEmaster_T), INTENT(INOUT)   :: self
-real(kind=dbl), INTENT(IN)          :: k(3)                ! this is already a unit vector
+real(kind=dbl), INTENT(IN)          :: kloc(3)             ! this is already a unit vector
 integer(kind=irg), INTENT(IN)       :: atomcnt 
 real(kind=dbl), INTENT(IN)          :: atomlist(3,atomcnt) ! in Angstrom units
 real(kind=dbl), INTENT(IN)          :: atomrad(atomcnt)    ! in Angstrom units
 real(kind=dbl), INTENT(IN)          :: rsphere             ! in Angstrom units
 real(kind=dbl), INTENT(IN)          :: a
 real(kind=dbl), INTENT(IN)          :: b
+logical,INTENT(IN),OPTIONAL         :: usehex
 real(kind=dbl)                      :: inten 
 
 type(a_T)                           :: ax
 type(q_T)                           :: qu
 type(Quaternion_T)                  :: quat
 
-real(kind=dbl)                      :: apos(3,atomcnt), dp, xyz(3), Dsphere, Appix, shft, px, py, t, &
+real(kind=dbl)                      :: apos(3,atomcnt), dp, xyz(3), Dsphere, Appix, shft, px, py, t, k(3), &
                                        dis(atomcnt), ndis(atomcnt), Gd(atomcnt), adisk, bdisk, arad(atomcnt)
 real(kind=dbl),allocatable          :: pplane(:,:) 
 integer(kind=irg)                   :: i, iatom, ss(atomcnt), spsize, ipx, ipy, ix, iy, maxrad
 
-call setRotationPrecision('d')
+call setRotationPrecision('d's
+
+! take care of the hexagonal reference frame
+k = kloc
+if (present(usehex)) then 
+  if (usehex.eqv..TRUE.) then 
+    k(2) = (k(1)+2.D0*k(2))/sqrt(3.D0)
+  end if 
+end if 
+k = k/sqrt(sum(k*k))
 
 ! use the k vector to determine a rotation quaternion
 dp = DOT_PRODUCT(k, (/ 0.D0, 0.D0, 1.D0 /) )
@@ -772,6 +782,8 @@ type(image_t)                   :: im
 integer(int8)                   :: i8 (3,4)
 integer(int8), allocatable      :: TIFF_image(:,:)
 
+call openFortranHDFInterface()
+
 associate( nml => self%nml )
 
 stereog = .TRUE.
@@ -831,6 +843,12 @@ end if
 usehex = .FALSE.
 if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) usehex = .TRUE.
 
+! write (*,*) '========================'
+! write (*,*) 'isym = ',isym
+! write (*,*) 'SamplingType = ', SamplingType
+! write (*,*) 'usehex = ', usehex
+! write (*,*) '========================'
+
 ! ---------- end of symmetry and crystallography section
 !=============================================
 !=============================================
@@ -856,7 +874,7 @@ call mem%alloc(masterSPSH, (/ npx, npy /), 'masterSPSH', initval=0.0, startdims 
 !=============================================
 ! create the HDF5 output file
 !=============================================
-call openFortranHDFInterface()
+
 HDF = HDF_T()
 
 ! Create a new file using the default properties.
@@ -992,15 +1010,11 @@ call mem%alloc(kij, (/3,numk/), 'kij', 0)
 ! point to the first beam direction
 ktmp => kvec%get_ListHead()
 ! and loop through the list, keeping a normalized k and i,j
-kv = ktmp%k(1:3)
-kv = kv / sqrt(sum(kv*kv))
-karray(1:3,1) = kv
+karray(1:3,1) = ktmp%k(1:3)
 kij(1:3,1) = (/ ktmp%i, ktmp%j, ktmp%hs /)
 do ik=2,numk
   ktmp => ktmp%next
-  kv = ktmp%k(1:3)
-  kv = kv / sqrt(sum(kv*kv))
-  karray(1:3,ik) = kv
+  karray(1:3,ik) = ktmp%k(1:3)
   kij(1:3,ik) = (/ ktmp%i, ktmp%j, ktmp%hs /)
 end do
 ! and remove the linked list
@@ -1117,14 +1131,14 @@ call Message%WriteValue(' Number of atoms generated : ', io_int, 1)
    beamloop:do ik = 1,numk
 
      ISEinten = self%getISEintensity(karray(1:3,ik), atomcnt, atomlist, atomrad, rsphere, &
-                                     dble(nml%iscale(1)), dble(nml%iscale(2)))
+                                     dble(nml%iscale(1)), dble(nml%iscale(2)),usehex)
 
 ! and store the resulting svals values, applying point group symmetry where needed.
      ipx = kij(1,ik)
      ipy = kij(2,ik)
      ipz = kij(3,ik)
 !
-     if (usehex) then
+     if (usehex.eqv..TRUE.) then
        call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,npx,iequiv,nequiv,usehex)
      else
        if ((SG%getSpaceGroupNumber().ge.195).and.(SG%getSpaceGroupNumber().le.230)) then
@@ -1162,7 +1176,7 @@ call Message%WriteValue(' Number of atoms generated : ', io_int, 1)
 
   if (usehex) then
 ! and finally, we convert the hexagonally sampled array to a square Lambert projection which will be used 
-! for all EBSD pattern interpolations;  we need to do this for both the Northern and Southern hemispheres
+! for all pattern interpolations;  we need to do this for both the Northern and Southern hemispheres
 
 ! we begin by allocating auxiliary arrays to hold copies of the hexagonal data; the original arrays will
 ! then be overwritten with the newly interpolated data.

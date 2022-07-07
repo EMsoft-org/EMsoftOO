@@ -1050,10 +1050,11 @@ end if
 usehex = .FALSE.
 if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) usehex = .TRUE.
 
-write (*,*) '========================'
-write (*,*) 'isym = ',isym
-write (*,*) 'SamplingType = ', SamplingType
-write (*,*) '========================'
+! write (*,*) '========================'
+! write (*,*) 'isym = ',isym
+! write (*,*) 'SamplingType = ', SamplingType
+! write (*,*) 'usehex = ', usehex
+! write (*,*) '========================'
 
 ! ---------- end of symmetry and crystallography section
 !=============================================
@@ -1577,6 +1578,7 @@ energyloop: do iE=Estart,1,-1
          call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,self%nml%npx,iequiv,nequiv)
        end if
      end if
+
 !$OMP CRITICAL
   if (self%nml%combinesites.eqv..FALSE.) then
      do ix=1,nequiv

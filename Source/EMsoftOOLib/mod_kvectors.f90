@@ -774,10 +774,9 @@ module mod_kvectors
  
  if (self%mapmode.eq.'RoscaLambert') then
     self%delta =  1.D0 / dble(npx)
-    if (usehex) then             ! hexagonal grid
-       hexgrid = .TRUE.
-    else                         ! square grid
-       hexgrid = .FALSE.
+    hexgrid = .FALSE.
+    if (present(usehex)) then             ! hexagonal grid if .TRUE.
+      if (usehex.eqv..TRUE.) hexgrid = .TRUE.
     end if
  
  ! allocate the head of the linked list
