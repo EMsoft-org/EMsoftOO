@@ -598,7 +598,7 @@ real(kind=dbl)                      :: apos(3,atomcnt), dp, xyz(3), Dsphere, App
 real(kind=dbl),allocatable          :: pplane(:,:) 
 integer(kind=irg)                   :: i, iatom, ss(atomcnt), spsize, ipx, ipy, ix, iy, maxrad
 
-call setRotationPrecision('d's
+call setRotationPrecision('d')
 
 ! take care of the hexagonal reference frame
 k = kloc
