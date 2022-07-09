@@ -4,9 +4,9 @@
 ! number of pixels along x-direction of the square master pattern  (2*npx+1 = total number)
  npx = 500,
 ! intensity scaling parameters 
- iscale = 2.0 0.15 2.0,
+ iscale = 2.0 0.05 2.2,
 ! multiplier to set the projection sphere radius
- multiplier = 3.0,
+ multiplier = 1.75,
 ! number of OpenMP threads (0 to use the maximum available)
  nthreads = 1,
 ! this file will also contain the output data of the master program
