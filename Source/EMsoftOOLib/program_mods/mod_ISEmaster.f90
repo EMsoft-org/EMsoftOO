@@ -1093,7 +1093,7 @@ icnt = 1
 do
   atomlist(1:3,icnt) = ptmp%xyz(1:3)
   atomrad(icnt) = ptmp%radius
-  if (.not.associated(ptmp%next)) EXIT
+  if ((.not.associated(ptmp%next)).or.(icnt.eq.atomcnt)) EXIT
   icnt = icnt + 1
   plist => ptmp%next
   deallocate(ptmp)
