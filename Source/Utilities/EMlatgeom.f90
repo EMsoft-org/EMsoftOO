@@ -70,9 +70,9 @@ character(fnlen)          :: progname = 'EMlatgeom.f90'
 character(fnlen)          :: progdesc = 'Simple lattice geometry program'
 
 integer(kind=irg)            :: isel,another, oi_int(3)
-real(kind=sgl)               :: v1(3),v2(3),vc(3),p,q,r, oi_real(1)
+real(kind=sgl)               :: v1(3),v2(3),vc(3),p,q,r, oi_real(1), dp
 character(1)                 :: sp,sp2
-character(fnlen)              :: xtalname
+character(fnlen)             :: xtalname
 
  EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 914 /) )
 
@@ -104,14 +104,24 @@ character(fnlen)              :: xtalname
     oi_real(1) = cell%CalcAngle(v1,v2,sp)*180.0/cPi
     call Message%WriteValue(' -> Angle [deg] = ', oi_real, 1, "(2x,F8.4)")
    else
-    if (sp.eq.'d') sp2='r'
-    if (sp.eq.'r') sp2='d'
-    call cell%CalcCross(v1,v2,vc,sp,sp2,0)
-    oi_int(1:3)=int(vc(1:3))
-    if (sp.eq.'d') then
-     call Message%WriteValue(' ', oi_int, 3, "(' -> p x q = (',2(i3,1x),i3,')')")
+    if (isel.lt.7) then 
+      dp = cell%CalcDot(v1,v2,sp)
+      oi_real(1)= dp
+      if (sp.eq.'d') then
+        call Message%WriteValue(' ', oi_real, 1, "(' -> p . q = ',F8.4)")
+      else
+        call Message%WriteValue(' ', oi_real, 1, "(' -> p . q = ',F8.4)")
+      end if
     else
-     call Message%WriteValue(' ', oi_int, 3, "(' -> p x q = [',2(i3,1x),i3,']')")
+      if (sp.eq.'d') sp2='r'
+      if (sp.eq.'r') sp2='d'
+      call cell%CalcCross(v1,v2,vc,sp,sp2,0)
+      oi_int(1:3)=int(vc(1:3))
+      if (sp.eq.'d') then
+       call Message%WriteValue(' ', oi_int, 3, "(' -> p x q = (',2(i3,1x),i3,')')")
+      else
+       call Message%WriteValue(' ', oi_int, 3, "(' -> p x q = [',2(i3,1x),i3,']')")
+      end if
     end if
    end if
   end if
@@ -141,8 +151,10 @@ integer(kind=irg)                    :: io_int(1)
  call Message%printMessage(' [2] length of reciprocal space vector', frm = "(A)")
  call Message%printMessage(' [3] angle between direct space vectors', frm = "(A)")
  call Message%printMessage(' [4] angle between reciprocal space vectors', frm = "(A)")
- call Message%printMessage(' [5] cross product, direct space vectors', frm = "(A)")
- call Message%printMessage(' [6] cross product, reciprocal space vectors', frm = "(A/)")
+ call Message%printMessage(' [5] dot product, direct space vectors', frm = "(A)")
+ call Message%printMessage(' [6] dot product, reciprocal space vectors', frm = "(A)")
+ call Message%printMessage(' [7] cross product, direct space vectors', frm = "(A)")
+ call Message%printMessage(' [8] cross product, reciprocal space vectors', frm = "(A/)")
  call Message%ReadValue('    Enter selection: ', io_int, 1)
  isel = io_int(1)
 
