@@ -29,6 +29,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
       GetHDF5LinkLibraries(EMSOFTOO)
       set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFTOO_hdf5LinkLibs})
 
+      Add_EMSoftOO_Executable(TARGET EMextractnml
+                                   SOURCES ${APP_DIR}/EMextractnml.f90
+                                   LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
+                                   SOLUTION_FOLDER EMsoftOOPublic/Utilities
+                                   INSTALL_PROGRAM TRUE
+                                   INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                                   )
+
       Add_EMSoftOO_Executable(TARGET TestProgram
                                    SOURCES ${APP_DIR}/TestProgram.f90
                                    LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
