@@ -135,6 +135,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ISEmaster.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_DisOrMap.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_extractnml.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_orav.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

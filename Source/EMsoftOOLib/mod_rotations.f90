@@ -6202,7 +6202,7 @@ qstdev = (/ cos(qv), dfm(1)*sqv, dfm(2)*sqv, dfm(3)*sqv /)
 end function quat_average
 
 !--------------------------------------------------------------------------
-recursive function quat_average_d(qlist, numq, qstdev) result(res)
+recursive function quat_average_d(qlist, numq, qstdev, Tmatrix) result(res)
 !DEC$ ATTRIBUTES DLLEXPORT :: quat_average_d
  !! author: MDG
  !! version: 1.0
@@ -6214,41 +6214,78 @@ real(kind=dbl),INTENT(IN)       :: qlist(4,numq)
 integer(kind=irg)               :: numq
 real(kind=dbl),INTENT(OUT)      :: qstdev(4)
 real(kind=dbl)                  :: res(4)
+logical,INTENT(IN),OPTIONAL     :: Tmatrix
 
 type(q_T)                       :: q
 type(a_T)                       :: a
-integer(kind=irg)               :: i
-real(kind=dbl)                  :: lsum(3), ax(4), qv, sqv, dfm(3)
+integer(kind=irg)               :: i, pos(1)
+real(kind=dbl)                  :: lsum(3), ax(4), qv, sqv, dfm(3), first(4), dp, qin(4), Tmat(4,4)
 real(kind=dbl)                  :: axanglist(3,numq)
+logical                         :: doTmatrix
 
+!LAPACK parameters 
+real(kind=sgl)                  :: VL(4,4), VR(4,4), Wr(4), Wi(4), WORK(40)
+integer(kind=irg)               :: nn, LDA, LDVL, LDVR, INFO, LWORK
+character(1)                    :: JOBVL, JOBVR
+
+doTmatrix=.FALSE.
+if (present(Tmatrix)) then 
+  if (Tmatrix.eqv..TRUE.) doTmatrix=.TRUE. ! use the Tmatrix approach to find the quaternion average
+end if
+
+if (doTmatrix.eqv..TRUE.) then 
+  Tmat = matmul(qlist,transpose(qlist))/real(numq)
+
+! set some initial LAPACK variables 
+  nn = 4
+  LDA = nn
+  LDVL = nn
+  LDVR = nn
+  INFO = 0
+ 
+! first initialize the parameters for the LAPACK DGEEV routines
+  JOBVL = 'N'   ! do not compute the left eigenvectors
+  JOBVR = 'V'   ! do compute the right eigenvectors
+  LWORK = 40   
+
+! call the eigenvalue solver
+  call sgeev(JOBVL,JOBVR,nn,Tmat,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
+  pos = maxloc(Wr)
+  res(1:4) = VR(1:4,pos(1))
+  qstdev = Wr
+! check the sign of the scalar part
+  if (res(1).lt.0.D0) res = -res 
+
+else ! use the quaternion logarithm to determine the average 
 ! convert each one to a logarithm, which is really the unit rotation vector multiplied by half the rotation angle
-do i=1,numq
+  do i=1,numq
 ! convert the quaternion to an axis angle pair
-  q = q_T( qdinp = qlist(1:4,i) )
-  a = q%qa()
-  ax = a%ad
-  axanglist(1:3,i) =  ax(1:3)*0.5D0*ax(4)
-end do
+    q = q_T( qdinp = qlist(1:4,i) )
+    a = q%qa()
+    ax = a%ad
+    axanglist(1:3,i) =  ax(1:3)*0.5D0*ax(4)
+  end do
 
 ! compute the geometric mean
-lsum = sum(axanglist,2)/dble(numq)
+  lsum = sum(axanglist,2)/dble(numq)
 
 ! then get the standard deviation from the mean
-dfm = 0.D0
-do i=1,numq
-  dfm(1:3) = dfm(1:3) + (lsum - axanglist(1:3,i))**2
-end do
-dfm = dsqrt(dfm/dble(numq))
+  dfm = 0.D0
+  do i=1,numq
+    dfm(1:3) = dfm(1:3) + (lsum - axanglist(1:3,i))**2
+  end do
+  dfm = dsqrt(dfm/dble(numq))
 
 ! then convert this average back to a quaternion via the exponentiation operation; check interval first ?
-qv = dsqrt(sum(lsum*lsum))
-sqv = dsin(qv)/qv
-res = (/ dcos(qv), lsum(1)*sqv, lsum(2)*sqv, lsum(3)*sqv /)
+  qv = dsqrt(sum(lsum*lsum))
+  sqv = dsin(qv)/qv
+  res = (/ dcos(qv), lsum(1)*sqv, lsum(2)*sqv, lsum(3)*sqv /)
 
 ! and do the same with the standard deviation quaternion
-qv = dsqrt(sum(dfm*dfm))
-sqv = dsin(qv)/qv
-qstdev = (/ dcos(qv), dfm(1)*sqv, dfm(2)*sqv, dfm(3)*sqv /)
+  qv = dsqrt(sum(dfm*dfm))
+  sqv = dsin(qv)/qv
+  qstdev = (/ dcos(qv), dfm(1)*sqv, dfm(2)*sqv, dfm(3)*sqv /)
+end if 
 
 end function quat_average_d
 

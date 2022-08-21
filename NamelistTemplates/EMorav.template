@@ -1,0 +1,6 @@
+ &orav
+! point group number; please use 0 if no symmetry reduction should be applied
+ pgnum = 32,
+! relative path to the orientations file [relative to EMdatapathname]
+ orientationfilename = 'undefined',
+ /
