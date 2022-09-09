@@ -29,6 +29,15 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
       GetHDF5LinkLibraries(EMSOFTOO)
       set(EXE_LINK_LIBRARIES ${EXE_LINK_LIBRARIES} ${EMSOFTOO_hdf5LinkLibs})
 
+      Add_EMSoftOO_Executable(TARGET EMEBSDpc
+                                   SOURCES ${APP_DIR}/EMEBSDpc.f90
+                                   TEMPLATE ${TMPLT_DIR}/EMEBSDpc.template
+                                   LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
+                                   SOLUTION_FOLDER EMsoftOOPublic/Utilities
+                                   INSTALL_PROGRAM TRUE
+                                   INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                                   )
+
       Add_EMSoftOO_Executable(TARGET EMorav
                                    SOURCES ${APP_DIR}/EMorav.f90
                                    TEMPLATE ${TMPLT_DIR}/EMorav.template

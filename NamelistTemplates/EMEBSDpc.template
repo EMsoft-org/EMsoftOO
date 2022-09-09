@@ -1,0 +1,21 @@
+ &EBSDpc
+! pattern center vendor convention: 'EMsoft', 'TSL', 'Oxford', 'Bruker'
+ convention = 'undefined',
+! detector information
+! # horizontal pixels
+ Nx = 640,
+! # vertical pixels
+ Ny = 480,
+! pixel size (microns)
+ delta = 50.0,
+! detector binning
+ binning = 1,
+! pattern center coordinates using the above defined convention
+! if convention='EMsoft', then xstar and ystar are in units of pixels w.r.t. the center of the 
+! detector and zstar will be the L value in microns;
+! for any of the commercial vendors, the three values will generally be between 0 and 1
+! for TKD, the values could go outside this range, and this program should produce a correct result.
+ xstar = 0.0,
+ ystar = 0.0,
+ zstar = 0.0,
+ /
