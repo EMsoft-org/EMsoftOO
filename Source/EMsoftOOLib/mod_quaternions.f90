@@ -258,6 +258,7 @@ IMPLICIT NONE
     contains
     private
 ! quaternion IO routines
+      procedure, pass(self) :: quatgetprecision
       procedure, pass(self) :: quatprint
       procedure, pass(self) :: getquats
       procedure, pass(self) :: getquatd
@@ -295,6 +296,7 @@ IMPLICIT NONE
 ! miscellaneous routines
       procedure, pass(self), public :: quatsequal
 
+      generic, public :: quat_getprecision => quatgetprecision
       generic, public :: quat_print => quatprint
       generic, public :: quat_flip => quatflip
       generic, public :: quat_pos => quatpos
@@ -310,6 +312,7 @@ IMPLICIT NONE
       generic, public :: operator(*) => quatsmult, quatsmultd
       generic, public :: operator(/) => quatdiv
       generic, public :: operator(/) => quatsdiv, quatsdivd
+      generic, public :: qconjg => quatconjg     ! provided to avoid conflict with mod_octonions
       generic, public :: quat_normalize => quatnormalize
       generic, public :: quat_Lp => quatLp, quatLpd
       generic, public :: quat_Lp_vecarray => quatLp_vecarray, quatLpd_vecarray
@@ -675,6 +678,24 @@ IMPLICIT NONE
   end if
 
 end subroutine quatprint
+
+!--------------------------------------------------------------------------
+recursive function quatgetprecision(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: quatgetprecision
+  !! author: MDG
+  !! version: 1.0
+  !! date: 10/17/22
+  !!
+  !! return the precision of a quaternion
+
+IMPLICIT NONE
+
+class(Quaternion_T),intent(in)    :: self
+character(1)                      :: s
+
+s = self%s
+
+end function quatgetprecision
 
 !--------------------------------------------------------------------------
 recursive function getquats(self) result(qs)

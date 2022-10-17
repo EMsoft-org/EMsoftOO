@@ -1781,13 +1781,14 @@ if (ronl%method.eq.'FIT') then
                       myEBSD%det%rgy, myEBSD%det%rgz, myEBSD%det%accum_e_detector, &
                       (/ myEBSD%nml%xpc, myEBSD%nml%ypc, myEBSD%nml%L /))
                       
-                      ! first undo the pattern center shift by an equivalent rotation (see J. Appl. Cryst. (2017). 50, 1664–1676, eq.15)
+                      ! first undo the pattern center shift by an equivalent rotation 
+                      ! (see J. Appl. Cryst. (2017). 50, 1664–1676, eq.15)
                       if ((dx.ne.0.0).or.(dy.ne.0.0)) then 
                         myeu = e_T(edinp = dble(eulerPS(1:3,kk,ll)))
                         myqu = myeu%eq()
                         rho = dx**2+dy**2
                         nn = -(/dx*ca,-dy,-dx*sa/)/sqrt(rho)
-                        omega = acos(myEBSD%nml%L/sqrt(myEBSD%nml%L**2 + dinl%delta**2 * rho))
+                        omega = acos(1.0/sqrt(1.0 + dinl%delta**2 * rho/myEBSD%nml%L**2))
                         qqq = Quaternion_T( qd = dble((/ cos(omega*0.5), sin(omega*0.5) * nn, 0.0, 0.0 /)) ) 
                         myquat = Quaternion_T(qd = myqu%q_copyd())
 

@@ -42,6 +42,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
   set(EMsoftOO_UNIT_TESTS 
     MODQuaternions
+    MODOctonions
     HDFtextfile
     HDFinteger
     HDFchar

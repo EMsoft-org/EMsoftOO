@@ -266,7 +266,7 @@ g = (/ 1, 2, 3 /)
 call SG%CalcFamily(g, nn, 'd', itmp)
 
 sz2 = shape(itmp)
-if ((sz2(1).ne.2).or.(sz2(2).ne.3)) then 
+if ((sz2(1).ne.4).or.(sz2(2).ne.3)) then 
   res = 22 
   write (*,"('space group CalcFamily size test failed ')")
   return
@@ -289,7 +289,7 @@ if ((sz2(1).ne.8).or.(sz2(2).ne.3)) then
   return
 end if
 
-diffd = sum( abs( ctmp(7,:) - cref3(:)))
+diffd = sum( abs( ctmp(6,:) - cref3(:)))
 if (diffd.gt.epsd) then 
   res = 25 
   write (*,"('space group CalcOrbit test failed ')")
@@ -302,8 +302,7 @@ kk = (/  0.1D0, 0.1D0, 0.8D0 /)
 call SG%CalcStar(kk, nn, ctmp, 'd')
 sz2 = shape(ctmp)
 
-
-if ((sz2(1).ne.2).or.(sz2(2).ne.3)) then 
+if ((sz2(1).ne.4).or.(sz2(2).ne.3)) then 
   res = 26 
   write (*,"('space group CalcOrbit size test failed ')")
   return
