@@ -107,65 +107,65 @@ Efitwidget_s = {widgetstruct, $
         	navigatorbase:long(0), $              
         	navstepsize:long(0), $                    	
         	displaybase:long(0), $               
-                displayoption:long(0), $
-                cancelbutton:long(0), $
-                cancelwidget:long(0), $
-                CWbutton:long(0), $
-                CCWbutton:long(0), $
-                UPbutton:long(0), $
-                DOWNbutton:long(0), $
-                LEFTbutton:long(0), $
-                RIGHTbutton:long(0), $
-                ZERObutton:long(0), $
-                progress:long(0), $
-                imageformat:long(0), $
-                logodraw:long(0), $
-                logodrawid:long(0), $
-                draw:long(0), $
-                drawid:long(0), $
-                mpfilename:long(0), $
-                expfilename:long(0), $
-                mploadfile:long(0), $
-                exploadfile:long(0), $
-                mainstop:long(0), $
-                gofit:long(0), $
-                dettheta:long(0), $
-                detomega:long(0), $
-                detdelta:long(0), $
-                detnumsx:long(0), $
-                detnumsy:long(0), $
-                detbeamcurrent:long(0), $
-                detdwelltime:long(0), $
-                detbinning:long(0), $
-                detL:long(0), $
-                defValue:replicate(0L,nFit), $
-                fitValue:replicate(0L,nFit), $
-                fitStep:replicate(0L,nFit), $
-                fitOnOff:replicate(0L,nFit), $
-                fitManualUp:replicate(0L,nFit), $
-                fitManualDown:replicate(0L,nFit), $
-                fitManualStep:replicate(0L,nFit), $
-                status:long(0), $
-		xstar: long(0), $			; x^* parameter widget
-		ystar: long(0), $			; y^* parameter widget
-		zstar: long(0), $			; z^* parameter widget
-                min:long(0), $
-                max:long(0), $
-                smoothval:long(0), $
-                compute:long(0), $
-                mkjson:long(0), $
-                convcrit:long(0), $
-                fitmode:long(0), $
-                goconstrainedfit:long(0), $
-                preproc:long(0), $
-                ramponoff:long(0), $
-                hipassonoff:long(0), $
-                hipasscutoff:long(0), $
-                circularmask:long(0), $
-                inverseGaussian:long(0), $
-                EulerConvention:long(0), $
-                PatternOrigin:long(0), $
-                test:long(0) }
+            displayoption:long(0), $
+            cancelbutton:long(0), $
+            cancelwidget:long(0), $
+            CWbutton:long(0), $
+            CCWbutton:long(0), $
+            UPbutton:long(0), $
+            DOWNbutton:long(0), $
+            LEFTbutton:long(0), $
+            RIGHTbutton:long(0), $
+            ZERObutton:long(0), $
+            progress:long(0), $
+            imageformat:long(0), $
+            logodraw:long(0), $
+            logodrawid:long(0), $
+            draw:long(0), $
+            drawid:long(0), $
+            mpfilename:long(0), $
+            expfilename:long(0), $
+            mploadfile:long(0), $
+            exploadfile:long(0), $
+            mainstop:long(0), $
+            gofit:long(0), $
+            dettheta:long(0), $
+            detomega:long(0), $
+            detdelta:long(0), $
+            detnumsx:long(0), $
+            detnumsy:long(0), $
+            detbeamcurrent:long(0), $
+            detdwelltime:long(0), $
+            detbinning:long(0), $
+            detL:long(0), $
+            defValue:replicate(0L,nFit), $
+            fitValue:replicate(0L,nFit), $
+            fitStep:replicate(0L,nFit), $
+            fitOnOff:replicate(0L,nFit), $
+            fitManualUp:replicate(0L,nFit), $
+            fitManualDown:replicate(0L,nFit), $
+            fitManualStep:replicate(0L,nFit), $
+            status:long(0), $
+    		xstar: long(0), $			; x^* parameter widget
+    		ystar: long(0), $			; y^* parameter widget
+    		zstar: long(0), $			; z^* parameter widget
+            min:long(0), $
+            max:long(0), $
+            smoothval:long(0), $
+            compute:long(0), $
+            mkjson:long(0), $
+            convcrit:long(0), $
+            fitmode:long(0), $
+            goconstrainedfit:long(0), $
+            preproc:long(0), $
+            ramponoff:long(0), $
+            hipassonoff:long(0), $
+            hipasscutoff:long(0), $
+            circularmask:long(0), $
+            inverseGaussian:long(0), $
+            EulerConvention:long(0), $
+            PatternOrigin:long(0), $
+            test:long(0) }
 
 ; data structure
 Efitdata = {Efitdatastruct, $

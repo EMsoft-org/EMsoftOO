@@ -2096,7 +2096,7 @@ end if
 
 if (ronl%angfile.ne.'undefined') then
     fpar1(1) = WD
-    call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,euler_best,resultmain,DIDT%IQ)
+    call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,euler_best,resultmain,DIDT%IQ, noindex=.TRUE.)
     call Message%printMessage(' Data stored in ang file : '//trim(ronl%angfile))
 end if
 
