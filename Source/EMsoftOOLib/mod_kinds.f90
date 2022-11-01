@@ -39,7 +39,7 @@ module mod_kinds
 
   private
 
-  public :: sgl, dbl, ish, irg, ill, Fortran_REAL_4, Fortran_REAL_8 
+  public :: sgl, dbl, ish, irg, ill, real_kind_7, real_kind_15 
 
 !> @note This module must be "use"d by every program, subroutine, and function.
 !> These are the kind variables used by the EMsoft package.
@@ -64,13 +64,18 @@ module mod_kinds
 !DEC$ ATTRIBUTES DLLEXPORT :: ill
 
 ! Define the "kind" parameters for Fortran_REAL_4
-  integer,parameter                     :: Fortran_REAL_4 = 4
+  ! integer,parameter                     :: Fortran_REAL_4 = 4
 !DEC$ ATTRIBUTES DLLEXPORT :: Fortran_REAL_4 
 
 ! Define the "kind" parameters for Fortran_REAL_4
-  integer,parameter                     :: Fortran_REAL_8 = 8
+  ! integer,parameter                     :: Fortran_REAL_8 = 8
 !DEC$ ATTRIBUTES DLLEXPORT :: Fortran_REAL_8 
 
+! new kind parameter definitions for use with HDF5-1_12_2; replace Fortran_REAL_4 and 8 
+ INTEGER, PARAMETER :: real_kind_7 = SELECTED_REAL_KIND(6,37) !should map to REAL*4 on most modern processors
+ INTEGER, PARAMETER :: real_kind_15 = SELECTED_REAL_KIND(15,307) !should map to REAL*8 on most modern processors
+!DEC$ ATTRIBUTES DLLEXPORT :: real_kind_7 
+!DEC$ ATTRIBUTES DLLEXPORT :: real_kind_15 
 
 
 
