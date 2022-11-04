@@ -17,7 +17,7 @@ function(AddHDF5CopyInstallRules)
   endif(0)
   
   set(h5LibName ${Z_LIBNAME})
-  if (HDF5_VERSION_STRING VERSION_GREATER 1.8.15)
+  if (HDF5_VERSION_STRING VERSION_GREATER 1.12.0)
     if(${HDF5_BUILD_SHARED_LIBS})
       set(h5LibName hdf5::${Z_LIBNAME}-shared)
     elseif(APPLE)
