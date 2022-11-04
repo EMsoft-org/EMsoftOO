@@ -4,7 +4,7 @@ This repository contains the source code for version 6.0 of the EMsoft package; 
 
 EMsoftOO Version 6.0 should be considered a beta version; the code is still very much under development, and not all of the version 5.0 programs have been ported yet. Nevertheless, most of the SEM-related code has been converted and tested.  We are in the process of updating the wiki pages. 
 
-### **This release of EMsoftOO requires an updated Software Developer Toolkit (SDK); please go to [this page](https://github.com/EMsoft-org/EMsoftSuperbuild) and follow the instructions to install a new SDK before you attempt to build the present release.**
+### **This release of EMsoftOO requires an updated Software Developer Toolkit (SDK); please go to [this page](https://github.com/EMsoft-org/EMsoftSuperbuild) and follow the instructions to install a new SDK before you attempt to build the present release.  As of 11/04/2022, you should use the DevelopOO branch of this respository!!**
 
 ## Financial Support 
 EBSD/ECP/EKP development of this package, including dictionary indexing for EBSD/ECP, was started with support from an AFOSR/MURI grant, FA9550-12-1-0458; the original EBSD code from CTEMsoft 2.0 was developed with support from an ONR grant, N00014-12-1-0075.  All recent development of EMsoft was performed with support from an ONR Vannevar Bush Faculty Fellowship, N00014-­16-­1-­2821, and an NSF research program DMR \#1904629.
@@ -30,7 +30,7 @@ EMsoft started as a source code base used for the creation of all figures in the
 
 ## Installation 
 
-If you want to build EMsoftOO yourself, it would make sense to first get a GitHub account, and fork this repository into your account. Then clone the repo *from your account* onto your local computer. Before you can compile things, you need to first build the Software Developer Kit (EMsoft_SDK), which you can find [here](https://github.com/EMsoft-org/EMsoftSuperbuild); follow the instructions for your platform. In addition, you will need to clone the *EMsoftData* repository, also from *EMsoft-org*, in a folder at the same level as the main repository folder. 
+If you want to build EMsoftOO yourself, it would make sense to first get a GitHub account, and fork this repository into your account. Then clone the repo *from your account* onto your local computer. Before you can compile things, you need to first build the Software Developer Kit (EMsoftOO_SDK), which you can find [here](https://github.com/EMsoft-org/EMsoftSuperbuild); follow the instructions for your platform, starting from the DevelopOO branch. In addition, you will need to clone the *EMsoftData* repository, also from *EMsoft-org*, in a folder at the same level as the main repository folder. 
 
 Then, starting in the top folder where you have cloned the EMsoftOO repository, carry out the following commands (for UNIX-type builds; on Windows, use nmake instead of make):
 
@@ -39,12 +39,12 @@ Then, starting in the top folder where you have cloned the EMsoftOO repository, 
   cd EMsoftOOBuild
   mkdir Release
   cd Release
-  cmake -DCMAKE_BUILD_TYPE=Release -DEMsoft_SDK=/somepath/EMsoft_SDK ../../EMsoftOO
+  cmake -DCMAKE_BUILD_TYPE=Release -DEMsoft_SDK=/somepath/EMsoftOO_SDK ../../EMsoftOO
   make -j
   cd ../
   mkdir Debug
   cd Debug
-  cmake -DCMAKE_BUILD_TYPE=Debug -DEMsoft_SDK=/somepath/EMsoft_SDK ../../EMsoftOO
+  cmake -DCMAKE_BUILD_TYPE=Debug -DEMsoft_SDK=/somepath/EMsoftOO_SDK ../../EMsoftOO
   make -j
 
 ```
