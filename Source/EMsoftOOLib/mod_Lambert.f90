@@ -2160,11 +2160,11 @@ integer(kind=irg),INTENT(IN)            :: nn
  !! number of entries in output array
 real(kind=sgl),INTENT(IN)               :: m(-npx:npx,-npx:npx, nn)
  !! master pattern
-real(kind=sgl)                          :: res(nn)
+real(kind=sgl)                          :: res
  !! output intensity array
 
 integer(kind=irg)                       :: nix, niy, nixp, niyp, istat
-real(kind=sgl)                          :: xy(2), dx, dy, dxm, dym, scl
+real(kind=sgl)                          :: xy(2), dx, dy, dxm, dym, scl, s(nn)
 
 scl = float(npx)
 
@@ -2173,8 +2173,10 @@ if (dc(3).lt.0.0) dc = -dc
 ! convert direction cosines to lambert projections
 call LambertgetInterpolation(sngl(dc), scl, npx, npx, nix, niy, nixp, niyp, dx, dy, dxm, dym)
 
-res(1:nn) = m(nix,niy,1:nn)*dxm*dym + m(nixp,niy,1:nn)*dx*dym + &
+s(1:nn) = m(nix,niy,1:nn)*dxm*dym + m(nixp,niy,1:nn)*dx*dym + &
             m(nix,niyp,1:nn)*dxm*dy + m(nixp,niyp,1:nn)*dx*dy
+
+res = sum(s)
 
 end function InterpolationLambert3DSingle
 

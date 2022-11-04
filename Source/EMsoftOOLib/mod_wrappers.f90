@@ -203,4 +203,52 @@ call EMsoftCgetECPatterns(ipar, fpar, ECpattern, quats, accum_e, mLPNH, mLPSH, C
 getECPatternsWrapper = 1._c_float
 end function getECPatternsWrapper
 
+!--------------------------------------------------------------------------
+recursive function getKosselPatternsWrapper(argc, argv) bind(c, name='getKosselPatternsWrapper') 
+!DEC$ ATTRIBUTES DLLEXPORT :: getKosselPatternsWrapper
+  !! author: MDG
+  !! version: 1.0
+  !! date: 04/15/21
+  !!
+  !! wrapper routine for EMsoftCgetECPatterns 
+  !!
+  !! see example at https://groups.google.com/forum/#!topic/comp.lang.idl-pvwave/Gk0xxVFbW8E
+
+use,INTRINSIC :: ISO_C_BINDING
+
+IMPLICIT NONE
+
+INTEGER(c_size_t), VALUE, INTENT(IN)            :: argc 
+type(c_ptr), dimension(argc), INTENT(INOUT)     :: argv
+!f2py intent(in,out) ::  argv
+REAL(c_float)                                   :: getKosselPatternsWrapper
+
+! wrapper function dependent declarations; they are all pointers 
+! since we pass everything by reference from IDL 
+integer(c_size_t)                               :: nipar, nfpar, nq
+integer(c_size_t),dimension(:), pointer         :: ipar
+real(c_float), dimension(:), pointer            :: fpar
+real(c_float), dimension(:,:), pointer          :: quats
+real(c_float), dimension(:,:,:), pointer        :: KosselPattern, mLPNH, mLPSH
+
+! the following line just helps in identifying the correct order of the subroutine arguments...
+!                             1      2     3             4       5       6
+!subroutine getKosselPatterns(ipar, fpar, KosselPattern, quats, mLPNH, mLPSH)
+!
+! transform the C pointers above to fortran pointers, and use them in the regular function call
+nipar = 6
+nfpar = 1
+nq = 4
+call c_f_pointer(argv(1),ipar,(/nipar/)) 
+call c_f_pointer(argv(2),fpar,(/nfpar/)) 
+call c_f_pointer(argv(3),Kosselpattern,(/ipar(2),ipar(2),ipar(4)/))
+call c_f_pointer(argv(4),quats,(/nq,ipar(4)/))
+call c_f_pointer(argv(5),mLPNH,(/2*ipar(3)+1, 2*ipar(3)+1,ipar(5)/))
+call c_f_pointer(argv(6),mLPSH,(/2*ipar(3)+1, 2*ipar(3)+1,ipar(5)/))
+
+call getKosselPatterns(ipar, fpar, Kosselpattern, quats, mLPNH, mLPSH)
+
+getKosselPatternsWrapper = 1._c_float
+end function getKosselPatternsWrapper
+
 end module mod_wrappers

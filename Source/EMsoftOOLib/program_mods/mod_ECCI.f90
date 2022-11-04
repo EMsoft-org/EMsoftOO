@@ -800,6 +800,7 @@ if (trim(emnl%progmode).eq.'circl') ktmp => khead
 ! ! and loop through the list, keeping k, kn, and i,j
 klist(1:3,1) = ktmp%k
 knlist(1) = ktmp%kn
+write (*,*) ' 1 ', ktmp%k 
 
 ! we also need to rescale the normal components of k since those are still
 ! in units of multiples of ga
@@ -810,6 +811,7 @@ do i = 2,numk
   gx(1:2) = gx(1:2) * glen 
   call cell%NormVec(gx,'r')
   klist(1:3,i) = gx/Diff%getWaveLength()
+  write (*,*) i, ktmp%k, klist(1:3,i)
   knlist(i) = ktmp%kn
 end do
 
@@ -1070,24 +1072,23 @@ DM(2,1) = DM(1,2)
 DM(2,2) = cell%CalcDot(float(ga),float(ga),'c')
 DD = DM(1,1)*DM(2,2) - DM(1,2)*DM(2,1)
 
+
 mainloop: do isg = numstart,numstop 
 
   !=============================================
-! ---------- create the master reflection list for the zone axis beam direction
-! we'll use the first beam direction for this (this should be a zone axis orientation)
-! and then we won't have to recompute the off-diagonal part of the dynamical matrix.
+! ---------- create the reflection list
   reflist = gvectors_T()
 
   kk = klist(1:3,isg)
+  write (*,*) ' original kk ', kk
   call cell%NormVec(kk,'c')
-  kk = kk/lambda
+  FN = kk
   call cell%TransSpace(kk,kstar,'c','r')
-  kk = kstar
-  FN = kstar
+  kk = kstar/lambda
   verbose = .FALSE.
+  write (*,*) isg, FN, kk, emnl%dmin 
   call reflist%Initialize_ReflectionList(cell, SG, Diff, sngl(FN), kk, sngl(emnl%dmin), verbose)
   nn = reflist%get_nref()
-
 ! ---------- end of "create the master reflection list"
 !=============================================
 
@@ -1098,6 +1099,8 @@ mainloop: do isg = numstart,numstop
   nnw = 0
   call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
   nn = nns
+  write (*,*) 'number of reflections : ', nn,' for beam direction ', isg 
+  call reflist%PrintRefList('s')
 
 ! allocate the various DHW Matrices
   call mem%alloc(DHWMz, (/nn,nn/), 'DHWMz', initval = czero)
@@ -1119,6 +1122,7 @@ mainloop: do isg = numstart,numstop
   call reflist%getSghfromLUTsum(Diff,nn,numset,Sgh)
 
   ECCIimages = 0.0
+
 
   ! compute the excitation error for the incident beam directions
     call mem%alloc(sgarray, (/nn/), 'sgarray', initval = 0.0)
@@ -1234,7 +1238,18 @@ mainloop: do isg = numstart,numstop
           amp = amp2
       end do doslices ! loop over slices
 
-      svals = real(sum(Lgh(1:nn,1:nn)*Sgh(1:nn,1:nn)))
+! if (TID.eq.0) then
+!   write (*,*) '--------'
+!   write (*,*) 'Sgh(1,10) = ', Sgh(1,10) 
+!   write (*,*) 'Sgh(10,1) = ', Sgh(10,1) 
+
+!   write (*,*) 'Lgh(1,10) = ', Lgh(1,10) 
+!   write (*,*) 'Lgh(10,1) = ', Lgh(10,1) 
+! stop
+! end if
+
+      ! svals = real(sum(Lgh(1:nn,1:nn)*Sgh(1:nn,1:nn)))
+      svals = real(sum(Lgh*Sgh))
       svals = svals/sngl(real(sum(nat(1:numset))))
       ECCIimages(i,j,1) =  sngl(sum(svals))
     end do donpiy

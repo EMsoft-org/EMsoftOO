@@ -25,7 +25,7 @@
 ! number of regions for adaptive histogram equalization
  nregions = 10,
 ! do we need to do an NLPAR pre-processing step ?
- doNLPAR = 'FALSE',
+ doNLPAR = .FALSE.,
 ! NLPAR search window size (2*sw+1) by (2*sw+1)
  sw = 3,
 ! lambda parameter

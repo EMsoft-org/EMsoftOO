@@ -116,6 +116,8 @@ res = 0
 !===================================================
 !=============Double Precision Tests================
 !===================================================
+call set_octonionprecision('d')
+call set_octonionGBmode(.FALSE.)
 
 !===================================================
 ! initialize zero quaternion 
@@ -204,8 +206,8 @@ if (diffd.gt.epsd) then
   return
 end if
 
-! make u a rotation of 120° around the [111] axis 
-call a%set_GBmode(.TRUE.)
+! 
+call set_octonionGBmode(.TRUE.)
 call a%octnormalize()
 call a%oct_print(' GBOM normalization : ')
 diffd = abs(cabs(a) - 1.D0)
@@ -214,11 +216,12 @@ if (diffd.gt.epsd) then
   write (*,"('double precision normalization test failed = ',D18.10)") diffd
   return
 end if
-call a%set_GBmode(.FALSE.)
+call set_octonionGBmode(.FALSE.)
 
 !===================================================
 !=============Single Precision Tests================
 !===================================================
+call set_octonionprecision('s')
 
 !===================================================
 ! initialize zero quaternion 
@@ -310,8 +313,8 @@ if (diff.gt.eps) then
   return
 end if
 
-! make u a rotation of 120° around the [111] axis 
-call a%set_GBmode(.TRUE.)
+!
+call set_octonionGBmode(.TRUE.)
 call a%octnormalize()
 call a%oct_print(' GBOM normalization : ')
 diff = abs(cabs(a) - 1.0)
@@ -320,10 +323,7 @@ if (diff.gt.eps) then
   write (*,"('single precision normalization test failed = ',D18.10)") diffd
   return
 end if
-call a%set_GBmode(.FALSE.)
-
-
-
+call set_octonionGBmode(.FALSE.)
 
 ! !===================================================
 ! !==========Double Precision Array Tests=============

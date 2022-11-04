@@ -110,6 +110,7 @@ private
   procedure, pass(self) :: GetSgArray_ECCI_
   procedure, pass(self) :: GetExpval_ECCI_
   procedure, pass(self) :: Get_ListHead_
+  procedure, pass(self) :: PrintRefList_
 
   final :: gvectors_destructor
 
@@ -137,6 +138,7 @@ private
   generic, public :: GetSgArray_ECCI => GetSgArray_ECCI_
   generic, public :: GetExpval_ECCI => GetExpval_ECCI_
   generic, public :: Get_ListHead => Get_ListHead_
+  generic, public :: PrintRefList => PrintRefList_
 
 end type gvectors_T
 
@@ -314,7 +316,7 @@ integer(kind=irg)                  :: istat
  self%rltail%famnum = 0                              ! init this value for Prune_ReflectionList
 ! self%rltail%Ucgmod = cabs(rlp%Ucg)                 ! added on 2/29/2012 for Bethe potential computations
 ! self%rltail%sangle = 1000.0*dble(CalcDiffAngle(hkl(1),hkl(2),hkl(3)))    ! added 4/18/2012 for EIC project HAADF/BF tomography simulations
-! self%rltail%thetag = rlp%Vphase                   ! added 12/14/2013 for EMECCI program
+ self%rltail%thetag = Diff%getVphase( hkl )          ! added 12/14/2013 for EMECCI program
  nullify(self%rltail%nextw)
  nullify(self%rltail%nexts)
 
@@ -471,6 +473,45 @@ type(reflisttype),pointer                      :: listroot
 listroot => self%reflist
 
 end function Get_ListHead_
+
+!--------------------------------------------------------------------------
+recursive subroutine PrintRefList_(self, swall)
+!DEC$ ATTRIBUTES DLLEXPORT :: PrintRefList_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 07/12/22
+  !!
+  !! print the reflection list 
+
+use mod_io
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT)               :: self
+character(1),INTENT(IN)                       :: swall
+
+type(IO_T)                                    :: Message 
+
+type(reflisttype),pointer                     :: rltmp
+integer(kind=irg)                             :: io_int(3)
+
+rltmp => self%reflist%next
+
+do 
+  if (.not.associated(rltmp)) EXIT 
+  io_int(1:3) = rltmp%hkl(1:3)
+  call Message%WriteValue('',io_int,3)
+  select case (swall) 
+    case('a')  
+      rltmp => rltmp%next 
+    case('s')  
+      rltmp => rltmp%nexts
+    case('w')  
+      rltmp => rltmp%nextw 
+  end select
+end do 
+
+end subroutine PrintRefList_
 
 !--------------------------------------------------------------------------
 recursive subroutine Apply_BethePotentials_(self, Diff, listrootw, nns, nnw, verbose)
@@ -1476,8 +1517,8 @@ real(kind=sgl)                   :: DD
   ! ic is the column index
        do ic=1,nn
          if (ic.ne.ir) then  ! exclude the diagonal
-           expval(1,ir,ic) = rltmpa%nab(1)-rltmpb%nab(1)
-           expval(2,ir,ic) = rltmpa%nab(2)-rltmpb%nab(2)
+           expval(1,ir,ic) = rltmpb%nab(1)-rltmpa%nab(1)
+           expval(2,ir,ic) = rltmpb%nab(2)-rltmpa%nab(2)
          end if
          rltmpb => rltmpb%nexts ! move to next column-entry
       end do
@@ -1552,6 +1593,7 @@ complex(kind=dbl),INTENT(INOUT)         :: Sgh(nns,nns)
 
 type(reflisttype),pointer               :: rltmpa, rltmpb
 integer(kind=irg)                       :: ir, ic, kkk(3)
+real(kind=dbl)                          :: thdiff
 
 associate( reflist => self%reflist )
 
@@ -1563,7 +1605,8 @@ associate( reflist => self%reflist )
       rltmpb => reflist%next    ! point to the front of the list
       do ic=1,nns
         kkk = rltmpb%hkl - rltmpa%hkl
-        Sgh(ir,ic) = sum(Diff%getSghLUT( numset, kkk ))
+        thdiff = rltmpb%thetag - rltmpa%thetag
+        Sgh(ir,ic) = cmplx( cos(thdiff), sin(thdiff) ) * sum(Diff%getSghLUT( numset, kkk ))
         rltmpb => rltmpb%nexts  ! move to next column-entry
       end do
      rltmpa => rltmpa%nexts  ! move to next row-entry
@@ -1605,7 +1648,7 @@ associate( reflist => self%reflist )
 ! ic is the column index
       rltmpb => reflist%next    ! point to the front of the list
       do ic=1,nns
-        thdiff = rltmpa%thetag - rltmpb%thetag
+        thdiff = rltmpb%thetag - rltmpa%thetag
         thetagh(ir,ic) = cmplx( cos(thdiff), sin(thdiff) )
         rltmpb => rltmpb%nexts  ! move to next strong beam column-entry
       end do

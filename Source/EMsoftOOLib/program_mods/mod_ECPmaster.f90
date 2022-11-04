@@ -130,12 +130,14 @@ real(kind=sgl)                              :: dmin
 character(3)                                :: Notify
 character(fnlen)                            :: copyfromenergyfile
 character(fnlen)                            :: h5copypath
+character(fnlen)                            :: BetheParametersFile
 character(fnlen)                            :: energyfile
 logical                                     :: combinesites
 logical                                     :: kinematical
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist /ECPmastervars/ dmin, Notify, h5copypath, energyfile, npx, nthreads, copyfromenergyfile, combinesites, kinematical
+namelist /ECPmastervars/ dmin, Notify, h5copypath, energyfile, npx, nthreads, copyfromenergyfile, combinesites, & 
+                         kinematical, BetheParametersFile
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 nthreads = 1
@@ -145,6 +147,7 @@ Notify = 'Off'
 h5copypath = 'undefined'
 energyfile = 'undefined'        ! default filename for z_0(E_e) data from EMMC Monte Carlo simulations
 copyfromenergyfile = 'undefined'
+BetheParametersFile = 'undefined'
 kinematical = .FALSE.
 combinesites = .FALSE.
 
@@ -171,6 +174,7 @@ self%nml%dmin = dmin
 self%nml%Notify = Notify
 self%nml%h5copypath = h5copypath
 self%nml%copyfromenergyfile = copyfromenergyfile
+self%nml%BetheParametersFile = BetheParametersFile
 self%nml%energyfile = energyfile
 self%nml%combinesites = combinesites
 self%nml%kinematical = kinematical
@@ -238,7 +242,7 @@ type(IO_T)              :: Message
 type(Lambert_T)         :: L
 type(HDF_T)             :: HDF
 type(SpaceGroup_T)      :: SG
-type(Diffraction_T)     :: Diff
+type(Diffraction_T),save:: Diff
 type(MCfile_T)          :: MCFT
 type(MPfile_T)          :: MPFT
 type(kvectors_T)        :: kvec
@@ -305,7 +309,7 @@ integer(kind=irg)                   :: NumLines
 character(fnlen)                    :: SlackUsername, exectime
 character(100)                      :: c
 
-!$OMP THREADPRIVATE(rlp)
+!$OMP THREADPRIVATE(Diff)
 
 call openFortranHDFInterface()
 HDF = HDF_T()
@@ -466,7 +470,7 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
   end if
 
 ! force dynamical matrix routine to read new Bethe parameters from file
-  call Diff%SetBetheParameters(EMsoft, .TRUE., emnl%BetheParametersFile)
+  call Diff%SetBetheParameters(EMsoft, .FALSE.) ! , emnl%BetheParametersFile)
 
 !=============================================
 ! create or update the HDF5 output file
@@ -567,8 +571,8 @@ dataset = SC_mLPSH
   end if
 
 dataset = SC_masterSPNH
-  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, numsites /)
-  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, numsites /)
+  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, 1 /)
+  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1 /)
   offset3 = (/ 0, 0, 0 /)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
   if (g_exists) then
@@ -578,8 +582,8 @@ dataset = SC_masterSPNH
   end if
 
 dataset = SC_masterSPSH
-  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, numsites /)
-  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, numsites /)
+  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, 1 /)
+  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1 /)
   offset3 = (/ 0, 0, 0 /)
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
   if (g_exists) then
@@ -668,7 +672,7 @@ nthreads = emnl%nthreads
 call OMP_setNThreads(nthreads)
 
 ! use OpenMP to run on multiple cores ...
-!$OMP PARALLEL COPYIN(rlp) &
+!$OMP PARALLEL COPYIN(Diff) &
 !$OMP& PRIVATE(DynMat,Sgh,sghtmp,Lgh,i,FN,TID,kn,ipx,ipy,ix,ip,iequiv,nequiv,reflist,firstw) &
 !$OMP& PRIVATE(kk,nns,nnw,nref,nat,io_int,io_int_sgl,nthreads,svals)
 
@@ -852,11 +856,11 @@ do i=-emnl%npx,emnl%npx
     ierr = L%StereoGraphicInverse( xyz, Radius )
     xyz = xyz/vecnorm(xyz)
     if (ierr.ne.0) then
-      masterSPNH(i,j,1:numset) = 0.0
-      masterSPSH(i,j,1:numset) = 0.0
+      masterSPNH(i,j,1) = 0.0
+      masterSPSH(i,j,1) = 0.0
     else
-      masterSPNH(i,j,1:numset) = InterpolateLambert(xyz, mLPNH, emnl%npx, numset)
-      masterSPSH(i,j,1:numset) = InterpolateLambert(xyz, mLPSH, emnl%npx, numset)
+      masterSPNH(i,j,1) = InterpolateLambert(xyz, mLPNH, emnl%npx, numset)
+      masterSPSH(i,j,1) = InterpolateLambert(xyz, mLPSH, emnl%npx, numset)
     end if
   end do
 end do

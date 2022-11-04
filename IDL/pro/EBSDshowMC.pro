@@ -39,6 +39,7 @@
 ;> the data is read from the file...
 ;
 ;> @date 03/20/14 MDG 1.0 first version
+;> @date 11/03/22 MDG 1.1 correction of display variable
 ;--------------------------------------------------------------------------
 pro EBSDshowMC, dummy
 
@@ -168,7 +169,8 @@ if (SEMdata.mpfiletype lt 3) then begin
     if (SEMdata.EBSDorECP eq 0) then begin
       if (SEMdata.Asymsel lt 0) then image = reform(MParraysum[*,*,SEMdata.Esel]) else image = reform(MParray[*,*,SEMdata.Esel,SEMdata.Asymsel])
     end else begin
-      if (SEMdata.Asymsel lt 0) then image = reform(MParraysum[*,*]) else image = reform(MParray[*,*,SEMdata.Asymsel])
+      ; if (SEMdata.Asymsel lt 0) then image = reform(MParraysum[*,*]) else image = reform(MParray[*,*,SEMdata.Asymsel])
+      if (SEMdata.Asymsel le 0) then image = reform(MParraysum[*,*]) else image = reform(MParray[*,*,SEMdata.Asymsel])
     endelse
   end 
 

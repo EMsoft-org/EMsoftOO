@@ -2,15 +2,95 @@ program tester
 
 use mod_global 
 use mod_kinds
+use mod_EMsoft
 ! use mod_symmetry
 ! use mod_crystallography
 ! use mod_QCsymmetry
 ! use mod_QCcrystallography
 use mod_io
 ! use mod_dualquaternions
-use mod_octonions
+! use mod_octonions
+use mod_HDFsupport
+use HDF5
+use mod_vendors
+
 
 IMPLICIT NONE 
+
+type(EMsoft_T)          :: EMsoft
+type(HDF_T)             :: HDF
+type(Vendor_T)          :: VT
+
+character(fnlen)        :: fname, groupname, inputtype, progname, progdesc, HDFstrings(10) 
+integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, L, recordsize, patsz, i, j, numsx, numsy, correctsize, s1, s2 
+real(kind=sgl),allocatable   :: exppatarray(:), tot(:), totold(:)
+integer(HSIZE_T)        :: dims3(3), offset3(3)
+
+
+progname = 'tester'
+progdesc = 'test program to read problematic HDF5 file'
+EMsoft = EMsoft_T( progname, progdesc)
+
+! open the HDF interface
+call openFortranHDFInterface()
+HDF = HDF_T()
+fname = 'playarea/Oxford/Al-large.h5'
+fname = EMsoft%generateFilePath('EMdatapathname',trim(fname))
+
+inputtype = 'TSLHDF'
+VT = Vendor_T( inputtype )
+itype = VT%get_itype()
+call VT%set_filename(fname)
+
+ipf_wd = 750
+ipf_ht = 500
+numsx = 156 
+numsy = 128
+L = numsx*numsy 
+correctsize = 16*ceiling(float(L)/16.0)
+recordsize = correctsize*4
+patsz = correctsize
+
+HDFstrings = ''
+HDFstrings(1) = '1'
+HDFstrings(2) = 'EBSD'
+HDFstrings(3) = 'Data'
+HDFstrings(4) = 'Processed Patterns'
+! open the pattern file
+istat = VT%openExpPatternFile(EMsoft, ipf_wd, L, recordsize, HDFstrings, HDF)
+
+allocate(exppatarray(patsz * ipf_wd), tot(ipf_wd), totold(ipf_wd),stat=istat)
+
+dims3 = (/ numsx, numsy, ipf_wd /)
+
+write (*,*) L, correctsize, recordsize, patsz 
+
+do i=250,275 ! ipf_ht
+  exppatarray = 0.0
+  offset3 = (/ 0, 0, (i-1)*ipf_wd /)
+  call VT%getExpPatternRow(i, ipf_wd, patsz, L, dims3, offset3, exppatarray, &
+                                     HDFstrings=HDFstrings, HDF=HDF)
+  write (*,*) 'row number = ', i
+  tot = 0.0
+  do j=1,ipf_wd
+    s1 = (j-1)*patsz+1
+    s2 = j*patsz
+    tot(j) = sum(exppatarray( s1:s2 ))
+  end do
+  if (i.eq.262) then 
+    write (*,*) tot(19960:patsz) 
+  else 
+    write (*,*) tot(19960:patsz) - totold(19960:patsz)
+  end if 
+  write (*,*) '--------------' 
+  totold = tot
+end do 
+
+call VT%closeExpPatternFile()
+
+
+
+
 
 ! type(SpaceGroup_T)          :: SG 
 ! type(QCSpaceGroup_T)        :: QCSG 
@@ -20,65 +100,65 @@ IMPLICIT NONE
 ! type(DualQuaternion_T)      :: dq1, dq2, dqp, tmp
 ! real(kind=dbl)              :: v(3)
 
-type(Octonion_T)                :: a, b, c, d 
-real(kind=dbl)                  :: onorm
-real(kind=sgl)                  :: onorms
+! type(Octonion_T)                :: a, b, c, d 
+! real(kind=dbl)                  :: onorm
+! real(kind=sgl)                  :: onorms
 
-a = Octonion_T( od = (/ 1.D0, 2.D0, 3.D0, 4.D0, 5.D0, 6.D0, 7.D0, 8.D0 /) )
-b = Octonion_T( od = (/ 1.D0, 3.D0, 5.D0, 7.D0, 9.D0, 2.D0, 4.D0, 6.D0 /) )
-c = Octonion_T( od = (/ 8.D0, 7.D0, 6.D0, 5.D0, 4.D0, 3.D0, 2.D0, 1.D0 /) )
+! a = Octonion_T( od = (/ 1.D0, 2.D0, 3.D0, 4.D0, 5.D0, 6.D0, 7.D0, 8.D0 /) )
+! b = Octonion_T( od = (/ 1.D0, 3.D0, 5.D0, 7.D0, 9.D0, 2.D0, 4.D0, 6.D0 /) )
+! c = Octonion_T( od = (/ 8.D0, 7.D0, 6.D0, 5.D0, 4.D0, 3.D0, 2.D0, 1.D0 /) )
 
-d = a+b 
-call d%oct_print('a+b = ')
+! d = a+b 
+! call d%oct_print('a+b = ')
 
-d = a-b 
-call d%oct_print('a-b = ')
+! d = a-b 
+! call d%oct_print('a-b = ')
 
-d = a*sqrt(2.D0)
-call d%oct_print('a*s = ')
+! d = a*sqrt(2.D0)
+! call d%oct_print('a*s = ')
 
-d = a*b
-call d%oct_print('a*b = ')
+! d = a*b
+! call d%oct_print('a*b = ')
 
-d = a/b 
-call d%oct_print('a/b = ')
+! d = a/b 
+! call d%oct_print('a/b = ')
 
-onorm = cabs(a)
-write (*,*) 'a%norm = ', onorm
+! onorm = cabs(a)
+! write (*,*) 'a%norm = ', onorm
 
-d = conjg(a)
-call d%oct_print('conj(a) = ')
+! d = conjg(a)
+! call d%oct_print('conj(a) = ')
 
-d = a%octinverse()
-call d%oct_print('a%inv = ')
+! d = a%octinverse()
+! call d%oct_print('a%inv = ')
 
-a = Octonion_T( o = (/ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0 /) )
-b = Octonion_T( o = (/ 1.0, 3.0, 5.0, 7.0, 9.0, 2.0, 4.0, 6.0 /) )
-c = Octonion_T( o = (/ 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0 /) )
+! a = Octonion_T( o = (/ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0 /) )
+! b = Octonion_T( o = (/ 1.0, 3.0, 5.0, 7.0, 9.0, 2.0, 4.0, 6.0 /) )
+! c = Octonion_T( o = (/ 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0 /) )
 
-d = a+b 
-call d%oct_print('a+b = ')
+! d = a+b 
+! call d%oct_print('a+b = ')
 
-d = a-b 
-call d%oct_print('a-b = ')
+! d = a-b 
+! call d%oct_print('a-b = ')
 
-d = a*sqrt(2.D0)
-call d%oct_print('a*s = ')
+! d = a*sqrt(2.D0)
+! call d%oct_print('a*s = ')
 
-d = a*b 
-call d%oct_print('a*b = ')
+! d = a*b 
+! call d%oct_print('a*b = ')
 
-d = a/b 
-call d%oct_print('a/b = ')
+! d = a/b 
+! call d%oct_print('a/b = ')
 
-onorms = real(cabs(a))
-write (*,*) 'a%norm = ', onorm
+! onorms = real(cabs(a))
+! write (*,*) 'a%norm = ', onorm
 
-d = conjg(a)
-call d%oct_print('conj(a) = ')
+! d = conjg(a)
+! call d%oct_print('conj(a) = ')
 
-d = a%octinverse()
-call d%oct_print('a%inv = ')
+! d = a%octinverse()
+! call d%oct_print('a%inv = ')
 
 
 
