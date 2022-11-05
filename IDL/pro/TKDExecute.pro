@@ -26,22 +26,21 @@
 ; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ; ###################################################################
 ;--------------------------------------------------------------------------
-; EMsoft:KosselExecute.pro
+; EMsoft:TKDExecute.pro
 ;--------------------------------------------------------------------------
 ;
-; PROGRAM: KosselExecute.pro
+; PROGRAM: TKDExecute.pro
 ;
 ;> @author Marc De Graef, Carnegie Mellon University
 ;
-;> @brief main routine for creation of nml file and execution of CTEMEBSD code
-;
-;> @details This routine still needs to be cleaned up, along with the SingleKosselPatternWrapper etc...
+;> @brief main routine for creation of nml file and execution of EMTKD code
 ;
 ;> @date 05/22/14 MDG 1.0 first version
 ;> @date 04/14/15 MDG 1.1 added HDF5 support
-;> @date 11/09/15 MDG 2.0 copied from EBSDExecute.pro and adapted for Kossel
+;> @date 11/04/15 MDG 2.0 modified routine for call_external computation of TKD pattern
+;> @date 04/14/21 MDG 3.0 updated for EMsoftOO
 ;--------------------------------------------------------------------------
-pro KosselExecute, status, single=single
+pro TKDExecute, status, single=single
 
 ; the keyword /single indicates that only one pattern should be computed
 
@@ -49,110 +48,140 @@ pro KosselExecute, status, single=single
 ; common blocks
 common SEM_widget_common, SEMwidget_s
 common SEM_data_common, SEMdata
-common EBSDpatterns, pattern, image, finalpattern
+common TKDpatterns, pattern, image, finalpattern
 common EBSD_anglearrays, euler, quaternions
 common EBSDmasks, circularmask
-
 common EBSD_rawdata, accum_e, accum_z, mLPNH, mLPSH
-common Kosseldata, KosselPattern
 common getenv_common, librarylocation
 
 status = 1
 
+if (SEMdata.EMsoftpathname eq 'path_unknown') then SEMdata.EMsoftpathname = Core_getenv()
+
 ; check whether the mask needs to be recomputed or not
 s = size(circularmask)
-sm = SEMdata.detnumsx
+dbin = 2^SEMdata.detbinning
+sm = min( [SEMdata.detnumsx/dbin, SEMdata.detnumsy/dbin] )
 if (s[0] ne sm) then begin
   d = shift(dist(sm),sm/2,sm/2)
   d[where(d le sm/2)] = 1.0
   d[where(d gt sm/2)] = 0.0
-  circularmask = fltarr(SEMdata.detnumsx, SEMdata.detnumsx)
-  dm = (SEMdata.detnumsx - sm)/2
-  circularmask[dm,0] = d
+  circularmask = fltarr(SEMdata.detnumsx/dbin, SEMdata.detnumsy/dbin)
+  if (sm eq SEMdata.detnumsx/dbin) then begin
+    dm = (SEMdata.detnumsy/dbin - sm)/2
+    circularmask[0,dm] = d
+  end else begin
+    dm = (SEMdata.detnumsx/dbin - sm)/2
+    circularmask[dm,0] = d
+  end
 endif
 
-; next, generate the ipar and fpar parameter arrays used for call_external
-nipar = long(6)
-ipar = lon64arr(nipar)
+ipar = replicate(0L,80)    ; parameter defined in getEBSDPatternsWrapper in mod_wrappers.f90
+ipar[0] = SEMdata.mcimx
+ipar[8] = SEMdata.numset
+ipar[11] = SEMdata.mcenergynumbin
+ipar[16] = SEMdata.mpimx
+ipar[18] = SEMdata.detnumsx
+ipar[19] = SEMdata.detnumsy
+ipar[20] = SEMdata.numangles
+ipar[21] = SEMdata.detbinning
+ipar[22] = SEMdata.detnumsx/SEMdata.detbinning
+ipar[23] = SEMdata.detnumsy/SEMdata.detbinning
+ipar[24] = 0
+ipar[25] = 0
 
-ipar[0] = long64(2)    ; will need to be modified 
-ipar[1] = long64(SEMdata.detnumsx)
-ipar[2] = long64(SEMdata.mpimx)
-ipar[3] = long64(SEMdata.numangles)
-ipar[4] = long64(SEMdata.mcenergynumbin)
-ipar[5] = long64(SEMdata.Esel+1)
+fpar = replicate(0.0,80)   ; parameter defined in getEBSDPatternsWrapper in mod_wrappers.f90 
+fpar[0] = SEMdata.mcvangle
+fpar[1] = SEMdata.detomega
+fpar[14] = SEMdata.detxpc + float(SEMdata.detxs) * SEMdata.detxss / SEMdata.detdelta
+fpar[15] = SEMdata.detypc - float(SEMdata.detys) * SEMdata.detyss / SEMdata.detdelta
+fpar[16] = SEMdata.detdelta
+fpar[17] = SEMdata.dettheta
+fpar[18] = SEMdata.detL
+fpar[19] = SEMdata.detbeamcurrent
+fpar[20] = SEMdata.detdwelltime
+fpar[21] = -SEMdata.gammavalue
 
-nfpar = long(1)
-fpar = fltarr(nfpar)
-
-fpar[0] = SEMdata.detthetac
-
-callname = 'getKosselPatternsWrapper'
+callname = 'getTKDPatternsWrapper'
 
 if keyword_set(single) then begin
-
-; and here is the quaternion that represents the Euler angle triplet
-  quats = Core_eu2qu( [SEMdata.detphi1, SEMdata.detphi, SEMdata.detphi2] )
+; and here is the (single) quaternion that represents the Euler angle triplet
+  quats  = Core_eu2qu( [SEMdata.detphi1, SEMdata.detphi, SEMdata.detphi2] )
   quats = reform(quats,4,1)
-  ipar[3] = 1
+
+  ipar[20] = 1L
 
 ; initialize the simulated pattern array
-  KosselPattern = fltarr(SEMdata.detnumsx,SEMdata.detnumsx)
-  KosselPattern = reform(KosselPattern,SEMdata.detnumsx,SEMdata.detnumsx,1)
+  TKDpattern = fltarr(SEMdata.detnumsx,SEMdata.detnumsy)
+  TKDpattern = reform(TKDpattern,SEMdata.detnumsx,SEMdata.detnumsy,1)
 
 ; call the EMsoft wrapper routine from EMdymod.f90
   if (!version.os eq 'darwin') then begin
     res = call_external(librarylocation+'/libEMsoftOOLib.dylib', callname, $
-                        ipar, fpar, KosselPattern, quats, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
+                        ipar, fpar, TKDpattern, quats, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (!version.os eq 'Win32') then begin
     res = call_external(librarylocation+'/EMsoftOOLib.dll', callname, $
-                        ipar, fpar, KosselPattern, quats, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
+                        ipar, fpar, TKDpattern, quats, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (!version.os eq 'linux') then begin
     res = call_external(librarylocation+'/libEMsoftOOLib.so', callname, $
-                        ipar, fpar, KosselPattern, quats, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
+                        ipar, fpar, TKDpattern, quats, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (res ne 1.0) then begin
-    Core_print,'getKosselPatternsWrapper return code = '+string(res,format="(F4.1)")
+    Core_print,'getTKDPatternsWrapper return code = '+string(res,format="(F4.1)")
     status = 0
   end 
 
-end else begin
+; IDL takes the image origin at the bottom left corner, so we need to flip this pattern vertically 
+  pattern = reverse(reform(TKDpattern),2)
+  pattern = reform(pattern,SEMdata.detnumsx,SEMdata.detnumsy,1)
 
-  if (SEMdata.numangles gt 50) then begin
+end else begin ; computation of multiple TKDpatterns
+
+  if (SEMdata.numangles gt 500) then begin
     Core_Print,'',/blank
-    Core_Print,'You are computing more than 50 Kossel patterns; this will take a while...'
+    Core_Print,'You are computing more than 500 TKDPs; this will take a while...'
     Core_Print,'The program will not provide any further updates until the run has been completed.'
     Core_Print,'',/blank
   endif
 
-  KosselPattern = fltarr(SEMdata.detnumsx,SEMdata.detnumsx,SEMdata.numangles)
+  pattern = fltarr(SEMdata.detnumsx,SEMdata.detnumsy,SEMdata.numangles)
+
+; initialize the simulated pattern array
+  TKDpattern = fltarr(SEMdata.detnumsx,SEMdata.detnumsy,SEMdata.numangles)
 
 ; call the EMsoft wrapper routine from EMdymod.f90
   if (!version.os eq 'darwin') then begin
     res = call_external(librarylocation+'/libEMsoftOOLib.dylib', callname, $
-                        ipar, fpar, KosselPattern, quaternions, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
+                        ipar, fpar, TKDpattern, quaternions, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (!version.os eq 'Win32') then begin
     res = call_external(librarylocation+'/EMsoftOOLib.dll', callname, $
-                        ipar, fpar, KosselPattern, quaternions, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
+                        ipar, fpar, TKDpattern, quaternions, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (!version.os eq 'linux') then begin
     res = call_external(librarylocation+'/libEMsoftOOLib.so', callname, $
-                        ipar, fpar, KosselPattern, quaternions, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
+                        ipar, fpar, TKDpattern, quaternions, accum_e, mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
   endif
 
   if (res ne 1.0) then begin
-    Core_print,'getKosselPatternsWrapper return code = '+string(res,format="(F4.1)")
+    Core_print,'getTKDPatternsWrapper return code = '+string(res,format="(F4.1)")
     status = 0
   end 
+
+; IDL takes the image origin at the bottom left corner, so we need to flip this pattern vertically 
+  for ii=0,SEMdata.numangles-1 do begin
+    slice = reverse(reform(TKDpattern[0:*,0:*,ii]),2)
+    pattern[0:*,0:*,ii] = slice[0:*,0:*]
+  endfor
 endelse
+
 
 end
 

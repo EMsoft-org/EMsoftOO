@@ -58,7 +58,7 @@ if (SEMdata.mpfiletype eq 3) then goto,skipMC
 
 wset,SEMwidget_s.MCdrawID
 
-if (SEMdata.mpfiletype eq 1) then begin
+if ( (SEMdata.mpfiletype eq 1) or (SEMdata.mpfiletype eq 4) ) then begin
   energy = SEMdata.mcenergymin + SEMdata.Esel * SEMdata.mcenergybinsize
   if (SEMdata.MCLSum eq 0) then begin
     image = reform(accum_e[SEMdata.Esel,*,*])

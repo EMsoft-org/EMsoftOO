@@ -215,7 +215,7 @@ print,' file type ', gname
 ; =====================================================
 ; open and read the Monte Carlo dataset in the EMheader groups
   if (SEMdata.mpfiletype ne 3) then begin ; Kossel mode does not have any associated Monte Carlo data sets 
-    if (SEMdata.mpfiletype lt 3) then group_id = H5G_open(file_id,'EMheader/MCOpenCL') else group_id = H5G_open(file_id,'EMheader/MCfoil')
+    group_id = H5G_open(file_id,'EMheader/MCOpenCL')
     Core_Print,'Reading Monte Carlo data sets '
     SEMdata.Esel = 0
 
@@ -231,7 +231,7 @@ print,' file type ', gname
     H5G_close,group_id
 
   ; structure file name
-    if (SEMdata.mpfiletype lt 3) then group_id = H5G_open(file_id,'NMLparameters/MCCLNameList') else group_id = H5G_open(file_id,'NMLparameters/MCCLfoilNameList')
+    group_id = H5G_open(file_id,'NMLparameters/MCCLNameList')
 
   ; open and read the xtalname dataset
     if (Core_Tag_Exists(hdftags.NMLparameters.MCCLNameList,'xtalname') eq 1) then begin
@@ -292,7 +292,7 @@ print,' file type ', gname
     SEMdata.mcdepthstep = double(H5D_read(dset_id))
     H5D_close,dset_id
 
-    if (SEMdata.EBSDorECP eq 0) then begin
+    if (SEMdata.EBSDorECP ne 0) then begin
       dset_id = H5D_open(group_id,'sig')
       SEMdata.mcvangle = double(H5D_read(dset_id))
       H5D_close,dset_id
@@ -331,7 +331,7 @@ print,' file type ', gname
     H5G_close,group_id
 
   ; and open the EMData group
-    if (SEMdata.mpfiletype lt 3) then group_id = H5G_open(file_id,'EMData/MCOpenCL') else group_id = H5G_open(file_id,'EMData/MCfoil')
+    group_id = H5G_open(file_id,'EMData/MCOpenCL')
 
   ; open and read the numEbins dataset
     if (SEMdata.EBSDorECP eq 0) then begin

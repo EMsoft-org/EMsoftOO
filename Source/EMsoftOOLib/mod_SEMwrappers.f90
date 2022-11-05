@@ -1406,6 +1406,115 @@ end if ! (uniform.eqv..FALSE.)
 
 end subroutine EMsoftCgetEBSDmaster
 
+!--------------------------------------------------------------------------
+recursive subroutine getKosselPatterns(ipar, fpar, Kosselpattern, quats, mLPNH, mLPSH)
+!DEC$ ATTRIBUTES DLLEXPORT :: getKosselPatterns
+
+! the input parameters are all part of a ipar and fpar input arrays instead of the usual namelist structures.
+! The following is the mapping:
+!
+! ipar(1) = 1 if GetVectorsCone detector arrays need to be computed, 0 if not (arrays will have save status)
+! ipar(2) = detnumsx
+! ipar(3) = mpnpx
+! ipar(4) = numquats
+! ipar(5) = numdepths
+! ipar(6) = depthsel
+
+! fpar(1) = ecpnl%thetac
+
+use mod_EMsoft
+use mod_kinds
+use mod_Lambert
+use mod_quaternions
+use,INTRINSIC :: ISO_C_BINDING
+
+IMPLICIT NONE
+
+integer(c_size_t),PARAMETER             :: nipar=6
+integer(c_size_t),PARAMETER             :: nfpar=1
+integer(c_size_t),PARAMETER             :: nq=4
+integer(c_size_t),INTENT(IN)            :: ipar(nipar)
+real(kind=sgl),INTENT(IN)               :: fpar(nfpar)
+real(kind=sgl),INTENT(OUT)              :: Kosselpattern(ipar(2),ipar(2),ipar(4))
+real(kind=sgl),INTENT(IN)               :: quats(nq,ipar(4))
+real(kind=sgl),INTENT(IN)               :: mLPNH(-ipar(3):ipar(3), -ipar(3):ipar(3),ipar(5))
+real(kind=sgl),INTENT(IN)               :: mLPSH(-ipar(3):ipar(3), -ipar(3):ipar(3),ipar(5))
+
+type(Quaternion_T)                      :: quat
+
+real(kind=sgl),allocatable,save         :: klist(:,:,:)
+
+real(kind=dbl),parameter                :: Rtod = 57.2957795131D0
+real(kind=dbl),parameter                :: dtoR = 0.01745329251D0
+
+real(kind=sgl)                          :: kk(3), thetacr, ktmax, delta
+integer(kind=irg)                       :: istat, imin, imax, jmin, jmax, ii ,jj, nsig, ip
+integer(kind=irg)                       :: isig, nix, niy, nixp, niyp, isigp
+real(kind=sgl)                          :: dc(3), scl, ixy(2), dx, dy, dxm, dym, dp
+
+
+!==================================================================================
+! ------ generate the detector klist array if needed 
+!------- (calling program must decide this via ipar(1))
+!==================================================================================
+
+if (ipar(1).ge.1) then
+    if (allocated(klist)) deallocate(klist)
+    allocate(klist(1:3,-ipar(2):ipar(2),-ipar(2):ipar(2)), stat=istat)
+    kk = (/0.0,0.0,1.0/)
+    thetacr = DtoR*fpar(1)
+    ktmax = tan(thetacr)
+    delta = 2.0*ktmax/dble(ipar(2)-1)
+
+    imin = 1
+    imax = ipar(2)
+    jmin = 1
+    jmax = ipar(2)
+     
+    do ii = imin, imax
+        do jj = jmin, jmax
+            klist(1:3,ii,jj) = (/-ktmax+delta*(ii-1),-ktmax+delta*(jj-1),0.0/) + kk(1:3)
+            klist(1:3,ii,jj) =  klist(1:3,ii,jj)/sqrt(sum( klist(1:3,ii,jj)**2))
+        end do
+    end do
+end if
+
+!===================================================================
+! ------ perform interpolation from square lambert map
+!===================================================================
+
+scl = float(ipar(3))
+quat = Quaternion_T( q = (/ 1.0, 0.0, 0.0, 0.0 /) )
+
+do ip=1,ipar(4)
+  do ii = imin, imax
+    do jj = jmin, jmax
+
+        dc(1:3) = klist(1:3,ii,jj)
+        call quat%set_quats( quats(1:4,ip) )
+        dc = quat%quat_Lp(dc)
+        dc = dc/sqrt(sum(dc*dc))
+
+        call LambertgetInterpolation(dc, scl, int(ipar(3)), int(ipar(3)), nix, niy, nixp, niyp, dx, dy, dxm, dym)
+
+        if (dc(3).gt.0.0) then 
+            Kosselpattern(ii,jj,ip) =  mLPNH(nix,niy,ipar(6)) * dxm * dym + &
+                         mLPNH(nixp,niy,ipar(6)) * dx * dym + &
+                         mLPNH(nix,niyp,ipar(6)) * dxm * dy + &
+                         mLPNH(nixp,niyp,ipar(6)) * dx * dy 
+
+        else
+            Kosselpattern(ii,jj,ip) =  mLPSH(nix,niy,ipar(6)) * dxm * dym + &
+                         mLPSH(nixp,niy,ipar(6)) * dx * dym + &
+                         mLPSH(nix,niyp,ipar(6)) * dxm * dy + &
+                         mLPSH(nixp,niyp,ipar(6)) * dx * dy 
+        end if
+    end do
+  end do
+end do
+
+end subroutine getKosselPatterns
+
 
 
 

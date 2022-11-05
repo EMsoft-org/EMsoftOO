@@ -215,6 +215,7 @@ recursive function getKosselPatternsWrapper(argc, argv) bind(c, name='getKosselP
   !! see example at https://groups.google.com/forum/#!topic/comp.lang.idl-pvwave/Gk0xxVFbW8E
 
 use,INTRINSIC :: ISO_C_BINDING
+use mod_SEMwrappers
 
 IMPLICIT NONE
 

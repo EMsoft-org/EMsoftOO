@@ -79,7 +79,7 @@ end
 ;                        XOFFSET=SEMdata.MCxlocation, $
 ;                        YOFFSET=SEMdata.MCylocation)
 ;end else begin
-if (SEMdata.mpfiletype lt 3) then begin
+if (SEMdata.mpfiletype ne 3) then begin
   SEMwidget_s.MCdisplaybase = WIDGET_BASE(TITLE='Master Pattern & Monte Carlo Display Widget', $
                         /COLUMN, $
                         XSIZE=20+max([ 500, 2*SEMdata.mcimx+1 ]) + max( [ 500, 2*SEMdata.mpimx+1 ] ), $
@@ -128,7 +128,7 @@ endif
 ;			/ALIGN_CENTER, $
 ;			/COLUMN)
 ;end else begin
-if (SEMdata.mpfiletype lt 3) then begin
+if (SEMdata.mpfiletype ne 3) then begin
 	block1 = WIDGET_BASE(SEMwidget_s.MCdisplaybase, $
 			/FRAME, $
                         XSIZE=max([ 500, 2*SEMdata.mcimx+1 ]) + max( [ 500, 2*SEMdata.mpimx+1 ] ), $
@@ -182,6 +182,18 @@ if (SEMdata.mpfiletype eq 3) then begin
 			UVALUE = 'MCSLIDER', $
 			/ALIGN_CENTER)
 end
+if (SEMdata.mpfiletype eq 4) then begin
+  SEMwidget_s.MCslider = WIDGET_SLIDER(block2, $
+      EVENT_PRO='EBSDMCDisplayWidget_event', $
+      MINIMUM = 1, $
+      MAXIMUM = SEMdata.mcenergynumbin, $
+      SENSITIVE = 1, $
+      TITLE = 'Select an energy', $
+      XSIZE = 400, $
+      VALUE = 1, $
+      UVALUE = 'MCSLIDER', $
+      /ALIGN_CENTER)
+end 
 
 ; and right next to it we display the actual energy or beam tilt angle or sample depth in a text box
 if (SEMdata.mpfiletype eq 1) then begin
@@ -211,6 +223,14 @@ if (SEMdata.mpfiletype eq 3) then begin
 			/ALIGN_RIGHT)
 end
 
+if (SEMdata.mpfiletype eq 4) then begin
+  energy = SEMdata.mcenergymin + SEMdata.Esel * SEMdata.mcenergybinsize
+  SEMwidget_s.MCenergyval =  WIDGET_TEXT(block2, $
+      VALUE=string(energy,format="(F5.2)"), $
+      XSIZE=10, $
+      YSIZE=1, $
+      /ALIGN_RIGHT)
+end
 
 if (SEMdata.MCMPboth eq 1) then begin
 ; in the same block we also generate a list of all the asymmetric unit positions
@@ -233,7 +253,7 @@ endif
 block2 = WIDGET_BASE(block1, /ROW, /ALIGN_CENTER)
 block3 = WIDGET_BASE(block2, /COLUMN, /ALIGN_CENTER)
 
-if (SEMdata.mpfiletype lt 3) then begin
+if (SEMdata.mpfiletype ne 3) then begin
 ; and here's the MC display window itself
   SEMwidget_s.MCdraw = WIDGET_DRAW(block3, $
                         COLOR_MODEL=2, $
@@ -338,7 +358,7 @@ SEMwidget_s.EBSDformatbgroup = CW_BGROUP(file1, $
 WIDGET_CONTROL,SEMwidget_s.MCdisplaybase,/REALIZE
 
 ; realize the draw widget
-if (SEMdata.mpfiletype lt 3) then begin
+if (SEMdata.mpfiletype ne 3) then begin
   WIDGET_CONTROL, SEMwidget_s.MCdraw, GET_VALUE=drawID
   SEMwidget_s.MCdrawID = drawID
   WIDGET_CONTROL, SEMwidget_s.MPdraw, GET_VALUE=drawID
