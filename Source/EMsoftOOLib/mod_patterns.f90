@@ -293,7 +293,7 @@ call VT%set_filename(nml%exptfile)
 ! open the file and leave it open, then use the getExpPatternRow() routine to read a row
 ! of patterns into the exppatarray variable ...  at the end, we use closeExpPatternFile() to
 ! properly close the experimental pattern file
-if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
   istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, nml%HDFstrings, HDF)
 else
   istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize)
@@ -366,14 +366,14 @@ prepexperimentalloop: do iii = iiistart,iiiend
     if (TID.eq.0) then
         offset3 = (/ 0, 0, (iii-1)*nml%ipf_wd /)
         if (ROIselected.eqv..TRUE.) then
-          if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+          if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
             call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, nml%ROI, &
                                      HDFstrings=nml%HDFstrings, HDF=HDF)
           else
             call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, nml%ROI)
           end if
         else
-         if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+         if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
             call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
                                      HDFstrings=nml%HDFstrings, HDF=HDF)
           else

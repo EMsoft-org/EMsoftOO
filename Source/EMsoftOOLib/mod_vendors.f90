@@ -192,7 +192,7 @@ if (trim(self%inputtype).eq."TSLup1") call self%set_itype(2)
 if (trim(self%inputtype).eq."TSLup2") call self%set_itype(3)
 if (trim(self%inputtype).eq."TSLHDF") call self%set_itype(4)
 if (trim(self%inputtype).eq."OxfordBinary") call self%set_itype(5)
-if (trim(self%inputtype).eq."OxfordHDF") call self%set_itype(6)    ! to be implemented
+if (trim(self%inputtype).eq."OxfordHDF") call self%set_itype(6)
 if (trim(self%inputtype).eq."EMEBSD") call self%set_itype(7)
 if (trim(self%inputtype).eq."BrukerHDF") call self%set_itype(8)
 if (trim(self%inputtype).eq."NORDIF") call self%set_itype(9)
@@ -547,9 +547,38 @@ select case (self%itype)
         end if
 
     case(6)  ! "OxfordHDF"
-        call Message%printError("openExpPatternFile","OxfordHDF input format not yet implemented")
-! at this point in time (March 2020) it does not appear that the Oxford HDF5 format has the
-! patterns stored in it... Hence this option is currently non-existent.
+! Fall 2022, Oxford has an HDF5 file with extension .h5oina; some of the patterns in the 
+! "Processed Patterns" dataset may have been compressed using the lzf compression scheme.
+! Reading them does not require anything special when the most recent version of the 
+! EMsoftOO_SDK is used.  It does require that the HDF5_PLUGIN_PATH environment variable is 
+! set to the location of the plugin dynamical libraries; in a development environment, this
+! would be done with the following shell command (csh): 
+!    setenv HDF5_PLUGIN_PATH /full/path/to/EMsoftOO_SDK/hdf5-1.12.2-Release/lib/plugin
+! We remind the user here that this parameter needs to be set in order for the uncompression
+! dynamically loaded library to be found...  The actual reading of the data set is identical
+! to that of the TSLHDF format, but some or all patterns may be in compressed form.
+! [MDG, 11/09/22]
+
+        call Message%printMessage((/ " ================================================================ ", &
+                                     "The Oxford HDF5 format uses the lzf compression algorithm to      ", &
+                                     "compress patterns; to properly read those patterns and uncompress ", &
+                                     "them, the HDF5_PLUGIN_PATH environmental parameter must be set.   ", &
+                                     "Please make sure that this parameter points to the correct folder;", &
+                                     "for instance, EMsoftOO_SDK/hdf5-1.12.2-Release/lib/plugin or      ", &
+                                     "similar; the folder should contain a liblzf.so or similar library.", &
+                                     " ================================================================ " /))
+
+        ! HDF = HDF_T()   this needs to be done in the calling program !
+        ! open the file
+        hdferr =  HDF%openFile(ename, readonly=.TRUE.)
+        if (hdferr.ne.0) call HDF%error_check('openExpPatternFile:HDF%openFile', hdferr)
+        ! open all the groups to the correct level of the data set
+        do i=1,hdfnumg
+            groupname = trim(HDFstrings(i))
+            hdferr = HDF%openGroup(groupname)
+            if (hdferr.ne.0) call HDF%error_check('openExpPatternFile:HDF%openGroup: groupname issue, check for typos.', hdferr)
+        end do
+        ! and here we leave this file open so that we can read data blocks using the hyperslab mechanism;
 
     case(4, 7, 10, 11)  ! "TSLHDF", "EMEBSD", "EMEBSD32i", "EMEBSD32f"
         ! HDF = HDF_T()   this needs to be done in the calling program !
@@ -794,8 +823,21 @@ select case (self%itype)
       where(exppatarray.lt.0.0) exppatarray = exppatarray + 256.0
 
     case(6)  ! "OxfordHDF"
-! at this point in time (Feb. 2018) it does not appear that the Oxford HDF5 format has the
-! patterns stored in it... Hence this option is currently non-existent.
+! read a hyperslab section from the HDF5 input file; note that these patterns may be 
+! in lzf compressed form; the HDF read routine will transparently take care of the 
+! uncompressing, but only if the proper library can be found; make sure the HDF5_PLUGIN_PATH
+! environmental parameter has been set correctly.  [MDG, 11/09/22]
+        EBSDpatint = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3)
+        exppatarray = 0.0
+        do kk=kkstart,kkend
+            do jj=1,dims3(2)
+                do ii=1,dims3(1)
+                   z = float(EBSDpatint(ii,jj,kk))
+                   if (z.lt.0.0) z = z+2.0**16
+                   exppatarray((kk-kkstart)*patsz+(jj-1)*dims3(1)+ii) = z
+                end do
+            end do
+        end do
 
     case(4)  ! "TSLHDF" passed tests on 2/14/18 by MDG
 ! read a hyperslab section from the HDF5 input file
@@ -1053,12 +1095,23 @@ select case (self%itype)
       where(exppat.lt.0.0) exppat = exppat + 256.0
 
     case(6)  ! "OxfordHDF"
-! at this point in time (Feb. 2018) it does not appear that the Oxford HDF5 format has the
-! patterns stored in it... Hence this option is currently non-existent.
+! read a hyperslab section from the HDF5 input file; note that these patterns may be 
+! in lzf compressed form; the HDF read routine will transparently take care of the 
+! uncompressing, but only if the proper library can be found; make sure the HDF5_PLUGIN_PATH
+! environmental parameter has been set correctly.  [MDG, 11/09/22]
 
-! Update 07/13/19: after talking with Phillipe Pinard (Oxford) at the EMAS 2019 conference
-! in Trondheim, it is clear that Oxford is working on including the patterns into their
-! current HDF5 file version.  This might become available sometime by the end of 2019.
+! read a hyperslab single pattern section from the HDF5 input file
+! dims3 should have the pattern dimensions and then 1_HSIZE_T for the third dimension
+! offset3 should have (0,0) and then the offset of the pattern (0-based)
+        EBSDpatint = HDF%readHyperslabIntegerArray3D(dataset, offset3, dims3)
+        exppat = 0.0
+        do jj=1,dims3(2)
+            do ii=1,dims3(1)
+                  z = float(EBSDpatint(ii,jj,1))
+                  if (z.lt.0.0) z = z+2.0**16
+                  exppat((jj-1)*dims3(1)+ii) = z
+            end do
+        end do
 
     case(4)  ! "TSLHDF" passed tests on 2/20/18 by MDG
 ! read a hyperslab single pattern section from the HDF5 input file
@@ -1189,11 +1242,8 @@ select case (self%itype)
     case(1, 2, 3, 5, 9)  ! "Binary" "TSLup1" "TSLup2" "OxfordBinary" "NORDIF"
         close(unit=self%funit,status='keep')
 
-    case(4, 7, 10, 11)  ! "TSLHDF" "EMEBSD"
+    case(4, 6, 7, 10, 11)  ! "TSLHDF" "EMEBSD"
         if (present(HDF)) call HDF%pop(.TRUE.)
-
-    case(6)  ! "OxfordHDF"
-        call Message%printError("closeExpPatternFile","input format not yet implemented")
 
     case(8)  !  "BrukerHDF"
         if (present(HDF)) call HDF%pop(.TRUE.)
