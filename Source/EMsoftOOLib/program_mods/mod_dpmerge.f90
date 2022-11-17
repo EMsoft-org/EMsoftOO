@@ -45,6 +45,7 @@ type, public :: dpmergeNameListType
   character(fnlen)  :: angname
   character(fnlen)  :: phasemapname
   integer(kind=irg) :: phasecolors(5)
+  real(kind=sgl)    :: scalefactors(5)
   character(8)      :: usedp
   character(2)      :: indexingmode
 end type dpmergeNameListType
@@ -65,6 +66,7 @@ private
   procedure, pass(self) :: get_angname_
   procedure, pass(self) :: get_phasemapname_
   procedure, pass(self) :: get_phasecolors_
+  procedure, pass(self) :: get_scalefactors_
   procedure, pass(self) :: get_usedp_
   procedure, pass(self) :: get_indexingmode_
   procedure, pass(self) :: set_dotproductfile_
@@ -72,6 +74,7 @@ private
   procedure, pass(self) :: set_angname_
   procedure, pass(self) :: set_phasemapname_
   procedure, pass(self) :: set_phasecolors_
+  procedure, pass(self) :: set_scalefactors_
   procedure, pass(self) :: set_usedp_
   procedure, pass(self) :: set_indexingmode_
 
@@ -83,6 +86,7 @@ private
   generic, public :: get_angname => get_angname_
   generic, public :: get_phasemapname => get_phasemapname_
   generic, public :: get_phasecolors => get_phasecolors_
+  generic, public :: get_scalefactors => get_scalefactors_
   generic, public :: get_usedp => get_usedp_
   generic, public :: get_indexingmode => get_indexingmode_
   generic, public :: set_dotproductfile => set_dotproductfile_
@@ -90,6 +94,7 @@ private
   generic, public :: set_angname => set_angname_
   generic, public :: set_phasemapname => set_phasemapname_
   generic, public :: set_phasecolors => set_phasecolors_
+  generic, public :: set_scalefactors => set_scalefactors_
   generic, public :: set_usedp => set_usedp_
   generic, public :: set_indexingmode => set_indexingmode_
 
@@ -165,11 +170,12 @@ character(fnlen)        :: ctfname
 character(fnlen)        :: angname
 character(fnlen)        :: phasemapname
 integer(kind=irg)       :: phasecolors(5)
+real(kind=sgl)          :: scalefactors(5)  
 character(8)            :: usedp
 character(2)            :: indexingmode
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / dpmerge / dotproductfile, ctfname, angname, usedp, indexingmode, phasemapname, phasecolors
+namelist  / dpmerge / dotproductfile, ctfname, angname, usedp, indexingmode, phasemapname, phasecolors, scalefactors
 
 ! set the input parameters to default values
 dotproductfile = (/ 'undefined','undefined','undefined','undefined','undefined' /)
@@ -177,6 +183,7 @@ ctfname = 'undefined'
 angname = 'undefined'
 phasemapname = 'undefined'
 phasecolors = (/ 1, 2, 0, 0, 0 /)
+scalefactors = (/ 1.0, 1.0, 1.0, 1.0, 1.0 /)
 usedp = 'original'
 indexingmode = 'DI'
 
@@ -206,6 +213,7 @@ self%nml%ctfname = ctfname
 self%nml%angname = angname
 self%nml%phasemapname = phasemapname
 self%nml%phasecolors = phasecolors
+self%nml%scalefactors = scalefactors
 self%nml%indexingmode = indexingmode
 self%nml%usedp = usedp
 
@@ -408,6 +416,42 @@ integer(kind=irg), INTENT(IN)       :: inp(5)
 self%nml%phasecolors = inp
 
 end subroutine set_phasecolors_
+
+!--------------------------------------------------------------------------
+function get_scalefactors_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_scalefactors_
+!! author: MDG
+!! version: 1.0
+!! date: 11/17/22
+!!
+!! get scalefactors from the dpmerge_T class
+
+IMPLICIT NONE
+
+class(dpmerge_T), INTENT(INOUT)     :: self
+real(kind=sgl)                      :: out(5)
+
+out = self%nml%scalefactors
+
+end function get_scalefactors_
+
+!--------------------------------------------------------------------------
+subroutine set_scalefactors_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_scalefactors_
+!! author: MDG
+!! version: 1.0
+!! date: 11/17/22
+!!
+!! set scalefactors in the dpmerge_T class
+
+IMPLICIT NONE
+
+class(dpmerge_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)          :: inp(5)
+
+self%nml%scalefactors = inp
+
+end subroutine set_scalefactors_
 
 !--------------------------------------------------------------------------
 function get_usedp_(self) result(out)
@@ -631,6 +675,7 @@ modality = 'EBSD'
 
     if (f_exists.eqv..TRUE.) then
       call MPFT%setFileName(infile)
+      call MPFT%setModality(modality)
       call MPFT%readMPfile(HDF, MPHDFnames, mpnl)
       xtalname(i) = trim(MPDT%xtalname)
     else
@@ -642,6 +687,12 @@ modality = 'EBSD'
       xtalname(i) = trim(rdxtalname)
     end if
 
+  end do
+
+  ! apply the scale factors to each of the dot product arrays
+  ! this can be used to slightly adjust one phase with respect to another
+  do i=1,numdp
+    dplist(1:numpat,i) = dplist(1:numpat,i) * dpmnl%scalefactors(i)
   end do
 
   ! determine which phase has the largest confidence index for each ROI sampling point
