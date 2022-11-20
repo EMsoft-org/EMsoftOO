@@ -26,13 +26,28 @@ type(HallSG_T)          :: HSG
 character(fnlen)        :: fname, groupname, inputtype, progname, progdesc, HDFstrings(10) 
 integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, L, recordsize, patsz, i, j, numsx, numsy, correctsize, s1, s2 
 real(kind=sgl),allocatable   :: exppatarray(:), tot(:), totold(:)
+real(kind=dbl),allocatable   :: SG(:,:,:)
 integer(HSIZE_T)        :: dims3(3), offset3(3)
 character(16)           :: HS
 
 
 HS = List_Hall_Symbols(9)
 
-HSG = HallSG_T( HS, verbose=.TRUE. )
+HSG = HallSG_T( HS )
+
+numsx = HSG%get_NHallgenerators()
+write (*,*) 'number of generators in '//trim(HS)//' : ', numsx
+allocate(SG(4,4,numsx))
+
+SG = HSG%get_Hall_SeitzGenerators()
+
+do i=1,numsx 
+  do j=1,4
+    write (*,*)  SG(j,1:4,i)
+  end do 
+  write (*,*) '-----'
+end do 
+
 
 stop
 ! HSG = HallSG_T( '-P 1', verbose=.TRUE. )
