@@ -34,12 +34,15 @@ program EMlistSG
   !! list general equivalent positions for a 
   !! given space group.  This is a simple program
   !! to illustrate how one can use the space group matrices.
+  !!
+  !! updated on 11/21/22 to include Hall space group symbols
 
 use mod_EMsoft
 use mod_global
 use mod_io
 use mod_symmetry
 use mod_crystallography
+use mod_HallSG
 
 IMPLICIT NONE
 
@@ -51,19 +54,30 @@ type(SpaceGroup_T)          :: SG
 character(fnlen)            :: progname = 'EMlistSG.f90'
 character(fnlen)            :: progdesc = 'List equivalent positions for arbitrary space group'
       
-character(3)                         :: pos
-integer(kind=irg)           :: p(4),ii,jj,i, io_int(1)
+character(3)                :: pos
+integer(kind=irg)           :: p(4),ii,jj,i, io_int(1), HSGnum
 real(kind=sgl)              :: ppp, io_real(1)
 real(kind=dbl),allocatable  :: sgdata(:,:,:)
 character(fnlen)            :: mess
+character(16)               :: HS
 
  EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 915 /) )
 
+ call Message%printMessage('This program can use the standard space groups as well as') 
+ call Message%printMessage('the Hall space group symbols; enter a negative space group') 
+ call Message%printMessage('number to display the Hall symbols for the desired space group')
+ call Message%printMessage('')
  call Message%ReadValue(' Enter Space Group number : ', io_int, 1) 
- SG = SpaceGroup_T( SGnumber = io_int(1) )
+ if (io_int(1).lt.0) then 
+   HS = List_Hall_Symbols(abs(io_int(1)),HSGnum) 
+   SG = SpaceGroup_T( SGnumber = -io_int(1), useHall=.TRUE., HallSGnumber=HSGnum )
+   call Message%printMessage('  Hall Space Group Symbol  : '//trim(HS), frm = "(A)")
+ else
+   SG = SpaceGroup_T( SGnumber = io_int(1) )
+   call Message%printMessage('  Space Group Symbol       : '//trim(SG%getSpaceGroupName()), frm = "(A)")
+ end if 
 
  pos = 'xyz'
- call Message%printMessage('  Space Group Symbol       : '//trim(SG%getSpaceGroupName()), frm = "(A)")
 
  io_int(1) = SG%getSpaceGroupMATnum()
  call Message%WriteValue('  number of operators      : ', io_int, 1, "(I3)")

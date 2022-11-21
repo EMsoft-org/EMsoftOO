@@ -281,7 +281,6 @@ Add_EMsoftOO_Executable(TARGET EMOrientationViz
                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                               )
 
-
 Add_EMsoftOO_Executable(TARGET EMsoftinit
                               SOURCES ${APP_DIR}/EMsoftinit.f90
                               LINK_LIBRARIES EMsoftOOLib

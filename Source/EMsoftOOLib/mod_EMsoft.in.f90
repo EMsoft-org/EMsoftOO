@@ -239,6 +239,8 @@ private
 
       procedure, pass(self), public :: C2F_configuration_strings => C2F_configuration_strings_
 
+      procedure, pass(self), public :: Check_Program_Argument
+
   end type EMsoft_T
 ! !DEC$ ATTRIBUTES DLLEXPORT :: setConfigParameter
 
@@ -2292,6 +2294,10 @@ if (numarg.gt.0) then ! there is at least one argument
 ! the EMmkxtal program has a special switch for Wyckoff position entry so we need to turn off haltprogram
         haltprogram = .FALSE.
       end if
+      if ( (trim(arg).eq.'-H').and.(trim(progname).eq.'EMmkxtal.f90') ) then
+! there is an alternative switch -H to use the Hall Space Group symbols
+        haltprogram = .FALSE.
+      end if
       if (trim(arg).eq.'-pdf') then
 ! if the pandoc program is installed (for instance within the anaconda distribution)
 ! then the user can ask for the wiki manual page (if it exists) to be converted into a pdf
@@ -2429,6 +2435,37 @@ if (haltprogram) then
 end if
 
 end subroutine Interpret_Program_Arguments_no_nml_
+
+!--------------------------------------------------------------------------
+recursive function Check_Program_Argument( self, testarg ) result(found)
+!DEC$ ATTRIBUTES DLLEXPORT :: Check_Program_Argument
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/20/22
+  !!
+  !! check for a particular command line argument 
+  !!
+
+IMPLICIT NONE
+
+class(EMsoft_T), INTENT(INOUT)          :: self
+character(*), INTENT(IN)                :: testarg 
+logical                                 :: found 
+
+integer(kind=irg)                       :: numarg, iargca, i 
+character(fnlen)                        :: arg
+
+found = .FALSE.
+
+numarg = command_argument_count()
+if (numarg.gt.0) then
+  do i=1,numarg
+    call get_command_argument(i,arg)
+    if (trim(testarg).eq.trim(arg)) found = .TRUE.
+  end do
+end if
+
+end function Check_Program_Argument
 
 !--------------------------------------------------------------------------
 subroutine C2F_configuration_strings_(self, cptr) 

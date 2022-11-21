@@ -46,7 +46,7 @@ use mod_global
 
 IMPLICIT NONE 
 
-public :: List_Hall_Symbols 
+public :: List_Hall_Symbols, get_HallString, get_Hall_nentries 
 
 integer(kind=irg), parameter, private  :: Hall_SGstart(230) = (/ & 
    1,   2,   3,   6,   9,  18,  21,  30,  39,  57, &
@@ -750,6 +750,9 @@ end if
 !       a-b   if preceded by an N of 3 or 6
 ! 3. the third rotation (N is always 3) has an axis direction of a+b+c
 
+! apply rule 1 (in particular necessary for the rhombohedral/trigonal case)
+if ( (jseq.eq.1) .and. (self%axis(jseq).eq.'0') ) self%axis(jseq) = 'z'
+
 ! apply rule 2.
 if ( (jseq.gt.1) .and. (self%axis(jseq).eq.'0') ) then 
   if ( self%seq(jseq).eq.2) then 
@@ -882,6 +885,24 @@ end do
 end subroutine print_Hall_Seitzgenerators_
 
 !--------------------------------------------------------------------------
+function get_Hall_nentries(SGnum) result(m)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Hall_nentries
+!! author: MDG 
+!! version: 1.0 
+!! date: 11/21/22
+!!
+!! get the number of Hall groups for a given spade group
+
+IMPLICIT NONE 
+
+integer(kind=irg),INTENT(IN)          :: SGnum
+integer(kind=irg)                     :: m 
+
+m = Hall_SGnentries(SGnum)
+
+end function get_Hall_nentries
+
+!--------------------------------------------------------------------------
 subroutine get_Hall_Ngenerators_(self, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_Hall_Ngenerators_
 !! author: MDG 
@@ -970,7 +991,7 @@ end if
 end subroutine get_Hall_Ngenerators_
 
 !--------------------------------------------------------------------------
-function List_Hall_Symbols( SGnumber ) result(HS)
+function List_Hall_Symbols( SGnumber, HallSGnumber, verbose ) result(HS)
 !DEC$ ATTRIBUTES DLLEXPORT :: List_Hall_Symbols
 !! author: MDG 
 !! version: 1.0 
@@ -983,6 +1004,8 @@ use mod_io
 IMPLICIT NONE 
 
 integer(kind=irg),INTENT(IN)    :: SGnumber 
+integer(kind=irg),INTENT(OUT)   :: HallSGnumber 
+logical,INTENT(IN),OPTIONAL     :: verbose
 character(16)                   :: HS
 
 type(IO_T)                      :: Message 
@@ -990,8 +1013,12 @@ type(IO_T)                      :: Message
 integer(kind=irg)               :: i, rd_int(1) 
 character(2)                    :: n 
 
-call Message%printMessage('')
-call Message%printMessage(' SG label   Int. Symbol  Hall Symbol ')
+call Message%printMessage(' ------------------------------------')
+call Message%printMessage(' This program will use the Hall Space Group symbols;')
+call Message%printMessage(' please select the correct Hall Space Group entry from')
+call Message%printMessage(' the list below')
+call Message%printMessage(' ------------------------------------')
+call Message%printMessage('   SG label Int. Symbol  Hall Symbol ')
 
 do i=Hall_SGstart(SGnumber), Hall_SGstart(SGnumber) + Hall_SGnentries(SGnumber) - 1 
   write (n,"(I2)") i-Hall_SGstart(SGnumber)+1
@@ -999,11 +1026,42 @@ do i=Hall_SGstart(SGnumber), Hall_SGstart(SGnumber) + Hall_SGnentries(SGnumber) 
 end do 
 
 call Message%printMessage('')
-call Message%ReadValue('Enter space group selection : ', rd_int, 1 )
+call Message%ReadValue('Enter Hall space group selection : ', rd_int, 1 )
 
 ! and return the Hall Symbol for the selected space group 
-HS = Hall_labels( Hall_SGstart(SGnumber) + rd_int(1) - 1 )
+HallSGnumber = Hall_SGstart(SGnumber) + rd_int(1) - 1 
+HS = Hall_labels( HallSGnumber )
+
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then
+    call Message%printMessage('')
+    call Message%printMessage(' This program will use the following Hall symbol : '//trim(HS))
+  end if 
+end if 
 
 end function List_Hall_Symbols
+
+!--------------------------------------------------------------------------
+function get_HallString( Hnumber, SGshort, SGsym ) result(HS)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_HallString
+!! author: MDG 
+!! version: 1.0 
+!! date: 11/20/22
+!!
+!! return the standard Hall symbol for a given Hall space group number 
+
+IMPLICIT NONE 
+
+integer(kind=irg),INTENT(IN)      :: Hnumber 
+character(8),INTENT(OUT),OPTIONAL :: SGshort
+character(12),INTENT(OUT),OPTIONAL:: SGsym
+character(16)                     :: HS
+
+HS = Hall_labels( Hnumber )
+
+if (present(SGshort)) SGshort = Hall_SGlabels( Hnumber )
+if (present(SGsym)) SGsym = Hall_Intlabels( Hnumber )
+
+end function get_HallString
 
 end module mod_HallSG

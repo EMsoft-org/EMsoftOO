@@ -24,14 +24,14 @@ type(Vendor_T)          :: VT
 type(HallSG_T)          :: HSG 
 
 character(fnlen)        :: fname, groupname, inputtype, progname, progdesc, HDFstrings(10) 
-integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, L, recordsize, patsz, i, j, numsx, numsy, correctsize, s1, s2 
+integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, L, recordsize, patsz, i, j, numsx, numsy, correctsize, s1, s2,HSGn 
 real(kind=sgl),allocatable   :: exppatarray(:), tot(:), totold(:)
 real(kind=dbl),allocatable   :: SG(:,:,:)
 integer(HSIZE_T)        :: dims3(3), offset3(3)
 character(16)           :: HS
 
 
-HS = List_Hall_Symbols(9)
+HS = List_Hall_Symbols(146, HSGn)
 
 HSG = HallSG_T( HS )
 
