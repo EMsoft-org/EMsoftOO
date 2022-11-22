@@ -891,7 +891,7 @@ call SG%setPGnumber(pgnum)
 
 if (present(useHall)) then 
   if (useHall.eqv..TRUE.) then 
-    SG%HallSG = HallSG_T( get_HallString(HallSGnumber) )
+    SG%HallSG = HallSG_T( get_HallString(SG%HallSGnumber) )
   end if 
 end if 
 

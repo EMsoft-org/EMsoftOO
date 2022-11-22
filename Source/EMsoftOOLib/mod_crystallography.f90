@@ -534,6 +534,7 @@ recursive subroutine dumpXtalInfo_(self, SG)
 
 use mod_io
 use mod_symmetry
+use mod_HallSG
 
 IMPLICIT NONE
 
@@ -564,22 +565,32 @@ real(kind=dbl)                          :: oi_real(5)
  call Message%WriteValue('  Volume [nm^3]      : ', oi_real, 1, "(F12.8)")
  oi_int(1) = SG%getSpaceGroupNumber()
  call Message%WriteValue('  Space group #      : ', oi_int, 1, "(1x,I3)")
- call Message%WriteValue('  Space group symbol : ', trim(SYM_SGname(SG%getSpaceGroupNumber())) )
- call Message%WriteValue('  Generator String   : ',  trim(SYM_GL(SG%getSpaceGroupNumber())) )
- if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().ne.5)) then
-  call Message%printMessage('   Using second origin setting', frm = "(A)")
- endif
- if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().eq.5)) then
-  call Message%printMessage('   Using rhombohedral parameters', frm = "(A)")
- endif
-  if (SG%getSpaceGroupCentro()) then
+ if (SG%getuseHallSG().eqv..TRUE.) then 
+   oi_int(1) = SG%getHallSpaceGroupNumber()
+   call Message%WriteValue('  Hall Space group # : ', oi_int, 1, "(1x,I3)")
+   call Message%WriteValue('  Hall space group   : ', trim(get_HallString(SG%getHallSpaceGroupNumber())) )
+ else
+   call Message%WriteValue('  Space group symbol : ', trim(SYM_SGname(SG%getSpaceGroupNumber())) )
+   call Message%WriteValue('  Generator String   : ',  trim(SYM_GL(SG%getSpaceGroupNumber())) )
+   if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().ne.5)) then
+    call Message%printMessage('   Using second origin setting', frm = "(A)")
+   endif
+   if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().eq.5)) then
+    call Message%printMessage('   Using rhombohedral parameters', frm = "(A)")
+   endif
+ end if 
+ if (SG%getSpaceGroupCentro()) then
     call Message%printMessage('   Structure is centrosymmetric', frm = "(A)")
  else
    call Message%printMessage('   Structure is non-centrosymmetric', frm = "(A)")
  end if
 
 ! space group and point group information
- oi_int(1) = SG%getSpaceGroupGENnum()
+ if (SG%getuseHallSG().eqv..TRUE.) then 
+   oi_int(1) = SG%HallSG%get_NHallgenerators()
+ else
+   oi_int(1) = SG%getSpaceGroupGENnum()
+ end if 
  call Message%WriteValue('  # generators       : ', oi_int, 1, "(1x,I3)")
  oi_int(1) = SG%getSpaceGroupMATnum()
  call Message%WriteValue('  # symmetry matrices: ', oi_int, 1, "(1x,I3)")
