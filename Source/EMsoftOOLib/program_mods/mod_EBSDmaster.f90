@@ -1459,6 +1459,19 @@ energyloop: do iE=Estart,1,-1
    io_int(1)=numk
    call Message%WriteValue('# independent beam directions to be considered = ', io_int, 1, "(I8)")
 
+! are using a Hall space group with potentially different setting ?  If so, then we
+! must transform the k-vectors to a different reference frame before using them
+  if (SG%getuseHallSG().eqv..TRUE.) then 
+! point to the first beam direction
+write (*,*) 'using kvector transform rule'
+    ktmp => kvec%get_ListHead()
+    ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
+    do ik=2,numk
+      ktmp => ktmp%next
+      ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
+    end do
+  end if
+
 ! convert part of the kvector linked list into arrays for OpenMP
   call mem%alloc(karray, (/4,numk/), 'karray')
   call mem%alloc(kij, (/3,numk/), 'kij')
