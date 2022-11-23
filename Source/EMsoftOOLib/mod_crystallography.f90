@@ -534,6 +534,7 @@ recursive subroutine dumpXtalInfo_(self, SG)
 
 use mod_io
 use mod_symmetry
+use mod_HallSG
 
 IMPLICIT NONE
 
@@ -564,22 +565,32 @@ real(kind=dbl)                          :: oi_real(5)
  call Message%WriteValue('  Volume [nm^3]      : ', oi_real, 1, "(F12.8)")
  oi_int(1) = SG%getSpaceGroupNumber()
  call Message%WriteValue('  Space group #      : ', oi_int, 1, "(1x,I3)")
- call Message%WriteValue('  Space group symbol : ', trim(SYM_SGname(SG%getSpaceGroupNumber())) )
- call Message%WriteValue('  Generator String   : ',  trim(SYM_GL(SG%getSpaceGroupNumber())) )
- if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().ne.5)) then
-  call Message%printMessage('   Using second origin setting', frm = "(A)")
- endif
- if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().eq.5)) then
-  call Message%printMessage('   Using rhombohedral parameters', frm = "(A)")
- endif
-  if (SG%getSpaceGroupCentro()) then
+ if (SG%getuseHallSG().eqv..TRUE.) then 
+   oi_int(1) = SG%getHallSpaceGroupNumber()
+   call Message%WriteValue('  Hall Space group # : ', oi_int, 1, "(1x,I3)")
+   call Message%WriteValue('  Hall space group   : ', trim(get_HallString(SG%getHallSpaceGroupNumber())) )
+ else
+   call Message%WriteValue('  Space group symbol : ', trim(SYM_SGname(SG%getSpaceGroupNumber())) )
+   call Message%WriteValue('  Generator String   : ',  trim(SYM_GL(SG%getSpaceGroupNumber())) )
+   if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().ne.5)) then
+    call Message%printMessage('   Using second origin setting', frm = "(A)")
+   endif
+   if ((SG%getSpaceGroupSetting().eq.2).AND.(SG%getSpaceGroupXtalSystem().eq.5)) then
+    call Message%printMessage('   Using rhombohedral parameters', frm = "(A)")
+   endif
+ end if 
+ if (SG%getSpaceGroupCentro()) then
     call Message%printMessage('   Structure is centrosymmetric', frm = "(A)")
  else
    call Message%printMessage('   Structure is non-centrosymmetric', frm = "(A)")
  end if
 
 ! space group and point group information
- oi_int(1) = SG%getSpaceGroupGENnum()
+ if (SG%getuseHallSG().eqv..TRUE.) then 
+   oi_int(1) = SG%HallSG%get_NHallgenerators()
+ else
+   oi_int(1) = SG%getSpaceGroupGENnum()
+ end if 
  call Message%WriteValue('  # generators       : ', oi_int, 1, "(1x,I3)")
  oi_int(1) = SG%getSpaceGroupMATnum()
  call Message%WriteValue('  # symmetry matrices: ', oi_int, 1, "(1x,I3)")
@@ -1730,6 +1741,7 @@ recursive subroutine requestLatticeParameters(self, SG)
 
 use mod_io
 use mod_symmetry
+use mod_HallSG
 
 IMPLICIT NONE
 
@@ -1737,8 +1749,10 @@ class(Cell_T),intent(inout)             :: self
 type(SpaceGroup_T), intent(inout)       :: SG
 
 type(IO_T)                              :: Message
-integer(kind=irg)                       :: io_int(1)
+integer(kind=irg)                       :: io_int(1), TRIG(7)
 real(kind=dbl)                          :: io_real(1)
+character(8)                            :: SGshort 
+character(16)                           :: HS
 
   ! make sure the symmetry operations will be reduced to the
   ! fundamental unit cell
@@ -1749,16 +1763,32 @@ real(kind=dbl)                          :: io_real(1)
   ! (the rhombohedral axes are considered as the second setting)
    call SG%setSpaceGrouptrigonal(.FALSE.)
    call SG%setSpaceGroupsecond(.FALSE.)
+
    if (self%xtal_system.eq.5) then
     call SG%setSpaceGrouptrigonal(.TRUE.)
-    call Message%printMessage('Enter 1 for rhombohedral setting ,', frm = "(/A)")
-    call Message%ReadValue('0 for hexagonal setting : ', io_int, 1)
-    if (io_int(1).eq.0) then
-     self%xtal_system=4   ! this is set to 4 so that we ask for the correct lattice parameters below
-    else
-     call SG%setSpaceGroupsecond(.TRUE.)
+ 
+  ! this is a bit different if we have the Hall symbols vs. the regular space groups
+    if (SG%getuseHallSG().eqv..TRUE.) then 
+      TRIG = (/ 146,148,155,160,161,166,167 /)
+      if (minval(abs(TRIG-SG%getSpaceGroupNumber())).eq.0) then ! we have one of these cases
+       HS = get_HallString( SG%getHallSpaceGroupNumber(), SGshort )
+       if (scan(SGshort,'H').ne.0) then  ! this is the hexagonal setting
+          self%xtal_system=4   ! this is set to 4 so that we ask for the correct lattice parameters below
+       else ! and this is the rhombohedral setting
+          call SG%setSpaceGroupsecond(.TRUE.)
+       end if         
+     end if         
+    else 
+      call Message%printMessage('Enter 1 for rhombohedral setting ,', frm = "(/A)")
+      call Message%ReadValue('0 for hexagonal setting : ', io_int, 1)
+      if (io_int(1).eq.0) then
+       self%xtal_system=4   ! this is set to 4 so that we ask for the correct lattice parameters below
+      else
+       call SG%setSpaceGroupsecond(.TRUE.)
+      end if
     end if
-   end if
+
+   end if 
 
   ! get the lattice parameters
    call Message%printMessage('Enter lattice parameters', frm = "(//A)")
@@ -2226,6 +2256,7 @@ use mod_HDFsupport
 use mod_timing
 use mod_symmetry
 use stringconstants
+use mod_HallSG
 
 IMPLICIT NONE
 
@@ -2296,6 +2327,17 @@ me = HDF_T()
   hdferr = me%writeDatasetInteger(dataset, SG%getSpaceGroupNumber())
   call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
 
+  if (SG%getuseHallSG().eqv..TRUE.) then 
+    dataset = SC_HallSGnumber
+    hdferr = me%writeDatasetInteger(dataset, SG%getHallSpaceGroupNumber())
+    call me%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+
+    dataset = SC_HallSG
+    strings(1) = trim(get_HallString( SG%getHallSpaceGroupNumber() ) )
+    hdferr = me%writeDatasetStringArray(dataset, strings, 1)
+    call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+  end if 
+
   ! make sure we do not write a '0' for the SGset variable; it must be either 1 or 2
   if (SG%getSpaceGroupSetting().eq.0) then
     setting = 1
@@ -2351,6 +2393,7 @@ use mod_HDFsupport
 use mod_timing
 use mod_symmetry
 use stringconstants
+use mod_HallSG
 
 IMPLICIT NONE
 
@@ -2365,7 +2408,7 @@ type(Timing_T)                          :: Timer
 character(11)                           :: dstr
 character(15)                           :: tstr
 character(fnlen)                        :: progname = 'EMmkxtal.f90', groupname, dataset, xtalname, strings(1)
-integer(kind=irg)                       :: hdferr, setting
+integer(kind=irg)                       :: hdferr, setting, HSGn
 real(kind=dbl)                          :: cellparams(6)
 integer(kind=irg),allocatable           :: atomtypes(:)
 real(kind=sgl),allocatable              :: atompos(:,:)
@@ -2424,6 +2467,18 @@ tstr = Timer%getTimeString()
   hdferr = useHDF%writeDatasetInteger(dataset, setting)
   call useHDF%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
 
+  if (SG%getuseHallSG().eqv..TRUE.) then 
+    dataset = SC_HallSGnumber
+    HSGn = SG%getHallSpaceGroupNumber()
+    hdferr = useHDF%writeDatasetInteger(dataset, HSGn )
+    call useHDF%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
+
+    dataset = SC_HallSG
+    strings(1) = trim(get_HallString( HSGn ) )
+    hdferr = useHDF%writeDatasetStringArray(dataset, strings, 1)
+    call useHDF%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
+  end if 
+
   dataset = SC_Natomtypes
   hdferr = useHDF%writeDatasetInteger(dataset, self%ATOM_ntype)
   call useHDF%error_check( 'SaveDataHDF:writeDatasetInteger:'//trim(dataset), hdferr)
@@ -2464,6 +2519,7 @@ use mod_EMsoft
 use mod_io
 use mod_symmetry
 use mod_HDFsupport
+use mod_HallSG
 
 IMPLICIT NONE
 
@@ -2516,6 +2572,7 @@ use HDF5
 use mod_HDFsupport
 use ISO_C_BINDING
 use stringconstants
+use mod_HallSG
 
 IMPLICIT NONE
 
@@ -2531,7 +2588,7 @@ type(IO_T)                              :: Message
 character(fnlen)                        :: dataset, groupname, xtalname
 integer(HSIZE_T)                        :: dims(1), dims2(2)
 integer(kind=irg)                       :: hdferr, nlines, xtal_system, SGnum, setting, &
-                                           ATOM_ntype, i
+                                           ATOM_ntype, i, HallSGnum
 real(kind=dbl),allocatable              :: cellparams(:)
 integer(kind=irg),allocatable           :: atomtypes(:)
 real(kind=sgl),allocatable              :: atompos(:,:)
@@ -2581,20 +2638,30 @@ self%gamma = cellparams(6)
 ! compute the metric matrices
 call self%CalcMatrices()
 
+! check for the Hall Space Group parameter; if it is present in the .xtal file,
+! then we must use the Hall generators instead of the ones created from the 
+! regular space group number.  
 dataset = SC_SpaceGroupNumber
 call me%readDatasetInteger(dataset, hdferr, SGnum)
 call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
-dataset = SC_SpaceGroupSetting
-call me%readDatasetInteger(dataset, hdferr, setting)
-call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
 
-if (setting.eq.0) setting = 1
-SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system, setting = setting, &
-                   dmt=self%dmt, rmt=self%rmt )
+dataset = SC_HallSGnumber
+call H5Lexists_f(me%getobjectID(),trim(dataset),d_exists, hdferr)
+if (d_exists) then
+  call me%readDatasetInteger(dataset, hdferr, HallSGnum)
+  call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
 
-!call SG%setSpaceGroupNumber(SGnum)
+  SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system, setting = setting, &
+                     dmt=self%dmt, rmt=self%rmt, useHall=.TRUE., HallSGnumber=HallSGnum )
+else 
+  dataset = SC_SpaceGroupSetting
+  call me%readDatasetInteger(dataset, hdferr, setting)
+  call me%error_check('readDataHDF:readDatasetInteger:'//trim(dataset), hdferr)
 
-!all SG%setSpaceGroupSetting(setting)
+  if (setting.eq.0) setting = 1
+  SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system, setting = setting, &
+                     dmt=self%dmt, rmt=self%rmt )
+end if 
 
 ! here we also set the point group number, which is needed by many routines
 if (SGnum.ge.221) then

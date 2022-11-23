@@ -52,22 +52,33 @@ type(Cell_T)            :: cell
 
 character(fnlen)        :: flag   ! we need to test for the -w Wyckoff positions command line argument
 character(fnlen)        :: fname, source
-logical                 :: useWyckoff  = .FALSE.
+logical                 :: useWyckoff  = .FALSE., useHall = .FALSE.
 
 ! initialize the cell and IO classes
 cell = Cell_T()
 Message = IO_T()
 
-! display the splash screen and analyze any non-standard command line arguments
-EMsoft%flagset = '-w'
-EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 917 /))
-if (trim(EMsoft%flagset).eq.'yes') then
+! display the splash screen
+EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 917 /) )
+
+! should we use Wyckoff symbols ?
+if (EMsoft%Check_Program_Argument('-w').eqv..TRUE.) then
     useWyckoff = .TRUE.
     call cell%setWyckoff(useWyckoff)
 end if
 
 ! generate the space group class; this generates all symmetry arrays
-SG = SpaceGroup_T()
+! should we use Hall Space Group symbols for special settings ?
+! also check for simultaneous Wyckoff and Hall use; that has not been implemented yet...
+if (EMsoft%Check_Program_Argument('-H').eqv..TRUE.) then
+  if (useWyckoff.eqv..TRUE.) then 
+    call Message%printError('EMmkxtal.f90','Simultaneous use of Wyckoff and Hall symbols has not been implemented.')
+  end if 
+  SG = SpaceGroup_T( useHall=.TRUE. )
+  useHall = .TRUE.
+else 
+  SG = SpaceGroup_T()
+end if
 
 ! to avoid circular references, the cell class also needs to know the crystal system
 call cell%setXtalSystem(SG%getSpaceGroupXtalSystem())

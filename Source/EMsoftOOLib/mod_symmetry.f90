@@ -44,12 +44,14 @@ module mod_symmetry
   !! @date  01/10/14 MDG 4.0 SG is now part of the unitcell type
   !! @date  06/05/14 MDG 4.1 made cell an argument instead of global variable
   !! @date  09/05/16 MDG 4.2 added Wyckoff Position routines
+  !! @date  11/20/22 MDG 5.0 add support for Hall Space Group symbols
   !!
   !! this module contains all the routines from the original symmetry.f90 module, as well as
   !! all symmetry-related constants and types from the typedefs.f90 module
 
 use mod_kinds
 use mod_global
+use mod_HallSG
 
 IMPLICIT NONE
   private
@@ -612,12 +614,15 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
        !! to be completed if recip_pending = .TRUE.; this can be completed by means of the
        !! fixRecipPG method which can be called the metric matrices are known. This is only
        !! relevant to the hexagonal/trigonal case.
+      logical               :: useHallSG = .FALSE.
+      integer(kind=irg)     :: HallSGnumber
+      type(HallSG_T),public :: HallSG
 
     contains
     private
 ! basic space group generating routines and related stuff
       procedure, pass(self) :: getSpaceGroup_
-      procedure, pass(self) :: GetSetting_
+      procedure, pass(self) :: getSetting_
       procedure, pass(self) :: fillgen_
       procedure, pass(self) :: MakeGenerators_
       procedure, pass(self) :: matrixmult_
@@ -630,6 +635,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       procedure, pass(self) :: getSpaceGroupName_
       procedure, pass(self) :: getSpaceGroupOrder_
       procedure, pass(self) :: getSpaceGroupNumber_
+      procedure, pass(self) :: getHallSpaceGroupNumber_
       procedure, pass(self) :: getSpaceGroupGENnum_
       procedure, pass(self) :: getSpaceGroupMATnum_
       procedure, pass(self) :: getSpaceGroupNUMpt_
@@ -643,6 +649,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       procedure, pass(self) :: getSpaceGrouptrigonal_
       procedure, pass(self) :: getSpaceGroupsecond_
       procedure, pass(self) :: getSpaceGrouphexset_
+      procedure, pass(self) :: getuseHallSG_
 ! routines to set space group parameters
       procedure, pass(self) :: setSpaceGroupreduce_
       procedure, pass(self) :: setSpaceGrouphexset_
@@ -658,6 +665,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
 ! routines to extract particular parameters
       procedure, pass(self) :: getPGnumber_
       procedure, pass(self) :: setPGnumber_
+      procedure, pass(self) :: setHallSG_
       procedure, pass(self) :: GetOrderinZone_
       procedure, pass(self) :: getLaueGroupNumber_
       procedure, pass(self) :: getHexvsRho_
@@ -685,6 +693,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       generic, public :: getSpaceGroupNUMpt => getSpaceGroupNUMpt_
       generic, public :: getSpaceGroupOrder => getSpaceGroupOrder_
       generic, public :: getSpaceGroupNumber => getSpaceGroupNumber_
+      generic, public :: getHallSpaceGroupNumber => getHallSpaceGroupNumber_
       generic, public :: getSpaceGroupSetting => getSpaceGroupSetting_
       generic, public :: getSpaceGroupCentro => getSpaceGroupCentro_
       generic, public :: getSpaceGroupXtalSystem => getSpaceGroupXtalSystem_
@@ -695,14 +704,16 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       generic, public :: getSpaceGrouphexset => getSpaceGrouphexset_
       generic, public :: getSpaceGrouptrigonal => getSpaceGrouptrigonal_
       generic, public :: getSpaceGroupsecond => getSpaceGroupsecond_
+      generic, public :: getuseHallSG => getuseHallSG_
       generic, public :: setSpaceGroupreduce => setSpaceGroupreduce_
       generic, public :: setSpaceGrouphexset => setSpaceGrouphexset_
       generic, public :: setSpaceGrouptrigonal => setSpaceGrouptrigonal_
       generic, public :: setSpaceGroupsecond => setSpaceGroupsecond_
       generic, public :: setSpaceGroupSetting => setSpaceGroupSetting_
       generic, public :: setSpaceGroupNumber => setSpaceGroupNumber_
+      generic, public :: setHallSG => setHallSG_
       generic, public :: setSpaceGroupXtalSystem => setSpaceGroupXtalSystem_
-      generic, public :: GetSetting => GetSetting_
+      generic, public :: getSetting => getSetting_
       generic, public :: GenerateSymmetry => GenerateSymmetry_
       generic, public :: ListPointGroups => ListPointGroups_
       generic, public :: fixRecipPG => fixRecipPG_
@@ -776,7 +787,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(SpaceGroup_T) function SpaceGroup_constructor( SGnumber, xtalSystem, setting, dmt, rmt ) result(SG)
+type(SpaceGroup_T) function SpaceGroup_constructor( SGnumber, xtalSystem, setting, dmt, rmt, useHall, HallSGnumber ) result(SG)
 !DEC$ ATTRIBUTES DLLEXPORT :: SpaceGroup_constructor
   !! author: MDG
   !! version: 1.0
@@ -793,17 +804,28 @@ integer(kind=irg), intent(in), OPTIONAL :: xtalSystem
 integer(kind=irg), intent(in), OPTIONAL :: setting
 real(kind=dbl), intent(in),OPTIONAL     :: dmt(3,3)
 real(kind=dbl), intent(in),OPTIONAL     :: rmt(3,3)
+logical, intent(in), OPTIONAL           :: useHall
+integer(kind=irg), intent(in), OPTIONAL :: HallSGnumber
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: i, pgnum, sgnum
 integer(kind=irg),parameter             :: icv(7) = (/ 7, 6, 3, 2, 5, 4, 1 /)
 real(kind=dbl)                          :: ddt(3,3), rrt(3,3)
 
+SG%useHallSG = .FALSE.
+
 ! if there are no input parameters, then we start by asking for the crystal system
 if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) .and. .not.(present(setting)) ) then
   call getXtalSystem_(SG)
+  if (present(useHall)) then 
+    if (useHall.eqv..TRUE.) then 
+      SG%useHallSG = .TRUE.
+    end if 
+  end if 
   call getSpaceGroup_(SG)
-  call getSetting_(SG)
+  if (SG%useHallSG.eqv..FALSE.) then 
+    call getSetting_(SG)
+  end if 
   sgnum = SG%SGnumber
 else  ! at least one of the optional parameters are present
 
@@ -820,19 +842,32 @@ else  ! at least one of the optional parameters are present
         end do
     end if 
 ! convert this number to the EMsoft crystal system numbering scheme
+    if (i.eq.0) i = 1
     SG%xtal_system = icv(i)
   end if
 
   if ( (.not.(present(SGnumber))) .and. (present(xtalSystem)) ) then
     SG%xtal_system = xtalSystem
+    if (present(useHall)) then 
+      if (useHall.eqv..TRUE.) then 
+        SG%useHallSG = .TRUE.
+      end if 
+    end if 
     call getSpaceGroup_(SG)
     sgnum = SG%SGnumber
   end if
 
-  if (present(SGnumber) .and. (present(xtalSystem)) ) then
+  if (present(SGnumber) .and. (present(xtalSystem)) .and. (.not.(present(useHall)))) then
     SG%SGnumber = SGnumber
     sgnum = SGnumber
     SG%xtal_system = xtalSystem
+  end if
+
+  if (present(SGnumber) .and. (present(useHall))) then
+    SG%useHallSG = .TRUE.
+    SG%SGnumber = SGnumber
+    SG%HallSGnumber= HallSGnumber
+    sgnum = SGnumber
   end if
 
   if (present(setting)) then
@@ -853,6 +888,12 @@ do i=1,32
   if (SGPG(i).le.sgnum) pgnum = i
 end do
 call SG%setPGnumber(pgnum)
+
+if (present(useHall)) then 
+  if (useHall.eqv..TRUE.) then 
+    SG%HallSG = HallSG_T( get_HallString(SG%HallSGnumber) )
+  end if 
+end if 
 
 ! allocate the arrays for symmetry operators
 allocate( SG%data(SG%SGorder, 4, 4), SG%direc(PGTHDorder(pgnum),3,3), SG%recip(PGTHDorder(pgnum),3,3) )
@@ -875,14 +916,18 @@ else
   ddt = dmt 
   rrt = rmt 
 end if 
-if (SGsymnum(sgnum).eq.sgnum) then
-  call GenerateSymmetry_(SG, .TRUE., ddt, rrt)
-else
-  SG%SGnumber=SGsymnum(sgnum)
-  call GenerateSymmetry_(SG, .TRUE., ddt, rrt)
-  SG%SGnumber=sgnum
-  call GenerateSymmetry_(SG, .FALSE., ddt, rrt)
-end if
+if (SG%useHallSG.eqv..TRUE.) then 
+  call GenerateSymmetry_(SG, .TRUE., ddt, rrt, useHall=.TRUE.)
+else 
+  if (SGsymnum(sgnum).eq.sgnum) then
+    call GenerateSymmetry_(SG, .TRUE., ddt, rrt)
+  else
+    SG%SGnumber=SGsymnum(sgnum)
+    call GenerateSymmetry_(SG, .TRUE., ddt, rrt)
+    SG%SGnumber=sgnum
+    call GenerateSymmetry_(SG, .FALSE., ddt, rrt)
+  end if
+end if 
 
 end function SpaceGroup_constructor
 
@@ -1053,17 +1098,20 @@ recursive subroutine getSpaceGroup_(self)
   !!
   !! This routines lists all the relevant space groups for
   !! the present crystal system, and asks the user to pick one.
+  !! If useHallSG is .TRUE., then we also ask the user for the 
+  !! specific space group Hall symbol
   !!
   !! the following space groups have a hexagonal and rhombohedral
   !! setting;  the generator matrices are different, and so are
-  !! their entries in the SYM_GL array.\n
-  !!  hexagonal setting 146: R 3           231\n
-  !!  hexagonal setting 148: R -3          232\n
-  !!  hexagonal setting 155: R 3 2         233\n
-  !!  hexagonal setting 160: R 3 m         234\n
-  !!  hexagonal setting 161: R 3 c         235\n
-  !!  hexagonal setting 166: R -3 m        23\n
-  !!  hexagonal setting 167: R -3 c        237\n
+  !! their entries in the SYM_GL array.  If useHallSG is .TRUE., then 
+  !! we shouldn't use these at all ... 
+  !!  hexagonal setting 146: R 3           231
+  !!  hexagonal setting 148: R -3          232
+  !!  hexagonal setting 155: R 3 2         233
+  !!  hexagonal setting 160: R 3 m         234
+  !!  hexagonal setting 161: R 3 c         235
+  !!  hexagonal setting 166: R -3 m        236
+  !!  hexagonal setting 167: R -3 c        237
   !!
   !! TODO: automatic conversion from rhombohedral to hexagonal setting ...
 
@@ -1074,8 +1122,9 @@ IMPLICIT NONE
 class(SpaceGroup_T), intent(inout)     :: self
 
 type(IO_T)                             :: Message
-integer(kind=irg)                      :: sgmin,sgmax,i,j,TRIG(7), io_int(1)
+integer(kind=irg)                      :: sgmin,sgmax,i,j,TRIG(7), io_int(1), HallSGnumber
 logical                                :: skip
+character(16)                          :: HS
 
  TRIG = (/ 146,148,155,160,161,166,167 /)
  skip = .FALSE.
@@ -1101,7 +1150,7 @@ logical                                :: skip
                self%SGnumber = io_int(1)
 
   ! check for rhombohedral settings of rhombohedral space groups
-               if (self%second) then
+               if ( (self%second) .and. (self%useHallSG.eqv..FALSE.) ) then
                  if (self%SGnumber.eq.146) self%SGnumber=231
                  if (self%SGnumber.eq.148) self%SGnumber=232
                  if (self%SGnumber.eq.155) self%SGnumber=233
@@ -1142,11 +1191,18 @@ logical                                :: skip
   end do
  end if
 
+! next handle the Hall symbols if the -H flag was set for the EMmkxtal program
+ if (self%useHallSG.eqv..TRUE.) then 
+  HS = List_Hall_Symbols(self%SGnumber, HallSGnumber)
+  self%HallSGnumber = HallSGnumber
+  self%HallSG = HallSG_T( HS )
+ end if
+
 end subroutine getSpaceGroup_
 
 !--------------------------------------------------------------------------
-recursive subroutine GetSetting_(self)
-!DEC$ ATTRIBUTES DLLEXPORT :: GetSetting_
+recursive subroutine getSetting_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: getSetting_
   !! author: MDG
   !! version: 1.0
   !! date: 01/09/20
@@ -1191,7 +1247,7 @@ type(IO_T)                        :: Message
 
  self%setting = iset
 
-end subroutine GetSetting_
+end subroutine getSetting_
 
 !--------------------------------------------------------------------------
 recursive subroutine fillgen_(self, t, isgn)
@@ -1452,7 +1508,7 @@ real(kind=dbl),parameter          :: eps=0.0005_dbl
 end function isitnew_
 
 !--------------------------------------------------------------------------
-recursive subroutine GenerateSymmetry_(self,dopg, dmt, rmt)
+recursive subroutine GenerateSymmetry_(self,dopg, dmt, rmt, useHall)
 !DEC$ ATTRIBUTES DLLEXPORT :: GenerateSymmetry_
   !! author: MDG
   !! version: 1.0
@@ -1467,15 +1523,28 @@ logical,INTENT(IN)                :: dopg
  !! logical to determine if point group matrices are to be computed as well
 real(kind=dbl),INTENT(IN)         :: dmt(3,3)
 real(kind=dbl),INTENT(IN)         :: rmt(3,3)
+logical,INTENT(IN),OPTIONAL       :: useHall
 
 ! type(PointGroup_T)                :: PG 
 
 integer(kind=irg)                 :: i,j,k,nsym,k1,k2,l1,l2       ! loop counters (mostly)
 real(kind=dbl)                    :: q,sm                         ! auxiliary variables.
+real(kind=dbl),allocatable        :: Hallgens(:,:,:)
 
-! create the space group generator matrices
- call MakeGenerators_(self)
- nsym = self%GENnum
+if (.not.(present(useHall))) then
+! create the regular space group generator matrices using the EMsoft encoded strings
+   call MakeGenerators_(self)
+   nsym = self%GENnum
+ else ! we need to use the Hall generators 
+   nsym = self%HallSG%get_NHallgenerators()
+   self%GENnum = nsym 
+   allocate(Hallgens(4,4,nsym))
+   Hallgens = self%HallSG%get_Hall_SeitzGenerators()
+   do k=1,nsym 
+     self%data(k,:,:) = Hallgens(:,:,k)
+   end do
+   deallocate(Hallgens)
+ end if 
 
 ! generate new elements from the squares of the generators
  do k=1,self%GENnum
@@ -1512,6 +1581,16 @@ real(kind=dbl)                    :: q,sm                         ! auxiliary va
    self%data(i,j,4)=mod( self%data(i,j,4),1.0_dbl)
   end do
  end do
+
+! write them to the output for debugging purposes
+ ! do i=1,self%MATnum
+ !  write (*,*) 'symmetry operator ', i 
+ !  do j=1,3
+ !   write (*,*) self%data(i,j,1:4)
+ !  end do
+ ! end do
+ ! write (*,*) 'shape : ', shape(self%direc)
+
 
  self%recip_pending = .FALSE.
 
@@ -1903,6 +1982,23 @@ self%SGnumber = SGnum
 end subroutine setSpaceGroupNumber_
 
 !--------------------------------------------------------------------------
+recursive subroutine setHallSG_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: setHallSG_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/20/22
+  !!
+  !! set the Hall Space Group notation boolean
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+
+self%useHallSG = .TRUE.
+
+end subroutine setHallSG_
+
+!--------------------------------------------------------------------------
 recursive subroutine setSpaceGroupXtalSystem_(self, xs)
 !DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupXtalSystem_
   !! author: MDG
@@ -2027,6 +2123,42 @@ logical                             :: second
 second = self%second
 
 end function getSpaceGroupsecond_
+
+!--------------------------------------------------------------------------
+recursive function getuseHallSG_(self) result( l )
+!DEC$ ATTRIBUTES DLLEXPORT :: getuseHallSG_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/21/22
+  !!
+  !! are we using the Hall Space Group descriptors ?
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical                             :: l
+
+l = self%useHallSG
+
+end function getuseHallSG_
+
+!--------------------------------------------------------------------------
+recursive function getHallSpaceGroupNumber_(self) result(HSGnum)
+!DEC$ ATTRIBUTES DLLEXPORT :: getHallSpaceGroupNumber_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/21/22
+  !!
+  !! get the Hall space group number parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+integer(kind=irg)                   :: HSGnum
+
+HSGnum = self%HallSGnumber
+
+end function getHallSpaceGroupNumber_
 
 !--------------------------------------------------------------------------
 recursive subroutine ListPointGroups_(self)

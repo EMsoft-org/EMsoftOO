@@ -13,6 +13,7 @@ use mod_io
 use mod_HDFsupport
 use HDF5
 use mod_vendors
+use mod_HallSG
 
 
 IMPLICIT NONE 
@@ -20,13 +21,53 @@ IMPLICIT NONE
 type(EMsoft_T)          :: EMsoft
 type(HDF_T)             :: HDF
 type(Vendor_T)          :: VT
+type(HallSG_T)          :: HSG 
 
 character(fnlen)        :: fname, groupname, inputtype, progname, progdesc, HDFstrings(10) 
-integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, L, recordsize, patsz, i, j, numsx, numsy, correctsize, s1, s2 
+integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, L, recordsize, patsz, i, j, numsx, numsy, correctsize, s1, s2,HSGn 
 real(kind=sgl),allocatable   :: exppatarray(:), tot(:), totold(:)
+real(kind=dbl),allocatable   :: SG(:,:,:)
 integer(HSIZE_T)        :: dims3(3), offset3(3)
+character(16)           :: HS
 
 
+HS = List_Hall_Symbols(151, HSGn)
+
+HSG = HallSG_T( HS )
+
+numsx = HSG%get_NHallgenerators()
+write (*,*) 'number of generators in '//trim(HS)//' : ', numsx
+allocate(SG(4,4,numsx))
+
+SG = HSG%get_Hall_SeitzGenerators()
+
+do i=1,numsx 
+  do j=1,4
+    write (*,*)  SG(j,1:4,i)
+  end do 
+  write (*,*) '-----'
+end do 
+
+
+stop
+! HSG = HallSG_T( '-P 1', verbose=.TRUE. )
+
+! HSG = HallSG_T( '-I 2xb', verbose=.TRUE. )
+! HSG = HallSG_T( '-I 2xb (0 0 1)', verbose=.TRUE. )
+
+HSG = HallSG_T( '-P 31 2c', verbose=.TRUE. )
+HSG = HallSG_T( 'P 31 2c (0 0 1)', verbose=.TRUE. )
+
+stop
+
+
+HSG = HallSG_T( 'P 2 2ab -1ab', verbose=.TRUE. )
+HSG = HallSG_T( 'P 4ab 2ab -1ab', verbose=.TRUE. )
+HSG = HallSG_T( '-F 4 2 3', verbose=.TRUE. )
+HSG = HallSG_T( 'F 4d 2 3 -1cd', verbose=.TRUE. )
+
+stop
+stop
 progname = 'tester'
 progdesc = 'test program to read problematic HDF5 file'
 EMsoft = EMsoft_T( progname, progdesc)
