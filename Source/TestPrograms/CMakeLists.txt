@@ -42,7 +42,6 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
       Add_EMSoftOO_Executable(TARGET tester
                                    SOURCES ${APP_DIR}/tester.f90
                                    LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
-                                   TEMPLATE ${TMPLT_DIR}/EMEBSDmaster.template
                                    SOLUTION_FOLDER EMsoftOOPublic/TestPrograms
                                    INSTALL_PROGRAM TRUE
                                    INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}

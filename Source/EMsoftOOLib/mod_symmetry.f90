@@ -1582,6 +1582,16 @@ if (.not.(present(useHall))) then
   end do
  end do
 
+! write them to the output for debugging purposes
+ ! do i=1,self%MATnum
+ !  write (*,*) 'symmetry operator ', i 
+ !  do j=1,3
+ !   write (*,*) self%data(i,j,1:4)
+ !  end do
+ ! end do
+ ! write (*,*) 'shape : ', shape(self%direc)
+
+
  self%recip_pending = .FALSE.
 
  if (dopg.eqv..TRUE.) then

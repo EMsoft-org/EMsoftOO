@@ -31,7 +31,7 @@ integer(HSIZE_T)        :: dims3(3), offset3(3)
 character(16)           :: HS
 
 
-HS = List_Hall_Symbols(146, HSGn)
+HS = List_Hall_Symbols(151, HSGn)
 
 HSG = HallSG_T( HS )
 

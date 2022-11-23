@@ -618,6 +618,7 @@ if (sum(abs(t1)).ne.0.D0) then
   vmat(1,1) = 1.D0 
   vmat(2,2) = 1.D0 
   vmat(3,3) = 1.D0 
+  vmat(4,4) = 1.D0 
   vmatn = vmat 
   vmat(1:3,4) = t1(1:3)
   vmatn(1:3,4) = -t1(1:3)
@@ -756,7 +757,7 @@ if ( (jseq.eq.1) .and. (self%axis(jseq).eq.'0') ) self%axis(jseq) = 'z'
 ! apply rule 2.
 if ( (jseq.gt.1) .and. (self%axis(jseq).eq.'0') ) then 
   if ( self%seq(jseq).eq.2) then 
-    if ( (self%seq(jseq-1).eq.2) .or. (self%seq(jseq-1).eq.4) ) then 
+    if ( (self%seq(jseq-1).eq.2) .or. (self%seq(jseq-1).eq.4)  ) then 
       self%axis(jseq) = 'x'
     else if ( (self%seq(jseq-1).eq.3) .or. (self%seq(jseq-1).eq.6) ) then
       self%axis(jseq) = ''''
@@ -814,7 +815,7 @@ else if (self%axis(jseq).eq.'''') then
     self%SeitzGenerators(:,:,cgen) = reshape( (/-1.D0, 0.D0, 0.D0, 0.D0, 0.D0,-1.D0, 0.D0,-1.D0, 0.D0 /), (/3,3/) )
   else if (self%axis(jseq-1).eq.'y') then 
     self%SeitzGenerators(:,:,cgen) = reshape( (/ 0.D0, 0.D0,-1.D0, 0.D0,-1.D0, 0.D0,-1.D0, 0.D0, 0.D0 /), (/3,3/) )
-  else if ( (self%axis(jseq-1).eq.'0') .or. (self%axis(jseq-1).eq.'z') ) then 
+  else if ( (self%axis(jseq-1).eq.'0') .or. (self%axis(jseq-1).eq.'z') .or. (self%axis(jseq-1).eq.'*')  ) then 
     self%SeitzGenerators(:,:,cgen) = reshape( (/ 0.D0,-1.D0, 0.D0,-1.D0, 0.D0, 0.D0, 0.D0, 0.D0,-1.D0 /), (/3,3/) )
   end if  
 else if (self%axis(jseq).eq.'"') then 
