@@ -3,7 +3,7 @@ program tester
 use mod_global 
 use mod_kinds
 use mod_EMsoft
-! use mod_symmetry
+use mod_symmetry
 ! use mod_crystallography
 ! use mod_QCsymmetry
 ! use mod_QCcrystallography
@@ -22,17 +22,35 @@ type(EMsoft_T)          :: EMsoft
 type(HDF_T)             :: HDF
 type(Vendor_T)          :: VT
 type(HallSG_T)          :: HSG 
+type(SpaceGroup_T)      :: SSG
 
 character(fnlen)        :: fname, groupname, inputtype, progname, progdesc, HDFstrings(10) 
-integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, L, recordsize, patsz, i, j, numsx, numsy, correctsize, s1, s2,HSGn 
+integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, sz(3), L, recordsize, &
+                           patsz, i, j, numsx, numsy, correctsize, s1, s2,HSGn 
 real(kind=sgl),allocatable   :: exppatarray(:), tot(:), totold(:)
 real(kind=dbl),allocatable   :: SG(:,:,:)
 integer(HSIZE_T)        :: dims3(3), offset3(3)
 character(16)           :: HS
+real(kind=dbl),allocatable          :: SGdirec(:,:,:)
 
+HS = List_Hall_Symbols(62, HSGn)
 
-HS = List_Hall_Symbols(151, HSGn)
+write (*,*) ' Hall Space Group number = ', HSGn, trim(HS)
 
+SSG = SpaceGroup_T( SGnumber = 62, useHall=.TRUE., HallSGnumber=HSGn )
+
+SGdirec = SSG%getSpaceGroupPGdirecMatrices()
+
+sz = shape(SGdirec)
+
+do i=1,sz(1) 
+  write(*,*) 'pg matrix ',i
+  do j=1,3
+    write (*,*) SGdirec(i,j,1:3)
+  end do 
+end do
+
+stop
 HSG = HallSG_T( HS )
 
 numsx = HSG%get_NHallgenerators()
