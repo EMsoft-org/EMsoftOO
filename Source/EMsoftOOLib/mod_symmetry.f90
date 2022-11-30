@@ -808,6 +808,8 @@ logical, intent(in), OPTIONAL           :: useHall
 integer(kind=irg), intent(in), OPTIONAL :: HallSGnumber
 
 type(IO_T)                              :: Message
+type(PointGroup_T)                      :: PG 
+
 integer(kind=irg)                       :: i, pgnum, sgnum
 integer(kind=irg),parameter             :: icv(7) = (/ 7, 6, 3, 2, 5, 4, 1 /)
 real(kind=dbl)                          :: ddt(3,3), rrt(3,3)
@@ -892,6 +894,7 @@ call SG%setPGnumber(pgnum)
 if (present(useHall)) then 
   if (useHall.eqv..TRUE.) then 
     SG%HallSG = HallSG_T( get_HallString(SG%HallSGnumber) )
+    call SG%HallSG%set_HallSGnumber(SG%HallSGnumber)
   end if 
 end if 
 
@@ -928,6 +931,9 @@ else
     call GenerateSymmetry_(SG, .FALSE., ddt, rrt)
   end if
 end if 
+
+! and finally do the point group construction
+PG = PointGroup_T( SG )
 
 end function SpaceGroup_constructor
 
@@ -983,7 +989,8 @@ allocate( PG%direc(PGTHDorder(pgnum),3,3) )
 PG%direc = 0.D0
 
 ! generate all the point group symmetry operators 
-call PG%GeneratePGSymmetry_( Sgnumber )
+! this include conversion to another Hall space group setting
+call PG%GeneratePGSymmetry_( SG, Sgnumber )
 
 ! and copy the direc array into the space group class 
 if (allocated(SG%direc)) deallocate(SG%direc)
@@ -3770,7 +3777,7 @@ end do kloop
 end function PGisitnew_
 
 !--------------------------------------------------------------------------
-recursive subroutine GeneratePGSymmetry_(self, SGnumber)
+recursive subroutine GeneratePGSymmetry_(self, SG, SGnumber)
 !DEC$ ATTRIBUTES DLLEXPORT :: GeneratePGSymmetry_
   !! author: MDG
   !! version: 1.0
@@ -3778,14 +3785,19 @@ recursive subroutine GeneratePGSymmetry_(self, SGnumber)
   !!
   !! compute all symmetry operators and store them in self%direc.
 
+use mod_io
+
 IMPLICIT NONE
 
 class(PointGroup_T),INTENT(INOUT) :: self
+class(SpaceGroup_T),INTENT(INOUT) :: SG
 integer(kind=irg),INTENT(IN)      :: SGnumber
 
-integer(kind=irg)                 :: i,j,k,nsym,k1,k2,l1,l2       ! loop counters (mostly)
+type(IO_T)                        :: Message 
+
+integer(kind=irg)                 :: i,j,k,nsym,k1,k2,l1,l2,mnum       ! loop counters (mostly)
 integer(kind=irg)                 :: Rnums(7) = (/143, 157, 159, 164, 165, 166, 167 /)
-real(kind=dbl)                    :: q,sm,R(3,3),sr2              ! auxiliary variables.
+real(kind=dbl)                    :: q,sm,R(3,3),RT(3,3),sr2              ! auxiliary variables.
 
 ! create the space group generator matrices
 call self%MakePGGenerators_()
@@ -3846,9 +3858,25 @@ end do
  end do
  self%PGMATnum = nsym
 
+! Finally, if we are using the Hall space group symbols, then we may need to
+! correct the point group operators to the special setting of the space group.
+! This employs the HallmatrixID array from mod_HallSG; this array identifies 
+! the transformation matrix to apply top the point group operators to bring 
+! them to the correct orientation.
 
-
-
+if (SG%getuseHallSG().eqv..TRUE.) then 
+  mnum = HallmatrixID( SG%getHallSpaceGroupNumber() )
+  if (mnum.ne.0) then   ! for the identity matrix we don't need to do anything
+    R = SG%HallSG%kvec_transform 
+    RT = transpose(R)
+    do i=1,self%PGMATnum
+      self%c(:,:) = self%direc(i,:,:)
+      self%c = matmul( R, matmul(self%c, RT) )
+      self%direc(i,:,:) = self%c(:,:)
+    end do
+  end if 
+  call Message%printMessage('Converted point group matrices to Hall setting '//trim(get_HallString(SG%getHallSpaceGroupNumber())))
+end if
 
 
 end subroutine GeneratePGSymmetry_

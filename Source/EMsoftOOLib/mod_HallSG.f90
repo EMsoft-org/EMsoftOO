@@ -370,12 +370,40 @@ character(16), parameter, private  :: Hall_labels(530) = (/ &
 '-F 4vw 2vw 3    ','F 4d 2 3 -1cd   ','-F 4cvw 2vw 3   ','-I 4 2 3        ','-I 4bd 2c 3     '/)
  
 
-
+integer(kind=irg), parameter, public :: HallmatrixID(530) = (/ &
+                0,  0,  0,  1,  2,  0,  1,  2,  0,  3,  4,  1,  5,  6,  2,  7,  8,  0,  1,  2, & 
+                0,  3,  4,  1,  5,  6,  2,  7,  8,  0,  3,  4,  1,  5,  6,  2,  7,  8,  0,  3, &
+                4,  3,  0,  4,  1,  5,  6,  5,  1,  6,  2,  7,  8,  7,  2,  8,  0,  1,  2,  0, &
+                1,  2,  0,  3,  4,  1,  5,  6,  2,  7,  8,  0,  3,  4,  1,  5,  6,  2,  7,  8, &
+                0,  3,  4,  1,  5,  6,  2,  7,  8,  0,  3,  4,  3,  0,  4,  1,  5,  6,  5,  1, &
+                6,  2,  7,  8,  7,  2,  8,  0,  0,  1,  2,  0,  1,  2,  0,  0,  1,  2,  0,  1, &
+                2,  0,  0,  0,  0,  1,  2,  0,  9,  1, 10,  2, 11,  0,  1,  2,  0,  9,  1, 10, &
+                2, 11,  0,  9,  1, 10,  2, 11,  0,  9,  1, 10,  2, 11,  0,  9,  1, 10,  2, 11, &
+                0,  1,  2,  0,  9,  1, 10,  2, 11,  0,  1,  2,  0,  1,  2,  0,  9,  1, 10,  2, & 
+               11,  0,  1,  2,  0,  9,  1, 10,  2, 11,  0,  9,  1, 10,  2, 11,  0,  9,  1, 10, & 
+                2, 11,  0,  9,  1, 10,  2, 11,  0,  1,  2,  0,  1,  2,  0,  1,  2,  0,  1,  2, & 
+                0,  9,  1, 10,  2, 11,  0,  0,  0,  0,  1,  2,  0,  0,  1,  1,  2,  2,  0,  9, & 
+                1, 10,  2, 11,  0,  9,  1, 10,  2, 11,  0,  9,  1, 10,  2, 11,  0,  9,  1, 10, &  
+                2, 11,  0,  1,  2,  0,  1,  2,  0,  9,  1, 10,  2, 11,  0,  1,  2,  0,  0,  1, &
+                1,  2,  2,  0,  9,  1, 10,  2, 11,  0,  9,  0,  9,  1, 10,  2, 11,  0,  9,  1, & 
+               10,  2, 11,  0,  9,  1, 10,  2, 11,  0,  1,  2,  0,  1,  2,  0,  0,  1,  1,  2, &  
+                2,  0,  0,  0,  0,  1,  1,  1,  1,  2,  2,  2,  2,  0,  0,  0,  0,  0,  1,  2, &  
+                0,  0,  0,  0,  1,  1,  2,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &  
+                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &  
+                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &  
+                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &  
+                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 12,  0,  0, 12,  0,  0,  0, &  
+                0,  0,  0,  0, 12,  0,  0,  0,  0,  0, 12,  0, 12,  0,  0,  0,  0,  0, 12,  0, & 
+               12,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &  
+                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, &  
+                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, & 
+                0,  0,  0,  0,  0,  0,  0,  0,  0,  0 /)
 
 ! class definition
 type, public :: HallSG_T
 private 
   character(30)                     :: Hall_Symbol
+  integer(kind=irg)                 :: Hall_SGnumber
   integer(kind=irg)                 :: m          ! total number of generators
   integer(kind=irg)                 :: mc         ! total number of centering generators
   integer(kind=irg)                 :: mr         ! total number of rotation generators
@@ -383,6 +411,7 @@ private
   character(1)                      :: axis(4)    ! axis of each rotational generator
   real(kind=dbl),allocatable,public :: SeitzGenerators(:,:,:)
   integer(kind=irg)                 :: spaces(10)
+  real(kind=dbl),public             :: kvec_transform(3,3)  ! transformation matrix to apply to kvectors in master patterns
 
 contains
 private 
@@ -392,9 +421,12 @@ private
   procedure, pass(self) :: print_Hall_Seitzgenerators_
   procedure, pass(self) :: get_Hall_Ngenerators_
   procedure, pass(self) :: get_NHallgenerators_
+  procedure, pass(self) :: get_kvectortransform_
+  procedure, pass(self) :: set_HallSGnumber_
 
   generic, public :: get_Hall_SeitzGenerators => get_Hall_SeitzGenerators_
   generic, public :: get_NHallgenerators => get_NHallgenerators_
+  generic, public :: set_HallSGnumber => set_HallSGnumber_
 
 end type HallSG_T
 
@@ -423,6 +455,13 @@ integer(kind=irg)               :: i, j
 ! set the Hall space group symbol
 HallSG%Hall_Symbol = trim(adjustl(HS))
 
+! get the Hall space group symbol number, given the string 
+j = 1
+do while (j.lt.531) 
+  if (HallSG%Hall_Symbol.eq.trim(Hall_labels(j))) HallSG%Hall_SGnumber = j
+  j = j+1
+end do 
+
 ! first we get the number of generators and the number of Seitz matrices
 if (present(verbose)) then 
   if (verbose.eqv..TRUE.) call HallSG%get_Hall_Ngenerators_( verbose ) 
@@ -448,6 +487,11 @@ if (present(verbose)) then
 else
   call HallSG%build_Hall_SeitzGenerators_()
 end if 
+
+! and finally determine the transformation matrix that weill be needed for all 
+! master pattern computations, to bring the irreducible part of the Kikuchi sphere 
+! in the right orientation...  This can be derived from the Hall_SGlabels.
+call HallSG%get_kvectortransform_()
 
 end function HallSG_constructor
 
@@ -1064,5 +1108,79 @@ if (present(SGshort)) SGshort = Hall_SGlabels( Hnumber )
 if (present(SGsym)) SGsym = Hall_Intlabels( Hnumber )
 
 end function get_HallString
+
+!--------------------------------------------------------------------------
+subroutine set_HallSGnumber_( self, Hnum ) 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_set_HallSGnumber_kvectortransform_
+!! author: MDG 
+!! version: 1.0 
+!! date: 11/23/22
+!!
+!!set the Hall space group number 
+
+IMPLICIT NONE 
+
+class(HallSG_T), INTENT(INOUT)        :: self
+integer(kind=irg),INTENT(IN)          :: Hnum 
+
+self%Hall_SGnumber = Hnum
+
+end subroutine set_HallSGnumber_
+
+!--------------------------------------------------------------------------
+subroutine get_kvectortransform_( self ) 
+!DEC$ ATTRIBUTES DLLEXPORT :: get_kvectortransform_
+!! author: MDG 
+!! version: 1.0 
+!! date: 11/23/22
+!!
+!! determine the transformation matrix for k-vector sampling in an arbitrary
+!! Hall space group...
+!! 
+!! In the older EMsoft code, the orthorhombic settings were encoded by:
+!!  character(8), public, dimension(6):: extendedOrthsettings = (/ &
+!!    " a  b  c", " b  a -c", " c  a  b", "-c  b  a", " b  c  a", " a -c  b"  /)
+!! In addition to the identity, there are only 12 unique transformation matrices 
+!! that take the standard setting into any of the other settings... the integer 
+!! in the HallmatrixID array indicates which matrix should be used for each of the 
+!! 530 Hall space group symbols.
+
+IMPLICIT NONE 
+
+class(HallSG_T), INTENT(INOUT)        :: self
+
+real(kind=dbl), parameter             :: m = -1.D0, z = 0.D0, p = 1.D0, s = 1.D0/3.D0, t = 2.D0/3.D0
+
+! initialize the matrix to the identity matrix
+self%kvec_transform = reshape( (/ p, z, z, z, p, z, z, z, p /), (/3,3/) )
+
+select case (HallmatrixID( self%Hall_SGnumber ))
+  case(1)
+    self%kvec_transform = reshape( (/ z, z, p, p, z, z, z, p, z /), (/3,3/) )
+  case(2)
+    self%kvec_transform = reshape( (/ z, p, z, z, z, p, p, z, z /), (/3,3/) )
+  case(3)
+    self%kvec_transform = reshape( (/ m, z, m, z, p, z, p, z, z /), (/3,3/) )
+  case(4)
+    self%kvec_transform = reshape( (/ z, z, p, z, p, z, m, z, m /), (/3,3/) )
+  case(5)
+    self%kvec_transform = reshape( (/ p, z, z, m, z, m, z, p, z /), (/3,3/) )
+  case(6)
+    self%kvec_transform = reshape( (/ m, z, m, z, z, p, z, p, z /), (/3,3/) )
+  case(7)
+    self%kvec_transform = reshape( (/ z, p, z, p, z, z, m, z, m /), (/3,3/) )
+  case(8)
+    self%kvec_transform = reshape( (/ z, p, z, m, z, m, z, z, p /), (/3,3/) )
+  case(9)
+    self%kvec_transform = reshape( (/ z, p, z, p, z, z, z, z, m /), (/3,3/) )
+  case(10)
+    self%kvec_transform = reshape( (/ z, z, m, z, p, z, p, z, z /), (/3,3/) )
+  case(11)
+    self%kvec_transform = reshape( (/ p, z, z, z, z, m, z, p, z /), (/3,3/) )
+  case(12)
+    self%kvec_transform = reshape( (/ t, s, s,-s, s, s,-s,-t, s /), (/3,3/) )
+end select 
+
+end subroutine get_kvectortransform_
 
 end module mod_HallSG
