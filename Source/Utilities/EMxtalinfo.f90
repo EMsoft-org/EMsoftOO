@@ -41,6 +41,8 @@ use mod_symmetry
 use mod_io
 use mod_postscript
 use mod_diffraction
+use mod_HDFsupport
+use HDF5
 
 IMPLICIT NONE 
 
@@ -53,6 +55,7 @@ type(Cell_T)            :: cell
 type(SpaceGroup_T)      :: SG 
 type(Diffraction_T)     :: Diff
 type(PostScript_T)      :: PS 
+type(HDF_T)             :: HDF
 
 real(kind=sgl)          :: io_real(1), camlen
 integer(kind=irg)       :: imanum, io_int(1)
@@ -60,6 +63,8 @@ character(fnlen)        :: xtalname
 
 ! program header and command line argument handling 
 EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 927 /) )
+
+call openFortranHDFInterface()
 
 ! ask for the crystal structure file
 call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
