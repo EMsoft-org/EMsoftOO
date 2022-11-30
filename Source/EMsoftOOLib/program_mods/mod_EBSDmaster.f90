@@ -1815,13 +1815,13 @@ end if
 
 end associate
 
-call mem%dealloc(EkeVs, 'EkeVs')
-call mem%dealloc(thick, 'thick')
-call mem%dealloc(lambdaE, 'lambdaE')
-call mem%dealloc(mLPNH, 'mLPNH')
-call mem%dealloc(mLPSH, 'mLPSH')
-call mem%dealloc(masterSPNH, 'masterSPNH')
-call mem%dealloc(masterSPSH, 'masterSPSH')
+! call mem%dealloc(EkeVs, 'EkeVs')
+! call mem%dealloc(thick, 'thick')
+! call mem%dealloc(lambdaE, 'lambdaE')
+! call mem%dealloc(mLPNH, 'mLPNH')
+! call mem%dealloc(mLPSH, 'mLPSH')
+! call mem%dealloc(masterSPNH, 'masterSPNH')
+! call mem%dealloc(masterSPSH, 'masterSPSH')
 
 ! call mem%allocated_memory_use()
 ! call memth%thread_memory_use()
