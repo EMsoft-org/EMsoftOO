@@ -86,17 +86,17 @@ EBSDpattern = reform(EBSDpattern,Efitdata.detnumsx,Efitdata.detnumsy,1)
 callname = 'getEBSDPatternsWrapper'
 
 if (!version.os eq 'darwin') then begin
-    res = call_external(librarylocation+'/libEMsoftLib.dylib', callname, $
+    res = call_external(librarylocation+'/libEMsoftOOLib.dylib', callname, $
                        ipar, fpar, EBSDpattern, quats, float(accum_e), mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
 endif
 
 if (!version.os eq 'Win32') then begin
-    res = call_external(librarylocation+'/EMsoftLib.dll', callname, $
+    res = call_external(librarylocation+'/EMsoftOOLib.dll', callname, $
                       ipar, fpar, EBSDpattern, quats, float(accum_e), mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
 endif
 
 if (!version.os eq 'linux') then begin
-    res = call_external(librarylocation+'/libEMsoftLib.so', callname, $
+    res = call_external(librarylocation+'/libEMsoftOOLib.so', callname, $
                       ipar, fpar, EBSDpattern, quats, float(accum_e), mLPNH, mLPSH, /F_VALUE, /VERBOSE, /SHOW_ALL_OUTPUT)
 endif
 
