@@ -93,8 +93,8 @@ IMPLICIT NONE
         private
 ! routines for crystallographic computations
           procedure, pass(self) :: computeMatrices
-          procedure, pass(self) :: transSpaceSingle
-          procedure, pass(self) :: transSpaceDouble
+          procedure, pass(self) :: TransSpaceSingle
+          procedure, pass(self) :: TransSpaceDouble
           procedure, pass(self) :: transformCoordinates
           procedure, pass(self) :: calcDotSingle
           procedure, pass(self) :: calcDotDouble
@@ -158,7 +158,7 @@ IMPLICIT NONE
           generic, public :: resetCell => resetUnitCell
 
           generic, public :: calcMatrices => computeMatrices
-          generic, public :: transSpace => transSpaceDouble, transSpaceSingle
+          generic, public :: transSpace => TransSpaceDouble, TransSpaceSingle
           generic, public :: transCoor => transformCoordinates
           generic, public :: calcDot => calcDotSingle, calcDotDouble
           generic, public :: normVec => normVecSingle, normVecDouble

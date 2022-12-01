@@ -814,14 +814,15 @@ integer(HSIZE_T)        :: dims3(3), cnt3(3), offset3(3)
 integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
                            numk, timestart, timestop, numsites, nthreads, & ! number of independent incident beam directions
                            ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
-                           numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, &
+                           numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, sz(3), &
                            istat,gzero,ic,ip,ikk, totstrong, totweak, jh, ierr, nix, niy, nixp, niyp     ! counters
 real(kind=dbl)          :: tpi,Znsq, kkl, DBWF, kin, delta, h, lambda, omtl, srt, dc(3), xy(2), edge, scl, tmp, dx, dxm, dy, dym !
-real(kind=sgl)          :: io_real(5), selE, kn, FN(3), kkk(3), tstop, nabsl, etotal, density, Ze, at_wt, bp(4)
+real(kind=sgl)          :: io_real(5), selE, kn, FN(3), kkk(3), tstop, nabsl, etotal, density, Ze, at_wt, bp(4), sxy(2)
 real(kind=sgl),allocatable      :: EkeVs(:), svals(:), auxNH(:,:,:,:), auxSH(:,:,:,:), Z2percent(:)  ! results
 real(kind=sgl),allocatable      :: mLPNH(:,:,:,:), mLPSH(:,:,:,:), masterSPNH(:,:,:), masterSPSH(:,:,:)
 real(kind=dbl),allocatable      :: LegendreArray(:), upd(:), diagonal(:)
 integer(kind=irg),allocatable   :: accum_z(:,:,:,:)
+real(kind=dbl),allocatable      :: SGrecip(:,:,:), SGdirec(:,:,:)
 complex(kind=dbl)               :: czero
 complex(kind=dbl),allocatable   :: Lgh(:,:), Sgh(:,:,:)
 logical                 :: usehex, switchmirror, verbose
@@ -1459,6 +1460,35 @@ energyloop: do iE=Estart,1,-1
    io_int(1)=numk
    call Message%WriteValue('# independent beam directions to be considered = ', io_int, 1, "(I8)")
 
+
+write (*,*) 'SG%HallSG%kvec_transform'
+do ik=1,3
+  write (*,*) SG%HallSG%kvec_transform(ik,1:3)
+end do
+
+write (*,*) '======================='
+write (*,*) 'SG%recip'
+SGdirec = SG%getSpaceGroupPGdirecMatrices()
+SGrecip = SG%getSpaceGroupPGrecipMatrices()
+sz = shape(SGrecip)
+do ik = 1,sz(1)
+  write (*,*) ' direct symmetry operator ', ik 
+  do j=1,3
+    write (*,*) SGdirec(ik,j,1:3)
+  end do 
+end do 
+deallocate(SGdirec)
+
+do ik = 1,sz(1)
+  write (*,*) ' reciprocal symmetry operator ', ik 
+  do j=1,3
+    write (*,*) SGrecip(ik,j,1:3)
+  end do 
+end do 
+deallocate(SGrecip)
+
+stop
+
 ! are using a Hall space group with potentially different setting ?  If so, then we
 ! must transform the k-vectors to a different reference frame before using them
   if (SG%getuseHallSG().eqv..TRUE.) then 
@@ -1494,6 +1524,8 @@ write (*,*) 'using kvector transform rule'
   totstrong = 0
   totweak = 0
 
+  scl = float(emnl%npx)
+
 ! ---------- end of "create the incident beam directions list"
 !=============================================
 
@@ -1505,7 +1537,7 @@ write (*,*) 'using kvector transform rule'
 ! use OpenMP to run on multiple cores ...
 !$OMP PARALLEL COPYIN(Diff) &
 !$OMP& PRIVATE(DynMat,Sgh,Lgh,ik,FN,TID,kn,ipx,ipy,ipz,ix,iequiv,nequiv,reflist,firstw) &
-!$OMP& PRIVATE(kkk,nns,nnw,nref,svals,io_int)
+!$OMP& PRIVATE(kkk,nns,nnw,nref,svals,io_int,L,ierr,sxy)
 
   NUMTHREADS = OMP_GET_NUM_THREADS()
   TID = OMP_GET_THREAD_NUM()
@@ -1578,10 +1610,26 @@ write (*,*) 'using kvector transform rule'
      svals = svals/float(sum(nat(1:numset)))
 
 ! and store the resulting svals values, applying point group symmetry where needed.
-     ipx = kij(1,ik)
-     ipy = kij(2,ik)
-     ipz = kij(3,ik)
-!
+! If we are using the Hall space groups, then we need to compute the indices directly
+! from the unit wave vector since the conventional kij indices will be incorrect.
+     if (SG%getuseHallSG().eqv..FALSE.) then
+       ipx = kij(1,ik)
+       ipy = kij(2,ik)
+       ipz = kij(3,ik)
+     else  ! we are using the Hall space group symbols so extract (ipx, ipy, ipz) from unit k
+       kkk = karray(1:3,ik)     ! first transform to the Cartesian frame 
+       call cell%TransSpace(kkk, kkk, 'r', 'c') ! then normalize this vector
+       call cell%NormVec(kkk,'c')   ! then transform the unit vector into square Lambert components 
+       L = Lambert_T( xyz = kkk )
+       ierr = L%LambertSphereToSquare(sxy)
+       ipx = nint(sxy(1)*scl)
+       ipy = nint(sxy(2)*scl)
+       ipz = -1
+       if (kkk(3).ge.0.0) then 
+        ipz = 1
+      end if
+     end if 
+  !
      if (usehex) then
        call L%Apply3DPGSymmetry(cell,SG,ipx,ipy,ipz,self%nml%npx,iequiv,nequiv,usehex)
      else

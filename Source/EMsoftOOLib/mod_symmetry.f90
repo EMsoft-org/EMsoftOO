@@ -807,6 +807,8 @@ real(kind=dbl), intent(in),OPTIONAL     :: rmt(3,3)
 logical, intent(in), OPTIONAL           :: useHall
 integer(kind=irg), intent(in), OPTIONAL :: HallSGnumber
 
+type(PointGroup_T)                      :: PG 
+
 type(IO_T)                              :: Message
 type(PointGroup_T)                      :: PG 
 
