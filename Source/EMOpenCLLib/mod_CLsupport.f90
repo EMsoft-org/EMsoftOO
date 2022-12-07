@@ -248,7 +248,6 @@ end if
   err = clGetPlatformIDs(0, C_NULL_PTR, nplatforms)
   if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms')
   CL%num_platforms = nplatforms
-  write (*,*) ' CL_constructor:nplatforms ', nplatforms
 
   if (CL%num_platforms.gt.0) then
     mem = memory_T()
@@ -268,7 +267,6 @@ end if
     err = clGetPlatformIDs(nplatforms, C_LOC(platform_ids), nplatforms)
     if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms')
     CL%p_ids(:) = platform_ids(:)
-    write (*,*) ' CL_constructor:platform_ids ', platform_ids
 
   ! for each platform, get the number of devices so we can allocate the d_*PUids array
     CL%maxCPUdev = 0

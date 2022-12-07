@@ -1181,6 +1181,8 @@ select case (HallmatrixID( self%Hall_SGnumber ))
     self%kvec_transform = reshape( (/ t, s, s,-s, s, s,-s,-t, s /), (/3,3/) )
 end select 
 
+! self%kvec_transform = transpose(self%kvec_transform)
+
 end subroutine get_kvectortransform_
 
 end module mod_HallSG
