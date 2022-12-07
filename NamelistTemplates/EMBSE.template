@@ -1,0 +1,41 @@
+ &BSEdata
+! template file for the EMBSE program
+!
+! energy range in the intensity summation [keV]
+ energymin = 5.0,
+ energymax = 20.0,
+! name of EBSD master output file; path relative to EMdatapathname
+ masterfile = 'undefined',
+! name of Kossel master output file; path relative to EMdatapathname
+ Kosselmasterfile = 'undefined',
+! name of output file; path relative to EMdatapathname
+ datafile = 'undefined',
+! which angles should we use?  'original' or 'refined'
+ useangles = 'original',
+! beam incidence angle (0.0 for normal incidence)
+ incidence = 0.0, 
+ ! incident beam current [nA]
+ beamcurrent = 150.0,
+! beam dwell time [micro s]
+ dwelltime = 100.0,
+! intensity scaling mode 'not' = no scaling, 'lin' = linear, 'gam' = gamma correction
+ scalingmode = 'not',
+! gamma correction factor
+ gammavalue = 1.0,
+! working distance [mm]
+ workingdistance = 10.0, 
+! BSEdistance [mm] < workingdistance 
+ BSEdistance = 9.5,
+! inner BSE detector radius [mm] 
+ rin = 5.0, 
+! outer BSE detector radius [mm]
+ rout = 12.0, 
+! number of points along semi-edge of square Lambert (sqL) space 
+! (this is used to generate a uniform BSE detector grid; for the default parameters
+! this grid has 1672 points)
+ NsqL = 40,
+! name of output image tiff file 
+ imagefile = 'undefined',
+! number of threads (default = 1, use 0 for maximum available)
+ nthreads = 1,
+ /

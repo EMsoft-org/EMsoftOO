@@ -93,6 +93,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_dualquaternions.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_octonions.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_HallSG.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_so2.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
@@ -140,6 +141,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_extractnml.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_orav.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDpc.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_BSE.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )

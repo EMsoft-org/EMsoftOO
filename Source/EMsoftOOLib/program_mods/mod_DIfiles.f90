@@ -460,6 +460,7 @@ integer(kind=irg)  :: nosm
 integer(kind=irg)  :: nism
 integer(kind=irg)  :: maskradius
 integer(kind=irg)  :: sw
+integer(kind=irg)  :: energyaverage  ! no longer used but kept for compatibility with older files
 real(kind=sgl)     :: L
 real(kind=sgl)     :: thetac
 real(kind=sgl)     :: delta
@@ -480,6 +481,7 @@ logical            :: doNLPAR
 character(1)       :: maskpattern
 character(1)       :: keeptmpfile
 character(1)       :: usetmpfile
+character(1)       :: spatialaverage  ! no longer used but kept for compatibility with older files
 character(3)       :: scalingmode
 character(3)       :: Notify
 character(3)       :: similaritymetric
@@ -516,7 +518,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
-                     exptnumsx, exptnumsy, usetmpfile
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage
 
 namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
                      beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
@@ -629,11 +631,13 @@ if (.not.skipread) then
     end if
 
     if (exptnumsx.eq.0) then
-        call Message%printError('readNameList:',' pattern size exptnumsx is zero in '//nmlfile)
+        exptnumsx = numsx 
+        ! call Message%printError('readNameList:',' pattern size exptnumsx is zero in '//nmlfile)
     end if
 
     if (exptnumsy.eq.0) then
-        call Message%printError('readNameList:',' pattern size exptnumsy is zero in '//nmlfile)
+        exptnumsy = numsy 
+        ! call Message%printError('readNameList:',' pattern size exptnumsy is zero in '//nmlfile)
     end if
 
 end if
@@ -1082,6 +1086,7 @@ call HDF%pop()
 
 DIDT%Nexp = -1
 
+g_exists=.TRUE.
 if (g_exists.eqv..TRUE.) then
 !====================================
 ! read all NMLparameters group datasets by writing the NMLfiles string array to a

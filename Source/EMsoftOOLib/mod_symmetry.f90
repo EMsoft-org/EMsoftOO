@@ -751,6 +751,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       integer(kind=irg)           :: GENnum
       integer(kind=irg)           :: PGMATnum
       real(kind=dbl),allocatable  :: direc(:,:,:)  ! direc(48,3,3)
+      real(kind=dbl),allocatable  :: recip(:,:,:)  ! direc(48,3,3)
       real(kind=dbl)              :: c(3,3)
 
     contains
@@ -806,8 +807,6 @@ real(kind=dbl), intent(in),OPTIONAL     :: dmt(3,3)
 real(kind=dbl), intent(in),OPTIONAL     :: rmt(3,3)
 logical, intent(in), OPTIONAL           :: useHall
 integer(kind=irg), intent(in), OPTIONAL :: HallSGnumber
-
-type(PointGroup_T)                      :: PG 
 
 type(IO_T)                              :: Message
 type(PointGroup_T)                      :: PG 
@@ -935,7 +934,7 @@ else
 end if 
 
 ! and finally do the point group construction
-PG = PointGroup_T( SG )
+PG = PointGroup_T( SG, ddt, rrt )
 
 end function SpaceGroup_constructor
 
@@ -961,7 +960,7 @@ if (allocated(self%recip)) deallocate(self%recip)
 end subroutine SpaceGroup_destructor
 
 !--------------------------------------------------------------------------
-type(PointGroup_T) function PointGroup_constructor( SG ) result(PG)
+type(PointGroup_T) function PointGroup_constructor( SG, dmt, rmt ) result(PG)
 !DEC$ ATTRIBUTES DLLEXPORT :: PointGroup_constructor
   !! author: MDG
   !! version: 1.0
@@ -972,6 +971,8 @@ type(PointGroup_T) function PointGroup_constructor( SG ) result(PG)
 IMPLICIT NONE
 
 class(SpaceGroup_T), INTENT(INOUT)  :: SG
+real(kind=dbl), intent(in)          :: dmt(3,3)
+real(kind=dbl), intent(in)          :: rmt(3,3)
 
 integer(kind=irg)                   :: i, pgnum, SGnumber 
 
@@ -987,17 +988,21 @@ call SG%setPGnumber(pgnum)
 PG%pgnum = pgnum
 
 ! allocate the array for symmetry operators
-allocate( PG%direc(PGTHDorder(pgnum),3,3) )
+allocate( PG%direc(PGTHDorder(pgnum),3,3), PG%recip(PGTHDorder(pgnum),3,3)  )
 PG%direc = 0.D0
+PG%recip = 0.D0
 
 ! generate all the point group symmetry operators 
 ! this include conversion to another Hall space group setting
-call PG%GeneratePGSymmetry_( SG, Sgnumber )
+call PG%GeneratePGSymmetry_( SG, Sgnumber, dmt, rmt )
 
 ! and copy the direc array into the space group class 
 if (allocated(SG%direc)) deallocate(SG%direc)
 allocate(SG%direc(PGTHDorder(pgnum),3,3))
+if (allocated(SG%recip)) deallocate(SG%recip)
+allocate(SG%recip(PGTHDorder(pgnum),3,3))
 SG%direc = PG%direc
+SG%recip = PG%recip
 SG%NUMpt = PG%PGMATnum
 
 ! and clean up 
@@ -3779,13 +3784,13 @@ end do kloop
 end function PGisitnew_
 
 !--------------------------------------------------------------------------
-recursive subroutine GeneratePGSymmetry_(self, SG, SGnumber)
+recursive subroutine GeneratePGSymmetry_(self, SG, SGnumber, dmt, rmt)
 !DEC$ ATTRIBUTES DLLEXPORT :: GeneratePGSymmetry_
   !! author: MDG
   !! version: 1.0
   !! date: 02/20/22
   !!
-  !! compute all symmetry operators and store them in self%direc.
+  !! compute all symmetry operators and store them in self%direc and self%recip.
 
 use mod_io
 
@@ -3794,6 +3799,8 @@ IMPLICIT NONE
 class(PointGroup_T),INTENT(INOUT) :: self
 class(SpaceGroup_T),INTENT(INOUT) :: SG
 integer(kind=irg),INTENT(IN)      :: SGnumber
+real(kind=dbl),INTENT(IN)         :: dmt(3,3)
+real(kind=dbl),INTENT(IN)         :: rmt(3,3)
 
 type(IO_T)                        :: Message 
 
@@ -3860,7 +3867,7 @@ end do
  end do
  self%PGMATnum = nsym
 
-! Finally, if we are using the Hall space group symbols, then we may need to
+! If we are using the Hall space group symbols, then we may need to
 ! correct the point group operators to the special setting of the space group.
 ! This employs the HallmatrixID array from mod_HallSG; this array identifies 
 ! the transformation matrix to apply top the point group operators to bring 
@@ -3879,6 +3886,23 @@ if (SG%getuseHallSG().eqv..TRUE.) then
   end if 
   call Message%printMessage('Converted point group matrices to Hall setting '//trim(get_HallString(SG%getHallSpaceGroupNumber())))
 end if
+
+! Finally, compute the reciprocal symmetry matrices from dmt S rmt products 
+do i=1,self%PGMATnum
+! reciprocal space point group symmetry elements
+  do j=1,3
+   do k=1,3
+    q=0.0_dbl
+    do l1=1,3
+     do l2=1,3
+      q=q+dmt(j,l1)*self%direc(i,l1,l2)*rmt(l2,k)
+     end do
+    end do
+    if (abs(q).lt.1.0E-10) q = 0.D0
+    self%recip(i,j,k)=q
+   end do
+  end do
+end do
 
 
 end subroutine GeneratePGSymmetry_

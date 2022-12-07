@@ -816,8 +816,9 @@ integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, ieq
                            ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
                            numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, sz(3), &
                            istat,gzero,ic,ip,ikk, totstrong, totweak, jh, ierr, nix, niy, nixp, niyp     ! counters
-real(kind=dbl)          :: tpi,Znsq, kkl, DBWF, kin, delta, h, lambda, omtl, srt, dc(3), xy(2), edge, scl, tmp, dx, dxm, dy, dym !
-real(kind=sgl)          :: io_real(5), selE, kn, FN(3), kkk(3), tstop, nabsl, etotal, density, Ze, at_wt, bp(4), sxy(2)
+real(kind=dbl)          :: tpi,Znsq, kkl, DBWF, kin, delta, h, lambda, omtl, srt, dc(3), xy(2), edge, scl, tmp, dx, dxm, dy, dym, &
+                           kkk(3), sxy(2) !
+real(kind=sgl)          :: io_real(5), selE, kn, FN(3), tstop, nabsl, etotal, density, Ze, at_wt, bp(4)
 real(kind=sgl),allocatable      :: EkeVs(:), svals(:), auxNH(:,:,:,:), auxSH(:,:,:,:), Z2percent(:)  ! results
 real(kind=sgl),allocatable      :: mLPNH(:,:,:,:), mLPSH(:,:,:,:), masterSPNH(:,:,:), masterSPSH(:,:,:)
 real(kind=dbl),allocatable      :: LegendreArray(:), upd(:), diagonal(:)
@@ -843,7 +844,7 @@ character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 character(fnlen,kind=c_char)                     :: line2(1)
 
 type(gnode),save                :: rlp
-real(kind=sgl),allocatable      :: karray(:,:)
+real(kind=dbl),allocatable      :: karray(:,:)
 integer(kind=irg),allocatable   :: kij(:,:)
 complex(kind=dbl),allocatable   :: DynMat(:,:)
 character(fnlen)                :: dataset, instring
@@ -1487,8 +1488,6 @@ do ik = 1,sz(1)
 end do 
 deallocate(SGrecip)
 
-stop
-
 ! are using a Hall space group with potentially different setting ?  If so, then we
 ! must transform the k-vectors to a different reference frame before using them
   if (SG%getuseHallSG().eqv..TRUE.) then 
@@ -1508,13 +1507,13 @@ write (*,*) 'using kvector transform rule'
 ! point to the first beam direction
   ktmp => kvec%get_ListHead()
 ! and loop through the list, keeping k, kn, and i,j
-  karray(1:3,1) = sngl(ktmp%k(1:3))
-  karray(4,1) = sngl(ktmp%kn)
+  karray(1:3,1) = ktmp%k(1:3)
+  karray(4,1) = ktmp%kn
   kij(1:3,1) = (/ ktmp%i, ktmp%j, ktmp%hs /)
    do ik=2,numk
      ktmp => ktmp%next
-     karray(1:3,ik) = sngl(ktmp%k(1:3))
-     karray(4,ik) = sngl(ktmp%kn)
+     karray(1:3,ik) = ktmp%k(1:3)
+     karray(4,ik) = ktmp%kn
      kij(1:3,ik) = (/ ktmp%i, ktmp%j, ktmp%hs /)
    end do
 ! and remove the linked list
@@ -1559,7 +1558,7 @@ write (*,*) 'using kvector transform rule'
      kkk = karray(1:3,ik)
      FN = kkk
 
-     call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, kkk, self%nml%dmin, verbose)
+     call reflist%Initialize_ReflectionList(cell, SG, Diff, FN, sngl(kkk), self%nml%dmin, verbose)
      nref = reflist%get_nref()
 ! ---------- end of "create the master reflection list"
 !=============================================
@@ -1617,10 +1616,10 @@ write (*,*) 'using kvector transform rule'
        ipy = kij(2,ik)
        ipz = kij(3,ik)
      else  ! we are using the Hall space group symbols so extract (ipx, ipy, ipz) from unit k
-       kkk = karray(1:3,ik)     ! first transform to the Cartesian frame 
-       call cell%TransSpace(kkk, kkk, 'r', 'c') ! then normalize this vector
+       ! first transform to the Cartesian frame 
+       call cell%TransSpace(karray(1:3,ik), kkk, 'r', 'c') ! then normalize this vector
        call cell%NormVec(kkk,'c')   ! then transform the unit vector into square Lambert components 
-       L = Lambert_T( xyz = kkk )
+       L = Lambert_T( xyzd = kkk )
        ierr = L%LambertSphereToSquare(sxy)
        ipx = nint(sxy(1)*scl)
        ipy = nint(sxy(2)*scl)

@@ -89,6 +89,8 @@ contains
     procedure, pass(self) :: ang_writeFile_
     procedure, pass(self) :: ctfmerge_writeFile_
     procedure, pass(self) :: angmerge_writeFile_
+    procedure, pass(self) :: getAnglesfromANGfile_
+    procedure, pass(self) :: getAnglesfromCTFfile_
     final :: Vendor_destructor
 
     generic, public :: openExpPatternFile => openExpPatternFile_
@@ -109,6 +111,8 @@ contains
     generic, public :: ang_writeFile => ang_writeFile_
     generic, public :: ctfmerge_writeFile => ctfmerge_writeFile_
     generic, public :: angmerge_writeFile => angmerge_writeFile_
+    generic, public :: getAnglesfromANGfile => getAnglesfromANGfile_
+    generic, public :: getAnglesfromCTFfile => getAnglesfromCTFfile_
 
 end type Vendor_T
 
@@ -2141,6 +2145,134 @@ end do
 close(dataunit2,status='keep')
 
 end subroutine angmerge_writeFile_
+
+!--------------------------------------------------------------------------
+recursive subroutine getAnglesfromANGfile_(self, angname, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+!DEC$ ATTRIBUTES DLLEXPORT :: getAnglesfromANGfile_
+!! author: MDG
+!! version: 1.0
+!! date: 12/07/22
+!!
+!! Extract angles from an .ang file 
+
+use mod_io
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)                       :: self
+character(fnlen),INTENT(IN)                         :: angname
+integer(kind=irg),INTENT(INOUT)                     :: ipf_wd
+integer(kind=irg),INTENT(INOUT)                     :: ipf_ht
+real(kind=sgl),INTENT(INOUT)                        :: StepX
+real(kind=sgl),INTENT(INOUT)                        :: StepY
+real(kind=sgl),INTENT(INOUT),allocatable            :: Eangles(:,:)
+
+type(IO_T)                                          :: Message
+
+character(fnlen)                                    :: line
+logical                                             :: sqgrid
+integer(kind=irg)                                   :: i, res, nco, nce, ipos
+real(kind=sgl)                                      :: var, e1, e2, e3
+
+! open the file 
+open(unit=dataunit, file = trim(angname), status = 'old')
+
+! first make sure that this is a square grid file 
+! read the step size and the number of rows and columns
+sqgrid = .FALSE.
+read(dataunit,'(a)') line 
+do while (line(1:1).eq.'#')
+  read(dataunit,'(a)') line 
+  res = index(line, 'GRID')
+  if (res.ne.0) EXIT
+end do 
+! make sure that this is a square grid file
+res = index(line,'SqrGrid')
+if (res.eq.0) then 
+  call Message%printError('getAnglesfromANGfile','This file does not contain a square sampling grid')
+end if 
+
+! the next line contains the StepX parameter so read it 
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) var 
+StepX = var
+! then the StepY parameter 
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) var 
+StepY = var
+! NCOLLS_ODD 
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) nco
+! NCOLS_EVEN
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) nce
+! test
+if (nco.ne.nce) then 
+  call Message%printError('getAnglesfromANGfile','Odd and Even Column numbers must be equal')
+end if 
+ipf_wd = nco
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) nce
+ipf_ht = nce
+  
+write (*,*) '.ang file found ... '
+
+! advance to the first data line
+do while (line(1:1).eq.'#')
+  read(dataunit,'(a)') line 
+end do 
+
+! we have discovered the first data line 
+allocate(Eangles(3,ipf_wd * ipf_ht))
+read(line,*) e1, e2, e3 
+Eangles(1:3,1) = (/ e1, e2, e3 /)
+do i=2,ipf_wd*ipf_ht 
+  read(dataunit,'(a)') line 
+  read(line,*) e1, e2, e3 
+  if (e1.eq.12.56637) then ! intercept bad indexed points and set them to 0
+    Eangles(1:3,i) = (/ 0.0, 0.0, 0.0 /)
+  else
+    Eangles(1:3,i) = (/ e1, e2, e3 /)
+  end if 
+end do
+
+close(unit=dataunit, status='keep')
+
+call Message%printMessage(' Completed reading .ang file')
+
+end subroutine getAnglesfromANGfile_
+
+!--------------------------------------------------------------------------
+recursive subroutine getAnglesfromCTFfile_(self, ctfname, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+!DEC$ ATTRIBUTES DLLEXPORT :: getAnglesfromCTFfile_
+!! author: MDG
+!! version: 1.0
+!! date: 12/07/22
+!!
+!! Extract angles from a .ctf file 
+
+use mod_io
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)                       :: self
+character(fnlen),INTENT(IN)                         :: ctfname
+integer(kind=irg),INTENT(INOUT)                     :: ipf_wd
+integer(kind=irg),INTENT(INOUT)                     :: ipf_ht
+real(kind=sgl),INTENT(INOUT)                        :: StepX
+real(kind=sgl),INTENT(INOUT)                        :: StepY
+real(kind=sgl),INTENT(INOUT),allocatable            :: Eangles(:,:)
+
+type(IO_T)                                          :: Message
+
+
+
+end subroutine getAnglesfromCTFfile_
 
 
 end module mod_vendors
