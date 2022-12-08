@@ -1166,8 +1166,6 @@ else
     ipf_ht = dinl%ROI(4)
 end if
 
-write (*,*) 'parameters :', pxstart, pystart, pxend, pyend, ipf_wd, ipf_ht 
-
 ! allocate the beam tilt quaternion array 
 if (allocated(BSEdetector%beamtiltq)) deallocate(BSEdetector%beamtiltq)
 allocate(BSEdetector%beamtiltq(4, ipf_wd, ipf_ht))
@@ -1421,6 +1419,7 @@ integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf
 integer(kind=irg)                   :: Emin, Emax      ! various parameters
 character(fnlen)                    :: fname, DIfile
 logical                             :: refined
+real(kind=sgl)                      :: scl
 real(kind=sgl),allocatable          :: Eangles(:,:)
 
 ! open the HDF interface
@@ -1525,18 +1524,17 @@ else
   if (resang.ne.0) then ! we have an .ang file
     VT = Vendor_T()
     call VT%getAnglesfromANGfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
-    BSEdetector%ipf_wd = dinl%ipf_wd
-    BSEdetector%ipf_ht = dinl%ipf_ht
-    dinl%ROI = (/ 0, 0, 0, 0 /)
-write (*,*) 'return parameters ', dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY
-
   else  ! we must have a .ctf file
-
+    VT = Vendor_T()
+    call VT%getAnglesfromCTFfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
   end if 
+  BSEdetector%ipf_wd = dinl%ipf_wd
+  BSEdetector%ipf_ht = dinl%ipf_ht
+  dinl%ROI = (/ 0, 0, 0, 0 /)
 end if 
 
 ! 6. generate the beam tilt quaternions for the ROI 
-call self%GenerateBSEbeamtiltquaternions(dinl, verbose=.TRUE.)
+call self%GenerateBSEbeamtiltquaternions(dinl, verbose=.FALSE.)
 
 ! 7. save the detector pixel unit vectors for debugging purposes... this is in PoVray format
 ! to visualize the hemispherical ring of directions that fall onto the detector
@@ -1548,6 +1546,17 @@ do i=1,BSEdetector%numdet
   write (dataunit,"('sphere{<',2(F10.6,','),F10.6,'>,0.01}')") BSEdetector%rgx(i), BSEdetector%rgy(i), BSEdetector%rgz(i) 
 end do 
 write (dataunit,"(A)") '};'
+
+scl = enl%workingdistance
+
+write (dataunit,"(A)") '#declare pixelrods= '
+write (dataunit,"(A)") 'union{'
+do i=1,BSEdetector%numdet
+  write (dataunit,"('cylinder{<0.0,0.0,0.0><',2(F10.6,','),F10.6,'>,0.005}')") &
+                     BSEdetector%rgx(i)/BSEdetector%rgz(i)*scl, BSEdetector%rgy(i)/BSEdetector%rgz(i)*scl, scl 
+end do 
+write (dataunit,"(A)") '};'
+
 close(dataunit,status='keep')
 
 ! 8. and finally perform the image computations

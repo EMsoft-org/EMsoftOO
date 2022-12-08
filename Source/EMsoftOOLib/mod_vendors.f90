@@ -2270,6 +2270,57 @@ real(kind=sgl),INTENT(INOUT),allocatable            :: Eangles(:,:)
 
 type(IO_T)                                          :: Message
 
+character(fnlen)                                    :: line
+integer(kind=irg)                                   :: i, res, nco, ipos
+real(kind=sgl)                                      :: var, e1, e2, e3
+
+! open the file 
+open(unit=dataunit, file = trim(ctfname), status = 'old')
+
+! first make sure that this is a square grid file 
+! read the step size and the number of rows and columns
+read(dataunit,'(a)') line 
+do while (index(line, 'XCells').eq.0)
+  read(dataunit,'(a)') line 
+end do
+! this line contains the XCells parameter
+ipos = scan(line, 's', back=.TRUE.)
+read(line(2+ipos:),*)  nco
+ipf_wd = nco
+! then the YCells parameter 
+read(dataunit,'(a)') line 
+ipos = scan(line, 's', back=.TRUE.)
+read(line(2+ipos:),*) nco
+ipf_ht = nco
+! then XStep
+read(dataunit,'(a)') line 
+ipos = scan(line, 'p', back=.TRUE.)
+read(line(1+ipos:),*) var 
+StepX = var
+! and YStep
+read(dataunit,'(a)') line 
+ipos = scan(line, 'p', back=.TRUE.)
+read(line(1+ipos:),*) var
+StepY = var
+
+! advance to the first data line
+do while (index(line, 'Euler1').eq.0)
+  read(dataunit,'(a)') line 
+end do 
+
+! we have discovered the first data line 
+allocate(Eangles(3,ipf_wd * ipf_ht))
+do i=1,ipf_wd*ipf_ht 
+  read(dataunit,'(a)') line 
+  read(line,*) nco, var, var, nco, nco, e1, e2, e3 
+  Eangles(1:3,i) = (/ e1, e2, e3 /)
+end do
+
+if (maxval(Eangles).gt.(2.0*sngl(cPi))) Eangles = Eangles * dtor
+
+close(unit=dataunit, status='keep')
+
+call Message%printMessage(' Completed reading .ctf file')
 
 
 end subroutine getAnglesfromCTFfile_

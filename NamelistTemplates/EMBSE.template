@@ -1,15 +1,22 @@
  &BSEdata
 ! template file for the EMBSE program
 !
-! energy range in the intensity summation [keV]
+! name of EBSD master or ISE master file; path relative to EMdatapathname
+ masterfile = 'undefined',
+! for EBSD: energy range in the intensity summation [keV]
  energymin = 5.0,
  energymax = 20.0,
-! name of EBSD master output file; path relative to EMdatapathname
- masterfile = 'undefined',
 ! name of Kossel master output file; path relative to EMdatapathname
- Kosselmasterfile = 'undefined',
-! name of output file; path relative to EMdatapathname
+! Kosselmasterfile = 'undefined',
+!
+! name of input data file; path relative to EMdatapathname
+! this program can handle three different input formats:
+! - dot product h5 file (created with EMDI program)
+! - .ang file
+! - .ctf file
+! which one is used depends only on the file extension (.h5, .ang, .ctf)
  datafile = 'undefined',
+! if .h5 input format:
 ! which angles should we use?  'original' or 'refined'
  useangles = 'original',
 ! beam incidence angle (0.0 for normal incidence)
