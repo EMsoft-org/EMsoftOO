@@ -37,6 +37,7 @@ use mod_kinds
 use mod_global
 
 IMPLICIT NONE 
+private 
 
 type, private :: poslist 
   real(kind=dbl)          :: xyz(3)

@@ -37,7 +37,6 @@ use mod_kinds
 use mod_global
 use mod_EMsoft
 use mod_BSE
-! use mod_HDFnames
 use stringconstants
 
 IMPLICIT NONE
@@ -47,7 +46,6 @@ character(fnlen)      :: progdesc = 'Simulation of a BSE image, given an orienta
 
 type(EMsoft_T)        :: EMsoft
 type(BSE_T)           :: BSE 
-! type(HDFnames_T)      :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 51 /) )
@@ -55,13 +53,7 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 51 /) )
 ! deal with the namelist stuff
 BSE = BSE_T(EMsoft%nmldeffile)
 
-! HDFnames = HDFnames_T() 
-! call HDFnames%set_ProgramData(SC_EBSDmaster) 
-! call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-! call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-! call HDFnames%set_Variable(SC_MCOpenCL) 
-
 ! perform the computations
-call BSE%BSE(EMsoft, progname) ! , HDFnames)
+call BSE%BSE(EMsoft, progname) 
 
 end program EMBSE

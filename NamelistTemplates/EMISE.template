@@ -1,0 +1,24 @@
+ &ISEdata
+! template file for the EMISE program
+!
+! name of ISE master file; path relative to EMdatapathname
+ masterfile = 'undefined',
+! name of input data file; path relative to EMdatapathname
+! this program can handle three different input formats:
+! - dot product h5 file (created with EMDI program)
+! - .ang file
+! - .ctf file
+! which one is used depends only on the file extension (.h5, .ang, .ctf)
+ datafile = 'undefined',
+! if .h5 input format:
+! which angles should we use?  'original' or 'refined'
+ useangles = 'original',
+! intensity scaling mode 'not' = no scaling, 'lin' = linear, 'gam' = gamma correction
+ scalingmode = 'not',
+! gamma correction factor
+ gammavalue = 1.0,
+! name of output image tiff file 
+ imagefile = 'undefined',
+! number of threads (default = 1, use 0 for maximum available)
+ nthreads = 1,
+ /
