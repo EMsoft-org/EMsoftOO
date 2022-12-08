@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2014-2022 Marc De Graef/Carnegie Mellon University
+! Copyright (c) 2014-2023 Marc De Graef/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -1694,7 +1694,7 @@ character(fnlen)                        :: nmldefault
  Message = IO_T()
 
  call Message % printMessage('<EMsoftHeader>',frm="(/A/)")
- call Message % printMessage('Copyright (C) 2001-2022 Marc De Graef Research Group/CMU',frm="(A)")
+ call Message % printMessage('Copyright (C) 2001-2023 Marc De Graef Research Group/CMU',frm="(A)")
  call Message % printMessage('EMsoft comes with ABSOLUTELY NO WARRANTY.')
  call Message % printMessage('This is free software, and you are welcome to redistribute it')
  call Message % printMessage('under certain conditions; see License.txt file for details.',frm="(A/)")
