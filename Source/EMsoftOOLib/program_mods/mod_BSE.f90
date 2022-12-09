@@ -1174,6 +1174,7 @@ allocate(BSEdetector%beamtiltq(4, ipf_wd, ipf_ht))
 ! then convert that to a rotation quaternion for the beam tilt; we assume 
 ! that the beam pivots on the intersection point of the optical axis and the 
 ! objective lens exit plane (at distance equal to the working distance WD) 
+! This is really a very small correction, in particular when the scan area is small
 maxth = -1000.0
 do ix=pxstart, pxend 
     px = ( ctrx - float(ix) ) * dinl%StepX
@@ -1183,6 +1184,7 @@ do ix=pxstart, pxend
             BSEdetector%beamtiltq(1:4, ix, iy) = (/ 1.0, 0.0 ,0.0 ,0.0 /)
         else  ! get the quaternion for this beam tilt 
             th = 0.5 * acos(enl%workingdistance*1000.0 / sqrt(px*px+py*py+WD2))  ! half the rotation angle 
+            ! write(*,*) px, py, th
             if (th.gt.maxth) maxth = th
             ct = cos(th)
             st = sin(th)
@@ -1212,7 +1214,7 @@ end associate
 end subroutine GenerateBSEbeamtiltquaternions_
 
 !--------------------------------------------------------------------------
-subroutine ComputeBSEimage_(self, EMsoft, mcnl, mpnl, numang, Eangles, Emin, Emax)
+subroutine ComputeBSEimage_(self, mcnl, mpnl, numang, Eangles, Emin, Emax, BSEimage)
 !DEC$ ATTRIBUTES DLLEXPORT :: ComputeBSEimage_
 !! author: MDG 
 !! version: 1.0 
@@ -1220,7 +1222,6 @@ subroutine ComputeBSEimage_(self, EMsoft, mcnl, mpnl, numang, Eangles, Emin, Ema
 !!
 !! compute an energy-weighted BSE image for a given ROI
 
-use mod_EMsoft
 use mod_MCfiles
 use mod_MPfiles
 use mod_io
@@ -1229,19 +1230,17 @@ use mod_rotations
 use mod_Lambert
 use mod_image 
 use omp_lib
-use ISO_C_BINDING
-use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE
 
 class(BSE_T), INTENT(INOUT)                 :: self
-type(EMsoft_T),INTENT(INOUT)                :: EMsoft
 type(MCOpenCLNameListType),INTENT(IN)       :: mcnl
 type(EBSDMasterNameListType),INTENT(IN)     :: mpnl
 integer(kind=irg),INTENT(IN)                :: numang 
 real(kind=sgl),INTENT(IN)                   :: Eangles(3,numang)
 integer(kind=irg),INTENT(IN)                :: Emin
 integer(kind=irg),INTENT(IN)                :: Emax 
+real(kind=sgl),INTENT(OUT),allocatable      :: BSEimage(:,:)
 
 type(IO_T)                                  :: Message
 type(Quaternion_T)                          :: quat, dquat 
@@ -1249,7 +1248,6 @@ type(e_T)                                   :: eu
 type(q_T)                                   :: qu
 type(Lambert_T)                             :: L
 
-real(kind=sgl),allocatable                  :: BSEimage(:,:)
 real(kind=sgl)                              :: s, mi, ma, ECPfactor, q(4)
 integer(kind=irg)                           :: ix, iy, icnt, jd, sz(3), nxmc
 real(kind=sgl)                              :: dc(3), avdc(3), newavdc(3), ixy(2), scl, sclmc
@@ -1257,16 +1255,6 @@ real(kind=dbl)                              :: ddc(3)
 real(kind=sgl)                              :: dx, dy, dxm, dym, x, y, z
 integer(kind=irg)                           :: ii, jj, kk, istat
 integer(kind=irg)                           :: nix, niy, nixp, niyp, nixmc, niymc, TID
-
-! declare variables for use in object oriented image module
-character(fnlen)                            :: TIFF_filename, fname 
-integer                                     :: iostat
-character(len=128)                          :: iomsg
-logical                                     :: isInteger
-type(image_t)                               :: im
-integer(int8), allocatable                  :: TIFF_image(:,:)
-integer                                     :: dim2(2)
-integer(c_int32_t)                          :: result
 
 call setRotationPrecision('d')
 
@@ -1338,33 +1326,6 @@ end do
 !$OMP END DO
 !$OMP END PARALLEL
 
-! and save the resulting BSE image to a tiff file
-! output the ADP map as a tiff file 
-fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%imagefile))
-TIFF_filename = trim(fname)
-
-! allocate memory for image
-allocate(TIFF_image(BSE%ipf_wd,BSE%ipf_ht))
-
-! fill the image with whatever data you have (between 0 and 255)
-ma = maxval(BSEimage)
-mi = minval(BSEimage)
-
-TIFF_image = int(255 * (BSEimage-mi)/(ma-mi))
-
-! set up the image_t structure
-im = image_t(TIFF_image)
-if(im%empty()) call Message%printMessage("EMBSE","failed to convert array to image")
-
-! create the file
-call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
-if(0.ne.iostat) then
-  call Message%printMessage("failed to write image to file : "//iomsg)
-else  
-  call Message%printMessage('BSE image written to '//trim(TIFF_filename))
-end if 
-deallocate(TIFF_image)
-
 end associate 
 
 end subroutine ComputeBSEimage_
@@ -1392,6 +1353,9 @@ use mod_rotations
 use stringconstants
 use mod_vendors
 use mod_memory
+use mod_image 
+use ISO_C_BINDING
+use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE 
 
@@ -1419,8 +1383,18 @@ integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf
 integer(kind=irg)                   :: Emin, Emax      ! various parameters
 character(fnlen)                    :: fname, DIfile
 logical                             :: refined
-real(kind=sgl)                      :: scl
-real(kind=sgl),allocatable          :: Eangles(:,:)
+real(kind=sgl)                      :: scl, mi, ma
+real(kind=sgl),allocatable          :: Eangles(:,:), BSEimage(:,:)
+
+! declare variables for use in object oriented image module
+character(fnlen)                    :: TIFF_filename
+integer                             :: iostat
+character(len=128)                  :: iomsg
+logical                             :: isInteger
+type(image_t)                       :: im
+integer(int8), allocatable          :: TIFF_image(:,:)
+integer                             :: dim2(2)
+integer(c_int32_t)                  :: result
 
 ! open the HDF interface
 call openFortranHDFInterface()
@@ -1534,7 +1508,7 @@ else
 end if 
 
 ! 6. generate the beam tilt quaternions for the ROI 
-call self%GenerateBSEbeamtiltquaternions(dinl, verbose=.FALSE.)
+call self%GenerateBSEbeamtiltquaternions(dinl, verbose=.TRUE.)
 
 ! 7. save the detector pixel unit vectors for debugging purposes... this is in PoVray format
 ! to visualize the hemispherical ring of directions that fall onto the detector
@@ -1560,10 +1534,34 @@ write (dataunit,"(A)") '};'
 close(dataunit,status='keep')
 
 ! 8. and finally perform the image computations
-call self%ComputeBSEimage(EMsoft, mcnl, mpnl, nx, Eangles, Emin, Emax)
+call self%ComputeBSEimage(mcnl, mpnl, nx, Eangles, Emin, Emax, BSEimage)
 
+! and save the resulting BSE image to a tiff file
+! output the ADP map as a tiff file 
+fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%imagefile))
+TIFF_filename = trim(fname)
 
+! allocate memory for image
+allocate(TIFF_image(BSEdetector%ipf_wd,BSEdetector%ipf_ht))
 
+! fill the image with whatever data you have (between 0 and 255)
+ma = maxval(BSEimage)
+mi = minval(BSEimage)
+
+TIFF_image = int(255 * (BSEimage-mi)/(ma-mi))
+
+! set up the image_t structure
+im = image_t(TIFF_image)
+if(im%empty()) call Message%printMessage("EMBSE","failed to convert array to image")
+
+! create the file
+call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+if(0.ne.iostat) then
+  call Message%printMessage("failed to write image to file : "//iomsg)
+else  
+  call Message%printMessage('BSE image written to '//trim(TIFF_filename))
+end if 
+deallocate(TIFF_image)
 
 end associate
 

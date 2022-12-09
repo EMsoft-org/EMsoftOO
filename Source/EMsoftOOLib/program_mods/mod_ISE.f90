@@ -50,7 +50,10 @@ end type ISEAccumType
 ! namelist for the EMISE program
 type, public :: ISENameListType
   real(kind=sgl)    :: gammavalue
+  real(kind=sgl)    :: sampletilt
+  real(kind=sgl)    :: tiltaxis(3)
   integer(kind=irg) :: nthreads
+  integer(kind=irg) :: ROI(4)
   character(3)      :: scalingmode
   character(fnlen)  :: useangles
   character(fnlen)  :: masterfile
@@ -77,6 +80,8 @@ private
   procedure, pass(self) :: getgammavalue_
   procedure, pass(self) :: setnthreads_
   procedure, pass(self) :: getnthreads_
+  procedure, pass(self) :: setROI_
+  procedure, pass(self) :: getROI_
   procedure, pass(self) :: setscalingmode_
   procedure, pass(self) :: getscalingmode_
   procedure, pass(self) :: setuseangles_
@@ -89,6 +94,10 @@ private
   procedure, pass(self) :: getdatafile_
   procedure, pass(self) :: setimagefile_
   procedure, pass(self) :: getimagefile_
+  procedure, pass(self) :: setsampletilt_
+  procedure, pass(self) :: getsampletilt_
+  procedure, pass(self) :: settiltaxis_
+  procedure, pass(self) :: gettiltaxis_
   procedure, pass(self) :: readISEMPfile_
   procedure, pass(self) :: ComputeISEimage_
 
@@ -99,6 +108,8 @@ private
   generic, public :: getgammavalue => getgammavalue_
   generic, public :: setnthreads => setnthreads_
   generic, public :: getnthreads => getnthreads_
+  generic, public :: setROI => setROI_
+  generic, public :: getROI => getROI_
   generic, public :: setscalingmode => setscalingmode_
   generic, public :: getscalingmode => getscalingmode_
   generic, public :: setuseangles => setuseangles_
@@ -111,6 +122,10 @@ private
   generic, public :: getdatafile => getdatafile_
   generic, public :: setimagefile => setimagefile_
   generic, public :: getimagefile => getimagefile_
+  generic, public :: setsampletilt => setsampletilt_
+  generic, public :: getsampletilt => getsampletilt_
+  generic, public :: settiltaxis => settiltaxis_
+  generic, public :: gettiltaxis => gettiltaxis_
   generic, public :: readISEMPfile => readISEMPfile_
   generic, public :: ComputeISEimage => ComputeISEimage_
 
@@ -179,16 +194,20 @@ type(EMsoft_T)                       :: EMsoft
 type(IO_T)                           :: Message       
 logical                              :: skipread = .FALSE.
 
-  real(kind=sgl)    :: gammavalue
-  integer(kind=irg) :: nthreads
-  character(3)      :: scalingmode
-  character(fnlen)  :: useangles
-  character(fnlen)  :: masterfile
-  character(fnlen)  :: datafile
-  character(fnlen)  :: imagefile
+real(kind=sgl)    :: gammavalue
+real(kind=sgl)    :: sampletilt 
+real(kind=sgl)    :: tiltaxis(3)
+integer(kind=irg) :: nthreads
+integer(kind=irg) :: ROI(4)
+character(3)      :: scalingmode
+character(fnlen)  :: useangles
+character(fnlen)  :: masterfile
+character(fnlen)  :: datafile
+character(fnlen)  :: imagefile
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / ISEdata / gammavalue, nthreads, useangles, scalingmode, masterfile, datafile, imagefile
+namelist  / ISEdata / gammavalue, nthreads, useangles, scalingmode, masterfile, datafile, imagefile, &
+                      sampletilt, tiltaxis, ROI
 
 ! set the input parameters to default values
 masterfile = 'undefined'
@@ -196,6 +215,9 @@ datafile = 'undefined'
 useangles = 'original'
 scalingmode = 'not'
 gammavalue = 1.0
+sampletilt = 0.0 
+tiltaxis = (/ 0.0, 1.0, 0.0 /)
+ROI = (/ 0, 0, 0, 0 /)
 imagefile = 'undefined'
 nthreads = 1
 
@@ -224,7 +246,10 @@ if (.not.skipread) then
 end if 
 
 self%nml%gammavalue = gammavalue
+self%nml%sampletilt = sampletilt
+self%nml%tiltaxis = tiltaxis
 self%nml%nthreads = nthreads
+self%nml%ROI = ROI
 self%nml%useangles = useangles
 self%nml%scalingmode = scalingmode
 self%nml%masterfile = masterfile
@@ -322,6 +347,42 @@ integer(kind=irg)                   :: out
 out = self%nml%nthreads
 
 end function getnthreads_
+
+!--------------------------------------------------------------------------
+subroutine setROI_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setROI_
+!! author: MDG
+!! version: 1.0
+!! date: 12/09/22
+!!
+!! set ROI in the ISE_T class
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp(4)
+
+self%nml%ROI = inp
+
+end subroutine setROI_
+
+!--------------------------------------------------------------------------
+function getROI_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getROI_
+!! author: MDG
+!! version: 1.0
+!! date: 12/09/22
+!!
+!! get ROI from the ISE_T class
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out(4)
+
+out = self%nml%ROI
+
+end function getROI_
 
 !--------------------------------------------------------------------------
 subroutine setscalingmode_(self,inp)
@@ -540,6 +601,78 @@ out = trim(self%nml%imagefile)
 end function getimagefile_
 
 !--------------------------------------------------------------------------
+subroutine setsampletilt_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setsampletilt_
+!! author: MDG
+!! version: 1.0
+!! date: 12/09/22
+!!
+!! set sampletilt in the ISE_T class
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%sampletilt = inp
+
+end subroutine setsampletilt_
+
+!--------------------------------------------------------------------------
+function getsampletilt_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getsampletilt_
+!! author: MDG
+!! version: 1.0
+!! date: 12/09/22
+!!
+!! get sampletilt from the ISE_T class
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%sampletilt
+
+end function getsampletilt_
+
+!--------------------------------------------------------------------------
+subroutine settiltaxis_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: settiltaxis_
+!! author: MDG
+!! version: 1.0
+!! date: 12/09/22
+!!
+!! set tiltaxis in the ISE_T class
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp(3)
+
+self%nml%tiltaxis = inp
+
+end subroutine settiltaxis_
+
+!--------------------------------------------------------------------------
+function gettiltaxis_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: gettiltaxis_
+!! author: MDG
+!! version: 1.0
+!! date: 12/09/22
+!!
+!! get tiltaxis from the ISE_T class
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out(3)
+
+out = self%nml%tiltaxis
+
+end function gettiltaxis_
+
+!--------------------------------------------------------------------------
 recursive subroutine readISEMPfile_(self, HDF, HDFnames, nml, getmLPNH, getmLPSH, getmasterSPNH, &
                                     getmasterSPSH, getstrings, silent)
 !DEC$ ATTRIBUTES DLLEXPORT :: readISEMPfile_
@@ -741,7 +874,7 @@ end associate
 end subroutine readISEMPfile_
 
 !--------------------------------------------------------------------------
-subroutine ComputeISEimage_(self, EMsoft, numang, Eangles)
+subroutine ComputeISEimage_(self, numang, Eangles, ISEimage)
 !DEC$ ATTRIBUTES DLLEXPORT :: ComputeISEimage_
 !! author: MDG 
 !! version: 1.0 
@@ -749,7 +882,6 @@ subroutine ComputeISEimage_(self, EMsoft, numang, Eangles)
 !!
 !! compute an ISE image for a given ROI
 
-use mod_EMsoft
 use mod_io
 use mod_quaternions 
 use mod_rotations
@@ -762,34 +894,26 @@ use, intrinsic :: iso_fortran_env
 IMPLICIT NONE
 
 class(ISE_T), INTENT(INOUT)                 :: self
-type(EMsoft_T),INTENT(INOUT)                :: EMsoft
 integer(kind=irg),INTENT(IN)                :: numang 
 real(kind=sgl),INTENT(IN)                   :: Eangles(3,numang)
+real(kind=sgl),INTENT(OUT),allocatable      :: ISEimage(:,:)
 
 type(IO_T)                                  :: Message
 type(Quaternion_T)                          :: quat, dquat 
 type(e_T)                                   :: eu
 type(q_T)                                   :: qu
+type(a_T)                                   :: ax
 type(Lambert_T)                             :: L
 
-real(kind=sgl),allocatable                  :: ISEimage(:,:)
-real(kind=sgl)                              :: s, mi, ma, ECPfactor, q(4)
+real(kind=sgl)                              :: s, ECPfactor, q(4)
 integer(kind=irg)                           :: ix, iy, icnt, jd, sz(3), nxmc
 real(kind=sgl)                              :: dc(3), avdc(3), newavdc(3), ixy(2), scl, sclmc, io_real(2)
-real(kind=dbl)                              :: ddc(3)
+real(kind=dbl)                              :: ddc(3), tiltaxis(3)
 real(kind=sgl)                              :: dx, dy, dxm, dym, x, y, z
 integer(kind=irg)                           :: ii, jj, kk, istat
 integer(kind=irg)                           :: nix, niy, nixp, niyp, nixmc, niymc, TID
-
-! declare variables for use in object oriented image module
-character(fnlen)                            :: TIFF_filename, fname 
-integer                                     :: iostat
-character(len=128)                          :: iomsg
-logical                                     :: isInteger
-type(image_t)                               :: im
-integer(int8), allocatable                  :: TIFF_image(:,:)
-integer                                     :: dim2(2)
-integer(c_int32_t)                          :: result
+logical                                     :: tilt
+real(kind=sgl),allocatable                  :: image(:,:)
 
 call setRotationPrecision('d')
 
@@ -799,14 +923,23 @@ allocate(ISEimage(ISE%ipf_wd,ISE%ipf_ht))
 ISEimage = 0.0
 scl = float(self%mpnml%npx) 
 
-! THIS ALL NEEDS TO BE REVIEWED AND IMPROVED !!!
+tilt = .FALSE. 
+if (enl%sampletilt.ne.0.0) then 
+  tilt = .TRUE.
+  tiltaxis = dble(enl%tiltaxis)
+  ax = a_T( adinp = (/ tiltaxis(1), tiltaxis(2), tiltaxis(3), cvtoRadians(dble(-enl%sampletilt)) /) )
+  qu = ax%aq()
+  dquat = Quaternion_T( qd = qu%q_copyd() )
+  write (*,*) 'sample rotation quaternion : ' 
+  call dquat%quat_print()
+end if 
 
 ! loop over all the image pixels 
 icnt = 0
 call OMP_SET_NUM_THREADS(enl%nthreads)
 
 !$OMP PARALLEL default(shared) private(ix,iy,s,icnt,qu,jd,kk,dc,nix,niy,nixp,niyp,dx,dy,dxm,dym,newavdc,ECPfactor)&
-!$OMP& private(nixmc, niymc, eu, quat, dquat, ddc) 
+!$OMP& private(nixmc, niymc, eu, quat, ddc) 
 
 TID = OMP_GET_THREAD_NUM()
 
@@ -823,6 +956,10 @@ do iy = 1, ISE%ipf_ht
 
 ! get the pixel direction cosines 
         ddc = (/ 0.D0, 0.D0, 1.D0 /)
+! apply the sample tilt to the detector direction cosines
+        if (tilt.eqv..TRUE.) then 
+          ddc = dquat%quat_Lp( ddc )
+        end if 
 ! apply the grain rotation to the detector direction cosines
         ddc = quat%quat_Lp( ddc )
         dc = sngl(ddc/sqrt(sum(ddc*ddc)))
@@ -848,34 +985,14 @@ end do
 !$OMP END DO
 !$OMP END PARALLEL
 
-! and save the resulting ISE image to a tiff file
-! output the ADP map as a tiff file 
-fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%imagefile))
-TIFF_filename = trim(fname)
-
-! allocate memory for image
-allocate(TIFF_image(ISE%ipf_wd,ISE%ipf_ht))
-
-! fill the image with whatever data you have (between 0 and 255)
-ma = maxval(ISEimage)
-mi = minval(ISEimage)
-io_real(1:2) = (/ mi, ma /)
-call Message%WriteValue('Intensity range : ', io_real, 2) 
-
-TIFF_image = int(255 * (ISEimage-mi)/(ma-mi))
-
-! set up the image_t structure
-im = image_t(TIFF_image)
-if(im%empty()) call Message%printMessage("EMISE","failed to convert array to image")
-
-! create the file
-call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
-if(0.ne.iostat) then
-  call Message%printMessage("failed to write image to file : "//iomsg)
-else  
-  call Message%printMessage('ISE image written to '//trim(TIFF_filename))
+! do we need to apply an ROI to this image before returning it to the calling program?
+if (sum(enl%ROI).ne.0) then 
+  allocate( image(enl%ROI(3),enl%ROI(4)) )
+  image = ISEimage(enl%ROI(1):enl%ROI(1)+enl%ROI(3)-1, enl%ROI(2):enl%ROI(2)+enl%ROI(4)-1)
+  deallocate(ISEimage)
+  allocate( ISEimage(enl%ROI(3),enl%ROI(4)) )
+  ISEimage = image
 end if 
-deallocate(TIFF_image)
 
 end associate 
 
@@ -903,6 +1020,9 @@ use mod_rotations
 use stringconstants
 use mod_vendors
 use mod_memory
+use mod_image 
+use ISO_C_BINDING
+use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE 
 
@@ -927,6 +1047,18 @@ integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf
 character(fnlen)                    :: fname, DIfile
 logical                             :: refined
 real(kind=sgl),allocatable          :: Eangles(:,:)
+real(kind=sgl)                      :: mi, ma, io_real(2)
+real(kind=sgl),allocatable          :: ISEimage(:,:)
+
+! declare variables for use in object oriented image module
+character(fnlen)                    :: TIFF_filename
+integer                             :: iostat
+character(len=128)                  :: iomsg
+logical                             :: isInteger
+type(image_t)                       :: im
+integer(int8), allocatable          :: TIFF_image(:,:)
+integer                             :: dim2(2)
+integer(c_int32_t)                  :: result
 
 ! open the HDF interface
 call openFortranHDFInterface()
@@ -1000,8 +1132,45 @@ else
   dinl%ROI = (/ 0, 0, 0, 0 /)
 end if 
 
-! 3. and finally perform the image computations
-call self%ComputeISEimage(EMsoft, nx, Eangles)
+! 3. perform the image computations
+call self%ComputeISEimage(nx, Eangles, ISEimage)
+
+! and save the resulting ISE image to a tiff file
+! output the ADP map as a tiff file 
+fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%imagefile))
+TIFF_filename = trim(fname)
+
+! allocate memory for image
+if (sum(enl%ROI).eq.0) then 
+  allocate(TIFF_image(ISEdetector%ipf_wd,ISEdetector%ipf_ht))
+else
+  allocate(TIFF_image(enl%ROI(3),enl%ROI(4)))
+end if 
+
+if (enl%scalingmode.eq.'gam') then 
+  ISEimage = ISEimage**enl%gammavalue
+end if 
+
+! fill the image with whatever data you have (between 0 and 255)
+ma = maxval(ISEimage)
+mi = minval(ISEimage)
+io_real(1:2) = (/ mi, ma /)
+call Message%WriteValue('Intensity range : ', io_real, 2) 
+
+TIFF_image = int(255 * (ISEimage-mi)/(ma-mi))
+
+! set up the image_t structure
+im = image_t(TIFF_image)
+if(im%empty()) call Message%printMessage("EMISE","failed to convert array to image")
+
+! create the file
+call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+if(0.ne.iostat) then
+  call Message%printMessage("failed to write image to file : "//iomsg)
+else  
+  call Message%printMessage('ISE image written to '//trim(TIFF_filename))
+end if 
+deallocate(TIFF_image)
 
 end associate
 

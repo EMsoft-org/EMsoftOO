@@ -103,9 +103,6 @@ type(SO2pointd), pointer         :: SO2tmp, SO2tmp2
 ! set the counter to zero
 SO%SO2cnt = 0
 
-! empty the list if it isn't
-! call SO%delete_SO2list_()
-
 ds = 1.D0/dble(nsteps)
 
 allocate(SO%SO2list)
