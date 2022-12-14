@@ -29,6 +29,8 @@
  scalingmode = 'not',
 ! gamma correction factor
  gammavalue = 1.0,
+! scan mode: 'single' for one image, 'scan' for square Lambert scan
+ scanmode = 'single',
 ! working distance [mm]
  workingdistance = 10.0, 
 ! BSEdistance [mm] < workingdistance 

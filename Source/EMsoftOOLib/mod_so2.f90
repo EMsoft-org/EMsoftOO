@@ -42,29 +42,33 @@ use mod_rotations
 IMPLICIT NONE
 private
 
-
 type, public :: SO2pointd
-        real(kind=dbl)          :: sql(2)        ! point in square lambert grid 
-        real(kind=dbl)          :: nvec(3)       ! corresponding point on unit 2-sphere
-        type(SO2pointd),pointer :: next          ! link to next point
+        real(kind=dbl)            :: sql(2)        ! point in square lambert grid 
+        real(kind=dbl)            :: nvec(3)       ! corresponding point on unit 2-sphere
+        type(SO2pointd),pointer   :: next          ! link to next point
 end type SO2pointd
-
 
 type, public :: so2_T
   private
-    type(SO2pointd),pointer     :: SO2list
-    integer(kind=irg)           :: SO2cnt
+    type(SO2pointd),pointer       :: SO2list
+    integer(kind=irg)             :: SO2cnt
+    integer(kind=irg),allocatable :: SO2ringcount(:)
+    integer(kind=irg),allocatable :: SO2ringstart(:)
 
   contains
   private
     procedure, pass(self) :: delete_SO2list_
     procedure, pass(self) :: getSO2cnt_
     procedure, pass(self) :: getSO2listhead_
+    procedure, pass(self) :: getSO2ringcount_
+    procedure, pass(self) :: getSO2ringstart_
     final :: so2_destructor
 
     generic, public :: delete_SO2list => delete_SO2list_
     generic, public :: getSO2cnt => getSO2cnt_
     generic, public :: getSO2listhead => getSO2listhead_
+    generic, public :: getSO2ringcount => getSO2ringcount_
+    generic, public :: getSO2ringstart => getSO2ringstart_
 end type so2_T
 
 ! the constructor routine for this class
@@ -90,15 +94,15 @@ use mod_Lambert
 
 IMPLICIT NONE
 
-integer(kind=irg),INTENT(IN)     :: nsteps 
-real(kind=dbl),INTENT(IN)        :: niz 
-real(kind=dbl),INTENT(IN)        :: noz 
+integer(kind=irg),INTENT(IN)        :: nsteps 
+real(kind=dbl),INTENT(IN),OPTIONAL  :: niz 
+real(kind=dbl),INTENT(IN),OPTIONAL  :: noz 
 
-type(Lambert_T)                  :: L  
+type(Lambert_T)                     :: L  
 
-real(kind=dbl)                   :: ds, xy(2), xyz(3) 
-integer(kind=irg)                :: ierr, ix, iy 
-type(SO2pointd), pointer         :: SO2tmp, SO2tmp2 
+real(kind=dbl)                      :: ds, xy(2), xyz(3) 
+integer(kind=irg)                   :: ierr, ix, iy, scnt, pcnt 
+type(SO2pointd), pointer            :: SO2tmp, SO2tmp2 
 
 ! set the counter to zero
 SO%SO2cnt = 0
@@ -109,28 +113,105 @@ allocate(SO%SO2list)
 SO2tmp => SO%SO2list
 nullify(SO2tmp%next)
 
+if (present(niz)) then 
 ! loop through the square Lambert grid and test each point to see whether or not 
 ! it falls inside the annular BSE detector; this is a simple test in which we 
 ! compute the angle between the unit vector on the 2-sphere and the optical axis.
 ! We are actually just comparing the third direction cosine.
-do ix = -nsteps,nsteps
-    do iy = -nsteps,nsteps
-        xy = (/ dble(ix), dble(iy) /) * ds 
-        L = Lambert_T( xyd = xy )
-        ierr = L%LambertSquareToSphere( xyz )
-! does the z-component fall in the correct range ?
-        if ((xyz(3).le.niz).and.(xyz(3).ge.noz)) then 
-          ! and set the correct values 
-          SO2tmp%sql = xy 
-          SO2tmp%nvec = xyz
-          SO%SO2cnt = SO%SO2cnt + 1 
-! add this point to the linked list 
-          allocate(SO2tmp%next)
-          SO2tmp => SO2tmp%next
-          nullify(SO2tmp%next)
-        end if
-    end do 
-end do 
+  do ix = -nsteps,nsteps
+      do iy = -nsteps,nsteps
+          xy = (/ dble(ix), dble(iy) /) * ds 
+          L = Lambert_T( xyd = xy )
+          ierr = L%LambertSquareToSphere( xyz )
+  ! does the z-component fall in the correct range ?
+          if ((xyz(3).le.niz).and.(xyz(3).ge.noz)) then 
+            ! and set the correct values 
+            SO2tmp%sql = xy 
+            SO2tmp%nvec = xyz
+            SO%SO2cnt = SO%SO2cnt + 1 
+  ! add this point to the linked list 
+            allocate(SO2tmp%next)
+            SO2tmp => SO2tmp%next
+            nullify(SO2tmp%next)
+          end if
+      end do 
+  end do 
+else 
+! in this mode, we order the points in the list according to a square spiral
+! in the Lambert array; this is used to compute the contribution of each 
+! revolution to a BSE intensity for a given orientation.  We start at the center
+! of the Lambert square and spiral outwards; scnt counts the squares! 
+! First we get the central point
+  allocate(SO%SO2ringcount(0:nsteps),SO%SO2ringstart(0:nsteps))
+  L = Lambert_T( xyd = (/ 1.D0, 1.D0 /) )
+  ierr = L%LambertSquareToSphere( xyz )
+  SO2tmp%sql = xy 
+  SO2tmp%nvec = xyz
+  SO%SO2cnt = SO%SO2cnt + 1 
+  SO%SO2ringcount(0) = 1
+  SO%SO2ringstart(0) = 0
+! and then we spiral outwards, keeping track of how many points there are
+! in each spiral revolution
+  do scnt=1,nsteps
+    pcnt = 0
+! horizontal lines (inclusive end points)
+    iy = -scnt
+    do ix=-scnt,scnt
+      allocate(SO2tmp%next)
+      SO2tmp => SO2tmp%next
+      nullify(SO2tmp%next)
+      xy = (/ dble(ix), dble(iy) /) * ds 
+      L = Lambert_T( xyd = xy )
+      ierr = L%LambertSquareToSphere( xyz )
+      SO2tmp%sql = xy 
+      SO2tmp%nvec = xyz
+      SO%SO2cnt = SO%SO2cnt + 1 
+      pcnt = pcnt+1
+    end do    
+    iy = scnt
+    do ix=-scnt,scnt
+      allocate(SO2tmp%next)
+      SO2tmp => SO2tmp%next
+      nullify(SO2tmp%next)
+      xy = (/ dble(ix), dble(iy) /) * ds 
+      L = Lambert_T( xyd = xy )
+      ierr = L%LambertSquareToSphere( xyz )
+      SO2tmp%sql = xy 
+      SO2tmp%nvec = xyz
+      SO%SO2cnt = SO%SO2cnt + 1 
+      pcnt = pcnt+1
+    end do    
+! then the vertical lines (exclusive the end points to avoid double counting)
+    ix = -scnt
+     do iy=-scnt+1,scnt-1
+      allocate(SO2tmp%next)
+      SO2tmp => SO2tmp%next
+      nullify(SO2tmp%next)
+      xy = (/ dble(ix), dble(iy) /) * ds 
+      L = Lambert_T( xyd = xy )
+      ierr = L%LambertSquareToSphere( xyz )
+      SO2tmp%sql = xy 
+      SO2tmp%nvec = xyz
+      SO%SO2cnt = SO%SO2cnt + 1 
+      pcnt = pcnt+1
+    end do    
+    ix = scnt
+    do iy=-scnt+1,scnt-1
+      allocate(SO2tmp%next)
+      SO2tmp => SO2tmp%next
+      nullify(SO2tmp%next)
+      xy = (/ dble(ix), dble(iy) /) * ds 
+      L = Lambert_T( xyd = xy )
+      ierr = L%LambertSquareToSphere( xyz )
+      SO2tmp%sql = xy 
+      SO2tmp%nvec = xyz
+      SO%SO2cnt = SO%SO2cnt + 1 
+      pcnt = pcnt+1
+    end do    
+    SO%SO2ringcount(scnt) = pcnt
+    SO%SO2ringstart(scnt) = SO%SO2ringstart(scnt-1)+SO%SO2ringcount(scnt-1)
+  end do
+end if 
 
 end function so2_constructor
 
@@ -188,6 +269,50 @@ type(SO2pointd),pointer      :: out
 out => self%SO2list
 
 end function getSO2listhead_
+
+!--------------------------------------------------------------------------
+function getSO2ringcount_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getSO2ringcount_
+!! author: MDG
+!! version: 1.0
+!! date: 12/06/22
+!!
+!! get ringcount array from the SO2_T class
+
+IMPLICIT NONE
+
+class(so2_T), INTENT(IN)      :: self
+integer(kind=irg),allocatable :: out(:)
+
+integer(kind=irg)             :: sz(1)
+
+sz = shape(self%SO2ringcount)
+allocate( out(sz(1)) )
+out = self%SO2ringcount
+
+end function getSO2ringcount_
+
+!--------------------------------------------------------------------------
+function getSO2ringstart_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getSO2ringstart_
+!! author: MDG
+!! version: 1.0
+!! date: 12/06/22
+!!
+!! get ringstart array from the SO2_T class
+
+IMPLICIT NONE
+
+class(so2_T), INTENT(IN)      :: self
+integer(kind=irg),allocatable :: out(:)
+
+integer(kind=irg)             :: sz(1)
+
+sz = shape(self%SO2ringstart)
+allocate( out(sz(1)) )
+out = self%SO2ringstart
+
+end function getSO2ringstart_
 
 !--------------------------------------------------------------------------
 subroutine delete_SO2list_(self)

@@ -66,6 +66,7 @@ type, public :: BSENameListType
   integer(kind=irg) :: nthreads
   character(fnlen)  :: useangles
   character(3)      :: scalingmode
+  character(6)      :: scanmode
   character(fnlen)  :: masterfile
   character(fnlen)  :: Kosselmasterfile
   character(fnlen)  :: datafile
@@ -115,6 +116,8 @@ private
   procedure, pass(self) :: getuseangles_
   procedure, pass(self) :: setscalingmode_
   procedure, pass(self) :: getscalingmode_
+  procedure, pass(self) :: setscanmode_
+  procedure, pass(self) :: getscanmode_  
   procedure, pass(self) :: setmasterfile_
   procedure, pass(self) :: getmasterfile_
   procedure, pass(self) :: setKosselmasterfile_
@@ -126,6 +129,7 @@ private
   procedure, pass(self) :: GenerateBSEDetector_
   procedure, pass(self) :: GenerateBSEbeamtiltquaternions_
   procedure, pass(self) :: ComputeBSEimage_
+  procedure, pass(self) :: ComputeBSErings_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -159,6 +163,8 @@ private
   generic, public :: getuseangles => getuseangles_
   generic, public :: setscalingmode => setscalingmode_
   generic, public :: getscalingmode => getscalingmode_
+  generic, public :: setscanmode => setscanmode_
+  generic, public :: getscanmode => getscanmode_  
   generic, public :: setmasterfile => setmasterfile_
   generic, public :: getmasterfile => getmasterfile_
   generic, public :: setKosselmasterfile => setKosselmasterfile_
@@ -170,6 +176,7 @@ private
   generic, public :: GenerateBSEDetector => GenerateBSEDetector_
   generic, public :: GenerateBSEbeamtiltquaternions => GenerateBSEbeamtiltquaternions_
   generic, public :: ComputeBSEimage => ComputeBSEimage_
+  generic, public :: ComputeBSErings => ComputeBSErings_
 
 end type BSE_T
 
@@ -250,6 +257,7 @@ integer(kind=irg) :: NsqL
 integer(kind=irg) :: nthreads
 character(fnlen)  :: useangles
 character(3)      :: scalingmode
+character(6)      :: scanmode
 character(fnlen)  :: masterfile
 character(fnlen)  :: Kosselmasterfile
 character(fnlen)  :: datafile
@@ -258,7 +266,7 @@ character(fnlen)  :: imagefile
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / BSEdata / energymin, energymax, incidence, beamcurrent, dwelltime, gammavalue, workingdistance, &
                       BSEdistance, rin, rout, NsqL, nthreads, useangles, scalingmode, masterfile, &
-                      Kosselmasterfile, datafile, imagefile
+                      Kosselmasterfile, datafile, imagefile, scanmode
 
 ! set the input parameters to default values
 energymin = 5.0
@@ -271,6 +279,7 @@ incidence = 0.0
 beamcurrent = 150.0
 dwelltime = 100.0
 scalingmode = 'not'
+scanmode = 'single'
 gammavalue = 1.0
 workingdistance = 10.0
 BSEdistance = 9.5
@@ -318,6 +327,7 @@ self%nml%NsqL = NsqL
 self%nml%nthreads = nthreads
 self%nml%useangles = useangles
 self%nml%scalingmode = scalingmode
+self%nml%scanmode = scanmode
 self%nml%masterfile = masterfile
 self%nml%Kosselmasterfile = Kosselmasterfile
 self%nml%datafile = datafile
@@ -883,6 +893,43 @@ out = trim(self%nml%scalingmode)
 end function getscalingmode_
 
 !--------------------------------------------------------------------------
+subroutine setscanmode_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setscanmode_
+!! author: MDG
+!! version: 1.0
+!! date: 12/05/22
+!!
+!! set scanmode in the BSE_T class
+
+IMPLICIT NONE
+
+class(BSE_T), INTENT(INOUT)     :: self
+character(3), INTENT(IN)       :: inp
+
+self%nml%scanmode = trim(inp)
+
+end subroutine setscanmode_
+
+!--------------------------------------------------------------------------
+function getscanmode_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getscanmode_
+!! author: MDG
+!! version: 1.0
+!! date: 12/05/22
+!!
+!! get scanmode from the BSE_T class
+
+IMPLICIT NONE
+
+class(BSE_T), INTENT(INOUT)     :: self
+character(3)                   :: out
+
+out = trim(self%nml%scanmode)
+
+end function getscanmode_
+
+
+!--------------------------------------------------------------------------
 subroutine setmasterfile_(self,inp)
 !DEC$ ATTRIBUTES DLLEXPORT :: setmasterfile_
 !! author: MDG
@@ -1027,7 +1074,7 @@ out = trim(self%nml%imagefile)
 end function getimagefile_
 
 !--------------------------------------------------------------------------
-subroutine GenerateBSEDetector_(self, sigma, verbose) 
+subroutine GenerateBSEDetector_(self, sigma, verbose, SO2) 
 !DEC$ ATTRIBUTES DLLEXPORT :: GenerateBSEDetector_
 !! author: MDG 
 !! version: 1.0 
@@ -1043,6 +1090,7 @@ use mod_rotations
 class(BSE_T), INTENT(INOUT)             :: self
 real(kind=dbl),INTENT(IN)               :: sigma
 logical,INTENT(IN),OPTIONAL             :: verbose
+type(SO2_T), OPTIONAL                   :: SO2
 
 type(so2_T)                             :: SO
 type(IO_T)                              :: Message
@@ -1064,7 +1112,11 @@ BSEni = BSEni/ sqrt(sum(BSEni*BSEni))
 BSEno = BSEno/ sqrt(sum(BSEno*BSEno))
 
 ! create a linked list of unit vectors that point inside the annular BSE detector
-SO = SO2_T(self%nml%nsqL, BSEni(3), BSEno(3))
+if (self%nml%scanmode.eq.'single') then
+  SO = SO2_T(self%nml%nsqL, BSEni(3), BSEno(3))
+else ! scanmode='scan' leads to a square spiral ordering of the points in the linked list
+  SO = SO2_T(self%nml%nsqL)
+end if 
 
 ! put some stuff on the output
 if (present(verbose)) then 
@@ -1108,7 +1160,11 @@ end do
 BSEdetector%corfactor = BSEdetector%corfactor / minval(BSEdetector%corfactor)
 
 ! and clean up the linked list 
-call SO%delete_SO2list()
+if (present(SO2)) then 
+  SO2 = SO
+else
+  call SO%delete_SO2list()
+end if
 
 end associate
 
@@ -1331,6 +1387,131 @@ end associate
 end subroutine ComputeBSEimage_
 
 !--------------------------------------------------------------------------
+subroutine ComputeBSErings_(self, mcnl, mpnl, numang, Eangles, Emin, Emax, BSEimage, SO2)
+!DEC$ ATTRIBUTES DLLEXPORT :: ComputeBSErings_
+!! author: MDG 
+!! version: 1.0 
+!! date: 12/12/22
+!!
+!! compute an energy-weighted BSE image split into Lambert rings for a given ROI
+
+use mod_MCfiles
+use mod_MPfiles
+use mod_io
+use mod_so2
+use mod_quaternions 
+use mod_rotations
+use mod_Lambert
+use mod_image 
+use omp_lib
+
+IMPLICIT NONE
+
+class(BSE_T), INTENT(INOUT)                 :: self
+type(MCOpenCLNameListType),INTENT(IN)       :: mcnl
+type(EBSDMasterNameListType),INTENT(IN)     :: mpnl
+integer(kind=irg),INTENT(IN)                :: numang 
+real(kind=sgl),INTENT(IN)                   :: Eangles(3,numang)
+integer(kind=irg),INTENT(IN)                :: Emin
+integer(kind=irg),INTENT(IN)                :: Emax 
+real(kind=sgl),INTENT(OUT),allocatable      :: BSEimage(:,:,:)
+type(SO2_T),INTENT(IN)                      :: SO2 
+
+type(IO_T)                                  :: Message
+type(Quaternion_T)                          :: quat, dquat 
+type(e_T)                                   :: eu
+type(q_T)                                   :: qu
+type(Lambert_T)                             :: L
+
+real(kind=sgl)                              :: s, mi, ma, ECPfactor, q(4)
+integer(kind=irg)                           :: ix, iy, icnt, jd, sz(3), nxmc
+real(kind=sgl)                              :: dc(3), avdc(3), newavdc(3), ixy(2), scl, sclmc
+real(kind=dbl)                              :: ddc(3)
+real(kind=sgl)                              :: dx, dy, dxm, dym, x, y, z
+integer(kind=irg)                           :: ii, jj, kk, istat, kd
+integer(kind=irg)                           :: nix, niy, nixp, niyp, nixmc, niymc, TID
+integer(kind=irg),allocatable               :: SO2ringcount(:)
+integer(kind=irg),allocatable               :: SO2ringstart(:)
+
+call setRotationPrecision('d')
+
+associate( enl => self%nml, BSE => self%det )
+
+scl = float(mpnl%npx) 
+sz = shape(BSE%accum_e)
+nxmc = (sz(2)-1)/2
+sclmc = float(nxmc)
+
+! allocate all necessary arrays
+allocate(BSEimage(enl%NsqL+1,BSE%ipf_wd,BSE%ipf_ht))
+BSEimage = 0.0
+SO2ringstart = SO2%getSO2ringstart()
+
+! loop over all the image pixels 
+icnt = 0
+call OMP_SET_NUM_THREADS(enl%nthreads)
+
+!$OMP PARALLEL default(shared) private(ix,iy,s,icnt,qu,jd,kk,dc,nix,niy,nixp,niyp,dx,dy,dxm,dym,newavdc,ECPfactor)&
+!$OMP& private(kd, nixmc, niymc, eu, quat, dquat, ddc) 
+
+TID = OMP_GET_THREAD_NUM()
+
+!$OMP DO SCHEDULE(DYNAMIC)
+do iy = 1, BSE%ipf_ht
+    do ix = 1, BSE%ipf_wd
+        icnt = BSE%ipf_wd*(iy-1) + ix
+! get the orientation and determine the quaternion to be applied to all the 
+! detector vectors
+        eu = e_T( edinp = dble( Eangles(1:3, icnt) ) )
+        qu = eu%eq()
+        quat = Quaternion_T( qd = qu%q_copyd() )
+
+! then perform the usual interpolation from the master pattern, but do this ring by ring
+! in the list of Lambert points...
+        do jd = 0, enl%NsqL-1
+          do kd = SO2ringstart(jd+1),SO2ringstart(jd+2)-1 
+            s = 0.0
+! get the pixel direction cosines from the pre-computed array
+            ddc = dble( (/ BSE%rgx(kd+1),BSE%rgy(kd+1),BSE%rgz(kd+1) /) )
+! apply the beam tilt correction to this direction cosine
+            dquat = Quaternion_T( qd = dble(BSE%beamtiltq(1:4, ix, iy)) )
+            ddc = dquat%quat_Lp( ddc )
+! apply the grain rotation to the detector direction cosines
+            ddc = quat%quat_Lp( ddc )
+            dc = sngl(ddc/sqrt(sum(ddc*ddc)))
+! convert these direction cosines to interpolation coordinates in the Rosca-Lambert projection
+            dc = dc / sqrt(sum(dc*dc))
+            call LambertgetInterpolation(dc, scl, mpnl%npx, mpnl%npx, nix, niy, nixp, niyp, dx, dy, dxm, dym)
+
+            if (dc(3) .ge. 0.0) then
+                do kk = Emin, Emax
+                    s = s +  BSE%corfactor(kd+1) * ( BSE%mLPNH(nix,niy,kk) * dxm * dym + &
+                                                     BSE%mLPNH(nixp,niy,kk) * dx * dym + &
+                                                     BSE%mLPNH(nix,niyp,kk) * dxm * dy + &
+                                                     BSE%mLPNH(nixp,niyp,kk) * dx * dy )
+                end do
+              else
+                do kk = Emin, Emax
+                    s = s +  BSE%corfactor(kd+1) * ( BSE%mLPSH(nix,niy,kk) * dxm * dym + &
+                                                     BSE%mLPSH(nixp,niy,kk) * dx * dym + &
+                                                     BSE%mLPSH(nix,niyp,kk) * dxm * dy + &
+                                                     BSE%mLPSH(nixp,niyp,kk) * dx * dy )
+                end do
+            end if
+          end do
+          BSEimage(jd+1,ix,iy) = s 
+        end do
+    end do 
+    if (mod(iy,10).eq.0) write (*,*) ' working on line ', iy
+end do 
+!$OMP END DO
+!$OMP END PARALLEL
+
+end associate 
+
+end subroutine ComputeBSErings_
+
+!--------------------------------------------------------------------------
 subroutine BSE_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: BSE_
 !! author: MDG 
@@ -1340,7 +1521,7 @@ subroutine BSE_(self, EMsoft, progname)
 !! perform the computations
 
 use mod_EMsoft
-use mod_so3
+use mod_so2
 use mod_quaternions
 use mod_MCfiles
 use mod_MPfiles
@@ -1367,7 +1548,7 @@ type(MCfile_T)                      :: MCFT
 type(MPfile_T)                      :: MPFT
 type(HDF_T)                         :: HDF
 type(HDFnames_T)                    :: HDFnames
-type(so3_T)                         :: SO
+type(so2_T)                         :: SO2
 type(IO_T)                          :: Message
 type(Quaternion_T)                  :: quat
 type(QuaternionArray_T)             :: qAR
@@ -1380,14 +1561,14 @@ type(EBSDmasterNameListType)        :: mpnl
 type(MCOpenCLNameListType)          :: mcnl
 
 integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf
-integer(kind=irg)                   :: Emin, Emax      ! various parameters
+integer(kind=irg)                   :: Emin, Emax, dims3(3)      ! various parameters
 character(fnlen)                    :: fname, DIfile
 logical                             :: refined
 real(kind=sgl)                      :: scl, mi, ma
-real(kind=sgl),allocatable          :: Eangles(:,:), BSEimage(:,:)
+real(kind=sgl),allocatable          :: Eangles(:,:), BSEimage(:,:), BSEimagescan(:,:,:)
 
 ! declare variables for use in object oriented image module
-character(fnlen)                    :: TIFF_filename
+character(fnlen)                    :: TIFF_filename, dataset
 integer                             :: iostat
 character(len=128)                  :: iomsg
 logical                             :: isInteger
@@ -1448,7 +1629,11 @@ if (Emax.lt.1)  Emax=1
 if (Emax.gt.EBSDMCdata%numEbins)  Emax=EBSDMCdata%numEbins
 
 ! 4. generate BSE detector direction cosine arrays
-call self%GenerateBSEDetector( dble(enl%incidence), verbose=.TRUE.)
+if (enl%scanmode.eq.'single') then 
+  call self%GenerateBSEDetector( dble(enl%incidence), verbose=.TRUE.)
+else
+  call self%GenerateBSEDetector( dble(enl%incidence), verbose=.TRUE., SO2=SO2)
+end if 
 
 ! 5. read the angular arrays from the HDF5 file (DI only for now)
 resang = index(enl%datafile, '.ang')
@@ -1513,57 +1698,78 @@ call self%GenerateBSEbeamtiltquaternions(dinl, verbose=.TRUE.)
 ! 7. save the detector pixel unit vectors for debugging purposes... this is in PoVray format
 ! to visualize the hemispherical ring of directions that fall onto the detector
 ! This part should be commented out once everything works properly
-open(dataunit,file='BSEpoints2.txt',status='unknown',form='formatted')
-write (dataunit,"(A)") '#declare gridpoints = '
-write (dataunit,"(A)") 'union{'
-do i=1,BSEdetector%numdet
-  write (dataunit,"('sphere{<',2(F10.6,','),F10.6,'>,0.01}')") BSEdetector%rgx(i), BSEdetector%rgy(i), BSEdetector%rgz(i) 
-end do 
-write (dataunit,"(A)") '};'
+! open(dataunit,file='BSEpoints2.txt',status='unknown',form='formatted')
+! write (dataunit,"(A)") '#declare gridpoints = '
+! write (dataunit,"(A)") 'union{'
+! do i=1,BSEdetector%numdet
+!   write (dataunit,"('sphere{<',2(F10.6,','),F10.6,'>,0.01}')") BSEdetector%rgx(i), BSEdetector%rgy(i), BSEdetector%rgz(i) 
+! end do 
+! write (dataunit,"(A)") '};'
 
-scl = enl%workingdistance
+! scl = enl%workingdistance
 
-write (dataunit,"(A)") '#declare pixelrods= '
-write (dataunit,"(A)") 'union{'
-do i=1,BSEdetector%numdet
-  write (dataunit,"('cylinder{<0.0,0.0,0.0><',2(F10.6,','),F10.6,'>,0.005}')") &
-                     BSEdetector%rgx(i)/BSEdetector%rgz(i)*scl, BSEdetector%rgy(i)/BSEdetector%rgz(i)*scl, scl 
-end do 
-write (dataunit,"(A)") '};'
+! write (dataunit,"(A)") '#declare pixelrods= '
+! write (dataunit,"(A)") 'union{'
+! do i=1,BSEdetector%numdet
+!   write (dataunit,"('cylinder{<0.0,0.0,0.0><',2(F10.6,','),F10.6,'>,0.005}')") &
+!                      BSEdetector%rgx(i)/BSEdetector%rgz(i)*scl, BSEdetector%rgy(i)/BSEdetector%rgz(i)*scl, scl 
+! end do 
+! write (dataunit,"(A)") '};'
 
-close(dataunit,status='keep')
+! close(dataunit,status='keep')
 
 ! 8. and finally perform the image computations
-call self%ComputeBSEimage(mcnl, mpnl, nx, Eangles, Emin, Emax, BSEimage)
+if (self%nml%scanmode.eq.'single') then 
+  call self%ComputeBSEimage(mcnl, mpnl, nx, Eangles, Emin, Emax, BSEimage)
 
 ! and save the resulting BSE image to a tiff file
 ! output the ADP map as a tiff file 
-fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%imagefile))
-TIFF_filename = trim(fname)
+  fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%imagefile))
+  TIFF_filename = trim(fname)
 
 ! allocate memory for image
-allocate(TIFF_image(BSEdetector%ipf_wd,BSEdetector%ipf_ht))
+  allocate(TIFF_image(BSEdetector%ipf_wd,BSEdetector%ipf_ht))
 
 ! fill the image with whatever data you have (between 0 and 255)
-ma = maxval(BSEimage)
-mi = minval(BSEimage)
+  ma = maxval(BSEimage)
+  mi = minval(BSEimage)
 
-TIFF_image = int(255 * (BSEimage-mi)/(ma-mi))
+  TIFF_image = int(255 * (BSEimage-mi)/(ma-mi))
 
 ! set up the image_t structure
-im = image_t(TIFF_image)
-if(im%empty()) call Message%printMessage("EMBSE","failed to convert array to image")
+  im = image_t(TIFF_image)
+  if(im%empty()) call Message%printMessage("EMBSE","failed to convert array to image")
 
 ! create the file
-call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
-if(0.ne.iostat) then
-  call Message%printMessage("failed to write image to file : "//iomsg)
-else  
-  call Message%printMessage('BSE image written to '//trim(TIFF_filename))
+  call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+  if(0.ne.iostat) then
+    call Message%printMessage("failed to write image to file : "//iomsg)
+  else  
+    call Message%printMessage('BSE image written to '//trim(TIFF_filename))
+  end if 
+  deallocate(TIFF_image)
+else ! scanmode = 'scan' 
+! this requires a different intensity computation, namely the intensity for each 
+! square Lambert ring; since each ring corresponds to a particular theta value, storing
+! the intensities by ring provides an easy way to study the angular dependence of 
+! the BSE intensity for a given microstructure.  We'll store these in an HDF5 file
+! so that we can do some post-processing in IDL or Matlab.
+  call self%ComputeBSErings(mcnl, mpnl, nx, Eangles, Emin, Emax, BSEimagescan, SO2)
+
+! and dump this into a simple hdf5 file called rings.h5
+  fname = 'rings.h5'
+  hdferr =  HDF%createFile(fname)
+  dims3 = shape(BSEimagescan)
+  write (*,*) 'shape(BSEimagescan) = ',dims3
+  dataset = 'rings'
+  hdferr = HDF%writeDatasetFloatArray(dataset, BSEimagescan, dims3(1), dims3(2), dims3(3) )
+  call HDF%pop(.TRUE.)
 end if 
-deallocate(TIFF_image)
 
 end associate
+
+! open the HDF interface
+call closeFortranHDFInterface()
 
 end subroutine BSE_
 
