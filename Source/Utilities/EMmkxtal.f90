@@ -53,6 +53,7 @@ type(Cell_T)            :: cell
 character(fnlen)        :: flag   ! we need to test for the -w Wyckoff positions command line argument
 character(fnlen)        :: fname, source
 logical                 :: useWyckoff  = .FALSE., useHall = .FALSE.
+integer(kind=irg)       :: SGnum, TRIG(7)
 
 ! initialize the cell and IO classes
 cell = Cell_T()
@@ -83,8 +84,13 @@ end if
 ! to avoid circular references, the cell class also needs to know the crystal system
 call cell%setXtalSystem(SG%getSpaceGroupXtalSystem())
 
+! [12/14/22: call moved to the mod_symmetry module, MDG]
 ! get the lattice parameters
-call cell%setLatParm(SG)
+! call cell%setLatParm(SG)
+
+! due to this change we need to transfer the lattice parameters from
+! the SG class
+call cell%setLatParm( SG%extractLatticeParameters() )
 
 ! get the atom positions, either using Wyckoff positions or the regular way
 if (useWyckoff) then
@@ -92,6 +98,39 @@ if (useWyckoff) then
 else
   call cell%GetAsymPos()
 end if
+
+! if we have a trigonal crystal system, then we will here convert the lattice
+! parameters and atom coordinates to the equivalent hexagonal unit cell
+if (SG%getSpaceGroupXtalSystem().eq.5) then
+  if (useHall.eqv..FALSE.) then
+    SGnum = SG%getSpaceGroupNumber()
+    TRIG = (/ 146,148,155,160,161,166,167 /)
+    if (minval(abs(TRIG-SGnum)).eq.0) then ! we have a trigonal group
+      if ( (SG%getSpaceGrouptrigonal().eqv..TRUE.).and.(SG%getSpaceGroupsecond().eqv..TRUE.) ) then
+    ! we need to convert things to the hexagonal lattice
+        call cell%convertfromRtoH()
+        call SG%setSpaceGroupsecond(.FALSE.)    
+        call SG%setSpaceGrouptrigonal(.FALSE.)
+        call SG%setSpaceGroupsetting(0)    
+      endif
+    endif
+  else  ! we are using the Hall space groups 
+    SGnum = SG%getHallSpaceGroupNumber()
+    TRIG = (/ 434, 437, 445, 451, 453, 459, 461/)
+    if (minval(abs(TRIG-SGnum)).eq.0) then ! we have a trigonal group
+      call cell%convertfromRtoH()
+      call SG%setSpaceGroupsecond(.FALSE.)    
+      call SG%setSpaceGroupsetting(0)    
+      call SG%setHallSpaceGroupNumber( SGnum-1 )
+     end if 
+  end if 
+  call Message%printMessage((/ '=================================================', &
+                               'The rhombohedral unit cell has been converted to ', &
+                               'the hexagonal setting and will be stored in the  ', &
+                               '.xtal file in that setting.  Please use the      ', &
+                               'EMshowxtal program to display the new parameters.', &
+                               '=================================================' /) )
+end if 
 
 ! ask for the .xtal file name
 call Message%ReadValue('Enter output file name (*.xtal) ', fname)

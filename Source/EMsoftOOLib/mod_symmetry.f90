@@ -617,6 +617,9 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       logical               :: useHallSG = .FALSE.
       integer(kind=irg)     :: HallSGnumber
       type(HallSG_T),public :: HallSG
+      !! to avoid circular references, we need the lattice parameters and metric tensor arrays
+      real(kind=dbl)        :: la, lb, lc, alpha, beta, gamma
+      real(kind=dbl)        :: dmt(3,3), rmt(3,3)
 
     contains
     private
@@ -649,6 +652,8 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       procedure, pass(self) :: getSpaceGrouptrigonal_
       procedure, pass(self) :: getSpaceGroupsecond_
       procedure, pass(self) :: getSpaceGrouphexset_
+      procedure, pass(self) :: getLatticeParameters_
+      procedure, pass(self) :: extractLatticeParameters_
       procedure, pass(self) :: getuseHallSG_
 ! routines to set space group parameters
       procedure, pass(self) :: setSpaceGroupreduce_
@@ -657,6 +662,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       procedure, pass(self) :: setSpaceGroupsecond_
       procedure, pass(self) :: setSpaceGroupSetting_
       procedure, pass(self) :: setSpaceGroupNumber_
+      procedure, pass(self) :: setHallSpaceGroupNumber_
       procedure, pass(self) :: setSpaceGroupXtalSystem_
 ! general purpose routines that use symmetry
       procedure, pass(self) :: CalcFamily_
@@ -704,6 +710,8 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       generic, public :: getSpaceGrouphexset => getSpaceGrouphexset_
       generic, public :: getSpaceGrouptrigonal => getSpaceGrouptrigonal_
       generic, public :: getSpaceGroupsecond => getSpaceGroupsecond_
+      generic, public :: getLatticeParameters => getLatticeParameters_
+      generic, public :: extractLatticeParameters => extractLatticeParameters_
       generic, public :: getuseHallSG => getuseHallSG_
       generic, public :: setSpaceGroupreduce => setSpaceGroupreduce_
       generic, public :: setSpaceGrouphexset => setSpaceGrouphexset_
@@ -711,6 +719,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       generic, public :: setSpaceGroupsecond => setSpaceGroupsecond_
       generic, public :: setSpaceGroupSetting => setSpaceGroupSetting_
       generic, public :: setSpaceGroupNumber => setSpaceGroupNumber_
+      generic, public :: setHallSpaceGroupNumber => setHallSpaceGroupNumber_
       generic, public :: setHallSG => setHallSG_
       generic, public :: setSpaceGroupXtalSystem => setSpaceGroupXtalSystem_
       generic, public :: getSetting => getSetting_
@@ -814,8 +823,12 @@ type(PointGroup_T)                      :: PG
 integer(kind=irg)                       :: i, pgnum, sgnum
 integer(kind=irg),parameter             :: icv(7) = (/ 7, 6, 3, 2, 5, 4, 1 /)
 real(kind=dbl)                          :: ddt(3,3), rrt(3,3)
+real(kind=dbl)                          :: det,ca,cb,cg,sa,sb,ssg,tg,pirad
 
 SG%useHallSG = .FALSE.
+
+SG%dmt = 0.D0 
+SG%rmt = 0.D0 
 
 ! if there are no input parameters, then we start by asking for the crystal system
 if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) .and. .not.(present(setting)) ) then
@@ -830,6 +843,46 @@ if ( .not.(present(SGnumber)) .and. .not.(present(xtalSystem)) .and. .not.(prese
     call getSetting_(SG)
   end if 
   sgnum = SG%SGnumber
+! here we ask for the lattice parameters; this can also be done in mod_crystallography, but
+! we can't use this class here since that would cause a circular dependence.  We'll get the 
+! lattice parameters here and then later copy them into the cell class.
+  call SG%getLatticeParameters_()
+! then compute the metric matrices so that we have them to generate all reciprocal symmetry operations  
+! auxiliary variables for the various tensors
+  pirad = cPi/180.0_dbl
+  ca = dcos(pirad*SG%alpha)
+  cb = dcos(pirad*SG%beta)
+  cg = dcos(pirad*SG%gamma)
+  sa = dsin(pirad*SG%alpha)
+  sb = dsin(pirad*SG%beta)
+  ssg = dsin(pirad*SG%gamma)
+  tg = dtan(pirad*SG%gamma)
+
+! compute the direct metric tensor [equation 1.5, page 6]
+  SG%dmt(1,1) = SG%la**2
+  SG%dmt(2,2) = SG%lb**2
+  SG%dmt(3,3) = SG%lc**2
+  SG%dmt(1,2) = SG%la*SG%lb*cg
+  SG%dmt(2,1) = SG%dmt(1,2)
+  SG%dmt(1,3) = SG%la*SG%lc*cb
+  SG%dmt(3,1) = SG%dmt(1,3)
+  SG%dmt(2,3) = SG%lb*SG%lc*ca
+  SG%dmt(3,2) = SG%dmt(2,3)
+! determinant of dmt
+  det = (SG%la*SG%lb*SG%lc)**2*(1.D0-ca**2-cb**2-cg**2+2.D0*ca*cb*cg)
+
+! compute the reciprocal metric tensor as the inverse of the direct
+! metric tensor
+  SG%rmt(1,1) = (SG%lb*SG%lc*sa)**2
+  SG%rmt(2,2) = (SG%la*SG%lc*sb)**2
+  SG%rmt(3,3) = (SG%la*SG%lb*ssg)**2
+  SG%rmt(1,2) = SG%la*SG%lb*SG%lc**2*(ca*cb-cg)
+  SG%rmt(2,1) = SG%rmt(1,2)
+  SG%rmt(1,3) = SG%la*SG%lb**2*SG%lc*(cg*ca-cb)
+  SG%rmt(3,1) = SG%rmt(1,3)
+  SG%rmt(2,3) = SG%la**2*SG%lb*SG%lc*(cb*cg-ca)
+  SG%rmt(3,2) = SG%rmt(2,3)
+  SG%rmt = SG%rmt/det
 else  ! at least one of the optional parameters are present
 
   if (present(SGnumber) .and. (.not.(present(xtalSystem))) ) then
@@ -906,20 +959,29 @@ SG%data = 0.D0
 SG%direc = 0.D0
 SG%recip = 0.D0
 
-! generate all the symmetry operators as well as the corresponding point group symmetry
+! generate all the space group symmetry operators 
 !
 ! [code modified on 8/1/18 (MDG), to correct k-vector sampling symmetry errors]
 ! First generate the point symmetry matrices, then the actual space group.
 ! if the actual group is also the symmorphic group, then both
 ! steps can be done simultaneously, otherwise two calls to
 ! GenerateSymmetry are needed.
-if (.not.present(dmt)) then 
-  ddt = reshape( (/1.D0,0.D0,0.D0,0.D0,1.D0,0.D0,0.D0,0.D0,1.D0 /), (/3,3/) )
-  rrt = ddt 
+! 
+! if we didn't compute the dmt and rmt tensors before, then set them here depending 
+! on the input parameters
+if (maxval(SG%dmt).eq.0.D0) then 
+  if (.not.present(dmt)) then 
+    ddt = reshape( (/1.D0,0.D0,0.D0,0.D0,1.D0,0.D0,0.D0,0.D0,1.D0 /), (/3,3/) )
+    rrt = ddt 
+  else
+    ddt = dmt 
+    rrt = rmt 
+  end if 
 else
-  ddt = dmt 
-  rrt = rmt 
-end if 
+    ddt = SG%dmt 
+    rrt = SG%rmt 
+endif
+
 if (SG%useHallSG.eqv..TRUE.) then 
   call GenerateSymmetry_(SG, .TRUE., ddt, rrt, useHall=.TRUE.)
 else 
@@ -1262,6 +1324,168 @@ type(IO_T)                        :: Message
  self%setting = iset
 
 end subroutine getSetting_
+
+!--------------------------------------------------------------------------
+recursive subroutine getLatticeParameters_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: getLatticeParameters_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/14/22
+  !!
+  !! Input of crystal system followed by the appropriate set of lattice
+  !! parameters; all are stored in the cell class.
+  !!
+  !! Note: this code duplicates the requestLatticeParameters routine in mod_crystallography
+  !! but is needed to avoid circular references
+  !!
+  !! For the trigonal and hexagonal crystal systems, the following switch settings are to be used:
+  !!              xtal_system   hexset    SYM_trigonal   SYM_second
+  !! hexagonal          4         T            F              F
+  !! trig/hex           5         T            T              F
+  !! trig/rhomb         5         F            T              T
+
+use mod_io
+use mod_HallSG
+
+IMPLICIT NONE
+
+class(SpaceGroup_T), intent(inout)      :: self
+
+type(IO_T)                              :: Message
+integer(kind=irg)                       :: io_int(1), TRIG(7)
+real(kind=dbl)                          :: io_real(1)
+character(8)                            :: SGshort 
+character(16)                           :: HS
+
+  ! make sure the symmetry operations will be reduced to the
+  ! fundamental unit cell
+   call self%setSpaceGroupreduce(.TRUE.)
+   call self%setSpaceGrouphexset(.FALSE.)
+
+  ! deal with the rhombohedral vs. hexagonal setting in the trigonal crystal system
+  ! (the rhombohedral axes are considered as the second setting)
+   call self%setSpaceGrouptrigonal(.FALSE.)
+   call self%setSpaceGroupsecond(.FALSE.)
+
+   if (self%xtal_system.eq.5) then
+    call self%setSpaceGrouptrigonal(.TRUE.)
+ 
+  ! this is a bit different if we have the Hall symbols vs. the regular space groups
+    if (self%getuseHallSG().eqv..TRUE.) then 
+      TRIG = (/ 146,148,155,160,161,166,167 /)
+      if (minval(abs(TRIG-self%getSpaceGroupNumber())).eq.0) then ! we have one of these cases
+       HS = get_HallString( self%getHallSpaceGroupNumber(), SGshort )
+       if (scan(SGshort,'H').ne.0) then  ! this is the hexagonal setting
+          self%xtal_system=4   ! this is set to 4 so that we ask for the correct lattice parameters below
+       else ! and this is the rhombohedral setting
+          call self%setSpaceGroupsecond(.TRUE.)
+       end if         
+     end if         
+    else 
+      call Message%ReadValue('Enter 1 for rhombohedral setting or 0 for the hexagonal setting', io_int, 1)
+      if (io_int(1).eq.0) then
+       self%xtal_system=4   ! this is set to 4 so that we ask for the correct lattice parameters below
+      else
+       call self%setSpaceGroupsecond(.TRUE.)
+      end if
+    end if
+
+   end if 
+
+  ! get the lattice parameters
+   call Message%printMessage('Enter lattice parameters', frm = "(//A)")
+
+  ! put default values based on cubic symmetry, then change them later
+   call Message%ReadValue('    a [nm] = ', io_real, 1)
+   self%la = io_real(1)
+   self%lb = self%la
+   self%lc = self%la
+   self%alpha = 90.0_dbl
+   self%beta = 90.0_dbl
+   self%gamma = 90.0_dbl
+
+  ! now get the proper lattice parameters
+   select case (self%xtal_system)
+    case (1)
+  ! tetragonal
+    case (2)
+     call Message%ReadValue('    c [nm] = ', io_real, 1)
+     self%lc = io_real(1)
+  ! orthorhombic
+    case (3)
+     call Message%ReadValue('    b [nm] = ', io_real, 1)
+     self%lb = io_real(1)
+     call Message%ReadValue('    c [nm] = ', io_real, 1)
+     self%lc = io_real(1)
+  ! hexagonal
+    case (4)
+     call Message%ReadValue('    c [nm] = ', io_real, 1)
+     self%lc = io_real(1)
+     self%gamma=120.0_dbl
+  ! rhombohedral
+    case (5)
+     call Message%ReadValue('    alpha [deg] = ', io_real, 1)
+     self%alpha = io_real(1)
+     self%beta = self%alpha
+     self%gamma = self%alpha
+  ! monoclinic
+    case (6)
+     call Message%ReadValue('    b [nm] = ', io_real, 1)
+     self%lb = io_real(1)
+     call Message%ReadValue('    c [nm] = ', io_real, 1)
+     self%lc = io_real(1)
+     call Message%ReadValue('    beta  [deg] = ', io_real, 1)
+     self%beta = io_real(1)
+  ! triclinic
+    case (7)
+     call Message%ReadValue('    b [nm] = ', io_real, 1)
+     self%lb = io_real(1)
+     call Message%ReadValue('    c [nm] = ', io_real, 1)
+     self%lc = io_real(1)
+     call Message%ReadValue('    alpha [deg] = ', io_real, 1)
+     self%alpha = io_real(1)
+     call Message%ReadValue('    beta  [deg] = ', io_real, 1)
+     self%beta = io_real(1)
+     call Message%ReadValue('    gamma [deg] = ', io_real, 1)
+     self%gamma = io_real(1)
+   end select
+
+  ! if trigonal symmetry was selected in the first setting,
+  ! then the xtal_system must be reset to 5
+   if (self%getSpaceGrouptrigonal()) then
+     self%xtal_system=5
+   end if
+
+  ! if hexagonal setting is used, then Miller-Bravais indices must be enabled
+   if ((self%xtal_system.eq.4).OR.((self%xtal_system.eq.5).AND.(.not.self%getSpaceGroupsecond() ) )) then
+     call self%setSpaceGrouphexset(.TRUE.)
+   else
+     call self%setSpaceGrouphexset(.FALSE.)
+   end if
+!end if
+
+end subroutine getLatticeParameters_
+
+!--------------------------------------------------------------------------
+recursive function extractLatticeParameters_( self ) result(lp)
+!DEC$ ATTRIBUTES DLLEXPORT :: extractLatticeParameters_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/14/22
+  !!
+  !! return all lattice parameters
+
+use mod_global
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),intent(inout)     :: self
+
+real(kind=dbl)                        :: lp(6)
+
+lp = (/ self%la, self%lb, self%lc, self%alpha, self%beta, self%gamma /)
+
+end function extractLatticeParameters_
 
 !--------------------------------------------------------------------------
 recursive subroutine fillgen_(self, t, isgn)
@@ -1994,6 +2218,24 @@ integer(kind=irg),INTENT(IN)        :: SGnum
 self%SGnumber = SGnum
 
 end subroutine setSpaceGroupNumber_
+
+!--------------------------------------------------------------------------
+recursive subroutine setHallSpaceGroupNumber_(self, HSGnum)
+!DEC$ ATTRIBUTES DLLEXPORT :: setHallSpaceGroupNumber_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/15/22
+  !!
+  !! set the Hall space group number parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+integer(kind=irg),INTENT(IN)        :: HSGnum
+
+self%HallSGnumber = HSGnum
+
+end subroutine setHallSpaceGroupNumber_
 
 !--------------------------------------------------------------------------
 recursive subroutine setHallSG_(self)

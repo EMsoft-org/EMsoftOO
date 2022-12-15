@@ -107,6 +107,7 @@ IMPLICIT NONE
           procedure, pass(self) :: calcCrossSingle
           procedure, pass(self) :: calcCrossDouble
           procedure, pass(self) :: calcPositions_
+          procedure, pass(self) :: convertfromRtoH_
 ! routines to set class parameters
           procedure, pass(self) :: getFileName_
           procedure, pass(self) :: getSource_
@@ -166,6 +167,7 @@ IMPLICIT NONE
           generic, public :: calcAngle => calcAngleSingle, calcAngleDouble
           generic, public :: calcCross => calcCrossSingle, calcCrossDouble
           generic, public :: calcPositions => calcPositions_
+          generic, public :: convertfromRtoH => convertfromRtoH_
           generic, public :: getLatParm => getLatticeParameterSingle, getLatticeParametersAll
           generic, public :: setLatParm => setLatticeParameterSingle, setLatticeParametersAll
           generic, public :: setLatParm => requestLatticeParameters
@@ -2838,6 +2840,48 @@ real(kind=dbl),allocatable      :: ctmp(:,:)
  end do  ! self%ATOM_type
 
 end subroutine calcPositions_
+
+!--------------------------------------------------------------------------
+recursive subroutine convertfromRtoH_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: convertfromRtoH_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/14/22
+  !!
+  !! Convert lattice parameters and atom coordinates to the hexagonal unit cell.
+  !! We use the obverse setting in all cases.
+
+use mod_io
+
+IMPLICIT NONE
+
+class(Cell_T),INTENT(INOUT)  :: self
+
+integer(kind=irg)            :: i
+real(kind=dbl)               :: ar, calpha, pos(3)
+real(kind=dbl),parameter     :: M(3,3) = reshape( (/ 2.D0/3.D0,  1.D0/3.D0,  1.D0/3.D0, &
+                                                    -1.D0/3.D0,  1.D0/3.D0,  1.D0/3.D0, &
+                                                    -1.D0/3.D0, -2.D0/3.D0,  1.D0/3.D0 /), (/3,3/) ) 
+
+! change the lattice parameters to hexagonal
+calpha = cos( self%alpha * dtor )
+ar = self%a 
+
+self%alpha = 90.D0 
+self%beta = 90.D0
+self%gamma = 120.D0
+self%a = ar * sqrt( 2.D0 - 2.D0 * calpha )
+self%b = self%a 
+self%c = ar * sqrt( 3.D0 + 6.D0 * calpha )
+
+! and then the atom coordinates 
+do i=1,self%ATOM_ntype
+  pos = dble(self%ATOM_pos(i,1:3))
+  pos = matmul( M, pos )
+  self%ATOM_pos(i,1:3) = sngl(pos)
+end do 
+
+end subroutine convertfromRtoH_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
