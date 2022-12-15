@@ -2356,6 +2356,9 @@ if (ipz.lt.0) xyz(3) = -xyz(3)
 call cell%NormVec(xyz, 'c')
 call cell%TransSpace(xyz, kstar, 'c', 'r')
 
+iequiv = 0
+nequiv = 0
+
 ! apply the 3D point group to get the complete star of kstar
 if (present(cubictype)) then
   select case (cubictype)
