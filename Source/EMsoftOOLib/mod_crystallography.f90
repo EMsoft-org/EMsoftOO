@@ -2597,6 +2597,7 @@ real(kind=sgl),allocatable              :: atompos(:,:)
 character(fnlen)                        :: pp
 logical                                 :: openHDFfile, d_exists
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(16)                           :: Hallstring 
 
 openHDFfile = .TRUE.
 
@@ -2655,6 +2656,12 @@ if (d_exists) then
 
   SG = SpaceGroup_T( SGnumber = SGnum, xtalSystem = xtal_system, setting = setting, &
                      dmt=self%dmt, rmt=self%rmt, useHall=.TRUE., HallSGnumber=HallSGnum )
+! read the Hall Space Group symbol and figure out whether or not there is inversion symmetry
+  dataset = SC_HallSG
+  call me%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
+  Hallstring = trim(stringarray(1))
+  deallocate(stringarray)
+  if (Hallstring(1:1).eq.'-') call SG%setSpaceGroupCentro(.TRUE.)
 else 
   dataset = SC_SpaceGroupSetting
   call me%readDatasetInteger(dataset, hdferr, setting)

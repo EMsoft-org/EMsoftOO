@@ -662,6 +662,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       procedure, pass(self) :: setSpaceGroupsecond_
       procedure, pass(self) :: setSpaceGroupSetting_
       procedure, pass(self) :: setSpaceGroupNumber_
+      procedure, pass(self) :: setSpaceGroupCentro_
       procedure, pass(self) :: setHallSpaceGroupNumber_
       procedure, pass(self) :: setSpaceGroupXtalSystem_
 ! general purpose routines that use symmetry
@@ -719,6 +720,7 @@ character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','
       generic, public :: setSpaceGroupsecond => setSpaceGroupsecond_
       generic, public :: setSpaceGroupSetting => setSpaceGroupSetting_
       generic, public :: setSpaceGroupNumber => setSpaceGroupNumber_
+      generic, public :: setSpaceGroupCentro => setSpaceGroupCentro_
       generic, public :: setHallSpaceGroupNumber => setHallSpaceGroupNumber_
       generic, public :: setHallSG => setHallSG_
       generic, public :: setSpaceGroupXtalSystem => setSpaceGroupXtalSystem_
@@ -1773,7 +1775,8 @@ if (.not.(present(useHall))) then
 ! create the regular space group generator matrices using the EMsoft encoded strings
    call MakeGenerators_(self)
    nsym = self%GENnum
- else ! we need to use the Hall generators 
+ else ! we need to use the Hall generators; we also need to check for centro-symmetry
+
    nsym = self%HallSG%get_NHallgenerators()
    self%GENnum = nsym 
    allocate(Hallgens(4,4,nsym))
@@ -2038,7 +2041,6 @@ g = self%NUMpt
 
 end function getSpaceGroupNUMpt_
 
-
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupCentro_(self) result(SGcentrosym)
 !DEC$ ATTRIBUTES DLLEXPORT :: getSpaceGroupCentro_
@@ -2056,6 +2058,24 @@ logical                             :: SGcentrosym
 SGcentrosym = self%centrosym
 
 end function getSpaceGroupCentro_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSpaceGroupCentro_(self, SGcentrosym)
+!DEC$ ATTRIBUTES DLLEXPORT :: setSpaceGroupCentro_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/15/22
+  !!
+  !! set the space group centrosymmetry parameter
+
+IMPLICIT NONE
+
+class(SpaceGroup_T),INTENT(INOUT)   :: self
+logical,INTENT(IN)                  :: SGcentrosym
+
+self%centrosym = SGcentrosym
+
+end subroutine setSpaceGroupCentro_
 
 !--------------------------------------------------------------------------
 recursive function getSpaceGroupXtalSystem_(self) result(SGxtalsystem)
