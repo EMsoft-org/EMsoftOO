@@ -1461,55 +1461,31 @@ energyloop: do iE=Estart,1,-1
    io_int(1)=numk
    call Message%WriteValue('# independent beam directions to be considered = ', io_int, 1, "(I8)")
 
-
-write (*,*) 'SG%HallSG%kvec_transform'
-do ik=1,3
-  write (*,*) SG%HallSG%kvec_transform(ik,1:3)
-end do
-
-write (*,*) '======================='
-write (*,*) 'SG%recip'
-SGdirec = SG%getSpaceGroupPGdirecMatrices()
-SGrecip = SG%getSpaceGroupPGrecipMatrices()
-sz = shape(SGrecip)
-do ik = 1,sz(1)
-  write (*,*) ' direct symmetry operator ', ik 
-  do j=1,3
-    write (*,*) SGdirec(ik,j,1:3)
-  end do 
-end do 
-deallocate(SGdirec)
-
-do ik = 1,sz(1)
-  write (*,*) ' reciprocal symmetry operator ', ik 
-  do j=1,3
-    write (*,*) SGrecip(ik,j,1:3)
-  end do 
-end do 
-deallocate(SGrecip)
-
 ! are using a Hall space group with potentially different setting ?  If so, then we
 ! must transform the k-vectors to a different reference frame before using them
-  if (SG%getuseHallSG().eqv..TRUE.) then 
-! point to the first beam direction
-write (*,*) 'using kvector transform rule'
-    ktmp => kvec%get_ListHead()
-    ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
-    do ik=2,numk
-      ktmp => ktmp%next
-      ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
-    end do
-  end if
+!   if (SG%getuseHallSG().eqv..TRUE.) then 
+! ! point to the first beam direction
+! write (*,*) 'using kvector transform rule'
+!     ktmp => kvec%get_ListHead()
+!     ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
+!     do ik=2,numk
+!       ktmp => ktmp%next
+!       if (ik.eq.55000) write (*,*) 'original k-210 ', ktmp%k(1:3)
+!       ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
+!       if (ik.eq.55000) write (*,*) 'transformed k-210 ', ktmp%k(1:3)
+!     end do
+!   end if
 
 ! convert part of the kvector linked list into arrays for OpenMP
   call mem%alloc(karray, (/4,numk/), 'karray')
   call mem%alloc(kij, (/3,numk/), 'kij')
 ! point to the first beam direction
   ktmp => kvec%get_ListHead()
+  ik = 1
 ! and loop through the list, keeping k, kn, and i,j
-  karray(1:3,1) = ktmp%k(1:3)
-  karray(4,1) = ktmp%kn
-  kij(1:3,1) = (/ ktmp%i, ktmp%j, ktmp%hs /)
+  karray(1:3,ik) = ktmp%k(1:3)
+  karray(4,ik) = ktmp%kn
+  kij(1:3,ik) = (/ ktmp%i, ktmp%j, ktmp%hs /)
    do ik=2,numk
      ktmp => ktmp%next
      karray(1:3,ik) = ktmp%k(1:3)
@@ -1626,7 +1602,7 @@ write (*,*) 'using kvector transform rule'
        ipz = -1
        if (kkk(3).ge.0.0) then 
         ipz = 1
-      end if
+       end if
      end if 
   !
      if (usehex) then

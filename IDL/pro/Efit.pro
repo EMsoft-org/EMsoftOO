@@ -33,6 +33,7 @@
 @Efit_navigator_event
 @Efit_updatePC
 @Efit_showpattern
+@Efit_updateEulers
 
 ;
 ; Copyright (c) 2013-2023, Marc De Graef Research Group/Carnegie Mellon University
