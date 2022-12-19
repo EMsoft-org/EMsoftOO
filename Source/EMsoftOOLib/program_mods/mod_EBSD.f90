@@ -889,7 +889,8 @@ deallocate(z)
   alpha = atan(enl%delta/enl%L/sqrt(sngl(cPi)))
   ipx = enl%numsx/2 + nint(enl%xpc)
   ipy = enl%numsy/2 + nint(enl%ypc)
-  if (TKD.eqv..TRUE.) then
+! following lines commented out [12/19/22, MDG]
+  ! if (TKD.eqv..TRUE.) then
     if ((abs(ipy).gt.enl%numsy).or.(abs(ipx).gt.enl%numsx)) then
       pcvec = (/enl%ypc*enl%delta*ca + enl%xpc*enl%delta*sa*sw + enl%L*cw*sa, &
                enl%L*sw - enl%xpc*enl%delta*cw,&
@@ -898,9 +899,9 @@ deallocate(z)
     else
       pcvec = (/ EBSDdetector%rgx(ipx,ipy), EBSDdetector%rgy(ipx,ipy), EBSDdetector%rgz(ipx,ipy) /)
     end if
-  else
-    pcvec = (/ EBSDdetector%rgx(ipx,ipy), EBSDdetector%rgy(ipx,ipy), EBSDdetector%rgz(ipx,ipy) /)
-  end if
+  ! else
+  !   pcvec = (/ EBSDdetector%rgx(ipx,ipy), EBSDdetector%rgy(ipx,ipy), EBSDdetector%rgz(ipx,ipy) /)
+  ! end if
   calpha = cos(alpha)
   do i=1,enl%numsx
     do j=1,enl%numsy
@@ -2004,17 +2005,18 @@ EBSDpattern = prefactor * EBSDpattern
 
 ! do we need to bin the pattern ?
 
+! this should no longer be necessary given the correction to the detector array computation above. [12/19/22, MDG]
 ! 17/07/2020 Clément Lafond, temporary fix to avoid NaN value, and negatives
 ! values when EBSD pattern size is large
-do ii=1,ipar(2)
-    do jj=1,ipar(3)
-        ! if (isnan(EBSDpattern(ii,jj)).or.EBSDpattern(ii,jj).lt.0.0) then
-        if (isnan(EBSDpattern(ii,jj))) then
-          write (*,*) ii, jj, ' isnan'
-          EBSDpattern(ii,jj) = 0.0
-        end if
-    end do
-end do
+! do ii=1,ipar(2)
+!     do jj=1,ipar(3)
+!         ! if (isnan(EBSDpattern(ii,jj)).or.EBSDpattern(ii,jj).lt.0.0) then
+!         if (isnan(EBSDpattern(ii,jj))) then
+!           write (*,*) ii, jj, ' isnan'
+!           EBSDpattern(ii,jj) = 0.0
+!         end if
+!     end do
+! end do
 
 if (ipar(1) .ne. 1) then
     do ii=1,ipar(2),ipar(1)
