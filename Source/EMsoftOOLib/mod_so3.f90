@@ -136,7 +136,7 @@ integer(kind=irg),dimension(36)     :: FZoarray = (/ 0,0,2,2,2,2,2,2,4,4,4,4,4,4
 ! public :: SampleRFZ, IsinsideFZ, CubochoricNeighbors
 
 ! logical functions to determine if point is inside specific FZ
-!private :: insideCyclicFZ, insideDihedralFZ, insideCubicFZ
+! private :: insideCyclicFZ, insideDihedralFZ, insideCubicFZ
 ! public:: insideCyclicFZ, insideDihedralFZ, insideCubicFZ
 
 type, public :: FZpointd
@@ -163,11 +163,15 @@ type, public :: so3_T
     integer(kind=irg)       :: COcnt
     integer(kind=irg)       :: FBcnt
     integer(kind=irg)       :: SFcnt
+    integer(kind=irg)       :: MAcnt
+    integer(kind=irg)       :: UNcnt
     type(FZpointd),pointer  :: FZlist
     type(FZpointd),pointer  :: CMlist  ! CM = Constant Misorientation
     type(FZpointd),pointer  :: COlist  ! CO = Cone sampling
     type(FZpointd),pointer  :: FBlist  ! FB = Fiber sampling
     type(FZpointd),pointer  :: SFlist  ! SF = Super-Fibonacci sampling
+    type(FZpointd),pointer  :: MAlist  ! MA = Marsaglia random quaternions
+    type(FZpointd),pointer  :: UNlist  ! UN = straight uniform sampling
   contains
   private
 
@@ -202,6 +206,8 @@ type, public :: so3_T
     procedure, pass(self) :: sample_Cone_
     procedure, pass(self) :: sample_Fiber_
     procedure, pass(self) :: sample_SFS_
+    procedure, pass(self) :: sample_MAR_
+    procedure, pass(self) :: sample_UNI_
     procedure, pass(self) :: SampleIsoMisorientation_
     procedure, pass(self) :: getOrientationsfromFile_
     procedure, pass(self) :: writeOrientationstoFile_
@@ -250,6 +256,8 @@ type, public :: so3_T
     generic, public :: sample_Cone => sample_Cone_
     generic, public :: sample_Fiber => sample_Fiber_
     generic, public :: sample_SFS => sample_SFS_
+    generic, public :: sample_MAR => sample_MAR_
+    generic, public :: sample_UNI => sample_UNI_
     generic, public :: SampleIsoMisorientation => SampleIsoMisorientation_
     generic, public :: getOrientationsfromFile => getOrientationsfromFile_
     generic, public :: writeOrientationstoFile => writeOrientationstoFile_
@@ -358,6 +366,12 @@ if (present(zerolist)) then
   case('SF')
     nullify(self%SFlist)
     self%SFcnt = 0
+  case('MA')
+    nullify(self%MAlist)
+    self%MAcnt = 0
+  case('UN')
+    nullify(self%UNlist)
+    self%UNcnt = 0
   case default
     nullify(self%FZlist)
     self%FZcnt = 0
@@ -367,10 +381,14 @@ else
   nullify(self%CMlist)
   nullify(self%COlist)
   nullify(self%FBlist)
+  nullify(self%MAlist)
+  nullify(self%UNlist)
   self%FZcnt = 0
   self%CMcnt = 0
   self%COcnt = 0
   self%FBcnt = 0
+  self%MAcnt = 0
+  self%UNcnt = 0
 end if
 
 end subroutine nullifyList_
@@ -963,6 +981,12 @@ if (present(l)) then
     case('SF')
       ltail => self%SFlist
       self%SFcnt = 0
+   case('MA')
+      ltail => self%MAlist
+      self%MAcnt = 0
+   case('UN')
+      ltail => self%UNlist
+      self%UNcnt = 0
     case default
       ltail => self%FZlist
       self%FZcnt = 0
@@ -990,7 +1014,7 @@ recursive subroutine SampleRFZ_(self, nsteps, qFZ)
   !! version: 1.0
   !! date: 01/21/20
   !!
-  !! Generate a uniform sampling of a Rodriguess FZ
+  !! Generate a uniform sampling of a Rodriguess FZ using cubochoric uniform sampling
   !!
   !! This routine fills in a linked list FZlist of Rodrigues points that
   !! are inside a specific fundamental zone determined by the sample point group;
@@ -1590,6 +1614,148 @@ call Message%WriteValue('count at end of routine ', io_int, 1)
 end subroutine sample_SFS_
 
 !--------------------------------------------------------------------------
+recursive subroutine sample_MAR_(self, num)
+!DEC$ ATTRIBUTES DLLEXPORT :: sample_MAR_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/21/22
+  !!
+  !! generate a random Marsaglia sampling of unit quaternions
+  !! this sampling method is actually implemented in the mod_quaternions module 
+
+use mod_quaternions
+use mod_io
+use mod_rng
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+integer(kind=irg),INTENT(IN)            :: num
+
+type(IO_T)                              :: Message 
+type(quaternion_T)                      :: qu
+type(r_T)                               :: rod
+type(q_T)                               :: q
+type(FZpointd),pointer                  :: tmp
+type(rng_t)                             :: seed
+type(QuaternionArray_T)                 :: qar
+
+real(kind=dbl)                          :: x(4)
+integer(kind=irg)                       :: i, j, nsamples, io_int(1)
+
+! initialize parameters
+self%MAcnt = 0
+
+! make sure the linked list is empty
+if (associated(self%MAlist)) call self%delete_FZlist('MA')
+
+! allocate the linked list and insert the origin
+allocate(self%MAlist)
+tmp => self%MAlist
+nullify(tmp%next)
+
+! then generate the random set by calling the generateRandomArray function 
+! from the mod_quaternions module and subsequently convert it into the appropriate
+! linked list MAlist
+io_int(1) = num
+call Message%WriteValue(' Starting Marsaglia random unit quaternion generation, # ', io_int, 1) 
+qar = quat_randomArray(num, 'd', seed, northern=.TRUE.)
+
+! extract the quaternions from the array and add them to the linked list for further processing
+do i=1,num
+  qu = qar%getQuatfromArray(i)
+  x = qu%get_quatd()
+  ! if (x(1).lt.0.D0) then
+  !   x = -x
+  ! end if
+  q = q_T( qdinp = x )
+  rod = q%qr()
+  if (self%IsinsideFZ(rod).eqv..TRUE.) then 
+    tmp%rod = rod
+    allocate(tmp%next)
+    tmp => tmp%next
+    nullify(tmp%next)
+    self%MAcnt = self%MAcnt + 1
+  end if    
+end do
+
+io_int(1) = self%MAcnt
+call Message%WriteValue('count at end of routine ', io_int, 1) 
+
+end subroutine sample_MAR_
+
+!--------------------------------------------------------------------------
+recursive subroutine sample_UNI_(self, num)
+!DEC$ ATTRIBUTES DLLEXPORT :: sample_UNI_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/21/22
+  !!
+  !! generate a basic linear uniform sampling of unit quaternions
+  !! this sampling method is not that great but it could be useful
+
+use mod_quaternions
+use mod_io
+use mod_rng
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+integer(kind=irg),INTENT(IN)            :: num
+
+type(IO_T)                              :: Message 
+type(quaternion_T)                      :: qu
+type(r_T)                               :: rod
+type(q_T)                               :: q
+type(FZpointd),pointer                  :: tmp
+type(rng_t)                             :: seed
+type(QuaternionArray_T)                 :: qar
+
+real(kind=dbl)                          :: x(4)
+integer(kind=irg)                       :: i, j, nsamples, io_int(1)
+
+! initialize parameters
+self%UNcnt = 0
+
+! make sure the linked list is empty
+if (associated(self%UNlist)) call self%delete_FZlist('UN')
+
+! allocate the linked list and insert the origin
+allocate(self%UNlist)
+tmp => self%UNlist
+nullify(tmp%next)
+
+! then generate the random set by calling the generateRandomArray function 
+! from the mod_quaternions module and subsequently convert it into the appropriate
+! linked list MAlist
+io_int(1) = num
+call Message%WriteValue(' Starting uniform random unit quaternion generation, # ', io_int, 1) 
+! qar = quat_randomArray(num, 'd', seed, northern=.TRUE.)
+
+! ! extract the quaternions from the array and add them to the linked list for further processing
+! do i=1,num
+!   qu = qar%getQuatfromArray(i)
+!   x = qu%get_quatd()
+!   ! if (x(1).lt.0.D0) then
+!   !   x = -x
+!   ! end if
+!   q = q_T( qdinp = x )
+!   rod = q%qr()
+!   if (self%IsinsideFZ(rod).eqv..TRUE.) then 
+!     tmp%rod = rod
+!     allocate(tmp%next)
+!     tmp => tmp%next
+!     nullify(tmp%next)
+!     self%MAcnt = self%MAcnt + 1
+!   end if    
+! end do
+
+io_int(1) = self%UNcnt
+call Message%WriteValue('count at end of routine ', io_int, 1) 
+
+end subroutine sample_UNI_
+
+!--------------------------------------------------------------------------
 recursive subroutine SampleIsoMisorientation_(self, rhozero, misang)
 !DEC$ ATTRIBUTES DLLEXPORT :: SampleIsoMisorientation_
   !! author: MDG
@@ -1837,6 +2003,12 @@ select case(list)
   case('SF')
     FZtmp => self%SFlist
     cnt = self%SFcnt
+  case('MA')
+    FZtmp => self%MAlist
+    cnt = self%MAcnt
+  case('UN')
+    FZtmp => self%UNlist
+    cnt = self%UNcnt
   case default
     FZtmp => self%FZlist
     cnt = self%FZcnt
@@ -1942,6 +2114,12 @@ if (present(l)) then
     case('SF')
       FZtmp => self%SFlist
       cnt = self%SFcnt
+    case('MA')
+      FZtmp => self%MAlist
+      cnt = self%MAcnt
+    case('UN')
+      FZtmp => self%UNlist
+      cnt = self%UNcnt
     case default
       FZtmp => self%FZlist
       cnt = self%FZcnt
@@ -2044,6 +2222,12 @@ if (present(l)) then
     case('SF')
       FZtmp => self%SFlist
       cnt = self%SFcnt
+    case('MA')
+      FZtmp => self%MAlist
+      cnt = self%MAcnt
+    case('UN')
+      FZtmp => self%UNlist
+      cnt = self%UNcnt
     case default
       FZtmp => self%FZlist
       cnt = self%FZcnt
@@ -2108,6 +2292,12 @@ if (present(l)) then
     case('SF')
       FZtmp => self%SFlist
       cnt = self%SFcnt
+    case('MA')
+      FZtmp => self%MAlist
+      cnt = self%MAcnt
+    case('UN')
+      FZtmp => self%UNlist
+      cnt = self%UNcnt
     case default
       FZtmp => self%FZlist
       cnt = self%FZcnt
@@ -2161,6 +2351,10 @@ select case(l)
     FZptr => self%FBlist
   case('SF')
     FZptr => self%SFlist
+  case('MA')
+    FZptr => self%MAlist
+  case('UN')
+    FZptr => self%UNlist
   case default
     FZptr => self%FZlist
 end select
@@ -2194,6 +2388,10 @@ select case(l)
     cnt = self%FBcnt
   case('SF')
     cnt = self%SFcnt
+  case('MA')
+    cnt = self%MAcnt
+  case('UN')
+    cnt = self%UNcnt
   case default
     cnt = self%FZcnt
 end select
@@ -3206,7 +3404,7 @@ character(2),INTENT(IN)         :: listmode
 type(q_T)                       :: q 
 type(IO_T)                      :: Message
 
-integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, ixx, iyy
+integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, ixx, iyy, px, py
 type(FZpointd), pointer         :: FZtmp
 real(kind=dbl),parameter        :: s2 = 1.D0/sqrt(2.D0), kk = 40.D0, &
                                    r(4) = (/ s2, 0.D0, s2, 0.D0 /) 
@@ -3246,6 +3444,12 @@ select case(listmode)
   case('SF')
     FZtmp => self%SFlist
     cnt = self%SFcnt
+  case('MA')
+    FZtmp => self%MAlist
+    cnt = self%MAcnt
+  case('UN')
+    FZtmp => self%UNlist
+    cnt = self%UNcnt
   case default
     FZtmp => self%FZlist
     cnt = self%FZcnt
@@ -3285,9 +3489,9 @@ z2 = z2*500.D0/cPi
 
 ! allocate the main padded output array
 allocate( h(num+2*w,num+2*w) )
-allocate( xx(2*w+1, 2*w+1), yy(2*w+1, 2*w+1), l(0:2*w), g(2*w+1, 2*w+1) )
-do i=0,2*w
-  l(i) = dble(i-w)
+allocate( xx(2*w+1, 2*w+1), yy(2*w+1, 2*w+1), l(2*w+1), g(2*w+1, 2*w+1) )
+do i=1,2*w+1
+  l(i) = dble(i-1-w)
 end do 
 do i=1,2*w+1 
   yy(i,:) = l(:)
@@ -3302,10 +3506,11 @@ do i=1,cnt
   dx = z1(i) - dble(ixx)
   dy = z2(i) - dble(iyy)
   zx = 0.5D0 * (1.D0 + cos( kk * acos( sum( qu(1:4,i) * r(1:4) ))**2 ))
-  do j=0,2*w 
-    do k=0,2*w
-      h(offset+ixx-w+j,offset+iyy-w+k) = h(offset+ixx-w+j,offset+iyy-w+k) + &
-                                         zx * exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
+  do j=1,2*w+1
+    px = offset+ixx-w-1
+    do k=1,2*w+1
+      py = offset+iyy-w-1 
+      h(px+j,py+k) = h(px+j,py+k) + zx * exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
     end do 
   end do 
 end do 

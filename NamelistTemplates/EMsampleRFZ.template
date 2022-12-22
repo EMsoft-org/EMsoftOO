@@ -1,8 +1,14 @@
  &RFZlist
 ! template file for the EMsampleRFZ program
 !
-! sampling mode; 'RFZ' standard Rodrigues FZ; 'MIS' misorientation ball sampling; 'CON' conical sampling, 'SFS' for Super-Fibonacci sampling;
-! 'FIB' for uniform fiber texture sampling
+! sampling mode; select from the following options
+! 'RFZ' standard Rodrigues FZ; 
+! 'MIS' misorientation ball sampling; 
+! 'MAR' for Marsaglia random unit quaternion generation; 
+! 'UNI' for linear uniform random quaternions;
+! 'SFS' for Super-Fibonacci sampling; 
+! 'CON' conical sampling;  [experimental]
+! 'FIB' for uniform fiber texture sampling. [experimental]
  samplemode = 'RFZ'
 ! crystal structure file name (used for FIB samplemode only)
  xtalname = 'undefined' 

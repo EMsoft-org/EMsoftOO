@@ -418,6 +418,13 @@ if (trim(rfznl%samplemode).eq.'SFS') then
   call Message%WriteValue('Number of Super-Fibonacci orientations requested = ',io_int,1,"(I10)")
   listmode = 'SF'
 end if
+if (trim(rfznl%samplemode).eq.'MAR') then
+  write (*,*) 'performing Marsaglia sampling '
+  call SO%sample_MAR( rfznl%SFSn )
+  io_int(1) = rfznl%SFSn
+  call Message%WriteValue('Number of Super-Fibonacci orientations requested = ',io_int,1,"(I10)")
+  listmode = 'MA'
+end if
 
 FZcnt = SO%getListCount(listmode)
 io_int(1) = FZcnt
