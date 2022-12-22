@@ -391,6 +391,13 @@ IMPLICIT NONE
                                                               24,48 /)
 !DEC$ ATTRIBUTES DLLEXPORT :: PGTHDorder
 
+!> 32 3D rotational point group orders in International Tables order
+  integer(kind=irg), public, dimension(32)  :: RPGorder = (/ 1, 1, 2, 2, 2, 4, 4, 4, 4, 4, &
+                                                             4, 8, 8, 8, 8, 3, 3, 6, 6, 6, &
+                                                             6, 6, 6,12,12,12,12,12,12,24, &
+                                                            24,24 /)
+!DEC$ ATTRIBUTES DLLEXPORT :: RPGorder
+
 !> 3D point groups : purely rotational point groups corresponding to each point group
   integer(kind=irg), public, dimension(36)   :: PGrot = (/ &
                                                 1,1,3,1,3,6,3,6,9,3,9,12,9,6,12,16,16, &
@@ -1436,8 +1443,24 @@ character(16)                           :: HS
      self%lb = io_real(1)
      call Message%ReadValue('    c [nm] = ', io_real, 1)
      self%lc = io_real(1)
-     call Message%ReadValue('    beta  [deg] = ', io_real, 1)
-     self%beta = io_real(1)
+     if (self%getuseHallSG().eqv..TRUE.) then
+! if we are using the Hall space group symbols, then for the monoclinic case we need 
+! to distinguish between the three possible choices for the unique axis
+       SGshort = self%HallSG%get_HallSGlabel( self%getHallSpaceGroupNumber() )
+       if (scan(SGshort,'b').ne.0) then 
+         call Message%ReadValue('    beta  [deg] = ', io_real, 1)
+         self%beta = io_real(1)
+       else if (scan(SGshort,'c').ne.0) then 
+         call Message%ReadValue('    gamma  [deg] = ', io_real, 1)
+         self%gamma = io_real(1)
+       else ! this must be the "a" unique axis
+         call Message%ReadValue('    alpha  [deg] = ', io_real, 1)
+         self%alpha = io_real(1)
+       end if
+     else  ! standard space group setting so we ask for the beta angle
+       call Message%ReadValue('    beta  [deg] = ', io_real, 1)
+       self%beta = io_real(1)
+     end if
   ! triclinic
     case (7)
      call Message%ReadValue('    b [nm] = ', io_real, 1)

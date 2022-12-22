@@ -43,6 +43,7 @@ type, public :: sampleRFZNameListType
     integer(kind=irg) :: pgnum
     integer(kind=irg) :: nsteps
     integer(kind=irg) :: gridtype
+    integer(kind=irg) :: SFSn
     real(kind=dbl)    :: qFZ(4)
     real(kind=dbl)    :: axFZ(4)
     real(kind=dbl)    :: rodrigues(4)
@@ -60,6 +61,7 @@ type, public :: sampleRFZNameListType
     character(fnlen)  :: axoutname
     character(fnlen)  :: rvoutname
     character(fnlen)  :: stoutname
+    character(fnlen)  :: zoneplate
 end type sampleRFZNameListType
 
 type, public :: sampleRFZ_T
@@ -124,7 +126,7 @@ logical,OPTIONAL,INTENT(IN)        :: initonly
 
 logical                            :: skipread = .FALSE.
 
-integer(kind=irg)                  :: pgnum, nsteps, gridtype
+integer(kind=irg)                  :: pgnum, nsteps, gridtype, SFSn
 real(kind=dbl)                     :: rodrigues(4), qFZ(4), axFZ(4), maxmisor, conevector(3), semiconeangle
 character(fnlen)                   :: samplemode
 character(fnlen)                   :: xtalname
@@ -137,15 +139,18 @@ character(fnlen)                   :: omoutname
 character(fnlen)                   :: axoutname
 character(fnlen)                   :: rvoutname
 character(fnlen)                   :: stoutname
+character(fnlen)                   :: zoneplate
 
 ! namelist components
 namelist / RFZlist / pgnum, nsteps, gridtype, euoutname, cuoutname, hooutname, rooutname, quoutname, omoutname, axoutname, &
-                     samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname
+                     samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname, &
+                     SFSn, zoneplate
 
 ! initialize to default values
 pgnum = 32
 nsteps = 50
 gridtype = 0
+SFSn = 100000
 rodrigues = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)  ! initialize as the identity rotation
 qFZ= (/ 1.D0, 0.D0, 0.D0, 0.D0 /)         ! initialize as the identity rotation
 axFZ= (/ 0.D0, 0.D0, 1.D0, 0.D0 /)        ! initialize as the identity rotation
@@ -164,6 +169,7 @@ omoutname = 'undefined'
 axoutname = 'undefined'
 rvoutname = 'undefined'
 stoutname = 'undefined'
+zoneplate = 'undefined'
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -180,6 +186,7 @@ end if
 self%nml%pgnum  = pgnum
 self%nml%nsteps = nsteps
 self%nml%gridtype = gridtype
+self%nml%SFSn = SFSn
 self%nml%rodrigues = rodrigues
 self%nml%qFZ = qFZ
 self%nml%axFZ = axFZ
@@ -197,6 +204,7 @@ self%nml%omoutname = omoutname
 self%nml%axoutname = axoutname
 self%nml%rvoutname = rvoutname
 self%nml%stoutname = stoutname
+self%nml%zoneplate = zoneplate
 
 end subroutine readNameList_
 
@@ -236,6 +244,7 @@ end function getNameList_
 !> @date 12/22/16 MDG 2.2 added option to generate reduced sampling inside constant misorientation ball
 !> @date 02/01/17 MDG 2.3 added option to generate sampling inside a conical volume in Rodrigues space
 !> @date 08/16/17 MDG 2.4 added option to generate uniform fiber texture sampling in Rodrigues space
+!> @date 12/21/22 MDG 3.0 added Super-Fibonacci sampling
 !--------------------------------------------------------------------------
 subroutine CreateSampling_(self, EMsoft)
 !DEC$ ATTRIBUTES DLLEXPORT :: CreateSampling_
@@ -278,6 +287,7 @@ logical                            :: doeu = .FALSE., docu = .FALSE., doho = .FA
                                       rotateFZ = .FALSE.
 character(fnlen)                   :: filename
 real(kind=dbl),allocatable         :: SGdirec(:,:,:)
+character(2)                       :: listmode
 
 
 ! first get the name list
@@ -375,12 +385,14 @@ if (trim(rfznl%samplemode).eq.'RFZ') then
   else
     call SO%SampleRFZ(rfznl%nsteps)
   end if
+  listmode = 'FZ'
 end if
 if (trim(rfznl%samplemode).eq.'MIS') then
   write(*,*) 'Rodrigues vector = ', rfznl%rodrigues
   call SO%sample_isoCubeFilled(rfznl%maxmisor, rfznl%nsteps)
   r = r_T( rdinp=rfznl%rodrigues )
   call SO%SampleIsoMisorientation(r, rfznl%maxmisor)
+  listmode = 'CM'
 end if
 if (trim(rfznl%samplemode).eq.'CON') then
   conevector = rfznl%conevector/sqrt(sum(rfznl%conevector**2))
@@ -389,6 +401,7 @@ if (trim(rfznl%samplemode).eq.'CON') then
   calpha = cos(rfznl%semiconeangle/rtod)
   write (*,*) 'minimum dot product    = ', calpha
   call SO%sample_Cone(conevector, calpha, rfznl%nsteps)
+  listmode = 'CO'
 end if
 if (trim(rfznl%samplemode).eq.'FIB') then
   conevector = rfznl%conevector/sqrt(sum(rfznl%conevector**2))
@@ -396,120 +409,72 @@ if (trim(rfznl%samplemode).eq.'FIB') then
   write(*,*) 'fiber cone semi opening angle = ', rfznl%semiconeangle
   calpha = cos(rfznl%semiconeangle*dtor)
   call SO%sample_Fiber(itmp, num, calpha, rfznl%nsteps)
+  listmode = 'FB'
+end if
+if (trim(rfznl%samplemode).eq.'SFS') then
+  write (*,*) 'performing Super-Fibonacci sampling '
+  call SO%sample_SFS( rfznl%SFSn, rfznl%pgnum )
+  io_int(1) = rfznl%SFSn
+  call Message%WriteValue('Number of Super-Fibonacci orientations requested = ',io_int,1,"(I10)")
+  listmode = 'SF'
 end if
 
-FZcnt = SO%getListCount('FZ')
+FZcnt = SO%getListCount(listmode)
 io_int(1) = FZcnt
 call Message%WriteValue('Total number of unique orientations generated = ',io_int,1,"(I10)")
 
-if (trim(rfznl%samplemode).eq.'RFZ') then
   ! generate a list of all orientations in Euler angle format (if requested)
-  if (doeu) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%euoutname)
-    call SO%writeOrientationstoFile(filename, 'eu')
-  end if
+if (doeu) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%euoutname)
+  call SO%writeOrientationstoFile(filename, 'eu', listmode)
+end if
 
-  ! generate a list of all orientations in cubochoric format (if requested)
-  if (docu) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%cuoutname)
-    call SO%writeOrientationstoFile(filename, 'cu')
-  end if
+! generate a list of all orientations in cubochoric format (if requested)
+if (docu) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%cuoutname)
+  call SO%writeOrientationstoFile(filename, 'cu', listmode)
+end if
 
-  ! generate a list of all orientations in homochoric format (if requested)
-  if (doho) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%hooutname)
-    call SO%writeOrientationstoFile(filename, 'ho')
-  end if
+! generate a list of all orientations in homochoric format (if requested)
+if (doho) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%hooutname)
+  call SO%writeOrientationstoFile(filename, 'ho', listmode)
+end if
 
-  ! generate a list of all orientations in quternion format (if requested)
-  if (doqu) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%quoutname)
-    call SO%writeOrientationstoFile(filename, 'qu')
-  end if
+! generate a list of all orientations in quternion format (if requested)
+if (doqu) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%quoutname)
+  call SO%writeOrientationstoFile(filename, 'qu', listmode)
+end if
 
-  ! generate a list of all orientations in Rodrigues format (if requested)
-  if (doro) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%rooutname)
-    call SO%writeOrientationstoFile(filename, 'ro')
-  end if
+! generate a list of all orientations in Rodrigues format (if requested)
+if (doro) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%rooutname)
+  call SO%writeOrientationstoFile(filename, 'ro', listmode)
+end if
 
-  ! generate a list of all orientations in orientation matrix format (if requested)
-  if (doom) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%omoutname)
-    call SO%writeOrientationstoFile(filename, 'om')
-  end if
+! generate a list of all orientations in orientation matrix format (if requested)
+if (doom) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%omoutname)
+  call SO%writeOrientationstoFile(filename, 'om', listmode)
+end if
 
-  ! generate a list of all orientations in axis angle pair format (if requested)
-  if (doax) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%axoutname)
-    call SO%writeOrientationstoFile(filename, 'ax')
-  end if
+! generate a list of all orientations in axis angle pair format (if requested)
+if (doax) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%axoutname)
+  call SO%writeOrientationstoFile(filename, 'ax', listmode)
+end if
 
-  ! generate a list of all orientations in stereographic format (if requested)
-  if (dost) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%stoutname)
-    call SO%writeOrientationstoFile(filename, 'st')
-  end if
+! generate a list of all orientations in stereographic format (if requested)
+if (dost) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%stoutname)
+  call SO%writeOrientationstoFile(filename, 'st', listmode)
+end if
 
-  ! generate a list of all orientations in axis angle pair format (if requested)
-  if (dorv) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%rvoutname)
-    call SO%writeOrientationstoFile(filename, 'rv')
-  end if
-else  ! we use the rotated rodrigues vectors ...
-! generate a list of all orientations in Euler angle format (if requested)
-  if (doeu) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%euoutname)
-    call SO%writeOrientationstoFile(filename, 'eu', trod=.TRUE.)
-  end if
-
-  ! generate a list of all orientations in cubochoric format (if requested)
-  if (docu) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%cuoutname)
-    call SO%writeOrientationstoFile(filename, 'cu', trod=.TRUE.)
-  end if
-
-  ! generate a list of all orientations in homochoric format (if requested)
-  if (doho) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%hooutname)
-    call SO%writeOrientationstoFile(filename, 'ho', trod=.TRUE.)
-  end if
-
-  ! generate a list of all orientations in quternion format (if requested)
-  if (doqu) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%quoutname)
-    call SO%writeOrientationstoFile(filename, 'qu', trod=.TRUE.)
-  end if
-
-  ! generate a list of all orientations in Rodrigues format (if requested)
-  if (doro) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%rooutname)
-    call SO%writeOrientationstoFile(filename, 'ro', trod=.TRUE.)
-  end if
-
-  ! generate a list of all orientations in orientation matrix format (if requested)
-  if (doom) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%omoutname)
-    call SO%writeOrientationstoFile(filename, 'om', trod=.TRUE.)
-  end if
-
-  ! generate a list of all orientations in axis angle pair format (if requested)
-  if (doax) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%axoutname)
-    call SO%writeOrientationstoFile(filename, 'ax', trod=.TRUE.)
-  end if
-
-  ! generate a list of all orientations in stereographic format (if requested)
-  if (dost) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%stoutname)
-    call SO%writeOrientationstoFile(filename, 'st', trod=.TRUE.)
-  end if
-
-  ! generate a list of all orientations in axis angle pair format (if requested)
-  if (dorv) then
-    filename = EMsoft%generateFilePath('EMdatapathname',rfznl%rvoutname)
-    call SO%writeOrientationstoFile(filename, 'rv', trod=.TRUE.)
-  end if
+! generate a list of all orientations in axis angle pair format (if requested)
+if (dorv) then
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%rvoutname)
+  call SO%writeOrientationstoFile(filename, 'rv', listmode)
 end if
 
 if (doeu) call Message%printMessage('Euler angles stored in file '//rfznl%euoutname)
@@ -521,6 +486,15 @@ if (doom) call Message%printMessage('Orientation matrix representation stored in
 if (doax) call Message%printMessage('Axis-angle pair representation stored in file '//rfznl%axoutname)
 if (dost) call Message%printMessage('Stereographic representation stored in file '//rfznl%stoutname)
 if (dorv) call Message%printMessage('Rotation vector representation stored in file '//rfznl%rvoutname)
+
+! do we need to create an orientation zone plate ?
+if (trim(rfznl%zoneplate).ne.'undefined') then 
+  call Message%printMessage('Creating an orientation zoneplate')
+  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%zoneplate)
+  call SO%createZonePlate( filename, listmode) 
+end if
+
+
 
 end subroutine CreateSampling_
 

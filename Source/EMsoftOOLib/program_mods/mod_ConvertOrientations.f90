@@ -242,7 +242,7 @@ end if
 
 ! and write the results to an output file
 fname = EMsoft%generateFilePath('EMdatapathname',self%nml%outputfile)
-call SO%writeOrientationstoFile( fname, self%nml%outputrepresentation )
+call SO%writeOrientationstoFile( fname, self%nml%outputrepresentation, 'FZ' )
 
 ! print a final message
 call Message%printMessage(' - wrote orientation data to file :'//trim(fname),"(/A/)")

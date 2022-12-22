@@ -162,10 +162,12 @@ type, public :: so3_T
     integer(kind=irg)       :: CMcnt
     integer(kind=irg)       :: COcnt
     integer(kind=irg)       :: FBcnt
+    integer(kind=irg)       :: SFcnt
     type(FZpointd),pointer  :: FZlist
     type(FZpointd),pointer  :: CMlist  ! CM = Constant Misorientation
     type(FZpointd),pointer  :: COlist  ! CO = Cone sampling
     type(FZpointd),pointer  :: FBlist  ! FB = Fiber sampling
+    type(FZpointd),pointer  :: SFlist  ! SF = Super-Fibonacci sampling
   contains
   private
 
@@ -199,6 +201,7 @@ type, public :: so3_T
     procedure, pass(self) :: sample_isoCubeFilled_
     procedure, pass(self) :: sample_Cone_
     procedure, pass(self) :: sample_Fiber_
+    procedure, pass(self) :: sample_SFS_
     procedure, pass(self) :: SampleIsoMisorientation_
     procedure, pass(self) :: getOrientationsfromFile_
     procedure, pass(self) :: writeOrientationstoFile_
@@ -213,6 +216,7 @@ type, public :: so3_T
     procedure, pass(self) :: getDisorientation_
     procedure, pass(self) :: getDisorientationTwoPhases_
     procedure, pass(self) :: getAverageDisorientationMap_
+    procedure, pass(self) :: createZonePlate_
     final :: so3_destructor
 
     generic, public :: getFZtypeandorder => getFZtypeandorder_
@@ -245,6 +249,7 @@ type, public :: so3_T
     generic, public :: sample_isoCubeFilled => sample_isoCubeFilled_
     generic, public :: sample_Cone => sample_Cone_
     generic, public :: sample_Fiber => sample_Fiber_
+    generic, public :: sample_SFS => sample_SFS_
     generic, public :: SampleIsoMisorientation => SampleIsoMisorientation_
     generic, public :: getOrientationsfromFile => getOrientationsfromFile_
     generic, public :: writeOrientationstoFile => writeOrientationstoFile_
@@ -258,7 +263,7 @@ type, public :: so3_T
     generic, public :: ReduceOrientationtoRFZ => ReduceOrientationtoRFZ_
     generic, public :: getDisorientation => getDisorientation_, getDisorientationTwoPhases_
     generic, public :: getAverageDisorientationMap => getAverageDisorientationMap_
-
+    generic, public :: createZonePlate => createZonePlate_
 end type so3_T
 
 ! the constructor routine for this class
@@ -350,6 +355,9 @@ if (present(zerolist)) then
   case('FB')
     nullify(self%FBlist)
     self%FBcnt = 0
+  case('SF')
+    nullify(self%SFlist)
+    self%SFcnt = 0
   case default
     nullify(self%FZlist)
     self%FZcnt = 0
@@ -952,6 +960,9 @@ if (present(l)) then
     case('FB')
       ltail => self%FBlist
       self%FBcnt = 0
+    case('SF')
+      ltail => self%SFlist
+      self%SFcnt = 0
     case default
       ltail => self%FZlist
       self%FZcnt = 0
@@ -1497,6 +1508,88 @@ end do
 end subroutine sample_Fiber_
 
 !--------------------------------------------------------------------------
+recursive subroutine sample_SFS_(self, num, pgnum)
+!DEC$ ATTRIBUTES DLLEXPORT :: sample_SFS_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/21/22
+  !!
+  !! generate a Super-Fibonacci sampling
+  !! this sampling method follows the algorithm described in:
+  !! "Super-Fibonacci Spirals: Fast, Low-Discrepancy Sampling of SO(3)"
+  !! M. Alexa, DOI: 10.1109/CVPR52688.2022.00811
+
+use mod_quaternions
+use mod_symmetry
+use mod_io
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+integer(kind=irg),INTENT(IN)            :: num
+integer(kind=irg),INTENT(IN)            :: pgnum
+
+type(IO_T)                              :: Message 
+type(quaternion_T)                      :: qu
+type(r_T)                               :: rod
+type(c_T)                               :: cu
+type(q_T)                               :: q
+type(FZpointd),pointer                  :: tmp, tmp2
+
+real(kind=dbl),parameter                :: tau = 0.6180339887498D0, & ! inverse of golden ratio 
+                                           psi = 0.6519962431791D0    ! inverse of psi constant
+real(kind=dbl)                          :: s, t, d, r, RR, alpha, beta, nsi, x(4) 
+integer(kind=irg)                       :: i, j, nsamples, io_int(1)
+
+! initialize parameters
+self%SFcnt = 0
+
+! make sure the linked list is empty
+if (associated(self%SFlist)) call self%delete_FZlist('SF')
+
+! allocate the linked list and insert the origin
+allocate(self%SFlist)
+tmp => self%SFlist
+nullify(tmp%next)
+
+! we generate a series of num points inside the RFZ, using a simple algorithm
+! we'll use a while loop until we have enough points; to ensure that we have enough points 
+! we'll multiply the SFSn (num) value by the multiplicity of the rotational point group
+! this means that we get approximately the number of requested points.
+nsamples = num * RPGorder( pgnum ) 
+io_int(1) = nsamples
+call Message%WriteValue(' Starting SF sampling for # samples ', io_int, 1) 
+nsi = 1.D0/dble(nsamples) 
+do i=0,nsamples-1
+  s = dble(i)+0.5D0 
+  t = s * nsi 
+  d = 2.D0 * cPi * s 
+  r = sqrt(t)
+  RR = sqrt(1.D0-t)
+  alpha = d * tau 
+  beta = d * psi
+  if (sin(alpha).ge.0.D0) then
+    q = q_T( qdinp = (/ r*sin(alpha), r*cos(alpha), RR*sin(beta), RR*cos(beta) /) )
+  else
+    q = q_T( qdinp = (/ -r*sin(alpha), -r*cos(alpha), -RR*sin(beta), -RR*cos(beta) /) )
+  end if
+  
+  rod = q%qr()
+  if (self%IsinsideFZ(rod).eqv..TRUE.) then 
+    tmp%rod = rod
+    allocate(tmp%next)
+    tmp => tmp%next
+    nullify(tmp%next)
+    self%SFcnt = self%SFcnt + 1
+  end if    
+end do
+
+io_int(1) = self%SFcnt
+call Message%WriteValue('count at end of routine ', io_int, 1) 
+
+end subroutine sample_SFS_
+
+!--------------------------------------------------------------------------
 recursive subroutine SampleIsoMisorientation_(self, rhozero, misang)
 !DEC$ ATTRIBUTES DLLEXPORT :: SampleIsoMisorientation_
   !! author: MDG
@@ -1691,7 +1784,7 @@ close(unit=53,status='keep')
 end subroutine getOrientationsfromFile_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeOrientationstoFile_(self, filename, mode, list, trod)
+recursive subroutine writeOrientationstoFile_(self, filename, mode, list)
 !DEC$ ATTRIBUTES DLLEXPORT :: writeOrientationstoFile_
   !! author: MDG
   !! version: 1.0
@@ -1710,9 +1803,7 @@ character(fnlen),INTENT(IN)             :: filename
  !! complete path to output file name
 character(2), INTENT(IN)                :: mode
  !! output orientation representation  (eu, ro, ho, ...)
-character(2), INTENT(IN), OPTIONAL      :: list
- !! list from which to write
-logical, INTENT(IN), OPTIONAL           :: trod
+character(2), INTENT(IN)                :: list
  !! list from which to write
 
 type(e_T)                               :: e
@@ -1729,135 +1820,80 @@ type(IO_T)                              :: Message
 type(FZpointd), pointer                 :: FZtmp
 integer(kind=irg)                       :: cnt, i
 real(kind=dbl)                          :: io_real(9)
-logical                                 :: dotrod
 
-dotrod = .FALSE.
-if (present(trod)) then
-  if (trod.eqv..TRUE.) dotrod = .TRUE.
-end if
+select case(list)
+  case('FZ')
+    FZtmp => self%FZlist
+    cnt = self%FZcnt
+  case('CM')
+    FZtmp => self%CMlist
+    cnt = self%CMcnt
+  case('CO')
+    FZtmp => self%COlist
+    cnt = self%COcnt
+  case('FB')
+    FZtmp => self%FBlist
+    cnt = self%FBcnt
+  case('SF')
+    FZtmp => self%SFlist
+    cnt = self%SFcnt
+  case default
+    FZtmp => self%FZlist
+    cnt = self%FZcnt
+end select
 
-if (present(list)) then
-  select case(list)
-    case('FZ')
-      FZtmp => self%FZlist
-      cnt = self%FZcnt
-    case('CM')
-      FZtmp => self%CMlist
-      cnt = self%CMcnt
-    case('CO')
-      FZtmp => self%COlist
-      cnt = self%COcnt
-    case('FB')
-      FZtmp => self%FBlist
-      cnt = self%FBcnt
-    case default
-      FZtmp => self%FZlist
-      cnt = self%FZcnt
-  end select
-else
-  FZtmp => self%FZlist
-  cnt = self%FZcnt
-end if
+write (*,*) 'orientation mode ', list
 
 open(unit=53, file=trim(filename), status='unknown', form='formatted')
 write (53,"(A2)") mode
-write (53,"(I6)") cnt
+write (53,"(I10)") cnt
 
-if (dotrod.eqv..TRUE.) then
-  do i=1, cnt
-    select case(mode)
-      case('eu')
-        e = FZtmp%trod%re()
-        io_real(1:3) = e%e_copyd() / dtor
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('ro')
-        io_real(1:4) = FZtmp%trod%r_copyd()
-        if (io_real(4).eq.inftyd()) then
-          call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),'infinity')",redirect=53)
-        else
-          call Message%WriteValue('', io_real, 4, frm="(2(F17.9,' '),F17.9)",redirect=53)
-        end if
-      case('om')
-        o = FZtmp%trod%ro()
-        io_real(1:9) = reshape(o%o_copyd(), (/ 9 /) )
-        call Message%WriteValue('', io_real, 9, frm="(8(F17.9,' '),F17.9)",redirect=53)
-      case('ho')
-        h = FZtmp%trod%rh()
-        io_real(1:3) = h%h_copyd()
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('cu')
-        c = FZtmp%trod%rc()
-        io_real(1:3) = c%c_copyd()
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('rv')
-        v = FZtmp%trod%rv()
-        io_real(1:3) = v%v_copyd()
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('st')
-        s = FZtmp%trod%rs()
-        io_real(1:3) = s%s_copyd()
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('ax')
-        a = FZtmp%trod%ra()
-        io_real(1:4) = a%a_copyd()
-        io_real(4) = io_real(4) / dtor
-        call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
-      case('qu')
-        q = FZtmp%trod%rq()
-        io_real(1:4) = q%q_copyd()
-        call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
-      case default
-    end select
-    FZtmp => FZtmp%next
-  end do
-else
-  do i=1, cnt
-    select case(mode)
-      case('eu')
-        e = FZtmp%rod%re()
-        io_real(1:3) = e%e_copyd() / dtor
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('ro')
-        io_real(1:4) = FZtmp%rod%r_copyd()
-        if (io_real(4).eq.inftyd()) then
-          call Message%WriteValue('', io_real, 3, frm="(3(F17.9,' '),'infinity')",redirect=53)
-        else
-          call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
-        end if
-      case('om')
-        o = FZtmp%rod%ro()
-        io_real(1:9) = reshape(o%o_copyd(), (/ 9 /) )
-        call Message%WriteValue('', io_real, 9, frm="(8(F17.9,' '),F17.9)",redirect=53)
-      case('ho')
-        h = FZtmp%rod%rh()
-        io_real(1:3) = h%h_copyd()
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('cu')
-        c = FZtmp%rod%rc()
-        io_real(1:3) = c%c_copyd()
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('rv')
-        v = FZtmp%rod%rv()
-        io_real(1:3) = v%v_copyd()
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('st')
-        s = FZtmp%rod%rs()
-        io_real(1:3) = s%s_copyd()
-        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
-      case('ax')
-        a = FZtmp%rod%ra()
-        io_real(1:4) = a%a_copyd()
-        io_real(4) = io_real(4) / dtor
-        call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
-      case('qu')
-        q = FZtmp%rod%rq()
-        io_real(1:4) = q%q_copyd()
-        call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
-      case default
-    end select
-    FZtmp => FZtmp%next
-  end do
-end if
+do i=1, cnt
+  select case(mode)
+    case('eu')
+      e = FZtmp%rod%re()
+      io_real(1:3) = e%e_copyd() / dtor
+      call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
+    case('ro')
+      io_real(1:4) = FZtmp%rod%r_copyd()
+      if (io_real(4).eq.inftyd()) then
+        call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),'infinity')",redirect=53)
+      else
+        call Message%WriteValue('', io_real, 4, frm="(2(F17.9,' '),F17.9)",redirect=53)
+      end if
+    case('om')
+      o = FZtmp%rod%ro()
+      io_real(1:9) = reshape(o%o_copyd(), (/ 9 /) )
+      call Message%WriteValue('', io_real, 9, frm="(8(F17.9,' '),F17.9)",redirect=53)
+    case('ho')
+      h = FZtmp%rod%rh()
+      io_real(1:3) = h%h_copyd()
+      call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
+    case('cu')
+      c = FZtmp%rod%rc()
+      io_real(1:3) = c%c_copyd()
+      call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
+    case('rv')
+      v = FZtmp%rod%rv()
+      io_real(1:3) = v%v_copyd()
+      call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
+    case('st')
+      s = FZtmp%rod%rs()
+      io_real(1:3) = s%s_copyd()
+      call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
+    case('ax')
+      a = FZtmp%rod%ra()
+      io_real(1:4) = a%a_copyd()
+      io_real(4) = io_real(4) / dtor
+      call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
+    case('qu')
+      q = FZtmp%rod%rq()
+      io_real(1:4) = q%q_copyd()
+      call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
+    case default
+  end select
+  FZtmp => FZtmp%next
+end do
 
 close(unit=53, status = 'keep')
 
@@ -1903,6 +1939,9 @@ if (present(l)) then
     case('FB')
       FZtmp => self%FBlist
       cnt = self%FBcnt
+    case('SF')
+      FZtmp => self%SFlist
+      cnt = self%SFcnt
     case default
       FZtmp => self%FZlist
       cnt = self%FZcnt
@@ -2002,6 +2041,9 @@ if (present(l)) then
     case('FB')
       FZtmp => self%FBlist
       cnt = self%FBcnt
+    case('SF')
+      FZtmp => self%SFlist
+      cnt = self%SFcnt
     case default
       FZtmp => self%FZlist
       cnt = self%FZcnt
@@ -2063,6 +2105,9 @@ if (present(l)) then
     case('FB')
       FZtmp => self%FBlist
       cnt = self%FBcnt
+    case('SF')
+      FZtmp => self%SFlist
+      cnt = self%SFcnt
     case default
       FZtmp => self%FZlist
       cnt = self%FZcnt
@@ -2114,6 +2159,8 @@ select case(l)
     FZptr => self%COlist
   case('FB')
     FZptr => self%FBlist
+  case('SF')
+    FZptr => self%SFlist
   case default
     FZptr => self%FZlist
 end select
@@ -2145,6 +2192,8 @@ select case(l)
     cnt = self%COcnt
   case('FB')
     cnt = self%FBcnt
+  case('SF')
+    cnt = self%SFcnt
   case default
     cnt = self%FZcnt
 end select
@@ -3128,5 +3177,163 @@ ADMap = sum(misor,1)/denom
 ADMap = ADMap / dtor
 
 end subroutine getAverageDisorientationMap_
+
+!--------------------------------------------------------------------------
+recursive subroutine createZonePlate_(self, fname, listmode)
+!DEC$ ATTRIBUTES DLLEXPORT :: createZonePlate_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 12/21/22
+  !!
+  !! Create an orientation "zone plate", as described in DOI 10.1109/CVPR52688.2022.00811
+
+use mod_quaternions
+use mod_rotations
+use h5im
+use h5lt
+use mod_image
+use ISO_C_BINDING
+use mod_io
+
+use, intrinsic :: iso_fortran_env
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)      :: self
+character(fnlen),INTENT(IN)     :: fname 
+character(2),INTENT(IN)         :: listmode
+
+type(q_T)                       :: q 
+type(IO_T)                      :: Message
+
+integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, ixx, iyy
+type(FZpointd), pointer         :: FZtmp
+real(kind=dbl),parameter        :: s2 = 1.D0/sqrt(2.D0), kk = 40.D0, &
+                                   r(4) = (/ s2, 0.D0, s2, 0.D0 /) 
+real(kind=dbl),allocatable      :: qu(:,:), z1(:), z2(:), h(:,:), xx(:,:), yy(:,:), l(:), g(:,:)
+real(kind=dbl)                  :: x(4), d, d1, d2, dx, dy, ss, zx 
+
+! declare variables for use in object oriented image module
+integer                         :: iostat
+character(len=128)              :: iomsg
+logical                         :: isInteger
+type(image_t)                   :: im
+integer(int8)                   :: i8 (3,4)
+integer(int8), allocatable      :: TIFF_image(:,:)
+
+
+! output image size
+nn = 500
+num = 2*nn+1
+w = 5
+offset = w+(num-1)/2
+ss = 0.25D0
+
+! get the list of orientations 
+select case(listmode)
+  case('FZ')
+    FZtmp => self%FZlist
+    cnt = self%FZcnt
+  case('CM')
+    FZtmp => self%CMlist
+    cnt = self%CMcnt
+  case('CO')
+    FZtmp => self%COlist
+    cnt = self%COcnt
+  case('FB')
+    FZtmp => self%FBlist
+    cnt = self%FBcnt
+  case('SF')
+    FZtmp => self%SFlist
+    cnt = self%SFcnt
+  case default
+    FZtmp => self%FZlist
+    cnt = self%FZcnt
+end select
+
+! qu will hold all the orientation quaternions projected onto the Clifford torus
+allocate(qu(4,cnt), z1(cnt), z2(cnt))
+
+do i=1,cnt
+  q = FZtmp%rod%rq()
+  x = q%q_copyd()
+  d = sqrt(x(1)**2+x(2)**2)
+  if (d.eq.0.D0) then
+    d1 = 1.D0 
+  else 
+    d1 = 1.D0/d
+  end if 
+  d = sqrt(x(3)**2+x(4)**2)
+  if (d.eq.0.D0) then
+    d2 = 1.D0 
+  else 
+    d2 = 1.D0/d
+  end if 
+  qu(1:4,i) = (/ x(1)*d1, x(2)*d1, x(3)*d2, x(4)*d2 /) * s2 
+  FZtmp => FZtmp%next 
+end do 
+
+! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
+do i=1,cnt 
+  z1(i) = atan2(qu(2,i), qu(1,i))
+  z2(i) = atan2(qu(4,i), qu(3,i))
+end do 
+
+! rescale the arctangent coordinates to the output grid
+z1 = z1*500.D0/cPi
+z2 = z2*500.D0/cPi
+
+! allocate the main padded output array
+allocate( h(num+2*w,num+2*w) )
+allocate( xx(2*w+1, 2*w+1), yy(2*w+1, 2*w+1), l(0:2*w), g(2*w+1, 2*w+1) )
+do i=0,2*w
+  l(i) = dble(i-w)
+end do 
+do i=1,2*w+1 
+  yy(i,:) = l(:)
+  xx(:,i) = l(:)
+end do 
+
+! and fill the h array to obtain the zone plate
+h = 0.D0
+do i=1,cnt 
+  ixx = int(z1(i))
+  iyy = int(z2(i))
+  dx = z1(i) - dble(ixx)
+  dy = z2(i) - dble(iyy)
+  zx = 0.5D0 * (1.D0 + cos( kk * acos( sum( qu(1:4,i) * r(1:4) ))**2 ))
+  do j=0,2*w 
+    do k=0,2*w
+      h(offset+ixx-w+j,offset+iyy-w+k) = h(offset+ixx-w+j,offset+iyy-w+k) + &
+                                         zx * exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
+    end do 
+  end do 
+end do 
+
+! and finally prepare for tiff output
+h = h-minval(h)
+h = h / maxval(h)
+h = h*255.D0
+
+allocate(TIFF_image(num,num))
+do j=1,num
+ do i=1,num
+  TIFF_image(i,j) = int(h(w+i,w+j))
+ end do
+end do
+
+! set up the image_t structure
+im = image_t(TIFF_image)
+if(im%empty()) call Message%printMessage("createZonePlate_","failed to convert array to image")
+
+! create the file
+call im%write(trim(fname), iostat, iomsg) ! format automatically detected from extension
+if(0.ne.iostat) then
+  call Message%printMessage("failed to write image to file : "//iomsg)
+else
+  call Message%printMessage('orientation zone plate written to '//trim(fname))
+end if
+
+end subroutine createZonePlate_
 
 end module mod_so3
