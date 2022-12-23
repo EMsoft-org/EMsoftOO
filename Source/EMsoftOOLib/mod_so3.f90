@@ -32,6 +32,11 @@ module mod_so3
   !! date: 01/21/20
   !!
   !! everything that has to do with sampling of rotation space SO(3)
+  !!
+  !! Major change on 12/23/22: default storage is now quaternions instead of 
+  !! Rodrigues vectors after discovery of some uniformity issues related to 
+  !! rotations by 180° ... Quaternions behave better in this case; this problem 
+  !! was discovered by plotting the orientations on a Clifford Torus zone plate.
 
 use mod_kinds
 use mod_global
@@ -142,6 +147,7 @@ integer(kind=irg),dimension(36)     :: FZoarray = (/ 0,0,2,2,2,2,2,2,4,4,4,4,4,4
 type, public :: FZpointd
   type(r_T)               :: rod       ! Rodrigues-Frank vector [nx, ny, nz, tan(omega/2) ]
   type(r_T)               :: trod      ! second Rodrigues-Frank vector; can be used for coordinate transformations
+  type(q_T)               :: qu        ! quaternion are now used as default instead of the rodrigues vector
   integer(kind=irg)       :: gridpt(3) ! coordinates of grid point ! added on 06/19/18 by SS
   type(FZpointd),pointer  :: next      ! link to next point
 end type FZpointd
@@ -1043,7 +1049,7 @@ recursive subroutine SampleRFZ_(self, nsteps, qFZ)
   !!    FZtmp => SO%getListHead('FZ')          ! point to the top of the list
   !!    FZcnt = SO%getListCount('FZ')          ! get the number of entries in the list
   !!    do i = 1, FZcnt                        ! loop over all entries
-  !!      eu = FZtmp%rod%re()                  ! convert to Euler angles (in radians by default)
+  !!      eu = FZtmp%qu%qe()                   ! convert to Euler angles (in radians by default)
   !!    !  do something with eu                ! for instance, write eu to a file
   !!      FZtmp => FZtmp%next                  ! point to the next entry
   !!    end do
@@ -1068,6 +1074,7 @@ type(q_T),INTENT(INOUT),OPTIONAL     :: qFZ
 
 type(r_T)                            :: rod
 type(c_T)                            :: cu
+type(q_T)                            :: q 
 real(kind=dbl)                       :: x, y, z, delta, shift, sedge, ztmp
 type(FZpointd), pointer              :: FZtmp, FZtmp2
 integer(kind=irg)                    :: i, j, k
@@ -1107,6 +1114,7 @@ self%FZcnt = 0
 
 ! convert to Rodrigues representation
       cu = c_T( cdinp = (/ x, y, z /) )
+      q = cu%cq()
       rod = cu%cr()
 
 ! If insideFZ=.TRUE., then add this point to the linked list FZlist and keep
@@ -1125,14 +1133,8 @@ self%FZcnt = 0
           FZtmp => FZtmp%next
         end if
         nullify(FZtmp%next)
-! if monoclinic, then reorder the components !!!
-!        if ((FZtype.eq.1).and.(FZorder.eq.2)) then
-!          ztmp = rod(3)
-!          rod(3) = rod(1)
-!          rod(1) = rod(2)
-!          rod(2) = ztmp
-!        end if
         FZtmp%rod = rod
+        FZtmp%qu = q
         FZtmp%gridpt(1:3) = (/i, j, k/)
         self%FZcnt = self%FZcnt + 1
        end if
@@ -1243,6 +1245,7 @@ do i=-N,N
 ! add the point to the list
     cu = c_T( cdinp = (/ x, y, edge /) )
     CMtmp%rod = cu%cr()
+    CMtmp%qu = cu%cq()
     self%CMcnt = self%CMcnt + 1
     allocate(CMtmp%next)
     CMtmp => CMtmp%next
@@ -1250,6 +1253,7 @@ do i=-N,N
 ! and its mirror image in the top plane
     cu = c_T( cdinp = (/ x, y, -edge /) )
     CMtmp%rod = cu%cr()
+    CMtmp%qu = cu%cq()
     self%CMcnt = self%CMcnt + 1
     allocate(CMtmp%next)
     CMtmp => CMtmp%next
@@ -1265,6 +1269,7 @@ do j=-N,N
 ! add the point to the list
     cu = c_T( cdinp = (/ edge, y, z /) )
     CMtmp%rod = cu%cr()
+    CMtmp%qu = cu%cq()
     self%CMcnt = self%CMcnt + 1
     allocate(CMtmp%next)
     CMtmp => CMtmp%next
@@ -1272,6 +1277,7 @@ do j=-N,N
 ! and its mirror image in the top plane
     cu = c_T( cdinp = (/ -edge, y, z /) )
     CMtmp%rod = cu%cr()
+    CMtmp%qu = cu%cq()
     self%CMcnt = self%CMcnt + 1
     allocate(CMtmp%next)
     CMtmp => CMtmp%next
@@ -1287,6 +1293,7 @@ do i=-N+1,N-1
 ! add the point to the list
     cu = c_T( cdinp = (/ x, edge, z /) )
     CMtmp%rod = cu%cr()
+    CMtmp%qu = cu%cq()
     self%CMcnt = self%CMcnt + 1
     allocate(CMtmp%next)
     CMtmp => CMtmp%next
@@ -1294,6 +1301,7 @@ do i=-N+1,N-1
 ! and its mirror image in the top plane
     cu = c_T( cdinp = (/ x, -edge, z /) )
     CMtmp%rod = cu%cr()
+    CMtmp%qu = cu%cq()
     self%CMcnt = self%CMcnt + 1
     allocate(CMtmp%next)
     CMtmp => CMtmp%next
@@ -1361,6 +1369,7 @@ do i=-N,N
 ! add the point to the list
       cu = c_T( cdinp = (/ x, y, z /) )
       CMtmp%rod = cu%cr()
+      CMtmp%qu = cu%cq()
       self%CMcnt = self%CMcnt + 1
       allocate(CMtmp%next)
       CMtmp => CMtmp%next
@@ -1434,7 +1443,8 @@ do while (x.lt.s)
         allocate(tmp%next)
         tmp => tmp%next
         nullify(tmp%next)
-        tmp%trod = rod
+        tmp%rod = rod
+        tmp%qu = cu%cq()
         self%COcnt = self%COcnt + 1
       end if
      end if
@@ -1514,7 +1524,8 @@ do while (x.lt.s)
 
 ! conditionally add the point to the list if it lies inside the cone (dpmax <= dp)
         if ((Fr(3).ge.dpmin).and.(self%IsinsideFZ(rod))) then
-          tmp%trod = rod
+          tmp%rod = rod
+          tmp%qu = q
           allocate(tmp%next)
           tmp => tmp%next
           nullify(tmp%next)
@@ -1578,7 +1589,7 @@ nullify(tmp%next)
 
 ! we generate a series of num points inside the RFZ, using a simple algorithm
 ! we'll use a while loop until we have enough points; to ensure that we have enough points 
-! we'll multiply the SFSn (num) value by the multiplicity of the rotational point group
+! we'll multiply the norientations (num) value by the multiplicity of the rotational point group
 ! this means that we get approximately the number of requested points.
 nsamples = num * RPGorder( pgnum ) 
 io_int(1) = nsamples
@@ -1592,15 +1603,16 @@ do i=0,nsamples-1
   RR = sqrt(1.D0-t)
   alpha = d * tau 
   beta = d * psi
-  if (sin(alpha).ge.0.D0) then
+  ! if (sin(alpha).ge.0.D0) then
     q = q_T( qdinp = (/ r*sin(alpha), r*cos(alpha), RR*sin(beta), RR*cos(beta) /) )
-  else
-    q = q_T( qdinp = (/ -r*sin(alpha), -r*cos(alpha), -RR*sin(beta), -RR*cos(beta) /) )
-  end if
+  ! else
+  !   q = q_T( qdinp = (/ -r*sin(alpha), -r*cos(alpha), -RR*sin(beta), -RR*cos(beta) /) )
+  ! end if
   
   rod = q%qr()
   if (self%IsinsideFZ(rod).eqv..TRUE.) then 
     tmp%rod = rod
+    tmp%qu = q
     allocate(tmp%next)
     tmp => tmp%next
     nullify(tmp%next)
@@ -1659,7 +1671,7 @@ nullify(tmp%next)
 ! linked list MAlist
 io_int(1) = num
 call Message%WriteValue(' Starting Marsaglia random unit quaternion generation, # ', io_int, 1) 
-qar = quat_randomArray(num, 'd', seed, northern=.TRUE.)
+qar = quat_randomArray(num, 'd', seed)
 
 ! extract the quaternions from the array and add them to the linked list for further processing
 do i=1,num
@@ -1672,6 +1684,7 @@ do i=1,num
   rod = q%qr()
   if (self%IsinsideFZ(rod).eqv..TRUE.) then 
     tmp%rod = rod
+    tmp%qu = q
     allocate(tmp%next)
     tmp => tmp%next
     nullify(tmp%next)
@@ -1691,8 +1704,8 @@ recursive subroutine sample_UNI_(self, num)
   !! version: 1.0
   !! date: 12/21/22
   !!
-  !! generate a basic linear uniform sampling of unit quaternions
-  !! this sampling method is not that great but it could be useful
+  !! generate a random Marsaglia sampling of unit quaternions
+  !! this sampling method is actually implemented in the mod_quaternions module 
 
 use mod_quaternions
 use mod_io
@@ -1706,13 +1719,15 @@ integer(kind=irg),INTENT(IN)            :: num
 type(IO_T)                              :: Message 
 type(quaternion_T)                      :: qu
 type(r_T)                               :: rod
-type(q_T)                               :: q
+type(q_T)                               :: q, q2
 type(FZpointd),pointer                  :: tmp
-type(rng_t)                             :: seed
+! type(rng_t)                             :: seed
 type(QuaternionArray_T)                 :: qar
 
-real(kind=dbl)                          :: x(4)
-integer(kind=irg)                       :: i, j, nsamples, io_int(1)
+real(kind=dbl)                          :: x(4), th
+integer(kind=irg)                       :: i, j, nsamples, io_int(1), seed  
+
+call setRotationPrecision('d')
 
 ! initialize parameters
 self%UNcnt = 0
@@ -1725,30 +1740,34 @@ allocate(self%UNlist)
 tmp => self%UNlist
 nullify(tmp%next)
 
-! then generate the random set by calling the generateRandomArray function 
-! from the mod_quaternions module and subsequently convert it into the appropriate
-! linked list MAlist
+! then generate the random set by generating uniform random numbers in the [-1,1] range
+! and normalizing them into a unit quaternion.  This not expected to give a good uniform
+! sampling in orientation space
 io_int(1) = num
 call Message%WriteValue(' Starting uniform random unit quaternion generation, # ', io_int, 1) 
-! qar = quat_randomArray(num, 'd', seed, northern=.TRUE.)
+! we'll use the Mersenne twister routines here
+seed = 4324
+call genrand_init( put=seed )
 
-! ! extract the quaternions from the array and add them to the linked list for further processing
-! do i=1,num
-!   qu = qar%getQuatfromArray(i)
-!   x = qu%get_quatd()
-!   ! if (x(1).lt.0.D0) then
-!   !   x = -x
-!   ! end if
-!   q = q_T( qdinp = x )
-!   rod = q%qr()
-!   if (self%IsinsideFZ(rod).eqv..TRUE.) then 
-!     tmp%rod = rod
-!     allocate(tmp%next)
-!     tmp => tmp%next
-!     nullify(tmp%next)
-!     self%MAcnt = self%MAcnt + 1
-!   end if    
-! end do
+do i=1,num
+  call genrand_real1( x(1) )
+  call genrand_real1( x(2) )
+  call genrand_real1( x(3) )
+  call genrand_real1( x(4) )
+  x = 2.D0*x-1.D0
+  x = x / sqrt( sum( x*x ) )
+  ! if (x(1).lt.0.D0) x = -x
+  q = q_T( qdinp = x )
+  rod = q%qr()
+  if (self%IsinsideFZ(rod).eqv..TRUE.) then 
+    tmp%rod = rod
+    tmp%qu = q
+    allocate(tmp%next)
+    tmp => tmp%next
+    nullify(tmp%next)
+    self%UNcnt = self%UNcnt + 1
+  end if    
+end do
 
 io_int(1) = self%UNcnt
 call Message%WriteValue('count at end of routine ', io_int, 1) 
@@ -1858,6 +1877,7 @@ select case(anglemode)
       x3 = x3 * dtor
       e = e_T( edinp = x3 )
       FZtmp%rod = e%er()
+      FZtmp%qu = e%eq()
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -1867,6 +1887,7 @@ select case(anglemode)
     do i=1,numang
       read (53,*) x4(1:4)
       FZtmp%rod = r_T( rdinp = x4 )
+      FZtmp%qu = FZtmp%rod%rq()
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -1877,6 +1898,7 @@ select case(anglemode)
       read (53,*) x4(1:4)
       q = q_T( qdinp = x4 )
       FZtmp%rod = q%qr()
+      FZtmp%qu = q
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -1888,6 +1910,7 @@ select case(anglemode)
       x4(4) = x4(4) * dtor
       a = a_T( adinp = x4 )
       FZtmp%rod = a%ar()
+      FZtmp%qu = a%aq()
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -1898,6 +1921,7 @@ select case(anglemode)
       read (53,*) x3(1:3)
       h = h_T( hdinp = x3 )
       FZtmp%rod = h%hr()
+      FZtmp%qu = h%hq()
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -1908,6 +1932,7 @@ select case(anglemode)
       read (53,*) x3(1:3)
       c = c_T( cdinp = x3 )
       FZtmp%rod = c%cr()
+      FZtmp%qu = c%cq()
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -1918,6 +1943,7 @@ select case(anglemode)
       read (53,*) x3(1:3)
       s = s_T( sdinp = x3 )
       FZtmp%rod = s%sr()
+      FZtmp%qu = s%sq()
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -1928,6 +1954,7 @@ select case(anglemode)
       read (53,*) x9(1:9)
       o = o_T( odinp = reshape( x9, (/3,3/) ) )
       FZtmp%rod = o%or()
+      FZtmp%qu = o%oq()
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -1938,6 +1965,7 @@ select case(anglemode)
       read (53,*) x3(1:3)
       v = v_T( vdinp = x3 )
       FZtmp%rod = v%vr()
+      FZtmp%qu = v%vq()
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -2023,7 +2051,7 @@ write (53,"(I10)") cnt
 do i=1, cnt
   select case(mode)
     case('eu')
-      e = FZtmp%rod%re()
+      e = FZtmp%qu%qe()
       io_real(1:3) = e%e_copyd() / dtor
       call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
     case('ro')
@@ -2034,32 +2062,32 @@ do i=1, cnt
         call Message%WriteValue('', io_real, 4, frm="(2(F17.9,' '),F17.9)",redirect=53)
       end if
     case('om')
-      o = FZtmp%rod%ro()
+      o = FZtmp%qu%qo()
       io_real(1:9) = reshape(o%o_copyd(), (/ 9 /) )
       call Message%WriteValue('', io_real, 9, frm="(8(F17.9,' '),F17.9)",redirect=53)
     case('ho')
-      h = FZtmp%rod%rh()
+      h = FZtmp%qu%qh()
       io_real(1:3) = h%h_copyd()
       call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
     case('cu')
-      c = FZtmp%rod%rc()
+      c = FZtmp%qu%qc()
       io_real(1:3) = c%c_copyd()
       call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
     case('rv')
-      v = FZtmp%rod%rv()
+      v = FZtmp%qu%qv()
       io_real(1:3) = v%v_copyd()
       call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
     case('st')
-      s = FZtmp%rod%rs()
+      s = FZtmp%qu%qs()
       io_real(1:3) = s%s_copyd()
       call Message%WriteValue('', io_real, 3, frm="(2(F17.9,' '),F17.9)",redirect=53)
     case('ax')
-      a = FZtmp%rod%ra()
+      a = FZtmp%qu%qa()
       io_real(1:4) = a%a_copyd()
       io_real(4) = io_real(4) / dtor
       call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
     case('qu')
-      q = FZtmp%rod%rq()
+      q = q_T( qdinp = FZtmp%qu%q_copyd() )
       io_real(1:4) = q%q_copyd()
       call Message%WriteValue('', io_real, 4, frm="(3(F17.9,' '),F17.9)",redirect=53)
     case default
@@ -2167,15 +2195,15 @@ if (present(aAR)) then
 end if
 
 do i=1,cnt
-  if (present(eAR)) eAR(i) = FZtmp%rod%re()
-  if (present(oAR)) oAR(i) = FZtmp%rod%ro()
-  if (present(qAR)) qAR(i) = FZtmp%rod%rq()
-  if (present(sAR)) sAR(i) = FZtmp%rod%rs()
-  if (present(vAR)) vAR(i) = FZtmp%rod%rv()
-  if (present(hAR)) hAR(i) = FZtmp%rod%rh()
-  if (present(cAR)) cAR(i) = FZtmp%rod%rc()
+  if (present(eAR)) eAR(i) = FZtmp%qu%qe()
+  if (present(oAR)) oAR(i) = FZtmp%qu%qo()
+  if (present(qAR)) qAR(i) = q_T( qdinp = FZtmp%qu%q_copyd() )
+  if (present(sAR)) sAR(i) = FZtmp%qu%qs()
+  if (present(vAR)) vAR(i) = FZtmp%qu%qv()
+  if (present(hAR)) hAR(i) = FZtmp%qu%qh()
+  if (present(cAR)) cAR(i) = FZtmp%qu%qc()
   if (present(rAR)) rAR(i) = FZtmp%rod
-  if (present(aAR)) aAR(i) = FZtmp%rod%ra()
+  if (present(aAR)) aAR(i) = FZtmp%qu%qa()
   FZtmp => FZtmp%next
 end do
 
@@ -2241,8 +2269,7 @@ qAR = QuaternionArray_T( n = cnt, s='d' )
 qq = Quaternion_T()
 
 do i=1,cnt
-  rod = FZtmp%rod
-  qu = rod%rq()
+  qu = q_T( qdinp = FZtmp%qu%q_copyd() )
   call qq%set_quatd(qu%q_copyd())
   call qAR%insertQuatinArray( i, qq )
   FZtmp => FZtmp%next
@@ -2319,6 +2346,7 @@ do i=1,cnt
   qu = qAR%getQuatfromArray(i)
   qq = q_T( qdinp = qu%get_quatd() )
   FZtmp%rod = qq%qr()
+  FZtmp%qu = qq
   FZtmp => FZtmp%next
 end do
 
@@ -3459,7 +3487,7 @@ end select
 allocate(qu(4,cnt), z1(cnt), z2(cnt))
 
 do i=1,cnt
-  q = FZtmp%rod%rq()
+  q = FZtmp%qu
   x = q%q_copyd()
   d = sqrt(x(1)**2+x(2)**2)
   if (d.eq.0.D0) then

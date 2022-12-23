@@ -10,33 +10,24 @@
 ! 'CON' conical sampling;  [experimental]
 ! 'FIB' for uniform fiber texture sampling. [experimental]
  samplemode = 'RFZ'
-! crystal structure file name (used for FIB samplemode only)
- xtalname = 'undefined' 
-! maximum misorientation [degrees], for 'MIS' samplemode only
- maxmisor = 5.D0,
-! Rodrigues vector (n,tan(omega/2)) for center of misorientation ball, for 'MIS' samplemode only
- rodrigues = 0.D0, 0.D0, 0.D0, 0.D0,
-! cone axis for 'CON' samplemode 
- conevector = 0.D0, 0.D0, 1.D0,
-! cone semi-angle (in degrees)
- semiconeangle = 2.D0,
+!=================
+! parameters for all sampling modes 
+!=================
+! coverage of SO(3)
+! 'single': quaternions q and -1 are treated individually
+! 'double': quaternions with negative scalar part are negated
+ SO3cover = 'single'
 ! active quaternion that rotates the entire fundamental zone before sampling
  qFZ = 1.D0  0.D0  0.D0  0.D0, 
 ! or an active axis-angle pair for the FZ rotation before sampling (  rotation axis, angle in degrees )
 ! [the rotation axis need not be normalized]
  axFZ = 0.D0 0.D0 1.D0 0.D0,
-! for SFS samplemode, set the number of samples to be generated
- SFSn = 100000,
 ! point group number; please use 0 if no symmetry reduction should be applied
 !#1:    '1', #2:    '-1', #3:      '2', #4:    'm', #5:  '2/m', #6:   '222', #7:    'mm2', #8:   'mmm'
 !#9:    '4', #10:   '-4', #11:   '4/m', #12: '422', #13: '4mm', #14: '-42m', #15: '4/mmm', #16:    '3'
 !#17:  '-3', #18:   '32', #19:    '3m', #20: '-3m', #21:   '6', #22:   '-6', #23:   '6/m', #24:  '622'
 !#25: '6mm', #26: '-6m2', #27: '6/mmm', #28:  '23', #29:  'm3', #30:  '432', #31:  '-43m', #32: 'm-3m'
  pgnum = 32,
-! number of sampling points along cube semi-edge
- nsteps = 100,
-! grid type: 0 contains origin, 1 is has origin at center of grid box
- gridtype = 0,
 ! euler angle output file name
  euoutname = 'undefined',
 ! cubochoric output file name
@@ -59,4 +50,35 @@
 ! if a zone plate representation of the orientation set is needed, 
 ! change this parameter to a tiff filename (relative to EMdatapathname)
  zoneplate = 'undefined',
+!=================
+! parameters for RFZ mode
+!=================
+! number of sampling points along cube semi-edge
+ nsteps = 100,
+! grid type: 0 contains origin, 1 is has origin at center of grid box
+ gridtype = 0,
+!=================
+! parameters for FIB mode
+!=================
+! crystal structure file name (used for FIB samplemode only)
+ xtalname = 'undefined' 
+!=================
+! parameters for MIS mode
+!=================
+! maximum misorientation [degrees], for 'MIS' samplemode only
+ maxmisor = 5.D0,
+! Rodrigues vector (n,tan(omega/2)) for center of misorientation ball, for 'MIS' samplemode only
+ rodrigues = 0.D0, 0.D0, 0.D0, 0.D0,
+!=================
+! parameters for CON mode
+!=================
+! cone axis for 'CON' samplemode 
+ conevector = 0.D0, 0.D0, 1.D0,
+! cone semi-angle (in degrees)
+ semiconeangle = 2.D0,
+!=================
+! parameters for SFS, MAR, and UNI modes
+!=================
+! set the number of samples to be generated
+ norientations = 100000,
  /

@@ -43,13 +43,14 @@ type, public :: sampleRFZNameListType
     integer(kind=irg) :: pgnum
     integer(kind=irg) :: nsteps
     integer(kind=irg) :: gridtype
-    integer(kind=irg) :: SFSn
+    integer(kind=irg) :: norientations
     real(kind=dbl)    :: qFZ(4)
     real(kind=dbl)    :: axFZ(4)
     real(kind=dbl)    :: rodrigues(4)
     real(kind=dbl)    :: maxmisor
     real(kind=dbl)    :: conevector(3)
     real(kind=dbl)    :: semiconeangle
+    character(6)      :: SO3cover
     character(fnlen)  :: xtalname
     character(fnlen)  :: samplemode
     character(fnlen)  :: euoutname
@@ -126,8 +127,9 @@ logical,OPTIONAL,INTENT(IN)        :: initonly
 
 logical                            :: skipread = .FALSE.
 
-integer(kind=irg)                  :: pgnum, nsteps, gridtype, SFSn
+integer(kind=irg)                  :: pgnum, nsteps, gridtype, norientations
 real(kind=dbl)                     :: rodrigues(4), qFZ(4), axFZ(4), maxmisor, conevector(3), semiconeangle
+character(6)                       :: SO3cover
 character(fnlen)                   :: samplemode
 character(fnlen)                   :: xtalname
 character(fnlen)                   :: euoutname
@@ -144,13 +146,13 @@ character(fnlen)                   :: zoneplate
 ! namelist components
 namelist / RFZlist / pgnum, nsteps, gridtype, euoutname, cuoutname, hooutname, rooutname, quoutname, omoutname, axoutname, &
                      samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname, &
-                     SFSn, zoneplate
+                     norientations, zoneplate, SO3cover
 
 ! initialize to default values
 pgnum = 32
 nsteps = 50
 gridtype = 0
-SFSn = 100000
+norientations = 100000
 rodrigues = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)  ! initialize as the identity rotation
 qFZ= (/ 1.D0, 0.D0, 0.D0, 0.D0 /)         ! initialize as the identity rotation
 axFZ= (/ 0.D0, 0.D0, 1.D0, 0.D0 /)        ! initialize as the identity rotation
@@ -159,6 +161,7 @@ samplemode = 'RFZ'                        ! or 'MIS' for sampling inside a ball 
 ! or 'CON' for conical sampling around a unitvector for a cone with semi opening angle semiconangle
 conevector = (/ 0.D0, 0.D0, 1.D0 /)       ! default unit vector for cone axis
 semiconeangle = 2.0                       ! default opening semi-angle (in degrees)
+SO3cover = 'single'
 euoutname = 'undefined'
 xtalname = 'undefined'
 cuoutname = 'undefined'
@@ -186,7 +189,7 @@ end if
 self%nml%pgnum  = pgnum
 self%nml%nsteps = nsteps
 self%nml%gridtype = gridtype
-self%nml%SFSn = SFSn
+self%nml%norientations = norientations
 self%nml%rodrigues = rodrigues
 self%nml%qFZ = qFZ
 self%nml%axFZ = axFZ
@@ -194,6 +197,7 @@ self%nml%maxmisor = maxmisor
 self%nml%samplemode = samplemode
 self%nml%conevector = conevector
 self%nml%semiconeangle = semiconeangle
+self%nml%SO3cover = SO3cover
 self%nml%xtalname = xtalname
 self%nml%euoutname = euoutname
 self%nml%cuoutname = cuoutname
@@ -244,7 +248,8 @@ end function getNameList_
 !> @date 12/22/16 MDG 2.2 added option to generate reduced sampling inside constant misorientation ball
 !> @date 02/01/17 MDG 2.3 added option to generate sampling inside a conical volume in Rodrigues space
 !> @date 08/16/17 MDG 2.4 added option to generate uniform fiber texture sampling in Rodrigues space
-!> @date 12/21/22 MDG 3.0 added Super-Fibonacci sampling
+!> @date 12/21/22 MDG 3.0 added Super-Fibonacci sampling and zone plate representation
+!> @date 12/23/22 MDG 3.1 added Marsaglia and uniform sampling
 !--------------------------------------------------------------------------
 subroutine CreateSampling_(self, EMsoft)
 !DEC$ ATTRIBUTES DLLEXPORT :: CreateSampling_
@@ -413,24 +418,31 @@ if (trim(rfznl%samplemode).eq.'FIB') then
 end if
 if (trim(rfznl%samplemode).eq.'SFS') then
   write (*,*) 'performing Super-Fibonacci sampling '
-  call SO%sample_SFS( rfznl%SFSn, rfznl%pgnum )
-  io_int(1) = rfznl%SFSn
+  call SO%sample_SFS( rfznl%norientations, rfznl%pgnum )
+  io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of Super-Fibonacci orientations requested = ',io_int,1,"(I10)")
   listmode = 'SF'
 end if
 if (trim(rfznl%samplemode).eq.'MAR') then
   write (*,*) 'performing Marsaglia sampling '
-  call SO%sample_MAR( rfznl%SFSn )
-  io_int(1) = rfznl%SFSn
+  call SO%sample_MAR( rfznl%norientations )
+  io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of Super-Fibonacci orientations requested = ',io_int,1,"(I10)")
   listmode = 'MA'
+end if
+if (trim(rfznl%samplemode).eq.'UNI') then
+  write (*,*) 'performing uniform linear sampling '
+  call SO%sample_UNI( rfznl%norientations )
+  io_int(1) = rfznl%norientations
+  call Message%WriteValue('Number of uniform linear orientations requested = ',io_int,1,"(I10)")
+  listmode = 'UN'
 end if
 
 FZcnt = SO%getListCount(listmode)
 io_int(1) = FZcnt
 call Message%WriteValue('Total number of unique orientations generated = ',io_int,1,"(I10)")
 
-  ! generate a list of all orientations in Euler angle format (if requested)
+! generate a list of all orientations in Euler angle format (if requested)
 if (doeu) then
   filename = EMsoft%generateFilePath('EMdatapathname',rfznl%euoutname)
   call SO%writeOrientationstoFile(filename, 'eu', listmode)
@@ -500,8 +512,6 @@ if (trim(rfznl%zoneplate).ne.'undefined') then
   filename = EMsoft%generateFilePath('EMdatapathname',rfznl%zoneplate)
   call SO%createZonePlate( filename, listmode) 
 end if
-
-
 
 end subroutine CreateSampling_
 
