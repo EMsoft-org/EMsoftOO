@@ -26,42 +26,34 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMXXX
+program EMCliffordTorus
   !! author: MDG
   !! version: 1.0 
-  !! date: 01/24/20
+  !! date: 12/28/22
   !!
-  !! 
+  !! take a file of orientations and produce a 2D square torus and/or zone plate representation
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_XXX
-use mod_HDFnames
+use mod_CliffordTorus
 use stringconstants
 
 IMPLICIT NONE
 
-character(fnlen)                :: progname = 'EMXXX.f90'
-character(fnlen)                :: progdesc = ''
+character(fnlen)                :: progname = 'EMCliffordTorus.f90'
+character(fnlen)                :: progdesc = '2D square torus and/or zone plate representation for orientation data'
 
 type(EMsoft_T)                  :: EMsoft
-type(XXX_T)     :: YYY 
-type(HDFnames_T)       :: HDFnames
+type(CliffordTorus_T)           :: CT
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 61 /) )
 
 ! deal with the namelist stuff
-YYY = XXX_T(EMsoft%nmldeffile)
-
-HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_EBSDmaster) 
-call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
+CT = CliffordTorus_T(EMsoft%nmldeffile)
 
 ! perform the computations
-call YYY%XXX(EMsoft, progname, HDFnames)
+call CT%CliffordTorus(EMsoft, progname)
 
-end program EMXXX
+end program EMCliffordTorus

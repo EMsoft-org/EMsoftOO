@@ -28,6 +28,8 @@
  eulerspace = 1,
 ! reduce orientations to RFZ (1) or display all equivalent orientations (0)
  reducetoRFZ = 1,
+! should we draw the RFZ outline ?  1 for yes, 0 for no 
+ drawRFZoutline = 1,
 ! override the point group number read from the xtal file ?  0 for no, new pgnum for yes
  overridepgnum = 0,
 !==================== the following parameters are needed for PoVray output only

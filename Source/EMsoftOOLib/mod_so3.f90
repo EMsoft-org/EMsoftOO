@@ -171,6 +171,7 @@ type, public :: so3_T
     integer(kind=irg)       :: SFcnt
     integer(kind=irg)       :: MAcnt
     integer(kind=irg)       :: UNcnt
+    integer(kind=irg)       :: VZcnt
     type(FZpointd),pointer  :: FZlist
     type(FZpointd),pointer  :: CMlist  ! CM = Constant Misorientation
     type(FZpointd),pointer  :: COlist  ! CO = Cone sampling
@@ -178,6 +179,7 @@ type, public :: so3_T
     type(FZpointd),pointer  :: SFlist  ! SF = Super-Fibonacci sampling
     type(FZpointd),pointer  :: MAlist  ! MA = Marsaglia random quaternions
     type(FZpointd),pointer  :: UNlist  ! UN = straight uniform sampling
+    type(FZpointd),pointer  :: VZlist  ! only used for Clifford torus visualization purposes
   contains
   private
 
@@ -228,7 +230,6 @@ type, public :: so3_T
     procedure, pass(self) :: getDisorientation_
     procedure, pass(self) :: getDisorientationTwoPhases_
     procedure, pass(self) :: getAverageDisorientationMap_
-    procedure, pass(self) :: createZonePlate_
     final :: so3_destructor
 
     generic, public :: getFZtypeandorder => getFZtypeandorder_
@@ -277,7 +278,6 @@ type, public :: so3_T
     generic, public :: ReduceOrientationtoRFZ => ReduceOrientationtoRFZ_
     generic, public :: getDisorientation => getDisorientation_, getDisorientationTwoPhases_
     generic, public :: getAverageDisorientationMap => getAverageDisorientationMap_
-    generic, public :: createZonePlate => createZonePlate_
 end type so3_T
 
 ! the constructor routine for this class
@@ -2037,12 +2037,15 @@ select case(list)
   case('UN')
     FZtmp => self%UNlist
     cnt = self%UNcnt
+  case('VZ')
+    FZtmp => self%VZlist
+    cnt = self%VZcnt
   case default
     FZtmp => self%FZlist
     cnt = self%FZcnt
 end select
 
-write (*,*) 'orientation mode ', list
+write (*,*) 'orientation mode ', list,'; file : ',trim(filename)
 
 open(unit=53, file=trim(filename), status='unknown', form='formatted')
 write (53,"(A2)") mode
@@ -3404,169 +3407,6 @@ ADMap = ADMap / dtor
 
 end subroutine getAverageDisorientationMap_
 
-!--------------------------------------------------------------------------
-recursive subroutine createZonePlate_(self, fname, listmode)
-!DEC$ ATTRIBUTES DLLEXPORT :: createZonePlate_
-  !! author: MDG
-  !! version: 1.0
-  !! date: 12/21/22
-  !!
-  !! Create an orientation "zone plate", as described in DOI 10.1109/CVPR52688.2022.00811
 
-use mod_quaternions
-use mod_rotations
-use h5im
-use h5lt
-use mod_image
-use ISO_C_BINDING
-use mod_io
-
-use, intrinsic :: iso_fortran_env
-
-IMPLICIT NONE
-
-class(so3_T),INTENT(INOUT)      :: self
-character(fnlen),INTENT(IN)     :: fname 
-character(2),INTENT(IN)         :: listmode
-
-type(q_T)                       :: q 
-type(IO_T)                      :: Message
-
-integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, ixx, iyy, px, py
-type(FZpointd), pointer         :: FZtmp
-real(kind=dbl),parameter        :: s2 = 1.D0/sqrt(2.D0), kk = 40.D0, &
-                                   r(4) = (/ s2, 0.D0, s2, 0.D0 /) 
-real(kind=dbl),allocatable      :: qu(:,:), z1(:), z2(:), h(:,:), xx(:,:), yy(:,:), l(:), g(:,:)
-real(kind=dbl)                  :: x(4), d, d1, d2, dx, dy, ss, zx 
-
-! declare variables for use in object oriented image module
-integer                         :: iostat
-character(len=128)              :: iomsg
-logical                         :: isInteger
-type(image_t)                   :: im
-integer(int8)                   :: i8 (3,4)
-integer(int8), allocatable      :: TIFF_image(:,:)
-
-
-! output image size
-nn = 500
-num = 2*nn+1
-w = 5
-offset = w+(num-1)/2
-ss = 0.25D0
-
-! get the list of orientations 
-select case(listmode)
-  case('FZ')
-    FZtmp => self%FZlist
-    cnt = self%FZcnt
-  case('CM')
-    FZtmp => self%CMlist
-    cnt = self%CMcnt
-  case('CO')
-    FZtmp => self%COlist
-    cnt = self%COcnt
-  case('FB')
-    FZtmp => self%FBlist
-    cnt = self%FBcnt
-  case('SF')
-    FZtmp => self%SFlist
-    cnt = self%SFcnt
-  case('MA')
-    FZtmp => self%MAlist
-    cnt = self%MAcnt
-  case('UN')
-    FZtmp => self%UNlist
-    cnt = self%UNcnt
-  case default
-    FZtmp => self%FZlist
-    cnt = self%FZcnt
-end select
-
-! qu will hold all the orientation quaternions projected onto the Clifford torus
-allocate(qu(4,cnt), z1(cnt), z2(cnt))
-
-do i=1,cnt
-  q = FZtmp%qu
-  x = q%q_copyd()
-  d = sqrt(x(1)**2+x(2)**2)
-  if (d.eq.0.D0) then
-    d1 = 1.D0 
-  else 
-    d1 = 1.D0/d
-  end if 
-  d = sqrt(x(3)**2+x(4)**2)
-  if (d.eq.0.D0) then
-    d2 = 1.D0 
-  else 
-    d2 = 1.D0/d
-  end if 
-  qu(1:4,i) = (/ x(1)*d1, x(2)*d1, x(3)*d2, x(4)*d2 /) * s2 
-  FZtmp => FZtmp%next 
-end do 
-
-! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
-do i=1,cnt 
-  z1(i) = atan2(qu(2,i), qu(1,i))
-  z2(i) = atan2(qu(4,i), qu(3,i))
-end do 
-
-! rescale the arctangent coordinates to the output grid
-z1 = z1*500.D0/cPi
-z2 = z2*500.D0/cPi
-
-! allocate the main padded output array
-allocate( h(num+2*w,num+2*w) )
-allocate( xx(2*w+1, 2*w+1), yy(2*w+1, 2*w+1), l(2*w+1), g(2*w+1, 2*w+1) )
-do i=1,2*w+1
-  l(i) = dble(i-1-w)
-end do 
-do i=1,2*w+1 
-  yy(i,:) = l(:)
-  xx(:,i) = l(:)
-end do 
-
-! and fill the h array to obtain the zone plate
-h = 0.D0
-do i=1,cnt 
-  ixx = int(z1(i))
-  iyy = int(z2(i))
-  dx = z1(i) - dble(ixx)
-  dy = z2(i) - dble(iyy)
-  zx = 0.5D0 * (1.D0 + cos( kk * acos( sum( qu(1:4,i) * r(1:4) ))**2 ))
-  do j=1,2*w+1
-    px = offset+ixx-w-1
-    do k=1,2*w+1
-      py = offset+iyy-w-1 
-      h(px+j,py+k) = h(px+j,py+k) + zx * exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
-    end do 
-  end do 
-end do 
-
-! and finally prepare for tiff output
-h = h-minval(h)
-h = h / maxval(h)
-h = h*255.D0
-
-allocate(TIFF_image(num,num))
-do j=1,num
- do i=1,num
-  TIFF_image(i,j) = int(h(w+i,w+j))
- end do
-end do
-
-! set up the image_t structure
-im = image_t(TIFF_image)
-if(im%empty()) call Message%printMessage("createZonePlate_","failed to convert array to image")
-
-! create the file
-call im%write(trim(fname), iostat, iomsg) ! format automatically detected from extension
-if(0.ne.iostat) then
-  call Message%printMessage("failed to write image to file : "//iomsg)
-else
-  call Message%printMessage('orientation zone plate written to '//trim(fname))
-end if
-
-end subroutine createZonePlate_
 
 end module mod_so3

@@ -281,6 +281,15 @@ Add_EMsoftOO_Executable(TARGET EMOrientationViz
                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                               )
 
+Add_EMsoftOO_Executable(TARGET EMCliffordTorus
+                              SOURCES ${APP_DIR}/EMCliffordTorus.f90
+                              LINK_LIBRARIES EMsoftOOLib
+                              TEMPLATE ${TMPLT_DIR}/EMCliffordTorus.template
+                              SOLUTION_FOLDER EMsoftOOPublic/Utilities
+                              INSTALL_PROGRAM TRUE
+                              INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                              )
+
 Add_EMsoftOO_Executable(TARGET EMsoftinit
                               SOURCES ${APP_DIR}/EMsoftinit.f90
                               LINK_LIBRARIES EMsoftOOLib

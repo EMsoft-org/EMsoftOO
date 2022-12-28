@@ -47,9 +47,6 @@
 ! rotation vector output file name
  rvoutname = 'undefined',
 !
-! if a zone plate representation of the orientation set is needed, 
-! change this parameter to a tiff filename (relative to EMdatapathname)
- zoneplate = 'undefined',
 !=================
 ! parameters for RFZ mode
 !=================

@@ -46,6 +46,7 @@ type, public :: OrientationVizNameListType
   integer(kind=irg) :: stereographic
   integer(kind=irg) :: eulerspace
   integer(kind=irg) :: reducetoRFZ
+  integer(kind=irg) :: drawRFZoutline
   integer(kind=irg) :: nx
   integer(kind=irg) :: ny
   integer(kind=irg) :: nz
@@ -81,6 +82,7 @@ private
   procedure, pass(self) :: get_stereographic_
   procedure, pass(self) :: get_eulerspace_
   procedure, pass(self) :: get_reducetoRFZ_
+  procedure, pass(self) :: get_drawRFZoutline_
   procedure, pass(self) :: get_nx_
   procedure, pass(self) :: get_ny_
   procedure, pass(self) :: get_nz_
@@ -129,6 +131,7 @@ private
   generic, public :: get_stereographic => get_stereographic_
   generic, public :: get_eulerspace => get_eulerspace_
   generic, public :: get_reducetoRFZ => get_reducetoRFZ_
+  generic, public :: get_drawRFZoutline => get_drawRFZoutline_
   generic, public :: get_nx => get_nx_
   generic, public :: get_ny => get_ny_
   generic, public :: get_nz => get_nz_
@@ -240,6 +243,7 @@ integer(kind=irg) :: rodrigues
 integer(kind=irg) :: stereographic
 integer(kind=irg) :: eulerspace
 integer(kind=irg) :: reducetoRFZ
+integer(kind=irg) :: drawRFZoutline
 integer(kind=irg) :: nx
 integer(kind=irg) :: ny
 integer(kind=irg) :: nz
@@ -260,7 +264,7 @@ character(fnlen)  :: anglefile
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EMOrientationViz / cubochoric, homochoric, rodrigues, stereographic, eulerspace, &
                                xtalname, povrayfile, anglefile, reducetoRFZ, rgb, sphrad, df3file, &
-                               mrcfile, framemrcfile, mrcmode, &
+                               mrcfile, framemrcfile, mrcmode, drawRFZoutline, &
                                nx, ny, nz, distance, scalingmode, overridepgnum, MacKenzieCell
 
 ! initialize
@@ -270,6 +274,7 @@ rodrigues = 0
 stereographic = 0
 eulerspace = 0
 reducetoRFZ = 1
+drawRFZoutline = 1
 overridepgnum = 0
 MacKenzieCell = 0
 rgb = (/ 0.0, 0.0, 1.0 /)
@@ -327,6 +332,7 @@ self%nml%rodrigues = rodrigues
 self%nml%stereographic = stereographic
 self%nml%eulerspace = eulerspace
 self%nml%reducetoRFZ = reducetoRFZ
+self%nml%drawRFZoutline = drawRFZoutline
 self%nml%nx = nx
 self%nml%ny = ny
 self%nml%nz = nz
@@ -561,6 +567,24 @@ integer(kind=irg)                          :: out
 out = self%nml%reducetoRFZ
 
 end function get_reducetoRFZ_
+
+!--------------------------------------------------------------------------
+function get_drawRFZoutline_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_drawRFZoutline_
+!! author: MDG
+!! version: 1.0
+!! date: 12/25/22
+!!
+!! get drawRFZoutline from the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+integer(kind=irg)                          :: out
+
+out = self%nml%drawRFZoutline
+
+end function get_drawRFZoutline_
 
 !--------------------------------------------------------------------------
 subroutine set_reducetoRFZ_(self,inp)
@@ -1176,7 +1200,6 @@ use mod_povray
 use mod_so3
 use mod_dirstats
 use mod_math
-use mod_so3
 use mod_HDFsupport, only: openFortranHDFInterface, closeFortranHDFInterface
 
 IMPLICIT NONE
@@ -1700,7 +1723,7 @@ if (rep.ne.'eu') then
 end if
 if (trim(enl%df3file).eq.'undefined') then
 ! we're just going to draw a bunch of spheres, so put them together in a PoVRay union
-  call PoV%drawFZ(SO, dFZ, 0.005D0)
+  call PoV%drawFZ(SO, dFZ, 0.005D0, enl%drawRFZoutline)
 ! open the union here
   write (dunit,"('union { ')")
 else
@@ -1711,7 +1734,7 @@ else
   else
     call PoV%declare_DF3file(df3name)
   end if
-  call PoV%drawFZ(SO, dFZ, 0.005D0)
+  call PoV%drawFZ(SO, dFZ, 0.005D0, enl%drawRFZoutline)
 end if
 
 end subroutine initFiles

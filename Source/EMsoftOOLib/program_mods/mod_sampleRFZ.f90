@@ -62,7 +62,6 @@ type, public :: sampleRFZNameListType
     character(fnlen)  :: axoutname
     character(fnlen)  :: rvoutname
     character(fnlen)  :: stoutname
-    character(fnlen)  :: zoneplate
 end type sampleRFZNameListType
 
 type, public :: sampleRFZ_T
@@ -141,12 +140,11 @@ character(fnlen)                   :: omoutname
 character(fnlen)                   :: axoutname
 character(fnlen)                   :: rvoutname
 character(fnlen)                   :: stoutname
-character(fnlen)                   :: zoneplate
 
 ! namelist components
 namelist / RFZlist / pgnum, nsteps, gridtype, euoutname, cuoutname, hooutname, rooutname, quoutname, omoutname, axoutname, &
                      samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname, &
-                     norientations, zoneplate, SO3cover
+                     norientations, SO3cover
 
 ! initialize to default values
 pgnum = 32
@@ -172,7 +170,6 @@ omoutname = 'undefined'
 axoutname = 'undefined'
 rvoutname = 'undefined'
 stoutname = 'undefined'
-zoneplate = 'undefined'
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -208,7 +205,6 @@ self%nml%omoutname = omoutname
 self%nml%axoutname = axoutname
 self%nml%rvoutname = rvoutname
 self%nml%stoutname = stoutname
-self%nml%zoneplate = zoneplate
 
 end subroutine readNameList_
 
@@ -248,7 +244,7 @@ end function getNameList_
 !> @date 12/22/16 MDG 2.2 added option to generate reduced sampling inside constant misorientation ball
 !> @date 02/01/17 MDG 2.3 added option to generate sampling inside a conical volume in Rodrigues space
 !> @date 08/16/17 MDG 2.4 added option to generate uniform fiber texture sampling in Rodrigues space
-!> @date 12/21/22 MDG 3.0 added Super-Fibonacci sampling and zone plate representation
+!> @date 12/21/22 MDG 3.0 added Super-Fibonacci sampling 
 !> @date 12/23/22 MDG 3.1 added Marsaglia and uniform sampling
 !--------------------------------------------------------------------------
 subroutine CreateSampling_(self, EMsoft)
@@ -268,6 +264,7 @@ use mod_io
 use mod_symmetry
 use mod_rotations
 use mod_so3
+use mod_CliffordTorus
 
 IMPLICIT NONE
 
@@ -282,6 +279,7 @@ type(q_T)                          :: qFZ
 type(a_T)                          :: a
 type(r_T)                          :: r
 type(so3_T)                        :: SO
+type(CliffordTorus_T)              :: CT
 
 integer(kind=irg)                  :: i, j, num, m, io_int(1), FZcnt, FZtype, FZorder
 real(kind=dbl)                     :: ax(4), calpha, conevector(3), x, &
@@ -505,13 +503,6 @@ if (doom) call Message%printMessage('Orientation matrix representation stored in
 if (doax) call Message%printMessage('Axis-angle pair representation stored in file '//rfznl%axoutname)
 if (dost) call Message%printMessage('Stereographic representation stored in file '//rfznl%stoutname)
 if (dorv) call Message%printMessage('Rotation vector representation stored in file '//rfznl%rvoutname)
-
-! do we need to create an orientation zone plate ?
-if (trim(rfznl%zoneplate).ne.'undefined') then 
-  call Message%printMessage('Creating an orientation zoneplate')
-  filename = EMsoft%generateFilePath('EMdatapathname',rfznl%zoneplate)
-  call SO%createZonePlate( filename, listmode) 
-end if
 
 end subroutine CreateSampling_
 

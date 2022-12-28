@@ -1501,7 +1501,7 @@ end if
 end subroutine getpos_FZ222_
 
 !--------------------------------------------------------------------------
-recursive subroutine drawFZ_(self, SO, rmode, cylr)
+recursive subroutine drawFZ_(self, SO, rmode, cylr, outline)
 !DEC$ ATTRIBUTES DLLEXPORT :: drawFZ_
  !! author: MDG
  !! version: 1.0
@@ -1523,6 +1523,7 @@ integer(kind=irg),INTENT(IN)          :: rmode
  !! 1(cubochoric)|2(homochoric)|3(stereographic)|4(Rodrigues)|5(Euler)
 real(kind=dbl),INTENT(IN)             :: cylr
  !! cylinder radius
+integer(kind=irg)                     :: outline
 
 type(e_T)                             :: eul, eu, euld, eulast
 type(r_T)                             :: ro1, ro2, ro, rolast, ron
@@ -1549,6 +1550,8 @@ tpi = 2.D0 * cPi
 hpi = 0.5D0 * cPi
 doMFZ = SO%getMK()
 call SO%getFZtypeandorder(FZtype, FZorder)
+
+write (*,*) ' FZ parameters ', FZtype, FZorder
 
 if (FZtype.eq.2) then
     if (FZorder.eq.6) then
@@ -1659,40 +1662,17 @@ if (rmode.eq.5) then
   call self%addEulerBox()
 end if
 
+if (outline.eq.1) then 
 ! and next, draw the outline of the FZ or MFZ
-if ((rmode.eq.1).or.(rmode.eq.2)) then
-! create the square edges first
- dx = 1.D0/dble(ns)
- do i=1,dims(2)
-  ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d/) )
-  ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d/) )
-  culast = ro1%rc()
-  holast = ro1%rh()
-  do j=1,ns+1
-    aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
-    xx = dsqrt( sum (aux(1:3)**2) )
-    ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
-    cu = ro%rc()
-    ho = ro%rh()
-! and create a cylinder with these points
-    if (rmode.eq.1) then
-      call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
-    else
-      call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
-    end if
-    culast = cu
-    holast = ho
-  end do
- end do
-
- if (twostep) then
-   dx = 1.D0/dble(nt)
-   do i=1,dims(3)
-    ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d/) )
-    ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d/) )
+  if ((rmode.eq.1).or.(rmode.eq.2)) then
+  ! create the square edges first
+   dx = 1.D0/dble(ns)
+   do i=1,dims(2)
+    ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d/) )
+    ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d/) )
     culast = ro1%rc()
     holast = ro1%rh()
-    do j=1,nt+1
+    do j=1,ns+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
@@ -1700,55 +1680,52 @@ if ((rmode.eq.1).or.(rmode.eq.2)) then
       ho = ro%rh()
   ! and create a cylinder with these points
       if (rmode.eq.1) then
-        call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
       else
-        call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
       end if
       culast = cu
       holast = ho
     end do
    end do
-  end if
-end if
 
-if ((rmode.eq.3).or.(rmode.eq.4)) then
- dx = 1.D0/dble(ns)
- do i=1,dims(2)
-  ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d /) )
-  ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d /) )
-  culast = ro1%rc()
-  holast = ro1%rh()
-  rolast = ro1
-  qu = ro1%rq()
-  splast = qu%qs()
-  do j=1,ns+1
-    aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
-    xx = dsqrt( sum (aux(1:3)**2) )
-    ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
-    qu = ro%rq()
-    sp = qu%qs()
-! and create a cylinder with these points
-    if (rmode.eq.3) then
-      call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
-    else
-      aux4a = rolast%r_copyd()
-      aux4b = ro%r_copyd()
-      call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.0, 0.0, 1.0 /))
+   if (twostep) then
+     dx = 1.D0/dble(nt)
+     do i=1,dims(3)
+      ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d/) )
+      ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d/) )
+      culast = ro1%rc()
+      holast = ro1%rh()
+      do j=1,nt+1
+        aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+        xx = dsqrt( sum (aux(1:3)**2) )
+        ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
+        cu = ro%rc()
+        ho = ro%rh()
+    ! and create a cylinder with these points
+        if (rmode.eq.1) then
+          call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        else
+          call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        end if
+        culast = cu
+        holast = ho
+      end do
+     end do
     end if
-    rolast = ro
-    splast = sp
-  end do
- end do
+  end if
 
- if (twostep) then
-   dx = 1.D0/dble(nt)
-   do i=1,dims(3)
-    ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d /) )
-    ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d /) )
+  if ((rmode.eq.3).or.(rmode.eq.4)) then
+   dx = 1.D0/dble(ns)
+   do i=1,dims(2)
+    ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d /) )
+    ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d /) )
+    culast = ro1%rc()
+    holast = ro1%rh()
     rolast = ro1
     qu = ro1%rq()
     splast = qu%qs()
-    do j=1,nt+1
+    do j=1,ns+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
@@ -1756,64 +1733,61 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
       sp = qu%qs()
   ! and create a cylinder with these points
       if (rmode.eq.3) then
-        call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
       else
         aux4a = rolast%r_copyd()
         aux4b = ro%r_copyd()
-        call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 1.0, 0.0, 0.0 /))
+        call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.0, 0.0, 1.0 /))
       end if
       rolast = ro
       splast = sp
     end do
    end do
- end if
-end if
 
-! and next, draw the outline of the FZ or MFZ
-if (rmode.eq.5) then
-  sh = (/ cPi, cPi/2.D0, cPi /)
-! create the square edges first
- dx = 1.D0/dble(ns)
- do i=1,dims(2)
-  ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d /) )
-  ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d /) )
-  eulast = ro1%re()
-  aux3 = eulast%e_copyd()
-  aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
-  aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
-  aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
-  eulast = e_T( edinp = aux3 - sh )
-  do j=1,ns+1
-    aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
-    xx = dsqrt( sum (aux(1:3)**2) )
-    ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
-    eu = ro%re()
-    aux3 = eu%e_copyd()
-    aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
-    aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
-    aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
-    eu = e_T( edinp = aux3 - sh )
-! and create a cylinder with these points
-    aux3 = eulast%e_copyd() - eu%e_copyd()
-    if (maxval(abs(aux3)).lt.cPi) then
-      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
-    end if
-    eulast = eu
-  end do
- end do
+   if (twostep) then
+     dx = 1.D0/dble(nt)
+     do i=1,dims(3)
+      ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d /) )
+      ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d /) )
+      rolast = ro1
+      qu = ro1%rq()
+      splast = qu%qs()
+      do j=1,nt+1
+        aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+        xx = dsqrt( sum (aux(1:3)**2) )
+        ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
+        qu = ro%rq()
+        sp = qu%qs()
+    ! and create a cylinder with these points
+        if (rmode.eq.3) then
+          call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        else
+          aux4a = rolast%r_copyd()
+          aux4b = ro%r_copyd()
+          call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 1.0, 0.0, 0.0 /))
+        end if
+        rolast = ro
+        splast = sp
+      end do
+     end do
+   end if
+  end if
 
- if (twostep) then
-   dx = 1.D0/dble(nt)
-   do i=1,dims(3)
-    ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d /) )
-    ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d /) )
+  ! and next, draw the outline of the FZ or MFZ
+  if (rmode.eq.5) then
+    sh = (/ cPi, cPi/2.D0, cPi /)
+  ! create the square edges first
+   dx = 1.D0/dble(ns)
+   do i=1,dims(2)
+    ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d /) )
+    ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d /) )
     eulast = ro1%re()
     aux3 = eulast%e_copyd()
     aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
     aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
     aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
     eulast = e_T( edinp = aux3 - sh )
-    do j=1,nt+1
+    do j=1,ns+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
@@ -1831,17 +1805,135 @@ if (rmode.eq.5) then
       eulast = eu
     end do
    end do
-  end if
-! for the Euler representation of the Rodrigues fundamental zones we also need to draw
-! a few additional lines to complete the volume appearance of the FZ; this depends on
-! the order of the FZ, naturally, so we have a couple of possible cases...
 
-! the diagonal lines in the Phi=0 plane are the most important lines; they should be drawn
-! for all the rotation groups except for the identity
-  if ((FZtype.ge.1).and.(FZtype.le.2)) then
-    if (FZorder.ne.0) then  ! we have cyclic or dihedral
-      xx = cPi/dble(FZorder)
-! draw four diagonal lines
+   if (twostep) then
+     dx = 1.D0/dble(nt)
+     do i=1,dims(3)
+      ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d /) )
+      ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d /) )
+      eulast = ro1%re()
+      aux3 = eulast%e_copyd()
+      aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
+      aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
+      aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
+      eulast = e_T( edinp = aux3 - sh )
+      do j=1,nt+1
+        aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+        xx = dsqrt( sum (aux(1:3)**2) )
+        ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
+        eu = ro%re()
+        aux3 = eu%e_copyd()
+        aux3(1) = mod(aux3(1)+10.D0*cPi,2.D0*cPi)
+        aux3(2) = mod(aux3(2)+10.D0*cPi,cPi)
+        aux3(3) = mod(aux3(3)+10.D0*cPi,2.D0*cPi)
+        eu = e_T( edinp = aux3 - sh )
+    ! and create a cylinder with these points
+        aux3 = eulast%e_copyd() - eu%e_copyd()
+        if (maxval(abs(aux3)).lt.cPi) then
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+        end if
+        eulast = eu
+      end do
+     end do
+    end if
+  ! for the Euler representation of the Rodrigues fundamental zones we also need to draw
+  ! a few additional lines to complete the volume appearance of the FZ; this depends on
+  ! the order of the FZ, naturally, so we have a couple of possible cases...
+
+  ! the diagonal lines in the Phi=0 plane are the most important lines; they should be drawn
+  ! for all the rotation groups except for the identity
+    if ((FZtype.ge.1).and.(FZtype.le.2)) then
+      if (FZorder.ne.0) then  ! we have cyclic or dihedral
+        xx = cPi/dble(FZorder)
+  ! draw four diagonal lines
+        eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+        eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
+        eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
+        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
+        eulast = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
+        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
+        eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
+        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+  ! for cyclic groups we also need to draw the diagonals in the top surface
+  ! and the vertical lines connecting bottom and top planes
+        if (FZtype.eq.1) then
+  ! top plane
+          eu = e_T( edinp = (/ xx, cPi, 0.D0 /) - sh )
+          eulast = e_T( edinp = (/ 0.D0, cPi, xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi-xx, cPi, 0.D0 /) - sh )
+          eulast = e_T( edinp = (/ 0.D0, cPi, tpi-xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi, cPi, xx /) - sh )
+          eulast = e_T( edinp = (/ xx, cPi, tpi /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi, cPi, tpi-xx /) - sh )
+          eulast = e_T( edinp = (/ tpi-xx, cPi, tpi /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+  ! verticals
+          eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+          eulast = e_T( edinp = (/ xx, cPi, 0.D0 /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+          eulast = e_T( edinp = (/ 0.D0, cPi, xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
+          eulast = e_T( edinp = (/ tpi-xx, cPi, 0.D0 /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
+          eulast = e_T( edinp = (/ 0.D0, cPi, tpi-xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
+          eulast = e_T( edinp = (/ tpi, cPi, xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
+          eulast = e_T( edinp = (/ xx, cPi, tpi /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
+          eulast = e_T( edinp = (/ tpi, cPi, tpi-xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
+          eulast = e_T( edinp = (/ tpi-xx, cPi, tpi /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        end if
+        if (FZtype.eq.2) then
+  ! in this case, the verticals need to be drawn but only up to the level of the FZ surface
+          eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+          eulast = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+          eulast = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
+          eulast = e_T( edinp = (/ tpi-xx, hPi, 0.D0 /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
+          eulast = e_T( edinp = (/ 0.D0, hPi, tpi-xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
+          eulast = e_T( edinp = (/ tpi, hPi, xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
+          eulast = e_T( edinp = (/ xx, hPi, tpi /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
+          eulast = e_T( edinp = (/ tpi, hPi, tpi-xx /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          eu = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
+          eulast = e_T( edinp = (/ tpi-xx, hPi, tpi /) - sh )
+          call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+        end if
+      end if
+    end if
+  end if
+
+  if (FZtype.eq.3) then
+      xx = cPi/dble(2)
+  ! draw four diagonal lines
       eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
       eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
       call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
@@ -1854,243 +1946,156 @@ if (rmode.eq.5) then
       eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
       eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
       call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-! for cyclic groups we also need to draw the diagonals in the top surface
-! and the vertical lines connecting bottom and top planes
-      if (FZtype.eq.1) then
-! top plane
-        eu = e_T( edinp = (/ xx, cPi, 0.D0 /) - sh )
-        eulast = e_T( edinp = (/ 0.D0, cPi, xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi-xx, cPi, 0.D0 /) - sh )
-        eulast = e_T( edinp = (/ 0.D0, cPi, tpi-xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi, cPi, xx /) - sh )
-        eulast = e_T( edinp = (/ xx, cPi, tpi /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi, cPi, tpi-xx /) - sh )
-        eulast = e_T( edinp = (/ tpi-xx, cPi, tpi /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-! verticals
-        eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-        eulast = e_T( edinp = (/ xx, cPi, 0.D0 /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-        eulast = e_T( edinp = (/ 0.D0, cPi, xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
-        eulast = e_T( edinp = (/ tpi-xx, cPi, 0.D0 /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
-        eulast = e_T( edinp = (/ 0.D0, cPi, tpi-xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
-        eulast = e_T( edinp = (/ tpi, cPi, xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
-        eulast = e_T( edinp = (/ xx, cPi, tpi /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
-        eulast = e_T( edinp = (/ tpi, cPi, tpi-xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
-        eulast = e_T( edinp = (/ tpi-xx, cPi, tpi /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-      end if
-      if (FZtype.eq.2) then
-! in this case, the verticals need to be drawn but only up to the level of the FZ surface
-        eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-        eulast = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-        eulast = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
-        eulast = e_T( edinp = (/ tpi-xx, hPi, 0.D0 /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
-        eulast = e_T( edinp = (/ 0.D0, hPi, tpi-xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
-        eulast = e_T( edinp = (/ tpi, hPi, xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
-        eulast = e_T( edinp = (/ xx, hPi, tpi /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
-        eulast = e_T( edinp = (/ tpi, hPi, tpi-xx /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-        eu = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
-        eulast = e_T( edinp = (/ tpi-xx, hPi, tpi /) - sh )
-        call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-      end if
-    end if
+
+  ! and finally the corner posts
+      eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+
+      eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+
+      eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+
+      eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
   end if
-end if
 
-if (FZtype.eq.3) then
-    xx = cPi/dble(2)
-! draw four diagonal lines
-    eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
-    eulast = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
-    eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+  if ((FZtype.eq.4).and.(rmode.eq.5)) then
+      xx = cPi/dble(4)
+  ! draw four diagonal lines
+      eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
+      eulast = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
+      eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+  ! and verticals
+      hPi = hPi * 0.5D0
+      eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ tpi-xx, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, tpi-xx /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, xx /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ xx, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, tpi-xx /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ tpi-xx, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+  ! and the closing segments
+      eu = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi-xx, hPi, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, hPi, tpi-xx /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, hPi, xx /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ xx, hPi, tpi /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, hPi, tpi-xx /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi-xx, hPi, tpi /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+  ! and finally the corner posts
+      eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
-! and finally the corner posts
-    eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+      eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
-    eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
 
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-
-    eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-end if
-
-if ((FZtype.eq.4).and.(rmode.eq.5)) then
-    xx = cPi/dble(4)
-! draw four diagonal lines
-    eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
-    eulast = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
-    eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-! and verticals
-    hPi = hPi * 0.5D0
-    eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ tpi-xx, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, tpi-xx /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, xx /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ xx, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, tpi-xx /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ tpi-xx, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-! and the closing segments
-    eu = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi-xx, hPi, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, hPi, tpi-xx /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, hPi, xx /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ xx, hPi, tpi /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, hPi, tpi-xx /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi-xx, hPi, tpi /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-! and finally the corner posts
-    eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-
-    eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-    eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-
-    eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
-    eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-    eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
-    call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+      eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+      eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
+      call self%addCylinder(eulast%e_copyd(),eu%e_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+  end if
 end if
 
 end subroutine drawFZ_

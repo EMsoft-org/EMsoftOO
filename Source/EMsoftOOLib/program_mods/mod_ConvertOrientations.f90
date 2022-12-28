@@ -196,6 +196,8 @@ use mod_symmetry
 use mod_crystallography
 use mod_quaternions
 use mod_rotations
+use HDF5
+use mod_HDFsupport
 
 IMPLICIT NONE
 
@@ -214,6 +216,9 @@ type(r_T)               :: roFZ
 integer(kind=irg)       :: i,j,k, ierr, io_int(3), pgnum
 character(fnlen)        :: fname
 integer(kind=irg)       :: FZtype, FZorder
+
+
+call openFortranHDFInterface()
 
 ! get the point group number from the crystal file
 call cell%getCrystalData(self%nml%xtalname, SG, EMsoft)
@@ -246,6 +251,8 @@ call SO%writeOrientationstoFile( fname, self%nml%outputrepresentation, 'FZ' )
 
 ! print a final message
 call Message%printMessage(' - wrote orientation data to file :'//trim(fname),"(/A/)")
+
+call closeFortranHDFInterface()
 
 end subroutine ConvertOrientations_
 
