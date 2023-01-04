@@ -2508,7 +2508,7 @@ if (s2.gt.1.D0) then
   end do
 end if
 
-s1 = sqrt( (1.D0-s2)/s2 )
+s1 = sqrt( (1.D0-s1)/s2 )
 
 q%qd = (/ x1, y1, x2*s1, y2*s1 /)
 q%s = 'd'

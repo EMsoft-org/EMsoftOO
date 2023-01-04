@@ -1,0 +1,34 @@
+ &CliffordTorus
+! point group number; please use 0 if no symmetry reduction should be applied
+!#1:    '1', #2:    '-1', #3:      '2', #4:    'm', #5:  '2/m', #6:   '222', #7:    'mm2', #8:   'mmm'
+!#9:    '4', #10:   '-4', #11:   '4/m', #12: '422', #13: '4mm', #14: '-42m', #15: '4/mmm', #16:    '3'
+!#17:  '-3', #18:   '32', #19:    '3m', #20: '-3m', #21:   '6', #22:   '-6', #23:   '6/m', #24:  '622'
+!#25: '6mm', #26: '-6m2', #27: '6/mmm', #28:  '23', #29:  'm3', #30:  '432', #31:  '-43m', #32: 'm-3m'
+ pgnum = 32,
+! the angle file, case 1: a simple text file with the following format
+! ##      ! two characters denoting the representation (eu, ro, ho, cu, ax, qu)
+! n       ! number of entries in file
+! ...     ! one line per entry, components separated by spaces
+!
+! case 2: either an .ang file (EDAX/TSL) or a .ctf file (Oxford); the file extension 
+! must be .ang or .ctf!
+ anglefile = 'undefined', 
+! reduce orientations to RFZ (1) or display all equivalent orientations (0)
+ reducetoRFZ = 1,
+! overlay a line drawing of the Rodrigues FZ onto the Square Torus plot ?
+ overlayRFZ = 0,
+! if reducetoRFZ=0, then should we symmetrize the dataset ?
+ symmetrize = 0, 
+! if symmetrize = 1, should we also display the orientations with negative scalar quaternion part ?
+ shownegativeq0 = 0,
+! use logarithmic intensity for square torus plot (not for the zone plate)
+ logarithmic = 0,
+! compute the Riesz energies and compare to the optimal energies ? [this can take a while ...]
+ doRiesz = 0,
+! size of the output image (2n+1 x 2n+1)
+ n = 500,
+! square torus image file
+ sqtfile = 'undefined',
+! zone plate image file
+ zpfile = 'undefined',
+ /

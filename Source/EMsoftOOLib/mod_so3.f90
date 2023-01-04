@@ -187,6 +187,7 @@ type, public :: so3_T
     procedure, pass(self) :: setFZtypeandorder_
     procedure, pass(self) :: getMFZtypeandorder_
     procedure, pass(self) :: setMFZtypeandorder_
+    procedure, pass(self) :: setFZcnt_
     procedure, pass(self) :: setMK_
     procedure, pass(self) :: getMK_
     procedure, pass(self) :: IsinsideFZ_
@@ -236,6 +237,7 @@ type, public :: so3_T
     generic, public :: setFZtypeandorder => setFZtypeandorder_
     generic, public :: getMFZtypeandorder => getMFZtypeandorder_
     generic, public :: setMFZtypeandorder => setMFZtypeandorder_
+    generic, public :: setFZcnt => setFZcnt_
     generic, public :: setMK => setMK_
     generic, public :: getMK => getMK_
     generic, public :: IsinsideFZ => IsinsideFZ_
@@ -603,6 +605,43 @@ logical, INTENT(IN)                       :: doMK
 self%doMK = doMK
 
 end subroutine setMK_
+
+!--------------------------------------------------------------------------
+recursive subroutine setFZcnt_(self, cnt, l)
+!DEC$ ATTRIBUTES DLLEXPORT :: setFZcnt_
+!! author: MDG
+!! version: 1.0
+!! date: 01/03/23
+!!
+!! set the FZcnt value for any one of the linked lists
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                :: self
+integer(kind=irg)                         :: cnt 
+character(2)                              :: l
+
+select case(l)
+  case('CM')
+    self%CMcnt = cnt 
+  case('FZ')
+    self%FZcnt = cnt 
+  case('CO')
+    self%COcnt = cnt 
+  case('FB')
+    self%FBcnt = cnt 
+  case('SF')
+    self%SFcnt = cnt 
+  case('MA')
+    self%MAcnt = cnt 
+  case('UN')
+    self%UNcnt = cnt 
+  case default
+    self%FZcnt = cnt 
+end select
+
+end subroutine setFZcnt_
+
 
 !--------------------------------------------------------------------------
 recursive function getMK_(self) result(doMK)
@@ -977,7 +1016,7 @@ if (present(l)) then
       self%CMcnt = 0
     case('FZ')
       ltail => self%FZlist
-      self%CMcnt = 0
+      self%FZcnt = 0
     case('CO')
       ltail => self%COlist
       self%COcnt = 0
@@ -1799,7 +1838,7 @@ real(kind=dbl)                          :: rhovec(3), s, vv(3), x(4)
 integer(kind=irg)                       :: i
 
 ! go through the list and transform all points to the spheroid misorientation surface
-! the resulting Rodrigues vectors are stored in the trod(4) entry.
+! the resulting Rodrigues vectors are stored in the trod(4) entry as well as qu.
 
 x = rhozero%r_copyd()
 rhovec(1:3) = x(1:3) * x(4)
@@ -1818,6 +1857,7 @@ do i=1,self%CMcnt
   else
     CMtmp%trod = r_T( rdinp = (/ 0.D0, 0.D0, 1.D0, 0.D0 /) )
   end if
+  CMtmp%qu = CMtmp%trod%rq()
   CMtmp=>CMtmp%next
 end do
 
@@ -1832,6 +1872,9 @@ recursive subroutine getOrientationsfromFile_(self, filename, listN)
   !!
   !! read a list of orientations from a text file, optionally convert them to the
   !! Rodrigues or MacKenzie Fundamental Zone and insert them in a linked list
+
+use mod_vendors
+use mod_io
 
 IMPLICIT NONE
 
@@ -1850,31 +1893,171 @@ type(h_T)                               :: h
 type(c_T)                               :: c
 type(s_T)                               :: s
 type(v_T)                               :: v
+type(Vendor_T)                          :: VT
+type(IO_T)                              :: Message
 
 character(2)                            :: anglemode
-integer(kind=irg)                       :: numang, i
+integer(kind=irg)                       :: numang, i, ipf_wd, ipf_ht, sz(2) 
+real(kind=sgl),allocatable              :: Eangles(:,:)
+real(kind=sgl)                          :: StepX, StepY
 real(kind=dbl)                          :: x3(3), x4(4), x9(9)
 type(FZpointd),pointer                  :: FZtmp
+logical                                 :: fread
 
-open(unit=53,file=trim(filename),status='old',action='read')
-read (53,*) anglemode
-read (53,*) numang
 
-! make sure the linked list is empty
-if (associated(self%FZlist)) call self%delete_FZlist('FZ')
+! is this a .txt file ?  If so, use the standard file read process
+! if not, then maybe it is an .ang or .ctf file ?
+fread = .FALSE.
 
-! allocate the linked list
-allocate(self%FZlist)
-FZtmp => self%FZlist
+if (index(trim(filename),'.txt').ne.0) then 
 
-select case(anglemode)
-  case('eu') ! angles must be in degrees
-    do i=1,numang
-      read (53,*) x3(1:3)
+  open(unit=53,file=trim(filename),status='old',action='read')
+  read (53,*) anglemode
+  read (53,*) numang
+  fread = .TRUE.
+
+  ! make sure the linked list is empty
+  if (associated(self%FZlist)) call self%delete_FZlist('FZ')
+
+  ! allocate the linked list
+  allocate(self%FZlist)
+  FZtmp => self%FZlist
+
+  select case(anglemode)
+    case('eu') ! angles must be in degrees
+      do i=1,numang
+        read (53,*) x3(1:3)
+        if (present(listN)) then 
+          if (i.lt.listN) write (*,*) x3(1:3)
+        end if 
+        x3 = x3 * dtor
+        e = e_T( edinp = x3 )
+        FZtmp%rod = e%er()
+        FZtmp%qu = e%eq()
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+    case('ro')
+      do i=1,numang
+        read (53,*) x4(1:4)
+        FZtmp%rod = r_T( rdinp = x4 )
+        FZtmp%qu = FZtmp%rod%rq()
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+    case('qu')
+      do i=1,numang
+        read (53,*) x4(1:4)
+        q = q_T( qdinp = x4 )
+        FZtmp%rod = q%qr()
+        FZtmp%qu = q
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+    case('ax') ! angle must be in degrees
+      do i=1,numang
+        read (53,*) x4(1:4)
+        x4(4) = x4(4) * dtor
+        a = a_T( adinp = x4 )
+        FZtmp%rod = a%ar()
+        FZtmp%qu = a%aq()
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+    case('ho')
+      do i=1,numang
+        read (53,*) x3(1:3)
+        h = h_T( hdinp = x3 )
+        FZtmp%rod = h%hr()
+        FZtmp%qu = h%hq()
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+    case('cu')
+      do i=1,numang
+        read (53,*) x3(1:3)
+        c = c_T( cdinp = x3 )
+        FZtmp%rod = c%cr()
+        FZtmp%qu = c%cq()
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+    case('st')
+      do i=1,numang
+        read (53,*) x3(1:3)
+        s = s_T( sdinp = x3 )
+        FZtmp%rod = s%sr()
+        FZtmp%qu = s%sq()
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+    case('om')
+      do i=1,numang
+        read (53,*) x9(1:9)
+        o = o_T( odinp = reshape( x9, (/3,3/) ) )
+        FZtmp%rod = o%or()
+        FZtmp%qu = o%oq()
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+    case('rv')
+      do i=1,numang
+        read (53,*) x3(1:3)
+        v = v_T( vdinp = x3 )
+        FZtmp%rod = v%vr()
+        FZtmp%qu = v%vq()
+        self%FZcnt = self%FZcnt + 1
+        allocate(FZtmp%next)
+        FZtmp => FZtmp%next
+        nullify(FZtmp%next)
+      end do
+  end select
+
+  close(unit=53,status='keep')
+else 
+! is it an .ang file ?
+  if (index(trim(filename),'.ang').ne.0) then 
+    call VT%getAnglesfromANGfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+    fread = .TRUE.
+  end if
+! maybe a .ctf file ?
+  if (index(trim(filename),'.ctf').ne.0) then 
+    call VT%getAnglesfromCTFfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+    fread = .TRUE.
+  end if
+  if (fread.eqv..TRUE.) then 
+    sz = shape(Eangles)
+
+    ! make sure the linked list is empty
+    if (associated(self%FZlist)) call self%delete_FZlist('FZ')
+
+  ! allocate the linked list
+    allocate(self%FZlist)
+    FZtmp => self%FZlist
+    self%FZcnt = 0
+
+    do i=1,sz(2)
+      x3(1:3) = Eangles(1:3,i)
       if (present(listN)) then 
         if (i.lt.listN) write (*,*) x3(1:3)
       end if 
-      x3 = x3 * dtor
+      ! x3 = x3 * dtor   ! angles are supposedly already in radians
       e = e_T( edinp = x3 )
       FZtmp%rod = e%er()
       FZtmp%qu = e%eq()
@@ -1883,97 +2066,10 @@ select case(anglemode)
       FZtmp => FZtmp%next
       nullify(FZtmp%next)
     end do
-  case('ro')
-    do i=1,numang
-      read (53,*) x4(1:4)
-      FZtmp%rod = r_T( rdinp = x4 )
-      FZtmp%qu = FZtmp%rod%rq()
-      self%FZcnt = self%FZcnt + 1
-      allocate(FZtmp%next)
-      FZtmp => FZtmp%next
-      nullify(FZtmp%next)
-    end do
-  case('qu')
-    do i=1,numang
-      read (53,*) x4(1:4)
-      q = q_T( qdinp = x4 )
-      FZtmp%rod = q%qr()
-      FZtmp%qu = q
-      self%FZcnt = self%FZcnt + 1
-      allocate(FZtmp%next)
-      FZtmp => FZtmp%next
-      nullify(FZtmp%next)
-    end do
-  case('ax') ! angle must be in degrees
-    do i=1,numang
-      read (53,*) x4(1:4)
-      x4(4) = x4(4) * dtor
-      a = a_T( adinp = x4 )
-      FZtmp%rod = a%ar()
-      FZtmp%qu = a%aq()
-      self%FZcnt = self%FZcnt + 1
-      allocate(FZtmp%next)
-      FZtmp => FZtmp%next
-      nullify(FZtmp%next)
-    end do
-  case('ho')
-    do i=1,numang
-      read (53,*) x3(1:3)
-      h = h_T( hdinp = x3 )
-      FZtmp%rod = h%hr()
-      FZtmp%qu = h%hq()
-      self%FZcnt = self%FZcnt + 1
-      allocate(FZtmp%next)
-      FZtmp => FZtmp%next
-      nullify(FZtmp%next)
-    end do
-  case('cu')
-    do i=1,numang
-      read (53,*) x3(1:3)
-      c = c_T( cdinp = x3 )
-      FZtmp%rod = c%cr()
-      FZtmp%qu = c%cq()
-      self%FZcnt = self%FZcnt + 1
-      allocate(FZtmp%next)
-      FZtmp => FZtmp%next
-      nullify(FZtmp%next)
-    end do
-  case('st')
-    do i=1,numang
-      read (53,*) x3(1:3)
-      s = s_T( sdinp = x3 )
-      FZtmp%rod = s%sr()
-      FZtmp%qu = s%sq()
-      self%FZcnt = self%FZcnt + 1
-      allocate(FZtmp%next)
-      FZtmp => FZtmp%next
-      nullify(FZtmp%next)
-    end do
-  case('om')
-    do i=1,numang
-      read (53,*) x9(1:9)
-      o = o_T( odinp = reshape( x9, (/3,3/) ) )
-      FZtmp%rod = o%or()
-      FZtmp%qu = o%oq()
-      self%FZcnt = self%FZcnt + 1
-      allocate(FZtmp%next)
-      FZtmp => FZtmp%next
-      nullify(FZtmp%next)
-    end do
-  case('rv')
-    do i=1,numang
-      read (53,*) x3(1:3)
-      v = v_T( vdinp = x3 )
-      FZtmp%rod = v%vr()
-      FZtmp%qu = v%vq()
-      self%FZcnt = self%FZcnt + 1
-      allocate(FZtmp%next)
-      FZtmp => FZtmp%next
-      nullify(FZtmp%next)
-    end do
-end select
+  end if
+end if 
 
-close(unit=53,status='keep')
+if (fread.eqv..FALSE.) call Message%printError('getOrientationsfromFile',' unknown angle file format')
 
 end subroutine getOrientationsfromFile_
 

@@ -2316,7 +2316,22 @@ do i=1,ipf_wd*ipf_ht
   Eangles(1:3,i) = (/ e1, e2, e3 /)
 end do
 
-if (maxval(Eangles).gt.(2.0*sngl(cPi))) Eangles = Eangles * dtor
+! convert the Euler angles to the EDAX/TSL convention 
+! that means adding 90° to the first Euler angle in all cases
+! and in the hexagonal case, needs to be checked !!!
+
+if (maxval(Eangles).gt.(2.0*sngl(cPi))) then 
+  Eangles(1,:) = Eangles(1,:) + 90.0
+  do i=1,ipf_wd*ipf_ht 
+    if (Eangles(1,i).gt.360.0) Eangles(1,i) = Eangles(1,i)-360.0
+  end do
+  Eangles = Eangles * dtor
+else
+  Eangles(1,:) = Eangles(1,:) + sngl(cPi)*0.5
+  do i=1,ipf_wd*ipf_ht 
+    if (Eangles(1,i).gt.2.0*cPi) Eangles(1,i) = Eangles(1,i)-2.0*sngl(cPi)
+  end do
+end if 
 
 close(unit=dataunit, status='keep')
 
