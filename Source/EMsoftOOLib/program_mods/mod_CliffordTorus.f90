@@ -1316,6 +1316,7 @@ else
 
   ! get the symmetry operator quaternions for the point group
     call dummy%QSym_Init(self%nml%pgnum, Pm)
+    num = Pm%getQnumber()
     io_int(1) = num
     call Message%WriteValue(' Number of symmetry operators ', io_int, 1)
 
