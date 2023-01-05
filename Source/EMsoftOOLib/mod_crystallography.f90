@@ -1834,8 +1834,24 @@ character(16)                           :: HS
      self%b = io_real(1)
      call Message%ReadValue('    c [nm] = ', io_real, 1)
      self%c = io_real(1)
-     call Message%ReadValue('    beta  [deg] = ', io_real, 1)
-     self%beta = io_real(1)
+     if (SG%getuseHallSG().eqv..TRUE.) then
+! if we are using the Hall space group symbols, then for the monoclinic case we need 
+! to distinguish between the three possible choices for the unique axis
+       SGshort = SG%HallSG%get_HallSGlabel( SG%getHallSpaceGroupNumber() )
+       if (scan(SGshort,'b').ne.0) then 
+         call Message%ReadValue('    beta  [deg] = ', io_real, 1)
+         self%beta = io_real(1)
+       else if (scan(SGshort,'c').ne.0) then 
+         call Message%ReadValue('    gamma  [deg] = ', io_real, 1)
+         self%gamma = io_real(1)
+       else ! this must be the "a" unique axis
+         call Message%ReadValue('    alpha  [deg] = ', io_real, 1)
+         self%alpha = io_real(1)
+       end if
+     else  ! standard space group setting so we ask for the beta angle
+       call Message%ReadValue('    beta  [deg] = ', io_real, 1)
+       self%beta = io_real(1)
+     end if
   ! triclinic
     case (7)
      call Message%ReadValue('    b [nm] = ', io_real, 1)

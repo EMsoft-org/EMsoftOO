@@ -1018,7 +1018,6 @@ use mod_HDFnames
 use mod_io
 use mod_rotations
 use stringconstants
-use mod_vendors
 use mod_memory
 use mod_image 
 use ISO_C_BINDING
@@ -1039,7 +1038,6 @@ type(QuaternionArray_T)             :: qAR
 type(memory_T)                      :: mem
 type(DIfile_T)                      :: DIFT
 type(DictionaryIndexingNameListType):: dinl
-type(Vendor_T)                      :: VT
 
 type(ISEmasterNameListType)         :: mpnml
 
@@ -1121,11 +1119,10 @@ if ( (resang.eq.0).and.(resctf.eq.0) ) then
 
   if (maxval(Eangles).gt.(2.D0*cPi)) Eangles = Eangles * dtor
 else
-  VT = Vendor_T()
   if (resang.ne.0) then ! we have an .ang file
-    call VT%getAnglesfromANGfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
+    call SO%getAnglesfromANGfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
   else  ! we must have a .ctf file
-    call VT%getAnglesfromCTFfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
+    call SO%getAnglesfromCTFfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
   end if 
   ISEdetector%ipf_wd = dinl%ipf_wd
   ISEdetector%ipf_ht = dinl%ipf_ht

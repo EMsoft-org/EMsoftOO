@@ -220,6 +220,8 @@ type, public :: so3_T
     procedure, pass(self) :: SampleIsoMisorientation_
     procedure, pass(self) :: getOrientationsfromFile_
     procedure, pass(self) :: writeOrientationstoFile_
+    procedure, pass(self) :: getAnglesfromANGfile_
+    procedure, pass(self) :: getAnglesfromCTFfile_
     procedure, pass(self) :: getVertex_
     procedure, pass(self) :: getMacKenzieDistribution_
 ! some other related routines
@@ -269,6 +271,8 @@ type, public :: so3_T
     generic, public :: sample_UNI => sample_UNI_
     generic, public :: SampleIsoMisorientation => SampleIsoMisorientation_
     generic, public :: getOrientationsfromFile => getOrientationsfromFile_
+    generic, public :: getAnglesfromANGfile => getAnglesfromANGfile_
+    generic, public :: getAnglesfromCTFfile => getAnglesfromCTFfile_
     generic, public :: writeOrientationstoFile => writeOrientationstoFile_
     generic, public :: getVertex => getVertex_
     generic, public :: getMacKenzieDistribution => getMacKenzieDistribution_
@@ -1873,7 +1877,6 @@ recursive subroutine getOrientationsfromFile_(self, filename, listN)
   !! read a list of orientations from a text file, optionally convert them to the
   !! Rodrigues or MacKenzie Fundamental Zone and insert them in a linked list
 
-use mod_vendors
 use mod_io
 
 IMPLICIT NONE
@@ -1893,7 +1896,6 @@ type(h_T)                               :: h
 type(c_T)                               :: c
 type(s_T)                               :: s
 type(v_T)                               :: v
-type(Vendor_T)                          :: VT
 type(IO_T)                              :: Message
 
 character(2)                            :: anglemode
@@ -2033,12 +2035,12 @@ if (index(trim(filename),'.txt').ne.0) then
 else 
 ! is it an .ang file ?
   if (index(trim(filename),'.ang').ne.0) then 
-    call VT%getAnglesfromANGfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+    call self%getAnglesfromANGfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles)
     fread = .TRUE.
   end if
 ! maybe a .ctf file ?
   if (index(trim(filename),'.ctf').ne.0) then 
-    call VT%getAnglesfromCTFfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+    call self%getAnglesfromCTFfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles)
     fread = .TRUE.
   end if
   if (fread.eqv..TRUE.) then 
@@ -3502,6 +3504,200 @@ ADMap = sum(misor,1)/denom
 ADMap = ADMap / dtor
 
 end subroutine getAverageDisorientationMap_
+
+!--------------------------------------------------------------------------
+recursive subroutine getAnglesfromANGfile_(self, angname, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+!DEC$ ATTRIBUTES DLLEXPORT :: getAnglesfromANGfile_
+!! author: MDG
+!! version: 1.0
+!! date: 12/07/22
+!!
+!! Extract angles from an .ang file 
+
+use mod_io
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                          :: self
+character(fnlen),INTENT(IN)                         :: angname
+integer(kind=irg),INTENT(INOUT)                     :: ipf_wd
+integer(kind=irg),INTENT(INOUT)                     :: ipf_ht
+real(kind=sgl),INTENT(INOUT)                        :: StepX
+real(kind=sgl),INTENT(INOUT)                        :: StepY
+real(kind=sgl),INTENT(INOUT),allocatable            :: Eangles(:,:)
+
+type(IO_T)                                          :: Message
+
+character(fnlen)                                    :: line
+logical                                             :: sqgrid
+integer(kind=irg)                                   :: i, res, nco, nce, ipos
+real(kind=sgl)                                      :: var, e1, e2, e3
+
+! open the file 
+open(unit=dataunit, file = trim(angname), status = 'old')
+
+! first make sure that this is a square grid file 
+! read the step size and the number of rows and columns
+sqgrid = .FALSE.
+read(dataunit,'(a)') line 
+do while (line(1:1).eq.'#')
+  read(dataunit,'(a)') line 
+  res = index(line, 'GRID')
+  if (res.ne.0) EXIT
+end do 
+! make sure that this is a square grid file
+res = index(line,'SqrGrid')
+if (res.eq.0) then 
+  call Message%printError('getAnglesfromANGfile','This file does not contain a square sampling grid')
+end if 
+
+! the next line contains the StepX parameter so read it 
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) var 
+StepX = var
+! then the StepY parameter 
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) var 
+StepY = var
+! NCOLLS_ODD 
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) nco
+! NCOLS_EVEN
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) nce
+! test
+if (nco.ne.nce) then 
+  call Message%printError('getAnglesfromANGfile','Odd and Even Column numbers must be equal')
+end if 
+ipf_wd = nco
+read(dataunit,'(a)') line 
+ipos = scan(line, ':', back=.TRUE.)
+read(line(1+ipos:),*) nce
+ipf_ht = nce
+  
+write (*,*) '.ang file found ... '
+
+! advance to the first data line
+do while (line(1:1).eq.'#')
+  read(dataunit,'(a)') line 
+end do 
+
+! we have discovered the first data line 
+allocate(Eangles(3,ipf_wd * ipf_ht))
+read(line,*) e1, e2, e3 
+Eangles(1:3,1) = (/ e1, e2, e3 /)
+do i=2,ipf_wd*ipf_ht 
+  read(dataunit,'(a)') line 
+  read(line,*) e1, e2, e3 
+  if (e1.eq.12.56637) then ! intercept bad indexed points and set them to 0
+    Eangles(1:3,i) = (/ 0.0, 0.0, 0.0 /)
+  else
+    Eangles(1:3,i) = (/ e1, e2, e3 /)
+  end if 
+end do
+
+close(unit=dataunit, status='keep')
+
+call Message%printMessage(' Completed reading .ang file')
+
+end subroutine getAnglesfromANGfile_
+
+!--------------------------------------------------------------------------
+recursive subroutine getAnglesfromCTFfile_(self, ctfname, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+!DEC$ ATTRIBUTES DLLEXPORT :: getAnglesfromCTFfile_
+!! author: MDG
+!! version: 1.0
+!! date: 12/07/22
+!!
+!! Extract angles from a .ctf file 
+
+use mod_io
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                          :: self
+character(fnlen),INTENT(IN)                         :: ctfname
+integer(kind=irg),INTENT(INOUT)                     :: ipf_wd
+integer(kind=irg),INTENT(INOUT)                     :: ipf_ht
+real(kind=sgl),INTENT(INOUT)                        :: StepX
+real(kind=sgl),INTENT(INOUT)                        :: StepY
+real(kind=sgl),INTENT(INOUT),allocatable            :: Eangles(:,:)
+
+type(IO_T)                                          :: Message
+
+character(fnlen)                                    :: line
+integer(kind=irg)                                   :: i, res, nco, ipos
+real(kind=sgl)                                      :: var, e1, e2, e3
+
+! open the file 
+open(unit=dataunit, file = trim(ctfname), status = 'old')
+
+! first make sure that this is a square grid file 
+! read the step size and the number of rows and columns
+read(dataunit,'(a)') line 
+do while (index(line, 'XCells').eq.0)
+  read(dataunit,'(a)') line 
+end do
+! this line contains the XCells parameter
+ipos = scan(line, 's', back=.TRUE.)
+read(line(2+ipos:),*)  nco
+ipf_wd = nco
+! then the YCells parameter 
+read(dataunit,'(a)') line 
+ipos = scan(line, 's', back=.TRUE.)
+read(line(2+ipos:),*) nco
+ipf_ht = nco
+! then XStep
+read(dataunit,'(a)') line 
+ipos = scan(line, 'p', back=.TRUE.)
+read(line(1+ipos:),*) var 
+StepX = var
+! and YStep
+read(dataunit,'(a)') line 
+ipos = scan(line, 'p', back=.TRUE.)
+read(line(1+ipos:),*) var
+StepY = var
+
+! advance to the first data line
+do while (index(line, 'Euler1').eq.0)
+  read(dataunit,'(a)') line 
+end do 
+
+! we have discovered the first data line 
+allocate(Eangles(3,ipf_wd * ipf_ht))
+do i=1,ipf_wd*ipf_ht 
+  read(dataunit,'(a)') line 
+  read(line,*) nco, var, var, nco, nco, e1, e2, e3 
+  Eangles(1:3,i) = (/ e1, e2, e3 /)
+end do
+
+! convert the Euler angles to the EDAX/TSL convention 
+! that means adding 90° to the first Euler angle in all cases
+! and in the hexagonal case, needs to be checked !!!
+
+if (maxval(Eangles).gt.(2.0*sngl(cPi))) then 
+  Eangles(1,:) = Eangles(1,:) + 90.0
+  do i=1,ipf_wd*ipf_ht 
+    if (Eangles(1,i).gt.360.0) Eangles(1,i) = Eangles(1,i)-360.0
+  end do
+  Eangles = Eangles * dtor
+else
+  Eangles(1,:) = Eangles(1,:) + sngl(cPi)*0.5
+  do i=1,ipf_wd*ipf_ht 
+    if (Eangles(1,i).gt.2.0*cPi) Eangles(1,i) = Eangles(1,i)-2.0*sngl(cPi)
+  end do
+end if 
+
+close(unit=dataunit, status='keep')
+
+call Message%printMessage(' Completed reading .ctf file')
+
+
+end subroutine getAnglesfromCTFfile_
 
 
 
