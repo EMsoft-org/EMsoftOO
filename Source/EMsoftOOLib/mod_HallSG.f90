@@ -422,10 +422,12 @@ private
   procedure, pass(self) :: get_Hall_Ngenerators_
   procedure, pass(self) :: get_NHallgenerators_
   procedure, pass(self) :: get_kvectortransform_
+  procedure, pass(self) :: get_HallSGlabel_
   procedure, pass(self) :: set_HallSGnumber_
 
   generic, public :: get_Hall_SeitzGenerators => get_Hall_SeitzGenerators_
   generic, public :: get_NHallgenerators => get_NHallgenerators_
+  generic, public :: get_HallSGlabel => get_HallSGlabel_
   generic, public :: set_HallSGnumber => set_HallSGnumber_
 
 end type HallSG_T
@@ -1111,7 +1113,7 @@ end function get_HallString
 
 !--------------------------------------------------------------------------
 subroutine set_HallSGnumber_( self, Hnum ) 
-!DEC$ ATTRIBUTES DLLEXPORT :: get_set_HallSGnumber_kvectortransform_
+!DEC$ ATTRIBUTES DLLEXPORT :: set_HallSGnumber_
 !! author: MDG 
 !! version: 1.0 
 !! date: 11/23/22
@@ -1126,6 +1128,25 @@ integer(kind=irg),INTENT(IN)          :: Hnum
 self%Hall_SGnumber = Hnum
 
 end subroutine set_HallSGnumber_
+
+!--------------------------------------------------------------------------
+function get_HallSGlabel_( self, Hnum ) result(SGlabel)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_HallSGlabel_
+!! author: MDG 
+!! version: 1.0 
+!! date: 11/23/22
+!!
+!!set the Hall space group number 
+
+IMPLICIT NONE 
+
+class(HallSG_T), INTENT(INOUT)        :: self
+integer(kind=irg),INTENT(IN)          :: Hnum 
+character(8)                          :: SGlabel
+
+SGlabel = trim(Hall_SGlabels( Hnum ))
+
+end function get_HallSGlabel_
 
 !--------------------------------------------------------------------------
 subroutine get_kvectortransform_( self ) 
@@ -1181,7 +1202,7 @@ select case (HallmatrixID( self%Hall_SGnumber ))
     self%kvec_transform = reshape( (/ t, s, s,-s, s, s,-s,-t, s /), (/3,3/) )
 end select 
 
-self%kvec_transform = transpose(self%kvec_transform)
+! self%kvec_transform = transpose(self%kvec_transform)
 
 end subroutine get_kvectortransform_
 
