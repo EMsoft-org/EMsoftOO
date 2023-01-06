@@ -1024,8 +1024,8 @@ character(2),INTENT(IN)         :: listmode
 type(q_T)                       :: q 
 type(IO_T)                      :: Message
 
-integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, ixx, iyy, px, py, VZcnt
-type(FZpointd), pointer         :: FZtmp, FZviz, VZlist, VZtmp
+integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, ixx, iyy, px, py, io_int(1)
+type(FZpointd), pointer         :: FZtmp, FZviz
 real(kind=dbl),parameter        :: s2 = 1.D0/sqrt(2.D0), r(4) = (/ s2, 0.D0, s2, 0.D0 /)
 real(kind=dbl),allocatable      :: qu(:,:), z1(:), z2(:), h(:,:), h2(:,:), xx(:,:), yy(:,:), l(:), g(:,:)
 real(kind=dbl)                  :: x(4), d, d1, d2, dx, dy, ss, zx, ee, kk, logoffset 
@@ -1078,27 +1078,18 @@ end select
 ! qu will hold all the orientation quaternions projected onto the Clifford torus
 allocate(qu(4,cnt), z1(cnt), z2(cnt))
 
-allocate(VZlist)
-VZtmp => VZlist
-nullify(VZtmp%next)
-
-call Message%printMessage(' projection quaternions onto Clifford Torus')
+call Message%printMessage(' projecting quaternions onto Clifford Torus')
 do i=1,cnt
   q = self%projectqtoCT_( FZtmp%qu ) 
   qu(1:4,i) = q%q_copyd()
 ! store the Clifford torus projections into a linked list for visualization purposes
-  VZtmp%qu = q_T( qdinp = qu(1:4,i) )
-  allocate(VZtmp%next)
-  VZtmp => VZtmp%next
-  nullify(VZtmp%next)
+  FZtmp%qu = q_T( qdinp = qu(1:4,i) )
   FZtmp => FZtmp%next 
 end do 
 
-VZcnt = cnt 
-
-call Message%printMessage(' projection Clifford Torus onto Square Torus')
+call Message%printMessage(' projecting Clifford Torus onto Square Torus')
 ! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
-do i=1,VZcnt 
+do i=1,cnt 
   z1(i) = atan2(qu(2,i), qu(1,i))
   z2(i) = atan2(qu(4,i), qu(3,i))
 end do 
@@ -1121,21 +1112,27 @@ end do
 call Message%printMessage(' adding orientations to zone plate')
 ! and fill the h array to obtain the zone plate
 h = 0.D0
-do i=1,VZcnt 
+do i=1,cnt 
   ixx = int(z1(i))
   iyy = int(z2(i))
   dx = z1(i) - dble(ixx)
   dy = z2(i) - dble(iyy)
   zx = 0.5D0 * (1.D0 + cos( kk * acos( sum( qu(1:4,i) * r(1:4) ))**2 ))
-  do j=1,2*w+1
-    px = offset+ixx-w-1
-    do k=1,2*w+1
-      py = offset+iyy-w-1 
-      ee = exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
-      h(px+j,py+k) = h(px+j,py+k) + zx * ee
-      h2(px+j,py+k) = h2(px+j,py+k) + ee
+  px = offset+ixx-w-1
+  py = offset+iyy-w-1 
+  if ((px.gt.0).and.(px.lt.num+2*w).and.(py.gt.0).and.(py.lt.num+2*w)) then
+    do j=1,2*w+1
+      do k=1,2*w+1
+        ee = exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
+        h(px+j,py+k) = h(px+j,py+k) + zx * ee
+        h2(px+j,py+k) = h2(px+j,py+k) + ee
+      end do 
     end do 
-  end do 
+  end if 
+  if (mod(i,1000000).eq.0) then 
+    io_int(1) = i
+    call Message%WriteValue(' current orientation # ', io_int, 1)
+  end if 
 end do 
 
 ! and finally prepare for tiff output
