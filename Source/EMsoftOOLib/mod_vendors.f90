@@ -2037,7 +2037,7 @@ write(dataunit2,'(A,F9.6)') '# z-star                ', s
 write(dataunit2,'(A,F9.6)') '# WorkingDistance       ', fpar(1) ! WD ! this quantity is not used in EMsoft
 write(dataunit2,'(A)') '#'
 
-do iph=1,ipar(2)
+do iph=ipar(2),1,-1   ! phases are written in reverse order!! corrected on [1/6/23, MDG]
   write (np,"(I1)") iph
   write(dataunit2,'(A)') '# Phase '//np
 
