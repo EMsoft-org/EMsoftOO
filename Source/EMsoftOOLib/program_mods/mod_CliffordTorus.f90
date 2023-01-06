@@ -1076,16 +1076,13 @@ select case(listmode)
 end select
 
 ! qu will hold all the orientation quaternions projected onto the Clifford torus
-if (self%nml%shownegativeq0.eq.1) then 
-  allocate(qu(4,2*cnt), z1(2*cnt), z2(2*cnt))
-else
-  allocate(qu(4,cnt), z1(cnt), z2(cnt))
-end if 
+allocate(qu(4,cnt), z1(cnt), z2(cnt))
 
 allocate(VZlist)
 VZtmp => VZlist
 nullify(VZtmp%next)
 
+call Message%printMessage(' projection quaternions onto Clifford Torus')
 do i=1,cnt
   q = self%projectqtoCT_( FZtmp%qu ) 
   qu(1:4,i) = q%q_copyd()
@@ -1093,22 +1090,13 @@ do i=1,cnt
   VZtmp%qu = q_T( qdinp = qu(1:4,i) )
   allocate(VZtmp%next)
   VZtmp => VZtmp%next
-  if (self%nml%shownegativeq0.eq.1) then 
-    qu(1:4,i+cnt) = - qu(1:4, i)
-    VZtmp%qu = q_T( qdinp = qu(1:4,i) )
-    allocate(VZtmp%next)
-    VZtmp => VZtmp%next
-  end if 
   nullify(VZtmp%next)
   FZtmp => FZtmp%next 
 end do 
 
-if (self%nml%shownegativeq0.eq.1) then 
-  VZcnt = 2*cnt 
-else
-  VZcnt = cnt 
-end if 
+VZcnt = cnt 
 
+call Message%printMessage(' projection Clifford Torus onto Square Torus')
 ! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
 do i=1,VZcnt 
   z1(i) = atan2(qu(2,i), qu(1,i))
@@ -1130,6 +1118,7 @@ do i=1,2*w+1
   xx(:,i) = l(:)
 end do 
 
+call Message%printMessage(' adding orientations to zone plate')
 ! and fill the h array to obtain the zone plate
 h = 0.D0
 do i=1,VZcnt 
