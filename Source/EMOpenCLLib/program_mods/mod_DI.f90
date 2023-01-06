@@ -642,8 +642,9 @@ patsz              = correctsize
 call Message%printMessage(' --> Initializing OpenCL device')
 CL = OpenCL_T()
 Nres = Ne*Nd*4
-call CL%query_platform_info(dinl%platid)
-call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
+! temporarily disabled lines (until we figure out why they don't work on Linux...)
+!call CL%query_platform_info(dinl%platid)
+!call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
 
 if (trim(dinl%indexingmode).eq.'dynamic') then
 ! override the point group number if this is an overlap master pattern

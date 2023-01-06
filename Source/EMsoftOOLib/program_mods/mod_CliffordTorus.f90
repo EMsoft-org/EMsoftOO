@@ -1078,16 +1078,14 @@ end select
 ! qu will hold all the orientation quaternions projected onto the Clifford torus
 allocate(qu(4,cnt), z1(cnt), z2(cnt))
 
-call Message%printMessage(' projecting quaternions onto Clifford Torus')
+call Message%printMessage('  - projecting quaternions onto Clifford Torus')
 do i=1,cnt
   q = self%projectqtoCT_( FZtmp%qu ) 
   qu(1:4,i) = q%q_copyd()
-! store the Clifford torus projections into a linked list for visualization purposes
-  FZtmp%qu = q_T( qdinp = qu(1:4,i) )
   FZtmp => FZtmp%next 
 end do 
 
-call Message%printMessage(' projecting Clifford Torus onto Square Torus')
+call Message%printMessage('  - projecting Clifford Torus onto Square Torus')
 ! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
 do i=1,cnt 
   z1(i) = atan2(qu(2,i), qu(1,i))
@@ -1109,7 +1107,7 @@ do i=1,2*w+1
   xx(:,i) = l(:)
 end do 
 
-call Message%printMessage(' adding orientations to zone plate')
+call Message%printMessage('  - adding orientations to zone plate')
 ! and fill the h array to obtain the zone plate
 h = 0.D0
 do i=1,cnt 
@@ -1131,7 +1129,7 @@ do i=1,cnt
   end if 
   if (mod(i,1000000).eq.0) then 
     io_int(1) = i
-    call Message%WriteValue(' current orientation # ', io_int, 1)
+    call Message%WriteValue('  - current orientation # ', io_int, 1)
   end if 
 end do 
 
@@ -1163,7 +1161,7 @@ if (trim(self%nml%zpfile).ne.'undefined') then
   if(0.ne.iostat) then
     call Message%printMessage("failed to write image to file : "//iomsg)
   else
-    call Message%printMessage('orientation zone plate written to '//trim(fname))
+    call Message%printMessage(' - orientation zone plate written to '//trim(fname))
   end if
   deallocate(TIFF_image)
 end if 
@@ -1201,7 +1199,7 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
   if(0.ne.iostat) then
     call Message%printMessage("failed to write image to file : "//iomsg)
   else
-    call Message%printMessage('orientation zone plate written to '//trim(fname))
+    call Message%printMessage(' - orientation square torus written to '//trim(fname))
   end if
   deallocate(TIFF_image)
 end if

@@ -494,7 +494,7 @@ else
 
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, zero_size, C_LOC(device_gms), temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_gms',err)
+    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_gms',err)
     device_gms = device_gms/1024/1024/1024
     self%d_CPUgms(p_id, i) = device_gms
 
@@ -513,7 +513,7 @@ else
 ! CL_DEVICE_MAX_WORK_ITEM_SIZES
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, zero_size, C_LOC(device_mwis), temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwis',err)
+    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwis',err)
     self%d_CPUmwis(p_id, i, 1:3) = device_mwis
 
 ! Name.
@@ -558,7 +558,7 @@ else
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, zero_size, C_LOC(device_gms), temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
     ! err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, temp_size, C_LOC(device_gms), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_gms',err)
+    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_gms',err)
     device_gms = device_gms/1024/1024/1024
     self%d_GPUgms(p_id, i) = device_gms
 
@@ -578,7 +578,7 @@ else
 ! CL_DEVICE_MAX_WORK_ITEM_SIZES
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, zero_size, C_LOC(device_mwis), temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwis',err)
+    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwis',err)
     self%d_GPUmwis(p_id, i, 1:3) = device_mwis(1:3)
 
 ! Name.
