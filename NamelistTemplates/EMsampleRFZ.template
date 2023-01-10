@@ -9,6 +9,7 @@
 ! 'SFS' for Super-Fibonacci sampling; 
 ! 'vMF' von Mises-Fisher sampling on the three-sphere (non-uniform);
 ! 'WAT' Watson sampling on the three-sphere (non-uniform);
+! 'TXC' sample one or more texture components using Watson sampling of the three-sphere
 ! 'CON' conical sampling;  [experimental]
 ! 'FIB' for uniform fiber texture sampling. [experimental]
  samplemode = 'RFZ'
@@ -84,4 +85,15 @@
  norientations = 100000,
 ! random number generator seed (integer)
  seed = 1234,
+!=================
+! parameters for TXC texture component sampling; enter up to five texture components
+! each of them will be sampled using Watson sampling with the given orientation spread tcos
+! Delta-theta in degrees. Texture components are defined in the crystal frame as (hkl)[uvw].
+! Leave the norient parameters (number of orientations to sample for each texture component) 
+! set to zero if not using all five texture components.
+!=================
+ hkl = 0, 0, 0,   0, 0, 0,   0, 0, 0,   0, 0, 0,   0, 0, 0,
+ uvw = 0, 0, 0,   0, 0, 0,   0, 0, 0,   0, 0, 0,   0, 0, 0,
+ tcos = 5.D0, 0.D0, 0.D0, 0.D0, 0.D0,
+ norient = 100000, 0, 0, 0, 0,
  /

@@ -203,6 +203,7 @@ type, public :: so3_T
     procedure, pass(self) :: listtoQuaternionArray_
     procedure, pass(self) :: QuaternionArraytolist_
     procedure, pass(self) :: QuaternionArraytonewlist_
+    procedure, pass(self) :: QuaternionArrayappendtolist_
     procedure, pass(self) :: getListHead_
     procedure, pass(self) :: getListCount_
     procedure, pass(self) :: setGridType_
@@ -256,6 +257,7 @@ type, public :: so3_T
     generic, public :: listtoQuaternionArray => listtoQuaternionArray_
     generic, public :: QuaternionArraytolist => QuaternionArraytolist_
     generic, public :: QuaternionArraytonewlist => QuaternionArraytonewlist_
+    generic, public :: QuaternionArrayappendtolist => QuaternionArrayappendtolist_
     generic, public :: getListHead => getListHead_
     generic, public :: getListCount => getListCount_
     generic, public :: setGridType => setGridType_
@@ -2582,6 +2584,93 @@ do i=1,N
 end do
 
 end subroutine QuaternionArraytonewlist_
+
+!--------------------------------------------------------------------------
+recursive subroutine QuaternionArrayappendtolist_(self, qAR, l)
+!DEC$ ATTRIBUTES DLLEXPORT :: QuaternionArrayappendtolist_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/24/20
+  !!
+  !! append a QuaternionArray_T object into a declared linked list
+
+use mod_quaternions
+use mod_rotations
+use mod_io
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+type(QuaternionArray_T), INTENT(INOUT)  :: qAR
+character(2), INTENT(IN), OPTIONAL      :: l
+
+type(IO_T)                              :: Message
+type(FZpointd), pointer                 :: FZtmp
+integer(kind=irg)                       :: i, cnt, N
+type(Quaternion_T)                      :: qu
+type(q_T)                               :: qq
+
+
+N = qAR%getQnumber()
+
+if (present(l)) then
+  select case(l)
+    case('FZ')
+      FZtmp => self%FZlist
+      cnt = self%FZcnt
+      self%FZcnt = self%FZcnt + N
+    case('CM')
+      FZtmp => self%CMlist
+      cnt = self%CMcnt
+      self%CMcnt = self%CMcnt + N
+    case('CO')
+      FZtmp => self%COlist
+      cnt = self%COcnt
+      self%COcnt = self%COcnt + N
+    case('FB')
+      FZtmp => self%FBlist
+      cnt = self%FBcnt
+      self%FBcnt = self%FBcnt + N
+    case('SF')
+      FZtmp => self%SFlist
+      cnt = self%SFcnt
+      self%SFcnt = self%SFcnt + N
+    case('MA')
+      FZtmp => self%MAlist
+      cnt = self%MAcnt
+      self%MAcnt = self%MAcnt + N
+    case('UN')
+      FZtmp => self%UNlist
+      cnt = self%UNcnt
+      self%UNcnt = self%UNcnt + N
+    case default
+      FZtmp => self%FZlist
+      cnt = self%FZcnt
+      self%FZcnt = self%FZcnt + N
+  end select
+else
+  FZtmp => self%FZlist
+  cnt = self%FZcnt
+  self%FZcnt = self%FZcnt + N
+end if
+
+! point to the last entry in the list 
+do i=1, cnt 
+  FZtmp => FZtmp%next 
+end do 
+
+! and add the next set from the quaternion array
+do i=1,N
+  qu = qAR%getQuatfromArray(i)
+  qq = q_T( qdinp = qu%get_quatd() )
+  FZtmp%rod = qq%qr()
+  FZtmp%qu = qq
+  allocate(FZtmp%next)
+  FZtmp => FZtmp%next
+  nullify(FZtmp%next)
+end do
+
+end subroutine QuaternionArrayappendtolist_
 
 !--------------------------------------------------------------------------
 recursive function getListHead_(self, l) result(FZptr)
