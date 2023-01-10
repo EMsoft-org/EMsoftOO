@@ -202,6 +202,7 @@ type, public :: so3_T
     procedure, pass(self) :: listtoArray_
     procedure, pass(self) :: listtoQuaternionArray_
     procedure, pass(self) :: QuaternionArraytolist_
+    procedure, pass(self) :: QuaternionArraytonewlist_
     procedure, pass(self) :: getListHead_
     procedure, pass(self) :: getListCount_
     procedure, pass(self) :: setGridType_
@@ -254,6 +255,7 @@ type, public :: so3_T
     generic, public :: listtoArray => listtoArray_
     generic, public :: listtoQuaternionArray => listtoQuaternionArray_
     generic, public :: QuaternionArraytolist => QuaternionArraytolist_
+    generic, public :: QuaternionArraytonewlist => QuaternionArraytonewlist_
     generic, public :: getListHead => getListHead_
     generic, public :: getListCount => getListCount_
     generic, public :: setGridType => setGridType_
@@ -2437,6 +2439,8 @@ end if
 
 N = qAR%getQnumber()
 
+write (*,*) 'QuaternionArraytolist : ', N, cnt
+
 ! if there are fewer than cnt items in the Array, then we only copy those into the list
 if (N.lt.cnt) then
   cnt = N
@@ -2452,6 +2456,132 @@ do i=1,cnt
 end do
 
 end subroutine QuaternionArraytolist_
+
+!--------------------------------------------------------------------------
+recursive subroutine QuaternionArraytonewlist_(self, qAR, l)
+!DEC$ ATTRIBUTES DLLEXPORT :: QuaternionArraytonewlist_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/24/20
+  !!
+  !! convert a QuaternionArray_T object into a newly declared linked list
+
+use mod_quaternions
+use mod_rotations
+use mod_io
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+type(QuaternionArray_T), INTENT(INOUT)  :: qAR
+character(2), INTENT(IN), OPTIONAL      :: l
+
+type(IO_T)                              :: Message
+type(FZpointd), pointer                 :: FZtmp
+integer(kind=irg)                       :: i, cnt, N
+type(Quaternion_T)                      :: qu
+type(q_T)                               :: qq
+
+
+N = qAR%getQnumber()
+
+if (present(l)) then
+  select case(l)
+    case('FZ')
+      if (.not.associated(self%FZlist)) then
+        allocate(self%FZlist)
+        FZtmp => self%FZlist
+      else
+        allocate(FZtmp%next)
+        FZtmp => self%FZlist
+      end if
+      self%FZcnt = N
+    case('CM')
+      if (.not.associated(self%CMlist)) then
+        allocate(self%CMlist)
+        FZtmp => self%CMlist
+      else
+        allocate(FZtmp%next)
+        FZtmp => self%CMlist
+      end if
+      self%CMcnt = N
+    case('CO')
+      if (.not.associated(self%COlist)) then
+        allocate(self%COlist)
+        FZtmp => self%COlist
+      else
+        allocate(FZtmp%next)
+        FZtmp => self%COlist
+      end if
+      self%COcnt = N
+    case('FB')
+      if (.not.associated(self%FBlist)) then
+        allocate(self%FBlist)
+        FZtmp => self%FBlist
+      else
+        allocate(FZtmp%next)
+        FZtmp => self%FBlist
+      end if
+      self%FBcnt = N
+    case('SF')
+      if (.not.associated(self%SFlist)) then
+        allocate(self%SFlist)
+        FZtmp => self%SFlist
+      else
+        allocate(FZtmp%next)
+        FZtmp => self%SFlist
+      end if
+      self%SFcnt = N
+    case('MA')
+      if (.not.associated(self%MAlist)) then
+        allocate(self%MAlist)
+        FZtmp => self%MAlist
+      else
+        allocate(FZtmp%next)
+        FZtmp => self%MAlist
+      end if
+      self%MAcnt = N
+    case('UN')
+      if (.not.associated(self%UNlist)) then
+        allocate(self%UNlist)
+        FZtmp => self%UNlist
+      else
+        allocate(FZtmp%next)
+        FZtmp => self%UNlist
+      end if
+      self%UNcnt = N
+    case default
+      if (.not.associated(self%FZlist)) then
+        allocate(self%FZlist)
+        FZtmp => self%FZlist
+      else
+        allocate(FZtmp%next)
+        FZtmp => self%FZlist
+      end if
+      self%FZcnt = N
+  end select
+else
+  if (.not.associated(self%FZlist)) then
+    allocate(self%FZlist)
+    FZtmp => self%FZlist
+  else
+    allocate(FZtmp%next)
+    FZtmp => self%FZlist
+  end if
+  self%FZcnt = N
+end if
+
+do i=1,N
+  qu = qAR%getQuatfromArray(i)
+  qq = q_T( qdinp = qu%get_quatd() )
+  FZtmp%rod = qq%qr()
+  FZtmp%qu = qq
+  allocate(FZtmp%next)
+  FZtmp => FZtmp%next
+  nullify(FZtmp%next)
+end do
+
+end subroutine QuaternionArraytonewlist_
 
 !--------------------------------------------------------------------------
 recursive function getListHead_(self, l) result(FZptr)

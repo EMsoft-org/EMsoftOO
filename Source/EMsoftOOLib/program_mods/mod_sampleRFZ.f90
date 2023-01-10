@@ -44,6 +44,7 @@ type, public :: sampleRFZNameListType
     integer(kind=irg) :: nsteps
     integer(kind=irg) :: gridtype
     integer(kind=irg) :: norientations
+    integer(kind=irg) :: seed
     real(kind=dbl)    :: qFZ(4)
     real(kind=dbl)    :: axFZ(4)
     real(kind=dbl)    :: rodrigues(4)
@@ -126,7 +127,7 @@ logical,OPTIONAL,INTENT(IN)        :: initonly
 
 logical                            :: skipread = .FALSE.
 
-integer(kind=irg)                  :: pgnum, nsteps, gridtype, norientations
+integer(kind=irg)                  :: pgnum, nsteps, gridtype, norientations, seed
 real(kind=dbl)                     :: rodrigues(4), qFZ(4), axFZ(4), maxmisor, conevector(3), semiconeangle
 character(6)                       :: SO3cover
 character(fnlen)                   :: samplemode
@@ -144,13 +145,14 @@ character(fnlen)                   :: stoutname
 ! namelist components
 namelist / RFZlist / pgnum, nsteps, gridtype, euoutname, cuoutname, hooutname, rooutname, quoutname, omoutname, axoutname, &
                      samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname, &
-                     norientations, SO3cover
+                     norientations, SO3cover, seed
 
 ! initialize to default values
 pgnum = 32
 nsteps = 50
 gridtype = 0
 norientations = 100000
+seed = 1234
 rodrigues = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)  ! initialize as the identity rotation
 qFZ= (/ 1.D0, 0.D0, 0.D0, 0.D0 /)         ! initialize as the identity rotation
 axFZ= (/ 0.D0, 0.D0, 1.D0, 0.D0 /)        ! initialize as the identity rotation
@@ -187,6 +189,7 @@ self%nml%pgnum  = pgnum
 self%nml%nsteps = nsteps
 self%nml%gridtype = gridtype
 self%nml%norientations = norientations
+self%nml%seed = seed  
 self%nml%rodrigues = rodrigues
 self%nml%qFZ = qFZ
 self%nml%axFZ = axFZ
@@ -260,6 +263,7 @@ use mod_global
 use mod_EMsoft
 use mod_crystallography
 use mod_quaternions
+use mod_dirstats
 use mod_io
 use mod_symmetry
 use mod_rotations
@@ -275,14 +279,17 @@ type(sampleRFZNameListType)        :: rfznl
 type(IO_T)                         :: Message
 type(SpaceGroup_T)                 :: SG
 type(Cell_T)                       :: cell
-type(q_T)                          :: qFZ
+type(q_T)                          :: qFZ, q
 type(a_T)                          :: a
 type(r_T)                          :: r
 type(so3_T)                        :: SO
 type(CliffordTorus_T)              :: CT
+type(DirStat_T)                    :: DS
+type(Quaternion_T)                 :: mu
+type(QuaternionArray_T)            :: qAR
 
 integer(kind=irg)                  :: i, j, num, m, io_int(1), FZcnt, FZtype, FZorder
-real(kind=dbl)                     :: ax(4), calpha, conevector(3), x, &
+real(kind=dbl)                     :: ax(4), calpha, conevector(3), x, kappa, &
                                       h, k, l, ih, ik, il, idiff, eps = 0.0001D0
 real(kind=dbl),allocatable         :: itmp(:,:)
 logical                            :: doeu = .FALSE., docu = .FALSE., doho = .FALSE., doqu = .FALSE., dorv = .FALSE., &
@@ -434,6 +441,37 @@ if (trim(rfznl%samplemode).eq.'UNI') then
   io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of uniform linear orientations requested = ',io_int,1,"(I10)")
   listmode = 'UN'
+end if
+if (trim(rfznl%samplemode).eq.'vMF') then
+  write (*,*) 'performing von Mises-Fisher sampling'
+  DS = DirStat_T( DStype='VMF', PGnum=rfznl%pgnum )
+  r = r_T( rdinp=rfznl%rodrigues )
+  q = r%rq()
+  mu = Quaternion_T( qd = q%q_copyd() )
+  kappa =  1.D0/ ( 1.D0 - cos( rfznl%maxmisor * dtor ) )
+  write (*,*) ' kappa, mu ', kappa 
+  call mu%quat_print()
+  qAR = DS%SampleDS( rfznl%norientations, rfznl%seed, mu, kappa )
+  call SO%setFZcnt( rfznl%norientations, 'FZ' )
+  call SO%QuaternionArraytonewlist( qAR, 'FZ')
+  io_int(1) = rfznl%norientations
+  call Message%WriteValue('Number of von Mises-Fisher orientations requested = ',io_int,1,"(I10)")
+  listmode = 'FZ'
+end if
+if (trim(rfznl%samplemode).eq.'WAT') then
+  write (*,*) 'performing Watson sampling'
+  DS = DirStat_T( DStype='WAT', PGnum=rfznl%pgnum )
+  r = r_T( rdinp=rfznl%rodrigues )
+  q = r%rq()
+  mu = Quaternion_T( qd = q%q_copyd() )
+  kappa =  1.D0/ ( 1.D0 - cos( rfznl%maxmisor * dtor ) )
+  write (*,*) ' kappa, mu ', kappa 
+  call mu%quat_print()
+  qAR = DS%SampleDS( rfznl%norientations, rfznl%seed, mu, kappa )
+  call SO%QuaternionArraytonewlist( qAR, 'FZ')
+  io_int(1) = rfznl%norientations
+  call Message%WriteValue('Number of Watson orientations requested = ',io_int,1,"(I10)")
+  listmode = 'FZ'
 end if
 
 FZcnt = SO%getListCount(listmode)

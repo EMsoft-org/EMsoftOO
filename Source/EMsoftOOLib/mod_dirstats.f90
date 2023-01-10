@@ -530,7 +530,7 @@ use mod_quaternions
 
 IMPLICIT NONE
 
-class(DirStat_T), INTENT(INOUT)      :: self
+class(DirStat_T), INTENT(INOUT)   :: self
 integer(kind=irg),INTENT(IN)      :: N
  !! number of samples to return
 integer(kind=irg),INTENT(INOUT)   :: seed

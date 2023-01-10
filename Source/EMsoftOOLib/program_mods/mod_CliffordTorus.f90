@@ -1142,7 +1142,7 @@ if (trim(self%nml%zpfile).ne.'undefined') then
   allocate(TIFF_image(num,num))
   do j=1,num
    do i=1,num
-    TIFF_image(i,j) = int(h(w+i,w+j))
+    TIFF_image(i,num+1-j) = int(h(w+i,w+j))
    end do
   end do
 
@@ -1180,7 +1180,7 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
   allocate(TIFF_image(num,num))
   do j=1,num
    do i=1,num
-    TIFF_image(i,j) = int(h2(w+i,w+j))
+    TIFF_image(i,num+1-j) = int(h2(w+i,w+j))
    end do
   end do
 
