@@ -121,11 +121,12 @@ module mod_rotations
   !!
   !!     use mod_rotations
   !!
-  !!     type(r_T)        :: r     ! define a Rodrigues vector
-  !!     type(q_T)        :: q     ! define a quaternion
-  !!     type(a_T)        :: a     ! define an axis-angle pair
+  !!     type(r_T)            :: r     ! define a Rodrigues vector
+  !!     type(q_T)            :: q     ! define a quaternion
+  !!     type(a_T)            :: a     ! define an axis-angle pair
+  !!     type(Orientation_T)  :: oo    ! orientation structure
   !!
-  !!     real(kind=dbl)   :: x =  1.D0/dsqrt(3.D0)    ! auxiliary parameter
+  !!     real(kind=dbl)       :: x =  1.D0/dsqrt(3.D0)    ! auxiliary parameter
   !!
   !!     ! set the computational precision to Double
   !!     call setRotationPrecision('Double')
