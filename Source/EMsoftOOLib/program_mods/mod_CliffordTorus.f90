@@ -1024,6 +1024,7 @@ recursive subroutine makeSquareTorus_(self, num, w, cnt, xx, yy, offset, qu, h, 
 
 use mod_rotations
 use mod_io
+use omp_lib
 
 class(CliffordTorus_T),INTENT(INOUT)    :: self
 integer(kind=irg),INTENT(IN)            :: num
@@ -1040,9 +1041,10 @@ character(4),INTENT(IN)                 :: XYZ
 type(q_T)                               :: q
 type(IO_T)                              :: Message 
 
-integer(kind=irg)                       :: i, j, k, nn, ixx, iyy, px, py, io_int(1)  
+integer(kind=irg)                       :: i, j, k, nn, ixx, iyy, px, py, io_int(2), nthreads, TID  
 real(kind=dbl)                          :: ss, kk, dx, dy, zx, ee, XY(2), z1(cnt), z2(cnt)
 real(kind=dbl),parameter                :: s2 = 1.D0/sqrt(2.D0), r(4) = (/ s2, 0.D0, s2, 0.D0 /)
+real(kind=dbl),allocatable              :: hlocal(:,:), h2local(:,:)
 
 nn = self%nml%n
 ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
@@ -1061,9 +1063,21 @@ z1 = z1*dble(nn)/cPi
 z2 = z2*dble(nn)/cPi
 
 call Message%printMessage('  - adding orientations to zone plate '//XYZ)
-! and fill the h array to obtain the zone plate
-h = 0.D0
-h2 = 0.D0
+! and fill the h arrays to obtain the zone plate; we'll use parallel threads to do this...
+nthreads = OMP_GET_MAX_THREADS() 
+call OMP_SET_NUM_THREADS(nthreads)
+io_int(1) = nthreads
+call Message%WriteValue(' number of threads : ', io_int, 1)
+
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(hlocal, h2local, i, j, k, ixx, iyy, dx, dy, zx, px, py, ee, io_int, TID)
+
+TID = OMP_GET_THREAD_NUM()
+
+allocate( hlocal(num+2*w,num+2*w), h2local(num+2*w,num+2*w) )
+hlocal = 0.D0
+h2local = 0.D0
+
+!$OMP DO SCHEDULE(DYNAMIC)
 do i=1,cnt 
   ixx = int(z1(i))
   iyy = int(z2(i))
@@ -1076,16 +1090,24 @@ do i=1,cnt
     do j=1,2*w+1
       do k=1,2*w+1
         ee = exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
-        h(px+j,py+k) = h(px+j,py+k) + zx * ee
-        h2(px+j,py+k) = h2(px+j,py+k) + ee
+        hlocal(px+j,py+k) = hlocal(px+j,py+k) + zx * ee
+        h2local(px+j,py+k) = h2local(px+j,py+k) + ee
       end do 
     end do 
   end if 
   if (mod(i,1000000).eq.0) then 
     io_int(1) = i
-    call Message%WriteValue('  - current orientation # ', io_int, 1)
+    io_int(2) = TID
+    call Message%WriteValue('  - current orientation #, TID ', io_int, 2)
   end if 
 end do 
+
+!$OMP CRITICAL
+h = h + hlocal
+h2 = h2 + h2local
+!$OMP END CRITICAL
+
+!$OMP END PARALLEL
 
 end subroutine makeSquareTorus_
 
