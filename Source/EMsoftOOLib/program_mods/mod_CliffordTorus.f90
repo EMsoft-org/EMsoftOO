@@ -906,9 +906,9 @@ if (FZtype.ne.1) then
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
   ! project this point onto the Clifford Torus
       q = ro%rq()
-      qu = self%projectqtoCT_( q )
+      qu = self%projectqtoCT_( q, XYZ )
   ! convert to Square Torus coordinates
-      XY = self%convertqtoSquareTorus_( qu, XYZ )
+      XY = self%convertqtoSquareTorus_( qu, 'XZ_Y')
   ! and draw this point on the zone plate 
       intXY = nint( XY * scl )
       TIFF_image( offset+intXY(1), offset+intXY(2) ) = -1_int8
@@ -926,9 +926,9 @@ if (FZtype.ne.1) then
         ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
   ! project this point onto the Clifford Torus
         q = ro%rq()
-        qu = self%projectqtoCT_( q )
+        qu = self%projectqtoCT_( q, XYZ )
   ! convert to Square Torus coordinates
-        XY = self%convertqtoSquareTorus_( qu, XYZ )
+        XY = self%convertqtoSquareTorus_( qu, 'XZ_Y' )
   ! and draw this point on the zone plate 
         intXY = nint( XY * scl )
         TIFF_image( offset+intXY(1), offset+intXY(2) ) = -1_int8
@@ -942,7 +942,7 @@ end if
 end subroutine overlayRFZ_
 
 !--------------------------------------------------------------------------
-recursive function projectqtoCT_(self, q) result(qout)
+recursive function projectqtoCT_(self, q, XYZ) result(qout)
 !DEC$ ATTRIBUTES DLLEXPORT :: projectqtoCT_
   !! author: MDG
   !! version: 1.0
@@ -954,6 +954,7 @@ use mod_rotations
 
 class(CliffordTorus_T),INTENT(INOUT)    :: self
 type(q_T),INTENT(INOUT)                 :: q  
+character(4),INTENT(IN)                 :: XYZ
 type(q_T)                               :: qout
 
 real(kind=dbl),parameter                :: s2 = 1.D0/sqrt(2.D0)
@@ -961,20 +962,53 @@ real(kind=dbl)                          :: x(4), d, d1, d2
 
 call setRotationPrecision('Double')
 
-x = q%q_copyd()
-d = sqrt(x(1)**2+x(2)**2)
-if (d.eq.0.D0) then
-  d1 = 1.D0 
-else 
-  d1 = 1.D0/d
-end if 
-d = sqrt(x(3)**2+x(4)**2)
-if (d.eq.0.D0) then
-  d2 = 1.D0 
-else 
-  d2 = 1.D0/d
-end if 
-qout = q_T( qdinp = (/ x(1)*d1, x(2)*d1, x(3)*d2, x(4)*d2 /) * s2 )
+select case(XYZ)
+  case('XZ_Y')
+    x = q%q_copyd()
+    d = sqrt(x(1)**2+x(2)**2)
+    if (d.eq.0.D0) then
+      d1 = 1.D0 
+    else 
+      d1 = 1.D0/d
+    end if 
+    d = sqrt(x(3)**2+x(4)**2)
+    if (d.eq.0.D0) then
+      d2 = 1.D0 
+    else 
+      d2 = 1.D0/d
+    end if 
+    qout = q_T( qdinp = (/ x(1)*d1, x(2)*d1, x(3)*d2, x(4)*d2 /) * s2 )
+  case('YX_Z')
+    x = q%q_copyd()
+    d = sqrt(x(1)**2+x(3)**2)
+    if (d.eq.0.D0) then
+      d1 = 1.D0 
+    else 
+      d1 = 1.D0/d
+    end if 
+    d = sqrt(x(2)**2+x(4)**2)
+    if (d.eq.0.D0) then
+      d2 = 1.D0 
+    else 
+      d2 = 1.D0/d
+    end if 
+    qout = q_T( qdinp = (/ x(1)*d1, x(3)*d1, x(4)*d2, x(2)*d2 /) * s2 )
+  case('ZY_X')
+    x = q%q_copyd()
+    d = sqrt(x(1)**2+x(4)**2)
+    if (d.eq.0.D0) then
+      d1 = 1.D0 
+    else 
+      d1 = 1.D0/d
+    end if 
+    d = sqrt(x(2)**2+x(3)**2)
+    if (d.eq.0.D0) then
+      d2 = 1.D0 
+    else 
+      d2 = 1.D0/d
+    end if 
+    qout = q_T( qdinp = (/ x(1)*d1, x(4)*d1, x(2)*d2, x(3)*d2 /) * s2 )
+end select 
 
 end function projectqtoCT_
 
@@ -1014,7 +1048,7 @@ end select
 end function convertqtoSquareTorus_
 
 !--------------------------------------------------------------------------
-recursive subroutine makeSquareTorus_(self, num, w, cnt, xx, yy, offset, qu, h, h2, XYZ) 
+recursive subroutine makeSquareTorus_(self, num, w, cnt, xx, yy, offset, qu, h, h2) !, XYZ) 
 !DEC$ ATTRIBUTES DLLEXPORT :: makeSquareTorus_
   !! author: MDG
   !! version: 1.0
@@ -1036,7 +1070,7 @@ integer(kind=irg),INTENT(IN)            :: offset
 real(kind=dbl),INTENT(IN)               :: qu(4,cnt)
 real(kind=dbl),INTENT(INOUT)            :: h(num+2*w,num+2*w)
 real(kind=dbl),INTENT(INOUT)            :: h2(num+2*w,num+2*w)
-character(4),INTENT(IN)                 :: XYZ
+! character(4),INTENT(IN)                 :: XYZ
 
 type(q_T)                               :: q
 type(IO_T)                              :: Message 
@@ -1053,7 +1087,7 @@ kk = 40.D0 * dble(self%nml%n) / 500.D0
 ! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
 do i=1,cnt 
   q = q_T( qdinp=qu(1:4,i) )
-  XY = self%convertqtoSquareTorus_( q, XYZ)
+  XY = self%convertqtoSquareTorus_( q, 'XZ_Y')
   z1(i) = XY(1)
   z2(i) = XY(2)
 end do 
@@ -1062,9 +1096,9 @@ end do
 z1 = z1*dble(nn)/cPi
 z2 = z2*dble(nn)/cPi
 
-call Message%printMessage('  - adding orientations to zone plate '//XYZ)
+call Message%printMessage('  - adding orientations to zone plate ')
 ! and fill the h arrays to obtain the zone plate; we'll use parallel threads to do this...
-nthreads = OMP_GET_MAX_THREADS() 
+nthreads = OMP_GET_MAX_THREADS()/2   ! use half of the threads to prevent slow downs
 call OMP_SET_NUM_THREADS(nthreads)
 io_int(1) = nthreads
 call Message%WriteValue(' number of threads : ', io_int, 1)
@@ -1260,15 +1294,11 @@ select case(listmode)
     cnt = SO%getListCount('FZ')
 end select
 
+! save the head pointer
+FZviz => FZtmp
+
 ! qu will hold all the orientation quaternions projected onto the Clifford torus
 allocate(qu(4,cnt))
-
-call Message%printMessage('  - projecting quaternions onto Clifford Torus')
-do i=1,cnt
-  q = self%projectqtoCT_( FZtmp%qu ) 
-  qu(1:4,i) = q%q_copyd()
-  FZtmp => FZtmp%next 
-end do 
 
 ! do we need to export the raw data to an HDF5 file ?
 if (trim(self%nml%hdffile).ne.'undefined') then 
@@ -1294,8 +1324,14 @@ do i=1,2*w+1
 end do 
 
 ! first the standard (X,Z_Y) projection
+call Message%printMessage('  - projecting quaternions onto Clifford Torus (X,Z_Y)')
+do i=1,cnt
+  q = self%projectqtoCT_( FZtmp%qu, 'XZ_Y' ) 
+  qu(1:4,i) = q%q_copyd()
+  FZtmp => FZtmp%next 
+end do 
 call Message%printMessage('  - projecting Clifford Torus onto Square Torus (X,Z_Y)')
-call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 'XZ_Y')
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2)!, 'XZ_Y')
 
 ! do we need to export the raw data to an HDF5 file ?
 if (trim(self%nml%hdffile).ne.'undefined') then 
@@ -1321,8 +1357,15 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
 end if
 
 ! then the (Y,X_Z) projection
+FZtmp => FZviz
+call Message%printMessage('  - projecting quaternions onto Clifford Torus (Y,X_Z)')
+do i=1,cnt
+  q = self%projectqtoCT_( FZtmp%qu, 'YX_Z' ) 
+  qu(1:4,i) = q%q_copyd()
+  FZtmp => FZtmp%next 
+end do 
 call Message%printMessage('  - projecting Clifford Torus onto Square Torus (Y,X_Z)')
-call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 'YX_Z')
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2) ! , 'YX_Z')
 
 ! do we need to export the raw data to an HDF5 file ?
 if (trim(self%nml%hdffile).ne.'undefined') then 
@@ -1348,8 +1391,15 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
 end if
 
 ! and finally the (Z,Y_X) projection
+FZtmp => FZviz
+call Message%printMessage('  - projecting quaternions onto Clifford Torus (Z,Y_X)')
+do i=1,cnt
+  q = self%projectqtoCT_( FZtmp%qu, 'ZY_X' ) 
+  qu(1:4,i) = q%q_copyd()
+  FZtmp => FZtmp%next 
+end do 
 call Message%printMessage('  - projecting Clifford Torus onto Square Torus (Z,Y_X)')
-call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 'ZY_X')
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2) ! , 'ZY_X')
 
 ! do we need to export the raw data to an HDF5 file ?
 if (trim(self%nml%hdffile).ne.'undefined') then 
