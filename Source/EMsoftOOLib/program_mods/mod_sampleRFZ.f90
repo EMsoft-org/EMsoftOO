@@ -187,9 +187,10 @@ end if
 
 if (.not.skipread) then
 ! read the namelist file
-open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
-read(UNIT=dataunit,NML=RFZlist)
-close(UNIT=dataunit,STATUS='keep')
+  open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
+  read(UNIT=dataunit,NML=RFZlist)
+  close(UNIT=dataunit,STATUS='keep')
+
 end if
 
 ! and copy the variables to the namelist variable
@@ -438,6 +439,10 @@ if (trim(rfznl%samplemode).eq.'FIB') then
   write(*,*) 'fiber axis unit vector   = ', conevector
   write(*,*) 'fiber cone semi opening angle = ', rfznl%semiconeangle
   calpha = cos(rfznl%semiconeangle*dtor)
+  write (*,*) num, calpha, rfznl%nsteps
+  do i=1,num
+    write (*,*) i,' -> ', itmp(i,1:3)
+  end do
   call SO%sample_Fiber(itmp, num, calpha, rfznl%nsteps)
   listmode = 'FB'
 end if
@@ -518,7 +523,7 @@ if (trim(rfznl%samplemode).eq.'TXC') then
     om(1:3,1) = cbvec(1:3)
     om(1:3,2) = t(1:3)
     om(1:3,3) = cnvec(1:3)
-    o = o_T( odinp = transpose(om) )
+    o = o_T( odinp = om )
     call o%o_print(' om ')
     q = o%oq()
     mu = Quaternion_T( qd = q%q_copyd() )

@@ -2618,7 +2618,7 @@ select case (prot)
                 Pm(1:4,1) = SYM_Qsymop(1:4,1)
                 Nqsym = 6
                 do i=25,29
-                  Pm(1:4,i-24) = SYM_Qsymop(1:4,i)
+                  Pm(1:4,i-23) = SYM_Qsymop(1:4,i)
                 end do
 
         case(24)        ! 622
@@ -2626,7 +2626,7 @@ select case (prot)
                 Pm(1:4,1) = SYM_Qsymop(1:4,1)
                 Nqsym = 12
                 do i=25,35
-                  Pm(1:4,i-24) = SYM_Qsymop(1:4,i)
+                  Pm(1:4,i-23) = SYM_Qsymop(1:4,i)
                 end do
 
         case(28)        ! 23

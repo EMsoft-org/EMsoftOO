@@ -6236,7 +6236,11 @@ end if
 
 if (doTmatrix.eqv..TRUE.) then 
   Tmat = matmul(qlist,transpose(qlist))/real(numq)
-
+  write (*,*) 'T-matrix'
+  do i=1,4 
+    write (*,*) Tmat(i,1:4)
+  end do 
+  
 ! set some initial LAPACK variables 
   nn = 4
   LDA = nn

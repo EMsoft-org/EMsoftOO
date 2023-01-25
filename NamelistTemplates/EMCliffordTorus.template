@@ -27,8 +27,8 @@
  doRiesz = 0,
 ! size of the output image (2n+1 x 2n+1)
  n = 500,
-! square torus image file
+! square torus tiff image file (relative to EMdatapathname, WITHOUT EXTENSION!!!)
  sqtfile = 'undefined',
-! zone plate image file
+! zone plate tiff image file (relative to EMdatapathname, WITHOUT EXTENSION!!!)
  zpfile = 'undefined',
  /

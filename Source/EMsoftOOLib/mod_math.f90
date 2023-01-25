@@ -2661,6 +2661,56 @@ write (*,"(/)")
 
 end subroutine
 
+
+!--------------------------------------------------------------------------
+!
+! FUNCTION: point_inside_cylinder
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief  determines whether or not a point lies inside or outside a cylinder 
+!>         with arbitrary orientation
+!
+!> @details based on https://www.flipcode.com/archives/Fast_Point-In-Cylinder_Test.shtml
+!
+!> @param p1 coordinates of first cap center
+!> @param p2 coordinates of second cap center
+!> @param lsq precomputed cylinder length squared
+!> @param rsp precomputed cylinder radius squared
+!> @param testpt coordinates of test point
+!
+!> @date 1/22/23   MDG 1.0 original
+!--------------------------------------------------------------------------
+recursive function point_inside_cylinder(p1,p2,lsq,rsq,testpt) result(dsq)
+!DEC$ ATTRIBUTES DLLEXPORT :: point_inside_cylinder
+
+IMPLICIT NONE
+
+real(kind=dbl),INTENT(IN)       :: p1(3)
+real(kind=dbl),INTENT(IN)       :: p2(3)
+real(kind=dbl),INTENT(IN)       :: lsq
+real(kind=dbl),INTENT(IN)       :: rsq
+real(kind=dbl),INTENT(IN)       :: testpt(3)
+real(kind=dbl)                  :: dsq
+
+real(kind=dbl)                  :: d(3), pd(3), dot
+
+d = p2 - p1
+pd = testpt - p1 
+dot = sum( d * pd )
+
+! test for the endcaps first and exit if test fails
+if ((dot.lt.0.D0).or.(dot.gt.lsq)) then 
+  dsq = -1.D0 
+else ! then check the distance from the test point to the cylinder axis
+  dsq = sum( pd * pd ) - dot*dot/lsq
+  if (dsq.gt.rsq) then 
+    dsq = -1.D0 
+  end if
+end if 
+
+end function point_inside_cylinder
+
 !--------------------------------------------------------------------------
 !
 ! FUNCTION: point_inside_triangle

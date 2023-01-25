@@ -1563,7 +1563,7 @@ do while (x.lt.s)
       cu = c_T( cdinp = (/ x, y, z /) )
       q = cu%cq()
       rod = cu%cr()
-      qu = conjg( quaternion_T( qd = rod%r_copyd() ) )
+      qu = conjg( quaternion_T( qd = q%q_copyd() ) )
 
 ! loop over the equivalent fiber axis indices
       do j=1,num
@@ -1586,6 +1586,8 @@ do while (x.lt.s)
  end do
  x = x + delta
 end do
+
+write (*,*) ' number of orientations generated : ', self%FBcnt
 
 end subroutine sample_Fiber_
 

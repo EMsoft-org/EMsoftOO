@@ -36,6 +36,7 @@ program EMlistTC
 use mod_kinds
 use mod_global
 use mod_EMsoft
+use mod_HDFsupport
 use mod_symmetry
 use mod_io
 use mod_crystallography
@@ -69,6 +70,8 @@ integer(kind=irg), allocatable :: ortho(:,:)
 
 ! print some information
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 916 /) )
+
+call openFortranHDFInterface() 
 
 ! ask for the crystal structure file
 call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")

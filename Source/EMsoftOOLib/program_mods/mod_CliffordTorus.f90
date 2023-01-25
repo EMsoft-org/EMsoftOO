@@ -48,6 +48,7 @@ type, public :: CliffordTorusNameListType
   integer(kind=irg)       :: doRiesz
   integer(kind=irg)       :: n
   integer(kind=irg)       :: pgnum
+  character(fnlen)        :: hdffile
   character(fnlen)        :: anglefile
   character(fnlen)        :: sqtfile
   character(fnlen)        :: zpfile 
@@ -89,7 +90,9 @@ private
   procedure, pass(self) :: projectqtoCT_
   procedure, pass(self) :: convertqtoSquareTorus_
   procedure, pass(self) :: overlayRFZ_
+  procedure, pass(self) :: makeSquareTorus_
   procedure, pass(self) :: createZonePlate_
+  procedure, pass(self) :: generateTIFFfile_
   procedure, pass(self) :: computeRieszEnergy_
 
   generic, public :: getNameList => getNameList_
@@ -121,6 +124,8 @@ private
   generic, public :: convertqtoSquareTorus => convertqtoSquareTorus_
   generic, public :: createZonePlate => createZonePlate_
   generic, public :: overlayRFZ => overlayRFZ_
+  generic, public :: makeSquareTorus => makeSquareTorus_
+  generic, public :: generateTIFFfile => generateTIFFfile_
   generic, public :: computeRieszEnergy => computeRieszEnergy_ 
 
 end type CliffordTorus_T
@@ -196,12 +201,13 @@ integer(kind=irg)       :: logarithmic
 integer(kind=irg)       :: doRiesz
 integer(kind=irg)       :: n
 integer(kind=irg)       :: pgnum
+character(fnlen)        :: hdffile
 character(fnlen)        :: anglefile
 character(fnlen)        :: sqtfile
 character(fnlen)        :: zpfile 
 
 namelist  / CliffordTorus / reducetoRFZ, symmetrize, shownegativeq0, n, pgnum, anglefile, sqtfile, &
-                            zpfile, doRiesz, overlayRFZ, logarithmic
+                            zpfile, doRiesz, overlayRFZ, logarithmic, hdffile
 
 ! set the input parameters to default values
 anglefile = 'undefined' 
@@ -213,6 +219,7 @@ logarithmic = 0
 doRiesz = 0
 n = 500
 pgnum = 32
+hdffile = 'undefined'
 sqtfile = 'undefined'
 zpfile = 'undefined'
 
@@ -237,6 +244,7 @@ if (.not.skipread) then
  end if
 
 self%nml%anglefile = anglefile
+self%nml%hdffile = hdffile
 self%nml%reducetoRFZ = reducetoRFZ
 self%nml%overlayRFZ = overlayRFZ
 self%nml%symmetrize = symmetrize
@@ -796,7 +804,7 @@ write (*,"('Riesz ratio   : ',3(F25.20,A1))") eu(1),' ',eu(2),' ',eu(3)
 end subroutine computeRieszEnergy_
 
 !--------------------------------------------------------------------------
-recursive subroutine overlayRFZ_(self, SO, num, TIFF_image)
+recursive subroutine overlayRFZ_(self, SO, num, XYZ, TIFF_image)
 !DEC$ ATTRIBUTES DLLEXPORT :: overlayRFZ_
   !! author: MDG
   !! version: 1.0
@@ -815,6 +823,7 @@ IMPLICIT NONE
 
 class(CliffordTorus_T),INTENT(INOUT)    :: self
 type(so3_T),INTENT(INOUT)               :: SO
+character(4),INTENT(IN)                 :: XYZ
 integer(kind=irg),INTENT(IN)            :: num
 integer(int8),INTENT(INOUT)             :: TIFF_image(num,num)
 
@@ -899,7 +908,7 @@ if (FZtype.ne.1) then
       q = ro%rq()
       qu = self%projectqtoCT_( q )
   ! convert to Square Torus coordinates
-      XY = self%convertqtoSquareTorus_( qu )
+      XY = self%convertqtoSquareTorus_( qu, XYZ )
   ! and draw this point on the zone plate 
       intXY = nint( XY * scl )
       TIFF_image( offset+intXY(1), offset+intXY(2) ) = -1_int8
@@ -919,7 +928,7 @@ if (FZtype.ne.1) then
         q = ro%rq()
         qu = self%projectqtoCT_( q )
   ! convert to Square Torus coordinates
-        XY = self%convertqtoSquareTorus_( qu )
+        XY = self%convertqtoSquareTorus_( qu, XYZ )
   ! and draw this point on the zone plate 
         intXY = nint( XY * scl )
         TIFF_image( offset+intXY(1), offset+intXY(2) ) = -1_int8
@@ -970,7 +979,7 @@ qout = q_T( qdinp = (/ x(1)*d1, x(2)*d1, x(3)*d2, x(4)*d2 /) * s2 )
 end function projectqtoCT_
 
 !--------------------------------------------------------------------------
-recursive function convertqtoSquareTorus_(self, q) result(XY)
+recursive function convertqtoSquareTorus_(self, q, XYZ) result(XY)
 !DEC$ ATTRIBUTES DLLEXPORT :: convertqtoSquareTorus_
   !! author: MDG
   !! version: 1.0
@@ -982,16 +991,180 @@ use mod_rotations
 
 class(CliffordTorus_T),INTENT(INOUT)    :: self
 type(q_T),INTENT(INOUT)                 :: q  
+character(4),INTENT(IN)                 :: XYZ
 real(kind=dbl)                          :: XY(2)
 
 real(kind=dbl)                          :: qu(4)
 
 qu = q%q_copyd()
 
-XY(1) = atan2(qu(2), qu(1))
-XY(2) = atan2(qu(4), qu(3))
+! which projection do we need ?
+select case(XYZ)
+  case('XZ_Y')
+    XY(1) = atan2(qu(2), qu(1))
+    XY(2) = atan2(qu(4), qu(3))
+  case('YX_Z')
+    XY(1) = atan2(qu(3), qu(1))
+    XY(2) = atan2(qu(2), qu(4))
+  case('ZY_X')
+    XY(1) = atan2(qu(4), qu(1))
+    XY(2) = atan2(qu(3), qu(2))
+end select
 
 end function convertqtoSquareTorus_
+
+!--------------------------------------------------------------------------
+recursive subroutine makeSquareTorus_(self, num, w, cnt, xx, yy, offset, qu, h, h2, XYZ) 
+!DEC$ ATTRIBUTES DLLEXPORT :: makeSquareTorus_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/02/23
+  !!
+  !! generate the zone plate and square torus intensity arrays
+
+use mod_rotations
+use mod_io
+
+class(CliffordTorus_T),INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)            :: num
+integer(kind=irg),INTENT(IN)            :: w
+integer(kind=irg),INTENT(IN)            :: cnt
+real(kind=dbl),INTENT(IN)               :: xx(2*w+1, 2*w+1)
+real(kind=dbl),INTENT(IN)               :: yy(2*w+1, 2*w+1)
+integer(kind=irg),INTENT(IN)            :: offset
+real(kind=dbl),INTENT(IN)               :: qu(4,cnt)
+real(kind=dbl),INTENT(INOUT)            :: h(num+2*w,num+2*w)
+real(kind=dbl),INTENT(INOUT)            :: h2(num+2*w,num+2*w)
+character(4),INTENT(IN)                 :: XYZ
+
+type(q_T)                               :: q
+type(IO_T)                              :: Message 
+
+integer(kind=irg)                       :: i, j, k, nn, ixx, iyy, px, py, io_int(1)  
+real(kind=dbl)                          :: ss, kk, dx, dy, zx, ee, XY(2), z1(cnt), z2(cnt)
+real(kind=dbl),parameter                :: s2 = 1.D0/sqrt(2.D0), r(4) = (/ s2, 0.D0, s2, 0.D0 /)
+
+nn = self%nml%n
+ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
+kk = 40.D0 * dble(self%nml%n) / 500.D0
+
+! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
+do i=1,cnt 
+  q = q_T( qdinp=qu(1:4,i) )
+  XY = self%convertqtoSquareTorus_( q, XYZ)
+  z1(i) = XY(1)
+  z2(i) = XY(2)
+end do 
+
+! rescale the arctangent coordinates to the output grid
+z1 = z1*dble(nn)/cPi
+z2 = z2*dble(nn)/cPi
+
+call Message%printMessage('  - adding orientations to zone plate '//XYZ)
+! and fill the h array to obtain the zone plate
+h = 0.D0
+h2 = 0.D0
+do i=1,cnt 
+  ixx = int(z1(i))
+  iyy = int(z2(i))
+  dx = z1(i) - dble(ixx)
+  dy = z2(i) - dble(iyy)
+  zx = 0.5D0 * (1.D0 + cos( kk * acos( sum( qu(1:4,i) * r(1:4) ))**2 ))
+  px = offset+ixx-w-1
+  py = offset+iyy-w-1 
+  if ((px.gt.0).and.(px.lt.num+2*w).and.(py.gt.0).and.(py.lt.num+2*w)) then
+    do j=1,2*w+1
+      do k=1,2*w+1
+        ee = exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
+        h(px+j,py+k) = h(px+j,py+k) + zx * ee
+        h2(px+j,py+k) = h2(px+j,py+k) + ee
+      end do 
+    end do 
+  end if 
+  if (mod(i,1000000).eq.0) then 
+    io_int(1) = i
+    call Message%WriteValue('  - current orientation # ', io_int, 1)
+  end if 
+end do 
+
+end subroutine makeSquareTorus_
+
+!--------------------------------------------------------------------------
+recursive subroutine generateTIFFfile_(self, EMsoft, SO, num, w, h, mode, XYZ) 
+!DEC$ ATTRIBUTES DLLEXPORT :: generateTIFFfile_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/02/23
+  !!
+  !! generate the zone plate and square torus TIFF files
+
+use mod_EMsoft
+use mod_image
+use ISO_C_BINDING
+use mod_io
+use mod_so3
+
+use, intrinsic :: iso_fortran_env
+
+class(CliffordTorus_T),INTENT(INOUT)    :: self
+type(EMsoft_T),INTENT(INOUT)            :: EMsoft
+type(so3_T),INTENT(INOUT)               :: SO
+integer(kind=irg),INTENT(IN)            :: num
+integer(kind=irg),INTENT(IN)            :: w
+real(kind=dbl),INTENT(INOUT)            :: h(num+2*w,num+2*w)
+character(*),INTENT(IN)                 :: mode
+character(4),INTENT(IN)                 :: XYZ
+
+type(IO_T)                              :: Message
+
+integer(kind=irg)                       :: i, j 
+character(fnlen)                        :: str, fname
+
+! declare variables for use in object oriented image module
+integer                                 :: iostat
+character(len=128)                      :: iomsg
+logical                                 :: isInteger
+type(image_t)                           :: im
+integer(int8)                           :: i8 (3,4)
+integer(int8), allocatable              :: TIFF_image(:,:)
+
+if (trim(mode).eq.'SQT') then 
+  str = trim(self%nml%sqtfile)//XYZ//'_SQT.tiff'
+else
+  str = trim(self%nml%zpfile)//XYZ//'_ZP.tiff'
+end if 
+
+h = h - minval(h)
+h = h / maxval(h)
+h = h * 255.D0
+
+allocate(TIFF_image(num,num))
+do j=1,num
+ do i=1,num
+  TIFF_image(i,num+1-j) = int(h(w+i,w+j))
+ end do
+end do
+
+if (self%nml%overlayRFZ.eq.1) then 
+  call self%overlayRFZ( SO, num, XYZ, TIFF_image )
+end if 
+
+fname = EMsoft%generateFilePath('EMdatapathname',str)
+
+! set up the image_t structure
+im = image_t(TIFF_image)
+if(im%empty()) call Message%printMessage("createZonePlate_","failed to convert array to image")
+
+! create the file
+call im%write(trim(fname), iostat, iomsg) ! format automatically detected from extension
+if(0.ne.iostat) then
+  call Message%printMessage("failed to write image to file : "//iomsg)
+else
+  call Message%printMessage(' - orientation zone plate written to '//trim(fname))
+end if
+deallocate(TIFF_image)
+
+end subroutine generateTIFFfile_
 
 !--------------------------------------------------------------------------
 recursive subroutine createZonePlate_(self, EMsoft, SO, listmode)
@@ -1007,12 +1180,10 @@ use mod_rotations
 use mod_EMsoft
 use h5im
 use h5lt
-use mod_image
-use ISO_C_BINDING
+use HDF5
+use mod_HDFsupport
 use mod_io
 use mod_so3
-
-use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE
 
@@ -1023,21 +1194,13 @@ character(2),INTENT(IN)         :: listmode
 
 type(q_T)                       :: q 
 type(IO_T)                      :: Message
+type(HDF_T)                     :: HDF
 
-integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, ixx, iyy, px, py, io_int(1)
+integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, io_int(1), hdferr
 type(FZpointd), pointer         :: FZtmp, FZviz
-real(kind=dbl),parameter        :: s2 = 1.D0/sqrt(2.D0), r(4) = (/ s2, 0.D0, s2, 0.D0 /)
-real(kind=dbl),allocatable      :: qu(:,:), z1(:), z2(:), h(:,:), h2(:,:), xx(:,:), yy(:,:), l(:), g(:,:)
+real(kind=dbl),allocatable      :: qu(:,:), h(:,:), h2(:,:), xx(:,:), yy(:,:), l(:), g(:,:)
 real(kind=dbl)                  :: x(4), d, d1, d2, dx, dy, ss, zx, ee, kk, logoffset 
-character(fnlen)                :: vizname, fname
-
-! declare variables for use in object oriented image module
-integer                         :: iostat
-character(len=128)              :: iomsg
-logical                         :: isInteger
-type(image_t)                   :: im
-integer(int8)                   :: i8 (3,4)
-integer(int8), allocatable      :: TIFF_image(:,:)
+character(fnlen)                :: vizname, fname, dataset, groupname 
 
 ! output image size
 nn = self%nml%n
@@ -1076,7 +1239,7 @@ select case(listmode)
 end select
 
 ! qu will hold all the orientation quaternions projected onto the Clifford torus
-allocate(qu(4,cnt), z1(cnt), z2(cnt))
+allocate(qu(4,cnt))
 
 call Message%printMessage('  - projecting quaternions onto Clifford Torus')
 do i=1,cnt
@@ -1085,16 +1248,17 @@ do i=1,cnt
   FZtmp => FZtmp%next 
 end do 
 
-call Message%printMessage('  - projecting Clifford Torus onto Square Torus')
-! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
-do i=1,cnt 
-  z1(i) = atan2(qu(2,i), qu(1,i))
-  z2(i) = atan2(qu(4,i), qu(3,i))
-end do 
+! do we need to export the raw data to an HDF5 file ?
+if (trim(self%nml%hdffile).ne.'undefined') then 
+  fname = EMsoft%generateFilePath('EMdatapathname',self%nml%hdffile)
+  call openFortranHDFInterface()
 
-! rescale the arctangent coordinates to the output grid
-z1 = z1*dble(nn)/cPi
-z2 = z2*dble(nn)/cPi
+  HDF = HDF_T()
+  hdferr = HDF%createFile( fname )
+
+  groupname = 'EMCliffordTorus'
+  hdferr = HDF%createGroup( groupname )
+end if
 
 ! allocate the main padded output arrays
 allocate( h(num+2*w,num+2*w), h2(num+2*w,num+2*w) )
@@ -1107,63 +1271,22 @@ do i=1,2*w+1
   xx(:,i) = l(:)
 end do 
 
-call Message%printMessage('  - adding orientations to zone plate')
-! and fill the h array to obtain the zone plate
-h = 0.D0
-do i=1,cnt 
-  ixx = int(z1(i))
-  iyy = int(z2(i))
-  dx = z1(i) - dble(ixx)
-  dy = z2(i) - dble(iyy)
-  zx = 0.5D0 * (1.D0 + cos( kk * acos( sum( qu(1:4,i) * r(1:4) ))**2 ))
-  px = offset+ixx-w-1
-  py = offset+iyy-w-1 
-  if ((px.gt.0).and.(px.lt.num+2*w).and.(py.gt.0).and.(py.lt.num+2*w)) then
-    do j=1,2*w+1
-      do k=1,2*w+1
-        ee = exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
-        h(px+j,py+k) = h(px+j,py+k) + zx * ee
-        h2(px+j,py+k) = h2(px+j,py+k) + ee
-      end do 
-    end do 
-  end if 
-  if (mod(i,1000000).eq.0) then 
-    io_int(1) = i
-    call Message%WriteValue('  - current orientation # ', io_int, 1)
-  end if 
-end do 
+! first the standard (X,Z_Y) projection
+call Message%printMessage('  - projecting Clifford Torus onto Square Torus (X,Z_Y)')
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 'XZ_Y')
 
-! and finally prepare for tiff output
+! do we need to export the raw data to an HDF5 file ?
+if (trim(self%nml%hdffile).ne.'undefined') then 
+  dataset = 'SquareTorusXZ_Y'
+  hdferr = HDF%writeDatasetDoubleArray( dataset, h2, num+2*w, num+2*w )
+
+  dataset = 'ZonePlateXZ_Y'
+  hdferr = HDF%writeDatasetDoubleArray( dataset, h, num+2*w, num+2*w )
+end if 
+
+! prepare tiff output
 if (trim(self%nml%zpfile).ne.'undefined') then
-  h = h-minval(h)
-  h = h / maxval(h)
-  h = h*255.D0
-
-  allocate(TIFF_image(num,num))
-  do j=1,num
-   do i=1,num
-    TIFF_image(i,num+1-j) = int(h(w+i,w+j))
-   end do
-  end do
-
-  if (self%nml%overlayRFZ.eq.1) then 
-    call self%overlayRFZ( SO, num, TIFF_image )
-  end if 
-
-  fname = EMsoft%generateFilePath('EMdatapathname',self%nml%zpfile)
-
-  ! set up the image_t structure
-  im = image_t(TIFF_image)
-  if(im%empty()) call Message%printMessage("createZonePlate_","failed to convert array to image")
-
-  ! create the file
-  call im%write(trim(fname), iostat, iomsg) ! format automatically detected from extension
-  if(0.ne.iostat) then
-    call Message%printMessage("failed to write image to file : "//iomsg)
-  else
-    call Message%printMessage(' - orientation zone plate written to '//trim(fname))
-  end if
-  deallocate(TIFF_image)
+  call self%generateTIFFfile_(EMsoft, SO, num, w, h, 'ZP', 'XZ_Y')
 end if 
 
 if (trim(self%nml%sqtfile).ne.'undefined') then
@@ -1172,36 +1295,66 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
     logoffset = (maxval(h2)-minval(h2))*0.2D0
     h2 = log10(h2+logoffset)
   end if 
+  call self%generateTIFFfile_(EMsoft, SO, num, w, h2, 'SQT', 'XZ_Y')
+end if
 
-  h2 = h2-minval(h2)
-  h2 = h2 / maxval(h2)
-  h2 = h2*255.D0
+! then the (Y,X_Z) projection
+call Message%printMessage('  - projecting Clifford Torus onto Square Torus (Y,X_Z)')
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 'YX_Z')
 
-  allocate(TIFF_image(num,num))
-  do j=1,num
-   do i=1,num
-    TIFF_image(i,num+1-j) = int(h2(w+i,w+j))
-   end do
-  end do
+! do we need to export the raw data to an HDF5 file ?
+if (trim(self%nml%hdffile).ne.'undefined') then 
+  dataset = 'SquareTorusYX_Z'
+  hdferr = HDF%writeDatasetDoubleArray( dataset, h2, num+2*w, num+2*w )
 
-  if (self%nml%overlayRFZ.eq.1) then 
-    call self%overlayRFZ( SO, num, TIFF_image )
+  dataset = 'ZonePlateYX_Z'
+  hdferr = HDF%writeDatasetDoubleArray( dataset, h, num+2*w, num+2*w )
+end if 
+
+! prepare tiff output
+if (trim(self%nml%zpfile).ne.'undefined') then
+  call self%generateTIFFfile_(EMsoft, SO, num, w, h, 'ZP', 'YX_Z')
+end if 
+
+if (trim(self%nml%sqtfile).ne.'undefined') then
+! logarithmic intensity scaling ?
+  if (self%nml%logarithmic.eq.1) then 
+    logoffset = (maxval(h2)-minval(h2))*0.2D0
+    h2 = log10(h2+logoffset)
   end if 
+  call self%generateTIFFfile_(EMsoft, SO, num, w, h2, 'SQT', 'YX_Z')
+end if
 
-  fname = EMsoft%generateFilePath('EMdatapathname',self%nml%sqtfile)
+! and finally the (Z,Y_X) projection
+call Message%printMessage('  - projecting Clifford Torus onto Square Torus (Z,Y_X)')
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 'ZY_X')
 
-  ! set up the image_t structure
-  im = image_t(TIFF_image)
-  if(im%empty()) call Message%printMessage("createZonePlate_","failed to convert array to image")
+! do we need to export the raw data to an HDF5 file ?
+if (trim(self%nml%hdffile).ne.'undefined') then 
+  dataset = 'SquareTorusZY_X'
+  hdferr = HDF%writeDatasetDoubleArray( dataset, h2, num+2*w, num+2*w )
 
-  ! create the file
-  call im%write(trim(fname), iostat, iomsg) ! format automatically detected from extension
-  if(0.ne.iostat) then
-    call Message%printMessage("failed to write image to file : "//iomsg)
-  else
-    call Message%printMessage(' - orientation square torus written to '//trim(fname))
-  end if
-  deallocate(TIFF_image)
+  dataset = 'ZonePlateZY_X'
+  hdferr = HDF%writeDatasetDoubleArray( dataset, h, num+2*w, num+2*w )
+end if 
+
+! prepare tiff output
+if (trim(self%nml%zpfile).ne.'undefined') then
+  call self%generateTIFFfile_(EMsoft, SO, num, w, h, 'ZP', 'ZY_X')
+end if 
+
+if (trim(self%nml%sqtfile).ne.'undefined') then
+! logarithmic intensity scaling ?
+  if (self%nml%logarithmic.eq.1) then 
+    logoffset = (maxval(h2)-minval(h2))*0.2D0
+    h2 = log10(h2+logoffset)
+  end if 
+  call self%generateTIFFfile_(EMsoft, SO, num, w, h2, 'SQT', 'ZY_X')
+end if
+
+if (trim(self%nml%hdffile).ne.'undefined') then 
+  call HDF%pop( .TRUE. )
+  call closeFortranHDFInterface()
 end if
 
 end subroutine createZonePlate_
