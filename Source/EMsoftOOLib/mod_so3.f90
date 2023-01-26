@@ -149,6 +149,7 @@ type, public :: FZpointd
   type(r_T)               :: trod      ! second Rodrigues-Frank vector; can be used for coordinate transformations
   type(q_T)               :: qu        ! quaternion are now used as default instead of the rodrigues vector
   integer(kind=irg)       :: gridpt(3) ! coordinates of grid point ! added on 06/19/18 by SS
+  real(kind=dbl)          :: weight    ! this allows for each orientation to have a weight factor ! 01/26/2023, MDG
   type(FZpointd),pointer  :: next      ! link to next point
 end type FZpointd
 
@@ -161,6 +162,7 @@ type, public :: so3_T
     integer(kind=irg)       :: MFZtype
     integer(kind=irg)       :: MFZorder
     logical                 :: doMK = .FALSE.
+    logical                 :: useweights = .FALSE.
     integer(kind=irg)       :: pgnum
     integer(kind=irg)       :: pgnum2
     integer(kind=irg)       :: gridtype
@@ -190,6 +192,7 @@ type, public :: so3_T
     procedure, pass(self) :: setFZcnt_
     procedure, pass(self) :: setMK_
     procedure, pass(self) :: getMK_
+    procedure, pass(self) :: getuseweights_
     procedure, pass(self) :: IsinsideFZ_
     procedure, pass(self) :: IsinsideMFZ_
     procedure, pass(self) :: insideCubicMFZ_
@@ -244,6 +247,7 @@ type, public :: so3_T
     generic, public :: setFZcnt => setFZcnt_
     generic, public :: setMK => setMK_
     generic, public :: getMK => getMK_
+    generic, public :: getuseweights => getuseweights_
     generic, public :: IsinsideFZ => IsinsideFZ_
     generic, public :: IsinsideMFZ => IsinsideMFZ_
     generic, public :: insideCubicMFZ => insideCubicMFZ_
@@ -668,6 +672,24 @@ logical                                   :: doMK
 doMK = self%doMK
 
 end function getMK_
+
+!--------------------------------------------------------------------------
+recursive function getuseweights_(self) result(useweights)
+!DEC$ ATTRIBUTES DLLEXPORT :: getuseweights_
+!! author: MDG
+!! version: 1.0
+!! date: 01/26/23
+!!
+!! get the useweights switch
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                :: self
+logical                                   :: useweights 
+
+useweights = self%useweights
+
+end function getuseweights_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -1882,6 +1904,11 @@ recursive subroutine getOrientationsfromFile_(self, filename, listN)
   !!
   !! read a list of orientations from a text file, optionally convert them to the
   !! Rodrigues or MacKenzie Fundamental Zone and insert them in a linked list
+  !!
+  !! this routine can take three different types of files:
+  !! filename.txt:  2 character representation, number of orientations, list of orientations
+  !! filename.wxt:  same as .txt, but each orientation has an additional weight factor
+  !! filename.ang or filename.ctf: EBSD vendor formatted files
 
 use mod_io
 
@@ -1908,7 +1935,7 @@ character(2)                            :: anglemode
 integer(kind=irg)                       :: numang, i, ipf_wd, ipf_ht, sz(2) 
 real(kind=sgl),allocatable              :: Eangles(:,:)
 real(kind=sgl)                          :: StepX, StepY
-real(kind=dbl)                          :: x3(3), x4(4), x9(9)
+real(kind=dbl)                          :: x3(3), x4(4), x9(9), w
 type(FZpointd),pointer                  :: FZtmp
 logical                                 :: fread
 
@@ -1917,7 +1944,12 @@ logical                                 :: fread
 ! if not, then maybe it is an .ang or .ctf file ?
 fread = .FALSE.
 
-if (index(trim(filename),'.txt').ne.0) then 
+self%useweights = .FALSE.
+if (index(trim(filename),'.wxt').ne.0) then 
+  self%useweights = .TRUE.
+end if 
+
+if ((index(trim(filename),'.txt').ne.0).or.(index(trim(filename),'.wxt').ne.0)) then 
 
   open(unit=53,file=trim(filename),status='old',action='read')
   read (53,*) anglemode
@@ -1934,7 +1966,13 @@ if (index(trim(filename),'.txt').ne.0) then
   select case(anglemode)
     case('eu') ! angles must be in degrees
       do i=1,numang
-        read (53,*) x3(1:3)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x3(1:3),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x3(1:3) 
+          FZtmp%weight = 1.D0 
+        end if 
         if (present(listN)) then 
           if (i.lt.listN) write (*,*) x3(1:3)
         end if 
@@ -1949,7 +1987,13 @@ if (index(trim(filename),'.txt').ne.0) then
       end do
     case('ro')
       do i=1,numang
-        read (53,*) x4(1:4)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x4(1:4),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x4(1:4) 
+          FZtmp%weight = 1.D0 
+        end if
         FZtmp%rod = r_T( rdinp = x4 )
         FZtmp%qu = FZtmp%rod%rq()
         self%FZcnt = self%FZcnt + 1
@@ -1959,7 +2003,13 @@ if (index(trim(filename),'.txt').ne.0) then
       end do
     case('qu')
       do i=1,numang
-        read (53,*) x4(1:4)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x4(1:4),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x4(1:4) 
+          FZtmp%weight = 1.D0 
+        end if
         q = q_T( qdinp = x4 )
         FZtmp%rod = q%qr()
         FZtmp%qu = q
@@ -1970,7 +2020,13 @@ if (index(trim(filename),'.txt').ne.0) then
       end do
     case('ax') ! angle must be in degrees
       do i=1,numang
-        read (53,*) x4(1:4)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x4(1:4),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x4(1:4) 
+          FZtmp%weight = 1.D0 
+        end if
         x4(4) = x4(4) * dtor
         a = a_T( adinp = x4 )
         FZtmp%rod = a%ar()
@@ -1982,7 +2038,13 @@ if (index(trim(filename),'.txt').ne.0) then
       end do
     case('ho')
       do i=1,numang
-        read (53,*) x3(1:3)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x3(1:3),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x3(1:3) 
+          FZtmp%weight = 1.D0 
+        end if
         h = h_T( hdinp = x3 )
         FZtmp%rod = h%hr()
         FZtmp%qu = h%hq()
@@ -1993,7 +2055,13 @@ if (index(trim(filename),'.txt').ne.0) then
       end do
     case('cu')
       do i=1,numang
-        read (53,*) x3(1:3)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x3(1:3),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x3(1:3) 
+          FZtmp%weight = 1.D0 
+        end if
         c = c_T( cdinp = x3 )
         FZtmp%rod = c%cr()
         FZtmp%qu = c%cq()
@@ -2004,7 +2072,13 @@ if (index(trim(filename),'.txt').ne.0) then
       end do
     case('st')
       do i=1,numang
-        read (53,*) x3(1:3)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x3(1:3),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x3(1:3) 
+          FZtmp%weight = 1.D0 
+        end if
         s = s_T( sdinp = x3 )
         FZtmp%rod = s%sr()
         FZtmp%qu = s%sq()
@@ -2015,7 +2089,13 @@ if (index(trim(filename),'.txt').ne.0) then
       end do
     case('om')
       do i=1,numang
-        read (53,*) x9(1:9)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x9(1:9),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x9(1:9) 
+          FZtmp%weight = 1.D0 
+        end if
         o = o_T( odinp = reshape( x9, (/3,3/) ) )
         FZtmp%rod = o%or()
         FZtmp%qu = o%oq()
@@ -2026,7 +2106,13 @@ if (index(trim(filename),'.txt').ne.0) then
       end do
     case('rv')
       do i=1,numang
-        read (53,*) x3(1:3)
+        if (self%useweights.eqv..TRUE.) then 
+          read (53,*) x3(1:3),w 
+          FZtmp%weight = w 
+        else
+          read (53,*) x3(1:3) 
+          FZtmp%weight = 1.D0 
+        end if
         v = v_T( vdinp = x3 )
         FZtmp%rod = v%vr()
         FZtmp%qu = v%vq()

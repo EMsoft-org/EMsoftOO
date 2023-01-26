@@ -1067,7 +1067,7 @@ integer(kind=irg),INTENT(IN)            :: cnt
 real(kind=dbl),INTENT(IN)               :: xx(2*w+1, 2*w+1)
 real(kind=dbl),INTENT(IN)               :: yy(2*w+1, 2*w+1)
 integer(kind=irg),INTENT(IN)            :: offset
-real(kind=dbl),INTENT(IN)               :: qu(4,cnt)
+real(kind=dbl),INTENT(IN)               :: qu(5,cnt)
 real(kind=dbl),INTENT(INOUT)            :: h(num+2*w,num+2*w)
 real(kind=dbl),INTENT(INOUT)            :: h2(num+2*w,num+2*w)
 ! character(4),INTENT(IN)                 :: XYZ
@@ -1098,7 +1098,7 @@ z2 = z2*dble(nn)/cPi
 
 call Message%printMessage('  - adding orientations to zone plate ')
 ! and fill the h arrays to obtain the zone plate; we'll use parallel threads to do this...
-nthreads = OMP_GET_MAX_THREADS()/2   ! use half of the threads to prevent slow downs
+nthreads = OMP_GET_MAX_THREADS()
 call OMP_SET_NUM_THREADS(nthreads)
 io_int(1) = nthreads
 call Message%WriteValue(' number of threads : ', io_int, 1)
@@ -1124,8 +1124,8 @@ do i=1,cnt
     do j=1,2*w+1
       do k=1,2*w+1
         ee = exp(-( (xx(j,k)-dx)**2 + (yy(j,k)-dy)**2 ) * ss )
-        hlocal(px+j,py+k) = hlocal(px+j,py+k) + zx * ee
-        h2local(px+j,py+k) = h2local(px+j,py+k) + ee
+        hlocal(px+j,py+k) = hlocal(px+j,py+k) + qu(5,i) * zx * ee
+        h2local(px+j,py+k) = h2local(px+j,py+k) + qu(5,i) * ee
       end do 
     end do 
   end if 
@@ -1298,7 +1298,8 @@ end select
 FZviz => FZtmp
 
 ! qu will hold all the orientation quaternions projected onto the Clifford torus
-allocate(qu(4,cnt))
+! the fifth entry holds the weight factor
+allocate(qu(5,cnt))
 
 ! do we need to export the raw data to an HDF5 file ?
 if (trim(self%nml%hdffile).ne.'undefined') then 
@@ -1328,6 +1329,7 @@ call Message%printMessage('  - projecting quaternions onto Clifford Torus (X,Z_Y
 do i=1,cnt
   q = self%projectqtoCT_( FZtmp%qu, 'XZ_Y' ) 
   qu(1:4,i) = q%q_copyd()
+  qu(5,i) = FZtmp%weight
   FZtmp => FZtmp%next 
 end do 
 call Message%printMessage('  - projecting Clifford Torus onto Square Torus (X,Z_Y)')
@@ -1365,6 +1367,8 @@ do i=1,cnt
   FZtmp => FZtmp%next 
 end do 
 call Message%printMessage('  - projecting Clifford Torus onto Square Torus (Y,X_Z)')
+h = 0.D0 
+h2 = 0.D0
 call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2) ! , 'YX_Z')
 
 ! do we need to export the raw data to an HDF5 file ?
@@ -1399,6 +1403,8 @@ do i=1,cnt
   FZtmp => FZtmp%next 
 end do 
 call Message%printMessage('  - projecting Clifford Torus onto Square Torus (Z,Y_X)')
+h = 0.D0 
+h2 = 0.D0
 call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2) ! , 'ZY_X')
 
 ! do we need to export the raw data to an HDF5 file ?
@@ -1462,6 +1468,7 @@ character(fnlen)                        :: oname
 integer(kind=irg)                       :: i, k, num, FZcnt, oldFZcnt, io_int(1)
 real(kind=dbl)                          :: xx(4), qqd(4)
 type(FZpointd),pointer                  :: FZtail, FZtmp, FZhead
+logical                                 :: weights
 
 ! initialize the SO3 class
 SO = so3_T( self%nml%pgnum, zerolist='FZ' )
@@ -1470,6 +1477,10 @@ SO = so3_T( self%nml%pgnum, zerolist='FZ' )
 oname = EMsoft%generateFilePath('EMdatapathname',self%nml%anglefile)
 call Message%printMessage(' Reading orientations from file '//trim(oname))
 call SO%getOrientationsfromFile( oname )
+
+! are we using weighted orientations ?  This could happen with .wxt files that are derived
+! from programs like POPLA that extract orientations from an ODG based on pole figures
+weights = SO%getuseweights()
 
 ! we have the list, so what do we need to do with it before computing the Clifford Torus representation ?
 
@@ -1491,6 +1502,7 @@ if (self%nml%shownegativeq0.eq.1) then
     qq = q_T( qdinp = qqd )
     allocate(FZtail%next)
     FZtail%qu = qq
+    FZtail%weight = FZtmp%weight
     FZtail => FZtail%next
     nullify(FZtail%next)
     FZtmp => FZtmp%next
@@ -1508,6 +1520,8 @@ if (self%nml%reducetoRFZ.eq.1) then
   num = Pm%getQnumber()
   io_int(1) = num
   call Message%WriteValue(' Number of symmetry operators ', io_int, 1)
+! note that the following step does not propagate any orientation weights... that would require a 
+! major rewrite of a lot of the code in mod_so3.f90 ...
   call SO%ReducelisttoRFZ(Pm)
 else
 ! do we need to generate all the equivalent orientations instead ?
@@ -1540,6 +1554,7 @@ else
         qq = q_T( qdinp = qus%get_quatd() )
         allocate(FZtail%next)
         FZtail%qu = qq
+        FZtail%weight = FZtmp%weight
         FZtail => FZtail%next
         nullify(FZtail%next)       
         FZtmp => FZtmp%next
