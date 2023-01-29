@@ -43,6 +43,7 @@ use mod_symmetry
 use mod_crystallography
 use mod_postscript
 use mod_misc, only: ProjectionMatrix, GetViewingDirection, GetIndex, IndexReduce 
+use mod_HDFsupport
 
 IMPLICIT NONE
 
@@ -65,6 +66,8 @@ integer(kind=irg),allocatable  :: itmp(:,:)
 real(kind=dbl),allocatable     :: SGdirec(:,:,:)
  
  EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 912 /) )
+
+ call openFortranHDFInterface()
 
 ! read crystal information
  call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")

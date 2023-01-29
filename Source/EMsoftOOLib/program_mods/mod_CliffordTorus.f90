@@ -1048,7 +1048,7 @@ end select
 end function convertqtoSquareTorus_
 
 !--------------------------------------------------------------------------
-recursive subroutine makeSquareTorus_(self, num, w, cnt, xx, yy, offset, qu, h, h2) !, XYZ) 
+recursive subroutine makeSquareTorus_(self, num, w, cnt, xx, yy, offset, qu, h, h2, swap) !, XYZ) 
 !DEC$ ATTRIBUTES DLLEXPORT :: makeSquareTorus_
   !! author: MDG
   !! version: 1.0
@@ -1070,15 +1070,18 @@ integer(kind=irg),INTENT(IN)            :: offset
 real(kind=dbl),INTENT(IN)               :: qu(5,cnt)
 real(kind=dbl),INTENT(INOUT)            :: h(num+2*w,num+2*w)
 real(kind=dbl),INTENT(INOUT)            :: h2(num+2*w,num+2*w)
-! character(4),INTENT(IN)                 :: XYZ
+integer(kind=irg),INTENT(IN),OPTIONAL   :: swap 
 
 type(q_T)                               :: q
 type(IO_T)                              :: Message 
 
-integer(kind=irg)                       :: i, j, k, nn, ixx, iyy, px, py, io_int(2), nthreads, TID  
-real(kind=dbl)                          :: ss, kk, dx, dy, zx, ee, XY(2), z1(cnt), z2(cnt)
+integer(kind=irg)                       :: i, j, k, nn, ixx, iyy, px, py, io_int(2), nthreads, TID, sw  
+real(kind=dbl)                          :: ss, kk, dx, dy, zx, ee, qq(4), XY(2), z1(cnt), z2(cnt)
 real(kind=dbl),parameter                :: s2 = 1.D0/sqrt(2.D0), r(4) = (/ s2, 0.D0, s2, 0.D0 /)
 real(kind=dbl),allocatable              :: hlocal(:,:), h2local(:,:)
+
+sw = 0
+if (present(swap)) sw = swap 
 
 nn = self%nml%n
 ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
@@ -1086,7 +1089,21 @@ kk = 40.D0 * dble(self%nml%n) / 500.D0
 
 ! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
 do i=1,cnt 
-  q = q_T( qdinp=qu(1:4,i) )
+   qq = qu(1:4,i)
+  if (sw.ne.0) then 
+    select case(sw)
+    case(1)
+      qq(2) = -qq(2)
+      qq(3) = -qq(3)
+    case(2)
+      qq(2) = -qq(2)
+      qq(4) = -qq(4)
+    case(3)
+      qq(3) = -qq(3)
+      qq(4) = -qq(4)
+    end select
+  end if 
+  q = q_T( qdinp=qq )
   XY = self%convertqtoSquareTorus_( q, 'XZ_Y')
   z1(i) = XY(1)
   z2(i) = XY(2)
@@ -1333,7 +1350,14 @@ do i=1,cnt
   FZtmp => FZtmp%next 
 end do 
 call Message%printMessage('  - projecting Clifford Torus onto Square Torus (X,Z_Y)')
+h = 0.D0 
+h2 = 0.D0
 call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2)!, 'XZ_Y')
+!if (self%nml%applysamplesymmetry.eq..TRUE.) then 
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 1)!, 'XZ_Y')
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 2)!, 'XZ_Y')
+call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 3)!, 'XZ_Y')
+! end if 
 
 ! do we need to export the raw data to an HDF5 file ?
 if (trim(self%nml%hdffile).ne.'undefined') then 

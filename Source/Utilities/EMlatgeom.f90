@@ -60,6 +60,7 @@ use mod_crystallography
 use mod_io
 use mod_symmetry
 use mod_EMsoft
+use mod_HDFsupport
 
 type(EMsoft_T)            :: EMsoft 
 type(Cell_T)              :: cell 
@@ -76,6 +77,8 @@ character(fnlen)             :: xtalname
 
  EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 914 /) )
 
+ call openFortranHDFInterface()
+ 
 ! read crystal information
  call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
  call cell%getCrystalData(xtalname, SG, EMsoft)

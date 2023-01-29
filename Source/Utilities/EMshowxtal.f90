@@ -91,7 +91,7 @@ call Message%ReadValue(' Enter xtal file name [*.xtal, *.qxtal]: ', xtalname,"(A
 ! is this a regular .xtal file or a quasi-crystal file .qxtal? 
 i = INDEX(trim(xtalname), 'qxtal')
 
-  call openFortranHDFInterface()
+call openFortranHDFInterface()
 
 if (i.eq.0) then ! regular crystal structure file
   call cell%getCrystalData(xtalname, SG, EMsoft, verbose=.TRUE.)

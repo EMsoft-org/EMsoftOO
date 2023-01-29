@@ -42,6 +42,7 @@ use mod_symmetry
 use mod_crystallography
 use mod_diffraction 
 use mod_misc 
+use mod_HDFsupport
 
 IMPLICIT NONE
 
@@ -65,6 +66,8 @@ logical                        :: isallowed
 type(gnode)                    :: rlp
 
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 920 /) )
+
+call openFortranHDFInterface()
 
 ! ask for the crystal structure file
 call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")

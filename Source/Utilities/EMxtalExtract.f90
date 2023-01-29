@@ -51,6 +51,7 @@ use mod_global
 use mod_symmetry 
 use mod_io 
 use mod_crystallography
+use mod_HDFsupport
 
 IMPLICIT NONE
 
@@ -71,6 +72,8 @@ real(kind=dbl), allocatable     :: asp(:,:)
 integer(kind=irg), allocatable  :: atp(:)
 
  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 926 /) )
+
+ call openFortranHDFInterface()
 
 ! read crystal information
  call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")

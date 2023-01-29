@@ -38,6 +38,7 @@ use mod_global
 use mod_io
 use mod_symmetry
 use mod_crystallography
+use mod_HDFsupport
 
 IMPLICIT NONE
 
@@ -56,6 +57,8 @@ character(fnlen)            :: xtalname
 
  EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 918 /) )
  
+ call openFortranHDFInterface()
+
  call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
  call cell%getCrystalData(xtalname, SG, EMsoft)
 

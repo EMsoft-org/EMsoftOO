@@ -44,6 +44,7 @@ use mod_quaternions
 use mod_so3
 use mod_misc 
 use mod_postscript
+use mod_HDFsupport
 
 IMPLICIT NONE
 
@@ -62,8 +63,10 @@ integer(kind=irg)     :: iview(3), io_int(3), imanum
 character(fnlen)      :: xtalname
 
 ! print header information and handle command line arguments 
- EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 925 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 925 /) )
  
+call openFortranHDFInterface()
+
 ! ask for the crystal structure file
 call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
 call cell%getCrystalData(xtalname, SG, EMsoft)

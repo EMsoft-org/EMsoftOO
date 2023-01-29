@@ -45,6 +45,7 @@ use mod_symmetry
 use mod_postscript
 use mod_math 
 use mod_misc
+use mod_HDFsupport
 
 IMPLICIT NONE 
 
@@ -71,6 +72,8 @@ character(fnlen)               :: gname, xtalname
 
 ! program header and command line argument handling
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 909 /) )
+
+call openFortranHDFInterface()
 
 ! read crystal information
 call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
