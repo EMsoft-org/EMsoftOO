@@ -1354,9 +1354,9 @@ h = 0.D0
 h2 = 0.D0
 call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2)!, 'XZ_Y')
 !if (self%nml%applysamplesymmetry.eq..TRUE.) then 
-call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 1)!, 'XZ_Y')
-call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 2)!, 'XZ_Y')
-call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 3)!, 'XZ_Y')
+!call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 1)!, 'XZ_Y')
+!call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 2)!, 'XZ_Y')
+!call self%makeSquareTorus(num, w, cnt, xx, yy, offset, qu, h, h2, 3)!, 'XZ_Y')
 ! end if 
 
 ! do we need to export the raw data to an HDF5 file ?

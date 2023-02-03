@@ -263,8 +263,8 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                   INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                                   )
 
-    Add_EMsoftOO_Executable(TARGET EMHDFFileinfo
-                                  SOURCES ${APP_DIR}/EMHDFFileinfo.f90
+    Add_EMsoftOO_Executable(TARGET EMHDFFileInfo
+                                  SOURCES ${APP_DIR}/EMHDFFileInfo.f90
                                   LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
                                   SOLUTION_FOLDER EMsoftOOPublic/Utilities
                                   INSTALL_PROGRAM TRUE
