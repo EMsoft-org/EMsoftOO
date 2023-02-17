@@ -55,6 +55,7 @@ integer(HSIZE_T),save                 :: semixydims(1)
 ! these are used to keep track of the even/odd patterns start locations in the .up1 and .up2 input formats
 logical,save                          :: up1wdLeven, up1halfshift
 logical,save                          :: up2wdLeven, up2halfshift
+integer(kind=irg),save                :: ebspversion
 integer(kind=ill),save                :: offset
 
 private :: get_num_HDFgroups_
@@ -477,6 +478,7 @@ integer(kind=irg)                     :: i, ierr, io_int(1), itype, hdferr, hdfn
                                          ios, up1header(4), version, patx, paty, myoffset
 character(fnlen)                      :: groupname, dataset, platform
 logical                               :: f_exists
+character(1)                          :: header
 
 istat = 0
 
@@ -545,6 +547,13 @@ select case (self%itype)
             call Message%WriteValue("File open error; error type ",io_int,1)
             call Message%printError("openExpPatternFile","Cannot continue program")
         end if
+        ! get the first byte to check if this file is version 1-3 or 4
+        ! version 4 has an extra byte in the header...
+        read(unit=self%funit, pos=1, iostat=ios) header
+        ebspversion = 256-iachar(header)
+        io_int(1) = ebspversion
+        call Message%WriteValue(' reading EBSP file, version number = ', io_int, 1)
+
 
     case(6)  ! "OxfordHDF"
 ! Fall 2022, Oxford has an HDF5 file with extension .h5oina; some of the patterns in the 
@@ -781,7 +790,11 @@ select case (self%itype)
     case(5)  ! "OxfordBinary"
 
 ! read position of patterns in file for a single row from the header
-      read(unit=self%funit, pos=(liii-1)*lwd*8+9, iostat=ios) patoffsets
+      if (ebspversion.eq.4) then 
+        read(unit=self%funit, pos=(liii-1)*lwd*8+10, iostat=ios) patoffsets
+      else
+        read(unit=self%funit, pos=(liii-1)*lwd*8+9, iostat=ios) patoffsets
+      end if 
 
 ! generate a buffer to load individual patterns into
       buffersize = lL
@@ -1066,7 +1079,11 @@ select case (self%itype)
       l1 = mod(offset3(3),wd)
       lL = L
       lwd = wd
-      read(unit=self%funit, pos=(liii-1)*lwd*8+9, iostat=ios) patoffsets
+      if (ebspversion.eq.4) then 
+        read(unit=self%funit, pos=(liii-1)*lwd*8+10, iostat=ios) patoffsets
+      else
+        read(unit=self%funit, pos=(liii-1)*lwd*8+9, iostat=ios) patoffsets
+      end if
 
 ! generate buffers to load individual pattern into
       buffersize = lL
