@@ -93,6 +93,7 @@ private
   procedure, pass(self) :: makeSquareTorus_
   procedure, pass(self) :: createZonePlate_
   procedure, pass(self) :: generateTIFFfile_
+  procedure, pass(self) :: generatecolorTIFFfile_
   procedure, pass(self) :: computeRieszEnergy_
 
   generic, public :: getNameList => getNameList_
@@ -126,6 +127,7 @@ private
   generic, public :: overlayRFZ => overlayRFZ_
   generic, public :: makeSquareTorus => makeSquareTorus_
   generic, public :: generateTIFFfile => generateTIFFfile_
+  generic, public :: generatecolorTIFFfile => generatecolorTIFFfile_
   generic, public :: computeRieszEnergy => computeRieszEnergy_ 
 
 end type CliffordTorus_T
@@ -1240,6 +1242,89 @@ deallocate(TIFF_image)
 end subroutine generateTIFFfile_
 
 !--------------------------------------------------------------------------
+recursive subroutine generatecolorTIFFfile_(self, EMsoft, SO, num, w, r, g, b) 
+!DEC$ ATTRIBUTES DLLEXPORT :: generatecolorTIFFfile_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/02/23
+  !!
+  !! generate the zone plate and square torus TIFF files
+
+use mod_EMsoft
+use mod_image
+use ISO_C_BINDING
+use mod_io
+use mod_so3
+use mod_colorspace
+
+use, intrinsic :: iso_fortran_env
+
+class(CliffordTorus_T),INTENT(INOUT)    :: self
+type(EMsoft_T),INTENT(INOUT)            :: EMsoft
+type(so3_T),INTENT(INOUT)               :: SO
+integer(kind=irg),INTENT(IN)            :: num
+integer(kind=irg),INTENT(IN)            :: w
+real(kind=dbl),INTENT(INOUT)            :: r(num+2*w,num+2*w)
+real(kind=dbl),INTENT(INOUT)            :: g(num+2*w,num+2*w)
+real(kind=dbl),INTENT(INOUT)            :: b(num+2*w,num+2*w)
+
+type(IO_T)                              :: Message
+type(colorspace_T)                      :: clr
+
+integer(kind=irg)                       :: i, j, k 
+character(fnlen)                        :: str, fname
+
+! declare variables for use in object oriented image module
+integer                                 :: iostat
+character(len=128)                      :: iomsg
+logical                                 :: isInteger
+type(image_t)                           :: im
+integer(int8)                           :: i8 (3,4)
+integer(int8), allocatable              :: TIFF_image(:,:)
+
+r = r - minval(r)
+r = r / maxval(r)
+r = r * 255.D0
+
+g = g - minval(g)
+g = g / maxval(g)
+g = g * 255.D0
+
+b = b - minval(b)
+b = b / maxval(b)
+b = b * 255.D0
+
+allocate(TIFF_image(3*num,num))
+do j=1,num
+ do i=1,num
+  k = 3*i-2
+  TIFF_image(k,num+1-j) = int(r(w+i,w+j))
+  TIFF_image(k+1,num+1-j) = int(g(w+i,w+j))
+  TIFF_image(k+2,num+1-j) = int(b(w+i,w+j))
+ end do
+end do
+
+str = trim(self%nml%sqtfile)//'_color_SQT.tiff'
+fname = EMsoft%generateFilePath('EMdatapathname',str)
+
+! set up the image_t structure
+im = image_t(TIFF_image)
+im%dims = (/ num, num /)
+im%samplesPerPixel = 3
+if(im%empty()) call Message%printMessage("generatecolorTIFFfile_","failed to convert array to image")
+
+! create the file
+call im%write(trim(fname), iostat, iomsg) ! format automatically detected from extension
+if(0.ne.iostat) then
+  call Message%printMessage("failed to write image to file : "//iomsg)
+else
+  call Message%printMessage(' - color image written to '//trim(fname))
+end if
+deallocate(TIFF_image)
+
+end subroutine generatecolorTIFFfile_
+
+!--------------------------------------------------------------------------
 recursive subroutine createZonePlate_(self, EMsoft, SO, listmode)
 !DEC$ ATTRIBUTES DLLEXPORT :: createZonePlate_
   !! author: MDG
@@ -1271,7 +1356,8 @@ type(HDF_T)                     :: HDF
 
 integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, io_int(1), hdferr
 type(FZpointd), pointer         :: FZtmp, FZviz
-real(kind=dbl),allocatable      :: qu(:,:), h(:,:), h2(:,:), xx(:,:), yy(:,:), l(:), g(:,:)
+real(kind=dbl),allocatable      :: qu(:,:), h(:,:), h2(:,:), xx(:,:), yy(:,:), l(:), g(:,:), &
+                                   red(:,:), blue(:,:), green(:,:)
 real(kind=dbl)                  :: x(4), d, d1, d2, dx, dy, ss, zx, ee, kk, logoffset 
 character(fnlen)                :: vizname, fname, dataset, groupname 
 
@@ -1379,6 +1465,8 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
     logoffset = (maxval(h2)-minval(h2))*0.2D0
     h2 = log10(h2+logoffset)
   end if 
+  allocate(red(num+2*w,num+2*w))
+  red = h2
   call self%generateTIFFfile_(EMsoft, SO, num, w, h2, 'SQT', 'XZ_Y')
 end if
 
@@ -1415,6 +1503,8 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
     logoffset = (maxval(h2)-minval(h2))*0.2D0
     h2 = log10(h2+logoffset)
   end if 
+  allocate(green(num+2*w,num+2*w))
+  green = h2
   call self%generateTIFFfile_(EMsoft, SO, num, w, h2, 'SQT', 'YX_Z')
 end if
 
@@ -1451,7 +1541,10 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
     logoffset = (maxval(h2)-minval(h2))*0.2D0
     h2 = log10(h2+logoffset)
   end if 
+  allocate(blue(num+2*w,num+2*w))
+  blue = h2
   call self%generateTIFFfile_(EMsoft, SO, num, w, h2, 'SQT', 'ZY_X')
+  call self%generatecolorTIFFfile_(EMsoft, SO, num, w, red, green, blue)
 end if
 
 if (trim(self%nml%hdffile).ne.'undefined') then 

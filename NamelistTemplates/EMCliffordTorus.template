@@ -31,4 +31,6 @@
  sqtfile = 'undefined',
 ! zone plate tiff image file (relative to EMdatapathname, WITHOUT EXTENSION!!!)
  zpfile = 'undefined',
+! hdf file name for full projection output
+ hdffile = 'undefined',
  /
