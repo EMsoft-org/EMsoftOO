@@ -615,7 +615,9 @@ IMPLICIT NONE
 
 character, intent(in),pointer       :: inp(:)
 
-character(fnlen)                    :: outp
+! string length increased from fnlen to 4096 to accommodate graphics cards with lots of extensions...
+! suggested by Johan Westraadt [02/22/2023]
+character(4096)                     :: outp
 integer(kind=irg)                   :: sz(1), i
 
   sz = shape(inp)
