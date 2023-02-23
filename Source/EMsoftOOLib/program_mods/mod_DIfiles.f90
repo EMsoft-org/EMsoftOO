@@ -781,13 +781,13 @@ select case(trim(modality))
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
     isECP = .TRUE.
-    n_int = 20
-    n_real = 19
+    n_int = 22
+    n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('TKD')
     isTKD = .TRUE.
-    n_int = 20
-    n_real = 19
+    n_int = 22
+    n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case default
     call Message%printError('writeHDFNameList', 'unknown name list type requested')
