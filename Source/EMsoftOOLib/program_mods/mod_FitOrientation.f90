@@ -2084,12 +2084,15 @@ call mem%alloc(indexmain, (/ ipar(1), ipar(2) /), 'indexmain', 0)
 call mem%alloc(resultmain, (/ ipar(1), ipar(2) /), 'resultmain', 0.0)
 resultmain(1,1:ipar(2)) = CIlist(1:Nexp)
 
+! get the Euler angles in degrees before writing the .ctf file
+euler_best = euler_best*sngl(rtod)
+
 VT = Vendor_T()
 call VT%set_Modality(MPFT%getModality())
 if (ronl%ctffile.ne.'undefined') then
   fpar2(1) = mcnl%EkeV
   fpar2(2) = MCsig
-  call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,indexmain,euler_best*sngl(rtod),resultmain, &
+  call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,indexmain,euler_best,resultmain, &
                         DIDT%OSM, DIDT%IQ, noindex=.TRUE.)
   call Message%printMessage(' Data stored in ctf file : '//trim(ronl%ctffile))
 end if
