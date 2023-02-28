@@ -64,6 +64,7 @@
 086EMOrientationViz
 087EMConvertOrientations
 088EMODFMRC
+089EMISEDI
 090EMPEDDI
 091EMFitOrientation
 092EMmultiphase

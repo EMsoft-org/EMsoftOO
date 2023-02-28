@@ -14,8 +14,10 @@
 ! which angles should we use?  'original' or 'refined'
  useangles = 'original',
 ! sample tilt angle (degrees) around the given tiltaxis (in (RD, TD, ND) frame)
- sampletilt = 0.0, 
+ omega = 0.0, 
+ omega_step = 1.0,
  tiltaxis = 0.0, 1.0, 0.0,
+ nsteps = 4,
 ! set a region of interest to compute a subset of the entire dataset;
 ! leave all at 0 to compute the full image size
 ! lower left corner x, y; then horizontal and vertical size
@@ -24,8 +26,10 @@
  scalingmode = 'not',
 ! gamma correction factor
  gammavalue = 1.0,
-! name of output image tiff file 
+! name of output image tiff file (WITHOUT .tiff EXTENSION!!!)
  imagefile = 'undefined',
+! name of output data file  (HDF5)
+ outputfile = 'undefined',
 ! number of threads (default = 1, use 0 for maximum available)
  nthreads = 1,
  /

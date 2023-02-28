@@ -676,7 +676,8 @@ do iatom=1,atomcnt
   do ix = ipx-maxrad,ipx+maxrad
     do iy = ipy-maxrad,ipy+maxrad
       if ( ((ix-px)**2+(iy-py)**2).le.arad(iatom) ) then
-       if (pplane(ix,iy).eq.0.0) then
+       ! if (pplane(ix,iy).eq.0.0) then
+       if (Gd(iatom).gt.pplane(ix,iy)) then
          pplane(ix,iy)=Gd(iatom)
        end if
       end if
