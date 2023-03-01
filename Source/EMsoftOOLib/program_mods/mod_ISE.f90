@@ -1085,7 +1085,7 @@ scl = float(self%mpnml%npx)
 Qartilt = QuaternionArray_T( n=enl%nsteps, s='d' )
 tiltaxis = dble(enl%tiltaxis)
 do ii = 1, enl%nsteps
-  angle = -(enl%omega + dble(ii) * dble(enl%omega_step))
+  angle = enl%omega + dble(ii-1) * dble(enl%omega_step)
   ax = a_T( adinp = (/ tiltaxis(1), tiltaxis(2), tiltaxis(3), cvtoRadians(angle) /) )
   q = ax%aq()
   quat = Quaternion_T( qd = q%q_copyd() )

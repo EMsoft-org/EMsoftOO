@@ -1175,7 +1175,7 @@ call mem%alloc(ISEdict, (/ nml%nsteps, FZcnt /), 'ISEdict')
 Qartilt = QuaternionArray_T( n=nml%nsteps, s='d' )
 tiltaxis = dble(nml%tiltaxis)
 do ii = 1, nml%nsteps
-  angle = nml%omega + dble(ii) * dble(nml%omega_step)
+  angle = nml%omega + dble(ii-1) * dble(nml%omega_step)
   ax = a_T( adinp = (/ tiltaxis(1), tiltaxis(2), tiltaxis(3), cvtoRadians(angle) /) )
   q = ax%aq()
   ! call q%q_print( 'quat : ' )
@@ -1308,8 +1308,6 @@ pinbatch = nml%nbatch
 pbatches = int(npat/pinbatch)
 premainder = npat - pbatches*pinbatch
 
-write (*,*) ninbatch, nbatches, nremainder, pinbatch, pbatches, premainder
-
 io_int(1) = nbatches+1 
 call Message%WriteValue(' Number of batches to index : ', io_int, 1)
 
@@ -1383,7 +1381,6 @@ outerloop: do ii=1,nbatches+1    ! loop over the dictionary
   end if
 end do outerloop
 
-write (*,*) 'max(indexmain) = ', maxval(indexmain),FZcnt
 
 qAR2 = QuaternionArray_T( n=1, s='d' )
 call qAR2%QSym_Init(pgnum, sym)
