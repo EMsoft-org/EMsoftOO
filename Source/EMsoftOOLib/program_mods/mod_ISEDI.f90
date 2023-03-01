@@ -1308,8 +1308,11 @@ pinbatch = nml%nbatch
 pbatches = int(npat/pinbatch)
 premainder = npat - pbatches*pinbatch
 
+write (*,*) ninbatch, nbatches, nremainder, pinbatch, pbatches, premainder
+
 io_int(1) = nbatches+1 
 call Message%WriteValue(' Number of batches to index : ', io_int, 1)
+
 
 outerloop: do ii=1,nbatches+1    ! loop over the dictionary
 ! fill the dictblock, taking into account that the last one is a different size
@@ -1334,45 +1337,49 @@ outerloop: do ii=1,nbatches+1    ! loop over the dictionary
         exptblock(:, jj) = expt(:, kstart + jj)
       end do
     else   ! this is the remainder part 
-      do jj=1,premainder
-        exptblock(:, jj) = expt(:, kstart + jj)
-      end do
+      if (premainder.ne.0) then
+        do jj=1,premainder
+          exptblock(:, jj) = expt(:, kstart + jj)
+        end do
+      end if 
     end if 
-! compute the dot product array
-    dps = matmul(dictblock,exptblock) * nfactor 
     ! write (*,*) 'min/max ',minval(dps), maxval(dps), maxval(indexlist)
 ! next, rank the dot products and keep the top nnk for each experimental pattern 
 ! the dps array has the dictionary patterns index as the first index, and the 
 ! experimental pattern index as the second index. 
-    if (ii.eq.nbatches+1) then 
+    if (kk.eq.pbatches+1) then 
       limit = premainder
     else
       limit = pinbatch 
     end if 
-    do jj=1,limit
-      jjj = (kk-1)*pinbatch + jj
-      maxsortarr(jjj) = maxval(dps(:,jj))
-      if (maxsortarr(jjj).gt.minsortarr(jjj)) then ! only sort if the max falls in the range
-        resultarray(1:ninbatch) = dps(1:ninbatch,jj)
-        indexarray(1:ninbatch) = indexlist((ii-1)*ninbatch+1:ii*ninbatch)
+    if (limit.ne.0) then 
+! compute the dot product array
+      dps = matmul(dictblock,exptblock) * nfactor 
+      do jj=1,limit
+        jjj = (kk-1)*pinbatch + jj
+        maxsortarr(jjj) = maxval(dps(:,jj))
+        if (maxsortarr(jjj).gt.minsortarr(jjj)) then ! only sort if the max falls in the range
+          resultarray(1:ninbatch) = dps(1:ninbatch,jj)
+          indexarray(1:ninbatch) = indexlist((ii-1)*ninbatch+1:ii*ninbatch)
 
-        call SSORT(resultarray,indexarray,ninbatch,-2)
+          call SSORT(resultarray,indexarray,ninbatch,-2)
 
-        resulttmp(nml%nnk+1:2*nml%nnk,jjj) = resultarray(1:nml%nnk)
-        indextmp(nml%nnk+1:2*nml%nnk,jjj) = indexarray(1:nml%nnk)
+          resulttmp(nml%nnk+1:2*nml%nnk,jjj) = resultarray(1:nml%nnk)
+          indextmp(nml%nnk+1:2*nml%nnk,jjj) = indexarray(1:nml%nnk)
 
-        call SSORT(resulttmp(:,jjj),indextmp(:,jjj),2*nml%nnk,-2)
+          call SSORT(resulttmp(:,jjj),indextmp(:,jjj),2*nml%nnk,-2)
 
-        resultmain(1:nml%nnk,jjj) = resulttmp(1:nml%nnk,jjj)
-        indexmain(1:nml%nnk,jjj) = indextmp(1:nml%nnk,jjj)
-        minsortarr(jjj) = resulttmp(nml%nnk,jjj)
-      end if 
-    end do
+          resultmain(1:nml%nnk,jjj) = resulttmp(1:nml%nnk,jjj)
+          indexmain(1:nml%nnk,jjj) = indextmp(1:nml%nnk,jjj)
+          minsortarr(jjj) = resulttmp(nml%nnk,jjj)
+        end if 
+      end do
+    end if 
   end do innerloop
-  if (mod(ii,10).eq.0) then 
+  if (mod(ii,1).eq.0) then 
     io_int(1) = ii 
     io_int(2) = nbatches+1 
-    call Message%WriteValue(' working on batch # ', io_int, 2)
+    call Message%WriteValue(' completed batch # ', io_int, 2, "(I4,' of ',I4)")
   end if
 end do outerloop
 
