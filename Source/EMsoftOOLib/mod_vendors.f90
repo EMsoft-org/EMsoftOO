@@ -58,7 +58,7 @@ logical,save                          :: up2wdLeven, up2halfshift
 integer(kind=irg),save                :: ebspversion
 integer(kind=ill),save                :: offset
 
-private :: get_num_HDFgroups_
+public :: get_num_HDFgroups_
 
 type, public :: Vendor_T
   private

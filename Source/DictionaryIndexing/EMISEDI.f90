@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2023, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2016-2023, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -26,59 +26,36 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMzap
+program EMISEDI
   !! author: MDG
   !! version: 1.0 
-  !! date: 01/28/20
+  !! date: 02/26/23
   !!
-  !! PostScript output of kinematical zone axis diffraction patterns
+  !! Indexing of ISE tilt series image intensities
+  !!
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_crystallography
-use mod_symmetry
-use mod_io
-use mod_postscript
-use mod_diffraction
-use mod_HDFsupport
+use mod_ISEDI
 
-character(fnlen)        :: progname = 'EMzap.f90'
-character(fnlen)        :: progdesc = 'Kinematical Zone Axis Diffraction Patterns'
+IMPLICIT NONE
 
-type(EMsoft_T)          :: EMsoft 
-type(IO_T)              :: Message 
-type(Cell_T)            :: cell
-type(SpaceGroup_T)      :: SG 
-type(Diffraction_T)     :: Diff
-type(PostScript_T)      :: PS 
+character(fnlen)        :: progname
+character(fnlen)        :: progdesc = 'Indexing based on ISE tilt series intensities'
 
-real(kind=sgl)          :: io_real(1), camlen
-character(fnlen)        :: xtalname
-integer(kind=irg)       :: imanum
+type(EMsoft_T)          :: EMsoft
+type(ISEDI_T)           :: ISEDI
 
-! progran header and command line argument handling 
-EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 928 /) )
+progname = 'EMISEDI.f90'
 
-call openFortranHDFInterface()
+! print the EMsoft header and handle any command line arguments  
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 89 /) )
 
-! ask for the crystal structure file
-call Message%ReadValue(' Enter xtal file name : ', xtalname,"(A)")
-call cell%getCrystalData(xtalname, SG, EMsoft, verbose=.TRUE.)
+! deal with the namelist stuff
+ISEDI = ISEDI_T(EMsoft%nmldeffile)
 
-call Diff%setrlpmethod('WK')
-call Diff%getVoltage(cell, verbose=.TRUE.) 
+! perform the computations
+call ISEDI%ISEDI(EMsoft, progname)
 
-call Message%ReadValue(' Camera Length [mm, R] : ', io_real, 1)
-camlen = io_real(1)
-
-! open PostScript file
-imanum = 1
-PS = PostScript_T(progdesc, EMsoft, imanum)
-call PS%setpspage(0)
-call PS%DiffPage(cell, SG, Diff, camlen)
-
-! close Postscript file
-call PS%closefile()
-
-end program EMzap
+end program EMISEDI

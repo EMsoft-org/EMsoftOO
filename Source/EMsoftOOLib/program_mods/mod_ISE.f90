@@ -50,14 +50,17 @@ end type ISEAccumType
 ! namelist for the EMISE program
 type, public :: ISENameListType
   real(kind=sgl)    :: gammavalue
-  real(kind=sgl)    :: sampletilt
+  real(kind=sgl)    :: omega
+  real(kind=sgl)    :: omega_step
   real(kind=sgl)    :: tiltaxis(3)
+  integer(kind=irg) :: nsteps
   integer(kind=irg) :: nthreads
   integer(kind=irg) :: ROI(4)
   character(3)      :: scalingmode
   character(fnlen)  :: useangles
   character(fnlen)  :: masterfile
   character(fnlen)  :: datafile
+  character(fnlen)  :: outputfile
   character(fnlen)  :: imagefile
 end type ISENameListType
 
@@ -74,6 +77,7 @@ private
 contains
 private 
   procedure, pass(self) :: readNameList_
+  procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: ISE_
   procedure, pass(self) :: setgammavalue_
@@ -94,14 +98,17 @@ private
   procedure, pass(self) :: getdatafile_
   procedure, pass(self) :: setimagefile_
   procedure, pass(self) :: getimagefile_
-  procedure, pass(self) :: setsampletilt_
-  procedure, pass(self) :: getsampletilt_
+  procedure, pass(self) :: setomega_
+  procedure, pass(self) :: getomega_
+  procedure, pass(self) :: getmLPNH_
+  procedure, pass(self) :: getmLPSH_
   procedure, pass(self) :: settiltaxis_
   procedure, pass(self) :: gettiltaxis_
   procedure, pass(self) :: readISEMPfile_
   procedure, pass(self) :: ComputeISEimage_
 
   generic, public :: getNameList => getNameList_
+  generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: ISE => ISE_
   generic, public :: setgammavalue => setgammavalue_
@@ -122,10 +129,12 @@ private
   generic, public :: getdatafile => getdatafile_
   generic, public :: setimagefile => setimagefile_
   generic, public :: getimagefile => getimagefile_
-  generic, public :: setsampletilt => setsampletilt_
-  generic, public :: getsampletilt => getsampletilt_
+  generic, public :: setomega => setomega_
+  generic, public :: getomega => getomega_
   generic, public :: settiltaxis => settiltaxis_
   generic, public :: gettiltaxis => gettiltaxis_
+  generic, public :: getmLPNH => getmLPNH_
+  generic, public :: getmLPSH => getmLPSH_
   generic, public :: readISEMPfile => readISEMPfile_
   generic, public :: ComputeISEimage => ComputeISEimage_
 
@@ -150,7 +159,9 @@ IMPLICIT NONE
 
 character(fnlen), OPTIONAL   :: nmlfile 
 
-call ISE%readNameList(nmlfile)
+if (present(nmlfile)) then 
+  call ISE%readNameList(nmlfile)
+end if 
 
 end function ISE_constructor
 
@@ -195,27 +206,33 @@ type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 real(kind=sgl)    :: gammavalue
-real(kind=sgl)    :: sampletilt 
+real(kind=sgl)    :: omega 
+real(kind=sgl)    :: omega_step
 real(kind=sgl)    :: tiltaxis(3)
+integer(kind=irg) :: nsteps
 integer(kind=irg) :: nthreads
 integer(kind=irg) :: ROI(4)
 character(3)      :: scalingmode
 character(fnlen)  :: useangles
 character(fnlen)  :: masterfile
 character(fnlen)  :: datafile
+character(fnlen)  :: outputfile
 character(fnlen)  :: imagefile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / ISEdata / gammavalue, nthreads, useangles, scalingmode, masterfile, datafile, imagefile, &
-                      sampletilt, tiltaxis, ROI
+                      omega, tiltaxis, ROI, omega_step, nsteps, outputfile
 
 ! set the input parameters to default values
 masterfile = 'undefined'
 datafile = 'undefined'
+outputfile = 'undefined'
 useangles = 'original'
 scalingmode = 'not'
 gammavalue = 1.0
-sampletilt = 0.0 
+omega = 0.0 
+omega_step = 1.0
+nsteps = 4
 tiltaxis = (/ 0.0, 1.0, 0.0 /)
 ROI = (/ 0, 0, 0, 0 /)
 imagefile = 'undefined'
@@ -240,23 +257,120 @@ if (.not.skipread) then
   call Message%printError('readNameList:',' output file name is undefined in '//nmlfile)
  end if
 
- if (trim(imagefile).eq.'undefined') then
-  call Message%printError('readNameList:',' image file name is undefined in '//nmlfile)
+ if (trim(outputfile).eq.'undefined') then
+  call Message%printError('readNameList:',' outputfile file name is undefined in '//nmlfile)
  end if
 end if 
 
 self%nml%gammavalue = gammavalue
-self%nml%sampletilt = sampletilt
+self%nml%omega = omega
+self%nml%omega_step = omega_step
 self%nml%tiltaxis = tiltaxis
+self%nml%nsteps = nsteps
 self%nml%nthreads = nthreads
 self%nml%ROI = ROI
 self%nml%useangles = useangles
 self%nml%scalingmode = scalingmode
 self%nml%masterfile = masterfile
 self%nml%datafile = datafile
+self%nml%outputfile = outputfile
 self%nml%imagefile = imagefile
 
 end subroutine readNameList_
+
+!--------------------------------------------------------------------------
+recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
+!! author: MDG
+!! version: 1.0
+!! date: 02/17/20
+!!
+!! write namelist to HDF file
+
+use mod_HDFsupport
+use mod_HDFnames
+use stringconstants
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)            :: self
+type(HDF_T), INTENT(INOUT)              :: HDF
+type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+
+integer(kind=irg),parameter             :: n_int = 2, n_real = 3
+integer(kind=irg)                       :: hdferr,  io_int(n_int)
+real(kind=sgl)                          :: io_real(n_real)
+character(20)                           :: reallist(n_real)
+character(20)                           :: intlist(n_int)
+character(fnlen)                        :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)            :: line2(1)
+
+associate( enl => self%nml )
+
+! create the group for this namelist
+hdferr = HDF%createGroup(HDFnames%get_NMLlist())
+
+! write all the single integers
+io_int = (/ enl%nsteps, enl%nthreads /)
+intlist(1) = 'nsteps'
+intlist(2) = 'nthreads'
+call HDF%writeNMLintegers(io_int, intlist, n_int)
+
+! write all the single reals
+io_real = (/ enl%gammavalue, enl%omega, enl%omega_step /)
+reallist(1) = 'gammavalue'
+reallist(2) = 'omega'
+reallist(3) = 'omega_step'
+call HDF%writeNMLreals(io_real, reallist, n_real)
+
+! a 4-vector
+dataset = SC_ROI
+hdferr = HDF%writeDatasetIntegerArray(dataset, enl%ROI, 4)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create ROI dataset', hdferr)
+
+! a 3-vector
+dataset = 'tiltaxis'
+hdferr = HDF%writeDatasetFloatArray(dataset, enl%tiltaxis, 4)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tiltaxis dataset', hdferr)
+
+dataset = 'masterfile'
+line2(1) = trim(enl%masterfile)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create masterfile dataset', hdferr)
+
+dataset = 'datafile'
+line2(1) = trim(enl%datafile)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create datafile dataset', hdferr)
+
+dataset = 'outputfile'
+line2(1) = trim(enl%outputfile)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create outputfile dataset', hdferr)
+
+dataset = 'imagefile'
+line2(1) = trim(enl%imagefile)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create imagefile dataset', hdferr)
+
+dataset = 'useangles'
+line2(1) = trim(enl%useangles)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create useangles dataset', hdferr)
+
+dataset = 'scalingmode'
+line2(1) = trim(enl%scalingmode)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create scalingmode dataset', hdferr)
+
+! and pop this group off the stack
+call HDF%pop()
+
+end associate
+
+end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
@@ -601,40 +715,40 @@ out = trim(self%nml%imagefile)
 end function getimagefile_
 
 !--------------------------------------------------------------------------
-subroutine setsampletilt_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: setsampletilt_
+subroutine setomega_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setomega_
 !! author: MDG
 !! version: 1.0
 !! date: 12/09/22
 !!
-!! set sampletilt in the ISE_T class
+!! set omega in the ISE_T class
 
 IMPLICIT NONE
 
 class(ISE_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)       :: inp
 
-self%nml%sampletilt = inp
+self%nml%omega = inp
 
-end subroutine setsampletilt_
+end subroutine setomega_
 
 !--------------------------------------------------------------------------
-function getsampletilt_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: getsampletilt_
+function getomega_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getomega_
 !! author: MDG
 !! version: 1.0
 !! date: 12/09/22
 !!
-!! get sampletilt from the ISE_T class
+!! get omega from the ISE_T class
 
 IMPLICIT NONE
 
 class(ISE_T), INTENT(INOUT)     :: self
 real(kind=sgl)                   :: out
 
-out = self%nml%sampletilt
+out = self%nml%omega
 
-end function getsampletilt_
+end function getomega_
 
 !--------------------------------------------------------------------------
 subroutine settiltaxis_(self,inp)
@@ -673,7 +787,45 @@ out = self%nml%tiltaxis
 end function gettiltaxis_
 
 !--------------------------------------------------------------------------
-recursive subroutine readISEMPfile_(self, HDF, HDFnames, nml, getmLPNH, getmLPSH, getmasterSPNH, &
+function getmLPNH_(self, n) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmLPNH_
+!! author: MDG
+!! version: 1.0
+!! date: 12/09/22
+!!
+!! get mLPNH from the ISE_T class
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)     :: self
+integer(kind=irg),INTENT(IN)    :: n
+real(kind=sgl)                  :: out(-n:n,-n:n)
+
+out = self%det%mLPNH
+
+end function getmLPNH_
+
+!--------------------------------------------------------------------------
+function getmLPSH_(self, n) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmLPSH_
+!! author: MDG
+!! version: 1.0
+!! date: 12/09/22
+!!
+!! get mLPSH from the ISE_T class
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)     :: self
+integer(kind=irg),INTENT(IN)    :: n
+real(kind=sgl)                  :: out(-n:n,-n:n)
+
+out = self%det%mLPSH
+
+end function getmLPSH_
+
+!--------------------------------------------------------------------------
+recursive subroutine readISEMPfile_(self, HDF, HDFnames, mpnml, getmLPNH, getmLPSH, getmasterSPNH, &
                                     getmasterSPSH, getstrings, silent)
 !DEC$ ATTRIBUTES DLLEXPORT :: readISEMPfile_
 !! author: MDG 
@@ -695,7 +847,7 @@ IMPLICIT NONE
 class(ISE_T), INTENT(INOUT)             :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
-type(ISEmasterNameListType)             :: nml
+type(ISEmasterNameListType)             :: mpnml
 logical,INTENT(IN),OPTIONAL             :: getmLPNH
 logical,INTENT(IN),OPTIONAL             :: getmLPSH
 logical,INTENT(IN),OPTIONAL             :: getmasterSPNH
@@ -794,10 +946,16 @@ if (g_exists.eqv..TRUE.) then
 end if
 
 dataset = SC_npx
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists.eqv..TRUE.) then
     call HDF%readDatasetInteger(dataset, hdferr, self%mpnml%npx)
+end if
 
 dataset = SC_nthreads
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists.eqv..TRUE.) then
     call HDF%readDatasetInteger(dataset, hdferr, self%mpnml%nthreads)
+end if
 
 dataset = SC_outname
     call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
@@ -865,6 +1023,8 @@ end if
 ! and close the HDF5 Master Pattern file
 call HDF%pop(.TRUE.)
 
+mpnml = self%mpnml
+
 if (.not.present(silent)) then
   call Message%printMessage(' --> Completed reading master pattern data from '//trim(self%ISEMPfile), frm = "(A/)")
 end if
@@ -896,78 +1056,76 @@ IMPLICIT NONE
 class(ISE_T), INTENT(INOUT)                 :: self
 integer(kind=irg),INTENT(IN)                :: numang 
 real(kind=sgl),INTENT(IN)                   :: Eangles(3,numang)
-real(kind=sgl),INTENT(OUT),allocatable      :: ISEimage(:,:)
+real(kind=sgl),INTENT(OUT),allocatable      :: ISEimage(:,:,:)
 
 type(IO_T)                                  :: Message
-type(Quaternion_T)                          :: quat, dquat 
+type(Quaternion_T)                          :: quat, qu 
+type(QuaternionArray_T)                     :: Qartilt
 type(e_T)                                   :: eu
-type(q_T)                                   :: qu
+type(q_T)                                   :: q
 type(a_T)                                   :: ax
 type(Lambert_T)                             :: L
 
-real(kind=sgl)                              :: s, ECPfactor, q(4)
 integer(kind=irg)                           :: ix, iy, icnt, jd, sz(3), nxmc
-real(kind=sgl)                              :: dc(3), avdc(3), newavdc(3), ixy(2), scl, sclmc, io_real(2)
-real(kind=dbl)                              :: ddc(3), tiltaxis(3)
+real(kind=sgl)                              :: s, dc(3), ixy(2), scl, sclmc, io_real(2)
+real(kind=dbl)                              :: ddc(3), tiltaxis(3), angle
 real(kind=sgl)                              :: dx, dy, dxm, dym, x, y, z
 integer(kind=irg)                           :: ii, jj, kk, istat
 integer(kind=irg)                           :: nix, niy, nixp, niyp, nixmc, niymc, TID
-logical                                     :: tilt
-real(kind=sgl),allocatable                  :: image(:,:)
+real(kind=sgl),allocatable                  :: image(:,:,:)
 
 call setRotationPrecision('d')
 
 associate( enl => self%nml, mpnml => self%mpnml, ISE => self%det )
 
-allocate(ISEimage(ISE%ipf_wd,ISE%ipf_ht))
+allocate(ISEimage(ISE%ipf_wd,ISE%ipf_ht,enl%nsteps))
 ISEimage = 0.0
 scl = float(self%mpnml%npx) 
 
-tilt = .FALSE. 
-if (enl%sampletilt.ne.0.0) then 
-  tilt = .TRUE.
-  tiltaxis = dble(enl%tiltaxis)
-  ax = a_T( adinp = (/ tiltaxis(1), tiltaxis(2), tiltaxis(3), cvtoRadians(dble(-enl%sampletilt)) /) )
-  qu = ax%aq()
-  dquat = Quaternion_T( qd = qu%q_copyd() )
-  write (*,*) 'sample rotation quaternion : ' 
-  call dquat%quat_print()
-end if 
+Qartilt = QuaternionArray_T( n=enl%nsteps, s='d' )
+tiltaxis = dble(enl%tiltaxis)
+do ii = 1, enl%nsteps
+  angle = -(enl%omega + dble(ii) * dble(enl%omega_step))
+  ax = a_T( adinp = (/ tiltaxis(1), tiltaxis(2), tiltaxis(3), cvtoRadians(angle) /) )
+  q = ax%aq()
+  quat = Quaternion_T( qd = q%q_copyd() )
+  call Qartilt%insertQuatinArray( ii, quat )
+end do
 
 ! loop over all the image pixels 
 icnt = 0
 call OMP_SET_NUM_THREADS(enl%nthreads)
 
-!$OMP PARALLEL default(shared) private(ix,iy,s,icnt,qu,jd,kk,dc,nix,niy,nixp,niyp,dx,dy,dxm,dym,newavdc,ECPfactor)&
-!$OMP& private(nixmc, niymc, eu, quat, ddc) 
+!$OMP PARALLEL default(shared) private(ix,iy,s,icnt,qu,jd,kk,dc,nix,niy,nixp,niyp,dx,dy,dxm,dym)&
+!$OMP& private(eu, quat, ddc, jj) 
 
 TID = OMP_GET_THREAD_NUM()
 
 !$OMP DO SCHEDULE(DYNAMIC)
 do iy = 1, ISE%ipf_ht
     do ix = 1, ISE%ipf_wd
-        s = 0.0
         icnt = ISE%ipf_wd*(iy-1) + ix
 ! get the orientation and determine the quaternion to be applied to all the 
 ! detector vectors
         eu = e_T( edinp = dble( Eangles(1:3, icnt) ) )
-        qu = eu%eq()
-        quat = Quaternion_T( qd = qu%q_copyd() )
+        q = eu%eq()
+        quat = Quaternion_T( qd = q%q_copyd() )
 
+        do jj=1, enl%nsteps
+          s = 0.0
 ! get the pixel direction cosines 
-        ddc = (/ 0.D0, 0.D0, 1.D0 /)
+          ddc = (/ 0.D0, 0.D0, 1.D0 /)
 ! apply the sample tilt to the detector direction cosines
-        if (tilt.eqv..TRUE.) then 
-          ddc = dquat%quat_Lp( ddc )
-        end if 
+          qu = Qartilt%getQuatfromArray( jj )
+          ddc = qu%quat_Lp( ddc )
 ! apply the grain rotation to the detector direction cosines
-        ddc = quat%quat_Lp( ddc )
-        dc = sngl(ddc/sqrt(sum(ddc*ddc)))
+          ddc = quat%quat_Lp( ddc )
+          dc = sngl(ddc/sqrt(sum(ddc*ddc)))
 ! convert these direction cosines to interpolation coordinates in the Rosca-Lambert projection
-        dc = dc / sqrt(sum(dc*dc))
-        call LambertgetInterpolation(dc, scl, mpnml%npx, mpnml%npx, nix, niy, nixp, niyp, dx, dy, dxm, dym)
+          dc = dc / sqrt(sum(dc*dc))
+          call LambertgetInterpolation(dc, scl, mpnml%npx, mpnml%npx, nix, niy, nixp, niyp, dx, dy, dxm, dym)
 
-        if (dc(3) .ge. 0.0) then
+          if (dc(3) .ge. 0.0) then
                 s = ISE%mLPNH(nix,niy) * dxm * dym + &
                     ISE%mLPNH(nixp,niy) * dx * dym + &
                     ISE%mLPNH(nix,niyp) * dxm * dy + &
@@ -977,8 +1135,9 @@ do iy = 1, ISE%ipf_ht
                     ISE%mLPSH(nixp,niy) * dx * dym + &
                     ISE%mLPSH(nix,niyp) * dxm * dy + &
                     ISE%mLPSH(nixp,niyp) * dx * dy 
-        end if
-        ISEimage(ix,iy) = s 
+          end if
+          ISEimage(ix,iy,jj) = s 
+        end do
     end do 
     if (mod(iy,10).eq.0) write (*,*) ' working on line ', iy
 end do 
@@ -987,10 +1146,10 @@ end do
 
 ! do we need to apply an ROI to this image before returning it to the calling program?
 if (sum(enl%ROI).ne.0) then 
-  allocate( image(enl%ROI(3),enl%ROI(4)) )
-  image = ISEimage(enl%ROI(1):enl%ROI(1)+enl%ROI(3)-1, enl%ROI(2):enl%ROI(2)+enl%ROI(4)-1)
+  allocate( image(enl%ROI(3),enl%ROI(4),enl%nsteps) )
+  image = ISEimage(enl%ROI(1):enl%ROI(1)+enl%ROI(3)-1, enl%ROI(2):enl%ROI(2)+enl%ROI(4)-1, 1:enl%nsteps)
   deallocate(ISEimage)
-  allocate( ISEimage(enl%ROI(3),enl%ROI(4)) )
+  allocate( ISEimage(enl%ROI(3),enl%ROI(4),enl%nsteps) )
   ISEimage = image
 end if 
 
@@ -1021,6 +1180,7 @@ use stringconstants
 use mod_memory
 use mod_image 
 use ISO_C_BINDING
+use mod_timing
 use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE 
@@ -1038,15 +1198,21 @@ type(QuaternionArray_T)             :: qAR
 type(memory_T)                      :: mem
 type(DIfile_T)                      :: DIFT
 type(DictionaryIndexingNameListType):: dinl
+type(Timing_T)                      :: timer
 
 type(ISEmasterNameListType)         :: mpnml
 
-integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf
+integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf, nlines, jj
 character(fnlen)                    :: fname, DIfile
+character(3)                        :: fnumber
 logical                             :: refined
 real(kind=sgl),allocatable          :: Eangles(:,:)
 real(kind=sgl)                      :: mi, ma, io_real(2)
-real(kind=sgl),allocatable          :: ISEimage(:,:)
+real(kind=sgl),allocatable          :: ISEimage(:,:,:)
+character(fnlen)                    :: groupname, datagroupname, attributename, HDF_FileVersion, dataset
+character(11)                       :: dstr
+character(15)                       :: tstrb
+character(15)                       :: tstre
 
 ! declare variables for use in object oriented image module
 character(fnlen)                    :: TIFF_filename
@@ -1057,6 +1223,9 @@ type(image_t)                       :: im
 integer(int8), allocatable          :: TIFF_image(:,:)
 integer                             :: dim2(2)
 integer(c_int32_t)                  :: result
+
+timer = timing_T()
+tstrb = timer%getTimeString()
 
 ! open the HDF interface
 call openFortranHDFInterface()
@@ -1132,42 +1301,101 @@ end if
 ! 3. perform the image computations
 call self%ComputeISEimage(nx, Eangles, ISEimage)
 
-! and save the resulting ISE image to a tiff file
-! output the ADP map as a tiff file 
-fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%imagefile))
-TIFF_filename = trim(fname)
+! 4. save the intensities to an HDF5 file
+call HDFnames%set_ProgramData(SC_ISE)
+call HDFnames%set_NMLlist(SC_ISENameList)
+call HDFnames%set_NMLfilename(SC_ISENML)
+
+call timer%makeTimeStamp()
+dstr = timer%getDateString()
+tstre = timer%getTimeString()
+
+fname = EMsoft%generateFilePath('EMdatapathname',enl%outputfile)
+
+! Create a new file using the default properties.
+hdferr =  HDF%createFile(fname)
+
+! write the EMheader to the file
+datagroupname = trim(HDFnames%get_ProgramData())
+call HDF%writeEMheader(EMsoft, dstr, tstrb, tstre, progname, datagroupname)
+
+! open or create a namelist group to write all the namelist files into
+groupname = SC_NMLfiles
+  hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
+
+! read the text file and write the array to the file
+dataset = trim(HDFnames%get_NMLfilename())
+  hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
+
+! leave this group
+  call HDF%pop()
+
+! create a namelist group to write all the namelist files into
+  hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
+  call self%writeHDFNameList(HDF, HDFnames)
+
+! leave this group
+  call HDF%pop()
+
+! then the remainder of the data in a EMData group
+  hdferr = HDF%createGroup(HDFnames%get_EMData())
+  hdferr = HDF%createGroup(HDFnames%get_ProgramData())
+
+! create the EBSDmaster group and add a HDF_FileVersion attribbute to it 
+  HDF_FileVersion = '4.0'
+  HDF_FileVersion = cstringify(HDF_FileVersion)
+  attributename = SC_HDFFileVersion
+  hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
+
+dataset = 'ISEimage'
+  sz = shape(ISEimage)
+  hdferr = HDF%writeDatasetFloatArray(dataset, ISEimage, sz(1), sz(2), sz(3))
+  
+! and close the file  
+  call HDF%pop(.TRUE.)
+
+!!!!!!!!!!!!!!!!!!!!!!
+! optionally save the individual images to tiff files
+if (trim(enl%imagefile).ne.'undefined') then 
+  if (enl%scalingmode.eq.'gam') then 
+    ISEimage = ISEimage**enl%gammavalue
+  end if 
+  ma = maxval(ISEimage)
+  mi = minval(ISEimage)
+  io_real(1:2) = (/ mi, ma /)
+  call Message%WriteValue('Intensity range : ', io_real, 2) 
+  ISEimage = 255.0 * (ISEimage-mi)/(ma-mi)
+  do jj=1,enl%nsteps
+    write (fnumber,"(I3.3)") jj
+    fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%imagefile)//'_'//fnumber//'.tiff')
+    TIFF_filename = trim(fname)
 
 ! allocate memory for image
-if (sum(enl%ROI).eq.0) then 
-  allocate(TIFF_image(ISEdetector%ipf_wd,ISEdetector%ipf_ht))
-else
-  allocate(TIFF_image(enl%ROI(3),enl%ROI(4)))
-end if 
-
-if (enl%scalingmode.eq.'gam') then 
-  ISEimage = ISEimage**enl%gammavalue
-end if 
+    if (jj.eq.1) then
+      if (sum(enl%ROI).eq.0) then 
+        allocate(TIFF_image(ISEdetector%ipf_wd,ISEdetector%ipf_ht))
+      else
+        allocate(TIFF_image(enl%ROI(3),enl%ROI(4)))
+      end if 
+    end if 
 
 ! fill the image with whatever data you have (between 0 and 255)
-ma = maxval(ISEimage)
-mi = minval(ISEimage)
-io_real(1:2) = (/ mi, ma /)
-call Message%WriteValue('Intensity range : ', io_real, 2) 
-
-TIFF_image = int(255 * (ISEimage-mi)/(ma-mi))
+    TIFF_image = int(ISEimage(:,:,jj))
 
 ! set up the image_t structure
-im = image_t(TIFF_image)
-if(im%empty()) call Message%printMessage("EMISE","failed to convert array to image")
+    im = image_t(TIFF_image)
+    if(im%empty()) call Message%printMessage("EMISE","failed to convert array to image")
 
 ! create the file
-call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
-if(0.ne.iostat) then
-  call Message%printMessage("failed to write image to file : "//iomsg)
-else  
-  call Message%printMessage('ISE image written to '//trim(TIFF_filename))
+    call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+    if(0.ne.iostat) then
+      call Message%printMessage("failed to write image to file : "//iomsg)
+    else  
+      call Message%printMessage('ISE image written to '//trim(TIFF_filename))
+    end if 
+    if (jj.eq.enl%nsteps) deallocate(TIFF_image)
+  end do
 end if 
-deallocate(TIFF_image)
 
 end associate
 

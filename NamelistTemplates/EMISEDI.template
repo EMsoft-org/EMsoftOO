@@ -1,0 +1,62 @@
+ &ISEDIdata
+! The line above must not be changed
+!
+! The values below are the default values for this program
+!###################################################################
+! DICTIONARY PARAMETERS 
+!###################################################################
+!
+! width of data set in pattern input file
+ ipf_wd = 100,
+! height of data set in pattern input file
+ ipf_ht = 100,
+! X and Y sampling step sizes
+ stepX = 1.0,
+ stepY = 1.0,
+! number of top matches to keep from the dot product results
+ nnk = 20,
+! number of top matches to use for Orientation Similarity Map computation (<nnk)
+ nosm = 20,
+! number of cubochoric points to generate list of orientations
+ ncubochoric = 100,
+! ==== ISE tilt series parameters
+! tilt axis (w.r.t. RD-TD-ND reference frame)
+ tiltaxis = 0.0 1.0 0.0,
+! starting angle for the tilt series (degrees, tilts around the TD direction)
+ omega = 0.0,
+! tilt step size (degrees)
+ omega_step = 1.0,
+! number of tilt steps 
+ nsteps = 4,
+!
+!###################################################################
+! INPUT FILE PARAMETERS: COMMON TO 'STATIC' AND 'DYNAMIC'
+!###################################################################
+!
+! name of HDF5 datafile where the ISE intensities are stored; path relative to EMdatapathname
+ exptfile = 'undefined',
+! 
+ HDFstrings = '' '' '' '' '' '' '' '' '' '',
+!
+!###################################################################
+! OTHER FILE PARAMETERS
+!###################################################################
+!
+! output file ; path relative to EMdatapathname
+ datafile = 'undefined',
+! ctf output file ; path relative to EMdatapathname
+ ctffile = 'undefined',
+! ang output file ; path relative to EMdatapathname
+ angfile = 'undefined',
+! ISE master pattern input file; path relative to EMdatapathname
+ masterfile = 'undefined',
+!
+!###################################################################
+! SYSTEM PARAMETERS
+!###################################################################
+!
+! number of patterns in computational batch
+ nbatch = 1024,
+! number of threads for parallel execution
+ nthreads = 1,
+ /
