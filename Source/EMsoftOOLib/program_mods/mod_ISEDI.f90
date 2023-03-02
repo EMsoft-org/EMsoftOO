@@ -1292,8 +1292,6 @@ premainder = npat - pbatches*pinbatch
 io_int(1) = nbatches+1 
 call Message%WriteValue(' Number of batches to index : ', io_int, 1)
 
-write (*,*) ninbatch, nbatches, nremainder, pinbatch, pbatches, premainder 
-
 outerloop: do ii=1,nbatches+1    ! loop over the dictionary
 ! fill the dictblock, taking into account that the last one is a different size
   dictblock = 0.0
@@ -1386,8 +1384,8 @@ call IPF%updateIPFmap(EMsoft, progname, nml%ipf_wd, nml%ipf_ht, pgnum, IPFmapfil
 
 ! 7. refine the orientations using the cubochoric regridding approach
 call Message%printMessage(' Starting orientation refinement')
-Nmis = 1
-niter = 5
+Nmis = 2
+niter = 4
 depth = 10 
 call mem%alloc(cubneighbor, (/ 3, (2*Nmis + 1)**3 /), 'cubneighbor', 0.D0)
 
@@ -1395,11 +1393,11 @@ allocate(ISEvector(nml%nsteps))
 
 ! loop over all the patterns
 do icnt=1,npat
-  stpsz = LPs%ap/2.D0/nml%ncubochoric/2.D0
 ! for each pattern, loop over the top depth matches from the previous step,
 ! and for each of those, do niter cubochoric grid refinements; keep the overall
 ! highest dot product and replace the orientation in the qAR array.
   do id=1,depth 
+    stpsz = LPs%ap/2.D0/nml%ncubochoric/2.D0
 ! generate the cubochoric sub-grid
     quat = qudictarray%getQuatfromArray( indexmain(id,icnt) )
     q = q_T( qdinp = quat%get_quatd() )
@@ -1408,28 +1406,35 @@ do icnt=1,npat
     call SO%CubochoricNeighbors(cubneighbor,Nmis,cu0,stpsz)
 ! for each orientation on this grid, compute the ISE intensity vector
 ! and compare it with the experimental vector using the cross-correlation approach
-    do jj=1,(2*Nmis+1)**3
-      cu = c_T( cdinp = dble(cubneighbor(1:3,jj)) )
-      q = cu%cq()
-      quat = Quaternion_T( qd = q%q_copyd() )
+    do kk=1,niter
+      do jj=1,(2*Nmis+1)**3
+        cu = c_T( cdinp = dble(cubneighbor(1:3,jj)) )
+        q = cu%cq()
+        quat = Quaternion_T( qd = q%q_copyd() )
 
-      call ISE%ComputeISEvector(quat, Qartilt, nml%nsteps, mpnml%npx, scl, mLPNH, mLPSH, ISEvector )
+        call ISE%ComputeISEvector(quat, Qartilt, nml%nsteps, mpnml%npx, scl, mLPNH, mLPSH, ISEvector )
 
 ! subtract mean and divide by standard deviation
-      m = sum( ISEvector ) / dble(nml%nsteps)
-      sd = sqrt( sum( (ISEvector-m)**2 ) / dble(nml%nsteps) )
-      ISEvector = (ISEvector-m)/sd
+        m = sum( ISEvector ) / dble(nml%nsteps)
+        sd = sqrt( sum( (ISEvector-m)**2 ) / dble(nml%nsteps) )
+        ISEvector = (ISEvector-m)/sd
 
 ! compute the dot product with the experimental pattern 
-      dpd = sum( ISEvector(:) * expt(:,icnt) ) * nfactor
+        dpd = sum( ISEvector(:) * expt(:,icnt) ) * nfactor
 
-      if (dpd.gt.resultmain(1,icnt)) then ! it is a better match 
-        call qAR%insertQuatinArray( icnt, quat )
-        resultmain(1,icnt) = dpd
+        if (dpd.gt.resultmain(1,icnt)) then ! it is a better match 
+          call qAR%insertQuatinArray( icnt, quat )
+          resultmain(1,icnt) = dpd
+          q = q_T( qdinp = quat%get_quatd() )
+          cu = q%qc()
+          cu0 = cu%c_copyd()
+        end if 
+      end do
+      if (kk.lt.niter) then
+        stpsz = stpsz*0.5D0
+        call SO%CubochoricNeighbors(cubneighbor,Nmis,cu0,stpsz)
       end if 
-
-    end do
-    stpsz = stpsz*0.5D0
+    end do 
   end do 
   if (mod(icnt,100).eq.0) then 
     io_int(1) = icnt 

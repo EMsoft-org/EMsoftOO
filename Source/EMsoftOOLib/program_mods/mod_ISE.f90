@@ -1069,7 +1069,6 @@ integer(kind=irg)                           :: jj, nix, niy, nixp, niyp
 real(kind=sgl)                              :: dx, dy, dxm, dym, dc(3) 
 real(kind=dbl)                              :: s, ddc(3)
 
-
 do jj=1, nsteps
   s = 0.D0
 ! get the pixel direction cosines 
