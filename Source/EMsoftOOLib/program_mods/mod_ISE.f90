@@ -106,6 +106,7 @@ private
   procedure, pass(self) :: gettiltaxis_
   procedure, pass(self) :: readISEMPfile_
   procedure, pass(self) :: ComputeISEimage_
+  procedure, pass(self) :: ComputeISEvector_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -137,6 +138,7 @@ private
   generic, public :: getmLPSH => getmLPSH_
   generic, public :: readISEMPfile => readISEMPfile_
   generic, public :: ComputeISEimage => ComputeISEimage_
+  generic, public :: ComputeISEvector => ComputeISEvector_
 
 end type ISE_T
 
@@ -1032,6 +1034,71 @@ end if
 end associate
 
 end subroutine readISEMPfile_
+
+!--------------------------------------------------------------------------
+recursive subroutine ComputeISEvector_(self, quat, Qartilt, nsteps, npx, scl, mLPNH, mLPSH, ISEvector)
+!DEC$ ATTRIBUTES DLLEXPORT :: ComputeISEvector_
+!! author: MDG 
+!! version: 1.0 
+!! date: 03/02/23
+!!
+!! compute an ISE tilt intensity vector 
+
+use mod_io
+use mod_quaternions 
+use mod_rotations
+use mod_Lambert
+use ISO_C_BINDING
+use, intrinsic :: iso_fortran_env
+
+IMPLICIT NONE
+
+class(ISE_T), INTENT(INOUT)                 :: self
+type(Quaternion_T), INTENT(IN)              :: quat 
+type(QuaternionArray_T), INTENT(IN)         :: Qartilt
+integer(kind=irg), INTENT(IN)               :: nsteps 
+integer(kind=irg), INTENT(IN)               :: npx
+real(kind=sgl), INTENT(IN)                  :: scl 
+real(kind=sgl), INTENT(IN)                  :: mLPNH(-npx:npx,-npx:npx)
+real(kind=sgl), INTENT(IN)                  :: mLPSH(-npx:npx,-npx:npx)
+real(kind=dbl), INTENT(OUT)                 :: ISEvector(nsteps)
+
+type(Quaternion_T)                          :: qu 
+
+integer(kind=irg)                           :: jj, nix, niy, nixp, niyp
+real(kind=sgl)                              :: dx, dy, dxm, dym, dc(3) 
+real(kind=dbl)                              :: s, ddc(3)
+
+
+do jj=1, nsteps
+  s = 0.D0
+! get the pixel direction cosines 
+  ddc = (/ 0.D0, 0.D0, 1.D0 /)
+! apply the sample tilt to the detector direction cosines
+  qu = Qartilt%getQuatfromArray( jj )
+  ddc = qu%quat_Lp( ddc )
+! apply the grain rotation to the detector direction cosines
+  ddc = quat%quat_Lp( ddc )
+  dc = sngl(ddc/sqrt(sum(ddc*ddc)))
+! convert these direction cosines to interpolation coordinates in the Rosca-Lambert projection
+  dc = dc / sqrt(sum(dc*dc))
+  call LambertgetInterpolation(dc, scl, npx, npx, nix, niy, nixp, niyp, dx, dy, dxm, dym)
+
+  if (dc(3) .ge. 0.0) then
+        s = mLPNH(nix,niy) * dxm * dym + &
+            mLPNH(nixp,niy) * dx * dym + &
+            mLPNH(nix,niyp) * dxm * dy + &
+            mLPNH(nixp,niyp) * dx * dy 
+  else
+        s = mLPSH(nix,niy) * dxm * dym + &
+            mLPSH(nixp,niy) * dx * dym + &
+            mLPSH(nix,niyp) * dxm * dy + &
+            mLPSH(nixp,niyp) * dx * dy 
+  end if
+  ISEvector(jj) = s 
+end do
+
+end subroutine ComputeISEvector_
 
 !--------------------------------------------------------------------------
 subroutine ComputeISEimage_(self, numang, Eangles, ISEimage)

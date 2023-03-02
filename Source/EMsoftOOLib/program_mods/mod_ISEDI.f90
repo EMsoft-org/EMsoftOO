@@ -1098,13 +1098,14 @@ type(HDF_T)                         :: HDF
 type(Vendor_T)                      :: VT
 type(HDFnames_T)                    :: HDFnames
 type(so3_T)                         :: SO
-type(ISE_T)                         :: ISE
+type(ISE_T)                         :: ISE, myISE
 type(Cell_T)                        :: cell
 type(SpaceGroup_T)                  :: SG
 type(memory_T)                      :: mem
 type(e_T)                           :: eu 
 type(a_T)                           :: ax
 type(q_T)                           :: q
+type(c_T)                           :: cu
 type(QuaternionArray_T)             :: Qartilt, qudictarray, qAR, sym, qAR2
 type(Quaternion_T)                  :: quat, qu
 type(IPF_T)                         :: IPF 
@@ -1114,17 +1115,18 @@ type(ISEmasterNameListType)         :: mpnml
 
 integer(kind=irg)                   :: io_int(2), pgnum, FZcnt, ii, jj, kk, ng, hdferr, npat, icnt, jjj, &
                                         ninbatch, nbatches, nremainder, pinbatch, pbatches, premainder, jstart, kstart
-integer(kind=irg)                   :: nix, niy, nixp, niyp, TID, limit
+integer(kind=irg)                   :: TID, limit, niter, Nmis, id, depth, last 
 integer(HSIZE_T)                    :: dims(3)
-real(kind=sgl)                      :: dx, dy, dxm, dym, scl
-real(kind=sgl)                      :: dc(3), nfactor
+real(kind=sgl)                      :: nfactor, scl, dpd
+real(kind=dbl)                      :: stpsz, cu0(3)
+real(kind=dbl),allocatable          :: cubneighbor(:,:)
 type(FZpointd),pointer              :: FZlist, FZtmp
-real(kind=dbl), allocatable         :: ISEdict(:,:)
+real(kind=dbl), allocatable         :: ISEdict(:,:), ISEvector(:)
 real(kind=sgl),allocatable          :: mLPNH(:,:), mLPSH(:,:), ISEimage(:,:,:), dp(:,:), minsortarr(:), resultarray(:), &
                                         dictblock(:,:), exptblock(:,:), dps(:,:), expt(:,:), maxsortarr(:), resultmain(:,:), &
                                         resulttmp(:,:)
 integer(kind=irg),allocatable       :: dplabel(:,:), indexlist(:), indexarray(:), indexmain(:,:), indextmp(:,:)
-real(kind=dbl)                      :: tiltaxis(3), angle, ddc(3), s, m, sd
+real(kind=dbl)                      :: tiltaxis(3), angle, m, sd
 character(fnlen)                    :: fname, groupname, dataset, IPFmapfile, IPFmode
 
 call setRotationPrecision('d')
@@ -1178,7 +1180,6 @@ do ii = 1, nml%nsteps
   angle = nml%omega + dble(ii-1) * dble(nml%omega_step)
   ax = a_T( adinp = (/ tiltaxis(1), tiltaxis(2), tiltaxis(3), cvtoRadians(angle) /) )
   q = ax%aq()
-  ! call q%q_print( 'quat : ' )
   quat = Quaternion_T( qd = q%q_copyd() )
   call Qartilt%insertQuatinArray( ii, quat )
 end do
@@ -1188,53 +1189,33 @@ scl = float(mpnml%npx)
 ! loop over all the dictionary orientations
 call OMP_SET_NUM_THREADS(nml%nthreads)
 
-!$OMP PARALLEL default(shared) private(ii,jj,s,quat,dc,nix,niy,nixp,niyp,dx,dy,dxm,dym)&
-!$OMP& private(qu, ddc, io_int, m, sd ) 
+!$OMP PARALLEL default(shared) private(ii,quat, io_int, m, sd, myISE, ISEvector )
 
 TID = OMP_GET_THREAD_NUM()
+myISE = ISE_T()
+allocate(ISEvector(nml%nsteps))
 
 !$OMP DO SCHEDULE(DYNAMIC)
 do ii = 1, FZcnt
 ! get the orientation quaternion
   quat = qudictarray%getQuatfromArray( ii )
 
-  do jj=1, nml%nsteps
-    s = 0.D0
-! get the pixel direction cosines 
-    ddc = (/ 0.D0, 0.D0, 1.D0 /)
-! apply the sample tilt to the detector direction cosines
-    qu = Qartilt%getQuatfromArray( jj )
-    ddc = qu%quat_Lp( ddc )
-! apply the grain rotation to the detector direction cosines
-    ddc = quat%quat_Lp( ddc )
-    dc = sngl(ddc/sqrt(sum(ddc*ddc)))
-! convert these direction cosines to interpolation coordinates in the Rosca-Lambert projection
-    dc = dc / sqrt(sum(dc*dc))
-    call LambertgetInterpolation(dc, scl, mpnml%npx, mpnml%npx, nix, niy, nixp, niyp, dx, dy, dxm, dym)
+  call myISE%ComputeISEvector(quat, Qartilt, nml%nsteps, mpnml%npx, scl, mLPNH, mLPSH, ISEvector )
 
-    if (dc(3) .ge. 0.0) then
-          s = mLPNH(nix,niy) * dxm * dym + &
-              mLPNH(nixp,niy) * dx * dym + &
-              mLPNH(nix,niyp) * dxm * dy + &
-              mLPNH(nixp,niyp) * dx * dy 
-    else
-          s = mLPSH(nix,niy) * dxm * dym + &
-              mLPSH(nixp,niy) * dx * dym + &
-              mLPSH(nix,niyp) * dxm * dy + &
-              mLPSH(nixp,niyp) * dx * dy 
-    end if
-    ISEdict(jj,ii) = s 
-  end do
   if (mod(ii,10000).eq.0) then 
     io_int(1) = ii
     call Message%WriteValue(' completed orientation ', io_int, 1)
   end if
+
 ! subtract mean and divide by standard deviation
-  m = sum( ISEdict(:,ii) ) / dble(nml%nsteps)
-  sd = sqrt( sum( (ISEdict(:,ii)-m)**2 ) / dble(nml%nsteps) )
-  ISEdict(:,ii) = (ISEdict(:,ii)-m)/sd
+  m = sum( ISEvector ) / dble(nml%nsteps)
+  sd = sqrt( sum( (ISEvector-m)**2 ) / dble(nml%nsteps) )
+  ISEdict(:,ii) = (ISEvector(:)-m)/sd
 end do 
 !$OMP END DO
+
+deallocate(ISEvector)
+
 !$OMP END PARALLEL
 
 call Message%printMessage('  --> Dictionary completed ')
@@ -1311,6 +1292,7 @@ premainder = npat - pbatches*pinbatch
 io_int(1) = nbatches+1 
 call Message%WriteValue(' Number of batches to index : ', io_int, 1)
 
+write (*,*) ninbatch, nbatches, nremainder, pinbatch, pbatches, premainder 
 
 outerloop: do ii=1,nbatches+1    ! loop over the dictionary
 ! fill the dictblock, taking into account that the last one is a different size
@@ -1320,10 +1302,12 @@ outerloop: do ii=1,nbatches+1    ! loop over the dictionary
     do jj=1,ninbatch
       dictblock(jj,:) = ISEdict(:, jstart + jj)
     end do
+    last = ninbatch
   else   ! this is the remainder part 
     do jj=1,nremainder
       dictblock(jj,:) = ISEdict(:, jstart + jj)
     end do
+    last = nremainder
   end if 
 ! next loop over all the exptblocks to compute the dps array
   innerloop: do kk=1,pbatches+1  ! loop over the experimental patterns
@@ -1358,7 +1342,7 @@ outerloop: do ii=1,nbatches+1    ! loop over the dictionary
         maxsortarr(jjj) = maxval(dps(:,jj))
         if (maxsortarr(jjj).gt.minsortarr(jjj)) then ! only sort if the max falls in the range
           resultarray(1:ninbatch) = dps(1:ninbatch,jj)
-          indexarray(1:ninbatch) = indexlist((ii-1)*ninbatch+1:ii*ninbatch)
+          indexarray(1:last) = indexlist((ii-1)*ninbatch+1:(ii-1)*ninbatch+last)
 
           call SSORT(resultarray,indexarray,ninbatch,-2)
 
@@ -1374,7 +1358,7 @@ outerloop: do ii=1,nbatches+1    ! loop over the dictionary
       end do
     end if 
   end do innerloop
-  if (mod(ii,1).eq.0) then 
+  if (mod(ii,100).eq.0) then 
     io_int(1) = ii 
     io_int(2) = nbatches+1 
     call Message%WriteValue(' completed batch # ', io_int, 2, "(I4,' of ',I4)")
@@ -1400,6 +1384,67 @@ IPFmode = 'TSL'
 call IPF%set_IPFmode(IPFmode)
 call IPF%updateIPFmap(EMsoft, progname, nml%ipf_wd, nml%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
 
+! 7. refine the orientations using the cubochoric regridding approach
+call Message%printMessage(' Starting orientation refinement')
+Nmis = 1
+niter = 5
+depth = 10 
+call mem%alloc(cubneighbor, (/ 3, (2*Nmis + 1)**3 /), 'cubneighbor', 0.D0)
+
+allocate(ISEvector(nml%nsteps))
+
+! loop over all the patterns
+do icnt=1,npat
+  stpsz = LPs%ap/2.D0/nml%ncubochoric/2.D0
+! for each pattern, loop over the top depth matches from the previous step,
+! and for each of those, do niter cubochoric grid refinements; keep the overall
+! highest dot product and replace the orientation in the qAR array.
+  do id=1,depth 
+! generate the cubochoric sub-grid
+    quat = qudictarray%getQuatfromArray( indexmain(id,icnt) )
+    q = q_T( qdinp = quat%get_quatd() )
+    cu = q%qc()
+    cu0 = cu%c_copyd()
+    call SO%CubochoricNeighbors(cubneighbor,Nmis,cu0,stpsz)
+! for each orientation on this grid, compute the ISE intensity vector
+! and compare it with the experimental vector using the cross-correlation approach
+    do jj=1,(2*Nmis+1)**3
+      cu = c_T( cdinp = dble(cubneighbor(1:3,jj)) )
+      q = cu%cq()
+      quat = Quaternion_T( qd = q%q_copyd() )
+
+      call ISE%ComputeISEvector(quat, Qartilt, nml%nsteps, mpnml%npx, scl, mLPNH, mLPSH, ISEvector )
+
+! subtract mean and divide by standard deviation
+      m = sum( ISEvector ) / dble(nml%nsteps)
+      sd = sqrt( sum( (ISEvector-m)**2 ) / dble(nml%nsteps) )
+      ISEvector = (ISEvector-m)/sd
+
+! compute the dot product with the experimental pattern 
+      dpd = sum( ISEvector(:) * expt(:,icnt) ) * nfactor
+
+      if (dpd.gt.resultmain(1,icnt)) then ! it is a better match 
+        call qAR%insertQuatinArray( icnt, quat )
+        resultmain(1,icnt) = dpd
+      end if 
+
+    end do
+    stpsz = stpsz*0.5D0
+  end do 
+  if (mod(icnt,100).eq.0) then 
+    io_int(1) = icnt 
+    io_int(2) = npat
+    call Message%WriteValue(' refined orientation # ', io_int, 2, "(I8,' of ',I8)")
+  end if
+end do
+
+IPFmapfile = 'refinedIPFZmap.tiff'
+call IPF%set_IPFfilename(IPFmapfile)
+call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+call IPF%set_nthreads(1)
+IPFmode = 'TSL'
+call IPF%set_IPFmode(IPFmode)
+call IPF%updateIPFmap(EMsoft, progname, nml%ipf_wd, nml%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
 
 end associate
 
