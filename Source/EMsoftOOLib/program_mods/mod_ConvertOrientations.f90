@@ -41,6 +41,7 @@ IMPLICIT NONE
 ! namelist for the EMConvertOrientations program
 type, public :: ConvertOrientationsNameListType
   integer(kind=irg)       :: reducetoRFZ
+  integer(kind=irg)       :: symmetrize
   character(fnlen)        :: xtalname
   character(fnlen)        :: inputfile
   character(fnlen)        :: outputfile
@@ -113,6 +114,7 @@ logical                                     :: skipread = .FALSE.
 integer(kind=irg)                           :: cnt
 
 integer(kind=irg)       :: reducetoRFZ
+integer(kind=irg)       :: symmetrize
 character(fnlen)        :: xtalname
 character(fnlen)        :: inputfile
 character(fnlen)        :: outputfile
@@ -120,10 +122,11 @@ character(2)            :: outputrepresentation
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EMConvertOrientations / inputfile, outputfile, outputrepresentation, &
-                                    xtalname, reducetoRFZ
+                                    xtalname, reducetoRFZ, symmetrize
 
 ! initialize
 reducetoRFZ = 1
+symmetrize = 0
 inputfile = 'undefined'
 outputfile = 'undefined'
 outputrepresentation = 'xx'
@@ -155,6 +158,7 @@ if (.not.skipread) then
 end if
 
 self%nml%reducetoRFZ = reducetoRFZ
+self%nml%symmetrize = symmetrize 
 self%nml%inputfile = inputfile
 self%nml%outputfile = outputfile
 self%nml%outputrepresentation = outputrepresentation
@@ -207,16 +211,16 @@ type(EMsoft_T), INTENT(INOUT)                     :: EMsoft
 type(Cell_T)            :: cell
 type(SpaceGroup_T)      :: SG
 type(so3_T)             :: SO
-type(QuaternionArray_T) :: QA, qsym, qAR
+type(QuaternionArray_T) :: QA, qsym, qAR, qnew
 type(IO_T)              :: Message
-type(q_T)               :: qu
-type(Quaternion_T)      :: qq
+type(q_T)               :: qu, qm
+type(Quaternion_T)      :: qq, qs
 type(r_T)               :: roFZ
 
-integer(kind=irg)       :: i,j,k, ierr, io_int(3), pgnum
+integer(kind=irg)       :: i,j,k, ierr, io_int(3), pgnum, numor, qnum, ipos
 character(fnlen)        :: fname
 integer(kind=irg)       :: FZtype, FZorder
-
+type(FZpointd),pointer  :: FZhead, FZtmp
 
 call openFortranHDFInterface()
 
@@ -243,7 +247,37 @@ call Message%printMessage(' - read orientation data from file '//trim(fname), fr
 ! apply the reduction to the RFZ ?
 if (self%nml%reducetoRFZ.eq.1) then
   call SO%ReducelisttoRFZ( qsym )
+
 end if
+
+if (self%nml%symmetrize.eq.1) then 
+! get the quaternion list as an array
+  call SO%listtoQuaternionArray( qAR, 'FZ' )
+  numor = SO%getListCount( 'FZ' ) 
+  qnum = qsym%getQnumber()
+  qnew = QuaternionArray_T( n = numor * qnum, s = 'd' )
+  write (*,*) 'symmetrizing: ', numor, qnum, numor * qnum  
+  do i=1,numor
+    qq = qAR%getQuatfromArray( i )
+    call qnew%insertQuatinArray( i, qq )
+  end do
+  write (*,*) ' copied original orientations '
+! generate equivalent orientations and add them to the list
+  do i=1,numor
+    qq = qAR%getQuatfromArray( i )
+    do k=2,qnum   ! skip the identity operator 
+      qs = qsym%getQuatfromArray( k ) 
+      qs = qs * qq
+      ipos = (k-1)*numor + i 
+      call qnew%insertQuatinArray( ipos, qs )
+    end do 
+  end do 
+  call SO%delete_FZlist( 'FZ' )
+  call SO%nullifyList( 'FZ' )
+  call SO%QuaternionArraytonewlist( qnew, 'FZ' )
+  numor = SO%getListCount( 'FZ' ) 
+  write (*,*) 'number of orientations on new list : ', numor
+end if 
 
 ! and write the results to an output file
 fname = EMsoft%generateFilePath('EMdatapathname',self%nml%outputfile)

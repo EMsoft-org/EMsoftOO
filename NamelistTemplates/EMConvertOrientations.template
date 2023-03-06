@@ -10,4 +10,6 @@
  outputfile = 'undefined'
 ! should input orientations be reduced to the correct RFZ (1) or not (0) ?
  reducetoRFZ = 1,
+! or should we apply the crystal symmetry (rotational) to the orientation data set ?
+ symmetrize = 0,
  / 
