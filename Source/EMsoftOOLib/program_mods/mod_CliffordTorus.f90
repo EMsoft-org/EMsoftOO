@@ -733,22 +733,25 @@ select case(listmode)
     cnt = SO%getListCount('FZ')
 end select
 
-if (self%nml%shownegativeq0.eq.1) then 
+! if (self%nml%shownegativeq0.eq.1) then 
   allocate(qar(4,2*cnt))
-else
-  allocate(qar(4,cnt))
-end if 
+! else
+!   allocate(qar(4,cnt))
+! end if 
 
 do i=1,cnt
   q = FZtmp%qu
   qar(1:4,i) = q%q_copyd()
-  if (self%nml%shownegativeq0.eq.1) then 
-    qar(1:4,i+cnt) = - qar(1:4, i)
-  end if 
+  ! if (self%nml%shownegativeq0.eq.1) then 
+  qar(1:4,i+cnt) = - qar(1:4, i)
+  ! end if 
   FZtmp => FZtmp%next
 end do 
 
-if (self%nml%shownegativeq0.eq.1) cnt = 2*cnt
+! if (self%nml%shownegativeq0.eq.1) 
+cnt = 2*cnt
+
+write (*,*) 'Total number of orientations for Riesz computation : ', cnt
 
 allocate(qar2(4,cnt), done(cnt))
 qar2 = qar
@@ -802,6 +805,9 @@ eu = rieszsum/rieszoptimal
 write (*,"('Riesz optimal : ',3(F25.3,A1))") rieszoptimal(1),' ',rieszoptimal(2),' ',rieszoptimal(3)
 write (*,"('Riesz energy  : ',3(F25.3,A1))") rieszsum(1),' ',rieszsum(2),' ',rieszsum(3)
 write (*,"('Riesz ratio   : ',3(F25.20,A1))") eu(1),' ',eu(2),' ',eu(3)
+
+write (*,*) rieszsum
+write (*,*) eu 
 
 end subroutine computeRieszEnergy_
 

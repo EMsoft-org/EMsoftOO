@@ -220,6 +220,7 @@ type, public :: so3_T
     procedure, pass(self) :: sample_Cone_
     procedure, pass(self) :: sample_Fiber_
     procedure, pass(self) :: sample_SFS_
+    procedure, pass(self) :: sample_SHO_
     procedure, pass(self) :: sample_MAR_
     procedure, pass(self) :: sample_UNI_
     procedure, pass(self) :: SampleIsoMisorientation_
@@ -275,6 +276,7 @@ type, public :: so3_T
     generic, public :: sample_Cone => sample_Cone_
     generic, public :: sample_Fiber => sample_Fiber_
     generic, public :: sample_SFS => sample_SFS_
+    generic, public :: sample_SHO => sample_SHO_
     generic, public :: sample_MAR => sample_MAR_
     generic, public :: sample_UNI => sample_UNI_
     generic, public :: SampleIsoMisorientation => SampleIsoMisorientation_
@@ -1695,6 +1697,87 @@ io_int(1) = self%SFcnt
 call Message%WriteValue('count at end of routine ', io_int, 1) 
 
 end subroutine sample_SFS_
+
+!--------------------------------------------------------------------------
+recursive subroutine sample_SHO_(self, num, pgnum)
+!DEC$ ATTRIBUTES DLLEXPORT :: sample_SHO_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 03/22/23
+  !!
+  !! generate a Shoemake sampling
+  !! this sampling method follows the algorithm described in:
+  !! K. Shoemake, "Uniform Random Rotations", Graphics Gems III (IBM Version), p. 124-132, 1992
+
+use mod_quaternions
+use mod_symmetry
+use mod_io
+use mod_rng
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+integer(kind=irg),INTENT(IN)            :: num
+integer(kind=irg),INTENT(IN)            :: pgnum
+
+type(IO_T)                              :: Message 
+type(quaternion_T)                      :: qu
+type(r_T)                               :: rod
+type(c_T)                               :: cu
+type(q_T)                               :: q
+type(FZpointd),pointer                  :: tmp, tmp2
+
+real(kind=dbl)                          :: a, b, u(3), nsi 
+integer(kind=irg)                       :: i, nsamples, io_int(1), seed
+
+! initialize parameters
+self%SFcnt = 0
+
+! make sure the linked list is empty
+if (associated(self%SFlist)) call self%delete_FZlist('SF')
+
+! allocate the linked list and insert the origin
+allocate(self%SFlist)
+tmp => self%SFlist
+nullify(tmp%next)
+
+! we'll use the Mersenne twister routines here
+seed = 4324
+call genrand_init( put=seed )
+
+! we generate a series of num points inside the RFZ, using a simple algorithm
+! we'll use a while loop until we have enough points; to ensure that we have enough points 
+! we'll multiply the norientations (num) value by the multiplicity of the rotational point group
+! this means that we get approximately the number of requested points.
+nsamples = num * RPGorder( pgnum ) 
+io_int(1) = nsamples
+call Message%WriteValue(' Starting Shoemake sampling for # samples ', io_int, 1) 
+nsi = 1.D0/dble(nsamples) 
+do i=0,nsamples-1
+  call genrand_real1( u(1) )
+  call genrand_real1( u(2) )
+  call genrand_real1( u(3) )
+  u(2:3) = u(2:3) * 2.D0 * cPi
+
+  a = sqrt(1.D0-u(1))
+  b = sqrt(u(1))
+  q = q_T( qdinp = (/ a*sin(u(2)), a*cos(u(2)), b*sin(u(3)), b*cos(u(3)) /) )
+  
+  rod = q%qr()
+  if (self%IsinsideFZ(rod).eqv..TRUE.) then 
+    tmp%rod = rod
+    tmp%qu = q
+    allocate(tmp%next)
+    tmp => tmp%next
+    nullify(tmp%next)
+    self%SFcnt = self%SFcnt + 1
+  end if    
+end do
+
+io_int(1) = self%SFcnt
+call Message%WriteValue('count at end of routine ', io_int, 1) 
+
+end subroutine sample_SHO_
 
 !--------------------------------------------------------------------------
 recursive subroutine sample_MAR_(self, num)
