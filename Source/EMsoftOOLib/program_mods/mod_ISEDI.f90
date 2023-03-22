@@ -48,11 +48,14 @@ type, public :: ISEDINameListType
   integer(kind=irg)         :: nsteps
   integer(kind=irg)         :: nbatch
   integer(kind=irg)         :: nthreads
+  integer(kind=irg)         :: sw
   real(kind=sgl)            :: stepX
   real(kind=sgl)            :: stepY
   real(kind=sgl)            :: omega
   real(kind=sgl)            :: omega_step
+  real(kind=sgl)            :: lambda
   real(kind=sgl)            :: tiltaxis(3)
+  logical                   :: doNLPAR
   character(fnlen)          :: HDFstrings(10)
   character(fnlen)          :: exptfile
   character(fnlen)          :: datafile
@@ -75,6 +78,12 @@ private
   procedure, pass(self) :: getipf_ht_
   procedure, pass(self) :: setnnk_
   procedure, pass(self) :: getnnk_
+  procedure, pass(self) :: setsw_
+  procedure, pass(self) :: getsw_
+  procedure, pass(self) :: setlambda_
+  procedure, pass(self) :: getlambda_
+  procedure, pass(self) :: setdoNLPAR_
+  procedure, pass(self) :: getdoNLPAR_
   procedure, pass(self) :: setnosm_
   procedure, pass(self) :: getnosm_
   procedure, pass(self) :: setncubochoric_
@@ -118,6 +127,12 @@ private
   generic, public :: getipf_ht => getipf_ht_
   generic, public :: setnnk => setnnk_
   generic, public :: getnnk => getnnk_
+  generic, public :: setsw => setsw_
+  generic, public :: getsw => getsw_
+  generic, public :: setlambda => setlambda_
+  generic, public :: getlambda => getlambda_
+  generic, public :: setdoNLPAR => setdoNLPAR_
+  generic, public :: getdoNLPAR => getdoNLPAR_
   generic, public :: setnosm => setnosm_
   generic, public :: getnosm => getnosm_
   generic, public :: setncubochoric => setncubochoric_
@@ -228,11 +243,14 @@ integer(kind=irg)                    :: ncubochoric
 integer(kind=irg)                    :: nsteps
 integer(kind=irg)                    :: nbatch
 integer(kind=irg)                    :: nthreads
+integer(kind=irg)                    :: sw
 real(kind=sgl)                       :: stepX
 real(kind=sgl)                       :: stepY
 real(kind=sgl)                       :: omega
 real(kind=sgl)                       :: omega_step
+real(kind=sgl)                       :: lambda
 real(kind=sgl)                       :: tiltaxis(3)
+logical                              :: doNLPAR
 character(fnlen)                     :: HDFstrings(10)
 character(fnlen)                     :: exptfile
 character(fnlen)                     :: datafile
@@ -242,7 +260,7 @@ character(fnlen)                     :: masterfile
 
 namelist / ISEDIdata / ipf_wd, ipf_ht, nnk, nosm, ncubochoric, nsteps, nbatch, nthreads, &
                        stepX, stepY, omega, omega_step, HDFstrings, exptfile, datafile, &
-                       ctffile, angfile, masterfile, tiltaxis
+                       ctffile, angfile, masterfile, tiltaxis, sw, lambda, doNLPAR
 
 ! set the input parameters to default values
 ipf_wd = 100
@@ -250,9 +268,12 @@ ipf_ht = 100
 stepX = 1.0
 stepY = 1.0
 nnk = 20
+sw = 3
 nosm = 20
 ncubochoric = 100
 omega = 0.0
+lambda = 0.375
+doNLPAR = .FALSE.
 omega_step = 1.0
 tiltaxis = (/ 0.0, 1.0, 0.0 /)
 nsteps = 4
@@ -292,6 +313,7 @@ end if
 self%nml%ipf_wd = ipf_wd
 self%nml%ipf_ht = ipf_ht
 self%nml%nnk = nnk
+self%nml%sw = sw 
 self%nml%nosm = nosm
 self%nml%ncubochoric = ncubochoric
 self%nml%nsteps = nsteps
@@ -301,7 +323,9 @@ self%nml%tiltaxis = tiltaxis
 self%nml%stepX = stepX
 self%nml%stepY = stepY
 self%nml%omega = omega
+self%nml%lambda = lambda
 self%nml%omega_step = omega_step
+self%nml%doNLPAR = doNLPAR
 self%nml%HDFstrings = HDFstrings
 self%nml%exptfile = exptfile
 self%nml%datafile = datafile
@@ -471,6 +495,113 @@ out = self%nml%nnk
 
 end function getnnk_
 
+!--------------------------------------------------------------------------
+subroutine setsw_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setsw_
+!! author: MDG
+!! version: 1.0
+!! date: 02/27/23
+!!
+!! set sw in the ISEDI class
+
+IMPLICIT NONE
+
+class(ISEDI_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%sw = inp
+
+end subroutine setsw_
+
+!--------------------------------------------------------------------------
+function getsw_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getsw_
+!! author: MDG
+!! version: 1.0
+!! date: 02/27/23
+!!
+!! get sw from the ISEDI class
+
+IMPLICIT NONE
+
+class(ISEDI_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%sw
+
+end function getsw_
+
+!--------------------------------------------------------------------------
+subroutine setlambda_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setlambda_
+!! author: MDG
+!! version: 1.0
+!! date: 02/27/23
+!!
+!! set lambda in the ISEDI class
+
+IMPLICIT NONE
+
+class(ISEDI_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%lambda = inp
+
+end subroutine setlambda_
+
+!--------------------------------------------------------------------------
+function getlambda_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getlambda_
+!! author: MDG
+!! version: 1.0
+!! date: 02/27/23
+!!
+!! get lambda from the ISEDI class
+
+IMPLICIT NONE
+
+class(ISEDI_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%lambda
+
+end function getlambda_
+
+!--------------------------------------------------------------------------
+subroutine setdoNLPAR_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setdoNLPAR_
+!! author: MDG
+!! version: 1.0
+!! date: 02/27/23
+!!
+!! set doNLPAR in the ISEDI class
+
+IMPLICIT NONE
+
+class(ISEDI_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)               :: inp
+
+self%nml%doNLPAR = inp
+
+end subroutine setdoNLPAR_
+
+!--------------------------------------------------------------------------
+function getdoNLPAR_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getdoNLPAR_
+!! author: MDG
+!! version: 1.0
+!! date: 02/27/23
+!!
+!! get doNLPAR from the ISEDI class
+
+IMPLICIT NONE
+
+class(ISEDI_T), INTENT(INOUT)     :: self
+logical                           :: out
+
+out = self%nml%doNLPAR
+
+end function getdoNLPAR_
 !--------------------------------------------------------------------------
 subroutine setnosm_(self,inp)
 !DEC$ ATTRIBUTES DLLEXPORT :: setnosm_
@@ -1082,6 +1213,7 @@ use mod_ISE
 use stringconstants
 use mod_crystallography
 use mod_symmetry
+use mod_NLPAR
 use omp_lib
 use ISO_C_BINDING
 use mod_IPF
@@ -1110,6 +1242,7 @@ type(QuaternionArray_T)             :: Qartilt, qudictarray, qAR, sym, qAR2
 type(Quaternion_T)                  :: quat, qu
 type(IPF_T)                         :: IPF 
 type(IPFmap_T)                      :: IPFmap 
+type(NLPAR_T)                       :: NLPAR
 
 type(ISEmasterNameListType)         :: mpnml
 
@@ -1244,21 +1377,44 @@ dataset = trim(nml%HDFstrings(ng+1))
 call HDF%pop(.TRUE.)
 
 ! normalize the image intensities and reduce the array dimensions
+! optionally, perform the NLPAR algorithm
 npat =  nml%ipf_wd*nml%ipf_ht
 call mem%alloc(expt, (/ nml%nsteps, npat /), 'expt')
-icnt = 1
 
-do ii=1,nml%ipf_ht
-  do jj=1,nml%ipf_wd
-! subtract mean and divide by standard deviation
-    m = sum( ISEimage(jj, ii, :) ) / dble(nml%nsteps)
-    sd = sqrt( sum( (ISEimage(jj,ii,:)-m)**2 ) / dble(nml%nsteps) )
-    expt(:,icnt) = (ISEimage(jj,ii,:)-m)/sd
-    icnt = icnt+1
+if (nml%doNLPAR.eqv..TRUE.) then 
+  NLPAR = NLPAR_T()
+  call NLPAR%setSearchWindow(nml%sw)
+  call NLPAR%setLambda(nml%lambda) 
+  icnt = 1
+  do ii=1,nml%ipf_ht
+    do jj=1,nml%ipf_wd
+      expt(:,icnt) = ISEimage(jj,ii,:)
+      icnt = icnt+1
+    end do
   end do
-end do
 
-call Message%printMessage(' Read and normalized experimental ISE images ')
+  call NLPAR%doNLPARISE(nml%ipf_wd, nml%ipf_ht, nml%nsteps, npat, expt)
+
+  do ii=1,npat
+! subtract mean and divide by standard deviation
+      m = sum( expt(:, ii) ) / dble(nml%nsteps)
+      sd = sqrt( sum( (expt(:,ii)-m)**2 ) / dble(nml%nsteps) )
+      expt(:,ii) = (expt(:,ii)-m)/sd
+  end do
+  call Message%printMessage(' Read and normalized experimental ISE images (including NLPAR) ')
+else  ! normalize the image intensities and reduce the array dimensions
+  icnt = 1
+  do ii=1,nml%ipf_ht
+    do jj=1,nml%ipf_wd
+! subtract mean and divide by standard deviation
+      m = sum( ISEimage(jj, ii, :) ) / dble(nml%nsteps)
+      sd = sqrt( sum( (ISEimage(jj,ii,:)-m)**2 ) / dble(nml%nsteps) )
+      expt(:,icnt) = (ISEimage(jj,ii,:)-m)/sd
+      icnt = icnt+1
+    end do
+  end do
+  call Message%printMessage(' Read and normalized experimental ISE images ')
+end if
 
 ! 6. compute all the dot products and then rank them 
 call mem%alloc(dp, (/ npat, nml%nnk /), 'dp')
