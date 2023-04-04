@@ -874,7 +874,7 @@ recursive function insideDihedralFZ_(self, rod, order) result(res)
   !! version: 1.0
   !! date: 01/21/20
   !!
-  !! does Rodrigues point lie inside cyclic FZ (for 2, 3, 4, and 6-fold)?
+  !! does Rodrigues point lie inside dihedral FZ (for 2, 3, 4, and 6-fold)?
 
 IMPLICIT NONE
 
