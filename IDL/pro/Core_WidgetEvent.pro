@@ -42,6 +42,7 @@ function Core_WidgetEvent, wid, ptxt, fmt, flt=flt, lng=lng
 common CommonCore, status, logmode, logunit
 
 WIDGET_CONTROL, get_value=val, wid
+dval = val
 if keyword_set(lng) then begin
   dval = long(val[0])
 end

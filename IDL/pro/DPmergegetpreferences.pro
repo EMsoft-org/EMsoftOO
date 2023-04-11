@@ -74,8 +74,10 @@ if (rs eq 1) then begin
   	'ylocation': DPmergedata.ylocation = float(val)
   	'xlocationcontrol': DPmergedata.xlocationcontrol = float(val)
   	'ylocationcontrol': DPmergedata.ylocationcontrol = float(val)
-  	'xlocationdisplay': DPmergedata.xlocationdisplay = float(val)
-  	'ylocationdisplay': DPmergedata.ylocationdisplay = float(val)
+    'xlocationdisplay': DPmergedata.xlocationdisplay = float(val)
+    'ylocationdisplay': DPmergedata.ylocationdisplay = float(val)
+    'xlocationCIdisplay': DPmergedata.xlocationCIdisplay = float(val)
+    'ylocationCIdisplay': DPmergedata.ylocationCIdisplay = float(val)
 
     else: MESSAGE,'unknown option for preferences file'
     endcase

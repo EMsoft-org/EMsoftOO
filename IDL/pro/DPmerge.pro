@@ -12,13 +12,19 @@
 @Core_LambertSphereToSquare
 @Core_histnd
 @Core_mind
+@DPmergeevent
 @DPmerge_event
 @DPmergegetpreferences
 @DPmergewritepreferences
 @DPmergegetfilename
 @DPmerge_readDIfile
 @DPmerge_display
-
+@DPmerge_display_event
+@DPmerge_CIdisplay
+@DPmerge_CIdisplay_event
+@DPmerge_binary
+@DPmerge_cstrip
+@DPmerge_compute_pcv
 ;
 ; Copyright (c) 2013-2023, Marc De Graef Research Group/Carnegie Mellon University
 ; All rights reserved.
@@ -84,7 +90,8 @@ DPmergewidget_s = {widgetstruct, $
             base:long(0), $                     
             mainstop:long(0), $                     
         	controlbase:long(0), $                 
-        	displaybase:long(0), $               
+            displaybase:long(0), $               
+            CIdisplaybase:long(0), $               
             displayoption:long(0), $
             cancelbutton:long(0), $
             cancelwidget:long(0), $
@@ -93,9 +100,13 @@ DPmergewidget_s = {widgetstruct, $
             imageformat:long(0), $
             draw:long(0), $
             drawid:long(0), $
+            CIdraw:long(0), $
+            CIdrawid:long(0), $
             status:long(0), $
+            reset:long(0), $
             Nphases:long(0), $
             dpfile:lonarr(5), $
+            palette:long(0), $
             wf1:long(0), $
             wf2:long(0), $
             wf3:long(0), $
@@ -120,6 +131,8 @@ DPmergedata = {DPmergedatastruct, $
                 dpfiles:strarr(5), $
                 ipf_wd:fix(0), $
                 ipf_ht:fix(0), $
+                CI_wd:fix(660), $
+                CI_ht:fix(615), $
                 scrdimx:fix(0), $
                 scrdimy:fix(0), $
                 xlocation:fix(0), $
@@ -128,11 +141,15 @@ DPmergedata = {DPmergedatastruct, $
                 ylocationcontrol:fix(0), $
                 xlocationdisplay:fix(0), $
                 ylocationdisplay:fix(0), $
+                xlocationCIdisplay:fix(0), $
+                ylocationCIdisplay:fix(0), $
                 navstepsize:float(0), $
                 navselector:long(0), $
                 imageformat:long(0), $
                 displayoption:long(0), $
                 drawID:long(0), $
+                CIdrawID:long(0), $
+                palette:fix(0), $
                 DImergeroot:replicate('',5), $
                 DProot:'undefined', $
                 filesize:intarr(5), $
@@ -238,6 +255,13 @@ DPmergewidget_s.DIloadfile = WIDGET_BUTTON(item2, $
                                 SENSITIVE=1, $
                                 /FRAME)
 
+DPmergewidget_s.reset = WIDGET_BUTTON(item2, $
+                                UVALUE='RESET', $
+                                VALUE='Reset', $
+                                EVENT_PRO='DPmerge_event', $
+                                SENSITIVE=1, $
+                                /FRAME)
+
 DPmergewidget_s.mainstop = WIDGET_BUTTON(item2, $
                                 UVALUE='QUIT', $
                                 VALUE='Quit', $
@@ -290,8 +314,21 @@ DPmergewidget_s.wf5= Core_WTextE(item2,'Phase 5', fontstr, 70, 25, 10, 1, string
 line2 = WIDGET_BASE(block2, XSIZE=700, /ROW)
 
 ;----------  M value 
-item1 = WIDGET_BASE(line2, /ROW, XSIZE=350, /ALIGN_RIGHT)
+item1 = WIDGET_BASE(line2, /ROW, XSIZE=350, /ALIGN_LEFT)
 DPmergewidget_s.Mval = Core_WTextE(item1,'M value', fontstr, 75, 25, 10, 1, string(DPmergedata.Mval,format="(I4)"),'MVAL','DPmerge_event')
+
+item2 = WIDGET_BASE(line2, /ROW, XSIZE=350, /ALIGN_LEFT)
+vals = ['Standard','Deuteranopia']
+DPmergewidget_s.palette= CW_BGROUP(item2, $
+                        vals, $
+                        /ROW, $
+                        /NO_RELEASE, $
+                        /EXCLUSIVE, $
+                        FONT=fontstr, $
+                        LABEL_LEFT='Color Palette', $
+                        EVENT_FUNC ='DPmergeevent', $
+                        UVALUE='PALETTE', $
+                        SET_VALUE=DPmergedata.palette)
 
 ;----------  display controls
 block2 = WIDGET_BASE(block1, $
@@ -338,6 +375,5 @@ tvscl,logo,true=1
 
 ; and hand over control to the xmanager
 XMANAGER,"DPmerge",DPmergewidget_s.base,/NO_BLOCK
-
 
 end ; program

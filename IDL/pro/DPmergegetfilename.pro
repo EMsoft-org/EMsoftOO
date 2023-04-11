@@ -113,6 +113,17 @@ common DIdata_common, DIdata, w, h
 ; at this point, we should compute the standard phase map, using the highest dot product for each phase
 ; and compute the phase confidence vector f.  Once that is done, then we can start playing around with 
 ; the value of M to be used for the computation of f.
+; instantiate the CI graphics window (kill it first if it already exists)
+if (XRegistered("DPmerge_CIdisplay") NE 0) then begin
+  WIDGET_CONTROL, DPmergewidget_s.CIdisplaybase, /DESTROY
+endif
+
+; the CI graphics window is only needed if the number of phases is 2 or 3
+if (DPmergedata.Nphases le 3) then begin
+    DPmerge_CIdisplay
+endif
+
+; and compute the phase confidence vector for the selected value of M
 DPmerge_compute_pcv
 
 skip:

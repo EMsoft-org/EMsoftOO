@@ -26,18 +26,18 @@
 ; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ; ###################################################################
 ;--------------------------------------------------------------------------
-; EMsoft:DPmerge_display.pro
+; EMsoft:DPmerge_CIdisplay.pro
 ;--------------------------------------------------------------------------
 ;
-; PROGRAM: DPmerge_display.pro
+; PROGRAM: DPmerge_CIdisplay.pro
 ;
 ;> @author Marc De Graef, Carnegie Mellon University
 ;
-;> @brief Generates a display widget 
+;> @brief Generates a display widget for the confidence index maps
 ;
 ;> @date 04/10/23 MDG 1.0 first attempt at a user-friendly interface
 ;--------------------------------------------------------------------------
-pro DPmerge_display,dummy
+pro DPmerge_CIdisplay,dummy
 
 common DPmerge_widget_common, DPmergewidget_s
 common DPmerge_data_common, DPmergedata
@@ -52,26 +52,26 @@ fontstrsmall='-adobe-new century schoolbook-medium-r-normal--14-100-100-100-p-82
 
 ;------------------------------------------------------------
 ; create the top level widget
-DPmergewidget_s.displaybase = WIDGET_BASE(TITLE='Map Display Panel', $
+DPmergewidget_s.CIdisplaybase = WIDGET_BASE(TITLE='Confidence Map Display Panel', $
                             /COLUMN, $
-                            XSIZE=max([DPmergedata.ipf_wd+20,420]), $
+                            XSIZE=770, $
                             /ALIGN_LEFT, $
-			                /TLB_MOVE_EVENTS, $
-			                EVENT_PRO='DPmerge_display_event', $
-                            XOFFSET=DPmergedata.xlocationdisplay, $
-                            YOFFSET=DPmergedata.ylocationdisplay)
+                            /TLB_MOVE_EVENTS, $
+                            EVENT_PRO='DPmerge_CIdisplay_event', $
+                            XOFFSET=DPmergedata.xlocationCIdisplay, $
+                            YOFFSET=DPmergedata.ylocationCIdisplay)
 
-block0 = WIDGET_BASE(DPmergewidget_s.displaybase, $
-			XSIZE=max([DPmergedata.ipf_wd,400]), $
-			/ALIGN_CENTER, $
-			/ROW)
+block0 = WIDGET_BASE(DPmergewidget_s.CIdisplaybase, $
+            XSIZE=750, $
+            /ALIGN_CENTER, $
+            /ROW)
 
 ; a close button
 closedisplaybutton = WIDGET_BUTTON(block0, $
-                                UVALUE='CLOSEDISPLAY', $
+                                UVALUE='CLOSECIDISPLAY', $
                                 VALUE='Close', $
                                 /NO_RELEASE, $
-                                EVENT_PRO='DPmerge_display_event', $
+                                EVENT_PRO='DPmerge_CIdisplay_event', $
                                 SENSITIVE=1, $
                                 /FRAME)
 
@@ -79,8 +79,8 @@ closedisplaybutton = WIDGET_BUTTON(block0, $
 savepattern = WIDGET_BUTTON(block0, $
                         VALUE='Save', $
                         /NO_RELEASE, $
-                        EVENT_PRO='DPmerge_display_event', $
-                        UVALUE='SAVEPATTERN', $
+                        EVENT_PRO='DPmerge_CIdisplay_event', $
+                        UVALUE='SAVECIMAP', $
                         SENSITIVE=1, $
                         /FRAME)
 
@@ -99,30 +99,30 @@ DPmergewidget_s.imageformat = CW_BGROUP(block0, $
                         SET_VALUE=DPmergedata.imageformat)
 
 ; finally, the draw area...
-block1 = WIDGET_BASE(DPmergewidget_s.displaybase, $
-			XSIZE=DPmergedata.ipf_wd, $
-			/ALIGN_CENTER, $
-			/COLUMN)
+block1 = WIDGET_BASE(DPmergewidget_s.CIdisplaybase, $
+            XSIZE=680, $
+            /ALIGN_CENTER, $
+            /COLUMN)
 
-DPmergewidget_s.draw = WIDGET_DRAW(block1, $
-			COLOR_MODEL=2, $
-			RETAIN=2, $
-			/FRAME, $
-			/ALIGN_CENTER, $
-			XSIZE=DPmergedata.ipf_wd, $
-			YSIZE=DPmergedata.ipf_ht)
+DPmergewidget_s.CIdraw = WIDGET_DRAW(block1, $
+            COLOR_MODEL=2, $
+            RETAIN=2, $
+            /FRAME, $
+            /ALIGN_CENTER, $
+            XSIZE=DPmergedata.CI_wd, $
+            YSIZE=DPmergedata.CI_ht)
 
 ;------------------------------------------------------------
 ; realize the widget structure
-WIDGET_CONTROL,DPmergewidget_s.displaybase,/REALIZE
+WIDGET_CONTROL,DPmergewidget_s.CIdisplaybase,/REALIZE
 
 ; realize the draw widgets
-WIDGET_CONTROL, DPmergewidget_s.draw, GET_VALUE=drawID
-DPmergewidget_s.drawID = drawID
-DPmergedata.drawID = drawID
+WIDGET_CONTROL, DPmergewidget_s.CIdraw, GET_VALUE=drawID
+DPmergewidget_s.CIdrawID = drawID
+DPmergedata.CIdrawID = drawID
 
 ; and hand over control to the xmanager
-XMANAGER,"DPmerge_display",DPmergewidget_s.displaybase,/NO_BLOCK
+XMANAGER,"DPmerge_CIdisplay",DPmergewidget_s.CIdisplaybase,/NO_BLOCK
 
 end
 

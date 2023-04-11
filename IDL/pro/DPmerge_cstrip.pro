@@ -26,83 +26,43 @@
 ; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ; ###################################################################
 ;--------------------------------------------------------------------------
-; EMsoft:DPmerge_readDIfile.pro
+; EMsoft:DPmerge_cstrip.pro
 ;--------------------------------------------------------------------------
 ;
-; PROGRAM: DPmerge_readDIfile.pro
+; PROGRAM: DPmerge_cstrip.pro
 ;
 ;> @author Marc De Graef, Carnegie Mellon University
 ;
-;> @brief Read necessary information from a Dictionary Indexing output file 
+;> @brief create a single strip for a binary phase confidence map
 ;
-;> @date 04/07/23 MDG 1.0 first attempt 
+;> @date 04/10/23 MDG 1.0 first attempt 
 ;--------------------------------------------------------------------------
-pro DPmerge_readDIfile, h5name, sel, status
+function DPmerge_cstrip,alpha=alpha
 
-common DIdata_common, DIdata, w, h
-common DPmerge_data_common, DPmergedata
+E = 600.0
+H = 60
+;
 
-status = 0
+xoff = 30
+yoff = 30
 
-; read all the necessary data from the DI h5 file
-file_id = H5F_OPEN(h5name)
-; get the ROI dimensions
-group_id = H5G_OPEN(file_id,'NMLparameters/EBSDIndexingNameListType')
-; group_id = H5G_OPEN(file_id,'NMLparameters/')
-dset_id = H5D_OPEN(group_id,'ipf_wd')
-w = H5D_READ(dset_id)
-w = w[0]
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'ipf_ht')
-h = H5D_READ(dset_id)
-h = h[0]
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'nnk')
-DPmergedata.maxM = H5D_READ(dset_id)
-H5D_close,dset_id
-H5G_close,group_id
+cimage = replicate(255B, 3, fix(E+2*xoff), fix((H+2*yoff)))
 
-; get the dimensions of the TopDotProduct array first so we can declare the DIdata structure
-group_id = H5G_OPEN(file_id,'Scan 1/EBSD/Data')
-dset_id = H5D_OPEN(group_id,'TopDotProductList')
-tdp = H5D_READ(dset_id)
-H5D_close,dset_id
-sz = size(tdp, /dimensions)
-DPmergedata.maxM = sz[0]
+white = [255B, 255B, 255B]
+for i=0,fix(E) do begin
+    vR = 1.0-float(i)/E
+    m = max( [vR, 1.0-vR, 0.0] )
+    point = byte( 255.0 * [vR, 1.0-vR, 0.0] / m )
+    for j=1,H do cimage[0:2,xoff+i,yoff+j-1] = point[0:2]
+endfor
 
-entry = { DIarrays, ADP:bytarr(w,h), CI:bytarr(w,h), IQ:bytarr(w,h), OSM:bytarr(w,h), TDP:fltarr(sz[0],sz[1]), ROIdims:lonarr(2) }
-entry.ROIdims = [w,h]
-if (sel eq 0) then begin 
-    DIdata = replicate(entry, DPmergedata.Nphases)
-    DPmergedata.ipf_wd = w 
-    DPmergedata.ipf_ht = h 
-end else begin
-    if ( ( w ne DPmergedata.ipf_wd ) or ( h ne DPmergedata.ipf_ht) ) then begin
-        status = -5
-        goto, skip
-    endif 
-endelse
+for i=1,9 do for j=1,H do cimage[0:2,xoff+i*60,yoff+j-1] = [0B,0B,0B]
 
-DIdata[sel] = entry 
-DIdata[sel].TDP = tdp
+if (arg_present(alpha)) then begin
+  lpos = 300.0 - 3.0*alpha
+  for j=1,H do cimage[0:2,xoff+lpos,yoff+j-1] = [255B,255B,255B]
+  for j=1,H do cimage[0:2,xoff+600-lpos,yoff+j-1] = [255B,255B,255B]
+endif
 
-dset_id = H5D_OPEN(group_id,'AvDotProductMap')
-DIdata[sel].ADP = H5D_READ(dset_id)
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'IQMap')
-DIdata[sel].IQ = H5D_READ(dset_id)
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'OSM')
-DIdata[sel].OSM = bytscl(reform(H5D_READ(dset_id),w,h))
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'CIMap')
-DIdata[sel].CI = H5D_READ(dset_id)
-H5D_close,dset_id
-
-skip:
-H5G_close,group_id
-H5F_close,file_id
-
-
-
+return,cimage
 end

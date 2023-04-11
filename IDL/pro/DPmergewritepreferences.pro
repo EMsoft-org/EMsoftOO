@@ -46,7 +46,7 @@ common DPmerge_data_common, DPmergedata
 
 ; prefs file
   openw,1,DPmergedata.appdir+DPmergedata.prefname
-  nprefs = 7
+  nprefs = 9
   DPmergedata.nprefs = nprefs
   printf,1,nprefs
   printf,1,'DProot::'+DPmergedata.DImergeroot[0]
@@ -61,6 +61,8 @@ common DPmerge_data_common, DPmergedata
   printf,1,'ylocationcontrol::'+string(DPmergedata.ylocationcontrol,format="(F6.1)")
   printf,1,'xlocationdisplay::'+string(DPmergedata.xlocationdisplay,format="(F6.1)")
   printf,1,'ylocationdisplay::'+string(DPmergedata.ylocationdisplay,format="(F6.1)")
+  printf,1,'xlocationCIdisplay::'+string(DPmergedata.xlocationCIdisplay,format="(F6.1)")
+  printf,1,'ylocationCIdisplay::'+string(DPmergedata.ylocationCIdisplay,format="(F6.1)")
 ; and close the file
   close,1
 

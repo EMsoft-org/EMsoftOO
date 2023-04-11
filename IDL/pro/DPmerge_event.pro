@@ -55,38 +55,57 @@ end else begin
   CASE eventval OF
         'DIFILE': begin
 ; ask the user to select the data file
-		DPmergegetfilename,validfile
+		            DPmergegetfilename,validfile
 
-; then start the actual display widget and put the experimental pattern in it...
-; better yet, we can check what the dimensions of the current drawing area are in 
-; case the new experimental pattern has different dimensions...
+; then start the actual display widget 
                 if (XRegistered("DPmerge_displaybase") NE 0) then begin
-		  WIDGET_CONTROL, DPmergewidget_s.displaybase, /DESTROY
+		              WIDGET_CONTROL, DPmergewidget_s.displaybase, /DESTROY
                 endif 
                 DPmerge_display
 
         endcase
 
         'NPHASES': begin
-                DPmergedata.hipasscutoff = Core_WidgetEvent( DPmergewidget_s.hipasscutoff,  'hipass cut off set to ', '(F9.2)', /flt)
-                WIDGET_CONTROL, DPmergewidget_s.mkjson, sensitive=1
+                DPmergedata.Nphases= Core_WidgetEvent( DPmergewidget_s.Nphases,  ' Number of phases set to ', '(F9.2)', /flt)
+                if (DPmergedata.Nphases gt 5) then begin 
+                        Core_Print,' Maximum number of phases is 5; resetting value to 5'
+                        DPmerge.Nphases = 5 
+                endif 
         endcase
 
- 
- 	'QUIT': begin
-		DPmergewritepreferences
+        'MVAL': begin
+                DPmergedata.Mval = Core_WidgetEvent( DPmergewidget_s.Mval,  ' Mval set to ', '(F9.2)')
+                clev = 1.0
+                DPmerge_binary,DPmergedata.Mval, cstrip, phasemap=pmap
+                wset,DPmergedata.drawID
+                tvscl,pmap,true=1
+        endcase
+
+        'PALETTE': begin
+                DPmergedata.palette= Core_WidgetEvent( DPmergewidget_s.palette,  ' Color palette set to ', '(I2)')
+        endcase
+
+        'RESET': begin   ; reset all fields to the program starting status
+
+        endcase 
+
+       	'QUIT': begin
+      		DPmergewritepreferences
 ; do a general cleanup of potentially open widgets
                 if (XRegistered("DPmerge_control") NE 0) then begin
-		  WIDGET_CONTROL, DPmergewidget_s.controlbase, /DESTROY
-                endif
-                if (XRegistered("DPmerge_display") NE 0) then begin
-		  WIDGET_CONTROL, DPmergewidget_s.displaybase, /DESTROY
-                endif
- 		Core_Print,'Quitting program',/blank
-                wait,1.0
-		WIDGET_CONTROL, DPmergewidget_s.base, /DESTROY
-		!EXCEPT=1
-	endcase
+            		  WIDGET_CONTROL, DPmergewidget_s.controlbase, /DESTROY
+                        endif
+                        if (XRegistered("DPmerge_display") NE 0) then begin
+                          WIDGET_CONTROL, DPmergewidget_s.displaybase, /DESTROY
+                        endif
+                        if (XRegistered("DPmerge_CIdisplay") NE 0) then begin
+                          WIDGET_CONTROL, DPmergewidget_s.CIdisplaybase, /DESTROY
+                        endif
+             		Core_Print,'Quitting program',/blank
+                          wait,1.0
+            		WIDGET_CONTROL, DPmergewidget_s.base, /DESTROY
+            		!EXCEPT=1
+        endcase
 
 ; here are the display map options 
         'ADP1': begin 

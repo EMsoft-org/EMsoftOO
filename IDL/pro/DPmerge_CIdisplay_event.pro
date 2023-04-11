@@ -26,83 +26,54 @@
 ; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ; ###################################################################
 ;--------------------------------------------------------------------------
-; EMsoft:DPmerge_readDIfile.pro
+; EMsoft:DPmerge_CIdisplay_event.pro
 ;--------------------------------------------------------------------------
 ;
-; PROGRAM: DPmerge_readDIfile.pro
+; PROGRAM: DPmerge_CIdisplay_event.pro
 ;
 ;> @author Marc De Graef, Carnegie Mellon University
 ;
-;> @brief Read necessary information from a Dictionary Indexing output file 
+;> @brief main event handler for DPmerge_CIdisplay.pro routine
 ;
-;> @date 04/07/23 MDG 1.0 first attempt 
+;> @date 10/13/15 MDG 1.0 first attempt at a user-friendly interface
 ;--------------------------------------------------------------------------
-pro DPmerge_readDIfile, h5name, sel, status
+pro DPmerge_CIdisplay_event,event
 
-common DIdata_common, DIdata, w, h
+common DPmerge_widget_common, DPmergewidget_s
 common DPmerge_data_common, DPmergedata
 
-status = 0
 
-; read all the necessary data from the DI h5 file
-file_id = H5F_OPEN(h5name)
-; get the ROI dimensions
-group_id = H5G_OPEN(file_id,'NMLparameters/EBSDIndexingNameListType')
-; group_id = H5G_OPEN(file_id,'NMLparameters/')
-dset_id = H5D_OPEN(group_id,'ipf_wd')
-w = H5D_READ(dset_id)
-w = w[0]
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'ipf_ht')
-h = H5D_READ(dset_id)
-h = h[0]
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'nnk')
-DPmergedata.maxM = H5D_READ(dset_id)
-H5D_close,dset_id
-H5G_close,group_id
-
-; get the dimensions of the TopDotProduct array first so we can declare the DIdata structure
-group_id = H5G_OPEN(file_id,'Scan 1/EBSD/Data')
-dset_id = H5D_OPEN(group_id,'TopDotProductList')
-tdp = H5D_READ(dset_id)
-H5D_close,dset_id
-sz = size(tdp, /dimensions)
-DPmergedata.maxM = sz[0]
-
-entry = { DIarrays, ADP:bytarr(w,h), CI:bytarr(w,h), IQ:bytarr(w,h), OSM:bytarr(w,h), TDP:fltarr(sz[0],sz[1]), ROIdims:lonarr(2) }
-entry.ROIdims = [w,h]
-if (sel eq 0) then begin 
-    DIdata = replicate(entry, DPmergedata.Nphases)
-    DPmergedata.ipf_wd = w 
-    DPmergedata.ipf_ht = h 
+if (event.id eq DPmergewidget_s.CIdisplaybase) then begin
+  DPmergedata.xlocationCIdisplay = event.x
+  DPmergedata.ylocationCIdisplay = event.y-25
 end else begin
-    if ( ( w ne DPmergedata.ipf_wd ) or ( h ne DPmergedata.ipf_ht) ) then begin
-        status = -5
-        goto, skip
-    endif 
+
+  WIDGET_CONTROL, event.id, GET_UVALUE = eventval         ;find the user value
+  
+  CASE eventval OF
+        'CLOSEDISPLAY': begin
+                WIDGET_CONTROL, DPmergewidget_s.CIdisplaybase, /DESTROY
+        endcase
+
+        'SAVEPATTERN': begin
+                delist = ['jpeg','tiff','bmp']
+                de = delist[DPmergedata.imageformat]
+                filename = DIALOG_PICKFILE(/write,default_extension=de,path=DPmergedata.pathname,title='enter filename ')
+                im = tvrd()
+                case de of
+                    'jpeg': write_jpeg,filename,im,quality=100
+                    'tiff': write_tiff,filename,reverse(im,2)
+                    'bmp': write_bmp,filename,im
+                 else: MESSAGE,'unknown file format option'
+                endcase
+        endcase
+
+  else: MESSAGE, "DPmerge_CIdisplay_event: Event "+eventval+" Unknown"
+
+  endcase
+
 endelse
 
-DIdata[sel] = entry 
-DIdata[sel].TDP = tdp
-
-dset_id = H5D_OPEN(group_id,'AvDotProductMap')
-DIdata[sel].ADP = H5D_READ(dset_id)
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'IQMap')
-DIdata[sel].IQ = H5D_READ(dset_id)
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'OSM')
-DIdata[sel].OSM = bytscl(reform(H5D_READ(dset_id),w,h))
-H5D_close,dset_id
-dset_id = H5D_OPEN(group_id,'CIMap')
-DIdata[sel].CI = H5D_READ(dset_id)
-H5D_close,dset_id
-
-skip:
-H5G_close,group_id
-H5F_close,file_id
-
-
-
 end
+
+

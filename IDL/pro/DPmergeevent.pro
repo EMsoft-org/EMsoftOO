@@ -56,6 +56,10 @@ CASE eventval OF
         ;         DPmerge_showpattern
         ; endcase
 
+        'PALETTE' : begin
+                DPmergedata.palette = Core_WidgetChoiceEvent( DPmergewidget_s.palette, 'Set palette to ',/value)
+        endcase
+
         'IMAGEFORMAT' : begin
                 DPmergedata.imageformat = Core_WidgetChoiceEvent( DPmergewidget_s.imageformat, 'Set option to ',/value)
         endcase
