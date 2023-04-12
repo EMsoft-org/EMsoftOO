@@ -75,10 +75,20 @@ end else begin
 
         'MVAL': begin
                 DPmergedata.Mval = Core_WidgetEvent( DPmergewidget_s.Mval,  ' Mval set to ', '(F9.2)')
-                clev = 1.0
-                DPmerge_binary,DPmergedata.Mval, cstrip, phasemap=pmap
-                wset,DPmergedata.drawID
-                tvscl,pmap,true=1
+                if (DPmergedata.Nphases eq 2) then begin
+                        clev = 1.0
+                        DPmerge_binary,DPmergedata.Mval, cstrip, phasemap=pmap
+                        wset,DPmergedata.drawID
+                        tvscl,pmap,true=1
+                end else if (DPmergedata.Nphases eq 3) then begin
+                        clev = 1
+                        DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
+                        wset,DPmergedata.drawID
+                        tv,pmap,true=1
+                        wset,DPmergedata.CIdrawID
+                        tv,cmap,true=1
+                end
+
         endcase
 
         'PALETTE': begin
@@ -86,6 +96,12 @@ end else begin
         endcase
 
         'RESET': begin   ; reset all fields to the program starting status
+                       if (XRegistered("DPmerge_display") NE 0) then begin
+                          WIDGET_CONTROL, DPmergewidget_s.displaybase, /DESTROY
+                        endif
+                        if (XRegistered("DPmerge_CIdisplay") NE 0) then begin
+                          WIDGET_CONTROL, DPmergewidget_s.CIdisplaybase, /DESTROY
+                        endif
 
         endcase 
 
@@ -107,103 +123,215 @@ end else begin
             		!EXCEPT=1
         endcase
 
+; dot product weight factors
+
+        'WF1': begin 
+                DPmergedata.wf[0]= Core_WidgetEvent( DPmergewidget_s.wf1,  ' Weight factor 1 set to ', '(F8.5)')
+                DPmerge_compute_pcv
+                if (DPmergedata.Nphases eq 2) then begin
+                        clev = 1.0
+                        DPmerge_binary,DPmergedata.Mval, cstrip, phasemap=pmap
+                        wset,DPmergedata.drawID
+                        tvscl,pmap,true=1
+                end else if (DPmergedata.Nphases eq 3) then begin
+                        clev = 1
+                        DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
+                        wset,DPmergedata.drawID
+                        tv,pmap,true=1
+                        wset,DPmergedata.CIdrawID
+                        tv,cmap,true=1
+                end
+        endcase
+
+        'WF2': begin 
+                DPmergedata.wf[1]= Core_WidgetEvent( DPmergewidget_s.wf2,  ' Weight factor 2 set to ', '(F8.5)')
+                DPmerge_compute_pcv
+                if (DPmergedata.Nphases eq 2) then begin
+                        clev = 1.0
+                        DPmerge_binary,DPmergedata.Mval, cstrip, phasemap=pmap
+                        wset,DPmergedata.drawID
+                        tvscl,pmap,true=1
+                end else if (DPmergedata.Nphases eq 3) then begin
+                        clev = 1
+                        DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
+                        wset,DPmergedata.drawID
+                        tv,pmap,true=1
+                        wset,DPmergedata.CIdrawID
+                        tv,cmap,true=1
+                end
+        endcase
+
+        'WF3': begin 
+                DPmergedata.wf[2]= Core_WidgetEvent( DPmergewidget_s.wf3,  ' Weight factor 3 set to ', '(F8.5)')
+                DPmerge_compute_pcv
+                if (DPmergedata.Nphases eq 2) then begin
+                        clev = 1.0
+                        DPmerge_binary,DPmergedata.Mval, cstrip, phasemap=pmap
+                        wset,DPmergedata.drawID
+                        tvscl,pmap,true=1
+                end else if (DPmergedata.Nphases eq 3) then begin
+                        clev = 1
+                        DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
+                        wset,DPmergedata.drawID
+                        tv,pmap,true=1
+                        wset,DPmergedata.CIdrawID
+                        tv,cmap,true=1
+                end
+        endcase
+
+        'WF4': begin 
+                DPmergedata.wf[3]= Core_WidgetEvent( DPmergewidget_s.wf4,  ' Weight factor 4 set to ', '(F8.5)')
+                DPmerge_compute_pcv
+                if (DPmergedata.Nphases eq 2) then begin
+                        clev = 1.0
+                        DPmerge_binary,DPmergedata.Mval, cstrip, phasemap=pmap
+                        wset,DPmergedata.drawID
+                        tvscl,pmap,true=1
+                end else if (DPmergedata.Nphases eq 3) then begin
+                        clev = 1
+                        DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
+                        wset,DPmergedata.drawID
+                        tv,pmap,true=1
+                        wset,DPmergedata.CIdrawID
+                        tv,cmap,true=1
+                end
+        endcase
+
+        'WF5': begin 
+                DPmergedata.wf[4]= Core_WidgetEvent( DPmergewidget_s.wf5,  ' Weight factor 5 set to ', '(F8.5)')
+                DPmerge_compute_pcv
+                if (DPmergedata.Nphases eq 2) then begin
+                        clev = 1.0
+                        DPmerge_binary,DPmergedata.Mval, cstrip, phasemap=pmap
+                        wset,DPmergedata.drawID
+                        tvscl,pmap,true=1
+                end else if (DPmergedata.Nphases eq 3) then begin
+                        clev = 1
+                        DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
+                        wset,DPmergedata.drawID
+                        tv,pmap,true=1
+                        wset,DPmergedata.CIdrawID
+                        tv,cmap,true=1
+                end
+        endcase
+
 ; here are the display map options 
         'ADP1': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[0].ADP
         endcase
 
         'ADP2': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[1].ADP
         endcase
 
         'ADP3': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[2].ADP
         endcase
 
         'ADP4': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[3].ADP
         endcase
 
         'ADP5': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[4].ADP
         endcase
 
         'OSM1': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[0].OSM
         endcase
 
         'OSM2': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[1].OSM
         endcase
 
         'OSM3': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[2].OSM
         endcase
 
         'OSM4': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[3].OSM
         endcase
 
         'OSM5': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[4].OSM
         endcase
 
         'IQ1': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[0].IQ
         endcase
 
         'IQ2': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[1].IQ
         endcase
 
         'IQ3': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[2].IQ
         endcase
 
         'IQ4': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[3].IQ
         endcase
 
         'IQ5': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[4].IQ
         endcase
 
         'CI1': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[0].CI
         endcase
 
         'CI2': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[1].CI
         endcase
 
         'CI3': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[2].CI
         endcase
 
         'CI4': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[3].CI
         endcase
 
         'CI5': begin 
+                  wset,DPmergedata.drawID
                   erase 
                   tv,DIdata[4].CI
         endcase

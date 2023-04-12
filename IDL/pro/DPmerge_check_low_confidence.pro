@@ -26,55 +26,58 @@
 ; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ; ###################################################################
 ;--------------------------------------------------------------------------
-; EMsoft:DPmerge_CIdisplay_event.pro
+; EMsoft:DPmerge_check_low_confidence.pro
 ;--------------------------------------------------------------------------
 ;
-; PROGRAM: DPmerge_CIdisplay_event.pro
+; PROGRAM: DPmerge_check_low_confidence.pro
 ;
 ;> @author Marc De Graef, Carnegie Mellon University
 ;
-;> @brief main event handler for DPmerge_CIdisplay.pro routine
+;> @brief special event handler for all the CW_BGROUP calls, since CW_BGROUP does not support event_pro
 ;
-;> @date 10/13/15 MDG 1.0 first attempt at a user-friendly interface
+;> @date 04/07/23 MDG 1.0 first version
 ;--------------------------------------------------------------------------
-pro DPmerge_CIdisplay_event,event
+function DPmerge_check_low_confidence, x, y, nn
 
+;------------------------------------------------------------
+; common blocks
 common DPmerge_widget_common, DPmergewidget_s
 common DPmerge_data_common, DPmergedata
+common fontstrings, fontstr, fontstrlarge, fontstrsmall
 
+common triangleparms, E, Z, xoff, yoff, alpha
 
-if (event.id eq DPmergewidget_s.CIdisplaybase) then begin
-  DPmergedata.xlocationCIdisplay = event.x
-  DPmergedata.ylocationCIdisplay = event.y-25
-end else begin
+islow = replicate(0,nn)
 
-  WIDGET_CONTROL, event.id, GET_UVALUE = eventval         ;find the user value
-  
-  CASE eventval OF
-        'CLOSEDISPLAY': begin
-                WIDGET_CONTROL, DPmergewidget_s.CIdisplaybase, /DESTROY
-        endcase
+dy = y
+dx = x
 
-        'SAVECIMAP': begin
-                delist = ['jpeg','tiff','bmp']
-                de = delist[DPmergedata.imageformat]
-                filename = DIALOG_PICKFILE(/write,default_extension=de,path=DPmergedata.pathname,title='enter filename ')
-                wset, DPmergedata.CIdrawID
-                im = tvrd(true=1)
-                case de of
-                    'jpeg': write_jpeg,filename,im,quality=100, true=1
-                    'tiff': write_tiff,filename,reverse(im,2), true=1
-                    'bmp': write_bmp,filename,im, true=1
-                 else: MESSAGE,'unknown file format option'
-                endcase
-        endcase
+; line 1
+Ax = alpha * E
+Ay = 0.0
+Bx = 0.5 * alpha * E
+By = alpha * E * z
+p1 = ( (Bx-Ax)*(dy-Ay)-(By-Ay)*(dx-Ax) ) 
+p1 = p1 lt 0.0
 
-  else: MESSAGE, "DPmerge_CIdisplay_event: Event "+eventval+" Unknown"
+; line 2
+Ax = (1.0-alpha) * E * 0.5
+Ay = (1.0-alpha) * E * z
+Bx = E - 0.5 * (1.0-alpha) * E
+By = (1.0-alpha) * E * z
+p2 = dy lt By
 
-  endcase
+; line 3
+Ax = E - alpha * E * 0.5
+Ay = alpha * E * z
+Bx = (1.0-alpha) * E
+By = 0.0
+p3 = ( (Bx-Ax)*(dy-Ay)-(By-Ay)*(dx-Ax) ) 
+p3 = p3 lt 0.0
 
-endelse
+q = where ( (p1 eq 1) and (p2 eq 1) and (p3 eq 1), cnt )
+if (cnt gt 0) then islow[q] = 1
 
+return, islow
 end
-
 

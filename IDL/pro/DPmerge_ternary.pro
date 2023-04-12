@@ -26,18 +26,18 @@
 ; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ; ###################################################################
 ;--------------------------------------------------------------------------
-; EMsoft:DPmerge_binary.pro
+; EMsoft:DPmerge_ternary.pro
 ;--------------------------------------------------------------------------
 ;
-; PROGRAM: DPmerge_binary.pro
+; PROGRAM: DPmerge_ternary.pro
 ;
 ;> @author Marc De Graef, Carnegie Mellon University
 ;
 ;> @brief phase confidence map computation for the binary case 
 ;
-;> @date 04/10/23 MDG 1.0 first attempt 
+;> @date 04/12/23 MDG 1.0 first attempt 
 ;--------------------------------------------------------------------------
-pro DPmerge_binary, numnearmatches, cstrip, phasemap=phasemap, dpmap=dpmap, clev=clev
+pro DPmerge_ternary, numnearmatches, cmap, phasemap=phasemap, dpmap=dpmap, clevlines=clevlines, histval=histval
 
 ;------------------------------------------------------------
 ; common blocks
@@ -45,8 +45,15 @@ common DPmerge_widget_common, DPmergewidget_s
 common DPmerge_data_common, DPmergedata
 
 common DIdata_common, DIdata, w, h 
+common triangleparms, E, Z, xoff, yoff, alpha
 
-if (not arg_present(clev)) then clev = 0.0
+alpha = 0.0
+
+if (arg_present(clevlines)) then alpha = (1.0-clevlines/40.0+1.5) * 0.2
+
+wset,DPmergedata.CIdrawID
+erase, color=255
+
 ;
 ; routine to create a binary confidence level map
 ;
@@ -65,6 +72,7 @@ numm = numnearmatches
 
 Atdp = DIdata[0].TDP
 Btdp = DIdata[1].TDP
+Ctdp = DIdata[2].TDP
 
 if arg_present(phasemap) then begin
   phasemap = bytarr(3,numx,numy)
@@ -74,7 +82,7 @@ if arg_present(dpmap) then begin
   dpmap = fltarr(nn)
 ; and fill the dotproductmap with the highest values for the two phases
   for i=0,nn-1 do begin
-    m = [Atdp[0,i],Btdp[0,i]]
+    m = [Atdp[0,i],Btdp[0,i],Ctdp[0,i]]
     dpmap[i] = max(m)
   endfor
   dpmap = congrid(reverse(reform(dpmap, numx, numy),2),2*numx,2*numy)
@@ -83,17 +91,23 @@ endif
 ; truncate the array and scale the dot products by the weight factors
 Atdp = Atdp[0:numm-1,0:nn-1] * DPmergedata.wf[0]
 Btdp = Btdp[0:numm-1,0:nn-1] * DPmergedata.wf[1]
+Ctdp = Ctdp[0:numm-1,0:nn-1] * DPmergedata.wf[2]
 
 MA = fltarr(nn)
 MB = fltarr(nn)
+MC = fltarr(nn)
+CImap = bytarr(3,numx, numy)
 
 ; figure out the intensity scaling via color saturation
-mindp = min([Atdp, Btdp], max=maxdp)
+mindp = min([Atdp, Btdp, Ctdp], max=maxdp)
 
 Atdp = (Atdp-mindp)/(maxdp-mindp)
 Btdp = (Btdp-mindp)/(maxdp-mindp)
+Ctdp = (Ctdp-mindp)/(maxdp-mindp)
 
-line = [replicate(1,numm),replicate(2,numm)]
+avdp = reform((Atdp[0,*] + Btdp[0,*] + Ctdp[0,*]) / 3.0)
+
+line = [replicate(1,numm),replicate(2,numm),replicate(3,numm)]
 
 for i=0,nn-1 do begin
   dp = [Atdp[*,i],Btdp[*,i]]
@@ -106,96 +120,134 @@ for i=0,nn-1 do begin
   if (cnt gt 0.0) then MA[i] = total(dp[q])/denominator else MA[i] = 0.0
   q = where(newline eq 2,cnt)
   if (cnt gt 0.0) then MB[i] = total(dp[q])/denominator else MB[i] = 0.0
+  q = where(newline eq 3,cnt)
+  if (cnt gt 0.0) then MC[i] = total(dp[q])/denominator else MC[i] = 0.0
 endfor
 
-MA= reform(MA,numx,numy)
+MA = reform(MA,numx,numy)
 MB = reform(MB,numx,numy)
+MC = reform(MC,numx,numy)
+avdp = reform(avdp,numx,numy)
 
 if arg_present(phasemap) then begin
   CImap = bytarr(3,numx,numy)
   for i=0,numx-1 do begin
     for j=0,numy-1 do begin
-      m = max([MA[i,j],MB[i,j]])
-      CImap[0:2,i,j] = byte(255.0*[MA[i,j],MB[i,j],0.0] / m )
+      m = max([MA[i,j],MB[i,j],MC[i,j]])
+      CImap[0:2,i,j] = byte(255.0*[MA[i,j],MB[i,j],MC[i,j]] / m )
     endfor
   endfor
 endif
 
-; next generate the map in the Z-buffer
-window,10,xsi=660,ysi=120,retain=2,/pixmap
+; next generate the points in a triangular color map
+E = 600
+z = sqrt(3.0)*0.5
+xoff = 30
+yoff = 30
+
+device,decomposed=0
+window,10,xsi=660,ysi=571,retain=2,/pixmap
 erase
 
-E = 600
-H = 60
-
-xoff = 30
-yoff = 30 + H/2
-
-if arg_present(clev) then begin
-  bg = DPmerge_cstrip(alpha=clev)
-end else begin
-  bg = DPmerge_cstrip()
-end
-
+; generate the color triangle
+bg = DPmerge_ctriangle()
 bgdim = size(bg,/dimensions)
-tvscl,bg, true=1
 
-; transform the data points to linear coordinates
-x = reform(mB,nn)*E
+; transform the data points to the triangular coordinates 
+y = reform(MC,nn) * E * z
+x = -E*(reform(MA,nn)+reform(MC,nn)*0.5-1.0)
 
 ; generate a histogram for each of the potential points inside the triangle
-np = 31
-
+nummm = 30
+np = (nummm+2)*(nummm+1)/2
+; first define the coordinates of the grid points
 gridx = fltarr(np)
+gridy = fltarr(np)
 k = 0
-dx = E/float(np-1)
-for j=0,np-1 do begin
-    gridx[k] = j*dx
+dx = E/float(nummm)
+dy = dx*z
+for j=0,nummm do begin
+  for i=0,nummm-j do begin
+    gridx[k] = j*dx*0.5+i*dx
+    gridy[k] = j*dy
     k += 1
+  endfor
 endfor 
 
-histn = histogram(x,min=0.0,max=E,binsize=dx)
+avdp = reform(avdp,nn)
+avdp -= min(avdp)
+avdp /= max(avdp)
 
-h = 2.5*fix(alog10(histn+1.0))
+; then fill the histogram bins based on Euclidean distance to the grid centers
+histn = fltarr(np)
+dthr = dx*0.5
+for i=0,np-1 do begin
+  d = sqrt( (x - gridx[i])^2 + (y - gridy[i])^2 )
+  for j=0,nn-1 do if (d[j] lt dthr) then histn[i] += 1.0 
+endfor
 
+if (arg_present(histvalues)) then histvalues = histn
+
+; rescale the histogram to a logarithmic scale
+h = fix(alog10(histn+1.0))*2.5
+
+; draw filled circles at all histogram bins that have more than 10 counts in them
 nt = 360.
 th = findgen(nt)*!dtor
 ct = cos(th)
 st = sin(th)
+for k=0,np-1 do if (h[k] gt 0.001) then polyfill,xoff+gridx[k]+h[k]*ct,yoff+gridy[k]+h[k]*st,/dev,color=0
 
-for k=0,np-1 do if (h[k] gt 0.001) then polyfill,xoff+gridx[k]+h[k]*ct,yoff+h[k]*st,/dev,color=0
+; draw the circle set for the legend
+gx = 500
+gy = reverse(500 - findgen(max(h)/2.5+1)*30)
+for k=fix(max(h)/2.5),1,-1 do polyfill,xoff+gx+k*2.5*ct,yoff+gy[k]+k*2.5*st,/dev,color=0
+empty
 
-cstrip = tvrd(0,0,bgdim[1],bgdim[2],TRUE=1)
+; finally, read the color image into an array that is returned to the calling program
+cmap = tvrd(0,0,bgdim[1],bgdim[2],TRUE=1)
 
-if (clev ne 0.0) then begin
-  lpos = 300.0 - 3.0*clev
-  q = where((x ge lpos) and (x le (E-lpos)), cnt)
-  if (cnt gt 0) then begin
-    for i=0,2 do begin
-      slice = reform(CImap[i,*,*])
-      slice[q] = 0B
-      CImap[i,0:*,0:*] = slice
-    endfor
-  endif
+; delete the drawing window since it is no longer needed.
+wdelete,10
+
+; next, go through the entire set of point coordinates and for those that fall
+; inside the region below the confidence level, turn those pixels to white in
+; the CImap...
+
+;islow = check_low_confidence(reform(MA,nn), reform(MC,nn), nn)
+islow = DPmerge_check_low_confidence(x, y, nn)
+q = where(islow eq 1, cnt)
+
+if (cnt gt 0) then begin
+  for i=0,2 do begin
+    slice = reform(CImap[i,*,*])
+    slice[q] = 255B
+    CImap[i,0:*,0:*] = slice
+  endfor
 endif
 
+; scale up the phasemap
 if (arg_present(phasemap)) then begin
-  bigCImap = CImap
-  phasemap = CImap
-endif
+  bigCImap = bytarr(3,2*numx,2*numy)
+  for i=0,2 do begin
+    slice = reform(CImap[i,*,*])
+    slice = reverse(congrid(slice,2*numx,2*numy),2)
+    bigCImap[i,0:*,0:*] = slice
+  endfor
+  phasemap = bigCImap
+end
 
-if (DPmergedata.palette eq 1) then begin
-  slice = reform(cstrip[0,0:*,0:*])
-  cstrip[2,0:*,0:*] = slice
-  if arg_present(phasemap) then begin
+; do we need to convert the output to a color scheme more suitable for people with deuteranopia ?
+if (DPmergedata.palette eq 1) then begin  
+  slice = reform(cmap[0,0:*,0:*])
+  cmap[2,0:*,0:*] = slice
+  if (arg_present(phasemap)) then begin
     slice = reform(bigCImap[0,0:*,0:*])
     bigCImap[2,0:*,0:*] = slice
     phasemap = bigCImap
   endif
 endif
 
-; and clean up the pixmap window
-wdelete,10
 
 end
 

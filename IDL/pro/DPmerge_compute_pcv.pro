@@ -62,7 +62,13 @@ if (DPmergedata.Nphases eq 2) then begin
     Core_Print,'Binary phase confidence index maps'
 endif 
 
-
+if (DPmergedata.Nphases eq 3) then begin 
+  clev = 1
+  DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
+  wset,DPmergedata.CIdrawID
+  tv,cmap,true=1
+  Core_Print,'Ternary phase confidence index maps'
+endif
 
 
 end
