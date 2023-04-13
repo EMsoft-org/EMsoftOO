@@ -26,65 +26,41 @@
 ; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ; ###################################################################
 ;--------------------------------------------------------------------------
-; EMsoft:DPmerge_compute_pcv.pro
+; EMsoft:DPmerge_annotate_triangle.pro
 ;--------------------------------------------------------------------------
 ;
-; PROGRAM: DPmerge_compute_pcv.pro
+; PROGRAM: DPmerge_annotate_triangle.pro
 ;
 ;> @author Marc De Graef, Carnegie Mellon University
 ;
-;> @brief Perform the phase confidence vector computation + display results for 2 or 3 phases
+;> @brief special event handler for all the CW_BGROUP calls, since CW_BGROUP does not support event_pro
 ;
-;> @date 04/10/23 MDG 1.0 first attempt 
+;> @date 04/07/23 MDG 1.0 first version
 ;--------------------------------------------------------------------------
-pro DPmerge_compute_pcv,dummy
- 
+pro DPmerge_annotate_triangle, dummy
+
 ;------------------------------------------------------------
 ; common blocks
 common DPmerge_widget_common, DPmergewidget_s
 common DPmerge_data_common, DPmergedata
+common fontstrings, fontstr, fontstrlarge, fontstrsmall
 
-common DIdata_common, DIdata, w, h 
 common triangleparms, E, Z, xoff, yoff, alpha
 
-if (DPmergedata.Nphases eq 2) then begin 
-    np = 15
-    cmap = bytarr(3,660, 41 * np)
-    for i=2,2+np-1 do begin
-      DPmerge_binary,2*i-2,cstrip, clev=1
-      cstrip = cstrip[0:2,0:*,60-20:60+20]
-      cmap[0:2,0:*,(i-2)*41:(i-1)*41-1] = cstrip
-    endfor
-    wset,DPmergedata.CIdrawID
-    tvscl,cmap,true=1
 
-    for i=0,np-1 do xyouts,3,18 + i*41,string(2*i+2,format="(I2.2)"),/dev, color=0
+for i=1,9 do begin
+  i1 = fix( E*(1.0-0.1*i-0.1*(10-i)*0.5) )
+  j1 = fix( z*E*0.1*(10-i) )
+  i2 = E/2-(i1 - E/2)
+  j2 = j1
+  xyouts,xoff+i1-20,yoff+j1-5,string(10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
+  xyouts,xoff+i2+5,yoff+j2-5,string(100-10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
+  xyouts,xoff+fix(E*0.1*i)-8,yoff-15,string(10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
+endfor
 
-    Core_Print,'Binary phase confidence index maps'
-endif 
-
-if (DPmergedata.Nphases eq 3) then begin 
-  clev = 1
-  DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
-  wset,DPmergedata.CIdrawID
-  tv,cmap,true=1
-
-  for i=1,9 do begin
-    i1 = fix( E*(1.0-0.1*i-0.1*(10-i)*0.5) )
-    j1 = fix( z*E*0.1*(10-i) )
-    i2 = E/2-(i1 - E/2)
-    j2 = j1
-    xyouts,xoff+i1-20,yoff+j1-5,string(10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
-    xyouts,xoff+i2+5,yoff+j2-5,string(100-10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
-    xyouts,xoff+fix(E*0.1*i)-8,yoff-15,string(10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
-  endfor
-
-  xyouts,xoff-8,yoff-8,string(1,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
-  xyouts,xoff+fix(E)+8,yoff-8,string(2,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
-  xyouts,xoff+fix(E)/2-5,yoff+z*E,string(3,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
-
-  Core_Print,'Ternary phase confidence index maps'
-endif
+xyouts,xoff-8,yoff-8,string(1,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
+xyouts,xoff+fix(E)+8,yoff-8,string(2,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
+xyouts,xoff+fix(E)/2-5,yoff+z*E,string(3,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
 
 
 end

@@ -87,6 +87,7 @@ end else begin
                         tv,pmap,true=1
                         wset,DPmergedata.CIdrawID
                         tv,cmap,true=1
+                        DPmerge_annotate_triangle
                 end
 
         endcase
@@ -140,6 +141,7 @@ end else begin
                         tv,pmap,true=1
                         wset,DPmergedata.CIdrawID
                         tv,cmap,true=1
+                        DPmerge_annotate_triangle
                 end
         endcase
 
@@ -158,6 +160,7 @@ end else begin
                         tv,pmap,true=1
                         wset,DPmergedata.CIdrawID
                         tv,cmap,true=1
+                        DPmerge_annotate_triangle
                 end
         endcase
 
@@ -176,6 +179,7 @@ end else begin
                         tv,pmap,true=1
                         wset,DPmergedata.CIdrawID
                         tv,cmap,true=1
+                        DPmerge_annotate_triangle
                 end
         endcase
 
@@ -194,6 +198,7 @@ end else begin
                         tv,pmap,true=1
                         wset,DPmergedata.CIdrawID
                         tv,cmap,true=1
+                        DPmerge_annotate_triangle
                 end
         endcase
 
@@ -212,6 +217,7 @@ end else begin
                         tv,pmap,true=1
                         wset,DPmergedata.CIdrawID
                         tv,cmap,true=1
+                        DPmerge_annotate_triangle
                 end
         endcase
 

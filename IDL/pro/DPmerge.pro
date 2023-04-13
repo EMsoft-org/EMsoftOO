@@ -26,6 +26,7 @@
 @DPmerge_cstrip
 @DPmerge_compute_pcv
 @DPmerge_ctriangle
+@DPmerge_annotate_triangle
 @DPmerge_check_low_confidence
 ;
 ; Copyright (c) 2013-2023, Marc De Graef Research Group/Carnegie Mellon University
