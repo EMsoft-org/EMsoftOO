@@ -1414,7 +1414,7 @@ if (cancelled.eqv..FALSE.) then
   call CL%error_check('DIdriver:clReleaseKernel', ierr)
 
   if (trim(dinl%indexingmode).eq.'static') then
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
   end if
 
 ! perform some timing stuff
@@ -1900,7 +1900,7 @@ dataset = SC_EBSDpatterns
 call HDF%readDatasetFloatArray(dataset, dims2, hdferr, dpatterns)
 if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:EBSDpatterns', hdferr)
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 !=====================================================
 call Message%printMessage('-->  completed initial reading of dictionary file ')

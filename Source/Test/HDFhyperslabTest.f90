@@ -248,7 +248,7 @@ if (hdferr.ne.0) then
   return
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 !====================================
 
 !====================================
@@ -445,7 +445,7 @@ if (hdferr.ne.0) then
   return
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 !====================================
 
 
@@ -563,7 +563,7 @@ if (hdferr.ne.0) then
   return
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 !====================================
 
 

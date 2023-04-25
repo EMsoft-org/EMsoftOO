@@ -179,7 +179,7 @@ groupname = SC_MCCLNameList
 dataset = SC_xtalname
       call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
       xtalname = trim(stringarray(1))
-      call HDF%pop(.TRUE.)
+      call HDF%popall()
 
 ! make sure that the .xtal file exists. 
       xtalfile = EMsoft%generateFilePath('EMXtalFolderpathname',trim(xtalname))

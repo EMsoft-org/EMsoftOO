@@ -1323,7 +1323,7 @@ hdferr = HDF%writeDatasetFloatArray(dataset, atompos, self%ATOM_ntype, 10)
 if (hdferr.ne.0) call HDF%error_check('SaveDataHDF:HDF%writeDatasetFloatArray:'//trim(dataset), hdferr)
 deallocate(atompos)
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 call closeFortranHDFInterface()
 
 end subroutine SaveQCDataHDF_
@@ -1437,7 +1437,7 @@ if (hdferr.ne.0) call HDF%error_check('ReadDataHDF:HDF%readDatasetFloatArray2D:'
 self%ATOM_pos(1:self%ATOM_ntype,1:10) = atompos(1:self%ATOM_ntype,1:10) 
 deallocate(atompos)
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end subroutine ReadQCDataHDF_
 

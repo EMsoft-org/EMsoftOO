@@ -597,7 +597,7 @@ hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 dataset = 'MCOpenCLNML'
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..FALSE.) then
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
     call Message%printError('readMCfile','this is not an EBSD Monte Carlo file')
 end if
 call HDF%pop()
@@ -819,7 +819,7 @@ if (present(getAccumxyz)) then
 end if
 
 ! and close the HDF5 Monte Carlo file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 if (.not.present(silent)) then
   call Message%printMessage(' --> Completed reading Monte Carlo data from '//trim(self%MCfile), frm = "(A/)")
@@ -897,7 +897,7 @@ deallocate(MCDT%accum_e, MCDT%accum_z, MCDT%accumSP)
 
 end associate
 
-call localHDF%pop(.TRUE.)
+call localHDF%popall()
 
 end subroutine getFileInfo_
 
@@ -1053,7 +1053,7 @@ end if
 ! end of HDF_FileVersion = 4.0 write statements
 ! =====================================================
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end associate
 
@@ -1140,7 +1140,7 @@ if (hdferr.eq.-1) then
   call Message%printError('copyMCdata','MCOpenCL group does not exist in '//trim(infile))
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 ! OK, if we get here, then the file does exist and it contains Monte Carlo data, so we let
 ! the user know

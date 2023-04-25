@@ -406,7 +406,7 @@ else
 end if
 
 ! close the file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end subroutine readDIModality_
 
@@ -1453,7 +1453,7 @@ dataset = SC_StepY
     end if
 
 ! and close the HDF5 dot product file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end associate
 
@@ -2003,7 +2003,7 @@ dataset = SC_nRows
 !=====================================================
 
 ! once all these have been written, we simply pop all the way to the top and close the file
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
 end associate
 

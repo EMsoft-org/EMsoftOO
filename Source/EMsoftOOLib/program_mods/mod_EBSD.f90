@@ -1847,7 +1847,7 @@ hdferr = HDF%writeDatasetFloat(dataset, tstop)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
 
 ! close the datafile
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call mem%dealloc(EBSDdetector%rgx, 'EBSDdetector%rgx')
 call mem%dealloc(EBSDdetector%rgy, 'EBSDdetector%rgy')
@@ -2725,7 +2725,7 @@ hdferr = HDF%writeDatasetFloat(dataset, tstop)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
 
 ! close the datafile
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end associate
 

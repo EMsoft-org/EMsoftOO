@@ -1095,7 +1095,7 @@ dataset = SC_trangeSP
     hdferr = HDF%writeHyperslabFloatArray(dataset, trangeSP, dims2, offset2, cnt2)
   end if
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 !=============================================
 ! completes the HDF5 output file
 !=============================================
@@ -1430,7 +1430,7 @@ else
     hdferr = HDF%writeHyperslabFloatArray(dataset, trangeSP, dims2, offset2, cnt2, insert)
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 ! and close the fortran hdf interface
 call closeFortranHDFInterface()

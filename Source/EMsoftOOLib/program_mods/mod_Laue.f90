@@ -1455,7 +1455,7 @@ dataset = SC_Duration
     hdferr = HDF%writeDatasetFloat(dataset, tstop)
   end if
 
- call HDF%pop(.TRUE.)
+ call HDF%popall()
 
 ! and close the fortran hdf interface
 call closeFortranHDFInterface()

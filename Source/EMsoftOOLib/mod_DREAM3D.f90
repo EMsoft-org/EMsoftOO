@@ -167,7 +167,7 @@ dataset = trim(FIDpath(4))
   deallocate(EulerAngles, FeatureIDs, dimensions, origin, gridspacing)
 
 ! that's it, so we close the file 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call Message%printMessage(' Microstructure data read from DREAM.3D file '//trim(fname))
 

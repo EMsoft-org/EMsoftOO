@@ -1374,7 +1374,7 @@ dataset = trim(nml%HDFstrings(ng+1))
  if (hdferr.ne.0) &
    call HDF%error_check('HDF%readDatasetIntegerArray: problem reading ISEimages array', hdferr)
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 ! normalize the image intensities and reduce the array dimensions
 ! optionally, perform the NLPAR algorithm

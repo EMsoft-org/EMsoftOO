@@ -849,7 +849,7 @@ else
 end if
 
 ! close all groups and the file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 ! close the Fortran interface
 call closeFortranHDFInterface()

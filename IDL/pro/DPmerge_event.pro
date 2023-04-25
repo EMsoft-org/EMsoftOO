@@ -55,14 +55,13 @@ end else begin
   CASE eventval OF
         'DIFILE': begin
 ; ask the user to select the data file
-		            DPmergegetfilename,validfile
+		DPmergegetfilename,validfile
 
 ; then start the actual display widget 
                 if (XRegistered("DPmerge_displaybase") NE 0) then begin
 		              WIDGET_CONTROL, DPmergewidget_s.displaybase, /DESTROY
                 endif 
                 DPmerge_display
-
         endcase
 
         'NPHASES': begin

@@ -688,7 +688,7 @@ module mod_Lauemaster
     hdferr = HDF%writeDatasetFloatArray(dataset, masterSPSH, 2*npx+1, 2*npx+1)
   
   ! and close the file
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
   ! close the Fortran interface
     call closeFortranHDFInterface()
 

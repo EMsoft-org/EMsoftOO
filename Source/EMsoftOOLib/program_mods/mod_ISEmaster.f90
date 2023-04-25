@@ -971,7 +971,7 @@ dataset = SC_masterSPSH
 ! end of HDF_FileVersion = 4.0 write statements
 ! =====================================================
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
 
 !=============================================
@@ -1299,7 +1299,7 @@ dataset = SC_masterSPNH
 dataset = SC_masterSPSH
   hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPSH, dims2, offset2, cnt2, insert)
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
 ! and close the fortran hdf interface
  call closeFortranHDFInterface()

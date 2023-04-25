@@ -977,7 +977,7 @@ groupname = SC_EMData
 dataset = SC_lastEnergy
   call HDF%readDatasetInteger(dataset, hdferr, lastEnergy)
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 end if
 !=============================================
 !=============================================
@@ -1345,7 +1345,7 @@ dataset = SC_masterSPSH
 ! end of HDF_FileVersion = 4.0 write statements
 ! =====================================================
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 end if
 
 !=============================================
@@ -1463,18 +1463,18 @@ energyloop: do iE=Estart,1,-1
 
 ! are using a Hall space group with potentially different setting ?  If so, then we
 ! must transform the k-vectors to a different reference frame before using them
-!   if (SG%getuseHallSG().eqv..TRUE.) then 
-! ! point to the first beam direction
-! write (*,*) 'using kvector transform rule'
-!     ktmp => kvec%get_ListHead()
-!     ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
-!     do ik=2,numk
-!       ktmp => ktmp%next
-!       if (ik.eq.55000) write (*,*) 'original k-210 ', ktmp%k(1:3)
-!       ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
-!       if (ik.eq.55000) write (*,*) 'transformed k-210 ', ktmp%k(1:3)
-!     end do
-!   end if
+  if (SG%getuseHallSG().eqv..TRUE.) then 
+! point to the first beam direction
+write (*,*) 'using kvector transform rule'
+    ktmp => kvec%get_ListHead()
+    ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
+    do ik=2,numk
+      ktmp => ktmp%next
+      if (ik.eq.55000) write (*,*) 'original k-210 ', ktmp%k(1:3)
+      ktmp%k(1:3) = matmul(SG%HallSG%kvec_transform, ktmp%k(1:3))
+      if (ik.eq.55000) write (*,*) 'transformed k-210 ', ktmp%k(1:3)
+    end do
+  end if
 
 ! convert part of the kvector linked list into arrays for OpenMP
   call mem%alloc(karray, (/4,numk/), 'karray')
@@ -1800,7 +1800,7 @@ dataset = SC_masterSPSH
   offset3 = (/ 0, 0, iE-1 /)
   hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPSH, dims3, offset3, cnt3, insert)
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
  if ((emnl%Esel.eq.-1).and.(iE.ne.1)) then
   call Message%printMessage(' Intermediate data stored in file '//trim(emnl%energyfile), frm = "(A/)")
@@ -1838,13 +1838,18 @@ end if
 
 end associate
 
-! call mem%dealloc(EkeVs, 'EkeVs')
-! call mem%dealloc(thick, 'thick')
-! call mem%dealloc(lambdaE, 'lambdaE')
-! call mem%dealloc(mLPNH, 'mLPNH')
-! call mem%dealloc(mLPSH, 'mLPSH')
-! call mem%dealloc(masterSPNH, 'masterSPNH')
-! call mem%dealloc(masterSPSH, 'masterSPSH')
+call closeFortranHDFInterface()
+
+call mem%dealloc(EkeVs, 'EkeVs')
+call mem%dealloc(thick, 'thick')
+call mem%dealloc(lambdaE, 'lambdaE')
+call mem%dealloc(mLPNH, 'mLPNH')
+call mem%dealloc(mLPSH, 'mLPSH')
+call mem%dealloc(masterSPNH, 'masterSPNH')
+call mem%dealloc(masterSPSH, 'masterSPSH')
+if (doLegendre.eqv..TRUE.) then
+  call mem%dealloc(LegendreArray, 'LegendreArray')
+end if 
 
 ! call mem%allocated_memory_use()
 ! call memth%thread_memory_use()
@@ -2092,7 +2097,7 @@ dataset = SC_mLPSH
     hdferr = HDF%writeHyperslabFloatArray(dataset, mLPSH, dims4, offset4, cnt4)
   end if
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
 write (*,*) 'output written to '//trim(outname)
 

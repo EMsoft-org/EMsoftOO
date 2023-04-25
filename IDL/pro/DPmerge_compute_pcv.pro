@@ -68,21 +68,7 @@ if (DPmergedata.Nphases eq 3) then begin
   DPmerge_ternary,DPmergedata.Mval,cmap,phasemap=pmap, clevlines=clev, dpmap=dpmap
   wset,DPmergedata.CIdrawID
   tv,cmap,true=1
-
-  for i=1,9 do begin
-    i1 = fix( E*(1.0-0.1*i-0.1*(10-i)*0.5) )
-    j1 = fix( z*E*0.1*(10-i) )
-    i2 = E/2-(i1 - E/2)
-    j2 = j1
-    xyouts,xoff+i1-20,yoff+j1-5,string(10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
-    xyouts,xoff+i2+5,yoff+j2-5,string(100-10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
-    xyouts,xoff+fix(E*0.1*i)-8,yoff-15,string(10*i,format="(I2.2)"),charsize=1.2,/dev, color=0
-  endfor
-
-  xyouts,xoff-8,yoff-8,string(1,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
-  xyouts,xoff+fix(E)+8,yoff-8,string(2,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
-  xyouts,xoff+fix(E)/2-5,yoff+z*E,string(3,format="(I1.1)"),charsize=1.5,charthick=3,/dev, color=0
-
+  DPmerge_annotate_triangle
   Core_Print,'Ternary phase confidence index maps'
 endif
 

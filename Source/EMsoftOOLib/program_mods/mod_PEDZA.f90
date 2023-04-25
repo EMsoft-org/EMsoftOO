@@ -822,7 +822,7 @@ if (pednl%filemode.eq.'total') then
     hdferr = HDF%writeDatasetFloat(dataset, tstop)
   
   ! ! close the datafile
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
 
     call Message%PrintMessage(' Data stored in '//pednl%outname,"(/A/)") 
 

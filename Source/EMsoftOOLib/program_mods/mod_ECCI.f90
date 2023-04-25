@@ -505,7 +505,7 @@ call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if(g_exists) call HDF%readDatasetDoubleArray(dataset, dims4, hdferr, dispfield) 
 
   ! close the group and file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call Message%printMessage('')
 call Message%printMessage(' -> completed reading displacement field info from file '//trim(deformationfile))
@@ -1037,7 +1037,7 @@ call mem%alloc(ECCIstore, (/ npix,npiy,numk /), 'ECCIstore', initval = 0.0)
     offset3 = (/ 0, 0, 0 /)
     hdferr = HDF%writeHyperslabFloatArray(dataset, ECCIimages, dims3, offset3, cnt3)
 
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
     ! close the Fortran interface
     call closeFortranHDFInterface()
 
@@ -1326,7 +1326,7 @@ mainloop: do isg = numstart,numstop
   dims3 = (/  npix, npiy, 1 /)
   hdferr = HDF%writeHyperslabFloatArray(dataset, ECCIimages, hdims, offset, dims3, insert)
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
   ! close the Fortran interface
   call closeFortranHDFInterface()

@@ -1160,7 +1160,7 @@ dataset = 'icnt'
   hdferr = HDF%writeDatasetInteger(dataset, numir)
 
 ! leave this group and close the file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call Message%printMessage(' Output data stored in '//trim(outname))
 call Message%printMessage(' ')

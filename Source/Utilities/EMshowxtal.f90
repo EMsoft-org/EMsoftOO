@@ -142,7 +142,7 @@ else  ! quasi-crystal structure file
     QCcell_axial = QCcell_axial_T()
     call HDF%readDatasetInteger(dataset, hdferr, N_Axial) 
     if (hdferr.ne.0) call HDF%error_check('ReadQCDataHDF:HDF%readDatasetInteger:'//trim(dataset), hdferr)
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
     call closeFortranHDFInterface()
    
     if (N_Axial.eq.8)  QCSG = QCspacegroup_T( nD = 2, QCtype = 'Oct')
@@ -156,7 +156,7 @@ else  ! quasi-crystal structure file
     call QCSG%GenerateQCSymmetry(dopg=.FALSE.)
     call QCcell_axial%DumpQXtalInfo(QCSG)
   else
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
     call closeFortranHDFInterface()
     QCcell_icosahedral = QCcell_icosahedral_T()
     call QCcell_icosahedral%setfname(xtalname)
