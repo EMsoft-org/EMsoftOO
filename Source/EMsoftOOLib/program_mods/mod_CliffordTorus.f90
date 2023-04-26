@@ -1554,7 +1554,7 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
 end if
 
 if (trim(self%nml%hdffile).ne.'undefined') then 
-  call HDF%pop( .TRUE. )
+  call HDF%popall()
   call closeFortranHDFInterface()
 end if
 
@@ -1599,10 +1599,11 @@ SO = so3_T( self%nml%pgnum, zerolist='FZ' )
 ! read all the orientations from the anglefile
 oname = EMsoft%generateFilePath('EMdatapathname',self%nml%anglefile)
 call Message%printMessage(' Reading orientations from file '//trim(oname))
-call SO%getOrientationsfromFile( oname )
+call SO%getOrientationsfromFile( oname, listN=10 )
 
 ! are we using weighted orientations ?  This could happen with .wxt files that are derived
-! from programs like POPLA that extract orientations from an ODG based on pole figures
+! from programs like POPLA that extract orientations from an ODF based on pole figures
+! or if we are reading in .ang or .ctf files; otherwise the weights are all set to 1.0
 weights = SO%getuseweights()
 
 ! we have the list, so what do we need to do with it before computing the Clifford Torus representation ?

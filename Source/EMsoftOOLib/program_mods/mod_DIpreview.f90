@@ -1067,7 +1067,7 @@ if (trim(enl%patternfile).ne.'undefined') then
 
   do i=1,binx
     do j=1,biny
-     int8val = int(255.0*(pcopy(i,biny-j+1)-mi)/(ma-mi))
+     int8val = int(255.0*(pcopy(i,j)-mi)/(ma-mi))
      output_image(i,j) = int8val
     end do
   end do

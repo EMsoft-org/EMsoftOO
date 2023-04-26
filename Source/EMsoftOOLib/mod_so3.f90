@@ -149,7 +149,7 @@ type, public :: FZpointd
   type(r_T)               :: trod      ! second Rodrigues-Frank vector; can be used for coordinate transformations
   type(q_T)               :: qu        ! quaternion are now used as default instead of the rodrigues vector
   integer(kind=irg)       :: gridpt(3) ! coordinates of grid point ! added on 06/19/18 by SS
-  real(kind=dbl)          :: weight    ! this allows for each orientation to have a weight factor ! 01/26/2023, MDG
+  real(kind=dbl)          :: weight=1.D0    ! this allows for each orientation to have a weight factor ! 01/26/2023, MDG
   type(FZpointd),pointer  :: next      ! link to next point
 end type FZpointd
 
@@ -2016,7 +2016,7 @@ type(IO_T)                              :: Message
 
 character(2)                            :: anglemode
 integer(kind=irg)                       :: numang, i, ipf_wd, ipf_ht, sz(2) 
-real(kind=sgl),allocatable              :: Eangles(:,:)
+real(kind=sgl),allocatable              :: Eangles(:,:), weights(:)
 real(kind=sgl)                          :: StepX, StepY
 real(kind=dbl)                          :: x3(3), x4(4), x9(9), w
 type(FZpointd),pointer                  :: FZtmp
@@ -2029,6 +2029,10 @@ fread = .FALSE.
 
 self%useweights = .FALSE.
 if (index(trim(filename),'.wxt').ne.0) then 
+  self%useweights = .TRUE.
+end if 
+
+if ((index(trim(filename),'.ang').ne.0).or.(index(trim(filename),'.ctf').ne.0)) then 
   self%useweights = .TRUE.
 end if 
 
@@ -2210,12 +2214,12 @@ if ((index(trim(filename),'.txt').ne.0).or.(index(trim(filename),'.wxt').ne.0)) 
 else 
 ! is it an .ang file ?
   if (index(trim(filename),'.ang').ne.0) then 
-    call self%getAnglesfromANGfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+    call self%getAnglesfromANGfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles, weights)
     fread = .TRUE.
   end if
 ! maybe a .ctf file ?
   if (index(trim(filename),'.ctf').ne.0) then 
-    call self%getAnglesfromCTFfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+    call self%getAnglesfromCTFfile(filename, ipf_wd, ipf_ht, StepX, StepY, Eangles, weights)
     fread = .TRUE.
   end if
   if (fread.eqv..TRUE.) then 
@@ -2238,6 +2242,7 @@ else
       e = e_T( edinp = x3 )
       FZtmp%rod = e%er()
       FZtmp%qu = e%eq()
+      FZtmp%weight = weights(i)
       self%FZcnt = self%FZcnt + 1
       allocate(FZtmp%next)
       FZtmp => FZtmp%next
@@ -3896,7 +3901,7 @@ ADMap = ADMap / dtor
 end subroutine getAverageDisorientationMap_
 
 !--------------------------------------------------------------------------
-recursive subroutine getAnglesfromANGfile_(self, angname, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+recursive subroutine getAnglesfromANGfile_(self, angname, ipf_wd, ipf_ht, StepX, StepY, Eangles, weights)
 !DEC$ ATTRIBUTES DLLEXPORT :: getAnglesfromANGfile_
 !! author: MDG
 !! version: 1.0
@@ -3915,13 +3920,14 @@ integer(kind=irg),INTENT(INOUT)                     :: ipf_ht
 real(kind=sgl),INTENT(INOUT)                        :: StepX
 real(kind=sgl),INTENT(INOUT)                        :: StepY
 real(kind=sgl),INTENT(INOUT),allocatable            :: Eangles(:,:)
+real(kind=sgl),INTENT(INOUT),allocatable            :: weights(:)
 
 type(IO_T)                                          :: Message
 
 character(fnlen)                                    :: line
 logical                                             :: sqgrid
 integer(kind=irg)                                   :: i, res, nco, nce, ipos
-real(kind=sgl)                                      :: var, e1, e2, e3
+real(kind=sgl)                                      :: var, e1, e2, e3, w
 
 ! open the file 
 open(unit=dataunit, file = trim(angname), status = 'old')
@@ -3977,16 +3983,18 @@ do while (line(1:1).eq.'#')
 end do 
 
 ! we have discovered the first data line 
-allocate(Eangles(3,ipf_wd * ipf_ht))
+allocate(Eangles(3,ipf_wd * ipf_ht), weights(ipf_wd * ipf_ht))
 read(line,*) e1, e2, e3 
 Eangles(1:3,1) = (/ e1, e2, e3 /)
 do i=2,ipf_wd*ipf_ht 
   read(dataunit,'(a)') line 
-  read(line,*) e1, e2, e3 
+  read(line,*) e1, e2, e3, var,var,var,w 
   if (e1.eq.12.56637) then ! intercept bad indexed points and set them to 0
     Eangles(1:3,i) = (/ 0.0, 0.0, 0.0 /)
+    weights(i) = 0.0
   else
     Eangles(1:3,i) = (/ e1, e2, e3 /)
+    weights(i) = w
   end if 
 end do
 
@@ -3997,7 +4005,7 @@ call Message%printMessage(' Completed reading .ang file')
 end subroutine getAnglesfromANGfile_
 
 !--------------------------------------------------------------------------
-recursive subroutine getAnglesfromCTFfile_(self, ctfname, ipf_wd, ipf_ht, StepX, StepY, Eangles)
+recursive subroutine getAnglesfromCTFfile_(self, ctfname, ipf_wd, ipf_ht, StepX, StepY, Eangles, weights)
 !DEC$ ATTRIBUTES DLLEXPORT :: getAnglesfromCTFfile_
 !! author: MDG
 !! version: 1.0
@@ -4016,12 +4024,13 @@ integer(kind=irg),INTENT(INOUT)                     :: ipf_ht
 real(kind=sgl),INTENT(INOUT)                        :: StepX
 real(kind=sgl),INTENT(INOUT)                        :: StepY
 real(kind=sgl),INTENT(INOUT),allocatable            :: Eangles(:,:)
+real(kind=sgl),INTENT(INOUT),allocatable            :: weights(:)
 
 type(IO_T)                                          :: Message
 
 character(fnlen)                                    :: line
 integer(kind=irg)                                   :: i, res, nco, ipos
-real(kind=sgl)                                      :: var, e1, e2, e3
+real(kind=sgl)                                      :: var, e1, e2, e3, wt
 
 ! open the file 
 open(unit=dataunit, file = trim(ctfname), status = 'old')
@@ -4058,11 +4067,12 @@ do while (index(line, 'Euler1').eq.0)
 end do 
 
 ! we have discovered the first data line 
-allocate(Eangles(3,ipf_wd * ipf_ht))
+allocate(Eangles(3,ipf_wd * ipf_ht), weights(ipf_wd * ipf_ht))
 do i=1,ipf_wd*ipf_ht 
   read(dataunit,'(a)') line 
-  read(line,*) nco, var, var, nco, nco, e1, e2, e3 
+  read(line,*) nco, var, var, nco, nco, e1, e2, e3, wt 
   Eangles(1:3,i) = (/ e1, e2, e3 /)
+  weights(i) = wt
 end do
 
 ! convert the Euler angles to the EDAX/TSL convention 
