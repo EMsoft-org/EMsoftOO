@@ -1,7 +1,7 @@
 
 #---------------------------------------------------------------------
 # Set some variables to shorten up the call to the function below
-set(APP_DIR ${EMsoft_SOURCE_DIR}/NamelistTemplates)
+set(APP_DIR ${EMsoftOO_SOURCE_DIR}/NamelistTemplates)
 
 #---------------------------------------------------------------------
 # Aggregate all the OpenCL files that are needed
@@ -60,6 +60,7 @@ set(EMSoft_RESOURCE_FILES
   ${APP_DIR}/EMEBSDoverlap.template
   ${APP_DIR}/EMCPLMmaster.template
   ${APP_DIR}/EMISEmaster.template
+  ${APP_DIR}/EMEBSDPCA.template
 )
 
 if(NOT EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/NamelistTemplates")

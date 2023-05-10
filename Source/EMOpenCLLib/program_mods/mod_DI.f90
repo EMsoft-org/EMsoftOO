@@ -32,6 +32,8 @@ module mod_DI
   !! date: 03/31/20
   !!
   !! routines for the EMDI program
+  !!
+  !! 05/10/23: addition of static indexing with PCA compressed dictionary
 
 use mod_kinds
 use mod_global
