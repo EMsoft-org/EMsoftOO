@@ -73,6 +73,7 @@ type, public :: DictionaryIndexingNameListType
   integer(kind=irg)  :: nregions
   integer(kind=irg)  :: nlines
   integer(kind=irg)  :: sw
+  integer(kind=irg)  :: npc
   real(kind=sgl)     :: L
   real(kind=sgl)     :: thetac
   real(kind=sgl)     :: delta
@@ -460,6 +461,7 @@ integer(kind=irg)  :: nosm
 integer(kind=irg)  :: nism
 integer(kind=irg)  :: maskradius
 integer(kind=irg)  :: sw
+integer(kind=irg)  :: npc
 integer(kind=irg)  :: energyaverage  ! no longer used but kept for compatibility with older files
 real(kind=sgl)     :: L
 real(kind=sgl)     :: thetac
@@ -518,7 +520,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
-                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc
 
 namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
                      beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
@@ -526,7 +528,7 @@ namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid
                      ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
-                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda
+                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, npc
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 ncubochoric     = 50
@@ -551,6 +553,7 @@ ROI             = (/ 0, 0, 0, 0 /)  ! Region of interest (/ x0, y0, w, h /)
 maskradius      = 240
 binning         = 1             ! binning mode  (1, 2, 4, or 8)
 sw              = 3
+npc             = 500           ! number of PCA components to use for indexing (staticPCA mode)
 L               = 20000.0       ! [microns]
 thetac          = 0.0           ! [degrees]
 delta           = 25.0          ! [microns]
@@ -663,6 +666,7 @@ self%nml%ipf_ht        = ipf_ht
 self%nml%ipf_wd        = ipf_wd
 self%nml%nthreads      = nthreads
 self%nml%sw            = sw 
+self%nml%npc           = npc 
 self%nml%lambda        = lambda 
 self%nml%doNLPAR       = doNLPAR
 self%nml%datafile      = trim(datafile)
@@ -776,17 +780,17 @@ modality = trim(self%getModality())
 select case(trim(modality))
   case('EBSD')
     isEBSD = .TRUE.
-    n_int = 22
+    n_int = 23
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
     isECP = .TRUE.
-    n_int = 22
+    n_int = 23
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('TKD')
     isTKD = .TRUE.
-    n_int = 22
+    n_int = 23
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case default
@@ -800,7 +804,7 @@ if (emnl%doNLPAR.eqv..TRUE.) NLPAR=1
 io_int = (/ emnl%ncubochoric, emnl%numexptsingle, emnl%numdictsingle, emnl%ipf_ht, &
             emnl%ipf_wd, emnl%nnk, emnl%maskradius, emnl%numsx, emnl%numsy, emnl%binning, &
             emnl%nthreads, emnl%devid, emnl%platid, emnl%nregions, emnl%nnav, &
-            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR /)
+            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR, emnl%npc /)
 intlist(1) = 'Ncubochoric'
 intlist(2) = 'numexptsingle'
 intlist(3) = 'numdictsingle'
@@ -823,6 +827,7 @@ intlist(19) = 'nism'
 intlist(20) = 'npix'
 intlist(21) = 'sw'
 intlist(22) = 'NLPAR'
+intlist(23) = 'npc'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 io_real = (/ emnl%L, emnl%thetac, emnl%delta, emnl%omega, emnl%xpc, &
@@ -1998,6 +2003,11 @@ dataset = SC_nColumns
 ! nRows
 dataset = SC_nRows
   hdferr = HDF%writeDatasetInteger(dataset, ebsdnl%ipf_ht)
+
+!=====================================================
+! npc
+dataset = 'npc'
+  hdferr = HDF%writeDatasetInteger(dataset, ebsdnl%npc)
 
 !=====================================================
 !=====================================================

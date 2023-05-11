@@ -715,7 +715,6 @@ character(fnlen)                                    :: progdesc, TIFF_filename, 
 character(4)                                        :: nstr
 character(fnlen,kind=c_char)                        :: line2(1)
 
-
 ! parameters for BLAS:dsyrk() and LAPACK:dsyevd() calls 
 character(1)                                        :: UPLO 
 character(1)                                        :: TRANS
@@ -1085,22 +1084,16 @@ if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloatArray2D Eulerangles'
 ! in this case, we store the PCA principal components of all the patterns in 
 ! an array of the same size and name, but we also store the covariance matrix
 ! and the singular values...
-
-! dataset = SC_EBSDpatterns
-! hdferr = HDF%writeDatasetFloatArray(dataset, sngl(dict), L, FZcnt)
-! if (hdferr.ne.0) call HDF%error_check('writeDatasetFloatArray EBSDpatterns', hdferr)
-
-! dataset = 'PrincipalComponents' ! these are the PCA compressed patterns
 dataset = SC_EBSDpatterns
-hdferr = HDF%writeDatasetDoubleArray(dataset, pcs, L, FZcnt)
+hdferr = HDF%writeDatasetFloatArray(dataset, sngl(pcs), L, FZcnt)
 if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray pcs', hdferr)
 
 dataset = 'CovarianceMatrixWhitened'
-hdferr = HDF%writeDatasetDoubleArray(dataset, covmat, L, L)
+hdferr = HDF%writeDatasetFloatArray(dataset, sngl(covmat), L, L)
 if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray covmat', hdferr)
 
 dataset = 'SingularValues'
-hdferr = HDF%writeDatasetDoubleArray(dataset, svals, L)
+hdferr = HDF%writeDatasetFloatArray(dataset, sngl(svals), L)
 if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray svals', hdferr)
 
 call timer%Time_tock()

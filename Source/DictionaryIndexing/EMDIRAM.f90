@@ -31,7 +31,8 @@ program EMDIRAM
   !! version: 1.0 
   !! date: 04/30/21
   !!
-  !! In-RAM Indexing of EBSD/ECP/TKD patterns using a dynamically generated pattern dictionary
+  !! In-RAM Indexing of EBSD/ECP/TKD patterns using a dynamically generated pattern dictionary;
+  !! this includes a dictionary that has been compressed using PCA (EMEBSDPCA program)
 
 use mod_kinds
 use mod_global

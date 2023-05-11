@@ -7,7 +7,7 @@
 ! INDEXING MODE
 !###################################################################
 !
-! 'dynamic' for on the fly indexing or 'static' for pre calculated dictionary
+! 'dynamic' for on the fly indexing, 'static' for an EMEBSD pre-calculated dictionary, 
  indexingmode = 'dynamic',
 ! use the normalized dot product 'ndp' or the normalized cross correlation 'ncc' as the similarity metric
  similaritymetric = 'ndp',
@@ -159,10 +159,12 @@
  eulerfile = 'undefined'
 
 !###################################################################
-! ONLY IF INDEXINGMODE IS STATIC
+! ONLY IF INDEXINGMODE IS STATIC or STATICPCA
 !###################################################################
 !
+! filename of dictionary file generated with EMEBSD or EMEBSDPCA program
  dictfile = 'undefined',
+!
 !
 !###################################################################
 ! ONLY IF INDEXINGMODE IS DYNAMIC

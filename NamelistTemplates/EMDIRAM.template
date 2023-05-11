@@ -7,7 +7,8 @@
 ! INDEXING MODE
 !###################################################################
 !
-! 'dynamic' for on the fly indexing or 'static' for pre calculated dictionary
+! 'dynamic' for on the fly indexing, 'static' for an EMEBSD pre-calculated dictionary, 
+! or 'staticPCA' for a dictionary computed with the EMEBSDPCA program
  indexingmode = 'dynamic',
 !
 !###################################################################
@@ -148,10 +149,18 @@
  eulerfile = 'undefined'
 
 !###################################################################
-! ONLY IF INDEXINGMODE IS STATIC
+! ONLY IF INDEXINGMODE IS STATIC or STATICPCA
 !###################################################################
 !
+! filename of dictionary file generated with EMEBSD or EMEBSDPCA program
  dictfile = 'undefined',
+!
+!###################################################################
+! ONLY IF INDEXINGMODE IS STATICPCA
+!###################################################################
+!
+! number of PCA Principal Components to use for indexing
+ npc = 500,
 !
 !###################################################################
 ! ONLY IF INDEXINGMODE IS DYNAMIC
