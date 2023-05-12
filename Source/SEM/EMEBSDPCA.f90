@@ -26,35 +26,41 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMDIRAM
+program EMEBSDPCA
   !! author: MDG
   !! version: 1.0 
-  !! date: 04/30/21
+  !! date: 05/09/23
   !!
-  !! In-RAM Indexing of EBSD/ECP/TKD patterns using a dynamically generated pattern dictionary;
-  !! this includes a dictionary that has been compressed using PCA (EMEBSDPCA program)
-
+  !! generate a PCA-compressed EBSD dictionary
+  !!
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_DI
-use mod_HDFsupport
-use ISO_C_BINDING
+use mod_HDFnames
+use stringconstants
+use mod_EBSDPCA
 
 IMPLICIT NONE
 
-character(fnlen)        :: progname
-character(fnlen)        :: progdesc = 'In-RAM Indexing of EBSD/ECP/TKD patterns using a dynamically calculated pattern dictionary'
+character(fnlen)        :: progname = 'EMEBSDPCA.f90'
+character(fnlen)        :: progdesc = 'Generate an EBSD pattern dictionary with PCA compression'
 
 type(EMsoft_T)          :: EMsoft
-
-progname = 'EMDIRAM.f90'
+type(EBSDPCA_T)         :: EBSDPCA
+type(HDFnames_T)        :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
-! this program uses the same name list file as the EMDI program
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 105 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 107 /) )
 
-! call the DIRAMdriver routine to take care of the entire indexing process 
-call DIRAMdriver(EMsoft%nmldeffile, progname, progdesc)
+! deal with the namelist stuff
+EBSDPCA = EBSDPCA_T(EMsoft%nmldeffile)
 
-end program EMDIRAM
+call HDFnames%set_ProgramData(SC_EBSDPCA) 
+call HDFnames%set_NMLlist(SC_EBSDPCANameList) 
+call HDFnames%set_NMLfilename(SC_EBSDPCANML) 
+call HDFnames%set_Variable(SC_MCOpenCL) 
+
+! perform the pattern computations
+call EBSDPCA%EBSDPCA(EMsoft, progname, HDFnames)
+
+end program EMEBSDPCA

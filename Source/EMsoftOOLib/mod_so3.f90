@@ -204,6 +204,7 @@ type, public :: so3_T
     procedure, pass(self) :: insideCubeHexFZ_
     procedure, pass(self) :: listtoArray_
     procedure, pass(self) :: listtoQuaternionArray_
+    procedure, pass(self) :: randomizeQuaternionArray_
     procedure, pass(self) :: QuaternionArraytolist_
     procedure, pass(self) :: QuaternionArraytonewlist_
     procedure, pass(self) :: QuaternionArrayappendtolist_
@@ -260,6 +261,7 @@ type, public :: so3_T
     generic, public :: insideCubeHexFZ => insideCubeHexFZ_
     generic, public :: listtoArray => listtoArray_
     generic, public :: listtoQuaternionArray => listtoQuaternionArray_
+    generic, public :: randomizeQuaternionArray => randomizeQuaternionArray_
     generic, public :: QuaternionArraytolist => QuaternionArraytolist_
     generic, public :: QuaternionArraytonewlist => QuaternionArraytonewlist_
     generic, public :: QuaternionArrayappendtolist => QuaternionArrayappendtolist_
@@ -2557,6 +2559,44 @@ do i=1,cnt
 end do
 
 end subroutine listtoQuaternionArray_
+
+!--------------------------------------------------------------------------
+recursive subroutine randomizeQuaternionArray_(self, qAR, numang)
+!DEC$ ATTRIBUTES DLLEXPORT :: randomizeQuaternionArray_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 05/08/23
+  !!
+  !! shuffle the entries in a QuaternionArray_T object using the Fisher-Yates algorithm
+
+use mod_quaternions
+use mod_rotations
+use mod_rng
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+type(QuaternionArray_T), INTENT(INOUT)  :: qAR
+integer(kind=irg), INTENT(IN)           :: numang
+
+integer(kind=irg)                       :: i, seed, indx
+real(kind=dbl)                          :: u(1)
+type(Quaternion_T)                      :: qq
+
+! initialize the random number generator 
+! we'll use the Mersenne twister routines here
+seed = 4324
+call genrand_init( put=seed )
+
+do i=numang,2,-1
+  call genrand_real1( u )
+  indx = 1 + floor( u(1) * i )
+  qq = qAR%getQuatfromArray( i )
+  call qAR%insertQuatinArray( i, qAR%getQuatfromArray( indx ) )
+  call qAR%insertQuatinArray( indx, qq )
+end do
+
+end subroutine randomizeQuaternionArray_
 
 !--------------------------------------------------------------------------
 recursive subroutine QuaternionArraytolist_(self, qAR, l)
