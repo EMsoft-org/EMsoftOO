@@ -2040,13 +2040,13 @@ if (PCA.eqv..TRUE.) then
   else
       correctsize_new = Lnew
   end if
+  io_int(1) = dinl%npc
+  call Message%WriteValue(' Number of PCA components requested ', io_int, 1)
   io_int(1) = Lnew 
-  call Message%WriteValue(' Number of PCA components set to ', io_int, 1)
+  call Message%WriteValue(' Number of PCA components set to (multiple of 16) ', io_int, 1)
   allocate(dpatterns_tmp(Lnew,FZcnt))
-  write (*,*) ' shape old array : ', shape(dpatterns)
   dpatterns_tmp = dpatterns(1:Lnew,1:FZcnt)
   call move_alloc(dpatterns_tmp, dpatterns)
-  write (*,*) ' shape new array : ', shape(dpatterns), allocated(dpatterns_tmp)
 ! redefine some of the recordsize parameters
   recordsize_correct_new = correctsize_new * 4
 end if 
@@ -2069,8 +2069,6 @@ bindx = 1.0/float(dinl%binning)**2
 !================================
 ! INITIALIZATION OF OpenCL DEVICE
 !================================
-
-write (*,*) 'GPU parameters : ', dinl%platid, dinl%devid 
 
 call CL%init_PDCCQ(platform, nump, dinl%platid, device, numd, dinl%devid, info, context, command_queue)
 
@@ -2329,7 +2327,7 @@ call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
 call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
 call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
 
-call mem%allocated_memory_use( expl = 'Memory usage before start of parallel section' )
+! call mem%allocated_memory_use( expl = 'Memory usage before start of parallel section' )
 
 
 !=====================================================
@@ -2579,14 +2577,14 @@ call CL%error_check('DIdriver:clReleaseKernel', ierr)
 
 
 ! perform some timing stuff
-  call timer%Time_tock(2)
-  tstop = timer%getInterval(2)
-  io_real(1) = tstop
-  call Message%WriteValue(' Indexing duration (system_clock, s)                : ',io_real,1,"(/,F14.3)")
-  io_real(1) = float(totnumexpt)*float(FZcnt) / tstop
-  call Message%WriteValue(' Number of pattern comparisons per second           : ',io_real,1,"(/,F14.3)")
-  io_real(1) = float(totnumexpt) / tstop
-  call Message%WriteValue(' Number of experimental patterns indexed per second : ',io_real,1,"(/,F14.3,/)")
+call timer%Time_tock(2)
+tstop = timer%getInterval(2)
+io_real(1) = tstop
+call Message%WriteValue(' Indexing duration (system_clock, s)                : ',io_real,1,"(/,F14.3)")
+io_real(1) = float(totnumexpt)*float(FZcnt) / tstop
+call Message%WriteValue(' Number of pattern comparisons per second           : ',io_real,1,"(/,F14.3)")
+io_real(1) = float(totnumexpt) / tstop
+call Message%WriteValue(' Number of experimental patterns indexed per second : ',io_real,1,"(/,F14.3,/)")
 
 ! ===================
 ! MAIN OUTPUT SECTION

@@ -1695,6 +1695,7 @@ dataset = SC_ISMap
   isratio = 100.0 * real(j) / real(ipar(7)*ipar(8))
   io_real(1) = isratio
   call Message%WriteValue(' Indexing Success Rate (%) : ',io_real,1)
+  call Message%printMessage(' Note: Indexing Success Rate is an experimental feature; not always reliable...')
   deallocate(ISMap)
 
 dataset = SC_ISR
