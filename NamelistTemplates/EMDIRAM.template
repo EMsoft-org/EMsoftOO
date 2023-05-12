@@ -161,6 +161,8 @@
 !
 ! number of PCA Principal Components to use for indexing
  npc = 500,
+! use whitened PCA components ?
+ whitenPCA = .TRUE.,
 !
 !###################################################################
 ! ONLY IF INDEXINGMODE IS DYNAMIC

@@ -1953,6 +1953,14 @@ if (PCA.eqv..TRUE.) then
   if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:pcasvs', hdferr)
 end if 
 
+! the PCAvecs have been whitened in the EMEBSDPCA program; do we need to undo this ?
+if (dinl%whitenPCA.eqv..FALSE.) then 
+  do i=1,dims2(1) 
+    pcavecs(:,i) = pcavecs(:,i) * pcasvs(i)
+  end do 
+  pcavecs = pcavecs / sqrt(dble(FZcnt))
+end if 
+
 ! and close the file
 call HDF%popall()
 
@@ -2445,7 +2453,7 @@ dictionaryloop: do ii = 1,cratio+1
     if (ii.gt.1) then
       iii = ii-1        ! the index ii is already one ahead, since the GPU thread lags one cycle behind the others...
       if (verbose.eqv..TRUE.) then
-        if (associated(T0dict,dict1)) then
+        if (associated(results,results1)) then
           call Message%printMessage('   GPU thread is working on dict1')
         else
           call Message%printMessage('   GPU thread is working on dict2')
@@ -2518,7 +2526,7 @@ dictionaryloop: do ii = 1,cratio+1
    if (ii.gt.1) then
      if (verbose.eqv..TRUE.) then
        io_int(1) = TID2
-       if (associated(dict,dict1)) then
+       if (associated(results,results2)) then
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict1')")
        else
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict2')")

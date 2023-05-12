@@ -735,6 +735,11 @@ integer(kind=irg)                                   :: LINFO
 integer(kind=irg)                                   :: LDC
 integer(kind=irg)                                   :: iar(3,2)
 
+! parameters for BLAS dgemm() matrix-matrix multiplication routine
+character(1)                                        :: TRANSA, TRANSB
+integer(kind=irg)                                   :: MMMM, LDB
+
+
 ! declare variables for use in object oriented image module
 integer                                             :: iostat
 character(len=128)                                  :: iomsg
@@ -976,8 +981,19 @@ covmat = transpose(covmat)
 
 ! determine the principal components 
 call Message%printMessage(' Projecting dictionary patterns')
+TRANSA = 'N'
+TRANSB = 'N'
+MMMM = L
+NNNN = FZcnt
+KKKK = L
+LDA = L
+LDB = L
+LDC = L
+ALPHA = 1.0
+BETA = 0.0
 call mem%alloc(pcs, (/ L, FZcnt /), 'pcs')
-pcs = matmul( covmat, dict )
+call dgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, covmat, LDA, dict, LDB, BETA, pcs, LDC)
+! pcs = matmul( covmat, dict )
 call Message%printMessage('  ---> done')
 
 !========================

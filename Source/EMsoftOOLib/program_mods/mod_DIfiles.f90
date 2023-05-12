@@ -92,6 +92,7 @@ type, public :: DictionaryIndexingNameListType
   real(kind=sgl)     :: stepY
   real(kind=sgl)     :: lambda
   logical            :: doNLPAR
+  logical            :: whitenPCA
   character(1)       :: maskpattern
   character(3)       :: scalingmode
   character(3)       :: Notify
@@ -480,6 +481,7 @@ real(kind=sgl)     :: dwelltime
 real(kind=sgl)     :: hipassw
 real(kind=sgl)     :: lambda
 logical            :: doNLPAR
+logical            :: whitenPCA
 character(1)       :: maskpattern
 character(1)       :: keeptmpfile
 character(1)       :: usetmpfile
@@ -528,7 +530,7 @@ namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid
                      ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
-                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, npc
+                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, npc, whitenPCA
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 ncubochoric     = 50
@@ -568,6 +570,7 @@ stepX           = 1.0           ! sampling step size along X
 stepY           = 1.0           ! sampling step size along Y
 lambda          = 0.375
 doNLPAR         = .FALSE.
+whitenPCA       = .TRUE.
 keeptmpfile     = 'n'
 usetmpfile      = 'n'
 maskpattern     = 'n'           ! 'y' or 'n' to include a circular mask
@@ -669,6 +672,7 @@ self%nml%sw            = sw
 self%nml%npc           = npc 
 self%nml%lambda        = lambda 
 self%nml%doNLPAR       = doNLPAR
+self%nml%whitenPCA     = whitenPCA
 self%nml%datafile      = trim(datafile)
 self%nml%tmpfile       = trim(tmpfile)
 self%nml%ctffile       = trim(ctffile)
@@ -761,7 +765,7 @@ type(HDFnames_T), INTENT(INOUT)                     :: HDFnames
 class(DictionaryIndexingNameListType), INTENT(INOUT):: emnl
 
 type(IO_T)                                          :: Message
-integer(kind=irg)                                   :: n_int, n_real, NLPAR
+integer(kind=irg)                                   :: n_int, n_real, NLPAR, WPCA
 integer(kind=irg)                                   :: hdferr
 integer(kind=irg),allocatable                       :: io_int(:)
 real(kind=sgl),allocatable                          :: io_real(:)
@@ -780,17 +784,17 @@ modality = trim(self%getModality())
 select case(trim(modality))
   case('EBSD')
     isEBSD = .TRUE.
-    n_int = 23
+    n_int = 24
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
     isECP = .TRUE.
-    n_int = 23
+    n_int = 24
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('TKD')
     isTKD = .TRUE.
-    n_int = 23
+    n_int = 24
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case default
@@ -799,12 +803,14 @@ end select
 
 NLPAR = 0
 if (emnl%doNLPAR.eqv..TRUE.) NLPAR=1
+WPCA = 1 
+if (emnl%whitenPCA.eqv..FALSE.) WPCA=0
 
 ! write all the single integers
 io_int = (/ emnl%ncubochoric, emnl%numexptsingle, emnl%numdictsingle, emnl%ipf_ht, &
             emnl%ipf_wd, emnl%nnk, emnl%maskradius, emnl%numsx, emnl%numsy, emnl%binning, &
             emnl%nthreads, emnl%devid, emnl%platid, emnl%nregions, emnl%nnav, &
-            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR, emnl%npc /)
+            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR, emnl%npc, WPCA /)
 intlist(1) = 'Ncubochoric'
 intlist(2) = 'numexptsingle'
 intlist(3) = 'numdictsingle'
@@ -828,6 +834,7 @@ intlist(20) = 'npix'
 intlist(21) = 'sw'
 intlist(22) = 'NLPAR'
 intlist(23) = 'npc'
+intlist(24) = 'whitenPCA'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 io_real = (/ emnl%L, emnl%thetac, emnl%delta, emnl%omega, emnl%xpc, &
