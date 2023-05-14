@@ -97,6 +97,7 @@ type, public :: DictionaryIndexingNameListType
   character(3)       :: scalingmode
   character(3)       :: Notify
   character(3)       :: similaritymetric
+  character(3)       :: CPUGPU
   character(1)       :: keeptmpfile
   character(1)       :: usetmpfile
   character(fnlen)   :: exptfile
@@ -182,6 +183,7 @@ private
   procedure, pass(self) :: readDIModality_
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
+  procedure, pass(self) :: getCPUGPU_
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: readDotProductFile_
   procedure, pass(self) :: h5_writeFile_
@@ -192,6 +194,7 @@ private
   generic, public :: getrefinementfilename => getrefinementfilename_
   generic, public :: getfilename => getfilename_
   generic, public :: setfilename => setfilename_
+  generic, public :: getCPUGPU => getCPUGPU_
   generic, public :: getModality => getModality_
   generic, public :: setModality => setModality_
   generic, public :: readDIModality => readDIModality_
@@ -350,6 +353,24 @@ self%Modality = trim(inp)
 end subroutine setModality_
 
 !--------------------------------------------------------------------------
+function getCPUGPU_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getCPUGPU_
+!! author: MDG
+!! version: 1.0
+!! date: 05/14/23
+!!
+!! get CPUGPU from the DIfile_T class
+
+IMPLICIT NONE
+
+class(DIfile_T), INTENT(INOUT)     :: self
+character(3)                       :: out
+
+out = self%nml%CPUGPU
+
+end function getCPUGPU_
+
+!--------------------------------------------------------------------------
 subroutine readDIModality_(self, HDF, DIfile)
 !DEC$ ATTRIBUTES DLLEXPORT :: readDIModality_
 !! author: MDG
@@ -489,6 +510,7 @@ character(1)       :: spatialaverage  ! no longer used but kept for compatibilit
 character(3)       :: scalingmode
 character(3)       :: Notify
 character(3)       :: similaritymetric
+character(3)       :: CPUGPU
 character(fnlen)   :: dotproductfile
 character(fnlen)   :: masterfile
 character(fnlen)   :: tmpfile
@@ -520,7 +542,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      scalingmode, maskpattern, L, omega, nthreads, energymax, datafile, angfile, ctffile, &
                      ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
-                     HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
+                     HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, CPUGPU, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
                      exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc
 
@@ -529,7 +551,7 @@ namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid
                      scalingmode, maskpattern, L, omega, nthreads, energymax, datafile, angfile, ctffile, &
                      ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
-                     HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
+                     HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, CPUGPU, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, npc, whitenPCA
 
 ! set the input parameters to default values (except for xtalname, which must be present)
@@ -583,6 +605,7 @@ energymax       = 20.0
 ipf_ht          = 100
 ipf_wd          = 100
 nthreads        = 1
+CPUGPU          = 'GPU'
 datafile        = 'undefined'
 ctffile         = 'undefined'
 avctffile       = 'undefined'
@@ -679,6 +702,7 @@ self%nml%ctffile       = trim(ctffile)
 self%nml%avctffile     = trim(avctffile)
 self%nml%angfile       = trim(angfile)
 self%nml%eulerfile     = trim(eulerfile)
+self%nml%CPUGPU        = CPUGPU
 self%nml%maskradius    = maskradius
 self%nml%numdictsingle = numdictsingle
 self%nml%numexptsingle = numexptsingle
@@ -938,6 +962,11 @@ dataset = SC_inputtype
 line2(1) = emnl%inputtype
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create inputtype dataset', hdferr)
+
+dataset = 'CPUGPU'
+line2(1) = emnl%CPUGPU
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create CPUGPU dataset', hdferr)
 
 dataset = SC_HDFstrings
 line10 = emnl%HDFstrings

@@ -2385,6 +2385,7 @@ call timer%Time_tick(1)
 call timer%Time_tick(2)
 
 verbose = .FALSE.
+mvres = 0.0
 
 dictionaryloop: do ii = 1,cratio+1
     nullify(results)
@@ -2462,7 +2463,6 @@ dictionaryloop: do ii = 1,cratio+1
                                   0, C_NULL_PTR, C_NULL_PTR)
       call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
 
-      mvres = 0.0
 
       experimentalloop: do jj = 1,cratioE
 
@@ -2819,5 +2819,858 @@ call CL%error_check('InnerProdGPU:clReleaseMemObject:cl_result', ierr)
 ! ---
 end subroutine InnerProdGPU
 !--------------------------------------------------------------------------
+
+
+!--------------------------------------------------------------------------
+subroutine DIRAMCPUdriver(nmldeffile, progname, progdesc)
+!DEC$ ATTRIBUTES DLLEXPORT :: DIRAMCPUdriver
+!! author: MDG
+!! version: 1.0
+!! date: 05/12/23
+!!
+!! perform the DI computations with all experimental pattens and the dictionary in RAM.
+!!
+!! this version does not use the GPU but instead employs a basic BLAS Level 3 routine
+
+use mod_EMsoft
+use mod_io
+use mod_initializers
+use HDF5
+use mod_HDFsupport
+use mod_patterns
+use mod_Lambert
+use mod_others
+use mod_crystallography
+use mod_gvectors
+use mod_filters
+use mod_diffraction
+use mod_symmetry
+use mod_quaternions
+use mod_rotations
+use mod_so3
+use mod_math
+use omp_lib
+use mod_OMPsupport
+use h5im
+use h5lt
+use ISO_C_BINDING
+use mod_notifications
+use mod_timing
+use mod_MCfiles
+use mod_MPfiles
+use mod_DIfiles
+use mod_DIsupport
+use mod_HDFnames
+use mod_EBSD
+use mod_ECP
+use mod_so3
+use mod_vendors
+use mod_NLPAR
+use mod_memory
+
+IMPLICIT NONE
+
+character(fnlen), INTENT(IN)                        :: nmldeffile
+character(fnlen), INTENT(IN)                        :: progname
+character(fnlen), INTENT(IN)                        :: progdesc
+
+type(MCfile_T)                                      :: MCFT
+type(MPfile_T)                                      :: MPFT
+type(DIfile_T)                                      :: DIFT
+type(EMsoft_T)                                      :: EMsoft
+type(cell_T)                                        :: cell
+type(HDF_T)                                         :: HDF
+type(HDFnames_T)                                    :: HDFnames
+type(EBSD_T)                                        :: EBSD
+type(ECP_T)                                         :: ECP
+type(Timing_T)                                      :: timer
+type(IO_T)                                          :: Message
+type(SpaceGroup_T)                                  :: SG
+type(so3_T)                                         :: SO
+type(q_T)                                           :: quat
+type(e_T)                                           :: eu
+type(r_T)                                           :: ro
+type(Vendor_T)                                      :: VT
+type(Quaternion_T)                                  :: qu
+type(IncidentListECP),pointer                       :: ktmp
+type(NLPAR_T)                                       :: NLPAR
+type(memory_T)                                      :: mem, memth
+
+type(MCOpenCLNameListType)                          :: mcnl
+type(SEMmasterNameListType)                         :: mpnl
+
+logical                                             :: verbose
+
+type(DynType)                                       :: Dyn
+type(gnode)                                         :: rlp
+
+integer(kind=irg)                                   :: num,ierr,irec,istat, jpar(7), SGnum, nlines
+integer(kind=irg),parameter                         :: iunit = 40
+integer(kind=irg),parameter                         :: iunitexpt = 41
+integer(kind=irg),parameter                         :: iunitdict = 42
+character(fnlen)                                    :: info ! info about the GPU
+real(kind=dbl),parameter                            :: nAmpere = 6.241D+18   ! Coulomb per second
+
+real(kind=sgl),allocatable                          :: results(:)
+integer(kind=irg),allocatable                       :: indexlist(:), dpindex(:)
+
+integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
+                                                       recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr, &
+                                                       nsig, numk, recordsize_correct, patsz, tickstart, tickstart2, tock, &
+                                                       npy, sz(3), jjj, Lnew, recordsize_correct_new, correctsize_new
+integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt, Nres
+real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:), mask(:,:),masklin(:),exptIQ(:),dpatterns(:,:), &
+                                                       exptCI(:), exptFit(:), exppatarray(:), tmpexppatarray(:), dictblock(:,:)
+real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:),  &
+                                                       tmpimageexpt(:), OSMmap(:,:), maxsortarr(:), minsortarr(:), epatterns(:,:), &
+                                                       eulerarray(:,:),eulerarray2(:,:), epatterns_tmp(:,:), dpatterns_tmp(:,:), &
+                                                       pcavecs(:,:), pcasvs(:)
+real(kind=sgl),allocatable                          :: res(:,:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
+                                                       resultmain(:,:),resulttmp(:,:),results1(:), results2(:)
+integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:)
+integer(kind=irg),allocatable,target                :: indarray(:)
+integer*4,allocatable                               :: iexptCI(:,:), iexptIQ(:,:)
+real(kind=sgl),allocatable                          :: meandict(:),meanexpt(:),wf(:)
+real(kind=sgl),allocatable                          :: pattern(:,:), FZarray(:,:), dpmap(:), lstore(:,:), pstore(:,:)
+real(kind=sgl),allocatable                          :: patternintd(:,:), lp(:), cp(:), EBSDpat(:,:)
+integer(kind=irg),allocatable                       :: patterninteger(:,:), patternad(:,:), EBSDpint(:,:), kij(:,:)
+character(kind=c_char),allocatable                  :: EBSDdictpat(:,:,:)
+real(kind=sgl),allocatable                          :: dictpatflt(:,:), anglewf(:)
+real(kind=dbl),allocatable                          :: rdata(:,:), fdata(:,:), rrdata(:,:), ffdata(:,:), ksqarray(:,:), klist(:,:)
+complex(kind=dbl),allocatable                       :: hpmask(:,:)
+complex(C_DOUBLE_COMPLEX),allocatable               :: inp(:,:), outp(:,:)
+real(kind=dbl)                                      :: w, Jres
+integer(kind=irg)                                   :: dims(2)
+character(11)                                       :: dstr
+character(15)                                       :: tstrb
+character(15)                                       :: tstre
+character(3)                                        :: vendor
+character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(fnlen)                                    :: groupname, dataset, fname, clname, ename, sourcefile, &
+                                                       datagroupname, dictfile, attname
+integer(hsize_t)                                    :: expwidth, expheight
+integer(hsize_t),allocatable                        :: iPhase(:), iValid(:)
+integer(c_size_t),target                            :: slength
+integer(c_int)                                      :: numd, nump
+type(C_PTR)                                         :: planf, HPplanf, HPplanb
+integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3), dms(1)
+
+integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn
+integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(4)
+type(FZpointd),pointer                              :: FZlist, FZtmp
+integer(kind=irg),allocatable,target                :: indexlist1(:),indexlist2(:),indexarray(:),indexmain(:,:),indextmp(:,:)
+real(kind=sgl)                                      :: dmin,voltage,scl,ratio, mi, ma, ratioE, io_real(2), tstart, tmp, &
+                                                       totnum_el, vlen, tstop, ttime, msa
+real(kind=dbl)                                      :: prefactor, dmt(3,3), rmt(3,3)
+character(fnlen)                                    :: xtalname
+integer(kind=irg)                                   :: binx,biny,TID,TID2,nthreads,Emin,Emax, iiistart, iiiend, jjend
+real(kind=sgl)                                      :: sx,dx,dxm,dy,dym,rhos,x,projweight, dp, mvres, nel, emult
+real(kind=sgl)                                      :: dc(3),ixy(2),bindx, MCsig, WD, fpar1(1), fpar2(2)
+integer(kind=irg)                                   :: nix,niy,nixp,niyp
+real(kind=sgl)                                      :: euler(3)
+integer(kind=irg)                                   :: indx
+integer(kind=irg)                                   :: correctsize
+logical                                             :: f_exists, init, ROIselected, Clinked, cancelled, isTKD = .FALSE., &
+                                                       isEBSD = .FALSE., isECP = .FALSE., switchwfoff, PCA = .FALSE.
+
+integer(kind=irg)                                   :: ipar(10)
+
+character(fnlen),ALLOCATABLE                        :: MessageLines(:)
+integer(kind=irg)                                   :: NumLines
+character(fnlen)                                    :: TitleMessage, exectime
+character(100)                                      :: c
+character(1000)                                     :: charline
+character(3)                                        :: stratt
+
+! parameters for BLAS sgemm() matrix-matrix multiplication routine
+character(1)                                        :: TRANSA, TRANSB
+integer(kind=irg)                                   :: MMMM, NNNN, KKKK, LDA, LDB, LDC
+real(kind=sgl)                                      :: ALPHA, BETA 
+real(kind=sgl),allocatable                          :: YYYY(:,:)
+
+! open the HDF interface
+call openFortranHDFInterface()
+HDF = HDF_T()
+
+! we've already shown the standard splash screen, so we do this one silently
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 105 /), silent=.TRUE.)
+
+! deal with the namelist stuff
+DIFT = DIfile_T(nmlfile=nmldeffile, inRAM=.TRUE.)
+
+! set the HDF group names for this program
+HDFnames = HDFnames_T()
+
+call setRotationPrecision('d')
+
+! short hand notations
+associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
+
+! are we using a PCA compressed dictionary ?
+if (trim(dinl%indexingmode).eq.'staticPCA') PCA = .TRUE.
+
+! initialize the memory allocation classes
+mem = memory_T()
+memth = memory_T( nt = dinl%nthreads )
+
+! determine the modality from the master pattern file, and also set it in the dinl name list
+fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
+call MPFT%determineModality(HDF, fname)
+call Message%printMessage(' Master Pattern modality : '//trim(MPFT%getModality()))
+call DIFT%setModality(MPFT%getModality())
+
+if (trim(MPFT%getModality()).eq.'EBSD') then
+  isEBSD = .TRUE.
+else if (trim(MPFT%getModality()).eq.'TKD') then
+  isTKD = .TRUE.
+else if (trim(MPFT%getModality()).eq.'ECP') then
+  isECP = .TRUE.
+  end if
+
+! 1. read the Monte Carlo data file
+call HDFnames%set_ProgramData(SC_MCOpenCL)
+call HDFnames%set_NMLlist(SC_MCCLNameList)
+call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
+fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
+call MCFT%setFileName(fname)
+call MCFT%readMCfile(HDF, HDFnames)
+mcnl = MCFT%getnml()
+xtalname = trim(mcnl%xtalname)
+
+! set the HDFnames for the current program (same for all modalities)
+call HDFnames%set_ProgramData(SC_EMDI)
+call HDFnames%set_NMLlist(SC_EMDINameList)
+call HDFnames%set_NMLfilename(SC_EMDI)
+
+
+! set the timer
+timer = Timing_T()
+dstr = timer%getDateString()
+tstrb = timer%getTimeString()
+tstre = ''
+
+! get the full filename
+if (dinl%dictfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
+  dictfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dinl%dictfile)
+else
+  dictfile = trim(dinl%dictfile)
+end if
+
+call Message%printMessage('-->  '//'Opening HDF5 dictionary file '//trim(dinl%dictfile))
+
+hdferr =  HDF%openFile(dictfile)
+if (hdferr.ne.0) call HDF%error_check('HDF_openFile ', hdferr)
+
+! we need the point group number (derived from the space group number)
+! if MPDT%newSGnumber is set to 2, then pgnum must be set to 1 for
+! overlap master patterns  [ added by MDG, 06/19/19 ]
+MPDT%AveragedMP = .FALSE.
+if (MPDT%AveragedMP.eqv..TRUE.) then
+    pgnum = MPDT%newPGnumber
+    io_int = pgnum
+    call Message%WriteValue(' Setting point group number to ',io_int,1)
+else
+    groupname = SC_CrystalData
+    hdferr = HDF%openGroup(groupname)
+    if (hdferr.ne.0) call HDF%error_check('HDF_openGroup:CrystalData', hdferr)
+
+    dataset = SC_SpaceGroupNumber
+    call HDF%readDatasetInteger(dataset, hdferr, SGnum)
+    if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetInteger:SpaceGroupNumber', hdferr)
+    call HDF%pop()
+! get the point group number
+    if (SGnum.ge.221) then
+      pgnum = 32
+    else
+      i=0
+      do while (SGPG(i+1).le.SGnum)
+        i = i+1
+      end do
+      pgnum = i
+    end if
+    io_int = pgnum
+    call Message%WriteValue(' Setting point group number to ',io_int,1)
+    io_int = SGnum
+    call Message%WriteValue(' Setting space group number to ',io_int,1)
+    dmt = 0.D0 
+    dmt(1,1) = 1.D0
+    dmt(2,2) = 1.D0
+    dmt(3,3) = 1.D0
+    rmt = dmt
+    SG = SpaceGroup_T( SGnumber = SGnum, dmt = dmt, rmt = rmt )
+
+end if
+
+! then read some more data from the EMData group
+hdferr = HDF%openGroup(HDFnames%get_EMData())
+if (hdferr.ne.0) call HDF%error_check('HDF_openGroup:EMData', hdferr)
+
+datagroupname = 'EBSD'
+hdferr = HDF%openGroup(datagroupname)
+if (hdferr.ne.0) call HDF%error_check('HDF_openGroup:EBSD', hdferr)
+
+! test the HDF_FileVersion to make sure that the dictionary file is recent enough
+attname = 'HDF_FileVersion'
+hdferr = HDF%getStringAttributeFromGroup(attname, stratt, 3_SIZE_T)
+
+if (stratt.eq.'4.0') then
+    call Message%printMessage('The dictionary file was created with an older version of the EMEBSD program.')
+    call Message%printMessage('This file can not be used by the present program; must be version 4.1 or higher.')
+    call Message%printMessage('')
+    call Message%printError('DIRAMdriver','Incompatible dictionary file; please rerun the EMEBSD program.')
+end if
+
+! we already have the xtalname string from the Monte Carlo name list
+xtalname = trim(mcnl%xtalname)
+
+! number of Eulerangles numangles
+dataset = SC_numangles
+call HDF%readDatasetInteger(dataset, hdferr, FZcnt)
+if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetInteger:numangles', hdferr)
+
+! euler angle list Eulerangles
+dataset = SC_Eulerangles
+call HDF%readDatasetFloatArray(dataset, dims2, hdferr, eulerarray2)
+if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetFloatArray:Eulerangles', hdferr)
+
+! here we read ALL the dictionary patterns into the dpatterns array
+dataset = sc_ebsdpatterns
+call hdf%readdatasetfloatarray(dataset, dims2, hdferr, dpatterns)
+if (hdferr.ne.0) call hdf%error_check('hdf%readdatasetintegerarray:dpatterns', hdferr)
+
+! if this is a PCA dictionary, then we also need to read the singular values and
+! the transpose of the eigenvector matrix
+if (PCA.eqv..TRUE.) then 
+  dataset = 'CovarianceMatrixWhitened'
+  call HDF%readDatasetFloatArray(dataset, dims2, hdferr, pcavecs)
+  if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:pcavecs', hdferr)
+
+  dataset = 'SingularValues'
+  call HDF%readDatasetFloatArray(dataset, dms, hdferr, pcasvs)
+  if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:pcasvs', hdferr)
+end if 
+
+! the PCAvecs have been whitened in the EMEBSDPCA program; do we need to undo this ?
+if (dinl%whitenPCA.eqv..FALSE.) then 
+  do i=1,dims2(1) 
+    pcavecs(:,i) = pcavecs(:,i) * pcasvs(i)
+  end do 
+  pcavecs = pcavecs / sqrt(dble(FZcnt))
+end if 
+
+! and close the file
+call HDF%popall()
+
+!=====================================================
+call Message%printMessage('-->  completed initial reading of dictionary file ')
+
+! we know that the dictionary indexing file has all the
+! crystallographic data in it, so we read that here instead of assuming
+! that the actual .xtal file exists on this system ...
+! this initializes the cell class which is needed to properly write the .ctf and .ang files
+fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
+call cell%setFileName(xtalname)
+call cell%readDataHDF(SG, EMsoft, useXtalName=fname)
+
+if (sum(dinl%ROI).ne.0) then
+  ROIselected = .TRUE.
+  iiistart = dinl%ROI(2)
+  iiiend = dinl%ROI(2)+dinl%ROI(4)-1
+  jjend = dinl%ROI(3)
+else
+  ROIselected = .FALSE.
+  iiistart = 1
+  iiiend = dinl%ipf_ht
+  jjend = dinl%ipf_wd
+end if
+
+verbose = .FALSE.
+init = .TRUE.
+Ne = dinl%numexptsingle
+Nd = dinl%numdictsingle
+L = dinl%numsx*dinl%numsy/dinl%binning**2
+if (ROIselected.eqv..TRUE.) then
+    totnumexpt = dinl%ROI(3)*dinl%ROI(4)
+else
+    totnumexpt = dinl%ipf_wd*dinl%ipf_ht
+end if
+imght = dinl%numsx/dinl%binning
+imgwd = dinl%numsy/dinl%binning
+dims = (/imght, imgwd/)
+nnk = dinl%nnk
+ncubochoric = dinl%ncubochoric
+recordsize = L*4
+itmpexpt = 43
+w = dinl%hipassw
+
+! these will eventually need to be read from an experimental data file but we'll set default values here.
+WD = 10.0
+
+! make sure that correctsize is a multiple of 16; if not, make it so
+if (mod(L,16) .ne. 0) then
+    correctsize = 16*ceiling(float(L)/16.0)
+else
+    correctsize = L
+end if
+
+! determine the experimental and dictionary sizes in bytes
+size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
+size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
+recordsize_correct = correctsize*4
+patsz              = correctsize
+
+!====================================
+!====PCA run?========================
+! if we have a PCA dictionary, then we need to truncate the principal components
+! in the dpatterns array to the value of dinl%npc, and we need a second set of recordsize
+! parameters to handle the experimental patterns after they have been projected
+if (PCA.eqv..TRUE.) then 
+  Lnew = dinl%npc 
+! make sure that correctsize_new is a multiple of 16; if not, make it so
+  if (mod(Lnew,16) .ne. 0) then
+      correctsize_new = 16*ceiling(float(Lnew)/16.0)
+      Lnew = correctsize_new
+  else
+      correctsize_new = Lnew
+  end if
+  io_int(1) = dinl%npc
+  call Message%WriteValue(' Number of PCA components requested ', io_int, 1)
+  io_int(1) = Lnew 
+  call Message%WriteValue(' Number of PCA components set to (multiple of 16) ', io_int, 1)
+  allocate(dpatterns_tmp(Lnew,FZcnt))
+  dpatterns_tmp = dpatterns(1:Lnew,1:FZcnt)
+  call move_alloc(dpatterns_tmp, dpatterns)
+! redefine some of the recordsize parameters
+  recordsize_correct_new = correctsize_new * 4
+end if 
+
+! do a quick sanity check for the requested GPU memory
+call Message%printMessage(' --> Initializing OpenCL device')
+Nres = Ne*Nd*4
+! call CL%query_platform_info(dinl%platid)
+! call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
+
+!====================================
+! init a bunch of parameters
+!====================================
+! binned pattern array
+binx = dinl%numsx/dinl%binning
+biny = dinl%numsy/dinl%binning
+bindx = 1.0/float(dinl%binning)**2
+
+!=====================================================
+! determine loop variables to avoid having to duplicate
+! large sections of mostly identical code
+!=====================================================
+ratio = float(FZcnt)/float(Nd)
+cratio = ceiling(ratio)
+fratio = floor(ratio)
+
+ratioE = float(totnumexpt)/float(Ne)
+cratioE = ceiling(ratioE)
+fratioE = floor(ratioE)
+
+call mem%alloc(ppend, (/ cratio /), 'ppend')
+call mem%alloc(ppendE, (/ cratioE /), 'ppendE')
+ppend = (/ (Nd, i=1,cratio) /)
+if (fratio.lt.cratio) then
+  ppend(cratio) = MODULO(FZcnt,Nd)
+end if
+
+ppendE = (/ (Ne, i=1,cratioE) /)
+if (fratioE.lt.cratioE) then
+  ppendE(cratioE) = MODULO(totnumexpt,Ne)
+end if
+
+!=====================================================
+! define the circular mask if necessary and convert to 1D vector
+!=====================================================
+call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
+call mem%alloc(masklin, (/ L /), 'masklin', initval = 0.0)
+
+if (trim(dinl%maskfile).ne.'undefined') then
+! read the mask from file; the mask can be defined by a 2D array of 0 and 1 values
+! that is stored in row form as strings, e.g.
+!    0000001110000000
+!    0000011111000000
+! ... etc
+!
+    f_exists = .FALSE.
+    if (dinl%maskfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
+      fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dinl%maskfile)
+    else
+      fname = trim(dinl%maskfile)
+    end if
+    inquire(file=trim(fname), exist=f_exists)
+    if (f_exists.eqv..TRUE.) then
+      mask = 0.0
+      open(unit=dataunit,file=trim(fname),status='old',form='formatted')
+      do jj=biny,1,-1
+        read(dataunit,"(A)") charline
+        do ii=1,binx
+          if (charline(ii:ii).eq.'1') mask(ii,jj) = 1.0
+        end do
+      end do
+      close(unit=dataunit,status='keep')
+    else
+      call Message%printError('DIdriver',' maskfile '//trim(fname)//' does not exist')
+    end if
+else
+    if (dinl%maskpattern.eq.'y') then
+      do ii = 1,biny
+          do jj = 1,binx
+              if((ii-biny/2)**2 + (jj-binx/2)**2 .ge. dinl%maskradius**2) then
+                  mask(jj,ii) = 0.0
+              end if
+          end do
+      end do
+    end if
+end if
+
+! convert the mask to a linear (1D) array
+do ii = 1,biny
+    do jj = 1,binx
+        masklin((ii-1)*binx+jj) = mask(jj,ii)
+    end do
+end do
+
+!=====================================================
+! Preprocess all the experimental patterns and store
+! them in a temporary file as vectors; also, create
+! an average dot product map to be stored in the h5ebsd output file
+! new addition 3/18/21: option to use NLPAR as part of 
+! the preprocessing step!
+!=====================================================
+if (dinl%doNLPAR.eqv..TRUE.) then 
+  NLPAR = NLPAR_T()
+  call NLPAR%setSearchWindow(dinl%sw)
+  call NLPAR%setLambda(dinl%lambda) 
+  call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
+else 
+  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
+end if 
+
+!=====================================================
+call Message%printMessage(' --> computing Average Dot Product map (ADP)')
+call Message%printMessage(' ')
+
+! re-open the temporary file
+if (dinl%tmpfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
+  fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(dinl%tmpfile)
+else
+  fname = trim(dinl%tmpfile)
+end if
+
+open(unit=itmpexpt,file=trim(fname),&
+     status='old',form='unformatted',access='direct',recl=recordsize_correct,iostat=ierr)
+
+! use the getADPmap routine in the filters module
+if (ROIselected.eqv..TRUE.) then
+  call mem%alloc(dpmap, (/ dinl%ROI(3)*dinl%ROI(4) /), 'dpmap')
+  call getADPmap(itmpexpt, dinl%ROI(3)*dinl%ROI(4), L, dinl%ROI(3), dinl%ROI(4), dpmap)
+else
+  call mem%alloc(dpmap, (/ totnumexpt /), 'dpmap')
+  call getADPmap(itmpexpt, totnumexpt, L, dinl%ipf_wd, dinl%ipf_ht, dpmap)
+end if
+
+! read all the pre-processed patterns into the epatterns array
+call mem%alloc(epatterns, (/ correctsize, totnumexpt /), 'epatterns') 
+
+! PCA or not?
+if (PCA.eqv..TRUE.) then 
+  TRANSA = 'N'
+  TRANSB = 'N'
+  MMMM = patsz
+  NNNN = totnumexpt 
+  KKKK = patsz
+  LDA = patsz
+  LDB = patsz
+  LDC = patsz
+  ALPHA = 1.0
+  BETA = 0.0
+  allocate(YYYY(patsz,totnumexpt))
+  call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
+  call Message%printMessage(' Computing PCA projections of pre-processed experimental patterns')
+  do pp = 1,totnumexpt 
+    read(itmpexpt,rec=pp) tmpimageexpt
+    epatterns(:,pp) = tmpimageexpt
+  end do
+! use a BLAS routine to perform the matrix product (should be much faster than the f90 matmul routine)
+  call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, epatterns, LDB, BETA, YYYY, LDC)
+  deallocate(epatterns)
+  allocate(epatterns(Lnew,totnumexpt))
+  epatterns = YYYY(1:Lnew, 1:totnumexpt) 
+  deallocate(YYYY)
+  call Message%printMessage('   ---> done')
+! reset some of the array size parameters to the corrected values for PCA mode
+  correctsize = correctsize_new
+  ! call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
+else
+  call Message%printMessage(' Reading pre-processed experimental patterns into RAM')
+  do pp = 1,totnumexpt 
+    read(itmpexpt,rec=pp) tmpimageexpt
+    epatterns(:,pp) = tmpimageexpt
+  end do
+  call Message%printMessage('   ---> done')
+end if 
+
+if (dinl%keeptmpfile.eq.'y') then
+  close(unit=itmpexpt, status = 'keep')
+else
+  close(unit=itmpexpt, status = 'delete')
+end if 
+
+!=========================================
+! ALLOCATION AND INITIALIZATION OF ARRAYS
+!=========================================
+call Message%printMessage(' --> Allocating various arrays for indexing')
+
+call mem%alloc(results, (/ Nd*totnumexpt /), 'results', initval = 0.0)
+call mem%alloc(res, (/ Nd, totnumexpt /), 'res', initval = 0.0)
+call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
+call mem%alloc(indexlist, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist')
+do ii = 1,Nd*ceiling(float(FZcnt)/float(Nd))
+    indexlist(ii) = ii
+end do
+call mem%alloc(resulttmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resulttmp', initval = -2.0)
+call mem%alloc(indextmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indextmp', initval = 0)
+call mem%alloc(resultmain, (/ nnk, Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resultmain', initval = -2.0)
+call mem%alloc(indexmain, (/ nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indexmain', initval = 0)
+call mem%alloc(maxsortarr, (/ totnumexpt /), 'maxsortarr', initval = 0.0)
+call mem%alloc(minsortarr, (/ totnumexpt /), 'minsortarr', initval =-2.0)
+call mem%alloc(eulerarray, (/ 3, Nd*ceiling(float(FZcnt)/float(Nd)) /), 'eulerarray', initval = 0.0)
+eulerarray(1:3,1:FZcnt) = eulerarray2(1:3,1:FZcnt)
+deallocate(eulerarray2)  ! this was initialized in an HDF5 call, so not part of mem class
+call mem%alloc(exptIQ, (/ totnumexpt /), 'exptIQ')
+call mem%alloc(exptCI, (/ totnumexpt /), 'exptCI') 
+call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
+call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
+call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
+
+call mem%alloc(dictblock, (/ Lnew, Nd /), 'dictblock', initval=0.0)
+
+! call mem%allocated_memory_use( expl = 'Memory usage before start of parallel section' )
+
+
+!=====================================================
+! MAIN COMPUTATIONAL LOOP (finally...)
+!=====================================================
+
+call timer%makeTimeStamp()
+call timer%Time_tick(1)
+call timer%Time_tick(2)
+
+verbose = .FALSE.
+
+TRANSA = 'T'
+TRANSB = 'N'
+MMMM = Nd
+NNNN = totnumexpt
+KKKK = Lnew
+LDA = Lnew
+LDB = Lnew
+LDC = Nd
+ALPHA = 1.0
+BETA = 0.0
+
+dictionaryloop: do ii = 1,cratio
+
+    if (verbose.eqv..TRUE.) then
+      io_int(1) = ii
+      io_int(2) = cratio
+      call Message%WriteValue(' Dictionaryloop index/total loops = ',io_int,2)
+    end if
+
+    dictblock = 0.0
+    do pp = 1, ppend(ii)
+      dictblock(1:correctsize,pp) = dpatterns(1:correctsize, (ii-1)*Nd+pp)
+    end do
+    ! this array will be transposed inside the sgemm routine by the TRANSA='T' option
+
+    call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, dictblock, LDA, epatterns, LDB, BETA, res, LDC)
+
+    results = reshape(res, (/ Nd * totnumexpt /))
+
+    dp =  maxval(results)
+    if (dp.gt.mvres) mvres = dp
+
+    io_real(1) = mvres
+    io_real(2) = float(ii)/float(cratio)*100.0
+    call Message%WriteValue('',io_real,2,"(' max. dot product = ',F18.6,';',F6.1,'% complete')")
+
+    if (mod(ii,10) .eq. 0) then
+! do a remaining time estimate
+! and print information
+      if (ii.eq.10) then
+          call timer%Time_tock(1)
+          tock = timer%getInterval(1)
+          ttime = float(tock) * float(cratio) / float(ii)
+          tstop = ttime
+          io_int(1:4) = (/ii,cratio, int(ttime/3600.0), int(mod(ttime,3600.0)/60.0)/)
+          call Message%WriteValue('',io_int,4,"(' -> Completed cycle ',I5,' out of ',I5,'; est. total time ', &
+                                  I4,' hrs',I3,' min')")
+      else
+          ttime = tstop * float(cratio-ii) / float(cratio)
+          io_int(1:4) = (/ii,cratio, int(ttime/3600.0), int(mod(ttime,3600.0)/60.0)/)
+          call Message%WriteValue('',io_int,4,"(' -> Completed cycle ',I5,' out of ',I5,'; est. remaining time ', &
+                                  I4,' hrs',I3,' min')")
+      end if
+    end if
+
+!$OMP PARALLEL NUM_THREADS(dinl%nthreads) DEFAULT(SHARED) PRIVATE(TID,qq,msa) &
+!$OMP& PRIVATE(resultarray, indexarray)
+
+    TID = OMP_GET_THREAD_NUM()
+
+    call memth%alloc(resultarray, (/ Nd /), 'resultarray', initval = 0.0, TID=TID)
+    call memth%alloc(indexarray, (/ Nd /), 'indexarray', initval = 0, TID=TID)
+ 
+! perform the sorting only if the largest new dot product is larger than the 
+! smallest dot product already on the sorted list [suggested by D. Rowenhorst]
+!$OMP DO SCHEDULE(DYNAMIC)
+    do qq = 1,totnumexpt
+      msa = maxval(results((qq-1)*Nd+1:qq*Nd))
+      if (msa.gt.minsortarr(qq)) then 
+        resultarray(1:Nd) = results((qq-1)*Nd+1:qq*Nd)
+        indexarray(1:Nd) = indexlist((ii-1)*Nd+1:ii*Nd)
+
+        call SSORT(resultarray,indexarray,Nd,-2)
+        resulttmp(nnk+1:2*nnk,qq) = resultarray(1:nnk)
+        indextmp(nnk+1:2*nnk,qq) = indexarray(1:nnk)
+
+        call SSORT(resulttmp(:,qq),indextmp(:,qq),2*nnk,-2)
+        resultmain(1:nnk,qq) = resulttmp(1:nnk,qq)
+        indexmain(1:nnk,qq) = indextmp(1:nnk,qq)
+        minsortarr(qq) = resulttmp(nnk,qq)
+      end if 
+    end do
+!$OMP END DO
+
+  call memth%dealloc(resultarray, 'resultarray', TID=TID)
+  call memth%dealloc(indexarray, 'indexarray', TID=TID)
+
+! and we end the parallel section here (all threads will synchronize).
+!$OMP BARRIER
+!$OMP END PARALLEL
+
+end do dictionaryloop
+
+! perform some timing stuff
+call timer%Time_tock(2)
+tstop = timer%getInterval(2)
+io_real(1) = tstop
+call Message%WriteValue(' Indexing duration (system_clock, s)                : ',io_real,1,"(/,F14.3)")
+io_real(1) = float(totnumexpt)*float(FZcnt) / tstop
+call Message%WriteValue(' Number of pattern comparisons per second           : ',io_real,1,"(/,F14.3)")
+io_real(1) = float(totnumexpt) / tstop
+call Message%WriteValue(' Number of experimental patterns indexed per second : ',io_real,1,"(/,F14.3,/)")
+
+! ===================
+! MAIN OUTPUT SECTION
+! ===================
+
+! fill the ipar array with integer parameters that are needed to write the h5ebsd file
+! (anything other than what is already in the dinl structure)
+  ipar = 0
+  ipar(1) = nnk
+  ipar(2) = Ne*ceiling(float(totnumexpt)/float(Ne))
+  ipar(3) = totnumexpt
+  ipar(4) = Nd*ceiling(float(FZcnt)/float(Nd))
+  ipar(5) = FZcnt
+  ipar(6) = pgnum
+  if (ROIselected.eqv..TRUE.) then
+    ipar(7) = dinl%ROI(3)
+    ipar(8) = dinl%ROI(4)
+  else
+    ipar(7) = dinl%ipf_wd
+    ipar(8) = dinl%ipf_ht
+  end if
+
+  call mem%alloc(OSMmap, (/ jjend, iiiend /), 'OSMmap')
+
+  call timer%makeTimeStamp()
+  tstre = timer%getTimeString()
+
+  if (dinl%datafile.ne.'undefined') then
+    vendor = 'TSL'
+    fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dinl%datafile)
+    call DIFT%setfilename(fname)
+    call DIFT%h5_writeFile(EMsoft, HDF, HDFnames, vendor, mcnl, xtalname, dstr, tstrb, tstre, ipar, resultmain, &
+                           exptIQ, indexmain, eulerarray, dpmap, progname, nmldeffile, OSMmap)
+    call Message%printMessage(' Data stored in h5 file : '//trim(dinl%datafile))
+  end if
+
+  VT = Vendor_T()
+  call VT%set_Modality(MPFT%getModality())
+  if (dinl%ctffile.ne.'undefined') then
+    fpar2(1) = mcnl%EkeV
+    fpar2(2) = MCsig
+    call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,indexmain,eulerarray,resultmain, OSMmap, exptIQ)
+    call Message%printMessage('Data stored in ctf file : '//trim(dinl%ctffile))
+  end if
+
+  if (dinl%angfile.ne.'undefined') then
+      fpar1(1) = WD
+      call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,eulerarray,resultmain,exptIQ)
+      call Message%printMessage(' Data stored in ang file : '//trim(dinl%angfile))
+  end if
+
+! close the fortran HDF5 interface
+  call closeFortranHDFInterface()
+
+! explicitly deallocate all allocated arrays
+
+call mem%dealloc(epatterns, 'epatterns')
+deallocate(dpatterns)
+call mem%dealloc(res, 'res')
+call mem%dealloc(results, 'results')
+call mem%dealloc(mask, 'mask')
+call mem%dealloc(masklin, 'masklin')
+call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
+call mem%dealloc(pattern, 'pattern')
+call mem%dealloc(indexlist, 'indexlist')
+call mem%dealloc(resulttmp, 'resulttmp')
+call mem%dealloc(indextmp, 'indextmp')
+call mem%dealloc(resultmain, 'resultmain')
+call mem%dealloc(indexmain, 'indexmain')
+call mem%dealloc(maxsortarr, 'maxsortarr')
+call mem%dealloc(minsortarr, 'minsortarr')
+call mem%dealloc(eulerarray, 'eulerarray')
+call mem%dealloc(exptIQ, 'exptIQ')
+call mem%dealloc(exptCI, 'exptCI') 
+call mem%dealloc(exptFit, 'exptFit')
+call mem%dealloc(rdata, 'rdata') 
+call mem%dealloc(fdata, 'fdata')
+call mem%dealloc(ppend, 'ppend')
+call mem%dealloc(ppendE, 'ppendE')
+call mem%dealloc(dpmap, 'dpmap')
+call mem%dealloc(OSMmap, 'OSMmap')
+
+! call mem%allocated_memory_use( expl = 'end of program clean up ... ')
+! call memth%thread_memory_use( expl = 'end of program clean up for threads ... ')
+
+! if requested, we notify the user that this program has completed its run
+  if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
+    if (trim(dinl%Notify).eq.'On') then
+      NumLines = 3
+      allocate(MessageLines(NumLines))
+
+      call hostnm(c)
+
+      MessageLines(1) = ' EMDI program has ended successfully'
+      MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)
+      write (exectime,"(F15.0)") tstop
+      MessageLines(3) = ' Total execution time [s]: '//trim(exectime)
+      TitleMessage = ' EMsoft on '//trim(c)
+      i = PostMessage(EMsoft, MessageLines, NumLines, TitleMessage)
+    end if
+  end if
+
+end associate
+
+end subroutine DIRAMCPUdriver
+
+
+
 
 end module mod_DI

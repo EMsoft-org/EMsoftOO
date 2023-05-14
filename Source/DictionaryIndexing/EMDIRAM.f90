@@ -40,6 +40,7 @@ use mod_EMsoft
 use mod_DI
 use mod_HDFsupport
 use ISO_C_BINDING
+use mod_FitOrientation
 
 IMPLICIT NONE
 
@@ -48,13 +49,40 @@ character(fnlen)        :: progdesc = 'In-RAM Indexing of EBSD/ECP/TKD patterns 
 
 type(EMsoft_T)          :: EMsoft
 
+type(DIfile_T)          :: DIFT
+type(FitOrientation_T)  :: FitOr
+
+
 progname = 'EMDIRAM.f90'
 
 ! print the EMsoft header and handle any command line arguments  
 ! this program uses the same name list file as the EMDI program
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 105 /) )
 
+! next, get the nml file to see if we also need to start up the refinement
+write (*,*)  'attempting to read namelist file'
+DIFT = DIfile_T(EMsoft%nmldeffile, inRAM=.TRUE.)
+write (*,*)  'done ', DIFT%getCPUGPU()
+
+if (DIFT%getCPUGPU().eq.'CPU') then
 ! call the DIRAMdriver routine to take care of the entire indexing process 
-call DIRAMdriver(EMsoft%nmldeffile, progname, progdesc)
+  call DIRAMCPUdriver(EMsoft%nmldeffile, progname, progdesc)
+else
+  call DIRAMdriver(EMsoft%nmldeffile, progname, progdesc)
+end if
+
+if (DIFT%getrefinementfilename().ne.'undefined') then 
+    progname = 'EMFitOrientation.f90'
+    progdesc = 'Refine orientations by searching orientation space about a point including the pseudosymmetric variant(s)'
+    call EMsoft%printEMsoftHeader(progname, progdesc)
+
+! deal with the namelist stuff
+    call EMsoft%setnmldeffile(trim(DIFT%getrefinementfilename()))
+    FitOr = FitOrientation_T(EMsoft%nmldeffile)
+
+! perform the computations
+    call FitOr%FitOrientation(EMsoft, progname, zero=.TRUE.)
+end if 
+
 
 end program EMDIRAM

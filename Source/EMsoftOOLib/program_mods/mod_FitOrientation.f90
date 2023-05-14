@@ -250,8 +250,8 @@ if (.not.skipread) then
         call Message%printError('readNameList:',' dotproduct file name is undefined in '//nmlfile)
     end if
 
-    if (trim(ctffile).eq.'undefined') then
-        call Message%printError('readNameList:',' ctf file name is undefined in '//nmlfile)
+    if ((trim(ctffile).eq.'undefined').and.(trim(angfile).eq.'undefined')) then
+        call Message%printError('readNameList:',' either ctf or ang file name must be undefined in '//nmlfile)
     end if
 
     if (trim(tmpfile).eq.'undefined') then
@@ -912,7 +912,7 @@ self%nml%niter = inp
 end subroutine set_niter_
 
 !--------------------------------------------------------------------------
-subroutine FitOrientation_(self, EMsoft, progname)
+subroutine FitOrientation_(self, EMsoft, progname, zero)
 !DEC$ ATTRIBUTES DLLEXPORT :: FitOrientation_
 !! author: MDG
 !! version: 1.0
@@ -956,6 +956,7 @@ IMPLICIT NONE
 class(FitOrientation_T), INTENT(INOUT)  :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname
+logical,INTENT(IN),OPTIONAL             :: zero 
 
 type(IO_T)                              :: Message
 type(HDF_T)                             :: HDF
@@ -1017,7 +1018,7 @@ integer(kind=irg),parameter             :: MAXFUN = 10000
 logical                                 :: verbose
 
 logical                                 :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
-                                           isECP=.FALSE., switchwfoff
+                                           isECP=.FALSE., switchwfoff, set2zero=.FALSE.
 integer(kind=irg),parameter             :: iunitexpt = 41, itmpexpt = 42
 integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo 
 real(kind=sgl),allocatable              :: tmpimageexpt(:), EBSDPattern(:,:), mask(:,:), masklin(:), imageexpt(:)
@@ -1051,6 +1052,11 @@ real(kind=sgl),allocatable              :: exptpatterns(:,:)
 real(kind=sgl),allocatable              :: STEPSIZE(:), OSMmap(:,:), IQmap(:)
 character(fnlen)                        :: modalityname, DIfile, xtalname
 
+! should we set the precomputed dot products equal to zero ?  This is useful 
+! for the PCA indexing version, where the dot products are not normalized...
+if (present(zero)) then 
+  if (zero.eqv..TRUE.) set2zero = .TRUE.
+end if 
 
 call setRotationPrecision('d')
 call OMP_showAvailableThreads()
@@ -1141,7 +1147,11 @@ if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD') )  then
     deallocate(DIDT%DictionaryEulerAngles, DIDT%TopMatchIndices)
   end if
 
-  CIlist(1:Nexp) = DIDT%CI(1:Nexp)
+  ! only use the dot product values from the DI program if the indexing did NOT use 
+  ! the PCA compressed dictionary version...
+  if (set2zero.eqv..FALSE.) then 
+    CIlist(1:Nexp) = DIDT%CI(1:Nexp)
+  end if 
 
   deallocate(DIDT%CI)
 
