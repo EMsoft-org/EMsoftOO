@@ -1471,7 +1471,7 @@ hdferr = HDF%writeDatasetInteger(dataset, ds)
 dataset = 'dk'
 hdferr = HDF%writeDatasetDouble(dataset, self%dk)
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 call closeFortranHDFInterface()
 
 !====================================
@@ -1656,7 +1656,7 @@ call HDF%pop()
 ! open(unit=65,file=trim(tmpnmlname),status='unknown',form='formatted')
 ! close(unit=65,status='delete')
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 call closeFortranHDFInterface()
 
 end subroutine readShapeAmplitude_

@@ -2058,7 +2058,7 @@ else
   hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best), 3, Nexp)
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 !===========================================
 ! and generate the ctf/ang output file as well...

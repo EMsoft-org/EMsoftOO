@@ -957,7 +957,7 @@ dataset = SC_stereoSH
 hdferr = HDF%writeDatasetFloatArray(dataset, stereoSH, 2*nx+1, 2*nx+1)
 
 ! and close everything
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call Message%printMessage(' Output data stored in file '//trim(datafile))
 
@@ -1327,7 +1327,7 @@ dataset = SC_stereoSH
 hdferr = HDF%writeDatasetFloatArray(dataset, stereoSH, 2*nx+1, 2*nx+1)
 
 ! and close everything
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call Message%printMessage(' Output data stored in file '//trim(datafile))
 

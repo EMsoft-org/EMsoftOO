@@ -901,7 +901,7 @@ hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 dataset = trim(HDFnames%get_NMLfilename())
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..FALSE.) then
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
     call Message%printError('readISEMPfile','this is not a valid ISE Master Pattern file')
 end if
 call HDF%pop()
@@ -1023,7 +1023,7 @@ if (present(getmasterSPSH)) then
 end if
 
 ! and close the HDF5 Master Pattern file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 mpnml = self%mpnml
 
@@ -1272,7 +1272,7 @@ integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf, nli
 character(fnlen)                    :: fname, DIfile
 character(3)                        :: fnumber
 logical                             :: refined
-real(kind=sgl),allocatable          :: Eangles(:,:)
+real(kind=sgl),allocatable          :: Eangles(:,:), weights(:)
 real(kind=sgl)                      :: mi, ma, io_real(2)
 real(kind=sgl),allocatable          :: ISEimage(:,:,:)
 character(fnlen)                    :: groupname, datagroupname, attributename, HDF_FileVersion, dataset
@@ -1341,8 +1341,8 @@ if ( (resang.eq.0).and.(resctf.eq.0) ) then
   end if
 
   nx = ISEdetector%ipf_wd * ISEdetector%ipf_ht
-  allocate(Eangles(3, nx))
-  if (trim(enl%useangles).eq.'original') then
+  allocate(Eangles(3, nx), weights(nx))
+    if (trim(enl%useangles).eq.'original') then
       do i=1,nx 
         Eangles(1:3,i) = (/ DIdata%Phi1(i), DIdata%Phi(i), DIdata%Phi2(i) /)
       end do
@@ -1355,9 +1355,9 @@ if ( (resang.eq.0).and.(resctf.eq.0) ) then
   if (maxval(Eangles).gt.(2.D0*cPi)) Eangles = Eangles * dtor
 else
   if (resang.ne.0) then ! we have an .ang file
-    call SO%getAnglesfromANGfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
+    call SO%getAnglesfromANGfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles, weights)
   else  ! we must have a .ctf file
-    call SO%getAnglesfromCTFfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
+    call SO%getAnglesfromCTFfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles, weights)
   end if 
   ISEdetector%ipf_wd = dinl%ipf_wd
   ISEdetector%ipf_ht = dinl%ipf_ht
@@ -1418,7 +1418,7 @@ dataset = 'ISEimage'
   hdferr = HDF%writeDatasetFloatArray(dataset, ISEimage, sz(1), sz(2), sz(3))
   
 ! and close the file  
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
 !!!!!!!!!!!!!!!!!!!!!!
 ! optionally save the individual images to tiff files

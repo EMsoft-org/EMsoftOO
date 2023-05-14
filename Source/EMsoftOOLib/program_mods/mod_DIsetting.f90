@@ -763,7 +763,7 @@ ang(:) = neweulers(3,:)
 hdferr = HDF%writeDatasetFloatArray(dataset, ang, DIDT%Nexp, overwrite)
 
 ! leave this group and file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 ! finally, we need to write a new .ctf file as well...
 dinl%ctffile = trim(csnl%newctffile)

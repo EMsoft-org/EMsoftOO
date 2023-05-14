@@ -733,22 +733,25 @@ select case(listmode)
     cnt = SO%getListCount('FZ')
 end select
 
-if (self%nml%shownegativeq0.eq.1) then 
+! if (self%nml%shownegativeq0.eq.1) then 
   allocate(qar(4,2*cnt))
-else
-  allocate(qar(4,cnt))
-end if 
+! else
+!   allocate(qar(4,cnt))
+! end if 
 
 do i=1,cnt
   q = FZtmp%qu
   qar(1:4,i) = q%q_copyd()
-  if (self%nml%shownegativeq0.eq.1) then 
-    qar(1:4,i+cnt) = - qar(1:4, i)
-  end if 
+  ! if (self%nml%shownegativeq0.eq.1) then 
+  qar(1:4,i+cnt) = - qar(1:4, i)
+  ! end if 
   FZtmp => FZtmp%next
 end do 
 
-if (self%nml%shownegativeq0.eq.1) cnt = 2*cnt
+! if (self%nml%shownegativeq0.eq.1) 
+cnt = 2*cnt
+
+write (*,*) 'Total number of orientations for Riesz computation : ', cnt
 
 allocate(qar2(4,cnt), done(cnt))
 qar2 = qar
@@ -802,6 +805,9 @@ eu = rieszsum/rieszoptimal
 write (*,"('Riesz optimal : ',3(F25.3,A1))") rieszoptimal(1),' ',rieszoptimal(2),' ',rieszoptimal(3)
 write (*,"('Riesz energy  : ',3(F25.3,A1))") rieszsum(1),' ',rieszsum(2),' ',rieszsum(3)
 write (*,"('Riesz ratio   : ',3(F25.20,A1))") eu(1),' ',eu(2),' ',eu(3)
+
+write (*,*) rieszsum
+write (*,*) eu 
 
 end subroutine computeRieszEnergy_
 
@@ -1548,7 +1554,7 @@ if (trim(self%nml%sqtfile).ne.'undefined') then
 end if
 
 if (trim(self%nml%hdffile).ne.'undefined') then 
-  call HDF%pop( .TRUE. )
+  call HDF%popall()
   call closeFortranHDFInterface()
 end if
 
@@ -1593,10 +1599,11 @@ SO = so3_T( self%nml%pgnum, zerolist='FZ' )
 ! read all the orientations from the anglefile
 oname = EMsoft%generateFilePath('EMdatapathname',self%nml%anglefile)
 call Message%printMessage(' Reading orientations from file '//trim(oname))
-call SO%getOrientationsfromFile( oname )
+call SO%getOrientationsfromFile( oname, listN=10 )
 
 ! are we using weighted orientations ?  This could happen with .wxt files that are derived
-! from programs like POPLA that extract orientations from an ODG based on pole figures
+! from programs like POPLA that extract orientations from an ODF based on pole figures
+! or if we are reading in .ang or .ctf files; otherwise the weights are all set to 1.0
 weights = SO%getuseweights()
 
 ! we have the list, so what do we need to do with it before computing the Clifford Torus representation ?

@@ -446,6 +446,13 @@ if (trim(rfznl%samplemode).eq.'FIB') then
   call SO%sample_Fiber(itmp, num, calpha, rfznl%nsteps)
   listmode = 'FB'
 end if
+if (trim(rfznl%samplemode).eq.'SHO') then
+  write (*,*) 'performing Shoemake sampling '
+  call SO%sample_SHO( rfznl%norientations, rfznl%pgnum )
+  io_int(1) = rfznl%norientations
+  call Message%WriteValue('Number of Shoemake orientations requested = ',io_int,1,"(I10)")
+  listmode = 'SF'
+end if
 if (trim(rfznl%samplemode).eq.'SFS') then
   write (*,*) 'performing Super-Fibonacci sampling '
   call SO%sample_SFS( rfznl%norientations, rfznl%pgnum )

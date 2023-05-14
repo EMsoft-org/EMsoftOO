@@ -32,6 +32,8 @@ module mod_DI
   !! date: 03/31/20
   !!
   !! routines for the EMDI program
+  !!
+  !! 05/10/23: addition of static indexing with PCA compressed dictionary (staticPCA mode)
 
 use mod_kinds
 use mod_global
@@ -40,8 +42,6 @@ use mod_DIfiles
 IMPLICIT NONE
 
 public :: DIdriver
-
-
 
 contains
 
@@ -263,7 +263,7 @@ real(kind=sgl)                                      :: euler(3)
 integer(kind=irg)                                   :: indx
 integer(kind=irg)                                   :: correctsize
 logical                                             :: f_exists, init, ROIselected, Clinked, cancelled, isTKD = .FALSE., &
-                                                       isEBSD = .FALSE., isECP = .FALSE., switchwfoff
+                                                       isEBSD = .FALSE., isECP = .FALSE., switchwfoff, PCA=.FALSE.
 
 integer(kind=irg)                                   :: ipar(10)
 
@@ -330,6 +330,9 @@ if (dinl%nthreads.lt.2) then
   call Message%printError('DIdriver:', 'Dictionary Indexing requires at least 2 compute threads')
 end if
 
+! is this a staticPCA run?
+if (trim(dinl%indexingmode).eq.'staticPCA') PCA = .TRUE. 
+
 ! determine the modality from the master pattern file, and also set it in the dinl name list
 fname = EMsoft%generateFilePath('EMdatapathname',trim(dinl%masterfile))
 call MPFT%determineModality(HDF, fname)
@@ -338,11 +341,11 @@ call DIFT%setModality(MPFT%getModality())
 
 if (trim(MPFT%getModality()).eq.'EBSD') then
   isEBSD = .TRUE.
-else if (trim(MPFT%getModality()).eq.'TKD') then
-  isTKD = .TRUE.
-else if (trim(MPFT%getModality()).eq.'ECP') then
-  isECP = .TRUE.
-  end if
+  else if (trim(MPFT%getModality()).eq.'TKD') then
+    isTKD = .TRUE.
+    else if (trim(MPFT%getModality()).eq.'ECP') then
+      isECP = .TRUE.
+    end if
 
 ! get the maximum number of available threads and check against
 ! the requested number   
@@ -497,7 +500,8 @@ dstr = timer%getDateString()
 tstrb = timer%getTimeString()
 tstre = ''
 
-if (trim(dinl%indexingmode).eq.'static') then
+if ((trim(dinl%indexingmode).eq.'static').or.(trim(dinl%indexingmode).eq.'staticPCA')) then
+
 
     ! get the full filename
     if (dinl%dictfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
@@ -599,7 +603,11 @@ verbose = .FALSE.
 init = .TRUE.
 Ne = dinl%numexptsingle
 Nd = dinl%numdictsingle
-L = dinl%numsx*dinl%numsy/dinl%binning**2
+if (PCA.eqv..TRUE.) then 
+  L = dinl%npc 
+else
+  L = dinl%numsx*dinl%numsy/dinl%binning**2
+end if 
 if (ROIselected.eqv..TRUE.) then
     totnumexpt = dinl%ROI(3)*dinl%ROI(4)
 else
@@ -610,7 +618,7 @@ imgwd = dinl%numsy
 dims = (/imght, imgwd/)
 nnk = dinl%nnk
 ncubochoric = dinl%ncubochoric
-recordsize = L*4
+recordsize = 4*dinl%numsx*dinl%numsy/dinl%binning**2
 itmpexpt = 43
 w = dinl%hipassw
 source_l = source_length
@@ -626,11 +634,15 @@ WD = 10.0
 nullify(dict,T0dict)
 
 ! make sure that correctsize is a multiple of 16; if not, make it so
+! this is also the case for the PCA mode, where npc needs to be redefined
+! to be the nearest larger multiple of 16
 if (mod(L,16) .ne. 0) then
     correctsize = 16*ceiling(float(L)/16.0)
 else
     correctsize = L
 end if
+
+if (PCA.eqv..TRUE.) dinl%npc = correctsize
 
 ! determine the experimental and dictionary sizes in bytes
 size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
@@ -962,6 +974,21 @@ else
   call mem%alloc(dpmap, (/ totnumexpt /), 'dpmap')
   call getADPmap(itmpexpt, totnumexpt, L, dinl%ipf_wd, dinl%ipf_ht, dpmap)
 end if
+
+! if we are doing static PCA indexing, then we need to apply the PCA projection to the 
+! experimental pre-processed patterns and resave the file with the correct pattern dimensions
+if (PCA.eqv..TRUE.) then 
+! read in all patterns from the tmp file, pre-multiply each pattern by the eigenvector matrix to 
+! get the principal components, then truncate each to the required number of components npc and 
+! store in a new tmp file which is then renamed to the old one. 
+
+
+
+! we also need to read the PCA-compressed dictionary patterns and truncate that array to the 
+! correct size npc for each pattern; this implies that we are doing an in-RAM run for the remainder
+! of the program...
+
+end if 
 
 ! we will leave the itmpexpt file open, since we'll be reading from it again...
 
@@ -1326,9 +1353,13 @@ dictionaryloop: do ii = 1,cratio+1
        if (allocated(dictpatflt)) deallocate(dictpatflt)
        dictpatflt = HDF%readHyperslabFloatArray2D(dataset, offset2, dims2)
 
-       do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
-         dict((pp-1)*correctsize+1:pp*correctsize) = dictpatflt(1:correctsize,pp)
-       end do
+       if (PCA.eqv..TRUE.) then 
+
+       else
+         do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
+           dict((pp-1)*correctsize+1:pp*correctsize) = dictpatflt(1:correctsize,pp)
+         end do
+       end if
      end if
     end if
 
@@ -1414,7 +1445,7 @@ if (cancelled.eqv..FALSE.) then
   call CL%error_check('DIdriver:clReleaseKernel', ierr)
 
   if (trim(dinl%indexingmode).eq.'static') then
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
   end if
 
 ! perform some timing stuff
@@ -1682,7 +1713,7 @@ integer(kind=irg),pointer                           :: indexlist(:), dpindex(:)
 integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
                                                        recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr, &
                                                        nsig, numk, recordsize_correct, patsz, tickstart, tickstart2, tock, &
-                                                       npy, sz(3), jjj
+                                                       npy, sz(3), jjj, Lnew, recordsize_correct_new, correctsize_new
 integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt, Nres
 real(kind=sgl),pointer                              :: dict(:), T0dict(:)
 real(kind=sgl),allocatable,TARGET                   :: dict1(:), dict2(:), eudictarray(:)
@@ -1690,7 +1721,8 @@ real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:)
                                                        exptCI(:), exptFit(:), exppatarray(:), tmpexppatarray(:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:),  &
                                                        tmpimageexpt(:), OSMmap(:,:), maxsortarr(:), minsortarr(:), epatterns(:,:), &
-                                                       eulerarray(:,:),eulerarray2(:,:)
+                                                       eulerarray(:,:),eulerarray2(:,:), epatterns_tmp(:,:), dpatterns_tmp(:,:), &
+                                                       pcavecs(:,:), pcasvs(:)
 real(kind=sgl),allocatable, target                  :: res(:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
                                                        resultmain(:,:),resulttmp(:,:),results1(:), results2(:)
 integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:)
@@ -1719,7 +1751,7 @@ integer(hsize_t),allocatable                        :: iPhase(:), iValid(:)
 integer(c_size_t),target                            :: slength
 integer(c_int)                                      :: numd, nump
 type(C_PTR)                                         :: planf, HPplanf, HPplanb
-integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3)
+integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3), dms(1)
 
 integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn
 integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(4)
@@ -1737,7 +1769,7 @@ real(kind=sgl)                                      :: euler(3)
 integer(kind=irg)                                   :: indx
 integer(kind=irg)                                   :: correctsize
 logical                                             :: f_exists, init, ROIselected, Clinked, cancelled, isTKD = .FALSE., &
-                                                       isEBSD = .FALSE., isECP = .FALSE., switchwfoff
+                                                       isEBSD = .FALSE., isECP = .FALSE., switchwfoff, PCA = .FALSE.
 
 integer(kind=irg)                                   :: ipar(10)
 
@@ -1747,6 +1779,12 @@ character(fnlen)                                    :: TitleMessage, exectime
 character(100)                                      :: c
 character(1000)                                     :: charline
 character(3)                                        :: stratt
+
+! parameters for BLAS sgemm() matrix-matrix multiplication routine
+character(1)                                        :: TRANSA, TRANSB
+integer(kind=irg)                                   :: MMMM, NNNN, KKKK, LDA, LDB, LDC
+real(kind=sgl)                                      :: ALPHA, BETA 
+real(kind=sgl),allocatable                          :: YYYY(:,:)
 
 ! open the HDF interface
 call openFortranHDFInterface()
@@ -1765,6 +1803,9 @@ call setRotationPrecision('d')
 
 ! short hand notations
 associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
+
+! are we using a PCA compressed dictionary ?
+if (trim(dinl%indexingmode).eq.'staticPCA') PCA = .TRUE.
 
 ! initialize the memory allocation classes
 mem = memory_T()
@@ -1896,11 +1937,32 @@ call HDF%readDatasetFloatArray(dataset, dims2, hdferr, eulerarray2)
 if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetFloatArray:Eulerangles', hdferr)
 
 ! here we read ALL the dictionary patterns into the dpatterns array
-dataset = SC_EBSDpatterns
-call HDF%readDatasetFloatArray(dataset, dims2, hdferr, dpatterns)
-if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:EBSDpatterns', hdferr)
+dataset = sc_ebsdpatterns
+call hdf%readdatasetfloatarray(dataset, dims2, hdferr, dpatterns)
+if (hdferr.ne.0) call hdf%error_check('hdf%readdatasetintegerarray:dpatterns', hdferr)
 
-call HDF%pop(.TRUE.)
+! if this is a PCA dictionary, then we also need to read the singular values and
+! the transpose of the eigenvector matrix
+if (PCA.eqv..TRUE.) then 
+  dataset = 'CovarianceMatrixWhitened'
+  call HDF%readDatasetFloatArray(dataset, dims2, hdferr, pcavecs)
+  if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:pcavecs', hdferr)
+
+  dataset = 'SingularValues'
+  call HDF%readDatasetFloatArray(dataset, dms, hdferr, pcasvs)
+  if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:pcasvs', hdferr)
+end if 
+
+! the PCAvecs have been whitened in the EMEBSDPCA program; do we need to undo this ?
+if (dinl%whitenPCA.eqv..FALSE.) then 
+  do i=1,dims2(1) 
+    pcavecs(:,i) = pcavecs(:,i) * pcasvs(i)
+  end do 
+  pcavecs = pcavecs / sqrt(dble(FZcnt))
+end if 
+
+! and close the file
+call HDF%popall()
 
 !=====================================================
 call Message%printMessage('-->  completed initial reading of dictionary file ')
@@ -1964,12 +2026,37 @@ size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
 recordsize_correct = correctsize*4
 patsz              = correctsize
 
+!====================================
+!====PCA run?========================
+! if we have a PCA dictionary, then we need to truncate the principal components
+! in the dpatterns array to the value of dinl%npc, and we need a second set of recordsize
+! parameters to handle the experimental patterns after they have been projected
+if (PCA.eqv..TRUE.) then 
+  Lnew = dinl%npc 
+! make sure that correctsize_new is a multiple of 16; if not, make it so
+  if (mod(Lnew,16) .ne. 0) then
+      correctsize_new = 16*ceiling(float(Lnew)/16.0)
+      Lnew = correctsize_new
+  else
+      correctsize_new = Lnew
+  end if
+  io_int(1) = dinl%npc
+  call Message%WriteValue(' Number of PCA components requested ', io_int, 1)
+  io_int(1) = Lnew 
+  call Message%WriteValue(' Number of PCA components set to (multiple of 16) ', io_int, 1)
+  allocate(dpatterns_tmp(Lnew,FZcnt))
+  dpatterns_tmp = dpatterns(1:Lnew,1:FZcnt)
+  call move_alloc(dpatterns_tmp, dpatterns)
+! redefine some of the recordsize parameters
+  recordsize_correct_new = correctsize_new * 4
+end if 
+
 ! do a quick sanity check for the requested GPU memory
 call Message%printMessage(' --> Initializing OpenCL device')
 CL = OpenCL_T()
 Nres = Ne*Nd*4
-call CL%query_platform_info(dinl%platid)
-call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
+! call CL%query_platform_info(dinl%platid)
+! call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
 
 !====================================
 ! init a bunch of parameters
@@ -2054,56 +2141,13 @@ if (fratioE.lt.cratioE) then
   ppendE(cratioE) = MODULO(totnumexpt,Ne)
 end if
 
-!=========================================
-! ALLOCATION AND INITIALIZATION OF ARRAYS
-!=========================================
-call Message%printMessage(' --> Allocating various arrays for indexing')
 
-call mem%alloc(expt, (/ Ne*correctsize /), 'expt', initval = 0.0)
-! the mem class does not handle pointer arrays at the moment so we have a normal allocate
-! call mem%alloc(dict, (/ Nd*correctsize /), 'dict', initval = 0.0)
-allocate(dict(Nd*correctsize))
-dict = 0.0
-call mem%alloc(dicttranspose, (/ Nd*correctsize /), 'dicttranspose', initval = 0.0)
-call mem%alloc(results1, (/ Ne*Nd*cratioE /), 'results1', initval = 0.0)
-call mem%alloc(results2, (/ Ne*Nd*cratioE /), 'results2', initval = 0.0)
-call mem%alloc(res, (/ Ne*Nd /), 'res', initval = 0.0)
-call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
-call mem%alloc(masklin, (/ L /), 'masklin', initval = 0.0)
-call mem%alloc(imageexpt, (/ L /), 'imageexpt', initval = 0.0) 
-call mem%alloc(imageexptflt, (/ correctsize /), 'imageexptflt', initval = 0.0)
-call mem%alloc(imagedictflt, (/ correctsize /), 'imagedictflt', initval = 0.0)
-call mem%alloc(imagedictfltflip, (/ correctsize /), 'imagedictfltflip', initval = 0.0)
-call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
-call mem%alloc(meandict, (/ correctsize /), 'meandict', initval = 0.0)
-call mem%alloc(meanexpt, (/ correctsize /), 'meanexpt', initval = 0.0) 
-call mem%alloc(imagedict, (/ correctsize /), 'imagedict', initval = 0.0)
-call mem%alloc(pattern, (/ binx,biny /), 'pattern', initval = 0.0)
-call mem%alloc(binned, (/ binx, biny /), 'binned', initval = 0.0)
-call mem%alloc(indexlist1, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist1')
-call mem%alloc(indexlist2, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist2')
-do ii = 1,Nd*ceiling(float(FZcnt)/float(Nd))
-    indexlist1(ii) = ii
-    indexlist2(ii) = ii
-end do
-call mem%alloc(resulttmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resulttmp', initval = -2.0)
-call mem%alloc(indextmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indextmp', initval = 0)
-call mem%alloc(resultmain, (/ nnk, Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resultmain', initval = -2.0)
-call mem%alloc(indexmain, (/ nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indexmain', initval = 0)
-call mem%alloc(maxsortarr, (/ totnumexpt /), 'maxsortarr', initval = 0.0)
-call mem%alloc(minsortarr, (/ totnumexpt /), 'minsortarr', initval =-2.0)
-call mem%alloc(eulerarray, (/ 3, Nd*ceiling(float(FZcnt)/float(Nd)) /), 'eulerarray', initval = 0.0)
-eulerarray(1:3,1:FZcnt) = eulerarray2(1:3,1:FZcnt)
-deallocate(eulerarray2)  ! this was initialized in an HDF5 call, so not part of mem class
-call mem%alloc(exptIQ, (/ totnumexpt /), 'exptIQ')
-call mem%alloc(exptCI, (/ totnumexpt /), 'exptCI') 
-call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
-call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
-call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
 
 !=====================================================
 ! define the circular mask if necessary and convert to 1D vector
 !=====================================================
+call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
+call mem%alloc(masklin, (/ L /), 'masklin', initval = 0.0)
 
 if (trim(dinl%maskfile).ne.'undefined') then
 ! read the mask from file; the mask can be defined by a 2D array of 0 and 1 values
@@ -2193,10 +2237,43 @@ end if
 ! read all the pre-processed patterns into the epatterns array
 call mem%alloc(epatterns, (/ correctsize, totnumexpt /), 'epatterns') 
 
-do pp = 1,totnumexpt 
-  read(itmpexpt,rec=pp) tmpimageexpt
-  epatterns(:,pp) = tmpimageexpt
-end do
+! PCA or not?
+if (PCA.eqv..TRUE.) then 
+  TRANSA = 'N'
+  TRANSB = 'N'
+  MMMM = patsz
+  NNNN = totnumexpt 
+  KKKK = patsz
+  LDA = patsz
+  LDB = patsz
+  LDC = patsz
+  ALPHA = 1.0
+  BETA = 0.0
+  allocate(YYYY(patsz,totnumexpt))
+  call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
+  call Message%printMessage(' Computing PCA projections of pre-processed experimental patterns')
+  do pp = 1,totnumexpt 
+    read(itmpexpt,rec=pp) tmpimageexpt
+    epatterns(:,pp) = tmpimageexpt
+  end do
+! use a BLAS routine to perform the matrix product (should be much faster than the f90 matmul routine)
+  call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, epatterns, LDB, BETA, YYYY, LDC)
+  deallocate(epatterns)
+  allocate(epatterns(Lnew,totnumexpt))
+  epatterns = YYYY(1:Lnew, 1:totnumexpt) 
+  deallocate(YYYY)
+  call Message%printMessage('   ---> done')
+! reset some of the array size parameters to the corrected values for PCA mode
+  correctsize = correctsize_new
+  ! call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
+else
+  call Message%printMessage(' Reading pre-processed experimental patterns into RAM')
+  do pp = 1,totnumexpt 
+    read(itmpexpt,rec=pp) tmpimageexpt
+    epatterns(:,pp) = tmpimageexpt
+  end do
+  call Message%printMessage('   ---> done')
+end if 
 
 if (dinl%keeptmpfile.eq.'y') then
   close(unit=itmpexpt, status = 'keep')
@@ -2204,7 +2281,54 @@ else
   close(unit=itmpexpt, status = 'delete')
 end if 
 
-call mem%allocated_memory_use( expl = 'Memory usage before start of parallel section' )
+
+!=========================================
+! ALLOCATION AND INITIALIZATION OF ARRAYS
+!=========================================
+call Message%printMessage(' --> Allocating various arrays for indexing')
+
+call mem%alloc(expt, (/ Ne*correctsize /), 'expt', initval = 0.0)
+! the mem class does not handle pointer arrays at the moment so we have a normal allocate
+! call mem%alloc(dict, (/ Nd*correctsize /), 'dict', initval = 0.0)
+allocate(dict(Nd*correctsize))
+dict = 0.0
+call mem%alloc(dicttranspose, (/ Nd*correctsize /), 'dicttranspose', initval = 0.0)
+call mem%alloc(results1, (/ Ne*Nd*cratioE /), 'results1', initval = 0.0)
+call mem%alloc(results2, (/ Ne*Nd*cratioE /), 'results2', initval = 0.0)
+call mem%alloc(res, (/ Ne*Nd /), 'res', initval = 0.0)
+call mem%alloc(imageexpt, (/ L /), 'imageexpt', initval = 0.0) 
+call mem%alloc(imageexptflt, (/ correctsize /), 'imageexptflt', initval = 0.0)
+call mem%alloc(imagedictflt, (/ correctsize /), 'imagedictflt', initval = 0.0)
+call mem%alloc(imagedictfltflip, (/ correctsize /), 'imagedictfltflip', initval = 0.0)
+call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
+call mem%alloc(meandict, (/ correctsize /), 'meandict', initval = 0.0)
+call mem%alloc(meanexpt, (/ correctsize /), 'meanexpt', initval = 0.0) 
+call mem%alloc(imagedict, (/ correctsize /), 'imagedict', initval = 0.0)
+call mem%alloc(pattern, (/ binx,biny /), 'pattern', initval = 0.0)
+call mem%alloc(binned, (/ binx, biny /), 'binned', initval = 0.0)
+call mem%alloc(indexlist1, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist1')
+call mem%alloc(indexlist2, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist2')
+do ii = 1,Nd*ceiling(float(FZcnt)/float(Nd))
+    indexlist1(ii) = ii
+    indexlist2(ii) = ii
+end do
+call mem%alloc(resulttmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resulttmp', initval = -2.0)
+call mem%alloc(indextmp, (/ 2*nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indextmp', initval = 0)
+call mem%alloc(resultmain, (/ nnk, Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'resultmain', initval = -2.0)
+call mem%alloc(indexmain, (/ nnk,Ne*ceiling(float(totnumexpt)/float(Ne)) /), 'indexmain', initval = 0)
+call mem%alloc(maxsortarr, (/ totnumexpt /), 'maxsortarr', initval = 0.0)
+call mem%alloc(minsortarr, (/ totnumexpt /), 'minsortarr', initval =-2.0)
+call mem%alloc(eulerarray, (/ 3, Nd*ceiling(float(FZcnt)/float(Nd)) /), 'eulerarray', initval = 0.0)
+eulerarray(1:3,1:FZcnt) = eulerarray2(1:3,1:FZcnt)
+deallocate(eulerarray2)  ! this was initialized in an HDF5 call, so not part of mem class
+call mem%alloc(exptIQ, (/ totnumexpt /), 'exptIQ')
+call mem%alloc(exptCI, (/ totnumexpt /), 'exptCI') 
+call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
+call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
+call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
+
+! call mem%allocated_memory_use( expl = 'Memory usage before start of parallel section' )
+
 
 !=====================================================
 ! MAIN COMPUTATIONAL LOOP (finally...)
@@ -2327,7 +2451,7 @@ dictionaryloop: do ii = 1,cratio+1
     if (ii.gt.1) then
       iii = ii-1        ! the index ii is already one ahead, since the GPU thread lags one cycle behind the others...
       if (verbose.eqv..TRUE.) then
-        if (associated(T0dict,dict1)) then
+        if (associated(results,results1)) then
           call Message%printMessage('   GPU thread is working on dict1')
         else
           call Message%printMessage('   GPU thread is working on dict2')
@@ -2367,7 +2491,7 @@ dictionaryloop: do ii = 1,cratio+1
 
       io_real(1) = mvres
       io_real(2) = float(iii)/float(cratio)*100.0
-      call Message%WriteValue('',io_real,2,"(' max. dot product = ',F10.6,';',F6.1,'% complete')")
+      call Message%WriteValue('',io_real,2,"(' max. dot product = ',F18.6,';',F6.1,'% complete')")
 
       if (mod(iii,10) .eq. 0) then
 ! do a remaining time estimate
@@ -2400,7 +2524,7 @@ dictionaryloop: do ii = 1,cratio+1
    if (ii.gt.1) then
      if (verbose.eqv..TRUE.) then
        io_int(1) = TID2
-       if (associated(dict,dict1)) then
+       if (associated(results,results2)) then
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict1')")
        else
          call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict2')")
@@ -2453,14 +2577,14 @@ call CL%error_check('DIdriver:clReleaseKernel', ierr)
 
 
 ! perform some timing stuff
-  call timer%Time_tock(2)
-  tstop = timer%getInterval(2)
-  io_real(1) = tstop
-  call Message%WriteValue(' Indexing duration (system_clock, s)                : ',io_real,1,"(/,F14.3)")
-  io_real(1) = float(totnumexpt)*float(FZcnt) / tstop
-  call Message%WriteValue(' Number of pattern comparisons per second           : ',io_real,1,"(/,F14.3)")
-  io_real(1) = float(totnumexpt) / tstop
-  call Message%WriteValue(' Number of experimental patterns indexed per second : ',io_real,1,"(/,F14.3,/)")
+call timer%Time_tock(2)
+tstop = timer%getInterval(2)
+io_real(1) = tstop
+call Message%WriteValue(' Indexing duration (system_clock, s)                : ',io_real,1,"(/,F14.3)")
+io_real(1) = float(totnumexpt)*float(FZcnt) / tstop
+call Message%WriteValue(' Number of pattern comparisons per second           : ',io_real,1,"(/,F14.3)")
+io_real(1) = float(totnumexpt) / tstop
+call Message%WriteValue(' Number of experimental patterns indexed per second : ',io_real,1,"(/,F14.3,/)")
 
 ! ===================
 ! MAIN OUTPUT SECTION

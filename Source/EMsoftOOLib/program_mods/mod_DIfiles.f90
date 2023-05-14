@@ -73,6 +73,7 @@ type, public :: DictionaryIndexingNameListType
   integer(kind=irg)  :: nregions
   integer(kind=irg)  :: nlines
   integer(kind=irg)  :: sw
+  integer(kind=irg)  :: npc
   real(kind=sgl)     :: L
   real(kind=sgl)     :: thetac
   real(kind=sgl)     :: delta
@@ -91,6 +92,7 @@ type, public :: DictionaryIndexingNameListType
   real(kind=sgl)     :: stepY
   real(kind=sgl)     :: lambda
   logical            :: doNLPAR
+  logical            :: whitenPCA
   character(1)       :: maskpattern
   character(3)       :: scalingmode
   character(3)       :: Notify
@@ -406,7 +408,7 @@ else
 end if
 
 ! close the file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end subroutine readDIModality_
 
@@ -460,6 +462,7 @@ integer(kind=irg)  :: nosm
 integer(kind=irg)  :: nism
 integer(kind=irg)  :: maskradius
 integer(kind=irg)  :: sw
+integer(kind=irg)  :: npc
 integer(kind=irg)  :: energyaverage  ! no longer used but kept for compatibility with older files
 real(kind=sgl)     :: L
 real(kind=sgl)     :: thetac
@@ -478,6 +481,7 @@ real(kind=sgl)     :: dwelltime
 real(kind=sgl)     :: hipassw
 real(kind=sgl)     :: lambda
 logical            :: doNLPAR
+logical            :: whitenPCA
 character(1)       :: maskpattern
 character(1)       :: keeptmpfile
 character(1)       :: usetmpfile
@@ -518,7 +522,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
-                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc
 
 namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
                      beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
@@ -526,7 +530,7 @@ namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid
                      ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, &
-                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda
+                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, npc, whitenPCA
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 ncubochoric     = 50
@@ -551,6 +555,7 @@ ROI             = (/ 0, 0, 0, 0 /)  ! Region of interest (/ x0, y0, w, h /)
 maskradius      = 240
 binning         = 1             ! binning mode  (1, 2, 4, or 8)
 sw              = 3
+npc             = 500           ! number of PCA components to use for indexing (staticPCA mode)
 L               = 20000.0       ! [microns]
 thetac          = 0.0           ! [degrees]
 delta           = 25.0          ! [microns]
@@ -565,6 +570,7 @@ stepX           = 1.0           ! sampling step size along X
 stepY           = 1.0           ! sampling step size along Y
 lambda          = 0.375
 doNLPAR         = .FALSE.
+whitenPCA       = .TRUE.
 keeptmpfile     = 'n'
 usetmpfile      = 'n'
 maskpattern     = 'n'           ! 'y' or 'n' to include a circular mask
@@ -663,8 +669,10 @@ self%nml%ipf_ht        = ipf_ht
 self%nml%ipf_wd        = ipf_wd
 self%nml%nthreads      = nthreads
 self%nml%sw            = sw 
+self%nml%npc           = npc 
 self%nml%lambda        = lambda 
 self%nml%doNLPAR       = doNLPAR
+self%nml%whitenPCA     = whitenPCA
 self%nml%datafile      = trim(datafile)
 self%nml%tmpfile       = trim(tmpfile)
 self%nml%ctffile       = trim(ctffile)
@@ -757,7 +765,7 @@ type(HDFnames_T), INTENT(INOUT)                     :: HDFnames
 class(DictionaryIndexingNameListType), INTENT(INOUT):: emnl
 
 type(IO_T)                                          :: Message
-integer(kind=irg)                                   :: n_int, n_real, NLPAR
+integer(kind=irg)                                   :: n_int, n_real, NLPAR, WPCA
 integer(kind=irg)                                   :: hdferr
 integer(kind=irg),allocatable                       :: io_int(:)
 real(kind=sgl),allocatable                          :: io_real(:)
@@ -776,17 +784,17 @@ modality = trim(self%getModality())
 select case(trim(modality))
   case('EBSD')
     isEBSD = .TRUE.
-    n_int = 22
+    n_int = 24
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
     isECP = .TRUE.
-    n_int = 22
+    n_int = 24
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('TKD')
     isTKD = .TRUE.
-    n_int = 22
+    n_int = 24
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case default
@@ -795,12 +803,14 @@ end select
 
 NLPAR = 0
 if (emnl%doNLPAR.eqv..TRUE.) NLPAR=1
+WPCA = 1 
+if (emnl%whitenPCA.eqv..FALSE.) WPCA=0
 
 ! write all the single integers
 io_int = (/ emnl%ncubochoric, emnl%numexptsingle, emnl%numdictsingle, emnl%ipf_ht, &
             emnl%ipf_wd, emnl%nnk, emnl%maskradius, emnl%numsx, emnl%numsy, emnl%binning, &
             emnl%nthreads, emnl%devid, emnl%platid, emnl%nregions, emnl%nnav, &
-            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR /)
+            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR, emnl%npc, WPCA /)
 intlist(1) = 'Ncubochoric'
 intlist(2) = 'numexptsingle'
 intlist(3) = 'numdictsingle'
@@ -823,6 +833,8 @@ intlist(19) = 'nism'
 intlist(20) = 'npix'
 intlist(21) = 'sw'
 intlist(22) = 'NLPAR'
+intlist(23) = 'npc'
+intlist(24) = 'whitenPCA'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 io_real = (/ emnl%L, emnl%thetac, emnl%delta, emnl%omega, emnl%xpc, &
@@ -1453,7 +1465,7 @@ dataset = SC_StepY
     end if
 
 ! and close the HDF5 dot product file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end associate
 
@@ -1683,6 +1695,7 @@ dataset = SC_ISMap
   isratio = 100.0 * real(j) / real(ipar(7)*ipar(8))
   io_real(1) = isratio
   call Message%WriteValue(' Indexing Success Rate (%) : ',io_real,1)
+  call Message%printMessage(' Note: Indexing Success Rate is an experimental feature; not always reliable...')
   deallocate(ISMap)
 
 dataset = SC_ISR
@@ -2000,10 +2013,15 @@ dataset = SC_nRows
   hdferr = HDF%writeDatasetInteger(dataset, ebsdnl%ipf_ht)
 
 !=====================================================
+! npc
+dataset = 'npc'
+  hdferr = HDF%writeDatasetInteger(dataset, ebsdnl%npc)
+
+!=====================================================
 !=====================================================
 
 ! once all these have been written, we simply pop all the way to the top and close the file
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
 end associate
 

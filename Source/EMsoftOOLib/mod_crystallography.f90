@@ -2389,7 +2389,7 @@ me = HDF_T()
   hdferr = me%writeDatasetStringArray(dataset, strings, 1)
   call me%error_check( 'SaveDataHDF:writeDatasetStringArray:'//trim(dataset), hdferr)
 
-  call me%pop(.TRUE.)
+  call me%popall()
 
 end subroutine saveDataHDF_
 
@@ -2729,7 +2729,7 @@ else
 end if
 
 if (openHDFfile) then
-  call me%pop(.TRUE.)
+  call me%popall()
 else ! just close this group, but not the file
   call me%pop()
 end if

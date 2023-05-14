@@ -141,7 +141,7 @@ if (hdferr.ne.0) then
   return
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 write(*,*) '   --> done'
 !====================================
@@ -180,7 +180,7 @@ if (hdferr.ne.0) then
   return
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 !====================================
 
 

@@ -121,6 +121,76 @@ private
   procedure, pass(self) :: ComputeEBSDPatterns_
   procedure, pass(self) :: ComputedeformedEBSDpatterns_
   procedure, pass(self) :: CalcEBSDPatternSingleFull_
+  procedure, pass(self) :: setnumsx_
+  procedure, pass(self) :: getnumsx_
+  procedure, pass(self) :: setnumsy_
+  procedure, pass(self) :: getnumsy_
+  procedure, pass(self) :: setbinning_
+  procedure, pass(self) :: getbinning_
+  procedure, pass(self) :: setnthreads_
+  procedure, pass(self) :: getnthreads_
+  procedure, pass(self) :: setmaskradius_
+  procedure, pass(self) :: getmaskradius_
+  procedure, pass(self) :: setnregions_
+  procedure, pass(self) :: getnregions_
+  procedure, pass(self) :: setL_
+  procedure, pass(self) :: getL_
+  procedure, pass(self) :: setthetac_
+  procedure, pass(self) :: getthetac_
+  procedure, pass(self) :: setdelta_
+  procedure, pass(self) :: getdelta_
+  procedure, pass(self) :: setxpc_
+  procedure, pass(self) :: getxpc_
+  procedure, pass(self) :: setypc_
+  procedure, pass(self) :: getypc_
+  procedure, pass(self) :: setenergymin_
+  procedure, pass(self) :: getenergymin_
+  procedure, pass(self) :: setenergymax_
+  procedure, pass(self) :: getenergymax_
+  procedure, pass(self) :: setgammavalue_
+  procedure, pass(self) :: getgammavalue_
+  procedure, pass(self) :: setaxisangle_
+  procedure, pass(self) :: getaxisangle_
+  procedure, pass(self) :: setalphaBD_
+  procedure, pass(self) :: getalphaBD_
+  procedure, pass(self) :: sethipassw_
+  procedure, pass(self) :: gethipassw_
+  procedure, pass(self) :: setFtensor_
+  procedure, pass(self) :: getFtensor_
+  procedure, pass(self) :: setbeamcurrent_
+  procedure, pass(self) :: getbeamcurrent_
+  procedure, pass(self) :: setdwelltime_
+  procedure, pass(self) :: getdwelltime_
+  procedure, pass(self) :: setmakedictionary_
+  procedure, pass(self) :: getmakedictionary_
+  procedure, pass(self) :: setpoisson_
+  procedure, pass(self) :: getpoisson_
+  procedure, pass(self) :: setincludebackground_
+  procedure, pass(self) :: getincludebackground_
+  procedure, pass(self) :: setapplyDeformation_
+  procedure, pass(self) :: getapplyDeformation_
+  procedure, pass(self) :: setmaskpattern_
+  procedure, pass(self) :: getmaskpattern_
+  procedure, pass(self) :: setscalingmode_
+  procedure, pass(self) :: getscalingmode_
+  procedure, pass(self) :: seteulerconvention_
+  procedure, pass(self) :: geteulerconvention_
+  procedure, pass(self) :: setoutputformat_
+  procedure, pass(self) :: getoutputformat_
+  procedure, pass(self) :: setspatialaverage_
+  procedure, pass(self) :: getspatialaverage_
+  procedure, pass(self) :: setbitdepth_
+  procedure, pass(self) :: getbitdepth_
+  procedure, pass(self) :: setanglefile_
+  procedure, pass(self) :: getanglefile_
+  procedure, pass(self) :: setanglefiletype_
+  procedure, pass(self) :: getanglefiletype_
+  procedure, pass(self) :: setmasterfile_
+  procedure, pass(self) :: getmasterfile_
+  procedure, pass(self) :: setenergyfile_
+  procedure, pass(self) :: getenergyfile_
+  procedure, pass(self) :: setdatafile_
+  procedure, pass(self) :: getdatafile_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -132,6 +202,76 @@ private
   generic, public :: ComputeEBSDPatterns => ComputeEBSDPatterns_
   generic, public :: ComputedeformedEBSDpatterns => ComputedeformedEBSDpatterns_
   generic, public :: CalcEBSDPatternSingleFull => CalcEBSDPatternSingleFull_
+  generic, public :: setnumsx => setnumsx_
+  generic, public :: getnumsx => getnumsx_
+  generic, public :: setnumsy => setnumsy_
+  generic, public :: getnumsy => getnumsy_
+  generic, public :: setbinning => setbinning_
+  generic, public :: getbinning => getbinning_
+  generic, public :: setnthreads => setnthreads_
+  generic, public :: getnthreads => getnthreads_
+  generic, public :: setmaskradius => setmaskradius_
+  generic, public :: getmaskradius => getmaskradius_
+  generic, public :: setnregions => setnregions_
+  generic, public :: getnregions => getnregions_
+  generic, public :: setL => setL_
+  generic, public :: getL => getL_
+  generic, public :: setthetac => setthetac_
+  generic, public :: getthetac => getthetac_
+  generic, public :: setdelta => setdelta_
+  generic, public :: getdelta => getdelta_
+  generic, public :: setxpc => setxpc_
+  generic, public :: getxpc => getxpc_
+  generic, public :: setypc => setypc_
+  generic, public :: getypc => getypc_
+  generic, public :: setenergymin => setenergymin_
+  generic, public :: getenergymin => getenergymin_
+  generic, public :: setenergymax => setenergymax_
+  generic, public :: getenergymax => getenergymax_
+  generic, public :: setgammavalue => setgammavalue_
+  generic, public :: getgammavalue => getgammavalue_
+  generic, public :: setaxisangle => setaxisangle_
+  generic, public :: getaxisangle => getaxisangle_
+  generic, public :: setalphaBD => setalphaBD_
+  generic, public :: getalphaBD => getalphaBD_
+  generic, public :: sethipassw => sethipassw_
+  generic, public :: gethipassw => gethipassw_
+  generic, public :: setFtensor => setFtensor_
+  generic, public :: getFtensor => getFtensor_
+  generic, public :: setbeamcurrent => setbeamcurrent_
+  generic, public :: getbeamcurrent => getbeamcurrent_
+  generic, public :: setdwelltime => setdwelltime_
+  generic, public :: getdwelltime => getdwelltime_
+  generic, public :: setmakedictionary => setmakedictionary_
+  generic, public :: getmakedictionary => getmakedictionary_
+  generic, public :: setpoisson => setpoisson_
+  generic, public :: getpoisson => getpoisson_
+  generic, public :: setincludebackground => setincludebackground_
+  generic, public :: getincludebackground => getincludebackground_
+  generic, public :: setapplyDeformation => setapplyDeformation_
+  generic, public :: getapplyDeformation => getapplyDeformation_
+  generic, public :: setmaskpattern => setmaskpattern_
+  generic, public :: getmaskpattern => getmaskpattern_
+  generic, public :: setscalingmode => setscalingmode_
+  generic, public :: getscalingmode => getscalingmode_
+  generic, public :: seteulerconvention => seteulerconvention_
+  generic, public :: geteulerconvention => geteulerconvention_
+  generic, public :: setoutputformat => setoutputformat_
+  generic, public :: getoutputformat => getoutputformat_
+  generic, public :: setspatialaverage => setspatialaverage_
+  generic, public :: getspatialaverage => getspatialaverage_
+  generic, public :: setbitdepth => setbitdepth_
+  generic, public :: getbitdepth => getbitdepth_
+  generic, public :: setanglefile => setanglefile_
+  generic, public :: getanglefile => getanglefile_
+  generic, public :: setanglefiletype => setanglefiletype_
+  generic, public :: getanglefiletype => getanglefiletype_
+  generic, public :: setmasterfile => setmasterfile_
+  generic, public :: getmasterfile => getmasterfile_
+  generic, public :: setenergyfile => setenergyfile_
+  generic, public :: getenergyfile => getenergyfile_
+  generic, public :: setdatafile => setdatafile_
+  generic, public :: getdatafile => getdatafile_
 
 end type EBSD_T
 
@@ -537,6 +677,1267 @@ call HDF%pop()
 end associate
 
 end subroutine writeHDFNameList_
+
+!--------------------------------------------------------------------------
+subroutine setnumsx_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnumsx_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set numsx in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%numsx = inp
+
+end subroutine setnumsx_
+
+!--------------------------------------------------------------------------
+function getnumsx_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumsx_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get numsx from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%numsx
+
+end function getnumsx_
+
+!--------------------------------------------------------------------------
+subroutine setnumsy_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnumsy_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set numsy in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%numsy = inp
+
+end subroutine setnumsy_
+
+!--------------------------------------------------------------------------
+function getnumsy_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumsy_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get numsy from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%numsy
+
+end function getnumsy_
+
+!--------------------------------------------------------------------------
+subroutine setbinning_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setbinning_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set binning in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%binning = inp
+
+end subroutine setbinning_
+
+!--------------------------------------------------------------------------
+function getbinning_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getbinning_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get binning from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%binning
+
+end function getbinning_
+
+!--------------------------------------------------------------------------
+subroutine setnthreads_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnthreads_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set nthreads in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%nthreads = inp
+
+end subroutine setnthreads_
+
+!--------------------------------------------------------------------------
+function getnthreads_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnthreads_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get nthreads from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%nthreads
+
+end function getnthreads_
+
+!--------------------------------------------------------------------------
+subroutine setmaskradius_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setmaskradius_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set maskradius in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%maskradius = inp
+
+end subroutine setmaskradius_
+
+!--------------------------------------------------------------------------
+function getmaskradius_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmaskradius_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get maskradius from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%maskradius
+
+end function getmaskradius_
+
+!--------------------------------------------------------------------------
+subroutine setnregions_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnregions_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set nregions in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%nregions = inp
+
+end subroutine setnregions_
+
+!--------------------------------------------------------------------------
+function getnregions_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnregions_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get nregions from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%nregions
+
+end function getnregions_
+
+!--------------------------------------------------------------------------
+subroutine setL_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setL_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set L in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%L = inp
+
+end subroutine setL_
+
+!--------------------------------------------------------------------------
+function getL_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getL_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get L from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%L
+
+end function getL_
+
+!--------------------------------------------------------------------------
+subroutine setthetac_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setthetac_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set thetac in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%thetac = inp
+
+end subroutine setthetac_
+
+!--------------------------------------------------------------------------
+function getthetac_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getthetac_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get thetac from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%thetac
+
+end function getthetac_
+
+!--------------------------------------------------------------------------
+subroutine setdelta_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setdelta_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set delta in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%delta = inp
+
+end subroutine setdelta_
+
+!--------------------------------------------------------------------------
+function getdelta_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getdelta_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get delta from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%delta
+
+end function getdelta_
+
+!--------------------------------------------------------------------------
+subroutine setxpc_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setxpc_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set xpc in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%xpc = inp
+
+end subroutine setxpc_
+
+!--------------------------------------------------------------------------
+function getxpc_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getxpc_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get xpc from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%xpc
+
+end function getxpc_
+
+!--------------------------------------------------------------------------
+subroutine setypc_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setypc_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set ypc in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%ypc = inp
+
+end subroutine setypc_
+
+!--------------------------------------------------------------------------
+function getypc_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getypc_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get ypc from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%ypc
+
+end function getypc_
+
+!--------------------------------------------------------------------------
+subroutine setenergymin_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setenergymin_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set energymin in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%energymin = inp
+
+end subroutine setenergymin_
+
+!--------------------------------------------------------------------------
+function getenergymin_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getenergymin_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get energymin from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%energymin
+
+end function getenergymin_
+
+!--------------------------------------------------------------------------
+subroutine setenergymax_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setenergymax_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set energymax in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%energymax = inp
+
+end subroutine setenergymax_
+
+!--------------------------------------------------------------------------
+function getenergymax_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getenergymax_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get energymax from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%energymax
+
+end function getenergymax_
+
+!--------------------------------------------------------------------------
+subroutine setgammavalue_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setgammavalue_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set gammavalue in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%gammavalue = inp
+
+end subroutine setgammavalue_
+
+!--------------------------------------------------------------------------
+function getgammavalue_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getgammavalue_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get gammavalue from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%gammavalue
+
+end function getgammavalue_
+
+!--------------------------------------------------------------------------
+subroutine setaxisangle_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setaxisangle_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set axisangle in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp(4)
+
+self%nml%axisangle = inp
+
+end subroutine setaxisangle_
+
+!--------------------------------------------------------------------------
+function getaxisangle_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getaxisangle_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get axisangle from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out(4)
+
+out = self%nml%axisangle
+
+end function getaxisangle_
+
+!--------------------------------------------------------------------------
+subroutine setalphaBD_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setalphaBD_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set alphaBD in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%alphaBD = inp
+
+end subroutine setalphaBD_
+
+!--------------------------------------------------------------------------
+function getalphaBD_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getalphaBD_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get alphaBD from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%alphaBD
+
+end function getalphaBD_
+
+!--------------------------------------------------------------------------
+subroutine sethipassw_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: sethipassw_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set hipassw in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%hipassw = inp
+
+end subroutine sethipassw_
+
+!--------------------------------------------------------------------------
+function gethipassw_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: gethipassw_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get hipassw from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%hipassw
+
+end function gethipassw_
+
+!--------------------------------------------------------------------------
+subroutine setFtensor_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setFtensor_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set Ftensor in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)       :: inp(3,3)
+
+self%nml%Ftensor = inp
+
+end subroutine setFtensor_
+
+!--------------------------------------------------------------------------
+function getFtensor_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getFtensor_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get Ftensor from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=dbl)                   :: out(3,3)
+
+out = self%nml%Ftensor
+
+end function getFtensor_
+
+!--------------------------------------------------------------------------
+subroutine setbeamcurrent_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setbeamcurrent_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set beamcurrent in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)       :: inp
+
+self%nml%beamcurrent = inp
+
+end subroutine setbeamcurrent_
+
+!--------------------------------------------------------------------------
+function getbeamcurrent_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getbeamcurrent_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get beamcurrent from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=dbl)                   :: out
+
+out = self%nml%beamcurrent
+
+end function getbeamcurrent_
+
+!--------------------------------------------------------------------------
+subroutine setdwelltime_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setdwelltime_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set dwelltime in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=dbl), INTENT(IN)       :: inp
+
+self%nml%dwelltime = inp
+
+end subroutine setdwelltime_
+
+!--------------------------------------------------------------------------
+function getdwelltime_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getdwelltime_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get dwelltime from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+real(kind=dbl)                   :: out
+
+out = self%nml%dwelltime
+
+end function getdwelltime_
+
+!--------------------------------------------------------------------------
+subroutine setmakedictionary_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setmakedictionary_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set makedictionary in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1), INTENT(IN)       :: inp
+
+self%nml%makedictionary = trim(inp)
+
+end subroutine setmakedictionary_
+
+!--------------------------------------------------------------------------
+function getmakedictionary_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmakedictionary_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get makedictionary from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1)                   :: out
+
+out = trim(self%nml%makedictionary)
+
+end function getmakedictionary_
+
+!--------------------------------------------------------------------------
+subroutine setpoisson_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setpoisson_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set poisson in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1), INTENT(IN)       :: inp
+
+self%nml%poisson = trim(inp)
+
+end subroutine setpoisson_
+
+!--------------------------------------------------------------------------
+function getpoisson_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getpoisson_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get poisson from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1)                   :: out
+
+out = trim(self%nml%poisson)
+
+end function getpoisson_
+
+!--------------------------------------------------------------------------
+subroutine setincludebackground_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setincludebackground_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set includebackground in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1), INTENT(IN)       :: inp
+
+self%nml%includebackground = trim(inp)
+
+end subroutine setincludebackground_
+
+!--------------------------------------------------------------------------
+function getincludebackground_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getincludebackground_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get includebackground from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1)                   :: out
+
+out = trim(self%nml%includebackground)
+
+end function getincludebackground_
+
+!--------------------------------------------------------------------------
+subroutine setapplyDeformation_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setapplyDeformation_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set applyDeformation in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1), INTENT(IN)       :: inp
+
+self%nml%applyDeformation = trim(inp)
+
+end subroutine setapplyDeformation_
+
+!--------------------------------------------------------------------------
+function getapplyDeformation_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getapplyDeformation_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get applyDeformation from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1)                   :: out
+
+out = trim(self%nml%applyDeformation)
+
+end function getapplyDeformation_
+
+!--------------------------------------------------------------------------
+subroutine setmaskpattern_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setmaskpattern_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set maskpattern in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1), INTENT(IN)       :: inp
+
+self%nml%maskpattern = trim(inp)
+
+end subroutine setmaskpattern_
+
+!--------------------------------------------------------------------------
+function getmaskpattern_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmaskpattern_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get maskpattern from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1)                   :: out
+
+out = trim(self%nml%maskpattern)
+
+end function getmaskpattern_
+
+!--------------------------------------------------------------------------
+subroutine setscalingmode_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setscalingmode_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set scalingmode in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(3), INTENT(IN)       :: inp
+
+self%nml%scalingmode = trim(inp)
+
+end subroutine setscalingmode_
+
+!--------------------------------------------------------------------------
+function getscalingmode_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getscalingmode_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get scalingmode from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(3)                   :: out
+
+out = trim(self%nml%scalingmode)
+
+end function getscalingmode_
+
+!--------------------------------------------------------------------------
+subroutine seteulerconvention_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: seteulerconvention_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set eulerconvention in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(3), INTENT(IN)       :: inp
+
+self%nml%eulerconvention = trim(inp)
+
+end subroutine seteulerconvention_
+
+!--------------------------------------------------------------------------
+function geteulerconvention_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: geteulerconvention_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get eulerconvention from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(3)                   :: out
+
+out = trim(self%nml%eulerconvention)
+
+end function geteulerconvention_
+
+!--------------------------------------------------------------------------
+subroutine setoutputformat_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setoutputformat_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set outputformat in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(3), INTENT(IN)       :: inp
+
+self%nml%outputformat = trim(inp)
+
+end subroutine setoutputformat_
+
+!--------------------------------------------------------------------------
+function getoutputformat_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getoutputformat_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get outputformat from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(3)                   :: out
+
+out = trim(self%nml%outputformat)
+
+end function getoutputformat_
+
+!--------------------------------------------------------------------------
+subroutine setspatialaverage_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setspatialaverage_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set spatialaverage in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1), INTENT(IN)       :: inp
+
+self%nml%spatialaverage = trim(inp)
+
+end subroutine setspatialaverage_
+
+!--------------------------------------------------------------------------
+function getspatialaverage_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getspatialaverage_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get spatialaverage from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(1)                   :: out
+
+out = trim(self%nml%spatialaverage)
+
+end function getspatialaverage_
+
+!--------------------------------------------------------------------------
+subroutine setbitdepth_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setbitdepth_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set bitdepth in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(5), INTENT(IN)       :: inp
+
+self%nml%bitdepth = trim(inp)
+
+end subroutine setbitdepth_
+
+!--------------------------------------------------------------------------
+function getbitdepth_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getbitdepth_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get bitdepth from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(5)                   :: out
+
+out = trim(self%nml%bitdepth)
+
+end function getbitdepth_
+
+!--------------------------------------------------------------------------
+subroutine setanglefile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setanglefile_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set anglefile in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%anglefile = trim(inp)
+
+end subroutine setanglefile_
+
+!--------------------------------------------------------------------------
+function getanglefile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getanglefile_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get anglefile from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%anglefile)
+
+end function getanglefile_
+
+!--------------------------------------------------------------------------
+subroutine setanglefiletype_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setanglefiletype_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set anglefiletype in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%anglefiletype = trim(inp)
+
+end subroutine setanglefiletype_
+
+!--------------------------------------------------------------------------
+function getanglefiletype_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getanglefiletype_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get anglefiletype from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%anglefiletype)
+
+end function getanglefiletype_
+
+!--------------------------------------------------------------------------
+subroutine setmasterfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setmasterfile_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set masterfile in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%masterfile = trim(inp)
+
+end subroutine setmasterfile_
+
+!--------------------------------------------------------------------------
+function getmasterfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmasterfile_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get masterfile from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%masterfile)
+
+end function getmasterfile_
+
+!--------------------------------------------------------------------------
+subroutine setenergyfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setenergyfile_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set energyfile in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%energyfile = trim(inp)
+
+end subroutine setenergyfile_
+
+!--------------------------------------------------------------------------
+function getenergyfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getenergyfile_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get energyfile from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%energyfile)
+
+end function getenergyfile_
+
+!--------------------------------------------------------------------------
+subroutine setdatafile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setdatafile_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! set datafile in the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%datafile = trim(inp)
+
+end subroutine setdatafile_
+
+!--------------------------------------------------------------------------
+function getdatafile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getdatafile_
+!! author: MDG
+!! version: 1.0
+!! date: 05/10/23
+!!
+!! get datafile from the EBSD_T class
+
+IMPLICIT NONE
+
+class(EBSD_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%datafile)
+
+end function getdatafile_
+
 
 !--------------------------------------------------------------------------
 subroutine EBSD_(self, EMsoft, progname, HDFnames, TKD)
@@ -950,7 +2351,7 @@ deallocate(z)
   end do
 
 if (present(verbose)) then
-  if (verbose.eqv..TRUE.) call Message%printMessage(' -> completed detector generation', frm = "(A)")
+  if (verbose.eqv..TRUE.) call Message%printMessage(' --> completed detector generation', frm = "(A)")
 end if 
 
 end associate
@@ -1847,7 +3248,7 @@ hdferr = HDF%writeDatasetFloat(dataset, tstop)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
 
 ! close the datafile
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call mem%dealloc(EBSDdetector%rgx, 'EBSDdetector%rgx')
 call mem%dealloc(EBSDdetector%rgy, 'EBSDdetector%rgy')
@@ -2725,7 +4126,7 @@ hdferr = HDF%writeDatasetFloat(dataset, tstop)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
 
 ! close the datafile
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end associate
 

@@ -38,6 +38,11 @@ program EMDI
   !! is handled a bit differently, and the name list is not initialized in the main program
   !! at all. The DIdriver routine is also not part of a class, but is called as a regular 
   !! routine. 
+  !!
+  !! addition on 05/10/23: in "static" indexing mode, the dictionary now has the option
+  !! to be a PCA compressed dictionary, generated with the EMEBSDPCA program, in addition
+  !! to the standard dictionary file generated with EMEBSD. 
+  !! 
 
 use mod_kinds
 use mod_global

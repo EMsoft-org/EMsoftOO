@@ -1238,7 +1238,7 @@ nx = s4(3)
 dataset = SC_accumz
     hdferr = HDF%writeDatasetIntegerArray(dataset, MCDT%accum_z, ipar(12), ipar(13), nx, nx)
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call closeFortranHDFInterface()
 

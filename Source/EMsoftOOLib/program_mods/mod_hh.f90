@@ -649,7 +649,7 @@ hdferr = HDF%writeDatasetFloatArray(dataset, DF, hhnl%ICOL, hhnl%IROW, hhnl%wnum
 if (hdferr.ne.0) call HDF%error_check('writeHH4_HDFfile: unable to create DF dataset',hdferr)
 
 ! close the file 
-call HDF%pop(.TRUE.)
+call HDF%popall()
   
 end subroutine writeHH4_HDFfile_
 

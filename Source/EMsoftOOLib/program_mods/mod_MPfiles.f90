@@ -568,7 +568,7 @@ else
 end if
 
 ! close the file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end subroutine determine_Modality_
 
@@ -1013,7 +1013,7 @@ hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 dataset = trim(HDFnames%get_NMLfilename())
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..FALSE.) then
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
     call Message%printError('readMPfile','this is not a valid Master Pattern file')
 end if
 call HDF%pop()
@@ -1288,7 +1288,7 @@ if (present(getmasterSPSH)) then
 end if
 
 ! and close the HDF5 Master Pattern file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 if (.not.present(silent)) then
   call Message%printMessage(' --> Completed reading master pattern data from '//trim(self%MPfile), frm = "(A/)")
@@ -1381,7 +1381,7 @@ deallocate(MPDT%masterSPNH, MPDT%masterSPSH)
 
 end associate
 
-call localHDF%pop(.TRUE.)
+call localHDF%popall()
 
 end subroutine getFileInfo_
 
@@ -1467,7 +1467,7 @@ if (hdferr.eq.-1) then
   call Message%printError('copyMPdata','master group does not exist in '//trim(infile))
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 ! OK, if we get here, then the file does exist and it contains Master Pattern data,
 ! so we let the user know
@@ -1581,7 +1581,7 @@ if (hdferr.eq.-1) then
   call Message%printError('copyMPdata','master group does not exist in '//trim(infile))
 end if
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 ! OK, if we get here, then the file does exist and it contains Master Pattern data,
 ! so we let the user know

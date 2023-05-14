@@ -596,7 +596,7 @@ dataset = SC_masterSPSH
 ! end of HDF_FileVersion = 4.0 write statements
 ! =====================================================
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
 ! we use two times, one (1) for each individual energy level, the other (2) for the overall time
 call timer%Time_tick(1)
@@ -926,7 +926,7 @@ dataset = SC_masterSPSH
   offset3 = (/ 0, 0, 0 /)
   hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPSH, dims3, offset3, cnt3, insert)
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call Message%printMessage(' Final data stored in file '//trim(emnl%energyfile), frm = "(A/)")
 

@@ -1185,7 +1185,7 @@ if (enl%kinematical.eqv..TRUE.) then
   dataset = 'kinmasterSH'
   hdferr = HDF%writeDatasetFloatArray(dataset, kinmasterSH, 2*nx+1, 2*nx+1)
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 end if
 
 ! close the HDF interface

@@ -132,7 +132,7 @@ end if
 ! first open the EMheader/CrystalData group
 if (crystalfile.eqv..TRUE.) then 
 ! close the file and call the regular crystal data display routine ...
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
     call cell%readDataHDF(SG, EMsoft, useHDF=HDF, useXtalName=HDFname)
     call cell%dumpXtalInfo(SG)
 else 
@@ -192,7 +192,7 @@ else
             end if 
         end do
 ! close the file 
-        call HDF%pop(.TRUE.)
+        call HDF%popall()
         call Message%printMessage(' The following programs have contributed to this file:',"(/A)")
         do i=0,j-1
             call Message%printMessage(' - '//trim(prognames(i)))

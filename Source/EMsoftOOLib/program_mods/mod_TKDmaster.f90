@@ -957,7 +957,7 @@ end subroutine set_kinematical_
 ! dataset = SC_lastEnergy
 !   call HDF%readDatasetInteger(dataset, hdferr, lastEnergy)
 
-!   call HDF%pop(.TRUE.)
+!   call HDF%popall()
 ! end if
 ! !=============================================
 ! !=============================================

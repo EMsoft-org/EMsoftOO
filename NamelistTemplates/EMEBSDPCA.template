@@ -1,0 +1,65 @@
+ &EBSDPCAdata
+! template file for the EMEBSDPCA program
+!
+! distance between scintillator and illumination point [microns]
+ L = 15000.0,
+! tilt angle of the camera (positive below horizontal, [degrees])
+ thetac = 10.0,
+! CCD pixel size on the scintillator surface [microns]
+ delta = 50.0,
+! number of CCD pixels along x and y
+ numsx = 0,
+ numsy = 0,
+! pattern center coordinates in units of pixels
+ xpc = 0.0,
+ ypc = 0.0,
+! transfer lens barrel distortion parameter
+ alphaBD = 0.0,
+! energy range in the intensity summation [keV]
+ energymin = 5.0,
+ energymax = 20.0,
+! include a realistic intensity background or not ... 
+ includebackground = 'y',
+! name of angle file (euler angles or quaternions); path relative to EMdatapathname
+ anglefile = 'testeuler.txt',
+ eulerconvention = 'tsl',
+! name of EBSD master output file; path relative to EMdatapathname
+ masterfile = 'master.h5',
+! name of output file; path relative to EMdatapathname
+ datafile = 'EBSDout.h5',
+! bitdepth '8bit' for [0..255] bytes; 'float' for 32-bit reals; '##int' for 32-bit integers with ##-bit dynamic range
+! e.g., '9int' will get you 32-bit integers with intensities scaled to the range [ 0 .. 2^(9)-1 ]; 
+! '17int' results in the intensity range [ 0 .. 2^(17)-1 ]
+ bitdepth = '8bit',
+ ! incident beam current [nA]
+ beamcurrent = 150.0,
+! beam dwell time [micro s]
+ dwelltime = 100.0,
+! include Poisson noise ? (y/n) (noise will be applied *before* binning and intensity scaling)
+ poisson = 'n',
+! binning mode (1, 2, 4, or 8)
+ binning = 1,
+! intensity scaling mode 'not' = no scaling, 'lin' = linear, 'gam' = gamma correction
+ scalingmode = 'not',
+! gamma correction factor
+ gammavalue = 1.0,
+!=======================
+! the resulting dictionary can be used for static indexing in the EMDIPCA program...
+! these parameters must be taken identical to the ones in the EMDIPCA.nml input file to have 
+! optimal indexing...
+! should a circular mask be applied to the data? 'y', 'n'
+ maskpattern = 'n',
+ ! mask radius (in pixels, AFTER application of the binning operation)
+ maskradius = 240,
+! hi pass filter w parameter; 0.05 is a reasonable value
+ hipassw = 0.05,
+! number of regions for adaptive histogram equalization
+ nregions = 10,
+!=======================
+! here are the parameters for the generation of the Principal Component Analysis
+
+
+!=======================
+! number of threads (default = 1)
+ nthreads = 1,
+ /

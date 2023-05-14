@@ -59,6 +59,7 @@ private
   procedure, pass(self) :: getWeightFactors_
   procedure, pass(self) :: averagePatterns_
   procedure, pass(self) :: doNLPAR_
+  procedure, pass(self) :: doNLPARISE_
 
   generic, public :: setSearchWindow => setSearchWindow_
   generic, public :: getSearchWindow => getSearchWindow_
@@ -68,6 +69,7 @@ private
   generic, public :: getWeightFactors => getWeightFactors_
   generic, public :: averagePatterns => averagePatterns_
   generic, public :: doNLPAR => doNLPAR_
+  generic, public :: doNLPARISE => doNLPARISE_
 
 end type NLPAR_T
 
@@ -771,6 +773,148 @@ end if
 ! call mem%allocated_memory_use()
 
 end subroutine doNLPAR_
+
+
+!--------------------------------------------------------------------------
+recursive subroutine doNLPARISE_(self, ipf_wd, ipf_ht, nsteps, npat, epatterns)
+!DEC$ ATTRIBUTES DLLEXPORT :: doNLPARISE_
+!! author: MDG
+!! version: 1.0
+!! date: 03/20/23
+!!
+!! Apply the NLPAR averaging method to a set of ISE pattern vectors and generate a preprocessed pattern set
+ 
+use mod_io
+use mod_filters
+use mod_timing
+use mod_DIfiles
+use mod_patterns
+use mod_OMPsupport
+use mod_memory
+
+class(NLPAR_T), INTENT(INOUT)                     :: self
+integer(kind=irg),INTENT(IN)                      :: ipf_wd
+integer(kind=irg),INTENT(IN)                      :: ipf_ht
+integer(kind=irg),INTENT(IN)                      :: nsteps
+integer(kind=irg),INTENT(IN)                      :: npat
+real(kind=sgl),INTENT(INOUT)                      :: epatterns(nsteps, npat)
+
+type(IO_T)                                        :: Message
+type(timing_T)                                    :: timer
+type(memory_T)                                    :: mem, memth 
+
+integer(kind=irg)                                 :: itype, istat, L, recordsize, patsz, iiistart, iiiend, jjend, ierr, &
+                                                     SW, i, iii, ii, j, jj, jrow, icnt, kk, TID 
+integer(kind=irg)                                 :: tickstart, tstop, io_int(2)
+real(kind=sgl)                                    :: vlen, tmp, mi, ma, lambda, io_real(1) 
+real(kind=sgl),allocatable                        :: Pattern(:,:), imageexpt(:), Pat(:,:), exptblock(:), &
+                                                     sigvals(:,:), wtfactors(:,:,:), sigEst(:), dpp(:,:,:), tmpimageexpt(:)
+integer(kind=irg),allocatable                     :: pint(:,:)
+logical                                           :: isEBSD = .FALSE., isTKD = .FALSE., ROIselected, f_exists, verbose
+character(fnlen)                                  :: fname 
+integer(kind=ill)                                 :: wdll, htll, psll, swll
+
+SW = self%getSearchWindow_()
+lambda = 1.0/self%getLambda_()**2
+mem = memory_T()
+
+verbose = .FALSE.
+
+call Message%printMessage(' Performing NLPAR averaging on experimental patterns')
+
+! allocate the array that holds the experimental patterns from (2*SW+1) rows of the region of interest
+! as well as the exppatarray and sigEst arrays; all are 1D arrays to speed things up
+call mem%alloc(exptblock, (/nsteps * ipf_wd * (2*SW+2)/), 'exptblock')
+call mem%alloc(sigEst, (/ipf_wd * (2*SW+1)/), 'sigEst')
+
+call Message%printMessage('Starting processing of experimental patterns')
+timer = Timing_T()
+call timer%Time_tick(1)
+
+! instantiate the memory allocation class for the OpenMP region
+memth = memory_T( silent = .TRUE. )
+
+!==================================================
+! perform the NLPAR algorithm + regular pre-processing
+!==================================================
+! for large size patterns and large data sets we need to make sure to use ill-type integers 
+wdll = ipf_wd 
+htll = ipf_ht
+psll = nsteps
+swll = SW 
+
+! Loop over all the rows and make sure that we always have 2*SW+1 rows in the exptblock array; so,
+! we read the first 2*SW+1 rows and then start the row loop.  To keep things simple, we handle complete rows 
+! and apply the ROI afterwards if it is defined [remains to be implemented, 3/18/2021].
+exptblock = reshape(epatterns(1:nsteps,1:ipf_wd*(2*SW+2)), (/nsteps * ipf_wd * (2*SW+2)/) )
+
+! we need to compute the estimated sigma values for each row in exptblock 
+do jrow=1,2*SW+1
+  sigEst((jrow-1)*wdll+1:jrow*wdll) = self%estimateSigma_(exptblock, psll, wdll, htll, swll, jrow)
+end do 
+
+!==================================================
+! The following is a somewhat complicated main loop!  
+!==================================================
+call mem%alloc(wtfactors, (/2*SW+1,2*SW+1,ipf_wd/), 'wtfactors')
+icnt = 2*SW+2
+do jrow=1,ipf_ht ! loop over all the experimental rows.  
+  if ( (jrow.gt.SW+1) .and. (jrow.le.(ipf_ht-SW)) ) then  ! we need to shift arrays and get the following row of patterns 
+    exptblock = cshift(exptblock, wdll * psll)         ! experimental patterns 
+    sigEst = cshift(sigEst, wdll)                      ! corresponding estimated sigma^2 values
+    if (jrow.ne.(ipf_ht-SW)) then  ! get the next row unless we're already at the end
+    ! we add the next row as the last row of the (cshifted) exptblock array
+      exptblock( (2 * swll +1) * psll * wdll+1: (2 * swll + 2) * psll * wdll ) = &
+                    reshape(epatterns(1:nsteps, ipf_wd*icnt+1:ipf_wd*(icnt+1)), (/ psll * wdll /) )
+      icnt = icnt + 1
+    end if 
+! at this point we might as well compute the estimated sigma^2 values for this new pattern row
+    if (jrow.le.(ipf_ht-SW)) then  
+      sigEst((2*swll)*wdll+1:(2*swll+1)*wdll) = self%estimateSigma_(exptblock, psll, wdll, htll, swll, 2*SW+1)
+    end if 
+  end if 
+
+! get the weightfactor array (this includes the normalized distance computation)
+  if (jrow.le.SW+1) then ! we are in the bottom block of SW+1 patterns
+    wtfactors = self%getWeightFactors_(exptblock, sigEst, psll, wdll, swll, lambda, row=jrow)
+  else 
+    if (jrow.gt.ipf_ht-SW) then ! same for the top block of SW+1 patterns
+      wtfactors = self%getWeightFactors_(exptblock, sigEst, psll, wdll, swll, lambda, row=2*SW+1-(ipf_ht-jrow))
+    else  ! this is what we do for all rows in between the bottom and top blocks
+      wtfactors = self%getWeightFactors_(exptblock, sigEst, psll, wdll, swll, lambda)
+    end if
+  end if 
+
+! compute the weighted sum of patterns for all patterns in this row
+  epatterns(1:nsteps, (jrow-1)*ipf_wd+1:jrow*ipf_wd) = &
+               reshape( self%averagePatterns(exptblock, wtfactors, psll, wdll, swll), (/nsteps, ipf_wd/) )
+
+! print an update of progress
+    if (mod(jrow,5).eq.0) then
+      io_int(1:2) = (/ jrow, ipf_ht /)
+      call Message%WriteValue('Completed row ',io_int,2,"(I4,' of ',I4,' rows')")
+    end if
+
+end do 
+
+! print some timing information
+call timer%Time_tock(1)
+tstop = timer%getInterval(1)
+if (tstop.eq.0.0) then
+  call Message%printMessage(' # experimental patterns processed per second : ? [time shorter than system time resolution] ')
+else
+  io_real(1) = float(npat)/tstop
+  call Message%WriteValue(' # experimental patterns processed per second : ',io_real,1,"(F10.1,/)")
+end if
+
+!====================================
+! that should be it... some clean up and we return to the calling program
+!====================================
+call mem%dealloc(exptblock, 'exptblock')
+call mem%dealloc(sigEst, 'sigEst')
+call mem%dealloc(wtfactors, 'wtfactors')
+
+end subroutine doNLPARISE_
 
 
 end module mod_NLPAR

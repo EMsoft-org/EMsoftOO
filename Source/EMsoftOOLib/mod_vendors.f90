@@ -1260,10 +1260,10 @@ select case (self%itype)
         close(unit=self%funit,status='keep')
 
     case(4, 6, 7, 10, 11)  ! "TSLHDF" "EMEBSD"
-        if (present(HDF)) call HDF%pop(.TRUE.)
+        if (present(HDF)) call HDF%popall()
 
     case(8)  !  "BrukerHDF"
-        if (present(HDF)) call HDF%pop(.TRUE.)
+        if (present(HDF)) call HDF%popall()
         deallocate(semix, semiy)
 
     case default

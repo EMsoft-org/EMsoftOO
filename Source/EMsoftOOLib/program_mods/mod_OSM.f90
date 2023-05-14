@@ -430,7 +430,7 @@ do i=1,osmnum
   end if
 
 ! and close the HDF5 dot product file
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
   fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%tiffname)//fnum//'.tiff'
   TIFF_filename = trim(fname)

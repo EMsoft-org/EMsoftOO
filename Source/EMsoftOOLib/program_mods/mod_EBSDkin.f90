@@ -556,7 +556,7 @@ hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
 dataset = trim(HDFnames%get_NMLfilename())
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..FALSE.) then
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
     call Message%printError('readMPfile','this is not a valid Kinematical Master Pattern file')
 end if
 call HDF%pop()
@@ -615,7 +615,7 @@ if (present(getmasterSPSH)) then
 end if
 
 ! and close the HDF5 Master Pattern file
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call Message%printMessage(' --> Completed reading master pattern data from '//trim(self%MPfile), frm = "(A/)")
 
@@ -1715,7 +1715,7 @@ hdferr = HDF%writeDatasetFloat(dataset, tstop)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
 
 ! close the datafile
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 call mem%dealloc(EBSDkindetector%rgx, 'EBSDkindetector%rgx')
 call mem%dealloc(EBSDkindetector%rgy, 'EBSDkindetector%rgy')
@@ -2492,7 +2492,7 @@ hdferr = HDF%writeDatasetFloat(dataset, tstop)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloat Duration', hdferr)
 
 ! close the datafile
-call HDF%pop(.TRUE.)
+call HDF%popall()
 
 end associate
 

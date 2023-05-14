@@ -770,7 +770,7 @@ hdferr = HDF%writeDatasetDoubleArray(dataset, self%Nij, d, d, d, 6)
 dataset = 'kx'
 hdferr = HDF%writeDatasetDoubleArray(dataset, self%kx, d, d, d)
 
-call HDF%pop(.TRUE.)
+call HDF%popall()
 call closeFortranHDFInterface()
 
 end associate 

@@ -702,7 +702,7 @@ batchloop: do i = 1, totnumberbatch       ! loop over all batches in the eulerar
 ! hdferr = HDF_writeDatasetFloat(dataset, tstop, HDF_head)
 
 ! leave this group and close the file
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
   end associate
 

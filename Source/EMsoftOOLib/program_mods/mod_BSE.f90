@@ -1565,7 +1565,7 @@ integer(kind=irg)                   :: Emin, Emax, dims3(3)      ! various param
 character(fnlen)                    :: fname, DIfile
 logical                             :: refined
 real(kind=sgl)                      :: scl, mi, ma
-real(kind=sgl),allocatable          :: Eangles(:,:), BSEimage(:,:), BSEimagescan(:,:,:)
+real(kind=sgl),allocatable          :: Eangles(:,:), BSEimage(:,:), BSEimagescan(:,:,:), weights(:)
 
 ! declare variables for use in object oriented image module
 character(fnlen)                    :: TIFF_filename, dataset
@@ -1667,7 +1667,7 @@ if ( (resang.eq.0).and.(resctf.eq.0) ) then
   end if
 
   nx = BSEdetector%ipf_wd * BSEdetector%ipf_ht
-  allocate(Eangles(3, nx))
+  allocate(Eangles(3, nx), weights(nx))
   if (trim(enl%useangles).eq.'original') then
       do i=1,nx 
         Eangles(1:3,i) = (/ DIdata%Phi1(i), DIdata%Phi(i), DIdata%Phi2(i) /)
@@ -1681,9 +1681,9 @@ if ( (resang.eq.0).and.(resctf.eq.0) ) then
   if (maxval(Eangles).gt.(2.D0*cPi)) Eangles = Eangles * dtor
 else
   if (resang.ne.0) then ! we have an .ang file
-    call SO%getAnglesfromANGfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
+    call SO%getAnglesfromANGfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles, weights)
   else  ! we must have a .ctf file
-    call SO%getAnglesfromCTFfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles)
+    call SO%getAnglesfromCTFfile(DIfile, dinl%ipf_wd, dinl%ipf_ht, dinl%StepX, dinl%StepY, Eangles, weights)
   end if 
   BSEdetector%ipf_wd = dinl%ipf_wd
   BSEdetector%ipf_ht = dinl%ipf_ht
@@ -1761,7 +1761,7 @@ else ! scanmode = 'scan'
   write (*,*) 'shape(BSEimagescan) = ',dims3
   dataset = 'rings'
   hdferr = HDF%writeDatasetFloatArray(dataset, BSEimagescan, dims3(1), dims3(2), dims3(3) )
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 end if 
 
 end associate

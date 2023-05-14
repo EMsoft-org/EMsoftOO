@@ -6,6 +6,7 @@
 ! 'MIS' misorientation ball sampling; 
 ! 'MAR' for Marsaglia random unit quaternion generation; 
 ! 'UNI' for linear uniform random quaternions;
+! 'SHO' for the Shoemake algorithm;
 ! 'SFS' for Super-Fibonacci sampling; 
 ! 'vMF' von Mises-Fisher sampling on the three-sphere (non-uniform);
 ! 'WAT' Watson sampling on the three-sphere (non-uniform);

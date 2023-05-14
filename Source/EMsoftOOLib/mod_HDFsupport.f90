@@ -89,6 +89,7 @@ IMPLICIT NONE
 ! we start with the push-pop-stack management stuff and error handling routines
      procedure, pass(self) :: push_
      procedure, pass(self) :: pop_
+     procedure, pass(self) :: popall_
      procedure, pass(self) :: stackdump_
      procedure, pass(self) :: getObjectID_
      ! procedure, pass(self) :: toggleStackDump_
@@ -206,6 +207,7 @@ IMPLICIT NONE
 
      generic, public :: push => push_
      generic, public :: pop => pop_
+     generic, public :: popall => popall_
      generic, public :: stackdump => stackdump_
      generic, public :: getObjectID => getObjectID_
      generic, public :: associatedHead => associatedHead_
@@ -326,6 +328,7 @@ IMPLICIT NONE
 ! silent HDF operation or somewhat verbose ?
   HDFverbose = .FALSE.
   dumpHDFstack = .FALSE.     ! set with the switchStackDump method
+  ! dumpHDFstack = .TRUE.     ! set with the switchStackDump method
 
 ! make sure that the fortran HDF interface is open; if not call an error
   if (HDFinterfaceOpen.eqv..FALSE.) then
@@ -509,12 +512,12 @@ self%head%next%objectID   = oID
 self%head%next%objectname = trim(oName)
 ! nullify(self%head%next%next)
 
-if (dumpHDFstack.eqv..TRUE.) call stackdump_(self)
+if (dumpHDFstack.eqv..TRUE.) call self%stackdump_('push')
 
 end subroutine push_
 
 !--------------------------------------------------------------------------
-recursive subroutine pop_(self, closeall)
+recursive subroutine pop_(self, origin)
 !DEC$ ATTRIBUTES DLLEXPORT :: pop_
   !! author: MDG
   !! version: 1.0
@@ -528,81 +531,73 @@ IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)                 :: self
 !f2py intent(in,out) ::  self
-logical,INTENT(IN),optional                :: closeall
+character(*),INTENT(IN),optional           :: origin
 
 integer                                    :: error, istat
 type(HDFobjectStackType),pointer           :: tmp
+character(fnlen)                           :: orig
 
 nullify(tmp)
 
-if (PRESENT(closeall)) then
-! this would be called if an error arises that forces a complete shutdown of the program, or at the end of a regular program
-  do while (associated(self%head%next))
+orig = ''
+if (present(origin)) orig = trim(origin)
+
 ! close the current object
-    error = HDF_close_level(self%head%next%objectType, self%head%next%objectID)
-    call error_check_(self, 'pop_:unable to close requested level for object type '//self%head%next%objectType, error,.TRUE.)
+error = HDF_close_level(self%head%next%objectType, self%head%next%objectID, orig)
+call error_check_(self, trim(orig)//'pop_:unable to close requested level for object type '//self%head%next%objectType, &
+                  error,.TRUE.)
 
 ! and re-point the stack head
-    tmp => self%head%next
-    self%head%next => self%head%next%next
+tmp => self%head%next
+self%head%next => self%head%next%next
 ! delete the old entry
-    deallocate(tmp)
-  end do
-  nullify(self%head%next)
-else
-! close the current object
-  error = HDF_close_level(self%head%next%objectType, self%head%next%objectID)
-  call error_check_(self, 'pop_:unable to close requested level for object type '//self%head%next%objectType, error,.TRUE.)
+deallocate(tmp)
 
-! and re-point the stack head
-  tmp => self%head%next
-  self%head%next => self%head%next%next
-! delete the old entry
-  deallocate(tmp)
-
-  if (dumpHDFstack.eqv..TRUE.) call stackdump_(self)
-end if
+if (dumpHDFstack.eqv..TRUE.) call self%stackdump_('pop')
 
 contains
 
-  recursive function HDF_close_level(oT, oID) result(error)
+  recursive function HDF_close_level(oT, oID, origin) result(error)
 
   IMPLICIT NONE
 
   character(LEN=1),INTENT(IN)   :: oT
   integer(HID_T),INTENT(IN)     :: oID
+  character(fnlen),INTENT(INOUT):: origin
   integer(kind=irg)             :: error
+
+  type(IO_T)                    :: Message
 
   select case(oT)
   case ('f')
     call h5fclose_f(oID, error)  ! close the file
-    call error_check_(self, 'pop_:h5fclose_f', error)
-
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5fclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5fclose_f', error)
 
   case ('g')
     call h5gclose_f(oID, error)  ! close the group
-    call error_check_(self, 'pop_:h5gclose_f', error)
-
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5gclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5gclose_f', error)
 
   case ('d')
     call h5dclose_f(oID, error)  ! close the data set
-    call error_check_(self, 'pop_:h5dclose_f', error)
-
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5dclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5dclose_f', error)
 
   case ('a')
     call h5aclose_f(oID, error)  ! close the attribute
-    call error_check_(self, 'pop_:h5aclose_f', error)
-
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5aclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5aclose_f', error)
 
   case ('t')
     call h5tclose_f(oID, error)  ! close the data type
-    call error_check_(self, 'pop_:h5tclose_f', error)
-
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5tclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5tclose_f', error)
 
   case ('s')
     call h5sclose_f(oID, error)  ! close the data space
-    call error_check_(self, 'pop_:h5sclose_f', error)
-
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5sclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5sclose_f', error)
 
   case DEFAULT
   end select
@@ -612,7 +607,100 @@ end function HDF_close_level
 end subroutine pop_
 
 !--------------------------------------------------------------------------
-recursive subroutine stackdump_(self)
+recursive subroutine popall_(self, origin)
+!DEC$ ATTRIBUTES DLLEXPORT :: popall_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 04/25/23
+  !!
+  !! pop_ all HDF objects from the stack and close the file
+
+use mod_io
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT)                 :: self
+!f2py intent(in,out) ::  self
+character(*),INTENT(INOUT),optional        :: origin
+
+integer                                    :: error, istat
+type(HDFobjectStackType),pointer           :: tmp
+character(fnlen)                           :: orig
+
+nullify(tmp)
+
+orig = ''
+if (present(origin)) orig = trim(origin)
+
+! this would be called if an error arises that forces a complete shutdown of the program, or at the end of a regular program
+do while (associated(self%head%next))
+! close the current object
+  error = HDF_close_level2(self%head%next%objectType, self%head%next%objectID, orig)
+  call error_check_(self, trim(origin)//'pop_:unable to close requested level for object type '//self%head%next%objectType, &
+                    error,.TRUE.)
+
+! and re-point the stack head
+  tmp => self%head%next
+  self%head%next => self%head%next%next
+! delete the old entry
+  deallocate(tmp)
+end do
+nullify(self%head%next)
+if (dumpHDFstack.eqv..TRUE.) call self%stackdump_('pop')
+
+contains
+
+  recursive function HDF_close_level2(oT, oID, origin) result(error)
+
+  IMPLICIT NONE
+
+  character(LEN=1),INTENT(IN)   :: oT
+  integer(HID_T),INTENT(IN)     :: oID
+  character(fnlen),INTENT(INOUT):: origin
+  integer(kind=irg)             :: error
+
+  type(IO_T)                    :: Message
+  
+  select case(oT)
+  case ('f')
+    call h5fclose_f(oID, error)  ! close the file
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5fclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5fclose_f', error)
+
+  case ('g')
+    call h5gclose_f(oID, error)  ! close the group
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5gclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5gclose_f', error)
+
+  case ('d')
+    call h5dclose_f(oID, error)  ! close the data set
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5dclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5dclose_f', error)
+
+  case ('a')
+    call h5aclose_f(oID, error)  ! close the attribute
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5aclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5aclose_f', error)
+
+  case ('t')
+    call h5tclose_f(oID, error)  ! close the data type
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5tclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5tclose_f', error)
+
+  case ('s')
+    call h5sclose_f(oID, error)  ! close the data space
+    if (dumpHDFstack.eqv..TRUE.) call Message%printMessage('  Calling routine: '//trim(origin)//':pop_:h5sclose_f')
+    call error_check_(self, trim(origin)//':pop_:h5sclose_f', error)
+
+  case DEFAULT
+  end select
+
+end function HDF_close_level2
+
+end subroutine popall_
+
+!--------------------------------------------------------------------------
+recursive subroutine stackdump_(self,ppp)
 !DEC$ ATTRIBUTES DLLEXPORT :: stackdump_
 
   !! author: MDG
@@ -626,17 +714,25 @@ use mod_io
 IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)              :: self
+character(*),INTENT(IN),OPTIONAL        :: ppp 
 
 type(HDFobjectStackType),pointer        :: tmp
 integer(kind=irg)                       :: io_int(1)
 type(IO_T)                              :: Message
 
 tmp => self%head%next
+call Message%printMessage(' -----------')
 if (.not.associated(tmp)) then
   call Message%WriteValue('stackdump_:',' stack is empty')
 
 else
-  call Message%WriteValue('stackdump_:','HDF stack entries')
+  if (present(ppp)) then 
+     if (ppp.eq.'pop') then 
+          call Message%WriteValue('stackdump_:','calling pop_')
+     else
+          call Message%WriteValue('stackdump_:','calling push_')
+     end if 
+  end if
 
   do
     if (.not.associated(tmp)) EXIT
@@ -982,6 +1078,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 f_ptr = C_LOC(wdata(1))
@@ -990,12 +1088,14 @@ call error_check_(self, 'writeDatasetTextFile_:h5dwrite_f:'//trim(dataname), hdf
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetTextFile_')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetTextFile_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetTextFile_:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetTextFile_:h5sclose_f:'//trim(dataname), hdferr)
@@ -1121,7 +1221,7 @@ call H5Tclose_f(filetype, hdferr)
 call error_check_(self, 'readDatasetStringArray_:H5Tclose_f:'//trim(dataname), hdferr)
 
 ! close the dataset
-call self%pop_()
+call self%pop_('readDatasetStringArray_')
 
 end subroutine readDatasetStringArray_
 
@@ -1206,7 +1306,7 @@ call H5Tclose_f(filetype, hdferr)
 call error_check_(self, 'extractDatasetTextfile_:H5Tclose_f:'//trim(dataname), hdferr)
 
 ! close the dataset
-call pop_(self)
+call self%pop_('extractDatasetTextfile_')
 
 success = 0
 
@@ -1292,6 +1392,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 f_ptr = C_LOC(wdata(1))
@@ -1300,12 +1402,14 @@ call error_check_(self, 'writeDatasetStringArray_:h5dwrite_f:'//trim(dataname), 
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetStringArray_')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetStringArray_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetStringArray_:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetStringArray_:h5sclose_f:'//trim(dataname), hdferr)
@@ -1369,6 +1473,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_STD_U8LE, wdata(1), hdferr )
@@ -1376,12 +1482,14 @@ call error_check_(self, 'writeDatasetCharArray1D:h5dwrite_f:'//trim(dataname), h
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetCharArray1D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetCharArray1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetCharArray1D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetCharArray1D:h5sclose_f:'//trim(dataname), hdferr)
@@ -1439,6 +1547,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_STD_U8LE, wdata(1), hdferr )
@@ -1446,12 +1556,14 @@ call error_check_(self, 'writeDatasetCharArray2D:h5dwrite_f:'//trim(dataname), h
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetCharArray2D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetCharArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetCharArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetCharArray2D:h5sclose_f:'//trim(dataname), hdferr)
@@ -1508,6 +1620,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_STD_U8LE, wdata(1), hdferr )
@@ -1515,12 +1629,14 @@ call error_check_(self, 'writeDatasetCharArray3D:h5dwrite_f:'//trim(dataname), h
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetCharArray3D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetCharArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetCharArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetCharArray3D:h5sclose_f:'//trim(dataname), hdferr)
@@ -1578,6 +1694,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_STD_U8LE, wdata(1), hdferr )
@@ -1585,12 +1703,14 @@ call error_check_(self, 'writeDatasetCharArray4D:h5dwrite_f:'//trim(dataname), h
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetCharArray4D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetCharArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetCharArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetCharArray4D:h5sclose_f:'//trim(dataname), hdferr)
@@ -1654,6 +1774,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, f_ptr, hdferr )
@@ -1661,12 +1783,14 @@ call error_check_(self, 'writeDatasetInteger_:h5dwrite_f:'//trim(dataname), hdfe
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetInteger_')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetInteger_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetInteger_:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetInteger_:h5sclose_f:'//trim(dataname), hdferr)
@@ -1732,6 +1856,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
@@ -1739,12 +1865,14 @@ call error_check_(self, 'writeDatasetInteger64_:h5dwrite_f:'//trim(dataname), hd
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetInteger64_')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetInteger64_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetInteger64_:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetInteger64_:h5sclose_f:'//trim(dataname), hdferr)
@@ -1807,6 +1935,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, f_ptr, hdferr )
@@ -1814,12 +1944,14 @@ call error_check_(self, 'writeDatasetInteger1byteArray1D_:h5dwrite_f:'//trim(dat
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetInteger1byteArray1D_')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetInteger1byteArray1D_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetInteger1byteArray1D_:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetInteger1byteArray1D_:h5sclose_f:'//trim(dataname), hdferr)
@@ -1885,6 +2017,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, f_ptr, hdferr )
@@ -1892,12 +2026,14 @@ call error_check_(self, 'writeDatasetIntegerArray1D:h5dwrite_f:'//trim(dataname)
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetIntegerArray1D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetIntegerArray1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetIntegerArray1D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetIntegerArray1D:h5sclose_f:'//trim(dataname), hdferr)
@@ -1967,6 +2103,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, f_ptr, hdferr )
@@ -1974,12 +2112,14 @@ call error_check_(self, 'writeDatasetIntegerArray2D:h5dwrite_f:'//trim(dataname)
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetIntegerArray2D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetIntegerArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetIntegerArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetIntegerArray2D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2047,6 +2187,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, f_ptr, hdferr )
@@ -2054,12 +2196,14 @@ call error_check_(self, 'writeDatasetIntegerArray3D:h5dwrite_f:'//trim(dataname)
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetIntegerArray3D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetIntegerArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetIntegerArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetIntegerArray3D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2130,6 +2274,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, f_ptr, hdferr )
@@ -2137,12 +2283,14 @@ call error_check_(self, 'writeDatasetIntegerArray4D:h5dwrite_f:'//trim(dataname)
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetIntegerArray4D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetIntegerArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetIntegerArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetIntegerArray4D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2211,6 +2359,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
@@ -2218,12 +2368,14 @@ call error_check_(self, 'writeDatasetInteger64Array1D:h5dwrite_f:'//trim(datanam
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetInteger64Array1D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetInteger64Array1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetInteger64Array1D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetInteger64Array1D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2294,6 +2446,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
@@ -2301,12 +2455,14 @@ call error_check_(self, 'writeDatasetInteger64Array2D:h5dwrite_f:'//trim(datanam
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetInteger64Array2D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetInteger64Array2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetInteger64Array2D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetInteger64Array2D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2375,6 +2531,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
@@ -2382,12 +2540,14 @@ call error_check_(self, 'writeDatasetInteger64Array3D:h5dwrite_f:'//trim(datanam
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetInteger64Array3D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetInteger64Array3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetInteger64Array3D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetInteger64Array3D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2459,6 +2619,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr )
@@ -2466,12 +2628,14 @@ call error_check_(self, 'writeDatasetInteger64Array4D:h5dwrite_f:'//trim(datanam
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetInteger64Array4D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetInteger64Array4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetInteger64Array4D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetInteger64Array4D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2536,6 +2700,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_REAL, f_ptr, hdferr )
@@ -2543,12 +2709,14 @@ call error_check_(self, 'writeDatasetFloat_:h5dwrite_f:'//trim(dataname), hdferr
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetFloat_')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetFloat_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetFloat_:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetFloat_:h5sclose_f:'//trim(dataname), hdferr)
@@ -2611,6 +2779,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, f_ptr, hdferr )
@@ -2618,12 +2788,14 @@ call error_check_(self, 'writeDatasetDouble_:h5dwrite_f:'//trim(dataname), hdfer
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetDouble_')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetDouble_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetDouble_:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetDouble_:h5sclose_f:'//trim(dataname), hdferr)
@@ -2689,6 +2861,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_REAL, f_ptr, hdferr )
@@ -2696,12 +2870,14 @@ call error_check_(self, 'writeDatasetFloatArray1D:h5dwrite_f:'//trim(dataname), 
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetFloatArray1D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetFloatArray1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetFloatArray1D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetFloatArray1D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2770,6 +2946,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_REAL, f_ptr, hdferr )
@@ -2777,12 +2955,14 @@ call error_check_(self, 'writeDatasetFloatArray2D:h5dwrite_f:'//trim(dataname), 
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetFloatArray2D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetFloatArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetFloatArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetFloatArray2D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2852,6 +3032,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_REAL, f_ptr, hdferr )
@@ -2859,12 +3041,14 @@ call error_check_(self, 'writeDatasetFloatArray3D:h5dwrite_f:'//trim(dataname), 
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetFloatArray3D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetFloatArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetFloatArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetFloatArray3D:h5sclose_f:'//trim(dataname), hdferr)
@@ -2935,6 +3119,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_REAL, f_ptr, hdferr )
@@ -2942,12 +3128,14 @@ call error_check_(self, 'writeDatasetFloatArray4D:h5dwrite_f:'//trim(dataname), 
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetFloatArray4D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetFloatArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetFloatArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetFloatArray4D:h5sclose_f:'//trim(dataname), hdferr)
@@ -3018,6 +3206,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_REAL, f_ptr, hdferr )
@@ -3025,12 +3215,14 @@ call error_check_(self, 'writeDatasetFloatArray6D:h5dwrite_f:'//trim(dataname), 
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetFloatArray6D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetFloatArray6D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetFloatArray6D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetFloatArray6D:h5sclose_f:'//trim(dataname), hdferr)
@@ -3095,6 +3287,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, f_ptr, hdferr )
@@ -3102,12 +3296,14 @@ call error_check_(self, 'writeDatasetDoubleArray1D:h5dwrite_f:'//trim(dataname),
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetDoubleArray1D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetDoubleArray1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetDoubleArray1D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetDoubleArray1D:h5sclose_f:'//trim(dataname), hdferr)
@@ -3172,6 +3368,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, f_ptr, hdferr )
@@ -3179,12 +3377,14 @@ call error_check_(self, 'writeDatasetDoubleArray2D:h5dwrite_f:'//trim(dataname),
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetDoubleArray2D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetDoubleArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetDoubleArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetDoubleArray2D:h5sclose_f:'//trim(dataname), hdferr)
@@ -3251,6 +3451,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, f_ptr, hdferr )
@@ -3258,12 +3460,14 @@ call error_check_(self, 'writeDatasetDoubleArray3D:h5dwrite_f:'//trim(dataname),
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetDoubleArray3D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetDoubleArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetDoubleArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetDoubleArray3D:h5sclose_f:'//trim(dataname), hdferr)
@@ -3330,6 +3534,8 @@ end if
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%push_('d', dset, dataname)
 end if
 
 call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, f_ptr, hdferr )
@@ -3337,12 +3543,14 @@ call error_check_(self, 'writeDatasetDoubleArray4D:h5dwrite_f:'//trim(dataname),
 
 if (hdferr.lt.0) then
   success = -1
+else
+  call self%pop_('writeDatasetDoubleArray4D')
 end if
 !
 ! Close and release resources.
 !
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'writeDatasetDoubleArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'writeDatasetDoubleArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'writeDatasetDoubleArray4D:h5sclose_f:'//trim(dataname), hdferr)
@@ -3395,6 +3603,9 @@ call error_check_(self, 'readDatasetCharArray1D:h5dget_space_f:'//trim(dataname)
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetCharArray1D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1)))
 !
@@ -3410,9 +3621,12 @@ call error_check_(self, 'readDatasetCharArray1D:h5dread_f:'//trim(dataname), hdf
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetCharArray1D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetCharArray1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetCharArray1D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetCharArray1D')
+end if 
 
 ! that's it
 
@@ -3454,6 +3668,9 @@ call error_check_(self, 'readDatasetCharArray2D:h5dget_space_f:'//trim(dataname)
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetCharArray2D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2)))
 !
@@ -3469,9 +3686,12 @@ call error_check_(self, 'readDatasetCharArray2D:h5dread_f:'//trim(dataname), hdf
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetCharArray2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetCharArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetCharArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetCharArray2D')
+end if 
 
 ! that's it
 
@@ -3513,6 +3733,9 @@ call error_check_(self, 'readDatasetCharArray3D:h5dget_space_f:'//trim(dataname)
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetCharArray3D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3)))
 !
@@ -3528,9 +3751,12 @@ call error_check_(self, 'readDatasetCharArray3D:h5dread_f:'//trim(dataname), hdf
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetCharArray3D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetCharArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetCharArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetCharArray3D')
+end if 
 
 ! that's it
 
@@ -3572,6 +3798,9 @@ call error_check_(self, 'readDatasetCharArray4D:h5dget_space_f:'//trim(dataname)
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetCharArray4D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3),1:dims(4)))
 !
@@ -3587,9 +3816,12 @@ call error_check_(self, 'readDatasetCharArray4D:h5dread_f:'//trim(dataname), hdf
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetCharArray4D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetCharArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetCharArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetCharArray4D')
+end if 
 
 ! that's it
 
@@ -3625,6 +3857,9 @@ call error_check_(self, 'readDatasetInteger_:h5dopen_f:'//trim(dataname), hdferr
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetInteger_:h5dget_space_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 !
 ! Read the data.
 !
@@ -3638,9 +3873,12 @@ call error_check_(self, 'readDatasetInteger_:h5dread_f:'//trim(dataname), hdferr
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetInteger_:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetInteger_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetInteger_:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetInteger_')
+end if 
 ! that's it
 
 end subroutine readDatasetInteger_
@@ -3681,6 +3919,9 @@ call error_check_(self, 'readDatasetIntegerArray1D:h5dget_space_f:'//trim(datana
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetIntegerArray1D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1)))
 !
@@ -3696,9 +3937,12 @@ call error_check_(self, 'readDatasetIntegerArray1D:h5dread_f:'//trim(dataname), 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetIntegerArray1D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetIntegerArray1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetIntegerArray1D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetIntegerArray1D')
+end if 
 
 ! that's it
 
@@ -3740,6 +3984,9 @@ call error_check_(self, 'readDatasetIntegerArray2D:h5dget_space_f:'//trim(datana
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetIntegerArray2D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2)))
 !
@@ -3755,9 +4002,12 @@ call error_check_(self, 'readDatasetIntegerArray2D:h5dread_f:'//trim(dataname), 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetIntegerArray2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetIntegerArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetIntegerArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetIntegerArray2D')
+end if 
 
 ! that's it
 
@@ -3799,6 +4049,9 @@ call error_check_(self, 'readDatasetIntegerArray3D:h5dget_space_f:'//trim(datana
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetIntegerArray3D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3)))
 !
@@ -3814,9 +4067,12 @@ call error_check_(self, 'readDatasetIntegerArray3D:h5dread_f:'//trim(dataname), 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetIntegerArray3D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetIntegerArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetIntegerArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetIntegerArray3D')
+end if 
 
 ! that's it
 
@@ -3860,6 +4116,9 @@ call error_check_(self, 'readDatasetIntegerArray4D:h5dget_space_f:'//trim(datana
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetIntegerArray4D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3),1:dims(4)))
 !
@@ -3875,9 +4134,12 @@ call error_check_(self, 'readDatasetIntegerArray4D:h5dread_f:'//trim(dataname), 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetIntegerArray4D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetIntegerArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetIntegerArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetIntegerArray4D')
+end if 
 
 ! that's it
 
@@ -3915,6 +4177,9 @@ call error_check_(self, 'readDatasetInteger64_:h5dopen_f:'//trim(dataname), hdfe
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetInteger64_:h5dget_space_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 !
 ! Read the data.
 !
@@ -3928,9 +4193,12 @@ call error_check_(self, 'readDatasetInteger64_:h5dread_f:'//trim(dataname), hdfe
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetInteger64_:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetInteger64_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetInteger64_:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetInteger64_')
+end if 
 ! that's it
 
 end subroutine readDatasetInteger64_
@@ -3972,6 +4240,9 @@ call error_check_(self, 'readDatasetInteger64Array1D:h5dget_space_f:'//trim(data
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetInteger64Array1D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1)))
 !
@@ -3980,16 +4251,19 @@ allocate(rdata(1:dims(1)))
 f_ptr = C_LOC(rdata(1))
 call h5dread_f( dset, h5kind_to_type(int64,H5_INTEGER_KIND), f_ptr, hdferr)
 call error_check_(self, 'readDatasetInteger64Array1D:h5dread_f:'//trim(dataname), hdferr)
-
+ 
 !
 ! Close and release resources.
 !
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetInteger64Array1D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetInteger64Array1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetInteger64Array1D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetInteger64Array1D')
+end if
 
 ! that's it
 
@@ -4032,6 +4306,9 @@ call error_check_(self, 'readDatasetInteger64Array2D:h5dget_space_f:'//trim(data
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetInteger64Array2D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2)))
 !
@@ -4047,9 +4324,12 @@ call error_check_(self, 'readDatasetInteger64Array2D:h5dread_f:'//trim(dataname)
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetInteger64Array2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetInteger64Array2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetInteger64Array2D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetInteger64Array2D')
+end if 
 
 ! that's it
 
@@ -4092,6 +4372,9 @@ call error_check_(self, 'readDatasetInteger64Array3D:h5dget_space_f:'//trim(data
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetInteger64Array3D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3)))
 !
@@ -4107,9 +4390,12 @@ call error_check_(self, 'readDatasetInteger64Array3D:h5dread_f:'//trim(dataname)
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetInteger64Array3D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetInteger64Array3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetInteger64Array3D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetInteger64Array3D')
+end if 
 
 ! that's it
 
@@ -4154,6 +4440,9 @@ call error_check_(self, 'readDatasetInteger64Array4D:h5dget_space_f:'//trim(data
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetInteger64Array4D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3),1:dims(4)))
 !
@@ -4169,9 +4458,12 @@ call error_check_(self, 'readDatasetInteger64Array4D:h5dread_f:'//trim(dataname)
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetInteger64Array4D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetInteger64Array4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetInteger64Array4D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetInteger64Array4D')
+end if 
 
 ! that's it
 
@@ -4209,6 +4501,9 @@ call error_check_(self, 'readDatasetFloat_:h5dopen_f:'//trim(dataname), hdferr)
 call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetFloat_:h5dget_space_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 ! Read the data.
 !
@@ -4222,9 +4517,12 @@ call error_check_(self, 'readDatasetFloat_:h5dread_f:'//trim(dataname), hdferr)
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetFloat_:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetFloat_:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetFloat_:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetFloat_')
+end if 
 ! that's it
 
 end subroutine readDatasetFloat_
@@ -4266,6 +4564,9 @@ call error_check_(self, 'readDatasetFloatArray1D:h5dget_space_f:'//trim(dataname
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetFloatArray1D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1)))
 !
@@ -4275,16 +4576,19 @@ f_ptr = C_LOC(rdata(1))
 call h5dread_f( dset, H5T_NATIVE_REAL, f_ptr, hdferr)
 call error_check_(self, 'readDatasetFloatArray1D:h5dread_f:'//trim(dataname), hdferr)
 
+
 !
 ! Close and release resources.
 !
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetFloatArray1D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetFloatArray1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetFloatArray1D:h5dclose_f:'//trim(dataname), hdferr)
 
-
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetFloatArray1D')
+end if 
 ! that's it
 
 end subroutine readDatasetFloatArray1D
@@ -4326,6 +4630,9 @@ call error_check_(self, 'readDatasetFloatArray2D:h5dget_space_f:'//trim(dataname
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetFloatArray2D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2)))
 !
@@ -4341,9 +4648,12 @@ call error_check_(self, 'readDatasetFloatArray2D:h5dread_f:'//trim(dataname), hd
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetFloatArray2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetFloatArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetFloatArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetFloatArray2D')
+end if 
 
 ! that's it
 
@@ -4386,6 +4696,9 @@ call error_check_(self, 'readDatasetFloatArray3D:h5dget_space_f:'//trim(dataname
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetFloatArray3D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3)))
 !
@@ -4401,10 +4714,12 @@ call error_check_(self, 'readDatasetFloatArray3D:h5dread_f:'//trim(dataname), hd
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetFloatArray3D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetFloatArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetFloatArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
-
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetFloatArray3D')
+end if 
 ! that's it
 
 end subroutine readDatasetFloatArray3D
@@ -4446,6 +4761,9 @@ call error_check_(self, 'readDatasetFloatArray4D:h5dget_space_f:'//trim(dataname
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetFloatArray4D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3),1:dims(4)))
 !
@@ -4461,9 +4779,12 @@ call error_check_(self, 'readDatasetFloatArray4D:h5dread_f:'//trim(dataname), hd
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetFloatArray4D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetFloatArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetFloatArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetFloatArray4D')
+end if 
 ! that's it
 
 end subroutine readDatasetFloatArray4D
@@ -4500,6 +4821,9 @@ call h5dget_space_f(dset,space, hdferr)
 call error_check_(self, 'readDatasetDouble_:h5dget_space_f:'//trim(dataname), hdferr)
 
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 ! Read the data.
 !
 f_ptr = C_LOC(rdata)
@@ -4512,9 +4836,11 @@ call error_check_(self, 'readDatasetDouble_:h5dread_f:'//trim(dataname), hdferr)
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetDouble_:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetDouble_:h5dclose_f:'//trim(dataname), hdferr)
-
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetDouble_:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetDouble_')
+end if 
 ! that's it
 
 end subroutine readDatasetDouble_
@@ -4556,6 +4882,9 @@ call error_check_(self, 'readDatasetDoubleArray1D:h5dget_space_f:'//trim(datanam
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetDoubleArray1D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1)))
 !
@@ -4571,8 +4900,11 @@ call error_check_(self, 'readDatasetDoubleArray1D:h5dread_f:'//trim(dataname), h
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetDoubleArray1D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetDoubleArray1D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetDoubleArray1D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetDoubleArray1D')
+end if 
 
 ! that's it
 
@@ -4615,6 +4947,9 @@ call error_check_(self, 'readDatasetDoubleArray2D:h5dget_space_f:'//trim(datanam
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetDoubleArray2D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2)))
 !
@@ -4630,9 +4965,12 @@ call error_check_(self, 'readDatasetDoubleArray2D:h5dread_f:'//trim(dataname), h
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetDoubleArray2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetDoubleArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetDoubleArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetDoubleArray2D')
+end if 
 
 ! that's it
 
@@ -4675,6 +5013,9 @@ call error_check_(self, 'readDatasetDoubleArray3D:h5dget_space_f:'//trim(datanam
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetDoubleArray3D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3)))
 !
@@ -4691,8 +5032,11 @@ call error_check_(self, 'readDatasetDoubleArray3D:h5dread_f:'//trim(dataname), h
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetDoubleArray3D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetDoubleArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetDoubleArray3D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetDoubleArray3D')
+end if 
 
 
 ! that's it
@@ -4736,6 +5080,9 @@ call error_check_(self, 'readDatasetDoubleArray4D:h5dget_space_f:'//trim(datanam
 call h5sget_simple_extent_dims_f(space, dims, maxdims, hdferr)
 call error_check_(self, 'readDatasetDoubleArray4D:h5sget_simple_extent_dims_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
 
 allocate(rdata(1:dims(1),1:dims(2),1:dims(3),1:dims(4)))
 !
@@ -4751,8 +5098,11 @@ call error_check_(self, 'readDatasetDoubleArray4D:h5dread_f:'//trim(dataname), h
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readDatasetDoubleArray4D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset , hdferr)
-call error_check_(self, 'readDatasetDoubleArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset , hdferr)
+! call error_check_(self, 'readDatasetDoubleArray4D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('readDatasetDoubleArray4D')
+end if 
 
 
 ! that's it
@@ -4817,13 +5167,19 @@ call error_check_(self, 'writeHyperslabCharArray2D:h5sselect_hyperslab_f:'//trim
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabCharArray2D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_STD_U8LE, f_ptr, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabCharArray2D:h5dwrite_f:'//trim(dataname), hdferr)
 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabCharArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabCharArray2D:h5dclose_f:'//trim(dataname), hdferr)
-
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabCharArray2D')
+end if 
 
 end function writeHyperslabCharArray2D
 
@@ -4873,11 +5229,18 @@ call error_check_(self, 'writeHyperslabCharArray3D:h5sselect_hyperslab_f:'//trim
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabCharArray3D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_STD_U8LE, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabCharArray3D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabCharArray3D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabCharArray3D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabCharArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabCharArray3D
@@ -4928,11 +5291,18 @@ call error_check_(self, 'writeHyperslabCharArray4D:h5sselect_hyperslab_f:'//trim
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabCharArray4D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_STD_U8LE, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabCharArray4D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabCharArray4D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabCharArray4D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabCharArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabCharArray4D
@@ -4981,11 +5351,18 @@ call error_check_(self, 'writeHyperslabIntegerArray2D:h5sselect_hyperslab_f:'//t
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabIntegerArray2D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabIntegerArray2D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabIntegerArray2D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabIntegerArray2D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabIntegerArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabIntegerArray2D
@@ -5034,11 +5411,18 @@ call error_check_(self, 'writeHyperslabIntegerArray3D:h5sselect_hyperslab_f:'//t
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabIntegerArray3D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabIntegerArray3D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabIntegerArray3D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabIntegerArray3D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabIntegerArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabIntegerArray3D
@@ -5087,11 +5471,18 @@ call error_check_(self, 'writeHyperslabintegerArray4D:h5sselect_hyperslab_f:'//t
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabintegerArray4D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_INTEGER, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabintegerArray4D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabintegerArray4D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabIntegerArray4D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabintegerArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabIntegerArray4D
@@ -5141,11 +5532,18 @@ call error_check_(self, 'writeHyperslabFloatArray2D:h5sselect_hyperslab_f:'//tri
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabFloatArray2D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_REAL, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabFloatArray2D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabFloatArray2D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabFloatArray2D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabFloatArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabFloatArray2D
@@ -5195,11 +5593,18 @@ call error_check_(self, 'writeHyperslabFloatArray3D:h5sselect_hyperslab_f:'//tri
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabFloatArray3D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_REAL, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabFloatArray3D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabFloatArray3D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabFloatArray3D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabFloatArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabFloatArray3D
@@ -5249,11 +5654,18 @@ call error_check_(self, 'writeHyperslabFloatArray4D:h5sselect_hyperslab_f:'//tri
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabFloatArray4D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_REAL, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabFloatArray4D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabFloatArray4D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabFloatArray4D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabFloatArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabFloatArray4D
@@ -5303,11 +5715,18 @@ call error_check_(self, 'writeHyperslabDoubleArray2D:h5sselect_hyperslab_f:'//tr
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabDoubleArray2D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabDoubleArray2D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabDoubleArray2D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabDoubleArray2D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabDoubleArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabDoubleArray2D
@@ -5357,11 +5776,18 @@ call error_check_(self, 'writeHyperslabDoubleArray3D:h5sselect_hyperslab_f:'//tr
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabDoubleArray3D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabDoubleArray3D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabDoubleArray3D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabDoubleArray3D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabDoubleArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabDoubleArray3D
@@ -5411,11 +5837,18 @@ call error_check_(self, 'writeHyperslabDoubleArray4D:h5sselect_hyperslab_f:'//tr
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'writeHyperslabDoubleArray4D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, wdata, dims, hdferr, memspace, space)
 call error_check_(self, 'writeHyperslabDoubleArray4D:h5dwrite_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'writeHyperslabDoubleArray4D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('writeHyperslabDoubleArray4D')
+end if 
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'writeHyperslabDoubleArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
 
 end function writeHyperslabDoubleArray4D
@@ -5464,16 +5897,23 @@ call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabCharArray2D:h5screate_simple_f:'//trim(dataname), hdferr)
 
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 call h5dread_f(dset, H5T_STD_U8LE, rdata, hdims, hdferr, memspace, space)
 call error_check_(self, 'readHyperslabCharArray2D:h5dread_f:'//trim(dataname), hdferr)
+
 
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabCharArray2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabCharArray2D:h5dclose_f:'//trim(dataname), hdferr)
-
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabCharArray2D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabCharArray2D_')
+end if 
 
 end function readHyperslabCharArray2D_
 
@@ -5518,14 +5958,23 @@ call error_check_(self, 'readHyperslabCharArray3D:h5sselect_hyperslab_f:'//trim(
 call h5screate_simple_f(rnk, dims3, memspace, hdferr)
 call error_check_(self, 'readHyperslabCharArray3D:h5screate_simple_f:'//trim(dataname3), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname3)
+  if (dumpHDFstack.eqv..TRUE.) call self%stackdump_('push')
+end if 
+
 call h5dread_f(dset, H5T_STD_U8LE, rdata3, hdims, hdferr, memspace, space)
 call error_check_(self, 'readHyperslabCharArray3D:h5dread_f:'//trim(dataname3), hdferr)
+
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabCharArray3D:h5sclose_f:'//trim(dataname3), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabCharArray3D:h5dclose_f:'//trim(dataname3), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabCharArray3D:h5dclose_f:'//trim(dataname3), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabCharArray3D_')
+end if 
 
 end function readHyperslabCharArray3D_
 
@@ -5573,16 +6022,22 @@ call h5screate_simple_f(rnk, dims4, memspace, hdferr)
 call error_check_(self, 'readHyperslabCharArray4D:h5screate_simple_f:'//trim(dataname4), hdferr)
 
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname4)
+  if (dumpHDFstack.eqv..TRUE.) call self%stackdump_('push')
+end if 
+
 call h5dread_f(dset, H5T_STD_U8LE, rdata4, hdims, hdferr, memspace, space)
 call error_check_(self, 'readHyperslabCharArray4D:h5dread_f:'//trim(dataname4), hdferr)
-
 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabCharArray4D:h5sclose_f:'//trim(dataname4), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabCharArray4D:h5dclose_f:'//trim(dataname4), hdferr)
-
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabCharArray4D:h5dclose_f:'//trim(dataname4), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabCharArray4D_')
+end if 
 
 end function readHyperslabCharArray4D_
 
@@ -5624,18 +6079,23 @@ call error_check_(self, 'readHyperslabIntegerArray2D:h5sselect_hyperslab_f:'//tr
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray2D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2)))
 call h5dread_f(dset, H5T_NATIVE_INTEGER, rdata, hdims, hdferr, memspace, space)
 call error_check_(self, 'readHyperslabIntegerArray2D:h5dread_f:'//trim(dataname), hdferr)
 
-
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabIntegerArray2D:h5dclose_f:'//trim(dataname), hdferr)
-
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabIntegerArray2D:h5dclose_f:'//trim(dataname), hdferr)
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabIntegerArray2D_')
+end if 
 
 end function readHyperslabIntegerArray2D_
 
@@ -5677,6 +6137,10 @@ call error_check_(self, 'readHyperslabIntegerArray3D:h5sselect_hyperslab_f:'//tr
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray3D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2),dims(3)))
 call h5dread_f(dset, H5T_NATIVE_INTEGER, rdata, hdims, hdferr, memspace, space)
@@ -5686,9 +6150,12 @@ call error_check_(self, 'readHyperslabIntegerArray3D:h5dread_f:'//trim(dataname)
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray3D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabIntegerArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabIntegerArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabIntegerArray3D_')
+end if 
 
 end function readHyperslabIntegerArray3D_
 
@@ -5730,6 +6197,10 @@ call error_check_(self, 'readHyperslabIntegerArray4D:h5sselect_hyperslab_f:'//tr
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray4D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2),dims(3),dims(4)))
 call h5dread_f(dset, H5T_NATIVE_INTEGER, rdata, hdims, hdferr, memspace, space)
@@ -5739,9 +6210,12 @@ call error_check_(self, 'readHyperslabIntegerArray4D:h5dread_f:'//trim(dataname)
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray4D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabIntegerArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabIntegerArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabIntegerArray4D_')
+end if 
 
 end function readHyperslabIntegerArray4D_
 
@@ -5784,6 +6258,10 @@ call error_check_(self, 'readHyperslabFloatArray2D:h5sselect_hyperslab_f:'//trim
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabFloatArray2D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2)))
 call h5dread_f(dset, H5T_NATIVE_REAL, rdata, hdims, hdferr, memspace, space)
@@ -5793,9 +6271,12 @@ call error_check_(self, 'readHyperslabFloatArray2D:h5dread_f:'//trim(dataname), 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabFloatArray2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabFloatArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabFloatArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabFloatArray2D_')
+end if 
 
 end function readHyperslabFloatArray2D_
 
@@ -5838,6 +6319,10 @@ call error_check_(self, 'readHyperslabFloatArray3D:h5sselect_hyperslab_f:'//trim
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabFloatArray3D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2),dims(3)))
 call h5dread_f(dset, H5T_NATIVE_REAL, rdata, hdims, hdferr, memspace, space)
@@ -5847,9 +6332,12 @@ call error_check_(self, 'readHyperslabFloatArray3D:h5dread_f:'//trim(dataname), 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabFloatArray3D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabFloatArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabFloatArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabFloatArray3D_')
+end if 
 
 end function readHyperslabFloatArray3D_
 
@@ -5892,6 +6380,10 @@ call error_check_(self, 'readHyperslabFloatArray4D:h5sselect_hyperslab_f:'//trim
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabFloatArray4D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2),dims(3),dims(4)))
 call h5dread_f(dset, H5T_NATIVE_REAL, rdata, hdims, hdferr, memspace, space)
@@ -5901,9 +6393,12 @@ call error_check_(self, 'readHyperslabFloatArray4D:h5dread_f:'//trim(dataname), 
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabFloatArray4D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabFloatArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabFloatArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabFloatArray4D_')
+end if 
 
 end function readHyperslabFloatArray4D_
 
@@ -5946,6 +6441,10 @@ call error_check_(self, 'readHyperslabDoubleArray2D:h5sselect_hyperslab_f:'//tri
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabDoubleArray2D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2)))
 call h5dread_f(dset, H5T_NATIVE_DOUBLE, rdata, hdims, hdferr, memspace, space)
@@ -5955,9 +6454,12 @@ call error_check_(self, 'readHyperslabDoubleArray2D:h5dread_f:'//trim(dataname),
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabDoubleArray2D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabDoubleArray2D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabDoubleArray2D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabDoubleArray2D_')
+end if 
 
 end function readHyperslabDoubleArray2D_
 
@@ -6000,6 +6502,10 @@ call error_check_(self, 'readHyperslabDoubleArray3D:h5sselect_hyperslab_f:'//tri
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'readHyperslabDoubleArray3D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2),dims(3)))
 call h5dread_f(dset, H5T_NATIVE_DOUBLE, rdata, hdims, hdferr, memspace, space)
@@ -6009,9 +6515,12 @@ call error_check_(self, 'readHyperslabDoubleArray3D:h5dread_f:'//trim(dataname),
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'readHyperslabDoubleArray3D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'readHyperslabDoubleArray3D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'readHyperslabDoubleArray3D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabDoubleArray3D_')
+end if 
 
 end function readHyperslabDoubleArray3D_
 
@@ -6054,6 +6563,10 @@ call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5sselect_hyperslab_f:'/
 call h5screate_simple_f(rnk, dims, memspace, hdferr)
 call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5screate_simple_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%push_('d', dset, dataname)
+end if 
+
 
 allocate(rdata(dims(1),dims(2),dims(3),dims(4)))
 call h5dread_f(dset, H5T_NATIVE_DOUBLE, rdata, hdims, hdferr, memspace, space)
@@ -6063,9 +6576,12 @@ call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5dread_f:'//trim(datana
 call h5sclose_f(space, hdferr)
 call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5sclose_f:'//trim(dataname), hdferr)
 
-call h5dclose_f(dset, hdferr)
-call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5dclose_f:'//trim(dataname), hdferr)
+! call h5dclose_f(dset, hdferr)
+! call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5dclose_f:'//trim(dataname), hdferr)
 
+if (hdferr.ge.0) then 
+  call self%pop_('readHyperslabDoubleArray4D_')
+end if 
 
 end function readHyperslabDoubleArray4D_
 
@@ -6708,7 +7224,7 @@ end if
 if (PRESENT(dataname).eqv..TRUE.) call pop_(self)
 
 ! and close this group
-call self%pop()
+call self%pop('writeEMheader_')
 
 end subroutine writeEMheader_
 

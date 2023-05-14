@@ -506,7 +506,7 @@ module mod_CPLMmaster
       hdferr = HDF%writeDatasetFloatArray(dataset, combo, 4*nx, 4*ny)
     end if
   
-    call HDF%pop(.TRUE.)
+    call HDF%popall()
 
     call Message%printMessage(' Final data stored in file '//trim(omnl%masterfile), frm = "(A/)")  
   end associate

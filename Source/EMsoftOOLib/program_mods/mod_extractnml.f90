@@ -161,7 +161,7 @@ groupname = SC_NMLfiles
     call Message%printError('extractnml_','This file does not have an NMLfiles group')
   end if 
 
-  call HDF%pop(.TRUE.)
+  call HDF%popall()
 
 call closeFortranHDFInterface()
 
