@@ -757,7 +757,7 @@ allocate(qar2(4,cnt), done(cnt))
 qar2 = qar
 
 ! optimal values for the Riesz energies
-rieszoptimal = (/ 4.D0*dble(cnt)**2/3.D0/cPi, dble(cnt)**2*0.5D0, dble(cnt)**2*dlog(dble(cnt))/3.D0/cPi /)
+rieszoptimal = (/ 8.D0*dble(cnt)**2/3.D0/cPi, dble(cnt)**2, 2.D0*dble(cnt)**2*dlog(dble(cnt))/3.D0/cPi /)
 
 tsum = 0.D0
 thr = 1.0
@@ -800,14 +800,14 @@ do i=1,cnt
 
 !$OMP END PARALLEL
 
+! multiply by 2 to get the complete energy (needed due to 1<=i<j<=N summation format)
+rieszsum = 2.D0 * rieszsum 
+
 eu = rieszsum/rieszoptimal
 
 write (*,"('Riesz optimal : ',3(F25.3,A1))") rieszoptimal(1),' ',rieszoptimal(2),' ',rieszoptimal(3)
 write (*,"('Riesz energy  : ',3(F25.3,A1))") rieszsum(1),' ',rieszsum(2),' ',rieszsum(3)
 write (*,"('Riesz ratio   : ',3(F25.20,A1))") eu(1),' ',eu(2),' ',eu(3)
-
-write (*,*) rieszsum
-write (*,*) eu 
 
 end subroutine computeRieszEnergy_
 

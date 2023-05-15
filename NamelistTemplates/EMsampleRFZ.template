@@ -18,7 +18,7 @@
 ! parameters for all sampling modes 
 !=================
 ! coverage of SO(3)
-! 'single': quaternions q and -1 are treated individually
+! 'single': quaternions q and -q are treated individually
 ! 'double': quaternions with negative scalar part are negated
  SO3cover = 'single'
 ! active quaternion that rotates the entire fundamental zone before sampling
