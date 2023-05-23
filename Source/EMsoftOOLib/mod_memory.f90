@@ -767,7 +767,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_char1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_char1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_char1_
@@ -892,7 +892,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_char2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_char2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_char2_
@@ -1017,7 +1017,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ish1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ish1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ish1_
@@ -1142,7 +1142,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ish2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ish2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ish2_
@@ -1267,7 +1267,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ish3_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ish3_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ish3_
@@ -1392,7 +1392,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ish4_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ish4_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ish4_
@@ -1517,7 +1517,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ish5_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ish5_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ish5_
@@ -1643,7 +1643,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ish6_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ish6_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ish6_
@@ -1768,7 +1768,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_irg1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_irg1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_irg1_
@@ -1893,7 +1893,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_irg2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_irg2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_irg2_
@@ -2018,7 +2018,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_irg3_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_irg3_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_irg3_
@@ -2143,7 +2143,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_irg4_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_irg4_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_irg4_
@@ -2268,7 +2268,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_irg5_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_irg5_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_irg5_
@@ -2394,7 +2394,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_irg6_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_irg6_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_irg6_
@@ -2519,7 +2519,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ill1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ill1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ill1_
@@ -2644,7 +2644,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ill2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ill2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ill2_
@@ -2769,7 +2769,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ill3_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ill3_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ill3_
@@ -2894,7 +2894,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ill4_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ill4_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ill4_
@@ -3019,7 +3019,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ill5_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ill5_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ill5_
@@ -3145,7 +3145,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_ill6_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_ill6_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_ill6_
@@ -3270,7 +3270,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_sgl1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_sgl1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_sgl1_
@@ -3395,7 +3395,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_sgl2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_sgl2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_sgl2_
@@ -3520,7 +3520,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_sgl3_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_sgl3_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_sgl3_
@@ -3645,7 +3645,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_sgl4_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_sgl4_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_sgl4_
@@ -3770,7 +3770,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_sgl5_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_sgl5_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_sgl5_
@@ -3896,7 +3896,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_sgl6_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_sgl6_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_sgl6_
@@ -4021,7 +4021,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_dbl1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_dbl1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_dbl1_
@@ -4146,7 +4146,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_dbl2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_dbl2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_dbl2_
@@ -4271,7 +4271,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_dbl3_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_dbl3_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_dbl3_
@@ -4396,7 +4396,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_dbl4_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_dbl4_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_dbl4_
@@ -4521,7 +4521,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_dbl5_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_dbl5_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_dbl5_
@@ -4647,7 +4647,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_dbl6_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_dbl6_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_dbl6_
@@ -4772,7 +4772,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplx1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplx1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplx1_
@@ -4897,7 +4897,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplx2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplx2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplx2_
@@ -5022,7 +5022,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplx3_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplx3_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplx3_
@@ -5147,7 +5147,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplx4_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplx4_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplx4_
@@ -5272,7 +5272,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplx5_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplx5_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplx5_
@@ -5398,7 +5398,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplx6_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplx6_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplx6_
@@ -5523,7 +5523,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplxd1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplxd1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplxd1_
@@ -5648,7 +5648,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplxd2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplxd2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplxd2_
@@ -5773,7 +5773,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplxd3_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplxd3_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplxd3_
@@ -5898,7 +5898,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplxd4_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplxd4_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplxd4_
@@ -6023,7 +6023,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplxd5_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplxd5_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplxd5_
@@ -6149,7 +6149,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_cmplxd6_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_cmplxd6_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_cmplxd6_
@@ -6274,7 +6274,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_logical1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_logical1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_logical1_
@@ -6399,7 +6399,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_logical2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_logical2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_logical2_
@@ -6524,7 +6524,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_logical3_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_logical3_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_logical3_
@@ -6649,7 +6649,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_char1_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_char1_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_byte1_
@@ -6774,7 +6774,7 @@ if (allocated(ar)) then
     if (self%verbose) write (*,*) '   -> deallocated array '//trim(varname)
     deallocate(ar)
 else 
-    call Message%printMessage(' mod_memory:dealloc_char2_:Warning: attempting to deallocate array that is not allocated. ')
+    call Message%printMessage(' mod_memory:dealloc_char2_:Warning: unsuccessful deallocation of '//trim(varname)//' array. ')
 endif
 
 end subroutine dealloc_byte2_

@@ -292,7 +292,7 @@ print,' file type ', gname
     SEMdata.mcdepthstep = double(H5D_read(dset_id))
     H5D_close,dset_id
 
-    if (SEMdata.EBSDorECP ne 0) then begin
+    if (SEMdata.EBSDorECP eq 0) then begin
       dset_id = H5D_open(group_id,'sig')
       SEMdata.mcvangle = double(H5D_read(dset_id))
       H5D_close,dset_id

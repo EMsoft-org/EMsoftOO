@@ -1699,11 +1699,11 @@ character(fnlen)                        :: nmldefault
  call Message % printMessage('This is free software, and you are welcome to redistribute it')
  call Message % printMessage('under certain conditions; see License.txt file for details.',frm="(A/)")
 
- call Message % printMessage('Program name         : '//trim(progname))
+ call Message % printMessage('Program Name         : '//trim(progname))
  call Message % printMessage('Purpose              : '//trim(progdesc))
  call Message % printMessage('Platform             : '//"@CMAKE_SYSTEM_NAME@")
- call Message % printMessage('Source code version  : '//trim(self % EMsoftversion))
- call Message % printMessage('Source code Revision : '//trim(self % EMsoftRevision))
+ call Message % printMessage('Source Code Version  : '//trim(self % EMsoftversion))
+ call Message % printMessage('Source Code Revision : '//trim(self % EMsoftRevision))
  call Message % printMessage('Build Date/Time      : '//trim(self % EMsoftBuildDate),frm="(A/)")
 
  call Message % printMessage( 'See https://github.com/EMsoft-org/EMsoftOO/wiki for selected help pages.',frm="(A/)")

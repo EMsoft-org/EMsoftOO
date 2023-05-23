@@ -3260,7 +3260,7 @@ call mem%dealloc(eulerangles, 'eulerangles')
 call mem%dealloc(istart, 'istart')
 call mem%dealloc(istop, 'istop')
 call mem%dealloc(patinbatch, 'patinbatch')
-call mem%dealloc(batchpatterns32lin, 'batchpatterns32lin')
+if (trim(bitmode).eq.'dict') call mem%dealloc(batchpatterns32lin, 'batchpatterns32lin')
 call mem%dealloc(mask, 'mask')
 call mem%dealloc(masklin, 'masklin')
 

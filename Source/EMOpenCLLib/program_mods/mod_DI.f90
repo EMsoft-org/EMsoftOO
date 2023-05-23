@@ -1711,8 +1711,8 @@ real(kind=sgl),pointer                              :: results(:), dpsort(:)
 integer(kind=irg),pointer                           :: indexlist(:), dpindex(:)
 
 integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
-                                                       recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr, &
-                                                       nsig, numk, recordsize_correct, patsz, tickstart, tickstart2, tock, &
+                                                       recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt,hdferr,nsteps, &
+                                                       nsig, numk, recordsize_correct, patsz,tickstart,tickstart2,tock,remainder,&
                                                        npy, sz(3), jjj, Lnew, recordsize_correct_new, correctsize_new
 integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt, Nres
 real(kind=sgl),pointer                              :: dict(:), T0dict(:)
@@ -1722,7 +1722,7 @@ real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:),  &
                                                        tmpimageexpt(:), OSMmap(:,:), maxsortarr(:), minsortarr(:), epatterns(:,:), &
                                                        eulerarray(:,:),eulerarray2(:,:), epatterns_tmp(:,:), dpatterns_tmp(:,:), &
-                                                       pcavecs(:,:), pcasvs(:)
+                                                       pcavecs(:,:), pcasvs(:), ep(:,:), PCAepatterns(:,:)
 real(kind=sgl),allocatable, target                  :: res(:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
                                                        resultmain(:,:),resulttmp(:,:),results1(:), results2(:)
 integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:)
@@ -2242,14 +2242,16 @@ if (PCA.eqv..TRUE.) then
   TRANSA = 'N'
   TRANSB = 'N'
   MMMM = patsz
-  NNNN = totnumexpt 
+  NNNN = patsz 
   KKKK = patsz
   LDA = patsz
   LDB = patsz
   LDC = patsz
   ALPHA = 1.0
   BETA = 0.0
-  allocate(YYYY(patsz,totnumexpt))
+  nsteps = totnumexpt/patsz
+  remainder = totnumexpt - nsteps*patsz
+  allocate(YYYY(patsz,patsz),ep(patsz,patsz),PCAepatterns(Lnew,totnumexpt))
   call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
   call Message%printMessage(' Computing PCA projections of pre-processed experimental patterns')
   do pp = 1,totnumexpt 
@@ -2257,11 +2259,22 @@ if (PCA.eqv..TRUE.) then
     epatterns(:,pp) = tmpimageexpt
   end do
 ! use a BLAS routine to perform the matrix product (should be much faster than the f90 matmul routine)
-  call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, epatterns, LDB, BETA, YYYY, LDC)
-  deallocate(epatterns)
-  allocate(epatterns(Lnew,totnumexpt))
-  epatterns = YYYY(1:Lnew, 1:totnumexpt) 
-  deallocate(YYYY)
+  do pp = 1,nsteps+1
+    ep = 0.D0
+    if (pp.ne.nsteps+1) then 
+      write (*,*) pp, nsteps, (pp-1)*patsz+1,pp*patsz
+      ep = epatterns(:,(pp-1)*patsz+1:pp*patsz)
+      call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, ep, LDB, BETA, YYYY, LDC)
+      PCAepatterns(1:Lnew,(pp-1)*patsz+1:pp*patsz) = YYYY(1:Lnew,:)
+    else
+      write (*,*) pp, nsteps, (pp-1)*patsz+1,(pp-1)*patsz+remainder
+      ep = epatterns(:,(pp-1)*patsz+1:(pp-1)*patsz+remainder)
+      call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, ep, LDB, BETA, YYYY, LDC)
+      PCAepatterns(1:Lnew,(pp-1)*patsz+1:(pp-1)*patsz+remainder) = YYYY(1:Lnew,1:remainder)
+    end if 
+  end do
+  call move_alloc(PCAepatterns, epatterns)
+  deallocate(YYYY, ep)
   call Message%printMessage('   ---> done')
 ! reset some of the array size parameters to the corrected values for PCA mode
   correctsize = correctsize_new
@@ -2914,17 +2927,19 @@ real(kind=dbl),parameter                            :: nAmpere = 6.241D+18   ! C
 real(kind=sgl),allocatable                          :: results(:)
 integer(kind=irg),allocatable                       :: indexlist(:), dpindex(:)
 
-integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
+integer(kind=ill)                                   :: qqill, NDill, Ndtot, totnumexptill
+integer(kind=irg)                                   :: L,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
                                                        recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr, &
                                                        nsig, numk, recordsize_correct, patsz, tickstart, tickstart2, tock, &
-                                                       npy, sz(3), jjj, Lnew, recordsize_correct_new, correctsize_new
+                                                       npy, sz(3), jjj, Lnew, recordsize_correct_new, correctsize_new, nsteps, &
+                                                       remainder, Ne, Nd, totnumexpt, qq
 integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt, Nres
 real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:), mask(:,:),masklin(:),exptIQ(:),dpatterns(:,:), &
                                                        exptCI(:), exptFit(:), exppatarray(:), tmpexppatarray(:), dictblock(:,:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:),  &
                                                        tmpimageexpt(:), OSMmap(:,:), maxsortarr(:), minsortarr(:), epatterns(:,:), &
                                                        eulerarray(:,:),eulerarray2(:,:), epatterns_tmp(:,:), dpatterns_tmp(:,:), &
-                                                       pcavecs(:,:), pcasvs(:)
+                                                       pcavecs(:,:), pcasvs(:), PCAepatterns(:,:), ep(:,:)
 real(kind=sgl),allocatable                          :: res(:,:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
                                                        resultmain(:,:),resulttmp(:,:),results1(:), results2(:)
 integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:)
@@ -2955,7 +2970,7 @@ integer(c_int)                                      :: numd, nump
 type(C_PTR)                                         :: planf, HPplanf, HPplanb
 integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3), dms(1)
 
-integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn
+integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp, cn, dn, totn
 integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(4)
 type(FZpointd),pointer                              :: FZlist, FZtmp
 integer(kind=irg),allocatable,target                :: indexlist1(:),indexlist2(:),indexarray(:),indexmain(:,:),indextmp(:,:)
@@ -3381,14 +3396,16 @@ if (PCA.eqv..TRUE.) then
   TRANSA = 'N'
   TRANSB = 'N'
   MMMM = patsz
-  NNNN = totnumexpt 
+  NNNN =patsz
   KKKK = patsz
   LDA = patsz
   LDB = patsz
   LDC = patsz
   ALPHA = 1.0
   BETA = 0.0
-  allocate(YYYY(patsz,totnumexpt))
+  nsteps = totnumexpt/patsz
+  remainder = totnumexpt - nsteps*patsz
+  allocate(YYYY(patsz,patsz),ep(patsz,patsz),PCAepatterns(Lnew,totnumexpt))
   call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
   call Message%printMessage(' Computing PCA projections of pre-processed experimental patterns')
   do pp = 1,totnumexpt 
@@ -3396,11 +3413,22 @@ if (PCA.eqv..TRUE.) then
     epatterns(:,pp) = tmpimageexpt
   end do
 ! use a BLAS routine to perform the matrix product (should be much faster than the f90 matmul routine)
-  call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, epatterns, LDB, BETA, YYYY, LDC)
-  deallocate(epatterns)
-  allocate(epatterns(Lnew,totnumexpt))
-  epatterns = YYYY(1:Lnew, 1:totnumexpt) 
-  deallocate(YYYY)
+  do pp = 1,nsteps+1
+    ep = 0.D0
+    if (pp.ne.nsteps+1) then 
+      write (*,*) pp, nsteps, (pp-1)*patsz+1,pp*patsz
+      ep = epatterns(:,(pp-1)*patsz+1:pp*patsz)
+      call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, ep, LDB, BETA, YYYY, LDC)
+      PCAepatterns(1:Lnew,(pp-1)*patsz+1:pp*patsz) = YYYY(1:Lnew,:)
+    else
+      write (*,*) pp, nsteps, (pp-1)*patsz+1,(pp-1)*patsz+remainder
+      ep = epatterns(:,(pp-1)*patsz+1:(pp-1)*patsz+remainder)
+      call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, ep, LDB, BETA, YYYY, LDC)
+      PCAepatterns(1:Lnew,(pp-1)*patsz+1:(pp-1)*patsz+remainder) = YYYY(1:Lnew,1:remainder)
+    end if 
+  end do
+  call move_alloc(PCAepatterns, epatterns)
+  deallocate(YYYY, ep)
   call Message%printMessage('   ---> done')
 ! reset some of the array size parameters to the corrected values for PCA mode
   correctsize = correctsize_new
@@ -3425,7 +3453,12 @@ end if
 !=========================================
 call Message%printMessage(' --> Allocating various arrays for indexing')
 
-call mem%alloc(results, (/ Nd*totnumexpt /), 'results', initval = 0.0)
+Ndill = Nd
+totnumexptill = totnumexpt
+Ndtot = Ndill * totnumexptill
+allocate(results( Ndtot ))
+results = 0.0
+write (*,*) Ndtot, shape(results)
 call mem%alloc(res, (/ Nd, totnumexpt /), 'res', initval = 0.0)
 call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
 call mem%alloc(indexlist, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist')
@@ -3473,6 +3506,10 @@ LDC = Nd
 ALPHA = 1.0
 BETA = 0.0
 
+write (*,*) Nd, totnumexpt
+write (*,*) 'shapes: ', shape(results), shape(resultmain), shape(indexmain)  
+
+
 dictionaryloop: do ii = 1,cratio
 
     if (verbose.eqv..TRUE.) then
@@ -3517,8 +3554,7 @@ dictionaryloop: do ii = 1,cratio
       end if
     end if
 
-!$OMP PARALLEL NUM_THREADS(dinl%nthreads) DEFAULT(SHARED) PRIVATE(TID,qq,msa) &
-!$OMP& PRIVATE(resultarray, indexarray)
+!$OMP PARALLEL NUM_THREADS(dinl%nthreads) DEFAULT(SHARED) PRIVATE(TID,qq,msa,resultarray, indexarray)
 
     TID = OMP_GET_THREAD_NUM()
 
@@ -3528,20 +3564,20 @@ dictionaryloop: do ii = 1,cratio
 ! perform the sorting only if the largest new dot product is larger than the 
 ! smallest dot product already on the sorted list [suggested by D. Rowenhorst]
 !$OMP DO SCHEDULE(DYNAMIC)
-    do qq = 1,totnumexpt
-      msa = maxval(results((qq-1)*Nd+1:qq*Nd))
-      if (msa.gt.minsortarr(qq)) then 
-        resultarray(1:Nd) = results((qq-1)*Nd+1:qq*Nd)
-        indexarray(1:Nd) = indexlist((ii-1)*Nd+1:ii*Nd)
+    do qqill = 1,totnumexpt
+      msa = maxval(results((qqill-1)*Ndill+1:qqill*Ndill))
+      if (msa.gt.minsortarr(qqill)) then 
+        resultarray(1:Nd) = results((qqill-1)*Ndill+1:qqill*Ndill)
+        indexarray(1:Nd) = indexlist((ii-1)*Ndill+1:ii*Ndill)
 
         call SSORT(resultarray,indexarray,Nd,-2)
-        resulttmp(nnk+1:2*nnk,qq) = resultarray(1:nnk)
-        indextmp(nnk+1:2*nnk,qq) = indexarray(1:nnk)
+        resulttmp(nnk+1:2*nnk,qqill) = resultarray(1:nnk)
+        indextmp(nnk+1:2*nnk,qqill) = indexarray(1:nnk)
 
-        call SSORT(resulttmp(:,qq),indextmp(:,qq),2*nnk,-2)
-        resultmain(1:nnk,qq) = resulttmp(1:nnk,qq)
-        indexmain(1:nnk,qq) = indextmp(1:nnk,qq)
-        minsortarr(qq) = resulttmp(nnk,qq)
+        call SSORT(resulttmp(:,qqill),indextmp(:,qqill),2*nnk,-2)
+        resultmain(1:nnk,qqill) = resulttmp(1:nnk,qqill)
+        indexmain(1:nnk,qqill) = indextmp(1:nnk,qqill)
+        minsortarr(qqill) = resulttmp(nnk,qqill)
       end if 
     end do
 !$OMP END DO
