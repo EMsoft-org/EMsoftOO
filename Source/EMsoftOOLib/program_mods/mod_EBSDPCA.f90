@@ -1100,17 +1100,21 @@ if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloatArray2D Eulerangles'
 ! in this case, we store the PCA principal components of all the patterns in 
 ! an array of the same size and name, but we also store the covariance matrix
 ! and the singular values...
+dataset = 'OriginalPatterns'
+hdferr = HDF%writeDatasetFloatArray(dataset, reshape(sngl(dict), (/dinl%numsx,dinl%numsy,FZcnt/)),dinl%numsx,dinl%numsy,FZcnt)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetFloatArray dict', hdferr)
+
 dataset = SC_EBSDpatterns
 hdferr = HDF%writeDatasetFloatArray(dataset, sngl(pcs), L, FZcnt)
-if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray pcs', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetFloatArray pcs', hdferr)
 
 dataset = 'CovarianceMatrixWhitened'
 hdferr = HDF%writeDatasetFloatArray(dataset, sngl(covmat), L, L)
-if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray covmat', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetFloatArray covmat', hdferr)
 
 dataset = 'SingularValues'
 hdferr = HDF%writeDatasetFloatArray(dataset, sngl(svals), L)
-if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray svals', hdferr)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetFloatArray svals', hdferr)
 
 call timer%Time_tock()
 tstop = timer%getInterval()
