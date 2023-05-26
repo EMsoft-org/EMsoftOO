@@ -639,6 +639,7 @@ dataset = trim(HDFnames%get_NMLfilename())
 hdferr = HDF%writeDatasetTextFile(dataset, nmldeffile)
 
 call HDF%pop()
+call HDF%pop()
 
 
 ! create a NMLparameters group to write all the namelist entries into

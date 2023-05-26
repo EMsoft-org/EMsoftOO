@@ -915,14 +915,14 @@ dataset = SC_mLPSH
   hdferr = HDF%writeHyperslabFloatArray(dataset, mLPSH, dims3, offset3, cnt3, insert)
 
 dataset = SC_masterSPNH
-  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, numsites /)
-  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, numsites /)
+  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, 1 /)
+  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1 /)
   offset3 = (/ 0, 0, 0 /)
   hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPNH, dims3, offset3, cnt3, insert)
 
 dataset = SC_masterSPSH
-  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, numsites /)
-  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, numsites /)
+  dims3 = (/  2*emnl%npx+1, 2*emnl%npx+1, 1 /)
+  cnt3 = (/ 2*emnl%npx+1, 2*emnl%npx+1, 1 /)
   offset3 = (/ 0, 0, 0 /)
   hdferr = HDF%writeHyperslabFloatArray(dataset, masterSPSH, dims3, offset3, cnt3, insert)
 
