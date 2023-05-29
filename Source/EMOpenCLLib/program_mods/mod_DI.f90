@@ -208,14 +208,16 @@ real(kind=dbl),parameter                            :: nAmpere = 6.241D+18   ! C
 integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
                                                        recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr, &
                                                        nsig, numk, recordsize_correct, patsz, tickstart, tickstart2, tock, &
-                                                       npy, sz(3), jjj
+                                                       npy, sz(3), jjj, endpat, remainder, nsteps, itmpexpt2, Lnew, &
+                                                       correctsize_new, recordsize_correct_new
 integer(kind=8)                                     :: size_in_bytes_dict,size_in_bytes_expt, Nres
 real(kind=sgl),pointer                              :: dict(:), T0dict(:)
 real(kind=sgl),allocatable,TARGET                   :: dict1(:), dict2(:), eudictarray(:)
 real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:), mask(:,:),masklin(:), exptIQ(:), &
                                                        exptCI(:), exptFit(:), exppatarray(:), tmpexppatarray(:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:), &
-                                                       tmpimageexpt(:), OSMmap(:,:), maxsortarr(:), minsortarr(:)
+                                                       tmpimageexpt(:), OSMmap(:,:), maxsortarr(:), minsortarr(:), ep(:,:), &
+                                                       pcavecs(:,:), pcasvs(:), dpatterns(:,:), dpatterns_tmp(:,:)
 real(kind=sgl),allocatable, target                  :: results(:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
                                                        eulerarray(:,:),eulerarray2(:,:),resultmain(:,:),resulttmp(:,:)
 integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:)
@@ -245,7 +247,7 @@ integer(hsize_t),allocatable                        :: iPhase(:), iValid(:)
 integer(c_size_t),target                            :: slength
 integer(c_int)                                      :: numd, nump
 type(C_PTR)                                         :: planf, HPplanf, HPplanb
-integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3)
+integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3), dms(1)
 
 integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn, icnt
 integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(4)
@@ -254,7 +256,7 @@ integer(kind=irg),allocatable                       :: indexlist(:),indexarray(:
 real(kind=sgl)                                      :: dmin,voltage,scl,ratio, mi, ma, ratioE, io_real(2), tstart, tmp, &
                                                        totnum_el, vlen, tstop, ttime
 real(kind=dbl)                                      :: prefactor
-character(fnlen)                                    :: xtalname, IPFmapfile
+character(fnlen)                                    :: xtalname, IPFmapfile, fname2
 integer(kind=irg)                                   :: binx,biny,TID,nthreads,Emin,Emax, iiistart, iiiend, jjend
 real(kind=sgl)                                      :: sx,dx,dxm,dy,dym,rhos,x,projweight, dp, mvres, nel, emult
 real(kind=sgl)                                      :: dc(3),ixy(2),bindx, MCsig, WD, fpar1(1), fpar2(2)
@@ -274,6 +276,12 @@ character(100)                                      :: c
 character(1000)                                     :: charline
 character(3)                                        :: stratt
 character(fnlen)                                    :: progdesc
+
+! parameters for BLAS sgemm() matrix-matrix multiplication routine
+character(1)                                        :: TRANSA, TRANSB
+integer(kind=irg)                                   :: MMMM, NNNN, KKKK, LDA, LDB, LDC
+real(kind=sgl)                                      :: ALPHA, BETA 
+real(kind=sgl),allocatable                          :: YYYY(:,:)
 
 ! convert the input strings from C to fortran format
 nmldeffile = trim(fstringify(Cnmldeffile))
@@ -578,6 +586,26 @@ if ((trim(dinl%indexingmode).eq.'static').or.(trim(dinl%indexingmode).eq.'static
     eulerarray2 = eulerarray2 * rtod
     if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetFloatArray2D:Eulerangles', hdferr)
 
+! if this is a PCA dictionary, then we also need to read the singular values and
+! the transpose of the eigenvector matrix
+    if (PCA.eqv..TRUE.) then 
+      dataset = 'CovarianceMatrixWhitened'
+      call HDF%readDatasetFloatArray(dataset, dims2, hdferr, pcavecs)
+      if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:pcavecs', hdferr)
+
+      dataset = 'SingularValues'
+      call HDF%readDatasetFloatArray(dataset, dms, hdferr, pcasvs)
+      if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:pcasvs', hdferr)
+
+! the PCAvecs have been whitened in the EMEBSDPCA program; do we need to undo this ?
+      if (dinl%whitenPCA.eqv..FALSE.) then 
+        do i=1,dims2(1) 
+          pcavecs(:,i) = pcavecs(:,i) * pcasvs(i)
+        end do 
+        pcavecs = pcavecs / sqrt(dble(FZcnt))
+      end if 
+    end if 
+
     ! we leave this file open since we still need to read all the patterns...
     !=====================================================
     call Message%printMessage('-->  completed initial reading of dictionary file ')
@@ -649,6 +677,31 @@ size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
 size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
 recordsize_correct = correctsize*4
 patsz              = correctsize
+
+!====================================
+!====PCA run?========================
+! if we have a PCA dictionary, then we need to truncate the principal components
+! in the dpatterns array to the value of dinl%npc, and we need a second set of recordsize
+! parameters to handle the experimental patterns after they have been projected
+if (PCA.eqv..TRUE.) then 
+  Lnew = dinl%npc 
+! make sure that correctsize_new is a multiple of 16; if not, make it so
+  if (mod(Lnew,16) .ne. 0) then
+      correctsize_new = 16*ceiling(float(Lnew)/16.0)
+      Lnew = correctsize_new
+  else
+      correctsize_new = Lnew
+  end if
+  io_int(1) = dinl%npc
+  call Message%WriteValue(' Number of PCA components requested ', io_int, 1)
+  io_int(1) = Lnew 
+  call Message%WriteValue(' Number of PCA components set to (multiple of 16) ', io_int, 1)
+  allocate(dpatterns_tmp(Lnew,FZcnt))
+  dpatterns_tmp = dpatterns(1:Lnew,1:FZcnt)
+  call move_alloc(dpatterns_tmp, dpatterns)
+! redefine some of the recordsize parameters
+  recordsize_correct_new = correctsize_new * 4
+end if 
 
 ! do a quick sanity check for the requested GPU memory
 call Message%printMessage(' --> Initializing OpenCL device')
@@ -978,16 +1031,63 @@ end if
 ! if we are doing static PCA indexing, then we need to apply the PCA projection to the 
 ! experimental pre-processed patterns and resave the file with the correct pattern dimensions
 if (PCA.eqv..TRUE.) then 
+  call Message%printMessage(' Computing PCA projections of pre-processed experimental patterns')
+  fname2 = trim(EMsoft%generateFilePath('EMtmppathname'))//'PCA.tmp'
+
+  ! open a second temporary file that will be renamed to the current file
+  open(unit=itmpexpt2,file=trim(fname2),&
+     status='unknown',form='unformatted',access='direct',recl=recordsize_correct_new,iostat=ierr)
+
 ! read in all patterns from the tmp file, pre-multiply each pattern by the eigenvector matrix to 
 ! get the principal components, then truncate each to the required number of components npc and 
-! store in a new tmp file which is then renamed to the old one. 
-
-
-
-! we also need to read the PCA-compressed dictionary patterns and truncate that array to the 
-! correct size npc for each pattern; this implies that we are doing an in-RAM run for the remainder
-! of the program...
-
+! store in a new tmp file which is then renamed to the old one. We do this in blocks of patsz x patsz
+! so there's no need to keep all patterns in memory at once.
+  TRANSA = 'N'
+  TRANSB = 'N'
+  MMMM = patsz
+  NNNN = patsz 
+  KKKK = patsz
+  LDA = patsz
+  LDB = patsz
+  LDC = patsz
+  ALPHA = 1.0
+  BETA = 0.0
+  nsteps = totnumexpt/patsz
+  remainder = totnumexpt - nsteps*patsz
+  allocate(YYYY(patsz,patsz),ep(patsz,patsz))
+  call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
+! use a BLAS routine to perform the matrix product (should be much faster than the f90 matmul routine)
+  do pp = 1,nsteps+1
+    ep = 0.D0
+    if (pp.ne.nsteps+1) then 
+      endpat = patsz 
+    else
+      endpat = remainder 
+    end if
+    write (*,*) pp, nsteps, (pp-1)*patsz+1,(pp-1)*patsz+endpat
+    do jj=1,endpat  ! read a block of patsz or remainder patterns from the tmp file
+      kk = (pp-1)*patsz+jj
+      read(itmpexpt,rec=kk) tmpimageexpt
+      ep(:,jj) = tmpimageexpt
+    end do
+    call sgemm(TRANSA, TRANSB, MMMM, NNNN, KKKK, ALPHA, pcavecs, LDA, ep, LDB, BETA, YYYY, LDC)
+    do jj=1,endpat
+      kk = (pp-1)*patsz+jj
+      write(itmpexpt2,rec=kk) YYYY(1:Lnew,jj)
+    end do 
+  end do
+  deallocate(YYYY, ep)
+  call Message%printMessage('   ---> done')
+! reset some of the array size parameters to the corrected values for PCA mode
+  correctsize = correctsize_new
+  close(itmpexpt,status='delete')
+  close(itmpexpt2,status='keep')
+! next move the PCA tmp file to the old tmp file
+  ierr = rename(trim(fname2), trim(fname))
+! and open this file again with the correct record length
+  recordsize_correct = Lnew*4
+  open(unit=itmpexpt,file=trim(fname),&
+     status='old',form='unformatted',access='direct',recl=recordsize_correct,iostat=ierr)
 end if 
 
 ! we will leave the itmpexpt file open, since we'll be reading from it again...
