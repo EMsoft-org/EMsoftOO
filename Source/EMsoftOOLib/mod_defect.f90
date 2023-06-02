@@ -138,6 +138,8 @@ type, public :: Defect_T
   procedure, pass(self) :: YSHDisp_
   procedure, pass(self) :: Eshelby_disp_
   procedure, pass(self) :: calcR_
+  procedure, pass(self) :: calcPointR_
+  procedure, pass(self) :: calcF_
 
   generic, public :: JSONreadDefectFile => JSONreadDefectFile_
   generic, public :: JSONreadFoilData => JSONreadFoilData_
@@ -156,6 +158,8 @@ type, public :: Defect_T
   generic, public :: YSHDisp => YSHDisp_
   generic, public :: Eshelby_disp => Eshelby_disp_
   generic, public :: calcR => calcR_
+  generic, public :: calcPointR => calcPointR_
+  generic, public :: calcF => calcF_
 
   end type Defect_T
 
@@ -2775,7 +2779,7 @@ end function Eshelby_disp_
 !>
 !> the general procedure to implement a defect displacement field is as follows:
 !> - if the defect has its own reference frame, then transform (xpos,ypos,zpos) to
-!>   that frame (see the dislocation section below for an example), and then do
+!>   that frame (see the dislocation section for an example), and then do
 !>   the computation of the displacement vector and express it in the cartesian frame.
 !>
 !> - if the defect uses the foil reference frame (e.g., voids, inclusions), then use tmpf
@@ -3068,5 +3072,100 @@ end do
   end do sliceloop ! main loop over the slices
 end subroutine CalcR_
 
+!--------------------------------------------------------------------------
+!
+! FUNCTION: CalcPointR_
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the total displacement vector for a given point
+!
+!> @details Note that the end result MUST be expressed in the cartesian reference frame !
+!
+!> @param cell unit cell pointer
+!> @param defects defect structure
+!> @param i integer x coordinate
+!> @param j integer y coordinate
+!
+
+!> @date  06/01/23 MDG 1.0 original (split from CalcR_ routine so it can be used by other routines)
+!--------------------------------------------------------------------------
+recursive function CalcPointR_(self) result(R)
+
+use mod_crystallography
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Defect_T),INTENT(INOUT)           :: self
+real(kind=dbl)                          :: R(3)
+
+end function CalcPointR_
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: CalcF_
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the deformation tensor for a single point in the computational volume
+!
+!> @details Note that the end result MUST be expressed in the cartesian reference frame !
+!
+!> @param cell unit cell pointer
+!> @param defects defect structure
+!> @param ix x coordinate
+!> @param iy y coordinate
+!> @param iz z coordinate
+!> @param eps the step size to be used for numerical differentiation
+!> @param Fij deformation tensor
+!> 
+!> this routine is meant to generate deformation tensors for each point in a 3D volume
+!> for an arbitrary set of defects. The top surface is considered to be the one where
+!> the Yoffe surface relaxations occur.  The main use of this routine is in EBSD/ECP 
+!> pattern computations for a deformed material; from those patterns we can then extracxt
+!> ECCI images as well (instead of the current EMECCI approach which has caused some 
+!> issues with background contrast/intensity levels). This is just a much more robust 
+!> approach to defect diffraction simulations from which the images can subsequently
+!> be extracted. 
+!>
+!> For the numberical derivatives in the deformation tensor F_{ij}, we'll use the central 
+!> difference of 4th order: 
+!
+!> (-f(x+2h)+8f(x+h)-8f(x-h)+f(x-2h))/12
+!
+!> We assume that the volume is a rectangular prism with edge lengths defined by the 
+!> regular column approximation parameters; all coordinates are thus fractional in 
+!> the range [-1,1], except for z which is [0,-1] with 0 being the top surface.
+!
+
+!> @date  06/01/23 MDG 1.0 original (forked from CalcR_)
+!--------------------------------------------------------------------------
+recursive subroutine CalcF_(self,cell,ix,iy,iz,eps,Fij)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcF_
+
+use mod_crystallography
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Defect_T),INTENT(INOUT)           :: self
+type(Cell_T)                            :: cell
+
+real(kind=dbl),INTENT(IN)               :: ix, iy, iz, eps
+real(kind=dbl),INTENT(INOUT)            :: Fij(3,3)
+
+! constants for the fourth order first derivative formula
+real(kind=dbl),parameter                :: pre1 = 1.D0/12.D0, pre2 = 2.D0/3.D0
+
+
+
+
+
+
+
+end subroutine CalcF_
 
 end module mod_defect

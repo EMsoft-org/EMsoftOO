@@ -2141,7 +2141,7 @@ res = m(nix,niy)*dxm*dym + m(nixp,niy)*dx*dym + m(nix,niyp)*dxm*dy + m(nixp,niyp
 end function InterpolationLambert2DDouble
 
 !--------------------------------------------------------------------------
-recursive function InterpolationLambert3DSingle(dc, m, npx, nn) result(res)
+recursive function InterpolationLambert3DSingle(dc, m, npx, nn, s) result(res)
 !DEC$ ATTRIBUTES DLLEXPORT :: InterpolationLambert3DSingle
   !! author: MDG
   !! version: 1.0
@@ -2160,11 +2160,12 @@ integer(kind=irg),INTENT(IN)            :: nn
  !! number of entries in output array
 real(kind=sgl),INTENT(IN)               :: m(-npx:npx,-npx:npx, nn)
  !! master pattern
+real(kind=sgl),INTENT(INOUT),OPTIONAL   :: s(nn)
 real(kind=sgl)                          :: res
  !! output intensity array
 
 integer(kind=irg)                       :: nix, niy, nixp, niyp, istat
-real(kind=sgl)                          :: xy(2), dx, dy, dxm, dym, scl, s(nn)
+real(kind=sgl)                          :: xy(2), dx, dy, dxm, dym, scl, locals(nn)
 
 scl = float(npx)
 
@@ -2173,10 +2174,12 @@ if (dc(3).lt.0.0) dc = -dc
 ! convert direction cosines to lambert projections
 call LambertgetInterpolation(sngl(dc), scl, npx, npx, nix, niy, nixp, niyp, dx, dy, dxm, dym)
 
-s(1:nn) = m(nix,niy,1:nn)*dxm*dym + m(nixp,niy,1:nn)*dx*dym + &
-            m(nix,niyp,1:nn)*dxm*dy + m(nixp,niyp,1:nn)*dx*dy
+locals(1:nn) = m(nix,niy,1:nn)*dxm*dym + m(nixp,niy,1:nn)*dx*dym + &
+               m(nix,niyp,1:nn)*dxm*dy + m(nixp,niyp,1:nn)*dx*dy
 
-res = sum(s)
+if (present(s)) s = locals 
+
+res = sum(locals)
 
 end function InterpolationLambert3DSingle
 
