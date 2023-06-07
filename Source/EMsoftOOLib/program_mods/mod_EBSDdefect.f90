@@ -1221,6 +1221,8 @@ om(3,:) = kc
 ! convert this matrix into a rotation quaternion
 o = o_T( odinp = dble(om) )
 q = o%oq()
+o = q%qo()
+call o%o_print('Original Orientation matrix : ')
 quat = Quaternion_T( qd = q%q_copyd() )
 
 ! is there an additional ccw rotation around the z-axis ?
@@ -1228,13 +1230,21 @@ if (enl%rotang.ne.0.D0) then
   quat = Quaternion_T( qd = (/ cos(enl%rotang*0.5D0*dtor), 0.D0, 0.D0, sin(enl%rotang*0.5D0*dtor) /) ) * quat
 end if 
 
-quat = conjg(quat)
+! quat = conjg(quat)
+
+! hard coded as a test...
+quat = Quaternion_T( qd = (/ cos(35.264389*0.5D0*dtor), sin(35.264389*0.5D0*dtor)/sqrt(2.D0), &
+                          sin(35.264389*0.5D0*dtor)/sqrt(2.D0), 0.D0 /) ) * &
+       Quaternion_T( qd = (/ cos(45.D0*0.5D0*dtor), 0.D0, 0.D0,-sin(45.D0*0.5D0*dtor) /) )
 
 q = q_T( qdinp = quat%get_quatd() )
+o = q%qo()
+call o%o_print('Orientation matrix : ')
 
 eu = q%qe()
 call eu%e_print('Euler angles : ')
 
+stop
 ! the quaternion quat takes a direction in the cartesian crystal reference frame and 
 ! obtains its components in the RD-TD-ND reference frame.
 
