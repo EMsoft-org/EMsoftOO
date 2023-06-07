@@ -993,7 +993,7 @@ hdferr = HDF%openGroup(HDFnames%get_EMheader())
 datagroupname = trim(HDFnames%get_ProgramData())
 call H5Lexists_f(HDF%getobjectID(),trim(datagroupname),g_exists, hdferr)
 if (.not.g_exists) then
-  call Message%printError('readMPfile','This HDF file does not contain Master Pattern header data')
+  call Message%printError('readMPfile','This HDF file does not contain a '//trim(datagroupname)//' group')
 end if
 
 hdferr = HDF%openGroup(HDFnames%get_ProgramData())  ! SC_MCOpenCL
@@ -1297,7 +1297,6 @@ end if
 end associate
 
 end subroutine readMPfile_
-
 
 !--------------------------------------------------------------------------
 recursive subroutine getFileInfo_(self, modality)

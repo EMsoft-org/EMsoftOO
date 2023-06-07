@@ -828,20 +828,21 @@ integer(kind=irg),allocatable   :: accum_z(:,:,:,:)
 real(kind=dbl),allocatable      :: SGrecip(:,:,:), SGdirec(:,:,:)
 complex(kind=dbl)               :: czero
 complex(kind=dbl),allocatable   :: Lgh(:,:), Sgh(:,:,:)
-logical                 :: usehex, switchmirror, verbose
-character(fnlen)        :: xtalname
+logical                         :: usehex, switchmirror, verbose
+character(fnlen)                :: xtalname
 
 ! Monte Carlo derived quantities
-integer(kind=irg)       :: numEbins, nsx, nsy, hdferr, nlines, lastEnergy    ! variables used in MC energy file
-integer(kind=irg),allocatable :: thick(:)
-real(kind=sgl),allocatable :: lambdaE(:,:)
-character(fnlen)        :: oldprogname, groupname, energyfile, outname, datagroupname, attributename, HDF_FileVersion, fname
-character(8)            :: MCscversion
-character(11)           :: dstr
-character(15)           :: tstrb
-character(15)           :: tstre
-logical                 :: f_exists, readonly, overwrite=.TRUE., insert=.TRUE., stereog, g_exists, xtaldataread, FL, &
-                           doLegendre, isTKD = .FALSE.
+integer(kind=irg)               :: numEbins, nsx, nsy, hdferr, nlines, lastEnergy    ! variables used in MC energy file
+integer(kind=irg),allocatable   :: thick(:)
+real(kind=sgl),allocatable      :: lambdaE(:,:)
+character(fnlen)                :: oldprogname, groupname, energyfile, outname, datagroupname, attributename, &
+                                   HDF_FileVersion, fname
+character(8)                    :: MCscversion
+character(11)                   :: dstr
+character(15)                   :: tstrb
+character(15)                   :: tstre
+logical                         :: f_exists, readonly, overwrite=.TRUE., insert=.TRUE., stereog, g_exists, xtaldataread, FL, &
+                                   doLegendre, isTKD = .FALSE.
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 character(fnlen,kind=c_char)                     :: line2(1)
 

@@ -76,6 +76,15 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                         )
 
+  Add_EMsoftOO_Executable(TARGET EMEBSDdefect
+                        SOURCES ${APP_DIR}/EMEBSDdefect.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EMEBSDdefect.template
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
+
   Add_EMSoftOO_Executable(TARGET EMEBSDPCA
                         SOURCES ${APP_DIR}/EMEBSDPCA.f90
                         LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
