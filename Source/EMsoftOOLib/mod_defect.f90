@@ -220,7 +220,7 @@ end function Defect_constructor
 !> @date 11/20/15 MDG 1.0 new routine
 !> @date 12/08/15 MDG 1.1 added Einclusion defect type
 !--------------------------------------------------------------------------
-recursive subroutine JSONreadDefectFile_(self, EMsoft, cell, jsonname, error_cnt,verbose)
+recursive subroutine JSONreadDefectFile_(self, EMsoft, cell, jsonname, kvec, qvec, error_cnt,verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: JSONreadDefectFile_
 
 use ISO_C_BINDING
@@ -238,6 +238,8 @@ type(Cell_T),INTENT(IN)                               :: cell
 type(IO_T)                                            :: Message
 type(EMsoft_T), INTENT(INOUT)                         :: EMsoft
 character(fnlen),INTENT(IN)                           :: jsonname
+real(kind=dbl),INTENT(IN)                             :: kvec(3)
+real(kind=dbl),INTENT(IN)                             :: qvec(3)
 integer(kind=irg),INTENT(INOUT)                       :: error_cnt
 logical,INTENT(IN),OPTIONAL                           :: verbose
 
@@ -304,7 +306,7 @@ else
     end if
 
  ! here we call the foil reading routine to first fill all the foil parameters
-     call self%JSONreadFoilData(Emsoft, cell, error_cnt, verbose)
+     call self%JSONreadFoilData(Emsoft, cell, kvec, qvec, error_cnt, verbose)
 ! then we need to get the total number of defects in the file, so that we can allocate
 ! the correct array sizes in the defects structure
     ndis = 0
@@ -587,7 +589,7 @@ end subroutine JSONreadDefectFile_
 !
 !> @date 11/21/15  MDG 1.0 new routine
 !--------------------------------------------------------------------------
-recursive subroutine JSONreadFoilData_(self, Emsoft, cell, error_cnt, verbose)
+recursive subroutine JSONreadFoilData_(self, Emsoft, cell, kvec, qvec, error_cnt, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: JSONreadFoilData_
 
 use ISO_C_BINDING
@@ -602,6 +604,8 @@ IMPLICIT NONE
 
 class(Defect_T), INTENT(INOUT)                        :: self
 type(Cell_T),INTENT(IN)                               :: cell
+real(kind=dbl),INTENT(IN)                             :: kvec(3)
+real(kind=dbl),INTENT(IN)                             :: qvec(3)
 type(IO_T)                                            :: Message
 type(EMsoft_T), INTENT(INOUT)                         :: EMsoft
 integer(kind=irg),INTENT(INOUT)                       :: error_cnt
@@ -627,8 +631,8 @@ end if
 
 ! set the default values for all entries
 self%foil%elmo = 0.0                         ! elastic moduli
-self%foil%F = (/ 0.0,0.0,1.0 /)              ! foil normal in direct space Bravais reference frame
-self%foil%q = (/ 1.0,0.0,0.0 /)              ! reciprocal space vector along primary tilt axis towards airlock
+self%foil%F = kvec                           ! foil normal in direct space Bravais reference frame
+self%foil%q = qvec                           ! reciprocal space vector along primary tilt axis towards airlock
 self%foil%alP = 0.0                          ! primary tilt angle in degrees
 self%foil%alS = 0.0                          ! secondary tilt angle (for double tilt holder)
 self%foil%alR = 0.0                          ! secondary tilt angle (for rotation tilt holder)
@@ -662,16 +666,16 @@ else
     nc2loop: do j=1,nc2
       call json_get_child(child,j,child2)
       call json_info(child2,vart,nc3,name)
-! foil normal
-        if (name.eq.'foilF') then
-          str = '   Foil normal F = '
-          self%foil%F = JSONgetDoubleVector(child2,nc3,str,v)
-        end if
-! foil q vector
-        if (name.eq.'foilq') then
-          str = '   Foil q-vector = '
-          self%foil%q = JSONgetDoubleVector(child2,nc3,str,v)
-        end if
+! foil normal ! must be set in the calling program
+        ! if (name.eq.'foilF') then
+        !   str = '   Foil normal F = '
+        !   self%foil%F = JSONgetDoubleVector(child2,nc3,str,v)
+        ! end if
+! foil q vector ! must be set in the calling program
+        ! if (name.eq.'foilq') then
+        !   str = '   Foil q-vector = '
+        !   self%foil%q = JSONgetDoubleVector(child2,nc3,str,v)
+        ! end if
 ! foil alP tilt
         if (name.eq.'foilalP') then
           str = '   Foil alP tilt = '
@@ -738,14 +742,6 @@ else
 end if
 
 call JSON_failtest(error_cnt)
-
-! verify that the foil normal (in real space) and q (in reciprocal space) are orthogonal
-! in other words, we do a cartesian dot product...
-x = cell%CalcDot(self%foil%F,self%foil%q,'c')
-if (abs(x).gt.0.005) then
-  call Message%printMessage('Foil normal F must be orthogonal to q', frm = "(A)")
-!  stop
-end if
 
 end subroutine JSONreadFoilData_
 
@@ -822,11 +818,6 @@ dataset = 'stepsize'
     self%APD%stepsize = 0.D0
   end if
 
-
-
-
-
-
 end subroutine readDefectHDFFile_
 
 !--------------------------------------------------------------------------
@@ -840,7 +831,7 @@ end subroutine readDefectHDFFile_
 !> @date  11/22/15 MDG 1.0 original
 !> @date  11/24/15 MDG 1.1 added Ydislocations, stacking faults, inclusions and voids
 !--------------------------------------------------------------------------
-recursive subroutine InitializeDefects_(self,EMsoft,cell,jsonname,npix,npiy,L,gf,error_cnt,verbose)
+recursive subroutine InitializeDefects_(self,EMsoft,cell,jsonname,npix,npiy,L,gf,kvec,qvec,error_cnt,verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: InitializeDefects_
 
 use mod_io
@@ -859,6 +850,8 @@ integer(kind=irg),INTENT(IN)            :: npix
 integer(kind=irg),INTENT(IN)            :: npiy
 real(kind=sgl),INTENT(IN)               :: L
 real(kind=sgl),INTENT(IN)               :: gf(3)
+real(kind=dbl),INTENT(IN)               :: kvec(3)
+real(kind=dbl),INTENT(IN)               :: qvec(3)
 integer(kind=irg),INTENT(INOUT)         :: error_cnt
 
 logical,INTENT(IN),OPTIONAL             :: verbose
@@ -884,7 +877,7 @@ self%numEinc = 0
 ! first of all, we need to read all the defect data from the jsonname file, including the foil data
 ! note that the JSON file should have the .jsonc extension, isince it may have comments; those lines
 ! will be removed first
-call self%JSONreadDefectFile(EMsoft, cell, jsonname, error_cnt, verbose)
+call self%JSONreadDefectFile(EMsoft, cell, jsonname, kvec, qvec, error_cnt, verbose)
 
 if (v.eq.1) then
   call Message%printMessage('The following defects were initialized : ')
@@ -2971,7 +2964,8 @@ logical                                 :: isvoid = .FALSE.
 type(Quaternion_T)                      :: a_dc_conj, a_di_conj, a_id_conj
 
 ! zpos is the position down the column, starting at zt (in image coordinates)
-zpos = zt - float(islice)*self%DF_slice
+! zpos = zt - float(islice)*self%DF_slice
+zpos = zt
 
 ! set the displacements to zero
 sumR = 0.0
@@ -3226,13 +3220,13 @@ end function CalcPointR_
 !
 !> We assume that the volume is a rectangular prism with edge lengths defined by the 
 !> regular column approximation parameters; all coordinates are thus fractional in 
-!> the range [-1,1], except for z which is [0,-1] with 0 being the top surface. In other words,
+!> the range [-1,1], except for z which is [0.5,-0.5]*zb with 0.5*zb being the top surface. In other words,
 !> we use the standard EMsoft approach for generating a configuration of lattice defects.
 !
 
 !> @date  06/01/23 MDG 1.0 original 
 !--------------------------------------------------------------------------
-recursive subroutine CalcFcolumn_(self,cell,ix,iy,c,Fij, ii, jj)
+recursive subroutine CalcFcolumn_(self,cell,c,Fij, ii, jj)
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcFcolumn_
 
 use mod_crystallography
@@ -3244,7 +3238,7 @@ IMPLICIT NONE
 class(Defect_T),INTENT(INOUT)           :: self
 type(Cell_T)                            :: cell
 
-real(kind=dbl),INTENT(IN)               :: ix, iy, c(3)
+real(kind=dbl),INTENT(IN)               :: c(3)
 real(kind=dbl),INTENT(INOUT)            :: Fij(3, 3, self%DF_nums)
 integer(kind=irg),INTENT(IN)            :: ii, jj
 
@@ -3255,9 +3249,10 @@ type(q_T)                               :: a_fm_qu
 real(kind=dbl),parameter                :: pre1 = 1.D0/12.D0, pre2 = 2.D0/3.D0
 real(kind=dbl),parameter                :: pref(4) = (/ -pre1, pre2, -pre2, pre1 /)
 real(kind=dbl)                          :: h(4) = (/ 2.D0, 1.D0, -1.D0, -2.D0 /)
-real(kind=dbl)                          :: dF(3), RR(3,4), a_fm(3,3), fx, fy, fz, zt
+real(kind=dbl)                          :: dF(3), RR(3,4), a_fm(3,3), fx, fy, fz, xpos, ypos, zpos
 integer(kind=irg)                       :: i, j, k, islice
 
+Fij = 0.D0 
 
 ! determine the starting point of the z-integration for the tilted foil
 ! this depends on the foil normal components which give the equation
@@ -3269,39 +3264,34 @@ a_fm =  a_fm_om%o_copyd()
 fx = a_fm(3,1)
 fy = a_fm(3,2)
 fz = a_fm(3,3)
-zt = self%foil%zb*0.5 - (fx*ix + fy*iy)/fz
+! the following coordinates are in units of [nm]
+xpos = float(ii-self%DF_npix/2)*self%DF_L
+ypos = float(jj-self%DF_npiy/2)*self%DF_L
+zpos = self%foil%zb*0.5 - (fx*xpos + fy*ypos)/fz
 
-! we still need to do a coordinate transformation for a tilted column !!!
-Fij = 0.D0 
+!  (/ xpos, ypos, zpos /) is the starting point at the top of the foil.
+! We need to go down a column with direction cosines c(:), so that means 
+! that the effective coordinates (/ fx, fy, fz /) change with depth
+fx = xpos + c(1) * self%DF_slice
+fy = ypos + c(2) * self%DF_slice
+fz = zpos + c(3) * self%DF_slice
 
 do islice = 1, self%DF_nums
 ! get the derivatives along x 
   do j=1,4 
-    RR(:,j) = self%CalcPointR_( cell, islice, ix+h(j)*self%APD%stepsize(1), iy, zt, ii, jj )
+    RR(:,j) = pref(j) * self%CalcPointR_( cell, islice, fx+h(j)*self%APD%stepsize(1), fy, fz, ii, jj )
   end do
-  dF = 0.D0
-  do j=1,4
-    dF(:) = dF(:) + pref(j) * RR(:,j)
-  end do
-  Fij(1,:,islice) = dF(:)
+  Fij(1,:,islice) = sum(RR,2)
 ! get the derivatives along y 
   do j=1,4 
-    RR(:,j) = self%CalcPointR_( cell, islice, ix, iy+h(j)*self%APD%stepsize(2), zt, ii, jj )
+    RR(:,j) = pref(j) * self%CalcPointR_( cell, islice, fx, fy+h(j)*self%APD%stepsize(2), fz, ii, jj )
   end do
-  dF = 0.D0
-  do j=1,4
-    dF(:) = dF(:) + pref(j) * RR(:,j)
-  end do
-  Fij(2,:,islice) = dF(:)
+  Fij(2,:,islice) = sum(RR,2)
 ! get the derivatives along z 
   do j=1,4 
-    RR(:,j) = self%CalcPointR_( cell, islice, ix, iy, zt+h(j)*self%APD%stepsize(3), ii, jj )
+    RR(:,j) = pref(j) * self%CalcPointR_( cell, islice, fx, fy, fz+h(j)*self%APD%stepsize(3), ii, jj )
   end do
-  dF = 0.D0
-  do j=1,4
-    dF(:) = dF(:) + pref(j) * RR(:,j)
-  end do
-  Fij(3,:,islice) = dF(:)
+  Fij(3,:,islice) = sum(RR,2)
 ! and finally, add the identity matrix
   do j=1,3
     Fij(j,j,islice) = Fij(j,j,islice) + 1.D0

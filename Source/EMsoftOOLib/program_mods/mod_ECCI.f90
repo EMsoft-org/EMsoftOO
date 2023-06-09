@@ -880,7 +880,7 @@ if (emnl%dispfile.eq.'undefined') then
 
   ! next, we read all the foil and defect data using the new InitializeDefects routine in defectmodule.f90
   verbose = .FALSE.
-  call Defects%InitializeDefects(EMsoft,cell,emnl%defectfilename,emnl%DF_npix,emnl%DF_npiy,emnl%DF_L,DF_gf,error_cnt,verbose)
+  ! call Defects%InitializeDefects(EMsoft,cell,emnl%defectfilename,emnl%DF_npix,emnl%DF_npiy,emnl%DF_L,DF_gf,error_cnt,verbose)
 
   DynFN = Defects%foil%F  
 

@@ -45,11 +45,11 @@ type, public :: EBSDdefectNameListType
    real(kind=sgl)         :: xpc
    real(kind=sgl)         :: ypc
    real(kind=sgl)         :: gammavalue
-   real(kind=sgl)         :: rotang
    real(kind=sgl)         :: DF_L
+   real(kind=dbl)         :: k(3)
+   real(kind=dbl)         :: q(3)
    integer(kind=irg)      :: numsx
    integer(kind=irg)      :: numsy
-   integer(kind=irg)      :: k(3)
    integer(kind=irg)      :: DF_npix
    integer(kind=irg)      :: DF_npiy
    integer(kind=irg)      :: nthreads
@@ -83,8 +83,6 @@ private
   procedure, pass(self) :: getypc_
   procedure, pass(self) :: setgammavalue_
   procedure, pass(self) :: getgammavalue_
-  procedure, pass(self) :: setrotang_
-  procedure, pass(self) :: getrotang_
   procedure, pass(self) :: setDF_L_
   procedure, pass(self) :: getDF_L_
   procedure, pass(self) :: setnumsx_
@@ -93,6 +91,8 @@ private
   procedure, pass(self) :: getnumsy_
   procedure, pass(self) :: setk_
   procedure, pass(self) :: getk_
+  procedure, pass(self) :: setq_
+  procedure, pass(self) :: getq_
   procedure, pass(self) :: setDF_npix_
   procedure, pass(self) :: getDF_npix_
   procedure, pass(self) :: setDF_npiy_
@@ -124,8 +124,6 @@ private
   generic, public :: getypc => getypc_
   generic, public :: setgammavalue => setgammavalue_
   generic, public :: getgammavalue => getgammavalue_
-  generic, public :: setrotang => setrotang_
-  generic, public :: getrotang => getrotang_
   generic, public :: setDF_L => setDF_L_
   generic, public :: getDF_L => getDF_L_
   generic, public :: setnumsx => setnumsx_
@@ -134,6 +132,8 @@ private
   generic, public :: getnumsy => getnumsy_
   generic, public :: setk => setk_
   generic, public :: getk => getk_
+  generic, public :: setq => setq_
+  generic, public :: getq => getq_
   generic, public :: setDF_npix => setDF_npix_
   generic, public :: getDF_npix => getDF_npix_
   generic, public :: setDF_npiy => setDF_npiy_
@@ -222,9 +222,10 @@ real(kind=sgl)         :: ypc
 real(kind=sgl)         :: gammavalue
 real(kind=sgl)         :: rotang
 real(kind=sgl)         :: DF_L
+real(kind=dbl)         :: k(3)
+real(kind=dbl)         :: q(3)
 integer(kind=irg)      :: numsx
 integer(kind=irg)      :: numsy
-integer(kind=irg)      :: k(3)
 integer(kind=irg)      :: DF_npix
 integer(kind=irg)      :: DF_npiy
 integer(kind=irg)      :: nthreads
@@ -234,7 +235,7 @@ character(fnlen)       :: datafile
 character(fnlen)       :: defectfilename
 
 namelist / EBSDdefectdata / L, thetac, delta, xpc, ypc, gammavalue, rotang, DF_L, &
-                            numsx, numsy, k, DF_npix, DF_npiy, nthreads, scalingmode, &
+                            numsx, numsy, k, q, DF_npix, DF_npiy, nthreads, scalingmode, &
                             masterfile, datafile, defectfilename
 
 ! set the input parameters to default values (except for xtalname, which must be present)
@@ -247,7 +248,8 @@ xpc = 0.0
 ypc = 0.0
 scalingmode = 'not'
 gammavalue = 1.0
-k = (/ 0,0,1 /)
+k = (/ 0.D0,0.D0,1.D0 /)
+q = (/ 1.D0,0.D0,0.D0 /)
 rotang = 0.0
 DF_L = 1.0
 DF_npix = 256
@@ -288,11 +290,11 @@ self%nml%delta = delta
 self%nml%xpc = xpc
 self%nml%ypc = ypc
 self%nml%gammavalue = gammavalue
-self%nml%rotang = rotang
 self%nml%DF_L = DF_L
 self%nml%numsx = numsx
 self%nml%numsy = numsy
 self%nml%k = k
+self%nml%q = q
 self%nml%DF_npix = DF_npix
 self%nml%DF_npiy = DF_npiy
 self%nml%nthreads = nthreads
@@ -342,7 +344,7 @@ class(EBSDdefect_T), INTENT(INOUT)        :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 5, n_real = 8
+integer(kind=irg),parameter             :: n_int = 5, n_real = 7
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -365,21 +367,24 @@ call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single reals
 io_real = (/ enl%L, enl%thetac, enl%delta, enl%xpc, enl%ypc, enl%gammavalue, &
-             enl%rotang, enl%DF_L /)
+             enl%DF_L /)
 reallist(1) = 'L'
 reallist(2) = 'thetac'
 reallist(3) = 'delta'
 reallist(4) = 'xpc'
 reallist(5) = 'ypc'
 reallist(6) = 'gammavalue'
-reallist(7) = 'rotang'
-reallist(8) = 'DF_L'
+reallist(7) = 'DF_L'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! a 3-vector
 dataset = SC_k
-hdferr = HDF%writeDatasetIntegerArray(dataset, enl%k, 3)
+hdferr = HDF%writeDatasetDoubleArray(dataset, enl%k, 3)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create k dataset', hdferr)
+
+dataset = 'q'
+hdferr = HDF%writeDatasetDoubleArray(dataset, enl%q, 3)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create q dataset', hdferr)
 
 ! write all the strings
 dataset = SC_scalingmode
@@ -626,42 +631,6 @@ out = self%nml%gammavalue
 end function getgammavalue_
 
 !--------------------------------------------------------------------------
-subroutine setrotang_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: setrotang_
-!! author: MDG
-!! version: 1.0
-!! date: 06/05/23
-!!
-!! set rotang in the EBSDdefect class
-
-IMPLICIT NONE
-
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
-
-self%nml%rotang = inp
-
-end subroutine setrotang_
-
-!--------------------------------------------------------------------------
-function getrotang_(self) result(out)
-!DEC$ ATTRIBUTES DLLEXPORT :: getrotang_
-!! author: MDG
-!! version: 1.0
-!! date: 06/05/23
-!!
-!! get rotang from the EBSDdefect class
-
-IMPLICIT NONE
-
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
-
-out = self%nml%rotang
-
-end function getrotang_
-
-!--------------------------------------------------------------------------
 subroutine setDF_L_(self,inp)
 !DEC$ ATTRIBUTES DLLEXPORT :: setDF_L_
 !! author: MDG
@@ -804,6 +773,42 @@ integer(kind=irg)                   :: out(3)
 out = self%nml%k
 
 end function getk_
+
+!--------------------------------------------------------------------------
+subroutine setq_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setq_
+!! author: MDG
+!! version: 1.0
+!! date: 06/07/23
+!!
+!! set q in the EBSDdefect class
+
+IMPLICIT NONE
+
+class(EBSDdefect_T), INTENT(INOUT)    :: self
+integer(kind=irg), INTENT(IN)       :: inp(3)
+
+self%nml%q = inp
+
+end subroutine setq_
+
+!--------------------------------------------------------------------------
+function getq_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getq_
+!! author: MDG
+!! version: 1.0
+!! date: 06/07/23
+!!
+!! get q from the EBSDdefect class
+
+IMPLICIT NONE
+
+class(EBSDdefect_T), INTENT(INOUT)    :: self
+integer(kind=irg)                   :: out(3)
+
+out = self%nml%q
+
+end function getq_
 
 !--------------------------------------------------------------------------
 subroutine setDF_npix_(self,inp)
@@ -1085,6 +1090,11 @@ use mod_crystallography
 use mod_timing
 use mod_defect
 use ISO_C_BINDING
+use h5im
+use h5lt
+use mod_image
+
+use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE 
 
@@ -1118,10 +1128,10 @@ character(fnlen)                        :: fname, nmldeffile, datafile
 integer(kind=irg)                       :: numangles, istat, i, j, k, error_cnt, npix, npiy, hdferr, ix, iy
 type(FZpointd),pointer                  :: FZtmp
 type(r_T)                               :: rr
-integer(kind=irg)                       :: ga(3), gb(3), io_int(6), sh(3), ipar(7)
+integer(kind=irg)                       :: ga(3), gb(3), io_int(6), sh(3), ipar(8), iipar(8)
 real(kind=dbl)                          :: kc(3), gac(3), gbc(3), FF(3,3), FF_inv(3,3), prefactor
 real(kind=dbl)                          :: om(3,3), pctr(3)
-real(kind=sgl)                          :: io_real(1), xpos, ypos
+real(kind=sgl)                          :: io_real(1), xpos, ypos, mi, ma
 real(kind=sgl),allocatable              :: patarray(:,:,:,:), trial(:,:,:,:), quarray(:,:), binned(:,:)
 real(kind=dbl),allocatable              :: tFij(:,:,:), Fmatrix(:,:,:)
 real(kind=sgl),allocatable              :: tmLPNH(:,:,:) , tmLPSH(:,:,:)
@@ -1129,7 +1139,7 @@ real(kind=sgl),allocatable              :: trgx(:,:), trgy(:,:), trgz(:,:) ! aux
 integer(kind=irg)                       :: NUMTHREADS, TID   ! number of allocated threads, thread ID
 integer(kind=irg)                       :: nthreads
 
-character(fnlen)                        :: groupname, dataset, datagroupname, attributename, HDF_FileVersion
+character(fnlen)                        :: groupname, dataset, datagroupname, attributename, HDF_FileVersion, TIFF_filename
 character(11)                           :: dstr
 character(15)                           :: tstrb
 character(15)                           :: tstre
@@ -1137,6 +1147,20 @@ integer(HSIZE_T)                        :: dims4(4), cnt4(4), offset4(4)
 character(fnlen,kind=c_char)            :: line2(1)
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
+! declare variables for use in object oriented image module
+integer                                 :: iostat
+character(len=128)                      :: iomsg
+logical                                 :: isInteger
+type(image_t)                           :: im
+integer(int8)                           :: i8 (3,4)
+integer(int8), allocatable              :: TIFF_image(:,:)
+
+associate( enl => self%nml, EBSDMCdata => MCFT%MCDT )
+
+! make sure that k and q are orthogonal
+if (abs(DOT_PRODUCT(enl%k,enl%q)).gt.1.0e-8) then 
+  call Message%printError('EMEBSDdefect','k and q vectors must be orthogonal')
+end if 
 
 call MPFT%setModality('EBSD')
 nmldeffile = trim(EMsoft%nmldeffile)
@@ -1145,8 +1169,6 @@ nmldeffile = trim(EMsoft%nmldeffile)
 call openFortranHDFInterface()
 HDF = HDF_T()
 mem = memory_T()
-
-associate( enl => self%nml, EBSDMCdata => MCFT%MCDT )
 
 ! set the HDF group names for this program
 HDFnames = HDFnames_T()
@@ -1183,83 +1205,8 @@ call HDFnames%set_NMLlist(SC_EBSDdefectNameList)
 call HDFnames%set_NMLfilename(SC_EBSDdefectNML)
 call HDFnames%set_Variable(SC_MCOpenCL)
 
-! 3. determine the rotation quaternion for the zone axis enl%k
-! this axis is placed parallel to the ND sample direction; one of the Kikuchi bands
-! containing k will be normal to the TD direction, but may be rotated ccw by enl%rotang
-!
-! this means that for RKD imaging, the sample normal will lie close to the optical 
-! axis of the microscope (for zero sample tilt), but for EBSD the zone axis will generally
-! not intersect the detector area.
 
-! get the crystal structure information to perform crystallographic computations
-call cell%getCrystalData(MPFT%MPDT%xtalname, SG, EMsoft, useHDF=HDF)
-
-! determine the point group number and get the ZAP 2-D symmetry
-j = SG%getPGnumber()
-
-! determine and display the shortest reciprocal lattice vectors for this zone
-call cell%ShortestG(SG, enl%k, ga, gb, j)
-io_int(1:3) = ga(1:3)
-io_int(4:6) = gb(1:3)
-call Message%WriteValue(' Reciprocal lattice vectors : ', io_int, 6, "(' (',3I3,') and (',3I3,')',/)")
-
-! convert to the Cartesian reference frame
-call cell%TransSpace(dble(enl%k),kc,'d','c')
-call cell%TransSpace(dble(ga),gac,'r','c')
-
-! we can think of k and ga as a texture component symbol, so there's an easy way to 
-! convert this to a rotation matrix...
-call cell%NormVec(kc,'c')
-call cell%NormVec(gac,'c')
-call cell%CalcCross(kc,gac,gbc,'c','c',0)
-call cell%NormVec(gbc,'c')
-
-om(1,:) = gac
-om(2,:) = gbc
-om(3,:) = kc
-
-! convert this matrix into a rotation quaternion
-o = o_T( odinp = dble(om) )
-q = o%oq()
-o = q%qo()
-call o%o_print('Original Orientation matrix : ')
-quat = Quaternion_T( qd = q%q_copyd() )
-
-! is there an additional ccw rotation around the z-axis ?
-if (enl%rotang.ne.0.D0) then 
-  quat = Quaternion_T( qd = (/ cos(enl%rotang*0.5D0*dtor), 0.D0, 0.D0, sin(enl%rotang*0.5D0*dtor) /) ) * quat
-end if 
-
-! quat = conjg(quat)
-
-! hard coded as a test...
-quat = Quaternion_T( qd = (/ cos(35.264389*0.5D0*dtor), sin(35.264389*0.5D0*dtor)/sqrt(2.D0), &
-                          sin(35.264389*0.5D0*dtor)/sqrt(2.D0), 0.D0 /) ) * &
-       Quaternion_T( qd = (/ cos(45.D0*0.5D0*dtor), 0.D0, 0.D0,-sin(45.D0*0.5D0*dtor) /) )
-
-q = q_T( qdinp = quat%get_quatd() )
-o = q%qo()
-call o%o_print('Orientation matrix : ')
-
-eu = q%qe()
-call eu%e_print('Euler angles : ')
-
-stop
-! the quaternion quat takes a direction in the cartesian crystal reference frame and 
-! obtains its components in the RD-TD-ND reference frame.
-
-
-! ! debug test:
-! write (*,*) 'rotation quaternion : '
-! call quat%quat_print()
-
-! write (*,*) '[ 1, 0, 0]: ', quat%quat_Lp( (/ 1.D0, 0.D0, 0.D0 /) )
-! write (*,*) '[ 0, 1, 0]: ', quat%quat_Lp( (/ 0.D0, 1.D0, 0.D0 /) )
-! write (*,*) '[ 0, 0, 1]: ', quat%quat_Lp( (/ 0.D0, 0.D0, 1.D0 /) )
-! write (*,*) '[ 1, 1,-1]: ', quat%quat_Lp( (/ 1.D0, 1.D0, -1.D0 /) )
-! write (*,*) '[ 1, 1, 2]: ', quat%quat_Lp( (/ 1.D0, 1.D0, 2.D0 /) )
-
-! 4. create the output HDF file 
+! 3. create the output HDF file 
 ! Create a new file using the default properties.
 timer = Timing_T()
 tstrb = timer%getTimeString()
@@ -1349,86 +1296,58 @@ dataset = SC_EBSDpatterns
 
 !=============================================
 !=============================================
-! 5. Defects initialization section 
+! 4. Defects initialization section 
+! get the crystal structure information to perform crystallographic computations
+call cell%getCrystalData(MPFT%MPDT%xtalname, SG, EMsoft, useHDF=HDF)
 
 ! copy some of the namelist parameters into the defects structure
 Defects%DF_npix = enl%DF_npix
 Defects%DF_npiy = enl%DF_npiy
 Defects%DF_L = enl%DF_L
 Defects%DF_nums = sh(3)
-Defects%DF_slice = 1.D0
+Defects%DF_slice = mcnl%depthstep  ! integration slice thickness
 Defects%APD%stepsize = 0.01D0 
 
 ! If there is no displacement field file we compute displacement field
 call Message%printMessage(' --> initializing defects ')
   
-! determine the cartesian components of ga
-Defects%DF_gf = float(ga)
+! determine the cartesian components of ga (which should really be enl%q)
+Defects%DF_gf = sngl(enl%q)  ! float(ga)
 Defects%DF_gstar = Defects%DF_gf/cell%CalcLength(Defects%DF_gf,'r')**2    ! define G* such that G.G* = 1
 call cell%TransSpace(Defects%DF_gf,Defects%DF_gc,'r','c')         ! convert to Cartesian reference frame
 
 ! next, we read all the foil and defect data using the new InitializeDefects routine in defectmodule.f90
-verbose = .TRUE.
-call Defects%InitializeDefects(EMsoft,cell,enl%defectfilename,enl%DF_npix,enl%DF_npiy,enl%DF_L,Defects%DF_gf,error_cnt,verbose)
+verbose = .FALSE.
+call Defects%InitializeDefects(EMsoft,cell,enl%defectfilename,enl%DF_npix,enl%DF_npiy,enl%DF_L,Defects%DF_gf, &
+                               enl%k,enl%q,error_cnt,verbose)
 
 ! ok, all the set up is now complete;
 npix = Defects%DF_npix
 npiy = Defects%DF_npiy
-
-! allocate(trial(9, sh(3), npix, npiy ), Fij(3,3,sh(3)) )
-! write (*,*) ' shape of trial array : ', shape(trial)
-
-
-! do i=1,npix 
-!   do j=1,npiy 
-!     xpos = float(i-Defects%DF_npix/2)*Defects%DF_L
-!     ypos = float(j-Defects%DF_npiy/2)*Defects%DF_L
-!     call Defects%CalcFcolumn(cell, dble(xpos), dble(ypos), (/ 0.D0, 0.D0, 0.D0 /), Fij, i, j )
-!     do k=1,Defects%DF_nums
-!       trial(:,k,i,j) = real(reshape( Fij(:,:,k), (/ 9 /) ))
-!     end do 
-!   end do 
-! end do 
-
-! write (*,*) ' maxval ( F ) = ', maxval(trial)
-
-! dataset = 'Ftest'
-! hdferr = HDF%writeDatasetFloatArray(dataset, trial, 9, sh(3), npix, npiy )
-! if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetFloatArray trial', hdferr)
-
-! 6. next we perform the actual pattern simulations using, for now, a single column direction
-! for the computation of the deformation tensor Fij; this will need to be modified by orienting
-! the column along the direction connecting the image pixel to the detector pixel... 
-! This step includes the detector generation to account for variation of the pattern center
-! across the ROI.
-
-! allocate( quarray(4,sh(3)) )
-! do i=1,sh(3)
-!   quarray(:,i) = quat%get_quatd()
-! end do 
 
 ipar(1) = 1
 ipar(2) = enl%numsx
 ipar(3) = enl%numsy
 ipar(4) = mpnl%npx
 ipar(5) = mpnl%npx
-ipar(6) = 1
-ipar(7) = sh(3)
+ipar(6) = sh(3)
+ipar(7) = 0
+ipar(8) = 0
 prefactor = 1.D0
 
+! this array contains a row of EBSD patterns
 call mem%alloc(patarray, (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /), 'patarray', initval = 0.0)
 
 ! use OpenMP to run on multiple cores ... 
-!$OMP PARALLEL default(shared)  PRIVATE(TID, NUMTHREADS, j, istat, binned, tmLPNH, tmLPSH, trgx, trgy, trgz)&
-!$OMP& PRIVATE(Fmatrix, FF, FF_inv, ix, pctr, xpos, ypos, tFij)
+!$OMP PARALLEL default(shared)  PRIVATE(TID, NUMTHREADS, i, j, binned, tmLPNH, tmLPSH, ix, pctr, iipar)
 
   NUMTHREADS = OMP_GET_NUM_THREADS()
   TID = OMP_GET_THREAD_NUM()
 
-! each thread needs a private copy of the master arrays; not having
-! those can produce poor scaling... in addition, they need to be recomputed for each pattern !
-  allocate(trgx(enl%numsx,enl%numsy), trgy(enl%numsx,enl%numsy), trgz(enl%numsx,enl%numsy))
-  allocate(tFij(3,3,ipar(7)), Fmatrix(3,3,ipar(7)))
+! each thread has its own copy of the ipar array
+  iipar = ipar
+
+! each thread needs a private copy of the master arrays; not having those can produce poor scaling...
   allocate(tmLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,ipar(7)), tmLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,ipar(7)))
   allocate(binned(enl%numsx,enl%numsy))
 
@@ -1436,38 +1355,20 @@ call mem%alloc(patarray, (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /), 'patarray',
   tmLPNH = MPFT%MPDT%mLPNH
   tmLPSH = MPFT%MPDT%mLPSH
 
+! we do this one row at a time
   do iy=1, enl%DF_npiy
 !$OMP DO SCHEDULE(DYNAMIC,1)  
     do ix=1, enl%DF_npix   ! loop over the entries along rows in the output ROI
 
-      xpos = float(ix-Defects%DF_npix/2)*Defects%DF_L
-      ypos = float(iy-Defects%DF_npiy/2)*Defects%DF_L
-      call Defects%CalcFcolumn(cell, dble(xpos), dble(ypos), (/ 0.D0, 0.D0, 0.D0 /), tFij, ix, iy )
-
-! invert the transposed deformation tensors for this pattern and depth series
-        ! Farray = orpcdef%deftensorfield(1:9,1:iipar(7),ix,iy)
-        ! quarray= orpcdef%quatangfield(1:4,1:iipar(7),ix,iy)
-        do j=1,ipar(7)
-            ! FF = transpose(reshape(Farray(1:9,j), (/ 3,3 /)) )
-            ! if (enl%Fframe.eq.'samp') then
-            !   gs2c = DBLE(qu2om(quarray(1:4,j)))
-            !   FF = matmul(matmul(gs2c,FF),transpose(gs2c))
-            ! end if
-            FF = tFij(:,:,j)
-            call mInvert(FF, FF_inv, .FALSE.)
-            Fmatrix(1:3,1:3,j) = FF_inv(1:3,1:3)
-        end do
-
-! for each pattern we need to compute the detector arrays 
-        pctr = (/ enl%xpc, enl%ypc, enl%L /)
-        call GeneratedefectEBSDDetector(enl, mcnl, enl%numsx, enl%numsy, trgx, trgy, trgz, pctr)
-
-! loop over the depth and add all patterns together for each ROI pixel
-        binned = 0.0
-        call CalcEBSDPatternDefect(ipar,quat,tmLPNH,tmLPSH,trgx,trgy,trgz,binned,prefactor,Fmatrix)
+      iipar(7) = ix
+      iipar(8) = iy
+      binned = 0.0
+      ! for now, assume that the ROI is much smaller than a detector pixel
+      pctr = (/ enl%xpc, enl%ypc, enl%L /)
+      call CalcEBSDPatternDefect(iipar,cell,Defects,tmLPNH,tmLPSH,prefactor,enl,mcnl,pctr,binned)
 
 ! and put the pattern in the correct spot in the batch array   
-        patarray(1:enl%numsx, 1:enl%numsy, ix, 1) = binned(1:enl%numsx, 1:enl%numsy)
+      patarray(1:enl%numsx, 1:enl%numsy, ix, 1) = binned(1:enl%numsx, 1:enl%numsy)
    end do  ! (ix loop)
 !$OMP END DO
 
@@ -1475,17 +1376,26 @@ call mem%alloc(patarray, (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /), 'patarray',
 ! for this line to the HDF5 file using thread 0
 !$OMP BARRIER
    if (TID.eq.0) then 
-       io_int(1) = iy 
-       call Message%WriteValue(' -> completed row ',io_int,1)
-       write (*,*) maxval(patarray)
-       dataset = SC_EBSDpatterns
-          dims4 = (/ enl%numsx, enl%numsy, enl%DF_npix, enl%DF_npiy /)
-          cnt4 = (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /)
-          offset4 = (/ 0, 0, 0, enl%DF_npiy-iy /)
-          call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-          if (g_exists) then 
-            hdferr = HDF%writeHyperslabFloatArray(dataset, patarray, dims4, offset4, cnt4, overwrite)
-          end if
+     io_int(1) = iy 
+     call Message%WriteValue(' -> completed row ',io_int,1)
+     dataset = SC_EBSDpatterns
+        dims4 = (/ enl%numsx, enl%numsy, enl%DF_npix, enl%DF_npiy /)
+        cnt4 = (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /)
+        offset4 = (/ 0, 0, 0, enl%DF_npiy-iy /)
+        call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+        if (g_exists) then 
+          hdferr = HDF%writeHyperslabFloatArray(dataset, patarray, dims4, offset4, cnt4, overwrite)
+        end if
+! and store the first pattern in this row in a tiff file (mostly useful for debugging and
+! checking the orientation)
+      TIFF_filename = 'currentpattern.tiff'
+      mi = minval(patarray(:,:,1,1))
+      ma = maxval(patarray(:,:,1,1))
+      allocate(TIFF_image(enl%numsx,enl%numsy))
+      TIFF_image = int(255 * (patarray(:,:,1,1)-mi)/(ma-mi))
+      im = image_t(TIFF_image)
+      call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+      deallocate(TIFF_image)
    end if
 
   end do ! end of iy loop
@@ -1499,57 +1409,83 @@ end associate
 end subroutine EBSDdefect_
 
 !--------------------------------------------------------------------------
-recursive subroutine GeneratedefectEBSDDetector(enl, mcnl, nsx, nsy, tgx, tgy, tgz, patcntr)
-!DEC$ ATTRIBUTES DLLEXPORT :: GeneratedefectEBSDDetector
+recursive subroutine CalcEBSDPatternDefect(ipar,cell,Defects,mLPNH,mLPSH,prefactor,enl,mcnl,patcntr,binned)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcEBSDPatternDefect
 !! author: MDG 
 !! version: 1.0 
-!! date: 06/05/23
+!! date: 06/08/23
 !!
-!! generate the detector arrays for the case where each pattern has a (slightly) different detector configuration
+!! This routine computes an EBSD pattern for a pixel in an ROI; the detector geometry 
+!! is also created here, since we need a different detetcor for each image pixel; so,
+!! this routine combines a few different routines into a single one.
 
-use mod_EMsoft
-use mod_io
 use mod_Lambert
-use mod_MPfiles
+use mod_quaternions
+use mod_rotations
+use mod_defect
+use mod_crystallography
 use mod_MCfiles
+use mod_math
 
 IMPLICIT NONE
 
-type(EBSDdefectNameListType),INTENT(INOUT)    :: enl
-!f2py intent(in,out) ::  enl
-type(MCOpenCLNameListType),INTENT(INOUT)      :: mcnl
-!f2py intent(in,out) ::  mcnl
-integer(kind=irg),INTENT(IN)                  :: nsx
-integer(kind=irg),INTENT(IN)                  :: nsy
-real(kind=sgl),INTENT(INOUT)                  :: tgx(nsx,nsy)
-!f2py intent(in,out) ::  tgx      
-real(kind=sgl),INTENT(INOUT)                  :: tgy(nsx,nsy)
-!f2py intent(in,out) ::  tgy      
-real(kind=sgl),INTENT(INOUT)                  :: tgz(nsx,nsy)
-!f2py intent(in,out) ::  tgz      
-real(kind=dbl),INTENT(IN)                     :: patcntr(3)
-      
-real(kind=sgl),allocatable                    :: scin_x(:), scin_y(:), testarray(:,:)  ! scintillator coordinate ararays [microns]
-real(kind=sgl),parameter                      :: dtor = 0.0174533  ! convert from degrees to radians
-real(kind=sgl)                                :: alp, ca, sa, cw, sw
-real(kind=sgl)                                :: L2, Ls, Lc, calpha     ! distances
-real(kind=sgl),allocatable                    :: z(:,:)           
-integer(kind=irg)                             :: nix, niy, binx, biny , i, j, Emin, Emax, istat, k, ipx, ipy, nx, ny, elp   
-real(kind=sgl)                                :: dc(3), scl, alpha, theta, g, pcvec(3), s, dp           ! direction cosine array
-real(kind=sgl)                                :: sx, dx, dxm, dy, dym, rhos, x, bindx, xpc, ypc, L         ! various parameters
-real(kind=sgl)                                :: ixy(2)
+integer(kind=irg),INTENT(IN)                    :: ipar(8)
+type(Cell_T),INTENT(IN)                         :: cell
+type(Defect_T),INTENT(INOUT)                    :: Defects
+real(kind=sgl),INTENT(IN)                       :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(6))
+real(kind=sgl),INTENT(IN)                       :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(6))
+real(kind=dbl),INTENT(IN)                       :: prefactor
+type(EBSDdefectNameListType),INTENT(INOUT)      :: enl
+type(MCOpenCLNameListType),INTENT(INOUT)        :: mcnl
+real(kind=dbl),INTENT(IN)                       :: patcntr(3)
+real(kind=sgl),INTENT(INOUT)                    :: binned(ipar(2),ipar(3))
+
+type(Quaternion_T)                              :: quat, qq
+type(q_T)                                       :: qu
+type(o_T)                                       :: om
+
+real(kind=dbl)                                  :: dc(3),dcnew(3), omfc(3,3), omfct(3,3)
+real(kind=dbl)                                  :: tFij(3,3,ipar(6)), FF(3,3), FF_inv(3,3)
+real(kind=sgl)                                  :: dx,dy,dxm,dym,ixy(2),scl
+integer(kind=irg)                               :: ii,jj,kk
+integer(kind=irg)                               :: nix,niy,nixp,niyp
+
+real(kind=sgl)                                  :: scin_x, scin_y, rgx, rgy, rgz, z  ! scintillator coordinate ararays [microns]
+real(kind=sgl)                                  :: alp, ca, sa, cw, sw, xpos, ypos
+real(kind=sgl)                                  :: L2, Ls, Lc, calpha     ! distances
+integer(kind=irg)                               :: binx, biny , i, j, istat, k, ipx, ipy, nx, ny, elp   
+real(kind=sgl)                                  :: alpha, theta, g, pcvec(3), s, dp           ! direction cosine array
+real(kind=sgl)                                  :: sx, rhos, x, bindx, xpc, ypc, L         ! various parameters
+
+
+! get the quaternion that transforms the foil coordinates into the crystal reference frame
+qq = Quaternion_T( qd = (/ 1.D0/sqrt(2.D0),0.D0,0.D0,-1.D0/sqrt(2.D0) /) )
+quat = qq * conjg(Defects%foil%a_fc) * conjg(qq)
+! also get the transformation matrix which is need to put the deformation tensor into
+! the crystal reference frame.
+qu = q_T( qdinp = quat%get_quatd())
+om = qu%qo()
+omfc = om%o_copyd()
+omfct = transpose(omfc)
+
+! ipar(1) = not used 
+! ipar(2) = ebsdnl%numsx
+! ipar(3) = ebsdnl%numsy
+! ipar(4) = ebsdnl%npx
+! ipar(5) = ebsdnl%npy
+! ipar(6) = number of depth steps
+! ipar(7) = i  [image coordinate]
+! ipar(8) = j  [image coordinate]
+
+binned = 0.0
+scl = float(ipar(4))
 
 !====================================
-! ------ generate the detector arrays
+! ------ generate the detector parameters
 !====================================
 xpc = sngl(patcntr(1))
 ypc = sngl(patcntr(2))
 L = sngl(patcntr(3))
-
-allocate(scin_x(nsx),scin_y(nsy),stat=istat)
-! if (istat.ne.0) then ...
-scin_x = - ( -xpc - ( 1.0 - nsx ) * 0.5 - (/ (i-1, i=1,nsx) /) ) * enl%delta
-scin_y = ( ypc - ( 1.0 - nsy ) * 0.5 - (/ (i-1, i=1,nsy) /) ) * enl%delta
 
 ! auxiliary angle to rotate between reference frames
 alp = 0.5 * cPi - (mcnl%sig - enl%thetac) * dtor
@@ -1558,87 +1494,48 @@ sa = sin(alp)
 
 cw = cos(mcnl%omega * dtor)
 sw = sin(mcnl%omega * dtor)
-
-elp = nsy + 1
 L2 = L * L
-do j=1,nsx
-  sx = L2 + scin_x(j) * scin_x(j)
-  Ls = -sw * scin_x(j) + L*cw
-  Lc = cw * scin_x(j) + L*sw
-  do i=1,nsy
-   rhos = 1.0/sqrt(sx + scin_y(i)**2)
-   tgx(j,elp-i) = (scin_y(i) * ca + sa * Ls) * rhos!Ls * rhos
-   tgy(j,elp-i) = Lc * rhos!(scin_x(i) * cw + Lc * sw) * rhos
-   tgz(j,elp-i) = (-sa * scin_y(i) + ca * Ls) * rhos!(-sw * scin_x(i) + Lc * cw) * rhos
-  end do
-end do
-deallocate(scin_x, scin_y)
-
-! normalize the direction cosines.
-allocate(z(nsx,nsy))
-  z = 1.0/sqrt(tgx*tgx+tgy*tgy+tgz*tgz)
-  tgx = tgx*z
-  tgy = tgy*z
-  tgz = tgz*z
-deallocate(z)
-!====================================
-
-! for the defect EBSD mode we do not create a realistic background,
-! so no need to deal with the energy arrays at all...
-end subroutine GeneratedefectEBSDDetector
-
-!--------------------------------------------------------------------------
-recursive subroutine CalcEBSDPatternDefect(ipar,qu,mLPNH,mLPSH,rgx,rgy,rgz,binned, prefactor, Fmatrix)
-!DEC$ ATTRIBUTES DLLEXPORT :: CalcEBSDPatternDefect
-
-use mod_Lambert
-use mod_quaternions
-use mod_rotations
-
-IMPLICIT NONE
-
-integer(kind=irg),INTENT(IN)                    :: ipar(7)
-! real(kind=sgl),INTENT(IN)                       :: qu(4,ipar(7)) 
-type(Quaternion_T),INTENT(IN)                   :: qu
-real(kind=dbl),INTENT(IN)                       :: prefactor
-real(kind=sgl),INTENT(IN)                       :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
-real(kind=sgl),INTENT(IN)                       :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
-real(kind=sgl),INTENT(IN)                       :: rgx(ipar(2),ipar(3))
-real(kind=sgl),INTENT(IN)                       :: rgy(ipar(2),ipar(3))
-real(kind=sgl),INTENT(IN)                       :: rgz(ipar(2),ipar(3))
-real(kind=sgl),INTENT(INOUT)                    :: binned(ipar(2),ipar(3))
-real(kind=dbl),INTENT(IN)                       :: Fmatrix(3,3,ipar(7))
-
-real(kind=dbl)                                  :: dc(3),dcnew(3)
-real(kind=sgl)                                  :: dx,dy,dxm,dym,ixy(2),scl
-integer(kind=irg)                               :: ii,jj,kk,istat
-integer(kind=irg)                               :: nix,niy,nixp,niyp
-
-! ipar(1) = not used 
-! ipar(2) = ebsdnl%numsx
-! ipar(3) = ebsdnl%numsy
-! ipar(4) = ebsdnl%npx
-! ipar(5) = ebsdnl%npy
-! ipar(6) = not used 
-! ipar(7) = number of depth steps
-
-
-binned = 0.0
-scl = float(ipar(4)) 
 
 do ii = 1,ipar(2)
     do jj = 1,ipar(3)
-! get the pixel direction cosines from the pre-computed array
-        dc = dble((/ rgx(ii,jj),rgy(ii,jj),rgz(ii,jj) /))
-! here we loop over the depth instead of the energy, and we employ the deformation tensor at each depth 
+! this portion comes from the detector generator routine; the following lines
+! determine the direction cosines of the detector pixel with respect to the 
+! image pixel (illumination point on the sample)
+      scin_x = - ( -xpc - ( 1.0 - ipar(2)) * 0.5 - real(ii) ) * enl%delta
+      scin_y =   ( ypc - ( 1.0 - ipar(3) ) * 0.5 - real(jj) ) * enl%delta
+      ! sx = L2 + scin_x * scin_x
+      Ls = -sw * scin_x + L*cw
+      Lc = cw * scin_x + L*sw
+      ! rhos = 1.0/sqrt(sx + scin_y**2)  ! the vector will be normalized anyway...
+      rgx = (scin_y * ca + sa * Ls) ! * rhos
+      rgy = Lc ! * rhos
+      rgz = (-sa * scin_y + ca * Ls) ! * rhos
+      z = 1.0/sqrt(rgx*rgx+rgy*rgy+rgz*rgz)
+      rgx = rgx*z
+      rgy = rgy*z
+      rgz = rgz*z
+! get the pixel direction cosines; these are also the direction cosines that 
+! represent the orientation of the integration column in the sample.  We need to
+! also transform the deformation tensor into the crystal reference frame before
+! carrying out the integration. 
+      dc = dble((/ rgx,rgy,rgz /))
+      if (rgz.lt.0.0) dc = -dc
+
+! get all the deformation tensors in the sample reference frame 
+      call Defects%CalcFcolumn(cell, dc, tFij, ipar(7), ipar(8) )
+
+! loop over the depth instead of the energy; get the transformed deformation tensor at each depth 
 ! to determine the direction cosines of the sampling unit vector.        
-        do kk = 1, ipar(7)
-          ! apply the grain rotation 
-          dcnew = qu%quat_Lp(dc)
+      do kk = 1, ipar(6)
+        FF = tFij(:,:,kk)
+        FF = matmul(omfc,matmul(FF,omfct))
+        call mInvert(FF, FF_inv, .FALSE.)
+! apply the grain rotation 
+        dcnew = quat%quat_Lp(dc)
 ! apply the deformation
-          dcnew = matmul(Fmatrix(1:3,1:3,kk), dcnew)
+        dcnew = matmul(FF_inv, dcnew)
 ! and normalize the direction cosines (to remove any rounding errors)
-          dcnew = dcnew/sqrt(sum(dcnew**2))
+        dcnew = dcnew/sqrt(sum(dcnew**2))
 
 ! convert these direction cosines to interpolation coordinates in the Rosca-Lambert projection
           call LambertgetInterpolation(sngl(dcnew), scl, ipar(4), ipar(5), nix, niy, nixp, niyp, dx, dy, dxm, dym)

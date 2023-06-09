@@ -25,13 +25,11 @@
 ! diffraction geometry and image parameters
 !=====================================
 ! this zone axis k will be parallel to the sample normal ND;
-! the orientation of the pattern will correspond to the output of the EMZAgeom 
-! utility program.
- k = 0,0,1,
-! counterclockwise rotation angle [deg] around this zone axis (away from the default 
-! orientation); this allows for the computation to match an experimental observation.
-! Note that the same orientation will apply to the defect volume.
- rotang = 0.0, 
+! note that this will be truncated to an integer, so do not use decimal portions
+ k = 0.D0, 0.D0, 1.D0,
+! reciprocal vector that describes the lattice plane normal that contains the k vector
+! q must be perpendciular to k
+ q = 1.D0, 0.D0, 0.D0, 
 ! edge length of a column [nm] in the column approximation context (i.e., pixel size)
 ! this is also the EBSD sampling step size !
  DF_L = 1.0,
