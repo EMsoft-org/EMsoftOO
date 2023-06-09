@@ -1215,7 +1215,7 @@ dstr = timer%getDateString()
 call Message%printMessage(' Creating HDF5 output file ')
 io_real(1) = real(enl%numsx) * real(enl%numsy) * real(enl%DF_npix) * real(enl%DF_npiy) * 4.0
 io_real(1) = io_real(1) / (1024.0)**3
-call Message%WriteValue('   size of pattern output array (Gb): ', io_real, 1)
+call Message%WriteValue('   size of pattern output array (Gb): ', io_real, 1,"(f10.2)")
 
 datafile = EMsoft%generateFilePath('EMdatapathname', enl%datafile)
 
@@ -1338,6 +1338,7 @@ prefactor = 1.D0
 ! this array contains a row of EBSD patterns
 call mem%alloc(patarray, (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /), 'patarray', initval = 0.0)
 
+call Message%printMessage(' --> starting parallel computation ...')
 ! use OpenMP to run on multiple cores ... 
 !$OMP PARALLEL default(shared)  PRIVATE(TID, NUMTHREADS, i, j, binned, tmLPNH, tmLPSH, ix, pctr, iipar)
 
@@ -1377,7 +1378,8 @@ call mem%alloc(patarray, (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /), 'patarray',
 !$OMP BARRIER
    if (TID.eq.0) then 
      io_int(1) = iy 
-     call Message%WriteValue(' -> completed row ',io_int,1)
+     io_int(2) = enl%DF_npiy
+     call Message%WriteValue(' -> completed row/total rows ',io_int,2,"(I5,'/',I5)")
      dataset = SC_EBSDpatterns
         dims4 = (/ enl%numsx, enl%numsy, enl%DF_npix, enl%DF_npiy /)
         cnt4 = (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /)
