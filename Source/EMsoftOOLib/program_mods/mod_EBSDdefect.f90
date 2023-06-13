@@ -1394,7 +1394,11 @@ call Message%printMessage(' --> starting parallel computation ...')
       mi = minval(patarray(:,:,1,1))
       ma = maxval(patarray(:,:,1,1))
       allocate(TIFF_image(enl%numsx,enl%numsy))
-      TIFF_image = int(255 * (patarray(:,:,1,1)-mi)/(ma-mi))
+      do i=1,enl%numsx 
+        do j=1,enl%numsy
+          TIFF_image(i,enl%numsy+1-j) = int(255 * (patarray(i,j,1,1)-mi)/(ma-mi))
+        end do 
+      end do 
       im = image_t(TIFF_image)
       call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
       deallocate(TIFF_image)
@@ -1442,7 +1446,7 @@ type(MCOpenCLNameListType),INTENT(INOUT)        :: mcnl
 real(kind=dbl),INTENT(IN)                       :: patcntr(3)
 real(kind=sgl),INTENT(INOUT)                    :: binned(ipar(2),ipar(3))
 
-type(Quaternion_T)                              :: quat, qq
+type(Quaternion_T)                              :: quat, qq, dquat
 type(q_T)                                       :: qu
 type(o_T)                                       :: om
 
@@ -1461,11 +1465,12 @@ real(kind=sgl)                                  :: sx, rhos, x, bindx, xpc, ypc,
 
 
 ! get the quaternion that transforms the foil coordinates into the crystal reference frame
-qq = Quaternion_T( qd = (/ 1.D0/sqrt(2.D0),0.D0,0.D0,-1.D0/sqrt(2.D0) /) )
-quat = qq * conjg(Defects%foil%a_fc) * conjg(qq)
+qq = Quaternion_T( qd = (/ 1.D0/sqrt(2.D0),0.D0,0.D0, 1.D0/sqrt(2.D0) /) )
+dquat = conjg(Defects%foil%a_fc) 
+quat = qq * dquat * conjg(qq)
 ! also get the transformation matrix which is need to put the deformation tensor into
 ! the crystal reference frame.
-qu = q_T( qdinp = quat%get_quatd())
+qu = q_T( qdinp = dquat%get_quatd())
 om = qu%qo()
 omfc = om%o_copyd()
 omfct = transpose(omfc)

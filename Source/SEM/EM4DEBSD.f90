@@ -26,7 +26,7 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMEBSDdefect
+program EM4DEBSD
   !! author: MDG
   !! version: 1.0 
   !! date: 06/05/23
@@ -43,7 +43,7 @@ use stringconstants
 
 IMPLICIT NONE
 
-character(fnlen)                :: progname = 'EMEBSDdefect.f90'
+character(fnlen)                :: progname = 'EM4DEBSD.f90'
 character(fnlen)                :: progdesc = 'Generate EBSD patterns for a scan across an ROI containing defects'
 
 type(EMsoft_T)                  :: EMsoft
@@ -65,4 +65,4 @@ call HDFnames%set_Variable(SC_MCOpenCL)
 ! perform the computations
 call EBSDdef%EBSDdefect(EMsoft, progname, HDFnames)
 
-end program EMEBSDdefect
+end program EM4DEBSD
