@@ -58,11 +58,28 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                         )
 
+  Add_EMsoftOO_Executable(TARGET EMEBSDdepthmaster
+                        SOURCES ${APP_DIR}/EMEBSDdepthmaster.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EMEBSDmaster.template
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
 
   Add_EMsoftOO_Executable(TARGET EMEBSD
                         SOURCES ${APP_DIR}/EMEBSD.f90
                         LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
                         TEMPLATE ${TMPLT_DIR}/EMEBSD.template
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
+
+  Add_EMsoftOO_Executable(TARGET EM4DEBSD
+                        SOURCES ${APP_DIR}/EM4DEBSD.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EM4DEBSD.template
                         SOLUTION_FOLDER EMsoftOOPublic/SEM
                         INSTALL_PROGRAM TRUE
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}

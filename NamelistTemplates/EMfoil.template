@@ -1,7 +1,5 @@
  {
      "FoilDescriptor": {
-         "foilF": [ 0.0, 0.0, 1.0 ],
-         "foilq": [ 1.0, 0.0, 0.0 ],
          "foilalP": 0.0,
          "foilalS": 0.0,
          "foilalR": 0.0,

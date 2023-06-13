@@ -743,7 +743,8 @@ if ((SG%getSpaceGroupXtalSystem().eq.4).or.(SG%getSpaceGroupXtalSystem().eq.5)) 
 
 ! set the Bethe parameters
 ! force dynamical matrix routine to read new Bethe parameters from file
-call Diff%SetBetheParameters(EMsoft, .TRUE., emnl%BetheParametersFile)
+! call Diff%SetBetheParameters(EMsoft, .TRUE., emnl%BetheParametersFile)
+call Diff%SetBetheParameters(EMsoft, .TRUE.)
 
 !=============================================
 ! ---------- create the incident beam directions list
@@ -791,7 +792,7 @@ mem = memory_T()
 
 call mem%alloc( klist, (/3, numk/), 'klist')
 call mem%alloc( knlist, (/numk/), 'knlist')
-call mem%alloc( XYarray, (/2, numk/), 'XYarray')
+call mem%alloc( XYarray, (/2, numk/), 'XYarray', initval = 0.0)
 
 ! ! point to the first beam direction
 if (trim(emnl%progmode).eq.'array') ktmp => kvec%get_ListHead()
@@ -800,19 +801,14 @@ if (trim(emnl%progmode).eq.'circl') ktmp => khead
 ! ! and loop through the list, keeping k, kn, and i,j
 klist(1:3,1) = ktmp%k
 knlist(1) = ktmp%kn
-write (*,*) ' 1 ', ktmp%k 
 
-! we also need to rescale the normal components of k since those are still
-! in units of multiples of ga
+! copy the wave vector components into the necessary arrays
 glen = 1.0/cell%CalcLength(float(ga),'r')
 do i = 2,numk
   ktmp => ktmp%next
-  gx = ktmp%k
-  gx(1:2) = gx(1:2) * glen 
-  call cell%NormVec(gx,'r')
-  klist(1:3,i) = gx/Diff%getWaveLength()
-  write (*,*) i, ktmp%k, klist(1:3,i)
+  klist(1:3,i) = ktmp%k  ! gx/Diff%getWaveLength()
   knlist(i) = ktmp%kn
+  XYarray(1:2,i) = real((/ ktmp%i, ktmp%j /))
 end do
 
 ! number of reflections, and associated information (hkl, ...)
@@ -829,17 +825,17 @@ call cell%TransSpace(float(emnl%k),kstar,'d','r')   ! transform incident directi
 call cell%CalcCross(float(ga),kstar,gperp,'r','r',0)! compute g_perp = ga x k
 call cell%NormVec(gperp,'r')                        ! normalize g_perp
 
-glen = cell%CalcLength(float(ga),'r')
+! glen = cell%CalcLength(float(ga),'r')
 
-if (trim(emnl%progmode).eq.'array') ktmp => kvec%get_ListHead()
-if (trim(emnl%progmode).eq.'circl') ktmp => khead 
+! if (trim(emnl%progmode).eq.'array') ktmp => kvec%get_ListHead()
+! if (trim(emnl%progmode).eq.'circl') ktmp => khead 
 
 ! need to potentially check the sign of the first component ... 
-do ic=1,numk
-    XYarray(1,ic) = -cell%CalcDot(sngl(ktmp%kt),float(ga),'c') ! / glen
-    XYarray(2,ic) = -cell%CalcDot(sngl(ktmp%kt),gperp,'c') * glen
-    ktmp => ktmp%next
-end do
+! do ic=1,numk
+!     XYarray(1,ic) = -cell%CalcDot(sngl(ktmp%kt),float(ga),'c') ! / glen
+!     XYarray(2,ic) = -cell%CalcDot(sngl(ktmp%kt),gperp,'c') * glen
+!     ktmp => ktmp%next
+! end do
 
 call kvec%Delete_kvectorlist()
 nullify(ktmp)
@@ -884,7 +880,7 @@ if (emnl%dispfile.eq.'undefined') then
 
   ! next, we read all the foil and defect data using the new InitializeDefects routine in defectmodule.f90
   verbose = .FALSE.
-  call Defects%InitializeDefects(EMsoft,cell,emnl%defectfilename,emnl%DF_npix,emnl%DF_npiy,emnl%DF_L,DF_gf,error_cnt,verbose)
+  ! call Defects%InitializeDefects(EMsoft,cell,emnl%defectfilename,emnl%DF_npix,emnl%DF_npiy,emnl%DF_L,DF_gf,error_cnt,verbose)
 
   DynFN = Defects%foil%F  
 
@@ -1099,8 +1095,8 @@ mainloop: do isg = numstart,numstop
   nnw = 0
   call reflist%Apply_BethePotentials(Diff, firstw, nns, nnw)
   nn = nns
-  write (*,*) 'number of reflections : ', nn,' for beam direction ', isg 
-  call reflist%PrintRefList('s')
+  ! write (*,*) 'number of reflections : ', nn,' for beam direction ', isg 
+  ! call reflist%PrintRefList('s')
 
 ! allocate the various DHW Matrices
   call mem%alloc(DHWMz, (/nn,nn/), 'DHWMz', initval = czero)
@@ -1122,7 +1118,6 @@ mainloop: do isg = numstart,numstop
   call reflist%getSghfromLUTsum(Diff,nn,numset,Sgh)
 
   ECCIimages = 0.0
-
 
   ! compute the excitation error for the incident beam directions
     call mem%alloc(sgarray, (/nn/), 'sgarray', initval = 0.0)
@@ -1249,7 +1244,11 @@ mainloop: do isg = numstart,numstop
 ! end if
 
       ! svals = real(sum(Lgh(1:nn,1:nn)*Sgh(1:nn,1:nn)))
-      svals = real(sum(Lgh*Sgh))
+      svals = 0.0 
+      do k=1,nn 
+        svals = svals + real(Lgh(k,k)*Sgh(k,k))
+      end do
+      ! svals = real(sum(Lgh*Sgh))
       svals = svals/sngl(real(sum(nat(1:numset))))
       ECCIimages(i,j,1) =  sngl(sum(svals))
     end do donpiy
@@ -1353,7 +1352,7 @@ if (trim(emnl%montagename).ne.'undefined') then
 ! allocate the montage array
   if ((emnl%progmode.eq.'array').or.(emnl%progmode.eq.'circl')) then
 ! divide the beam offsets by the dkt step size so that we can turn them into integers
-    XYarray = XYarray / emnl%dkt
+    ! XYarray = XYarray / emnl%dkt
     call mem%alloc(XYint, (/ 2,numk /), 'XYint', initval = 0 )
     XYint = nint(XYarray)
     maxXY = maxval(XYint)
@@ -1367,10 +1366,47 @@ if (trim(emnl%montagename).ne.'undefined') then
   montage = 0_int8
 
 ! assign the average value of the ECCIimages array to the montage
+  ! av = sum(ECCIstore)/float(emnl%DF_npix)/float(emnl%DF_npiy)/float(numk)
+  ! montage = av
+
+! fill and scale the montage array
+  do kkk=1,numk
+    ma = maxval(ECCIstore(:,:,kkk))
+    mi = minval(ECCIstore(:,:,kkk))
+    do j=1,emnl%DF_npiy
+      do i=1,emnl%DF_npix
+        if ((emnl%progmode.eq.'array').or.(emnl%progmode.eq.'circl'))  then
+          ii = emnl%DF_npix * (maxXY + XYint(1,kkk)) + i
+          jj = emnl%DF_npiy * (maxXY + XYint(2,kkk)) + j
+          montage(ii,jj) = int(255 * (ECCIstore(i,j,kkk)-mi)/(ma-mi))
+        else
+          ii = emnl%DF_npix * (kkk-1) + i
+          jj = j
+          montage(ii,jj) = int(255 * (ECCIstore(i,j,kkk)-mi)/(ma-mi))
+        end if
+      end do
+    end do
+  end do
+
+! set up the image_t structure
+  im = image_t(montage)
+  if (im%empty()) call Message%printMessage("EMECCI","failed to convert array to image")
+
+! create the file
+  call im%write(trim(Image_filename), iostat, iomsg) ! format automatically detected from extension
+  if (0.ne.iostat) then
+    call Message%printMessage("Failed to write image to file : "//iomsg)
+  else
+    call Message%printMessage('ECCI image montage written to '//trim(Image_filename))
+  end if
+
+  fname = EMsoft%generateFilePath('EMdatapathname',trim(emnl%montagename)//'.tiff')
+  Image_filename = trim(fname)
+
+! assign the average value of the ECCIimages array to the montage
   av = sum(ECCIstore)/float(emnl%DF_npix)/float(emnl%DF_npiy)/float(numk)
   montage = av
 
-! get the intensity scaling parameters
   ma = maxval(ECCIstore)
   mi = minval(ECCIstore)
 
@@ -1403,8 +1439,9 @@ if (trim(emnl%montagename).ne.'undefined') then
   else
     call Message%printMessage('ECCI image montage written to '//trim(Image_filename))
   end if
-  deallocate(montage)
 
+
+  deallocate(montage)
 else
   ! Circle mode section in test to export output in an images stack
   ! get the intensity scaling parameters

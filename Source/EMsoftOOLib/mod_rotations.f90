@@ -3376,7 +3376,7 @@ end if
 end subroutine c_print_
 
 !--------------------------------------------------------------------------
-subroutine e_print_(self, str)
+subroutine e_print_(self, str, deg)
 !DEC$ ATTRIBUTES DLLEXPORT :: e_print_
 !! author: MDG
 !! version: 1.0
@@ -3390,6 +3390,7 @@ IMPLICIT NONE
 
 class(e_T), intent(inout)           :: self
 character(*), intent(in)            :: str
+logical,INTENT(IN),OPTIONAL         :: deg
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(3)
@@ -3400,9 +3401,11 @@ str2 = trim(str)
 
 if (rotdoubleprecision) then
     io_dble = self%ed
+    if (present(deg)) io_dble = io_dble/dtor
     call Message%WriteValue(str2, io_dble, 3, frm="(2(F16.10,' '),F16.10)")
 else
     io_sngl = self%e
+    if (present(deg)) io_sngl = io_sngl/sngl(dtor)
     call Message%WriteValue(str2, io_sngl, 3, frm="(2(F12.6,' '),F12.6)")
 end if
 

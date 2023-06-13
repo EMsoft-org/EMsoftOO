@@ -103,25 +103,35 @@ type, public :: apbtype
         real(kind=sgl)       ::  xpos,ypos,zpos,radius,w,Rdisp(3)
 end type apbtype
 
+type, public :: EBSDAnglePCDefType
+        integer(kind=irg)               :: nvox(3)
+        real(kind=dbl)                  :: stepsize(3)
+        real(kind=dbl),allocatable      :: pcfield(:,:,:)
+        real(kind=dbl),allocatable      :: deftensorfield(:,:,:,:)
+end type EBSDAnglePCDefType
+
+
 type, public :: Defect_T
-  integer(kind=irg)                        :: numvoids,numdisl,numYdisl,numsf,numinc,numEinc,numapb
-  character(fnlen)                         :: foilname
-  integer(kind=irg)                        :: Nmat,DF_g(3),DF_npix,DF_npiy,DF_nums,DF_numinclusion,DF_numvoid
-  real(kind=sgl)                           :: DF_slice,DF_L,DF_gc(3),DF_gstar(3), DF_gf(3)
-  type (foiltype)                          :: foil
-  real(kind=sgl),allocatable               :: DF_foilsg(:,:),DF_R(:,:)
-  type (dislocationtype), allocatable      :: DL(:)
-  type (inclusiontype), allocatable        :: inclusions(:)
-  type (Einclusiontype), allocatable       :: Einclusions(:)
-  type (stackingfaulttype), allocatable    :: SF(:)
-  type (voidtype), allocatable             :: voids(:)
-  type (YDtype), allocatable               :: YD(:)
-  type (apbtype), allocatable              :: apbs(:)
+  integer(kind=irg)                     :: numvoids,numdisl,numYdisl,numsf,numinc,numEinc,numapb
+  character(fnlen)                      :: foilname
+  integer(kind=irg)                     :: Nmat,DF_g(3),DF_npix,DF_npiy,DF_nums,DF_numinclusion,DF_numvoid
+  real(kind=sgl)                        :: DF_slice,DF_L,DF_gc(3),DF_gstar(3), DF_gf(3)
+  type (foiltype)                       :: foil
+  real(kind=sgl),allocatable            :: DF_foilsg(:,:),DF_R(:,:)
+  type (dislocationtype), allocatable   :: DL(:)
+  type (inclusiontype), allocatable     :: inclusions(:)
+  type (Einclusiontype), allocatable    :: Einclusions(:)
+  type (stackingfaulttype), allocatable :: SF(:)
+  type (voidtype), allocatable          :: voids(:)
+  type (YDtype), allocatable            :: YD(:)
+  type (apbtype), allocatable           :: apbs(:)
+  type (EBSDAnglePCDefType)             :: APD
 
   contains
   private
   ! basic space group generating routines and related stuff
   procedure, pass(self) :: JSONreadDefectFile_
+  procedure, pass(self) :: readDefectHDFFile_
   procedure, pass(self) :: JSONreadFoilData_
   procedure, pass(self) :: InitializeDefects_
   procedure, pass(self) :: init_foil_data_
@@ -138,8 +148,11 @@ type, public :: Defect_T
   procedure, pass(self) :: YSHDisp_
   procedure, pass(self) :: Eshelby_disp_
   procedure, pass(self) :: calcR_
+  procedure, pass(self) :: calcPointR_
+  procedure, pass(self) :: CalcFcolumn_
 
   generic, public :: JSONreadDefectFile => JSONreadDefectFile_
+  generic, public :: readDefectHDFFile => readDefectHDFFile_
   generic, public :: JSONreadFoilData => JSONreadFoilData_
   generic, public :: InitializeDefects => InitializeDefects_
   generic, public :: init_foil_data => init_foil_data_
@@ -156,6 +169,8 @@ type, public :: Defect_T
   generic, public :: YSHDisp => YSHDisp_
   generic, public :: Eshelby_disp => Eshelby_disp_
   generic, public :: calcR => calcR_
+  generic, public :: calcPointR => calcPointR_
+  generic, public :: CalcFcolumn => CalcFcolumn_
 
   end type Defect_T
 
@@ -205,7 +220,7 @@ end function Defect_constructor
 !> @date 11/20/15 MDG 1.0 new routine
 !> @date 12/08/15 MDG 1.1 added Einclusion defect type
 !--------------------------------------------------------------------------
-recursive subroutine JSONreadDefectFile_(self, EMsoft, cell, jsonname, error_cnt,verbose)
+recursive subroutine JSONreadDefectFile_(self, EMsoft, cell, jsonname, kvec, qvec, error_cnt,verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: JSONreadDefectFile_
 
 use ISO_C_BINDING
@@ -223,6 +238,8 @@ type(Cell_T),INTENT(IN)                               :: cell
 type(IO_T)                                            :: Message
 type(EMsoft_T), INTENT(INOUT)                         :: EMsoft
 character(fnlen),INTENT(IN)                           :: jsonname
+real(kind=dbl),INTENT(IN)                             :: kvec(3)
+real(kind=dbl),INTENT(IN)                             :: qvec(3)
 integer(kind=irg),INTENT(INOUT)                       :: error_cnt
 logical,INTENT(IN),OPTIONAL                           :: verbose
 
@@ -289,7 +306,7 @@ else
     end if
 
  ! here we call the foil reading routine to first fill all the foil parameters
-     call self%JSONreadFoilData(Emsoft, cell, error_cnt, verbose)
+     call self%JSONreadFoilData(Emsoft, cell, kvec, qvec, error_cnt, verbose)
 ! then we need to get the total number of defects in the file, so that we can allocate
 ! the correct array sizes in the defects structure
     ndis = 0
@@ -572,7 +589,7 @@ end subroutine JSONreadDefectFile_
 !
 !> @date 11/21/15  MDG 1.0 new routine
 !--------------------------------------------------------------------------
-recursive subroutine JSONreadFoilData_(self, Emsoft, cell, error_cnt, verbose)
+recursive subroutine JSONreadFoilData_(self, Emsoft, cell, kvec, qvec, error_cnt, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: JSONreadFoilData_
 
 use ISO_C_BINDING
@@ -587,6 +604,8 @@ IMPLICIT NONE
 
 class(Defect_T), INTENT(INOUT)                        :: self
 type(Cell_T),INTENT(IN)                               :: cell
+real(kind=dbl),INTENT(IN)                             :: kvec(3)
+real(kind=dbl),INTENT(IN)                             :: qvec(3)
 type(IO_T)                                            :: Message
 type(EMsoft_T), INTENT(INOUT)                         :: EMsoft
 integer(kind=irg),INTENT(INOUT)                       :: error_cnt
@@ -612,8 +631,8 @@ end if
 
 ! set the default values for all entries
 self%foil%elmo = 0.0                         ! elastic moduli
-self%foil%F = (/ 0.0,0.0,1.0 /)              ! foil normal in direct space Bravais reference frame
-self%foil%q = (/ 1.0,0.0,0.0 /)              ! reciprocal space vector along primary tilt axis towards airlock
+self%foil%F = kvec                           ! foil normal in direct space Bravais reference frame
+self%foil%q = qvec                           ! reciprocal space vector along primary tilt axis towards airlock
 self%foil%alP = 0.0                          ! primary tilt angle in degrees
 self%foil%alS = 0.0                          ! secondary tilt angle (for double tilt holder)
 self%foil%alR = 0.0                          ! secondary tilt angle (for rotation tilt holder)
@@ -647,16 +666,16 @@ else
     nc2loop: do j=1,nc2
       call json_get_child(child,j,child2)
       call json_info(child2,vart,nc3,name)
-! foil normal
-        if (name.eq.'foilF') then
-          str = '   Foil normal F = '
-          self%foil%F = JSONgetDoubleVector(child2,nc3,str,v)
-        end if
-! foil q vector
-        if (name.eq.'foilq') then
-          str = '   Foil q-vector = '
-          self%foil%q = JSONgetDoubleVector(child2,nc3,str,v)
-        end if
+! foil normal ! must be set in the calling program
+        ! if (name.eq.'foilF') then
+        !   str = '   Foil normal F = '
+        !   self%foil%F = JSONgetDoubleVector(child2,nc3,str,v)
+        ! end if
+! foil q vector ! must be set in the calling program
+        ! if (name.eq.'foilq') then
+        !   str = '   Foil q-vector = '
+        !   self%foil%q = JSONgetDoubleVector(child2,nc3,str,v)
+        ! end if
 ! foil alP tilt
         if (name.eq.'foilalP') then
           str = '   Foil alP tilt = '
@@ -724,15 +743,82 @@ end if
 
 call JSON_failtest(error_cnt)
 
-! verify that the foil normal (in real space) and q (in reciprocal space) are orthogonal
-! in other words, we do a cartesian dot product...
-x = cell%CalcDot(self%foil%F,self%foil%q,'c')
-if (abs(x).gt.0.005) then
-  call Message%printMessage('Foil normal F must be orthogonal to q', frm = "(A)")
-!  stop
-end if
-
 end subroutine JSONreadFoilData_
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE:readDefectHDFFile_
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief read a defect array file to be used for ECCI computations
+!
+!> @date 06/03/23 MDG 1.0 new routine (based on EBSDreadorpcdefHDF from v5.0)
+!--------------------------------------------------------------------------
+recursive subroutine readDefectHDFFile_(self, HDF, fname, verbose)
+!DEC$ ATTRIBUTES DLLEXPORT :: readDefectHDFFile_
+
+use ISO_C_BINDING
+use mod_io
+use mod_quaternions
+use mod_rotations
+use mod_HDFsupport
+use HDF5
+use mod_EMsoft
+use mod_io 
+
+use, intrinsic :: iso_fortran_env, only: wp => real64
+
+IMPLICIT NONE
+
+class(Defect_T), INTENT(INOUT)                        :: self
+type(HDF_T),INTENT(INOUT)                             :: HDF
+character(fnlen),INTENT(IN)                           :: fname
+logical,INTENT(IN),OPTIONAL                           :: verbose 
+
+type(IO_T)                                            :: Message 
+
+character(fnlen)                                      :: groupname, dataset 
+integer(kind=irg)                                     :: hdferr 
+integer(kind=irg),allocatable                         :: nvox(:)
+real(kind=dbl),allocatable                            :: stepsize(:)
+logical                                               :: g_exists, d_exists
+integer(HSIZE_T)                                      :: dims1(1)
+
+hdferr = HDF%openFile(fname, readonly=.TRUE.)
+
+groupname = 'DeformationFieldInfo'
+call H5Lexists_f(HDF%getObjectID(),trim(groupname),g_exists, hdferr)
+if (g_exists.eqv..TRUE.) then 
+  hdferr = HDF%openGroup(groupname) 
+else 
+  call Message%printError('readDefectHDFFile_','HDF file does not contain DeformationFieldInfo group')
+end if 
+
+! read integer fields
+dataset = 'nvox'
+  self%APD%nvox = 0
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),d_exists, hdferr)
+  if (d_exists.eqv..TRUE.) then
+    call HDF%readDatasetIntegerArray(dataset, dims1, hdferr, nvox)
+    self%APD%nvox = nvox
+  else 
+    call Message%printWarning('readDefectHDFFile_: nvox array missing; trying to get values from deformation array')
+  end if
+
+! read float fields
+dataset = 'stepsize'
+  self%APD%stepsize = 0.D0
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),d_exists, hdferr)
+  if (d_exists.eqv..TRUE.) then
+    call HDF%readDatasetDoubleArray(dataset, dims1, hdferr, stepsize)
+    self%APD%stepsize = stepsize
+  else 
+    call Message%printWarning('readDefectHDFFile_: stepsize array missing; setting values to 1.0 nm')
+    self%APD%stepsize = 0.D0
+  end if
+
+end subroutine readDefectHDFFile_
 
 !--------------------------------------------------------------------------
 !
@@ -745,7 +831,7 @@ end subroutine JSONreadFoilData_
 !> @date  11/22/15 MDG 1.0 original
 !> @date  11/24/15 MDG 1.1 added Ydislocations, stacking faults, inclusions and voids
 !--------------------------------------------------------------------------
-recursive subroutine InitializeDefects_(self,EMsoft,cell,jsonname,npix,npiy,L,gf,error_cnt,verbose)
+recursive subroutine InitializeDefects_(self,EMsoft,cell,jsonname,npix,npiy,L,gf,kvec,qvec,error_cnt,verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: InitializeDefects_
 
 use mod_io
@@ -764,6 +850,8 @@ integer(kind=irg),INTENT(IN)            :: npix
 integer(kind=irg),INTENT(IN)            :: npiy
 real(kind=sgl),INTENT(IN)               :: L
 real(kind=sgl),INTENT(IN)               :: gf(3)
+real(kind=dbl),INTENT(IN)               :: kvec(3)
+real(kind=dbl),INTENT(IN)               :: qvec(3)
 integer(kind=irg),INTENT(INOUT)         :: error_cnt
 
 logical,INTENT(IN),OPTIONAL             :: verbose
@@ -789,7 +877,7 @@ self%numEinc = 0
 ! first of all, we need to read all the defect data from the jsonname file, including the foil data
 ! note that the JSON file should have the .jsonc extension, isince it may have comments; those lines
 ! will be removed first
-call self%JSONreadDefectFile(EMsoft, cell, jsonname, error_cnt, verbose)
+call self%JSONreadDefectFile(EMsoft, cell, jsonname, kvec, qvec, error_cnt, verbose)
 
 if (v.eq.1) then
   call Message%printMessage('The following defects were initialized : ')
@@ -2775,7 +2863,7 @@ end function Eshelby_disp_
 !>
 !> the general procedure to implement a defect displacement field is as follows:
 !> - if the defect has its own reference frame, then transform (xpos,ypos,zpos) to
-!>   that frame (see the dislocation section below for an example), and then do
+!>   that frame (see the dislocation section for an example), and then do
 !>   the computation of the displacement vector and express it in the cartesian frame.
 !>
 !> - if the defect uses the foil reference frame (e.g., voids, inclusions), then use tmpf
@@ -2805,19 +2893,13 @@ type(Cell_T)                            :: cell
 
 integer(kind=irg),INTENT(IN)            :: i,j
 
-integer(kind=irg)                       :: k, islice, ii
-real(kind=dbl)                          :: dis,xpos,ypos,zpos,sumR(3),thick,tmp(3),tmp2(3), &
-                                           tmpf(3),u(3),zaamp,zaphase,zar,zai,zr(3),zi(3), &
-                                           zt,fx,fy,fz,a_fm(3,3),ar    !,&
-!                                nu,x,y,z,zn,t,pre,r1,r2,r3,th,rn
+integer(kind=irg)                       :: islice
+real(kind=dbl)                          :: xpos,ypos,a_fm(3,3),zt,fx,fy,fz
 
-complex(kind=dbl)                       :: za(3)
-complex(kind=sgl)                       :: zero
 logical                                 :: isvoid
 
 type(o_T)                               :: a_fm_om
 type(q_T)                               :: a_fm_qu
-type(Quaternion_T)                      :: a_dc_conj, a_di_conj, a_id_conj
 
 ! scale the image coordinates with respect to the origin at the center of the image
  xpos = float(i-self%DF_npix/2)*self%DF_L
@@ -2835,22 +2917,61 @@ type(Quaternion_T)                      :: a_dc_conj, a_di_conj, a_id_conj
  fz = a_fm(3,3)
  zt = self%foil%zb*0.5 - (fx*xpos + fy*ypos)/fz
 
-! initialize some other variables
- thick = self%foil%zb
- zero = cmplx(0.0,0.0)
-
 ! loop over all slices (this is the main loop)
  sliceloop: do islice = 1,self%DF_nums
 
+   self%DF_R(islice,1:3) = self%CalcPointR_( cell, islice, xpos, ypos, zt, i, j )
+
+ end do sliceloop ! main loop over the slices
+
+end subroutine CalcR_
+
+!--------------------------------------------------------------------------
+!
+! FUNCTION: CalcPointR_
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the total displacement vector for a given point
+!
+!> @details Note that the end result MUST be expressed in the cartesian reference frame !
+!
+!> @date  06/01/23 MDG 1.0 original (split from CalcR_ routine so it can be used by other routines)
+!--------------------------------------------------------------------------
+recursive function CalcPointR_(self, cell, islice, xpos, ypos, zt, i, j) result(sumR)
+
+use mod_crystallography
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Defect_T),INTENT(INOUT)           :: self
+type(Cell_T)                            :: cell
+integer(kind=irg),INTENT(IN)            :: islice
+real(kind=dbl),INTENT(IN)               :: xpos
+real(kind=dbl),INTENT(IN)               :: ypos
+real(kind=dbl),INTENT(IN)               :: zt
+integer(kind=irg),INTENT(IN)            :: i, j
+real(kind=dbl)                          :: sumR(3)
+
+real(kind=dbl)                          :: dis,zpos,thick,tmp(3),tmp2(3), &
+                                           tmpf(3),u(3),zaamp,zaphase,zar,zai,zr(3),zi(3), &
+                                           fx,fy,fz,a_fm(3,3),ar 
+complex(kind=dbl)                       :: za(3)
+integer(kind=irg)                       :: ii, k
+logical                                 :: isvoid = .FALSE.
+type(Quaternion_T)                      :: a_dc_conj, a_di_conj, a_id_conj
+
 ! zpos is the position down the column, starting at zt (in image coordinates)
-    zpos = zt - float(islice)*self%DF_slice
+! zpos = zt - float(islice)*self%DF_slice
+zpos = zt
 
 ! set the displacements to zero
-    sumR = 0.0
+sumR = 0.0
 
 ! set the position in the foil reference frame
-    tmpf = self%foil%a_fi%quat_Lp(dble( (/ xpos, ypos, zpos /)))
-
+tmpf = self%foil%a_fi%quat_Lp(dble( (/ xpos, ypos, zpos /)))
 
 !------------
 !----VOIDS---
@@ -2872,13 +2993,11 @@ if (self%numvoids.ne.0) then
 ! skip the rest of the computation for this slice if we are inside a void
     if (isvoid.eqv..TRUE.) then
       self%DF_R(islice,1) = -10000.0
-      cycle sliceloop
     end if
  end if
 
-
 ! ok, if we get here, then we're not inside a void...
-
+if (isvoid.eqv..FALSE.) then
 !------------------
 !----CURVED FOIL---
 !------------------
@@ -2889,60 +3008,60 @@ if (self%numvoids.ne.0) then
 !--DISLOCATIONS--
 !-----------------
 ! let's put a few dislocations in ... (see section 8.4.2)
-do ii=1,self%numdisl
+if (self%numdisl.gt.0) then
+    do ii=1,self%numdisl
 ! compute the difference vector between the current (xpos,ypos,zpos) in the foil reference frame
 ! and the defect center coordinate
-  tmp2 =  tmpf - dble((/ self%DF_L*self%DL(ii)%id, self%DF_L*self%DL(ii)%jd, self%DL(ii)%zfrac*self%foil%z0 /))
+    tmp2 =  tmpf - dble((/ self%DF_L*self%DL(ii)%id, self%DF_L*self%DL(ii)%jd, self%DL(ii)%zfrac*self%foil%z0 /))
 
 ! then convert the difference vector to the defect reference frame for this dislocation (we will only need the x and y coordinates)
-  tmp = self%DL(ii)%a_df%quat_Lp(tmp2)
-
+    tmp = self%DL(ii)%a_df%quat_Lp(tmp2)
 
 ! compute x1 + p_alpha x2  (eq. 8.38)
-  za(1:3) = tmp(1) + self%DL(ii)%pa(1:3)*tmp(2)
+    za(1:3) = tmp(1) + self%DL(ii)%pa(1:3)*tmp(2)
 ! compute the displacement vector u (eq. 8.38) [this expands the log of a complex number and takes the real part only,
 ! taking proper care of the branch cut]
-   if (tmp(1).gt.0.0) then
-   do k=1,3
-    zar =  real(za(k))
-    zai = aimag(za(k))
-    zaamp = abs(za(k))
-    zaphase = abs(zai/zar)
-    zr(k) = log(zaamp)
-    zi(k) = atan(zaphase)
-    if (zar.le.0.0) then
-      if (zai.lt.0.0) zi(k) = -cPi+zi(k)
-      if (zai.eq.0.0) zi(k) = cPi
-      if (zai.gt.0.0) zi(k) = cPi-zi(k)
+    if (tmp(1).gt.0.0) then
+      do k=1,3
+        zar =  real(za(k))
+        zai = aimag(za(k))
+        zaamp = abs(za(k))
+        zaphase = abs(zai/zar)
+        zr(k) = log(zaamp)
+        zi(k) = atan(zaphase)
+        if (zar.le.0.0) then
+          if (zai.lt.0.0) zi(k) = -cPi+zi(k)
+          if (zai.eq.0.0) zi(k) = cPi
+          if (zai.gt.0.0) zi(k) = cPi-zi(k)
+        else
+          if (zai.lt.0.0) zi(k) = -zi(k)
+        end if
+      end do
     else
-      if (zai.lt.0.0) zi(k) = -zi(k)
+      do k=1,3
+        zar =  real(za(k))
+        zai = aimag(za(k))
+        zaamp = abs(za(k))
+        zaphase = abs(zai/zar)
+        zr(k) = log(zaamp)
+        zi(k) = atan(zaphase)
+        if (zar.le.0.0) then
+          if (zai.gt.0.0) zi(k) = cPi-zi(k)
+          if (zai.eq.0.0) zi(k) = cPi
+          if (zai.lt.0.0) zi(k) = cPi+zi(k)
+        else
+          if (zai.lt.0.0) zi(k) = 2.0*cPi-zi(k)
+          if (zai.eq.0.0) zi(k) = 0.0
+        end if
+      end do
     end if
-   end do
-  else
-   do k=1,3
-    zar =  real(za(k))
-    zai = aimag(za(k))
-    zaamp = abs(za(k))
-    zaphase = abs(zai/zar)
-    zr(k) = log(zaamp)
-    zi(k) = atan(zaphase)
-    if (zar.le.0.0) then
-      if (zai.gt.0.0) zi(k) = cPi-zi(k)
-      if (zai.eq.0.0) zi(k) = cPi
-      if (zai.lt.0.0) zi(k) = cPi+zi(k)
-    else
-      if (zai.lt.0.0) zi(k) = 2.0*cPi-zi(k)
-      if (zai.eq.0.0) zi(k) = 0.0
-    end if
-   end do
-  end if
-  u = 2.0*real(matmul(self%DL(ii)%dismat,cmplx(zr,zi)))
+    u = 2.0*real(matmul(self%DL(ii)%dismat,cmplx(zr,zi)))
 ! transform displacement vector u to the Cartesian crystal reference frame
-  a_dc_conj = conjg(self%DL(ii)%a_dc)
-  u = a_dc_conj%quat_Lp(dble(u) )
-  sumR = sumR + u
-
-end do
+    a_dc_conj = conjg(self%DL(ii)%a_dc)
+    u = a_dc_conj%quat_Lp(dble(u) )
+    sumR = sumR + u
+  end do
+end if
 !
 !-------------------------------------
 !--SURFACE INTERSECTING DISLOCATIONS--
@@ -2952,29 +3071,28 @@ end do
 ! to incorporate both top and bottom foil surfaces
 
 ! do we have any dislocations with surface relaxations ?  YSH model
-if (self%numYdisl.gt.0) then
-   do ii=1,self%numYdisl
+  if (self%numYdisl.gt.0) then
+    do ii=1,self%numYdisl
 ! first, figure out what the coordinates are in the YSH reference frame for this dislocation ...
 ! translate to the defect origin
-     tmp =  tmpf -  (/ self%DF_L*self%YD(ii)%id, self%DF_L*self%YD(ii)%jd, self%foil%z0*0.5 /)
+      tmp =  tmpf -  (/ self%DF_L*self%YD(ii)%id, self%DF_L*self%YD(ii)%jd, self%foil%z0*0.5 /)
 
 ! rotate into the defect reference frame
-     a_di_conj = conjg(self%YD(ii)%a_di)
-     tmp = a_di_conj%quat_Lp(tmp)
+      a_di_conj = conjg(self%YD(ii)%a_di)
+      tmp = a_di_conj%quat_Lp(tmp)
 ! compute the displacement vector
 !     u = sngl(YSHDisp(dble(tmp(2)),-dble(tmp(1)),dble(tmp(3)),ii))
-     u = sngl(self%YSHDisp(dble(tmp(1)),dble(tmp(2)),dble(tmp(3)),ii))
+      u = sngl(self%YSHDisp(dble(tmp(1)),dble(tmp(2)),dble(tmp(3)),ii))
 
 ! and rotate back to the image reference frame
-     a_id_conj = conjg(self%YD(ii)%a_id)
-     u = a_id_conj%quat_Lp(u)
-     u = self%foil%a_ic%quat_Lp(u)
+      a_id_conj = conjg(self%YD(ii)%a_id)
+      u = a_id_conj%quat_Lp(u)
+      u = self%foil%a_ic%quat_Lp(u)
 
 ! that should do it !
-     sumR = sumR + u
-
-   end do
-end if
+      sumR = sumR + u
+    end do
+  end if
 
 !--------------------
 !--STACKING FAULTS--
@@ -2982,11 +3100,11 @@ end if
 ! stacking faults (this is easy because we've already done all the work in the stacking_fault module)
 ! all we need is the z-value at which the stacking fault plane is crossed in this particular image
 ! column; from that point on, we simply add the leading partial Burgers vector to the total displacement.
-do ii=1,self%numsf
-  if ((zpos.lt.self%SF(ii)%zpos(i,j)).and.(self%SF(ii)%zpos(i,j).ne.-10000.0)) then
-    sumR = sumR + self%SF(ii)%lpbc
-  end if
-end do
+  do ii=1,self%numsf
+    if ((zpos.lt.self%SF(ii)%zpos(i,j)).and.(self%SF(ii)%zpos(i,j).ne.-10000.0)) then
+      sumR = sumR + self%SF(ii)%lpbc
+    end if
+  end do
 
 
 ! !--------------------
@@ -3027,15 +3145,15 @@ end do
 !--------------------
 ! then the coherent precipitates, using the model in section 8.4.1
   if (self%numinc.gt.0) then
-   do ii=1,self%numinc
+    do ii=1,self%numinc
 ! subtract the inclusion position from the current slice position to get the relative position vector
-     tmp = tmpf - (/ self%inclusions(ii)%xpos, self%inclusions(ii)%ypos, self%inclusions(ii)%zpos /)
-     dis = cell%CalcLength(tmp,'c')
-     if (dis.ge.self%inclusions(ii)%radius) then ! outside particle
-       tmp = tmp*(self%inclusions(ii)%radius/dis)**3
-     end if
-     sumR = sumR + self%inclusions(ii)%C*tmp
-   end do
+      tmp = tmpf - (/ self%inclusions(ii)%xpos, self%inclusions(ii)%ypos, self%inclusions(ii)%zpos /)
+      dis = cell%CalcLength(tmp,'c')
+      if (dis.ge.self%inclusions(ii)%radius) then ! outside particle
+        tmp = tmp*(self%inclusions(ii)%radius/dis)**3
+      end if
+      sumR = sumR + self%inclusions(ii)%C*tmp
+    end do
   end if
 
 !---------------------
@@ -3043,15 +3161,15 @@ end do
 !---------------------
 ! then the coherent ellipsoidally distorted precipitates, using Eshelby's model
    if (self%numEinc.gt.0) then
-    do ii=1,self%numEinc
+      do ii=1,self%numEinc
 ! subtract the inclusion position from the current slice position to get the relative position vector
-      tmp = tmpf - (/ self%Einclusions(ii)%xpos, self%Einclusions(ii)%ypos, self%Einclusions(ii)%zpos /)
+        tmp = tmpf - (/ self%Einclusions(ii)%xpos, self%Einclusions(ii)%ypos, self%Einclusions(ii)%zpos /)
 ! and also get the position vector for the mirror image inclusion, to make sure we get a traction-free surface...
-      tmp2 = tmpf - (/ self%Einclusions(ii)%xpos, self%Einclusions(ii)%ypos, -self%Einclusions(ii)%zpos /)
-      u = self%Eshelby_disp(ii, tmp) + self%Eshelby_disp(ii, tmp2)
+        tmp2 = tmpf - (/ self%Einclusions(ii)%xpos, self%Einclusions(ii)%ypos, -self%Einclusions(ii)%zpos /)
+        u = self%Eshelby_disp(ii, tmp) + self%Eshelby_disp(ii, tmp2)
 ! we need to check the reference frame here !
-      sumR = sumR + u
-    end do
+        sumR = sumR + u
+      end do
    end if
 
 ! TO BE IMPLEMENTED FOR RICHARD LESAR'S Discrete Dislocation Dynamics !
@@ -3063,10 +3181,123 @@ end do
 ! finally any displacement fields defined by the user routine UserDisp
 ! sumR = sumR + UserDisp()
 
-   self%DF_R(islice,1:3) = sumR(1:3)
+end if 
 
-  end do sliceloop ! main loop over the slices
-end subroutine CalcR_
+end function CalcPointR_
 
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: CalcFcolumn_
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief returns the deformation tensor for a single point in the computational volume
+!
+!> @details Note that the end result MUST be expressed in the cartesian reference frame !
+!
+!> @param cell unit cell pointer
+!> @param defects defect structure
+!> @param ix x coordinate
+!> @param iy y coordinate
+!> @param iz z coordinate
+!> @param eps the step size to be used for numerical differentiation
+!> @param Fij deformation tensor
+!> 
+!> this routine generates deformation tensors for a column of points starting at the top
+!> surface of a 3D ROI; the column is oriented along the unit vector connecting a detector pixel
+!> to a point in the top surface. For each slice along the column, an F tensor is returned.
+!> The top surface is considered to be the one where the Yoffe surface relaxations occur.  
+!> The main use of this routine is in EBSD/ECP pattern computations for a deformed material; 
+!> from those patterns we can then extracxt ECCI images as well (instead of the current 
+!> EMECCI approach which has caused some issues with background contrast/intensity levels). 
+!> This is just a much more robust approach to defect diffraction simulations from which 
+!> the images can subsequently be extracted.
+!>
+!> For the numerical derivatives in the deformation tensor F_{ij}, we'll use the central 
+!> difference of 4th order: 
+!
+!> (-f(x+2h)+8f(x+h)-8f(x-h)+f(x-2h))/12
+!
+!> We assume that the volume is a rectangular prism with edge lengths defined by the 
+!> regular column approximation parameters; all coordinates are thus fractional in 
+!> the range [-1,1], except for z which is [0.5,-0.5]*zb with 0.5*zb being the top surface. In other words,
+!> we use the standard EMsoft approach for generating a configuration of lattice defects.
+!
+
+!> @date  06/01/23 MDG 1.0 original 
+!--------------------------------------------------------------------------
+recursive subroutine CalcFcolumn_(self,cell,c,Fij, ii, jj)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcFcolumn_
+
+use mod_crystallography
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Defect_T),INTENT(INOUT)           :: self
+type(Cell_T)                            :: cell
+
+real(kind=dbl),INTENT(IN)               :: c(3)
+real(kind=dbl),INTENT(INOUT)            :: Fij(3, 3, self%DF_nums)
+integer(kind=irg),INTENT(IN)            :: ii, jj
+
+type(o_T)                               :: a_fm_om
+type(q_T)                               :: a_fm_qu
+
+! constants for the fourth order first derivative formula
+real(kind=dbl),parameter                :: pre1 = 1.D0/12.D0, pre2 = 2.D0/3.D0
+real(kind=dbl),parameter                :: pref(4) = (/ -pre1, pre2, -pre2, pre1 /)
+real(kind=dbl)                          :: h(4) = (/ 2.D0, 1.D0, -1.D0, -2.D0 /)
+real(kind=dbl)                          :: dF(3), RR(3,4), a_fm(3,3), fx, fy, fz, xpos, ypos, zpos
+integer(kind=irg)                       :: i, j, k, islice
+
+Fij = 0.D0 
+
+! determine the starting point of the z-integration for the tilted foil
+! this depends on the foil normal components which give the equation
+! of the top foil plane as F . r = z0/2, from which we get zt...
+a_fm_qu = q_T( qdinp =  self%foil%a_fm%get_quatd() )
+a_fm_om = a_fm_qu%qo()
+
+a_fm =  a_fm_om%o_copyd()
+fx = a_fm(3,1)
+fy = a_fm(3,2)
+fz = a_fm(3,3)
+! the following coordinates are in units of [nm]
+xpos = float(ii-self%DF_npix/2)*self%DF_L
+ypos = float(jj-self%DF_npiy/2)*self%DF_L
+zpos = self%foil%zb*0.5 - (fx*xpos + fy*ypos)/fz
+
+!  (/ xpos, ypos, zpos /) is the starting point at the top of the foil.
+! We need to go down a column with direction cosines c(:), so that means 
+! that the effective coordinates (/ fx, fy, fz /) change with depth
+fx = xpos + c(1) * self%DF_slice
+fy = ypos + c(2) * self%DF_slice
+fz = zpos + c(3) * self%DF_slice
+
+do islice = 1, self%DF_nums
+! get the derivatives along x 
+  do j=1,4 
+    RR(:,j) = pref(j) * self%CalcPointR_( cell, islice, fx+h(j)*self%APD%stepsize(1), fy, fz, ii, jj )
+  end do
+  Fij(1,:,islice) = sum(RR,2)
+! get the derivatives along y 
+  do j=1,4 
+    RR(:,j) = pref(j) * self%CalcPointR_( cell, islice, fx, fy+h(j)*self%APD%stepsize(2), fz, ii, jj )
+  end do
+  Fij(2,:,islice) = sum(RR,2)
+! get the derivatives along z 
+  do j=1,4 
+    RR(:,j) = pref(j) * self%CalcPointR_( cell, islice, fx, fy, fz+h(j)*self%APD%stepsize(3), ii, jj )
+  end do
+  Fij(3,:,islice) = sum(RR,2)
+! and finally, add the identity matrix
+  do j=1,3
+    Fij(j,j,islice) = Fij(j,j,islice) + 1.D0
+  end do
+end do
+
+end subroutine CalcFcolumn_
 
 end module mod_defect

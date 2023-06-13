@@ -1942,7 +1942,7 @@ integer                             :: i,j,k, iz
 complex(kind=dbl)                   :: CGinv(nn,nn), Minp(nn,nn), tmp3(nn,nn,izz)
 
 real(kind=dbl)                      :: tpi, dzt
-complex(kind=dbl)                   :: Ijk(nn,nn,izz), q, getMIWORK, qold
+complex(kind=dbl)                   :: Ijk(nn,nn,izz), q, getMIWORK(1), qold
 
 integer(kind=irg)                   :: INFO, LDA, LDVR, LDVL, JPIV(nn), MILWORK
 complex(kind=dbl)                   :: CGG(nn,nn), W(nn)
@@ -1988,10 +1988,14 @@ integer(kind=sgl)                   :: ilaenv
  MILWORK = -1
  LDA=nn
 
-!  call zgetri(nn,CGinv,LDA,JPIV,getMIWORK,MILWORK,INFO)
-!  MILWORK =  INT(real(getMIWORK))
- MILWORK=ilaenv( 1, 'ZGETRI', ' ', nn, -1, -1, -1 )
- if (.not.allocated(MIWORK)) allocate(MIWORK(nn*MILWORK))
+call zgetri(nn,CGinv,LDA,JPIV,getMIWORK,MILWORK,INFO)
+MILWORK =  INT(real(getMIWORK(1)))
+if (.not.allocated(MIWORK)) then
+  allocate(MIWORK(nn*MILWORK))
+else
+  deallocate(MIWORK)
+  allocate(MIWORK(nn*MILWORK))
+end if
  MIWORK = cmplx(0.D0,0.D0)
  LDA=nn
  call zgetri(nn,CGinv,LDA,JPIV,MIWORK,MILWORK,INFO)

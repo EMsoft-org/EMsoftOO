@@ -96,8 +96,8 @@ IMPLICIT NONE
           procedure, pass(self) :: TransSpaceSingle
           procedure, pass(self) :: TransSpaceDouble
           procedure, pass(self) :: transformCoordinates
-          procedure, pass(self) :: calcDotSingle
-          procedure, pass(self) :: calcDotDouble
+          procedure, pass(self) :: CalcDotSingle
+          procedure, pass(self) :: CalcDotDouble
           procedure, pass(self) :: normVecSingle
           procedure, pass(self) :: normVecDouble
           procedure, pass(self) :: calcLengthSingle
@@ -158,14 +158,14 @@ IMPLICIT NONE
 
           generic, public :: resetCell => resetUnitCell
 
-          generic, public :: calcMatrices => computeMatrices
-          generic, public :: transSpace => TransSpaceDouble, TransSpaceSingle
-          generic, public :: transCoor => transformCoordinates
+          generic, public :: CalcMatrices => computeMatrices
+          generic, public :: TransSpace => TransSpaceDouble, TransSpaceSingle
+          generic, public :: TransCoor => transformCoordinates
           generic, public :: calcDot => calcDotSingle, calcDotDouble
-          generic, public :: normVec => normVecSingle, normVecDouble
+          generic, public :: NormVec => normVecSingle, normVecDouble
           generic, public :: calcLength => calcLengthSingle, calcLengthDouble
           generic, public :: calcAngle => calcAngleSingle, calcAngleDouble
-          generic, public :: calcCross => calcCrossSingle, calcCrossDouble
+          generic, public :: calcCross => CalcCrossSingle, CalcCrossDouble
           generic, public :: calcPositions => calcPositions_
           generic, public :: convertfromRtoH => convertfromRtoH_
           generic, public :: getLatParm => getLatticeParameterSingle, getLatticeParametersAll
