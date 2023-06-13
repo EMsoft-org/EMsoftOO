@@ -1339,6 +1339,9 @@ prefactor = 1.D0
 call mem%alloc(patarray, (/ enl%numsx, enl%numsy, enl%DF_npix, 1 /), 'patarray', initval = 0.0)
 
 call Message%printMessage(' --> starting parallel computation ...')
+
+call OMP_SET_NUM_THREADS(enl%nthreads)
+
 ! use OpenMP to run on multiple cores ... 
 !$OMP PARALLEL default(shared)  PRIVATE(TID, NUMTHREADS, i, j, binned, tmLPNH, tmLPSH, ix, pctr, iipar)
 

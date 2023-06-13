@@ -51,7 +51,7 @@ type(EBSDdefect_T)              :: EBSDdef
 type(HDFnames_T)                :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 0, 3, 140, 200 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 3, 140, 200 /) )
 
 ! deal with the namelist stuff
 EBSDdef = EBSDdefect_T(EMsoft%nmldeffile)
