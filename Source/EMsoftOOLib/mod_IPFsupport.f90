@@ -1937,7 +1937,7 @@ end if
 if (chiMax.gt.1.D0) chiMax = 1.D0
 chiMax = dacos(chiMax) * rtod
 if ( (etaDeg.ge.0.D0) .and. (etaDeg.le.(etaMax + eps)) ) then 
-  if ( (chiDeg.ge.0.D0) .and. (chiDeg.le.((chiMax + eps ) * rtod) ) )  then 
+  if ( (chiDeg.ge.0.D0) .and. (chiDeg.le.(chiMax + eps)) )  then 
     inside = .TRUE.
   end if 
 end if 
