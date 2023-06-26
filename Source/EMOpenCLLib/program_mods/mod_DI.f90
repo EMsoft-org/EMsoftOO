@@ -1182,26 +1182,23 @@ dictionaryloop: do ii = 1,cratio+1
       call Message%WriteValue(' Dictionaryloop index/total loops = ',io_int,2)
     end if
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, vlen, tock, ttime, dicttranspose, dictpatflt) &
-!$OMP& PRIVATE(binned, ma, mi, patternintd, patterninteger, patternad, qu, ro, quat, imagedictflt,imagedictfltflip,icnt) &
-!$OMP& PRIVATE(eee, qqq, ququ)
+    call OMP_SET_NESTED(.TRUE.)
+!$OMP PARALLEL NUM_THREADS(2) DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, vlen, tock, ttime, dicttranspose) &
+!$OMP& PRIVATE(dictpatflt, binned, ma, mi, patternintd, patterninteger, patternad, qu, ro, quat, imagedictflt, imagedictfltflip) &
+!$OMP& PRIVATE(icnt, eee, qqq, ququ)
 
-    TID = OMP_GET_THREAD_NUM()
+    ! TID = OMP_GET_THREAD_NUM()
 
-! allocate the local arrays that are used by each thread
-    call memth%alloc(patterninteger, (/ binx,biny /), 'patterninteger', TID=TID, initval = 0)
-    call memth%alloc(patternad, (/ binx,biny /), 'patternad', TID=TID, initval = 0) 
-    call memth%alloc(patternintd, (/ binx,biny /), 'patternintd', TID=TID, initval = 0.0)
-    call memth%alloc(imagedictflt, (/ correctsize /), 'imagedictflt', TID=TID, initval = 0.0) 
-    call memth%alloc(imagedictfltflip, (/ correctsize /), 'imagedictfltflip', TID=TID, initval = 0.0)
 
-    if ((ii.eq.1).and.(TID.eq.0)) then
-      io_int(1) = OMP_GET_NUM_THREADS()
-      call Message%WriteValue(' actual number of OpenMP threads  = ', io_int, 1)
-    end if
+    ! if ((ii.eq.1).and.(TID.eq.0)) then
+    !   io_int(1) = OMP_GET_NUM_THREADS()
+    !   call Message%WriteValue(' actual number of OpenMP threads  = ', io_int, 1)
+    ! end if
 
-! the master thread should be the one working on the GPU computation
-!$OMP MASTER
+! only one thread should be the one working on the GPU computation
+!$OMP SECTIONS
+!$OMP SECTION  
+
     if (ii.gt.1) then
       iii = ii-1        ! the index ii is already one ahead, since the GPU thread lags one cycle behind the others...
       if (verbose.eqv..TRUE.) then
@@ -1213,11 +1210,13 @@ dictionaryloop: do ii = 1,cratio+1
       end if
 
       call memth%alloc(dicttranspose, (/ Nd*correctsize /), 'dicttranspose', TID=0, initval = 0.0)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(ll,mm) SCHEDULE(DYNAMIC)
       do ll = 1,correctsize
         do mm = 1,Nd
             dicttranspose((ll-1)*Nd+mm) = T0dict((mm-1)*correctsize+ll)
         end do
       end do
+!$OMP END PARALLEL DO 
       ierr = clEnqueueWriteBuffer(command_queue, cl_dict, CL_TRUE, 0_8, size_in_bytes_dict, C_LOC(dicttranspose(1)), &
                                   0, C_NULL_PTR, C_NULL_PTR)
       call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
@@ -1245,6 +1244,7 @@ dictionaryloop: do ii = 1,cratio+1
 ! this might be simplified later for the remainder of the patterns
 ! we only resort if the largest new dot product value is larger than the smallest 
 ! value on the already sorted list [suggested by D. Rowenhorst]
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(qq,jjj,resultarray,indexarray ) SCHEDULE(DYNAMIC)
         do qq = 1,ppendE(jj)
             jjj = (jj-1)*Ne+qq
             maxsortarr(jjj) = maxval(results((qq-1)*Nd+1:qq*Nd))
@@ -1263,6 +1263,7 @@ dictionaryloop: do ii = 1,cratio+1
               minsortarr(jjj) = resulttmp(nnk,jjj)
             end if 
         end do
+!$OMP END PARALLEL DO 
 
 ! handle the callback routines if requested
         if (Clinked.eqv..TRUE.) then
@@ -1363,25 +1364,30 @@ dictionaryloop: do ii = 1,cratio+1
     end if
     call memth%dealloc(dicttranspose, 'dicttranspose', TID=0)
 
-!$OMP END MASTER
-
+!$OMP SECTION
+! allocate the local arrays that are used by each thread
+    call memth%alloc(patterninteger, (/ binx,biny /), 'patterninteger', TID=TID, initval = 0)
+    call memth%alloc(patternad, (/ binx,biny /), 'patternad', TID=TID, initval = 0) 
+    call memth%alloc(patternintd, (/ binx,biny /), 'patternintd', TID=TID, initval = 0.0)
+    call memth%alloc(imagedictflt, (/ correctsize /), 'imagedictflt', TID=TID, initval = 0.0) 
+    call memth%alloc(imagedictfltflip, (/ correctsize /), 'imagedictfltflip', TID=TID, initval = 0.0)
 
 ! here we carry out the dictionary pattern computation, unless we are in the ii=cratio+1 step
     if (ii.lt.cratio+1) then
-     if (verbose.eqv..TRUE.) then
-       io_int(1) = TID
-       if (associated(dict,dict1)) then
-         call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict1')")
-       else
-         call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict2')")
-       end if
-     end if
+     ! if (verbose.eqv..TRUE.) then
+     !   io_int(1) = TID
+     !   if (associated(dict,dict1)) then
+     !     call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict1')")
+     !   else
+     !     call Message%WriteValue('    Thread ',io_int,1,"(I5,' is working on dict2')")
+     !   end if
+     ! end if
 
      if (trim(DIFT%nml%indexingmode).eq.'dynamic') then
       call memth%alloc(binned, (/ binx,biny /), 'binned', TID=TID, initval = 0.0)
 
-!$OMP DO SCHEDULE(DYNAMIC)
-
+!$OMP PARALLEL DO SCHEDULE(DYNAMIC) DEFAULT(SHARED) PRIVATE(qu,binned,quat,ro,iii,jj,ll,mm,pp,ierr,io_int, &
+!$OMP& vlen, ma, mi, patternintd, patterninteger, patternad, imagedictflt, imagedictfltflip)
       do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
        if (cancelled.eqv..FALSE.) then
          binned = 0.0
@@ -1437,14 +1443,14 @@ dictionaryloop: do ii = 1,cratio+1
          eulerarray(1:3,(ii-1)*Nd+pp) = rtod * eu%e_copyd()
        end if
       end do
-!$OMP END DO
+!$OMP END PARALLEL DO
       call memth%dealloc(binned, 'binned', TID=TID)
     else  ! we are doing static indexing, so only 2 threads in total
 
 ! get a set of patterns from the precomputed dictionary file...
 ! we'll use a hyperslab to read a block of preprocessed patterns from file
 
-      if (TID .ne. 0) then
+      ! if (TID .ne. 0) then
 ! read data from the hyperslab
        dataset = SC_patterns
        dims2 = (/ correctsize, ppend(ii) /)
@@ -1461,17 +1467,17 @@ dictionaryloop: do ii = 1,cratio+1
          end do
        end if
      end if
-    end if
+    ! end if
 
-    if (verbose.eqv..TRUE.) then
-       io_int(1) = TID
-       call Message%WriteValue('',io_int,1,"('       Thread ',I2,' is done')")
-    end if
-   else
-    if (verbose.eqv..TRUE.) then
-       io_int(1) = TID
-       call Message%WriteValue('',io_int,1,"('       Thread ',I2,' idling')")
-    end if
+    ! if (verbose.eqv..TRUE.) then
+    !    io_int(1) = TID
+    !    call Message%WriteValue('',io_int,1,"('       Thread ',I2,' is done')")
+    ! end if
+   ! else
+   !  if (verbose.eqv..TRUE.) then
+   !     io_int(1) = TID
+   !     call Message%WriteValue('',io_int,1,"('       Thread ',I2,' idling')")
+   !  end if
    end if
 
    call memth%dealloc(patterninteger, 'patterninteger', TID=TID)
@@ -1481,9 +1487,8 @@ dictionaryloop: do ii = 1,cratio+1
    call memth%dealloc(imagedictfltflip, 'imagedictfltflip', TID=TID)
 
 ! make sure the threads are synchronized before we start the next cycle ... 
+!$OMP END SECTIONS NOWAIT
 !$OMP BARRIER
-
-! and we end the parallel section here (all threads will synchronize).
 !$OMP END PARALLEL
 
 if (cancelled.eqv..TRUE.) EXIT dictionaryloop
