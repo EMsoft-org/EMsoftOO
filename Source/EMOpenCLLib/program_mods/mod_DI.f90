@@ -1605,7 +1605,7 @@ if (cancelled.eqv..FALSE.) then
     fpar2(1) = mcnl%EkeV
     fpar2(2) = MCsig
     call VT%ctf_writeFile(EMsoft,cell,SG,dinl,ipar,fpar2,indexmain,eulerarray,resultmain, OSMmap, exptIQ)
-    call Message%printMessage('Data stored in ctf file : '//trim(dinl%ctffile))
+    call Message%printMessage(' Data stored in ctf file : '//trim(dinl%ctffile))
   end if
 
   if (dinl%angfile.ne.'undefined') then
@@ -1639,7 +1639,7 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
   end if 
 end if 
 if (trim(dinl%indexingmode).eq.'dynamic') then
-  call mem%dealloc(eudictarray, 'eudictarray') 
+  if (Clinked.eqv..TRUE.) call mem%dealloc(eudictarray, 'eudictarray') 
   call mem%dealloc(FZarray, 'FZarray')
 end if  
 call mem%dealloc(expt, 'expt')
