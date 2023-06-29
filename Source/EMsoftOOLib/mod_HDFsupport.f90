@@ -199,6 +199,7 @@ IMPLICIT NONE
 ! miscellaneous auxiliary routines
      procedure, pass(self) :: read2DImage_
      procedure, pass(self) :: CheckFixedLengthflag_
+     procedure, pass(self) :: setFixedLengthflag_
      procedure, pass(self) :: resetFixedLengthflag_
 ! finally, define the destructor routine
      final :: HDF_destructor
@@ -289,6 +290,7 @@ IMPLICIT NONE
      generic, public :: h5_tsl_read_ebsd_pattern => h5_tsl_read_ebsd_pattern_
      generic, public :: h5_read_integer_dataset => h5_read_integer_dataset_
      generic, public :: CheckFixedLengthflag => CheckFixedLengthflag_
+     generic, public :: setFixedLengthflag => setFixedLengthflag_
      generic, public :: resetFixedLengthflag => resetFixedLengthflag_
 
   end type HDF_T
@@ -1110,7 +1112,7 @@ deallocate(wdata)
 end function writeDatasetTextFile_
 
 !--------------------------------------------------------------------------
-recursive subroutine readDatasetStringArray_(self, dataname, nlines, hdferr, stringarray)
+recursive subroutine readDatasetStringArray_(self, dataname, nlines, hdferr, stringarray, UTF)
 !DEC$ ATTRIBUTES DLLEXPORT :: readDatasetStringArray_
   !! author: MDG
   !! version: 1.0
@@ -1128,8 +1130,9 @@ integer(kind=irg),INTENT(OUT)                           :: nlines
 
 integer(kind=irg),INTENT(OUT)                           :: hdferr
 character(len=fnlen, KIND=c_char),allocatable, TARGET, INTENT(OUT)   :: stringarray(:)
+logical,INTENT(IN),OPTIONAL                             :: UTF
 
-integer(HID_T)                                          :: filetype, space, memtype ! Handles
+integer(HID_T)                                          :: filetype, space, memtype! Handles
 integer                                                 :: i, length
 integer(HSIZE_T), DIMENSION(1:1)                        :: dims
 integer(HSIZE_T), DIMENSION(1:1)                        :: maxdims
@@ -1187,12 +1190,20 @@ else ! there could be multiple variable length strings to be read...
     call error_check_(self, 'readDatasetStringArray_:H5Sget_simple_extent_dims_f:'//trim(dataname), hdferr)
   end if
 
+  CALL h5tcopy_f(H5T_STRING, memtype, hdferr)
+  if (present(UTF)) then 
+     if (UTF.eqv..TRUE.) then 
+          CALL h5tset_cset_f(memtype, H5T_CSET_UTF8_F, hdferr)
+          CALL h5tset_strpad_f(memtype, H5T_STR_NULLTERM_F, hdferr)
+     end if 
+  end if 
+
   ALLOCATE(rdata(1:dims(1)), stringarray(1:dims(1)))
 !
 ! Read the data.
 !
   f_ptr = C_LOC(rdata(1))
-  call h5dread_f(self%head%next%objectID, H5T_STRING, f_ptr, hdferr)
+  call h5dread_f(self%head%next%objectID, memtype, f_ptr, hdferr)
   ! call h5dread_f(self%head%next%objectID, H5T_NATIVE_CHARACTER, f_ptr, hdferr)
   call error_check_(self, 'readDatasetStringArray_:h5dread_f:'//trim(dataname), hdferr)
 
@@ -6643,6 +6654,23 @@ class(HDF_T),INTENT(INOUT):: self
 FixedLengthflag = .FALSE.
 
 end subroutine resetFixedLengthflag_
+
+!--------------------------------------------------------------------------
+recursive subroutine setFixedLengthflag_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: setFixedLengthflag_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 01/09/20
+  !!
+  !! sets the FixedLengthflag to .TRUE.
+
+IMPLICIT NONE
+
+class(HDF_T),INTENT(INOUT):: self
+
+FixedLengthflag = .TRUE.
+
+end subroutine setFixedLengthflag_
 
 !--------------------------------------------------------------------------
 recursive SUBROUTINE h5_write_pseudo_bse_image_(self, fname, dsetnm, hdferr, wdata)
