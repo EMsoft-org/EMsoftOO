@@ -35,6 +35,9 @@ module mod_vendors
 !! and Håkon Ånes (NORDIF binary pattern file).
 !!
 !! This class also contains all the routines for writing .ang and .ctf files.
+!!
+!! Update 06/28/23, MDG
+!! - adds routines to read the metadata from TSL, Bruker, Oxford, and EMEBSD pattern HDF5 files
 
 use mod_kinds
 use mod_global
@@ -64,6 +67,7 @@ type, public :: Vendor_T
   private
     character(fnlen)                  :: inputtype
     integer(kind=irg)                 :: itype
+    character(fnlen)                  :: vendor
     character(fnlen)                  :: filename
     character(fnlen)                  :: Modality
     integer(kind=irg)                 :: funit = 55
@@ -90,6 +94,11 @@ contains
     procedure, pass(self) :: ang_writeFile_
     procedure, pass(self) :: ctfmerge_writeFile_
     procedure, pass(self) :: angmerge_writeFile_
+    procedure, pass(self) :: getTSLmetadata_
+    procedure, pass(self) :: getEDAXH5metadata_
+    procedure, pass(self) :: getOxfordmetadata_
+    procedure, pass(self) :: getBrukermetadata_
+    procedure, pass(self) :: getEMsoftmetadata_
     final :: Vendor_destructor
 
     generic, public :: openExpPatternFile => openExpPatternFile_
@@ -110,6 +119,11 @@ contains
     generic, public :: ang_writeFile => ang_writeFile_
     generic, public :: ctfmerge_writeFile => ctfmerge_writeFile_
     generic, public :: angmerge_writeFile => angmerge_writeFile_
+    generic, public :: getTSLmetadata => getTSLmetadata_
+    generic, public :: getEDAXH5metadata => getEDAXH5metadata_
+    generic, public :: getOxfordmetadata => getOxfordmetadata_
+    generic, public :: getBrukermetadata => getBrukermetadata_
+    generic, public :: getEMsoftmetadata => getEMsoftmetadata_
 
 end type Vendor_T
 
@@ -199,6 +213,7 @@ if (trim(self%inputtype).eq."BrukerHDF") call self%set_itype(8)
 if (trim(self%inputtype).eq."NORDIF") call self%set_itype(9)
 if (trim(self%inputtype).eq."EMEBSD32i") call self%set_itype(10) ! for 32-bit integer pattern files
 if (trim(self%inputtype).eq."EMEBSD32f") call self%set_itype(11) ! for 32-bit float pattern files
+if (trim(self%inputtype).eq."EDAXH5") call self%set_itype(12)
 
 if (self%itype.eq.-1) call Message%printError('get_input_type','invalid file input type')
 itype = self%get_itype()
@@ -375,6 +390,13 @@ class(Vendor_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)      :: inp
 
 self%itype = inp
+
+! for HDF5 files, we also set the vendor field
+self%vendor = ''
+if (inp.eq.4) self%vendor = 'TSL'
+if (inp.eq.6) self%vendor = 'Oxford'
+if (inp.eq.8) self%vendor = 'Bruker'
+if (inp.eq.7) self%vendor = 'EMsoft'
 
 end subroutine set_itype_
 
@@ -2158,5 +2180,915 @@ end do
 close(dataunit2,status='keep')
 
 end subroutine angmerge_writeFile_
+
+!--------------------------------------------------------------------------
+recursive subroutine getTSLmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar )
+!DEC$ ATTRIBUTES DLLEXPORT :: getTSLmetadata_
+!! author: MDG
+!! version: 1.0
+!! date: 06/28/23
+!!
+!! read metadata from an older TSL HDF5 file (not the edaxh5 format)
+!!
+!! Note that EDAX has decided to split the metadata (which will still be in HDF5 format) 
+!! from the patterns which will be in a separate up1 or up2 file; that is covered by the 
+!! next routine getEDAXH5metadata_
+
+use mod_EMsoft
+use mod_io 
+use ISO_C_BINDING
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)             :: self
+character(fnlen),INTENT(IN)               :: inpfile
+character(fnlen),INTENT(IN)               :: HDFstring
+real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)     :: qAR
+real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=sgl),INTENT(IN)                 :: fpar(3)
+
+type(HDF_T)                               :: HDF
+type(IO_T)                                :: Message
+type(e_T)                                 :: eu
+type(q_T)                                 :: qu  
+type(Quaternion_T)                        :: q
+
+logical                                   :: stat, readonly, g_exists 
+integer(kind=irg)                         :: hdferr, i, io_int(1), nlines 
+character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(len=1), dimension(:), allocatable     :: rdata
+character(4)                              :: edax
+
+character(fnlen, KIND=c_char)             :: line
+character(fnlen)                          :: groupname, dataset
+real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
+integer(HSIZE_T)                          :: dims1(1)
+real(kind=sgl)                            :: p1, p2, p3, io_real(3)
+
+
+! fpar(1) = numsx 
+! fpar(2) = numsy 
+! fpar(3) = delta 
+
+call setRotationPrecision('d')
+
+! we assume that the calling program has opened the HDF interface,
+! and that it passes the full path filename to this routine.
+
+! is this a proper HDF5 file ?
+call h5fis_hdf5_f(trim(inpfile), stat, hdferr)
+if (stat.eqv..FALSE.) then ! the file exists, so let's open it an first make sure it is an EBSD dot product file
+   call Message%printError('getTSLmetadata_','This is not a proper HDF5 file')
+end if
+
+! open the dot product file
+readonly = .TRUE.
+HDF = HDF_T()
+hdferr =  HDF%openFile(inpfile, readonly)
+
+call HDF%setFixedLengthflag()
+
+! make sure this is an EDAX/TSL file; 
+dataset = ' Manufacturer'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists.eqv..TRUE.) then
+    call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
+    do i=1,4 
+      edax(i:i) = stringarray(1)(i:i)
+    end do 
+    if (edax.ne.'EDAX') then 
+      call Message%printError('getTSLmetadata_','Manufacturer is not equal to EDAX')
+    else 
+      call Message%printMessage('Detected EDAX/TSL HDF5 formatted file')
+    end if 
+  else
+    call Message%printError('getTSLmetadata_','file does not have a Manufacturer data set')
+  end if
+
+! open the correct level of the data set  (by default this would be 'Scan 1'
+! but there may be more than one data group in the file
+groupname = trim(HDFstring)
+  hdferr = HDF%openGroup(groupname)
+
+! open groups containing orientation information
+groupname = 'EBSD'
+  hdferr = HDF%openGroup(groupname)
+groupname = 'Data'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'Phi1'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims1, hdferr, eu1)
+    else
+      call Message%printError('getTSLmetadata_','  --> no Phi1 data set found')
+    end if
+
+dataset = 'Phi'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims1, hdferr, eu2)
+    else
+      call Message%printError('getTSLmetadata_','  --> no Phi data set found')
+    end if
+
+dataset = 'Phi2'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims1, hdferr, eu3)
+    else
+      call Message%printError('getTSLmetadata_','  --> no Phi2 data set found')
+    end if
+
+! convert those into a quaternion array, qAR
+qAR = QuaternionArray_T( n = int(dims1(1)), s = 'd' )
+
+do i=1,dims1(1)
+  eu = e_T( edinp = dble((/eu1(i), eu2(i), eu3(i) /)) )
+  qu = eu%eq()
+  q = Quaternion_T( qd = qu%q_copyd() )
+  call qAR%insertQuatinArray( i, q )
+end do
+
+io_int(1) = dims1(1)
+call Message%WriteValue(' Number of orientations imported : ', io_int, 1)
+
+! and deallocate the eu1, eu2, eu3, and eu arrays 
+deallocate( eu1, eu2, eu3 )
+
+! GrainID_X, GrainID_Y, and GrainID arrays ?  not in older HDF5 files 
+
+! leave the Data group 
+call HDF%pop()
+
+! get metdata from the Header group
+groupname = 'Header'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'Step X'
+  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(1) )
+
+dataset = 'Step Y'
+  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(2) )
+
+groupname = 'Pattern Center Calibration'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'x-star'   ! convert to EMsoft format 
+  call HDF%readDatasetFloat(dataset, hdferr, p1 )
+
+dataset = 'y-star'   ! convert to EMsoft format 
+  call HDF%readDatasetFloat(dataset, hdferr, p2 )
+
+dataset = 'z-star'   ! convert to EMsoft format 
+  call HDF%readDatasetFloat(dataset, hdferr, p3 )
+
+call HDF%popall()
+
+! create the array of pattern center coordinates in the EMsoft convention
+io_real = (/ p1, p2, p3 /)
+call Message%WriteValue(' Pattern center coordinates [EDAX] : ', io_real, 3)
+  p1 = -fpar(1)*(p1-0.5)
+  p1 = CEILING(0.5*fpar(1)-p1)
+  p2 = fpar(1)*p2-0.5*fpar(2)
+  p2 = CEILING(0.5*fpar(2)+p2)
+  p3 = fpar(1)*fpar(3)*p3
+  allocate(PC(3,dims1(1)))
+  do i=1,dims1(1)
+    PC(:,i) = (/ p1, p2, p3 /)
+  end do
+  io_real = (/ p1, p2, p3 /)
+call Message%WriteValue(' Pattern center coordinates [EMsoft] : ', io_real, 3)
+
+end subroutine getTSLmetadata_
+
+
+!--------------------------------------------------------------------------
+recursive subroutine getEDAXH5metadata_(self, inpfile, HDFstrings, stepsizes, qAR, PC, fpar )
+!DEC$ ATTRIBUTES DLLEXPORT :: getEDAXH5metadata_
+!! author: MDG
+!! version: 1.0
+!! date: 06/29/23
+!!
+!! read metadata from a new EDAXH5 file 
+!!
+
+use mod_EMsoft
+use mod_io 
+use ISO_C_BINDING
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)             :: self
+character(fnlen),INTENT(IN)               :: inpfile
+character(fnlen),INTENT(IN)               :: HDFstrings(10)
+real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)     :: qAR
+real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=sgl),INTENT(IN)                 :: fpar(3)
+
+type(HDF_T)                               :: HDF
+type(IO_T)                                :: Message
+type(o_T)                                 :: om
+type(q_T)                                 :: qu  
+type(Quaternion_T)                        :: q
+
+logical                                   :: stat, readonly, g_exists 
+integer(kind=irg)                         :: hdferr, i, io_int(1), dims, ipf_wd, ipf_ht 
+character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(len=1), dimension(:), allocatable     :: rdata
+character(4)                              :: edax
+
+character(fnlen, KIND=c_char)             :: line
+character(fnlen)                          :: groupchainname, groupname, dataset
+real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
+integer(HSIZE_T)                          :: dims1(1)
+real(kind=sgl)                            :: p1, p2, p3, io_real(3)
+
+! data type for reading the orientation matrices from the compound data set
+
+! type sDATA   ! this is the complete compound type; we don't need all of it
+!   real(kind=dbl), dimension(9)    :: Orientations 
+!   real(kind=sgl)                  :: IQ
+!   real(kind=sgl)                  :: CI
+!   integer(kind=irg)               :: Phase 
+!   integer(kind=irg)               :: SEMSignal 
+!   real(kind=sgl)                  :: Fit 
+!   real(kind=sgl)                  :: PRIASBottomStrip
+!   real(kind=sgl)                  :: PRIASCenterSquare
+!   real(kind=sgl)                  :: PRIASTopStrip
+!   integer(kind=irg)               :: Valid
+!   real(kind=sgl)                  :: Custom
+! end type sDATA
+
+! type(sDATA), allocatable, TARGET  :: sD(:)
+! integer(HID_T)                    :: sD_tid
+
+type OmatrixType   ! this is really the only part we need.
+  real(kind=dbl), dimension(9)    :: om 
+end type OmatrixType
+
+type(OmatrixType), allocatable, TARGET :: Omatrices(:)
+integer(HID_T)                         :: om_tid, file, dset
+INTEGER(hsize_t)                       :: DIM(1)
+INTEGER(hid_t)                         :: tid3      ! /* Nested Array Datatype ID */
+TYPE(C_PTR)                            :: f_ptr 
+INTEGER(HSIZE_T), DIMENSION(1)         :: tdims1=(/9/)
+
+! fpar(1) = numsx 
+! fpar(2) = numsy 
+! fpar(3) = delta 
+
+call setRotationPrecision('d')
+
+! we assume that the calling program has opened the HDF interface,
+! and that it passes the full path filename to this routine.
+
+! is this a proper HDF5 file ?
+call h5fis_hdf5_f(trim(inpfile), stat, hdferr)
+if (stat.eqv..FALSE.) then ! the file exists, so let's open it an first make sure it is an EBSD dot product file
+   call Message%printError('getEDAXH5metadata_','This is not a proper HDF5 file')
+end if
+
+! open the dot product file
+readonly = .TRUE.
+HDF = HDF_T()
+hdferr =  HDF%openFile(inpfile, readonly)
+
+! make sure this is an EDAXH5 file; this is a little trickier than in the older format
+! since there is no 'Manufacturer' dataset in this file.  Instead we look for the 
+! 'HOSTPARAMS' compound data set in the top level of the group for requested row and 
+! column
+groupchainname = ''
+i=1
+do while (trim(HDFstrings(i)).ne.'')
+  groupchainname = trim(groupchainname)//'/'//trim(HDFstrings(i))
+  i = i+1
+end do
+  hdferr = HDF%openGroup(groupchainname)
+
+dataset = 'HOSTPARAMS'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists.eqv..TRUE.) then
+    call Message%printMessage(' Detected EDAXH5 formatted file')
+  else
+    call Message%printError('getEDAXH5metadata_','file does not appear to have the EDAXH5 format')
+  end if
+
+! this data format uses the HDF5 Compound data type extensively.  To read the 
+! orientations, we'll need to first figure out the size of the IPF map; those 
+! parameters are kept in the 'Sample' group, along with the step sizes
+groupname = 'Sample'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'Step X'
+  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(1) )
+
+dataset = 'Step Y'
+  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(2) )
+
+dataset = 'Number Of Columns'
+  call HDF%readDatasetInteger(dataset, hdferr, ipf_wd )
+
+dataset = 'Number Of Rows'
+  call HDF%readDatasetInteger(dataset, hdferr, ipf_ht )
+
+dims = ipf_wd * ipf_ht
+
+call HDF%pop()
+
+! and get the pattern center data
+groupname = 'EBSD/ANG/HEADER'
+  hdferr = HDF%openGroup(groupname)
+groupname = 'Pattern Center Calibration'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'X-Star'   ! convert to EMsoft format 
+  call HDF%readDatasetFloat(dataset, hdferr, p1 )
+
+dataset = 'Y-Star'   ! convert to EMsoft format 
+  call HDF%readDatasetFloat(dataset, hdferr, p2 )
+
+dataset = 'Z-Star'   ! convert to EMsoft format 
+  call HDF%readDatasetFloat(dataset, hdferr, p3 )
+
+! we close the file here and then re-open it to directly read the orientations
+! from the compound DATA dataset. 
+call HDF%popall()
+
+! next, we need the orientations; those are kept in the EBSD/Ang/Data group, inside the 
+! DATA compound type.  At this point in time, they are stored as rotation matrices, but that 
+! will be changed at some point into quaternions... [as per Stuart Wright email, 06/28/23]
+
+! this is a compound dataset but we only need to read the orientation matrix array
+dataset = trim(groupchainname)//'/EBSD/ANG/DATA/DATA'
+
+! from here on we have only "raw" HDF commands
+CALL H5Fopen_f(trim(inpfile), H5F_ACC_RDONLY_F, file, hdferr)
+! open directly down to the dataset level skipping the group opening commands
+CALL H5Dopen_f(file, trim(dataset), dset, hdferr)
+
+allocate( Omatrices(dims) )
+
+CALL h5tarray_create_f(H5T_NATIVE_DOUBLE, 1, tdims1, tid3, hdferr)
+
+CALL H5Tcreate_f(H5T_COMPOUND_F,  H5OFFSETOF(C_LOC(Omatrices(1)), C_LOC(Omatrices(2))), om_tid, hdferr)
+CALL H5Tinsert_f(om_tid, "Orientations", H5OFFSETOF(C_LOC(Omatrices(1)),C_LOC(Omatrices(1)%om)), tid3, hdferr)
+  
+do i=1,dims
+  Omatrices(i)%om = -1.D0 
+end do 
+
+f_ptr = C_LOC(Omatrices(1))
+CALL H5Dread_f(dset, om_tid, f_ptr, hdferr)
+
+! and close all the levels, including the file
+CALL H5Tclose_f(om_tid, hdferr)
+CALL H5Dclose_f(dset, hdferr)
+CALL H5Fclose_f(file, hdferr)
+
+! convert those orientations into a quaternion array, qAR
+qAR = QuaternionArray_T( n = int(dims), s = 'd' )
+
+do i=1,dims
+  om = o_T( odinp = reshape(Omatrices(i)%om, (/3,3/)) )
+  qu = om%oq()
+  q = Quaternion_T( qd = qu%q_copyd() )
+  call qAR%insertQuatinArray( i, q )
+end do
+
+io_int(1) = dims
+call Message%WriteValue(' Number of orientations imported : ', io_int, 1)
+
+! and deallocate the Omatrices array
+deallocate( Omatrices )
+
+! create the array of pattern center coordinates in the EMsoft convention
+io_real = (/ p1, p2, p3 /)
+call Message%WriteValue(' Pattern center coordinates [EDAX] : ', io_real, 3)
+p1 = -fpar(1)*(p1-0.5)
+p1 = CEILING(0.5*fpar(1)-p1)
+p2 = fpar(1)*p2-0.5*fpar(2)
+p2 = CEILING(0.5*fpar(2)+p2)
+p3 = fpar(1)*fpar(3)*p3
+allocate(PC(3,dims))
+do i=1,dims
+  PC(:,i) = (/ p1, p2, p3 /)
+end do
+io_real = (/ p1, p2, p3 /)
+call Message%WriteValue(' Pattern center coordinates [EMsoft] : ', io_real, 3)
+
+end subroutine getEDAXH5metadata_
+
+!--------------------------------------------------------------------------
+recursive subroutine getOxfordmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar)
+!DEC$ ATTRIBUTES DLLEXPORT :: getOxfordmetadata_
+!! author: MDG
+!! version: 1.0
+!! date: 06/28/23
+!!
+!! read metadata from a Oxford HDF5 file 
+
+use mod_EMsoft
+use mod_io 
+use ISO_C_BINDING
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)             :: self
+character(fnlen),INTENT(IN)               :: inpfile
+character(fnlen),INTENT(IN)               :: HDFstring
+real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)     :: qAR
+real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=sgl),INTENT(IN)                 :: fpar(3)
+
+type(HDF_T)                               :: HDF
+type(IO_T)                                :: Message
+type(e_T)                                 :: eu
+type(q_T)                                 :: qu  
+type(Quaternion_T)                        :: q
+
+logical                                   :: stat, readonly, g_exists 
+integer(kind=irg)                         :: hdferr, i, io_int(1), nlines
+character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(fnlen)                          :: line, groupname, dataset
+character(6)                              :: oxford
+real(kind=sgl), allocatable               :: eulers(:,:)
+integer(HSIZE_T)                          :: dims2(2), dims1(1)
+real(kind=sgl),allocatable                :: p1(:), p2(:), p3(:)
+real(kind=sgl)                            :: io_real(3)
+
+
+! fpar(1) = numsx 
+! fpar(2) = numsy 
+! fpar(3) = delta 
+
+call setRotationPrecision('d')
+
+! we assume that the calling program has opened the HDF interface,
+! and that it passes the full path filename to this routine.
+
+! is this a proper HDF5 file ?
+call h5fis_hdf5_f(trim(inpfile), stat, hdferr)
+if (stat.eqv..FALSE.) then ! the file exists, so let's open it an first make sure it is an EBSD dot product file
+   call Message%printError('getTSLmetadata_','This is not a proper HDF5 file')
+end if
+
+! open the dot product file
+readonly = .TRUE.
+HDF = HDF_T()
+hdferr =  HDF%openFile(inpfile, readonly)
+
+! make sure this is an EDAX/TSL file
+dataset = 'Manufacturer'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists.eqv..TRUE.) then
+    call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray, UTF=.TRUE.)
+    do i=1,6
+      oxford(i:i) = stringarray(1)(i:i)
+    end do
+    if (oxford.ne.'Oxford') then 
+      call Message%printError('getTSLmetadata_','Manufacturer is not equal to Oxford Instruments')
+    else 
+      call Message%printMessage('Detected Oxford Instruments h5oina formatted file')
+    end if 
+  else
+    call Message%printError('getTSLmetadata_','file does not have a Manufacturer data set')
+  end if
+
+! open the correct level of the data set  (by default this would be 'Scan 1'
+! but there may be more than one data group in the file
+groupname = trim(HDFstring)
+  hdferr = HDF%openGroup(groupname)
+
+! open groups containing orientation information
+groupname = 'EBSD'
+  hdferr = HDF%openGroup(groupname)
+groupname = 'Data'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'Euler'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims2, hdferr, eulers)
+    else
+      call Message%printError('getOxfordmetadata_','  --> no Euler data set found')
+    end if
+
+write (*,*) ' array dims : ', dims2 
+
+! convert those into a quaternion array, qAR
+qAR = QuaternionArray_T( n = int(dims2(2)), s = 'd' )
+
+do i=1,dims2(2)
+  eu = e_T( edinp = dble(eulers(:,i)) )
+  qu = eu%eq()
+  q = Quaternion_T( qd = qu%q_copyd() )
+  call qAR%insertQuatinArray( i, q )
+end do
+
+io_int(1) = dims2(2)
+call Message%WriteValue(' Number of orientations imported : ', io_int, 1)
+
+! and deallocate the eu array 
+deallocate( eulers )
+
+dataset = 'Pattern Center X'   ! convert to EMsoft format 
+  call HDF%readDatasetFloatArray(dataset, dims1, hdferr, p1 )
+
+dataset = 'Pattern Center Y'   ! convert to EMsoft format 
+  call HDF%readDatasetFloatArray(dataset, dims1, hdferr, p2 )
+
+dataset = 'Detector Distance'   ! convert to EMsoft format 
+  call HDF%readDatasetFloatArray(dataset, dims1, hdferr, p3 )
+
+! leave the Data group 
+call HDF%pop()
+
+! get metdata from the Header group
+groupname = 'Header'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'X Step'
+  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(1) )
+
+dataset = 'Y Step'
+  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(2)  )
+
+call HDF%popall()
+
+io_real = (/ p1(1), p2(1), p3(1) /)
+call Message%WriteValue(' Pattern center coordinates [Oxford] : ', io_real, 3)
+allocate(PC(3,dims1(1)))
+! correct relation to be implemented !!! 
+  p1 = -fpar(1)*(p1-0.5)
+  p1 = CEILING(0.5*fpar(1)-p1)
+  p2 = fpar(1)*p2-0.5*fpar(2)
+  p2 = CEILING(0.5*fpar(2)+p2)
+  p3 = fpar(1)*fpar(3)*p3
+  PC(1,:) = p1 
+  PC(2,:) = p2 
+  PC(3,:) = p3 
+  deallocate( p1, p2, p3 )
+io_real = (/ PC(1,1), PC(2,1), PC(3,1) /)
+call Message%WriteValue(' Pattern center coordinates [EMsoft] : ', io_real, 3)
+
+end subroutine getOxfordmetadata_
+
+!--------------------------------------------------------------------------
+recursive subroutine getBrukermetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar, SEMX, SEMY)
+!DEC$ ATTRIBUTES DLLEXPORT :: getBrukermetadata_
+!! author: MDG
+!! version: 1.0
+!! date: 06/28/23
+!!
+!! read metadata from a Bruker HDF5 file 
+
+use mod_EMsoft
+use mod_io 
+use ISO_C_BINDING
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)             :: self
+character(fnlen),INTENT(IN)               :: inpfile
+character(fnlen),INTENT(IN)               :: HDFstring
+real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)     :: qAR
+real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=sgl),INTENT(IN)                 :: fpar(3)
+integer(kind=irg),allocatable,INTENT(OUT) :: SEMX(:)
+integer(kind=irg),allocatable,INTENT(OUT) :: SEMY(:)
+
+type(HDF_T)                               :: HDF
+type(IO_T)                                :: Message
+type(e_T)                                 :: eu
+type(q_T)                                 :: qu  
+type(Quaternion_T)                        :: q
+
+logical                                   :: stat, readonly, g_exists 
+integer(kind=irg)                         :: hdferr, i, io_int(1), nlines
+character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(fnlen)                          :: line, groupname, dataset
+real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
+character(6)                              :: bruker
+integer(HSIZE_T)                          :: dims1(1)
+real(kind=sgl)                            :: io_real(3)
+real(kind=dbl)                            :: sx, sy
+real(kind=sgl),allocatable                :: p1(:), p2(:), p3(:)
+
+! fpar(1) = numsx 
+! fpar(2) = numsy 
+! fpar(3) = delta 
+
+call setRotationPrecision('d')
+
+! we assume that the calling program has opened the HDF interface,
+! and that it passes the full path filename to this routine.
+
+! is this a proper HDF5 file ?
+call h5fis_hdf5_f(trim(inpfile), stat, hdferr)
+if (stat.eqv..FALSE.) then ! the file exists, so let's open it an first make sure it is an EBSD dot product file
+   call Message%printError('getTSLmetadata_','This is not a proper HDF5 file')
+end if
+
+! open the dot product file
+readonly = .TRUE.
+HDF = HDF_T()
+hdferr =  HDF%openFile(inpfile, readonly)
+
+call HDF%setFixedLengthflag()
+
+! make sure this is an EDAX/TSL file
+dataset = 'Manufacturer'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists.eqv..TRUE.) then
+    call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
+    do i=1,6
+      bruker(i:i) = stringarray(1)(i:i)
+    end do
+    if (bruker.ne.'Bruker') then 
+      call Message%printError('getTSLmetadata_','Manufacturer is not equal to Bruker Nano')
+    else 
+      call Message%printMessage('Detected Bruker Nano HDF5 formatted file')
+    end if 
+  else
+    call Message%printError('getTSLmetadata_','file does not have a Manufacturer data set')
+  end if
+
+! open the correct level of the data set  (by default this would be 'Scan 1'
+! but there may be more than one data group in the file
+groupname = trim(HDFstring)
+  hdferr = HDF%openGroup(groupname)
+
+! open groups containing orientation information
+groupname = 'EBSD'
+  hdferr = HDF%openGroup(groupname)
+groupname = 'Data'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'phi1'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims1, hdferr, eu1)
+      do i=1,dims1(1)
+        eu1(i)= mod(eu1(i) + 720.0,360.0)
+      end do
+
+      eu1 = eu1 * sngl(dtor)
+    else
+      call Message%printError('getTSLmetadata_','  --> no Phi1 data set found')
+    end if
+
+dataset = 'PHI'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims1, hdferr, eu2)
+      do i=1,dims1(1)
+        eu2(i)= mod(eu2(i) + 720.0,180.0)
+      end do
+      eu2 = eu2 * sngl(dtor)
+    else
+      call Message%printError('getTSLmetadata_','  --> no Phi data set found')
+    end if
+
+dataset = 'phi2'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims1, hdferr, eu3)
+      do i=1,dims1(1)
+        eu3(i)= mod(eu3(i) + 720.0,360.0)
+      end do
+      eu3 = eu3 * sngl(dtor)
+    else
+      call Message%printError('getTSLmetadata_','  --> no Phi2 data set found')
+    end if
+
+! convert those into a quaternion array, qAR
+qAR = QuaternionArray_T( n = int(dims1(1)), s = 'd' )
+
+do i=1,dims1(1)
+  eu = e_T( edinp = dble((/eu1(i), eu2(i), eu3(i) /)) )
+  qu = eu%eq()
+  q = Quaternion_T( qd = qu%q_copyd() )
+  call qAR%insertQuatinArray( i, q )
+end do
+
+io_int(1) = dims1(1)
+call Message%WriteValue(' Number of orientations imported : ', io_int, 1)
+
+! and deallocate the eu1, eu2, eu3, and eu arrays 
+deallocate( eu1, eu2, eu3 )
+
+! pattern center data
+
+dataset = 'PCX'   ! convert to EMsoft format 
+  call HDF%readDatasetFloatArray(dataset, dims1, hdferr, p1 )
+
+dataset = 'PCY'   ! convert to EMsoft format 
+  call HDF%readDatasetFloatArray(dataset, dims1, hdferr, p2 )
+
+dataset = 'DD'   ! convert to EMsoft format 
+  call HDF%readDatasetFloatArray(dataset, dims1, hdferr, p3 )
+
+! leave the Data group 
+call HDF%pop()
+
+! get metdata from the Header group
+groupname = 'Header'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'XSTEP'
+  call HDF%readDatasetDouble(dataset, hdferr, sx )
+
+dataset = 'YSTEP'
+  call HDF%readDatasetDouble(dataset, hdferr, sy )
+  stepsizes = sngl( (/ sx, sy /) )
+
+call HDF%pop()
+call HDF%pop()
+
+! and finally get the pattern ranking arrays (those are specific to Bruker)
+groupname = 'SEM'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'SEM IX'
+  call HDF%readDatasetIntegerArray(dataset, dims1, hdferr, SEMX )
+
+dataset = 'SEM IY'
+  call HDF%readDatasetIntegerArray(dataset, dims1, hdferr, SEMY )
+
+call HDF%popall()
+
+! create the array of pattern center coordinates in the EMsoft convention
+io_real = (/ p1(1), p2(1), p3(1) /)
+call Message%WriteValue(' Pattern center coordinates [Bruker] : ', io_real, 3)
+allocate(PC(3,dims1(1)))
+! correct relation to be implemented !!! 
+  p1 = CEILING(fpar(1)*p1)
+  p2 = fpar(2)-CEILING(p2*fpar(2))
+  p3 = fpar(1)*fpar(3)*p3
+  PC(1,:) = p1 
+  PC(2,:) = p2 
+  PC(3,:) = p3 
+  deallocate( p1, p2, p3 )
+io_real = (/ PC(1,1), PC(2,1), PC(3,1) /)
+call Message%WriteValue(' Pattern center coordinates [EMsoft] : ', io_real, 3)
+
+end subroutine getBrukermetadata_
+
+!--------------------------------------------------------------------------
+recursive subroutine getEMsoftmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar)
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftLmetadata_
+!! author: MDG
+!! version: 1.0
+!! date: 06/28/23
+!!
+!! read metadata from a EMsoft HDF5 file 
+
+use mod_EMsoft
+use mod_io 
+use ISO_C_BINDING
+use mod_quaternions
+use mod_rotations
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)             :: self
+character(fnlen),INTENT(IN)               :: inpfile
+character(fnlen),INTENT(IN)               :: HDFstring
+real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)     :: qAR
+real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=sgl),INTENT(IN)                 :: fpar(3)
+
+type(HDF_T)                               :: HDF
+type(IO_T)                                :: Message
+type(e_T)                                 :: eu
+type(q_T)                                 :: qu  
+type(Quaternion_T)                        :: q
+
+logical                                   :: stat, readonly, g_exists 
+integer(kind=irg)                         :: hdferr, i, io_int(1), nlines 
+character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(fnlen)                          :: line, groupname, dataset
+real(kind=sgl), allocatable               :: eulers(:,:)
+integer(HSIZE_T)                          :: dims1(1), dims2(2)
+real(kind=sgl)                            :: p1, p2, p3, io_real(3)
+
+
+! fpar(1) = numsx 
+! fpar(2) = numsy 
+! fpar(3) = delta 
+
+call setRotationPrecision('d')
+
+! we assume that the calling program has opened the HDF interface,
+! and that it passes the full path filename to this routine.
+
+! is this a proper HDF5 file ?
+call h5fis_hdf5_f(trim(inpfile), stat, hdferr)
+if (stat.eqv..FALSE.) then ! the file exists, so let's open it an first make sure it is an EBSD dot product file
+   call Message%printError('getTSLmetadata_','This is not a proper HDF5 file')
+end if
+
+! open the dot product file
+readonly = .TRUE.
+HDF = HDF_T()
+hdferr =  HDF%openFile(inpfile, readonly)
+
+! make sure this is an EDAX/TSL file
+dataset = 'Manufacturer'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists.eqv..TRUE.) then
+    call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
+    line = trim(stringarray(1))
+    if (trim(line).ne.'EMsoft') then 
+      call Message%printError('getTSLmetadata_','Manufacturer is not equal to EMsoft')
+    else 
+      call Message%printMessage('Detected EMsoft HDF5 formatted file')
+    end if 
+  else
+    call Message%printError('getTSLmetadata_','file does not have a Manufacturer data set')
+  end if
+
+! open groups containing orientation information
+groupname = 'EMData'
+  hdferr = HDF%openGroup(groupname)
+groupname = 'EBSD'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'EulerAngles'
+  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims2, hdferr, eulers)
+      eulers = eulers * sngl(dtor)
+    else
+      call Message%printError('getTSLmetadata_','  --> no EulerAngles data set found')
+    end if
+
+! convert those into a quaternion array, qAR
+qAR = QuaternionArray_T( n = int(dims2(2)), s = 'd' )
+
+do i=1,dims2(2)
+  eu = e_T( edinp = dble(eulers(:,i)) )
+  qu = eu%eq()
+  q = Quaternion_T( qd = qu%q_copyd() )
+  call qAR%insertQuatinArray( i, q )
+end do
+
+io_int(1) = dims2(2)
+call Message%WriteValue(' Number of orientations imported : ', io_int, 1)
+
+! and deallocate the eu1, eu2, eu3, and eu arrays 
+deallocate( eulers )
+
+! leave the group 
+call HDF%pop()
+call HDF%pop()
+
+! assume that the step size is unity ... (there is no real step size in the EMEBSD program ...)
+stepsizes = (/ 1.0, 1.0 /)
+
+! get metdata from the Header group
+groupname = 'NMLparameters'
+  hdferr = HDF%openGroup(groupname)
+groupname = 'EBSDNameList'
+  hdferr = HDF%openGroup(groupname)
+
+groupname = 'Pattern Center Calibration'
+  hdferr = HDF%openGroup(groupname)
+
+dataset = 'xpc'   ! already in EMsoft format 
+  call HDF%readDatasetFloat(dataset, hdferr, p1 )
+
+dataset = 'ypc'   ! already in EMsoft format
+  call HDF%readDatasetFloat(dataset, hdferr, p2 )
+
+dataset = 'L'   ! already in EMsoft format 
+  call HDF%readDatasetFloat(dataset, hdferr, p3 )
+
+call HDF%popall()
+
+! create the array of pattern center coordinates in the EMsoft convention
+io_real = (/ p1, p2, p3 /)
+call Message%WriteValue(' Pattern center coordinates [EMsoft] : ', io_real, 3)
+  allocate(PC(3,dims1(1)))
+  do i=1,dims2(2)
+    PC(:,i) = (/ p1, p2, p3 /)
+  end do
+
+end subroutine getEMsoftmetadata_
+
 
 end module mod_vendors

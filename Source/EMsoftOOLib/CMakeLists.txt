@@ -147,6 +147,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ISEDI.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDPCA.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDdefect.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_HREBSD.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )
