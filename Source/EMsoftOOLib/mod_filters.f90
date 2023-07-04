@@ -1263,4 +1263,180 @@ output = (output - mi)/(ma - mi)
 
 end subroutine InversionDivision
 
+!--------------------------------------------------------------------------
+recursive subroutine HannWindow(roi_size, window)
+!DEC$ ATTRIBUTES DLLEXPORT :: HannWindow
+!
+!> @brief Hann windowing function for pattern region of interest
+!
+!> @date 07/02/23 MDG 1.0 original
+!--------------------------------------------------------------------------
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN)           :: roi_size
+real(kind=dbl),INTENT(INOUT)           :: window(roi_size, roi_size)
+
+integer(kind=irg)                      :: i, j
+real(kind=dbl)                         :: fr
+
+fr = 1.D0 / dble(roi_size)
+
+do i=1,roi_size
+  do j=1,roi_size
+    window(i,j)=cos((cPi*dble(i-roi_size/2) * fr))*cos((cPi*dble(roi_size/2-j) * fr))      
+  end do
+end do
+
+end subroutine HannWindow
+
+!--------------------------------------------------------------------------
+recursive subroutine init_BandPassFilter(dims, high_pass, low_pass, hpmask_shifted, &
+                                         lpmask_shifted, inp, outp, planf, planb) 
+!DEC$ ATTRIBUTES DLLEXPORT :: init_BandPassFilter
+!
+!> @brief Initialize high pass filter and low pass filter with predefined cut-off frequencies
+!
+!> @date 07/02/23 MDG 1.0 original
+!--------------------------------------------------------------------------
+
+use mod_FFTW3
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN)            :: dims(2)
+real(kind=dbl),INTENT(IN)               :: high_pass, low_pass
+real(kind=dbl),INTENT(INOUT)            :: hpmask_shifted(dims(1),dims(2))
+real(kind=dbl),INTENT(INOUT)            :: lpmask_shifted(dims(1),dims(2))
+complex(C_DOUBLE_COMPLEX),pointer,INTENT(INOUT) :: inp(:,:), outp(:,:)
+type(C_PTR),INTENT(INOUT)               :: planf, planb
+
+integer(kind=irg)                       :: i, j
+real(kind=dbl)                          :: grid(dims(1)), hh4, hh2, ll4, ll2
+real(kind=dbl),dimension(dims(1),dims(2))    :: X_grid, Y_grid, D
+complex(kind=dbl)                       :: val
+real(kind=dbl)                          :: hpmask(dims(1),dims(2)), lpmask(dims(1),dims(2))
+
+hh2 = high_pass/2.D0 
+hh4 = high_pass+high_pass/4.D0 
+
+! generate the meshgrid in the frequency space
+grid(1:dims(1)) = (/ (-1.D0 + dble(i-1)*(2.D0/dble(dims(1)-1)), i=1,dims(1)) /)
+X_grid = spread( grid, 1, dims(1) )
+Y_grid = spread( grid, 2, dims(1) )
+
+! distance from the zero frequency to a cut-off frequency
+D = 0.5D0*sqrt(X_grid**2+Y_grid**2)
+
+! generate the mask for high pass filter
+hpmask = 0.D0
+do i = 1,dims(1)
+  do j = 1,dims(2)
+    if (D(i,j).ge.hh4) then
+      hpmask(i,j) = 1.D0
+    else if ((D(i,j).ge.hh4).AND.(D(i,j).le.hh4)) then
+      hpmask(i,j) = (D(i,j)-hh4)/hh2
+    end if
+  end do
+end do
+
+hpmask_shifted = 0.D0
+call ifftshift(dims, hpmask, hpmask_shifted)
+
+ll2 = low_pass/2.D0 
+ll4 = low_pass-low_pass/4.D0 
+
+! generate the mask for low pass filter
+lpmask = 0.D0
+do i = 1,dims(1)
+  do j = 1,dims(2)
+    if (D(i,j).le.ll4) then
+      lpmask(i,j) = 1.D0
+    else if ((D(i,j).ge.ll4).AND.(D(i,j).le.ll4)) then
+      lpmask(i,j) = 1.D0-(D(i,j)-ll4)/ll2
+    end if
+  end do
+end do
+
+lpmask_shifted = 0.0
+call ifftshift(dims, lpmask, lpmask_shifted)
+
+! then we set up the fftw plans for forward and reverse transforms
+planf = fftw_plan_dft_2d(dims(2), dims(1), inp, outp, FFTW_FORWARD, FFTW_ESTIMATE)
+planb = fftw_plan_dft_2d(dims(2), dims(1), inp, outp, FFTW_BACKWARD, FFTW_ESTIMATE)
+
+end subroutine init_BandPassFilter
+
+!--------------------------------------------------------------------------
+recursive subroutine ifftshift(dims, X, Y)
+!DEC$ ATTRIBUTES DLLEXPORT :: ifftshift
+!
+!> @brief shift the array by the center vector
+!
+!> @date 07/02/23 MDG 1.0 original
+!--------------------------------------------------------------------------
+
+IMPLICIT NONE
+
+integer(kind=irg),intent(in)                    :: dims(2)
+real(kind=dbl),intent(in)                       :: X(dims(1),dims(2))
+real(kind=dbl),intent(out)                      :: Y(dims(1),dims(2))
+
+! shift the quadrants
+if (mod(dims(1),2).eq.0) then
+  Y(dims(1)/2+1:dims(1),1:dims(2)/2)=X(1:dims(1)/2,dims(2)/2+1:dims(2))
+  Y(1:dims(1)/2,dims(2)/2+1:dims(2))=X(dims(1)/2+1:dims(1),1:dims(2)/2)
+  Y(1:dims(1)/2,1:dims(2)/2)=X(dims(1)/2+1:dims(1),dims(2)/2+1:dims(2))
+  Y(dims(1)/2+1:dims(1),dims(2)/2+1:dims(2))=X(1:dims(1)/2,1:dims(2)/2)
+else
+  Y(dims(1)/2+2:dims(1),1:dims(2)/2)=X(1:dims(1)/2,dims(2)/2+2:dims(2))
+  Y(1:dims(1)/2,dims(2)/2+2:dims(2))=X(dims(1)/2+2:dims(1),1:dims(2)/2)
+  Y(1:dims(1)/2,1:dims(2)/2)=X(dims(1)/2+1:dims(1),dims(2)/2+1:dims(2))
+  Y(dims(1)/2+2:dims(1),dims(2)/2+2:dims(2))=X(1:dims(1)/2,1:dims(2)/2)
+endif
+
+end subroutine ifftshift
+
+
+!--------------------------------------------------------------------------
+recursive function applyBandPassFilter(rdata, dims, hpmask, lpmask, inp, outp, planf, planb) result(fdata)
+!DEC$ ATTRIBUTES DLLEXPORT :: applyBandPassFilter
+!
+!> @brief Apply high pass filter and low pass filter with predefined cut-off frequencies
+!
+!> @date 07/03/23 MDG 1.0 original
+!--------------------------------------------------------------------------
+
+use mod_FFTW3
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN)            :: dims(2)
+real(kind=dbl),INTENT(IN)               :: rdata(dims(1),dims(2)), lpmask(dims(1),dims(2)), hpmask(dims(1),dims(2))
+complex(C_DOUBLE_COMPLEX),pointer,INTENT(INOUT) :: inp(:,:), outp(:,:)
+type(C_PTR),INTENT(IN)                  :: planf, planb
+
+real(kind=dbl)                          :: fdata(dims(1),dims(2))
+integer(kind=irg)                       :: j, k
+complex(kind=dbl)                       :: hpmask_complex(dims(1),dims(2)), lpmask_complex(dims(1),dims(2))
+
+! apply the hi-pass mask to rdata
+do j=1,dims(1)
+ do k=1,dims(2)
+  inp(j,k) = cmplx(rdata(j,k),0.D0)    
+  hpmask_complex(j,k) = cmplx(hpmask(j,k),0.D0)    
+  lpmask_complex(j,k) = cmplx(lpmask(j,k),0.D0) 
+ end do
+end do
+
+call fftw_execute_dft(planf, inp, outp)
+inp = outp * hpmask * lpmask
+
+call fftw_execute_dft(planb, inp, outp) 
+fdata(1:dims(1),1:dims(2)) = real(outp)
+
+
+end function applyBandPassFilter
+
+
 end module mod_filters

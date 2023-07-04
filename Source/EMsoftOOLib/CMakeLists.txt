@@ -15,6 +15,7 @@ add_custom_target(EMsoftOOLib_Generate_StringConstants ALL
                   COMMENT "Generating StringConstants files...."
                   )
 
+# find_package(NLopt REQUIRED)
 
 #------------------------------------------------------------------------------
 # Setup all the source files
@@ -94,6 +95,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_octonions.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_HallSG.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_so2.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_Grid_Interpolation.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90

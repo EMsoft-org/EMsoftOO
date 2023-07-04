@@ -350,7 +350,7 @@ subroutine set_inputtype_(self,inp)
 IMPLICIT NONE
 
 class(Vendor_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+character(*), INTENT(IN)       :: inp
 
 self%inputtype = inp
 self%itype = self%determine_input_type_()
@@ -1281,7 +1281,7 @@ select case (self%itype)
     case(1, 2, 3, 5, 9)  ! "Binary" "TSLup1" "TSLup2" "OxfordBinary" "NORDIF"
         close(unit=self%funit,status='keep')
 
-    case(4, 6, 7, 10, 11)  ! "TSLHDF" "EMEBSD"
+    case(4, 6, 7, 10, 11, 12)  ! "TSLHDF" "EMEBSD"
         if (present(HDF)) call HDF%popall()
 
     case(8)  !  "BrukerHDF"
@@ -2182,7 +2182,7 @@ close(dataunit2,status='keep')
 end subroutine angmerge_writeFile_
 
 !--------------------------------------------------------------------------
-recursive subroutine getTSLmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar )
+recursive subroutine getTSLmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar, sig )
 !DEC$ ATTRIBUTES DLLEXPORT :: getTSLmetadata_
 !! author: MDG
 !! version: 1.0
@@ -2205,10 +2205,11 @@ IMPLICIT NONE
 class(Vendor_T),INTENT(INOUT)             :: self
 character(fnlen),INTENT(IN)               :: inpfile
 character(fnlen),INTENT(IN)               :: HDFstring
-real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
 type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=sgl),INTENT(IN)                 :: fpar(3)
+real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=dbl),INTENT(IN)                 :: fpar(3)
+real(kind=dbl),INTENT(OUT)                :: sig
 
 type(HDF_T)                               :: HDF
 type(IO_T)                                :: Message
@@ -2226,7 +2227,7 @@ character(fnlen, KIND=c_char)             :: line
 character(fnlen)                          :: groupname, dataset
 real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
 integer(HSIZE_T)                          :: dims1(1)
-real(kind=sgl)                            :: p1, p2, p3, io_real(3)
+real(kind=sgl)                            :: p1, p2, p3, io_real(3), s
 
 
 ! fpar(1) = numsx 
@@ -2328,11 +2329,17 @@ call HDF%pop()
 groupname = 'Header'
   hdferr = HDF%openGroup(groupname)
 
+dataset = 'Sample Tilt'
+  call HDF%readDatasetFloat(dataset, hdferr, s )
+  sig = dble(s)
+
 dataset = 'Step X'
-  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(1) )
+  call HDF%readDatasetFloat(dataset, hdferr, s )
+  stepsizes(1) = dble(s) 
 
 dataset = 'Step Y'
-  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(2) )
+  call HDF%readDatasetFloat(dataset, hdferr, s )
+  stepsizes(2) = dble(s) 
 
 groupname = 'Pattern Center Calibration'
   hdferr = HDF%openGroup(groupname)
@@ -2367,7 +2374,7 @@ end subroutine getTSLmetadata_
 
 
 !--------------------------------------------------------------------------
-recursive subroutine getEDAXH5metadata_(self, inpfile, HDFstrings, stepsizes, qAR, PC, fpar )
+recursive subroutine getEDAXH5metadata_(self, inpfile, HDFstrings, stepsizes, qAR, PC, fpar, sig )
 !DEC$ ATTRIBUTES DLLEXPORT :: getEDAXH5metadata_
 !! author: MDG
 !! version: 1.0
@@ -2387,10 +2394,11 @@ IMPLICIT NONE
 class(Vendor_T),INTENT(INOUT)             :: self
 character(fnlen),INTENT(IN)               :: inpfile
 character(fnlen),INTENT(IN)               :: HDFstrings(10)
-real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
 type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=sgl),INTENT(IN)                 :: fpar(3)
+real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=dbl),INTENT(IN)                 :: fpar(3)
+real(kind=dbl),INTENT(OUT)                :: sig
 
 type(HDF_T)                               :: HDF
 type(IO_T)                                :: Message
@@ -2408,7 +2416,7 @@ character(fnlen, KIND=c_char)             :: line
 character(fnlen)                          :: groupchainname, groupname, dataset
 real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
 integer(HSIZE_T)                          :: dims1(1)
-real(kind=sgl)                            :: p1, p2, p3, io_real(3)
+real(kind=sgl)                            :: p1, p2, p3, io_real(3), s
 
 ! data type for reading the orientation matrices from the compound data set
 
@@ -2486,11 +2494,17 @@ dataset = 'HOSTPARAMS'
 groupname = 'Sample'
   hdferr = HDF%openGroup(groupname)
 
+dataset = 'Sample Tilt'
+  call HDF%readDatasetFloat(dataset, hdferr, s )
+  sig = dble(s)
+
 dataset = 'Step X'
-  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(1) )
+  call HDF%readDatasetFloat(dataset, hdferr, s )
+  stepsizes(1) = dble(s) 
 
 dataset = 'Step Y'
-  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(2) )
+  call HDF%readDatasetFloat(dataset, hdferr, s )
+  stepsizes(2) = dble(s) 
 
 dataset = 'Number Of Columns'
   call HDF%readDatasetInteger(dataset, hdferr, ipf_wd )
@@ -2586,7 +2600,7 @@ call Message%WriteValue(' Pattern center coordinates [EMsoft] : ', io_real, 3)
 end subroutine getEDAXH5metadata_
 
 !--------------------------------------------------------------------------
-recursive subroutine getOxfordmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar)
+recursive subroutine getOxfordmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar, sig)
 !DEC$ ATTRIBUTES DLLEXPORT :: getOxfordmetadata_
 !! author: MDG
 !! version: 1.0
@@ -2605,10 +2619,11 @@ IMPLICIT NONE
 class(Vendor_T),INTENT(INOUT)             :: self
 character(fnlen),INTENT(IN)               :: inpfile
 character(fnlen),INTENT(IN)               :: HDFstring
-real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
 type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=sgl),INTENT(IN)                 :: fpar(3)
+real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=dbl),INTENT(IN)                 :: fpar(3)
+real(kind=dbl),INTENT(OUT)                :: sig
 
 type(HDF_T)                               :: HDF
 type(IO_T)                                :: Message
@@ -2624,7 +2639,7 @@ character(6)                              :: oxford
 real(kind=sgl), allocatable               :: eulers(:,:)
 integer(HSIZE_T)                          :: dims2(2), dims1(1)
 real(kind=sgl),allocatable                :: p1(:), p2(:), p3(:)
-real(kind=sgl)                            :: io_real(3)
+real(kind=sgl)                            :: io_real(3), s
 
 
 ! fpar(1) = numsx 
@@ -2717,11 +2732,17 @@ call HDF%pop()
 groupname = 'Header'
   hdferr = HDF%openGroup(groupname)
 
+dataset = 'Tilt Angle'
+  call HDF%readDatasetFloat(dataset, hdferr, s )   ! this angle is in radians !
+  sig = dble(s) / dtor
+
 dataset = 'X Step'
-  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(1) )
+  call HDF%readDatasetFloat(dataset, hdferr, s )
+  stepsizes(1) = dble(s)
 
 dataset = 'Y Step'
-  call HDF%readDatasetFloat(dataset, hdferr, stepsizes(2)  )
+  call HDF%readDatasetFloat(dataset, hdferr, s )
+  stepsizes(2) = dble(s) 
 
 call HDF%popall()
 
@@ -2744,7 +2765,7 @@ call Message%WriteValue(' Pattern center coordinates [EMsoft] : ', io_real, 3)
 end subroutine getOxfordmetadata_
 
 !--------------------------------------------------------------------------
-recursive subroutine getBrukermetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar, SEMX, SEMY)
+recursive subroutine getBrukermetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar, SEMX, SEMY, sig)
 !DEC$ ATTRIBUTES DLLEXPORT :: getBrukermetadata_
 !! author: MDG
 !! version: 1.0
@@ -2763,12 +2784,13 @@ IMPLICIT NONE
 class(Vendor_T),INTENT(INOUT)             :: self
 character(fnlen),INTENT(IN)               :: inpfile
 character(fnlen),INTENT(IN)               :: HDFstring
-real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
 type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=sgl),INTENT(IN)                 :: fpar(3)
+real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=dbl),INTENT(IN)                 :: fpar(3)
 integer(kind=irg),allocatable,INTENT(OUT) :: SEMX(:)
 integer(kind=irg),allocatable,INTENT(OUT) :: SEMY(:)
+real(kind=dbl),INTENT(OUT)                :: sig 
 
 type(HDF_T)                               :: HDF
 type(IO_T)                                :: Message
@@ -2784,7 +2806,7 @@ real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
 character(6)                              :: bruker
 integer(HSIZE_T)                          :: dims1(1)
 real(kind=sgl)                            :: io_real(3)
-real(kind=dbl)                            :: sx, sy
+real(kind=dbl)                            :: sx, sy, s
 real(kind=sgl),allocatable                :: p1(:), p2(:), p3(:)
 
 ! fpar(1) = numsx 
@@ -2908,12 +2930,15 @@ call HDF%pop()
 groupname = 'Header'
   hdferr = HDF%openGroup(groupname)
 
+dataset = 'SampleTilt'
+  call HDF%readDatasetDouble(dataset, hdferr, sig )
+
 dataset = 'XSTEP'
   call HDF%readDatasetDouble(dataset, hdferr, sx )
 
 dataset = 'YSTEP'
   call HDF%readDatasetDouble(dataset, hdferr, sy )
-  stepsizes = sngl( (/ sx, sy /) )
+  stepsizes = (/ sx, sy /)
 
 call HDF%pop()
 call HDF%pop()
@@ -2967,10 +2992,10 @@ IMPLICIT NONE
 class(Vendor_T),INTENT(INOUT)             :: self
 character(fnlen),INTENT(IN)               :: inpfile
 character(fnlen),INTENT(IN)               :: HDFstring
-real(kind=sgl),INTENT(OUT)                :: stepsizes(2)
+real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
 type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=sgl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=sgl),INTENT(IN)                 :: fpar(3)
+real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
+real(kind=dbl),INTENT(IN)                 :: fpar(3)
 
 type(HDF_T)                               :: HDF
 type(IO_T)                                :: Message
@@ -2984,7 +3009,7 @@ character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
 character(fnlen)                          :: line, groupname, dataset
 real(kind=sgl), allocatable               :: eulers(:,:)
 integer(HSIZE_T)                          :: dims1(1), dims2(2)
-real(kind=sgl)                            :: p1, p2, p3, io_real(3)
+real(kind=sgl)                            :: p1, p2, p3, io_real(3), s
 
 
 ! fpar(1) = numsx 
@@ -3007,17 +3032,11 @@ readonly = .TRUE.
 HDF = HDF_T()
 hdferr =  HDF%openFile(inpfile, readonly)
 
-! make sure this is an EDAX/TSL file
-dataset = 'Manufacturer'
-  call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+! make sure this is an EMEBSD file
+groupname = 'EMheader'
+  call H5Lexists_f(HDF%getObjectID(),trim(groupname),g_exists, hdferr)
   if (g_exists.eqv..TRUE.) then
-    call HDF%readDatasetStringArray(dataset, nlines, hdferr, stringarray)
-    line = trim(stringarray(1))
-    if (trim(line).ne.'EMsoft') then 
-      call Message%printError('getTSLmetadata_','Manufacturer is not equal to EMsoft')
-    else 
-      call Message%printMessage('Detected EMsoft HDF5 formatted file')
-    end if 
+    call Message%printMessage('Detected EMsoft HDF5 formatted file')
   else
     call Message%printError('getTSLmetadata_','file does not have a Manufacturer data set')
   end if
@@ -3066,9 +3085,6 @@ groupname = 'NMLparameters'
 groupname = 'EBSDNameList'
   hdferr = HDF%openGroup(groupname)
 
-groupname = 'Pattern Center Calibration'
-  hdferr = HDF%openGroup(groupname)
-
 dataset = 'xpc'   ! already in EMsoft format 
   call HDF%readDatasetFloat(dataset, hdferr, p1 )
 
@@ -3083,7 +3099,7 @@ call HDF%popall()
 ! create the array of pattern center coordinates in the EMsoft convention
 io_real = (/ p1, p2, p3 /)
 call Message%WriteValue(' Pattern center coordinates [EMsoft] : ', io_real, 3)
-  allocate(PC(3,dims1(1)))
+  allocate(PC(3,dims2(2)))
   do i=1,dims2(2)
     PC(:,i) = (/ p1, p2, p3 /)
   end do
