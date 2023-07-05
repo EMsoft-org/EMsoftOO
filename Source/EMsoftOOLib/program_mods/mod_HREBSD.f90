@@ -2059,7 +2059,7 @@ call mem%alloc(r, (/ 3,enl%N_ROI /), 'r')
 call mem%alloc(roi_centre, (/ enl%N_ROI, 2 /), 'roi_centre') 
 
 ngrid =  (/ ((i-interp_grid/2-1.0), i=1,(interp_grid+1))/)
-interp_step= 0.001D0 ! 0.01D0
+interp_step= 0.01D0 ! 0.01D0
 interp_size= interp_grid/interp_step+1;
 interp_ngrid =  (/ (-interp_grid/2+(i-1)*interp_step, i=1,interp_size)/)
 
@@ -2243,16 +2243,16 @@ do j = 1, numangles
   shift_data(:,:,j) = q_shift
   
   ! print rotation and strain tensor 
-  ! write(*,*)
-  ! write(*,*) 'Lattice Rotation Matrix (w) = '
-  ! do i = 1, ubound(w, 1)
-  !   write(*,*) w(i, :)
-  ! end do
-  ! write(*,*)
-  ! write(*,*) 'Strain Tensor (e) = '
-  ! do i = 1, ubound(strain_sample, 1)
-  !   write(*,*) strain_sample(i, :)
-  ! end do
+  write(*,*) Ftensor
+  write(*,*) 'Lattice Rotation Matrix (w) = '
+  do i = 1, ubound(w, 1)
+    write(*,*) w(i, :)
+  end do
+  write(*,*)
+  write(*,*) 'Strain Tensor (e) = '
+  do i = 1, ubound(strain_sample, 1)
+    write(*,*) strain_sample(i, :)
+  end do
   
   ! if (enl%Remap.eq.'y') then
   !   call fRemapbicubic(binx, biny, R_detector, real(enl%PC,8), real(ref_p,8), ref_rotated)
@@ -3124,18 +3124,16 @@ expt = dble(expts)
 call VT%closeExpPatternFile(HDF)
 
 ! use the center of the diffraction pattern to get ROI and turn it into a 2D pattern
-dims2 = (/ROI_size, ROI_size/)
-
-d2 = (/ enl%numsx, enl%numsy /)
+d2 = (/ROI_size, ROI_size/)
 call mem%alloc(pattern, d2, 'pattern')
 call mem%alloc(pattern_test, d2, 'pattern_test')
-call mem%alloc(XCF, (/ 2*d2(1)-1,2*d2(1)-1 /), 'XCF')
+call mem%alloc(XCF, (/ 2*d2(1)-1, 2*d2(1)-1 /), 'XCF')
 call mem%alloc(pcopy, (/ binx, biny /), 'pcopy_ROI')
 call mem%alloc(pint, d2, 'pint')
 call mem%alloc(pint_test, d2, 'pint_test')
 call mem%alloc(ppp, d2, 'ppp')
 call mem%alloc(pcopy_ROI, d2, 'pcopy_ROI')
-call mem%alloc(XCFint, (/ 2*d2(1)+1,2*d2(1)+1 /), 'XCFint')
+call mem%alloc(XCFint, (/ 2*d2(1)+1, 2*d2(1)+1 /), 'XCFint')
 
 do kk=1,biny
   pcopy(1:binx,kk) = expt((kk-1)*binx+1:kk*binx)

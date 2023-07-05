@@ -1280,11 +1280,11 @@ real(kind=dbl),INTENT(INOUT)           :: window(roi_size, roi_size)
 integer(kind=irg)                      :: i, j
 real(kind=dbl)                         :: fr
 
-fr = 1.D0 / dble(roi_size)
+fr = cPi / dble(roi_size)
 
 do i=1,roi_size
   do j=1,roi_size
-    window(i,j)=cos((cPi*dble(i-roi_size/2) * fr))*cos((cPi*dble(roi_size/2-j) * fr))      
+    window(i,j)=cos((dble(i-roi_size/2) * fr))*cos((dble(roi_size/2-j) * fr))      
   end do
 end do
 
@@ -1312,13 +1312,14 @@ complex(C_DOUBLE_COMPLEX),pointer,INTENT(INOUT) :: inp(:,:), outp(:,:)
 type(C_PTR),INTENT(INOUT)               :: planf, planb
 
 integer(kind=irg)                       :: i, j
-real(kind=dbl)                          :: grid(dims(1)), hh4, hh2, ll4, ll2
+real(kind=dbl)                          :: grid(dims(1)), hh4, hh2, hm4, ll4, ll2, lm4
 real(kind=dbl),dimension(dims(1),dims(2))    :: X_grid, Y_grid, D
 complex(kind=dbl)                       :: val
 real(kind=dbl)                          :: hpmask(dims(1),dims(2)), lpmask(dims(1),dims(2))
 
 hh2 = high_pass/2.D0 
 hh4 = high_pass+high_pass/4.D0 
+hm4 = high_pass-high_pass/4.D0 
 
 ! generate the meshgrid in the frequency space
 grid(1:dims(1)) = (/ (-1.D0 + dble(i-1)*(2.D0/dble(dims(1)-1)), i=1,dims(1)) /)
@@ -1334,8 +1335,8 @@ do i = 1,dims(1)
   do j = 1,dims(2)
     if (D(i,j).ge.hh4) then
       hpmask(i,j) = 1.D0
-    else if ((D(i,j).ge.hh4).AND.(D(i,j).le.hh4)) then
-      hpmask(i,j) = (D(i,j)-hh4)/hh2
+    else if ((D(i,j).ge.hm4).AND.(D(i,j).le.hh4)) then
+      hpmask(i,j) = (D(i,j)-hm4)/hh2
     end if
   end do
 end do
@@ -1344,16 +1345,17 @@ hpmask_shifted = 0.D0
 call ifftshift(dims, hpmask, hpmask_shifted)
 
 ll2 = low_pass/2.D0 
-ll4 = low_pass-low_pass/4.D0 
+lm4 = low_pass-low_pass/4.D0 
+ll4 = low_pass+low_pass/4.D0 
 
 ! generate the mask for low pass filter
 lpmask = 0.D0
 do i = 1,dims(1)
   do j = 1,dims(2)
-    if (D(i,j).le.ll4) then
+    if (D(i,j).le.lm4) then
       lpmask(i,j) = 1.D0
-    else if ((D(i,j).ge.ll4).AND.(D(i,j).le.ll4)) then
-      lpmask(i,j) = 1.D0-(D(i,j)-ll4)/ll2
+    else if ((D(i,j).ge.lm4).AND.(D(i,j).le.ll4)) then
+      lpmask(i,j) = 1.D0-(D(i,j)-lm4)/ll2
     end if
   end do
 end do
