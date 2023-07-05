@@ -3200,7 +3200,7 @@ end subroutine getVertex_
       REAL(KIND=DBL) PX, PY
       INTEGER(KIND=IRG) N
 
-      REAL(KIND=DBL) X(200),Y(200),XX(N),YY(N)
+      REAL(KIND=DBL) X(200),Y(200),XX(N),YY(N), ZZ
       LOGICAL MX,MY,NX,NY
       INTEGER O,INOUT,I,J,MAXDIM
 !      OUTPUT UNIT FOR PRINTED MESSAGES
@@ -3212,7 +3212,8 @@ end subroutine getVertex_
       RETURN
 6     DO 1 I=1,N
       X(I)=XX(I)-PX
-1     Y(I)=YY(I)-PY
+      Y(I)=YY(I)-PY
+1     CONTINUE
       INOUT=-1
       DO 2 I=1,N
       J=1+MOD(I,N)
@@ -3224,7 +3225,10 @@ end subroutine getVertex_
       IF(.NOT.(MY.AND.NY.AND.(MX.OR.NX).AND..NOT.(MX.AND.NX))) GO TO 3
       INOUT=-INOUT
       GO TO 2
-3     IF((Y(I)*X(J)-X(I)*Y(J))/(X(J)-X(I))) 2,4,5
+      ZZ = (Y(I)*X(J)-X(I)*Y(J))/(X(J)-X(I)) 
+3     IF (ZZ.LT.0.D0) GO TO 2
+      IF (ZZ.EQ.0.D0) GO TO 4
+      IF (ZZ.GT.0.D0) GO TO 5
 4     INOUT=0
       RETURN
 5     INOUT=-INOUT
