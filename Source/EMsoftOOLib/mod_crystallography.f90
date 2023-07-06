@@ -2606,7 +2606,7 @@ type(IO_T)                              :: Message
 character(fnlen)                        :: dataset, groupname, xtalname
 integer(HSIZE_T)                        :: dims(1), dims2(2)
 integer(kind=irg)                       :: hdferr, nlines, xtal_system, SGnum, setting, &
-                                           ATOM_ntype, i, HallSGnum
+                                           ATOM_ntype, i, j, HallSGnum
 real(kind=dbl),allocatable              :: cellparams(:)
 integer(kind=irg),allocatable           :: atomtypes(:)
 real(kind=sgl),allocatable              :: atompos(:,:)
@@ -2715,6 +2715,14 @@ call me%readDatasetFloatArray(dataset, dims2, hdferr, atompos)
 call me%error_check('readDataHDF:readDatasetFloatArray:'//trim(dataset), hdferr)
 self%ATOM_pos(1:self%ATOM_ntype,1:5) = atompos(1:self%ATOM_ntype,1:5)
 deallocate(atompos)
+
+! if structure files are created outside of EMsoft, then we need to make sure that 
+! there are no negative atom coordinates anywhere...
+do i=1,self%ATOM_ntype
+  do j=1,3
+    if (self%ATOM_pos(i,j).lt.0.0) self%ATOM_pos(i,j) = mod(self%ATOM_pos(i,j)+10.0,1.0) 
+  end do
+end do
 
 ! the following data set does not exist in older .xtal files so we test for its presence
 dataset = SC_Source
