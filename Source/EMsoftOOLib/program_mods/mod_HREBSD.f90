@@ -2018,9 +2018,7 @@ expt_ref = dble(expt_refs)
 call VT%closeExpPatternFile(HDF)
 
 ! use the center of the diffraction pattern to get ROI and turn it into a 2D pattern
-dims2 = (/ROI_size, ROI_size/)
-
-d2 = (/ enl%numsx, enl%numsy /)
+d2 = (/ROI_size, ROI_size/)
 call mem%alloc(pattern, d2, 'pattern')
 call mem%alloc(pattern_test, d2, 'pattern_test')
 call mem%alloc(XCF, (/ 2*d2(1)-1,2*d2(1)-1 /), 'XCF')
@@ -2031,7 +2029,7 @@ call mem%alloc(pint, d2, 'pint')
 call mem%alloc(pint_test, d2, 'pint_test')
 call mem%alloc(ppp, d2, 'ppp')
 call mem%alloc(pcopy_ROI, d2, 'pcopy_ROI')
-call mem%alloc(XCFint, (/ 2*d2(1)+1,2*d2(1)+1 /), 'XCFint')
+call mem%alloc(XCFint, (/ 2*d2(1)+1, 2*d2(1)+1 /), 'XCFint')
 
 call mem%alloc(strain, (/ 3,3,numangles /), 'strain')
 call mem%alloc(rotation, (/ 3,3,numangles /), 'rotation') 
@@ -2156,25 +2154,25 @@ do j = 1, numangles
 
     ! region of interest of reference pattern
     pcopy_roi=ref_p(roi_centre(i,2)-roi_size/2:roi_centre(i,2)+roi_size/2-1,&
-    roi_centre(i,1)-roi_size/2:roi_centre(i,1)+roi_size/2-1)
+                    roi_centre(i,1)-roi_size/2:roi_centre(i,1)+roi_size/2-1)
     
     ! region of interest of test pattern
     pcopy_ROI_test=test_p(roi_centre(i,2)-ROI_size/2:roi_centre(i,2)+ROI_size/2-1,&
-    roi_centre(i,1)-ROI_size/2:roi_centre(i,1)+ROI_size/2-1)
+                          roi_centre(i,1)-ROI_size/2:roi_centre(i,1)+ROI_size/2-1)
     
     ! apply the windowing function on the reference ROI
     pattern = window*pcopy_ROI
     rrdata = dble(pattern)
     ! apply the band pass filters on the reference ROI
-    ffdata = applyBandPassFilter(rrdata, (/ ROI_size, ROI_size/), dble(hpmask_shifted), &
-      dble(lpmask_shifted), inp, outp, planf, planb)
+    ffdata = applyBandPassFilter(rrdata, (/ ROI_size, ROI_size/), hpmask_shifted, &
+                                 lpmask_shifted, inp, outp, planf, planb)
 
     ! apply the windowing function on the test ROI
     pattern_test = window*pcopy_ROI_test
     rrdata_test = dble(pattern_test)
     ! apply the band pass filters on the test ROI
-    ffdata_test = applyBandPassFilter(rrdata_test, (/ ROI_size, ROI_size/), dble(hpmask_shifted), &
-      dble(lpmask_shifted), inp, outp, planf, planb)
+    ffdata_test = applyBandPassFilter(rrdata_test, (/ ROI_size, ROI_size/), hpmask_shifted, &
+                                      lpmask_shifted, inp, outp, planf, planb)
 
     ! convert to single precision 
     ! pattern = (sngl(ffdata))
@@ -2215,6 +2213,8 @@ do j = 1, numangles
   om = eu%eo()
   R_tilt = om%o_copyd()
 
+  write (*,*) 'R_tilt : ', R_tilt
+
   ! optimization routine
   quat = qAR%getQuatfromArray(j)
   qu = q_T( qdinp = quat%get_quatd() )
@@ -2232,6 +2232,8 @@ do j = 1, numangles
   ! lattice rotation matrix in the sample frame
   w = 0.D0
   call Rot2LatRot(R_sample, w)
+
+  write (*,*) 'Rot2LatRot : ', w
 
   ! distortion tensor
   beta_sample = F_sample-reshape((/1.D0,0.D0,0.D0,0.D0,1.D0,0.D0,0.D0,0.D0,1.D0/),(/3,3/))
