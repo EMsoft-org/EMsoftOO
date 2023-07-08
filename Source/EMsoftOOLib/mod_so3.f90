@@ -3225,8 +3225,8 @@ end subroutine getVertex_
       IF(.NOT.(MY.AND.NY.AND.(MX.OR.NX).AND..NOT.(MX.AND.NX))) GO TO 3
       INOUT=-INOUT
       GO TO 2
-      ZZ = (Y(I)*X(J)-X(I)*Y(J))/(X(J)-X(I)) 
-3     IF (ZZ.LT.0.D0) GO TO 2
+3     ZZ = (Y(I)*X(J)-X(I)*Y(J))/(X(J)-X(I)) 
+      IF (ZZ.LT.0.D0) GO TO 2
       IF (ZZ.EQ.0.D0) GO TO 4
       IF (ZZ.GT.0.D0) GO TO 5
 4     INOUT=0

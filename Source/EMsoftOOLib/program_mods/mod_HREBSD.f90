@@ -92,11 +92,18 @@ end type
 ! class definition
 type, public :: HREBSD_T
 private 
-  character(fnlen)          :: nmldeffile = 'EMHREBSD.nml'
-  type(HREBSDNameListType)  :: nml 
-  type(EBSDSEMArray)        :: SEM
-  real(kind=sgl)            :: PC(3)
-  logical                   :: preview
+  character(fnlen)                        :: nmldeffile = 'EMHREBSD.nml'
+  type(HREBSDNameListType)                :: nml 
+  type(EBSDSEMArray)                      :: SEM
+  real(kind=sgl)                          :: PC(3)
+  logical                                 :: preview
+  type(C_PTR)                             :: planf, planb
+  real(kind=dbl),allocatable              :: hpmask_shifted(:,:), lpmask_shifted(:,:)
+  complex(C_DOUBLE_COMPLEX),pointer       :: inp(:,:), outp(:,:)
+  type(c_ptr), allocatable                :: ip, op
+  type(C_PTR)                             :: planCC, cplanCC
+  complex(C_DOUBLE_COMPLEX),pointer       :: inpCC(:,:), outpCC(:,:)
+  type(c_ptr), allocatable                :: ipCC, opCC
 
 contains
 private 
@@ -173,6 +180,11 @@ private
   procedure, pass(self) :: getPCrefine_
   procedure, pass(self) :: setcrystal_
   procedure, pass(self) :: getcrystal_
+  procedure, pass(self) :: initBandPassFilter_
+  procedure, pass(self) :: applyBandPassFilter_
+  procedure, pass(self) :: init_cross_correlation_function_
+  procedure, pass(self) :: cross_correlation_function_
+  procedure, pass(self) :: peak_interpolation_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -247,6 +259,11 @@ private
   generic, public :: getPCrefine => getPCrefine_
   generic, public :: setcrystal => setcrystal_
   generic, public :: getcrystal => getcrystal_
+  generic, public :: initBandPassFilter => initBandPassFilter_
+  generic, public :: applyBandPassFilter => applyBandPassFilter_
+  generic, public :: init_cross_correlation_function => init_cross_correlation_function_
+  generic, public :: cross_correlation_function => cross_correlation_function_
+  generic, public :: peak_interpolation => peak_interpolation_
 end type HREBSD_T
 
 ! the constructor routine for this class 
@@ -1859,7 +1876,7 @@ use mod_HDFnames
 use mod_quaternions
 use mod_rotations 
 use mod_io
-use mod_filters
+! use mod_filters
 use mod_vendors
 use mod_HDFsupport
 use HDF5
@@ -1908,15 +1925,15 @@ real(kind=dbl),allocatable              :: window(:,:), expt(:), expt_ref(:), pa
                                            z_peak(:,:), test_p(:,:), r(:,:), strain(:,:,:), rotation(:,:,:), minf(:), &
                                            shift_data(:,:,:), Euler_Angle(:,:)
 real(kind=sgl),allocatable              :: expts(:), expt_refs(:)
-! strain(3,3,numangles), rotation(3,3,numangles), minf(numangles), & shift_data(3,21,numangles)
 real(kind=dbl),allocatable              :: XCF(:,:), ref_rotated(:,:)
 integer(kind=irg),allocatable           :: nrvals(:), pint(:,:), ppp(:,:), pint_test(:,:), XCFint(:,:), &
                                            roi_centre(:,:)
-type(C_PTR)                             :: planf, planb
-real(kind=dbl),allocatable              :: hpmask_shifted(:,:), lpmask_shifted(:,:)
-complex(C_DOUBLE_COMPLEX),pointer       :: inp(:,:), outp(:,:)
-type(c_ptr), allocatable                :: ip, op
-real(kind=dbl),allocatable              :: rrdata(:,:), ffdata(:,:), ksqarray(:,:)
+! the following are turned into global private parameters to facilitate fft's
+! type(C_PTR)                             :: planf, planb
+! real(kind=dbl),allocatable              :: hpmask_shifted(:,:), lpmask_shifted(:,:)
+! complex(C_DOUBLE_COMPLEX),pointer       :: inp(:,:), outp(:,:)
+! type(c_ptr), allocatable                :: ip, op
+real(kind=dbl),allocatable              :: rrdata(:,:), ffdata(:,:)
 real(kind=dbl),allocatable              :: rrdata_test(:,:), ffdata_test(:,:)
 integer(kind=irg)                       :: max_pos(2), size_interp
 character(fnlen)                        :: datafile, groupname, dataset, datagroupname, outname
@@ -1975,8 +1992,6 @@ end select
 
 call Message%printMessage(' Completed reading orientation data')
 
-call closeFortranHDFInterface()
-
 sz = shape( PC )
 numangles = sz(2) 
 
@@ -2000,7 +2015,6 @@ call mem%alloc(expts, (/ patsz /), 'expts')
 call mem%alloc(expt_refs, (/ patsz /), 'expt_refs')
 
 ! open the file with *reference* experimental pattern
-call openFortranHDFInterface()
 HDF = HDF_T()
 
 call VT%set_filename(inpfile)
@@ -2013,9 +2027,6 @@ end if
 offset3 = (/ 0, 0, enl%paty * enl%ipf_wd + enl%patx /)
 call VT%getSingleExpPattern(enl%paty, enl%ipf_wd, patsz, L, dims3, offset3, expt_refs, enl%HDFstrings, HDF)
 expt_ref = dble(expt_refs)
-
-! and close the pattern file
-call VT%closeExpPatternFile(HDF)
 
 ! use the center of the diffraction pattern to get ROI and turn it into a 2D pattern
 d2 = (/ROI_size, ROI_size/)
@@ -2061,22 +2072,31 @@ interp_step= 0.01D0 ! 0.01D0
 interp_size= interp_grid/interp_step+1;
 interp_ngrid =  (/ (-interp_grid/2+(i-1)*interp_step, i=1,interp_size)/)
 
+! the following arrays are declared as global to this module; this would ideally
+! be changed by using the mod_fft_wrap and FFTWisdom class...
+
 ! next we need to set up the high-pass filter fftw plans
-call mem%alloc(hpmask_shifted, (/ ROI_size, ROI_size /), 'hpmask_shifted')
-call mem%alloc(lpmask_shifted, (/ ROI_size, ROI_size /), 'lpmask_shifted')  
+call mem%alloc(self%hpmask_shifted, (/ ROI_size, ROI_size /), 'hpmask_shifted')
+call mem%alloc(self%lpmask_shifted, (/ ROI_size, ROI_size /), 'lpmask_shifted')  
 call mem%alloc(rrdata, (/ ROI_size, ROI_size /), 'rrdata')
 call mem%alloc(ffdata, (/ ROI_size, ROI_size /), 'ffdata')
 
 ! use the fftw_alloc routine to create and initialize the inp and outp arrays
-ip = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
-call c_f_pointer(ip, inp, [ROI_size, ROI_size])
+self%ip = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
+call c_f_pointer(self%ip, self%inp, [ROI_size, ROI_size])
 
-op = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
-call c_f_pointer(op, outp, [ROI_size, ROI_size])
+self%op = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
+call c_f_pointer(self%op, self%outp, [ROI_size, ROI_size])
 
-inp = cmplx(0.D0,0D0)
-outp = cmplx(0.D0,0.D0)
+self%inp = cmplx(0.D0,0D0)
+self%outp = cmplx(0.D0,0.D0)
   
+! initialize band pass filters (low pass and high pass)
+call self%initBandPassFilter_((/ROI_size, ROI_size/), dble(enl%highpass), dble(enl%lowpass)) 
+
+! initialize the cross correlation computation
+call self%init_cross_correlation_function_((/ ROI_size, ROI_size/)) 
+
 ! allocate the Hann windowing function array
 call mem%alloc(window, (/ ROI_size,ROI_size /), 'window', initval=0.D0)
 ! determine the values of the windowing function
@@ -2118,29 +2138,15 @@ do i = 1, 6
   call Message%WriteValue('',io_real,6)
 end do
 
-! initialize band pass filters (low pass and high pass)
-call init_BandPassFilter((/ROI_size, ROI_size/), dble(enl%highpass), dble(enl%lowpass), hpmask_shifted, &
-                           lpmask_shifted, inp, outp, planf, planb) 
-
-
 ! loop through patterns, eventually one row at a time using the getExpPatternRow function
 do j = 1, numangles  
 ! determine the coordinates of the ROIs used for cross-correlation
   call setROI(enl%numsx, enl%numsy, PC(1,j), PC(2,j), PC(3,j), enl%roi_distance, enl%N_ROI, roi_centre, r)
 
-  ! open the file with *reference* experimental pattern
-  istat = VT%openExpPatternFile(EMsoft, enl%ipf_wd, L, recordsize, enl%HDFstrings, HDF)
-  if (istat.ne.0) then
-      call Message%printError("HREBSD_:", "Fatal error handling experimental pattern file")
-  end if
-
-! and read the pattern
+! read the pattern
   offset3 = (/ 0, 0, j-1 /)
   call VT%getSingleExpPattern(enl%paty, enl%ipf_wd, patsz, L, dims3, offset3, expts, enl%HDFstrings, HDF)
   expt = dble(expts)
-
-! and close the pattern file
-  call VT%closeExpPatternFile(HDF)
 
   ! test pattern (intensity normalization)
   do kk=1,biny
@@ -2164,28 +2170,26 @@ do j = 1, numangles
     pattern = window*pcopy_ROI
     rrdata = dble(pattern)
     ! apply the band pass filters on the reference ROI
-    ffdata = applyBandPassFilter(rrdata, (/ ROI_size, ROI_size/), hpmask_shifted, &
-                                 lpmask_shifted, inp, outp, planf, planb)
+    ffdata = self%applyBandPassFilter_(rrdata, (/ ROI_size, ROI_size/))
 
     ! apply the windowing function on the test ROI
     pattern_test = window*pcopy_ROI_test
     rrdata_test = dble(pattern_test)
     ! apply the band pass filters on the test ROI
-    ffdata_test = applyBandPassFilter(rrdata_test, (/ ROI_size, ROI_size/), hpmask_shifted, &
-                                      lpmask_shifted, inp, outp, planf, planb)
+    ffdata_test = self%applyBandPassFilter_(rrdata_test, (/ ROI_size, ROI_size/))
 
     ! convert to single precision 
     ! pattern = (sngl(ffdata))
     ! pattern_test = (sngl(ffdata_test))
 
     ! compute the cross correlation function in the Fourier space
-    call cross_correlation_function((/ ROI_size, ROI_size/), ffdata, ffdata_test, XCF, max_pos) 
+    call self%cross_correlation_function((/ ROI_size, ROI_size/), ffdata, ffdata_test, XCF, max_pos) 
    
     ! now crop out a small region around the peak of xcf
     z_peak=XCF(max_pos(1)-interp_grid/2:max_pos(1)+interp_grid/2,max_pos(2)-interp_grid/2:max_pos(2)+interp_grid/2)
   
     ! we do interpolation on this small region
-    call peak_interpolation(max_pos, z_peak, 2*ROI_size-1, interp_step, interp_grid+1, ngrid, interp_size, interp_ngrid, q)
+    call self%peak_interpolation(max_pos, z_peak, 2*ROI_size-1, interp_step, interp_grid+1, ngrid, interp_size, interp_ngrid, q)
     
     ! we can then find the shift vectors associated with the ROI with subpixel accuracy
     q_shift(:,i) = (/-q(1), -q(2), 0.D0/)
@@ -2200,8 +2204,8 @@ do j = 1, numangles
       R_x = roi_centre(i,1)
       R_y = enl%numsy-roi_centre(i,2)
       ! diffraction pattern shift
-      cosang = cos(sig*dtor)  ! cosd is an intel compiler extension
-      sinang = sin(sig*dtor)  ! sind is an intel compiler extension
+      cosang = cos(sig*dtor) 
+      sinang = sin(sig*dtor) 
       q_shift(2,i) = q_shift(2,i)-Distance(2)/(0.000001D0*enl%delta)*(sinang-(enl%numsy/2-R_y)*cosang/PC(3,j))
       q_shift(1,i) = q_shift(1,i)-1/(0.000001D0*enl%delta)*(-Distance(1)+(enl%numsx/2-R_x)*Distance(2)*cosang/PC(3,j))    
     end if
@@ -2218,7 +2222,10 @@ do j = 1, numangles
   ! optimization routine
   quat = qAR%getQuatfromArray(j)
   qu = q_T( qdinp = quat%get_quatd() )
-  call main_minf(enl%N_ROI, r, q_shift, qu, C, Ftensor, minf(j), reshape(R_tilt,(/9/)))
+  ! call main_minf(enl%N_ROI, r, q_shift, qu, C, Ftensor, minf(j), reshape(R_tilt,(/9/)))
+
+! try this with a bit of linear algebra (QR decomposition) instead
+  Ftensor = QRattempt(enl%N_ROI, r, q_shift, qu, C, minf(j), reshape(R_tilt,(/9/)))
 
   ! polar decomposition of the deformation tensor
   call getPolarDecomposition(reshape(Ftensor,(/3,3/)), R_detector, Smatrix)
@@ -2261,6 +2268,9 @@ do j = 1, numangles
   ! end if
  
 end do
+
+! and close the pattern file
+call VT%closeExpPatternFile(HDF)
 
 call timer%makeTimeStamp()
 dstr = timer%getDateString()
@@ -2404,11 +2414,89 @@ call closeFortranHDFInterface()
 
 end associate 
 
+call mem%allocated_memory_use(' before dealloc')
+call mem%dealloc(expt, 'expt')
+call mem%dealloc(expt_ref,'expt_ref')
+call mem%dealloc(expts, 'expts')
+call mem%dealloc(expt_refs, 'expt_refs')
+call mem%dealloc(pattern, 'pattern')
+call mem%dealloc(pattern_test, 'pattern_test')
+call mem%dealloc(XCF, 'XCF')
+call mem%dealloc(test_p, 'test_p')
+call mem%dealloc(ref_p, 'ref_p')
+call mem%dealloc(ref_rotated, 'ref_rotated')
+call mem%dealloc(pint, 'pint')
+call mem%dealloc(pint_test, 'pint_test')
+call mem%dealloc(ppp, 'ppp')
+call mem%dealloc(pcopy_ROI, 'pcopy_ROI')
+call mem%dealloc(XCFint, 'XCFint')
+
+call mem%dealloc(strain, 'strain')
+call mem%dealloc(rotation, 'rotation') 
+call mem%dealloc(minf, 'minf')
+call mem%dealloc(shift_data, 'shift_data')
+call mem%dealloc(ngrid, 'ngrid')
+call mem%dealloc(z_peak, 'z_peak')
+call mem%dealloc(q_shift, 'q_shift') 
+call mem%dealloc(r, 'r')
+call mem%dealloc(roi_centre, 'roi_centre') 
+
+call mem%dealloc(self%hpmask_shifted, 'hpmask_shifted')
+call mem%dealloc(self%lpmask_shifted, 'lpmask_shifted')  
+call mem%dealloc(rrdata, 'rrdata')
+call mem%dealloc(ffdata, 'ffdata')
+call mem%dealloc(window, 'window')
+call mem%allocated_memory_use(' after dealloc')
+
+call fftw_free(self%ip)
+call fftw_free(self%op)
+call fftw_free(self%ipCC)
+call fftw_free(self%opCC)
+! call fftw_cleanup()
+
 end subroutine HREBSD_
 
 !--------------------------------------------------------------------------
-recursive subroutine cross_correlation_function(dims,a,b,c,max_pos) 
-!DEC$ ATTRIBUTES DLLEXPORT :: cross_correlation_function
+recursive subroutine init_cross_correlation_function_(self,dims) 
+!DEC$ ATTRIBUTES DLLEXPORT :: init_cross_correlation_function_
+!! author: MDG (OO) / Chaoyi Zhu (5.0)
+!! version: 1.0
+!! date: 07/02/23
+!!
+! this routine initializes all the necessary FFTW arrays and plans for the 
+! cross correlation step
+
+use mod_FFTW3
+
+IMPLICIT NONE
+
+class(HREBSD_T),INTENT(INOUT)               :: self
+integer(kind=irg),intent(in)                :: dims(2)
+
+integer(kind=irg)                           :: cdims(2), i, j
+real(kind=dbl), allocatable                 :: apad(:,:), bpad(:,:) 
+
+! matrix dimensions
+cdims=2*dims-1
+
+! set up the fftw
+self%ipCC = fftw_alloc_complex(int(cdims(1)*cdims(2),C_SIZE_T))
+call c_f_pointer(self%ipCC, self%inpCC, [cdims(1),cdims(2)])
+
+self%opCC = fftw_alloc_complex(int(cdims(1)*cdims(2),C_SIZE_T))
+call c_f_pointer(self%opCC, self%outpCC, [cdims(1),cdims(2)])
+
+self%inpCC = cmplx(0.D0,0D0)
+self%outpCC = cmplx(0.D0,0.D0)
+! create plan for forward Fourier transform
+self%planCC = fftw_plan_dft_2d(cdims(1),cdims(2), self%inpCC, self%outpCC, FFTW_FORWARD, FFTW_ESTIMATE)
+self%cplanCC = fftw_plan_dft_2d(cdims(1),cdims(2), self%inpCC, self%outpCC, FFTW_BACKWARD, FFTW_ESTIMATE)
+
+end subroutine init_cross_correlation_function_
+
+!--------------------------------------------------------------------------
+recursive subroutine cross_correlation_function_(self,dims,a,b,c,max_pos) 
+!DEC$ ATTRIBUTES DLLEXPORT :: cross_correlation_function_
 !! author: MDG (OO) / Chaoyi Zhu (5.0)
 !! version: 1.0
 !! date: 07/02/23
@@ -2426,14 +2514,12 @@ use mod_FFTW3
 
 IMPLICIT NONE
 
+class(HREBSD_T),INTENT(INOUT)               :: self
 integer(kind=irg),intent(in)                :: dims(2)
 real(kind=dbl),intent(in)                   :: a(dims(1),dims(2)), b(dims(1),dims(2))
 real(kind=dbl),intent(out)                  :: c(2*dims(1)-1,2*dims(1)-1)
 integer(kind=irg),intent(out)               :: max_pos(2)
 
-type(C_PTR)                                 :: plan, cplan
-complex(C_DOUBLE_COMPLEX),pointer           :: inp(:,:), outp(:,:)
-type(c_ptr), allocatable                    :: ip, op
 complex(C_DOUBLE_COMPLEX), allocatable      :: ffta(:,:), fftb(:,:), fftc(:,:)
 integer(kind=irg)                           :: cdims(2), i, j
 real(kind=dbl), allocatable                 :: apad(:,:), bpad(:,:) 
@@ -2448,66 +2534,51 @@ bpad = 0.D0
 apad(1:dims(1),1:dims(2)) = a
 bpad(1:dims(1),1:dims(2)) = b(dims(1):1:-1,dims(2):1:-1)
 
-! set up the fftw
-ip = fftw_alloc_complex(int(cdims(1)*cdims(2),C_SIZE_T))
-call c_f_pointer(ip, inp, [cdims(1),cdims(2)])
-
-op = fftw_alloc_complex(int(cdims(1)*cdims(2),C_SIZE_T))
-call c_f_pointer(op, outp, [cdims(1),cdims(2)])
-
-allocate(ffta(dims(1),dims(2)),fftb(dims(1),dims(2)),fftc(cdims(1),cdims(2)))
-
-inp = cmplx(0.D0,0D0)
-outp = cmplx(0.D0,0.D0)
-! create plan for forward Fourier transform
-plan = fftw_plan_dft_2d(cdims(1),cdims(2), inp, outp, FFTW_FORWARD, FFTW_ESTIMATE)
 do j=1,cdims(1)
     do i=1, cdims(2)
-     inp(j,i) = cmplx(apad(j,i),0.D0)    
+     self%inpCC(j,i) = cmplx(apad(j,i),0.D0)    
     end do
 end do
 
 ! compute the Forward Fourier transform of a
-call fftw_execute_dft(plan, inp, outp)
-ffta=outp
+call fftw_execute_dft(self%planCC, self%inpCC, self%outpCC)
+ffta=self%outpCC
 
 ! compute the Forward Fourier transform of b
-inp = cmplx(0.D0,0D0)
-outp = cmplx(0.D0,0.D0)
+self%inpCC = cmplx(0.D0,0D0)
+self%outpCC = cmplx(0.D0,0.D0)
 do j=1,cdims(1)
     do i=1, cdims(2)
-     inp(j,i) = cmplx(bpad(j,i),0.D0)    
+     self%inpCC(j,i) = cmplx(bpad(j,i),0.D0)    
     end do
 end do
-call fftw_execute_dft(plan, inp, outp)
-fftb=outp
+call fftw_execute_dft(self%planCC, self%inpCC, self%outpCC)
+fftb=self%outpCC
 
 ! compute the inverse Fourier transform of invF(F(a)*F(b))
 fftc = ffta*fftb
-inp = cmplx(0.D0,0D0)
-outp = cmplx(0.D0,0.D0)
+self%outpCC = cmplx(0.D0,0.D0)
 
-cplan = fftw_plan_dft_2d(cdims(1),cdims(2), inp, outp, FFTW_BACKWARD, FFTW_ESTIMATE)
-
-call fftw_execute_dft(cplan, fftc, outp)
-c=real(outp)
+call fftw_execute_dft(self%cplanCC, fftc, self%outpCC)
+c=real(self%outpCC)
 max_pos=maxloc(c)
 
 deallocate(ffta, fftb, fftc, apad, bpad)
-call fftw_free(ip)
-call fftw_free(op)
-call fftw_cleanup()
 
-end subroutine cross_correlation_function
+end subroutine cross_correlation_function_
 
-
-
-recursive subroutine peak_interpolation(max_pos, z, z_size, interp_step, interp_size, ngrid, size_interp, interp_ngrid, q)
+!--------------------------------------------------------------------------
+recursive subroutine peak_interpolation_(self, max_pos, z, z_size, interp_step, interp_size, ngrid, size_interp, interp_ngrid, q)
+!DEC$ ATTRIBUTES DLLEXPORT :: peak_interpolation_
+!! author: MDG (OO) / Chaoyi Zhu (5.0)
+!! version: 1.0
+!! date: 07/02/23
 
 use mod_Grid_Interpolation
 
 IMPLICIT NONE
 
+class(HREBSD_T),INTENT(INOUT):: self
 integer(kind=irg),intent(in) :: interp_size, size_interp, z_size, max_pos(2)
 real(kind=dbl),intent(in)    :: ngrid(interp_size), interp_step
 real(kind=dbl),intent(inout) :: interp_ngrid(size_interp), z(interp_size,interp_size)                       
@@ -2535,7 +2606,7 @@ interp_half=(size_interp+1)/2
 q(1)=(max_pos(2)-(z_size+1)/2)+((max_pos_interp(2)-interp_half)*interp_step);
 q(2)=((z_size+1)/2-max_pos(1))+((interp_half-max_pos_interp(1))*interp_step);
   
-end subroutine peak_interpolation
+end subroutine peak_interpolation_
 
 !--------------------------------------------------------------------------
 recursive subroutine setROI(Lx, Ly, PC_x, PC_y, DD, roi_distance, N_ROI, roi_centre, r)
@@ -2572,7 +2643,104 @@ end do
 end subroutine setROI
 
 
-! the main subroutine for computing the bouned constrained optimization
+! the main subroutine for computing the QR decomposition and subsequent solution
+! using only linear algebra instead of optimizers; this is known to be sensitive 
+! to outliers and such, but it might provide a good sanity check for test cases.
+recursive function QRattempt(N, r, q, qu, C_c, minf, R_tilt) result(Ftensor)
+
+use mod_math
+use mod_rotations
+
+implicit NONE
+
+real(kind=dbl), INTENT(out)   :: minf
+integer(kind=irg), INTENT(in) :: N
+type(q_T),INTENT(INOUT)       :: qu
+real(kind=dbl), INTENT(in)    :: r(3, N), q(3, N), C_c(6,6), R_tilt(9)
+real(kind=dbl)                :: Ftensor(9)
+
+integer(kind=irg)             :: ires, i, j  
+real(kind=dbl)                :: gs2c(3,3), gc2s(3,3), RM(6,6), RN(6,6), RM_inv(6,6), C_s(6,6), x
+real(kind=dbl),allocatable    :: A(:,:), B(:), QQ(:,:), RR(:,:), Qb(:)
+
+! LAPACK parameters
+integer(kind=irg)             :: LDA, M, NN, K, LWORK, INFO
+real(kind=dbl),allocatable    :: TAU(:), WORK1(:), WORK2(:), WORK3(:)
+
+! generate the A matrix that has the r coordinates in it as well as 
+! the traction-free boundary condition in terms of a series of elastic 
+! moduli transformed into the correct reference frame (similar to what 
+! is done in the constrained optimization, but now this constraint is just 
+! one of the rows of the A matrix... )
+allocate( A( 2*N+1, 9 ), QQ(2*N+1, 9), RR(9,9), Qb(9), B(2*N+1) )
+A = 0.D0 
+B = 0.D0 
+
+do i=1,N 
+  j = 2*i
+  A(j,1:3) = (/ r(1,i), r(2,i), r(3,i) /)
+  A(j,7:9) = (/ -r(1,i)**2/r(3,i), -r(1,i)*r(2,i)/r(3,i), -r(1,i) /)
+  B(j) = q(1,i)
+  j = 2*i+1
+  A(j,4:6) = (/ r(1,i), r(2,i), r(3,i) /)
+  A(j,7:9) = (/  -r(1,i)*r(2,i)/r(3,i), -r(2,i)**2/r(3,i), -r(2,i) /)
+  B(j) = q(2,i)
+end do
+! and the final row of A requires the elastic moduli tensor transformation 
+
+call StiffnessRotation(qu, gs2c, gc2s, RM, RN) 
+call inv(6, 6, RM, RM_inv)
+
+! Rotate stiffness tensor from crystal frame into sample frame
+C_s = matmul(matmul(RM_inv,C_c),RN)
+A(2*N+1,:) = (/ C_s(3,1), C_s(3,6), C_s(3,5), C_s(3,6), C_s(3,2), C_s(3,4), C_s(3,5), C_s(3,4), C_s(3,3) /)
+
+! next, we perform the QR decomposition using the Lapack DGEQRF routine
+M = 2*N+1
+NN = 9
+LDA = M 
+allocate( TAU(minval( (/M, NN /) ) ) )
+! allocate( WORK1(1) )
+! LWORK = -1
+! call DGEQRF(M, N, A, LDA, TAU, WORK1, LWORK, INFO)
+! LWORK = int(WORK1(1))
+! write (*,*) 'LWORK = ', LWORK
+LWORK = 672
+allocate( WORK2(LWORK) )
+call DGEQRF(M, N, A, LDA, TAU, WORK2, LWORK, INFO)
+if (INFO.ne.0) write (*,*) 'DGEQRF : ', INFO  
+! extract the R matrix from the upper diagonal portion of the returned A
+RR = 0.D0
+do i=1,9 
+  RR(i,i:9) = A(i,i:9)
+end do
+
+! then use the Lapack DORG2R routine to extract the Q array 
+K = minval( (/M, NN /) )
+allocate( WORK3(NN) )
+call DORG2R(M, NN, K, A, LDA, TAU, WORK3, INFO)
+if (INFO.ne.0) write (*,*) 'DORG2R : ', INFO  
+QQ = A 
+
+Qb = matmul ( transpose(QQ), B ) 
+
+! finally, solve the equations 
+Ftensor(1) = Qb(1) / RR(1,1)
+do i=2,9
+  x = Qb(i)
+  do j=1,i-1
+    x = x - RR(i,j) * Ftensor(j)
+  end do 
+  Ftensor(i) = x / RR(i,i)
+end do 
+
+Ftensor = Ftensor + (/1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0/) 
+
+deallocate(TAU, WORK2, WORK3, A, B, Qb, RR, QQ )
+
+end function QRattempt
+
+! the main subroutine for computing the bounded constrained optimization
 recursive subroutine main_minf(N, r, q, qu, C_c, Ftensor, minf, R_tilt)
 
 use mod_math
@@ -2998,6 +3166,179 @@ end if
 
 end subroutine inv
 
+
+
+!--------------------------------------------------------------------------
+recursive subroutine HannWindow(roi_size, window)
+!DEC$ ATTRIBUTES DLLEXPORT :: HannWindow
+!
+!> @brief Hann windowing function for pattern region of interest
+!
+!> @date 07/02/23 MDG 1.0 original
+!--------------------------------------------------------------------------
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN)           :: roi_size
+real(kind=dbl),INTENT(INOUT)           :: window(roi_size, roi_size)
+
+integer(kind=irg)                      :: i, j
+real(kind=dbl)                         :: fr
+
+fr = cPi / dble(roi_size)
+
+do i=1,roi_size
+  do j=1,roi_size
+    window(i,j)=cos((dble(i-roi_size/2) * fr))*cos((dble(roi_size/2-j) * fr))      
+  end do
+end do
+
+end subroutine HannWindow
+
+!--------------------------------------------------------------------------
+recursive subroutine initBandPassFilter_(self, dims, high_pass, low_pass) 
+!DEC$ ATTRIBUTES DLLEXPORT :: initBandPassFilter_
+!
+!> @brief Initialize high pass filter and low pass filter with predefined cut-off frequencies
+!
+!> @date 07/02/23 MDG 1.0 original
+!--------------------------------------------------------------------------
+
+use mod_FFTW3
+
+IMPLICIT NONE
+
+class(HREBSD_T),INTENT(INOUT)           :: self
+integer(kind=irg),INTENT(IN)            :: dims(2)
+real(kind=dbl),INTENT(IN)               :: high_pass, low_pass
+
+integer(kind=irg)                       :: i, j
+real(kind=dbl)                          :: grid(dims(1)), hh4, hh2, hm4, ll4, ll2, lm4
+real(kind=dbl)                          :: X_grid(dims(1),dims(2)), Y_grid(dims(1),dims(2)), D(dims(1),dims(2))
+complex(kind=dbl)                       :: val
+real(kind=dbl)                          :: hpmask(dims(1),dims(2)), lpmask(dims(1),dims(2))
+
+hh2 = high_pass/2.D0 
+hh4 = high_pass+high_pass/4.D0 
+hm4 = high_pass-high_pass/4.D0 
+
+! generate the meshgrid in the frequency space
+grid(1:dims(1)) = (/ (-1.D0 + dble(i-1)*(2.D0/dble(dims(1)-1)), i=1,dims(1)) /)
+X_grid = spread( grid, 1, dims(1) )
+Y_grid = spread( grid, 2, dims(1) )
+
+! distance from the zero frequency to a cut-off frequency
+D = 0.5D0*sqrt(X_grid**2+Y_grid**2)
+
+! generate the mask for high pass filter
+hpmask = 0.D0
+do i = 1,dims(1)
+  do j = 1,dims(2)
+    if (D(i,j).ge.hh4) then
+      hpmask(i,j) = 1.D0
+    else if ((D(i,j).ge.hm4).AND.(D(i,j).le.hh4)) then
+      hpmask(i,j) = (D(i,j)-hm4)/hh2
+    end if
+  end do
+end do
+
+self%hpmask_shifted = 0.D0
+call ifftshift(dims, hpmask, self%hpmask_shifted)
+
+ll2 = low_pass/2.D0 
+lm4 = low_pass-low_pass/4.D0 
+ll4 = low_pass+low_pass/4.D0 
+
+! generate the mask for low pass filter
+lpmask = 0.D0
+do i = 1,dims(1)
+  do j = 1,dims(2)
+    if (D(i,j).le.lm4) then
+      lpmask(i,j) = 1.D0
+    else if ((D(i,j).ge.lm4).AND.(D(i,j).le.ll4)) then
+      lpmask(i,j) = 1.D0-(D(i,j)-lm4)/ll2
+    end if
+  end do
+end do
+
+self%lpmask_shifted = 0.0
+call ifftshift(dims, lpmask, self%lpmask_shifted)
+
+! then we set up the fftw plans for forward and reverse transforms
+self%planf = fftw_plan_dft_2d(dims(2), dims(1), self%inp, self%outp, FFTW_FORWARD, FFTW_ESTIMATE)
+self%planb = fftw_plan_dft_2d(dims(2), dims(1), self%inp, self%outp, FFTW_BACKWARD, FFTW_ESTIMATE)
+
+end subroutine initBandPassFilter_
+
+!--------------------------------------------------------------------------
+recursive subroutine ifftshift(dims, X, Y)
+!DEC$ ATTRIBUTES DLLEXPORT :: ifftshift
+!
+!> @brief shift the array by the center vector
+!
+!> @date 07/02/23 MDG 1.0 original
+!--------------------------------------------------------------------------
+
+IMPLICIT NONE
+
+integer(kind=irg),intent(in)                    :: dims(2)
+real(kind=dbl),intent(in)                       :: X(dims(1),dims(2))
+real(kind=dbl),intent(out)                      :: Y(dims(1),dims(2))
+
+! shift the quadrants
+if (mod(dims(1),2).eq.0) then
+  Y(dims(1)/2+1:dims(1),1:dims(2)/2)=X(1:dims(1)/2,dims(2)/2+1:dims(2))
+  Y(1:dims(1)/2,dims(2)/2+1:dims(2))=X(dims(1)/2+1:dims(1),1:dims(2)/2)
+  Y(1:dims(1)/2,1:dims(2)/2)=X(dims(1)/2+1:dims(1),dims(2)/2+1:dims(2))
+  Y(dims(1)/2+1:dims(1),dims(2)/2+1:dims(2))=X(1:dims(1)/2,1:dims(2)/2)
+else
+  Y(dims(1)/2+2:dims(1),1:dims(2)/2)=X(1:dims(1)/2,dims(2)/2+2:dims(2))
+  Y(1:dims(1)/2,dims(2)/2+2:dims(2))=X(dims(1)/2+2:dims(1),1:dims(2)/2)
+  Y(1:dims(1)/2,1:dims(2)/2)=X(dims(1)/2+1:dims(1),dims(2)/2+1:dims(2))
+  Y(dims(1)/2+2:dims(1),dims(2)/2+2:dims(2))=X(1:dims(1)/2,1:dims(2)/2)
+endif
+
+end subroutine ifftshift
+
+
+!--------------------------------------------------------------------------
+recursive function applyBandPassFilter_(self, rdata, dims) result(fdata)
+!DEC$ ATTRIBUTES DLLEXPORT :: applyBandPassFilter_
+!
+!> @brief Apply high pass filter and low pass filter with predefined cut-off frequencies
+!
+!> @date 07/03/23 MDG 1.0 original
+!--------------------------------------------------------------------------
+
+use mod_FFTW3
+
+IMPLICIT NONE
+
+class(HREBSD_T),INTENT(INOUT)           :: self
+integer(kind=irg),INTENT(IN)            :: dims(2)
+real(kind=dbl),INTENT(IN)               :: rdata(dims(1),dims(2))
+
+real(kind=dbl)                          :: fdata(dims(1),dims(2))
+integer(kind=irg)                       :: j, k
+complex(kind=dbl)                       :: hpmask_complex(dims(1),dims(2)), lpmask_complex(dims(1),dims(2))
+
+! apply the hi-pass mask to rdata
+do j=1,dims(1)
+ do k=1,dims(2)
+  self%inp(j,k) = cmplx(rdata(j,k),0.D0)    
+  hpmask_complex(j,k) = cmplx(self%hpmask_shifted(j,k),0.D0)    
+  lpmask_complex(j,k) = cmplx(self%hpmask_shifted(j,k),0.D0) 
+ end do
+end do
+
+call fftw_execute_dft(self%planf, self%inp, self%outp)
+self%inp = self%outp * hpmask_complex * lpmask_complex
+
+call fftw_execute_dft(self%planb, self%inp, self%outp) 
+fdata(1:dims(1),1:dims(2)) = real(self%outp)
+
+end function applyBandPassFilter_
+
 !--------------------------------------------------------------------------
 subroutine HREBSDpreview_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: HREBSDpreview_
@@ -3067,11 +3408,8 @@ real(kind=sgl),allocatable              :: expts(:), expt_refs(:)
 real(kind=dbl),allocatable              :: XCF(:,:), ref_rotated(:,:)
 integer(kind=irg),allocatable           :: nrvals(:), pint(:,:), ppp(:,:), pint_test(:,:), XCFint(:,:), &
                                            roi_centre(:,:)
-type(C_PTR)                             :: planf, planb
-real(kind=dbl),allocatable              :: hpmask_shifted(:,:), lpmask_shifted(:,:)
-complex(C_DOUBLE_COMPLEX),pointer       :: inp(:,:), outp(:,:)
-type(c_ptr), allocatable                :: ip, op
-real(kind=dbl),allocatable              :: rrdata(:,:), ffdata(:,:), ksqarray(:,:)
+
+real(kind=dbl),allocatable              :: rrdata(:,:), ffdata(:,:)
 real(kind=dbl),allocatable              :: rrdata_test(:,:), ffdata_test(:,:)
 integer(kind=irg)                       :: max_pos(2), size_interp
 character(fnlen)                        :: datafile, groupname, dataset, datagroupname, outname, image_filename
@@ -3213,20 +3551,26 @@ allocate(output_image_XCF( nx, ny ))
 image_filename = EMsoft%generateFilePath('EMdatapathname',trim(enl%tifffile))
 
 ! next we need to set up the high-pass filter fftw plans
-call mem%alloc(hpmask_shifted, (/ ROI_size, ROI_size /), 'hpmask_shifted')
-call mem%alloc(lpmask_shifted, (/ ROI_size, ROI_size /), 'lpmask_shifted')  
+call mem%alloc(self%hpmask_shifted, (/ ROI_size, ROI_size /), 'hpmask_shifted')
+call mem%alloc(self%lpmask_shifted, (/ ROI_size, ROI_size /), 'lpmask_shifted')  
 call mem%alloc(rrdata, (/ ROI_size, ROI_size /), 'rrdata')
 call mem%alloc(ffdata, (/ ROI_size, ROI_size /), 'ffdata')
 
-! use the fftw_alloc routine to create the inp and outp arrays
-ip = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
-call c_f_pointer(ip, inp, [ROI_size, ROI_size])
+! use the fftw_alloc routine to create and initialize the inp and outp arrays
+self%ip = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
+call c_f_pointer(self%ip, self%inp, [ROI_size, ROI_size])
 
-op = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
-call c_f_pointer(op, outp, [ROI_size, ROI_size])
+self%op = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
+call c_f_pointer(self%op, self%outp, [ROI_size, ROI_size])
 
-inp = cmplx(0.D0,0D0)
-outp = cmplx(0.D0,0.D0)
+self%inp = cmplx(0.D0,0D0)
+self%outp = cmplx(0.D0,0.D0)
+  
+! initialize band pass filters (low pass and high pass)
+call self%initBandPassFilter_((/ROI_size, ROI_size/), dble(enl%highpass), dble(enl%lowpass)) 
+
+! nitialize the cross correlation computation
+call self%init_cross_correlation_function_((/ ROI_size, ROI_size/)) 
 
 ! define the Hann windowing function
 call mem%alloc(window, (/ ROI_size, ROI_size /), 'window', initval = 0.D0)
@@ -3237,18 +3581,13 @@ do kk=1,numw ! low pass
   call Message%WriteValue(' when low pass filter = ', io_real, 1) 
   do jj=1,numw  ! high pass
 
-    call init_BandPassFilter((/ROI_size, ROI_size/), hpvals(jj), lpvals(kk), hpmask_shifted, &
-    lpmask_shifted, inp, outp, planf, planb) 
-
     rrdata = window * pcopy_ROI
 
     rrdata_test = window * pcopy_ROI_test
 
-    ffdata = applyBandPassFilter(rrdata, (/ ROI_size, ROI_size/), hpmask_shifted, &
-                                 lpmask_shifted, inp, outp, planf, planb)
+    ffdata = self%applyBandPassFilter_(rrdata, (/ ROI_size, ROI_size/))
 
-    ffdata_test = applyBandPassFilter(rrdata_test, (/ ROI_size, ROI_size/), hpmask_shifted, &
-                                      lpmask_shifted, inp, outp, planf, planb)
+    ffdata_test = self%applyBandPassFilter_(rrdata_test, (/ ROI_size, ROI_size/))
 
     pattern = sngl(ffdata)
     pattern_test = sngl(ffdata_test)
@@ -3274,10 +3613,12 @@ do kk=1,numw ! low pass
     end if
 
 ! compute the cross correlation function in the Fourier space
-  call cross_correlation_function((/ ROI_size, ROI_size/), pattern, pattern_test, XCF, max_pos) 
+  call self%cross_correlation_function((/ ROI_size, ROI_size/), pattern, pattern_test, XCF, max_pos) 
+
   z_peak=XCF(max_pos(1)-interp_grid/2:max_pos(1)+interp_grid/2,max_pos(2)-interp_grid/2:max_pos(2)+interp_grid/2)
 
-  call peak_interpolation(max_pos, z_peak, 2*ROI_size-1, interp_step, interp_grid+1, ngrid, interp_size, interp_ngrid, q)
+! we do interpolation on this small region
+  call self%peak_interpolation(max_pos, z_peak, 2*ROI_size-1, interp_step, interp_grid+1, ngrid, interp_size, interp_ngrid, q)
   print *, "XCF error", sum(abs(q-(/20,-20/))), "with high pass filter = ", hpvals(jj)
 
   ma = maxval(XCF)
@@ -3296,8 +3637,10 @@ do kk=1,numw ! low pass
 end do 
 end do
 
-call fftw_free(ip)
-call fftw_free(op)
+call fftw_free(self%ip)
+call fftw_free(self%op)
+call fftw_free(self%ipCC)
+call fftw_free(self%opCC)
 call fftw_cleanup()
 
 ! save the processed pattern panel
@@ -3356,6 +3699,7 @@ call closeFortranHDFInterface()
 end associate 
 
 end subroutine HREBSDpreview_
+
 
 
 end module mod_HREBSD
