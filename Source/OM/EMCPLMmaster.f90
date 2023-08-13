@@ -29,9 +29,9 @@
 program EMCPLMmaster
     !! author: MDG
     !! version: 1.0 
-    !! date: 01/24/20
+    !! date: 08/10/23
     !!
-    !! 
+    !! Müller master pattern for Computational Polarized Light Microscopy
   
   use mod_kinds
   use mod_global
@@ -41,13 +41,13 @@ program EMCPLMmaster
   IMPLICIT NONE
   
   character(fnlen)                :: progname = 'EMCPLMmaster.f90'
-  character(fnlen)                :: progdesc = ''
+  character(fnlen)                :: progdesc = 'Müller master pattern for Computational Polarized Light Microscopy'
   
   type(EMsoft_T)                  :: EMsoft
   type(CPLMmaster_T)              :: CPLMmaster 
   
   ! print the EMsoft header and handle any command line arguments  
-  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
+  EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 110 /) )
   
   ! deal with the namelist stuff
   CPLMmaster = CPLMmaster_T(EMsoft%nmldeffile)

@@ -41,29 +41,72 @@
 !
 !> @date 02/12/17 MDG 1.0 initial version
 !> @date 09/05/19 MDG 1.1 various corrections
+!> @date 08/10/23 MDG 2.0 complet update
 !--------------------------------------------------------------------------
 
 module mod_MuellerCalculus
 
 use mod_kinds
 use mod_global
+use mod_io
 
 IMPLICIT NONE
+
+type :: MuellerMatrixType
+  real(kind=dbl)                        :: M(4,4)
+  character(fnlen)                      :: descriptor
+end type 
+
+type :: StokesVectorType 
+  real(kind=dbl)                        :: S(0:3)
+  character(fnlen)                      :: descriptor
+end type 
 
 type, public :: MuellerCalculus_T
   !! MuellerMatrix class definition
   private
-    real(kind=dbl)                        :: M(4,4)
-    character(fnlen)                      :: descriptor
+  type(MuellerMatrixType)   :: MM
 
   contains
     private
       procedure, pass(self) :: get_basicMuellerMatrix_
+      procedure, pass(self) :: get_diattenuator_
+      procedure, pass(self) :: get_rotator_
+      procedure, pass(self) :: get_retarder_
+      procedure, pass(self) :: rotate_MuellerMatrix_
+      procedure, pass(self) :: print_MuellerMatrix_
+      procedure, pass(self) :: propagateStokesVector_
+      procedure, pass(self) :: concatenateMuellerMatrices_
+      procedure, pass(self) :: get_EllipticityAngle_
+      procedure, pass(self) :: get_AuxiliaryAngle_
+      procedure, pass(self) :: get_OrientationAngle_
+      procedure, pass(self) :: get_PhaseShiftAngle_
+      procedure, pass(self) :: get_Polarization_
+      procedure, pass(self) :: get_Stokes_EO_
+      procedure, pass(self) :: get_Stokes_AD_
+      procedure, pass(self) :: get_AD_from_EO_
+      procedure, pass(self) :: get_EO_from_AD_
       procedure, pass(self) :: get_UniaxialReflectivities_
       procedure, pass(self) :: get_SampleMuellerMatrix_
       final :: MuellerCalculus_destructor
 
       generic, public :: get_basicMuellerMatrix => get_basicMuellerMatrix_
+      generic, public :: get_diattenuator => get_diattenuator_
+      generic, public :: get_rotator => get_rotator_
+      generic, public :: get_retarder => get_retarder_
+      generic, public :: rotate_MuellerMatrix => rotate_MuellerMatrix_
+      generic, public :: print_MuellerMatrix => print_MuellerMatrix_
+      generic, public :: propagateStokesVector => propagateStokesVector_
+      generic, public :: concatenateMuellerMatrices => concatenateMuellerMatrices_
+      generic, public :: get_EllipticityAngle => get_EllipticityAngle_
+      generic, public :: get_AuxiliaryAngle => get_AuxiliaryAngle_
+      generic, public :: get_OrientationAngle => get_OrientationAngle_
+      generic, public :: get_PhaseShiftAngle => get_PhaseShiftAngle_
+      generic, public :: get_Polarization => get_Polarization_
+      generic, public :: get_Stokes_EO => get_Stokes_EO_
+      generic, public :: get_Stokes_AD => get_Stokes_AD_
+      generic, public :: get_AD_from_EO => get_AD_from_EO_
+      generic, public :: get_EO_from_AD => get_EO_from_AD_
       generic, public :: get_UniaxialReflectivities => get_UniaxialReflectivities_
       generic, public :: get_SampleMuellerMatrix => get_SampleMuellerMatrix_
 end type MuellerCalculus_T
@@ -114,13 +157,11 @@ recursive subroutine get_basicMuellerMatrix_(self, MMtype)
 !!
 !! returns a basic 4x4 Mueller matrix by type
 
-use mod_io
-
 IMPLICIT NONE
 
-class(MuellerCalculus_T), INTENT(INOUT)  :: self
-integer(kind=irg),INTENT(IN)      :: MMtype
-type(IO_T)                        :: Message
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+integer(kind=irg),INTENT(IN)                :: MMtype
+type(IO_T)                                  :: Message
 
 select case (MMtype)
     case (0)
@@ -135,70 +176,565 @@ select case (MMtype)
         call Message%printMessage('8: circular polarizer, left-handed')
         call Message%printMessage('9: ideal mirror')
     case (1)
-        self%descriptor = 'linear horizontal polarizer'
-        self%M(1,1:4) = (/ 1.D0, 1.D0, 0.D0, 0.D0 /)
-        self%M(2,1:4) = (/ 1.D0, 1.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M = 0.5D0 * self%M
+        self%MM%descriptor = 'linear horizontal polarizer'
+        self%MM%M(1,1:4) = (/ 1.D0, 1.D0, 0.D0, 0.D0 /)
+        self%MM%M(2,1:4) = (/ 1.D0, 1.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M = 0.5D0 * self%MM%M
     case (2)
-        self%descriptor = 'linear vertical polarizer'
-        self%M(1,1:4) = (/ 1.D0,-1.D0, 0.D0, 0.D0 /)
-        self%M(2,1:4) = (/-1.D0, 1.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M = 0.5D0 * self%M
+        self%MM%descriptor = 'linear vertical polarizer'
+        self%MM%M(1,1:4) = (/ 1.D0,-1.D0, 0.D0, 0.D0 /)
+        self%MM%M(2,1:4) = (/-1.D0, 1.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M = 0.5D0 * self%MM%M
     case (3)
-        self%descriptor = 'linear polarizer at +45°'
-        self%M(1,1:4) = (/ 1.D0, 0.D0, 1.D0, 0.D0 /)
-        self%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/ 1.D0, 0.D0, 1.D0, 0.D0 /)
-        self%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M = 0.5D0 * self%M
+        self%MM%descriptor = 'linear polarizer at +45°'
+        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 1.D0, 0.D0 /)
+        self%MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/ 1.D0, 0.D0, 1.D0, 0.D0 /)
+        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M = 0.5D0 * self%MM%M
     case (4)
-        self%descriptor = 'linear polarizer at -45°'
-        self%M(1,1:4) = (/ 1.D0, 0.D0,-1.D0, 0.D0 /)
-        self%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/-1.D0, 0.D0, 1.D0, 0.D0 /)
-        self%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M = 0.5D0 * self%M
+        self%MM%descriptor = 'linear polarizer at -45°'
+        self%MM%M(1,1:4) = (/ 1.D0, 0.D0,-1.D0, 0.D0 /)
+        self%MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/-1.D0, 0.D0, 1.D0, 0.D0 /)
+        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M = 0.5D0 * self%MM%M
     case (5)
-        self%descriptor = 'quarter-wave plate, fast axis vertical'
-        self%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0,-1.D0 /)
-        self%M(4,1:4) = (/ 0.D0, 0.D0, 1.D0, 0.D0 /)
+        self%MM%descriptor = 'quarter-wave plate, fast axis vertical'
+        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0,-1.D0 /)
+        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 1.D0, 0.D0 /)
     case (6)
-        self%descriptor = 'quarter-wave plate, fast axis horizontal'
-        self%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 1.D0 /)
-        self%M(4,1:4) = (/ 0.D0, 0.D0,-1.D0, 0.D0 /)
+        self%MM%descriptor = 'quarter-wave plate, fast axis horizontal'
+        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 1.D0 /)
+        self%MM%M(4,1:4) = (/ 0.D0, 0.D0,-1.D0, 0.D0 /)
     case (7)
-        self%descriptor = 'circular polarizer, right-handed'
-        self%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 1.D0 /)
-        self%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(4,1:4) = (/ 1.D0, 0.D0, 0.D0, 1.D0 /)
-        self%M = 0.5D0 * self%M
+        self%MM%descriptor = 'circular polarizer, right-handed'
+        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 1.D0 /)
+        self%MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(4,1:4) = (/ 1.D0, 0.D0, 0.D0, 1.D0 /)
+        self%MM%M = 0.5D0 * self%MM%M
     case (8)
-        self%descriptor = 'circular polarizer, left-handed'
-        self%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0,-1.D0 /)
-        self%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(4,1:4) = (/-1.D0, 0.D0, 0.D0, 1.D0 /)
-        self%M = 0.5D0 * self%M
+        self%MM%descriptor = 'circular polarizer, left-handed'
+        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0,-1.D0 /)
+        self%MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(4,1:4) = (/-1.D0, 0.D0, 0.D0, 1.D0 /)
+        self%MM%M = 0.5D0 * self%MM%M
     case (9)
-        self%descriptor = 'ideal mirror'
-        self%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
-        self%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
-        self%M(3,1:4) = (/ 0.D0, 0.D0,-1.D0, 0.D0 /)
-        self%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0,-1.D0 /)
+        self%MM%descriptor = 'ideal mirror'
+        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+        self%MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
+        self%MM%M(3,1:4) = (/ 0.D0, 0.D0,-1.D0, 0.D0 /)
+        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0,-1.D0 /)
         !self%M = 0.5D0 * self%M
     case default
 end select
 
 end subroutine get_basicMuellerMatrix_
+
+ !--------------------------------------------------------------------------
+recursive function get_diattenuator_(self, px, py, polar) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_diattenuator_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! returns a di-attenuator 4x4 Mueller matrix
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+real(kind=dbl),INTENT(IN)                   :: px
+real(kind=dbl),INTENT(IN)                   :: py
+logical,OPTIONAL,INTENT(IN)                 :: polar
+
+type(IO_T)                                  :: Message
+
+type(MuellerMatrixType)                     :: res
+logical                                     :: usepolar
+
+! initialize a Mueller matrix for a diattenuator
+res%descriptor = 'diattenuator'
+
+usepolar = .FALSE.
+if (present(polar)) then
+    if (polar.eqv..TRUE.) usepolar = .TRUE.
+end if 
+
+if (usepolar) then
+    if ((px.lt.0.D0).or.(px.gt.1.D0)) then
+        call Message%printError('MC_get_diattenuator','attenuation magnitude must lie in range [0,1]')
+    end if 
+    res%M(1,1:4) = (/ 1.D0, cos(2.D0*py), 0.D0, 0.D0 /)
+    res%M(2,1:4) = (/ cos(2.D0*py), 1.D0, 0.D0, 0.D0 /)
+    res%M(3,1:4) = (/ 0.D0, 0.D0, sin(2.D0*py), 0.D0 /)
+    res%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, sin(2.D0*py) /)
+    res%M = 0.5D0*px*px*res%M
+else
+    if ((minval((/ px, py /)).lt.0.D0).or.(maxval((/px, py/)).gt.1.D0)) then
+        call Message%printError('MC_get_diattenuator','attenuation factors must lie in range [0,1]')
+    end if 
+    res%M(1,1:4) = (/ px*px+py*py, px*px-py*py, 0.D0, 0.D0 /)
+    res%M(2,1:4) = (/ px*px-py*py, px*px+py*py, 0.D0, 0.D0 /)
+    res%M(3,1:4) = (/ 0.D0, 0.D0, 2.D0*px*py, 0.D0 /)
+    res%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 2.D0*px*py /)
+    res%M = 0.5D0*res%M
+end if 
+    
+end function get_diattenuator_
+
+!--------------------------------------------------------------------------
+recursive function get_rotator_(self, theta) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_rotator_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! returns a rotator 4x4 Mueller matrix
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+real(kind=dbl),INTENT(IN)                   :: theta
+type(MuellerMatrixType)                     :: res
+
+real(kind=dbl)                              :: ct, st
+
+ct = cos(2.D0*theta)
+st = sin(2.D0*theta)
+
+! initialize a Mueller matrix for a rotator
+res%descriptor = 'rotator'
+res%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+res%M(2,1:4) = (/ 0.D0, ct, st, 0.D0 /)
+res%M(3,1:4) = (/ 0.D0, -st, ct, 0.D0 /)
+res%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 1.D0 /)
+
+end function get_rotator_
+
+!--------------------------------------------------------------------------
+recursive function get_retarder_(self, phi) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_retarder_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! returns a retarder 4x4 Mueller matrix
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+real(kind=dbl),INTENT(IN)                   :: phi
+type(MuellerMatrixType)                     :: res
+
+real(kind=dbl)                              :: cp, sp
+
+cp = cos(phi)
+sp = sin(phi)
+
+! initialize a Mueller matrix for a retarder
+res%descriptor = 'retarder'
+res%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+res%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
+res%M(3,1:4) = (/ 0.D0, 0.D0, cp, -sp /)
+res%M(4,1:4) = (/ 0.D0, 0.D0, sp, cp /)
+
+end function get_retarder_
+
+!--------------------------------------------------------------------------
+recursive function rotate_MuellerMatrix_(self, MM, theta, normalincidence) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: rotate_MuellerMatrix_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! rotate a 4x4 Mueller matrix
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(MuellerMatrixType),INTENT(IN)          :: MM 
+real(kind=dbl),INTENT(IN)                   :: theta
+logical,INTENT(IN),OPTIONAL                 :: normalincidence
+type(MuellerMatrixType)                     :: res
+
+type(MuellerMatrixType)                     :: Mrot 
+logical                                     :: normal 
+
+normal = .FALSE.
+if (present(normalincidence)) normal = .TRUE.
+
+! initialize the output Mueller matrix descriptor
+res%descriptor = trim(MM%descriptor)//'-rotated'
+
+Mrot = self%get_rotator(theta)
+if (normal.eqv..FALSE.) then 
+    res%M = matmul(transpose(Mrot%M), matmul(MM%M, Mrot%M))
+else 
+    res%M = matmul(Mrot%M, matmul(MM%M, Mrot%M))
+end if
+
+end function rotate_MuellerMatrix_
+
+!--------------------------------------------------------------------------
+recursive subroutine print_MuellerMatrix_(self, MM)
+!DEC$ ATTRIBUTES DLLEXPORT :: print_MuellerMatrix_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! print a 4x4 Mueller matrix
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(MuellerMatrixType),INTENT(IN)          :: MM
+
+type(IO_T)                                  :: Message
+
+real(kind=dbl)                              :: io_double(4)
+integer(kind=irg)                           :: i
+
+call Message%printMessage('Mueller Matrix Type : '//trim(MM%descriptor))
+
+do i=1,4 
+    io_double(1:4) = MM%M(i,1:4)
+    call Message%WriteValue('  --> ',io_double,4)
+end do
+
+end subroutine print_MuellerMatrix_
+
+!--------------------------------------------------------------------------
+recursive function propagateStokesVector_(self, MM, SV, descriptor) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: propagateStokesVector_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! multiplies a Stokes vector by a Mueller matrix
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(MuellerMatrixType),INTENT(IN)          :: MM
+type(StokesVectorType),INTENT(IN)           :: SV
+character(fnlen),INTENT(IN)                 :: descriptor
+type(StokesVectorType)                      :: res
+
+res%S = matmul(MM%M, SV%S)
+res%descriptor = trim(descriptor)
+
+end function propagateStokesVector_
+
+!--------------------------------------------------------------------------
+recursive function concatenateMuellerMatrices_(self, MM1, MM2) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: concatenateMuellerMatrices_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! multiplies a Mueller matrix M1 by M2, in the order  M2 x M1 
+!!
+!! note that MM1 is earlier in the optical path than MM2
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(MuellerMatrixType),INTENT(IN)          :: MM1
+type(MuellerMatrixType),INTENT(IN)          :: MM2
+type(MuellerMatrixType)                     :: res
+
+res%M = matmul(MM2%M, MM1%M)
+res%descriptor = trim(MM1%descriptor)//'->'//trim(MM2%descriptor)
+
+end function concatenateMuellerMatrices_
+
+!--------------------------------------------------------------------------
+recursive function get_EllipticityAngle_(self, SV) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_EllipticityAngle_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! extracts the ellipticity angle from a Stokes vector 
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(StokesVectorType),INTENT(IN)           :: SV
+real(kind=dbl)                              :: res
+
+type(IO_T)                                  :: Message 
+
+real(kind=dbl)                              :: p4, io_double(1)
+
+p4 = cPi * 0.25D0
+
+res = 0.5D0 * asin(SV%S(3)/SV%S(0))
+
+if (abs(res).gt.p4) then
+    io_double(1) = res
+    call Message%WriteValue('Ellipticity angle = ',io_double,1)
+    call Message%printError('MC_get_EllipticityAngle','Ellipticity angle does not lie in range [-pi/4,pi/4]')
+end if
+
+end function get_EllipticityAngle_
+
+!--------------------------------------------------------------------------
+recursive function get_OrientationAngle_(self, SV) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_OrientationAngle_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! extracts the polarization ellipse orientation angle from a Stokes vector 
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(StokesVectorType),INTENT(IN)           :: SV
+real(kind=dbl)                              :: res
+
+res = 0.5D0 * atan2(SV%S(2),SV%S(1))
+
+res = mod(res+2.D0*cPi,cPi)
+
+end function get_OrientationAngle_
+
+!--------------------------------------------------------------------------
+recursive function get_AuxiliaryAngle_(self, SV) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_AuxiliaryAngle_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! extracts the auxiliary angle from a Stokes vector
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(StokesVectorType),INTENT(IN)           :: SV
+real(kind=dbl)                              :: res
+
+real(kind=dbl)                              :: psi, chi, alpha, delta
+
+chi = self%get_EllipticityAngle(SV)
+psi = self%get_OrientationAngle(SV)
+call self%get_AD_from_EO(chi, psi, alpha, delta)
+
+res = alpha
+
+end function get_AuxiliaryAngle_
+
+!--------------------------------------------------------------------------
+recursive function get_PhaseShiftAngle_(self, SV) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_PhaseShiftAngle_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! extracts the phase shift angle from a Stokes vector
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(StokesVectorType),INTENT(IN)           :: SV
+real(kind=dbl)                              :: res
+
+real(kind=dbl)                              :: psi, chi, alpha, delta
+
+chi = self%get_EllipticityAngle(SV)
+psi = self%get_OrientationAngle(SV)
+call self%get_AD_from_EO(chi, psi, alpha, delta)
+
+res = delta
+
+end function get_PhaseShiftAngle_
+
+!--------------------------------------------------------------------------
+recursive function get_Polarization_(self, SV) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Polarization_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! extracts the polarization from a Stokes vector
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(StokesVectorType),INTENT(IN)           :: SV
+real(kind=dbl)                              :: res
+
+type(IO_T)                                  :: Message 
+
+if (SV%S(0).eq.0.D0) then
+    call Message%printError('MC_get_Polarization','Total intensity in Stokes Vector is zero')
+end if
+
+res = dsqrt(sum(SV%S(1:3)**2)) / SV%S(0)
+
+end function get_Polarization_
+
+!--------------------------------------------------------------------------
+recursive function get_Stokes_EO_(self, chi, psi, descriptor) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Stokes_EO_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! generate a Stokes vector for a given Ellipticity and Orientation angle
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+real(kind=dbl),INTENT(IN)                   :: chi
+real(kind=dbl),INTENT(IN)                   :: psi
+character(fnlen),INTENT(IN)                 :: descriptor
+type(StokesVectorType)                      :: res
+
+real(kind=dbl)                              :: cp, sp, cc, sc
+
+cp = cos(2.D0*psi)
+sp = sin(2.D0*psi)
+cc = cos(2.D0*chi)
+sc = sin(2.D0*chi)
+
+res%descriptor = trim(descriptor)
+res%S = (/ 1.D0, cc*cp, cc*sp, sc /)
+
+end function get_Stokes_EO_
+
+!--------------------------------------------------------------------------
+recursive function get_Stokes_AD_(self, alpha, delta, descriptor) result(res)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_Stokes_AD_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! generate a Stokes vector for a given auxiliary and phase shift angle
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+real(kind=dbl),INTENT(IN)                   :: alpha
+real(kind=dbl),INTENT(IN)                   :: delta 
+character(fnlen),INTENT(IN)                 :: descriptor
+type(StokesVectorType)                      :: res
+
+real(kind=dbl)                              :: ca, sa, cd, sd
+
+ca = cos(2.D0*alpha)
+sa = sin(2.D0*alpha)
+cd = cos(delta)
+sd = sin(delta)
+
+res%descriptor = trim(descriptor)
+res%S = (/ 1.D0, ca, sa*cd, sa*sd /)
+
+end function get_Stokes_AD_
+
+!--------------------------------------------------------------------------
+recursive subroutine get_AD_from_EO_(self, chi, psi, alpha, delta)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_AD_from_EO_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! convert auxiliary and phase shift angle to ellipticity and orientation angles
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+real(kind=dbl),INTENT(IN)                   :: chi
+real(kind=dbl),INTENT(IN)                   :: psi
+real(kind=dbl),INTENT(OUT)                  :: alpha
+real(kind=dbl),INTENT(OUT)                  :: delta 
+
+real(kind=dbl)                              :: sc, tp, cp, cc, p2, p4, st, tt, ss, ct, sa
+
+p2 = cPi*0.5D0
+p4 = cPi*0.25D0
+
+cc = cos(2.D0*chi)
+sc = sin(2.D0*chi)
+tp = tan(2.D0*psi)
+cp = cos(2.D0*psi)
+
+st = dsqrt(sc*sc+tp*tp)
+tt = dsqrt(1.D0+tp*tp)
+ss = dsqrt(1.D0-sc*sc)
+
+ct = cos(2.D0*chi) * tan(2.D0*psi)
+sa = sc/abs(cp)
+
+! get alpha
+if (abs(psi-p2).ge.p4) then
+  alpha = 0.5D0 * atan2(st/tt,ss/tt)
+else
+  alpha = 0.5D0 * (cPi - atan2(st/tt,ss/tt))
+end if
+
+! get delta, such that there is only one cut in the delta surface for chi=0, psi<pi/2
+if (abs(psi-p2).lt.p4) then
+    delta = atan2(-sa/st,ct/st)-cPi
+else
+    delta = atan2(sa/st,ct/st)
+    if (chi.gt.0.D0) delta = delta - 2.0D0*cPi
+end if
+
+end subroutine get_AD_from_EO_
+
+!--------------------------------------------------------------------------
+recursive subroutine get_EO_from_AD_(self, alpha, delta, chi, psi)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_EO_from_AD_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/10/23
+!!
+!! convert ellipticity and orientation angles to auxiliary and phase shift angles
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+real(kind=dbl),INTENT(IN)                   :: alpha
+real(kind=dbl),INTENT(IN)                   :: delta 
+real(kind=dbl),INTENT(OUT)                  :: chi
+real(kind=dbl),INTENT(OUT)                  :: psi
+
+type(IO_T)                                  :: Message 
+
+real(kind=dbl)                              :: p2, p4
+
+p2 = cPi * 0.5D0
+p4 = cPi * 0.25D0
+
+chi = 0.5D0 * asin ( sin(2.D0 * alpha) * sin(delta))
+
+if (delta.le.p2) then
+    psi = 0.5D0 * atan(cos(delta) * tan(2.D0 * alpha))
+else
+    psi = cPi - 0.5D0 * atan(cos(delta) * tan(2.D0 * alpha))
+end if
+
+! make sure chi falls in the range [-pi/4,pi/4]
+if (abs(chi).gt.p4) then
+    call Message%printError('MC_get_EO_from_AD','ellipticity angle must be in interval [-pi/4,pi/4]')
+end if
+
+! make sure psi falls in the range [0,pi]
+if (psi.lt.0.D0) psi = psi + cPi
+
+end subroutine get_EO_from_AD_
 
   !--------------------------------------------------------------------------
 recursive function get_UniaxialReflectivities_(self, wl, epsac, nincident, dc, beamtilt) result(rvals)
