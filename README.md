@@ -39,12 +39,12 @@ Then, starting in the top folder where you have cloned the EMsoftOO repository, 
   cd EMsoftOOBuild
   mkdir Release
   cd Release
-  cmake -DCMAKE_BUILD_TYPE=Release -DEMsoft_SDK=/somepath/EMsoftOO_SDK ../../EMsoftOO
+  cmake -DCMAKE_BUILD_TYPE=Release -DEMsoftOO_SDK=/somepath/EMsoftOO_SDK ../../EMsoftOO
   make -j
   cd ../
   mkdir Debug
   cd Debug
-  cmake -DCMAKE_BUILD_TYPE=Debug -DEMsoft_SDK=/somepath/EMsoftOO_SDK ../../EMsoftOO
+  cmake -DCMAKE_BUILD_TYPE=Debug -DEMsoftOO_SDK=/somepath/EMsoftOO_SDK ../../EMsoftOO
   make -j
 
 ```
