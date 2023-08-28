@@ -100,7 +100,7 @@ end interface IPF_T
 contains
 
 !--------------------------------------------------------------------------
-type(IPF_T) function IPF_constructor( nmlfile ) result(IPF)
+type(IPF_T) function IPF_constructor( nmlfile ) result(myIPF)
 !DEC$ ATTRIBUTES DLLEXPORT :: IPF_constructor
 !! author: MDG 
 !! version: 1.0 
@@ -114,7 +114,7 @@ character(fnlen), OPTIONAL   :: nmlfile
 
 ! the calling program must assign values to all entries if no nmlfile parameter is present
 if (present(nmlfile)) then ! read the namelist file
-  call IPF%readNameList(nmlfile)
+  call myIPF%readNameList(nmlfile)
 end if 
 
 end function IPF_constructor

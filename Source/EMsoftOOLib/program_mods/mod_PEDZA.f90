@@ -230,6 +230,8 @@ module mod_PEDZA
   class(PEDZA_T), INTENT(INOUT)          :: self
   type(PEDZANameListType)                :: nml
 
+  nml = self%nml
+
   end function getNameList_
   
   !--------------------------------------------------------------------------
@@ -398,6 +400,7 @@ module mod_PEDZA
   real(kind=sgl),allocatable      :: karray(:,:)
   integer(kind=irg),allocatable   :: kij(:,:)
   complex(kind=dbl),allocatable   :: DynMat(:,:)
+  complex(kind=dbl)               :: cmplxZero
   
   ! simplify the notation a little
   associate( pednl => self%nml )
@@ -612,7 +615,8 @@ kvectorloop:  do ik = 1,numk
    if (ik.eq.1) first = .FALSE.
 
  ! generate the dynamical matrix
-    call mem%alloc(DynMat, (/ nns,nns /), 'DynMat', initval = complex(0.D0,0.D0))
+    cmplxZero = complex(0.D0,0.D0)
+    call mem%alloc(DynMat, (/ nns,nns /), 'DynMat', initval = cmplxZero )
     call reflist%GetDynMat(cell, Diff, firstw, DynMat, nns, nnw)
 
  ! allocate the intensity array to include both strong beams and weak beams (in that order)
