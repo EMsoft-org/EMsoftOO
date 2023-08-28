@@ -95,26 +95,26 @@ recursive SUBROUTINE rgbi3p(md, nxd, nyd, xd, yd, zd, nip, xi, yi, zi, ier)
 ! Specification statements
 !     .. Parameters ..
 
-INTEGER, INTENT(IN)   :: md
-INTEGER, INTENT(IN)   :: nxd
-INTEGER, INTENT(IN)   :: nyd
+INTEGER(kind=irg), INTENT(IN)   :: md
+INTEGER(kind=irg), INTENT(IN)   :: nxd
+INTEGER(kind=irg), INTENT(IN)   :: nyd
 REAL(kind=dbl), INTENT(IN)      :: xd(nxd)
 REAL(kind=dbl), INTENT(IN)      :: yd(nyd)
 REAL(kind=dbl), INTENT(IN OUT)  :: zd(nxd,nyd)
-INTEGER, INTENT(IN)   :: nip
+INTEGER(kind=irg), INTENT(IN)   :: nip
 REAL(kind=dbl), INTENT(IN OUT)  :: xi(nip)
 REAL(kind=dbl), INTENT(IN OUT)  :: yi(nip)
 REAL(kind=dbl), INTENT(IN OUT)  :: zi(nip)
-INTEGER, INTENT(OUT)  :: ier
+INTEGER(kind=irg), INTENT(OUT)  :: ier
 
 !     ..
 !     .. Local Scalars ..
-INTEGER, PARAMETER  :: nipimx=51
+INTEGER(kind=irg), PARAMETER  :: nipimx=51
 
-INTEGER  :: iip, ix, iy, nipi
+INTEGER(kind=irg)  :: iip, ix, iy, nipi
 !     ..
 !     .. Local Arrays ..
-INTEGER  :: inxi(nipimx), inyi(nipimx)
+INTEGER(kind=irg)  :: inxi(nipimx), inyi(nipimx)
 
 ! Allocate workspace
 REAL(kind=dbl)  :: wk(3,nxd,nyd)
@@ -269,28 +269,28 @@ recursive SUBROUTINE rgsf3p(md, nxd, nyd, xd, yd, zd, nxi, xi, nyi, yi, zi, ier)
 ! Specification statements
 !     .. Parameters ..
 
-INTEGER, INTENT(IN)   :: md
-INTEGER, INTENT(IN)   :: nxd
-INTEGER, INTENT(IN)   :: nyd
+INTEGER(kind=irg), INTENT(IN)   :: md
+INTEGER(kind=irg), INTENT(IN)   :: nxd
+INTEGER(kind=irg), INTENT(IN)   :: nyd
 REAL(kind=dbl), INTENT(IN)      :: xd(nxd)
 REAL(kind=dbl), INTENT(IN)      :: yd(nyd)
 REAL(kind=dbl), INTENT(IN OUT)  :: zd(nxd,nyd)
-INTEGER, INTENT(IN)   :: nxi
+INTEGER(kind=irg), INTENT(IN)   :: nxi
 REAL(kind=dbl), INTENT(IN OUT)  :: xi(nxi)
-INTEGER, INTENT(IN)   :: nyi
+INTEGER(kind=irg), INTENT(IN)   :: nyi
 REAL(kind=dbl), INTENT(IN)      :: yi(nyi)
 REAL(kind=dbl), INTENT(IN OUT)  :: zi(nxi,nyi)
-INTEGER, INTENT(OUT)  :: ier
+INTEGER(kind=irg), INTENT(OUT)  :: ier
 
 !     ..
 !     .. Local Scalars ..
-INTEGER, PARAMETER  :: nipimx=51
+INTEGER(kind=irg), PARAMETER  :: nipimx=51
 
-INTEGER  :: ix, ixi, iy, iyi, nipi
+INTEGER(kind=irg)  :: ix, ixi, iy, iyi, nipi
 !     ..
 !     .. Local Arrays ..
 REAL(kind=dbl)     :: yii(nipimx)
-INTEGER  :: inxi(nipimx), inyi(nipimx)
+INTEGER(kind=irg)  :: inxi(nipimx), inyi(nipimx)
 
 ! Allocate workspace
 REAL(kind=dbl)  :: wk(3,nxd,nyd)
@@ -442,8 +442,8 @@ recursive SUBROUTINE rgpd3p(nxd, nyd, xd, yd, zd, pdd)
 ! Specification statements
 !     .. Scalar Arguments ..
 
-INTEGER, INTENT(IN)  :: nxd
-INTEGER, INTENT(IN)  :: nyd
+INTEGER(kind=irg), INTENT(IN)  :: nxd
+INTEGER(kind=irg), INTENT(IN)  :: nyd
 REAL(kind=dbl), INTENT(IN)     :: xd(nxd)
 REAL(kind=dbl), INTENT(IN)     :: yd(nyd)
 REAL(kind=dbl), INTENT(IN)     :: zd(nxd,nyd)
@@ -461,13 +461,13 @@ REAL(kind=dbl) :: b00, b00x, b00y, b01, b10, b11, cx1, cx2, cx3, cy1, cy2,  &
         syz, sz, volf, wt, x0, x1, x2, x3, y0, y1, y2,  &
         y3, z00, z01, z02, z03, z10, z11, z12, z13, z20, z21, z22,  &
         z23, z30, z31, z32, z33, zxdi, zxydi, zydi
-INTEGER :: ipex, ipey, ix0, ix1, ix2, ix3, iy0, iy1, iy2, iy3, nx0, ny0
+INTEGER(kind=irg) :: ipex, ipey, ix0, ix1, ix2, ix3, iy0, iy1, iy2, iy3, nx0, ny0
 !     ..
 !     .. Local Arrays ..
 REAL(kind=dbl)    :: b00xa(4), b00ya(4), b01a(4), b10a(4), cxa(3,4), cya(3,4),   &
            sxa(4), sxxa(4), sya(4), syya(4), xa(3,4), ya(3,4),   &
            z0ia(3,4), zi0a(3,4)
-! INTEGER :: idlt(3,4)
+! INTEGER(kind=irg) :: idlt(3,4)
 !     ..
 !     .. Intrinsic Functions ..
 ! INTRINSIC        MAX
@@ -477,7 +477,7 @@ REAL(kind=dbl)    :: b00xa(4), b00ya(4), b01a(4), b10a(4), cxa(3,4), cya(3,4),  
 !     ..
 ! Data statements
 ! DATA ((idlt(jxy,jpexy),jpexy=1,4),jxy=1,3)/-3,-2,-1,1,-2,-1,1,2,-1,1,2,3/
-INTEGER, SAVE  :: idlt(3,4) = RESHAPE(   &
+INTEGER(kind=irg), SAVE  :: idlt(3,4) = RESHAPE(   &
                   (/ -3,-2,-1, -2,-1,1, -1,1,2, 1,2,3 /), (/ 3, 4 /) )
 !     ..
 
@@ -518,12 +518,12 @@ DO  iy0 = 1,nyd
       ELSE IF (nxd == 3) THEN
         x2 = xd(ix2) - x0
         z20 = zd(ix2,iy0)
-        x3 = 2*xd(3) - xd(2) - x0
+        x3 = 2.D0*xd(3) - xd(2) - x0
         z30 = z3f(x1,x2,x3,z00,z10,z20)
       ELSE IF (nxd == 2) THEN
-        x2 = 2*xd(2) - xd(1) - x0
+        x2 = 2.D0*xd(2) - xd(1) - x0
         z20 = z2f(x1,x2,z00,z10)
-        x3 = 2*xd(1) - xd(2) - x0
+        x3 = 2.D0*xd(1) - xd(2) - x0
         z30 = z2f(x1,x3,z00,z10)
       END IF
       dzx10 = (z10-z00)/x1
@@ -931,20 +931,20 @@ recursive SUBROUTINE rglctn(nxd, nyd, xd, yd, nip, xi, yi, inxi, inyi)
 ! Specification statements
 !     .. Scalar Arguments ..
 
-INTEGER, INTENT(IN)   :: nxd
-INTEGER, INTENT(IN)   :: nyd
+INTEGER(kind=irg), INTENT(IN)   :: nxd
+INTEGER(kind=irg), INTENT(IN)   :: nyd
 REAL(kind=dbl), INTENT(IN)      :: xd(nxd)
 REAL(kind=dbl), INTENT(IN)      :: yd(nyd)
-INTEGER, INTENT(IN)   :: nip
+INTEGER(kind=irg), INTENT(IN)   :: nip
 REAL(kind=dbl), INTENT(IN)      :: xi(nip)
 REAL(kind=dbl), INTENT(IN)      :: yi(nip)
-INTEGER, INTENT(OUT)  :: inxi(nip)
-INTEGER, INTENT(OUT)  :: inyi(nip)
+INTEGER(kind=irg), INTENT(OUT)  :: inxi(nip)
+INTEGER(kind=irg), INTENT(OUT)  :: inyi(nip)
 
 !     ..
 !     .. Local Scalars ..
 REAL(kind=dbl)     :: xii, yii
-INTEGER  :: iip, imd, imn, imx, ixd, iyd, nintx, ninty
+INTEGER(kind=irg)  :: iip, imd, imn, imx, ixd, iyd, nintx, ninty
 
 !     ..
 ! DO-loop with respect to IIP, which is the point number of the output point
@@ -1081,17 +1081,17 @@ recursive SUBROUTINE rgplnl(nxd, nyd, xd, yd, zd, pdd, nip, xi, yi, inxi, inyi, 
 ! Specification statements
 !     .. Scalar Arguments ..
 
-INTEGER, INTENT(IN)  :: nxd
-INTEGER, INTENT(IN)  :: nyd
+INTEGER(kind=irg), INTENT(IN)  :: nxd
+INTEGER(kind=irg), INTENT(IN)  :: nyd
 REAL(kind=dbl), INTENT(IN)     :: xd(nxd)
 REAL(kind=dbl), INTENT(IN)     :: yd(nyd)
 REAL(kind=dbl), INTENT(IN)     :: zd(nxd,nyd)
 REAL(kind=dbl), INTENT(IN)     :: pdd(3,nxd,nyd)
-INTEGER, INTENT(IN)  :: nip
+INTEGER(kind=irg), INTENT(IN)  :: nip
 REAL(kind=dbl), INTENT(IN)     :: xi(nip)
 REAL(kind=dbl), INTENT(IN)     :: yi(nip)
-INTEGER, INTENT(IN)  :: inxi(nip)
-INTEGER, INTENT(IN)  :: inyi(nip)
+INTEGER(kind=irg), INTENT(IN)  :: inxi(nip)
+INTEGER(kind=irg), INTENT(IN)  :: inyi(nip)
 REAL(kind=dbl), INTENT(OUT)    :: zi(nip)
 
 !     ..
@@ -1101,7 +1101,7 @@ REAL(kind=dbl) :: a, b, c, d, dx, dxsq, dy, dysq, p00, p01, p02, p03, p10, p11, 
         q3, u, v, x0, xii, y0, yii, z00, z01, z0dx, z0dy, z10, z11,  &
         z1dx, z1dy, zdxdy, zii, zx00, zx01, zx0dy, zx10, zx11,  &
         zx1dy, zxy00, zxy01, zxy10, zxy11, zy00, zy01, zy0dx, zy10, zy11, zy1dx
-INTEGER :: iip, ixd0, ixd1, ixdi, ixdipv, iyd0, iyd1, iydi, iydipv
+INTEGER(kind=irg) :: iip, ixd0, ixd1, ixdi, ixdipv, iyd0, iyd1, iydi, iydipv
 !     ..
 !     .. Intrinsic Functions ..
 ! INTRINSIC        MAX

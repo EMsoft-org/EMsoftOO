@@ -306,9 +306,9 @@ type(DirStat_T)                    :: DS
 type(Quaternion_T)                 :: mu
 type(QuaternionArray_T)            :: qAR
 
-integer(kind=irg)                  :: i, j, num, m, io_int(1), FZcnt, FZtype, FZorder, numTC, seed
+integer(kind=irg)                  :: i, j, num, m, io_int(4), FZcnt, FZtype, FZorder, numTC, seed
 real(kind=dbl)                     :: ax(4), calpha, conevector(3), x, kappa, cnvec(3), cbvec(3), t(3), &
-                                      h, k, l, ih, ik, il, idiff, eps = 0.0001D0, om(3,3)
+                                      h, k, l, ih, ik, il, idiff, eps = 0.0001D0, om(3,3), io_dble(4)
 real(kind=dbl),allocatable         :: itmp(:,:)
 logical                            :: doeu = .FALSE., docu = .FALSE., doho = .FALSE., doqu = .FALSE., dorv = .FALSE., &
                                       dost = .FALSE., doom = .FALSE., doax = .FALSE., doro = .FALSE., newpoint, &
@@ -320,7 +320,8 @@ character(2)                       :: listmode
 call openFortranHDFInterface()
 
 ! first get the name list
-rfznl = self%getNameList()
+associate( rfznl => self%nml )
+! rfznl = self%getNameList()
 
 ! determine which files to create
 if (trim(rfznl%euoutname).ne.'undefined') doeu = .TRUE.
@@ -355,9 +356,9 @@ if (sum(rfznl%axFZ - (/0.D0, 0.D0, 1.D0, 0.D0 /)) .ne. 0.D0) then
 end if
 
 ! a bit of output
-call Message%printMessage('Starting computation for point group '//PGTHD(rfznl%pgnum))
+call Message%printMessage(' Starting computation for point group '//PGTHD(rfznl%pgnum))
 
-! if samplemode is set to FIB, a fiber texture will be generated, so we
+! if samplemode is set to FIB or TXC, a fiber texture will be generated, so we
 ! need to properly initialize the symmetry operations...
 if ( (trim(rfznl%samplemode).eq.'FIB').or.(trim(rfznl%samplemode).eq.'TXC') ) then
   if (rfznl%xtalname.eq.'undefined') then
@@ -419,7 +420,8 @@ if (trim(rfznl%samplemode).eq.'RFZ') then
   listmode = 'FZ'
 end if
 if (trim(rfznl%samplemode).eq.'MIS') then
-  write(*,*) 'Rodrigues vector = ', rfznl%rodrigues
+  io_dble = rfznl%rodrigues
+  call Message%WriteValue(' Rodrigues vector = ', io_dble, 4)
   call SO%sample_isoCubeFilled(rfznl%maxmisor, rfznl%nsteps)
   r = r_T( rdinp=rfznl%rodrigues )
   call SO%SampleIsoMisorientation(r, rfznl%maxmisor)
@@ -427,48 +429,55 @@ if (trim(rfznl%samplemode).eq.'MIS') then
 end if
 if (trim(rfznl%samplemode).eq.'CON') then
   conevector = rfznl%conevector/sqrt(sum(rfznl%conevector**2))
-  write(*,*) 'cone axis unit vector   = ', conevector
-  write(*,*) 'cone semi opening angle = ', rfznl%semiconeangle
+  io_dble(1:3) = conevector
+  call Message%WriteValue(' cone axis unit vector   = ', io_dble, 3)
+  io_dble(1) = rfznl%semiconeangle
+  call Message%WriteValue(' cone semi opening angle = ', io_dble, 1)
   calpha = cos(rfznl%semiconeangle/rtod)
-  write (*,*) 'minimum dot product    = ', calpha
+  io_dble(1) = calpha
+  call Message%WriteValue(' minimum dot product    = ', io_dble, 1)
   call SO%sample_Cone(conevector, calpha, rfznl%nsteps)
   listmode = 'CO'
 end if
 if (trim(rfznl%samplemode).eq.'FIB') then
   conevector = rfznl%conevector/sqrt(sum(rfznl%conevector**2))
-  write(*,*) 'fiber axis unit vector   = ', conevector
-  write(*,*) 'fiber cone semi opening angle = ', rfznl%semiconeangle
+  io_dble(1:3) = conevector
+  call Message%WriteValue(' fiber axis unit vector   = ', io_dble, 3)
+  io_dble(1) = rfznl%semiconeangle
+  call message%writevalue(' fiber cone semi opening angle = ', io_dble, 1)
   calpha = cos(rfznl%semiconeangle*dtor)
-  write (*,*) num, calpha, rfznl%nsteps
   do i=1,num
-    write (*,*) i,' -> ', itmp(i,1:3)
+    io_int(1) = i
+    io_dble(1:3) = itmp(i,1:3)
+    call Message%WriteValue('', io_int, 1, frm="(I3,' -> ')", advance='n')
+    call Message%WriteValue('', io_dble, 3)
   end do
   call SO%sample_Fiber(itmp, num, calpha, rfznl%nsteps)
   listmode = 'FB'
 end if
 if (trim(rfznl%samplemode).eq.'SHO') then
-  write (*,*) 'performing Shoemake sampling '
+  call Message%printMessage(' performing Shoemake sampling ')
   call SO%sample_SHO( rfznl%norientations, rfznl%pgnum )
   io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of Shoemake orientations requested = ',io_int,1,"(I10)")
   listmode = 'SF'
 end if
 if (trim(rfznl%samplemode).eq.'SFS') then
-  write (*,*) 'performing Super-Fibonacci sampling '
+  call Message%printMessage(' performing Super-Fibonacci sampling ')
   call SO%sample_SFS( rfznl%norientations, rfznl%pgnum )
   io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of Super-Fibonacci orientations requested = ',io_int,1,"(I10)")
   listmode = 'SF'
 end if
 if (trim(rfznl%samplemode).eq.'MAR') then
-  write (*,*) 'performing Marsaglia sampling '
+  call Message%printMessage(' Performing Marsaglia sampling ')
   call SO%sample_MAR( rfznl%norientations )
   io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of Super-Fibonacci orientations requested = ',io_int,1,"(I10)")
   listmode = 'MA'
 end if
 if (trim(rfznl%samplemode).eq.'UNI') then
-  write (*,*) 'performing uniform linear sampling '
+  call Message%printMessage(' Performing uniform linear sampling ')
   call SO%sample_UNI( rfznl%norientations )
   io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of uniform linear orientations requested = ',io_int,1,"(I10)")
@@ -481,7 +490,8 @@ if (trim(rfznl%samplemode).eq.'vMF') then
   q = r%rq()
   mu = Quaternion_T( qd = q%q_copyd() )
   kappa =  1.D0/ ( 1.D0 - cos( rfznl%maxmisor * dtor ) )
-  write (*,*) ' kappa, mu ', kappa 
+  io_dble(1) = kappa
+  call Message%WriteValue(' kappa, mu ', io_dble, 1)
   call mu%quat_print()
   qAR = DS%SampleDS( rfznl%norientations, rfznl%seed, mu, kappa )
   call SO%setFZcnt( rfznl%norientations, 'FZ' )
@@ -497,7 +507,8 @@ if (trim(rfznl%samplemode).eq.'WAT') then
   q = r%rq()
   mu = Quaternion_T( qd = q%q_copyd() )
   kappa =  1.D0/ ( 1.D0 - cos( rfznl%maxmisor * dtor ) )
-  write (*,*) ' kappa, mu ', kappa 
+  io_dble(1) = kappa
+  call Message%WriteValue(' kappa, mu ', io_dble, 1)
   call mu%quat_print()
   qAR = DS%SampleDS( rfznl%norientations, rfznl%seed, mu, kappa )
   call SO%QuaternionArraytonewlist( qAR, 'FZ')
@@ -535,7 +546,8 @@ if (trim(rfznl%samplemode).eq.'TXC') then
     q = o%oq()
     mu = Quaternion_T( qd = q%q_copyd() )
     kappa =  1.D0/ ( 1.D0 - cos( rfznl%tcos(i) * dtor ) )
-    write (*,*) ' kappa, mu ', kappa 
+    io_dble(1) = kappa
+    call Message%WriteValue(' kappa, mu ', io_dble, 1)
     call mu%quat_print()
     qAR = DS%SampleDS( rfznl%norient(i), seed, mu, kappa )
     if (i.eq.1) then 
@@ -616,6 +628,8 @@ if (doom) call Message%printMessage('Orientation matrix representation stored in
 if (doax) call Message%printMessage('Axis-angle pair representation stored in file '//rfznl%axoutname)
 if (dost) call Message%printMessage('Stereographic representation stored in file '//rfznl%stoutname)
 if (dorv) call Message%printMessage('Rotation vector representation stored in file '//rfznl%rvoutname)
+
+end associate 
 
 end subroutine CreateSampling_
 

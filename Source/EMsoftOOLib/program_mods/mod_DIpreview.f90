@@ -1002,6 +1002,9 @@ patsz = L
 ! pattern into the expt variable ...  at the end, we use closeExpPatternFile() to
 ! properly close the experimental pattern file
 VT = Vendor_T(enl%inputtype)
+write (*,*) ' detected input file type = ', trim(VT%get_inputtype())
+write (*,*) ' detected integer type = ', VT%get_itype()
+
 fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(enl%exptfile)
 call VT%set_filename(fname)
 istat = VT%openExpPatternFile(EMsoft, enl%ipf_wd, L, recordsize, enl%HDFstrings, HDF)

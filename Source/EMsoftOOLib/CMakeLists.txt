@@ -44,6 +44,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_pgm.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_math.f90
   ${EMsoftOOLib_SOURCE_DIR}/spsort.f
+  ${EMsoftOOLib_SOURCE_DIR}/minpack.f
   ${EMsoftOOLib_SOURCE_DIR}/mod_rotations.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_povray.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_so3.f90
@@ -129,6 +130,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_FitOrientation.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ECCI.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_CPLMmaster.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_CPLM.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Lauemaster.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Laue.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_LaueDCT.f90

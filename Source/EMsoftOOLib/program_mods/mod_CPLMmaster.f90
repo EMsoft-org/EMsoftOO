@@ -57,9 +57,9 @@ end type CPLMmasterNameListType
 ! class definition
 type, public :: CPLMmaster_T
 private 
-  character(fnlen)       :: nmldeffile = 'EMCPLMmaster.nml'
+  character(fnlen)              :: nmldeffile = 'EMCPLMmaster.nml'
   type(CPLMmasterNameListType)  :: nml 
-  real(kind=dbl),allocatable    :: MPNH(:,:,:,:)
+  real(kind=dbl),allocatable, public    :: MPNH(:,:,:,:)
 
 contains
 private 
@@ -68,12 +68,60 @@ private
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: readCPLMmasterfile_
   procedure, pass(self) :: CPLMmaster_
+  procedure, pass(self) :: setnpx_
+  procedure, pass(self) :: getnpx_
+  procedure, pass(self) :: setnthreads_
+  procedure, pass(self) :: getnthreads_
+  procedure, pass(self) :: seteps1Re_
+  procedure, pass(self) :: geteps1Re_
+  procedure, pass(self) :: seteps1Im_
+  procedure, pass(self) :: geteps1Im_
+  procedure, pass(self) :: seteps2Re_
+  procedure, pass(self) :: geteps2Re_
+  procedure, pass(self) :: seteps2Im_
+  procedure, pass(self) :: geteps2Im_
+  procedure, pass(self) :: setwl_
+  procedure, pass(self) :: getwl_
+  procedure, pass(self) :: settheta_
+  procedure, pass(self) :: gettheta_
+  procedure, pass(self) :: setnormalize_
+  procedure, pass(self) :: getnormalize_
+  procedure, pass(self) :: setNotify_
+  procedure, pass(self) :: getNotify_
+  procedure, pass(self) :: setxtalname_
+  procedure, pass(self) :: getxtalname_
+  procedure, pass(self) :: setmasterfile_
+  procedure, pass(self) :: getmasterfile_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: readCPLMmasterfile => readCPLMmasterfile_
   generic, public :: CPLMmaster => CPLMmaster_
+  generic, public :: setnpx => setnpx_
+  generic, public :: getnpx => getnpx_
+  generic, public :: setnthreads => setnthreads_
+  generic, public :: getnthreads => getnthreads_
+  generic, public :: seteps1Re => seteps1Re_
+  generic, public :: geteps1Re => geteps1Re_
+  generic, public :: seteps1Im => seteps1Im_
+  generic, public :: geteps1Im => geteps1Im_
+  generic, public :: seteps2Re => seteps2Re_
+  generic, public :: geteps2Re => geteps2Re_
+  generic, public :: seteps2Im => seteps2Im_
+  generic, public :: geteps2Im => geteps2Im_
+  generic, public :: setwl => setwl_
+  generic, public :: getwl => getwl_
+  generic, public :: settheta => settheta_
+  generic, public :: gettheta => gettheta_
+  generic, public :: setnormalize => setnormalize_
+  generic, public :: getnormalize => getnormalize_
+  generic, public :: setNotify => setNotify_
+  generic, public :: getNotify => getNotify_
+  generic, public :: setxtalname => setxtalname_
+  generic, public :: getxtalname => getxtalname_
+  generic, public :: setmasterfile => setmasterfile_
+  generic, public :: getmasterfile => getmasterfile_
 
 end type CPLMmaster_T
 
@@ -322,9 +370,11 @@ call h5fis_hdf5_f(trim(mpfile), stat, hdferr)
 hdferr =  HDF%openFile(mpfile, readonly = .TRUE.)
 
 groupname = trim(HDFnames%get_NMLfiles())
+write (*,*) 'attempting to open group '//trim(groupname)
 hdferr = HDF%openGroup(groupname)
 
 dataset = trim(HDFnames%get_NMLfilename())
+write (*,*) 'attempting to open data set '//trim(dataset)
   call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
 
 if (g_exists.eqv..TRUE.) then
@@ -333,8 +383,6 @@ if (g_exists.eqv..TRUE.) then
 ! temporary file and calling the regular nml read routine. This should replace a
 ! large number of individual read routines, so it simplifies the code ...
 !====================================
-    hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
-    dataset = trim(HDFnames%get_NMLfilename())
     call HDF%readdatasetstringarray(dataset, nlines, hdferr, stringarray)
     sz = shape(stringarray)
     tmpnmlname = trim(EMsoft%generateFilePath('EMtmppathname'))//'tmp.nml'
@@ -381,6 +429,439 @@ call HDF%popall()
 
 end subroutine readCPLMmasterfile_
 
+
+!--------------------------------------------------------------------------
+subroutine setnpx_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnpx_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set npx in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%npx = inp
+
+end subroutine setnpx_
+
+!--------------------------------------------------------------------------
+function getnpx_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnpx_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get npx from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%npx
+
+end function getnpx_
+
+!--------------------------------------------------------------------------
+subroutine setnthreads_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnthreads_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set nthreads in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%nthreads = inp
+
+end subroutine setnthreads_
+
+!--------------------------------------------------------------------------
+function getnthreads_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnthreads_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get nthreads from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%nthreads
+
+end function getnthreads_
+
+!--------------------------------------------------------------------------
+subroutine seteps1Re_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: seteps1Re_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set eps1Re in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%eps1Re = inp
+
+end subroutine seteps1Re_
+
+!--------------------------------------------------------------------------
+function geteps1Re_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: geteps1Re_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get eps1Re from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%eps1Re
+
+end function geteps1Re_
+
+!--------------------------------------------------------------------------
+subroutine seteps1Im_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: seteps1Im_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set eps1Im in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%eps1Im = inp
+
+end subroutine seteps1Im_
+
+!--------------------------------------------------------------------------
+function geteps1Im_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: geteps1Im_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get eps1Im from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%eps1Im
+
+end function geteps1Im_
+
+!--------------------------------------------------------------------------
+subroutine seteps2Re_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: seteps2Re_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set eps2Re in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%eps2Re = inp
+
+end subroutine seteps2Re_
+
+!--------------------------------------------------------------------------
+function geteps2Re_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: geteps2Re_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get eps2Re from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%eps2Re
+
+end function geteps2Re_
+
+!--------------------------------------------------------------------------
+subroutine seteps2Im_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: seteps2Im_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set eps2Im in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%eps2Im = inp
+
+end subroutine seteps2Im_
+
+!--------------------------------------------------------------------------
+function geteps2Im_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: geteps2Im_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get eps2Im from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%eps2Im
+
+end function geteps2Im_
+
+!--------------------------------------------------------------------------
+subroutine setwl_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setwl_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set wl in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%wl = inp
+
+end subroutine setwl_
+
+!--------------------------------------------------------------------------
+function getwl_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getwl_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get wl from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%wl
+
+end function getwl_
+
+!--------------------------------------------------------------------------
+subroutine settheta_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: settheta_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set theta in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%theta = inp
+
+end subroutine settheta_
+
+!--------------------------------------------------------------------------
+function gettheta_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: gettheta_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get theta from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%theta
+
+end function gettheta_
+
+!--------------------------------------------------------------------------
+subroutine setnormalize_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnormalize_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set normalize in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)       :: inp
+
+self%nml%normalize = inp
+
+end subroutine setnormalize_
+
+!--------------------------------------------------------------------------
+function getnormalize_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnormalize_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get normalize from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+logical                   :: out
+
+out = self%nml%normalize
+
+end function getnormalize_
+
+!--------------------------------------------------------------------------
+subroutine setNotify_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setNotify_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set Notify in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+character(3), INTENT(IN)       :: inp
+
+self%nml%Notify = trim(inp)
+
+end subroutine setNotify_
+
+!--------------------------------------------------------------------------
+function getNotify_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getNotify_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get Notify from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+character(3)                   :: out
+
+out = trim(self%nml%Notify)
+
+end function getNotify_
+
+!--------------------------------------------------------------------------
+subroutine setxtalname_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setxtalname_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set xtalname in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%xtalname = trim(inp)
+
+end subroutine setxtalname_
+
+!--------------------------------------------------------------------------
+function getxtalname_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getxtalname_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get xtalname from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%xtalname)
+
+end function getxtalname_
+
+!--------------------------------------------------------------------------
+subroutine setmasterfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setmasterfile_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! set masterfile in the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%masterfile = trim(inp)
+
+end subroutine setmasterfile_
+
+!--------------------------------------------------------------------------
+function getmasterfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmasterfile_
+!! author: MDG
+!! version: 1.0
+!! date: 08/13/23
+!!
+!! get masterfile from the CPLMmaster_T class
+
+IMPLICIT NONE
+
+class(CPLMmaster_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%masterfile)
+
+end function getmasterfile_
+
 !--------------------------------------------------------------------------
 subroutine CPLMmaster_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: CPLMmaster_  
@@ -413,28 +894,28 @@ class(CPLMmaster_T), INTENT(INOUT)      :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname 
 
-type(Cell_T)            :: cell
-type(DynType)           :: Dyn
-type(Diffraction_T)     :: Diff
-type(HDF_T)             :: HDF
-type(HDFnames_T)        :: HDFnames
-type(IO_T)              :: Message
-type(Lambert_T)         :: L
-type(MuellerCalculus_T) :: MC
-type(SpaceGroup_T)      :: SG
-type(Timing_T)          :: timer
-type(memory_T)          :: mem
+type(Cell_T)                            :: cell
+type(DynType)                           :: Dyn
+type(Diffraction_T)                     :: Diff
+type(HDF_T)                             :: HDF
+type(HDFnames_T)                        :: HDFnames
+type(IO_T)                              :: Message
+type(Lambert_T)                         :: L
+type(MuellerCalculus_T)                 :: MC
+type(SpaceGroup_T)                      :: SG
+type(Timing_T)                          :: timer
+type(memory_T)                          :: mem
 
-complex(kind=dbl)                        :: eps(2)    ! principal dielectric constants
-complex(kind=dbl)                        :: rvals(4)  ! reflectivity coefficients
-real(kind=dbl)                           :: lambda, xy(2), dc(3), edge, MM(4,4), xyz(3), Radius, theta, phii, tmp
-real(kind=sgl)                           :: dmin, EkeV, tstop, mi, ma
+complex(kind=dbl)                       :: eps(2)    ! principal dielectric constants
+complex(kind=dbl)                       :: rvals(4)  ! reflectivity coefficients
+real(kind=dbl)                          :: lambda, xy(2), dc(3), edge, MM(4,4), xyz(3), Radius, theta, phii, tmp
+real(kind=sgl)                          :: dmin, EkeV, tstop, mi, ma
 
-real(kind=dbl),allocatable               :: LPNH(:,:,:,:)
-real(kind=sgl),allocatable               :: SPNH(:,:,:,:)
-real(kind=sgl),allocatable               :: combo(:,:), combo_unscaled(:,:)
+real(kind=dbl),allocatable              :: LPNH(:,:,:,:)
+real(kind=sgl),allocatable              :: SPNH(:,:,:,:)
+real(kind=sgl),allocatable              :: combo(:,:), combo_unscaled(:,:)
 
-integer(kind=irg)                        :: hdferr, i, ii, jj, io_int(1), nx, ny, ierr
+integer(kind=irg)                       :: hdferr, i, ii, jj, io_int(1), nx, ny, ierr
 
 integer(HSIZE_T), dimension(1:3)        :: hdims, offset
 integer(HSIZE_T)                        :: dims3(3)
@@ -651,7 +1132,5 @@ call mem%dealloc(SPNH, 'SPNH')
 call mem%dealloc(combo, 'combo')
 
 end subroutine CPLMmaster_
-
-
 
 end module mod_CPLMmaster

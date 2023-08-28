@@ -1475,7 +1475,7 @@ if (trim(ronl%PSvariantfile).ne.'undefined') then
 
         call Message%printMessage(' -> Final pseudo-symmetric quaternion operator(s): ')
         do ii = 1,nvar
-          eu = e_T( edinp = dble(euPS(1:3,ii)) )
+          eu = e_T( edinp = dble(euPS(1:3,ii)) * dtor )
           qu = eu%eq()
           qq = Quaternion_T( qd = qu%q_copyd() )
           call qq%quat_pos()

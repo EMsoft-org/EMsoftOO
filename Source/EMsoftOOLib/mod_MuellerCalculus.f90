@@ -75,6 +75,7 @@ type, public :: MuellerCalculus_T
       procedure, pass(self) :: get_retarder_
       procedure, pass(self) :: rotate_MuellerMatrix_
       procedure, pass(self) :: print_MuellerMatrix_
+      procedure, pass(self) :: print_StokesVector_
       procedure, pass(self) :: propagateStokesVector_
       procedure, pass(self) :: concatenateMuellerMatrices_
       procedure, pass(self) :: get_EllipticityAngle_
@@ -96,6 +97,7 @@ type, public :: MuellerCalculus_T
       generic, public :: get_retarder => get_retarder_
       generic, public :: rotate_MuellerMatrix => rotate_MuellerMatrix_
       generic, public :: print_MuellerMatrix => print_MuellerMatrix_
+      generic, public :: print_StokesVector => print_StokesVector_
       generic, public :: propagateStokesVector => propagateStokesVector_
       generic, public :: concatenateMuellerMatrices => concatenateMuellerMatrices_
       generic, public :: get_EllipticityAngle => get_EllipticityAngle_
@@ -149,7 +151,7 @@ call reportDestructor('MuellerCalculus_T')
 end subroutine MuellerCalculus_destructor
 
   !--------------------------------------------------------------------------
-recursive subroutine get_basicMuellerMatrix_(self, MMtype)
+recursive function get_basicMuellerMatrix_(self, MMtype) result(MM)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_basicMuellerMatrix_
 !! author: MDG 
 !! version: 1.0 
@@ -161,6 +163,8 @@ IMPLICIT NONE
 
 class(MuellerCalculus_T), INTENT(INOUT)     :: self
 integer(kind=irg),INTENT(IN)                :: MMtype
+type(MuellerMatrixType)                     :: MM
+
 type(IO_T)                                  :: Message
 
 select case (MMtype)
@@ -176,70 +180,69 @@ select case (MMtype)
         call Message%printMessage('8: circular polarizer, left-handed')
         call Message%printMessage('9: ideal mirror')
     case (1)
-        self%MM%descriptor = 'linear horizontal polarizer'
-        self%MM%M(1,1:4) = (/ 1.D0, 1.D0, 0.D0, 0.D0 /)
-        self%MM%M(2,1:4) = (/ 1.D0, 1.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M = 0.5D0 * self%MM%M
+        MM%descriptor = 'linear horizontal polarizer'
+        MM%M(1,1:4) = (/ 1.D0, 1.D0, 0.D0, 0.D0 /)
+        MM%M(2,1:4) = (/ 1.D0, 1.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M = 0.5D0 * MM%M
     case (2)
-        self%MM%descriptor = 'linear vertical polarizer'
-        self%MM%M(1,1:4) = (/ 1.D0,-1.D0, 0.D0, 0.D0 /)
-        self%MM%M(2,1:4) = (/-1.D0, 1.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M = 0.5D0 * self%MM%M
+        MM%descriptor = 'linear vertical polarizer'
+        MM%M(1,1:4) = (/ 1.D0,-1.D0, 0.D0, 0.D0 /)
+        MM%M(2,1:4) = (/-1.D0, 1.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M = 0.5D0 * MM%M
     case (3)
-        self%MM%descriptor = 'linear polarizer at +45°'
-        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 1.D0, 0.D0 /)
-        self%MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/ 1.D0, 0.D0, 1.D0, 0.D0 /)
-        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M = 0.5D0 * self%MM%M
+        MM%descriptor = 'linear polarizer at +45°'
+        MM%M(1,1:4) = (/ 1.D0, 0.D0, 1.D0, 0.D0 /)
+        MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/ 1.D0, 0.D0, 1.D0, 0.D0 /)
+        MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M = 0.5D0 * MM%M
     case (4)
-        self%MM%descriptor = 'linear polarizer at -45°'
-        self%MM%M(1,1:4) = (/ 1.D0, 0.D0,-1.D0, 0.D0 /)
-        self%MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/-1.D0, 0.D0, 1.D0, 0.D0 /)
-        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M = 0.5D0 * self%MM%M
+        MM%descriptor = 'linear polarizer at -45°'
+        MM%M(1,1:4) = (/ 1.D0, 0.D0,-1.D0, 0.D0 /)
+        MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/-1.D0, 0.D0, 1.D0, 0.D0 /)
+        MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M = 0.5D0 * MM%M
     case (5)
-        self%MM%descriptor = 'quarter-wave plate, fast axis vertical'
-        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0,-1.D0 /)
-        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 1.D0, 0.D0 /)
+        MM%descriptor = 'quarter-wave plate, fast axis vertical'
+        MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0,-1.D0 /)
+        MM%M(4,1:4) = (/ 0.D0, 0.D0, 1.D0, 0.D0 /)
     case (6)
-        self%MM%descriptor = 'quarter-wave plate, fast axis horizontal'
-        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 1.D0 /)
-        self%MM%M(4,1:4) = (/ 0.D0, 0.D0,-1.D0, 0.D0 /)
+        MM%descriptor = 'quarter-wave plate, fast axis horizontal'
+        MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 1.D0 /)
+        MM%M(4,1:4) = (/ 0.D0, 0.D0,-1.D0, 0.D0 /)
     case (7)
-        self%MM%descriptor = 'circular polarizer, right-handed'
-        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 1.D0 /)
-        self%MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(4,1:4) = (/ 1.D0, 0.D0, 0.D0, 1.D0 /)
-        self%MM%M = 0.5D0 * self%MM%M
+        MM%descriptor = 'circular polarizer, right-handed'
+        MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 1.D0 /)
+        MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(4,1:4) = (/ 1.D0, 0.D0, 0.D0, 1.D0 /)
+        MM%M = 0.5D0 * MM%M
     case (8)
-        self%MM%descriptor = 'circular polarizer, left-handed'
-        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0,-1.D0 /)
-        self%MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(4,1:4) = (/-1.D0, 0.D0, 0.D0, 1.D0 /)
-        self%MM%M = 0.5D0 * self%MM%M
+        MM%descriptor = 'circular polarizer, left-handed'
+        MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0,-1.D0 /)
+        MM%M(2,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(4,1:4) = (/-1.D0, 0.D0, 0.D0, 1.D0 /)
+        MM%M = 0.5D0 * MM%M
     case (9)
-        self%MM%descriptor = 'ideal mirror'
-        self%MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
-        self%MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
-        self%MM%M(3,1:4) = (/ 0.D0, 0.D0,-1.D0, 0.D0 /)
-        self%MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0,-1.D0 /)
-        !self%M = 0.5D0 * self%M
+        MM%descriptor = 'ideal mirror'
+        MM%M(1,1:4) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+        MM%M(2,1:4) = (/ 0.D0, 1.D0, 0.D0, 0.D0 /)
+        MM%M(3,1:4) = (/ 0.D0, 0.D0,-1.D0, 0.D0 /)
+        MM%M(4,1:4) = (/ 0.D0, 0.D0, 0.D0,-1.D0 /)
     case default
 end select
 
-end subroutine get_basicMuellerMatrix_
+end function get_basicMuellerMatrix_
 
  !--------------------------------------------------------------------------
 recursive function get_diattenuator_(self, px, py, polar) result(res)
@@ -412,6 +415,32 @@ do i=1,4
 end do
 
 end subroutine print_MuellerMatrix_
+
+!--------------------------------------------------------------------------
+recursive subroutine print_StokesVector_(self, S)
+!DEC$ ATTRIBUTES DLLEXPORT :: print_StokesVector_
+!! author: MDG 
+!! version: 1.0 
+!! date: 08/13/23
+!!
+!! print a Stokes Vector
+
+IMPLICIT NONE
+
+class(MuellerCalculus_T), INTENT(INOUT)     :: self
+type(StokesVectorType),INTENT(IN)           :: S
+
+type(IO_T)                                  :: Message
+
+real(kind=dbl)                              :: io_double(4)
+integer(kind=irg)                           :: i
+
+call Message%printMessage('Stokes Vector descriptor : '//trim(S%descriptor))
+
+io_double(1:4) = S%S(0:3)
+call Message%WriteValue('  --> ',io_double,4)
+
+end subroutine print_StokesVector_
 
 !--------------------------------------------------------------------------
 recursive function propagateStokesVector_(self, MM, SV, descriptor) result(res)

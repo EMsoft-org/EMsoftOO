@@ -1902,6 +1902,7 @@ type(HDF_T)                             :: HDF
 type(e_T)                               :: eu
 type(o_T)                               :: om
 type(q_T)                               :: qu
+type(a_T)                               :: ax
 type(Quaternion_T)                      :: quat
 
 character(fnlen)                        :: inpfile, HDFstring
@@ -1909,16 +1910,16 @@ real(kind=dbl)                          :: stepsizes(3), fpar(3), sig, totaltilt
 real(kind=sgl)                          :: io_real(6), ss, tstop
 real(kind=dbl),allocatable              :: PC(:,:)
 integer(kind=irg)                       :: hdferr, binx, biny, L, recordsize, patsz, ROI_size, sz(2), i, j, kk, numangles, &
-                                           istat, interp_grid, interp_size 
+                                           istat, interp_grid, interp_size, info
 real(kind=dbl)                          :: interp_step, std
 character(11)                           :: dstr
 character(15)                           :: tstrb
 character(15)                           :: tstre
 integer(HSIZE_T)                        :: dims2(2), dims3(3), offset3(3)
 integer(kind=irg)                       :: d2(2)
-real(kind=dbl)                          :: x, y, val, Ftensor(9), R_sample(3,3), Smatrix(3,3), w(3,3), &
-                                           R_tilt(3,3), F_sample(3,3), R_detector(3,3), strain_sample(3,3), &
-                                            beta_sample(3,3), C(6,6), R_x, R_y, q(2), Distance(2)
+real(kind=dbl)                          :: x, y, val, Ftensor(9), R_sample(3,3), Smatrix(3,3), w(3,3), mea, sdev, fROI,&
+                                           R_tilt(3,3),F_sample(3,3),R_detector(3,3),strain_sample(3,3), xx(2), Vpeak,sig1,sig2, &
+                                           beta_sample(3,3), C(6,6), R_x, R_y, q(2), Distance(2), RRR(9), axa(4), fit(5), mp1, mp2
 real(kind=dbl),allocatable              :: window(:,:), expt(:), expt_ref(:), pattern(:,:), pattern_test(:,:), &
                                            hpvals(:), lpvals(:), sumexpt(:), pcopy_ROI(:,:), q_shift(:,:), &
                                            ref_p(:,:), pcopy_ROI_test(:,:), interp_ngrid(:), ngrid(:), &
@@ -2007,6 +2008,7 @@ patsz = L
 
 ! size of region of interest
 ROI_size = 2**enl%size_ROI
+fROI = 1.D0/dble(ROI_size)**2
 dims3 = (/ binx, biny, 1 /)
 
 call mem%alloc(expt, (/ patsz /), 'expt')
@@ -2059,27 +2061,32 @@ std=sqrt(sum((ref_p-ave)**2)/size(ref_p))
 ref_p=(ref_p-ave)/std
 
 ! define the interpolation grid and parameters  
-interp_grid = 4
+interp_grid =10 
 
 call mem%alloc(ngrid, (/ interp_grid+1 /), 'ngrid')
 call mem%alloc(z_peak, (/ interp_grid+1,interp_grid+1 /), 'z_peak')
+! call mem%alloc(z_peak, (/ 3, 3 /), 'z_peak', startdims = (/ -1, -1 /))
 call mem%alloc(q_shift, (/ 3, enl%N_ROI /), 'q_shift') 
 call mem%alloc(r, (/ 3,enl%N_ROI /), 'r')
 call mem%alloc(roi_centre, (/ enl%N_ROI, 2 /), 'roi_centre') 
 
+q_shift = 0.D0 
+
 ngrid =  (/ ((i-interp_grid/2-1.0), i=1,(interp_grid+1))/)
-interp_step= 0.01D0 ! 0.01D0
+interp_step= 0.01D0 
 interp_size= interp_grid/interp_step+1;
 interp_ngrid =  (/ (-interp_grid/2+(i-1)*interp_step, i=1,interp_size)/)
 
 ! the following arrays are declared as global to this module; this would ideally
-! be changed by using the mod_fft_wrap and FFTWisdom class...
+! be changed to using the mod_fft_wrap and FFTWisdom class...
 
 ! next we need to set up the high-pass filter fftw plans
 call mem%alloc(self%hpmask_shifted, (/ ROI_size, ROI_size /), 'hpmask_shifted')
 call mem%alloc(self%lpmask_shifted, (/ ROI_size, ROI_size /), 'lpmask_shifted')  
 call mem%alloc(rrdata, (/ ROI_size, ROI_size /), 'rrdata')
 call mem%alloc(ffdata, (/ ROI_size, ROI_size /), 'ffdata')
+call mem%alloc(rrdata_test, (/ ROI_size, ROI_size /), 'rrdata_test')
+call mem%alloc(ffdata_test, (/ ROI_size, ROI_size /), 'ffdata_test')
 
 ! use the fftw_alloc routine to create and initialize the inp and outp arrays
 self%ip = fftw_alloc_complex(int(ROI_size**2,C_SIZE_T))
@@ -2138,8 +2145,98 @@ do i = 1, 6
   call Message%WriteValue('',io_real,6)
 end do
 
+! DD should be specified in pixel units ...
+PC(3,:) = PC(3,:) / 50.D0 
+
+! test the peak finding algorithm ... 
+! use two Gaussians, one at the center of ffdata, the other shifted by (8.2500000,-5.7654321)
+
+do i= 1, ROI_size
+  x = dble(i-ROI_size/2)
+  do j= 1, ROI_size
+    y = dble(j-ROI_size/2)
+    ffdata(i,j) = exp(-(x*x+y*y)*0.02D0)
+  end do 
+end do 
+
+mp1 = 4.3243243D0 
+mp2 = 2.343435D0
+do i= 1, ROI_size
+  x = dble(i-ROI_size/2) - mp1
+  do j= 1, ROI_size
+    y = dble(j-ROI_size/2) - mp2
+    ffdata_test(i,j) = exp(-(x*x+y*y)*0.02D0)
+  end do 
+end do 
+
+write (*,*) 'actual shifts : ' , mp1, mp2
+
+    pattern = window*ffdata
+    rrdata = dble(pattern)
+    ! apply the band pass filters on the reference ROI
+    ffdata = self%applyBandPassFilter_(rrdata, (/ ROI_size, ROI_size/))
+    mea = sum(ffdata)*fROI
+    sdev = sqrt( sum( (ffdata-mea)**2)*fROI )
+    ffdata = (ffdata-mea) / sdev
+
+    ! apply the windowing function on the test ROI
+    pattern_test = window*ffdata_test
+    rrdata_test = dble(pattern_test)
+    ! apply the band pass filters on the test ROI
+    ffdata_test = self%applyBandPassFilter_(rrdata_test, (/ ROI_size, ROI_size/))
+    mea = sum(ffdata_test)*fROI
+    sdev = sqrt( sum( (ffdata_test-mea)**2)*fROI )
+    ffdata_test = (ffdata_test-mea) / sdev
+
+
+call self%cross_correlation_function_((/ ROI_size, ROI_size/), ffdata, ffdata_test, XCF, max_pos) 
+   
+! now crop out a small region around the peak of xcf
+z_peak=XCF(max_pos(1)-interp_grid/2:max_pos(1)+interp_grid/2,max_pos(2)-interp_grid/2:max_pos(2)+interp_grid/2)
+
+! z_peak=XCF(max_pos(1)-1:max_pos(1)+1,max_pos(2)-1:max_pos(2)+1)
+
+! xx(1) = max_pos(1) + (0.5D0 * (z_peak(1, 0) - z_peak(-1, 0))) / (z_peak(1, 0) + z_peak(-1, 0) - 2.D0 * z_peak(0, 0))
+! xx(2) = max_pos(2) + (0.5D0 * (z_peak(0, 1) - z_peak(0, -1))) / (z_peak(0, 1) + z_peak(0, -1) - 2.D0 * z_peak(0, 0))
+
+
+! do i=1,9 
+!   write (*,*) z_peak(i,:)
+! end do 
+
+    ! q_shift(:,1) = - (/  max_pos(1)/2+xx(1)-ROI_size/2 , max_pos(2)/2+xx(2)-ROI_size/2, 0.D0/)
+
+! we do interpolation on this small region
+! call self%peak_interpolation_(max_pos, z_peak, 2*ROI_size-1, interp_step, interp_grid+1, ngrid, interp_size, interp_ngrid, q)
+
+write (*,*) ' max_pos = ', max_pos 
+
+! initalize the fitting parameter 
+mp1 = dble(interp_grid+1)/2.D0
+mp2 = dble(interp_grid+1)/2.D0
+sig1 = 1.0D-1
+sig2 = 1.0D-1 
+fit = (/ XCF(max_pos(1),max_pos(2)), mp1, mp2, sig1, sig2 /)
+call GaussianFit( interp_grid+1, z_peak, fit, info)
+
+write (*,*) fit, info 
+write (*,*) 'fit : ', (/256.5D0,256.5D0/) - max_pos - fit(2:3) +(/ mp1, mp2 /)
+
+! write (*,*) 'peak_interpolation : ', (/ q(2), -q(1) /)
+
+! write (*,*) max_pos, 256.D0 - xx 
+
+! xx=0.D0
+! do i=1,15
+!   xx(1) = xx(1) +sum(dble(i)*z_peak(:,i))
+!   xx(2) = xx(2) +sum(dble(i)*z_peak(i,:))
+! end do
+! write (*,*) ' x-mean : ', ROI_size - max_pos(1)-8.D0+xx(1)/dble(15*15)
+! write (*,*) ' y-mean : ', ROI_size - max_pos(2)-8.D0+xx(2)/dble(15*15)
+
 ! loop through patterns, eventually one row at a time using the getExpPatternRow function
-do j = 1, numangles  
+! do j = 1, numangles  
+do j = 2, 3
 ! determine the coordinates of the ROIs used for cross-correlation
   call setROI(enl%numsx, enl%numsy, PC(1,j), PC(2,j), PC(3,j), enl%roi_distance, enl%N_ROI, roi_centre, r)
 
@@ -2159,7 +2256,7 @@ do j = 1, numangles
   do i = 1, enl%N_ROI  ! loop through all the ROIs
 
     ! region of interest of reference pattern
-    pcopy_roi=ref_p(roi_centre(i,2)-roi_size/2:roi_centre(i,2)+roi_size/2-1,&
+    pcopy_ROI=ref_p(roi_centre(i,2)-roi_size/2:roi_centre(i,2)+roi_size/2-1,&
                     roi_centre(i,1)-roi_size/2:roi_centre(i,1)+roi_size/2-1)
     
     ! region of interest of test pattern
@@ -2171,29 +2268,55 @@ do j = 1, numangles
     rrdata = dble(pattern)
     ! apply the band pass filters on the reference ROI
     ffdata = self%applyBandPassFilter_(rrdata, (/ ROI_size, ROI_size/))
+    mea = sum(ffdata)*fROI
+    sdev = sqrt( sum( (ffdata-mea)**2)*fROI )
+    ffdata = (ffdata-mea) / sdev
 
     ! apply the windowing function on the test ROI
     pattern_test = window*pcopy_ROI_test
     rrdata_test = dble(pattern_test)
     ! apply the band pass filters on the test ROI
     ffdata_test = self%applyBandPassFilter_(rrdata_test, (/ ROI_size, ROI_size/))
+    mea = sum(ffdata_test)*fROI
+    sdev = sqrt( sum( (ffdata_test-mea)**2)*fROI )
+    ffdata_test = (ffdata_test-mea) / sdev
 
     ! convert to single precision 
     ! pattern = (sngl(ffdata))
     ! pattern_test = (sngl(ffdata_test))
-
     ! compute the cross correlation function in the Fourier space
-    call self%cross_correlation_function((/ ROI_size, ROI_size/), ffdata, ffdata_test, XCF, max_pos) 
+    call self%cross_correlation_function_((/ ROI_size, ROI_size/), ffdata, ffdata_test, XCF, max_pos) 
    
-    ! now crop out a small region around the peak of xcf
+    ! ! now crop out a small region around the peak of xcf
     z_peak=XCF(max_pos(1)-interp_grid/2:max_pos(1)+interp_grid/2,max_pos(2)-interp_grid/2:max_pos(2)+interp_grid/2)
-  
-    ! we do interpolation on this small region
-    call self%peak_interpolation(max_pos, z_peak, 2*ROI_size-1, interp_step, interp_grid+1, ngrid, interp_size, interp_ngrid, q)
+
+    ! ! we do interpolation on this small region
+    call self%peak_interpolation_(max_pos, z_peak, 2*ROI_size-1, interp_step, interp_grid+1, ngrid, interp_size, interp_ngrid, q)
     
+    ! z_peak(-1:1,-1:1)=XCF(max_pos(1)-1:max_pos(1)+1,max_pos(2)-1:max_pos(2)+1)
+    ! Vpeak = interpolate2DMaxima(z_peak, xx)
+! xx(1) = max_pos(1) + (0.5D0 * (z_peak(1, 0) - z_peak(-1, 0))) / (z_peak(1, 0) + z_peak(-1, 0) - 2.D0 * z_peak(0, 0))
+! xx(2) = max_pos(2) + (0.5D0 * (z_peak(0, 1) - z_peak(0, -1))) / (z_peak(0, 1) + z_peak(0, -1) - 2.D0 * z_peak(0, 0))
+
+! initalize the fitting parameter 
+mp1 = dble(interp_grid+1)/2.D0
+mp2 = dble(interp_grid+1)/2.D0
+sig1 = 0.5D+1
+sig2 = 0.5D+1 
+fit = (/ XCF(max_pos(1),max_pos(2)), mp1, mp2, sig1, sig2 /)
+call GaussianFit( interp_grid+1, z_peak, fit, info)
+
+xx = (/256.5D0,256.5D0/) - max_pos - fit(2:3) +(/ mp1, mp2 /)
+q_shift(1:2,i) =  (/ -xx(2), -xx(1) /)
+
     ! we can then find the shift vectors associated with the ROI with subpixel accuracy
-    q_shift(:,i) = (/-q(1), -q(2), 0.D0/)
-    
+    ! q_shift(:,i) = (/-q(1), -q(2), 0.D0/)
+
+    ! q_shift(:,i) = (/256.D0-xx(1), 256.D0-xx(2), 0.D0/)
+    ! q_shift(:,i) = - (/  max_pos(1)/2+xx(1)-ROI_size/2 , max_pos(2)/2+xx(2)-ROI_size/2, 0.D0/)
+
+write (*,*) i, max_pos(1), max_pos(2), q_shift(1,i), q_shift(2,i), info
+
     ! pattern center refinement (geometrically corrected)
     ! reference: Britton et al, 2011, Ultramicroscopy
     if (enl%PCrefine.eq.'y') then
@@ -2222,13 +2345,40 @@ do j = 1, numangles
   ! optimization routine
   quat = qAR%getQuatfromArray(j)
   qu = q_T( qdinp = quat%get_quatd() )
-  ! call main_minf(enl%N_ROI, r, q_shift, qu, C, Ftensor, minf(j), reshape(R_tilt,(/9/)))
+  RRR = reshape(R_tilt,(/9/))
+  ! call main_minf(enl%N_ROI, r, q_shift, qu, C, Ftensor, minf(j), RRR)
 
 ! try this with a bit of linear algebra (QR decomposition) instead
-  Ftensor = QRattempt(enl%N_ROI, r, q_shift, qu, C, minf(j), reshape(R_tilt,(/9/)))
+  Ftensor = QRattempt(enl%N_ROI, r, q_shift, qu, C, RRR)
+
+  ! Ftensor = Villert(enl%N_ROI, r, q_shift, qu, C, RRR)
 
   ! polar decomposition of the deformation tensor
   call getPolarDecomposition(reshape(Ftensor,(/3,3/)), R_detector, Smatrix)
+
+write (*,*) 'Detector reference frame:'
+write (*,*) 'R_detector:'
+do i=1,3
+  write (*,*) R_detector(i,:)
+end do 
+write (*,*) 'U_sample:'
+do i=1,3
+  write (*,*) Smatrix(i,:)
+end do 
+strain_sample = 0.5*(transpose(reshape(Ftensor,(/3,3/)))*reshape(Ftensor,(/3,3/))-&
+                    reshape((/1.D0,0.D0,0.D0,0.D0,1.D0,0.D0,0.D0,0.D0,1.D0/),(/3,3/)))
+write (*,*) 'Finite strain:'
+do i=1,3
+  write (*,*) strain_sample(i,:)
+end do 
+
+! write (*,*) 'R_detector:', R_detector 
+  om = o_T( odinp = reshape(R_detector, (/ 3, 3 /)))
+  eu = om%oe()
+  ! write (*,*) ' Euler : ', eu%e_copyd()/dtor 
+  ax = om%oa()
+  axa = ax%a_copyd()
+  write (*,*) ' Axis-Angle : ', axa(1:3), axa(4)/dtor 
 
   ! deformation tensor in to sample frame
   F_sample= matmul(matmul(R_tilt, reshape(Ftensor,(/3,3/))), transpose(R_tilt))
@@ -2236,15 +2386,39 @@ do j = 1, numangles
   ! polar decomposition of the deformation tensor
   call getPolarDecomposition(F_sample, R_sample, Smatrix)
 
+write (*,*) 'Sample reference frame:'
+write (*,*) 'R_sample:'
+do i=1,3
+  write (*,*) R_sample(i,:)
+end do 
+write (*,*) 'U_sample:'
+do i=1,3
+  write (*,*) Smatrix(i,:)
+end do 
+strain_sample = 0.5*(transpose(F_sample)*F_sample-reshape((/1.D0,0.D0,0.D0,0.D0,1.D0,0.D0,0.D0,0.D0,1.D0/),(/3,3/)))
+write (*,*) 'Finite strain:'
+do i=1,3
+  write (*,*) strain_sample(i,:)
+end do 
+
+
+
   ! lattice rotation matrix in the sample frame
   w = 0.D0
   call Rot2LatRot(R_sample, w)
+  om = o_T( odinp = reshape(R_sample, (/ 3, 3 /)))
+  eu = om%oe()
+  ! write (*,*) ' Euler : ', eu%e_copyd()/dtor 
+  ax = om%oa()
+  axa = ax%a_copyd()
+  write (*,*) ' Axis-Angle : ', axa(1:3), axa(4)/dtor 
 
   write (*,*) 'Rot2LatRot : ', w
 
   ! distortion tensor
   beta_sample = F_sample-reshape((/1.D0,0.D0,0.D0,0.D0,1.D0,0.D0,0.D0,0.D0,1.D0/),(/3,3/))
   strain_sample = 0.5*(transpose(beta_sample)+beta_sample)
+  ! strain_sample = 0.5*(F_sample*transpose(F_sample)-reshape((/1.D0,0.D0,0.D0,0.D0,1.D0,0.D0,0.D0,0.D0,1.D0/),(/3,3/)))
 
   ! populate the data matrix
   strain(:,:,j) = strain_sample
@@ -2339,9 +2513,9 @@ dataset = 'EulerAngles'
 dataset = 'Shift'
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
   if (g_exists) then
-    hdferr = HDF%writeDatasetDoubleArray(dataset, shift_data, 3, 21, numangles, overwrite)
+    hdferr = HDF%writeDatasetDoubleArray(dataset, shift_data, 3, enl%N_ROI, numangles, overwrite)
   else
-    hdferr = HDF%writeDatasetDoubleArray(dataset, shift_data, 3, 21, numangles)
+    hdferr = HDF%writeDatasetDoubleArray(dataset, shift_data, 3, enl%N_ROI, numangles)
   end if
 
 dataset = 'Strain'
@@ -2414,7 +2588,7 @@ call closeFortranHDFInterface()
 
 end associate 
 
-call mem%allocated_memory_use(' before dealloc')
+! call mem%allocated_memory_use(' before dealloc')
 call mem%dealloc(expt, 'expt')
 call mem%dealloc(expt_ref,'expt_ref')
 call mem%dealloc(expts, 'expts')
@@ -2445,8 +2619,10 @@ call mem%dealloc(self%hpmask_shifted, 'hpmask_shifted')
 call mem%dealloc(self%lpmask_shifted, 'lpmask_shifted')  
 call mem%dealloc(rrdata, 'rrdata')
 call mem%dealloc(ffdata, 'ffdata')
+call mem%dealloc(rrdata_test, 'rrdata_test')
+call mem%dealloc(ffdata_test, 'ffdata_test')
 call mem%dealloc(window, 'window')
-call mem%allocated_memory_use(' after dealloc')
+! call mem%allocated_memory_use(' after dealloc')
 
 call fftw_free(self%ip)
 call fftw_free(self%op)
@@ -2474,7 +2650,6 @@ class(HREBSD_T),INTENT(INOUT)               :: self
 integer(kind=irg),intent(in)                :: dims(2)
 
 integer(kind=irg)                           :: cdims(2), i, j
-real(kind=dbl), allocatable                 :: apad(:,:), bpad(:,:) 
 
 ! matrix dimensions
 cdims=2*dims-1
@@ -2488,6 +2663,7 @@ call c_f_pointer(self%opCC, self%outpCC, [cdims(1),cdims(2)])
 
 self%inpCC = cmplx(0.D0,0D0)
 self%outpCC = cmplx(0.D0,0.D0)
+
 ! create plan for forward Fourier transform
 self%planCC = fftw_plan_dft_2d(cdims(1),cdims(2), self%inpCC, self%outpCC, FFTW_FORWARD, FFTW_ESTIMATE)
 self%cplanCC = fftw_plan_dft_2d(cdims(1),cdims(2), self%inpCC, self%outpCC, FFTW_BACKWARD, FFTW_ESTIMATE)
@@ -2520,8 +2696,8 @@ real(kind=dbl),intent(in)                   :: a(dims(1),dims(2)), b(dims(1),dim
 real(kind=dbl),intent(out)                  :: c(2*dims(1)-1,2*dims(1)-1)
 integer(kind=irg),intent(out)               :: max_pos(2)
 
-complex(C_DOUBLE_COMPLEX), allocatable      :: ffta(:,:), fftb(:,:), fftc(:,:)
 integer(kind=irg)                           :: cdims(2), i, j
+complex(C_DOUBLE_COMPLEX), allocatable      :: ffta(:,:), fftb(:,:), fftc(:,:)
 real(kind=dbl), allocatable                 :: apad(:,:), bpad(:,:) 
 
 ! matrix dimensions
@@ -2539,6 +2715,8 @@ do j=1,cdims(1)
      self%inpCC(j,i) = cmplx(apad(j,i),0.D0)    
     end do
 end do
+
+allocate(ffta(cdims(1),cdims(2)),fftb(cdims(1),cdims(2)),fftc(cdims(1),cdims(2)))
 
 ! compute the Forward Fourier transform of a
 call fftw_execute_dft(self%planCC, self%inpCC, self%outpCC)
@@ -2560,7 +2738,7 @@ fftc = ffta*fftb
 self%outpCC = cmplx(0.D0,0.D0)
 
 call fftw_execute_dft(self%cplanCC, fftc, self%outpCC)
-c=real(self%outpCC)
+c=real(self%outpCC)/real(product(cdims))/real(product(dims))
 max_pos=maxloc(c)
 
 deallocate(ffta, fftb, fftc, apad, bpad)
@@ -2568,7 +2746,8 @@ deallocate(ffta, fftb, fftc, apad, bpad)
 end subroutine cross_correlation_function_
 
 !--------------------------------------------------------------------------
-recursive subroutine peak_interpolation_(self, max_pos, z, z_size, interp_step, interp_size, ngrid, size_interp, interp_ngrid, q)
+recursive subroutine peak_interpolation_(self, max_pos, z, z_size, interp_step, interp_size, ngrid, size_interp, &
+                                         interp_ngrid, q)
 !DEC$ ATTRIBUTES DLLEXPORT :: peak_interpolation_
 !! author: MDG (OO) / Chaoyi Zhu (5.0)
 !! version: 1.0
@@ -2608,6 +2787,62 @@ q(2)=((z_size+1)/2-max_pos(1))+((interp_half-max_pos_interp(1))*interp_step);
   
 end subroutine peak_interpolation_
 
+
+
+
+
+  recursive function interpolate2DMaxima(p, x) result(vPeak)
+  !DEC$ ATTRIBUTES DLLEXPORT :: interpolate2DMaxima
+
+! this should really be done with a 2D Gaussian fit ... 
+
+  implicit none
+
+    real   (kind=dbl),INTENT(IN   ) :: p(-1:1,-1:1)
+    real   (kind=dbl),INTENT(INOUT) :: x(0:1)
+    real   (kind=dbl)               :: vPeak
+
+    integer(kind=irg)               :: m(1) 
+    real   (kind=dbl)               :: a, b, c, y, fm1, xm1, f0, x0, fp1, xp1, pp(3), ff(3)
+
+! first, determine the maximum locations for each of the three horizontal rows
+! we use a simple parabolic fit to the three points in each row
+    a = 0.5D0*(p(-1,-1)+p(1,-1)) - p(0,-1)
+    b = 0.5D0*(p(1,-1)-p(-1,-1))
+    c = p(0,-1)
+    xm1 = -b/(2.D0*a)
+    fm1 = a*xm1**2+b*xm1+c 
+
+    a = 0.5D0*(p(-1, 0)+p(1, 0)) - p(0, 0)
+    b = 0.5D0*(p(1, 0)-p(-1, 0))
+    c = p(0, 0)
+    x0  = -b/(2.D0*a)
+    f0  = a*x0**2+b*x0+c 
+
+    a = 0.5D0*(p(-1, 1)+p(1, 1)) - p(0, 1)
+    b = 0.5D0*(p(1, 1)-p(-1, 1))
+    c = p(0, 1)
+    xp1 = -b/(2.D0*a)
+    fp1 = a*xp1**2+b*xp1+c 
+
+    pp = (/ xm1, x0, xp1 /)
+    ff = (/ fm1, f0, fp1 /)
+    m = maxloc(ff)
+
+! then fit another parabola to these three vertical points
+    a = 0.5D0*(fm1+fp1) - f0
+    b = 0.5D0*(fp1-fm1)
+    c = f0
+    y = -b/(2.D0*a)
+    Vpeak = a*y**2+b*y+c
+
+! the max position:
+    x = (/ pp(m(1)), y /)
+
+  end function interpolate2DMaxima
+
+
+
 !--------------------------------------------------------------------------
 recursive subroutine setROI(Lx, Ly, PC_x, PC_y, DD, roi_distance, N_ROI, roi_centre, r)
 !DEC$ ATTRIBUTES DLLEXPORT :: setROI
@@ -2642,103 +2877,240 @@ end do
 
 end subroutine setROI
 
-
+!--------------------------------------------------------------------------
 ! the main subroutine for computing the QR decomposition and subsequent solution
 ! using only linear algebra instead of optimizers; this is known to be sensitive 
 ! to outliers and such, but it might provide a good sanity check for test cases.
-recursive function QRattempt(N, r, q, qu, C_c, minf, R_tilt) result(Ftensor)
+recursive function QRattempt(N, r, q, qu, C_c, R_tilt) result(Ftensor)
 
 use mod_math
 use mod_rotations
 
 implicit NONE
 
-real(kind=dbl), INTENT(out)   :: minf
 integer(kind=irg), INTENT(in) :: N
+real(kind=dbl), INTENT(INOUT) :: r(3, N), q(3, N), C_c(6,6), R_tilt(9)
 type(q_T),INTENT(INOUT)       :: qu
-real(kind=dbl), INTENT(in)    :: r(3, N), q(3, N), C_c(6,6), R_tilt(9)
 real(kind=dbl)                :: Ftensor(9)
 
-integer(kind=irg)             :: ires, i, j  
-real(kind=dbl)                :: gs2c(3,3), gc2s(3,3), RM(6,6), RN(6,6), RM_inv(6,6), C_s(6,6), x
-real(kind=dbl),allocatable    :: A(:,:), B(:), QQ(:,:), RR(:,:), Qb(:)
-
-! LAPACK parameters
-integer(kind=irg)             :: LDA, M, NN, K, LWORK, INFO
-real(kind=dbl),allocatable    :: TAU(:), WORK1(:), WORK2(:), WORK3(:)
+integer(kind=irg)             :: ires, i, j, NB, ILAENV, K, M, NN 
+integer(kind=irg),parameter   :: PP = 0
+real(kind=dbl)                :: gs2c(3,3), gc2s(3,3), RM(6,6), RN(6,6), RM_inv(6,6), C_s(6,6), x, DD
+real(kind=dbl)                :: A(2*N+PP,9), QQ(2*N+PP,9), Asave(2*N+PP,9), B(2*N+PP),  RR(9,9), Qb(9), RRinv(9,9), Ainv(9,2*N)
 
 ! generate the A matrix that has the r coordinates in it as well as 
 ! the traction-free boundary condition in terms of a series of elastic 
 ! moduli transformed into the correct reference frame (similar to what 
 ! is done in the constrained optimization, but now this constraint is just 
 ! one of the rows of the A matrix... )
-allocate( A( 2*N+1, 9 ), QQ(2*N+1, 9), RR(9,9), Qb(9), B(2*N+1) )
 A = 0.D0 
+Asave = 0.D0 
 B = 0.D0 
+QQ = 0.D0 
+RR = 0.D0 
+Qb = 0.D0
+NN = 9 
+M = 2*N+PP
+K = NN
+
+! write (*,*) 'DD : ', r(3,6)
+
+! do i=1,N 
+!   j = 2*i-1
+!   A(j,1:9) = (/ r(1,i), 0.D0, -r(1,i)**2/r(3,i), r(2,i), 0.D0, -r(1,i)*r(2,i)/r(3,i), r(3,i), 0.D0, -r(1,i) /)
+!   B(j) = q(1,i)
+!   j = 2*i
+!   A(j,1:9) = (/ 0.D0, r(1,i), -r(1,i)*r(2,i)/r(3,i), 0.D0, r(2,i), -r(2,i)**2/r(3,i), 0.D0, r(3,i), -r(2,i) /)
+!   B(j) = q(2,i)
+!   ! j = 3*i
+!   ! A(j,1:9) = (/ r(1,i)*r(2,i)/r(3,i), -r(1,i)**2/r(3,i),0.D0, r(2,i)**2/r(3,i), -r(1,i)*r(2,i)/r(3,i),0.D0, r(2,i), -r(1,i),0.D0 /)
+!   ! B(j) = (r(2,i)*q(1,i)-r(1,i)*q(2,i))/r(3,i)
+! end do
+! and the final row of A requires the elastic moduli tensor transformation 
+DD = r(3,1)
 
 do i=1,N 
-  j = 2*i
-  A(j,1:3) = (/ r(1,i), r(2,i), r(3,i) /)
-  A(j,7:9) = (/ -r(1,i)**2/r(3,i), -r(1,i)*r(2,i)/r(3,i), -r(1,i) /)
+  j = 2*i-1
+  A(j,1:9) = (/ r(1,i), 0.D0, -r(1,i)*(r(1,i)+q(1,i))/DD, r(2,i), 0.D0, -r(2,i)*(r(1,i)+q(1,i))/DD, DD, 0.D0, -(r(1,i)+q(1,i)) /)
   B(j) = q(1,i)
-  j = 2*i+1
-  A(j,4:6) = (/ r(1,i), r(2,i), r(3,i) /)
-  A(j,7:9) = (/  -r(1,i)*r(2,i)/r(3,i), -r(2,i)**2/r(3,i), -r(2,i) /)
+  j = 2*i
+  A(j,1:9) = (/ 0.D0, r(1,i), -r(1,i)*(r(2,i)+q(2,i))/DD, 0.D0, r(2,i), -r(2,i)*(r(2,i)+q(2,i))/DD, 0.D0, DD, -(r(2,i)+q(2,i)) /)
   B(j) = q(2,i)
 end do
-! and the final row of A requires the elastic moduli tensor transformation 
 
-call StiffnessRotation(qu, gs2c, gc2s, RM, RN) 
-call inv(6, 6, RM, RM_inv)
+! call StiffnessRotation(qu, gs2c, gc2s, RM, RN) 
+! call inv(6, 6, RM, RM_inv)
 
-! Rotate stiffness tensor from crystal frame into sample frame
-C_s = matmul(matmul(RM_inv,C_c),RN)
-A(2*N+1,:) = (/ C_s(3,1), C_s(3,6), C_s(3,5), C_s(3,6), C_s(3,2), C_s(3,4), C_s(3,5), C_s(3,4), C_s(3,3) /)
+! ! Rotate stiffness tensor from crystal frame into sample frame
+! ! C_s = matmul(matmul(RM_inv,C_c),RN)
+! C_s = C_c
+! ! A(2*N+1,:) = (/ C_s(3,1), C_s(3,6), C_s(3,5), C_s(3,6), C_s(3,2), C_s(3,4), C_s(3,5), C_s(3,4), C_s(3,3) /)
+! ! A(2*N+1,:) = (/ C_s(3,1), C_s(3,6), C_s(3,5), C_s(3,6), C_s(3,2), C_s(3,4), C_s(3,5), C_s(3,4), C_s(3,3) /)
 
-! next, we perform the QR decomposition using the Lapack DGEQRF routine
-M = 2*N+1
-NN = 9
-LDA = M 
-allocate( TAU(minval( (/M, NN /) ) ) )
-! allocate( WORK1(1) )
-! LWORK = -1
-! call DGEQRF(M, N, A, LDA, TAU, WORK1, LWORK, INFO)
-! LWORK = int(WORK1(1))
-! write (*,*) 'LWORK = ', LWORK
-LWORK = 672
-allocate( WORK2(LWORK) )
-call DGEQRF(M, N, A, LDA, TAU, WORK2, LWORK, INFO)
-if (INFO.ne.0) write (*,*) 'DGEQRF : ', INFO  
-! extract the R matrix from the upper diagonal portion of the returned A
-RR = 0.D0
-do i=1,9 
-  RR(i,i:9) = A(i,i:9)
-end do
+! ! A(2*N+2,:) = (/ 1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0 /)
 
-! then use the Lapack DORG2R routine to extract the Q array 
-K = minval( (/M, NN /) )
-allocate( WORK3(NN) )
-call DORG2R(M, NN, K, A, LDA, TAU, WORK3, INFO)
-if (INFO.ne.0) write (*,*) 'DORG2R : ', INFO  
-QQ = A 
+Asave = A 
 
-Qb = matmul ( transpose(QQ), B ) 
+! call qr_decompose(2*N+PP,9,A,QQ,RR)
+! Qb = matmul ( transpose(QQ), B ) 
 
-! finally, solve the equations 
-Ftensor(1) = Qb(1) / RR(1,1)
-do i=2,9
-  x = Qb(i)
-  do j=1,i-1
-    x = x - RR(i,j) * Ftensor(j)
-  end do 
-  Ftensor(i) = x / RR(i,i)
-end do 
+! do i=1,K 
+!   write (*,*) RR(i,:)
+! end do 
+! write (*,*) 'B : ', B 
+! write (*,*) 'Qb: ', Qb 
+! write (*,*) 'diff: ', maxval(abs(matmul(QQ,RR)-Asave))
+
+! call inv(9,9,RR,RRinv)
+
+! Ftensor = matmul( RRinv , Qb )
+
+Ftensor = pseudo_inv(2*N, 9, 2*N, 2*N, 9, A, B )
+
+! solve the equations 
+! Ftensor(K) = Qb(K) / RR(K,K)
+! do i=K-1,1,-1
+!   x = Qb(i)
+!   do j=K,i+1,-1
+!     x = x - RR(i,j) * Ftensor(j)
+!   end do 
+!   Ftensor(i) = x / RR(i,i)
+! end do 
+write (*,*) 'diffB: ', matmul(Asave,Ftensor)-B
 
 Ftensor = Ftensor + (/1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0/) 
 
-deallocate(TAU, WORK2, WORK3, A, B, Qb, RR, QQ )
+write (*,*) 'F: ', Ftensor
 
 end function QRattempt
+
+
+!--------------------------------------------------------------------------
+! the main subroutine for computing the QR decomposition and subsequent solution
+! using only linear algebra instead of optimizers; this is known to be sensitive 
+! to outliers and such, but it might provide a good sanity check for test cases.
+! in this particular routine we use the Villert appendix formulation of the problem.
+recursive function Villert(N, r, q, qu, C_c, R_tilt) result(Ftensor)
+
+use mod_math
+use mod_rotations
+
+implicit NONE
+
+integer(kind=irg), INTENT(in) :: N
+real(kind=dbl), INTENT(INOUT) :: r(3, N), q(3, N), C_c(6,6), R_tilt(9)
+type(q_T),INTENT(INOUT)       :: qu
+real(kind=dbl)                :: Ftensor(9)
+
+integer(kind=irg)             :: ires, i, j, ij, ik, im, in, JJ, KK, NB, ILAENV, K, M, NN 
+integer(kind=irg),parameter   :: map(3,3) = reshape( (/1,2,3,4,5,6,7,8,9/),(/3,3/))
+real(kind=dbl)                :: gs2c(3,3), gc2s(3,3), RM(6,6), RN(6,6), RM_inv(6,6), C_s(6,6), x, DD
+real(kind=dbl)                :: A(2*N,9), QQ(2*N,9), Asave(2*N,9), B(2*N), B2(2*N), RR(9,9), Qb(9), RRinv(9,9), Ainv(9,2*N)
+
+
+A = 0.D0 
+Asave = 0.D0 
+B = 0.D0 
+QQ = 0.D0 
+RR = 0.D0 
+Qb = 0.D0
+NN = 9 
+K = NN
+
+DD = r(3,1)
+
+do i=1,N 
+  j = 2*i-1
+  A(j,1:9) = (/ r(1,i), 0.D0, -r(1,i)*(r(1,i)+q(1,i))/DD, r(2,i), 0.D0, -r(2,i)*(r(1,i)+q(1,i))/DD, DD, 0.D0, -(r(1,i)+q(1,i)) /)
+  B(j) =  q(1,i)
+  j = 2*i
+  A(j,1:9) = (/ 0.D0, r(1,i), -r(1,i)*(r(2,i)+q(2,i))/DD, 0.D0, r(2,i), -r(2,i)*(r(2,i)+q(2,i))/DD, 0.D0, DD, -(r(2,i)+q(2,i)) /)
+  B(j) =  q(2,i)
+end do
+
+write (*,*) ' max (A,B) : ', maxval(abs(A)), maxval(abs(B)) 
+
+open (unit=10,file='arrays.csv', status='unknown', form='formatted')
+
+do i=1,2*N 
+  write(10,"(9(F14.8,','),F14.8)") A(i,:), B(i)
+end do 
+
+close(unit=10,status='keep')
+
+! and the final row of A requires the elastic moduli tensor transformation 
+
+! call StiffnessRotation(qu, gs2c, gc2s, RM, RN) 
+! call inv(6, 6, RM, RM_inv)
+
+! Rotate stiffness tensor from crystal frame into sample frame
+! C_s = matmul(matmul(RM_inv,C_c),RN)
+! C_s = C_c
+! A(2*N+1,:) = (/ C_s(3,1), C_s(3,6), C_s(3,5), C_s(3,6), C_s(3,2), C_s(3,4), C_s(3,5), C_s(3,4), C_s(3,3) /)
+! A(2*N+1,:) = (/ C_s(3,1), C_s(3,6), C_s(3,5), C_s(3,6), C_s(3,2), C_s(3,4), C_s(3,5), C_s(3,4), C_s(3,3) /)
+
+! A(2*N+2,:) = (/ 1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0 /)
+
+Asave = A 
+
+! call qr_decompose(2*N,9,A,QQ,RR)
+! Qb = matmul ( transpose(QQ), B ) 
+
+! do i=1,K 
+!   write (*,*) RR(i,:)
+! end do 
+! write (*,*) 'B : ', B 
+! write (*,*) 'Qb: ', Qb 
+! write (*,*) 'diff: ', maxval(abs(matmul(QQ,RR)-Asave))
+
+! ! call inv(9,9,RR,RRinv)
+
+! ! Ftensor = matmul( RRinv , Qb )
+
+! ! solve the equations 
+! Ftensor(K) = Qb(K) / RR(K,K)
+! do i=K-1,1,-1
+!   x = Qb(i)
+!   do j=K,i+1,-1
+!     x = x - RR(i,j) * Ftensor(j)
+!   end do 
+!   Ftensor(i) = x / RR(i,i)
+! end do 
+
+! Ainv = pseudo_inv(2*N, 9, 2*N, 2*N, 9, A )
+! Ftensor = matmul( Ainv, B )
+Ftensor = pseudo_inv(2*N, 9, 2*N, 2*N, 9, A, B )
+
+B2 = matmul(Asave,Ftensor)
+write (*,*) 'i, Qb, B'
+do i=1,81
+  write (*,*) i, B2(i), B(i)
+end do 
+! Ftensor = Ftensor + (/1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0/) 
+
+write (*,*) 'F: ', Ftensor
+
+end function Villert
+
+
+  recursive function get_entry(NN,j,k,m,n,DD,r,q) result(val)
+
+  implicit NONE
+
+  integer(kind=irg), INTENT(in) :: NN
+  real(kind=dbl), INTENT(IN)    :: r(3, NN), q(3, NN)
+  integer(kind=irg), INTENT(IN) :: j, k, m, n 
+  real(kind=dbl),INTENT(IN)     :: DD 
+  real(kind=dbl)                :: val 
+
+  real(kind=dbl),parameter      :: delta(3,3) = reshape( dble((/1,0,0,0,1,0,0,0,1/)),(/3,3/))
+
+  ! val = r(n,j) * ( DD*delta(k,m) - (r(k,j) + q(k,j))*delta(3,m) )
+  val = r(n,j) * ( delta(k,m) - (r(k,j) + q(k,j))*delta(3,m)/DD )
+
+  end function get_entry
+
+
 
 ! the main subroutine for computing the bounded constrained optimization
 recursive subroutine main_minf(N, r, q, qu, C_c, Ftensor, minf, R_tilt)
@@ -2831,7 +3203,7 @@ call nlo_set_ftol_rel(ires, opt, tol)
 ! set maximum number of evalutions
 call nlo_set_maxeval(ires, opt, 800)
 
-! intial value for the deformation gradient tensor (unit matrix)
+! initial value for the deformation gradient tensor (unit matrix)
 x = (/1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0/)
 
 ! initiate the optimization
@@ -2856,7 +3228,7 @@ recursive subroutine myfunc(val, n, x, grad, need_gradient, f)
 
 IMPLICIT NONE 
 
-double precision val, x(n), grad(n), DD, f(6,21)
+double precision val, x(n), grad(n), DD, f(6,81)
 integer n, need_gradient
 
 double precision, allocatable :: r1(:,:), r2(:,:), r3(:,:)
@@ -3136,9 +3508,9 @@ integer(kind=irg), intent(in) :: nn, mm
 real(kind=dbl), dimension(nn,mm), intent(in) :: A
 real(kind=dbl), dimension(nn,mm), intent(out) :: Ainv
 
-real(kind=dbl), dimension(nn) :: work  ! work array for LAPACK
+real(kind=dbl),allocatable  :: work(:)  ! work array for LAPACK
 integer(kind=irg), dimension(nn) :: ipiv   ! pivot indices
-integer(kind=irg) :: n, info
+integer(kind=irg) :: n, info, LWORK
 
 ! ! External procedures defined in LAPACK
 ! external DGETRF
@@ -3158,7 +3530,13 @@ end if
 
 ! DGETRI computes the inverse of a matrix using the LU factorization
 ! computed by DGETRF.
-call DGETRI(n, Ainv, n, ipiv, work, n, info)
+LWORK = -1
+allocate( work(1) )
+call DGETRI(n, Ainv, n, ipiv, work, LWORK, info)
+LWORK = work(1)
+deallocate (work )
+allocate( work(LWORK) )
+call DGETRI(n, Ainv, n, ipiv, work, LWORK, info)
 
 if (info /= 0) then
    stop 'Matrix inversion failed!'
@@ -3700,6 +4078,124 @@ end associate
 
 end subroutine HREBSDpreview_
 
+subroutine qr_decompose(m,n,a,q,r)
+!**********************************************************************************
+!This subroutine performs qr decomposition using gram schmidt orthogonalisation process
+![input]~   m,n is the dimension of [m * n] input ' a' matrix
+!     a is the input matrix
+![output]~  q is the orthogonal matrix
+!     r is the upper triangular matrix
+!**********************************************************************************
 
+implicit none
+
+integer(kind=irg), INTENT(IN)     :: m,n
+real(kind=dbl), INTENT(IN)        :: a(m,n)    ! a is the main [m by n] matrix
+real(kind=dbl), INTENT(OUT)       :: q(m,n)    ! q is the orthogonal [m by n] matrix
+real(kind=dbl), INTENT(OUT)       :: r(n,n)    ! r is the upper triangular [n by n] matrix
+
+integer(kind=irg)                 :: k, i, i1, j1, j
+real(kind=dbl)                    :: u(m,n), e(m,n), b(m,n)
+ 
+!-------------------------put zero for all matrix (except 'a')-------------------------
+e = 0.D0
+u = 0.D0
+b = 0.D0
+q = 0.D0
+r = 0.D0
+
+! this is the modified QR decomposition (numerically more stable)
+
+!-------------------------first calculate e(:,1) manually-------------------------
+u = a
+do j = 1,n
+  r(j,j) = norm2(u(:,j))
+  q(:,j) = u(:,j)/r(j,j)
+  do k = j+1,n
+    r(j,k) = dot_product(q(:,j),u(:,k))
+    u(:,k) = u(:,k) - r(j,k) * q(:,j)
+  end do
+end do
+
+
+! !-------------------------first calculate e(:,1) manually-------------------------
+! u(:,1) = a(:,1)                 ! copy the first column of 'a' to first column of 'u'
+! e(:,1) = u(:,1)/norm2(u(:,1))   ! normalise u(:,1)
+
+! !-------------------------iterate for the other e's-------------------------
+! do k = 1,n-1
+!   b = 0.D0                       ! put b=0.0 each time
+!   do i = 1,k
+!     b(:,i) = (dot_product(a(:,k+1),e(:,i)))*e(:,i)  ! calculate (a.u)*e and store it in 'b' columnwise  
+!   end do
+
+!   u(:,k+1) = a(:,k+1)-sum(b, dim=2)     ! find u
+!   e(:,k+1) = u(:,k+1)/norm2(u(:,k+1))   ! normalise u
+! end do
+
+! !-------------------------transfer e to q matrix-------------------------
+! q = e
+
+! !-------------------------find the r matrix-------------------------    
+! do i1 = 1, n 
+!   do j1 = i1, n 
+!     r(i1,j1) = dot_product(a(:,j1),e(:,i1))
+!   end do
+! end do
+
+end subroutine qr_decompose
+
+recursive function pseudo_inv(m, n, LDA, LDU, LDVT, A, B) result(Api)
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN):: m, n, LDA, LDU, LDVT
+real(kind=dbl),INTENT(IN)   :: A(m,n), B(m)
+real(kind=dbl)              :: Api(n)
+
+integer(kind=irg)           :: MM, NN, LWORK, INFO, LWMAX=1000, i 
+real(kind=dbl)              :: S(n), U(LDU,m), VT(LDVT,n), Sinv(n,m), Asave(m,n), &
+                               u1(LDU,n-1), v1(n,n-1), s1(n-1,n-1), s1_inv(n-1,n-1), tmp(n,n), & 
+                               a1(n-1,n), b1(n-1), x1(n), v0(n)
+real(kind=dbl),allocatable  :: WORK(:)
+character(1)                :: JOBU, JOBV
+
+Asave = A
+LWORK = -1
+allocate( WORK(LWMAX) )
+CALL DGESVD( 'All', 'All', M, N, Asave, LDA, S, U, LDU, VT, LDVT, WORK, LWORK, INFO )
+LWORK = MIN( LWMAX, INT( WORK( 1 ) ) )
+deallocate( WORK )
+write (*,*) ' optimal LWORK = ', LWORK
+allocate( WORK(LWORK) )
+CALL DGESVD( 'All', 'All', M, N, Asave, LDA, S, U, LDU, VT, LDVT, WORK, LWORK, INFO )
+
+! set the smallest inverse singular value to zero
+! and rescale the solution by subtracting a multiple of the last singular eigenvector
+! this is based on an email conversation with Gregery Buzzard (Purdue University)
+u1 = u(:,1:n-1)
+tmp = transpose(VT(1:n,1:n))
+v1 = tmp(:,1:n-1)
+write (*,*) ' v1 : ', v1(1,:)
+s1 = 0.D0 
+s1_inv = 0.D0
+do i=1,n-1
+  s1(i,i) = s(i)
+  s1_inv(i,i) = 1.D0/s(i)
+end do
+a1 = matmul(s1, transpose(v1))
+b1 = matmul(transpose(u1),b)
+x1 = matmul(v1,matmul(s1_inv,b1))
+v0 = tmp(:,n)
+
+! and rescale the solution x1 by a multiple of the singular vector ... 
+write (*,*) ' original solution : ', x1
+write (*,*) 'original trace : ', x1(1)+x1(5)+x1(9)
+write (*,*) ' correction vector : ', x1(1) / v0(1) * v0
+Api = x1 - (x1(1) + x1(5)+x1(9)) / (v0(1)+v0(5)+v0(9)) * v0
+write (*,*) ' Api = ', Api 
+write (*,*) ' trace = ', Api(1) + Api(5) + Api(9) 
+ 
+end function pseudo_inv
 
 end module mod_HREBSD

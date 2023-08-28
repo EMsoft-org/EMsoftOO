@@ -276,6 +276,7 @@ integer(kind=irg),parameter   :: LWMAX = 100
 real(kind=dbl)                :: A(3,3), WORK(LWMAX), S(3), U(3,3), VT(3,3), Sm(3,3)
 character                     :: JOBU, JOBVT
 
+
 type(IO_T)                    :: Message
 
 ! set initial LAPACK variables
@@ -3838,5 +3839,158 @@ Indices(Low)   = Indices(Right)   ! SWITCH ARRAY ELEMS
 Indices(Right) = iPivot
 
 end subroutine Split
+
+!--------------------------------------------------------------------
+recursive subroutine GaussianFit( n, z, initial_guess, info )
+!DEC$ ATTRIBUTES DLLEXPORT :: GaussianFit
+! 
+! driver routine for the minpack lmdif minimization routine 
+! to fit a 2D Gaussian to an intensity array
+!
+! this routine is a modified and corrected version of a chat-gpt 4.0 suggestion (asked on 07/24/23)
+!
+! routine called from EMHREBSD 
+
+use mod_io 
+
+IMPLICIT NONE 
+
+integer(kind=irg),INTENT(IN)      :: n
+real(kind=dbl),INTENT(IN)         :: z(n, n)
+real(kind=dbl),INTENT(INOUT)      :: initial_guess(5)
+integer(kind=irg),INTENT(OUT)     :: info
+
+type(IO_T)                        :: Message 
+
+integer(kind=irg),parameter       :: n_parameters = 5
+real(kind=dbl), allocatable       :: x_data(:), y_data(:), z_data(:), fvec(:), diag(:), qtf(:), &
+                                     wa1(:), wa2(:), wa3(:), wa4(:), fjac(:,:)
+integer(kind=irg), allocatable    :: ipvt(:)
+integer(kind=irg)                 :: i, j, maxfev, nfev, mode, nprint, ldfjac, n_data_points, ny
+real(kind=dbl)                    :: xtol, gtol, ftol, epsfcn, factor 
+
+ny = n
+n_data_points = n*n
+allocate( x_data(n_data_points), y_data(n_data_points), z_data(n_data_points), fvec(n_data_points), ipvt(n_parameters) )
+allocate( diag(n_parameters), qtf(n_parameters), wa1(n_parameters), wa2(n_parameters), wa3(n_parameters), wa4(n_data_points))
+
+do i = 1, n
+  do j = 1, n
+    x_data((i-1)*n + j) = dble(i)
+    y_data((i-1)*n + j) = dble(j)
+    z_data((i-1)*n + j) = z(i,j)
+  end do
+end do
+
+! write (*,*) n_data_points, n
+! write (*,*) shape(x_data), x_data 
+! write (*,*) initial_guess
+
+xtol = 1.D-12
+ftol = 1.D-16
+gtol = 1.D-12
+maxfev = 500
+epsfcn = 1.D-16
+diag = 0.D0 
+mode = 1
+factor = 100.D0
+nprint = 1
+ldfjac = n_data_points
+allocate( fjac(ldfjac, n_parameters) )
+
+! Call the minpack Levenberg-Marquardt fitting routine (LMDIF)
+call LMDIF(dogfit, n_data_points, n_parameters, initial_guess, fvec, ftol, xtol, gtol, maxfev, epsfcn, diag, & 
+           mode, factor, nprint, info, nfev, fjac, ldfjac, ipvt, qtf, wa1, wa2, wa3, wa4)
+
+! write (*,*) 'fvec = ', fvec, nfev 
+! write (*,*) xtol, ftol, gtol
+
+! if (info == 0) then
+!     print *, "Fitting successful!"
+!     print *, "Amplitude:", initial_guess(1)
+!     print *, "x0:", initial_guess(2)
+!     print *, "y0:", initial_guess(3)
+!     print *, "sigma_x:", initial_guess(4)
+!     print *, "sigma_y:", initial_guess(5)
+! else
+!     print *, "Fitting failed with INFO = ", info
+! end if
+
+! select case(info)
+!  case (0)
+!    call Message%printMessage('improper input parameters.')
+!  case (1)
+!    call Message%printMessage('both actual and predicted relative reductions in the sum of squares are at most ftol.')
+!  case (2)
+!    call Message%printMessage('relative error between two consecutive iterates is at most xtol.')
+!  case (3)
+!    call Message%printMessage('conditions for info = 1 and info = 2 both hold.')
+!  case (4)
+!    call Message%printMessage('the cosine of the angle between fvec and any column of jacobian is at most gtol in absolute value.')
+!  case (5)
+!    call Message%printMessage('number of calls to fcn has reached or exceeded maxfev.')
+!  case (6)
+!    call Message%printMessage('ftol is too small. no further reduction in the sum of squares is possible.')
+!  case (7)
+!    call Message%printMessage('xtol is too small. no further improvement in the approximate solution x is possible.')
+!  case (8)
+!    call Message%printMessage('gtol is too small. fvec is orthogonal to the columns of the jacobian to machine precision.')
+!  case default
+! end select 
+
+deallocate(x_data, y_data, z_data, fvec, ipvt, wa1, wa2, wa3, wa4, diag, qtf, fjac)
+
+contains 
+
+    subroutine dogfit(m, n, parameters, residuals, iflag)
+        ! This subroutine defines the 2D Gaussian function (residuals) and its derivatives (Jacobian)
+        ! that will be used by the LMDIF routine.
+
+        implicit none
+        real(kind=dbl), intent(in) :: parameters(n)
+        integer(kind=irg), intent(in) :: m, n, iflag
+        real(kind=dbl), intent(out) :: residuals(m)
+        real(kind=dbl) :: amplitude, x0, y0, sigma_x, sigma_y, background
+        real(kind=dbl) :: dx, dy, dx2, dy2, arg_x, arg_y, fit_value
+        integer(kind=irg) :: i, j, data_idx
+
+        ! Extract the parameters
+        amplitude = parameters(1)
+        x0 = parameters(2)
+        y0 = parameters(3)
+        sigma_x = parameters(4)
+        sigma_y = parameters(5)
+        background = 0.D0 ! You can add a background term if needed
+
+        ! Compute the Gaussian function and residuals
+        do i = 1, m
+            ! Convert 1D index back to 2D index (i,j)
+            data_idx = i
+            j = mod(data_idx, ny)
+            if (j == 0) j = ny
+
+            ! Calculate the Gaussian function value at (x,y)
+            dx = x_data(data_idx) - x0
+            dy = y_data(data_idx) - y0
+            dx2 = dx**2
+            dy2 = dy**2
+            arg_x = dx2 / (2.D0 * sigma_x**2)
+            arg_y = dy2 / (2.D0 * sigma_y**2)
+            fit_value = amplitude * exp(-(arg_x + arg_y)) + background
+
+            ! Compute the residuals
+            residuals(i) = fit_value - z_data(data_idx)
+
+            ! Compute the Jacobian (optional but recommended for faster convergence)
+            fjac(i, 1) = exp(-arg_x - arg_y) ! derivative w.r.t amplitude
+            fjac(i, 2) = amplitude * dx * fjac(i, 1) / sigma_x**2 ! derivative w.r.t x0
+            fjac(i, 3) = amplitude * dy * fjac(i, 1) / sigma_y**2 ! derivative w.r.t y0
+            fjac(i, 4) = amplitude * dx2 * fjac(i, 1) / sigma_x**3 ! derivative w.r.t sigma_x
+            fjac(i, 5) = amplitude * dy2 * fjac(i, 1) / sigma_y**3 ! derivative w.r.t sigma_y
+        end do
+
+    end subroutine dogfit
+
+end subroutine GaussianFit
 
 end module mod_math
