@@ -228,7 +228,7 @@ end subroutine Initialize_Cell
 
 !--------------------------------------------------------------------------
 recursive subroutine Initialize_Cell_noHDF(cell, Diff, SG, Dyn, dmin)
-!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_Cell_NoHDF
+!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_Cell_noHDF
  !! author: MDG
  !! version: 1.0
  !! date: 04/15/21

@@ -3787,6 +3787,7 @@ end subroutine Quicksort
 !        3. contain an interface block for this subroutine.
 !----------------------------------------------------------------------------
 recursive subroutine Split(Item, Low, High, Mid, Indices)
+!DEC$ ATTRIBUTES DLLEXPORT :: Split
 
 REAL(kind=sgl), INTENT(INOUT)     :: Item(:)
 INTEGER(kind=irg), INTENT(IN)     :: Low, High

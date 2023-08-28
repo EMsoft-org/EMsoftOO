@@ -198,7 +198,7 @@ contains
   ! @param this: stream to extract bits from
   ! @return: extracted bits padded to 16 bits wide
   function stream_extract(this) result(code)
- !DEC$ ATTRIBUTES DLLEXPORT :: image_flatten_rgba
+ !DEC$ ATTRIBUTES DLLEXPORT :: stream_extract
    class(stream) , intent(inout) :: this ! stream to extract bits from
     integer(int16)                :: code ! extracted bits padded to 16 wide
     integer(int16)                :: b0, b1, b2

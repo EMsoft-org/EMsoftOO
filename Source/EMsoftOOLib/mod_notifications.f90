@@ -50,7 +50,8 @@ contains
 
 !--------------------------------------------------------------------------
 recursive function PostSlackMessage(EMsoft, MessageLines, NumLines, MessageTitle) result(status)
-  !! author: MDG
+ !DEC$ ATTRIBUTES DLLEXPORT :: PostSlackMessage
+ !! author: MDG
   !! version: 1.0
   !! date: 01/26/20
   !!
