@@ -500,7 +500,7 @@ else
 
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, zero_size, C_LOC(device_lms), temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_lms',err)
+    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_lms',err)
     device_lms = device_lms/1024
     self%d_CPUlms(p_id, i) = device_lms
 
@@ -564,7 +564,7 @@ else
 
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, zero_size, C_LOC(device_lms), temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_lms',err)
+    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_lms',err)
     device_lms = device_lms/1024
     self%d_GPUlms(p_id, i) = device_lms
 
