@@ -200,6 +200,8 @@ use mod_io
 
 IMPLICIT NONE
 
+Def%foilname = "" 
+
 end function Defect_constructor
 
 

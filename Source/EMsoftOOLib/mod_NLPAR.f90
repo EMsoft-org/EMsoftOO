@@ -91,6 +91,8 @@ type(NLPAR_T) function NLPAR_constructor( ) result(NLPAR)
  
 IMPLICIT NONE
 
+NLPAR%lambda = 0.0
+
 end function NLPAR_constructor
 
 !--------------------------------------------------------------------------

@@ -118,6 +118,8 @@ type(IPFmap_T) function IPFmap_constructor( ) result(IPF)
  
 IMPLICIT NONE
 
+IPF%ipf_wd = 0 
+IPF%ipf_ht = 0 
 
 end function IPFmap_constructor
 

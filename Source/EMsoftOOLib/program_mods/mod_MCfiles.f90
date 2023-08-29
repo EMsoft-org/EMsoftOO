@@ -150,6 +150,7 @@ type(MCfile_T) function MCfile_constructor( ) result(MCfile)
 
 IMPLICIT NONE
 
+MCfile%MCfile = ""
 
 end function MCfile_constructor
 

@@ -179,6 +179,7 @@ type(IO_T)                   :: Message
 character(fnlen)             :: notifymode, platform
 integer(kind=irg)            :: ierr
 
+
 platform = EMsoft%getConfigParameter('EMsoftplatform')
 
 if (trim(platform).ne.'Windows') then
@@ -209,6 +210,8 @@ if (trim(platform).ne.'Windows') then
 else
    call Message%printMessage('PostMessage Warning: notifications are disabled on Windows at this time')
 end if
+
+status = ierr 
 
 end function PostMessage
 

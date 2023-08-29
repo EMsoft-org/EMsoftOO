@@ -237,6 +237,8 @@ type(QCcell_T) function QCcell_T_constructor( ) result(self)
  
 IMPLICIT NONE
 
+self%atno = 0 
+
 end function QCcell_T_constructor
 
 !--------------------------------------------------------------------------
@@ -250,6 +252,8 @@ type(QCcell_axial_T) function QCcell_T_axial_constructor( ) result(self)
  
 IMPLICIT NONE
 
+self%atno = 0 
+
 end function QCcell_T_axial_constructor
 
 !--------------------------------------------------------------------------
@@ -262,6 +266,8 @@ type(QCcell_icosahedral_T) function QCcell_T_icosahedral_constructor( ) result(s
 !! constructor for the QCcell_icosahedral_T Class
  
 IMPLICIT NONE
+
+self%atno = 0 
 
 end function QCcell_T_icosahedral_constructor
 
