@@ -275,6 +275,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(HREBSD_T) function HREBSD_constructor( nmlfile, pv ) result(HREBSD)
+!DEC$ ATTRIBUTES DLLEXPORT :: HREBSD_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 06/28/23
@@ -301,6 +302,7 @@ end function HREBSD_constructor
 
 !--------------------------------------------------------------------------
 subroutine HREBSD_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: HREBSD_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 06/28/23

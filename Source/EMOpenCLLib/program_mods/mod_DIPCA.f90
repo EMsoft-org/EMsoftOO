@@ -36,6 +36,7 @@ module mod_DIPCA
 use mod_kinds
 use mod_global
 use mod_DIfiles
+use mod_platformsupport
 
 IMPLICIT NONE
 
@@ -233,6 +234,7 @@ character(fnlen),ALLOCATABLE                        :: MessageLines(:)
 integer(kind=irg)                                   :: NumLines
 character(fnlen)                                    :: TitleMessage, exectime, progname, nmldeffile
 character(100)                                      :: c
+integer(kind=4)                                     :: hnStat
 character(1000)                                     :: charline
 character(3)                                        :: stratt
 character(fnlen)                                    :: progdesc
@@ -1513,7 +1515,7 @@ call mem%dealloc(OSMmap, 'OSMmap')
       NumLines = 3
       allocate(MessageLines(NumLines))
 
-      call hostnm(c)
+      hnStat = system_hostnm(c)
 
       MessageLines(1) = ' EMDI program has ended successfully'
       MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)
@@ -2526,7 +2528,7 @@ call mem%dealloc(OSMmap, 'OSMmap')
       NumLines = 3
       allocate(MessageLines(NumLines))
 
-      call hostnm(c)
+      hnStat = system_hostnm(c)
 
       MessageLines(1) = ' EMDI program has ended successfully'
       MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)

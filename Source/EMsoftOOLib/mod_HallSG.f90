@@ -441,6 +441,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(HallSG_T) function HallSG_constructor( HS, verbose ) result(HallSG)
+!DEC$ ATTRIBUTES DLLEXPORT :: HallSG_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 11/17/22
@@ -499,6 +500,7 @@ end function HallSG_constructor
 
 !--------------------------------------------------------------------------
 subroutine HallSG_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: HallSG_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 11/17/22

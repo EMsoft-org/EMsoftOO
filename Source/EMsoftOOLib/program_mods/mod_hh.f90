@@ -170,6 +170,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(hh_T) function hh_constructor( nmlfile ) result(hh)
+!DEC$ ATTRIBUTES DLLEXPORT :: hh_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/25/22
@@ -188,6 +189,7 @@ end function hh_constructor
 
 !--------------------------------------------------------------------------
 subroutine hh_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: hh_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/25/22

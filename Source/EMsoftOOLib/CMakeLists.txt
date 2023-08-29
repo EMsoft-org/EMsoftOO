@@ -195,6 +195,19 @@ set(EMsoft_HDF5_110_DEFINES "
 ")
 endif()
 
+if (Fortran_COMPILER_NAME MATCHES "ifort.*")
+  set(CMAKE_USE_IFORT "") 
+  set(CMAKE_USE_GFORTRAN "! ") 
+else()
+  set(CMAKE_USE_IFORT "! ") 
+  set(CMAKE_USE_GFORTRAN "") 
+endif()
+
+cmpConfigureFileWithMD5Check( GENERATED_FILE_PATH        ${EMsoftOOLib_BINARY_DIR}/mod_platformsupport.f90
+                              CONFIGURED_TEMPLATE_PATH   ${EMsoftOOLib_SOURCE_DIR}/mod_platformsupport.in.f90 )
+
+
+
 cmpConfigureFileWithMD5Check( GENERATED_FILE_PATH        ${EMsoftOOLib_BINARY_DIR}/mod_EMsoft.f90
                               CONFIGURED_TEMPLATE_PATH   ${EMsoftOOLib_SOURCE_DIR}/mod_EMsoft.in.f90 )
 # -------------------------------------------------------------------------------
@@ -202,6 +215,7 @@ cmpConfigureFileWithMD5Check( GENERATED_FILE_PATH        ${EMsoftOOLib_BINARY_DI
 set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SRCS}
   ${EMsoftOOLib_BINARY_DIR}/mod_EMsoft.f90
+  ${EMsoftOOLib_BINARY_DIR}/mod_platformsupport.f90
   ${EMsoftOOLib_BINARY_DIR}/stringconstants.f90
 )
 

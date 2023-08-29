@@ -80,6 +80,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(orav_T) function orav_constructor( nmlfile ) result(orav)
+!DEC$ ATTRIBUTES DLLEXPORT :: orav_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/19/22
@@ -96,6 +97,7 @@ end function orav_constructor
 
 !--------------------------------------------------------------------------
 subroutine orav_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: orav_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/19/22

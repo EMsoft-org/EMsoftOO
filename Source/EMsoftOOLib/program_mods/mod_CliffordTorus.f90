@@ -141,6 +141,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(CliffordTorus_T) function CliffordTorus_constructor( nmlfile ) result(CliffordTorus)
+!DEC$ ATTRIBUTES DLLEXPORT :: CliffordTorus_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/28/22
@@ -157,6 +158,7 @@ end function CliffordTorus_constructor
 
 !--------------------------------------------------------------------------
 subroutine CliffordTorus_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: CliffordTorus_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/28/22

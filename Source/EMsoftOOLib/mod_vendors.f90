@@ -2974,7 +2974,7 @@ end subroutine getBrukermetadata_
 
 !--------------------------------------------------------------------------
 recursive subroutine getEMsoftmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar)
-!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftLmetadata_
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftmetadata_
 !! author: MDG
 !! version: 1.0
 !! date: 06/28/23

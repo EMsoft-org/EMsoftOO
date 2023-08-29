@@ -36,6 +36,7 @@ module mod_ECPmaster
 use mod_kinds
 use mod_global
 use mod_MPfiles
+use mod_platformsupport
 
 IMPLICIT NONE
 
@@ -308,6 +309,7 @@ character(fnlen),ALLOCATABLE        :: MessageLines(:)
 integer(kind=irg)                   :: NumLines
 character(fnlen)                    :: SlackUsername, exectime
 character(100)                      :: c
+integer(kind=4)                     :: hnStat
 
 !$OMP THREADPRIVATE(Diff)
 
@@ -936,7 +938,7 @@ if (trim(EMsoft%getConfigParameter('EMNotify')).ne.'Off') then
     NumLines = 3
     allocate(MessageLines(NumLines))
 
-    call hostnm(c)
+    hnStat = system_hostnm(c)
 
     MessageLines(1) = 'EMECPmaster program has ended successfully'
     MessageLines(2) = 'Master pattern data stored in '//trim(outname)

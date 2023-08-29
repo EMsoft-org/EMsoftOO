@@ -151,6 +151,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(ISE_T) function ISE_constructor( nmlfile ) result(ISE)
+!DEC$ ATTRIBUTES DLLEXPORT :: ISE_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/04/22
@@ -169,6 +170,7 @@ end function ISE_constructor
 
 !--------------------------------------------------------------------------
 subroutine ISE_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: ISE_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/04/22

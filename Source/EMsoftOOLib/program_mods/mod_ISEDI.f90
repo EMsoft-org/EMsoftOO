@@ -181,6 +181,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(ISEDI_T) function ISEDI_constructor( nmlfile ) result(ISEDI)
+!DEC$ ATTRIBUTES DLLEXPORT :: ISEDI_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/27/23
@@ -197,6 +198,7 @@ end function ISEDI_constructor
 
 !--------------------------------------------------------------------------
 subroutine ISEDI_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: ISEDI_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/27/23

@@ -1649,6 +1649,7 @@ module mod_kvectors
     self%numk = self%numk + 1
    end do
   end do
+  numk = self%numk ! save output
  
  end subroutine CalckvectorsPrecession_
  

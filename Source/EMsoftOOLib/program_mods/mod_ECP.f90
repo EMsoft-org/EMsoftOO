@@ -298,7 +298,7 @@ subroutine set_numk_(self, numk)
 IMPLICIT NONE
 
 class(ECP_T), INTENT(INOUT)   :: self
-integer(kind=irg),INTENT(OUT) :: numk
+integer(kind=irg),INTENT(IN)  :: numk
 
 self%klist%numk = numk
 

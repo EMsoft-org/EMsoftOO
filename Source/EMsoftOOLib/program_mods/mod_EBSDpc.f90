@@ -118,6 +118,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(EBSDpc_T) function EBSDpc_constructor( nmlfile ) result(EBSDpc)
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDpc_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/09/22
@@ -134,6 +135,7 @@ end function EBSDpc_constructor
 
 !--------------------------------------------------------------------------
 subroutine EBSDpc_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDpc_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/09/22

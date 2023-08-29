@@ -43,6 +43,7 @@ module mod_notifications
 
 use mod_kinds
 use mod_global
+use mod_platformsupport
 
 IMPLICIT NONE
 
@@ -100,7 +101,7 @@ if (EMsoft%getConfigParameter('EMsoftplatform').ne.'Windows') then
 
    ! and generate the curl command string
      cmd = 'curl -s -d ''payload='//trim(JSONMessage)//''' '//trim(EMSlackWebHookURL)//' >/dev/null'
-     call system(cmd)
+     status = system_system(cmd)
   end if
 else
   call Message%printMessage('This option is not yet implemented on Windows 10...')
@@ -149,7 +150,7 @@ else
 
 ! and generate the email send command string
    cmd = 'echo "'//trim(EmailMessage)//'" | mail -s "Message from '//trim(MessageTitle)//'" '//trim(UserEmail)
-   call system(cmd)
+   status = system_system(cmd)
 end if
 
 end function PostEmailMessage

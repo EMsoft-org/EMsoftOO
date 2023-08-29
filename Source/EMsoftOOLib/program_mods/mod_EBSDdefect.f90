@@ -160,6 +160,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(EBSDdefect_T) function EBSDdefect_constructor( nmlfile ) result(EBSDdefect)
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDdefect_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 06/05/23
@@ -176,6 +177,7 @@ end function EBSDdefect_constructor
 
 !--------------------------------------------------------------------------
 subroutine EBSDdefect_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDdefect_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 06/05/23

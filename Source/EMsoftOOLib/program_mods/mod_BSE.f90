@@ -189,6 +189,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(BSE_T) function BSE_constructor( nmlfile ) result(BSE)
+!DEC$ ATTRIBUTES DLLEXPORT :: BSE_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/04/22
@@ -205,6 +206,7 @@ end function BSE_constructor
 
 !--------------------------------------------------------------------------
 subroutine BSE_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: BSE_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/04/22

@@ -103,13 +103,13 @@ end type IPFmap_T
 
 ! the constructor routine for this class 
 interface IPFmap_T
-  module procedure IPF_constructor
+  module procedure IPFmap_constructor
 end interface IPFmap_T
 
 contains
 
 !--------------------------------------------------------------------------
-type(IPFmap_T) function IPF_constructor( ) result(IPF)
+type(IPFmap_T) function IPFmap_constructor( ) result(IPF)
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/03/21
@@ -119,7 +119,7 @@ type(IPFmap_T) function IPF_constructor( ) result(IPF)
 IMPLICIT NONE
 
 
-end function IPF_constructor
+end function IPFmap_constructor
 
 !--------------------------------------------------------------------------
 subroutine IPF_destructor(self) 

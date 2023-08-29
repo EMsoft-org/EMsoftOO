@@ -94,6 +94,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(DisOrMap_T) function DisOrMap_constructor( nmlfile ) result(DisOrMap)
+!DEC$ ATTRIBUTES DLLEXPORT :: DisOrMap_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 04/22/22
@@ -110,6 +111,7 @@ end function DisOrMap_constructor
 
 !--------------------------------------------------------------------------
 subroutine DisOrMap_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: DisOrMap_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 04/22/22

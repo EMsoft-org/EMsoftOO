@@ -107,6 +107,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(CPLM_T) function CPLM_constructor( nmlfile ) result(CPLM)
+!DEC$ ATTRIBUTES DLLEXPORT :: CPLM_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20
@@ -123,6 +124,7 @@ end function CPLM_constructor
 
 !--------------------------------------------------------------------------
 subroutine CPLM_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: CPLM_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20

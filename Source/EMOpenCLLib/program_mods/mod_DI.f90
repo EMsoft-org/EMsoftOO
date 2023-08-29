@@ -38,6 +38,7 @@ module mod_DI
 use mod_kinds
 use mod_global
 use mod_DIfiles
+use mod_platformsupport
 
 IMPLICIT NONE
 
@@ -273,6 +274,7 @@ character(fnlen),ALLOCATABLE                        :: MessageLines(:)
 integer(kind=irg)                                   :: NumLines
 character(fnlen)                                    :: TitleMessage, exectime, progname, nmldeffile
 character(100)                                      :: c
+integer(kind=4)                                     :: hnStat
 character(1000)                                     :: charline
 character(3)                                        :: stratt
 character(fnlen)                                    :: progdesc
@@ -1083,7 +1085,7 @@ if (PCA.eqv..TRUE.) then
   close(itmpexpt,status='delete')
   close(itmpexpt2,status='keep')
 ! next move the PCA tmp file to the old tmp file
-  ierr = rename(trim(fname2), trim(fname))
+  ierr = system_rename(trim(fname2), fname)
 ! and open this file again with the correct record length
   recordsize_correct = Lnew*4
   open(unit=itmpexpt,file=trim(fname),&
@@ -1688,7 +1690,7 @@ call mem%dealloc(OSMmap, 'OSMmap')
       NumLines = 3
       allocate(MessageLines(NumLines))
 
-      call hostnm(c)
+      hnStat = system_hostnm(c)
 
       MessageLines(1) = ' EMDI program has ended successfully'
       MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)
@@ -1883,6 +1885,7 @@ character(fnlen),ALLOCATABLE                        :: MessageLines(:)
 integer(kind=irg)                                   :: NumLines
 character(fnlen)                                    :: TitleMessage, exectime
 character(100)                                      :: c
+integer                                             :: hnStat
 character(1000)                                     :: charline
 character(3)                                        :: stratt
 
@@ -2807,7 +2810,7 @@ call mem%dealloc(OSMmap, 'OSMmap')
       NumLines = 3
       allocate(MessageLines(NumLines))
 
-      call hostnm(c)
+      hnStat = system_hostnm(c)
 
       MessageLines(1) = ' EMDI program has ended successfully'
       MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)
@@ -3100,6 +3103,7 @@ character(fnlen),ALLOCATABLE                        :: MessageLines(:)
 integer(kind=irg)                                   :: NumLines
 character(fnlen)                                    :: TitleMessage, exectime
 character(100)                                      :: c
+integer(kind=4)                                     :: hnStat
 character(1000)                                     :: charline
 character(3)                                        :: stratt
 
@@ -3797,7 +3801,7 @@ call mem%dealloc(OSMmap, 'OSMmap')
       NumLines = 3
       allocate(MessageLines(NumLines))
 
-      call hostnm(c)
+      hnStat = system_hostnm(c)
 
       MessageLines(1) = ' EMDI program has ended successfully'
       MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)

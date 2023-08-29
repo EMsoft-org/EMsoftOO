@@ -115,6 +115,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(ISEmaster_T) function ISEmaster_constructor( nmlfile ) result(ISEmaster)
+!DEC$ ATTRIBUTES DLLEXPORT :: ISEmaster_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/22
@@ -131,6 +132,7 @@ end function ISEmaster_constructor
 
 !--------------------------------------------------------------------------
 subroutine ISEmaster_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: ISEmaster_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/17/22

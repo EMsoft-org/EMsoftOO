@@ -15,6 +15,7 @@ use HDF5
 use mod_vendors
 use mod_HallSG
 use mod_math
+use mod_platformsupport
 
 
 IMPLICIT NONE 
@@ -34,6 +35,17 @@ integer(HSIZE_T)        :: dims3(3), offset3(3)
 character(16)           :: HS
 real(kind=dbl),allocatable          :: SGdirec(:,:,:)
 real(kind=dbl)          :: z(11,11), fit(5), mp1, mp2, sig1, sig2 
+
+
+call hostnm(fname)
+write (*,*) 'output of subroutine : ', trim(fname)
+
+info = system_hostnm(fname)
+write (*,*) 'output of function : ', trim(fname), info
+
+
+stop 
+
 
 mp1 = 5.D0 
 mp2 = 5.D0 

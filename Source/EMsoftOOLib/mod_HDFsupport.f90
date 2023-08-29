@@ -56,6 +56,7 @@ use mod_kinds
 use mod_global
 use HDF5
 use stringconstants
+use mod_platformsupport
 
 IMPLICIT NONE
   private
@@ -7096,6 +7097,7 @@ type(Timing_T)                           :: timer
 integer                                  :: hdferr ! error flag
 integer                                  :: i, ic, nlen
 character(100)                           :: c
+integer(kind=4)                          :: hnStat
 character(fnlen)                         :: line, groupname
 character(fnlen,kind=c_char)             :: line2(1)
 logical                                  :: g_exists, overwrite=.TRUE.
@@ -7227,7 +7229,7 @@ else
 end if
 
 ! hostname /EMheader/HostName 'character'
-call hostnm(c)
+hnStat = system_hostnm(c)
 
 ! lowercase it
 nlen = len(c)

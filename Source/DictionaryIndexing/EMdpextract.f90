@@ -109,6 +109,7 @@ use mod_io
 use mod_image
 use, intrinsic :: iso_fortran_env
 use mod_DIfiles
+use mod_platformsupport
 
 IMPLICIT NONE 
 
@@ -122,7 +123,7 @@ type(HDF_T)                   :: HDF
 type(HDFnames_T)              :: HDFnames
 
 character(fnlen)              :: dirname, image_filename, dpfile
-integer(kind=irg)             :: hdferr, shp(2), jj, nx, ny
+integer(kind=irg)             :: hdferr, shp(2), jj, nx, ny, status
 real(kind=sgl)                :: mi, ma
 logical                       :: fexists
 
@@ -159,10 +160,10 @@ associate(DIDT=>DIFT%DIDT)
 dirname = trim(dpfilebase)
 inquire(file=trim(dirname),exist=fexists)
 if (.not.(fexists)) then
-  call system('mkdir '//trim(dirname))
+  status = system_system('mkdir '//trim(dirname))
   call Message%printMessage(' '//trim(dirname)//' folder has been created')
 end if
-call chdir(trim(dirname))
+status = system_chdir(trim(dirname))
 
 ! ==============================
 ! ==============================
@@ -298,7 +299,7 @@ else
 end if 
 deallocate(output_image,DIDT%OSM)
 
-call chdir(trim(cwd))
+status = system_chdir(trim(cwd))
 
 end associate 
 

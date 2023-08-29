@@ -257,6 +257,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(colorspace_T) function colorspace_constructor( Nfold ) result(colorspace)
+!DEC$ ATTRIBUTES DLLEXPORT :: colorspace_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/07/21

@@ -38,6 +38,7 @@ use mod_global
 use mod_EMsoft 
 use mod_io
 use mod_notifications
+use mod_platformsupport
 
 IMPLICIT NONE
 
@@ -48,6 +49,7 @@ type(EMsoft_T)                :: EMsoft
 type(IO_T)                    :: Message
 character(fnlen),ALLOCATABLE  :: MessageLines(:)
 integer(kind=irg)             :: NumLines, i
+integer(kind=4)               :: hnStat
 character(fnlen)              :: MessageTitle, line
 character(100)                :: c
 
@@ -59,7 +61,7 @@ if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
     call Message%printMessage(' Enter a test sentence (between single quotes):')
     call Message%ReadValue(' ---> ', line)
 
-    call hostnm(c)
+    hnStat = system_hostnm(c)
  
     MessageLines(1) = trim(line)
     MessageTitle = 'EMsoft on '//trim(c)

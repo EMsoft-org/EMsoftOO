@@ -60,6 +60,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(extractnml_T) function extractnml_constructor( hdffile ) result(extractnml)
+!DEC$ ATTRIBUTES DLLEXPORT :: extractnml_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/18/22
@@ -86,6 +87,7 @@ end function extractnml_constructor
 
 !--------------------------------------------------------------------------
 subroutine extractnml_destructor(self) 
+!DEC$ ATTRIBUTES DLLEXPORT :: extractnml_destructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 08/18/22

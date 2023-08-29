@@ -66,6 +66,7 @@ use mod_io
 use mod_HDFsupport 
 use ISO_C_BINDING
 use stringconstants
+use mod_platformsupport
 
 IMPLICIT NONE 
 
@@ -79,7 +80,7 @@ type(HDF_T)                             :: HDF
 integer(kind=irg)                       :: numarg       !< number of command line arguments
 integer(kind=irg)                       :: iargc        !< external function for command line
 character(fnlen)                        :: arg          !< to be read from the command line
-integer(kind=irg)                       :: mode, hdferr, nlines
+integer(kind=irg)                       :: mode, hdferr, nlines, status
 character(512)                          :: cmd, cmd2          !< output command
 character(fnlen)                        :: h5copypath, xtalfile, energyfile, groupname, dataset
 character(fnlen)                        :: infile1, infile2, outfile          !< file names
@@ -195,16 +196,16 @@ dataset = SC_xtalname
       cmd = trim(cmd)//'" -o "'//trim(outfile)
 
       cmd2 = trim(cmd)//'" -s "/EMData" -d "/EMData/MCOpenCL"'
-      call system(trim(cmd2))
+      status = system_system(trim(cmd2))
 
       cmd2 = trim(cmd)//'" -s "/EMheader" -d "/EMheader/MCOpenCL"'
-      call system(trim(cmd2))
+      status = system_system(trim(cmd2))
 
       cmd2 = trim(cmd)//'" -s "/NMLfiles" -d "/NMLfiles/MCOpenCLNML"'
-      call system(trim(cmd2))
+      status = system_system(trim(cmd2))
 
       cmd2 = trim(cmd)//'" -s "/NMLparameters/MCCLNameList" -d "/NMLparameters/MCCLNameList"'
-      call system(trim(cmd2))
+      status = system_system(trim(cmd2))
 
 ! add the CrystalData group from the .xtal crystal structure file
       h5copypath = EMsoft%generateFilePath('geth5copypath',' -p -v ')
@@ -212,7 +213,7 @@ dataset = SC_xtalname
       cmd = trim(cmd)//'" -o "'//trim(outfile)
 
       cmd2 = trim(cmd)//'" -s "/CrystalData" -d "/CrystalData"'
-      call system(trim(cmd2))
+      status = system_system(trim(cmd2))
 
 
 ! and copy data sets from the master file
@@ -221,29 +222,29 @@ dataset = SC_xtalname
 
       if (mode.eq.1) then  ! we're merging a Monte Carlo file and an EBSD master pattern file
         cmd2 = trim(cmd)//'" -s "/EMData" -d "/EMData/EBSDmaster"'
-        call system(trim(cmd2))
+        status = system_system(trim(cmd2))
 
         cmd2 = trim(cmd)//'" -s "/EMheader" -d "/EMheader/EBSDmaster"'
-        call system(trim(cmd2))
+        status = system_system(trim(cmd2))
 
         cmd2 = trim(cmd)//'" -s "/NMLfiles" -d "/NMLfiles/EBSDmasterNML"'
-        call system(trim(cmd2))
+        status = system_system(trim(cmd2))
 
         cmd2 = trim(cmd)//'" -s "/NMLparameters/EBSDMasterNameList" -d "/NMLparameters/EBSDMasterNameList"'
-        call system(trim(cmd2))
+        status = system_system(trim(cmd2))
       end if
       if (mode.eq.2) then  ! we're merging a Monte Carlo file and an ECP master pattern file
         cmd2 = trim(cmd)//'" -s "/EMData" -d "/EMData/ECPmaster"'
-        call system(trim(cmd2))
+        status = system_system(trim(cmd2))
 
         cmd2 = trim(cmd)//'" -s "/EMheader" -d "/EMheader/ECPmaster"'
-        call system(trim(cmd2))
+        status = system_system(trim(cmd2))
 
         cmd2 = trim(cmd)//'" -s "/NMLfiles" -d "/NMLfiles/ECPmasterNML"'
-        call system(trim(cmd2))
+        status = system_system(trim(cmd2))
 
         cmd2 = trim(cmd)//'" -s "/NMLparameters/ECPMasterNameList" -d "/NMLparameters/ECPMasterNameList"'
-        call system(trim(cmd2))
+        status = system_system(trim(cmd2))
       end if
       call Message%printMessage(' ', frm = "(A)")
     end if

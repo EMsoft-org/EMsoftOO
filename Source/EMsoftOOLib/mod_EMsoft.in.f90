@@ -76,6 +76,8 @@ module mod_EMsoft
 use mod_kinds
 use mod_global
 use stringconstants
+use mod_platformsupport 
+
 use, intrinsic :: ISO_C_BINDING
 use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
                                           stdout=>output_unit, &
@@ -989,6 +991,7 @@ IMPLICIT NONE
 class(EMsoft_T),intent(inout)      :: self
 
 character(fnlen)                   :: ep, envParam, envReturn, hostname
+integer(kind=4)                    :: hnStat
 
 ep = SC_UserLocation
 self%userlocation = getJSONparameter(self, ep, nobackslash=.TRUE.)
@@ -999,7 +1002,7 @@ if (trim(self%userlocation).eq.'tryEnvironmentVariable') then
   if (trim(envReturn).ne.'') then
     self%userlocation = trim(envReturn)
   else
-    call hostnm(hostname)
+    hnStat = system_hostnm(hostname)
     self%userlocation = trim(hostname)
   end if
 end if
@@ -1844,6 +1847,7 @@ character(fnlen)                        :: confname, emsoftname, jsonname, jsonf
                                            dirname, library, dataname, xtalname
 character(3)                            :: release, develop
 character(len=1)                        :: edp, tab, yesno
+integer :: sts
 
 edp = '"'
 tab = CHAR(9)
@@ -1879,39 +1883,39 @@ if (jexists) then
   call Message % printMessage((/ '         Creating new configuration file', &
                                  '-------                                 '/) )
   if (trim(self % EMsoftplatform).ne.'Windows') then   ! use the UNIX rename command 'mv oldname newname'
-    call system('mv '//trim(jsonname)//' '//trim(jsonname)//'.save')
+    sts = system_system('mv '//trim(jsonname)//' '//trim(jsonname)//'.save')
   else   ! on Windows the file rename command is 'ren oldname newname'
-    call system('ren '//trim(jsonname)//' '//trim(jsonname)//'.save')
+    sts = system_system('ren '//trim(jsonname)//' '//trim(jsonname)//'.save')
   end if
 end if
 
 ! look for the .config/EMsoft/EMsoftConfig.json file one step at a time
 dirstring = self % userHomepathname
-call chdir(trim(dirstring))
+sts = system_chdir(trim(dirstring))
 
 ! check for the .config folder
 dirname = trim(dirstring)//self % EMsoftnativedelimiter//trim(confname)
 inquire(file=trim(dirname),exist=fexists)
 if (.not.(fexists)) then
-  call system('mkdir '//trim(dirname))
+  sts = system_system('mkdir '//trim(dirname))
   call Message % printMessage(trim(dirname)//' folder did not exist and has been created')
 end if
-call chdir(trim(dirname))
+sts = system_chdir(trim(dirname))
 
 ! check for the EMsoft folder
 dirname = trim(dirname)//self % EMsoftnativedelimiter//SC_EMsoft
 inquire(file=trim(dirname),exist=fexists)
 if (.not.(fexists)) then
-  call system('mkdir '//trim(dirname))
+  sts = system_system('mkdir '//trim(dirname))
   call Message % printMessage(trim(dirname)//' folder did not exist and has been created')
 end if
-call chdir(trim(dirname))
+sts = system_chdir(trim(dirname))
 
 ! check whether or not the tmp folder exists...
 fname = trim(dirname)//self % EMsoftnativedelimiter//SC_tmp
 inquire(file=trim(fname),exist=fexists)
 if (.not.(fexists)) then
-  call system('mkdir '//trim(fname))
+  sts = system_system('mkdir '//trim(fname))
   call Message % printMessage(trim(fname)//' folder did not exist and has been created')
 end if
 
@@ -2003,6 +2007,7 @@ character(fnlen)                        :: wikifiles(maxnumtemplates), wcf, tpl,
                                            pandoc_tpl, defcmd, line, cmd
 character(3)                            :: wplextension = '.md'
 character(4)                            :: pdfextension = '.pdf'
+integer :: sts
 
 
 ! first make sure that pandoc is available on this platform
@@ -2010,7 +2015,7 @@ character(4)                            :: pdfextension = '.pdf'
 ! then the program is available; this will work on UNIX platforms but will need to be
 ! modified for Windows.
 pandoc_found = .FALSE.
-call system('pandoc -v | wc -l > linecount')
+sts = system_system('pandoc -v | wc -l > linecount')
 open(unit=dataunit,file='linecount',status='old',form='formatted')
 read(dataunit,"(I10)") nlines
 close(unit=dataunit,status='delete')
@@ -2071,8 +2076,8 @@ if (pandoc_found.eqv..TRUE.) then
       write(dataunit,"(A)") 'mv '//trim(output_name)//' ${cdir}'
       write(dataunit,"(A)") 'cd ${cdir}'
       close(unit=dataunit, status='keep')
-      call system('chmod +x wiki2pdf')
-      call system('./wiki2pdf')
+      sts = system_system('chmod +x wiki2pdf')
+      sts = system_system('./wiki2pdf')
       open(unit=dataunit,file='wiki2pdf',status='unknown',form='formatted')
       close(unit=dataunit, status='delete')
       call Message%printMessage(' wiki file converted to PDF: '//trim(output_name))

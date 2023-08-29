@@ -36,6 +36,7 @@ module mod_MCOpenCL
 use mod_kinds
 use mod_global
 use mod_MCfiles
+use mod_platformsupport
 
 IMPLICIT NONE
 
@@ -389,6 +390,7 @@ character(fnlen),ALLOCATABLE      :: MessageLines(:)
 integer(kind=irg)                 :: NumLines
 character(fnlen)                  :: SlackUsername, exectime
 character(100)                    :: c
+integer(kind=4)                   :: hnStat
 
 
 associate (mcnl => self%nml, MCDT => MCFT%MCDT )
@@ -1009,7 +1011,7 @@ if (trim(EMsoft%getConfigParameter('Notify')).ne.'Off') then
     NumLines = 3
     allocate(MessageLines(NumLines))
 
-    call hostnm(c)
+    hnStat = system_hostnm(c)
 
     MessageLines(1) = 'EMMCOpenCL program has ended successfully'
     MessageLines(2) = 'Monte Carlo data stored in '//trim(dataname)
