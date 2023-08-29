@@ -28,7 +28,7 @@ type(SpaceGroup_T)      :: SSG
 
 character(fnlen)        :: fname, groupname, inputtype, progname, progdesc, HDFstrings(10) 
 integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, sz(3), L, recordsize, &
-                           patsz, i, j, numsx, numsy, correctsize, s1, s2,HSGn, info 
+                           patsz, i, j, numsx, numsy, correctsize, s1, s2,HSGn, info, status
 real(kind=sgl),allocatable   :: exppatarray(:), tot(:), totold(:)
 real(kind=dbl),allocatable   :: SG(:,:,:)
 integer(HSIZE_T)        :: dims3(3), offset3(3)
@@ -37,7 +37,7 @@ real(kind=dbl),allocatable          :: SGdirec(:,:,:)
 real(kind=dbl)          :: z(11,11), fit(5), mp1, mp2, sig1, sig2 
 
 
-call hostnm(fname)
+status = system_hostnm(fname)
 write (*,*) 'output of subroutine : ', trim(fname)
 
 info = system_hostnm(fname)

@@ -326,7 +326,6 @@ integer(kind=4),allocatable             :: rnseeds(:)
 integer(kind=4),allocatable,target      :: init_seeds(:)
 integer(kind=4)                         :: idxy(2), iE=0, px=0, py=0, iz=0, nseeds=0, hdferr=0, tstart=0, trimSpace=0 ! auxiliary variables
 real(kind=4)                            :: cxyz(3), edis=0, bse=0, xy(2), xs=0, ys=0, zs=0, sclf=0 ! auxiliary variables
-real(kind=8)                            :: rand=0
 logical                                 :: f_exists=.FALSE.
 real(kind=dbl)                          :: apositions(maxpasym,5)
 
@@ -360,7 +359,7 @@ character(250),target                   :: currentDir=''
 character(fnlen)                        :: emmcPath='', outname=''
 character(fnlen)                        :: randomSeedPath=''
 integer(c_int32_t),target               :: filestat=0
-INTEGER(kind=irg)                       :: getcwd, status
+INTEGER(kind=irg)                       :: status
 CHARACTER(LEN=30)                       :: Format=''
 real(kind=dbl)                          :: dza(3) 
 
