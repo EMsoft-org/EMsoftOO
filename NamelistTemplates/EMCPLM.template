@@ -17,4 +17,6 @@
  outputfile = 'undefined',
 !  prefix for tiff image files; leave undefined if no tiff output needed
  tiffprefix = 'undefined',
+! folder for tiff image output; MUST be defined if tiffprefix is defined
+ tifffolder = 'undefined',
  /

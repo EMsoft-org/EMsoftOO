@@ -45,6 +45,7 @@ type, public :: CPLMNameListType
   integer(kind=irg)    :: numpx
   integer(kind=irg)    :: numpy
   character(fnlen)     :: tiffprefix
+  character(fnlen)     :: tifffolder
   character(fnlen)     :: masterfile
   character(fnlen)     :: anglefile
   character(fnlen)     :: outputfile
@@ -70,6 +71,8 @@ private
   procedure, pass(self) :: getnumpy_
   procedure, pass(self) :: settiffprefix_
   procedure, pass(self) :: gettiffprefix_
+  procedure, pass(self) :: settifffolder_
+  procedure, pass(self) :: gettifffolder_
   procedure, pass(self) :: setmasterfile_
   procedure, pass(self) :: getmasterfile_
   procedure, pass(self) :: setanglefile_
@@ -89,6 +92,8 @@ private
   generic, public :: getnumpy => getnumpy_
   generic, public :: settiffprefix => settiffprefix_
   generic, public :: gettiffprefix => gettiffprefix_
+  generic, public :: settifffolder => settifffolder_
+  generic, public :: gettifffolder => gettifffolder_ 
   generic, public :: setmasterfile => setmasterfile_
   generic, public :: getmasterfile => getmasterfile_
   generic, public :: setanglefile => setanglefile_
@@ -167,16 +172,18 @@ integer(kind=irg)                    :: phinum
 integer(kind=irg)                    :: numpx
 integer(kind=irg)                    :: numpy
 character(fnlen)                     :: tiffprefix
+character(fnlen)                     :: tifffolder
 character(fnlen)                     :: masterfile
 character(fnlen)                     :: anglefile
 character(fnlen)                     :: outputfile
 
-namelist / CPLMData / phinum, numpx, numpy, tiffprefix, masterfile, anglefile, outputfile
+namelist / CPLMData / phinum, numpx, numpy, tiffprefix, tifffolder, masterfile, anglefile, outputfile
 
 phinum = 36
 numpx = 100
 numpy = 100
 tiffprefix = 'undefined'
+tifffolder = 'undefined'
 masterfile = 'undefined'
 anglefile = 'undefined'
 outputfile = 'undefined'
@@ -192,9 +199,6 @@ if (.not.skipread) then
  close(UNIT=dataunit,STATUS='keep')
 
 ! check for required entries
- if (trim(tiffprefix).eq.'undefined') then
-  call Message%printError('readNameList:',' tiffprefix is undefined in '//nmlfile)
- end if
  if (trim(masterfile).eq.'undefined') then
   call Message%printError('readNameList:',' master output file name is undefined in '//nmlfile)
  end if
@@ -204,12 +208,20 @@ if (.not.skipread) then
  if (trim(outputfile).eq.'undefined') then
   call Message%printError('readNameList:',' outputfile file name is undefined in '//nmlfile)
  end if
+
+ if (trim(tiffprefix).ne.'undefined') then
+   if (trim(tifffolder).eq.'undefined') then
+     call Message%printError('readNameList:',' tiffprefix requires tifffolder to be set in '//nmlfile)
+   end if
+ end if
+
 end if
 
 self%nml%phinum = phinum
 self%nml%numpx = numpx
 self%nml%numpy = numpy
 self%nml%tiffprefix = tiffprefix
+self%nml%tifffolder = tifffolder
 self%nml%masterfile = masterfile
 self%nml%anglefile = anglefile
 self%nml%outputfile = outputfile
@@ -279,6 +291,11 @@ dataset = 'tiffprefix'
 line2(1) = nml%tiffprefix 
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create tiffprefix dataset', hdferr)
+
+dataset = 'tifffolder'
+line2(1) = nml%tifffolder 
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create tifffolder dataset', hdferr)
 
 dataset = SC_masterfile
 line2(1) = nml%masterfile
@@ -444,6 +461,42 @@ out = trim(self%nml%tiffprefix)
 end function gettiffprefix_
 
 !--------------------------------------------------------------------------
+subroutine settifffolder_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: settifffolder_
+!! author: MDG
+!! version: 1.0
+!! date: 08/10/23
+!!
+!! set tifffolder in the CPLM class
+
+IMPLICIT NONE
+
+class(CPLM_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%tifffolder = trim(inp)
+
+end subroutine settifffolder_
+
+!--------------------------------------------------------------------------
+function gettifffolder_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: gettifffolder_
+!! author: MDG
+!! version: 1.0
+!! date: 08/10/23
+!!
+!! get tifffolder from the CPLM class
+
+IMPLICIT NONE
+
+class(CPLM_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%tifffolder)
+
+end function gettifffolder_
+
+!--------------------------------------------------------------------------
 subroutine setmasterfile_(self,inp)
 !DEC$ ATTRIBUTES DLLEXPORT :: setmasterfile_
 !! author: MDG
@@ -575,6 +628,9 @@ use mod_quaternions
 use mod_memory
 use mod_Lambert
 use mod_timing
+use mod_platformsupport
+use mod_image
+use, intrinsic :: iso_fortran_env
 
 IMPLICIT NONE 
 
@@ -603,14 +659,24 @@ type(Timing_T)                          :: timer
 character(fnlen)                        :: fname, oname, descriptor, datafile, dataset, groupname, attributename, &
                                            datagroupname, HDF_FileVersion 
 logical                                 :: f_exists, g_exists, overwrite = .TRUE.
-integer(kind=irg)                       :: pgnum, hdferr, npx, numpoints, i, j, k, nix, niy, nixp, niyp, io_int(1)
+integer(kind=irg)                       :: pgnum, hdferr, npx, numpoints, i, j, k, nix, niy, nixp, niyp, io_int(1), status
 real(kind=dbl),allocatable              :: intensities(:,:), qrot(:,:), images(:,:,:)
-real(kind=dbl)                          :: vc(3), vr(3), dc(3), phistepsize, scl, dx, dy, dxm, dym
+real(kind=dbl)                          :: vc(3), vr(3), dc(3), phistepsize, scl, dx, dy, dxm, dym, mi, ma
 real(kind=sgl)                          :: tstop
 character(11)                           :: dstr
 character(15)                           :: tstrb
 character(15)                           :: tstre
+character(3)                            :: fnum
 character(fnlen,kind=c_char)            :: line2(1)
+character(fnlen)                        :: cwd, dirname, image_filename
+
+! declare variables for use in object oriented image module
+integer                       :: iostat
+character(len=128)            :: iomsg
+logical                       :: isInteger
+type(image_t)                 :: im, im2
+integer(int8)                 :: i8 (3,4), int8val
+integer(int8), allocatable    :: output_image(:,:)
 
 call openFortranHDFInterface()
 
@@ -621,6 +687,9 @@ mem = memory_T()
 timer = Timing_T()
 tstrb = timer%getTimeString()  
 call timer%Time_tick(1)
+
+! get the current folder 
+call getcwd(cwd)
 
 associate(nml => self%nml)
 
@@ -744,6 +813,36 @@ do j = 1,nml%numpy
   end do 
 end do
 
+! do we need to save all the images as separate tiff files ?
+if (trim(nml%tiffprefix).ne.'undefined') then 
+  dirname = trim(nml%tifffolder)
+  inquire(file=trim(dirname),exist=f_exists)
+  if (.not.(f_exists)) then
+    status = system_system('mkdir '//trim(dirname))
+    call Message%printMessage(' '//trim(dirname)//' folder has been created')
+  end if
+  status = system_chdir(trim(dirname))
+
+  mi = minval(images)
+  ma = maxval(images)
+  allocate(output_image(nml%numpx, nml%numpy))
+
+  do i=1,nml%phinum
+    output_image = int( 255.D0 * (images(i,:,:)-mi)/(ma-mi) )
+    write (fnum,"(I3.3)") i 
+    image_filename = trim(nml%tiffprefix)//fnum//'.tiff'
+    im = image_t(output_image)
+    if(im%empty()) call Message%printMessage("CPLM_","failed to convert array to image")
+! create the file
+    call im%write(trim(image_filename), iostat, iomsg) ! format automatically detected from extension
+    if(0.ne.iostat) then
+      call Message%printMessage(" failed to write image to file : "//iomsg)
+    else  
+      call Message%printMessage(' image '//fnum//'  written to '//trim(image_filename))
+    end if
+  end do
+  status = system_chdir(trim(cwd))
+end if
 
 call timer%Time_tock(1)
 tstop = timer%getInterval(1)
