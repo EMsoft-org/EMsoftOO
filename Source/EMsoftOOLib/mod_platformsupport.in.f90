@@ -32,7 +32,13 @@ module mod_platformsupport
   !! date: 08/29/23
   !!
   !! class definition for the platformsupport module
-
+  !!
+  !! This file is automatically edited by cmake at build time to select either the 
+  !! routines from the IFPORT module (if using the ifort compiler on Windows) or 
+  !! the gfortran extensions (on all other platforms).  CMAKE will replace the 
+  !! @CMAKE_USE_IFORT@ and @CMAKE_USE_GFORTRAN@ strings by the appropriate characters
+  !! (spaces or comment characters).
+ 
 use mod_kinds
 use mod_global
 

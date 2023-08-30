@@ -603,8 +603,8 @@ type(Timing_T)                          :: timer
 character(fnlen)                        :: fname, oname, descriptor, datafile, dataset, groupname, attributename, &
                                            datagroupname, HDF_FileVersion 
 logical                                 :: f_exists, g_exists, overwrite = .TRUE.
-integer(kind=irg)                       :: pgnum, hdferr, npx, numpoints, i, j, nix, niy, nixp, niyp, io_int(1)
-real(kind=dbl),allocatable              :: intensities(:,:), qrot(:,:)
+integer(kind=irg)                       :: pgnum, hdferr, npx, numpoints, i, j, k, nix, niy, nixp, niyp, io_int(1)
+real(kind=dbl),allocatable              :: intensities(:,:), qrot(:,:), images(:,:,:)
 real(kind=dbl)                          :: vc(3), vr(3), dc(3), phistepsize, scl, dx, dy, dxm, dym
 real(kind=sgl)                          :: tstop
 character(11)                           :: dstr
@@ -665,6 +665,7 @@ call Message%printMessage('    ---> completed reading orientations ')
 !-------------------------------------
 ! allocate array for intensity results
 call mem%alloc(intensities, (/ nml%phinum, numpoints /), 'intensities', initval=0.D0 )
+call mem%alloc(images, (/ nml%phinum, nml%numpx, nml%numpy /), 'images', initval=0.D0 )
 
 !===============================================
 ! for each orientation in the list, generate phinum sets of direction cosines for the rotating [001] axis
@@ -735,6 +736,15 @@ do i = 1,numpoints
   end if
 end do
 
+! convert intensities to images array 
+do j = 1,nml%numpy 
+  do i = 1,nml%numpx 
+    k = (j-1)*nml%numpx + i 
+    images(1:nml%phinum, i, j) = intensities(1:nml%phinum,k)
+  end do 
+end do
+
+
 call timer%Time_tock(1)
 tstop = timer%getInterval(1)
 call timer%Time_reset(1)
@@ -795,6 +805,15 @@ hdferr =  HDF%createFile(datafile)
   else
     hdferr = HDF%writeDatasetDoubleArray(dataset, intensities, nml%phinum, numpoints)
   end if
+
+  dataset = 'images'
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then
+    hdferr = HDF%writeDatasetDoubleArray(dataset, images, nml%phinum, nml%numpx, nml%numpy, overwrite)
+  else
+    hdferr = HDF%writeDatasetDoubleArray(dataset, images, nml%phinum, nml%numpx, nml%numpy)
+  end if
+
 
   call HDF%popall()
 

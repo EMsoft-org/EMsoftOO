@@ -4113,7 +4113,7 @@ end do
 allocate(Eangles(3,ipf_wd * ipf_ht), weights(ipf_wd * ipf_ht))
 do i=1,ipf_wd*ipf_ht 
   read(dataunit,'(a)') line 
-  read(line,*) nco, var, var, nco, nco, e1, e2, e3, wt 
+  read(line,*) nco, var, var, nco, var, e1, e2, e3, wt 
   Eangles(1:3,i) = (/ e1, e2, e3 /)
   weights(i) = wt
 end do
