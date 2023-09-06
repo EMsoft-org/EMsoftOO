@@ -1015,7 +1015,7 @@ end if
 ! should we average patterns locally ?
 allocate(expt(patsz))
 dims3 = (/ binx, biny, 1 /)
-if (enl%numav.ge.0) then
+if (enl%numav.gt.0) then
   io_int(1) = 2*enl%numav+1
   io_int(2) = 2*enl%numav+1
   call Message%WriteValue(' Averaging patterns over ', io_int, 2, "(I3,' by ',I3,' area')")
@@ -1027,7 +1027,7 @@ if (enl%numav.ge.0) then
       do j=-enl%numav,enl%numav
         if ((enl%paty+j.gt.0).and.(enl%paty+j.lt.enl%ipf_ht)) then
           offset3 = (/ 0, 0, (enl%paty+j) * enl%ipf_wd + (enl%patx+i) /)
-          call VT%getSingleExpPattern(enl%paty, enl%ipf_wd, patsz, L, dims3, offset3, expt, enl%HDFstrings, HDF)
+          call VT%getSingleExpPattern(enl%paty+j, enl%ipf_wd, patsz, L, dims3, offset3, expt, enl%HDFstrings, HDF)
           sumexpt = sumexpt + expt
           jj = jj+1
         end if
@@ -1035,11 +1035,11 @@ if (enl%numav.ge.0) then
     end if
   end do
   sumexpt = sumexpt / float(jj)
+else
+! read the center pattern
+  offset3 = (/ 0, 0, enl%paty * enl%ipf_wd + enl%patx /)
+  call VT%getSingleExpPattern(enl%paty, enl%ipf_wd, patsz, L, dims3, offset3, expt, enl%HDFstrings, HDF)
 end if
-
-! and read the center pattern (again)
-offset3 = (/ 0, 0, enl%paty * enl%ipf_wd + enl%patx /)
-call VT%getSingleExpPattern(enl%paty, enl%ipf_wd, patsz, L, dims3, offset3, expt, enl%HDFstrings, HDF)
 
 ! and close the pattern file
 call VT%closeExpPatternFile(HDF)
