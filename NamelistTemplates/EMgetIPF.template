@@ -4,8 +4,8 @@
 ! The values below are the default values for this program
 !
  dotproductfile = 'undefined',
-! sample Direction for IPF  (e.g., 0,0,1 for IPFZ)
- sampleDir = 0 0 1,
+! sample Direction for IPF, e.g., 0,0,1 for IPFZ; use 0,0,0 to generate all three  IPFZ, IPFY, and IPFZ maps
+ sampleDir = 0 0 0,
 ! IPF map file name (.tiff)
  IPFfilename = 'undefined',
 ! IPF mode:  

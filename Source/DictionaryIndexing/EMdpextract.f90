@@ -81,9 +81,7 @@ else ! no command line arguments, so we work interactively
     call Message%printMessage('----')
     call Message%ReadValue(' Another one ? (1/0) :', io_int)
     another = io_int(1)
-
   end do 
-
 end if
 
 ! close the fortran HDF interface
@@ -245,7 +243,7 @@ if (allocated(DIDT%RefinedDotProducts)) then
   if(0.ne.iostat) then
     call Message%printMessage(" failed to write image to file : "//iomsg)
   else  
-    call Message%printMessage('  CI array written to '//trim(image_filename))
+    call Message%printMessage('  Refined CI array written to '//trim(image_filename))
   end if 
   deallocate(output_image,DIDT%RefinedDotProducts)
 end if

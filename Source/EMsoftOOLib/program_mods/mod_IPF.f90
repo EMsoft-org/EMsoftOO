@@ -480,6 +480,7 @@ type(IO_T)                              :: Message
 
 character(fnlen)                        :: nmldeffile, progdesc, DIfile, fname
 integer(kind=irg)                       :: hdferr, i, LaueClass, Pm, io_int(2)
+logical                                 :: allXYZ = .TRUE.
 
 associate(csnl=>self%nml, dinl=>DIFT%nml, DIDT=>DIFT%DIDT)
 
@@ -535,15 +536,27 @@ call qAR%QSym_Init(csnl%pgnum, sym)
 
 ! create the IPFmap class, set the parameters, and generate the IPF map 
 IPFmap = IPFmap_T()
-
 call IPFmap%set_ipf_LaueClass(PGLaueinv(csnl%pgnum))
 call IPFmap%set_ipf_wd(dinl%ipf_wd)
 call IPFmap%set_ipf_ht(dinl%ipf_ht)
 call IPFmap%set_ipf_mode(csnl%IPFmode)
-call IPFmap%set_ipf_filename(csnl%IPFfilename)
 call IPFmap%set_ipf_nthreads(csnl%nthreads)
 
-call IPFmap%get_IPFMap(EMsoft, csnl%sampleDir, qAR, sym)
+if (sum(abs(csnl%sampleDir)).ne.0) then ! do a specific direction
+  fname = trim(csnl%IPFfilename)//'.tiff'
+  call IPFmap%set_ipf_filename(fname)
+  call IPFmap%get_IPFMap(EMsoft, csnl%sampleDir, qAR, sym)
+else
+  fname = trim(csnl%IPFfilename)//'_IPFX.tiff'
+  call IPFmap%set_ipf_filename(fname)
+  call IPFmap%get_IPFMap(EMsoft, (/ 1, 0, 0 /), qAR, sym)
+  fname = trim(csnl%IPFfilename)//'_IPFY.tiff'
+  call IPFmap%set_ipf_filename(fname)
+  call IPFmap%get_IPFMap(EMsoft, (/ 0, 1, 0 /), qAR, sym)
+  fname = trim(csnl%IPFfilename)//'_IPFZ.tiff'
+  call IPFmap%set_ipf_filename(fname)
+  call IPFmap%get_IPFMap(EMsoft, (/ 0, 0, 1 /), qAR, sym)
+end if
 
 end associate
 
