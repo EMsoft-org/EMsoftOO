@@ -148,6 +148,7 @@ call HDFnames%set_NMLparameters(SC_NMLparameters)
 call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 
 call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, dpfile, hdferr, &
+                             getRefinedDotProducts=.TRUE., &
                              getADP=.TRUE., &
                              getKAM=.TRUE., &
                              getCI=.TRUE., &
@@ -217,6 +218,38 @@ else
   call Message%printMessage('  CI array written to '//trim(image_filename))
 end if 
 deallocate(output_image,DIDT%CI)
+
+! ==============================
+! ==============================
+! ==============================
+! refined CI map
+if (allocated(DIDT%RefinedDotProducts)) then 
+  image_filename = trim(dpfilebase)//'_CIrefined.tiff'
+  allocate(output_image(nx,ny))
+
+  mi = minval(DIDT%RefinedDotProducts)
+  DIDT%RefinedDotProducts = DIDT%RefinedDotProducts - mi
+  ma = maxval(DIDT%RefinedDotProducts)
+  output_image = 0
+
+  ! CI is a 1-D array; map onto 2-D array
+  do jj = 1,ny
+      output_image(1:nx,jj) = int(255.0*DIDT%RefinedDotProducts((jj-1)*nx+1:jj*nx)/ma)
+  end do
+
+  im2 = image_t(output_image)
+  if(im2%empty()) call Message%printMessage("EMEBSDDIpreview","failed to convert array to image")
+
+  ! create the file
+  call im2%write(trim(image_filename), iostat, iomsg) ! format automatically detected from extension
+  if(0.ne.iostat) then
+    call Message%printMessage(" failed to write image to file : "//iomsg)
+  else  
+    call Message%printMessage('  CI array written to '//trim(image_filename))
+  end if 
+  deallocate(output_image,DIDT%RefinedDotProducts)
+end if
+
 
 ! ==============================
 ! ==============================
