@@ -171,7 +171,7 @@ integer(kind=irg)       :: pgnum
 namelist  / getIPF / dotproductfile, IPFfilename, sampleDir, nthreads, IPFmode, pgnum
 
 dotproductfile = 'undefined'
-sampleDir = (/ 0, 0, 1 /)
+sampleDir = (/ 0, 0, 0 /)
 IPFfilename = 'undefined'
 IPFmode = 'TSL' 
 nthreads = 1
@@ -325,9 +325,9 @@ subroutine set_IPFmode_(self,inp)
 IMPLICIT NONE 
 
 class(IPF_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)    :: inp
+character(*), INTENT(IN)        :: inp
 
-self%nml%IPFmode = inp
+self%nml%IPFmode = trim(inp)
 
 end subroutine set_IPFmode_
 

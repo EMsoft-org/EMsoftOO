@@ -314,9 +314,9 @@ subroutine set_ipf_mode_(self,inp)
 IMPLICIT NONE 
 
 class(IPFmap_T), INTENT(INOUT)  :: self
-character(fnlen), INTENT(IN)    :: inp
+character(*), INTENT(IN)        :: inp
 
-self%ipf_mode = inp
+self%ipf_mode = trim(inp)
 
 end subroutine set_ipf_mode_
 

@@ -107,6 +107,11 @@ use mod_io
 use mod_image
 use, intrinsic :: iso_fortran_env
 use mod_DIfiles
+use mod_IPFsupport  
+use mod_IPF
+use mod_quaternions
+use mod_rotations
+use mod_symmetry
 use mod_platformsupport
 
 IMPLICIT NONE 
@@ -119,9 +124,15 @@ type(IO_T)                    :: Message
 type(DIfile_T)                :: DIFT 
 type(HDF_T)                   :: HDF 
 type(HDFnames_T)              :: HDFnames
+type(QuaternionArray_T)       :: qAR, sym
+type(e_T)                     :: e 
+type(q_T)                     :: q 
+type(Quaternion_T)            :: qu
+type(IPF_T)                   :: IPF
+type(IPFmap_T)                :: IPFmap
 
-character(fnlen)              :: dirname, image_filename, dpfile
-integer(kind=irg)             :: hdferr, shp(2), jj, nx, ny, status
+character(fnlen)              :: dirname, image_filename, dpfile, fname 
+integer(kind=irg)             :: i, hdferr, shp(2), jj, nx, ny, status, io_int(2)
 real(kind=sgl)                :: mi, ma
 logical                       :: fexists
 
@@ -132,6 +143,9 @@ logical                       :: isInteger
 type(image_t)                 :: im, im2
 integer(int8)                 :: i8 (3,4), int8val
 integer(int8), allocatable    :: output_image(:,:)
+
+
+call setRotationPrecision('d')
 
 ! read all the image-type arrays from the file
 dpfile = trim(cwd)//'/'//trim(dpfilebase)//'.h5'
@@ -147,13 +161,17 @@ call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 
 call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, dpfile, hdferr, &
                              getRefinedDotProducts=.TRUE., &
+                             getEulerAngles=.TRUE., &
+                             getRefinedEulerAngles=.TRUE., &
                              getADP=.TRUE., &
                              getKAM=.TRUE., &
                              getCI=.TRUE., &
                              getIQ=.TRUE., & 
                              getOSM=.TRUE. )
 
-associate(DIDT=>DIFT%DIDT)
+IPF = IPF_T()
+
+associate( DIDT=>DIFT%DIDT )
 
 ! take these arrays and generate image files for each of them; place them in a folder with the dpfilebase name 
 dirname = trim(dpfilebase)
@@ -329,6 +347,58 @@ else
   call Message%printMessage('  OSM array written to '//trim(image_filename))
 end if 
 deallocate(output_image,DIDT%OSM)
+
+! ==============================
+! ==============================
+! ==============================
+! X, Y, and Z IPF maps
+! we need to set up the mod_IPF namelist parameters ... 
+call IPF%readNameList(fname, initonly = .TRUE.)
+call IPF%set_pgnum( DIDT%pgnum )
+
+qAR = QuaternionArray_T( DIDT%Nexp, s = 'd')
+
+if (allocated(DIDT%RefinedEulerAngles)) then 
+  do i=1,DIDT%Nexp 
+   e = e_T( edinp = dble(DIDT%RefinedEulerAngles(1:3,i)) )
+   q = e%eq()
+   qu = quaternion_T( qd = q%q_copyd() )
+   call qAR%insertQuatinArray( i, qu )
+  end do 
+  deallocate(DIDT%RefinedEulerAngles)
+else 
+  do i=1,DIDT%Nexp 
+   e = e_T( edinp = dble(DIDT%EulerAngles(1:3,i)) )
+   q = e%eq()
+   qu = quaternion_T( qd = q%q_copyd() )
+   call qAR%insertQuatinArray( i, qu )
+  end do 
+  deallocate(DIDT%EulerAngles)
+end if 
+
+! get the symmetry operator quaternions for the point group
+io_int = (/ DIDT%pgnum, PGLaueinv(DIDT%pgnum ) /)
+call Message%WriteValue(' initializing symmetry operators for point/Laue group ', io_int, 2)
+
+call qAR%QSym_Init(DIDT%pgnum, sym)
+
+! create the IPFmap class, set the parameters, and generate the IPF map 
+IPFmap = IPFmap_T()
+call IPFmap%set_ipf_LaueClass(PGLaueinv(DIDT%pgnum))
+call IPFmap%set_ipf_wd(nx)
+call IPFmap%set_ipf_ht(ny)
+call IPFmap%set_ipf_mode('TSL')
+call IPFmap%set_ipf_nthreads(4)
+
+fname = trim(dpfilebase)//'_IPFX.tiff'
+call IPFmap%set_ipf_filename(fname)
+call IPFmap%get_IPFMap(EMsoft, (/ 1, 0, 0 /), qAR, sym, cDir = .TRUE.)
+fname = trim(dpfilebase)//'_IPFY.tiff'
+call IPFmap%set_ipf_filename(fname)
+call IPFmap%get_IPFMap(EMsoft, (/ 0, 1, 0 /), qAR, sym, cDir = .TRUE.)
+fname = trim(dpfilebase)//'_IPFZ.tiff'
+call IPFmap%set_ipf_filename(fname)
+call IPFmap%get_IPFMap(EMsoft, (/ 0, 0, 1 /), qAR, sym, cDir = .TRUE.)
 
 status = system_chdir(trim(cwd))
 
