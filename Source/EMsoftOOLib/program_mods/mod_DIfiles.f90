@@ -1420,7 +1420,7 @@ if (present(getValid)) then
   if (getValid.eqv..TRUE.) then
 !   dataset = SC_Valid
 !   call HDF%readDatasetIntegerArray(dataset, dims, hdferr, EBSDDIdata%Valid)
-    call Message%printMessage('Valid','reading the Valid variable is not yet implemented')
+    call Message%printMessage('reading the Valid variable is not yet implemented')
   end if
 end if
 
@@ -1455,7 +1455,7 @@ if (present(getRefinedDotProducts)) then
     if (g_exists) then
       call HDF%readDatasetFloatArray(dataset, dims, hdferr, DIDT%RefinedDotProducts)
     else
-      call Message%printMessage('readDotProductFile','There is no RefinedDotProducts data set in this file')
+      call Message%printMessage('readDotProductFile: There is no RefinedDotProducts data set in this file')
     end if
   end if
 end if
@@ -1467,7 +1467,7 @@ if (present(getRefinedEulerAngles)) then
     if (g_exists) then
       call HDF%readDatasetFloatArray(dataset, dims2, hdferr, DIDT%RefinedEulerAngles)
     else
-      call Message%printMessage('readDotProductFile','There is no RefinedEulerAngles data set in this file')
+      call Message%printMessage('readDotProductFile: There is no RefinedEulerAngles data set in this file')
     end if
   end if
 end if
@@ -1482,7 +1482,7 @@ dataset = SC_StepX
     if (g_exists) then
       call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%StepX)
     else
-      call Message%printMessage('readDotProductFile','There is no StepX data set in this file')
+      call Message%printMessage('readDotProductFile: There is no StepX data set in this file')
     end if
 
 dataset = SC_StepY
@@ -1490,7 +1490,7 @@ dataset = SC_StepY
     if (g_exists) then
       call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%StepY)
     else
-      call Message%printMessage('readDotProductFile','There is no StepY data set in this file')
+      call Message%printMessage('readDotProductFile: There is no StepY data set in this file')
     end if
 
 ! and close the HDF5 dot product file

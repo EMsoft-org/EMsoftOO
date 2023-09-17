@@ -45,6 +45,7 @@ type, public :: dpmergeNameListType
   character(fnlen)  :: angname
   character(fnlen)  :: phasemapname
   integer(kind=irg) :: phasecolors(5)
+  integer(kind=irg) :: scaling
   real(kind=sgl)    :: scalefactors(5)
   character(8)      :: usedp
   character(2)      :: indexingmode
@@ -67,6 +68,7 @@ private
   procedure, pass(self) :: get_phasemapname_
   procedure, pass(self) :: get_phasecolors_
   procedure, pass(self) :: get_scalefactors_
+  procedure, pass(self) :: get_scaling_
   procedure, pass(self) :: get_usedp_
   procedure, pass(self) :: get_indexingmode_
   procedure, pass(self) :: set_dotproductfile_
@@ -74,6 +76,7 @@ private
   procedure, pass(self) :: set_angname_
   procedure, pass(self) :: set_phasemapname_
   procedure, pass(self) :: set_phasecolors_
+  procedure, pass(self) :: set_scaling_
   procedure, pass(self) :: set_scalefactors_
   procedure, pass(self) :: set_usedp_
   procedure, pass(self) :: set_indexingmode_
@@ -87,6 +90,7 @@ private
   generic, public :: get_phasemapname => get_phasemapname_
   generic, public :: get_phasecolors => get_phasecolors_
   generic, public :: get_scalefactors => get_scalefactors_
+  generic, public :: get_scaling => get_scaling_
   generic, public :: get_usedp => get_usedp_
   generic, public :: get_indexingmode => get_indexingmode_
   generic, public :: set_dotproductfile => set_dotproductfile_
@@ -94,6 +98,7 @@ private
   generic, public :: set_angname => set_angname_
   generic, public :: set_phasemapname => set_phasemapname_
   generic, public :: set_phasecolors => set_phasecolors_
+  generic, public :: set_scaling => set_scaling_
   generic, public :: set_scalefactors => set_scalefactors_
   generic, public :: set_usedp => set_usedp_
   generic, public :: set_indexingmode => set_indexingmode_
@@ -170,12 +175,13 @@ character(fnlen)        :: ctfname
 character(fnlen)        :: angname
 character(fnlen)        :: phasemapname
 integer(kind=irg)       :: phasecolors(5)
+integer(kind=irg)       :: scaling
 real(kind=sgl)          :: scalefactors(5)  
 character(8)            :: usedp
 character(2)            :: indexingmode
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / dpmerge / dotproductfile, ctfname, angname, usedp, indexingmode, phasemapname, phasecolors, scalefactors
+namelist  / dpmerge / dotproductfile, ctfname, angname, usedp, indexingmode, phasemapname, phasecolors, scalefactors, scaling
 
 ! set the input parameters to default values
 dotproductfile = (/ 'undefined','undefined','undefined','undefined','undefined' /)
@@ -184,6 +190,7 @@ angname = 'undefined'
 phasemapname = 'undefined'
 phasecolors = (/ 1, 2, 0, 0, 0 /)
 scalefactors = (/ 1.0, 1.0, 1.0, 1.0, 1.0 /)
+scaling = 1
 usedp = 'original'
 indexingmode = 'DI'
 
@@ -214,6 +221,7 @@ self%nml%angname = angname
 self%nml%phasemapname = phasemapname
 self%nml%phasecolors = phasecolors
 self%nml%scalefactors = scalefactors
+self%nml%scaling = scaling
 self%nml%indexingmode = indexingmode
 self%nml%usedp = usedp
 
@@ -454,6 +462,42 @@ self%nml%scalefactors = inp
 end subroutine set_scalefactors_
 
 !--------------------------------------------------------------------------
+function get_scaling_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_scaling_
+!! author: MDG
+!! version: 1.0
+!! date: 11/17/22
+!!
+!! get scaling from the dpmerge_T class
+
+IMPLICIT NONE
+
+class(dpmerge_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%scaling
+
+end function get_scaling_
+
+!--------------------------------------------------------------------------
+subroutine set_scaling_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_scaling_
+!! author: MDG
+!! version: 1.0
+!! date: 11/17/22
+!!
+!! set scaling in the dpmerge_T class
+
+IMPLICIT NONE
+
+class(dpmerge_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: inp
+
+self%nml%scaling = inp
+
+end subroutine set_scaling_
+
+!--------------------------------------------------------------------------
 function get_usedp_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_usedp_
 !! author: MDG
@@ -572,6 +616,8 @@ integer(kind=irg)                       :: dims(1), hdferr, io_int(2), i, j, ii,
 real(kind=sgl)                          :: io_real(1), mi, ma, fpar1(1), fpar2(2)
 character(fnlen)                        :: fname, xtalname(5), infile, rdxtalname, TIFF_filename, DIfile, modality
 logical                                 :: f_exists
+integer(kind=ish)                       :: imax = 255
+integer(kind=ish),allocatable           :: dpmapi(:,:)
 
 ! declare variables for use in object oriented image module
 integer                                 :: iostat
@@ -766,7 +812,7 @@ if (trim(dpmnl%phasemapname).ne.'undefined') then
   TIFF_image = 0_int8
 
   ! fill the image with whatever data you have (between 0 and 255)
-  allocate( dpmap(ipf_wd, ipf_ht) )
+  allocate( dpmap(ipf_wd, ipf_ht), dpmapi(ipf_wd, ipf_ht) )
   do j=1,ipf_ht
    do i=1,ipf_wd
     ii = (j-1) * ipf_wd + i
@@ -776,40 +822,72 @@ if (trim(dpmnl%phasemapname).ne.'undefined') then
 
   ma = maxval(dpmap)
   mi = minval(dpmap)
-  dpmap = 255*(dpmap-mi)/(ma-mi)
+  dpmap = int(255*(dpmap-mi)/(ma-mi))
 
 ! the pre-defined colors are red, green, blue, yellow, cyan, fushia, and white
-! each color is weighted by the maximum dot product value to make the image a bit more realistic
+! if dpmnl$scaling=1 then each color is weighted by the maximum dot product 
+! value to make the image a bit more realistic
   do j=1,ipf_ht
    do i=1,ipf_wd
     ii = (j-1) * ipf_wd + i
-    select case(dpmnl%phasecolors(phaseID(ii)))
-      case(1)
-        TIFF_image(1+3*(i-1),j) = dpmap(i,j)
+    if (dpmnl%scaling.eq.1) then 
+      select case(dpmnl%phasecolors(phaseID(ii)))
+        case(1)
+          TIFF_image(1+3*(i-1),j) = dpmap(i,j)
 
-      case(2)
-        TIFF_image(2+3*(i-1),j) = dpmap(i,j)
+        case(2)
+          TIFF_image(2+3*(i-1),j) = dpmap(i,j)
 
-      case(3)
-        TIFF_image(3+3*(i-1),j) = dpmap(i,j)
+        case(3)
+          TIFF_image(3+3*(i-1),j) = dpmap(i,j)
 
-      case(4)
-        TIFF_image(1+3*(i-1),j) = dpmap(i,j)
-        TIFF_image(2+3*(i-1),j) = dpmap(i,j)
+        case(4)
+          TIFF_image(1+3*(i-1),j) = dpmap(i,j)
+          TIFF_image(2+3*(i-1),j) = dpmap(i,j)
 
-      case(5)
-        TIFF_image(2+3*(i-1),j) = dpmap(i,j)
-        TIFF_image(3+3*(i-1),j) = dpmap(i,j)
+        case(5)
+          TIFF_image(2+3*(i-1),j) = dpmap(i,j)
+          TIFF_image(3+3*(i-1),j) = dpmap(i,j)
 
-      case(6)
-        TIFF_image(1+3*(i-1),j) = dpmap(i,j)
-        TIFF_image(3+3*(i-1),j) = dpmap(i,j)
+        case(6)
+          TIFF_image(1+3*(i-1),j) = dpmap(i,j)
+          TIFF_image(3+3*(i-1),j) = dpmap(i,j)
 
-      case(7)
-        TIFF_image(1+3*(i-1),j) = dpmap(i,j)
-        TIFF_image(2+3*(i-1),j) = dpmap(i,j)
-        TIFF_image(3+3*(i-1),j) = dpmap(i,j)
-     end select
+        case(7)
+          TIFF_image(1+3*(i-1),j) = dpmap(i,j)
+          TIFF_image(2+3*(i-1),j) = dpmap(i,j)
+          TIFF_image(3+3*(i-1),j) = dpmap(i,j)
+      end select
+    else
+      select case(dpmnl%phasecolors(phaseID(ii)))
+        case(1)
+          TIFF_image(1+3*(i-1),j) = imax
+
+        case(2)
+          TIFF_image(2+3*(i-1),j) = imax
+
+        case(3)
+          TIFF_image(3+3*(i-1),j) = imax
+
+        case(4)
+          TIFF_image(1+3*(i-1),j) = imax
+          TIFF_image(2+3*(i-1),j) = imax
+
+        case(5)
+          TIFF_image(2+3*(i-1),j) = imax
+          TIFF_image(3+3*(i-1),j) = imax
+
+        case(6)
+          TIFF_image(1+3*(i-1),j) = imax
+          TIFF_image(3+3*(i-1),j) = imax
+
+        case(7)
+          TIFF_image(1+3*(i-1),j) = imax
+          TIFF_image(2+3*(i-1),j) = imax
+          TIFF_image(3+3*(i-1),j) = imax
+       end select
+
+     end if
    end do
   end do
 
