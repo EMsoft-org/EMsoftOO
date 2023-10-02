@@ -1423,8 +1423,8 @@ if (trim(ronl%PSvariantfile).ne.'undefined') then
     call Message%printMessage('Reading pseudo-symmetry variant operators: ')
     dpfile = trim(EMsoft%getConfigParameter('EMdatapathname'))//trim(ronl%PSvariantfile)
 
-    ! this is a simple text file, similar to an euler angle file; the input should
-    ! be in quaternion format, so abort when the file does not have quaternions...
+    ! this is a simple text file, similar to an euler angle file; 
+    ! the input is either euler angles or axis-angle pair
     open(unit=53,file=trim(dpfile),status='old',action='read')
     read (53,*) anglemode
     if ((anglemode.ne.'ax').and.(anglemode.ne.'eu')) call Message%printError('EMFitOrientationPS','angle type must be eu or ax')

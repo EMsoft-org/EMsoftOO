@@ -886,11 +886,30 @@ real(kind=sgl),INTENT(IN),OPTIONAL   :: hinp(3)
 real(kind=dbl),INTENT(IN),OPTIONAL   :: hdinp(3)
 
 integer(kind=irg)                    :: ierr
+real(kind=dbl)                       :: rd
+real(kind=sgl)                       :: rs
 
 if (rotdoubleprecision) then
-  if (present(hdinp)) h%hd = hdinp
+  if (present(hdinp)) then 
+! some programs (e.g., EMFitOrientation) may request an orientation that 
+! lies just outside the homochoric sphere; in that case we return a point 
+! in the same direction but with a 180° rotation angle
+    rd = sqrt(sum(hdinp*hdinp))
+    if (rd.gt.LPs%R1) then
+      h%hd = ( hdinp/rd ) * LPs%R1
+    else
+      h%hd = hdinp
+    end if
+  end if
 else
-  if (present(hinp)) h%h = hinp
+  if (present(hinp)) then
+    rs = sqrt(sum(hinp*hinp))
+    if (rs.gt.sngl(LPs%R1)) then
+      h%h = ( hinp/rs ) * sngl(LPs%R1)
+    else
+      h%h = hinp
+    end if
+  end if
 end if
 
 if (rotationRangeCheck) ierr = h%h_check()

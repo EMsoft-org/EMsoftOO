@@ -3356,6 +3356,24 @@ do ii = 1,ipar(2)
 ! convert these direction cosines to interpolation coordinates in the Rosca-Lambert projection
         call LambertgetInterpolation(dc, scl, ipar(4), ipar(5), nix, niy, nixp, niyp, dx, dy, dxm, dym)
 
+        if ((abs(nix).gt.500).or.(abs(niy).gt.500)) then 
+          dc = (/ rgx(ii,jj),rgy(ii,jj),rgz(ii,jj) /)
+          write (*,*) '1 dc = ', dc
+! apply the grain rotation
+          dc = sngl( qq%quat_Lp( dble(dc) ) )
+          write (*,*) '2 dc = ', dc
+          call qq%quat_print()
+! apply the deformation if present
+          if (present(Fmatrix)) then
+            dc = matmul(sngl(Fmatrix), dc)
+          end if
+! and normalize the direction cosines (to remove any rounding errors)
+          dc = dc/sqrt(sum(dc**2))
+          write (*,*) '3 dc = ', dc
+          write (*,*) 'PROBLEM: ', ii, jj, scl, ipar, &
+                                   nix, niy, nixp, niyp, dx, dy, dxm, dym
+        end if 
+
 ! interpolate the intensity
         if (nobg.eqv..TRUE.) then
           if (dc(3) .ge. 0.0) then
