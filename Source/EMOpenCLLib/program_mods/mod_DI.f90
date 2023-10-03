@@ -221,7 +221,7 @@ real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,
                                                        pcavecs(:,:), pcasvs(:), dpatterns(:,:), dpatterns_tmp(:,:)
 real(kind=sgl),allocatable, target                  :: results(:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
                                                        eulerarray(:,:),eulerarray2(:,:),resultmain(:,:),resulttmp(:,:)
-integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:)
+integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:), euarray(:,:)
 integer(kind=irg),allocatable,target                :: indarray(:)
 integer*4,allocatable                               :: iexptCI(:,:), iexptIQ(:,:)
 real(kind=sgl),allocatable                          :: meandict(:),meanexpt(:),wf(:),mLPNH(:,:,:),mLPSH(:,:,:),accum_e_MC(:,:,:)
@@ -297,18 +297,7 @@ HDF = HDF_T()
 ! we've already shown the standard splash screen, so we do this one silently
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 80 /), silent=.TRUE.)
 
-! initialize the IPF map class; since we are not using an nmlfile argument here,
-! we must manually initialize the parameters in this class
-IPF = IPF_T()
 
-! here we initialize the parameters of the IPF class; we will take a default file name 
-! of IPFmapfile = 'currentIPFZmap.tiff' with the current data path pre-pended.
-IPFmapfile = 'currentIPFZmap.tiff'
-call IPF%set_IPFfilename(IPFmapfile)
-call IPF%set_sampleDir( (/ 0, 0, 1 /) )
-call IPF%set_nthreads(1)
-IPFmode = 'TSL'
-call IPF%set_IPFmode(IPFmode)
 
 ! link the proc procedure to the cproc argument
 Clinked = .FALSE.
@@ -323,6 +312,21 @@ end if
 
 ! deal with the namelist stuff
 DIFT = DIfile_T(nmldeffile)
+
+if (trim(DIFT%nml%IPFprefix).ne.'undefined') then 
+! initialize the IPF map class; since we are not using an nmlfile argument here,
+! we must manually initialize the parameters in this class
+  IPF = IPF_T()
+
+! here we initialize the parameters of the IPF class; we will take a default file name 
+! of IPFmapfile = 'IPFprefix_IPFZmap.tiff' with the current data path pre-pended.
+  IPFmapfile = trim(DIFT%nml%IPFprefix)//'_IPFZmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+  call IPF%set_nthreads(1)
+  IPFmode = 'TSL'
+  call IPF%set_IPFmode(IPFmode)
+end if
 
 ! set the HDF group names for this program
 HDFnames = HDFnames_T()
@@ -528,7 +532,7 @@ if ((trim(dinl%indexingmode).eq.'static').or.(trim(dinl%indexingmode).eq.'static
     ! we need the point group number (derived from the space group number)
     ! if MPDT%newSGnumber is set to 2, then pgnum must be set to 1 for
     ! overlap master patterns  [ added by MDG, 06/19/19 ]
-    if (MPDT%AveragedMP.eqv..TRUE.) then
+    if ((MPDT%AveragedMP.eqv..TRUE.).AND.(.not.(trim(dinl%indexingmode).eq.'staticPCA'))) then
         pgnum = MPDT%newPGnumber
         io_int = pgnum
         call Message%WriteValue(' Setting point group number to ',io_int,1)
@@ -585,7 +589,7 @@ if ((trim(dinl%indexingmode).eq.'static').or.(trim(dinl%indexingmode).eq.'static
     ! euler angle list Eulerangles
     dataset = SC_Eulerangles
     call HDF%readDatasetFloatArray(dataset, dims2, hdferr, eulerarray2)
-    eulerarray2 = eulerarray2 * rtod
+    eulerarray2 = eulerarray2 * dtor
     if (hdferr.ne.0) call HDF%error_check('HDF_readDatasetFloatArray2D:Eulerangles', hdferr)
 
 ! if this is a PCA dictionary, then we also need to read the singular values and
@@ -606,6 +610,20 @@ if ((trim(dinl%indexingmode).eq.'static').or.(trim(dinl%indexingmode).eq.'static
         end do 
         pcavecs = pcavecs / sqrt(dble(FZcnt))
       end if 
+
+! for PCA indexing we also need to create the FZarray with orientations for IPF generation
+      call mem%alloc(FZarray, (/ 4,FZcnt /), 'FZarray')
+      FZarray = 0.0
+
+      do ii = 1,FZcnt
+        eu = e_T( edinp = dble(eulerarray2(1:3,ii)) ) 
+        ro = eu%er()
+        FZarray(1:4,ii) = ro%r_copyd()
+      end do
+      io_int(1) = FZcnt
+      call Message%WriteValue(' Number of unique orientations sampled :        : ', io_int, 1, "(I8)")
+
+
     end if 
 
     ! we leave this file open since we still need to read all the patterns...
@@ -614,7 +632,9 @@ if ((trim(dinl%indexingmode).eq.'static').or.(trim(dinl%indexingmode).eq.'static
 end if
 
 ! set the point group for the intermediate IPF map generation
-call IPF%set_pgnum(pgnum)
+if (trim(DIFT%nml%IPFprefix).ne.'undefined') then 
+  call IPF%set_pgnum(pgnum)
+end if
 
 ! handle the ROI parameters
 if (sum(dinl%ROI).ne.0) then
@@ -633,11 +653,7 @@ verbose = .FALSE.
 init = .TRUE.
 Ne = dinl%numexptsingle
 Nd = dinl%numdictsingle
-if (PCA.eqv..TRUE.) then 
-  L = dinl%npc 
-else
-  L = dinl%numsx*dinl%numsy/dinl%binning**2
-end if 
+L = dinl%numsx*dinl%numsy/dinl%binning**2
 if (ROIselected.eqv..TRUE.) then
     totnumexpt = dinl%ROI(3)*dinl%ROI(4)
 else
@@ -672,7 +688,7 @@ else
     correctsize = L
 end if
 
-if (PCA.eqv..TRUE.) dinl%npc = correctsize
+! if (PCA.eqv..TRUE.) dinl%npc = correctsize
 
 ! determine the experimental and dictionary sizes in bytes
 size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
@@ -698,11 +714,22 @@ if (PCA.eqv..TRUE.) then
   call Message%WriteValue(' Number of PCA components requested ', io_int, 1)
   io_int(1) = Lnew 
   call Message%WriteValue(' Number of PCA components set to (multiple of 16) ', io_int, 1)
+  dinl%npc = correctsize_new
+! at this point we read the dpatterns array from the input file created with EMEBSDPCA
+  dataset = 'EBSDpatterns'
+  call HDF%readDatasetFloatArray(dataset, dims2, hdferr, dpatterns)
+  if (hdferr.ne.0) call HDF%error_check('HDF%readDatasetIntegerArray:dpatterns', hdferr)
+  call Message%printMessage(' Read PCA dictionary patterns')
+! we can close this file here
+  call HDF%popall()
+! and convert them to the correct size, depending on the value of Lnew
   allocate(dpatterns_tmp(Lnew,FZcnt))
   dpatterns_tmp = dpatterns(1:Lnew,1:FZcnt)
   call move_alloc(dpatterns_tmp, dpatterns)
 ! redefine some of the recordsize parameters
   recordsize_correct_new = correctsize_new * 4
+  binx = dinl%exptnumsx/dinl%binning
+  biny = dinl%exptnumsy/dinl%binning
 end if 
 
 ! do a quick sanity check for the requested GPU memory
@@ -880,12 +907,13 @@ call CL%error_check('InnerProdGPU:clReleaseProgram', ierr)
 !=========================================
 call Message%printMessage(' --> Allocating various arrays for indexing')
 
+! call mem%toggle_verbose() 
+
 call mem%alloc(expt, (/ Ne*correctsize /), 'expt', initval = 0.0)
 call mem%alloc(dict1, (/ Nd*correctsize /), 'dict1', initval = 0.0)
 call mem%alloc(dict2, (/ Nd*correctsize /), 'dict2', initval = 0.0)
 dict => dict1
 call mem%alloc(results, (/ Ne*Nd /), 'results', initval = 0.0)
-call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
 call mem%alloc(masklin, (/ L /), 'masklin', initval = 0.0)
 call mem%alloc(imageexpt, (/ L /), 'imageexpt', initval = 0.0) 
 call mem%alloc(imageexptflt, (/ correctsize /), 'imageexptflt', initval = 0.0)
@@ -893,7 +921,6 @@ call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
 call mem%alloc(meandict, (/ correctsize /), 'meandict', initval = 0.0)
 call mem%alloc(meanexpt, (/ correctsize /), 'meanexpt', initval = 0.0) 
 call mem%alloc(imagedict, (/ correctsize /), 'imagedict', initval = 0.0)
-call mem%alloc(pattern, (/ binx,biny /), 'pattern', initval = 0.0)
 call mem%alloc(resultarray, (/ Nd /), 'resultarray', initval = 0.0)
 call mem%alloc(indexarray, (/ Nd /), 'indexarray', initval = 0)
 call mem%alloc(indexlist, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist')
@@ -914,6 +941,8 @@ end if
 call mem%alloc(exptIQ, (/ totnumexpt /), 'exptIQ')
 call mem%alloc(exptCI, (/ totnumexpt /), 'exptCI') 
 call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
+call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
+call mem%alloc(pattern, (/ binx,biny /), 'pattern', initval = 0.0)
 call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
 call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
 
@@ -985,11 +1014,13 @@ else
 end if
 
 ! convert the mask to a linear (1D) array
-do ii = 1,biny
-    do jj = 1,binx
-        masklin((ii-1)*binx+jj) = mask(jj,ii)
-    end do
-end do
+if (PCA.eqv..FALSE.) then 
+  do ii = 1,biny
+      do jj = 1,binx
+          masklin((ii-1)*binx+jj) = mask(jj,ii)
+      end do
+  end do
+end if
 
 !=====================================================
 ! Preprocess all the experimental patterns and store
@@ -1081,15 +1112,17 @@ if (PCA.eqv..TRUE.) then
   deallocate(YYYY, ep)
   call Message%printMessage('   ---> done')
 ! reset some of the array size parameters to the corrected values for PCA mode
-  correctsize = correctsize_new
   close(itmpexpt,status='delete')
   close(itmpexpt2,status='keep')
 ! next move the PCA tmp file to the old tmp file
   ierr = system_rename(trim(fname2), fname)
 ! and open this file again with the correct record length
+  correctsize = correctsize_new
   recordsize_correct = Lnew*4
   open(unit=itmpexpt,file=trim(fname),&
      status='old',form='unformatted',access='direct',recl=recordsize_correct,iostat=ierr)
+  call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
+  call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
 end if 
 
 ! we will leave the itmpexpt file open, since we'll be reading from it again...
@@ -1230,6 +1263,7 @@ dictionaryloop: do ii = 1,cratio+1
         expt = 0.0
 
         do pp = 1,ppendE(jj)   ! Ne or MODULO(totnumexpt,Ne)
+          write (*,*) '  reading : ', pp, ppendE(jj)
           read(itmpexpt,rec=(jj-1)*Ne+pp) tmpimageexpt
           expt((pp-1)*correctsize+1:pp*correctsize) = tmpimageexpt
         end do
@@ -1303,42 +1337,44 @@ dictionaryloop: do ii = 1,cratio+1
               call Message%WriteValue('',io_int,4,"(' -> Completed cycle ',I5,' out of ',I5,'; est. remaining time ', &
                                       I4,' hrs',I3,' min')")
           end if
+          if (trim(dinl%IPFprefix).ne.'undefined') then 
 ! here we insert code to generate color IPF maps with the current indexing results;
 ! as the indexing proceeds, an increasing number of grains will stay the same color.
 ! First we put the current indexing results in the qAR array and then we update the IPF map files
-          do icnt=1,totnumexpt
-            ro = r_T( rdinp = dble(FZarray(1:4,indexmain(1,icnt)) ) )
-            qqq = ro%rq()
-            ququ = quaternion_T( qd = qqq%q_copyd() )
-            call qAR%insertQuatinArray( icnt, ququ )
-          end do 
+            do icnt=1,totnumexpt
+              ro = r_T( rdinp = dble(FZarray(1:4,indexmain(1,icnt)) ) )
+              qqq = ro%rq()
+              ququ = quaternion_T( qd = qqq%q_copyd() )
+              call qAR%insertQuatinArray( icnt, ququ )
+            end do 
 ! note the switch of x and y to get the same IPF map convention as DREAM.3D
-          if (ROIselected.eqv..TRUE.) then
-            IPFmapfile = 'currentIPFXmap.tiff'
-            call IPF%set_IPFfilename(IPFmapfile)
-            call IPF%set_sampleDir( (/ 0, 1, 0 /) )
-            call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
-            IPFmapfile = 'currentIPFYmap.tiff'
-            call IPF%set_IPFfilename(IPFmapfile)
-            call IPF%set_sampleDir( (/ 1, 0, 0 /) )
-            call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
-            IPFmapfile = 'currentIPFZmap.tiff'
-            call IPF%set_IPFfilename(IPFmapfile)
-            call IPF%set_sampleDir( (/ 0, 0, 1 /) )
-            call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
-          else
-            IPFmapfile = 'currentIPFXmap.tiff'
-            call IPF%set_IPFfilename(IPFmapfile)
-            call IPF%set_sampleDir( (/ 0, 1, 0 /) )
-            call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
-            IPFmapfile = 'currentIPFYmap.tiff'
-            call IPF%set_IPFfilename(IPFmapfile)
-            call IPF%set_sampleDir( (/ 1, 0, 0 /) )
-            call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
-            IPFmapfile = 'currentIPFZmap.tiff'
-            call IPF%set_IPFfilename(IPFmapfile)
-            call IPF%set_sampleDir( (/ 0, 0, 1 /) )
-            call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+            if (ROIselected.eqv..TRUE.) then
+              IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
+              call IPF%set_IPFfilename(IPFmapfile)
+              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+              call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+              IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
+              call IPF%set_IPFfilename(IPFmapfile)
+              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+              call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+              IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
+              call IPF%set_IPFfilename(IPFmapfile)
+              call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+              call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+            else
+              IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
+              call IPF%set_IPFfilename(IPFmapfile)
+              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+              call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+              IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
+              call IPF%set_IPFfilename(IPFmapfile)
+              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+              call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+              IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
+              call IPF%set_IPFfilename(IPFmapfile)
+              call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+              call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+            end if
           end if
         end if
       end if
@@ -1448,39 +1484,28 @@ dictionaryloop: do ii = 1,cratio+1
       end do
 !$OMP END PARALLEL DO
       call memth%dealloc(binned, 'binned', TID=TID)
-    else  ! we are doing static indexing, so only 2 threads in total
-
-! get a set of patterns from the precomputed dictionary file...
-! we'll use a hyperslab to read a block of preprocessed patterns from file
-
-      ! if (TID .ne. 0) then
-! read data from the hyperslab
-       dataset = SC_patterns
-       dims2 = (/ correctsize, ppend(ii) /)
-       offset2 = (/ 0, (ii-1)*Nd /)
-
-       if (allocated(dictpatflt)) deallocate(dictpatflt)
-       dictpatflt = HDF%readHyperslabFloatArray2D(dataset, offset2, dims2)
+    else  ! we are doing static or staticPCA indexing, so only 2 threads in total
 
        if (PCA.eqv..TRUE.) then 
-
+! we've already read all the patterns into the dpatterns array so we copy
+! the necessary subset into the 1-D dict array
+         do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
+           dict((pp-1)*correctsize+1:pp*correctsize) = dpatterns(1:correctsize, (ii-1)*Nd+pp)
+         end do
        else
+! read data from the hyperslab
+         dataset = SC_patterns
+         dims2 = (/ correctsize, ppend(ii) /)
+         offset2 = (/ 0, (ii-1)*Nd /)
+
+         if (allocated(dictpatflt)) deallocate(dictpatflt)
+         dictpatflt = HDF%readHyperslabFloatArray2D(dataset, offset2, dims2)
          do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
            dict((pp-1)*correctsize+1:pp*correctsize) = dictpatflt(1:correctsize,pp)
          end do
        end if
      end if
-    ! end if
 
-    ! if (verbose.eqv..TRUE.) then
-    !    io_int(1) = TID
-    !    call Message%WriteValue('',io_int,1,"('       Thread ',I2,' is done')")
-    ! end if
-   ! else
-   !  if (verbose.eqv..TRUE.) then
-   !     io_int(1) = TID
-   !     call Message%WriteValue('',io_int,1,"('       Thread ',I2,' idling')")
-   !  end if
    end if
 
    call memth%dealloc(patterninteger, 'patterninteger', TID=TID)
@@ -1498,38 +1523,40 @@ if (cancelled.eqv..TRUE.) EXIT dictionaryloop
 
 end do dictionaryloop
 
-do icnt=1,totnumexpt
-  ro = r_T( rdinp = dble(FZarray(1:4,indexmain(1,icnt)) ) )
-  qqq = ro%rq()
-  ququ = quaternion_T( qd = qqq%q_copyd() )
-  call qAR%insertQuatinArray( icnt, ququ )
-end do 
-if (ROIselected.eqv..TRUE.) then
-  IPFmapfile = 'currentIPFXmap.tiff'
-  call IPF%set_IPFfilename(IPFmapfile)
-  call IPF%set_sampleDir( (/ 0, 1, 0 /) )
-  call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
-  IPFmapfile = 'currentIPFYmap.tiff'
-  call IPF%set_IPFfilename(IPFmapfile)
-  call IPF%set_sampleDir( (/ 1, 0, 0 /) )
-  call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
-  IPFmapfile = 'currentIPFZmap.tiff'
-  call IPF%set_IPFfilename(IPFmapfile)
-  call IPF%set_sampleDir( (/ 0, 0, 1 /) )
-  call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
-else
-  IPFmapfile = 'currentIPFXmap.tiff'
-  call IPF%set_IPFfilename(IPFmapfile)
-  call IPF%set_sampleDir( (/ 0, 1, 0 /) )
-  call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
-  IPFmapfile = 'currentIPFYmap.tiff'
-  call IPF%set_IPFfilename(IPFmapfile)
-  call IPF%set_sampleDir( (/ 1, 0, 0 /) )
-  call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
-  IPFmapfile = 'currentIPFZmap.tiff'
-  call IPF%set_IPFfilename(IPFmapfile)
-  call IPF%set_sampleDir( (/ 0, 0, 1 /) )
-  call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+if (trim(dinl%IPFprefix).ne.'undefined') then 
+  do icnt=1,totnumexpt
+    ro = r_T( rdinp = dble(FZarray(1:4,indexmain(1,icnt)) ) )
+    qqq = ro%rq()
+    ququ = quaternion_T( qd = qqq%q_copyd() )
+    call qAR%insertQuatinArray( icnt, ququ )
+  end do 
+  if (ROIselected.eqv..TRUE.) then
+    IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
+    call IPF%set_IPFfilename(IPFmapfile)
+    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+    call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+    IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
+    call IPF%set_IPFfilename(IPFmapfile)
+    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+    call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+    IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
+    call IPF%set_IPFfilename(IPFmapfile)
+    call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+    call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
+  else
+    IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
+    call IPF%set_IPFfilename(IPFmapfile)
+    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+    call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+    IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
+    call IPF%set_IPFfilename(IPFmapfile)
+    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+    call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+    IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
+    call IPF%set_IPFfilename(IPFmapfile)
+    call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+    call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
+  end if
 end if
 
 !-----
@@ -2134,6 +2161,7 @@ size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
 size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
 recordsize_correct = correctsize*4
 patsz              = correctsize
+
 
 !====================================
 !====PCA run?========================

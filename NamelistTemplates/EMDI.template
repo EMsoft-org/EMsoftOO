@@ -64,6 +64,14 @@
  lambda = 0.375,
 
 !###################################################################
+! OPTIONAL: generate intermediate IPF maps for [100], [010], and [001]
+!###################################################################
+! provide a file prefix without extension
+! program will generate prefix-IPFX.tiff etc files...
+! leave set to 'undefined' if no IPF maps are needed.
+ IPFprefix = 'undefined',
+
+!###################################################################
 ! ONLY SPECIFY WHEN INDEXINGMODE IS 'DYNAMIC'
 !###################################################################
 !

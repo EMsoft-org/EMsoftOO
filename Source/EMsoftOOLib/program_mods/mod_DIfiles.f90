@@ -100,6 +100,7 @@ type, public :: DictionaryIndexingNameListType
   character(3)       :: CPUGPU
   character(1)       :: keeptmpfile
   character(1)       :: usetmpfile
+  character(fnlen)   :: IPFprefix
   character(fnlen)   :: exptfile
   character(fnlen)   :: masterfile
   character(fnlen)   :: energyfile
@@ -511,6 +512,7 @@ character(3)       :: scalingmode
 character(3)       :: Notify
 character(3)       :: similaritymetric
 character(3)       :: CPUGPU
+character(fnlen)   :: IPFprefix
 character(fnlen)   :: dotproductfile
 character(fnlen)   :: masterfile
 character(fnlen)   :: tmpfile
@@ -544,7 +546,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, CPUGPU, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
-                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix
 
 namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
                      beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
@@ -606,6 +608,7 @@ ipf_ht          = 100
 ipf_wd          = 100
 nthreads        = 1
 CPUGPU          = 'GPU'
+IPFprefix       = 'undefined'
 datafile        = 'undefined'
 ctffile         = 'undefined'
 avctffile       = 'undefined'
@@ -707,6 +710,7 @@ self%nml%maskradius    = maskradius
 self%nml%numdictsingle = numdictsingle
 self%nml%numexptsingle = numexptsingle
 self%nml%hipassw       = hipassw
+self%nml%IPFprefix     = trim(IPFprefix)
 self%nml%masterfile    = trim(masterfile)
 self%nml%energyfile    = trim(masterfile)
 self%nml%maskfile      = trim(maskfile)
@@ -927,6 +931,11 @@ dataset = SC_energyfile
 line2(1) = emnl%energyfile
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create energyfile dataset', hdferr)
+
+dataset = 'IPFprefix'
+line2(1) = emnl%IPFprefix
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create IPFprefix dataset', hdferr)
 
 dataset = SC_datafile
 line2(1) = emnl%datafile
