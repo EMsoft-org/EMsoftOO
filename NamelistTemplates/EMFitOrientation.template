@@ -3,6 +3,18 @@
  nthreads = 1,
 ! name of input dot product HDF5 file
  dotproductfile = 'undefined',
+! name of new dot product file; if defined, then the input dotproductfile will be 
+! copied to the newdotproductfile, and a different master pattern file will be used.
+! currently this has only been tested for EBSD data set refinements
+!
+! Example:  
+!   dotproductfile = 'dp1.h5' is a dot product file indexed with the ferrite master pattern
+!   usemasterpatternfile = 'Febct-master-1.h5' is a master pattern file for martensite with c/a = 1.01
+!   newdotproductfile = 'dp2.h5' is a new dot product file with the initial orientations from dp1.h5,
+!                       but will be refined with the new master pattern
+! 
+ newdotproductfile = 'undefined',
+ usemasterpatternfile = 'undefined',
 ! name of ctf output file for refined orientations
  ctffile = 'undefined',
 ! name of ang output file for refined orientations

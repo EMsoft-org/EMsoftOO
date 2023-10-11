@@ -766,9 +766,9 @@ end if
 
 ! ensure that PatternAxisA and HorizontalAxisA are orthogonal vectors
 ! make sure that these two directions are orthogonal
-if (abs(cellA%CalcDot(float(enl%PatternAxisA),float(enl%HorizontalAxisA),'d')).gt.1.e-6) then
-  call Message%printError('MPoverlap','PatternAxisA and HorizontalAxisA must be orthogonal !!!')
-end if
+! if (abs(cellA%CalcDot(float(enl%PatternAxisA),float(enl%HorizontalAxisA),'d')).gt.1.e-6) then
+!   call Message%printError('MPoverlap','PatternAxisA and HorizontalAxisA must be orthogonal !!!')
+! end if
 
 ! check the OR for orthogonality
 if (sum(enl%gA*enl%tA).ne.0.0) then

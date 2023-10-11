@@ -1263,7 +1263,6 @@ dictionaryloop: do ii = 1,cratio+1
         expt = 0.0
 
         do pp = 1,ppendE(jj)   ! Ne or MODULO(totnumexpt,Ne)
-          write (*,*) '  reading : ', pp, ppendE(jj)
           read(itmpexpt,rec=(jj-1)*Ne+pp) tmpimageexpt
           expt((pp-1)*correctsize+1:pp*correctsize) = tmpimageexpt
         end do
@@ -1723,7 +1722,7 @@ call mem%dealloc(OSMmap, 'OSMmap')
       MessageLines(2) = ' Indexed data stored in '//trim(dinl%datafile)
       write (exectime,"(F15.0)") tstop
       MessageLines(3) = ' Total execution time [s]: '//trim(exectime)
-      TitleMessage = ' EMsoft on '//trim(c)
+      TitleMessage = ' EMsoftOO on '//trim(c)
       i = PostMessage(EMsoft, MessageLines, NumLines, TitleMessage)
     end if
   end if

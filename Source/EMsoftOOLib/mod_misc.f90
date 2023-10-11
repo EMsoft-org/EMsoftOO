@@ -533,6 +533,7 @@ recursive function ComputeOR(orel, cellA, cellB, direction) result(TT)
 use mod_math
 use mod_io
 use mod_crystallography
+use mod_rotations
 
 IMPLICIT NONE
 
@@ -543,10 +544,15 @@ character(2),INTENT(IN)                  :: direction
  !! direction of transformation (AB or BA)
 real(kind=sgl)                           :: TT(3,3)
 
+type(o_T)                                :: o
+type(q_T)                                :: q 
+
 type(IO_T)                               :: Message
 real(kind=sgl)                           :: r(3), p(3), Ep(3,3), E(3,3), io_real(3), dsm(3,3)
 real(kind=dbl)                           :: dE(3,3)
 integer(kind=irg)                        :: i
+
+call setRotationPrecision('d')
 
 ! compute E matrix  [page 74]
  call cellA%TransSpace(orel % gA,r,'r','d')
@@ -589,6 +595,10 @@ integer(kind=irg)                        :: i
   io_real(1:3) = TT(i,1:3)
   call Message%WriteValue('', io_real, 3)
  end do
+ o = o_T( odinp = dble(TT) )
+ q = o%oq()
+ call q%q_print(' Quaternion value : ')
+
  call Message%printMessage(' --- ', frm = "(A)")
 
 end function ComputeOR

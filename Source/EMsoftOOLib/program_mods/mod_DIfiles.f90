@@ -434,7 +434,6 @@ call HDF%popall()
 
 end subroutine readDIModality_
 
-
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly, inRAM)
 !DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
@@ -1002,7 +1001,7 @@ recursive subroutine readDotProductFile_(self, EMsoft, HDF, HDFnames, dpfile, hd
                                          getEulerAngles, getFit, getIQ, getKAM, getOSM, getPhase, getPhi1, &
                                          getPhi, getPhi2, getSEMsignal, getTopDotProductList, getTopMatchIndices, &
                                          getValid, getXPosition, getYPosition, getRefinedDotProducts, &
-                                         getRefinedEulerAngles, getDictionaryEulerAngles)
+                                         getRefinedEulerAngles, getDictionaryEulerAngles, setMPfile)
 !DEC$ ATTRIBUTES DLLEXPORT :: readDotProductFile_
 !! author: MDG
 !! version: 1.0
@@ -1046,6 +1045,7 @@ logical,INTENT(IN),OPTIONAL                         :: getXPosition
 logical,INTENT(IN),OPTIONAL                         :: getYPosition
 logical,INTENT(IN),OPTIONAL                         :: getRefinedDotProducts
 logical,INTENT(IN),OPTIONAL                         :: getRefinedEulerAngles
+character(fnlen),INTENT(IN),OPTIONAL                :: setMPfile
 
 type(IO_T)                                          :: Message
 type(HDFnames_T)                                    :: saveHDFnames
@@ -1159,6 +1159,11 @@ if (g_exists.eqv..TRUE.) then
     open(unit=65,file=trim(tmpnmlname),status='unknown',form='formatted')
     close(unit=65,status='delete')
     call HDF%pop()
+! if the setMPfile parameter is present, then we need to redefine the masterfile
+! entry in the namelist 
+    if (present(setMPfile)) then 
+      self%nml%masterfile = trim( setMPfile )
+    end if 
 end if
 !====================================
 !====================================

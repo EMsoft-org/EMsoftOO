@@ -43,6 +43,8 @@ type, public :: FitOrientationNameListType
   integer(kind=irg) :: nthreads
   integer(kind=irg) :: matchdepth
   character(fnlen)  :: dotproductfile
+  character(fnlen)  :: newdotproductfile
+  character(fnlen)  :: usemasterpatternfile
   character(fnlen)  :: ctffile
   character(fnlen)  :: angfile
   character(fnlen)  :: tmpfile
@@ -74,6 +76,8 @@ private
   procedure, pass(self) :: get_nthreads_
   procedure, pass(self) :: get_matchdepth_
   procedure, pass(self) :: get_dotproductfile_
+  procedure, pass(self) :: get_newdotproductfile_
+  procedure, pass(self) :: get_usemasterpatternfile_
   procedure, pass(self) :: get_ctffile_
   procedure, pass(self) :: get_angfile_
   procedure, pass(self) :: get_tmpfile_
@@ -86,6 +90,8 @@ private
   procedure, pass(self) :: get_niter_
   procedure, pass(self) :: set_nthreads_
   procedure, pass(self) :: set_matchdepth_
+  procedure, pass(self) :: set_newdotproductfile_
+  procedure, pass(self) :: set_usemasterpatternfile_
   procedure, pass(self) :: set_dotproductfile_
   procedure, pass(self) :: set_ctffile_
   procedure, pass(self) :: set_angfile_
@@ -105,6 +111,8 @@ private
   generic, public :: get_nthreads => get_nthreads_
   generic, public :: get_matchdepth => get_matchdepth_
   generic, public :: get_dotproductfile => get_dotproductfile_
+  generic, public :: get_newdotproductfile => get_newdotproductfile_
+  generic, public :: get_usemasterpatternfile => get_usemasterpatternfile_
   generic, public :: get_ctffile => get_ctffile_
   generic, public :: get_angfile => get_angfile_
   generic, public :: get_tmpfile => get_tmpfile_
@@ -118,6 +126,8 @@ private
   generic, public :: set_nthreads => set_nthreads_
   generic, public :: set_matchdepth => set_matchdepth_
   generic, public :: set_dotproductfile => set_dotproductfile_
+  generic, public :: set_newdotproductfile => set_newdotproductfile_
+  generic, public :: set_usemasterpatternfile => set_usemasterpatternfile_
   generic, public :: set_ctffile => set_ctffile_
   generic, public :: set_angfile => set_angfile_
   generic, public :: set_tmpfile => set_tmpfile_
@@ -199,6 +209,8 @@ logical                              :: skipread = .FALSE.
 integer(kind=irg)   :: nthreads
 integer(kind=irg)   :: matchdepth
 character(fnlen)    :: dotproductfile
+character(fnlen)    :: newdotproductfile
+character(fnlen)    :: usemasterpatternfile
 character(fnlen)    :: ctffile
 character(fnlen)    :: angfile
 character(fnlen)    :: tmpfile
@@ -215,11 +227,14 @@ character(fnlen)    :: PCcorrection
 real(kind=sgl)      :: truedelta
 
 namelist / RefineOrientations / nthreads, dotproductfile, ctffile, modality, nmis, niter, step, inRAM, method, &
-                                matchdepth, PSvariantfile, tmpfile, angfile, initialx, initialy, PCcorrection, truedelta
+                                matchdepth, PSvariantfile, tmpfile, angfile, initialx, initialy, PCcorrection, truedelta, &
+                                usemasterpatternfile, newdotproductfile
 
 nthreads = 1
 matchdepth = 1
 dotproductfile = 'undefined'
+newdotproductfile = 'undefined'
+usemasterpatternfile = 'undefined'
 ctffile = 'undefined'
 angfile = 'undefined'
 tmpfile = 'undefined'
@@ -257,11 +272,18 @@ if (.not.skipread) then
     if (trim(tmpfile).eq.'undefined') then
         call Message%printError('readNameList:',' tmp file name is undefined in '//nmlfile)
     end if
+
+    if ( (trim(newdotproductfile).ne.'undefined').and.(trim(usemasterpatternfile).eq.'undefined')) then 
+        call Message%printError('readNameList:','  newdotproductfile requires usemasterpatternfile in '//nmlfile)
+    end if
+
 end if
 
 self%nml%nthreads = nthreads
 self%nml%matchdepth = matchdepth
 self%nml%dotproductfile = dotproductfile
+self%nml%newdotproductfile = newdotproductfile
+self%nml%usemasterpatternfile = usemasterpatternfile
 self%nml%ctffile = ctffile
 self%nml%angfile = angfile
 self%nml%tmpfile = tmpfile
@@ -384,6 +406,26 @@ else
   hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 end if
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create dotproductfile dataset',hdferr)
+
+dataset = 'newdotproductfile'
+line2(1) = ronl%newdotproductfile
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create newdotproductfile dataset',hdferr)
+
+dataset = 'usemasterpatternfile'
+line2(1) = ronl%usemasterpatternfile
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create usemasterpatternfile dataset',hdferr)
 
 dataset = 'ctffile'
 line2(1) = ronl%ctffile
@@ -547,9 +589,81 @@ IMPLICIT NONE
 class(FitOrientation_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)               :: inp
 
-self%nml%dotproductfile = inp
+self%nml%dotproductfile = trim(inp)
 
 end subroutine set_dotproductfile_
+
+!--------------------------------------------------------------------------
+function get_newdotproductfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_newdotproductfile_
+!! author: MDG
+!! version: 1.0
+!! date: 04/08/20
+!!
+!! get newdotproductfile from the FitOrientation_T class
+
+IMPLICIT NONE
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%newdotproductfile
+
+end function get_newdotproductfile_
+
+!--------------------------------------------------------------------------
+subroutine set_newdotproductfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_newdotproductfile_
+!! author: MDG
+!! version: 1.0
+!! date: 04/08/20
+!!
+!! set newdotproductfile in the FitOrientation_T class
+
+IMPLICIT NONE
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%newdotproductfile = inp
+
+end subroutine set_newdotproductfile_
+
+!--------------------------------------------------------------------------
+function get_usemasterpatternfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_usemasterpatternfile_
+!! author: MDG
+!! version: 1.0
+!! date: 04/08/20
+!!
+!! get usemasterpatternfile from the FitOrientation_T class
+
+IMPLICIT NONE
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%usemasterpatternfile
+
+end function get_usemasterpatternfile_
+
+!--------------------------------------------------------------------------
+subroutine set_usemasterpatternfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dotproductfile_
+!! author: MDG
+!! version: 1.0
+!! date: 04/08/20
+!!
+!! set usemasterpatternfile in the FitOrientation_T class
+
+IMPLICIT NONE
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%usemasterpatternfile = inp
+
+end subroutine set_usemasterpatternfile_
 
 !--------------------------------------------------------------------------
 function get_ctffile_(self) result(out)
@@ -947,6 +1061,7 @@ use mod_memory
 use mod_io
 use omp_lib
 use mod_OMPsupport
+use mod_platformsupport
 use mod_bobyqa_refinement,only:bobyqa
 use mod_FitOrientations,only:EMFitOrientationcalfunEBSD
 use stringconstants
@@ -1020,7 +1135,7 @@ logical                                 :: verbose
 logical                                 :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
                                            isECP=.FALSE., switchwfoff, set2zero=.FALSE.
 integer(kind=irg),parameter             :: iunitexpt = 41, itmpexpt = 42
-integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo 
+integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo, status 
 real(kind=sgl),allocatable              :: tmpimageexpt(:), EBSDPattern(:,:), mask(:,:), masklin(:), imageexpt(:)
 real(kind=sgl),allocatable              :: imagedictflt(:), exppatarray(:)
 real(kind=sgl),allocatable              :: EBSDpatternintd(:,:), binned(:,:), euler_best(:,:)
@@ -1075,13 +1190,25 @@ verbose = .FALSE.
 call openFortranHDFInterface()
 HDF = HDF_T()
 
+! are we doing a regular refinement, or are we using a different dot product file and a 
+! new master pattern file to use a previous indexing as starting point ?
+if (trim(ronl%newdotproductfile).ne.'undefined') then 
+! first copy the old dotproduct file into the new one and reset the dotproductfile parameter
+  fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%dotproductfile)
+  ename = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%newdotproductfile)
+  status = system_system('cp '//trim(fname)//' '//trim(ename))
+  call self%set_dotproductfile_( ronl%newdotproductfile ) 
+  write (*,*) 'dot product file set to '//trim(ronl%dotproductfile)
+end if 
+DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%dotproductfile)
+
 ! first we need to get the DIModality from the dot product file; this then
 ! determines a number of other parameters, including the HDFnames as well
 ! as the various arrays that we can read from the DI file
-DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%dotproductfile)
 DIFT = DIfile_T()
 call DIFT%readDIModality(HDF, DIfile)
 modalityname = DIFT%getModality()
+
 ! maybe this is an old dot product file (pre-6.0) so we use the modality switch in the 
 ! namelist for this program to set the modality 
 if (trim(modalityname).eq.'unknown') then    
@@ -1106,13 +1233,24 @@ memth = memory_T( nt = ronl%nthreads )
 !====================================
 if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD') )  then
   if ( (ronl%matchdepth.eq.1).or.(trim(ronl%method).eq.'SUB') ) then 
-    call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
-                                 getCI=.TRUE., &
-                                 getIQ=.TRUE., &
-                                 getOSM=.TRUE., &
-                                 getPhi1=.TRUE., &
-                                 getPhi=.TRUE., &
-                                 getPhi2=.TRUE.)
+    if (trim(ronl%newdotproductfile).eq.'undefined') then 
+      call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
+                                   getCI=.TRUE., &
+                                   getIQ=.TRUE., &
+                                   getOSM=.TRUE., &
+                                   getPhi1=.TRUE., &
+                                   getPhi=.TRUE., &
+                                   getPhi2=.TRUE.)
+    else
+      call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
+                                   getCI=.TRUE., &
+                                   getIQ=.TRUE., &
+                                   getOSM=.TRUE., &
+                                   getPhi1=.TRUE., &
+                                   getPhi=.TRUE., &
+                                   getPhi2=.TRUE., &
+                                   setMPfile=ronl%usemasterpatternfile)
+    end if
 
     w = dinl%hipassw
     Nexp = DIDT%Nexp
@@ -1124,13 +1262,24 @@ if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD') )  then
     euler_bestmatch(3,1,1:Nexp) = DIDT%Phi2(1:Nexp)
     deallocate(DIDT%Phi1,DIDT%Phi,DIDT%Phi2)
   else
-    call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
-                                 getCI=.TRUE., &
-                                 getIQ=.TRUE., &
-                                 getOSM=.TRUE., &
-                                 getEulerAngles=.TRUE., &
-                                 getDictionaryEulerAngles=.TRUE., &
-                                 getTopMatchIndices=.TRUE.)
+    if (trim(ronl%newdotproductfile).eq.'undefined') then 
+      call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
+                                   getCI=.TRUE., &
+                                   getIQ=.TRUE., &
+                                   getOSM=.TRUE., &
+                                   getEulerAngles=.TRUE., &
+                                   getDictionaryEulerAngles=.TRUE., &
+                                   getTopMatchIndices=.TRUE.)
+    else
+      call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
+                                   getCI=.TRUE., &
+                                   getIQ=.TRUE., &
+                                   getOSM=.TRUE., &
+                                   getEulerAngles=.TRUE., &
+                                   getDictionaryEulerAngles=.TRUE., &
+                                   getTopMatchIndices=.TRUE., &
+                                   setMPfile=ronl%usemasterpatternfile)
+    end if
 
     w = dinl%hipassw
     Nexp = DIDT%Nexp
