@@ -5,4 +5,6 @@
  projectionmode = 'stereographic',
 ! name of tiff output image file WITHOUT EXTENSION (i.e., no .tiff) (relative to EMdatapathname)
  outputfile = 'undefined',
+! generate a ratio image as well ? (this might be useful for non-centrosymmetric structures)
+ ratioimage = .FALSE.,
  /

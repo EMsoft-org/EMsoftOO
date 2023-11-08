@@ -43,6 +43,7 @@ type, public :: getMPNameListType
   character(fnlen)  :: masterfile
   character(fnlen)  :: projectionmode
   character(fnlen)  :: outputfile
+  logical           :: ratioimage
 end type getMPNameListType
 
 ! class definition
@@ -142,12 +143,14 @@ logical                              :: skipread = .FALSE.
 character(fnlen)  :: masterfile
 character(fnlen)  :: projectionmode
 character(fnlen)  :: outputfile
+logical           :: ratioimage
 
-namelist / getMPlist / masterfile, projectionmode, outputfile
+namelist / getMPlist / masterfile, projectionmode, outputfile, ratioimage
 
 masterfile = 'undefined'
 projectionmode = 'stereographic'
 outputfile = 'undefined'
+ratioimage = .FALSE.
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -171,6 +174,7 @@ end if
 self%nml%masterfile = trim(masterfile)
 self%nml%projectionmode = trim(projectionmode)
 self%nml%outputfile = trim(outputfile)
+self%nml%ratioimage = ratioimage
 
 end subroutine readNameList_
 
@@ -337,9 +341,9 @@ type(HDFnames_T)                        :: HDFnames
 type(Lambert_T)                         :: L
 type(SEMmasterNameListType)             :: mpnl
 
-character(fnlen)                        :: fname, modality, TIFF_filename1, TIFF_filename2
+character(fnlen)                        :: fname, modality, TIFF_filename1, TIFF_filename2, TIFF_filename3
 integer(kind=irg)                       :: i, j, ierr, n, d, TIFF_nx, TIFF_ny
-real(kind=sgl),allocatable              :: mLPNH(:,:), mLPSH(:,:), weights(:), masterSPNH(:,:), masterSPSH(:,:)
+real(kind=sgl),allocatable              :: mLPNH(:,:), mLPSH(:,:), weights(:), masterSPNH(:,:), masterSPSH(:,:), ratio(:,:)
 real(kind=sgl)                          :: avNH, avSH, mi, ma, xyzs(3)
 real(kind=dbl)                          :: xyz(3), Radius
 
@@ -349,7 +353,7 @@ character(len=128)                      :: iomsg
 logical                                 :: isInteger
 type(image_t)                           :: im
 integer(int8)                           :: i8 (3,4)
-integer(int8), allocatable              :: TIFF_image1(:,:), TIFF_image2(:,:)
+integer(int8), allocatable              :: TIFF_image1(:,:), TIFF_image2(:,:), TIFF_ratio(:,:)
 
 
 associate(enl=>self%nml, MCDT=>MCFT%MCDT, MPDT=>MPFT%MPDT)
@@ -426,7 +430,7 @@ fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(enl%outputfile)
 TIFF_nx = 2*d+1
 TIFF_ny = 2*d+1
 ! allocate memory for image
-allocate(TIFF_image1(TIFF_nx,TIFF_ny),TIFF_image2(TIFF_nx,TIFF_ny))
+allocate(TIFF_image1(TIFF_nx,TIFF_ny),TIFF_image2(TIFF_nx,TIFF_ny),TIFF_ratio(TIFF_nx,TIFF_ny))
 
 if (trim(enl%projectionmode).eq.'modifiedLambert') then
 ! this is the standard mode for master patterns, so no conversion necessary
@@ -439,6 +443,15 @@ if (trim(enl%projectionmode).eq.'modifiedLambert') then
   ma = maxval(mLPSH)
   mi = minval(mLPSH)
   TIFF_image2 = int(255 * (mLPSH - mi)/ (ma-mi))
+
+! the ratio image can be useful if the structure is non-centrosymmetric 
+  if (enl%ratioimage.eqv..TRUE.) then 
+    TIFF_filename3 = trim(fname) //'_ratio.tiff'
+    mLPNH = mLPNH / mLPSH 
+    ma = maxval(mLPNH)
+    mi = minval(mLPNH)
+    TIFF_ratio = int(255 * (mLPNH - mi)/ (ma-mi))
+  end if 
 else
   if (trim(enl%projectionmode).eq.'stereographic') then
     TIFF_filename1 = trim(fname) //'_SPNH.tiff'
@@ -487,6 +500,15 @@ else
   mi = minval(masterSPSH)
   TIFF_image2 = int(255 * (masterSPSH - mi)/ (ma-mi))
 
+! the ratio image can be useful if the structure is non-centrosymmetric 
+  if (enl%ratioimage.eqv..TRUE.) then 
+    TIFF_filename3 = trim(fname) //'_ratio.tiff'
+    masterSPNH = masterSPNH / masterSPSH 
+    ma = maxval(masterSPNH)
+    mi = minval(masterSPNH)
+    TIFF_ratio = int(255 * (masterSPNH - mi)/ (ma-mi))
+  end if 
+
   deallocate(masterSPSH, masterSPNH)
 end if
 ! set up the image_t structure
@@ -512,7 +534,20 @@ else
   call Message%printMessage(' projection written to '//trim(TIFF_filename2))
 end if
 
-deallocate(TIFF_image1, TIFF_image2)
+if (enl%ratioimage.eqv..TRUE.) then 
+  im = image_t(TIFF_ratio)
+  if(im%empty()) call Message%printMessage("EMgetMP","failed to convert array to image")
+
+! create the file
+  call im%write(trim(TIFF_filename3), iostat, iomsg) ! format automatically detected from extension
+  if(0.ne.iostat) then
+    call Message%printMessage("failed to write image to file : "//iomsg)
+  else
+    call Message%printMessage(' projection written to '//trim(TIFF_filename3))
+  end if
+end if
+
+deallocate(TIFF_image1, TIFF_image2, TIFF_ratio)
 
 end associate
 
