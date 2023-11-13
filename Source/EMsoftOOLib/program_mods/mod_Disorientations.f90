@@ -203,6 +203,7 @@ type(QuaternionArray_T)                       :: qdummy, qAR1, qAR2
 type(a_T)                                     :: disax
 type(IO_T)                                    :: Message
 type(r_T)                                     :: ro1, ro2
+type(q_T)                                     :: qq
 logical                                       :: singlePhase
 integer(kind=irg)                             :: i, Pmdims1, Pmdims2, FZt, FZo
 real(kind=dbl)                                :: ax(4)
@@ -220,7 +221,7 @@ if (singlePhase.eqv..TRUE.) then
   Pmdims1 = qAR1%getQnumber()
   SO2 = SO1
   qAR2 = qAR1
-  Pmdims1 = Pmdims2
+  Pmdims2 = Pmdims1
 else
   SO1 = so3_T( self%nml%pgnum )
   call qdummy%QSym_Init( self%nml%pgnum, qAR1 )
@@ -271,6 +272,10 @@ do i=1,SO1%getListCount('FZ')
   endif
   ax = disax%a_copyd()
   write (10,"(4F12.6)") ax(1:3), ax(4)/dtor
+  if (SO1%getListCount('FZ').eq.1) then 
+    qq = disax%aq()
+    call qq%q_print('disorientation quaternion : ')
+  end if
 ! next list entry
   FZ1 => FZ1%next
   FZ2 => FZ2%next

@@ -67,6 +67,19 @@ logical                     :: next
 ! print some information
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 911 /) )
 
+
+call Message%printMessage((/ '=========================================================', &
+                             '== It is the responsibility of the user to properly    ==', &
+                             '== incorporate the factor P in the input parameters    ==', &
+                             '== provided to this program. In other words, if a      ==', &
+                             '== rotation is described by omega and n as the angle   ==', &
+                             '== and unit rotation axis, then the correct input for  ==', &
+                             '== the axis-angle pair is (-P n, omega) where P is     ==', &
+                             '== defined at compile time. The EMsoftOO source code   ==', &
+                             '== has P = +1 as default, but whoever builds the       ==', &
+                             '== executables is at liberty to change this to P = -1. ==', &
+                             '========================================================='/) )
+
 ! ask for point group number
 call SG%ListPointGroups()
 call Message%ReadValue('Enter the desired point group number: ',io_int)
@@ -97,6 +110,7 @@ do while (next)
       io_dbl(4) = io_dbl(4) * dtor 
       io_dbl(1:3) = io_dbl(1:3) / vecnorm( io_dbl(1:3) )
       ax = a_T( adinp = io_dbl )
+      call ax%a_print('axis angle pair : ')
       qu = ax%aq()
     case (3) 
       call Message%ReadValue('Quaternion (q0, q1, q2, q3) :', io_dbl,4)
