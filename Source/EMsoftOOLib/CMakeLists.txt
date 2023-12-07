@@ -97,6 +97,11 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_HallSG.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_so2.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Grid_Interpolation.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_Ylm.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_Wigner.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_SHCorrelator.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_Detector.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_SphereIndexer.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
