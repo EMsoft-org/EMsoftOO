@@ -26,6 +26,7 @@ use mod_kinds
 use mod_DSHT 
 use mod_io 
 use mod_fft_wrap 
+use mod_EMsoft
 
 ! use Ylm
 ! use rng
@@ -37,15 +38,21 @@ integer(kind=irg)                 :: maxL
 character(fnlen)                  :: layout = 'legendre'
 logical                           :: time = .TRUE.
 
+type(EMsoft_T)                    :: EMsoft
+
 complex(kind=dbl),allocatable     :: refSpectra(:,:), alm(:,:)
 real(kind=dbl),allocatable        :: mLPNH(:,:), mLPSH(:,:)
 type(DiscreteSHT)                 :: SHTC 
 integer(kind=irg)                 :: coeffCount, i, m, l, lmax, mmax, d, limL
 real(kind=dbl)                    :: maxErr, rmsErr, relErr, delta, rDelta
-character(fnlen)                  :: fname
+character(fnlen)                  :: fname, progname, progdesc
+
+progname = 'testSHT'
+progdesc = 'Test program for spherical harmonic transform'
+EMsoft = EMsoft_T(progname, progdesc, silent=.TRUE.)
 
 d = 13
-call FFTWisdom%load()
+call FFTWisdom%load(EMsoft)
 dim = 2*d+1
 maxGeneric = d/2
 maxLegendre = d-2
@@ -115,6 +122,6 @@ write (*,"(' MaxErr = ',F12.8,'; relErr (%) = ',F12.8,'; rmsErr = ',F12.8)") max
 write (*,"(' mode with the highest absolute error (l,m) : ',I4,I4)") lmax, mmax 
 write (*,*) alm(lmax,mmax)
 
-call FFTWisdom%save()
+call FFTWisdom%save(EMsoft)
 
 end program testSHT

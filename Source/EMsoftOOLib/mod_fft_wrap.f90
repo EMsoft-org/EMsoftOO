@@ -207,10 +207,12 @@ contains
     wisdomFile = EMsoft%toNativePath(wisdomFile)
 
     ! check if the file exists if needed
-    if(present(fileExists)) inquire(file=trim(wisdomFile), exist=fileExists)
+    if(present(fileExists)) then 
+      inquire(file=trim(wisdomFile), exist=fileExists)
 
-    if (fileExists.eqv..TRUE.) then 
-      call Message%printMessage('wisdom file found: '//trim(wisdomFile))
+      if (fileExists.eqv..TRUE.) then 
+        call Message%printMessage('wisdom file found: '//trim(wisdomFile))
+      end if
     end if
 
     ! convert from fortran character array to c string
