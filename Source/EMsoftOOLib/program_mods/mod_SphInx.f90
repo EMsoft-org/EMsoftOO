@@ -1291,7 +1291,7 @@ integer(kind=irg)                   :: istart, iend, jstart, jend, ipf_wd, ipf_h
 logical                             :: ROIselected 
 integer(kind=irg)                   :: ipar(4)
 character(fnlen),allocatable        :: MessageLines(:)
-integer(kind=irg)                   :: NumLines, numsx, numsy, recordsize
+integer(kind=irg)                   :: NumLines, numsx, numsy, recordsize, correctsize
 character(fnlen)                    :: TitleMessage, exectime, wisdomFile
 character(100)                      :: c
 real(kind=dbl)                      :: w, Jres, fpar(5)
@@ -1385,14 +1385,21 @@ else
   iend   = ipf_wd
   jend   = ipf_ht
 end if
-
-L = numsx*numsy/sinl%binning**2
 if (ROIselected.eqv..TRUE.) then 
     totnumexpt = sinl%ROImask(3)*sinl%ROImask(4)
 else
     totnumexpt = ipf_wd*ipf_ht
 end if
-recordsize = L*4
+L = numsx*numsy/sinl%binning**2
+
+! make sure that correctsize is a multiple of 16; if not, make it so
+if (mod(L,16) .ne. 0) then
+    correctsize = 16*ceiling(float(L)/16.0)
+else
+    correctsize = L
+end if
+
+recordsize = correctsize*4
 
 ! we know that the master pattern file exists, and it also has all the
 ! crystallographic data in it, so we read that here instead of assuming
@@ -1490,7 +1497,7 @@ do j = jstart, jend ! loop over rows
 ! get a pattern row (slightly faster than reading one pattern at a time); make sure threads wait in line to acces the file
   offset3 = (/ 0, 0, (j-1) * ipf_wd /) ! get hyperslab offset for this pattern row
 !$OMP CRITICAL
-  call VT%getExpPatternRow(j, ipf_wd, L, L, dims3, offset3, patrow, HDFstrings=sinl%HDFstrings, flipy=sinl%flipy) 
+  call VT%getExpPatternRow(j, ipf_wd, L, L, dims3, offset3, patrow, HDFstrings=sinl%HDFstrings, HDF=HDF, flipy=sinl%flipy) 
 !$OMP END CRITICAL
 
   do i = istart, iend ! loop over columns
@@ -1564,11 +1571,10 @@ allocate(patrow(   L * ipf_wd))
 
 !$OMP DO SCHEDULE(DYNAMIC)
 do j = jstart, jend ! loop over rows
-
 ! get a pattern row (slightly faster than reading one pattern at a time); make sure threads wait in line to acces the file
   offset3 = (/ 0, 0, (j-1) * ipf_wd /) ! get hyperslab offset for this pattern row
 !$OMP CRITICAL
-  call VT%getExpPatternRow(j, ipf_wd, L, L, dims3, offset3, patrow, HDFstrings=sinl%HDFstrings, flipy=sinl%flipy) 
+  call VT%getExpPatternRow(j, ipf_wd, L, L, dims3, offset3, patrow, HDFstrings=sinl%HDFstrings, HDF=HDF, flipy=sinl%flipy) 
 !$OMP END CRITICAL
 
   do i = istart, iend ! loop over columns

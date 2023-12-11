@@ -190,6 +190,7 @@ private
   procedure, pass(self) :: readDotProductFile_
   procedure, pass(self) :: h5_writeFile_
   procedure, pass(self) :: h5_writeInfo
+  procedure, pass(self) :: h5ebsd_writeInfo
   procedure, pass(self) :: sphh5ebsd_writeFile_
 
   generic, public :: getNameList => getNameList_
@@ -210,7 +211,9 @@ private
 end type DIfile_T
 
 private :: h5_writePhaseGroup, h5_write2DImageFromVector, h5_writeCoordinateSystemGroup, &
-           h5_writePatternCenterGroup
+           h5_writePatternCenterGroup, h5ebsd_writePhaseGroup, h5ebsd_write2DImageFromVector, &
+           h5ebsd_writeCoordinateSystemGroup, h5ebsd_writePatternCenterGroup
+
 
 ! the constructor routine for this class
 interface DIfile_T
@@ -2782,7 +2785,7 @@ allocate(stringarray(1))
   if (hdferr.ne.0) call HDF%error_check('sphh5ebsd_writeFile_:Error opening file', hdferr)
 
   filetype = 1  ! for vendor = 'TSL'; others not yet implemented
-  call self%h5_writeInfo(EMsoft, HDF, HDFnames, filetype, dstr, tstrb, tstre, progname, ebsdnl, nmldeffile)
+  call self%h5ebsd_writeInfo(EMsoft, HDF, HDFnames, filetype, dstr, tstrb, tstre, progname, sinl, nmldeffile)
 
 ! here we start with the h5ebsd-specific stuff
   groupname = 'Scan 1'
