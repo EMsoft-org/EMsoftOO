@@ -92,6 +92,8 @@ contains
     procedure, pass(self) :: set_funit_
     procedure, pass(self) :: ctf_writeFile_
     procedure, pass(self) :: ang_writeFile_
+    procedure, pass(self) :: sphctfebsd_writeFile_
+    procedure, pass(self) :: sphangebsd_writeFile_
     procedure, pass(self) :: ctfmerge_writeFile_
     procedure, pass(self) :: angmerge_writeFile_
     procedure, pass(self) :: getTSLmetadata_
@@ -117,6 +119,8 @@ contains
     generic, public :: set_funit => set_funit_
     generic, public :: ctf_writeFile => ctf_writeFile_
     generic, public :: ang_writeFile => ang_writeFile_
+    generic, public :: sphctfebsd_writeFile => sphctfebsd_writeFile_
+    generic, public :: sphangebsd_writeFile => sphangebsd_writeFile_
     generic, public :: ctfmerge_writeFile => ctfmerge_writeFile_
     generic, public :: angmerge_writeFile => angmerge_writeFile_
     generic, public :: getTSLmetadata => getTSLmetadata_
@@ -2208,6 +2212,423 @@ end do
 close(dataunit2,status='keep')
 
 end subroutine angmerge_writeFile_
+
+!--------------------------------------------------------------------------
+recursive subroutine sphctfebsd_writeFile_(self,EMsoft,cell,SG,sinl,xtalname,ipar,EkeV,sig,xcorr,quats,IQmap)
+!DEC$ ATTRIBUTES DLLEXPORT :: sphctfebsd_writeFile_
+!! author: MDG
+!! version: 1.0
+!! date: 12/10/23
+!!
+!! Write a *.ctf output file with spherical indexing EBSD data (HKL format)
+
+use mod_EMsoft
+use mod_symmetry
+use mod_crystallography
+use mod_io
+use mod_global
+use mod_rotations
+use mod_quaternions
+use mod_SphInxSupport
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)                       :: self
+type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
+type(Cell_T),INTENT(INOUT)                          :: cell
+type(SpaceGroup_T),INTENT(INOUT)                    :: SG
+type(SphInxNameListType),INTENT(INOUT)              :: sinl
+character(fnlen),INTENT(IN)                         :: xtalname
+integer(kind=irg),INTENT(IN)                        :: ipar(4)
+real(kind=sgl),INTENT(IN)                           :: EkeV
+real(kind=sgl),INTENT(IN)                           :: sig
+real(kind=dbl),INTENT(IN)                           :: xcorr(ipar(1))
+real(kind=dbl),INTENT(IN)                           :: quats(4,ipar(1))
+real(kind=sgl),INTENT(IN)                           :: IQmap(ipar(1))
+
+type(q_T)                                           :: qu 
+type(e_T)                                           :: eu
+
+integer(kind=irg)                                   :: ierr, i, ii, indx, hdferr, SGnum, LaueGroup, BCval, BSval
+character(fnlen)                                    :: ctfname
+character                                           :: TAB = CHAR(9)
+character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
+real(kind=sgl)                                      :: euler(3), mi, ma, eul
+real(kind=dbl)                                      :: cellparams(6), a, b, c
+integer(kind=irg),allocatable                       :: osm(:), iq(:)
+
+! scale the IQmap to the range [0..255]
+allocate(iq(ipar(1)))
+iq = nint(255.0 * IQmap)
+
+! open the file (overwrite old one if it exists)
+ctfname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(sinl%ctffile)
+open(unit=dataunit2,file=trim(ctfname),status='unknown',action='write',iostat=ierr)
+
+write(dataunit2,'(A)') 'Channel Text File'
+write(dataunit2,'(A)') 'EMsoft v. '//trim(EMsoft%getConfigParameter('EMsoftversion'))//'; BANDS=10, MAD=CI, BC=0, BS=0'
+write(dataunit2,'(A)') 'Author  '//trim(EMsoft%getConfigParameter('Username'))
+
+write(dataunit2,'(A)') 'JobMode  Grid'
+write(dataunit2,'(2A,I5)') 'XCells',TAB, ipar(3)
+write(dataunit2,'(2A,I5)') 'YCells',TAB, ipar(4)
+write(dataunit2,'(2A,F6.2)') 'XStep',TAB, sinl%scandims(3)
+write(dataunit2,'(2A,F6.2)') 'YStep',TAB, sinl%scandims(4)
+write(dataunit2,'(A)') 'AcqE1'//TAB//'0'
+write(dataunit2,'(A)') 'AcqE2'//TAB//'0'
+write(dataunit2,'(A)') 'AcqE3'//TAB//'0'
+write(dataunit2,'(A,A)',ADVANCE='No') 'Euler angles refer to Sample Coordinate system (CS0)!',TAB
+str1 = 'Mag'//TAB//'30'//TAB//'Coverage'//TAB//'100'//TAB//'Device'//TAB//'0'//TAB//'KV'
+write(str2,'(F4.1)') EkeV
+str1 = trim(str1)//TAB//trim(str2)//TAB//'TiltAngle'
+write(str2,'(F5.2)') sig
+str2 = adjustl(str2)
+str1 = trim(str1)//TAB//trim(str2)//TAB//'TiltAxis'//TAB//'0'
+write(dataunit2,'(A)') trim(str1)
+write(dataunit2,'(A)') 'Phases'//TAB//'1'
+
+
+cellparams = cell%getLatParm()
+SGnum = SG%getSpaceGroupNumber()
+
+! unit cell size
+cellparams(1:3) = cellparams(1:3)*10.0  ! convert to Angstrom
+! if (present(orthoset)) then   ! permute the lattice parameters to the correct orthorhombic setting 
+! ! settings  " a  b  c", " b  a -c", " c  a  b", "-c  b  a", " b  c  a", " a -c  b" 
+!   select case(orthoset)
+!     case(1) 
+!       a = cellparams(1)
+!       b = cellparams(2)
+!       c = cellparams(3)
+!     case(2) 
+!       a = cellparams(2)
+!       b = cellparams(1)
+!       c = cellparams(3)
+!     case(3) 
+!       a = cellparams(3)
+!       b = cellparams(1)
+!       c = cellparams(2)
+!     case(4) 
+!       a = cellparams(3)
+!       b = cellparams(2)
+!       c = cellparams(1)
+!     case(5) 
+!       a = cellparams(2)
+!       b = cellparams(3)
+!       c = cellparams(1)
+!     case(6) 
+!       a = cellparams(1)
+!       b = cellparams(3)
+!       c = cellparams(2)
+!   end select 
+!   write(str1,'(F8.3)') a
+!   write(str2,'(F8.3)') b
+!   write(str3,'(F8.3)') c
+! else
+  write(str1,'(F8.3)') cellparams(1)
+  write(str2,'(F8.3)') cellparams(2)
+  write(str3,'(F8.3)') cellparams(3)
+! end if 
+str1 = adjustl(str1)
+str2 = adjustl(str2)
+str3 = adjustl(str3)
+str1 = trim(str1)//';'//trim(str2)//';'//trim(str3)
+
+! unit cell angles
+write(str4,'(F8.3)') cellparams(4)
+write(str5,'(F8.3)') cellparams(5)
+write(str6,'(F8.3)') cellparams(6)
+str4 = adjustl(str4)
+str5 = adjustl(str5)
+str6 = adjustl(str6)
+str1 = trim(str1)//TAB//trim(str4)//';'//trim(str5)//';'//trim(str6)
+
+! structure name
+str3 = ''
+ii = len(trim(xtalname))-5
+do i=1,ii
+  str3(i:i) = xtalname(i:i)
+end do
+str1 = trim(str1)//TAB//trim(str3)
+
+! rotational symmetry group
+str4 = ''
+LaueGroup = SG%getLaueGroupNumber()
+write(str4,'(I2)') LaueGroup
+str1 = trim(str1)//TAB//trim(adjustl(str4))
+
+! space group
+str2 = ''
+write(str2,'(I3)') SGnum
+str1 = trim(str1)//TAB//trim(adjustl(str2))
+
+! and now collect them all into a single string
+write(dataunit2,'(A)') trim(str1)
+
+! this is the table header
+write(dataunit2,'(A)') 'Phase'//TAB//'X'//TAB//'Y'//TAB//'Bands'//TAB//'Error'//TAB//'Euler1'//TAB//'Euler2'//TAB//'Euler3' &
+                      //TAB//'MAD'//TAB//'BC'//TAB//'BS'
+
+! go through the entire array and write one line per sampling point
+do ii = 1,ipar(1)
+    BCval = 0
+    BSval = iq(ii)
+    qu = q_T( qdinp = quats(1:4,ii))
+    eu = qu%qe()
+    euler = eu%e_copyd() * rtod 
+! changed order of coordinates to conform with ctf standard
+    if (sum(sinl%ROImask).ne.0) then
+      write(str2,'(F12.3)') float(floor(float(ii-1)/float(sinl%ROImask(3))))*sinl%scandims(4)
+      write(str1,'(F12.3)') float(MODULO(ii-1,sinl%ROImask(3)))*sinl%scandims(3)
+    else
+      write(str2,'(F12.3)') float(floor(float(ii-1)/float(int(sinl%scandims(1)))))*sinl%scandims(4)
+      write(str1,'(F12.3)') float(MODULO(ii-1,int(sinl%scandims(1))))*sinl%scandims(3)
+    end if 
+
+    write(str3,'(I8)') 10  ! pattern index into dictionary list of discrete orientations
+    write(str8,'(I8)') 0 ! integer zero error; was indx, which is now moved to BANDS
+    eul = euler(1) - 90.0 ! conversion from TSL to Oxford convention
+    if (eul.lt.0) eul = eul + 360.0
+    write(str5,'(F12.3)') eul  
+    eul = euler(2)
+    if (eul.lt.0) eul = eul + 360.0
+    write(str6,'(F12.3)') eul
+! intercept the hexagonal case, for which we need to subtract 30° from the third Euler angle
+! Note: after working with Lionel Germain, we concluded that we do not need to subtract 30° 
+! in the ctf file, because the fundamental zone is already oriented according to the Oxford
+! convention... That means that we need to subtract the angle for the .ang file (to be implemented)
+! [modified by MDG on 3/5/18]
+    if ((LaueGroup.eq.8).or.(LaueGroup.eq.9)) euler(3) = euler(3) - 30.0
+    eul = euler(3)
+    if (eul.lt.0) eul = eul + 360.0
+    write(str7,'(F12.3)') eul
+    write(str4,'(F12.6)') xcorr(ii)   ! this replaces MAD
+! the following two parameters need to be modified to contain more meaningful information
+    write(str9,'(I8)') BCval   ! OSM value in range [0..255]
+    write(str10,'(I8)') BSval  !  IQ value in range [0..255]
+! Oxford 3D files have four additional integer columns;
+! GrainIndex
+! GrainRandomColourR
+! GrainRandomColourG
+! GrainRandomColourB
+!
+    write(dataunit2,'(A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A)')'1',TAB,trim(adjustl(str1)),TAB,&
+    trim(adjustl(str2)),TAB,trim(adjustl(str3)),TAB,trim(adjustl(str8)),TAB,trim(adjustl(str5)),&
+    TAB,trim(adjustl(str6)),TAB,trim(adjustl(str7)),TAB,trim(adjustl(str4)),TAB,trim(adjustl(str9)),&
+    TAB,trim(adjustl(str10))
+end do
+
+close(dataunit2,status='keep')
+
+end subroutine sphctfebsd_writeFile_
+
+!--------------------------------------------------------------------------
+recursive subroutine sphangebsd_writeFile_(self,EMsoft,cell,SG,sinl,xtalname,ipar,fpar,xcorr,quats,IQmap)
+!DEC$ ATTRIBUTES DLLEXPORT :: sphangebsd_writeFile_
+!! author: MDG
+!! version: 1.0
+!! date: 12/10/23
+!!
+!! Write a *.ang output file with spherical indexing EBSD data (TSL format)
+
+use mod_EMsoft
+use mod_crystallography
+use mod_symmetry
+use mod_global
+use mod_rotations
+use mod_quaternions
+use mod_SphInxSupport
+
+IMPLICIT NONE
+
+class(Vendor_T),INTENT(INOUT)                       :: self
+type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
+type(Cell_T),INTENT(INOUT)                          :: cell
+type(SpaceGroup_T),INTENT(INOUT)                    :: SG
+type(SphInxNameListType),INTENT(INOUT)              :: sinl
+character(fnlen),INTENT(IN)                         :: xtalname
+integer(kind=irg),INTENT(IN)                        :: ipar(4)
+real(kind=dbl),INTENT(IN)                           :: fpar(5)
+real(kind=dbl),INTENT(IN)                           :: xcorr(ipar(1))
+real(kind=dbl),INTENT(IN)                           :: quats(4,ipar(1))
+real(kind=sgl),INTENT(IN)                           :: IQmap(ipar(1))
+
+type(q_T)                                           :: qu 
+type(e_T)                                           :: eu
+
+integer(kind=irg)                                   :: ierr, ii, indx, SGnum
+character(fnlen)                                    :: angname
+character(fnlen)                                    :: str1,str2,str3,str4,str5,str6,str7,str8,str9,str10
+character                                           :: TAB = CHAR(9)
+character(2)                                        :: TSLsymmetry
+real(kind=sgl)                                      :: euler(3), s, BSval, spar(5)
+real(kind=dbl)                                      :: cellparams(6), a, b, c
+
+spar = sngl(fpar)
+
+! open the file (overwrite old one if it exists)
+angname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(sinl%angfile)
+open(unit=dataunit2,file=trim(angname),status='unknown',action='write',iostat=ierr)
+
+! this requires a lot of information...
+write(dataunit2,'(A)') '# TEM_PIXperUM          1.000000'
+s = ( float(sinl%patdims(1))*0.5 + spar(1) ) / float(sinl%patdims(1))      ! x-star
+write(dataunit2,'(A,F9.6)') '# x-star                ', s
+s = ( float(sinl%patdims(1))*0.5 + spar(2) ) / float(sinl%patdims(2))      ! y-star
+write(dataunit2,'(A,F9.6)') '# y-star                ', s
+s = spar(3) / ( sinl%delta * float(sinl%patdims(1)) )                   ! z-star
+write(dataunit2,'(A,F9.6)') '# z-star                ', s 
+write(dataunit2,'(A,F9.6)') '# WorkingDistance       ', 0.0       ! this quantity is not used in EMsoft
+write(dataunit2,'(A)') '#'
+write(dataunit2,'(A)') '# Phase 1'
+
+ii = scan(trim(xtalname),'.')
+angname = xtalname(1:ii-1)
+write(dataunit2,'(A)') '# MaterialName    '//trim(angname)
+write(dataunit2,'(A)') '# Formula       '//trim(angname)
+write(dataunit2,'(A)') '# Info          patterns indexed using EMsoft::EMSphInx'
+
+
+cellparams = cell%getLatParm()
+SGnum = SG%getSpaceGroupNumber()
+
+ii = scan(trim(xtalname),'.')
+angname = xtalname(1:ii-1)
+write(dataunit2,'(A)') '# MaterialName    '//trim(angname)
+write(dataunit2,'(A)') '# Formula       '//trim(angname)
+str1 = '# Info          patterns indexed using EMsoft::EMSphInx '
+! if (present(orthoset)) str1 = trim(str1)//'; orthorhombic space group setting '//extendedHMOrthsymbols(orthoset,orthoSG)
+! write(dataunit2,'(A)') trim(str1)
+
+! and get the TSL symmetry string from the TSLsymtype array
+TSLsymmetry = TSLsymtype(SG%getPGnumber())
+
+! symmetry string
+write(dataunit2,'(A)') '# Symmetry              '//TSLsymmetry
+
+! lattice parameters
+cellparams(1:3) = cellparams(1:3)*10.0  ! convert to Angstrom
+! if (present(orthoset)) then   ! permute the lattice parameters to the correct orthorhombic setting 
+! ! settings  " a  b  c", " b  a -c", " c  a  b", "-c  b  a", " b  c  a", " a -c  b" 
+!   select case(orthoset)
+!     case(1) 
+!       a = cellparams(1)
+!       b = cellparams(2)
+!       c = cellparams(3)
+!     case(2) 
+!       a = cellparams(2)
+!       b = cellparams(1)
+!       c = cellparams(3)
+!     case(3) 
+!       a = cellparams(3)
+!       b = cellparams(1)
+!       c = cellparams(2)
+!     case(4) 
+!       a = cellparams(3)
+!       b = cellparams(2)
+!       c = cellparams(1)
+!     case(5) 
+!       a = cellparams(2)
+!       b = cellparams(3)
+!       c = cellparams(1)
+!     case(6) 
+!       a = cellparams(1)
+!       b = cellparams(3)
+!       c = cellparams(2)
+!   end select 
+!   write(str1,'(F8.3)') a
+!   write(str2,'(F8.3)') b
+!   write(str3,'(F8.3)') c
+! else
+  write(str1,'(F8.3)') cellparams(1)
+  write(str2,'(F8.3)') cellparams(2)
+  write(str3,'(F8.3)') cellparams(3)
+! end if 
+str1 = adjustl(str1)
+str2 = adjustl(str2)
+str3 = adjustl(str3)
+str1 = trim(str1)//' '//trim(str2)//' '//trim(str3)
+
+! unit cell angles
+write(str4,'(F8.3)') cellparams(4)
+write(str5,'(F8.3)') cellparams(5)
+write(str6,'(F8.3)') cellparams(6)
+str4 = adjustl(str4)
+str5 = adjustl(str5)
+str6 = adjustl(str6)
+str1 = trim(str1)//TAB//trim(str4)//' '//trim(str5)//' '//trim(str6)
+
+write(dataunit2,'(A)') '# LatticeConstants      '//trim(str1)
+!==========================
+
+! next we need to get the hklFamilies ranked by kinematical intensity, going out to some value
+! this is probably not necessary [based on Stuart's feedback], so we comment it all out
+write(dataunit2,'(A)') '# NumberFamilies        0'
+! write(dataunit2,'(A)') '# NumberFamilies        4'
+! write(dataunit2,'(A)') '# hklFamilies      1  1  1 1 0.000000'
+! write(dataunit2,'(A)') '# hklFamilies      2  0  0 1 0.000000'
+! write(dataunit2,'(A)') '# hklFamilies      2  2  0 1 0.000000'
+! write(dataunit2,'(A)') '# hklFamilies      3  1  1 1 0.000000'
+
+!==========================
+write(dataunit2,'(A)') '# Categories 0 0 0 0 0'
+write(dataunit2,'(A)') '#'
+write(dataunit2,'(A)') '# GRID: SqrGrid'
+write(dataunit2,'(A,F9.6)') '# XSTEP: ', sinl%scandims(3)
+write(dataunit2,'(A,F9.6)') '# YSTEP: ', sinl%scandims(4)
+write(dataunit2,'(A,I5)') '# NCOLS_ODD: ',ipar(3)
+write(dataunit2,'(A,I5)') '# NCOLS_EVEN: ',ipar(3)
+write(dataunit2,'(A,I5)') '# NROWS: ', ipar(4)
+write(dataunit2,'(A)') '#'
+write(dataunit2,'(A,A)') '# OPERATOR:   ', trim(EMsoft%getConfigParameter('Username'))
+write(dataunit2,'(A)') '#'
+write(dataunit2,'(A)') '# SAMPLEID:'
+write(dataunit2,'(A)') '#'
+write(dataunit2,'(A)') '# SCANID:'
+write(dataunit2,'(A)') '#'
+
+! ok, next we have the actual data, which is in the following order
+! * phi1                      -> Phi1
+! * phi                       -> Phi
+! * phi2                      -> Phi2
+! * x pos                     -> pixel position
+! * y pos                     -> pixel position
+! * image quality             -> iq  (to be added)
+! * confidence index          -> xcorr
+! * phase                     -> 1 (since there is only one phase in each indexing run)
+! the second entry after the arrow is the EMsoft parameter that we write into that location
+! these 8 entries must be present...
+
+! go through the entire array and write one line per sampling point
+do ii = 1,ipar(1)
+    BSval = 255.0 * IQmap(ii)
+    qu = q_T( qdinp = quats(1:4,ii))
+    eu = qu%qe()
+    euler = eu%e_copyd()
+    write(str1,'(A,F8.5)') ' ',euler(1)
+    write(str2,'(A,F8.5)') ' ',euler(2)
+    write(str3,'(A,F8.5)') ' ',euler(3)
+! sampling coordinates [interchanged x and y on 05/28/19, MDG] 
+    if (sum(sinl%ROImask).ne.0) then
+      write(str4,'(A,F12.5)') ' ',float(MODULO(ii-1,sinl%ROImask(3)))*sinl%scandims(3)
+      write(str5,'(A,F12.5)') ' ',float(floor(float(ii-1)/float(sinl%ROImask(3))))*sinl%scandims(4)
+    else
+      write(str4,'(A,F12.5)') ' ',float(MODULO(ii-1,int(sinl%scandims(1))))*sinl%scandims(3)
+      write(str5,'(A,F12.5)') ' ',float(floor(float(ii-1)/sinl%scandims(1)))*sinl%scandims(4)
+    end if 
+! Image Quality (using the Krieger Lassen pattern sharpness parameter iq)
+    write(str6,'(A,F6.1)') ' ',BSval       !  IQ value in range [0.0 .. 255.0]
+    write(str7,'(A,F6.3)') ' ',xcorr(ii)   ! this replaces MAD
+    write(str8,'(A,I1)') '  ',1 
+!
+    write(dataunit2,"(A,' ',A,' ',A,' ',A,' ',A,' ',A,' ',A,' ',A)") trim(adjustl(str1)),trim(adjustl(str2)),&
+                                            trim(adjustl(str3)),trim(adjustl(str4)),trim(adjustl(str5)),&
+                                            trim(adjustl(str6)),trim(adjustl(str7)),trim(adjustl(str8))
+end do
+
+close(dataunit2,status='keep')
+
+end subroutine sphangebsd_writeFile_
 
 !--------------------------------------------------------------------------
 recursive subroutine getTSLmetadata_(self, inpfile, HDFstring, stepsizes, qAR, PC, fpar, sig )

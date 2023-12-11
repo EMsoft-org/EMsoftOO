@@ -38,5 +38,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
   #                     INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
   #                     )
  
+   Add_EMsoftOO_Executable(TARGET EMSphInx
+                      SOURCES ${APP_DIR}/EMSphInx.f90 
+                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                      TEMPLATE ${TMPLT_DIR}/EMSphInx.template
+                      SOLUTION_FOLDER EMsoftOOPublic/SphInx
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
+                      )
+
  
 endif()

@@ -102,6 +102,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_SHCorrelator.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Detector.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_SphereIndexer.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_SphInxSupport.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
@@ -157,6 +158,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDPCA.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDdefect.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_HREBSD.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_SphInx.f90
 
   ${EMsoftOOLib_Additional_SRCS}
 )
