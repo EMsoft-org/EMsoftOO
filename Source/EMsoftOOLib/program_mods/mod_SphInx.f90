@@ -1371,6 +1371,8 @@ self%xpc = pcvals(1)
 self%ypc = pcvals(2)
 self%L   = pcvals(3)
 
+write (*,*) ' new pattern center coordinates : ', self%xpc, self%ypc, self%L
+
 ! do we need a region of interest (ROI) ?
 if (sum(sinl%ROImask).ne.0) then
   ROIselected = .TRUE.
@@ -1482,6 +1484,7 @@ if (TID.eq.0) then
 end if
 !$OMP BARRIER
 !$OMP CRITICAL  
+! write (*,*) 'Thread ',TID,': ',sinl%bw, self%sig, self%L, sinl%thetac, sinl%delta, numsx, numsy, mpnl%npx
   call threadindexer%init(sinl%bw, dble(self%sig), dble(self%L), dble(sinl%thetac), dble(sinl%delta), numsx, numsy, &
                     mpnl%npx, mLPNH, mLPSH, sinl%circmask)
 !$OMP END CRITICAL  
@@ -1523,6 +1526,7 @@ do j = jstart, jend ! loop over rows
     end if 
     quats(:,ipos) = ires%qu
     xcorr(  ipos) = ires%xc
+    write (*,*) ' quaternion : ', quats(:,ipos)
   enddo
   if (TID.eq.0) rcnt = rcnt + NUMTHREADS
 enddo

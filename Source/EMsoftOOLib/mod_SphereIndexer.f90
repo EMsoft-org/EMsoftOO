@@ -209,6 +209,7 @@ contains
   recursive function SphereIndexer_Index(this, pat, xpc, ypc, ref) result(res)
   !DEC$ ATTRIBUTES DLLEXPORT :: SphereIndexer_Index
     use mod_Wigner
+    use mod_global
   implicit none
     class  (SphereIndexer),INTENT(INOUT) :: this
     real   (kind=dbl     ),INTENT(in   ) :: pat(:,:)
@@ -238,7 +239,7 @@ contains
 
     ! convert result to quaternion
     res%qu = Wigner_zyz2qu(eu)
-
+write (*,*) ' Indexer eu = ', eu/dtor
 
   end function SphereIndexer_Index
 

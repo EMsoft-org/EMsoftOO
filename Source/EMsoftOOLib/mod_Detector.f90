@@ -139,6 +139,7 @@ contains
     ! compute some intermediate values once
     dc = SH_dirCos(d, t) ! direction cosines
     alp = 0.5 * cPi - (sig - thetac) * cPi / 180.D0 ! angle between detector and sample plane in radians
+    write (*,*) 'Inverse detector alpha angle = ', alp/dtor
     ca = cos(alp)
     sa = sin(alp)
 
