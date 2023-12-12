@@ -11,11 +11,11 @@ RUN cd ~/EMs \
 
 RUN cd ~/EMs/EMsoftOOBuild/ && mkdir Debug Release && cd Debug \
  && cmake -DCMAKE_BUILD_TYPE=Debug -DEMsoftOO_SDK=/opt/EMsoftOO_SDK -DBUILD_SHARED_LIBS=OFF \
- ../../EMsoft -G Ninja \
+ ../../EMsoftOO -G Ninja \
  && ninja \
  && cd ../Release \
  && cmake -DCMAKE_BUILD_TYPE=Release -DEMsoftOO_SDK=/opt/EMsoftOO_SDK -DBUILD_SHARED_LIBS=OFF \
-  ../../EMsoft -G Ninja \
+  ../../EMsoftOO -G Ninja \
  && ninja
  
 # add release version to path
