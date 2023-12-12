@@ -1,4 +1,4 @@
-FROM marcdegraef/emsoftoo_sdk
+FROM marcdegraef/emsoftoo_sdk:buildx-latest
 
 ARG TARGETARCH 
 ARG DEBIAN_FRONTEND=noninteractive
