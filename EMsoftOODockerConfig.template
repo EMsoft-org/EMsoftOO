@@ -1,9 +1,9 @@
 {
-        "EMsoftpathname": "/EMs/EMsoft/",
+        "EMsoftpathname": "/home/EMs/EMsoft/",
         "EMXtalFolderpathname": "/home/EMuser/XtalFolder",
         "EMdatapathname": "/home/EMuser/EMPlay",
         "EMtmppathname": "/home/EMuser/.config/EMsoft/tmp/",
-        "EMsoftLibraryLocation": "/EMs/EMsoftOOBuild/Release/Bin/",
+        "EMsoftLibraryLocation": "/home/EMs/EMsoftOOBuild/Release/Bin/",
         "EMNotify": "",
         "EMSlackWebHookURL": "",
         "EMSlackChannel": "",
