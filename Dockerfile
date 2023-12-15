@@ -4,12 +4,12 @@ ARG TARGETARCH
 ARG DEBIAN_FRONTEND=noninteractive
 
 # clone EMsoft and set up SDK Debug/Release
-RUN cd ~/EMs \
+RUN cd /home/EMs \
  && git clone https://github.com/EMsoft-org/EMsoftData.git \
  && git clone https://github.com/EMsoft-org/EMsoftOO.git \
  &&  mkdir EMsoftOOBuild 
 
-RUN cd ~/EMs/EMsoftOOBuild/ && mkdir Debug Release && cd Debug \
+RUN cd /home/EMs/EMsoftOOBuild/ && mkdir Debug Release && cd Debug \
  && cmake -DCMAKE_BUILD_TYPE=Debug -DEMsoftOO_SDK=/opt/EMsoftOO_SDK -DBUILD_SHARED_LIBS=OFF \
  ../../EMsoftOO -G Ninja \
  && ninja \
@@ -19,9 +19,9 @@ RUN cd ~/EMs/EMsoftOOBuild/ && mkdir Debug Release && cd Debug \
  && ninja
  
 # add release version to path
-ENV PATH ~/EMs/EMsoftOOBuild/Release/Bin:$PATH
+ENV PATH /home/EMs/EMsoftOOBuild/Release/Bin:$PATH
 # add backup path of EMsoft
-ENV EMSOFTPATHNAME ~/EMs/EMsoftOO
+ENV EMSOFTPATHNAME /home/EMs/EMsoftOO
 
 # install a new user
 ARG user=EMuser
@@ -37,6 +37,14 @@ RUN useradd -m $USERNAME && \
         groupmod --gid ${gid} $USERNAME
 
 USER ${user}
+
+# create EMuser workfolders and set up EMsoftConfig.json file 
+RUN mkdir /home/${user}/XtalFolder \
+ && mkdir /home/${user}/EMPlay \
+ && mkdir /home/${user}/.config \
+ && mkdir /home/${user}/.config/EMsoft \
+ && mkdir /home/${user}/.config/EMsoft/tmp \
+ && cp /home/EMs/EMsoftOO/EMsoftOODockerConfig.template /home/${user}/.config/EMsoft/EMsoftConfig.json
 
 # run terminal for EMuser at /home/${user}
 WORKDIR /home/${user}
