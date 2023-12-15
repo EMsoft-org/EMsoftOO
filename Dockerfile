@@ -6,7 +6,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # clone EMsoft and set up SDK Debug/Release
 RUN cd /home/EMs \
  && git clone https://github.com/EMsoft-org/EMsoftData.git \
- && git clone https://github.com/ZacharyVarley/EMsoftOO.git \
+ && git clone https://github.com/EMsoft-org/EMsoftOO.git \
  &&  mkdir EMsoftOOBuild 
 
 RUN cd /home/EMs/EMsoftOOBuild/ && mkdir Debug Release && cd Debug \
