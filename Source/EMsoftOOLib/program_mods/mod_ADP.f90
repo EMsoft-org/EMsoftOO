@@ -1197,7 +1197,7 @@ integer(kind=irg),parameter                         :: itmpexpt = 43
 
 integer(kind=irg)                                   :: L,totnumexpt,imght,imgwd,nnk, recordsize, iii, hdferr,&
                                                        recordsize_correct, patsz, TIFF_nx, TIFF_ny
-real(kind=sgl),allocatable                          :: imageexpt(:), mask(:,:),masklin(:), exppatarray(:), tmpexppatarray(:)
+real(kind=sgl),allocatable                          :: imageexpt(:),mask(:,:),masklin(:),exppatarray(:),tmpexppatarray(:),exptIQ(:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:), &
                                                        tmpimageexpt(:)
 real(kind=sgl),allocatable                          :: EBSDpattern(:,:), dpmap(:)
@@ -1285,6 +1285,7 @@ call mem%alloc(EBSDpattern, (/ binx,biny /), 'EBSDpattern', 0.0)
 call mem%alloc(binned, (/ binx,biny /), 'binned', 0.0)
 call mem%alloc(rdata, (/ binx,biny /), 'rdata', 0.D0) 
 call mem%alloc(fdata, (/ binx,biny /), 'fdata', 0.D0)
+call mem%alloc(exptIQ, (/ totnumexpt /), 'exptIQ')
 
 !=====================================================
 ! define the circular mask if necessary and convert to 1D vector
@@ -1380,9 +1381,9 @@ if (adpnl%usetmpfile.eq.'n') then
     NLPAR = NLPAR_T()
     call NLPAR%setSearchWindow(adpnl%sw)
     call NLPAR%setLambda(adpnl%lambda) 
-    call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
+    call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
   else 
-    call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
+    call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
   end if 
 end if
 
@@ -1443,6 +1444,35 @@ else
   call Message%printMessage('ADP map written to '//trim(TIFF_filename))
 end if
 
+! output the ADP map as a tiff file
+fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(adpnl%tiffname)//'_IQ.tiff'
+TIFF_filename = trim(fname)
+
+! fill the image with whatever data you have (between 0 and 255)
+ma = maxval(exptIQ)
+mi = minval(exptIQ)
+
+write (*,*) ' IQ map range ',mi,ma 
+
+do j=1,TIFF_ny
+ do i=1,TIFF_nx
+  ii = (j-1) * TIFF_nx + i
+  TIFF_image(i,j) = int(255 * (exptIQ(ii)-mi)/(ma-mi))
+ end do
+end do
+
+! set up the image_t structure
+im = image_t(TIFF_image)
+if(im%empty()) call Message%printMessage("EMgetADP","failed to convert array to image")
+
+! create the file
+call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+if(0.ne.iostat) then
+  call Message%printMessage("failed to write image to file : "//iomsg)
+else
+  call Message%printMessage('IQ map written to '//trim(TIFF_filename))
+end if
+
 if (adpnl%keeptmpfile.eq.'n') then
   close(unit=itmpexpt, status = 'delete')
   call Message%printMessage(' -> tmp file deleted')
@@ -1466,6 +1496,7 @@ call mem%dealloc(binned, 'binned')
 call mem%dealloc(rdata, 'rdata') 
 call mem%dealloc(fdata, 'fdata')
 call mem%dealloc(dpmap, 'dpmap')
+call mem%dealloc(exptIQ, 'exptIQ')
 
 ! call mem%allocated_memory_use(' from end of ADP_ subroutine ')
 
