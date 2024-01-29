@@ -1,0 +1,42 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: EMsoftOO
+message: >-
+  If you use this software for a publication, please cite it
+  using the information in this cff file. 
+type: software
+authors:
+  - given-names: Marc
+    family-names: De Graef
+    email: mdg@andrew.cmu.edu
+    affiliation: Carnegie Mellon University
+    orcid: 'https://orcid.org/0000-0002-4721-6226'
+identifiers:
+  - type: url
+    value: 'https://github.com/EMsoft-org/EMsoftOO'
+    description: EMsoftOO source code repository
+repository-code: 'https://github.com/EMsoft-org/EMsoftOO'
+abstract: >-
+  EMsoftOO is an open source package for the simulation of
+  electron scattering in TEM and SEM, as well as X-ray Laue
+  diffraction, polarized light microscopy and a few other
+  modalities.  The main body of the code is written in
+  Object Oriented Fortran 2018, and the package is built
+  using the CMake configuration engine.  The code relies on
+  the EMsoftSuperbuild repository which provides a few
+  essential libraries.  The package has extensive wiki pages
+  that provide examples on how to use the individual
+  command-line programs.
+keywords:
+  - electron backscatter diffraction (EBSD)
+  - scanning electron microscopy
+  - transmission electron microscopy
+  - polarized light microscopy
+  - x-ray diffraction
+  - crystallography
+license: BSD-3-Clause
+commit: e97b0ed
+version: '6_0_20240115_0'
+date-released: '2024-01-15'
