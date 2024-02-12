@@ -1149,7 +1149,7 @@ call kvec%CalckvectorsSymmetry(cell,Diff,TDPG,dble(ga),npx,npy,ijmax,enl%klaue,.
 numk = kvec%get_numk()
   
 ! allocate the disk variable which will hold the entire computed pattern
-call mem%alloc(disk, (/ numt,enl%npix,enl%npix /), 'disk', 0.0)
+call mem%alloc(disk, (/ enl%npix,enl%npix,numt /), 'disk', 0.0)
 
 WL = Diff%getWaveLength() 
 sc = WL * enl%camlen * RR
@@ -1242,13 +1242,13 @@ do ik = 1, numk
         jp = iequiv(2,ii)
         if (((ip.ge.1).and.(ip.le.npix)).and.((jp.ge.1).and.(jp.le.npix))) then
          if ( (Diff%BetheParameters%reflistindex(i).eq.1) ) then
-          disk(1:numt,ip,jp) = disk(1:numt,ip,jp) + inten(1:numt,Diff%BetheParameters%reflistindex(i))
+          disk(ip,jp,1:numt) = disk(ip,jp,1:numt) + inten(1:numt,Diff%BetheParameters%reflistindex(i))
          else
 ! this is a placeholder; it is not technically correct to do this, but the result looks quite reasonable
 ! it works fine when there is no overlap between diffraction disks, but when there is, then the result will
 ! be incorrect.  This should be noted in the manual. 
           do it=1,numt
-           disk(it,ip,jp) = maxval( (/ inten(it,Diff%BetheParameters%reflistindex(i)), disk(it,ip,jp) /) )
+           disk(ip,jp,it) = maxval( (/ inten(it,Diff%BetheParameters%reflistindex(i)), disk(ip,jp,it) /) )
           end do
          end if
         end if
@@ -1257,7 +1257,7 @@ do ik = 1, numk
        ip = PX + diskoffset(i,2) - ktmp%i
        jp = PX + diskoffset(i,3) + ktmp%j
        if (((ip.ge.1).and.(ip.le.npix)).and.((jp.ge.1).and.(jp.le.npix))) then
-          disk(1:numt,ip,jp) = disk(1:numt,ip,jp) + inten(1:numt,Diff%BetheParameters%reflistindex(i))
+          disk(ip,jp,1:numt) = disk(ip,jp,1:numt) + inten(1:numt,Diff%BetheParameters%reflistindex(i))
         end if
      end if
     end if
@@ -1282,10 +1282,10 @@ if (trim(enl%tiffprefix).ne.'undefined') then
   allocate(TIFF_image(enl%npix,enl%npix))
 
   do i=1,numt
-    ma = maxval(log10(disk(i,:,:)+1.0E-3))
-    mi = minval(log10(disk(i,:,:)+1.0E-3))
+    ma = maxval(log10(disk(:,:,i)+1.0E-3))
+    mi = minval(log10(disk(:,:,i)+1.0E-3))
 
-    TIFF_image = int(255 * (log10(disk(i,1:enl%npix,1:enl%npix)+1.0E-3)-mi)/(ma-mi))
+    TIFF_image = int(255 * (log10(disk(1:enl%npix,1:enl%npix,i)+1.0E-3)-mi)/(ma-mi))
 
     ! set up the image_t structure
     im = image_t(TIFF_image)
@@ -1342,9 +1342,9 @@ hdferr = HDF%createGroup(HDFnames%get_ProgramData())
 dataset = 'CBEDpatterns'
   call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
   if (g_exists) then
-    hdferr = HDF%writeDatasetFloatArray(dataset, disk, numt, npix, npix, overwrite)
+    hdferr = HDF%writeDatasetFloatArray(dataset, disk, npix, npix, numt, overwrite)
   else
-    hdferr = HDF%writeDatasetFloatArray(dataset, disk, numt, npix, npix)
+    hdferr = HDF%writeDatasetFloatArray(dataset, disk, npix, npix, numt)
   end if
 
 dataset = 'SymmetryParameters'
