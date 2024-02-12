@@ -68,7 +68,9 @@ type, public :: HOLZ_T
 private
   type(HOLZentries)                 :: HOLZentry
   type(HOLZreflection), pointer     :: HOLZlist
+  type(HOLZreflection), pointer     :: HOLZtail
   type(HOLZvartype)                 :: HOLZvar
+  integer(kind=irg),public          :: maxholz
 
 contains
 private
@@ -78,10 +80,12 @@ private
     procedure, pass(self) :: setlaL_
     procedure, pass(self) :: setImax_
     procedure, pass(self) :: setGmax_
+    procedure, pass(self) :: setuvw_
     procedure, pass(self) :: getrectangle_
     procedure, pass(self) :: getlaL_
     procedure, pass(self) :: getImax_
     procedure, pass(self) :: getGmax_
+    procedure, pass(self) :: getgshort_
     procedure, pass(self) :: HOLZPage_
     procedure, pass(self) :: ShortestGFOLZ_
     procedure, pass(self) :: CalcHOLZ_
@@ -100,17 +104,19 @@ private
     generic, public :: setlaL => setlaL_
     generic, public :: setImax => setImax_
     generic, public :: setGmax => setGmax_
+    generic, public :: setuvw => setuvw_
     generic, public :: getrectangle => getrectangle_
     generic, public :: getlaL => getlaL_
     generic, public :: getImax => getImax_
     generic, public :: getGmax => getGmax_
+    generic, public :: getgshort => getgshort_
     generic, public :: HOLZPage => HOLZPage_
     generic, public :: ShortestGFOLZ => ShortestGFOLZ_
     generic, public :: CalcHOLZ => CalcHOLZ_
     generic, public :: ReCalcHOLZ => ReCalcHOLZ_
     generic, public :: PlotHOLZ => PlotHOLZ_
     generic, public :: PlotHOLZlines => PlotHOLZlines_
-    generic, public :: CalsgHOLZ => CalcHOLZ_
+    generic, public :: CalcsgHOLZ => CalcsgHOLZ_
     generic, public :: GetHOLZcoordinates => GetHOLZcoordinates_
     generic, public :: GetHOLZGeometry => GetHOLZGeometry_
 end type HOLZ_T
@@ -133,6 +139,7 @@ type(HOLZ_T) function HOLZ_constructor( progdesc, EMsoft, PS ) result(HOLZ)
 
 use mod_postscript
 use mod_EMsoft
+use mod_io
 
 IMPLICIT NONE
 
@@ -140,7 +147,9 @@ character(fnlen), INTENT(IN), OPTIONAL          :: progdesc
 type(EMsoft_T), INTENT(INOUT), OPTIONAL         :: EMsoft
 type(PostScript_T), INTENT(INOUT), OPTIONAL     :: PS
 
-integer(kind=irg)                               :: imanum
+type(IO_T)                                      :: Message 
+
+integer(kind=irg)                               :: imanum, istat
 type(HOLZreflection), pointer                   :: temp
 
 if (present(PS)) then
@@ -149,10 +158,14 @@ if (present(PS)) then
   call PS%setpspage(0)
 end if
 
-! call HOLZ%DeleteList()
-
-allocate(HOLZ%HOLZlist)
-nullify(HOLZ%HOLZlist%next)
+nullify(HOLZ%HOLZlist)
+! create it if it does not already exist
+if (.not.associated(HOLZ%HOLZlist)) then
+  allocate(HOLZ%HOLZlist,stat=istat)
+  if (istat.ne.0) call Message%printError('MakeRefList:',' unable to allocate pointer')
+  HOLZ%HOLZtail => HOLZ%HOLZlist          ! tail points to new value
+  nullify(HOLZ%HOLZtail%next)             ! nullify next in new value
+end if
 
 end function HOLZ_constructor
 
@@ -170,8 +183,6 @@ IMPLICIT NONE
 type(HOLZ_T), INTENT(INOUT)  :: self
 
 call reportDestructor('HOLZ_T')
-
-call self%DeleteList()
 
 end subroutine HOLZ_destructor
 
@@ -205,18 +216,23 @@ subroutine DeleteList_(self)
 IMPLICIT NONE
 
 class(HOLZ_T),INTENT(INOUT)       :: self
-type(HOLZreflection), pointer     :: temp
+type(HOLZreflection), pointer     :: temp, tail
 
 if (associated(self%HOLZlist)) then
-    temp => self%HOLZlist ! %next
-    do while (associated(temp%next))
-      deallocate(self%HOLZlist)
-      self%HOLZlist => temp
-      temp => self%HOLZlist%next
+    tail => self%HOLZlist 
+    if (associated(tail%next)) then 
+      temp => tail%next
+      do 
+        if (associated(tail)) deallocate(tail)
+        if (.not. associated(temp)) EXIT
+        tail => temp
+        temp => tail%next
     end do
-    deallocate(self%HOLZlist)
+  end if
 end if
+
 nullify(self%HOLZlist)
+nullify(tail)
 
 end subroutine DeleteList_
 
@@ -291,6 +307,24 @@ real(kind=sgl)                 :: t
 t = self%HOLZvar%Gmax
 
 end function getGmax_
+
+!--------------------------------------------------------------------------
+function getgshort_(self) result(t)
+!DEC$ ATTRIBUTES DLLEXPORT :: getgshort_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/07/24
+  !!
+  !! return gshort value
+
+IMPLICIT NONE
+
+class(HOLZ_T),INTENT(INOUT)    :: self
+integer(kind=sgl)              :: t(3)
+
+t = self%HOLZvar%gshort
+
+end function getgshort_
 
 ! !--------------------------------------------------------------------------
 ! function get(self) result(t)
@@ -380,6 +414,24 @@ real(kind=sgl),INTENT(IN)      :: t
 self%HOLZvar%Gmax = t
 
 end subroutine setGmax_
+
+!--------------------------------------------------------------------------
+subroutine setuvw_(self, t)
+!DEC$ ATTRIBUTES DLLEXPORT :: setuvw_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/07/24
+  !!
+  !! set uvw
+
+IMPLICIT NONE
+
+class(HOLZ_T),INTENT(INOUT)    :: self
+integer(kind=irg),INTENT(IN)   :: t(3)
+
+self%HOLZvar%uvw = t
+
+end subroutine setuvw_
 
 ! !--------------------------------------------------------------------------
 ! subroutine set(self, t)

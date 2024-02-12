@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2016-2024, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2016-2023, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -26,42 +26,42 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMXXX
+program EMCBED
   !! author: MDG
   !! version: 1.0 
-  !! date: 01/24/20
+  !! date: 02/01/24
   !!
-  !! 
+  !! Program to compute (near) zone axis CBED patterns
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_XXX
+use mod_CBED
 use mod_HDFnames
 use stringconstants
 
 IMPLICIT NONE
 
-character(fnlen)                :: progname = 'EMXXX.f90'
-character(fnlen)                :: progdesc = ''
+character(fnlen)                :: progname = 'EMCBED.f90'
+character(fnlen)                :: progdesc = 'Program to compute (near) zone axis CBED patterns'
 
 type(EMsoft_T)                  :: EMsoft
-type(XXX_T)     :: YYY 
-type(HDFnames_T)       :: HDFnames
+type(CBED_T)                    :: CBED 
+type(HDFnames_T)                :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 11, 0 /) )
 
 ! deal with the namelist stuff
-YYY = XXX_T(EMsoft%nmldeffile)
+CBED = CBED_T(EMsoft%nmldeffile)
 
 HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_EBSDmaster) 
-call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
+call HDFnames%set_ProgramData(SC_CBED) 
+call HDFnames%set_NMLlist(SC_CBEDNameList) 
+call HDFnames%set_NMLfilename(SC_CBEDNML) 
+! call HDFnames%set_Variable(SC_MCOpenCL) 
 
 ! perform the computations
-call YYY%XXX(EMsoft, progname, HDFnames)
+call CBED%CBED(EMsoft, progname, HDFnames)
 
-end program EMXXX
+end program EMCBED

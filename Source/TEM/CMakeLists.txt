@@ -47,6 +47,15 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
                       )
 
+  Add_EMsoftOO_Executable(TARGET EMCBED
+                      SOURCES ${APP_DIR}/EMCBED.f90 
+                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                      TEMPLATE ${TMPLT_DIR}/EMCBED.template 
+                      SOLUTION_FOLDER EMsoftOOPublic/TEM 
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
+                      )
+
   Add_EMsoftOO_Executable(TARGET EMPEDZA 
                       SOURCES ${APP_DIR}/EMPEDZA.f90 
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}

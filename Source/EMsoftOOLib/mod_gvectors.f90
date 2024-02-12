@@ -99,12 +99,14 @@ private
   procedure, pass(self) :: GetDynMatKin_
   procedure, pass(self) :: GetDynMatDHW_
   procedure, pass(self) :: GetDynMatFull_
+  procedure, pass(self) :: GetDynMatHOLZ_
   procedure, pass(self) :: GetExpthetagh_
   procedure, pass(self) :: get_nref_
   procedure, pass(self) :: CalcLgh_
   procedure, pass(self) :: CalcLghdepth_
   procedure, pass(self) :: CalcCBEDint_
   procedure, pass(self) :: CalcPEDint_
+  procedure, pass(self) :: CalcBWint_
   procedure, pass(self) :: getSghfromLUT_
   procedure, pass(self) :: getSghfromLUTsum_
   procedure, pass(self) :: GetSgArray_ECCI_
@@ -127,12 +129,14 @@ private
   generic, public :: GetDynMatKin => GetDynMatKin_
   generic, public :: GetDynMatDHW => GetDynMatDHW_
   generic, public :: GetDynMatFull => GetDynMatFull_
+  generic, public :: GetDynMatHOLZ => GetDynMatHOLZ_
   generic, public :: GetExpthetagh => GetExpthetagh_
   generic, public :: get_nref => get_nref_
   generic, public :: CalcLgh => CalcLgh_
   generic, public :: CalcLghdepth => CalcLghdepth_
   generic, public :: CalcCBEDint => CalcCBEDint_
   generic, public :: CalcPEDint => CalcPEDint_
+  generic, public :: CalcBWint => CalcBWint_
   generic, public :: getSghfromLUT => getSghfromLUT_
   generic, public :: getSghfromLUTsum => getSghfromLUTsum_
   generic, public :: GetSgArray_ECCI => GetSgArray_ECCI_
@@ -684,8 +688,10 @@ imh = (gp(1)-1)/4
 imk = (gp(2)-1)/4
 iml = (gp(3)-1)/4
 
-! nullify(self%reflist)
-! nullify(self%rltail)
+! normalize the wave vector by the correct wavelength
+kr = k
+call cell%NormVec(kr, 'r') 
+kr = kr*la 
 
 gg = (/0,0,0/)
 call self%AddReflection(Diff, gg)  ! this guarantees that 000 is always the first reflection
@@ -701,7 +707,7 @@ do ix=-imh,imh
     if ((abs(gg(1))+abs(gg(2))+abs(gg(3))).ne.0) then  ! avoid double counting the origin
       dval = 1.0/cell%CalcLength(float(gg), 'r' )
       if ((SG%IsGAllowed(gg)).AND.(dval .gt. dmin)) then
-        sgp = Diff%Calcsg(cell, float(gg),k,FN)
+        sgp = Diff%Calcsg(cell, float(gg),kr,FN)
         if  ((abs(gg(1)).le.imh).and.(abs(gg(2)).le.imk).and.(abs(gg(3)).le.iml) ) then
           if (Diff%getdbdiff( gg )) then ! potential double diffraction reflection
             if (abs(sgp).le.rBethe_d) then
@@ -1014,7 +1020,7 @@ recursive subroutine GetDynMat_(self, cell, Diff, listrootw, DynMat, nns, nnw, M
   !! the q_g elements along the off-diagonal; the reason for this is the fact
   !! that this approach leads to a dynamical matrix that is shift invariant.
   !! A conversion to the Bloch wave dynamical matrix can be obtained by setting
-  !! the optional keyword BlochMode
+  !! the optional keyword MatrixType
 
 use mod_crystallography
 use mod_diffraction
@@ -1279,6 +1285,354 @@ ir = 1
 !DynMat = DynMat * cmplx(cPi,0.D0)
 
 end subroutine GetDynMatFull_
+
+!--------------------------------------------------------------------------
+recursive subroutine GetDynMatHOLZ_(self, cell, Diff, HOLZ, HOLZdata, EMsoft, calcmode, &
+                                    kk, kt, IgnoreFoilNormal,IncludeSecondOrder)
+!DEC$ ATTRIBUTES DLLEXPORT :: GetDynMatHOLZ_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/02/24
+  !!
+  !! compute the Bloch wave dynamical matrix for the full dynamical case
+  !! 
+  !! This is a complicated routine because it forms the core of the dynamical
+  !! scattering simulations.  The routine must be capable of setting up the dynamical 
+  !! matrix for systematic row and zone axis, with or without HOLZ reflections, and 
+  !! with Bethe potentials for the Bloch wave case.  The routine must also be able to
+  !! decide which reflections are weak, and which are strong (again for the Bloch wave
+  !! case, but potentially also for other cases? Further development needed...).
+
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+use mod_HOLZ
+use mod_io 
+use mod_EMsoft
+
+IMPLICIT NONE
+
+class(gvectors_T), INTENT(INOUT)  :: self
+type(Cell_T),INTENT(INOUT)        :: cell
+type(Diffraction_T),INTENT(INOUT) :: Diff
+type(HOLZ_T),INTENT(INOUT)        :: HOLZ
+type(HOLZentries),INTENT(INOUT)   :: HOLZdata
+type(EMsoft_T),INTENT(INOUT)      :: EMsoft
+character(*),INTENT(IN)           :: calcmode             !< computation mode
+real(kind=dbl),INTENT(IN)         :: kk(3),kt(3)          !< incident wave vector and tangential component
+logical,INTENT(IN)                :: IgnoreFoilNormal     !< how to deal with the foil normal
+logical,INTENT(IN),OPTIONAL       :: IncludeSecondOrder   !< second order Bethe potential correction switch
+
+type(IO_T)                        :: Message 
+
+complex(kind=dbl)                 :: czero,pre, weaksum, ughp, uhph
+integer(kind=irg)                 :: istat,ir,ic,nn, iweak, istrong, iw, ig, ll(3), gh(3), nnn, nweak, io_int(1), &
+                                     DynNbeams, DynNbeamsLinked
+real(kind=sgl)                    :: glen,exer,gg(3), kpg(3), gplen, sgp, lUg, cut1, cut2, io_real(3)
+real(kind=dbl)                    :: lsfour, weaksgsum, lambda 
+logical                           :: AddSecondOrder
+type(gnode)                       :: rlp
+type(reflisttype),pointer         :: rltmpa, rltmpb
+
+AddSecondOrder = .FALSE.
+if (present(IncludeSecondOrder)) AddSecondOrder = .TRUE.
+
+lambda = Diff%getWaveLength()
+
+! has the list of reflections been allocated ?
+if (.not.associated(self%reflist)) then 
+  call Message%printError('GetDynMatHOLZ_',' reflection list has not been allocated')
+end if
+
+! if the dynamical matrix has already been allocated, deallocate it first
+! this is partially so that no program will allocate DynMat itself; it must be done
+! via this routine only.
+if (allocated(Diff%Dyn%DynMat)) deallocate(Diff%Dyn%DynMat)
+
+! initialize some parameters
+czero = cmplx(0.0,0.0,dbl)      ! complex zero
+pre = cmplx(0.0,cPi,dbl)        ! i times pi
+
+if (calcmode.ne.'BLOCHBETHE') then
+          DynNbeams = Diff%getDynNbeams()
+! allocate DynMat
+          allocate(Diff%Dyn%DynMat(DynNbeams,DynNbeams),stat=istat)
+          Diff%Dyn%DynMat = czero
+! get the absorption coefficient
+          call Diff%CalcUcg(cell, (/0,0,0/), applyqgshift=.TRUE. )
+          Diff%Dyn%Upz = rlp%Vpmod
+
+! are we supposed to fill the off-diagonal part ?
+         if ((calcmode.eq.'D-H-W').or.(calcmode.eq.'BLOCH')) then
+          rltmpa => self%reflist%next    ! point to the front of the list
+! ir is the row index
+          do ir=1,DynNbeams
+           rltmpb => self%reflist%next   ! point to the front of the list
+! ic is the column index
+           do ic=1,DynNbeams
+            if (ic.ne.ir) then  ! exclude the diagonal
+! compute Fourier coefficient of electrostatic lattice potential 
+             gh = rltmpa%hkl - rltmpb%hkl
+             if (calcmode.eq.'D-H-W') then
+              call Diff%CalcUcg(cell, gh, applyqgshift=.TRUE.)
+              Diff%Dyn%DynMat(ir,ic) = pre * rlp%qg
+             else
+              Diff%Dyn%DynMat(ir,ic) = Diff%getLUT( gh )
+             end if
+            end if
+            rltmpb => rltmpb%next  ! move to next column-entry
+           end do
+           rltmpa => rltmpa%next   ! move to next row-entry
+          end do
+         end if
+         
+! or the diagonal part ?
+         if ((calcmode.eq.'DIAGH').or.(calcmode.eq.'DIAGB')) then
+          rltmpa => self%reflist%next   ! point to the front of the list
+! ir is the row index
+          do ir=1,DynNbeams
+           glen = cell%CalcLength(float(rltmpa%hkl),'r')
+           if (glen.eq.0.0) then
+            Diff%Dyn%DynMat(ir,ir) = cmplx(0.0,Diff%Dyn%Upz,dbl)
+           else  ! compute the excitation error
+            exer = Diff%Calcsg(cell,float(rltmpa%hkl),sngl(kk),Diff%Dyn%FN)
+
+            rltmpa%sg = exer
+            if (calcmode.eq.'DIAGH') then  !
+             Diff%Dyn%DynMat(ir,ir) = cmplx(0.0,2.D0*cPi*exer,dbl)
+            else
+             Diff%Dyn%DynMat(ir,ir) = cmplx(2.D0*exer/lambda,Diff%Dyn%Upz,dbl)
+            end if
+           endif
+           rltmpa => rltmpa%next   ! move to next row-entry
+          end do
+         end if
+
+else  
+
+! this is the Bloch wave + Bethe potentials initialization (originally implemented in the EBSD programs)
+! we don't know yet how many strong reflections there are so we'll need to determine this first
+! this number depends on some externally supplied parameters, which we will get from a namelist
+! file (which should be read only once by the Set_Bethe_Parameters routine), or from default values
+! if there is no namelist file in the folder.
+    if (Diff%BetheParameters%cutoff.eq.0.0) call Diff%SetBetheParameters(EMsoft,silent=.TRUE.)
+
+! reset the value of DynNbeams in case it was modified in a previous call 
+    DynNbeamsLinked = Diff%getDynNbeamsLinked()
+    DynNbeams = DynNbeamsLinked
+        
+! precompute lambda^2/4
+    lsfour = lambda**2*0.25D0
+  
+! first, for the input beam direction, determine the excitation errors of 
+! all the reflections in the master list, and count the ones that are
+! needed for the dynamical matrix (weak as well as strong)
+    if (.not.allocated(Diff%BetheParameters%weaklist)) allocate(Diff%BetheParameters%weaklist(DynNbeams))
+    if (.not.allocated(Diff%BetheParameters%stronglist)) allocate(Diff%BetheParameters%stronglist(DynNbeams))
+    if (.not.allocated(Diff%BetheParameters%reflistindex)) allocate(Diff%BetheParameters%reflistindex(DynNbeams))
+    if (.not.allocated(Diff%BetheParameters%weakreflistindex)) allocate(Diff%BetheParameters%weakreflistindex(DynNbeams))
+
+    Diff%BetheParameters%weaklist = 0
+    Diff%BetheParameters%stronglist = 0
+    Diff%BetheParameters%reflistindex = 0
+    Diff%BetheParameters%weakreflistindex = 0
+
+    rltmpa => self%reflist%next
+
+! deal with the transmitted beam first
+    nn = 1              ! nn counts all the scattered beams that satisfy the cutoff condition
+    nnn = 1             ! nnn counts only the strong beams
+    nweak = 0           ! counts only the weak beams
+    Diff%BetheParameters%stronglist(nn) = 1   ! make sure that the transmitted beam is always a strong beam ...
+    Diff%BetheParameters%weaklist(nn) = 0
+    Diff%BetheParameters%reflistindex(nn) = 1
+
+    rltmpa%sg = 0.D0    
+
+! loop over all reflections in the linked list    
+    rltmpa => rltmpa%next
+    reflectionloop: do ig=2,DynNbeamsLinked
+      gg = float(rltmpa%hkl)                    ! this is the reciprocal lattice vector 
+
+! deal with the foil normal; if IgnoreFoilNormal is .TRUE., then assume it is parallel to the beam direction
+   if (IgnoreFoilNormal) then 
+! we're taking the foil normal to be parallel to the incident beam direction at each point of
+! the standard stereographic triangle, so cos(alpha) = 1 always in eqn. 5.11 of EM
+        kpg = kk+gg                             ! k0 + g (vectors)
+        gplen = cell%CalcLength(kpg,'r')        ! |k0+g|
+        rltmpa%sg = (1.0/lambda**2 - gplen**2)*0.5/gplen
+   else
+        rltmpa%sg = Diff%Calcsg(cell,gg,sngl(kk),Diff%Dyn%FN)
+        ! rltmpa%sg = HOLZ%CalcsgHOLZ(cell,HOLZdata,gg,sngl(kt),sngl(lambda))
+! here we need to determine the components of the Laue Center w.r.t. the g1 and g2 vectors
+! and then pass those on to the routine; 
+!       rltmpa%sg = CalcsgHOLZ(gg,sngl(kt),sngl(cell%mLambda))
+! write (*,*) gg, Calcsg(gg,sngl(kk),DynFN), CalcsgHOLZ(gg,sngl(kt),sngl(cell%mLambda))
+   end if
+! use the reflection num entry to indicate whether or not this
+! reflection should be used for the dynamical matrix
+! We compare |sg| with two multiples of lambda |Ug|
+!
+!  |sg|>cutoff lambda |Ug|   ->  don't count reflection
+!  cutoff lambda |Ug| > |sg| > weakcutoff lambda |Ug|  -> weak reflection
+!  weakcutoff lambda |Ug| > |sg|  -> strong reflection
+!
+        sgp = abs(rltmpa%sg) 
+        lUg = abs(rltmpa%Ucg) * lambda
+        ! cut1 =  4.0*Diff%BetheParameters%c2 * lUg
+        ! cut2 =  4.0*Diff%BetheParameters%c1 * lUg
+        cut1 =  Diff%BetheParameters%cutoff * lUg
+        cut2 =  Diff%BetheParameters%weakcutoff * lUg
+
+! we have to deal separately with double diffraction reflections, since
+! they have a zero potential coefficient !        
+        if ( Diff%getdbdiff(rltmpa%hkl) ) then  ! it is a double diffraction reflection
+          if (sgp.le.Diff%BetheParameters%sgcutoff) then         
+                nn = nn+1
+                nnn = nnn+1
+                Diff%BetheParameters%stronglist(ig) = 1
+                Diff%BetheParameters%reflistindex(ig) = nnn
+          end if
+        else   ! it is not a double diffraction reflection
+          if (sgp.le.cut1) then  ! count this beam
+                nn = nn+1
+! is this a weak or a strong reflection (in terms of Bethe potentials)? 
+                if (sgp.le.cut2) then ! it's a strong beam
+                        nnn = nnn+1
+                        Diff%BetheParameters%stronglist(ig) = 1
+                        Diff%BetheParameters%reflistindex(ig) = nnn
+                else ! it's a weak beam
+                        nweak = nweak+1
+                        Diff%BetheParameters%weaklist(ig) = 1
+                        Diff%BetheParameters%weakreflistindex(ig) = nweak
+                end if
+          end if
+        end if
+! go to the next beam in the list
+      rltmpa => rltmpa%next
+    end do reflectionloop
+
+! if we don't have any beams in this list (unlikely, but possible if the cutoff and 
+! weakcutoff parameters have unreasonable values) then we abort the run
+! and we report some numbers to the user 
+    if (nn.eq.0) then
+      call Message%printMessage(' no beams found for the following parameters:', frm = "(A)")
+      io_real(1:3) = kk(1:3)
+      call Message%WriteValue(' wave vector = ', io_real,3)
+      io_int(1) = nn
+      call Message%WriteValue('  -> number of beams = ', io_int, 1)
+      call Message%printMessage( '   -> check cutoff and weakcutoff parameters for reasonableness', frm = "(A)")
+      call Message%printError('GetDynMatHOLZ_','No beams in list')
+    end if
+
+! next, we define nns to be the number of strong beams, and nnw the number of weak beams.
+    Diff%BetheParameters%nns = sum(Diff%BetheParameters%stronglist)
+    Diff%BetheParameters%nnw = sum(Diff%BetheParameters%weaklist)
+         
+! add nns to the weakreflistindex to offset it; this is used for plotting reflections on CBED patterns
+    do ig=2,DynNbeamsLinked
+      if (Diff%BetheParameters%weakreflistindex(ig).ne.0) then
+        Diff%BetheParameters%weakreflistindex(ig) = Diff%BetheParameters%weakreflistindex(ig) + Diff%BetheParameters%nns
+      end if
+    end do
+        
+! We may want to keep track of the total and average numbers of strong and weak beams  
+    Diff%BetheParameters%totweak = Diff%BetheParameters%totweak + Diff%BetheParameters%nnw
+    Diff%BetheParameters%totstrong = Diff%BetheParameters%totstrong + Diff%BetheParameters%nns
+    if (Diff%BetheParameters%nnw.lt.Diff%BetheParameters%minweak) Diff%BetheParameters%minweak=Diff%BetheParameters%nnw
+    if (Diff%BetheParameters%nnw.gt.Diff%BetheParameters%maxweak) Diff%BetheParameters%maxweak=Diff%BetheParameters%nnw
+    if (Diff%BetheParameters%nns.lt.Diff%BetheParameters%minstrong) Diff%BetheParameters%minstrong=Diff%BetheParameters%nns
+    if (Diff%BetheParameters%nns.gt.Diff%BetheParameters%maxstrong) Diff%BetheParameters%maxstrong=Diff%BetheParameters%nns
+
+! allocate arrays for weak and strong beam information
+    if (allocated(Diff%BetheParameters%weakhkl)) deallocate(Diff%BetheParameters%weakhkl)
+    if (allocated(Diff%BetheParameters%weaksg)) deallocate(Diff%BetheParameters%weaksg)
+    if (allocated(Diff%BetheParameters%stronghkl)) deallocate(Diff%BetheParameters%stronghkl)
+    if (allocated(Diff%BetheParameters%strongsg)) deallocate(Diff%BetheParameters%strongsg)
+    if (allocated(Diff%BetheParameters%strongID)) deallocate(Diff%BetheParameters%strongID)
+    allocate(Diff%BetheParameters%weakhkl(3,Diff%BetheParameters%nnw),Diff%BetheParameters%weaksg(Diff%BetheParameters%nnw))
+    allocate(Diff%BetheParameters%stronghkl(3,Diff%BetheParameters%nns),Diff%BetheParameters%strongsg(Diff%BetheParameters%nns))
+    allocate(Diff%BetheParameters%strongID(Diff%BetheParameters%nns))
+
+! here's where we extract the relevant information from the linked list (much faster
+! than traversing the list each time...)
+    rltmpa => self%reflist%next    ! reset the a list
+    iweak = 0
+    istrong = 0
+    do ir=1,DynNbeamsLinked
+         if (Diff%BetheParameters%weaklist(ir).eq.1) then
+            iweak = iweak+1
+            Diff%BetheParameters%weakhkl(1:3,iweak) = rltmpa%hkl(1:3)
+            Diff%BetheParameters%weaksg(iweak) = rltmpa%sg
+         end if
+         if (Diff%BetheParameters%stronglist(ir).eq.1) then
+            istrong = istrong+1
+            Diff%BetheParameters%stronghkl(1:3,istrong) = rltmpa%hkl(1:3)
+            Diff%BetheParameters%strongsg(istrong) = rltmpa%sg
+! make an inverse index list
+            Diff%BetheParameters%strongID(istrong) = ir           
+         end if
+       rltmpa => rltmpa%next
+    end do
+
+! now we are ready to create the dynamical matrix
+    DynNbeams = Diff%BetheParameters%nns
+    call Diff%setDynNbeams( DynNbeams )
+
+! allocate DynMat if it hasn't already been allocated and set to complex zero
+    if (allocated(Diff%Dyn%DynMat)) deallocate(Diff%Dyn%DynMat)
+    allocate(Diff%Dyn%DynMat(DynNbeams,DynNbeams),stat=istat)
+    Diff%Dyn%DynMat = czero
+
+! get the absorption coefficient
+    call Diff%CalcUcg(cell, (/0,0,0/) )
+    rlp = Diff%getrlp()
+    Diff%Dyn%Upz = rlp%Vpmod
+
+! ir is the row index
+    do ir=1,Diff%BetheParameters%nns
+! ic is the column index
+      do ic=1,Diff%BetheParameters%nns
+! compute the Bethe Fourier coefficient of the electrostatic lattice potential 
+        if (ic.ne.ir) then  ! not a diagonal entry
+          ll = Diff%BetheParameters%stronghkl(1:3,ir) - Diff%BetheParameters%stronghkl(1:3,ic)
+          Diff%Dyn%DynMat(ir,ic) = Diff%getLUT(ll)
+        ! and subtract from this the total contribution of the weak beams
+          weaksum = czero
+          do iw=1,Diff%BetheParameters%nnw
+              ll = Diff%BetheParameters%stronghkl(1:3,ir) - Diff%BetheParameters%weakhkl(1:3,iw)
+              ughp = Diff%getLUT(ll) 
+              ll = Diff%BetheParameters%weakhkl(1:3,iw) - Diff%BetheParameters%stronghkl(1:3,ic)
+              uhph = Diff%getLUT(ll) 
+              weaksum = weaksum +  ughp * uhph *cmplx(1.D0/Diff%BetheParameters%weaksg(iw),0.0,dbl)
+          end do
+        ! and correct the dynamical matrix element to become a Bethe potential coefficient
+          Diff%Dyn%DynMat(ir,ic) = Diff%Dyn%DynMat(ir,ic) - cmplx(0.5D0*lambda,0.0D0,dbl)*weaksum
+! do we need to add the second order corrections ?
+          if (AddSecondOrder) then 
+            weaksum = czero
+          end if
+        else  ! it is a diagonal entry, so we need the excitation error and the absorption length
+! determine the total contribution of the weak beams
+          weaksgsum = 0.D0
+          do iw=1,Diff%BetheParameters%nnw
+            ll = Diff%BetheParameters%stronghkl(1:3,ir) - Diff%BetheParameters%weakhkl(1:3,iw)
+            ughp = Diff%getLUT(ll) 
+            weaksgsum = weaksgsum +  abs(ughp)**2/Diff%BetheParameters%weaksg(iw)
+          end do
+          weaksgsum = weaksgsum * lambda/2.D0
+          Diff%Dyn%DynMat(ir,ir) = cmplx(2.D0*Diff%BetheParameters%strongsg(ir)/lambda-weaksgsum,Diff%Dyn%Upz,dbl)
+! do we need to add the second order corrections ?
+          if (AddSecondOrder) then 
+            weaksum = czero
+          end if
+        end if
+      end do
+    end do
+! that should do it for the initialization of the dynamical matrix
+end if 
+
+end subroutine GetDynMatHOLZ_
 
 !--------------------------------------------------------------------------
 recursive subroutine GetDynMatKin_(self, cell, Diff, listrootw, DynMat, nns)
@@ -1788,6 +2142,90 @@ end do
 end subroutine CalcPEDint_
 
 !--------------------------------------------------------------------------
+recursive subroutine CalcBWint_(self, cell, Diff, ktmp, nn, nw, nt, thick, inten)
+!DEC$ ATTRIBUTES DLLEXPORT :: CalcBWint_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/05/24
+  !!
+  !! compute the scattered intensities for a range of thicknesses
+
+use mod_io
+use mod_diffraction
+use mod_crystallography
+use mod_kvectors
+
+IMPLICIT NONE
+
+class(gvectors_T),INTENT(INOUT)     :: self
+type(Cell_T),INTENT(INOUT)          :: cell
+type(Diffraction_T),INTENT(INOUT)   :: Diff
+type(kvectorlist),pointer           :: ktmp
+integer(kind=irg),INTENT(IN)        :: nn                   !< number of strong beams
+integer(kind=irg),INTENT(IN)        :: nw                   !< number of weak beams
+integer(kind=irg),INTENT(IN)        :: nt                   !< number of thickness values
+real(kind=sgl),INTENT(IN)           :: thick(nt)            !< thickness array
+real(kind=sgl),INTENT(INOUT)        :: inten(nt,nn+nw)      !< output intensities (both strong and weak)
+
+integer(kind=irg)                   :: i,j,IPIV(nn), ll(3), jp
+complex(kind=dbl)                   :: CGinv(nn,nn), Minp(nn,nn),diag(nn),Wloc(nn), lCG(nn,nn), lW(nn), &
+                                       lalpha(nn), delta(nn,nn), weak(nw,nn), Ucross(nw,nn), tmp(nw,nn), c
+real(kind=sgl)                      :: th
+real(kind=dbl)                      :: lambda
+
+! compute the eigenvalues and eigenvectors
+ Minp = Diff%Dyn%DynMat
+ IPIV = 0
+ call Diff%BWsolve(Minp,Wloc,lCG,CGinv,nn,IPIV)
+
+! the alpha coefficients are in the first column of the inverse matrix
+! the minus sign in W(i) stems from the fact that k_n is in the direction
+! opposite to the foil normal
+ lW = cPi*Wloc/cmplx(ktmp%kn,0.0)
+ do i=1,nn
+  lalpha(i) = CGinv(i,1)
+ end do
+
+! in preparation for the intensity computation, we need the prefactor array for the
+! weak beam amplitude computation...
+! we will also need a potential coefficient array for the cross coefficients, which we 
+! compute in the same loop
+ lambda = Diff%getWaveLength()
+ do j=1,nn   ! strong beam loop
+   do jp=1,nw  ! weak beam loop
+! prefactor value
+     c = cmplx(2.D0*Diff%BetheParameters%weaksg(jp)/lambda) - 2.D0*ktmp%kn*Wloc(j)
+     weak(jp,j) = cmplx(-1.D0,0.D0)/c
+! cross potential coefficient
+     ll(1:3) = Diff%BetheParameters%weakhkl(1:3,jp) - Diff%BetheParameters%stronghkl(1:3,j)
+     Ucross(jp,j) = Diff%getLUT( ll )
+   end do
+ end do
+
+! compute the strong beam intensities, stored in the first nn slots of inten 
+! we can also compute the weak beams, since they make use of the same diag(1:nn) expression
+! as the strong beams, plus a few other factors (excitation error, wave length, Fourier coefficients)
+ do i=1,nt
+  th = thick(i)
+  diag(1:nn)=exp(-th*aimag(lW(1:nn)))*cmplx(cos(th*real(lW(1:nn))),sin(th*real(lW(1:nn))))*lalpha(1:nn)
+! the delta array is common to the strong and weak beam intensity computation, so we compute it first
+  do j=1,nn
+   delta(j,1:nn) = lCG(j,1:nn)*diag(1:nn)
+  end do
+! strong beams
+  do j=1,nn
+   inten(i,j) = abs(sum(delta(j,1:nn)))**2
+  end do 
+! weak beams
+  tmp = matmul(Ucross,delta)
+  do jp=1,nw
+   inten(i,nn+jp) = abs( sum(weak(jp,1:nn)*tmp(jp,1:nn)) )**2
+  end do  
+ end do
+  
+end subroutine CalcBWint_
+
+!--------------------------------------------------------------------------
 recursive subroutine CalcLgh_(self,DMat,Lgh,thick,kn,nn,gzero,depthstep,lambdaE,izz)
 !DEC$ ATTRIBUTES DLLEXPORT :: CalcLgh_
   !! author: MDG
@@ -2092,7 +2530,7 @@ end subroutine CalcLghdepth_
 ! type(reflisttype),pointer               :: rltmpa, rltmpb
 
 ! ! reset the value of DynNbeams in case it was modified in a previous call
-! cell%DynNbeams = cell%DynNbeamsLinked
+! DynNbeams = DynNbeamsLinked
 
 ! nbeams = 0
 
@@ -2106,7 +2544,7 @@ end subroutine CalcLghdepth_
 ! ! loop over all reflections in the linked list
 ! !!!! this will all need to be changed with the new Bethe potential criteria ...
 !   rltmpa => rltmpa%next
-!   reflectionloop: do ig=2,cell%DynNbeamsLinked
+!   reflectionloop: do ig=2,DynNbeamsLinked
 !     lUg = abs(rltmpa%Ucg) * cell%mLambda
 !     cut1 = BetheParameter%cutoff * lUg
 !     cut2 = BetheParameter%weakcutoff * lUg
@@ -2159,7 +2597,7 @@ end subroutine CalcLghdepth_
 !   rltmpb => rltmpa
 !   rltmpa => rltmpa%next ! we keep the first entry, always.
 !   istrong = 1
-!   reflectionloop2: do ig=2,cell%DynNbeamsLinked
+!   reflectionloop2: do ig=2,DynNbeamsLinked
 !     if (rltmpa%famnum.eq.1) then
 !         istrong = istrong + 1
 !         rltmpa%famnum = istrong
@@ -2174,8 +2612,8 @@ end subroutine CalcLghdepth_
 !   end do reflectionloop2
 
 ! ! reset the number of beams to the newly obtained number
-!   cell%DynNbeamsLinked = nbeams
-!   cell%DynNbeams = nbeams
+!   DynNbeamsLinked = nbeams
+!   DynNbeams = nbeams
 
 ! ! go through the entire list once again to correct the famhkl
 ! ! entries, which may be incorrect now; famhkl is supposed to be one of the
@@ -2287,7 +2725,7 @@ end subroutine CalcLghdepth_
 ! if (calcmode.ne.'BLOCHBETHE') then
 
 ! ! allocate DynMat
-!           allocate(Dyn%DynMat(cell%DynNbeams,cell%DynNbeams),stat=istat)
+!           allocate(Dyn%DynMat(DynNbeams,DynNbeams),stat=istat)
 !           Dyn%DynMat = czero
 ! ! get the absorption coefficient
 !           call CalcUcg(cell, rlp, (/0,0,0/),applyqgshift=.TRUE. )
@@ -2297,10 +2735,10 @@ end subroutine CalcLghdepth_
 !          if ((calcmode.eq.'D-H-W').or.(calcmode.eq.'BLOCH')) then
 !           rltmpa => cell%reflist%next    ! point to the front of the list
 ! ! ir is the row index
-!           do ir=1,cell%DynNbeams
+!           do ir=1,DynNbeams
 !            rltmpb => cell%reflist%next   ! point to the front of the list
 ! ! ic is the column index
-!            do ic=1,cell%DynNbeams
+!            do ic=1,DynNbeams
 !             if (ic.ne.ir) then  ! exclude the diagonal
 ! ! compute Fourier coefficient of electrostatic lattice potential
 !              gh = rltmpa%hkl - rltmpb%hkl
@@ -2321,7 +2759,7 @@ end subroutine CalcLghdepth_
 !          if ((calcmode.eq.'DIAGH').or.(calcmode.eq.'DIAGB')) then
 !           rltmpa => reflist%next   ! point to the front of the list
 ! ! ir is the row index
-!           do ir=1,cell%DynNbeams
+!           do ir=1,DynNbeams
 !            glen = CalcLength(cell,float(rltmpa%hkl),'r')
 !            if (glen.eq.0.0) then
 !             Dyn%DynMat(ir,ir) = cmplx(0.0,Dyn%Upz,dbl)
@@ -2349,7 +2787,7 @@ end subroutine CalcLghdepth_
 
 
 ! ! reset the value of DynNbeams in case it was modified in a previous call
-!         cell%DynNbeams = cell%DynNbeamsLinked
+!         DynNbeams = DynNbeamsLinked
 
 ! ! precompute lambda^2/4
 !         lsfour = cell%mLambda**2*0.25D0
@@ -2357,10 +2795,10 @@ end subroutine CalcLghdepth_
 ! ! first, for the input beam direction, determine the excitation errors of
 ! ! all the reflections in the master list, and count the ones that are
 ! ! needed for the dynamical matrix (weak as well as strong)
-!         if (.not.allocated(BetheParameter%weaklist)) allocate(BetheParameter%weaklist(cell%DynNbeams))
-!         if (.not.allocated(BetheParameter%stronglist)) allocate(BetheParameter%stronglist(cell%DynNbeams))
-!         if (.not.allocated(BetheParameter%reflistindex)) allocate(BetheParameter%reflistindex(cell%DynNbeams))
-!         if (.not.allocated(BetheParameter%weakreflistindex)) allocate(BetheParameter%weakreflistindex(cell%DynNbeams))
+!         if (.not.allocated(BetheParameter%weaklist)) allocate(BetheParameter%weaklist(DynNbeams))
+!         if (.not.allocated(BetheParameter%stronglist)) allocate(BetheParameter%stronglist(DynNbeams))
+!         if (.not.allocated(BetheParameter%reflistindex)) allocate(BetheParameter%reflistindex(DynNbeams))
+!         if (.not.allocated(BetheParameter%weakreflistindex)) allocate(BetheParameter%weakreflistindex(DynNbeams))
 
 !         BetheParameter%weaklist = 0
 !         BetheParameter%stronglist = 0
@@ -2382,7 +2820,7 @@ end subroutine CalcLghdepth_
 
 ! ! loop over all reflections in the linked list
 !     rltmpa => rltmpa%next
-!     reflectionloop: do ig=2,cell%DynNbeamsLinked
+!     reflectionloop: do ig=2,DynNbeamsLinked
 !       gg = float(rltmpa%hkl)                    ! this is the reciprocal lattice vector
 
 ! ! deal with the foil normal; if IgnoreFoilNormal is .TRUE., then assume it is parallel to the beam direction
@@ -2459,7 +2897,7 @@ end subroutine CalcLghdepth_
 !          BetheParameter%nnw = sum(BetheParameter%weaklist)
 
 ! ! add nns to the weakreflistindex to offset it; this is used for plotting reflections on CBED patterns
-!         do ig=2,cell%DynNbeamsLinked
+!         do ig=2,DynNbeamsLinked
 !           if (BetheParameter%weakreflistindex(ig).ne.0) then
 !             BetheParameter%weakreflistindex(ig) = BetheParameter%weakreflistindex(ig) + BetheParameter%nns
 !           end if
@@ -2488,7 +2926,7 @@ end subroutine CalcLghdepth_
 !         rltmpa => cell%reflist%next    ! reset the a list
 !         iweak = 0
 !         istrong = 0
-!         do ir=1,cell%DynNbeamsLinked
+!         do ir=1,DynNbeamsLinked
 !              if (BetheParameter%weaklist(ir).eq.1) then
 !                 iweak = iweak+1
 !                 BetheParameter%weakhkl(1:3,iweak) = rltmpa%hkl(1:3)
@@ -2505,11 +2943,11 @@ end subroutine CalcLghdepth_
 !         end do
 
 ! ! now we are ready to create the dynamical matrix
-!         cell%DynNbeams = BetheParameter%nns
+!         DynNbeams = BetheParameter%nns
 
 ! ! allocate DynMat if it hasn't already been allocated and set to complex zero
 !           if (allocated(Dyn%DynMat)) deallocate(Dyn%DynMat)
-!           allocate(Dyn%DynMat(cell%DynNbeams,cell%DynNbeams),stat=istat)
+!           allocate(Dyn%DynMat(DynNbeams,DynNbeams),stat=istat)
 !           Dyn%DynMat = czero
 
 ! ! get the absorption coefficient

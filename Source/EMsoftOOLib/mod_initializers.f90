@@ -224,7 +224,181 @@ izl:   do iz=-2*iml,2*iml
 ! that's it
 end subroutine Initialize_Cell
 
+!--------------------------------------------------------------------------
+recursive subroutine Initialize_Cell_HOLZ(cell, Diff, SG, HOLZ, HOLZdata, gvec, TDPG, EMsoft, dmin, k, ga, gb, verbose, useHDF)
+!DEC$ ATTRIBUTES DLLEXPORT :: Initialize_Cell_HOLZ
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/07/24
+ !!
+ !! perform all steps to initialize a unit Diff type variable for the case where
+ !! a zone axis is known so the number of reflections that need to be initialized is
+ !! much smaller and requires knowledge of HOLZ parameters (used for things like CBED and ECP
+ !! pattern simulations). This will always require an LUT table.
 
+use mod_EMsoft
+use mod_symmetry
+use mod_io
+use mod_gvectors
+use mod_diffraction
+use mod_crystallography
+use mod_HDFsupport
+use mod_HOLZ
+use mod_symmetry
+use mod_symmetry2D
+
+IMPLICIT NONE
+
+type(Cell_T),INTENT(INOUT)                 :: cell
+type(Diffraction_T),INTENT(INOUT)          :: Diff
+type(SpaceGroup_T),INTENT(INOUT)           :: SG
+type(HOLZ_T),INTENT(INOUT)                 :: HOLZ
+type(HOLZentries),INTENT(INOUT)            :: HOLZdata
+type(gvectors_T),INTENT(INOUT)             :: gvec 
+type(symdata2D),INTENT(INOUT)              :: TDPG
+type(EMsoft_T),INTENT(INOUT)               :: EMsoft
+real(kind=sgl),INTENT(IN)                  :: dmin
+integer(kind=irg),INTENT(IN)               :: k(3)
+integer(kind=irg),INTENT(INOUT)            :: ga(3)
+integer(kind=irg),INTENT(INOUT)            :: gb(3)
+logical,INTENT(IN),OPTIONAL                :: verbose
+type(HDF_T),OPTIONAL,INTENT(INOUT)         :: useHDF
+
+type(IO_T)                                 :: Message
+type(gnode)                                :: rlp
+
+integer(kind=irg)                          :: istat, io_int(6), skip, gshort(3), gp(3), minholz, maxholz
+integer(kind=irg)                          :: N, i, j, im, imh, imk, iml, gg(3), ix, iy, iz, pgnum, isym, dgn
+real(kind=sgl)                             :: dhkl, io_real(9), ddt, H, g3(3), g3n(3), FNg(3), RHOLZ
+real(kind=dbl)                             :: lambda
+logical                                    :: loadingfile, justinit, interp, compute
+real(kind=sgl),parameter                   :: gstepsize = 0.001  ! [nm^-1] interpolation stepsize
+character(fnlen)                           :: xtalname
+
+! load the crystal structure file, which also computes all the important
+! matrices as well as all the symmetry arrays
+xtalname = trim(cell%getFileName())
+if (present(useHDF)) then
+  call cell%getCrystalData(xtalname, SG, EMsoft, verbose, useHDF)
+else
+  call cell%getCrystalData(xtalname, SG, EMsoft, verbose)
+end if
+
+! we assume that the voltage has already been set in the Diff class...
+call Diff%CalcWaveLength(cell)
+lambda = Diff%getWaveLength()
+
+! determine the point group number
+ j=0
+ do i=1,32
+  if (SGPG(i).le.SG%getSpaceGroupNumber()) j=i
+ end do
+
+dgn = SG%GetPatternSymmetry(k,j,.TRUE.)
+pgnum = j
+isym = WPPG(dgn) ! WPPG lists the whole pattern point group numbers vs. diffraction group numbers
+
+call Generate2DSymmetry(TDPG, isym)
+
+! determine the shortest reciprocal lattice points for this zone
+call cell%ShortestG(SG, k, ga, gb, isym)
+io_int(1:3)=ga(1:3)
+io_int(4:6)=gb(1:3)
+call Message%WriteValue('Reciprocal lattice vectors : ', io_int, 6,"('(',3I3,') and (',3I3,')',/)")
+call Message%printMessage('  (the first lattice vector is horizontal in the CBED pattern)')
+call Message%printMessage(' ')
+
+! next we need to incorporate the HOLZ layer geometry to select only those reflections
+! that can potentially contribute to the scattering process...implicit in this is the 
+! assumption that we will always stay close to the zone axis orientation k
+
+! initialize the HOLZ geometry type
+call HOLZ%GetHOLZGeometry(cell, HOLZdata, float(ga), float(gb), k, nint(Diff%Dyn%FN) ) 
+
+! distance between consecutive HOLZ layers in nm-1
+H = HOLZdata%H
+g3 = HOLZdata%g3
+FNg = HOLZdata%FNg
+gshort = HOLZdata%gshort
+
+io_real = (/ float(ga(1:3)), float(gb(1:3)), g3(1:3) /)
+call Message%WriteValue('basis vectors for this computation: ', io_real, 9, "(/'ga = ',3f10.5,/'gb = ',3f10.5,/'g3 = ',3f10.5,/)")
+io_real(1) = H
+call Message%WriteValue('reciprocal interplanar spacing H = ', io_real, 1, "(F10.4,' nm^-1'/)")
+io_int(1:3) = gshort(1:3)
+call Message%WriteValue(' shortest vector to FOLZ = ', io_int, 3, "('(',3I3,')',/)")
+
+! The master list is most easily created by brute force; we'll compute the 
+! radius of the FOLZ ring, scale it by the length of ga or gb, turn that into an integer
+! and make the range twice as large...  All reflections from FOLZ and ZOLZ within
+! this range will become part of the list
+minholz = 0
+i = HOLZ%maxHOLZ
+maxholz = i
+RHOLZ = sqrt(2.0*H*float(i)/lambda - (float(i)*H)**2)
+im = max( nint(RHOLZ/cell%CalcLength(float(ga),'r')),nint(RHOLZ/cell%CalcLength(float(gb),'r')) )
+
+! The master list is easily created by brute force
+ imh = 1
+ do 
+   imh = imh + 1
+   dhkl = 1.0/cell%CalcLength(  (/float(imh) ,0.0_sgl,0.0_sgl/), 'r')
+   if (dhkl.lt.dmin) EXIT
+ end do
+ imk = 1
+ do 
+   imk = imk + 1
+   dhkl = 1.0/cell%CalcLength( (/0.0_sgl,float(imk),0.0_sgl/), 'r')
+  if (dhkl.lt.dmin) EXIT
+ end do
+ iml = 1
+ do 
+   iml = iml + 1
+   dhkl = 1.0/cell%CalcLength( (/0.0_sgl,0.0_sgl,float(iml)/), 'r')
+   if (dhkl.lt.dmin) EXIT
+ end do
+ io_int(1:3) = (/ imh, imk, iml /)
+ call Message%WriteValue(' Range of reflections along a*, b* and c* = ',io_int,3)
+
+! allocate the look up table with potential coefficients
+call Diff%allocateLUT( (/ 2*imh, 2*imk, 2*iml /) )
+
+! handle the (000) reflection
+call Diff%CalcUcg( cell, (/0,0,0/), applyqgshift=.TRUE. )
+rlp = Diff%getrlp()
+call Diff%setLUT( (/0,0,0/), rlp%Ucg )
+call Diff%setLUTqg( (/0,0,0/), rlp%qg )
+call Diff%setVphase( (/0,0,0/), dble(rlp%Vphase) )
+call gvec%AddReflection( Diff, (/0,0,0/) )   ! this guarantees that 000 is always the first reflection
+
+
+do ix=-2*imh,2*imh
+  do iy=-2*imk,2*imk
+    do iz=-2*iml,2*iml
+      gg = (/ ix, iy, iz /)
+      if ((SG%IsGAllowed(gg)).AND.(cell%CalcLength(float(gg),'r').ne.0.0)) then
+        if  ((abs(gg(1)).le.2*imh).and.(abs(gg(2)).le.2*imk).and.(abs(gg(3)).le.2*iml) ) then
+          call Diff%CalcUcg( cell, gg, applyqgshift=.TRUE. )
+          rlp = Diff%getrlp()
+          call Diff%setLUT( gg, rlp%Ucg )
+          call Diff%setLUTqg( gg, rlp%qg )
+          call Diff%setVphase( gg, dble(rlp%Vphase) )
+          call gvec%AddReflection( Diff, gg ) 
+        end if
+! flag this reflection as a double diffraction candidate if cabs(Ucg)<ddt threshold
+        if (cabs(rlp%Ucg).le.ddt) then 
+           call Diff%setdbdiff( gg, .TRUE. )
+        end if
+      end if
+    end do
+  end do
+end do
+
+io_int(1) = gvec%get_nref()
+call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I5,/)")
+
+! that's it
+end subroutine Initialize_Cell_HOLZ
 
 !--------------------------------------------------------------------------
 recursive subroutine Initialize_Cell_noHDF(cell, Diff, SG, Dyn, dmin)

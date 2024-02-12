@@ -197,9 +197,9 @@ module mod_diffraction
           real(kind=sgl)                 :: c2 = 50.0_sgl
           real(kind=sgl)                 :: c3 = 100.0_sgl
           real(kind=sgl)                 :: sgdbdiff = 1.00_sgl    ! changed from 0.05 on 08/14/15 by MDG
-          real(kind=sgl)                 :: weakcutoff = 0.0_sgl
-          real(kind=sgl)                 :: cutoff = 0.0_sgl
-          real(kind=sgl)                 :: sgcutoff = 0.0_sgl
+          real(kind=sgl)                 :: weakcutoff = 80.0_sgl
+          real(kind=sgl)                 :: cutoff = 160.0_sgl
+          real(kind=sgl)                 :: sgcutoff = 0.05_sgl
           integer(kind=irg)              :: nns
           integer(kind=irg)              :: nnw
           integer(kind=irg)              :: minweak
@@ -230,11 +230,13 @@ module mod_diffraction
       real(kind=dbl)                  :: Psihat
       real(kind=dbl)                  :: V0mod = 0.D0     ! used to compute refraction correction
       type(gnode)                     :: rlp              ! default variable for reciprocal lattice point
-      type(DynType)                   :: Dyn              ! dynamical scattering parameters
-      type(BetheParameterType)        :: BetheParameters
+      type(DynType),public            :: Dyn              ! dynamical scattering parameters
+      type(BetheParameterType),public :: BetheParameters
       real(kind=sgl),allocatable      :: scatfacg(:)
       complex(kind=sgl),allocatable   :: scatfac(:,:)
       integer(kind=irg)               :: numscatfac
+      integer(kind=irg)               :: DynNbeams, DynNbeamsLinked
+
       complex(kind=sgl),allocatable   :: LUT(:,:,:), SghLUT(:,:,:,:)
       complex(kind=sgl),allocatable   :: LUTqg(:,:,:)
       real(kind=dbl),allocatable      :: Vphase(:,:,:)
@@ -256,6 +258,10 @@ module mod_diffraction
       procedure, pass(self) :: allocateLUT_
       procedure, pass(self) :: getScatfac_
       procedure, pass(self) :: getWaveLength_
+      procedure, pass(self) :: getDynNbeams_
+      procedure, pass(self) :: getDynNbeamsLinked_
+      procedure, pass(self) :: setDynNbeams_
+      procedure, pass(self) :: setDynNbeamsLinked_
       procedure, pass(self) :: getBetheParameter_
       procedure, pass(self) :: getV_
       procedure, pass(self) :: getV0mod_
@@ -290,6 +296,10 @@ module mod_diffraction
       generic, public :: Calcsg => CalcsgSingle_, CalcsgDouble_
       generic, public :: getScatfac => getScatfac_
       generic, public :: getWaveLength => getWaveLength_
+      generic, public :: getDynNbeams => getDynNbeams_
+      generic, public :: getDynNbeamsLinked => getDynNbeamsLinked_
+      generic, public :: setDynNbeams => setDynNbeams_
+      generic, public :: setDynNbeamsLinked => setDynNbeamsLinked_
       generic, public :: getBetheParameter => getBetheParameter_
       generic, public :: SetBetheParameters => Set_Bethe_Parameters_
       generic, public :: writeBetheparameterNameList => writeBetheparameterNameList_
@@ -1520,6 +1530,78 @@ module mod_diffraction
   
   end function getWaveLength_
   
+  !--------------------------------------------------------------------------
+  recursive function getDynNbeams_(self) result(N)
+  !DEC$ ATTRIBUTES DLLEXPORT :: getDynNbeams_
+    !! author: MDG
+    !! version: 1.0
+    !! date: 02/04/24
+    !!
+    !! returns DynNbeams
+  
+  IMPLICIT NONE
+  
+  class(Diffraction_T),INTENT(INOUT)  :: self
+  integer(kind=irg)                   :: N
+  
+  N = self%DynNbeams
+  
+  end function getDynNbeams_
+
+  !--------------------------------------------------------------------------
+  recursive function getDynNbeamsLinked_(self) result(N)
+  !DEC$ ATTRIBUTES DLLEXPORT :: getDynNbeamsLinked_
+    !! author: MDG
+    !! version: 1.0
+    !! date: 02/04/24
+    !!
+    !! returns DynNbeamsLinked
+  
+  IMPLICIT NONE
+  
+  class(Diffraction_T),INTENT(INOUT)  :: self
+  integer(kind=irg)                   :: N
+  
+  N = self%DynNbeamsLinked
+  
+  end function getDynNbeamsLinked_
+
+  !--------------------------------------------------------------------------
+  recursive subroutine setDynNbeams_(self, N)
+  !DEC$ ATTRIBUTES DLLEXPORT :: setDynNbeams_
+    !! author: MDG
+    !! version: 1.0
+    !! date: 02/04/24
+    !!
+    !! sets DynNbeams
+  
+  IMPLICIT NONE
+  
+  class(Diffraction_T),INTENT(INOUT)  :: self
+  integer(kind=irg),INTENT(IN)        :: N
+  
+  self%DynNbeams = N
+  
+  end subroutine setDynNbeams_
+
+  !--------------------------------------------------------------------------
+  recursive subroutine setDynNbeamsLinked_(self, N)
+  !DEC$ ATTRIBUTES DLLEXPORT :: setDynNbeamsLinked_
+    !! author: MDG
+    !! version: 1.0
+    !! date: 02/04/24
+    !!
+    !! sets DynNbeamsLinked
+  
+  IMPLICIT NONE
+  
+  class(Diffraction_T),INTENT(INOUT)  :: self
+  integer(kind=irg),INTENT(IN)        :: N
+  
+  self%DynNbeamsLinked = N
+  
+  end subroutine setDynNbeamsLinked_
+
   !--------------------------------------------------------------------------
   recursive function getBetheParameter_(self, c) result(bp)
   !DEC$ ATTRIBUTES DLLEXPORT :: getBetheParameter_

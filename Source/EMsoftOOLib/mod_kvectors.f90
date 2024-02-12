@@ -73,6 +73,7 @@ module mod_kvectors
     procedure, pass(self) :: get_numk_
     procedure, pass(self) :: get_mapmode_
     procedure, pass(self) :: set_kinp_
+    procedure, pass(self) :: set_isym_
     procedure, pass(self) :: set_ktmax_
     procedure, pass(self) :: set_SamplingType_
     procedure, pass(self) :: set_mapmode_
@@ -94,6 +95,7 @@ module mod_kvectors
     generic, public :: get_ListHead => get_ListHead_
     generic, public :: get_numk => get_numk_
     generic, public :: set_kinp => set_kinp_
+    generic, public :: set_isym => set_isym_
     generic, public :: set_ktmax => set_ktmax_
     generic, public :: set_SamplingType => set_SamplingType_
     generic, public :: check_mapmode => check_mapmode_
@@ -346,6 +348,24 @@ module mod_kvectors
  self%kinp = k
  
  end subroutine set_kinp_
+
+ !--------------------------------------------------------------------------
+ recursive subroutine set_isym_(self, isym)
+ !DEC$ ATTRIBUTES DLLEXPORT :: set_isym_
+ !! author: MDG
+ !! version: 1.0
+ !! date: 02/06/24
+ !!
+ !! set isym parameter
+ 
+ IMPLICIT NONE
+ 
+ class(kvectors_T), INTENT(INOUT)  :: self
+ integer(kind=irg), INTENT(IN)     :: isym
+ 
+ self%isym = isym
+ 
+ end subroutine set_isym_
  
  !--------------------------------------------------------------------------
  recursive subroutine set_ktmax_(self, k)
@@ -1743,7 +1763,7 @@ module mod_kvectors
   call cell%CalcCross(ga,self%kstar,self%gperp,'r','r',0)! compute g_perp = ga x k
   call cell%NormVec(self%gperp,'r')                      ! normalize g_perp
   call cell%NormVec(self%kstar,'r')                      ! normalize reciprocal beam vector
- 
+
  ! allocate the head and tail of the linked list
   allocate(self%klist,stat=istat)                        ! allocate new value
   if (istat.ne.0) call Message%printError('Calckvectors','unable to allocate self%klist pointer')
