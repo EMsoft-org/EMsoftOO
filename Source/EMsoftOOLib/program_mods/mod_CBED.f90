@@ -55,12 +55,13 @@ type, public :: CBEDNameListType
   real(kind=sgl)      :: thickinc
   character(fnlen)    :: xtalname
   character(fnlen)    :: outname
+  character(fnlen)    :: tiffprefix
 end type CBEDNameListType
 
 ! class definition
 type, public :: CBED_T
 private 
-  character(fnlen)       :: nmldeffile = 'EMCBED.nml'
+  character(fnlen)        :: nmldeffile = 'EMCBED.nml'
   type(CBEDNameListType)  :: nml 
 
 contains
@@ -93,6 +94,8 @@ private
   procedure, pass(self) :: getthickinc_
   procedure, pass(self) :: setxtalname_
   procedure, pass(self) :: getxtalname_
+  procedure, pass(self) :: settiffprefix_
+  procedure, pass(self) :: gettiffprefix_
   procedure, pass(self) :: setoutname_
   procedure, pass(self) :: getoutname_
   procedure, pass(self) :: readNameList_
@@ -128,6 +131,8 @@ private
   generic, public :: getthickinc => getthickinc_
   generic, public :: setxtalname => setxtalname_
   generic, public :: getxtalname => getxtalname_
+  generic, public :: settiffprefix => settiffprefix_
+  generic, public :: gettiffprefix => gettiffprefix_
   generic, public :: setoutname => setoutname_
   generic, public :: getoutname => getoutname_
   generic, public :: getNameList => getNameList_
@@ -214,9 +219,10 @@ real(kind=sgl)          :: convergence
 real(kind=sgl)          :: startthick
 real(kind=sgl)          :: thickinc
 character(fnlen)        :: xtalname
+character(fnlen)        :: tiffprefix
 character(fnlen)        :: outname
 
-namelist /CBEDlist/ xtalname, voltage, k, fn, dmin, convergence, klaue, camlen, &
+namelist /CBEDlist/ xtalname, voltage, k, fn, dmin, convergence, klaue, camlen, tiffprefix, &
                     nthreads, startthick, thickinc, numthick, outname, npix, maxHOLZ
 
 k = (/ 0, 0, 1 /)               ! beam direction [direction indices]
@@ -235,6 +241,7 @@ convergence = 25.0              ! beam convergence angle [mrad]
 startthick = 10.0               ! starting thickness [nm]
 thickinc = 10.0                 ! thickness increment
 xtalname = 'undefined'          ! initial value to check that the keyword is present in the nml file
+tiffprefix = 'undefined'        ! path and prefix for tiff CBED patterns
 outname = 'undefined'           ! output filename
 
 if (present(initonly)) then
@@ -271,6 +278,7 @@ self%nml%convergence = convergence
 self%nml%startthick = startthick
 self%nml%thickinc = thickinc
 self%nml%xtalname = xtalname
+self%nml%tiffprefix = tiffprefix 
 self%nml%outname = outname
 
 end subroutine readNameList_
@@ -367,6 +375,11 @@ dataset = SC_outname
 line2(1) = trim(enl%outname)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create outname dataset', hdferr)
+
+dataset = SC_tiffprefix
+line2(1) = trim(enl%tiffprefix)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tiffprefix dataset', hdferr)
 
 ! and pop this group off the stack
 call HDF%pop()
@@ -880,6 +893,42 @@ out = trim(self%nml%xtalname)
 end function getxtalname_
 
 !--------------------------------------------------------------------------
+subroutine settiffprefix_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: settiffprefix_
+!! author: MDG
+!! version: 1.0
+!! date: 02/12/24
+!!
+!! set tiffprefix in the CBED_T class
+
+IMPLICIT NONE
+
+class(CBED_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%tiffprefix = trim(inp)
+
+end subroutine settiffprefix_
+
+!--------------------------------------------------------------------------
+function gettiffprefix_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: gettiffprefix_
+!! author: MDG
+!! version: 1.0
+!! date: 02/12/24
+!!
+!! get tiffprefix from the CBED_T class
+
+IMPLICIT NONE
+
+class(CBED_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%tiffprefix)
+
+end function gettiffprefix_
+
+!--------------------------------------------------------------------------
 subroutine setoutname_(self,inp)
 !DEC$ ATTRIBUTES DLLEXPORT :: setoutname_
 !! author: MDG
@@ -961,8 +1010,8 @@ real(kind=sgl)                        :: ktmax, io_real(3), galen, bragg, RR, gg
 real(kind=dbl)                        :: WL, kinp(3), kv(3) 
 integer(kind=irg)                     :: ijmax,ga(3),gb(3), cnt, skip, istat, dgn, badpoints, DynNbeamsLinked, maxthreads, &
                                          newcount,count_rate,count_max, io_int(6), ii, i, j, isym, ir, pgnum, ierr, DynNbeams, &
-                                         npx, npy, numt, numk, npix, ik, ip, jp, iequiv(2,12), nequiv, it, nref, hdferr
-character(3)                          :: method
+                                         npx, npy, numt, numk, npix, ik, ip, jp, iequiv(2,12), nequiv, it, nref, hdferr, sym(8)
+character(3)                          :: method, inum
 type(kvectorlist),pointer             :: khead, ktmp
 type(reflisttype),pointer             :: reflist, rltmpa, rltmpb, gtmp
 
@@ -1056,7 +1105,7 @@ RR = 300.0/25.4   ! dots per millimeter for 300 dots per inch; legacy code from 
 npx = int(RR*enl%camlen*thetac)
 npy = npx
 io_int(1) = 2.0*npx
-call Message%WriteValue('Number of image pixels along diameter of central disk = ', io_int, 1, "(I4)")
+call Message%WriteValue(' Number of image pixels along diameter of central disk = ', io_int, 1, "(I4)")
 call Message%printMessage(' ', "(A/)")
   
 ! get number of thicknesses for which to compute the CBED pattern
@@ -1066,12 +1115,16 @@ thick = enl%startthick + enl%thickinc* (/ (float(i),i=0,numt-1) /)
 
 ! if the Laue center is at the origin, then we can use symmetry groups to 
 ! speed up the simulation; otherwise we have to cover each incident wave
-! vector separately.
-if (maxval(abs(enl%klaue)).eq.0.0) then
-  usesym=.TRUE.
-else
+! vector separately. [disabled for now (2/12/24)]
+! if (maxval(abs(enl%klaue)).eq.0.0) then
+!   usesym=.TRUE.
+! else
   usesym=.FALSE.
-end if
+! to avoid a bug in one of the symmetry routines (CalckvectorsSymmetry) we set
+! the Laue center to be ever so slightly away from zero to avoid that section 
+! of the code...  this needs to be looked at and fixed!  [MDG, 02/12/24]
+  if (maxval(abs(enl%klaue)).eq.0.0) call self%setklaue( (/ 0.0, 0.00001/) )
+! end if
 
 ! determine all independent incident beam directions (use a linked list starting at khead)
 ! isym = 1
@@ -1090,7 +1143,6 @@ kinp = dble(enl%k)
 call cell%TransSpace( kinp, kv, 'd', 'r') 
 call cell%NormVec( kv, 'r' )
 call kvec%set_kinp( kv / Diff%getWaveLength() )
-write (*,*) 'isym value = ', isym
 call kvec%set_isym( isym )
 call kvec%set_ktmax( dble(ktmax) )
 call kvec%CalckvectorsSymmetry(cell,Diff,TDPG,dble(ga),npx,npy,ijmax,enl%klaue,.TRUE.)
@@ -1150,8 +1202,6 @@ do ik = 1, numk
   DynNbeams = Diff%getDynNbeams()
   DynNbeamsLinked = Diff%getDynNbeamsLinked()
   call mem%alloc(inten, (/ numt,DynNbeams+Diff%BetheParameters%nnw /), 'inten', 0.0)
-
-! write (*,*) ik, Diff%BetheParameters%nns, Diff%BetheParameters%nnw, Diff%BetheParameters%sgcutoff
 
 ! solve the dynamical eigenvalue equation and return the intensities of ALL reflections,
 ! both strong and weak; the weak intensities should also be plotted at the correct locations....
@@ -1227,26 +1277,32 @@ do ik = 1, numk
 
 end do 
 
-TIFF_filename = 'CBEDpattern.tiff'
-allocate(TIFF_image(enl%npix,enl%npix))
+if (trim(enl%tiffprefix).ne.'undefined') then 
+  outname = trim(EMsoft%generateFilePath('EMdatapathname',enl%tiffprefix))
+  allocate(TIFF_image(enl%npix,enl%npix))
 
-ma = maxval(log10(disk(numt,:,:)+1.0E-4))
-mi = minval(log10(disk(numt,:,:)+1.0E-4))
+  do i=1,numt
+    ma = maxval(log10(disk(i,:,:)+1.0E-3))
+    mi = minval(log10(disk(i,:,:)+1.0E-3))
 
-TIFF_image = int(255 * (log10(disk(numt,1:enl%npix,1:enl%npix)+1.0E-4)-mi)/(ma-mi))
+    TIFF_image = int(255 * (log10(disk(i,1:enl%npix,1:enl%npix)+1.0E-3)-mi)/(ma-mi))
 
-! set up the image_t structure
-im = image_t(TIFF_image)
-if(im%empty()) call Message%printMessage("EMCBED","failed to convert array to image")
+    ! set up the image_t structure
+    im = image_t(TIFF_image)
+    if(im%empty()) call Message%printMessage("EMCBED","failed to convert array to image")
 
-! create the file
-call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
-if(0.ne.iostat) then
-  call Message%printMessage("failed to write image to file : "//iomsg)
-else
-  call Message%printMessage('CBED pattern written to '//trim(TIFF_filename))
-end if
-
+    ! create the file
+    write (inum,"(I3.3)") i
+    TIFF_filename = trim(outname)//inum//'.tiff'
+    call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+    if(0.ne.iostat) then
+      call Message%printMessage(" Failed to write image to file : "//iomsg)
+    else
+      call Message%printMessage(' Single CBED pattern written to '//trim(TIFF_filename))
+    end if
+  end do 
+  deallocate(TIFF_image)
+end if 
 
 ! stop the timer 
 tstre = timer%getTimeString()
@@ -1289,6 +1345,40 @@ dataset = 'CBEDpatterns'
     hdferr = HDF%writeDatasetFloatArray(dataset, disk, numt, npix, npix, overwrite)
   else
     hdferr = HDF%writeDatasetFloatArray(dataset, disk, numt, npix, npix)
+  end if
+
+dataset = 'SymmetryParameters'
+  sym = (/ pgnum, PGLaue(pgnum), dgn, PDG(dgn), BFPG(dgn), WPPG(dgn), DFGN(dgn), DFSP(dgn) /)
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then
+    hdferr = HDF%writeDatasetIntegerArray(dataset, sym, 8, overwrite)
+  else
+    hdferr = HDF%writeDatasetIntegerArray(dataset, sym, 8)
+  end if
+
+dataset = 'ga'
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then
+    hdferr = HDF%writeDatasetIntegerArray(dataset, ga, 3, overwrite)
+  else
+    hdferr = HDF%writeDatasetIntegerArray(dataset, ga, 3)
+  end if
+
+dataset = 'gb'
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  if (g_exists) then
+    hdferr = HDF%writeDatasetIntegerArray(dataset, gb, 3, overwrite)
+  else
+    hdferr = HDF%writeDatasetIntegerArray(dataset, gb, 3)
+  end if
+
+dataset = 'galen'
+  call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+  galen = cell%CalcLength(float(ga),'r')
+  if (g_exists) then
+    hdferr = HDF%writeDatasetFloat(dataset, galen, overwrite)
+  else
+    hdferr = HDF%writeDatasetFloat(dataset, galen)
   end if
 
 call HDF%popall()

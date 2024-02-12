@@ -1,0 +1,42 @@
+ &CBEDlist 
+! do not change the first line in this file !
+!
+! Note: All parameter values are default values for the program
+!
+!--------------
+! the name of the crystal input file MUST be specified 
+ xtalname = 'undefined',
+! microscope accelerating voltage [kV]
+ voltage = 200.0,
+! zone axis indices
+ k = 0 0 1,
+! Laue center coordinates in terms of ga [use EMZAgeom to figure out what ga is]
+ klaue = 0.0 0.0,
+! foil normal indices
+ fn = 0 0 1,
+! minimum d-spacing to be taken into account [nm]
+ dmin = 0.025,
+! maximum HOLZ layer number for the output file (this does not affect the number for the actual computations)
+ maxHOLZ = 2,
+! incident beam convergence angle [mrad]
+ convergence = 25.0,
+! camera length [mm]
+ camlen = 1000.0,
+! output will be diffraction disks inside a square of area (2*npix+1)^2
+ npix = 256,
+! number of thicknes values to be used in the output
+ numthick = 10,
+! starting thickness value [nm]
+ startthick = 10.0,
+! thickness increment value [nm]
+ thickinc = 10.0,
+! name of output HDF5 file [relative to EMdatapathname]
+ outname = 'lacbedout.h5'
+! tiff prefix for pattern output [relative to EMdatapathname]
+! (this assumes that all folders in the path exist)
+! leave undefined if no pattern output is needed
+ tiffprefix = 'undefined',
+! number of OpenMP threads [0 means use max available]
+ nthreads = 1,
+! this last line must be present!
+ /

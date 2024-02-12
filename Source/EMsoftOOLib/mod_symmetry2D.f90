@@ -82,7 +82,7 @@ integer(kind=irg),parameter     :: mF(2,2) = reshape( (/-1, 0,-1, 1 /), (/2,2/))
 integer(kind=irg),parameter     :: mG(2,2) = reshape( (/ 1,-1, 0,-1 /), (/2,2/))        ! 6-fold twice
 
 
-write (*,*) 'Generate2DSymmetry : ', pgn 
+! write (*,*) 'Generate2DSymmetry : ', pgn 
 
 TDPG%SYM_pgnum = pgn
 

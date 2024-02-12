@@ -304,7 +304,7 @@ call Generate2DSymmetry(TDPG, isym)
 call cell%ShortestG(SG, k, ga, gb, isym)
 io_int(1:3)=ga(1:3)
 io_int(4:6)=gb(1:3)
-call Message%WriteValue('Reciprocal lattice vectors : ', io_int, 6,"('(',3I3,') and (',3I3,')',/)")
+call Message%WriteValue(' Reciprocal lattice vectors : ', io_int, 6,"('(',3I3,') and (',3I3,')',/)")
 call Message%printMessage('  (the first lattice vector is horizontal in the CBED pattern)')
 call Message%printMessage(' ')
 
@@ -322,11 +322,11 @@ FNg = HOLZdata%FNg
 gshort = HOLZdata%gshort
 
 io_real = (/ float(ga(1:3)), float(gb(1:3)), g3(1:3) /)
-call Message%WriteValue('basis vectors for this computation: ', io_real, 9, "(/'ga = ',3f10.5,/'gb = ',3f10.5,/'g3 = ',3f10.5,/)")
+call Message%WriteValue(' Basis vectors for this computation: ', io_real, 9, "(/'ga = ',3f10.5,/'gb = ',3f10.5,/'g3 = ',3f10.5,/)")
 io_real(1) = H
-call Message%WriteValue('reciprocal interplanar spacing H = ', io_real, 1, "(F10.4,' nm^-1'/)")
+call Message%WriteValue(' Reciprocal interplanar spacing H = ', io_real, 1, "(F10.4,' nm^-1'/)")
 io_int(1:3) = gshort(1:3)
-call Message%WriteValue(' shortest vector to FOLZ = ', io_int, 3, "('(',3I3,')',/)")
+call Message%WriteValue(' Shortest vector to FOLZ = ', io_int, 3, "('(',3I3,')',/)")
 
 ! The master list is most easily created by brute force; we'll compute the 
 ! radius of the FOLZ ring, scale it by the length of ga or gb, turn that into an integer
@@ -395,7 +395,7 @@ do ix=-2*imh,2*imh
 end do
 
 io_int(1) = gvec%get_nref()
-call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I5,/)")
+call Message%WriteValue(' Length of the master list of reflections : ', io_int, 1, "(I7,/)")
 
 ! that's it
 end subroutine Initialize_Cell_HOLZ
