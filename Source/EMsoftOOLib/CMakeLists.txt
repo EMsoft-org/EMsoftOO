@@ -97,6 +97,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_HallSG.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_so2.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Grid_Interpolation.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_STEM.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
@@ -153,6 +154,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDdefect.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_HREBSD.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_CBED.f90
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_SRdefect.f90 
 
   ${EMsoftOOLib_Additional_SRCS}
 )

@@ -73,34 +73,34 @@ type, public :: inclusiontype
 end type inclusiontype
 
 type, public :: Einclusiontype
-        real(kind=dbl)                  :: xyz(3), a123(3)
-        real(kind=dbl)                  :: a1, a2, a3, principalaxes(3,3), permut(3,3), rotell(3,3), epsstar(3,3)
-        real(kind=dbl)                  :: nu, omnu, pre, V, a12, a22, a32, asq(3), eta, ss1, svec(3), qs1, qvec1(3), &
-                                           qvec2(3), Deltaij(3,3), kEl, preI1, preI3, s3, c1, c2, mith, math, thpre, &
-                                           IIinside(3), IIJinside(3,3), xpos, ypos, zpos, ESV(6,6), EshelbyS(3,3,3,3)
-        real(kind=dbl),allocatable      :: EFLUT(:), EELUT(:)
-        integer(kind=irg)               :: nLUT
+  real(kind=dbl)                :: xyz(3), a123(3)
+  real(kind=dbl)                :: a1, a2, a3, principalaxes(3,3), permut(3,3), rotell(3,3), epsstar(3,3)
+  real(kind=dbl)                :: nu, omnu, pre, V, a12, a22, a32, asq(3), eta, ss1, svec(3), qs1, qvec1(3), &
+                                   qvec2(3), Deltaij(3,3), kEl, preI1, preI3, s3, c1, c2, mith, math, thpre, &
+                                   IIinside(3), IIJinside(3,3), xpos, ypos, zpos, ESV(6,6), EshelbyS(3,3,3,3)
+  real(kind=dbl),allocatable    :: EFLUT(:), EELUT(:)
+  integer(kind=irg)             :: nLUT
 end type Einclusiontype
 
 type, public :: stackingfaulttype
-  real(kind=sgl)              :: lpu(3),tpu(3),lpb(3),lpbc(3),tpb(3),plane(3),sep,id,jd, &
-                                lptop(3),lpbot(3),tptop(3),tpbot(3),thetan,a_if(3,3), &
-                                lpr(3),tpr(3), Rdisp(3), poisson
-  real(kind=sgl), allocatable :: zpos(:,:)
+  real(kind=sgl)                :: lpu(3),tpu(3),lpb(3),lpbc(3),tpb(3),plane(3),sep,id,jd, &
+                                  lptop(3),lpbot(3),tptop(3),tpbot(3),thetan,a_if(3,3), &
+                                  lpr(3),tpr(3), Rdisp(3), poisson
+  real(kind=sgl), allocatable   :: zpos(:,:)
 end type stackingfaulttype
 
 type, public :: voidtype
-        real(kind=sgl)       ::  xpos,ypos,zpos,radius
+  real(kind=sgl)                ::  xpos,ypos,zpos,radius
 end type voidtype
 
 type, public :: YDtype
-  real(kind=dbl)             :: burg(3), burgd(3), u(3), un(3), g(3), gn(3), id, jd, zu, bs, be, bx, beta
-  real(kind=dbl)             :: alpha, ca, sa, ta, cota,  top(3), bottom(3), sig
-  type(Quaternion_T)         :: a_dc, a_id, a_di
+  real(kind=dbl)                :: burg(3), burgd(3), u(3), un(3), g(3), gn(3), id, jd, zu, bs, be, bx, beta
+  real(kind=dbl)                :: alpha, ca, sa, ta, cota,  top(3), bottom(3), sig
+  type(Quaternion_T)            :: a_dc, a_id, a_di
 end type YDtype
 
 type, public :: apbtype
-        real(kind=sgl)       ::  xpos,ypos,zpos,radius,w,Rdisp(3)
+  real(kind=sgl)                ::  xpos,ypos,zpos,radius,w,Rdisp(3)
 end type apbtype
 
 type, public :: EBSDAnglePCDefType
@@ -129,7 +129,7 @@ type, public :: Defect_T
 
   contains
   private
-  ! basic space group generating routines and related stuff
+  ! basic defect generating routines and related stuff
   procedure, pass(self) :: JSONreadDefectFile_
   procedure, pass(self) :: readDefectHDFFile_
   procedure, pass(self) :: JSONreadFoilData_
@@ -147,8 +147,8 @@ type, public :: Defect_T
   procedure, pass(self) :: makeYSHdislocation_
   procedure, pass(self) :: YSHDisp_
   procedure, pass(self) :: Eshelby_disp_
-  procedure, pass(self) :: calcR_
-  procedure, pass(self) :: calcPointR_
+  procedure, pass(self) :: CalcR_
+  procedure, pass(self) :: CalcPointR_
   procedure, pass(self) :: CalcFcolumn_
 
   generic, public :: JSONreadDefectFile => JSONreadDefectFile_
@@ -168,8 +168,8 @@ type, public :: Defect_T
   generic, public :: makestackingfault => makestackingfault_
   generic, public :: YSHDisp => YSHDisp_
   generic, public :: Eshelby_disp => Eshelby_disp_
-  generic, public :: calcR => calcR_
-  generic, public :: calcPointR => calcPointR_
+  generic, public :: CalcR => CalcR_
+  generic, public :: CalcPointR => CalcPointR_
   generic, public :: CalcFcolumn => CalcFcolumn_
 
   end type Defect_T
@@ -615,7 +615,7 @@ logical,INTENT(IN),OPTIONAL                           :: verbose
 
 type(json_value),pointer                              :: jval, child, child2, child3
 type(json_value), pointer                             :: tmp_json_ptr
-character(kind=jsonCK,len=:),allocatable                  :: name
+character(kind=jsonCK,len=:),allocatable              :: name
 integer(kind=irg)                                     :: v, i, j, jj, vart, nc, nc2, nc3, io_int(3)
 real(kind=wp),dimension(:),allocatable                :: vec3
 real(kind=wp)                                         :: val

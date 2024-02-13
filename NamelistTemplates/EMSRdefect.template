@@ -1,0 +1,59 @@
+&SRdeflist
+! Note: All values in this template file correspond to the program defaults
+!
+!------------
+! multi-threading parameters
+!------------
+! number of threads to be used in multi-threaded mode 
+ nthreads = 6,
+!------------
+! microscope parameters
+!------------
+! microscope accelerating voltage [V]
+ voltage = 200000.0,
+! program mode (BF/HAADF pairs 'BFDF' or full  'STEM')
+ progmode = 'STEM',
+!------------
+! crystal structure and incident beam parameters
+!------------
+! string with the filename of the structure data (e.g., Cu.xtal; default = undefined)
+ xtalname = 'undefined',
+! fundamental reciprocal lattice vector of the systematic row
+ SRG = 1 0 0,
+! foil normal as a real space direction vector; must be normal to SRG
+ SRF = 0 0 1,
+! range of reflections to be taken into account (-Grange*SRG to +Grange*SRG); number of beams = 2*Grange+1
+ Grange = 4,
+! Laue center for G at the center of the diffraction disk, defined as k_t/|g| (GLaue = 0.5 means g in Bragg)
+ GLaue = 0.5,
+!------------
+! various filenames
+!------------
+! name of the nml file with the STEM and detector parameters [relative to EMdatapathname]
+! [leave 'undefined' to use default name of 'STEM_rundata.nml']
+ STEMnmlfile = 'undefined',
+! name of the JSON file with the defect descriptions [relative to EMdatapathname]
+ defectjsonfile = 'undefined',
+! full filename of the HDF5 output file [relative to EMdatapathname]
+ outname = 'undefined',
+! store displacement field ('new'), read an existing field ('old') or don't store/read anything ('not')
+ dispmode = 'not',
+! filename for the displacement field (use only if dispmode <> 'not') [relative to EMdatapathname]
+ dispfile = 'undefined',
+!------------
+! output mode
+!------------
+! verbose when dinfo=1, minimal screen output when dinfo=0
+ dinfo = 0
+!------------
+! image parameters and scattering matrix step size
+!------------
+! edge length of a column [nm] in the column approximation context
+ DF_L = 1.0,
+! number of x-columns (=number of x-pixels in output image)
+ DF_npix = 256,
+! number of y-columns (=number of y-pixels in output image)
+ DF_npiy = 256,
+! slice thickness for scattering matrix approach [nm]
+ DF_slice = 1.0,
+/

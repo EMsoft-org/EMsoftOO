@@ -1,0 +1,28 @@
+&STEMGeometrydata
+! Note: All parameter values are default values for the program
+!
+!--------------
+! Bright Field dectector radius in mm
+ BFradius = 3.5,
+! Dark Field inner and outer radii in mm
+ ADFinnerradius = 3.5,
+ ADFouterradius = 10.0,
+! number of camera lengths
+ numCL = 2,
+! camera length values in mm
+ CLarray = 150.0,  250.00,
+! beam convergence angle in mrad
+ beamconvergence =  5.70,
+! aperture parameters (for SR case only)
+ diffaprad = 0.0,
+ diffapcenter = 0.0,
+! STEMZAdefect: number of radial incident beam directions along the diffraction disk radius 
+! STEMSRdefect: number of radial incident beam directions along the diffraction disk diameter
+!  for the systematic row case, this needs to be an odd number (will be made odd if 
+!  an even number is entered here); for the zone axis case, both even and odd are permitted.
+ numberofsvalues = 21,
+! zone axis or systematic row?
+ geometry = 'ZA'
+! tangential component of incident wave vector
+ kt = 1.0,
+/
