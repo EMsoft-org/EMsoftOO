@@ -1319,9 +1319,9 @@ Defects%DF_gstar = Defects%DF_gf/cell%CalcLength(Defects%DF_gf,'r')**2    ! defi
 call cell%TransSpace(Defects%DF_gf,Defects%DF_gc,'r','c')         ! convert to Cartesian reference frame
 
 ! next, we read all the foil and defect data using the new InitializeDefects routine in defectmodule.f90
-verbose = .FALSE.
+call Defects%setdinfo(.FALSE.)
 call Defects%InitializeDefects(EMsoft,cell,enl%defectfilename,enl%DF_npix,enl%DF_npiy,enl%DF_L,Defects%DF_gf, &
-                               enl%k,enl%q,error_cnt,verbose)
+                               enl%k,enl%q,error_cnt)
 
 ! ok, all the set up is now complete;
 npix = Defects%DF_npix

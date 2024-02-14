@@ -112,7 +112,7 @@ end type EBSDAnglePCDefType
 
 
 type, public :: Defect_T
-  integer(kind=irg)                     :: numvoids,numdisl,numYdisl,numsf,numinc,numEinc,numapb
+  integer(kind=irg)                     :: numvoids=0,numdisl=0,numYdisl=0,numsf=0,numinc=0,numEinc=0,numapb=0
   character(fnlen)                      :: foilname
   integer(kind=irg)                     :: Nmat,DF_g(3),DF_npix,DF_npiy,DF_nums,DF_numinclusion,DF_numvoid
   real(kind=sgl)                        :: DF_slice,DF_L,DF_gc(3),DF_gstar(3), DF_gf(3)
@@ -126,6 +126,7 @@ type, public :: Defect_T
   type (YDtype), allocatable            :: YD(:)
   type (apbtype), allocatable           :: apbs(:)
   type (EBSDAnglePCDefType)             :: APD
+  logical                               :: dinfo
 
   contains
   private
@@ -150,6 +151,8 @@ type, public :: Defect_T
   procedure, pass(self) :: CalcR_
   procedure, pass(self) :: CalcPointR_
   procedure, pass(self) :: CalcFcolumn_
+  procedure, pass(self) :: setdinfo_
+  procedure, pass(self) :: ListParameters_
 
   generic, public :: JSONreadDefectFile => JSONreadDefectFile_
   generic, public :: readDefectHDFFile => readDefectHDFFile_
@@ -171,6 +174,8 @@ type, public :: Defect_T
   generic, public :: CalcR => CalcR_
   generic, public :: CalcPointR => CalcPointR_
   generic, public :: CalcFcolumn => CalcFcolumn_
+  generic, public :: setdinfo => setdinfo_
+  generic, public :: ListParameters => ListParameters_
 
   end type Defect_T
 
@@ -204,6 +209,47 @@ Def%foilname = ""
 
 end function Defect_constructor
 
+!--------------------------------------------------------------------------
+recursive subroutine setdinfo_(self, d)
+!DEC$ ATTRIBUTES DLLEXPORT :: Defect_constructor
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/14/24
+  !!
+  !! set the verbosity level
+
+  IMPLICIT NONE
+
+  class(Defect_T),INTENT(INOUT)      :: self
+  logical,INTENT(IN)                 :: d 
+
+  self%dinfo = d 
+
+end subroutine setdinfo_
+
+!--------------------------------------------------------------------------
+recursive subroutine ListParameters_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: ListParameters_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 02/14/24
+  !!
+  !! used for debugging purposes
+
+  IMPLICIT NONE
+
+  class(Defect_T),INTENT(INOUT)      :: self
+
+associate( s => self) 
+
+write (*,*) s%numvoids,s%numdisl,s%numYdisl,s%numsf,s%numinc,s%numEinc,s%numapb
+write (*,*) trim(s%foilname)
+write (*,*) s%Nmat,s%DF_g,s%DF_npix,s%DF_npiy,s%DF_nums,s%DF_numinclusion,s%DF_numvoid
+write (*,*) s%DF_slice,s%DF_L,s%DF_gc,s%DF_gstar, s%DF_gf
+
+end associate 
+
+end subroutine ListParameters_
 
 !--------------------------------------------------------------------------
 !
@@ -217,12 +263,11 @@ end function Defect_constructor
 !> @param jsonname input file name
 !> @param defects defect structure, to be filled by this routine
 !> @param error_cnt total number of errors encountered by json routines
-!> @param verbose [optional] print a lot of output if present and true
 !
 !> @date 11/20/15 MDG 1.0 new routine
 !> @date 12/08/15 MDG 1.1 added Einclusion defect type
 !--------------------------------------------------------------------------
-recursive subroutine JSONreadDefectFile_(self, EMsoft, cell, jsonname, kvec, qvec, error_cnt,verbose)
+recursive subroutine JSONreadDefectFile_(self, EMsoft, cell, jsonname, kvec, qvec, error_cnt)
 !DEC$ ATTRIBUTES DLLEXPORT :: JSONreadDefectFile_
 
 use ISO_C_BINDING
@@ -243,11 +288,10 @@ character(fnlen),INTENT(IN)                           :: jsonname
 real(kind=dbl),INTENT(IN)                             :: kvec(3)
 real(kind=dbl),INTENT(IN)                             :: qvec(3)
 integer(kind=irg),INTENT(INOUT)                       :: error_cnt
-logical,INTENT(IN),OPTIONAL                           :: verbose
 
 type(json_file)                                       :: json    !the JSON structure read from the file:
 type(json_value),pointer                              :: jval, child, child2, child3, child4
-character(kind=jsonCK,len=:),allocatable                  :: name
+character(kind=jsonCK,len=:),allocatable              :: name
 integer(kind=irg)                                     :: i, j, jj, kk, v, io_int(3), jskip, ndis
 integer(kind=irg)                                     :: vart,nc, nc2, nc3, nc4, nc5
 logical                                               :: found
@@ -255,11 +299,8 @@ character(fnlen)                                      :: foilfilename, str, file
 real(wp)                                              :: v4(4), v5(5), v6(6), v9(9), io_real(6)
 
 v = 0
-if (PRESENT(verbose)) then
-  if (verbose) then
-    v = 1
-  end if
-end if
+if (self%dinfo.eqv..TRUE.) v=1
+
 dummystr = ''
 ! first of all, initialize json and return an error message if it does not exist
 error_cnt = 0
@@ -308,7 +349,7 @@ else
     end if
 
  ! here we call the foil reading routine to first fill all the foil parameters
-     call self%JSONreadFoilData(Emsoft, cell, kvec, qvec, error_cnt, verbose)
+     call self%JSONreadFoilData(Emsoft, cell, kvec, qvec, error_cnt)
 ! then we need to get the total number of defects in the file, so that we can allocate
 ! the correct array sizes in the defects structure
     ndis = 0
@@ -587,11 +628,10 @@ end subroutine JSONreadDefectFile_
 !> @param cell unit cell pointer
 !> @param defects defect structure, to be filled by this routine
 !> @param error_cnt total number of errors encountered by json routines
-!> @param verbose [optional] print a lot of output if present and true
 !
 !> @date 11/21/15  MDG 1.0 new routine
 !--------------------------------------------------------------------------
-recursive subroutine JSONreadFoilData_(self, Emsoft, cell, kvec, qvec, error_cnt, verbose)
+recursive subroutine JSONreadFoilData_(self, Emsoft, cell, kvec, qvec, error_cnt)
 !DEC$ ATTRIBUTES DLLEXPORT :: JSONreadFoilData_
 
 use ISO_C_BINDING
@@ -611,7 +651,6 @@ real(kind=dbl),INTENT(IN)                             :: qvec(3)
 type(IO_T)                                            :: Message
 type(EMsoft_T), INTENT(INOUT)                         :: EMsoft
 integer(kind=irg),INTENT(INOUT)                       :: error_cnt
-logical,INTENT(IN),OPTIONAL                           :: verbose
 
 type(json_value),pointer                              :: jval, child, child2, child3
 type(json_value), pointer                             :: tmp_json_ptr
@@ -625,11 +664,7 @@ character(4),parameter                                :: row(6) = (/ 'row1', 'ro
 character(fnlen)                                      :: str, filename
 
 v = 0
-if (PRESENT(verbose)) then
-  if (verbose) then
-    v = 1
-  end if
-end if
+if (self%dinfo.eqv..TRUE.) v = 1
 
 ! set the default values for all entries
 self%foil%elmo = 0.0                         ! elastic moduli
@@ -757,7 +792,7 @@ end subroutine JSONreadFoilData_
 !
 !> @date 06/03/23 MDG 1.0 new routine (based on EBSDreadorpcdefHDF from v5.0)
 !--------------------------------------------------------------------------
-recursive subroutine readDefectHDFFile_(self, HDF, fname, verbose)
+recursive subroutine readDefectHDFFile_(self, HDF, fname)
 !DEC$ ATTRIBUTES DLLEXPORT :: readDefectHDFFile_
 
 use ISO_C_BINDING
@@ -776,7 +811,6 @@ IMPLICIT NONE
 class(Defect_T), INTENT(INOUT)                        :: self
 type(HDF_T),INTENT(INOUT)                             :: HDF
 character(fnlen),INTENT(IN)                           :: fname
-logical,INTENT(IN),OPTIONAL                           :: verbose 
 
 type(IO_T)                                            :: Message 
 
@@ -833,7 +867,7 @@ end subroutine readDefectHDFFile_
 !> @date  11/22/15 MDG 1.0 original
 !> @date  11/24/15 MDG 1.1 added Ydislocations, stacking faults, inclusions and voids
 !--------------------------------------------------------------------------
-recursive subroutine InitializeDefects_(self,EMsoft,cell,jsonname,npix,npiy,L,gf,kvec,qvec,error_cnt,verbose)
+recursive subroutine InitializeDefects_(self,EMsoft,cell,jsonname,npix,npiy,L,gf,kvec,qvec,error_cnt)
 !DEC$ ATTRIBUTES DLLEXPORT :: InitializeDefects_
 
 use mod_io
@@ -856,18 +890,12 @@ real(kind=dbl),INTENT(IN)               :: kvec(3)
 real(kind=dbl),INTENT(IN)               :: qvec(3)
 integer(kind=irg),INTENT(INOUT)         :: error_cnt
 
-logical,INTENT(IN),OPTIONAL             :: verbose
-
 integer(kind=irg)                       :: v, i, io_int(1)
 
 error_cnt = 0
 
 v = 0
-if (PRESENT(verbose)) then
-  if (verbose) then
-    v = 1
-  end if
-end if
+if (self%dinfo.eqv..TRUE.) v = 1
 
 self%numdisl = 0
 self%numYdisl = 0
@@ -879,7 +907,7 @@ self%numEinc = 0
 ! first of all, we need to read all the defect data from the jsonname file, including the foil data
 ! note that the JSON file should have the .jsonc extension, isince it may have comments; those lines
 ! will be removed first
-call self%JSONreadDefectFile(EMsoft, cell, jsonname, kvec, qvec, error_cnt, verbose)
+call self%JSONreadDefectFile(EMsoft, cell, jsonname, kvec, qvec, error_cnt)
 
 if (v.eq.1) then
   call Message%printMessage('The following defects were initialized : ')
@@ -907,7 +935,7 @@ if (v.eq.1) call Message%printMessage('========> completed foil generation')
 ! then we add the defects, starting with all the regular dislocations, if any
 if (self%numdisl.ne.0) then
   call self%init_dislocation_data(cell,npix,npiy,gf,L,v)
-  call Message%printMessage('========> completed dislocation generation')
+  if (v.eq.1) call Message%printMessage('========> completed dislocation generation')
 end if
 
 ! then Ydislocations
@@ -1035,8 +1063,8 @@ use mod_crystallography
 
 IMPLICIT NONE
 
-class(Defect_T), INTENT(INOUT)               :: self
-type(Cell_T)                  :: cell
+class(Defect_T), INTENT(INOUT)  :: self
+type(Cell_T)                    :: cell
 
 integer(kind=irg),INTENT(IN)    :: DF_npix, DF_npiy, dinfo
 real(kind=sgl),INTENT(IN)       :: DF_gf(3), L
@@ -1145,7 +1173,6 @@ end subroutine init_stacking_fault_data_
 !> @param DF_L column edge length
 !> @param DF_npix number of x-pixels
 !> @param DF_npiy number of y-pixels
-!> @param dinfo logical to trigger verbose output
 !
 !> @date 01/05/99 MDG 1.0 original
 !> @date 05/19/01 MDG 2.0 f90 version
@@ -2966,8 +2993,7 @@ logical                                 :: isvoid = .FALSE.
 type(Quaternion_T)                      :: a_dc_conj, a_di_conj, a_id_conj
 
 ! zpos is the position down the column, starting at zt (in image coordinates)
-! zpos = zt - float(islice)*self%DF_slice
-zpos = zt
+zpos = zt - float(islice)*self%DF_slice
 
 ! set the displacements to zero
 sumR = 0.0

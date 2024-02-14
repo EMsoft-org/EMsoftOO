@@ -1234,7 +1234,7 @@ real(kind=sgl)                   :: ind(3),hkl(3),thick, qx, qy, c(3), att,xgp,D
 character(fnlen)                 :: dataname,sgname, dispfile,xtalname, foilnmlfile, STEMnmlfile, dataset, datagroupname
 character(4)                     :: outputformat, dispmode, progmode
 complex(kind=dbl)                :: czero=cmplx(0.0,0.0,dbl),cone=cmplx(1.0,0.0,dbl)
-logical                          :: verbose = .TRUE., f_exists
+logical                          :: verbose = .TRUE., f_exists, first
 character(11)                    :: dstr
 character(15)                    :: tstrb
 character(15)                    :: tstre
@@ -1260,13 +1260,18 @@ associate( nml => self%nml )
 timer = Timing_T()
 tstrb = timer%getTimeString()
 
-call cell%setFileName(nml%xtalname)
+! various parameters
+Nmat = 3600             ! number of precomputed A matrices to be stored (every 0.1 degrees)
+dgr = 2.D0*cPi/dble(Nmat)   
 
+! load crystal structure
+call cell%setFileName(nml%xtalname)
 call Diff%setrlpmethod('WK')
 call Diff%setV(dble(nml%voltage))
 
 call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, nml%dmin, verbose, useHDF=HDF, noLUT=.TRUE.)
-call Diff%Printrlp()
+! first = .TRUE.
+! call Diff%Printrlp(first)
 lambda = Diff%getWaveLength()
 
 ! determine the point group number
@@ -1290,18 +1295,33 @@ npiy = DF_npiy
 Grange = self%getGrange()
 progmode = self%getprogmode()
 SETNTHR = self%getnthreads()
-defects%DF_slice = self%getDF_slice()
-defects%DF_npix = DF_npix
-defects%DF_npiy = DF_npiy
-defects%DF_L = self%getDF_L()
 kv = dble(self%getSRF())
 qv = dble(SRG)
 DynFN = self%getSRF() 
 DF_slice = self%getDF_slice()
 
+! set the defect parameters
+defects%DF_slice = self%getDF_slice()
+defects%DF_npix = DF_npix
+defects%DF_npiy = DF_npiy
+defects%DF_L = self%getDF_L()
+defects%DF_gc = DF_gc
+defects%DF_gstar = DF_gstar
+defects%DF_gf = DF_gf
+defects%Nmat = Nmat
+defects%DF_g = SRG
+defects%DF_numinclusion = 0
+defects%DF_numvoid = 0
+
 ! read foil and defect data 
+if (self%getdinfo_().eq.0) then 
+  call defects%setdinfo(.FALSE.)
+else
+  call defects%setdinfo(.TRUE.)
+end if
 call defects%InitializeDefects(EMsoft,cell,self%getdefectjsonfile(),npix,npiy, &
-                               self%getDF_L(),DF_gf,kv,qv,error_cnt,verbose)
+                               self%getDF_L(),DF_gf,kv,qv,error_cnt)
+! call defects%ListParameters() 
 
 ! compute total number of beams
 nn = 2*Grange+1  ! total number of beams
@@ -1341,17 +1361,17 @@ call Message%printMessage(' Reference Darwin-Howie-Whelan matrix initialized')
 call Diff%CalcUcg(cell,SRG)
 rlp = Diff%getrlp()
 io_real(1) = rlp%xg
-call Message%WriteValue('Extinction distance for g : ', io_real, 1, "(F10.5)")
+call Message%WriteValue(' Extinction distance for g : ', io_real, 1, "(F10.5)")
 io_real(1) = rlp%xgp
-call Message%WriteValue('Anomalous absorption length for g : ', io_real, 1, "(F10.5)")
+call Message%WriteValue(' Anomalous absorption length for g : ', io_real, 1, "(F10.5)")
 io_real(1) = rlp%xgp/rlp%xg
-call Message%WriteValue('Absorption Ratio : ', io_real, 1, "(F10.5)")
+call Message%WriteValue(' Absorption Ratio : ', io_real, 1, "(F10.5)")
 ! compute the normal absorption factor xgp
 call Diff%CalcUcg(cell,(/0,0,0/))
 rlp = Diff%getrlp()
 xgp = aimag(rlp%qg)
 io_real(1) = 1.0/xgp
-call Message%WriteValue('Normal absorption length : ', io_real, 1, "(F10.5/)")
+call Message%WriteValue(' Normal absorption length : ', io_real, 1, "(F10.5/)")
 
 ! define the foil thickness, attenuation, and number slices per column
 thick = defects%foil%zb    ! this is the same everywhere for this version; needs to be updated in the next version
@@ -1361,7 +1381,7 @@ defects%DF_nums = DF_nums
 
 ! setup the defect displacement field parameters
 if ((self%nml%dispmode.eq.'new').or.(self%nml%dispmode.eq.'not')) then
-  call Message%printMessage(' Starting Displacement Field Computation (multi-threaded)')
+  call Message%printMessage(' Starting Displacement Field Computation')
 
 ! precompute ALL the defect columns and, if needed, store them in dispfile
 ! this portion should be carried out in multi-threaded mode as much as possible
@@ -1420,15 +1440,20 @@ call Message%printMessage('   -> done.')
 !!==========================================================================
 ! to be reviewed and modified if necessary
 
+! Create a new file using the default properties.
+
 ! and, if needed, store the defect displacement field for re-runs
-! if (self%nml%dispmode.ne.'not') then
-!   if ((self%nml%dispfile.ne.'none').and.(self%nml%dispmode.eq.'new')) then 
-!     call Message%printMessage('Displacement field data stored in file '//self%nml%dispfile)
-!     open(unit=dataunit,file=dispfile,status='new',action='write',form='unformatted')
-!     write (dataunit) DF_nums,DF_npix,DF_npiy
-!     write (dataunit) disparray
-!     close(unit=dataunit,status='keep',iostat=ier)
-!   endif
+if (self%nml%dispmode.ne.'not') then
+  if ((self%nml%dispfile.ne.'none').and.(self%nml%dispmode.eq.'new')) then 
+    dataname = EMsoft%generateFilePath('EMdatapathname',trim(self%nml%dispfile))
+    hdferr = HDF%createFile(dataname)
+
+    dataset = 'dispfield'
+      hdferr = HDF%writeDatasetIntegerArray(dataset, disparray, DF_nums, DF_npix, DF_npiy )
+
+    call HDF%popall()
+    call Message%printMessage('Displacement field data stored in file '//self%nml%dispfile)
+  endif
 !   if ((self%nml%dispfile.ne.'none').and.(self%nml%dispmode.eq.'old')) then ! there is a pre-computed defect file, so let's load it
 !    allocate(disparray(DF_nums,DF_npix,DF_npiy))
 !    disparray = 0
@@ -1450,7 +1475,7 @@ call Message%printMessage('   -> done.')
 !   read (dataunit) disparray
 !   close(unit=dataunit,status='keep')
 !  end if
-! end if
+end if
 
 ! next the STEMimages array; for consistency with EMZAdefect, we've changed the index ordering)
 if (self%nml%progmode.eq.'STEM') then
@@ -1507,7 +1532,7 @@ hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
 ! we also need to include the defect JSON file here in this group 
 dataset = 'defectJSONfile'
-hdferr = HDF%writeDatasetTextFile(dataset, self%nml%defectjsonfile)
+hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%generateFilePath('EMdatapathname', self%nml%defectjsonfile) )
 
 ! leave this group
 call HDF%pop()
@@ -1562,9 +1587,9 @@ dataset = 'qxy'
 call mem%dealloc(ggg, 'ggg')
 call mem%dealloc(qxy, 'qxy')
 
-! CLarray
-dataset = 'CLarray'
-  hdferr = HDF%writeDatasetFloatArray(dataset, STEM%getCLarray(), 20)
+! ! CLarray
+! dataset = 'CLarray'
+!   hdferr = HDF%writeDatasetFloatArray(dataset, STEM%getCLarray(), 20)
 
 ! ok, that's it for the output for now ... let's do the major loop
 ! first we copy the weights arrays since they are private to the STEM class
@@ -1613,8 +1638,6 @@ mainloop: do isg = numstart,numstop   ! this is the main computational loop
     DF_Sarray(k,1:nn,1:nn) = Az(1:nn,1:nn)
 end do  ! main loop
 
-call Message%printMessage(' Scattering matrices computed')
-
 !------------------------------------------------!
 ! Finally, here it is: the actual (threaded!) image computation  !
 !------------------------------------------------!
@@ -1651,15 +1674,7 @@ donpix: do i=1,npix
          Azz = DF_Sarray(disparray(k,i,j),1:nn,1:nn)
        end if
 ! and multiply with this matrix
-       amp = matmul(Az,amp)
-! alternatively we do the computation explicitly
-       ! amp2 = czero
-       ! do ii=1,nn
-       !  do jj=1,nn
-       !   amp2(ii) = amp2(ii) + Azz(ii,jj) * amp(jj)
-       !  end do
-       ! end do
-       ! amp = amp2
+       amp = matmul(Azz,amp)
       end do doslices ! loop over slices
    
 ! compute the (attenuated) intensities for the EM and STEM images and store
@@ -1692,6 +1707,8 @@ call memth%dealloc(inten, 'inten', TID=TID)
   if ((float(isg)/float(numstop) .gt. frac).and.(TID.eq.0)) then
 !     call Time_remaining(isg,numstop)
      frac = frac + 0.05
+     io_int(1) = nint(frac*100)
+     call Message%WriteValue(' % completed : ', io_int, 1)
   end if  
 
 end do mainloop

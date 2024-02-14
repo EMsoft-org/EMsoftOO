@@ -50,7 +50,7 @@ type(SRdefect_T)                :: SR
 type(HDFnames_T)                :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 200, 93 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 2, 3, 93, 200 /) )
 
 ! deal with the namelist stuff
 SR = SRdefect_T(EMsoft%nmldeffile)
