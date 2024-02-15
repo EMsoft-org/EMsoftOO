@@ -1,0 +1,58 @@
+ &STEMDCIdata
+! Note: All values in this template file correspond to the program defaults
+!
+!------------
+! multi-threading parameters
+!------------
+! number of threads to be used in multi-threaded mode 
+ nthreads = 6,
+!------------
+! microscope parameters
+!------------
+! microscope accelerating voltage [kV]
+ voltage = 200.0,
+! program mode (parallel beam 'CTEM', BF/HAADF pairs 'BFDF' or full converged beam 'STEM')
+ progmode = 'STEM',
+!------------
+! crystal structure and incident beam parameters
+!------------
+! string with the filename of the structure data (e.g., Cu.xtal; default = undefined)
+ xtalname = 'undefined',
+! zone axis indices in crystal reference frame
+ kk = 0,0,1,
+! coordinates of the Laue center (x,y) in [nm^-1]
+ lauec = 0.0,0.0,
+!------------
+! various filenames
+!------------
+! name of the nml file with the STEM and detector parameters
+ STEMnmlfile = 'undefined',
+! name of the nml file with the defect parameters
+ defectjsonfile = 'undefined',
+! full filename of the output file, including complete path
+ outname = 'undefined',
+! store displacement field ('new'), read an existing field ('old') or don't store/read anything ('not')
+ dispmode = 'not',
+! filename for the displacement field (only if dispmode <> 'not')
+ dispfile = 'undefined',
+!------------
+! output modes
+!------------
+! all program output is sent to the output logical unit (default 6=screen, use >10 for file)
+ output = 6,
+! verbose when dinfo=1, minimal screen output when dinfo=0
+ dinfo = 0,
+! how often should timing updates be shown (every t_interval k-steps)
+ t_interval = 5,
+!------------
+! image parameters and scattering matrix step size
+!------------
+! edge length of a column [nm] in the column approximation context
+ DF_L = 1.0,
+! number of x-columns (=number of x-pixels in output image)
+ DF_npix = 256,
+! number of y-columns (=number of y-pixels in output image)
+ DF_npiy = 256,
+! slice thickness for scattering matrix approach [nm]
+ DF_slice = 1.0
+ /

@@ -74,6 +74,7 @@ private
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: init_STEM_
+  procedure, pass(self) :: init_STEM_ZA_
   procedure, pass(self) :: setnumberofsvalues_
   procedure, pass(self) :: getnumberofsvalues_
   procedure, pass(self) :: setnumCL_
@@ -99,11 +100,14 @@ private
   procedure, pass(self) :: getsgarray_
   procedure, pass(self) :: getBFweightsarray_
   procedure, pass(self) :: getADFweightsarray_
+  procedure, pass(self) :: getZABFweightsarray_
+  procedure, pass(self) :: getZAADFweightsarray_
 
   generic, public :: readNameList => readNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: getNameList => getNameList_
   generic, public :: init_STEM => init_STEM_
+  generic, public :: init_STEM_ZA => init_STEM_ZA_
   generic, public :: setnumberofsvalues => setnumberofsvalues_
   generic, public :: getnumberofsvalues => getnumberofsvalues_
   generic, public :: setnumCL => setnumCL_
@@ -129,6 +133,8 @@ private
   generic, public :: getsgarray => getsgarray_
   generic, public :: getBFweightsarray => getBFweightsarray_
   generic, public :: getADFweightsarray => getADFweightsarray_
+  generic, public :: getZABFweightsarray => getZABFweightsarray_
+  generic, public :: getZAADFweightsarray => getZAADFweightsarray_
 end type STEM_T
 
 ! the constructor routine for this class 
@@ -797,6 +803,56 @@ out = self%ADFweightsarray
 end function getADFweightsarray_
 
 !--------------------------------------------------------------------------
+function getZABFweightsarray_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getZABFweightsarray_
+!! author: MDG
+!! version: 1.0
+!! date: 02/13/24
+!!
+!! get ZABFweightsarray from the STEM_T class
+
+IMPLICIT NONE
+
+class(STEM_T), INTENT(INOUT)     :: self
+integer(kind=irg),allocatable    :: out(:,:,:)
+
+integer(kind=irg)                :: sz(3) 
+
+sz = shape(self%ZABFweightsarray)
+allocate(out(sz(1), sz(2), sz(3)))
+out = 0
+where(self%ZABFweightsarray)
+  out = 1
+end where
+
+end function getZABFweightsarray_
+
+!--------------------------------------------------------------------------
+function getZAADFweightsarray_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getZAADFweightsarray_
+!! author: MDG
+!! version: 1.0
+!! date: 02/13/24
+!!
+!! get ZAADFweightsarray from the STEM_T class
+
+IMPLICIT NONE
+
+class(STEM_T), INTENT(INOUT)     :: self
+integer(kind=irg),allocatable    :: out(:,:,:)
+
+integer(kind=irg)                :: sz(3) 
+
+sz = shape(self%ZAADFweightsarray)
+allocate(out(sz(1), sz(2), sz(3)))
+out = 0
+where(self%ZAADFweightsarray)
+  out = 1
+end where
+
+end function getZAADFweightsarray_
+
+!--------------------------------------------------------------------------
 recursive subroutine init_STEM_(self,cell,Diff,nn,g)
 !DEC$ ATTRIBUTES DLLEXPORT :: init_STEM_
 !! author: MDG
@@ -1177,5 +1233,108 @@ end do outerCLloop   ! see line 814
 ! end if
 
 end subroutine init_STEM_
+
+
+!--------------------------------------------------------------------------
+!
+! SUBROUTINE: init_STEM_ZA
+!
+!> @author Marc De Graef, Carnegie Mellon University
+!
+!> @brief initialize weight factors for zone-axis STEM case
+! 
+!> @note This will need to be reconsidered when we implement sectored detectors ... 
+!
+!> @param STEM STEM structure
+!> @param stemnl STEM namelist
+!> @param cell unit cell pointer
+!> @param F foil normal
+!> @param khead top of kvector list
+!> @param reflist top of reflection list
+!> @param nn number of reflections
+! 
+!> @date   04/29/11 MDG 1.0 original
+!> @date   06/12/13 MDG 2.0 rewrite 
+!> @date   06/09/14 MDG 3.0 added STEM and cell structures and khead+reflist linked lists
+!> @date   06/10/14 MDG 3.1 added F, Dyn argument
+!> @date   07/02/17 MDG 3.2 split STEM into STEM and stemnl
+!--------------------------------------------------------------------------
+recursive subroutine init_STEM_ZA_(self, stemnl, cell, F, Diff, khead, reflist, nn)
+!DEC$ ATTRIBUTES DLLEXPORT :: init_STEM_ZA_
+
+use mod_crystallography
+use mod_diffraction
+use mod_kvectors
+use mod_gvectors
+
+IMPLICIT NONE
+
+class(STEM_T),INTENT(INOUT)         :: self
+type(STEMGeometryNameListType),INTENT(INOUT)    :: stemnl
+type(Cell_T),INTENT(INOUT)          :: cell
+real(kind=dbl),INTENT(INOUT)        :: F(3)
+type(Diffraction_T),INTENT(INOUT)   :: Diff
+type(kvectorlist),pointer           :: khead
+type(reflisttype),pointer           :: reflist
+integer(kind=irg),INTENT(IN)        :: nn
+
+integer(kind=irg)                   :: ik,ig, iCL
+real(kind=sgl)                      :: ll(3), lpg(3), gg(3), glen, gplen, kpg, lambda
+type(kvectorlist),pointer           :: ktmp
+type(reflisttype),pointer           :: rltmpa
+
+! this routine initializes the excitation error arrays and the weight-factor arrays for zone axis STEM signals
+! the weightfactors are quite a bit different from the ones for the systematic row case;
+! they are simpler in principle, since each point in the diffracted disk can only lie in one
+! place, and hence only contributes to one detector.  However, not all points in a disk
+! contribute to the same detector...  The length of the vector k_t+g, expressed in mrad,
+! is what needs to be compared to the radii of the BF and ADF detectors.  For each incident 
+! beam direction, we take the tangential component of the wave vector and loop over all
+! reflections to compute the relevant angle; this then allows us to assign the weight factors
+! which are now either 1 or 0 (so they can be stored as logicals).
+
+  lambda = sngl(Diff%getWaveLength())
+
+! allocate the excitation error array areal(1..nn,1..STEM%numk)
+  allocate(self%sgarray(nn,self%numk))
+  
+! transform the foil normal to real space and normalize
+  call cell%TransSpace(sngl(F),Diff%Dyn%FN,'d','r')
+  call cell%NormVec(Diff%Dyn%FN,'r')
+
+! allocate the weight factor arrays, one entry for each beam direction, reflection, and camera length
+  allocate(self%ZABFweightsarray(nn,self%numk,stemnl%numCL))
+  allocate(self%ZAADFweightsarray(nn,self%numk,stemnl%numCL))
+  self%ZABFweightsarray = .FALSE.
+  self%ZAADFweightsarray = .FALSE.
+
+! loop over the wave vector linked list
+  ktmp => khead
+  beamloopCL: do ik=1,self%numk
+    ll = ktmp%kt        ! this is the tangential component of the wave vector
+! and loop over all reflections
+    rltmpa => reflist%next
+    reflectionloopCL: do ig=1,nn
+      gg = float(rltmpa%hkl)
+      glen = cell%CalcLength(gg,'r')
+      lpg = ll + gg                ! Laue + g
+      gplen = cell%CalcLength(lpg,'r')
+      kpg = 2000.0*asin(0.50*lambda*gplen)    ! 2theta in mrad
+      do iCL=1,stemnl%numCL
+        self%BFmrad = atan(stemnl%BFradius/stemnl%CLarray(iCL))*1000.0
+        self%ADFimrad = atan(stemnl%ADFinnerradius/stemnl%CLarray(iCL))*1000.0
+        self%ADFomrad = atan(stemnl%ADFouterradius/stemnl%CLarray(iCL))*1000.0
+        if (kpg.le.self%BFmrad) self%ZABFweightsarray(ig,ik,iCL) = .TRUE.
+        if ((kpg.ge.self%ADFimrad).AND.(kpg.le.self%ADFomrad)) self%ZAADFweightsarray(ig,ik,iCL) = .TRUE.
+      end do  ! loop over camera lengths
+      self%sgarray(ig,ik) = Diff%Calcsg(cell,gg,sngl(ktmp%k),Diff%Dyn%FN)
+ ! and we move to the next reflection in the list
+      rltmpa => rltmpa%next
+    end do reflectionloopCL  
+    ktmp => ktmp%next
+  end do beamloopCL
+
+! that's it folks!
+end subroutine init_STEM_ZA_
 
 end module mod_STEM

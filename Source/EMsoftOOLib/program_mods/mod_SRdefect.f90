@@ -1403,14 +1403,14 @@ if ((self%nml%dispmode.eq.'new').or.(self%nml%dispmode.eq.'not')) then
 !    call Time_report(TT,t_interval*float(NTHR)/float(DF_npix))
 !    call Time_start(TT)
 !  end if
-  call mem%alloc(DF_R, (/ DF_nums,3 /), 'DF_R')     ! each thread has its own DF_R array
+  ! call mem%alloc(DF_R, (/ DF_nums,3 /), 'DF_R')     ! each thread has its own DF_R array
   call mem%alloc(defects%DF_R, (/ DF_nums,3 /), 'defects%DF_R')     ! each thread has its own DF_R array  
 
 !!$OMP DO SCHEDULE (GUIDED)
   ! write(*,*) TID,': starting Do Schedule'
   do i=1,DF_npix  
     do j=1,DF_npiy
-      DF_R = 0.0
+      defects%DF_R = 0.0
 ! compute the displacement vectors DF_R for all points in the column
       call defects%CalcR(cell,i,j)
 ! loop over the fixed thickness slices
@@ -1497,7 +1497,7 @@ numstop = STEM%getnumberofsvalues()
 ! the information needed to recreate the full CBED patterns at each image
 ! pixel.  This is then followed by the actual data.
 
-! the file format is identical to that of the EMZAdefect program in STEM mode,
+! the file format is identical to that of the EMSTEMDCI program in STEM mode,
 ! so that the STEMDisplay visualization program can be used for both ZA and SR files.
 
 ! In the present version we change that format to HDF5
