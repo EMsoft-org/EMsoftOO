@@ -79,6 +79,8 @@ private
   procedure, pass(self) :: getnumberofsvalues_
   procedure, pass(self) :: setnumCL_
   procedure, pass(self) :: getnumCL_
+  procedure, pass(self) :: setnumk_
+  procedure, pass(self) :: getnumk_
   procedure, pass(self) :: setBFradius_
   procedure, pass(self) :: getBFradius_
   procedure, pass(self) :: setADFinnerradius_
@@ -112,6 +114,8 @@ private
   generic, public :: getnumberofsvalues => getnumberofsvalues_
   generic, public :: setnumCL => setnumCL_
   generic, public :: getnumCL => getnumCL_
+  generic, public :: setnumk => setnumk_
+  generic, public :: getnumk => getnumk_
   generic, public :: setBFradius => setBFradius_
   generic, public :: getBFradius => getBFradius_
   generic, public :: setADFinnerradius => setADFinnerradius_
@@ -411,6 +415,42 @@ integer(kind=irg)                   :: out
 out = self%nml%numCL
 
 end function getnumCL_
+
+!--------------------------------------------------------------------------
+subroutine setnumk_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnumk_
+!! author: MDG
+!! version: 1.0
+!! date: 02/13/24
+!!
+!! set numk in the STEM_T class
+
+IMPLICIT NONE
+
+class(STEM_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%numk = inp
+
+end subroutine setnumk_
+
+!--------------------------------------------------------------------------
+function getnumk_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumk_
+!! author: MDG
+!! version: 1.0
+!! date: 02/13/24
+!!
+!! get numk from the STEM_T class
+
+IMPLICIT NONE
+
+class(STEM_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%numk
+
+end function getnumk_
 
 !--------------------------------------------------------------------------
 subroutine setBFradius_(self,inp)

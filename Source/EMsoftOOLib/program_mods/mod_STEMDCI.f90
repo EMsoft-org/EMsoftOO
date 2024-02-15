@@ -1134,11 +1134,11 @@ type(STEMGeometryNameListType)   :: stemnl
 integer(kind=irg)                :: nn,i,j,k,npix,npiy,ii,jj,numvoids,numdisl, numYdisl, &
                                     numsf,nCL,numinc,dinfo,t_interval, DF_nums, dgn, pgnum, &
                                     DF_nums_new,DF_npix_new,DF_npiy_new, numstart,numstop, isg, TID, &
-                                    NTHR, isym, ir, ga(3), gb(3),kk(3),ic,g,numd,ix,iy, &
+                                    NTHR, isym, ir, ga(3), gb(3),ic,g,numd,ix,iy, &
                                     numk,ixp,iyp,SETNTHR, io_int(6), skip, gg(3), iSTEM, hdferr, tick, tock
 !                                OMP_GET_THREAD_NUM,OMP_GET_NUM_THREADS
 integer(kind=irg),parameter      :: numdd=180
-real(kind=sgl)                   :: glen,exer,arg,thick, X(2), dmin, &
+real(kind=sgl)                   :: glen,exer,arg,thick, X(2), dmin, kk(3), &
                                     lauec(2), g3(3), gdotR,att,xgp,DF_gf(3), &
                                     DM(2,2), DD, H,FNr(3),ll(3),lpg(3),gplen,LC3, c(3), gx(3), gy(3), &
                                     sgdenom, gac(3), gbc(3),zmax, beamdiv, ktmax, io_real(2), kt, qx, qy
@@ -1172,7 +1172,8 @@ character(fnlen)                 :: outname
 character(fnlen,kind=c_char)     :: line2(1)
 
 ! initialize the STEM geometry namelist as well 
-STEM = STEM_T( self%getSTEMnmlfile() )
+datafile = EMsoft%generateFilePath('EMdatapathname',trim(self%getSTEMnmlfile()))
+STEM = STEM_T( datafile )
 stemnl = STEM%getNameList()
 
 call openFortranHDFInterface()
@@ -1198,6 +1199,7 @@ npix = DF_npix
 npiy = DF_npiy
 DF_slice = self%getDF_slice()
 dmin = self%getdmin()
+DynFN = float(enl%kk)
 
 ! set the defect parameters
 defects%DF_slice = self%getDF_slice()
@@ -1272,11 +1274,10 @@ if (enl%progmode.ne.'EM') then
   ijmax = float(numsval)**2
   intijmax=int(ijmax)
   call kvec%Calckvectors(cell,SG,Diff,dble(ga),numsval,numsval,intijmax,usehex)
-
   ! here we figure out how many beams there are
   xx = 1.0/cell%CalcLength(float(enl%kk),'d')
   kk = xx*float(enl%kk)/lambda  
-  call gvec%Initialize_ReflectionList(cell, SG, Diff, sngl(DynFN), float(kk), enl%dmin, verbose) 
+  call gvec%Initialize_ReflectionList(cell, SG, Diff, sngl(DynFN), kk, enl%dmin, verbose) 
 else  ! progmode = EM
   ijmax = 0.0
   intijmax=int(ijmax)
@@ -1284,14 +1285,15 @@ else  ! progmode = EM
   ! here we figure out how many beams there are
   xx = 1.0/cell%CalcLength(float(enl%kk),'d')
   kk = xx*float(enl%kk)/lambda  
-  call gvec%Initialize_ReflectionList(cell, SG, Diff, sngl(DynFN), float(kk), enl%dmin, verbose)
+  call gvec%Initialize_ReflectionList(cell, SG, Diff, sngl(DynFN), kk, enl%dmin, verbose)
 end if
 call Message%printMessage(' --> done initializing reflectionlist')
-write(*,*) 'kk=',enl%kk,';ga=',ga,';ktmax=',ktmax,';npix=',npix,';npiy=',npiy,'numk=',kvec%get_numk(),'; isym=',isym
 
+call STEM%setnumk(kvec%get_numk())
+numk = kvec%get_numk()
 nn = gvec%get_nref()
-khead = kvec%get_ListHead()
-reflist = gvec%get_ListHead()
+khead => kvec%get_ListHead()
+reflist => gvec%get_ListHead()
 
 if (enl%progmode.ne.'EM') then
   call STEM%init_STEM_ZA(stemnl, cell, DynFN, Diff, khead, reflist, nn)
@@ -1376,7 +1378,7 @@ if (progmode.eq.'EM') then
     gplen = cell%CalcLength(lpg,'r')
     LC3 = sqrt(1.0-lambda**2*(cell%CalcLength(ll,'r')**2))   ! to ensure proper normalization of wave vector
     if (gplen.eq.0.0) then
-      exer=-lambda*cell%CalcDot(float(rltmpa%hkl),ll+lpg,'r')/2.0*LC3*cos(cell%CalcAngle(dble(kk),defects%foil%F,'d'))        
+      exer=-lambda*cell%CalcDot(float(rltmpa%hkl),ll+lpg,'r')/2.0*LC3*cos(cell%CalcAngle(dble(enl%kk),defects%foil%F,'d'))        
     else
       sgdenom=2.0*LC3*cos(cell%CalcAngle(dble(enl%kk),defects%foil%F,'d'))-2.0*lambda*gplen*cos(cell%CalcAngle(lpg,FNr,'r'))
       exer=-(lambda*cell%CalcDot(float(rltmpa%hkl),ll+lpg,'r')-2.0*LC3*cell%CalcDot(g3,lpg,'r'))/sgdenom
@@ -1424,6 +1426,9 @@ if ((self%nml%dispmode.eq.'new').or.(self%nml%dispmode.eq.'not')) then
 !  end if
   ! call mem%alloc(DF_R, (/ DF_nums,3 /), 'DF_R')     ! each thread has its own DF_R array
   call mem%alloc(defects%DF_R, (/ DF_nums,3 /), 'defects%DF_R')     ! each thread has its own DF_R array  
+
+ call cell%TransSpace(float(ga),gac,'r','c')
+ call cell%TransSpace(float(gb),gbc,'r','c')
 
 !!$OMP DO SCHEDULE (GUIDED)
   ! write(*,*) TID,': starting Do Schedule'
@@ -1579,9 +1584,16 @@ hdferr = HDF%createGroup(HDFnames%get_NMLfiles())
 dataset = trim(HDFnames%get_NMLfilename())
 hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
+dataset = 'STEMGeometry'
+hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%generateFilePath('EMdatapathname', self%nml%STEMnmlfile) )
+
 ! we also need to include the defect JSON file here in this group 
 dataset = 'defectJSONfile'
 hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%generateFilePath('EMdatapathname', self%nml%defectjsonfile) )
+
+! and the foil JSON file
+dataset = 'foilJSONfile'
+hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%generateFilePath('EMdatapathname', defects%foilname) )
 
 ! leave this group
 call HDF%pop()
@@ -1627,10 +1639,12 @@ dataset = SC_numreflections
 ! create some temporary arrays
 call mem%alloc(ggg, (/ 3, nn /), 'ggg', initval=0 )
 call mem%alloc(qxy, (/ 2, nn /), 'qxy', initval=0.0 )
+rltmpa => reflist%next
 do ic = 1, nn
   ggg(1:3,ic) = rltmpa%hkl
   call cell%TransSpace(float(rltmpa%hkl),c,'r','c')
   qxy(1:2,ic) = (/ cell%CalcDot(c, gx, 'c'), cell%CalcDot(c, gy, 'c') /)
+  rltmpa => rltmpa%next
 end do
 
 dataset = SC_hkl
@@ -1837,7 +1851,9 @@ call memth%dealloc(amp2, 'amp2', TID=TID)
 call memth%dealloc(inten, 'inten', TID=TID)
 !$OMP END PARALLEL
 
-call Message%printMessage('... done.')
+io_int(1) = isg 
+io_int(2) = numstop
+call Message%WriteValue('... completed ', io_int, 2, "(I4,'/',I4)")
   
   if (enl%progmode.eq.'STEM') then
     if (mod(isg,10).eq.0) then
