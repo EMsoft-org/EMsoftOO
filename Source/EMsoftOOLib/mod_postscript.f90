@@ -100,7 +100,7 @@ character(55),parameter :: PSpreamble(23) = (/ &
 
 
 ! font-related stuff
-character(25),public,parameter :: PSlbl = "Written by MDG, 2001-2020"
+character(25),public,parameter :: PSlbl = "Written by MDG, 2001-2024"
 character(20),public,parameter :: PSfonts(5) = (/"Symbol              ", &
                                           "Times-Bold          ", &
                                           "Times-BoldItalic    ", &

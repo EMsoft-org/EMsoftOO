@@ -1,0 +1,41 @@
+&SRCBEDlist
+! Note: All values in this template file correspond to the program defaults
+!
+!------------
+! multi-threading parameters
+!------------
+! number of threads to be used in multi-threaded mode 
+ nthreads = 6,
+!------------
+! microscope parameters
+!------------
+! microscope accelerating voltage [kV]
+ voltage = 200.0,
+! camera length [mm]
+ camlen = 1000.0,
+!------------
+! crystal structure and incident beam parameters
+!------------
+! string with the filename of the structure data (e.g., Cu.xtal; default = undefined)
+ xtalname = 'undefined',
+! fundamental reciprocal lattice vector of the systematic row
+ SRG = 1 0 0,
+! incident beam direction as a real space direction vector; must be normal to SRG
+ SRK = 0 0 1,
+! range of reflections to be taken into account (-Grange*SRG to +Grange*SRG); number of beams = 2*Grange+1
+ Grange = 4,
+! up to 10 Laue centers for G at the center of the diffraction disk, defined as k_t/|g| (GLaue = 0.5 means g in Bragg)
+ numrows = 10,
+ ktonG = 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0,
+ ! incident beam convergence angle in mrad
+ convergence = 5.0,
+! foil thickness [nm]
+ thick = 100.0,
+!------------
+! various filenames
+!------------
+! full filename of the HDF5 output file [relative to EMdatapathname]
+ outname = 'undefined',
+! tiff prefix to be used for each systematic row pattern [relative to EMdatapathname]
+ tiffprefix = 'undefined',
+/
