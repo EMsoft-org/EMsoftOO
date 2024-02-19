@@ -1479,10 +1479,10 @@ else
 !
         sgp = abs(rltmpa%sg) 
         lUg = abs(rltmpa%Ucg) * lambda
-        cut1 =  Diff%BetheParameters%c2 * lUg
-        cut2 =  Diff%BetheParameters%c1 * lUg
-        ! cut1 =  Diff%BetheParameters%cutoff * lUg
-        ! cut2 =  Diff%BetheParameters%weakcutoff * lUg
+        ! cut1 =  Diff%BetheParameters%c2 * lUg
+        ! cut2 =  Diff%BetheParameters%c1 * lUg
+        cut1 =  Diff%BetheParameters%cutoff * lUg
+        cut2 =  Diff%BetheParameters%weakcutoff * lUg
 
 ! we have to deal separately with double diffraction reflections, since
 ! they have a zero potential coefficient !        
@@ -2483,6 +2483,7 @@ end if
  end do
 
 end subroutine CalcLghdepth_
+
 
 ! ! this may need to be moved to the kvectors_T class ...
 ! ! this routine is currently not used anywhere !

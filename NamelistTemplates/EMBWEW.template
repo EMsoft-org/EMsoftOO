@@ -1,0 +1,32 @@
+ &BWEWlist 
+! do not change the first line in this file !
+!
+! Note: All parameter values are default values for the program
+!
+!--------------
+! the name of the crystal input file MUST be specified 
+ xtalname = 'undefined',
+! microscope accelerating voltage [kV]
+ voltage = 200.0,
+! zone axis indices
+ k = 0 0 1,
+! number of sampling pixels along x-axis [npiy will be determined by the algorithm]
+! Note that the value of npix will be compared to the ratio of the lattice periodicity
+! along the x-direction and the maximum sampling interval.
+ npix = 256,
+! maximum sampling interval [nm per pixel]
+ maxsamint = 0.025, 
+! number of thicknes values to be used in the output
+ numthick = 10,
+! starting thickness value [nm]
+ startthick = 10.0,
+! thickness increment value [nm]
+ thickinc = 10.0,
+! name of output HDF5 file [relative to EMdatapathname]
+ outname = 'lacbedout.h5'
+! tiff prefix for pattern output [relative to EMdatapathname]
+! (this assumes that all folders in the path exist)
+! leave undefined if no pattern output is needed
+ tiffprefix = 'undefined',
+! this last line must be present!
+ /
