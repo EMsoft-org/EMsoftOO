@@ -788,15 +788,15 @@ type(gvectors_T)                  :: gvec
 type(kvectors_T)                  :: kvec
 type(symdata2D)                   :: TDPG
 type(HDF_T)                       :: HDF
-type(reflisttype),pointer         :: reflist, rltmpa
+type(reflisttype),pointer         :: reflist, rltmpa, rl, firstw
 
-real(kind=sgl)                    :: laL,kt,z0,thc,thb,hkl(3),ind(3),fn(3),thick,pixpos(3),mi, ma, &
+real(kind=sgl)                    :: laL,kt,z0,thc,thb,hkl(3),ind(3),fn(3),thick,mi, ma, galen, &
                                      dom,glen,c(3),RR,gx(3),gy(3),gg(3),kstar(3),gad(3),gbd(3),frac,gal,gbl, &
                                      gmax,gamax,gbmax,gadl,gbdl, io_real(3), dmin, DynWV(3), lambda, Upz, xgpz
-real(kind=dbl)                    :: arg,th,maxsamint,dummy(3)
+real(kind=dbl)                    :: arg,th,maxsamint,dummy(3),pixpos(3)
 integer(kind=irg)                 :: g(3),ira,dpcnt,ppi,ijmax,ga(3),gb(3),k(3),fcnt,ccnt,count, &
                                      newcount,count_rate,count_max,nn,i,j,ig,ih,isym,ir,iorder,nt, &
-                                     npix,npiy,istat,numt,ip,jp,ik,numk,mins, io_int(2)
+                                     npix,npiy,istat,numt,ip,jp,ik,numk,mins, io_int(6), dgn, nns, nnw, pgnum
 character(1)                      :: ans
 character(2)                      :: srza
 character(20)                     :: fname
@@ -807,10 +807,11 @@ character(3)                      :: str
 character(fnlen)                  :: TIFF_filename
 
 integer(kind=irg),allocatable     :: IPIV(:)
-complex(kind=dbl),allocatable     :: CGinv(:,:), Minp(:,:),diag(:),amp(:,:),pw(:), W(:), CG(:,:), alpha(:)
+complex(kind=dbl),allocatable     :: CGinv(:,:), Minp(:,:),diag(:),amp(:,:),pw(:), W(:), CG(:,:), alpha(:), DynMat(:,:)
 complex(kind=dbl)                 :: czero = cmplx(0.0,0.0,dbl)
 complex(kind=sgl),allocatable     :: ew(:,:,:)
 real(kind=sgl),allocatable        :: inten(:,:)
+real(kind=dbl),allocatable        :: kg(:,:)
 
 ! declare variables for use in object oriented image module
 integer                           :: iostat
@@ -851,7 +852,7 @@ call cell%setFileName(enl%xtalname)
 call Diff%setrlpmethod('WK')
 ! foil normal is assumed to be parallel to k 
 Diff%Dyn%FN = dble(k) 
-dmin = 0.01D0   
+dmin = 0.005D0   
 call Diff%setV(dble(enl%voltage))
 ! initialize the HOLZ geometry type
 HOLZ = HOLZ_T()
@@ -859,21 +860,36 @@ HOLZ%maxHOLZ = 2
 ! initialize the gvectors list
 gvec = gvectors_T()
 
-! get the crystal structure data and initialize the LUTs under the assumption of 
-! a single zone axis and consequently a set of HOLZ layers
-call Initialize_Cell_HOLZ(cell, Diff, SG, HOLZ, HOLZdata, gvec, TDPG, EMsoft, & 
-                          dmin, k, ga, gb, verbose, useHDF=HDF)
+! get the crystal structure data and initialize the LUTs 
+call Initialize_Cell(cell, Diff, SG, Dyn, EMsoft, dmin, verbose, useHDF=HDF)
+
+! determine the point group number
+j=0
+do i=1,32
+    if (SGPG(i).le.SG%getSpaceGroupNumber()) j=i
+end do
+isym = j
+
+! use the new routine to get the whole pattern 2D symmetry group, since that
+! is the one that determines the independent beam directions.
+dgn = SG%GetPatternSymmetry(enl%k,j,.TRUE.)
+pgnum = j
+isym = WPPG(dgn)
 
 ! force dynamical matrix routine to read new Bethe parameters from file
-call Diff%SetBetheParameters(EMsoft,silent=.TRUE.)
-
-write (*,*) Diff%getBetheParameter('c1')
-write (*,*) Diff%getBetheParameter('c2')
-write (*,*) Diff%getBetheParameter('c3')
-
+call Diff%SetBetheParameters(EMsoft)
 call Diff%setDynNbeamsLinked( gvec%get_nref() )
 
 lambda = Diff%getWaveLength()
+
+!determine the shortest reciprocal lattice points for this zone
+call cell%ShortestG(SG,enl%k,ga,gb,isym)
+io_int(1:3)=ga(1:3)
+io_int(4:6)=gb(1:3)
+call Message%WriteValue(' Reciprocal lattice vectors : ', io_int, 6,"('(',3I3,') and (',3I3,')')")
+call Message%printMessage('  (the first lattice vector is horizontal in the CBED pattern)')
+call Message%printMessage(' ')
+galen = cell%CalcLength(float(ga), 'r')
 
 ! normal aborption factor
 call Diff%CalcUcg(cell, (/ 0, 0, 0 /))
@@ -920,20 +936,47 @@ call cell%TransSpace(float(k),kstar,'d','r')      ! transform incident direction
 call cell%NormVec(kstar,'r')                      ! normalize reciprocal beam vector
 DynWV = kstar/lambda                              ! divide by wavelength and assign
 
+
 ! generate the dynamical matrix for Bloch wave computations (only one single wave vector !)
 ! we are in zone axis here so there is no tangential component...
-call gvec%GetDynMatHOLZ(cell, Diff, HOLZ, HOLZdata, EMsoft, 'BLOCHBETHE', dble(DynWV), dummy, .FALSE. )
+gvec = gvectors_T()
+FN = enl%k
+write (*,*) ' Incident wave vector/foil normal : ', DynWV, FN
+call gvec%Initialize_ReflectionList(cell, SG, Diff, FN, DynWV, dmin, verbose=.TRUE.)
+
+! go through the reflist and reset all strong and weak links to null pointers and .FALSE. identifiers;
+! at the same time, compute the excitation errors for this incident beam direction kk
+rl => gvec%Get_ListHead()
+rl => rl%next
+do
+  if (.not.associated(rl)) EXIT
+  nullify(rl%nexts, rl%nextw)
+  rl%strong = .FALSE.
+  rl%weak = .FALSE.
+  rl%sg = Diff%Calcsg(cell,float(rl%hkl(1:3)),DynWV,FN)
+  rl => rl%next
+end do
+
+! determine strong and weak reflections
+nullify(firstw)
+nns = 0
+nnw = 0
+call gvec%Apply_BethePotentials(Diff, firstw, nns, nnw)
+io_int(1:2) = (/ nns, nnw /)
+call Message%WriteValue(' Total # strong/weak reflections after Bethe potentials : ',io_int,2)
+
+! generate the dynamical matrix
+nn = nns
+call mem%alloc(DynMat, (/ nn, nn /), 'DynMat', initval=czero)
+call gvec%GetDynMat(cell, Diff, firstw, DynMat, nn, nnw)
 
 ! allocate various arrays
 mem = memory_T()
-nn = Diff%getDynNbeams()
-write (*,*) ' number of beams : ', nn 
-
+call mem%alloc(Minp, (/ nn, nn /), 'Minp', initval=czero)
 call mem%alloc(W, (/ nn /), 'W', initval = czero)
 call mem%alloc(CG, (/ nn, nn /), 'CG', initval = czero)
 call mem%alloc(alpha, (/ nn /), 'alpha', initval = czero)
 call mem%alloc(CGinv, (/ nn, nn /), 'CGinv', initval=czero)
-call mem%alloc(Minp, (/ nn, nn /), 'Minp', initval=czero)
 call mem%alloc(diag, (/ nn /), 'diag', initval = czero)
 call mem%alloc(IPIV, (/ nn /), 'IPIV', initval = 0)
 call mem%alloc(amp, (/ numt, nn /), 'amp', initval = czero)
@@ -941,7 +984,7 @@ call mem%alloc(pw, (/ nn /), 'pw', initval = czero)
 call mem%alloc(ew, (/ numt, npix, npiy /), 'ew', initval = cmplx(0.0,0.0))
 
 ! solve the eigenvalue problem
-Minp = Diff%Dyn%DynMat
+Minp = DynMat
 call Diff%BWsolve(Minp, W, CG, CGinv, nn, IPIV)
 call Message%printMessage(' Eigenvalues/vectors computed, beginning exit wave computation')
 
@@ -963,16 +1006,40 @@ reflist => gvec%get_ListHead()
 frac = 0.05
 ik=0
 numk = npix*npiy
+
+! precompute the list of k0+g vectors for the plane waves
+call cell%TransSpace(float(enl%k),DynWV,'d','c')
+call cell%NormVec(DynWV,'c')
+DynWV = DynWV/lambda
+call cell%TransSpace(DynWV, DynWV, 'c', 'r')
+write (*,*) 'incident wave in reciprocal space reference frame : ', DynWV, 1.0/lambda
+
+call mem%alloc(kg, (/ 3, nn /), 'kg', initval=0.D0)
+reflist => gvec%get_ListHead()
+rltmpa => reflist%next
+do i=1,nn 
+  gg = dble(rltmpa%hkl)
+  ! glen = cell%CalcLength(gg,'r')
+  ! call cell%NormVec(gg,'r')
+  ! kg(1:3,i) = DynWV + gg * glen
+  kg(1:3,i) = dble(DynWV) + gg
+  rltmpa => rltmpa%nexts
+end do
+
+gad = gad/float(npix)
+gbd = gbd/float(npiy)
+reflist => gvec%get_ListHead()
 do ip=1,npix
  do jp=1,npiy
   ik=ik+1
-  pixpos = float(ip-1)*gad/float(npix) + float(jp-1)*gbd/float(npiy)
+  pixpos = dble(ip-1)*gad + dble(jp-1)*gbd
 ! precompute the plane waves for this location
-  rltmpa => reflist%next
+  ! rltmpa => reflist%next
   do i=1,nn
-   arg = 2.0*cPi*dot_product(DynWV+dble(rltmpa%hkl),pixpos)
+   ! arg = 2.0*cPi*dot_product(DynWV+dble(rltmpa%hkl),pixpos)
+   arg = 2.0*cPi*sum(kg(1:3,i)*pixpos(1:3))
    pw(i) = cmplx(cos(arg),sin(arg),dbl)
-   rltmpa => rltmpa%next
+   ! rltmpa => rltmpa%nexts
   end do
 ! loop over all thicknesses
   do i=1,enl%numthick
@@ -987,6 +1054,8 @@ do ip=1,npix
   end if
  end do
 end do
+write (*,*) ' Range ew ', minval(abs(ew)**2), maxval(abs(ew)**2)
+
 ! get rid of useless variables
 call mem%dealloc(W, 'W')
 call mem%dealloc(CG, 'CG')
@@ -997,14 +1066,17 @@ call mem%dealloc(diag, 'diag')
 call mem%dealloc(IPIV, 'IPIV')
 call mem%dealloc(amp, 'amp')
 call mem%dealloc(pw, 'pw')
+call mem%dealloc(kg, 'kg')
 
-! and store the exit wave functions for all thicknesses in and HDF5 file;
+! and store the exit wave functions for all thicknesses in an HDF5 file;
 ! also save the intensities as tiff files...
 call mem%alloc(inten, (/ npix, npiy /), 'inten')
 do i=1,numt
   inten = abs(ew(i,:,:))**2
   mi = minval(inten)
   ma = maxval(inten)
+
+write (*,*) mi, ma 
 
   TIFF_image = nint(255.0*(inten-mi)/(ma-mi))
 
