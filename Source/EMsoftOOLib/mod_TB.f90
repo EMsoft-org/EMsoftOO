@@ -165,9 +165,9 @@ real(kind=sgl),INTENT(IN)       :: xizero
 real(kind=sgl),INTENT(IN)       :: betag
  !! phase parameter
 real(kind=sgl),INTENT(OUT)      :: It
- !! real part of result
+ !! transmitted intensity
 real(kind=sgl),INTENT(OUT)      :: Is
- !! imaginary part of result
+ !! scattered intensity
 
 real(kind=sgl) :: q, r, sq, qgsi, e, sr, si, cp, ch, pr, pi, xigi, xigpi, sgs
 
