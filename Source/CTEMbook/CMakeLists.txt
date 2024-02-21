@@ -37,6 +37,14 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
                       )
 
+  Add_EMsoftOO_Executable(TARGET EMTBBFDF
+                      SOURCES ${APP_DIR}/EMTBBFDF.f90 
+                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                      SOLUTION_FOLDER EMsoftOOPublic/CTEMbook
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
+                      )
+
   Add_EMsoftOO_Executable(TARGET EMSRCBED
                       SOURCES ${APP_DIR}/EMSRCBED.f90 
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 

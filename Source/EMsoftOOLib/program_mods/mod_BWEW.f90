@@ -750,7 +750,6 @@ use mod_gvectors
 use mod_HDFnames
 use mod_crystallography
 use mod_diffraction
-use mod_HOLZ
 use mod_initializers
 use mod_symmetry
 use mod_symmetry2D
@@ -782,11 +781,8 @@ type(IO_T)                        :: Message
 type(Memory_T)                    :: mem
 type(Timing_T)                    :: timer
 type(gnode)                       :: rlp
-type(HOLZ_T)                      :: HOLZ
-type(HOLZentries)                 :: HOLZdata 
 type(gvectors_T)                  :: gvec
 type(kvectors_T)                  :: kvec
-type(symdata2D)                   :: TDPG
 type(HDF_T)                       :: HDF
 type(reflisttype),pointer         :: reflist, rltmpa, rl, firstw
 
@@ -854,9 +850,7 @@ call Diff%setrlpmethod('WK')
 Diff%Dyn%FN = dble(k) 
 dmin = 0.005D0   
 call Diff%setV(dble(enl%voltage))
-! initialize the HOLZ geometry type
-HOLZ = HOLZ_T()
-HOLZ%maxHOLZ = 2
+
 ! initialize the gvectors list
 gvec = gvectors_T()
 
