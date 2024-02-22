@@ -31,49 +31,39 @@ module mod_BW
   !! version: 1.0 
   !! date: 02/21/24
   !!
-  !! class definitions used by the EMTBBW and EMSRBW programs
+  !! class definitions used by the EMTBSRBW program
 
 use mod_kinds
 use mod_global
 
 IMPLICIT NONE 
 
-! namelist for the EMTBBW program
-type, public :: TBBWNameListType
+! namelist for the EMTBSRBW program
+type, public :: BWNameListType
   integer(kind=irg)  :: g(3)
   integer(kind=irg)  :: k(3)
   integer(kind=irg)  :: f(3)
   integer(kind=irg)  :: numkt
+  integer(kind=irg)  :: maxng
   real(kind=sgl)     :: ktmax
   real(kind=sgl)     :: voltage
+  character(2)       :: TBSR
   character(fnlen)   :: xtalname
   character(fnlen)   :: outname
-end type TBBWNameListType
-
-! namelist for the EMSRBW program
-type, public :: SRBWNameListType
-  integer(kind=irg)  :: g(3)
-  integer(kind=irg)  :: k(3)
-  integer(kind=irg)  :: f(3)
-  integer(kind=irg)  :: numkt
-  real(kind=sgl)     :: ktmax
-  real(kind=sgl)     :: voltage
-  character(fnlen)   :: xtalname
-  character(fnlen)   :: outname
-end type SRBWNameListType
+end type BWNameListType
 
 ! class definition for the two beam Bloch wave program
-type, public :: TBBW_T
+type, public :: TBSRBW_T
 private 
-  character(fnlen)        :: nmldeffile = 'EMTBBW.nml'
-  type(TBBWNameListType)  :: nml 
+  character(fnlen)        :: nmldeffile = 'EMTBSRBW.nml'
+  type(BWNameListType)    :: nml 
 
 contains
 private 
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
-  procedure, pass(self) :: TBBW_
+  procedure, pass(self) :: TBSRBW_
   procedure, pass(self) :: setg_
   procedure, pass(self) :: getg_
   procedure, pass(self) :: setk_
@@ -82,6 +72,8 @@ private
   procedure, pass(self) :: getf_
   procedure, pass(self) :: setnumkt_
   procedure, pass(self) :: getnumkt_
+  procedure, pass(self) :: setmaxng_
+  procedure, pass(self) :: getmaxng_
   procedure, pass(self) :: setktmax_
   procedure, pass(self) :: getktmax_
   procedure, pass(self) :: setvoltage_
@@ -90,11 +82,13 @@ private
   procedure, pass(self) :: getxtalname_
   procedure, pass(self) :: setoutname_
   procedure, pass(self) :: getoutname_
+  procedure, pass(self) :: setTBSR_
+  procedure, pass(self) :: getTBSR_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
-  generic, public :: TBBW => TBBW_
+  generic, public :: TBSRBW => TBSRBW_
   generic, public :: setg => setg_
   generic, public :: getg => getg_
   generic, public :: setk => setk_
@@ -103,6 +97,8 @@ private
   generic, public :: getf => getf_
   generic, public :: setnumkt => setnumkt_
   generic, public :: getnumkt => getnumkt_
+  generic, public :: setmaxng => setmaxng_
+  generic, public :: getmaxng => getmaxng_
   generic, public :: setktmax => setktmax_
   generic, public :: getktmax => getktmax_
   generic, public :: setvoltage => setvoltage_
@@ -111,103 +107,48 @@ private
   generic, public :: getxtalname => getxtalname_
   generic, public :: setoutname => setoutname_
   generic, public :: getoutname => getoutname_
-end type TBBW_T
-
-! class definition for the systematic row Bloch wave program
-type, public :: SRBW_T
-private 
-  character(fnlen)      :: nmldeffile = 'EMSRBW.nml'
-  type(SRBWNameListType):: nml 
-
-contains
-private 
-  procedure, pass(self) :: readNameListSR_
-  procedure, pass(self) :: writeHDFNameListSR_
-  procedure, pass(self) :: getNameListSR_
-  procedure, pass(self) :: SRBW_
-
-  generic, public :: getNameListSR => getNameListSR_
-  generic, public :: writeHDFNameListSR => writeHDFNameListSR_
-  generic, public :: readNameListSR => readNameListSR_
-  generic, public :: SRBW => SRBW_
-
-end type SRBW_T
+  generic, public :: setTBSR => setTBSR_
+  generic, public :: getTBSR => getTBSR_
+end type TBSRBW_T
 
 ! the constructor routine for this class 
-interface TBBW_T
-  module procedure TBBW_constructor
-end interface TBBW_T
-
-! the constructor routine for this class 
-interface SRBW_T
-  module procedure SRBW_constructor
-end interface SRBW_T
+interface TBSRBW_T
+  module procedure TBSRBW_constructor
+end interface TBSRBW_T
 
 contains
 
 !--------------------------------------------------------------------------
-type(TBBW_T) function TBBW_constructor( nmlfile ) result(TBBW)
+type(TBSRBW_T) function TBSRBW_constructor( nmlfile ) result(TBSRBW)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/21/24
 !!
-!! constructor for the TBBW_T Class; reads the name list 
+!! constructor for the TBSRBW_T Class; reads the name list 
  
 IMPLICIT NONE
 
 character(fnlen), OPTIONAL   :: nmlfile 
 
-call TBBW%readNameList(nmlfile)
+call TBSRBW%readNameList(nmlfile)
 
-end function TBBW_constructor
+end function TBSRBW_constructor
 
 !--------------------------------------------------------------------------
-subroutine TBBW_destructor(self) 
+subroutine TBSRBW_destructor(self) 
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/21/24
 !!
-!! destructor for the TBBW_T Class
+!! destructor for the TBSRBW_T Class
  
 IMPLICIT NONE
 
-type(TBBW_T), INTENT(INOUT)  :: self 
+type(TBSRBW_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('BW_T')
+call reportDestructor('TBSRBW_T')
 
-end subroutine TBBW_destructor
-
-!--------------------------------------------------------------------------
-type(SRBW_T) function SRBW_constructor( nmlfile ) result(SRBW)
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/21/24
-!!
-!! constructor for the SRBW_T Class; reads the name list 
- 
-IMPLICIT NONE
-
-character(fnlen), OPTIONAL   :: nmlfile 
-
-call SRBW%readNameListSR(nmlfile)
-
-end function SRBW_constructor
-
-!--------------------------------------------------------------------------
-subroutine SRBW_destructor(self) 
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/21/24
-!!
-!! destructor for the SRBW_T Class
- 
-IMPLICIT NONE
-
-type(SRBW_T), INTENT(INOUT)  :: self 
-
-call reportDestructor('SR_T')
-
-end subroutine SRBW_destructor
+end subroutine TBSRBW_destructor
 
 !--------------------------------------------------------------------------
 subroutine readNameList_(self, nmlfile, initonly)
@@ -216,14 +157,14 @@ subroutine readNameList_(self, nmlfile, initonly)
 !! version: 1.0 
 !! date: 02/21/24
 !!
-!! read the namelist from an nml file for the TBBW_T Class 
+!! read the namelist from an nml file for the TBSRBW_T Class 
 
 use mod_io 
 use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(TBBW_T), INTENT(INOUT)         :: self
+class(TBSRBW_T), INTENT(INOUT)       :: self
 character(fnlen),INTENT(IN)          :: nmlfile
  !! full path to namelist file 
 logical,OPTIONAL,INTENT(IN)          :: initonly
@@ -237,12 +178,14 @@ integer(kind=irg)                    :: g(3)
 integer(kind=irg)                    :: k(3)
 integer(kind=irg)                    :: f(3)
 integer(kind=irg)                    :: numkt
+integer(kind=irg)                    :: maxng
 real(kind=sgl)                       :: ktmax
 real(kind=sgl)                       :: voltage
+character(2)                         :: TBSR
 character(fnlen)                     :: xtalname
 character(fnlen)                     :: outname
 
-namelist /TBBWlist/ g, k, f, numkt, ktmax, voltage, xtalname, outname
+namelist /TBSRBWlist/ g, k, f, numkt, maxng, ktmax, voltage, xtalname, outname, TBSR
 
 ! set the input parameters to default values 
 voltage = 200.0
@@ -250,7 +193,9 @@ g = (/ 1, 0, 0 /)
 k = (/ 0, 0, 1 /)
 f = (/ 0, 0, 1 /)
 ktmax = 1.0
+maxng = 3
 numkt = 256
+TBSR = 'TB'
 xtalname = 'undefined'
 outname = 'undefined'
 
@@ -261,7 +206,7 @@ end if
 if (.not.skipread) then
 ! read the namelist file
  open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
- read(UNIT=dataunit,NML=TBBWlist)
+ read(UNIT=dataunit,NML=TBSRBWlist)
  close(UNIT=dataunit,STATUS='keep')
 
 ! check for required entries
@@ -280,86 +225,12 @@ self%nml%k = k
 self%nml%f = f
 self%nml%ktmax = ktmax
 self%nml%numkt = numkt
+self%nml%maxng = maxng
 self%nml%xtalname = xtalname
 self%nml%outname = outname
+self%nml%TBSR = TBSR
 
 end subroutine readNameList_
-
-!--------------------------------------------------------------------------
-subroutine readNameListSR_(self, nmlfile, initonly)
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameListSR_
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/21/24
-!!
-!! read the namelist from an nml file for the SRBW_T Class 
-
-use mod_io 
-use mod_EMsoft
-
-IMPLICIT NONE 
-
-class(SRBW_T), INTENT(INOUT)         :: self
-character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
- !! fill in the default values only; do not read the file
-
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
-
-integer(kind=irg)                    :: g(3)
-integer(kind=irg)                    :: k(3)
-integer(kind=irg)                    :: f(3)
-integer(kind=irg)                    :: numkt
-real(kind=sgl)                       :: ktmax
-real(kind=sgl)                       :: voltage
-character(fnlen)                     :: xtalname
-character(fnlen)                     :: outname
-
-namelist /TBBWlist/ g, k, f, numkt, ktmax, voltage, xtalname, outname
-
-! set the input parameters to default values 
-voltage = 200.0
-g = (/ 1, 0, 0 /)
-k = (/ 0, 0, 1 /)
-f = (/ 0, 0, 1 /)
-ktmax = 1.0
-numkt = 256
-xtalname = 'undefined'
-outname = 'undefined'
-
-if (present(initonly)) then
-  if (initonly) skipread = .TRUE.
-end if
-
-if (.not.skipread) then
-! read the namelist file
- open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
- read(UNIT=dataunit,NML=TBBWlist)
- close(UNIT=dataunit,STATUS='keep')
-
-! check for required entries
- if (trim(xtalname).eq.'undefined') then
-  call Message%printError('readNameList:',' xtalname file name is undefined in '//nmlfile)
- end if
-
- if (trim(outname).eq.'undefined') then
-  call Message%printError('readNameList:',' outname file name is undefined in '//nmlfile)
- end if
-end if
-
-self%nml%voltage = voltage
-self%nml%g = g
-self%nml%k = k
-self%nml%f = f
-self%nml%ktmax = ktmax
-self%nml%numkt = numkt
-self%nml%xtalname = xtalname
-self%nml%outname = outname
-
-end subroutine readNameListSR_
 
 !--------------------------------------------------------------------------
 function getNameList_(self) result(nml)
@@ -368,34 +239,16 @@ function getNameList_(self) result(nml)
 !! version: 1.0 
 !! date: 02/21/24
 !!
-!! pass the namelist for the TBBW_T Class to the calling program
+!! pass the namelist for the TBSRBW_T Class to the calling program
 
 IMPLICIT NONE 
 
-class(TBBW_T), INTENT(INOUT)          :: self
-type(TBBWNameListType)                :: nml
+class(TBSRBW_T), INTENT(INOUT)          :: self
+type(BWNameListType)                :: nml
 
 nml = self%nml
 
 end function getNameList_
-
-!--------------------------------------------------------------------------
-function getNameListSR_(self) result(nml)
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameListSR_
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/21/24
-!!
-!! pass the namelist for the SRBW_T Class to the calling program
-
-IMPLICIT NONE 
-
-class(SRBW_T), INTENT(INOUT)          :: self
-type(SRBWNameListType)                :: nml
-
-nml = self%nml
-
-end function getNameListSR_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
@@ -414,11 +267,11 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)            :: self 
+class(TBSRBW_T), INTENT(INOUT)          :: self 
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 1, n_real = 2
+integer(kind=irg),parameter             :: n_int = 2, n_real = 2
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -431,8 +284,9 @@ associate( enl => self%nml )
 groupname = trim(HDFnames%get_NMLlist())
 hdferr = HDF%createGroup(groupname)
 
-io_int = (/ enl%numkt /)
+io_int = (/ enl%numkt, enl%maxng /)
 intlist(1) = 'numkt'
+intlist(2) = 'maxng'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single integers
@@ -465,6 +319,11 @@ line2(1) = enl%xtalname
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create xtalname dataset', hdferr)
 
+dataset = 'TBSR'
+line2(1) = enl%TBSR
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create TBSR dataset', hdferr)
+
 ! and pop this group off the stack
 call HDF%pop()
 
@@ -473,53 +332,17 @@ end associate
 end subroutine writeHDFNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeHDFNameListSR_(self, HDF, HDFnames)
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameListSR_
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/21/24
-!!
-!! write namelist to HDF file
-
-use mod_HDFsupport
-use mod_HDFnames
-use stringconstants 
-
-use ISO_C_BINDING
-
-IMPLICIT NONE
-
-class(SRBW_T), INTENT(INOUT)            :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
-
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
-
-associate( enl => self%nml )
-
-! to be completed 
-
-end associate
-
-end subroutine writeHDFNameListSR_
-
-!--------------------------------------------------------------------------
 subroutine setg_(self,inp)
 !DEC$ ATTRIBUTES DLLEXPORT :: setg_
 !! author: MDG
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! set g in the TBBW_T class
+!! set g in the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)       :: inp(3)
 
 self%nml%g = inp
@@ -533,11 +356,11 @@ function getg_(self) result(out)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! get g from the TBBW_T class
+!! get g from the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 integer(kind=irg)                   :: out(3)
 
 out = self%nml%g
@@ -551,11 +374,11 @@ subroutine setk_(self,inp)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! set k in the TBBW_T class
+!! set k in the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)       :: inp(3)
 
 self%nml%k = inp
@@ -569,11 +392,11 @@ function getk_(self) result(out)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! get k from the TBBW_T class
+!! get k from the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 integer(kind=irg)                   :: out(3)
 
 out = self%nml%k
@@ -587,11 +410,11 @@ subroutine setf_(self,inp)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! set f in the TBBW_T class
+!! set f in the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)       :: inp(3)
 
 self%nml%f = inp
@@ -605,11 +428,11 @@ function getf_(self) result(out)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! get f from the TBBW_T class
+!! get f from the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 integer(kind=irg)                   :: out(3)
 
 out = self%nml%f
@@ -623,11 +446,11 @@ subroutine setnumkt_(self,inp)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! set numkt in the TBBW_T class
+!! set numkt in the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 integer(kind=irg), INTENT(IN)       :: inp
 
 self%nml%numkt = inp
@@ -641,16 +464,52 @@ function getnumkt_(self) result(out)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! get numkt from the TBBW_T class
+!! get numkt from the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 integer(kind=irg)                   :: out
 
 out = self%nml%numkt
 
 end function getnumkt_
+
+!--------------------------------------------------------------------------
+subroutine setmaxng_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setmaxng_
+!! author: MDG
+!! version: 1.0
+!! date: 02/21/24
+!!
+!! set maxng in the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%maxng = inp
+
+end subroutine setmaxng_
+
+!--------------------------------------------------------------------------
+function getmaxng_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmaxng_
+!! author: MDG
+!! version: 1.0
+!! date: 02/21/24
+!!
+!! get maxng from the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%maxng
+
+end function getmaxng_
 
 !--------------------------------------------------------------------------
 subroutine setktmax_(self,inp)
@@ -659,11 +518,11 @@ subroutine setktmax_(self,inp)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! set ktmax in the TBBW_T class
+!! set ktmax in the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)       :: inp
 
 self%nml%ktmax = inp
@@ -677,11 +536,11 @@ function getktmax_(self) result(out)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! get ktmax from the TBBW_T class
+!! get ktmax from the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 real(kind=sgl)                   :: out
 
 out = self%nml%ktmax
@@ -695,11 +554,11 @@ subroutine setvoltage_(self,inp)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! set voltage in the TBBW_T class
+!! set voltage in the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 real(kind=sgl), INTENT(IN)       :: inp
 
 self%nml%voltage = inp
@@ -713,11 +572,11 @@ function getvoltage_(self) result(out)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! get voltage from the TBBW_T class
+!! get voltage from the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 real(kind=sgl)                   :: out
 
 out = self%nml%voltage
@@ -731,11 +590,11 @@ subroutine setxtalname_(self,inp)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! set xtalname in the TBBW_T class
+!! set xtalname in the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%xtalname = trim(inp)
@@ -749,11 +608,11 @@ function getxtalname_(self) result(out)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! get xtalname from the TBBW_T class
+!! get xtalname from the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%xtalname)
@@ -767,11 +626,11 @@ subroutine setoutname_(self,inp)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! set outname in the TBBW_T class
+!! set outname in the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%outname = trim(inp)
@@ -785,11 +644,11 @@ function getoutname_(self) result(out)
 !! version: 1.0
 !! date: 02/21/24
 !!
-!! get outname from the TBBW_T class
+!! get outname from the TBSRBW_T class
 
 IMPLICIT NONE
 
-class(TBBW_T), INTENT(INOUT)     :: self
+class(TBSRBW_T), INTENT(INOUT)     :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%outname)
@@ -797,8 +656,44 @@ out = trim(self%nml%outname)
 end function getoutname_
 
 !--------------------------------------------------------------------------
-subroutine TBBW_(self, EMsoft, progname, HDFnames)
-!DEC$ ATTRIBUTES DLLEXPORT :: TBBW_
+subroutine setTBSR_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setTBSR_
+!! author: MDG
+!! version: 1.0
+!! date: 02/21/24
+!!
+!! set TBSR in the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)    :: self
+character(2), INTENT(IN)          :: inp
+
+self%nml%TBSR = trim(inp)
+
+end subroutine setTBSR_
+
+!--------------------------------------------------------------------------
+function getTBSR_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getTBSR_
+!! author: MDG
+!! version: 1.0
+!! date: 02/21/24
+!!
+!! get TBSR from the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)  :: self
+character(2)                    :: out
+
+out = trim(self%nml%TBSR)
+
+end function getTBSR_
+
+!--------------------------------------------------------------------------
+subroutine TBSRBW_(self, EMsoft, progname, HDFnames)
+!DEC$ ATTRIBUTES DLLEXPORT :: TBSRBW_
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/21/24
@@ -830,7 +725,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE 
 
-class(TBBW_T), INTENT(INOUT)      :: self
+class(TBSRBW_T), INTENT(INOUT)      :: self
 type(EMsoft_T), INTENT(INOUT)     :: EMsoft
 character(fnlen), INTENT(INOUT)   :: progname 
 type(HDFnames_T), INTENT(INOUT)   :: HDFnames
@@ -851,11 +746,12 @@ type(reflisttype),pointer         :: reflist, rltmpa, rl, firstw
 real(kind=sgl)                    :: Vmod,Vphase,Vpmod,Vpphase,pre,upzero,find(3), dmin,&
                                      kk,kt(3),kz,io_real(1),pre2,dkt,gg,s,ktmax, duration
 real(kind=dbl)                    :: lambda
-complex(kind=dbl)                 :: M(2,2),alph(2),CGinv(2,2),Mcp(2,2),CG(2,2),W(2)
+complex(kind=dbl),allocatable     :: M(:,:),alph(:),CGinv(:,:),Mcp(:,:),CG(:,:),W(:)
 complex(kind=dbl),allocatable     :: alpha(:,:),CGarray(:,:,:),Warray(:,:)
 real(kind=sgl),allocatable        :: kttb(:), kn(:)
 complex(kind=dbl)                 :: czero = cmplx(0.0,0.0,dbl)
-integer(kind=irg)                 :: ind(3),ivec(3),ik,izero,IPIV(2),io_int(2),i,j,nn,ns,g(3),k(3),fn(3),hdferr
+integer(kind=irg)                 :: ind(3),ivec(3),ik,izero,IPIV(2),io_int(2),i,j,nn,ns,g(3),k(3),fn(3),&
+                                     ir1, ir2, hdferr
 character(fnlen)                  :: oname, datagroupname, groupname, dataset 
 logical                           :: verbose 
 character(11)                     :: dstr
@@ -887,7 +783,33 @@ fn = enl%f
 ktmax = enl%ktmax
 ns = enl%numkt 
 oname  = EMsoft%generateFilePath('EMdatapathname',enl%outname)
-nn = 2
+
+! are we doing a two-beam or systematic row computation ?
+if (enl%TBSR.eq.'TB') then 
+  ir1 = 1
+  ir2 = 2
+  izero = 1
+  nn = 2
+else ! systematic row case
+  ir1 = 1
+  ir2 = 2*enl%maxng+1
+  izero = enl%maxng+1
+  nn = ir2
+end if 
+
+! allocate the larger arrays that will be used for the HDF5 output file 
+call mem%alloc(kttb, (/ ns /), 'kttb', initval = 0.0)
+call mem%alloc(kn, (/ ns /), 'kn', initval = 0.0)
+call mem%alloc(Warray, (/ nn, ns /), 'Warray', initval = czero)
+call mem%alloc(CGarray, (/ nn, nn, ns /), 'CGarray', initval = czero)
+call mem%alloc(alpha, (/ nn, ns /), 'alpha', initval = czero)
+! and the regular arrays
+call mem%alloc(W, (/ nn, ns /), 'W', initval = czero)
+call mem%alloc(M, (/ nn, nn, ns /), 'M', initval = czero)
+call mem%alloc(Mcp, (/ nn, nn, ns /), 'Mcp', initval = czero)
+call mem%alloc(CG, (/ nn, nn, ns /), 'CG', initval = czero)
+call mem%alloc(CGinv, (/ nn, nn, ns /), 'CGinv', initval = czero)
+call mem%alloc(alph, (/ nn, ns /), 'alph', initval = czero)
 
 ! crystallography section
 verbose = .TRUE.
@@ -921,17 +843,14 @@ lambda = Diff%getWaveLength()
  Vpphase = rlp%Vpphase
  upzero = pre*Vpmod
 
-! tranmitted beam
- izero=1
-
 ! determine the dynamical matrix M (all but the diagonal)
 ! i is the row index
- do i=1,2
-  ind = (i-1)*int(g) 
+ do i=ir1,ir2
+  ind = (i-enl%maxng-1)*int(g) 
 ! j is the column index
-  do j=1,2
+  do j=ir1,ir2
    if (j.ne.i) then
-    ivec = ind - (j-1)*int(g)
+    ivec = ind - (j-enl%maxng-1)*int(g)
 ! use Weickenmeier-Kohl scattering parameters and form factors
     call Diff%CalcUcg(cell, ivec)
     rlp = Diff%getrlp()
@@ -940,15 +859,6 @@ lambda = Diff%getWaveLength()
   end do
  end do
 
-! allocate the larger arrays that will be used for the HDF5 output file 
-mem = memory_T()
-call mem%alloc(kttb, (/ ns /), 'kttb', initval = 0.0)
-call mem%alloc(kn, (/ ns /), 'kn', initval = 0.0)
-call mem%alloc(Warray, (/ 2, ns /), 'Warray', initval = czero)
-call mem%alloc(CGarray, (/ 2, 2, ns /), 'CGarray', initval = czero)
-call mem%alloc(alpha, (/ 2, ns /), 'alph', initval = czero)
-
-!
 ! next we iterate over all incident beam directions, and for
 ! each direction we complete and diagonalize the M-matrix 
 !
@@ -976,11 +886,11 @@ call mem%alloc(alpha, (/ 2, ns /), 'alph', initval = czero)
 
 ! then complete the diagonal of the M matrix
 ! i is the row index
-  do i=1,2
-   ind = (i-1)*int(g) 
+  do i=ir1,ir2
+   ind = (i-enl%maxng-1)*int(g) 
 ! get the excitation error
    find = float(ind)
-   if (i.eq.1) then
+   if (i.eq.izero) then
     s = 0.0
    else
     s = Diff%Calcsg(cell,find,kt,float(fn) )
@@ -1030,7 +940,7 @@ tstre = timer%getTimeString()
  hdferr = HDF%createGroup(groupname)
 
 ! read the text file and write the array to the file
- dataset = SC_TBBWNameList
+ dataset = SC_TBSRBWNameList
  hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
  ! leave this group
@@ -1050,7 +960,7 @@ tstre = timer%getTimeString()
 
 ! here we distinguish between two beam, systematic row, and (eventually) zone axis cases
  dataset = 'TBSR'
-  line2(1) = 'TB'
+  line2(1) = enl%TBSR
   hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 
  dataset = SC_xtalname
@@ -1079,75 +989,43 @@ tstre = timer%getTimeString()
   hdferr = HDF%writeDatasetFloatArray(dataset, kn, ns)
 
  dataset = 'W_R'
-  hdferr = HDF%writeDatasetDoubleArray(dataset, Warray%re, 2, ns)
+  hdferr = HDF%writeDatasetDoubleArray(dataset, Warray%re, nn, ns)
 
  dataset = 'W_I'
-  hdferr = HDF%writeDatasetDoubleArray(dataset, Warray%im, 2, ns)
+  hdferr = HDF%writeDatasetDoubleArray(dataset, Warray%im, nn, ns)
 
  dataset = 'CG_R'
-  hdferr = HDF%writeDatasetDoubleArray(dataset, CGarray%re, 2, 2, ns)
+  hdferr = HDF%writeDatasetDoubleArray(dataset, CGarray%re, nn, nn, ns)
 
  dataset = 'CG_I'
-  hdferr = HDF%writeDatasetDoubleArray(dataset, CGarray%im, 2, 2, ns)
+  hdferr = HDF%writeDatasetDoubleArray(dataset, CGarray%im, nn, nn, ns)
 
  dataset = 'alpha_R'
-  hdferr = HDF%writeDatasetDoubleArray(dataset, alpha%re, 2, ns)
+  hdferr = HDF%writeDatasetDoubleArray(dataset, alpha%re, nn, ns)
 
  dataset = 'alpha_I'
-  hdferr = HDF%writeDatasetDoubleArray(dataset, alpha%im, 2, ns)
+  hdferr = HDF%writeDatasetDoubleArray(dataset, alpha%im, nn, ns)
 
 ! leave this group and close the file
 call HDF%popall()
 
-
 ! deallocate arrays
-call mem%dealloc(CGarray, 'CG')
+call mem%dealloc(CGarray, 'CGarray')
 call mem%dealloc(Warray, 'Warray')
 call mem%dealloc(kttb, 'kttb')
 call mem%dealloc(kn, 'kn')
 call mem%dealloc(alpha, 'alpha')
+call mem%dealloc(alph, 'alph')
+call mem%dealloc(CG, 'CG')
+call mem%dealloc(CGinv, 'CGinv')
+call mem%dealloc(W, 'W')
+call mem%dealloc(M, 'M')
+call mem%dealloc(Mcp, 'Mcp')
 
 call closeFortranHDFInterface()
 
 end associate 
 
-end subroutine TBBW_
-
-!--------------------------------------------------------------------------
-subroutine SRBW_(self, EMsoft, progname, HDFnames)
-!DEC$ ATTRIBUTES DLLEXPORT :: SRBW_
-!! author: MDG 
-!! version: 1.0 
-!! date: 02/21/24
-!!
-!! perform the computations
-
-use mod_EMsoft
-use mod_HDFnames
-use mod_kinds
-use mod_global
-use mod_gvectors
-use mod_crystallography
-use mod_diffraction
-use mod_initializers
-use mod_symmetry
-use mod_kvectors
-use mod_math
-use mod_io
-use mod_HDFsupport 
-use mod_memory
-use mod_initializers
-use HDF5
-use mod_HDFsupport
-
-use, intrinsic :: iso_fortran_env
-IMPLICIT NONE 
-
-class(SRBW_T), INTENT(INOUT)      :: self
-type(EMsoft_T), INTENT(INOUT)     :: EMsoft
-character(fnlen), INTENT(INOUT)   :: progname 
-type(HDFnames_T), INTENT(INOUT)   :: HDFnames
-
-end subroutine SRBW_
+end subroutine TBSRBW_
 
 end module mod_BW

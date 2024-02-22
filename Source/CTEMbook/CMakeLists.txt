@@ -37,10 +37,10 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}
                       )
 
-  Add_EMsoftOO_Executable(TARGET EMTBBW
-                      SOURCES ${APP_DIR}/EMTBBW.f90 
+  Add_EMsoftOO_Executable(TARGET EMTBSRBW
+                      SOURCES ${APP_DIR}/EMTBSRBW.f90 
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-                      TEMPLATE ${TMPLT_DIR}/EMTBBW.template 
+                      TEMPLATE ${TMPLT_DIR}/EMTBSRBW.template 
                       SOLUTION_FOLDER EMsoftOOPublic/CTEMbook
                       INSTALL_PROGRAM TRUE
                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR}

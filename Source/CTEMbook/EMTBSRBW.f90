@@ -26,12 +26,12 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMTBBW
+program EMTBSRBW
   !! author: MDG
   !! version: 1.0 
   !! date: 02/21/24
   !!
-  !! Simple two-beam Bloch wave program [legacy from CTEM book]
+  !! Simple two-beam/systematic row Bloch wave program [legacy from CTEM book]
   !!
   !! This is a legacy program to reproduce some of the figures in chapter 6 of the CTEM book
   !! The original code has been updated using the modern object oriented fortran 2018 approach. 
@@ -45,25 +45,25 @@ use stringconstants
 
 IMPLICIT NONE
 
-character(fnlen)    :: progname = 'EMTBBW.f90'
-character(fnlen)    :: progdesc = 'Simple two-beam Bloch wave program [legacy from CTEM book]'
+character(fnlen)    :: progname = 'EMTBSRBW.f90'
+character(fnlen)    :: progdesc = 'Simple two-beam/systematic row Bloch wave program [legacy from CTEM book]'
 
 type(EMsoft_T)      :: EMsoft
-type(TBBW_T)        :: BW 
+type(TBSRBW_T)      :: BW 
 type(HDFnames_T)    :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 401 /) )
 
 ! deal with the namelist stuff
-BW = TBBW_T(EMsoft%nmldeffile)
+BW = TBSRBW_T(EMsoft%nmldeffile)
 
 HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_TBBW) 
-call HDFnames%set_NMLlist(SC_TBBWNameList) 
-call HDFnames%set_NMLfilename(SC_TBBWNML) 
+call HDFnames%set_ProgramData(SC_TBSRBW) 
+call HDFnames%set_NMLlist(SC_TBSRBWNameList) 
+call HDFnames%set_NMLfilename(SC_TBSRBWNML) 
 
 ! perform the computations
-call BW%TBBW(EMsoft, progname, HDFnames)
+call BW%TBSRBW(EMsoft, progname, HDFnames)
 
-end program EMTBBW
+end program EMTBSRBW

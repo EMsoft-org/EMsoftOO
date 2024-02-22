@@ -1,4 +1,4 @@
- &TBBWlist 
+ &TBSRBWlist 
 ! do not change the first line in this file !
 !
 ! Note: All parameter values are default values for the program
@@ -8,7 +8,12 @@
  xtalname = 'undefined',
 ! microscope accelerating voltage [kV]
  voltage = 200.0,
-! Miller indices of reflection for two-beam case
+! two beam (TB) or systematic row (SR) ?
+ TBSR = 'TB',
+! if TBSR = SR, then specify the maximum multiple of g to consider in the systematic row
+! this parameter is ignored for the two-beam case
+ maxng = 3, 
+! Miller indices of reflection for two-beam/systematic row case
  g = 1 0 0,
 ! incident beam direction indices
  k = 0 0 1,
