@@ -245,7 +245,6 @@ real(kind=sgl), public, dimension(3,92) :: ATOM_colors = reshape( (/ &
 
 
   type, public :: PostScript_T
-   private
      integer(kind=irg)      :: pspage
      integer(kind=irg)      :: psunit = 20
      integer(kind=irg)      :: imanum

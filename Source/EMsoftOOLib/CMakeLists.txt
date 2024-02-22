@@ -98,6 +98,9 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_so2.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Grid_Interpolation.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_STEM.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_axonometry.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_axis.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_contour.f90
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampleRFZ.f90
