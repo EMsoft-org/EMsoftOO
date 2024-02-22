@@ -128,7 +128,7 @@ end interface contour_T
 contains
 
 !--------------------------------------------------------------------------
-type(contour_T) function contour_constructor( PS ) result(contour)
+type(contour_T) function contour_constructor( PS, Cdata, n ) result(contour)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/22/24
@@ -138,8 +138,13 @@ type(contour_T) function contour_constructor( PS ) result(contour)
 IMPLICIT NONE
 
 type(PostScript_T),INTENT(INOUT)    :: PS
+integer(kind=irg),INTENT(IN)        :: n
+real(kind=sgl),INTENT(IN)           :: Cdata(n)
 
 contour%PS = PS 
+
+allocate(contour%Cdata(n))
+contour%Cdata = Cdata 
 
 end function contour_constructor
 
