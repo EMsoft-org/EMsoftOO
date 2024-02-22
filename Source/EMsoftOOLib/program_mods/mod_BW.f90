@@ -418,7 +418,7 @@ class(TBBW_T), INTENT(INOUT)            :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
+integer(kind=irg),parameter             :: n_int = 1, n_real = 2
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -427,7 +427,46 @@ character(fnlen,kind=c_char)            :: line2(1)
 
 associate( enl => self%nml )
 
-! to be completed 
+! create the group for this namelist
+groupname = trim(HDFnames%get_NMLlist())
+hdferr = HDF%createGroup(groupname)
+
+io_int = (/ enl%numkt /)
+intlist(1) = 'numkt'
+call HDF%writeNMLintegers(io_int, intlist, n_int)
+
+! write all the single integers
+io_real = (/ enl%ktmax, enl%voltage /)
+reallist(1) = 'ktmax'
+reallist(2) = 'voltage'
+call HDF%writeNMLreals(io_real, reallist, n_real)
+
+! vectors
+dataset = SC_k
+hdferr = HDF%writeDatasetIntegerArray(dataset, enl%k, 3)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create k dataset', hdferr)
+
+dataset = SC_fn
+hdferr = HDF%writeDatasetIntegerArray(dataset, enl%f, 3)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create fn dataset', hdferr)
+
+dataset = 'g'
+hdferr = HDF%writeDatasetIntegerArray(dataset, enl%g, 3)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create g dataset', hdferr)
+
+! write all the strings
+dataset = SC_outname
+line2(1) = enl%outname
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create outname dataset', hdferr)
+
+dataset = SC_xtalname
+line2(1) = enl%xtalname
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create xtalname dataset', hdferr)
+
+! and pop this group off the stack
+call HDF%pop()
 
 end associate
 
@@ -777,14 +816,18 @@ use mod_initializers
 use mod_symmetry
 use mod_kvectors
 use mod_math
+use mod_timing
 use mod_io
 use mod_HDFsupport 
 use mod_memory
 use mod_initializers
 use HDF5
 use mod_HDFsupport
+use stringconstants
 
 use, intrinsic :: iso_fortran_env
+use ISO_C_BINDING
+
 IMPLICIT NONE 
 
 class(TBBW_T), INTENT(INOUT)      :: self
@@ -802,18 +845,24 @@ type(gnode)                       :: rlp
 type(gvectors_T)                  :: gvec
 type(kvectors_T)                  :: kvec
 type(HDF_T)                       :: HDF
+type(Timing_T)                    :: timer
 type(reflisttype),pointer         :: reflist, rltmpa, rl, firstw
 
 real(kind=sgl)                    :: Vmod,Vphase,Vpmod,Vpphase,pre,upzero,find(3), dmin,&
-                                     kk,kt(3),kn,kz,io_real(1),pre2,dkt,gg,s,ktmax
+                                     kk,kt(3),kz,io_real(1),pre2,dkt,gg,s,ktmax, duration
 real(kind=dbl)                    :: lambda
 complex(kind=dbl)                 :: M(2,2),alph(2),CGinv(2,2),Mcp(2,2),CG(2,2),W(2)
 complex(kind=dbl),allocatable     :: alpha(:,:),CGarray(:,:,:),Warray(:,:)
-real(kind=sgl),allocatable        :: kttb(:)
+real(kind=sgl),allocatable        :: kttb(:), kn(:)
 complex(kind=dbl)                 :: czero = cmplx(0.0,0.0,dbl)
-integer(kind=irg)                 :: ind(3),ivec(3),ik,izero,IPIV(2),io_int(2),i,j,nn,ns,g(3),k(3),fn(3)
-character(fnlen)                  :: oname 
+integer(kind=irg)                 :: ind(3),ivec(3),ik,izero,IPIV(2),io_int(2),i,j,nn,ns,g(3),k(3),fn(3),hdferr
+character(fnlen)                  :: oname, datagroupname, groupname, dataset 
 logical                           :: verbose 
+character(11)                     :: dstr
+character(15)                     :: tstrb
+character(15)                     :: tstre
+character(2)                      :: str
+character(fnlen,kind=c_char)      :: line2(1)
 
 call openFortranHDFInterface()
 
@@ -824,6 +873,12 @@ mem = memory_T()
 
 ! initialize the HDF class
 HDF = HDF_T() 
+
+! initialize the timing routines
+timer = Timing_T()
+tstrb = timer%getTimeString()
+
+call timer%Time_tick(1)
 
 ! extract parameters from the namelist
 g = enl%g
@@ -888,6 +943,7 @@ lambda = Diff%getWaveLength()
 ! allocate the larger arrays that will be used for the HDF5 output file 
 mem = memory_T()
 call mem%alloc(kttb, (/ ns /), 'kttb', initval = 0.0)
+call mem%alloc(kn, (/ ns /), 'kn', initval = 0.0)
 call mem%alloc(Warray, (/ 2, ns /), 'Warray', initval = czero)
 call mem%alloc(CGarray, (/ 2, 2, ns /), 'CGarray', initval = czero)
 call mem%alloc(alpha, (/ 2, ns /), 'alph', initval = czero)
@@ -903,7 +959,7 @@ call mem%alloc(alpha, (/ 2, ns /), 'alph', initval = czero)
  kk = cell%CalcLength(float(k),'r')
  gg = cell%CalcLength(find,'r')
  k = k/sngl(lambda)/kk
- kz = 1.0/lambda
+ kz = 1.0/sngl(lambda)
 
 ! loop over the beam directions
  do ik = 1,ns
@@ -947,22 +1003,108 @@ call mem%alloc(alpha, (/ 2, ns /), 'alph', initval = czero)
 ! the minus sign in W(i) stems from the fact that k_n is in the direction
 ! opposite to the foil normal
   kttb(ik) = dkt*(float(ik-ns/2)-0.5)
-  kn = -sqrt(kz**2-(kttb(ik)*gg)**2)
-  Warray(:,ik) = W(:)/cmplx(2.0*kn,0.0)
+  kn(ik) = -sqrt(kz**2-(kttb(ik)*gg)**2)
+  Warray(:,ik) = W(:)/cmplx(2.0*kn(ik),0.0)
   do i=1,2
    alpha(i, ik) = CGinv(i,izero)
   end do
 end do
 
+call timer%Time_tock(1)
+duration = timer%getInterval(1)
+call timer%makeTimeStamp()
+dstr = timer%getDateString()
+tstre = timer%getTimeString()
+
 ! store everything in an HDF5 file that can then be read by the EMBWshow program
 ! for visualizations
+! Open an existing file or create a new file using the default properties.
+ hdferr =  HDF%createFile(oname)
 
+ ! write the EMheader to the file
+ datagroupname = trim(HDFnames%get_ProgramData())
+ call HDF%writeEMheader(EMsoft, dstr, tstrb, tstre, progname, datagroupname)
+
+   ! create a namelist group to write all the namelist files into
+ groupname = SC_NMLfiles
+ hdferr = HDF%createGroup(groupname)
+
+! read the text file and write the array to the file
+ dataset = SC_TBBWNameList
+ hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
+
+ ! leave this group
+ call HDF%pop()
+  
+ ! create a namelist group to write all the namelist files into
+ hdferr = HDF%createGroup(HDFnames%get_NMLparameters())
+ call self%writeHDFNameList(HDF, HDFnames)
+
+ ! leave this group
+ call HDF%pop()
+
+! then the remainder of the data in a EMData group
+ groupname = SC_EMData
+ hdferr = HDF%createGroup(groupname)
+ hdferr = HDF%createGroup(datagroupname)
+
+! here we distinguish between two beam, systematic row, and (eventually) zone axis cases
+ dataset = 'TBSR'
+  line2(1) = 'TB'
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+
+ dataset = SC_xtalname
+  line2(1) = trim(enl%xtalname)
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+
+ dataset = 'nn'
+  hdferr = HDF%writeDatasetInteger(dataset, nn)
+
+ dataset = 'ns'
+  hdferr = HDF%writeDatasetInteger(dataset, ns)
+
+ dataset = 'g'
+  hdferr = HDF%writeDatasetIntegerArray(dataset, enl%g, 3)
+
+ dataset = 'k'
+  hdferr = HDF%writeDatasetIntegerArray(dataset, enl%k, 3)
+
+ dataset = 'kz'
+  hdferr = HDF%writeDatasetFloat(dataset, kz)
+
+ dataset = 'kttb'
+  hdferr = HDF%writeDatasetFloatArray(dataset, kttb, ns)
+
+ dataset = 'kn'
+  hdferr = HDF%writeDatasetFloatArray(dataset, kn, ns)
+
+ dataset = 'W_R'
+  hdferr = HDF%writeDatasetDoubleArray(dataset, Warray%re, 2, ns)
+
+ dataset = 'W_I'
+  hdferr = HDF%writeDatasetDoubleArray(dataset, Warray%im, 2, ns)
+
+ dataset = 'CG_R'
+  hdferr = HDF%writeDatasetDoubleArray(dataset, CGarray%re, 2, 2, ns)
+
+ dataset = 'CG_I'
+  hdferr = HDF%writeDatasetDoubleArray(dataset, CGarray%im, 2, 2, ns)
+
+ dataset = 'alpha_R'
+  hdferr = HDF%writeDatasetDoubleArray(dataset, alpha%re, 2, ns)
+
+ dataset = 'alpha_I'
+  hdferr = HDF%writeDatasetDoubleArray(dataset, alpha%im, 2, ns)
+
+! leave this group and close the file
+call HDF%popall()
 
 
 ! deallocate arrays
 call mem%dealloc(CGarray, 'CG')
 call mem%dealloc(Warray, 'Warray')
 call mem%dealloc(kttb, 'kttb')
+call mem%dealloc(kn, 'kn')
 call mem%dealloc(alpha, 'alpha')
 
 call closeFortranHDFInterface()
