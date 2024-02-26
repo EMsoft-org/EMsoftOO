@@ -40,6 +40,7 @@ use mod_kinds
 use mod_global
 use mod_EMsoft
 use mod_BW
+use mod_BWshow
 use mod_HDFnames
 use stringconstants
 
@@ -50,6 +51,7 @@ character(fnlen)    :: progdesc = 'Simple two-beam/systematic row Bloch wave pro
 
 type(EMsoft_T)      :: EMsoft
 type(TBSRBW_T)      :: BW 
+type(BWshow_T)      :: BWshow
 type(HDFnames_T)    :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
@@ -65,5 +67,11 @@ call HDFnames%set_NMLfilename(SC_TBSRBWNML)
 
 ! perform the computations
 call BW%TBSRBW(EMsoft, progname, HDFnames)
+
+! and produce the output plots; first copy a few parameters
+BWshow = BWshow_T() 
+BWshow%outname = BW%getoutname()
+BWshow%plotprefix = BW%getplotprefix()
+call BWshow%BWshow(EMsoft, progname, HDFnames)
 
 end program EMTBSRBW

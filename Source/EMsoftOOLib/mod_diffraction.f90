@@ -1861,7 +1861,7 @@ module mod_diffraction
    ! Bloch eigenvectors
   complex(kind=dbl),INTENT(OUT)       :: CGinv(nn,nn)
    ! inverse of eigenvector array
-  integer(kind=irg),INTENT(IN)        :: IPIV(nn)
+  integer(kind=irg),INTENT(INOUT)     :: IPIV(nn)
    ! pivot array, currently unused
   
   type(IO_T)                          :: Message
@@ -1882,7 +1882,8 @@ module mod_diffraction
    JOBVL = 'N'   ! do not compute the left eigenvectors
    JOBVR = 'V'   ! do compute the right eigenvectors
    LWORK = -1    ! so that we can ask the routine for the actually needed value
-  
+   JPIV = IPIV 
+    
   ! call the routine to determine the optimal workspace size
     call zgeev(JOBVL,JOBVR,nn,M,LDA,W,VL,LDVL,CGG,LDVR,WORK,LWORK,RWORK,INFO)
     LWORK = MIN( LWMAX, INT( WORK( 1 ) ) )
@@ -1922,6 +1923,8 @@ module mod_diffraction
     call Message%printError('Error in BWsolve: ','ZGETRI return not zero')
    end if
   
+   IPIV = JPIV
+
   ! if ((abs(sum(matmul(CGG,CGinv)))-dble(nn)).gt.1.E-8) then
   !  call Message('Error in matrix inversion; continuing', frm = "(A)")
   !  io_real(1) = abs(sum(matmul(CGG,CGinv)))-dble(nn)

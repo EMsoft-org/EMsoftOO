@@ -395,7 +395,7 @@ contains
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-type(PostScript_T) function PS_constructor( progdesc, EMsoft, imanum ) result(PS)
+type(PostScript_T) function PS_constructor( progdesc, EMsoft, imanum, dontask, psname ) result(PS)
 !DEC$ ATTRIBUTES DLLEXPORT :: PS_constructor
   !! author: MDG
   !! version: 1.0
@@ -407,12 +407,20 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-character(fnlen), INTENT(IN)    :: progdesc
-type(EMsoft_T), INTENT(INOUT)   :: EMsoft
-integer(kind=irg), INTENT(IN)   :: imanum
+character(fnlen), INTENT(IN)          :: progdesc
+type(EMsoft_T), INTENT(INOUT)         :: EMsoft
+integer(kind=irg), INTENT(IN)         :: imanum
+logical,INTENT(IN),optional           :: dontask
+character(fnlen),INTENT(IN),optional  :: psname
 
   PS%imanum = imanum
-  call PS%openfile(progdesc, EMsoft)
+  if (present(psname)) PS%psname = trim(psname)
+
+  if (present(dontask)) then 
+    call PS%openfile(progdesc, EMsoft, dontask=.TRUE.)
+  else
+    call PS%openfile(progdesc, EMsoft)
+  end if 
 
 end function PS_constructor
 
@@ -436,13 +444,13 @@ logical                               :: itsopen
 
 call reportDestructor('PostScript_T')
 
-! if the MRC uit is still open, close it here
-inquire(unit=self%psunit, opened=itsopen)
+! ! if the MRC uit is still open, close it here
+! inquire(unit=self%psunit, opened=itsopen)
 
-if (itsopen.eqv..TRUE.) then
-  close(unit=self%psunit, status='keep')
-  call Message%printMessage(' Closed PostScript file '//trim(self%psname))
-end if
+! if (itsopen.eqv..TRUE.) then
+!   close(unit=self%psunit, status='keep')
+!   call Message%printMessage(' Closed PostScript file '//trim(self%psname))
+! end if
 
 end subroutine PS_destructor
 

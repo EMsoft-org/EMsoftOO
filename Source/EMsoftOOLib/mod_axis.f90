@@ -172,7 +172,8 @@ end interface axis_T
 contains
 
 !--------------------------------------------------------------------------
-type(axis_T) function axis_constructor( PS, axw, xll, yll ) result(axis)
+! type(axis_T) function axis_constructor( PS, axw, xll, yll ) result(axis)
+type(axis_T) function axis_constructor( axw, xll, yll ) result(axis)
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/22/24
@@ -181,13 +182,13 @@ type(axis_T) function axis_constructor( PS, axw, xll, yll ) result(axis)
  
 IMPLICIT NONE
 
-type(PostScript_T),INTENT(INOUT)  :: PS 
+! type(PostScript_T),INTENT(INOUT)  :: PS 
 real(kind=sgl),INTENT(IN)         :: axw
 real(kind=sgl),INTENT(IN)         :: xll
 real(kind=sgl),INTENT(IN)         :: yll
 
 ! pass the PostScript class into the local PS
-axis%PS = PS
+! axis%PS = PS
 
 ! set parameters for what used to bet the axistype parameters
 axis%axw = axw
@@ -230,9 +231,11 @@ character(*)      :: t
 integer(kind=irg) :: i
 
  i=len(t) 
- do while (t(i:i).eq.' ')
-  i=i-1
- end do 
+ if (i.ne.1) then
+  do while (t(i:i).eq.' ')
+    i=i-1
+  end do 
+ end if
  stringl=i
 end function stringl
 
@@ -699,7 +702,7 @@ character(4)                        :: settick
    cs=102+mlog
   end if
  end if
- if ((n.ne.0).and.(m.ne.'log')) call setexponent(n,s)
+ if ((n.ne.0).and.(m.ne.'log')) call self%setexponent_(n,s)
 ! go to the new origin
  if ((s.eq.'BOT').or.(s.eq.'TOP')) then  
   q = -xl*140.0/(xh-xl) - 20.0
@@ -865,7 +868,7 @@ logical,INTENT(IN)                :: db
 end subroutine initframe_
 
 !  ******************************************************************************
-recursive subroutine axis_(self,AX,points,xvec,yvec,xmin,xmax,ymin,ymax,xautorange,yautorange, &
+recursive subroutine axis_(self,points,xvec,yvec,xmin,xmax,ymin,ymax,xautorange,yautorange, &
                           xmode,ymode,pmode,mark,scalex,scaley,overplot,db,title,xtitle,ytitle)
 !DEC$ ATTRIBUTES DLLEXPORT :: axis_
 
@@ -874,7 +877,6 @@ use mod_postscript
 IMPLICIT NONE
 
 class(axis_T), INTENT(INOUT)   :: self
-type(axistype),INTENT(IN)      :: AX
 integer(kind=irg)              :: points,mark
 integer(kind=irg)              :: nx,ny
 real(kind=sgl)                 :: xvec(points), yvec(points), xmin, xmax, ymin, ymax,q,r

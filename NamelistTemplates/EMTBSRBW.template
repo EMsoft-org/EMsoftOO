@@ -23,7 +23,18 @@
  ktmax = 1.0,
 ! number of incident beam orientations [between -ktmax and ktmax]
  numkt = 256,
+! starting thickness
+ startthick = 10.0,
+! thickness increment
+ thickinc = 10.0,
+! number of thickness increments
+ numthick = 10,
 ! name of output HDF5 file [relative to EMdatapathname]
+! [note that this file will be deleted once the output plots have been made]
  outname = 'undefined'
+! prefix file name for the .eps and .tiff output [relative to EMdatapathname]
+! [in the CTEM book, there is a description of a BWshow program that produces these plots; 
+! in this more modern version, the plotting routine is included in the EMTBSRBW program]
+ plotprefix = 'undefined',
 ! this last line must be present!
  /

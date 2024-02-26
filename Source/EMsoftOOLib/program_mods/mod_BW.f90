@@ -45,11 +45,15 @@ type, public :: BWNameListType
   integer(kind=irg)  :: f(3)
   integer(kind=irg)  :: numkt
   integer(kind=irg)  :: maxng
+  integer(kind=irg)  :: numthick
   real(kind=sgl)     :: ktmax
   real(kind=sgl)     :: voltage
+  real(kind=sgl)     :: startthick
+  real(kind=sgl)     :: thickinc
   character(2)       :: TBSR
   character(fnlen)   :: xtalname
   character(fnlen)   :: outname
+  character(fnlen)   :: plotprefix
 end type BWNameListType
 
 ! class definition for the two beam Bloch wave program
@@ -82,8 +86,16 @@ private
   procedure, pass(self) :: getxtalname_
   procedure, pass(self) :: setoutname_
   procedure, pass(self) :: getoutname_
+  procedure, pass(self) :: setplotprefix_
+  procedure, pass(self) :: getplotprefix_
   procedure, pass(self) :: setTBSR_
   procedure, pass(self) :: getTBSR_
+  procedure, pass(self) :: setnumthick_
+  procedure, pass(self) :: getnumthick_
+  procedure, pass(self) :: setstartthick_
+  procedure, pass(self) :: getstartthick_
+  procedure, pass(self) :: setthickinc_
+  procedure, pass(self) :: getthickinc_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
@@ -107,8 +119,17 @@ private
   generic, public :: getxtalname => getxtalname_
   generic, public :: setoutname => setoutname_
   generic, public :: getoutname => getoutname_
+  generic, public :: setplotprefix => setplotprefix_
+  generic, public :: getplotprefix => getplotprefix_
   generic, public :: setTBSR => setTBSR_
   generic, public :: getTBSR => getTBSR_
+  generic, public :: setnumthick => setnumthick_
+  generic, public :: getnumthick => getnumthick_
+  generic, public :: setstartthick => setstartthick_
+  generic, public :: getstartthick => getstartthick_
+  generic, public :: setthickinc => setthickinc_
+  generic, public :: getthickinc => getthickinc_
+
 end type TBSRBW_T
 
 ! the constructor routine for this class 
@@ -179,13 +200,18 @@ integer(kind=irg)                    :: k(3)
 integer(kind=irg)                    :: f(3)
 integer(kind=irg)                    :: numkt
 integer(kind=irg)                    :: maxng
+integer(kind=irg)                    :: numthick
 real(kind=sgl)                       :: ktmax
 real(kind=sgl)                       :: voltage
+real(kind=sgl)                       :: startthick
+real(kind=sgl)                       :: thickinc
 character(2)                         :: TBSR
 character(fnlen)                     :: xtalname
 character(fnlen)                     :: outname
+character(fnlen)                     :: plotprefix
 
-namelist /TBSRBWlist/ g, k, f, numkt, maxng, ktmax, voltage, xtalname, outname, TBSR
+namelist /TBSRBWlist/ g, k, f, numkt, maxng, ktmax, voltage, xtalname, outname, TBSR, plotprefix, &
+                      numthick, startthick, thickinc
 
 ! set the input parameters to default values 
 voltage = 200.0
@@ -193,11 +219,15 @@ g = (/ 1, 0, 0 /)
 k = (/ 0, 0, 1 /)
 f = (/ 0, 0, 1 /)
 ktmax = 1.0
+startthick = 10.0
+thickinc = 10.0
+numthick = 10
 maxng = 3
 numkt = 256
 TBSR = 'TB'
 xtalname = 'undefined'
 outname = 'undefined'
+plotprefix = 'undefined'
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -217,6 +247,11 @@ if (.not.skipread) then
  if (trim(outname).eq.'undefined') then
   call Message%printError('readNameList:',' outname file name is undefined in '//nmlfile)
  end if
+
+ if (trim(plotprefix).eq.'undefined') then
+  call Message%printError('readNameList:',' plotprefix file name is undefined in '//nmlfile)
+ end if
+
 end if
 
 self%nml%voltage = voltage
@@ -224,10 +259,14 @@ self%nml%g = g
 self%nml%k = k
 self%nml%f = f
 self%nml%ktmax = ktmax
+self%nml%startthick = startthick
+self%nml%thickinc = thickinc
 self%nml%numkt = numkt
+self%nml%numthick = numthick
 self%nml%maxng = maxng
 self%nml%xtalname = xtalname
 self%nml%outname = outname
+self%nml%plotprefix = plotprefix
 self%nml%TBSR = TBSR
 
 end subroutine readNameList_
@@ -271,7 +310,7 @@ class(TBSRBW_T), INTENT(INOUT)          :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 2, n_real = 2
+integer(kind=irg),parameter             :: n_int = 3, n_real = 4
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -284,15 +323,18 @@ associate( enl => self%nml )
 groupname = trim(HDFnames%get_NMLlist())
 hdferr = HDF%createGroup(groupname)
 
-io_int = (/ enl%numkt, enl%maxng /)
+io_int = (/ enl%numkt, enl%maxng, enl%numthick /)
 intlist(1) = 'numkt'
 intlist(2) = 'maxng'
+intlist(3) = 'numthick'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single integers
-io_real = (/ enl%ktmax, enl%voltage /)
+io_real = (/ enl%ktmax, enl%voltage, enl%startthick, enl%thickinc /)
 reallist(1) = 'ktmax'
 reallist(2) = 'voltage'
+reallist(3) = 'startthick'
+reallist(4) = 'thickinc'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! vectors
@@ -323,6 +365,11 @@ dataset = 'TBSR'
 line2(1) = enl%TBSR
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create TBSR dataset', hdferr)
+
+dataset = 'plotprefix'
+line2(1) = enl%plotprefix
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList_: unable to create plotprefix dataset', hdferr)
 
 ! and pop this group off the stack
 call HDF%pop()
@@ -656,6 +703,42 @@ out = trim(self%nml%outname)
 end function getoutname_
 
 !--------------------------------------------------------------------------
+subroutine setplotprefix_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setplotprefix_
+!! author: MDG
+!! version: 1.0
+!! date: 02/23/24
+!!
+!! set plotprefix in the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%plotprefix = trim(inp)
+
+end subroutine setplotprefix_
+
+!--------------------------------------------------------------------------
+function getplotprefix_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getplotprefix_
+!! author: MDG
+!! version: 1.0
+!! date: 02/23/24
+!!
+!! get plotprefix from the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%plotprefix)
+
+end function getplotprefix_
+
+!--------------------------------------------------------------------------
 subroutine setTBSR_(self,inp)
 !DEC$ ATTRIBUTES DLLEXPORT :: setTBSR_
 !! author: MDG
@@ -690,6 +773,114 @@ character(2)                    :: out
 out = trim(self%nml%TBSR)
 
 end function getTBSR_
+
+!--------------------------------------------------------------------------
+subroutine setnumthick_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnumthick_
+!! author: MDG
+!! version: 1.0
+!! date: 02/23/24
+!!
+!! set numthick in the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%numthick = inp
+
+end subroutine setnumthick_
+
+!--------------------------------------------------------------------------
+function getnumthick_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumthick_
+!! author: MDG
+!! version: 1.0
+!! date: 02/23/24
+!!
+!! get numthick from the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%numthick
+
+end function getnumthick_
+
+!--------------------------------------------------------------------------
+subroutine setstartthick_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setstartthick_
+!! author: MDG
+!! version: 1.0
+!! date: 02/23/24
+!!
+!! set startthick in the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%startthick = inp
+
+end subroutine setstartthick_
+
+!--------------------------------------------------------------------------
+function getstartthick_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getstartthick_
+!! author: MDG
+!! version: 1.0
+!! date: 02/23/24
+!!
+!! get startthick from the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%startthick
+
+end function getstartthick_
+
+!--------------------------------------------------------------------------
+subroutine setthickinc_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setthickinc_
+!! author: MDG
+!! version: 1.0
+!! date: 02/23/24
+!!
+!! set thickinc in the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%thickinc = inp
+
+end subroutine setthickinc_
+
+!--------------------------------------------------------------------------
+function getthickinc_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getthickinc_
+!! author: MDG
+!! version: 1.0
+!! date: 02/23/24
+!!
+!! get thickinc from the TBSRBW_T class
+
+IMPLICIT NONE
+
+class(TBSRBW_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%thickinc
+
+end function getthickinc_
 
 !--------------------------------------------------------------------------
 subroutine TBSRBW_(self, EMsoft, progname, HDFnames)
@@ -749,8 +940,9 @@ real(kind=dbl)                    :: lambda
 complex(kind=dbl),allocatable     :: M(:,:),alph(:),CGinv(:,:),Mcp(:,:),CG(:,:),W(:)
 complex(kind=dbl),allocatable     :: alpha(:,:),CGarray(:,:,:),Warray(:,:)
 real(kind=sgl),allocatable        :: kttb(:), kn(:)
+integer(kind=irg),allocatable     :: IPIV(:), PIVOT(:,:)
 complex(kind=dbl)                 :: czero = cmplx(0.0,0.0,dbl)
-integer(kind=irg)                 :: ind(3),ivec(3),ik,izero,IPIV(2),io_int(2),i,j,nn,ns,g(3),k(3),fn(3),&
+integer(kind=irg)                 :: ind(3),ivec(3),ik,izero,io_int(2),i,j,nn,ns,g(3),k(3),fn(3),&
                                      ir1, ir2, hdferr
 character(fnlen)                  :: oname, datagroupname, groupname, dataset 
 logical                           :: verbose 
@@ -810,6 +1002,8 @@ call mem%alloc(Mcp, (/ nn, nn, ns /), 'Mcp', initval = czero)
 call mem%alloc(CG, (/ nn, nn, ns /), 'CG', initval = czero)
 call mem%alloc(CGinv, (/ nn, nn, ns /), 'CGinv', initval = czero)
 call mem%alloc(alph, (/ nn, ns /), 'alph', initval = czero)
+call mem%alloc(IPIV, (/ nn /), 'IPIV', initval = 0)
+call mem%alloc(PIVOT, (/ nn, ns /), 'IPIVOT', initval = 0)
 
 ! crystallography section
 verbose = .TRUE.
@@ -834,7 +1028,7 @@ lambda = Diff%getWaveLength()
  pre2 = 2.0/sngl(lambda)
 
 ! normal aborption potential Uprime_0
- ind = [0,0,0]
+ ind = (/ 0, 0, 0 /)
  call Diff%CalcUcg(cell, (/ 0, 0, 0 /))
  rlp = Diff%getrlp()
  Vmod = rlp%Vmod
@@ -873,7 +1067,7 @@ lambda = Diff%getWaveLength()
 
 ! loop over the beam directions
  do ik = 1,ns
-  if (mod(ik,25).eq.0) then
+  if (mod(ik,100).eq.0) then
    io_int(1) = ik
    io_int(2) = ns
    call Message%WriteValue(' ', io_int, 2,"('  -> completed column ',I4,' of ',I4)")
@@ -906,8 +1100,10 @@ lambda = Diff%getWaveLength()
   Mcp = M
 
 ! then get the eigenvalues and eigenvectors
+  IPIV = (/ (i, i=1,nn) /)
   call Diff%BWsolve(Mcp,W,CG,CGinv,nn,IPIV)
   CGarray(:,:,ik) = CG(:,:)
+  PIVOT(:,ik) = IPIV(:)
 
 ! the alpha coefficients are in the izero column of the inverse matrix
 ! the minus sign in W(i) stems from the fact that k_n is in the direction
@@ -915,7 +1111,7 @@ lambda = Diff%getWaveLength()
   kttb(ik) = dkt*(float(ik-ns/2)-0.5)
   kn(ik) = -sqrt(kz**2-(kttb(ik)*gg)**2)
   Warray(:,ik) = W(:)/cmplx(2.0*kn(ik),0.0)
-  do i=1,2
+  do i=1,nn
    alpha(i, ik) = CGinv(i,izero)
   end do
 end do
@@ -926,9 +1122,8 @@ call timer%makeTimeStamp()
 dstr = timer%getDateString()
 tstre = timer%getTimeString()
 
-! store everything in an HDF5 file that can then be read by the EMBWshow program
-! for visualizations
-! Open an existing file or create a new file using the default properties.
+! store everything in a temporary HDF5 file that can be read by the BWshow routine
+! for visualizations; this file is deleted once the plots have been made
  hdferr =  HDF%createFile(oname)
 
  ! write the EMheader to the file
@@ -979,6 +1174,9 @@ tstre = timer%getTimeString()
  dataset = 'k'
   hdferr = HDF%writeDatasetIntegerArray(dataset, enl%k, 3)
 
+ dataset = 'f'
+  hdferr = HDF%writeDatasetIntegerArray(dataset, enl%f, 3)
+
  dataset = 'kz'
   hdferr = HDF%writeDatasetFloat(dataset, kz)
 
@@ -987,6 +1185,9 @@ tstre = timer%getTimeString()
 
  dataset = 'kn'
   hdferr = HDF%writeDatasetFloatArray(dataset, kn, ns)
+
+ dataset = 'PIVOT'
+  hdferr = HDF%writeDatasetIntegerArray(dataset, PIVOT, nn, ns)
 
  dataset = 'W_R'
   hdferr = HDF%writeDatasetDoubleArray(dataset, Warray%re, nn, ns)
@@ -1021,6 +1222,7 @@ call mem%dealloc(CGinv, 'CGinv')
 call mem%dealloc(W, 'W')
 call mem%dealloc(M, 'M')
 call mem%dealloc(Mcp, 'Mcp')
+call mem%dealloc(IPIV, 'IPIV')
 
 call closeFortranHDFInterface()
 
