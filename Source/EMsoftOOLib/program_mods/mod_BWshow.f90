@@ -57,6 +57,7 @@ private
   procedure, pass(self) :: pivot2_
   procedure, pass(self) :: pivot3_
   procedure, pass(self) :: makePIVOTs_
+  procedure, pass(self) :: BWtoI_ 
 
   generic, public :: BWshow => BWshow_
 
@@ -202,7 +203,7 @@ end do
 end subroutine pivot3_
 
 !--------------------------------------------------------------------------
-subroutine readTBSRBWfile_(self, EMsoft, HDFnames)
+subroutine readTBSRBWfile_(self, EMsoft, HDFnames, noPIVOT)
 !DEC$ ATTRIBUTES DLLEXPORT :: readTBSRBWfile_
 !! author: MDG 
 !! version: 1.0 
@@ -224,6 +225,7 @@ IMPLICIT NONE
 class(BWshow_T),INTENT(INOUT)     :: self
 type(EMsoft_T),INTENT(INOUT)      :: EMsoft
 type(HDFnames_T),INTENT(INOUT)    :: HDFnames
+logical,INTENT(IN),OPTIONAL       :: noPIVOT
 
 type(HDF_T)                       :: HDF
 type(IO_T)                        :: Message
@@ -232,7 +234,11 @@ character(fnlen)                  :: fname, groupname, dataset
 integer(kind=irg)                 :: hdferr 
 integer(HSIZE_T)                  :: dims1(1), dims2(2), dims3(3)
 real(kind=dbl),allocatable        :: W_R(:,:), CG_R(:,:,:), alpha_R(:,:), W_I(:,:), CG_I(:,:,:), alpha_I(:,:)
-logical                           :: readonly=.TRUE. 
+logical                           :: readonly=.TRUE., applyPIVOT = .TRUE. 
+
+if (present(noPIVOT)) then 
+  if (noPIVOT.eqv..TRUE.) applyPIVOT=.FALSE. 
+end if 
 
 call openFortranHDFInterface()
 HDF = HDF_T() 
@@ -278,42 +284,48 @@ dataset = 'kz'
 ! read the pivot array; the LAPACK routines use row pivoting to compute the 
 ! matrix inverse, so we need to undo the pivots by multiplying by the 
 ! transpose of the permutation matrix.
+if (applyPIVOT.eqv..TRUE.) then 
 dataset = 'PIVOT'
+  if (allocated(self%PIVOT)) deallocate(self%PIVOT)
   call HDF%readDatasetIntegerArray(dataset, dims2, hdferr, self%PIVOT)
   call Message%printMessage(' applying pivot table to parameter arrays...')
   call self%makePIVOTs_()
+end if 
 
 dataset = 'W_R'
+  if (allocated(self%W)) deallocate(self%W)
   call HDF%readDatasetDoubleArray(dataset, dims2, hdferr, W_R)
-  call self%pivot2_(W_R)
+  if (applyPIVOT.eqv..TRUE.) call self%pivot2_(W_R)
 
 dataset = 'W_I'
   call HDF%readDatasetDoubleArray(dataset, dims2, hdferr, W_I)
-  call self%pivot2_(W_I)
+  if (applyPIVOT.eqv..TRUE.) call self%pivot2_(W_I)
 
 allocate(self%W(dims2(1),dims2(2)))
 self%W = cmplx(W_R,W_I,dbl)
 deallocate(W_R,W_I)
 
 dataset = 'CG_R'
+  if (allocated(self%CG)) deallocate(self%CG)
   call HDF%readDatasetDoubleArray(dataset, dims3, hdferr, CG_R)
-  call self%pivot3_(CG_R)
+  if (applyPIVOT.eqv..TRUE.) call self%pivot3_(CG_R)
 
 dataset = 'CG_I'
   call HDF%readDatasetDoubleArray(dataset, dims3, hdferr, CG_I)
-  call self%pivot3_(CG_I)
+  if (applyPIVOT.eqv..TRUE.) call self%pivot3_(CG_I)
 
 allocate(self%CG(dims3(1),dims3(2),dims3(3)))
 self%CG = cmplx(CG_R,CG_I,dbl)
 deallocate(CG_R,CG_I)
 
 dataset = 'alpha_R'
+  if (allocated(self%alpha)) deallocate(self%alpha)
   call HDF%readDatasetDoubleArray(dataset, dims2, hdferr, alpha_R)
-  call self%pivot2_(alpha_R)
+  if (applyPIVOT.eqv..TRUE.) call self%pivot2_(alpha_R)
 
 dataset = 'alpha_I'
   call HDF%readDatasetDoubleArray(dataset, dims2, hdferr, alpha_I)
-  call self%pivot2_(alpha_I)
+  if (applyPIVOT.eqv..TRUE.) call self%pivot2_(alpha_I)
 
 allocate(self%alpha(dims2(1),dims2(2)))
 self%alpha = cmplx(alpha_R,alpha_I,dbl)
@@ -339,9 +351,99 @@ call HDF%popall()
 
 call closeFortranHDFInterface()
 
-deallocate(self%PVarrays)
+ if (applyPIVOT.eqv..TRUE.) deallocate(self%PVarrays)
 
 end subroutine readTBSRBWfile_
+
+!--------------------------------------------------------------------------
+subroutine BWtoI_(self, EMsoft, minthick, maxthick)
+!DEC$ ATTRIBUTES DLLEXPORT :: BWtoI_
+!! author: MDG 
+!! version: 1.0 
+!! date: 02/23/24
+!!
+!! read data from HDF5 Bloch wave file 
+
+use mod_EMsoft
+use mod_image
+use mod_io
+
+use, intrinsic :: iso_fortran_env
+
+IMPLICIT NONE
+
+class(BWshow_T),INTENT(INOUT)     :: self
+type(EMsoft_T),INTENT(INOUT)      :: EMsoft
+real(kind=sgl),INTENT(IN)         :: minthick
+real(kind=sgl),INTENT(IN)         :: maxthick
+
+type(IO_T)                        :: Message 
+
+integer(kind=irg)                 :: i, j, k     
+real(kind=sgl),allocatable        :: images(:,:,:)
+real(kind=dbl)                    :: dz, z, arg, Wr(self%nn), Wi(self%nn)
+real(kind=sgl)                    :: mi, ma, ima(self%ns, self%ns) 
+complex(kind=dbl)                 :: amp, q(self%nn), diag(self%nn) 
+character(fnlen)                  :: TIFF_filename
+
+! declare variables for use in object oriented image module
+integer                           :: iostat
+character(len=128)                :: iomsg
+logical                           :: isInteger
+type(image_t)                     :: im
+integer(int8)                     :: i8 (3,4)
+integer(int8), allocatable        :: TIFF_image(:,:)
+
+! all images are square
+allocate(images(self%ns,self%ns,self%nn))
+
+dz = ( maxthick - minthick )/float(self%ns)
+
+do k=1,self%ns        ! horizontal image dimension
+  do i=1,self%ns      ! vertical image dimension
+    z = minthick + dz*float(i)
+    arg = 2.0*sngl(cPi)*z
+    Wr(:) = arg * self%W(:,k)%re
+    Wi(:) = arg * self%W(:,k)%im
+    q(:) = cmplx(cos(Wr(:)),sin(Wr(:)))
+    diag(:) = exp(Wi(:)) * q(:) * self%alpha(:,k)
+    do j=1,self%nn    ! individual diffracted beams
+     amp = sum(self%CG(j,:,k)*diag(:))
+     images(k,i,j) = sngl(abs(amp)**2)
+    end do 
+  end do
+end do
+
+allocate(TIFF_image(self%nn*self%ns,self%ns))
+
+! scale each image of the systematic row separately
+do k=1,self%nn 
+  ima = images(:,:,k)
+  mi = minval(ima)
+  ma = maxval(ima)
+  TIFF_image((k-1)*self%ns:k*self%ns-1, self%ns:1:-1) = nint(255*(ima(1:self%ns,1:self%ns)-mi)/(ma-mi))
+end do 
+
+! delineate the edges between the images by means of gray 2-pixel wide lines
+do k=1,self%nn-1
+  TIFF_image(k*self%ns:k*self%ns+1, 1:self%ns) = nint(126.5)
+end do
+
+TIFF_filename = EMsoft%generateFilePath('EMdatapathname',trim(self%plotprefix)//'.tiff') 
+
+! set up the image_t structure
+im = image_t(TIFF_image)
+if(im%empty()) call Message%printMessage("EMgetADP","failed to convert array to image")
+
+! create the file
+call im%write(trim(TIFF_filename), iostat, iomsg) ! format automatically detected from extension
+if(0.ne.iostat) then
+  call Message%printMessage(" failed to write image to file : "//iomsg)
+else
+  call Message%printMessage(' Systematic row images written to '//trim(TIFF_filename))
+end if
+
+end subroutine BWtoI_
 
 !--------------------------------------------------------------------------
 subroutine BWshow_(self, EMsoft, progname, HDFnames)
@@ -479,6 +581,15 @@ end do
 call Ax%PS%closefile()
 
 deallocate(worky)
+
+! compute the output image for the systematic row
+! to do so, we need to reread the Bloch wave arrays from the h5 file, but this time
+! without application of the PIVOT array...
+
+! read all the Bloch wave data from the HDF5 file 
+call self%readTBSRBWfile_(EMsoft, HDFnames, noPIVOT=.TRUE.)
+
+call self%BWtoI_(EMsoft, self%startthick, self%startthick+self%numthick*self%thickinc )
 
 ! and, finally, delete the HDF5 file since we really no longer need it
 ! and it is very fast to redo the computations if necessary

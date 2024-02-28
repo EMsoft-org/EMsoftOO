@@ -71,7 +71,7 @@ call BW%TBSRBW(EMsoft, progname, HDFnames)
 ! and produce the output plots; first copy a few parameters
 BWshow = BWshow_T() 
 BWshow%outname = BW%getoutname()
-BWshow%plotprefix = BW%getplotprefix()
+BWshow%plotprefix = BW%getoutname()
 call BWshow%BWshow(EMsoft, progname, HDFnames)
 
 end program EMTBSRBW
