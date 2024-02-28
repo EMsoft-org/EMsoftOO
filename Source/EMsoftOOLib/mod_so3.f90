@@ -885,7 +885,7 @@ type(r_T), INTENT(INOUT)          :: rod
 integer(kind=irg), INTENT(IN)     :: order
 
 logical                           :: res, c1, c2
-real(kind=dbl)                    :: r(3), x(4)
+real(kind=dbl)                    :: r(3), x(4), eps = 1.0D-10
 real(kind=dbl),parameter          :: r1 = 1.00D0
 real(kind=dbl),allocatable        :: polygonvertex(:,:)
 integer(kind=irg)                 :: inout
@@ -897,31 +897,31 @@ else
   r(1:3) = x(1:3) * x(4)
 
   ! first, check the z-component vs. tan(pi/2n)  (same as insideCyclicFZ)
-  c1 = dabs(r(3)).le.LPs%BP(order)
+  c1 = dabs(r(3)).le.(LPs%BP(order)+eps)
   res = .FALSE.
 
   ! check the square boundary planes if c1=.TRUE.
   if (c1) then
     select case (order)
       case (2)
-        c2 = (dabs(r(1)).le.r1).and.(dabs(r(2)).le.r1)
+        c2 = maxval(dabs(r)).le.(r1+eps)
       case (3)
         ! c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
         ! c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
         ! c2 = c2.and.( dabs(r(2)).le.r1 )
-        c2 =          dabs( LPs%srt*r(2)+0.5D0*r(1)).le.r1
-        c2 = c2.and.( dabs( LPs%srt*r(2)-0.5D0*r(1)).le.r1 )
-        c2 = c2.and.( dabs(r(1)).le.r1 )
+        c2 =          dabs( LPs%srt*r(2)+0.5D0*r(1)).le.(r1+eps)
+        c2 = c2.and.( dabs( LPs%srt*r(2)-0.5D0*r(1)).le.(r1+eps) )
+        c2 = c2.and.( dabs(r(1)).le.(r1+eps) )
       case (4)
         c2 = (dabs(r(1)).le.r1).and.(dabs(r(2)).le.r1)
         c2 = c2.and.((LPs%r22*dabs(r(1)+r(2)).le.r1).and.(LPs%r22*dabs(r(1)-r(2)).le.r1))
       case (6)
-        c2 =          dabs( 0.5D0*r(1)+LPs%srt*r(2)).le.r1
-        c2 = c2.and.( dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1 )
-        c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
-        c2 = c2.and.( dabs( 0.5D0*r(1)-LPs%srt*r(2)).le.r1 )
-        c2 = c2.and.( dabs(r(2)).le.r1 )
-        c2 = c2.and.( dabs(r(1)).le.r1 )
+        c2 =          dabs( 0.5D0*r(1)+LPs%srt*r(2)).le.(r1+eps)
+        c2 = c2.and.( dabs( LPs%srt*r(1)+0.5D0*r(2)).le.(r1+eps) )
+        c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.(r1+eps) )
+        c2 = c2.and.( dabs( 0.5D0*r(1)-LPs%srt*r(2)).le.(r1+eps) )
+        c2 = c2.and.( dabs(r(2)).le.(r1+eps) )
+        c2 = c2.and.( dabs(r(1)).le.(r1+eps) )
 
       ! add the 2-D quasi crystal type for 822, 1022, and 1222 rotational groups
       case (8)
@@ -3618,10 +3618,10 @@ type(IO_T)                             :: Message
 type(Quaternion_T)                     :: Mu, qu, qS, pp
 type(q_T)                              :: qq
 type(r_T)                              :: rod
-real(kind=dbl)                         :: x(4), y(3)
+real(kind=dbl)                         :: x(4), y(3), Mux(4)
 integer(kind=irg)                      :: i, j, Pmdims
 logical                                :: useMFZ = .FALSE.
-real(kind=dbl)                         :: tol
+real(kind=dbl)                         :: tol, eps = 1.0D-6
 
 tol = 1.0D+5
 
@@ -3657,6 +3657,7 @@ end select
 
 Mu = Quaternion_T( qd = qq%q_copyd() )
 call Mu%quat_pos()
+Mux = Mu%get_quatd()
 
 FZloop: do j=1,Pmdims
   qu = Pm%getQuatfromArray(j)*Mu
@@ -3667,6 +3668,9 @@ FZloop: do j=1,Pmdims
   x = rod%r_copyd()
   if(abs(x(4)) .gt. tol) rod = r_T( rdinp = (/ x(1:3), inftyd() /) )
 
+! if (abs(Mux(1)-0.10253525731947).lt.eps) then 
+!   write (*,*) j, x 
+! end if
   if (useMFZ.eqv..TRUE.) then
     if (self%IsinsideMFZ(rod)) EXIT FZloop
   else
@@ -3676,7 +3680,12 @@ FZloop: do j=1,Pmdims
     end if 
   end if
   ! we really should never get to the following line ...
-  if (j.eq.Pmdims) call Message%printWarning( 'ReduceOrientationtoRFZ: no solution found')
+  if (j.eq.Pmdims) then 
+    call Mu%quat_print()
+    bin=-1
+    call Message%printWarning( 'ReduceOrientationtoRFZ: no solution found')
+    stop
+  end if 
 end do FZloop
 
 roFZ = rod
