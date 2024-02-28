@@ -57,6 +57,10 @@ IMPLICIT NONE
 ! We define the rotational crystal symmetry operators in terms of quaternions (q0, q1,q2,q3) with q0 the scalar part;
 ! these are used in the dictmod EBSD dictionary indexing module, and are defined with respect to the standard cartesian
 ! reference frame.  Note that these are not defined as Quaternion_T type, just as arrays of 4-component doubles.
+
+! [2/28/24 based on Zach Varley's observation that the 180° rotations are never used when casting 
+!  the product q_A . conjg(q_B) (with q_A and q_B inside the RFZ) back into the RFZ, we change the order 
+!  of this list a little, so that the ones that are not used are at the end of the list ... ]
     real(kind=dbl), public, dimension(4,152) :: SYM_Qsymop = reshape( (/ &
                       1.D0, 0.D0, 0.D0, 0.D0, &       ! 1: identity operator
                       0.D0, 1.D0, 0.D0, 0.D0, &       ! 2: 180@[100]
@@ -2534,7 +2538,7 @@ integer(kind=irg), INTENT(IN)             :: pgnum
 type(QuaternionArray_T), INTENT(OUT)      :: qsym
 
 type(IO_T)                                :: Message
-integer(kind=irg)                         :: i, Nqsym, prot
+integer(kind=irg)                         :: i, j, Nqsym, prot
 real(kind=dbl), allocatable               :: Pm(:,:)
 
 ! here we need to analyze the rotational symmetry group, and copy the appropriate
@@ -2555,7 +2559,7 @@ prot = PGrot(pgnum)
 
 ! identity operator is part of all point groups
 
-! select statement for each individual rotational point group (see typedefs.f90 for SYM_Qsymop definitions)
+! select statement for each individual rotational point group (see above for SYM_Qsymop definitions)
 select case (prot)
         case(1)         ! 1 (no additional symmetry elements)
                 allocate(Pm(4,1))
@@ -2625,9 +2629,13 @@ select case (prot)
                 allocate(Pm(4,12))
                 Pm(1:4,1) = SYM_Qsymop(1:4,1)
                 Nqsym = 12
-                do i=25,35
+                do i=25,26
                   Pm(1:4,i-23) = SYM_Qsymop(1:4,i)
                 end do
+                do i=28,35
+                  Pm(1:4,i-24) = SYM_Qsymop(1:4,i)
+                end do
+                Pm(1:4,12) = SYM_Qsymop(1:4,27)
 
         case(28)        ! 23
                 allocate(Pm(4,12))
@@ -2640,12 +2648,26 @@ select case (prot)
                   Pm(1:4,4+(i-16)) = SYM_Qsymop(1:4,i)
                 end do
 
-        case(30)        ! 432
+        case(30)        ! 432  [order modified 2/28/24; see comment at the top]
                 allocate(Pm(4,24))
                 Pm(1:4,1) = SYM_Qsymop(1:4,1)
                 Nqsym = 24
-                do i=2,24
-                  Pm(1:4,i) = SYM_Qsymop(1:4,i)
+                j=2
+                do i=5,10
+                  Pm(1:4,j) = SYM_Qsymop(1:4,i)
+                  j = j+1
+                end do
+                do i=17,24
+                  Pm(1:4,j) = SYM_Qsymop(1:4,i)
+                  j = j+1
+                end do
+                do i=2,4
+                  Pm(1:4,j) = SYM_Qsymop(1:4,i)
+                  j = j+1
+                end do
+                do i=11,16
+                  Pm(1:4,j) = SYM_Qsymop(1:4,i)
+                  j = j+1
                 end do
         case(33)        ! 532
                 allocate(Pm(4,60))

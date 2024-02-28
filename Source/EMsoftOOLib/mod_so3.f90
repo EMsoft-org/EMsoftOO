@@ -906,9 +906,12 @@ else
       case (2)
         c2 = (dabs(r(1)).le.r1).and.(dabs(r(2)).le.r1)
       case (3)
-        c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
-        c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
-        c2 = c2.and.( dabs(r(2)).le.r1 )
+        ! c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
+        ! c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
+        ! c2 = c2.and.( dabs(r(2)).le.r1 )
+        c2 =          dabs( LPs%srt*r(2)+0.5D0*r(1)).le.r1
+        c2 = c2.and.( dabs( LPs%srt*r(2)-0.5D0*r(1)).le.r1 )
+        c2 = c2.and.( dabs(r(1)).le.r1 )
       case (4)
         c2 = (dabs(r(1)).le.r1).and.(dabs(r(2)).le.r1)
         c2 = c2.and.((LPs%r22*dabs(r(1)+r(2)).le.r1).and.(LPs%r22*dabs(r(1)-r(2)).le.r1))
@@ -3585,7 +3588,7 @@ end do
 end subroutine ReducelisttoMFZ_
 
 !--------------------------------------------------------------------------
-recursive subroutine ReduceOrientationtoRFZ_(self, rot, Pm, roFZ, MFZ)
+recursive subroutine ReduceOrientationtoRFZ_(self, rot, Pm, roFZ, MFZ, bin)
 !DEC$ ATTRIBUTES DLLEXPORT :: ReduceOrientationtoRFZ_
   !! author: MDG
   !! version: 1.0
@@ -3609,6 +3612,7 @@ class(*), INTENT(INOUT)                :: rot
 type(QuaternionArray_T),INTENT(INOUT)  :: Pm
 type(r_T), INTENT(OUT)                 :: roFZ
 logical,OPTIONAL,INTENT(IN)            :: MFZ
+integer(kind=irg),OPTIONAL,INTENT(INOUT) :: bin
 
 type(IO_T)                             :: Message
 type(Quaternion_T)                     :: Mu, qu, qS, pp
@@ -3666,7 +3670,10 @@ FZloop: do j=1,Pmdims
   if (useMFZ.eqv..TRUE.) then
     if (self%IsinsideMFZ(rod)) EXIT FZloop
   else
-    if (self%IsinsideFZ(rod))  EXIT FZloop
+    if (self%IsinsideFZ(rod))  then 
+      if (present(bin)) bin = j
+      EXIT FZloop
+    end if 
   end if
   ! we really should never get to the following line ...
   if (j.eq.Pmdims) call Message%printWarning( 'ReduceOrientationtoRFZ: no solution found')
