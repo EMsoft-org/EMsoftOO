@@ -1114,7 +1114,7 @@ type(FZpointd),pointer                  :: CMlist, CMtmp       ! pointer to star
 real(kind=dbl)                          :: rhozero(4), hipassw
 
 real(kind=sgl),allocatable              :: euPS(:,:), euler_bestmatch(:,:,:), CIlist(:), CMarray(:,:,:)
-integer(kind=irg),allocatable           :: indexmain(:,:)
+integer(kind=irg),allocatable           :: indexmain(:,:), PScorrectionmapth(:), PScorrectionmap(:)
 real(kind=sgl),allocatable              :: resultmain(:,:), DPCX(:), DPCY(:), DPCL(:)
 integer(HSIZE_T)                        :: dims(1),dims2D(2),dims3(3),offset3(3)
 
@@ -1791,6 +1791,7 @@ timer = Timing_T()
 call timer%Time_tick()
 
 call mem%alloc(exptpatterns, (/ binx*biny, dinl%numexptsingle /), 'exptpatterns', 0.0)
+call mem%alloc(PScorrectionmap, (/ Nexp /), 'PScorrectionmap', initval=0)
 
 unchanged = 0 
 
@@ -1827,7 +1828,7 @@ if (ronl%method.eq.'FIT') then
         end if
         call mem%dealloc(tmpimageexpt, 'tmpimageexpt')
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex) &
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(TID,ii,tmpimageexpt,jj,quat,quat2,binned,ma,mi,eindex,PScorrectionmapth) &
 !$OMP& PRIVATE(EBSDpatternintd,EBSDpatterninteger,EBSDpatternad,imagedictflt,kk,ll,mm, myEBSD) &
 !$OMP& PRIVATE(X,INITMEANVAL,XL,XU,STEPSIZE,dpPS,eulerPS,rfz,euinp,pos, q, qu, qq2, qq, eu, ho, mystat)
 
@@ -1843,6 +1844,7 @@ if (ronl%method.eq.'FIT') then
 
           call memth%alloc(dpPS, (/ ronl%matchdepth, nvar /), 'dpPS', 0.0, TID=TID)
           call memth%alloc(eulerPS, (/ 3, ronl%matchdepth, nvar /), 'eulerPS', 0.0, TID=TID)
+          call memth%alloc(PScorrectionmapth, (/ Nexp /), 'PScorrectionmapth', initval=0, TID=TID)
 
           call memth%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', 0.0, TID=TID)
           call memth%alloc(binned, (/ binx,biny /), 'binned', 0.0, TID=TID)
@@ -2000,6 +2002,7 @@ if (ronl%method.eq.'FIT') then
               CIlist(eindex) = dp
               pos = maxloc(dpPS)
               euler_best(1:3,eindex) = eulerPS(1:3,pos(1),pos(2))
+              PScorrectionmapth(eindex) = pos(2)
             else
               euler_best(1:3,eindex) = euler_bestmatch(1:3,1,eindex)
               !$OMP CRITICAL
@@ -2017,6 +2020,7 @@ if (ronl%method.eq.'FIT') then
     !$OMP END DO
 
 !$OMP CRITICAL
+        PScorrectionmap = PScorrectionmap + PScorrectionmapth
         call memth%dealloc(X, 'X', TID=TID)
         call memth%dealloc(XL, 'XL', TID=TID)
         call memth%dealloc(XU, 'XU', TID=TID)
@@ -2024,6 +2028,7 @@ if (ronl%method.eq.'FIT') then
         call memth%dealloc(STEPSIZE, 'STEPSIZE', TID=TID)
         call memth%dealloc(dpPS, 'dpPS', TID=TID)
         call memth%dealloc(eulerPS, 'eulerPS', TID=TID)
+        call memth%dealloc(PScorrectionmapth, 'PScorrectionmapth', TID=TID)
         call memth%dealloc(tmpimageexpt, 'tmpimageexpt', TID=TID)
         call memth%dealloc(binned, 'binned', TID=TID)
         call memth%dealloc(EBSDpatternintd, 'EBSDpatternintd', TID=TID)
@@ -2222,6 +2227,14 @@ if (g_exists) then
   hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best), 3, Nexp, overwrite)
 else
   hdferr = HDF%writeDatasetFloatArray(dataset, sngl(euler_best), 3, Nexp)
+end if
+
+dataset = 'PScorrectionmap'
+call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then
+  hdferr = HDF%writeDatasetIntegerArray(dataset, PScorrectionmap, Nexp, overwrite)
+else
+  hdferr = HDF%writeDatasetIntegerArray(dataset, PScorrectionmap, Nexp)
 end if
 
 call HDF%popall()
