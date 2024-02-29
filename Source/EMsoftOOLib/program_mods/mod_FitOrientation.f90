@@ -2185,6 +2185,13 @@ hdferr = HDF%createGroup(groupname)
 dataset = trim(HDFnames%get_NMLfilename())
 hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
+! if there is a pseudosymmetric orientations file, then also add this file
+if (trim(ronl%PSvariantfile).ne.'undefined') then 
+  fname = trim(EMsoft%getConfigParameter('EMdatapathname'))//trim(ronl%PSvariantfile)
+  dataset = 'PSvariantfile'
+  hdferr = HDF%writeDatasetTextFile(dataset, fname)
+end if 
+
 ! leave this group
 call HDF%pop()
 
