@@ -26,182 +26,231 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-module mod_XXX
+module mod_CayleyDickson
   !! author: MDG 
   !! version: 1.0 
-  !! date: 01/22/20
+  !! date: 02/29/24
   !!
-  !! class definition for the EMXXX program
+  !! class definition for the Cayley-Dickson construction
 
 use mod_kinds
 use mod_global
 
 IMPLICIT NONE 
 
-! namelist for the EMXXX program
-type, public :: XXXNameListType
-end type XXXNameListType
-
 ! class definition
-type, public :: XXX_T
+type, public :: CayleyDickson_T
 private 
-  character(fnlen)       :: nmldeffile = 'EMXXX.nml'
-  type(XXXNameListType)  :: nml 
 
 contains
 private 
-  procedure, pass(self) :: readNameList_
-  procedure, pass(self) :: writeHDFNameList_
-  procedure, pass(self) :: getNameList_
-  procedure, pass(self) :: XXX_
+  procedure, pass(self) :: CDconjgs_
+  procedure, pass(self) :: CDconjgd_
+  procedure, pass(self) :: CDmults_
+  procedure, pass(self) :: CDmultd_
 
-  generic, public :: getNameList => getNameList_
-  generic, public :: writeHDFNameList => writeHDFNameList_
-  generic, public :: readNameList => readNameList_
-  generic, public :: XXX => XXX_
+  generic, public :: CDconjgs => CDconjgs_, CDconjgd_
+  generic, public :: CDmults => CDmults_, CDmultd_
 
-end type XXX_T
+end type CayleyDickson_T
 
 ! the constructor routine for this class 
-interface XXX_T
-  module procedure XXX_constructor
-end interface XXX_T
+interface CayleyDickson_T
+  module procedure CayleyDickson_constructor
+end interface CayleyDickson_T
 
 contains
 
 !--------------------------------------------------------------------------
-type(XXX_T) function XXX_constructor( nmlfile ) result(XXX)
+type(CayleyDickson_T) function CayleyDickson_constructor( ) result(CayleyDickson)
 !! author: MDG 
 !! version: 1.0 
-!! date: 01/22/20
+!! date: 02/29/24
 !!
-!! constructor for the XXX_T Class; reads the name list 
+!! constructor for the CayleyDickson_T Class; reads the name list 
  
 IMPLICIT NONE
 
-character(fnlen), OPTIONAL   :: nmlfile 
-
-call XXX%readNameList(nmlfile)
-
-end function XXX_constructor
+end function CayleyDickson_constructor
 
 !--------------------------------------------------------------------------
-subroutine XXX_destructor(self) 
+subroutine CayleyDickson_destructor(self) 
 !! author: MDG 
 !! version: 1.0 
-!! date: 01/22/20
+!! date: 02/29/24
 !!
-!! destructor for the XXX_T Class
+!! destructor for the CayleyDickson_T Class
  
 IMPLICIT NONE
 
-type(XXX_T), INTENT(INOUT)  :: self 
+type(CayleyDickson_T), INTENT(INOUT)  :: self 
 
-call reportDestructor('XXX_T')
+call reportDestructor('CayleyDickson_T')
 
-end subroutine XXX_destructor
-
-!--------------------------------------------------------------------------
-subroutine readNameList_(self, nmlfile, initonly)
-!DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
-!! author: MDG 
-!! version: 1.0 
-!! date: 01/22/20
-!!
-!! read the namelist from an nml file for the XXX_T Class 
-
-use mod_io 
-use mod_EMsoft
-
-IMPLICIT NONE 
-
-class(XXX_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
- !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
- !! fill in the default values only; do not read the file
-
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
-
-
-
-end subroutine readNameList_
+end subroutine CayleyDickson_destructor
 
 !--------------------------------------------------------------------------
-function getNameList_(self) result(nml)
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
-!! author: MDG 
-!! version: 1.0 
-!! date: 01/22/20
+recursive function CDconjgs_(self, n1, ns) result(nout)
+!DEC$ ATTRIBUTES DLLEXPORT :: CDconjgs_
+!! author: MDG
+!! version: 1.0
+!! date: 02/29/24
 !!
-!! pass the namelist for the XXX_T Class to the calling program
-
-IMPLICIT NONE 
-
-class(XXX_T), INTENT(INOUT)          :: self
-type(XXXNameListType)                :: nml
-
-nml = self%nml
-
-end function getNameList_
-
-!--------------------------------------------------------------------------
-recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
-!! author: MDG 
-!! version: 1.0 
-!! date: 01/22/20
-!!
-!! write namelist to HDF file
-
-use mod_HDFsupport
-use mod_HDFnames
-use stringconstants 
-
-use ISO_C_BINDING
+!! conjugate of a higher dimensional number (single precision)
 
 IMPLICIT NONE
 
-class(XXX_T), INTENT(INOUT)        :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(CayleyDickson_T),INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)          :: ns
+real(kind=sgl),INTENT(IN)             :: n1(ns)
+real(kind=sgl)                        :: nout(ns)
 
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+real(kind=sgl)                        :: a(ns/2), b(ns/2)
+integer(kind=irg)                     :: nh
 
-associate( mcnl => self%nml )
+if (ns.eq.1) then
+  nout = n1
+else
+  nh = ns/2
+  a = self%CDconjgs_(n1(1:nh),nh)
+  b = -n1(nh+1:ns)
+  nout = (/ a, b /)
+end if
 
-end associate
-
-end subroutine writeHDFNameList_
+end function CDconjgs_
 
 !--------------------------------------------------------------------------
-subroutine XXX_(self, EMsoft, progname, HDFnames)
-!DEC$ ATTRIBUTES DLLEXPORT :: XXX_
-!! author: MDG 
-!! version: 1.0 
-!! date: 01/22/20
+recursive function CDconjgd_(self, n1, ns) result(nout)
+!DEC$ ATTRIBUTES DLLEXPORT :: CDconjgd_
+!! author: MDG
+!! version: 1.0
+!! date: 02/29/24
 !!
-!! perform the computations
+!! conjugate of a higher dimensional number (double precision)
 
-use mod_EMsoft
-use mod_HDFnames
+IMPLICIT NONE
 
-IMPLICIT NONE 
+class(CayleyDickson_T),INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)          :: ns
+real(kind=dbl),INTENT(IN)             :: n1(ns)
+real(kind=dbl)                        :: nout(ns)
 
-class(XXX_T), INTENT(INOUT)       :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+real(kind=dbl)                        :: a(ns/2), b(ns/2)
+integer(kind=irg)                     :: nh
 
-end subroutine XXX_
+if (ns.eq.1) then
+  nout = n1
+else
+  nh = ns/2
+  a = self%CDconjgd_(n1(1:nh),nh)
+  b = -n1(nh+1:ns)
+  nout = (/ a, b /)
+end if
 
+end function CDconjgd_
 
+!--------------------------------------------------------------------------
+recursive function CDmults_(self, n1, n2, ns, split) result(nout)
+!DEC$ ATTRIBUTES DLLEXPORT :: CDmults_
+!! author: MDG
+!! version: 1.0
+!! date: 02/29/24
+!!
+!! multiplication of two higher dimensional numbers using the Cayley-Dickson construction
+!! routine can handle split numbers (single precision)
 
-end module mod_XXX
+IMPLICIT NONE
+
+class(CayleyDickson_T),INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)          :: ns
+real(kind=sgl),INTENT(IN)             :: n1(ns)
+real(kind=sgl),INTENT(IN)             :: n2(ns)
+logical,INTENT(IN),OPTIONAL           :: split
+real(kind=sgl)                        :: nout(ns)
+
+real(kind=sgl)                        :: a(ns/2), b(ns/2), c(ns/2), d(ns/2), dc(ns/2), cc(ns/2)
+integer(kind=irg)                     :: nh
+
+nout = 0.0
+if (ns.eq.1) then
+! here we just multiply two scalars
+  nout(1) = n1(1) * n2(1)
+else
+! we still have a higher dimensional number so we use the Cayley-Dickson formula
+  nh = ns/2
+  a = n1(1:nh)
+  b = n1(nh+1:ns)
+  c = n2(1:nh)
+  d = n2(nh+1:ns)
+  cc = self%CDconjgs_(c,nh)
+  dc = self%CDconjgs_(d,nh)
+  if (.not.present(split)) then
+      nout = (/ self%CDmults_(a,c,nh) - self%CDmults_(dc,b,nh), self%CDmults_(d,a,nh) + self%CDmults_(b,cc,nh) /)
+  else if (split.eqv..TRUE.) then
+      nout = (/ self%CDmults_(a,c,nh, .TRUE.) + self%CDmults_(dc,b,nh, .TRUE.), & 
+                self%CDmults_(d,a,nh, .TRUE.) + self%CDmults_(b,cc,nh, .TRUE.) /)
+  end if
+end if 
+
+end function CDmults_
+
+!--------------------------------------------------------------------------
+! Function: CDmultd
+!
+!> @author Marc De Graef, Carnegie Mellon University 
+!
+!> @brief multiplication of two higher dimensional numbers using the Caley-Dickson construction
+!
+!> @param n1 first input number
+!> @param n2 second input number
+!> @param n1 dimensionality of the number
+!> @param split if present and .TRUE., then use the split multiplication rule
+!> @param nout product of the two input numbers 
+!
+!> @date 03/14/18 MDG 1.0 original
+!--------------------------------------------------------------------------
+recursive function CDmultd_(self, n1, n2, ns, split) result(nout)
+!DEC$ ATTRIBUTES DLLEXPORT :: CDmultd_
+!! author: MDG
+!! version: 1.0
+!! date: 02/29/24
+!!
+!! multiplication of two higher dimensional numbers using the Cayley-Dickson construction
+!! routine can handle split numbers (double precision)
+
+IMPLICIT NONE
+
+class(CayleyDickson_T),INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)          :: ns
+real(kind=dbl),INTENT(IN)             :: n1(ns)
+real(kind=dbl),INTENT(IN)             :: n2(ns)
+logical,INTENT(IN),OPTIONAL           :: split
+real(kind=dbl)                        :: nout(ns)
+
+real(kind=dbl)                        :: a(ns/2), b(ns/2), c(ns/2), d(ns/2), dc(ns/2), cc(ns/2)
+integer(kind=irg)                     :: nh
+
+nout = 0.D0
+if (ns.eq.1) then
+! here we just multiply two scalars
+  nout(1) = n1(1) * n2(1)
+else
+! we still have a higher dimensional number so we use the Caley-Dickson formula
+  nh = ns/2
+  a = n1(1:nh)
+  b = n1(nh+1:ns)
+  c = n2(1:nh)
+  d = n2(nh+1:ns)
+  cc = self%CDconjgd_(c,nh)
+  dc = self%CDconjgd_(d,nh)
+  if (.not.present(split)) then
+      nout = (/ self%CDmultd_(a,c,nh) - self%CDmultd_(dc,b,nh), self%CDmultd_(d,a,nh) + self%CDmultd_(b,cc,nh) /)
+  else if (split.eqv..TRUE.) then
+      nout = (/ self%CDmultd_(a,c,nh, .TRUE.) + self%CDmultd_(dc,b,nh, .TRUE.), & 
+                self%CDmultd_(d,a,nh, .TRUE.) + self%CDmultd_(b,cc,nh, .TRUE.) /)
+  end if
+end if 
+
+end function CDmultd_
+
+end module mod_CayleyDickson
