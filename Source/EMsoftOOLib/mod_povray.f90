@@ -211,15 +211,19 @@ logical                         :: itsopen
 
 call reportDestructor('PoVRay_T')
 
-! if the file unit is still open, close it here
-if (self%dunit.ne.0) then
-  inquire(unit=self%dunit, opened=itsopen)
+! the following lines were commented out because the destructor routine 
+! gets called, for some reason, before the complete file has been written
+! so the file is closed too early...
 
-  if (itsopen.eqv..TRUE.) then
-    close(unit=self%dunit, status='keep')
-    call Message%printMessage(' Closed PoVray file '//trim(self%filename))
-  end if
-end if
+! if the file unit is still open, close it here
+! if (self%dunit.ne.0) then
+!   inquire(unit=self%dunit, opened=itsopen)
+
+!   if (itsopen.eqv..TRUE.) then
+!     close(unit=self%dunit, status='keep')
+!     call Message%printMessage(' Closed PoVray file '//trim(self%filename))
+!   end if
+! end if
 
 end subroutine PoVRay_destructor
 
