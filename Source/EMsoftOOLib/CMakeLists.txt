@@ -163,7 +163,6 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDPCA.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDdefect.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_HREBSD.f90
-<<<<<<< HEAD
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_CBED.f90
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_SRdefect.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_SRCBED.f90 
@@ -172,9 +171,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_BW.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_BFDF.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_BWshow.f90 
-=======
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_SphInx.f90
->>>>>>> feature/SphInxOO
 
   ${EMsoftOOLib_Additional_SRCS}
 )
