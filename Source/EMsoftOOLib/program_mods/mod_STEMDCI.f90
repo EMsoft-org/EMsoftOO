@@ -277,7 +277,7 @@ if (.not.skipread) then
     call Message%printError('STEMDCI:',' outname file name is undefined in '//nmlfile)
   end if
 
-  if (trim(dispfile).eq.'undefined') then
+  if ( (trim(dispfile).eq.'undefined').and.(dispmode.ne.'not') ) then
     call Message%printError('STEMDCI:',' dispfile file name is undefined in '//nmlfile)
   end if
 

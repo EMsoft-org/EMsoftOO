@@ -30,6 +30,7 @@ set(MODALITY_DIRS
     SEM
     Shapes
     TEM
+    SphInx
     QC
     Utilities
     TestPrograms

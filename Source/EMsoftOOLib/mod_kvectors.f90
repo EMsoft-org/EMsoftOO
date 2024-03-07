@@ -276,11 +276,11 @@ module mod_kvectors
  
  ok = .FALSE.
  if (present(mp)) then
-   do i = 1, 5
+   do i = 1, 6
      if (trim(modes(i)).eq.trim(mp)) ok = .TRUE.
    end do
  else
-   do i = 1, 5
+   do i = 1, 6
      if (trim(modes(i)).eq.trim(self%mapmode)) ok = .TRUE.
    end do
  end if

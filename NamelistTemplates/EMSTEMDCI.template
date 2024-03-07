@@ -11,8 +11,8 @@
 !------------
 ! microscope accelerating voltage [kV]
  voltage = 200.0,
-! program mode (parallel beam 'CTEM', BF/HAADF pairs 'BFDF' or full converged beam 'STEM')
- progmode = 'STEM',
+! program mode (parallel beam 'EM', BF/HAADF pairs 'BFDF' or full converged beam 'STEM')
+ progmode = 'EM',
 !------------
 ! crystal structure and incident beam parameters
 !------------

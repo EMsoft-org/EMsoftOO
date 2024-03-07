@@ -67,6 +67,7 @@ type, public :: EBSDmaster_T
     procedure, pass(self) :: get_combinesites_
     procedure, pass(self) :: get_restart_
     procedure, pass(self) :: get_uniform_
+    procedure, pass(self) :: get_doLegendre_
     procedure, pass(self) :: get_Notify_
     procedure, pass(self) :: get_kinematical_
     ! procedure, pass(self) :: get_thickness_
@@ -81,6 +82,7 @@ type, public :: EBSDmaster_T
     procedure, pass(self) :: set_combinesites_
     procedure, pass(self) :: set_restart_
     procedure, pass(self) :: set_uniform_
+    procedure, pass(self) :: set_doLegendre_
     procedure, pass(self) :: set_Notify_
     procedure, pass(self) :: set_kinematical_
     ! procedure, pass(self) :: set_thickness_
@@ -102,6 +104,7 @@ type, public :: EBSDmaster_T
     generic, public :: get_combinesites => get_combinesites_
     generic, public :: get_restart => get_restart_
     generic, public :: get_uniform => get_uniform_
+    generic, public :: get_doLegendre => get_doLegendre_
     generic, public :: get_Notify => get_Notify_
     generic, public :: get_kinematical => get_kinematical_
     ! generic, public :: get_thickness => get_thickness_
@@ -116,6 +119,7 @@ type, public :: EBSDmaster_T
     generic, public :: set_combinesites => set_combinesites_
     generic, public :: set_restart => set_restart_
     generic, public :: set_uniform => set_uniform_
+    generic, public :: set_doLegendre => set_doLegendre_
     generic, public :: set_Notify => set_Notify_
     generic, public :: set_kinematical => set_kinematical_
     ! generic, public :: set_thickness => set_thickness_
@@ -179,11 +183,12 @@ character(fnlen)  :: h5copypath
 logical           :: combinesites
 logical           :: restart
 logical           :: uniform
+logical           :: doLegendre
 logical           :: kinematical
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist /EBSDmastervars/ dmin,npx,nthreads,copyfromenergyfile,energyfile,Esel,restart,uniform,Notify, &
-                          combinesites,h5copypath,BetheParametersFile,kinematical
+                          combinesites,h5copypath,BetheParametersFile,kinematical,doLegendre
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 npx = 500                       ! Nx pixels (total = 2Nx+1)
@@ -199,6 +204,7 @@ combinesites = .FALSE.          ! combine all atom sites into one BSE yield or n
 restart = .FALSE.               ! when .TRUE. an existing file will be assumed
 uniform = .FALSE.               ! when .TRUE., the output master patterns will contain 1.0 everywhere
 kinematical = .FALSE.           ! use the kinematical approximation if .TRUE.
+doLegendre = .FALSE.            ! used to generate master patterns for spherical indexing
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -229,6 +235,7 @@ self%nml%Notify = Notify
 self%nml%combinesites = combinesites
 self%nml%restart = restart
 self%nml%uniform = uniform
+self%nml%doLegendre = doLegendre
 self%nml%kinematical = kinematical
 
 end subroutine readNameList_
@@ -682,6 +689,42 @@ self%nml%uniform = inp
 end subroutine set_uniform_
 
 !--------------------------------------------------------------------------
+function get_doLegendre_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_doLegendre_
+!! author: MDG
+!! version: 1.0
+!! date: 03/18/20
+!!
+!! get doLegendre from the EBSDmaster_T class
+
+IMPLICIT NONE
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical                                :: out
+
+out = self%nml%doLegendre
+
+end function get_doLegendre_
+
+!--------------------------------------------------------------------------
+subroutine set_doLegendre_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_doLegendre_
+!! author: MDG
+!! version: 1.0
+!! date: 03/18/20
+!!
+!! set doLegendre in the EBSDmaster_T class
+
+IMPLICIT NONE
+
+class(EBSDmaster_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)                    :: inp
+
+self%nml%doLegendre = inp
+
+end subroutine set_doLegendre_
+
+!--------------------------------------------------------------------------
 function get_Notify_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_Notify_
 !! author: MDG
@@ -824,9 +867,9 @@ real(kind=dbl)          :: tpi,Znsq, kkl, DBWF, kin, delta, h, lambda, omtl, srt
 real(kind=sgl)          :: io_real(5), selE, kn, FN(3), tstop, nabsl, etotal, density, Ze, at_wt, bp(4)
 real(kind=sgl),allocatable      :: EkeVs(:), svals(:), auxNH(:,:,:,:), auxSH(:,:,:,:), Z2percent(:)  ! results
 real(kind=sgl),allocatable      :: mLPNH(:,:,:,:), mLPSH(:,:,:,:), masterSPNH(:,:,:), masterSPSH(:,:,:)
-real(kind=dbl),allocatable      :: LegendreArray(:), upd(:), diagonal(:)
 integer(kind=irg),allocatable   :: accum_z(:,:,:,:)
 real(kind=dbl),allocatable      :: SGrecip(:,:,:), SGdirec(:,:,:)
+real(kind=dbl),allocatable      :: LegendreArray(:), upd(:), diagonal(:)
 complex(kind=dbl)               :: czero
 complex(kind=dbl),allocatable   :: Lgh(:,:), Sgh(:,:,:)
 logical                         :: usehex, switchmirror, verbose
@@ -904,6 +947,7 @@ czero = cmplx(0.D0,0.D0)
 
 ! is the master pattern used for spherical indexing only ?  If so, then we need to modifiy the k-vector sampling
 doLegendre = .FALSE.
+if (emnl%doLegendre.eqv..TRUE.) doLegendre = .TRUE.
 
 !=============================================
 !=============================================

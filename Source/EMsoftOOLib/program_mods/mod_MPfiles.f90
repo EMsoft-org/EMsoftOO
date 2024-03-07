@@ -55,6 +55,7 @@ type, public :: SEMmasterNameListType
   logical           :: combinesites
   logical           :: uniform
   logical           :: kinematical
+  logical           :: doLegendre
 end type SEMmasterNameListType
 
 ! inherit the SEMmasterNameListType and extend it with additional parameters
