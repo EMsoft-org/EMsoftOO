@@ -3372,7 +3372,7 @@ do ii = 1,ipar(2)
         !   write (*,*) '3 dc = ', dc
         !   write (*,*) 'PROBLEM: ', ii, jj, scl, ipar, &
         !                            nix, niy, nixp, niyp, dx, dy, dxm, dym
-        ! end if 
+         end if 
 
 ! interpolate the intensity
         if (nobg.eqv..TRUE.) then
