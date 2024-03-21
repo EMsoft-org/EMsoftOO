@@ -575,6 +575,7 @@ select case (self%itype)
         end if
         ! get the first byte to check if this file is version 1-3 or 4
         ! version 4 has an extra byte in the header...
+        ! now there is also a version 5 file with some differences ... 
         read(unit=self%funit, pos=1, iostat=ios) header
         ebspversion = 256-iachar(header)
         io_int(1) = ebspversion
@@ -844,11 +845,12 @@ select case (self%itype)
     case(5)  ! "OxfordBinary"
 
 ! read position of patterns in file for a single row from the header
-      if (ebspversion.eq.4) then 
+      if (ebspversion.gt.3) then 
         read(unit=self%funit, pos=(liii-1)*lwd*8+10, iostat=ios) patoffsets
       else
         read(unit=self%funit, pos=(liii-1)*lwd*8+9, iostat=ios) patoffsets
       end if 
+      if (ebspversion.eq.5) patoffsets = patoffsets + 25_8
 
 ! generate a buffer to load individual patterns into
       buffersize = lL
@@ -859,8 +861,13 @@ select case (self%itype)
       allocate(pairs(buffersize))
 
       do ii=1,lwd
-! read each pattern into buffer with the 16 bytes of metadata skipped
-        read(unit=self%funit, pos=patoffsets(ii)+17_8, iostat=ios) buffer
+! read each pattern into buffer with the 16 bytes of metadata skipped (42 for version 5)
+        if (ebspversion.eq.5) then 
+          ! read(unit=self%funit, pos=patoffsets(ii)+43_8, iostat=ios) buffer
+          read(unit=self%funit, pos=patoffsets(ii), iostat=ios) buffer
+        else
+          read(unit=self%funit, pos=patoffsets(ii)+17_8, iostat=ios) buffer
+        end if
 
 ! loop over pixels and convert the byte values into single byte integers
         do jj=1_ill,lL
@@ -1133,18 +1140,24 @@ select case (self%itype)
       l1 = mod(offset3(3),wd)
       lL = L
       lwd = wd
-      if (ebspversion.eq.4) then 
+      if (ebspversion.gt.3) then 
         read(unit=self%funit, pos=(liii-1)*lwd*8+10, iostat=ios) patoffsets
       else
         read(unit=self%funit, pos=(liii-1)*lwd*8+9, iostat=ios) patoffsets
       end if
+      if (ebspversion.eq.5) patoffsets = patoffsets + 25_8
 
 ! generate buffers to load individual pattern into
       buffersize = lL
       allocate(buffer(buffersize), pairs(buffersize))
 
 ! read single pattern into buffer with the 16 bytes of metadata skipped
-      read(unit=self%funit, pos=patoffsets(l1)+17_8, iostat=ios) buffer
+      if (ebspversion.eq.5) then 
+        ! read(unit=self%funit, pos=patoffsets(l1)+43_8, iostat=ios) buffer
+        read(unit=self%funit, pos=patoffsets(l1), iostat=ios) buffer
+      else
+        read(unit=self%funit, pos=patoffsets(l1)+17_8, iostat=ios) buffer
+      end if 
 
 ! convert the byte values into single byte integers
       pairs = ichar(buffer)
