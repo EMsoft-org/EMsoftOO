@@ -63,6 +63,11 @@
 !=================
 ! crystal structure file name (used for FIB samplemode only)
  xtalname = 'undefined' 
+! texture fiber type; the following are available
+! 'fcc-alpha', 'fcc-beta', 'bcc-beta', 'bcc-gamma', 'bcc-epsilon'
+ fibertype = 'undefined',
+! fiber spread (in degrees, similar to FWHM of a Gaussian distribution)
+ fiberspread = 0.D0,
 !=================
 ! parameters for MIS, vMF, and WAT modes
 !=================

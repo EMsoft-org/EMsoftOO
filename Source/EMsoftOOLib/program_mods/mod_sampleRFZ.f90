@@ -55,7 +55,9 @@ type, public :: sampleRFZNameListType
     real(kind=dbl)    :: conevector(3)
     real(kind=dbl)    :: semiconeangle
     real(kind=dbl)    :: tcos(5)
+    real(kind=dbl)    :: fiberspread
     character(6)      :: SO3cover
+    character(fnlen)  :: fibertype
     character(fnlen)  :: xtalname
     character(fnlen)  :: samplemode
     character(fnlen)  :: euoutname
@@ -132,8 +134,9 @@ logical,OPTIONAL,INTENT(IN)        :: initonly
 logical                            :: skipread = .FALSE.
 
 integer(kind=irg)                  :: pgnum, nsteps, gridtype, norientations, seed, hkl(15), uvw(15), norient(5)
-real(kind=dbl)                     :: rodrigues(4), qFZ(4), axFZ(4), maxmisor, conevector(3), semiconeangle, tcos(5)
+real(kind=dbl)                     :: rodrigues(4), qFZ(4), axFZ(4), maxmisor, conevector(3), semiconeangle, tcos(5), fiberspread
 character(6)                       :: SO3cover
+character(fnlen)                   :: fibertype
 character(fnlen)                   :: samplemode
 character(fnlen)                   :: xtalname
 character(fnlen)                   :: euoutname
@@ -149,7 +152,7 @@ character(fnlen)                   :: stoutname
 ! namelist components
 namelist / RFZlist / pgnum, nsteps, gridtype, euoutname, cuoutname, hooutname, rooutname, quoutname, omoutname, axoutname, &
                      samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname, &
-                     norientations, SO3cover, seed, hkl, uvw, norient, tcos
+                     norientations, SO3cover, seed, hkl, uvw, norient, tcos, fiberspread, fibertype
 
 ! initialize to default values
 pgnum = 32
@@ -169,7 +172,9 @@ samplemode = 'RFZ'                        ! or 'MIS' for sampling inside a ball 
 ! or 'CON' for conical sampling around a unitvector for a cone with semi opening angle semiconangle
 conevector = (/ 0.D0, 0.D0, 1.D0 /)       ! default unit vector for cone axis
 semiconeangle = 2.0                       ! default opening semi-angle (in degrees)
+fiberspread = 0.D0
 SO3cover = 'single'
+fibertype = 'undefined'
 euoutname = 'undefined'
 xtalname = 'undefined'
 cuoutname = 'undefined'
@@ -207,6 +212,8 @@ self%nml%qFZ = qFZ
 self%nml%axFZ = axFZ
 self%nml%maxmisor = maxmisor
 self%nml%tcos = tcos
+self%nml%fiberspread = fiberspread
+self%nml%fibertype = fibertype
 self%nml%samplemode = samplemode
 self%nml%conevector = conevector
 self%nml%semiconeangle = semiconeangle
