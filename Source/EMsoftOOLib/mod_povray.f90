@@ -663,7 +663,7 @@ write (self%dunit,"('sphere { <',2(F9.6,','),F9.6,'>,',F9.6,' material { texture
 end subroutine addSphere_
 
 !--------------------------------------------------------------------------
-recursive subroutine addCylinder_(self, p1, p2, radius, rgb)
+recursive subroutine addCylinder_(self, p1, p2, radius, rgb, rgblabel)
 !DEC$ ATTRIBUTES DLLEXPORT :: addCylinder_
  !! author: MDG
  !! version: 1.0
@@ -682,9 +682,15 @@ real(kind=dbl),INTENT(IN)             :: radius
  !! cylinder radius
 real(kind=sgl),INTENT(IN)             :: rgb(3)
  !! color triplet (RGB)
+character(3),INTENT(IN),OPTIONAL      :: rgblabel
 
-write (self%dunit,"('cylinder { <',2(F9.6,','),F9.6,'>,<',2(F9.6,','),F9.6,'>,', F9.6,' pigment { ', &
-                  &'rgb <',2(F9.6,','),F9.6,'>}}')") p1(1:3), p2(1:3), radius, rgb(1:3)
+if (present(rgblabel)) then 
+  write (self%dunit,"('cylinder { <',2(F9.5,','),F9.5,'>,<',2(F9.5,','),F9.5,'>,', F9.6,' pigment { ', &
+                    &'color ',A3,'}}')") p1(1:3), p2(1:3), radius, rgblabel
+else
+  write (self%dunit,"('cylinder { <',2(F9.5,','),F9.5,'>,<',2(F9.5,','),F9.5,'>,', F9.6,' pigment { ', &
+                    &'rgb <',2(F9.6,','),F9.6,'>}}')") p1(1:3), p2(1:3), radius, rgb(1:3)
+end if
 
 end subroutine addCylinder_
 
@@ -1505,7 +1511,7 @@ end if
 end subroutine getpos_FZ222_
 
 !--------------------------------------------------------------------------
-recursive subroutine drawFZ_(self, SO, rmode, cylr, outline)
+recursive subroutine drawFZ_(self, SO, rmode, cylr, outline, qAR)
 !DEC$ ATTRIBUTES DLLEXPORT :: drawFZ_
  !! author: MDG
  !! version: 1.0
@@ -1515,9 +1521,15 @@ recursive subroutine drawFZ_(self, SO, rmode, cylr, outline)
  !!
  !! This routine draws the outline of either the Rodrigues Fundamental
  !! zone, or the Mackenzie Fundamental Zone (if SO%getMK() is true).
+ !! Optionally, it can also draw multiple equivalent RFZs instead.
+ !!
+ !! This is a somewhat complicated routine so alter at your own risk...
 
 use mod_rotations
 use mod_so3
+use mod_io 
+use mod_quaternions
+use mod_rotations
 
 IMPLICIT NONE
 
@@ -1525,37 +1537,53 @@ class(PoVRay_T),INTENT(INOUT)         :: self
 type(so3_T),INTENT(INOUT)             :: SO
 integer(kind=irg),INTENT(IN)          :: rmode
  !! 1(cubochoric)|2(homochoric)|3(stereographic)|4(Rodrigues)|5(Euler)
-real(kind=dbl),INTENT(IN)             :: cylr
+real(kind=dbl),INTENT(INOUT)          :: cylr
  !! cylinder radius
-integer(kind=irg)                     :: outline
+integer(kind=irg),INTENT(IN)          :: outline
+type(QuaternionArray_T),INTENT(INOUT),OPTIONAL  :: qAR
 
 type(e_T)                             :: eul, eu, euld, eulast
 type(r_T)                             :: ro1, ro2, ro, rolast, ron
-type(q_T)                             :: qu
+type(q_T)                             :: qu, qutmp
 type(s_T)                             :: sp, splast
-type(h_T)                             :: h, ho, holast
+type(h_T)                             :: h, ho, holast, ho1, ho2
 type(o_T)                             :: om
-type(c_T)                             :: cu, culast
+type(c_T)                             :: cu, culast, cu1, cu2
 type(a_T)                             :: axang
 type(orientation_T)                   :: ot
+type(IO_T)                            :: Message
+type(Quaternion_T)                    :: qu1, qu2, qtmp
 
-real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, d, dd, &
-                                         tpi, hpi, aux(4), aux3(3), aux4a(4), aux4b(4)
+real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, d, dd, eps = 1.0D-6, &
+                                         tpi, hpi, aux(4), aux3(3), aux4a(4), aux4b(4), qul(4), sp1(3), sp2(3)
 
-integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:)
-real(kind=dbl),allocatable            :: cpos(:,:)
+integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:), slist(:)
+real(kind=dbl),allocatable            :: cpos(:,:), quar(:,:), quarlast(:,:)
 
 logical                               :: doMFZ, twostep
-integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder
+integer(kind=irg)                     :: i,j,jj,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder, io_int(2), num=0
+character(3)                          :: clrs(24)
 
 call setRotationPrecision('Double')
+
+if (present(qAR)) then  
+  num = qAR%getQnumber()
+  clrs = (/ 'c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08', 'c09', 'c10', 'c11', 'c12', &
+            'c13', 'c14', 'c15', 'c16', 'c17', 'c18', 'c19', 'c20', 'c21', 'c22', 'c23', 'c24' /)
+end if 
 
 tpi = 2.D0 * cPi
 hpi = 0.5D0 * cPi
 doMFZ = SO%getMK()
+
+! equivalent McKenzie cells are not implemented in this version
+! so turn that option off is multiple RFZs are requested
+if (num.ne.0) doMFZ = .FALSE. 
+
 call SO%getFZtypeandorder(FZtype, FZorder)
 
-write (*,*) ' FZ parameters ', FZtype, FZorder
+io_int(1:2) = (/ FZtype, FZorder /)
+call Message%WriteValue(' FZ parameters (type/order) : ', io_int, 2)
 
 if (FZtype.eq.2) then
     if (FZorder.eq.6) then
@@ -1642,6 +1670,10 @@ if (FZtype.eq.4) then
     end if
 end if
 
+! this is to slightly separate the zones from each other 
+! when all equivalent FZs are drawn
+if (num.ne.0) cpos = 0.97 * cpos    
+
 ! add the reference frame and any necessary wireframes
 if (rmode.eq.1) then
   ac = 0.5D0 * LPs%ap
@@ -1667,6 +1699,12 @@ if (rmode.eq.5) then
 end if
 
 if (outline.eq.1) then 
+  if (num.ne.0) then
+    allocate(quar(4,num), quarlast(4,num))
+    allocate(slist(num))
+    slist(1:num) = (/ (i,i=1,num) /)
+  end if
+
 ! and next, draw the outline of the FZ or MFZ
   if ((rmode.eq.1).or.(rmode.eq.2)) then
   ! create the square edges first
@@ -1674,22 +1712,70 @@ if (outline.eq.1) then
    do i=1,dims(2)
     ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d/) )
     ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d/) )
-    culast = ro1%rc()
-    holast = ro1%rh()
+    qu = ro1%rq()
+    qu1 = Quaternion_T( qd = qu%q_copyd())
+    if (num.eq.0) then
+      culast = ro1%rc()
+      holast = ro1%rh()
+    else
+      do k=1,num
+        qtmp = qu1 * qAR%getQuatfromArray(slist(k))
+        quarlast(1:4,k) = qtmp%get_quatd()
+        if (quarlast(1,k).lt.0.D0) quarlast(1:4,k) = -quarlast(1:4,k)
+      end do
+    end if
     do j=1,ns+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
-      cu = ro%rc()
-      ho = ro%rh()
+      qu = ro%rq()
+      qu2 = Quaternion_T( qd = qu%q_copyd())
+      if (num.eq.0) then 
+        cu = ro%rc()
+        ho = ro%rh()
   ! and create a cylinder with these points
-      if (rmode.eq.1) then
-        call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+        if (rmode.eq.1) then
+          call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+        else
+          call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+        end if
+        culast = cu
+        holast = ho
       else
-        call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+        do k=1,num
+          qtmp = qu2 * qAR%getQuatfromArray(slist(k))
+          quar(1:4,k) = qtmp%get_quatd()
+          if (quar(1,k).lt.0.D0) quar(1:4,k) = -quar(1:4,k)
+        end do
+        if (rmode.eq.1) then 
+          do k=1,num
+            qutmp = q_T( qdinp = quarlast(1:4,k) )
+            cu2 = qutmp%qc()
+            qutmp = q_T( qdinp = quar(1:4,k) )
+            cu1 = qutmp%qc()
+            sp1 = cu1%c_copyd()
+            sp2 = cu2%c_copyd()
+    ! and create a cylinder with these points
+            if ((quarlast(1,k).gt.eps).and.(quar(1,k).gt.eps)) then 
+              call self%addCylinder(sp2(1:3),sp1(1:3),cylr,(/ 0.0, 0.0, 1.0 /),clrs(k))
+            end if
+          end do
+        else
+          do k=1,num
+            qutmp = q_T( qdinp = quarlast(1:4,k) )
+            ho2 = qutmp%qh()
+            qutmp = q_T( qdinp = quar(1:4,k) )
+            ho1 = qutmp%qh()
+            sp1 = ho1%h_copyd()
+            sp2 = ho2%h_copyd()
+    ! and create a cylinder with these points
+            if ((quarlast(1,k).gt.eps).and.(quar(1,k).gt.eps)) then 
+              call self%addCylinder(sp2(1:3),sp1(1:3),cylr,(/ 0.0, 0.0, 1.0 /),clrs(k))
+            end if 
+          end do
+        end if
+        quarlast = quar 
       end if
-      culast = cu
-      holast = ho
     end do
    end do
 
@@ -1720,31 +1806,84 @@ if (outline.eq.1) then
   end if
 
   if ((rmode.eq.3).or.(rmode.eq.4)) then
+
+
    dx = 1.D0/dble(ns)
    do i=1,dims(2)
     ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d /) )
     ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d /) )
-    culast = ro1%rc()
-    holast = ro1%rh()
-    rolast = ro1
     qu = ro1%rq()
-    splast = qu%qs()
+    qu1 = Quaternion_T( qd = qu%q_copyd())
+    if (num.eq.0) then
+      rolast = ro1
+      splast = qu%qs()
+    else
+      do k=1,num
+        qtmp = qu1 * qAR%getQuatfromArray(slist(k))
+        quarlast(1:4,k) = qtmp%get_quatd()
+        if (quarlast(1,k).lt.0.D0) quarlast(1:4,k) = -quarlast(1:4,k)
+      end do
+    end if
     do j=1,ns+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
       qu = ro%rq()
-      sp = qu%qs()
+      qu2 = Quaternion_T( qd = qu%q_copyd())
+      if (num.eq.0) then 
+        sp = qu%qs()
   ! and create a cylinder with these points
-      if (rmode.eq.3) then
-        call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
-      else
-        aux4a = rolast%r_copyd()
-        aux4b = ro%r_copyd()
-        call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.0, 0.0, 1.0 /))
+        if (rmode.eq.3) then
+          call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+        else
+          aux4a = rolast%r_copyd()
+          aux4b = ro%r_copyd()
+          aux4a(1:3) = aux4a(1:3)*aux4a(4)
+          aux4b(1:3) = aux4b(1:3)*aux4b(4)
+          if ( (maxval(abs(aux4a(1:3))).gt.50.D0).or.(maxval(abs(aux4b(1:3))).gt.50.D0)) then
+            jj=0
+          else
+            call self%addCylinder(aux4a(1:3),aux4b(1:3),cylr,(/ 0.0, 0.0, 1.0 /) )
+          end if
+        end if
+        rolast = ro
+        splast = sp
+      else ! we have an array of fundamental zones to draw 
+        do k=1,num
+          qtmp = qu2 * qAR%getQuatfromArray(slist(k))
+          quar(1:4,k) = qtmp%get_quatd()
+          if (quar(1,k).lt.0.D0) quar(1:4,k) = -quar(1:4,k)
+        end do
+        if (rmode.eq.3) then 
+          do k=1,num
+            splast = s_T( sdinp = quarlast(2:4,k)/ (1.D0 + quarlast(1,k)) )
+            sp = s_T( sdinp = quar(2:4,k)/ (1.D0 + quar(1,k)) )
+            sp1 = sp%s_copyd()
+            sp2 = splast%s_copyd()
+    ! and create a cylinder with these points
+            if ((quarlast(1,k).gt.eps).and.(quar(1,k).gt.eps)) then 
+              call self%addCylinder(sp2(1:3),sp1(1:3),cylr,(/ 0.0, 0.0, 1.0 /),clrs(k))
+            end if
+          end do
+        else
+          do k=1,num
+            if (quarlast(1,k).ne.0.0) then
+              aux4a(1:3) = quarlast(2:4,k)/quarlast(1,k)
+              if (quar(1,k).ne.0.D0) then
+                aux4b(1:3) = quar(2:4,k)/quar(1,k)
+                if ( (maxval(abs(aux4a(1:3))).gt.50.D0).or.(maxval(abs(aux4b(1:3))).gt.50.D0)) then
+                  jj=0
+                else
+                  call self%addCylinder(aux4a(1:3),aux4b(1:3),cylr,(/ 0.0, 0.0, 1.0 /),clrs(k))
+                end if
+              end if 
+            end if 
+          end do
+        end if
+        quarlast = quar 
+        ! rolast = ro
+        ! splast = sp
       end if
-      rolast = ro
-      splast = sp
     end do
    end do
 
@@ -1753,25 +1892,77 @@ if (outline.eq.1) then
      do i=1,dims(3)
       ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d /) )
       ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d /) )
-      rolast = ro1
       qu = ro1%rq()
-      splast = qu%qs()
+      qu1 = Quaternion_T( qd = qu%q_copyd())
+      if (num.eq.0) then
+        rolast = ro1
+        qu = ro1%rq()
+        splast = qu%qs()
+      else
+        do k=1,num
+          qtmp = qu1 * qAR%getQuatfromArray(slist(k))
+          quarlast(1:4,k) = qtmp%get_quatd()
+          if (quarlast(1,k).lt.0.D0) quarlast(1:4,k) = -quarlast(1:4,k)
+        end do
+      end if
       do j=1,nt+1
         aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
         xx = dsqrt( sum (aux(1:3)**2) )
         ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
         qu = ro%rq()
-        sp = qu%qs()
+        qu2 = Quaternion_T( qd = qu%q_copyd())
+        if (num.eq.0) then 
+          sp = qu%qs()
     ! and create a cylinder with these points
-        if (rmode.eq.3) then
-          call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          if (rmode.eq.3) then
+            call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 1.0, 0.0, 0.0 /))
+          else
+            aux4a = rolast%r_copyd()
+            aux4b = ro%r_copyd()
+            aux4a(1:3) = aux4a(1:3)*aux4a(4)
+            aux4b(1:3) = aux4b(1:3)*aux4b(4)
+            if ( (maxval(abs(aux4a(1:3))).gt.50.D0).or.(maxval(abs(aux4b(1:3))).gt.50.D0)) then
+              jj=0
+            else
+              call self%addCylinder(aux4a(1:3),aux4b(1:3),cylr,(/ 1.0, 0.0, 0.0 /))
+            end if
+          end if
+          rolast = ro
+          splast = sp
         else
-          aux4a = rolast%r_copyd()
-          aux4b = ro%r_copyd()
-          call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 1.0, 0.0, 0.0 /))
+          do k=1,num
+            qtmp = qu2 * qAR%getQuatfromArray(slist(k))
+            quar(1:4,k) = qtmp%get_quatd()
+            if (quar(1,k).lt.0.D0) quar(1:4,k) = -quar(1:4,k)
+          end do
+          if (rmode.eq.3) then 
+            do k=1,num
+              splast = s_T( sdinp = quarlast(2:4,k)/ (1.D0 + quarlast(1,k)) )
+              sp = s_T( sdinp = quar(2:4,k)/ (1.D0 + quar(1,k)) )
+              sp1 = sp%s_copyd()
+              sp2 = splast%s_copyd()
+      ! and create a cylinder with these points
+              if ((quarlast(1,k).gt.eps).and.(quar(1,k).gt.eps)) then 
+                call self%addCylinder(sp2(1:3),sp1(1:3),cylr,(/ 0.0, 0.0, 1.0 /),clrs(k))
+              end if
+            end do
+          else
+            do k=1,num
+              if (quarlast(1,k).ne.0.0) then
+                aux4a(1:3) = quarlast(2:4,k)/quarlast(1,k)
+                if (quar(1,k).ne.0.D0) then
+                  aux4b(1:3) = quar(2:4,k)/quar(1,k)
+                  if ( (maxval(abs(aux4a(1:3))).gt.50.D0).or.(maxval(abs(aux4b(1:3))).gt.50.D0)) then
+                    jj=0
+                  else
+                    call self%addCylinder(aux4a(1:3),aux4b(1:3),cylr,(/ 0.0, 0.0, 1.0 /),clrs(k))
+                  end if 
+                end if 
+              end if 
+            end do
+          end if
+          quarlast = quar 
         end if
-        rolast = ro
-        splast = sp
       end do
      end do
    end if

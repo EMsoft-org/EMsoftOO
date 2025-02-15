@@ -47,6 +47,7 @@ type, public :: OrientationVizNameListType
   integer(kind=irg) :: eulerspace
   integer(kind=irg) :: reducetoRFZ
   integer(kind=irg) :: drawRFZoutline
+  integer(kind=irg) :: drawequivRFZoutlines
   integer(kind=irg) :: nx
   integer(kind=irg) :: ny
   integer(kind=irg) :: nz
@@ -54,6 +55,7 @@ type, public :: OrientationVizNameListType
   integer(kind=irg) :: MacKenzieCell
   real(kind=sgl)    :: rgb(3)
   real(kind=sgl)    :: sphrad
+  real(kind=sgl)    :: cylrad
   real(kind=sgl)    :: distance
   character(3)      :: scalingmode
   character(3)      :: mrcmode
@@ -83,6 +85,7 @@ private
   procedure, pass(self) :: get_eulerspace_
   procedure, pass(self) :: get_reducetoRFZ_
   procedure, pass(self) :: get_drawRFZoutline_
+  procedure, pass(self) :: get_drawequivRFZoutlines_
   procedure, pass(self) :: get_nx_
   procedure, pass(self) :: get_ny_
   procedure, pass(self) :: get_nz_
@@ -90,6 +93,7 @@ private
   procedure, pass(self) :: get_MacKenzieCell_
   procedure, pass(self) :: get_rgb_
   procedure, pass(self) :: get_sphrad_
+  procedure, pass(self) :: get_cylrad_
   procedure, pass(self) :: get_distance_
   procedure, pass(self) :: get_scalingmode_
   procedure, pass(self) :: get_mrcmode_
@@ -112,6 +116,7 @@ private
   procedure, pass(self) :: set_MacKenzieCell_
   procedure, pass(self) :: set_rgb_
   procedure, pass(self) :: set_sphrad_
+  procedure, pass(self) :: set_cylrad_
   procedure, pass(self) :: set_distance_
   procedure, pass(self) :: set_scalingmode_
   procedure, pass(self) :: set_mrcmode_
@@ -132,6 +137,7 @@ private
   generic, public :: get_eulerspace => get_eulerspace_
   generic, public :: get_reducetoRFZ => get_reducetoRFZ_
   generic, public :: get_drawRFZoutline => get_drawRFZoutline_
+  generic, public :: get_drawequivRFZoutlines => get_drawequivRFZoutlines_
   generic, public :: get_nx => get_nx_
   generic, public :: get_ny => get_ny_
   generic, public :: get_nz => get_nz_
@@ -139,6 +145,7 @@ private
   generic, public :: get_MacKenzieCell => get_MacKenzieCell_
   generic, public :: get_rgb => get_rgb_
   generic, public :: get_sphrad => get_sphrad_
+  generic, public :: get_cylrad => get_cylrad_
   generic, public :: get_distance => get_distance_
   generic, public :: get_scalingmode => get_scalingmode_
   generic, public :: get_mrcmode => get_mrcmode_
@@ -161,6 +168,7 @@ private
   generic, public :: set_MacKenzieCell => set_MacKenzieCell_
   generic, public :: set_rgb => set_rgb_
   generic, public :: set_sphrad => set_sphrad_
+  generic, public :: set_cylrad => set_cylrad_
   generic, public :: set_distance => set_distance_
   generic, public :: set_scalingmode => set_scalingmode_
   generic, public :: set_mrcmode => set_mrcmode_
@@ -244,6 +252,7 @@ integer(kind=irg) :: stereographic
 integer(kind=irg) :: eulerspace
 integer(kind=irg) :: reducetoRFZ
 integer(kind=irg) :: drawRFZoutline
+integer(kind=irg) :: drawequivRFZoutlines
 integer(kind=irg) :: nx
 integer(kind=irg) :: ny
 integer(kind=irg) :: nz
@@ -251,6 +260,7 @@ integer(kind=irg) :: overridepgnum
 integer(kind=irg) :: MacKenzieCell
 real(kind=sgl)    :: rgb(3)
 real(kind=sgl)    :: sphrad
+real(kind=sgl)    :: cylrad
 real(kind=sgl)    :: distance
 character(3)      :: scalingmode
 character(3)      :: mrcmode
@@ -262,9 +272,9 @@ character(fnlen)  :: povrayfile
 character(fnlen)  :: anglefile
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / EMOrientationViz / cubochoric, homochoric, rodrigues, stereographic, eulerspace, &
+namelist  / EMOrientationViz / cubochoric, homochoric, rodrigues, stereographic, eulerspace, cylrad, &
                                xtalname, povrayfile, anglefile, reducetoRFZ, rgb, sphrad, df3file, &
-                               mrcfile, framemrcfile, mrcmode, drawRFZoutline, &
+                               mrcfile, framemrcfile, mrcmode, drawRFZoutline, drawequivRFZoutlines, &
                                nx, ny, nz, distance, scalingmode, overridepgnum, MacKenzieCell
 
 ! initialize
@@ -275,10 +285,12 @@ stereographic = 0
 eulerspace = 0
 reducetoRFZ = 1
 drawRFZoutline = 1
+drawequivRFZoutlines = 0
 overridepgnum = 0
 MacKenzieCell = 0
 rgb = (/ 0.0, 0.0, 1.0 /)
 sphrad = 0.015
+cylrad = 0.015
 distance = 4.0
 nx = 64
 ny = 64
@@ -333,6 +345,7 @@ self%nml%stereographic = stereographic
 self%nml%eulerspace = eulerspace
 self%nml%reducetoRFZ = reducetoRFZ
 self%nml%drawRFZoutline = drawRFZoutline
+self%nml%drawequivRFZoutlines = drawequivRFZoutlines
 self%nml%nx = nx
 self%nml%ny = ny
 self%nml%nz = nz
@@ -340,6 +353,7 @@ self%nml%overridepgnum = overridepgnum
 self%nml%MacKenzieCell = MacKenzieCell
 self%nml%rgb = rgb
 self%nml%sphrad = sphrad
+self%nml%cylrad = cylrad
 self%nml%distance = distance
 self%nml%scalingmode = scalingmode
 self%nml%mrcmode = mrcmode
@@ -585,6 +599,24 @@ integer(kind=irg)                          :: out
 out = self%nml%drawRFZoutline
 
 end function get_drawRFZoutline_
+
+!--------------------------------------------------------------------------
+function get_drawequivRFZoutlines_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_drawequivRFZoutlines_
+!! author: MDG
+!! version: 1.0
+!! date: 02/14/25
+!!
+!! get drawequivRFZoutlines from the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+integer(kind=irg)                          :: out
+
+out = self%nml%drawequivRFZoutlines
+
+end function get_drawequivRFZoutlines_
 
 !--------------------------------------------------------------------------
 subroutine set_reducetoRFZ_(self,inp)
@@ -855,6 +887,42 @@ real(kind=sgl), INTENT(IN)                 :: inp
 self%nml%sphrad = inp
 
 end subroutine set_sphrad_
+
+!--------------------------------------------------------------------------
+function get_cylrad_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_cylrad_
+!! author: MDG
+!! version: 1.0
+!! date: 03/27/20
+!!
+!! get cylrad from the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+real(kind=sgl)                             :: out
+
+out = self%nml%cylrad
+
+end function get_cylrad_
+
+!--------------------------------------------------------------------------
+subroutine set_cylrad_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_cylrad_
+!! author: MDG
+!! version: 1.0
+!! date: 03/27/20
+!!
+!! set cylrad in the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)                 :: inp
+
+self%nml%cylrad = inp
+
+end subroutine set_cylrad_
 
 !--------------------------------------------------------------------------
 function get_distance_(self) result(out)
@@ -1215,12 +1283,14 @@ type(DirStat_T)         :: dict
 type(so3_T)             :: SO
 type(SpaceGroup_T)      :: SG
 type(cell_T)            :: cell
-type(QuaternionArray_T) :: Pm, dummy
+type(QuaternionArray_T) :: qAR, dummy
 type(r_T)               :: ro
 type(h_T)               :: ho
 type(s_T)               :: st
 type(e_T)               :: eu
 type(c_T)               :: cu
+type(q_T)               :: qu
+type(Quaternion_T)      :: quat
 
 real(kind=dbl)          :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
 integer(kind=irg)       :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
@@ -1289,7 +1359,13 @@ scalefactors(1:3,4) = (/ 2.0/3.0, 2.0/3.0, 2.0/3.0 /)
 scalefactors(1:3,5) = (/ (sqrt(2.0)-1.0)/0.5, (sqrt(2.0)-1.0)/0.5, (sqrt(2.0)-1.0)/0.5 /)
 
 ! get the symmetry operator quaternions for the point group
-call dummy%QSym_Init(pgnum, Pm)
+call dummy%QSym_Init(pgnum, qAR)
+
+num = qAR%getQnumber()
+do i=1,num 
+  quat = qAR%getQuatfromArray(i)
+  write(*,*) i, quat%get_quatd()
+end do 
 
 ! make sure that the outname does not have an extension (no . in the string)
 outname = trim(enl%povrayfile)
@@ -1321,7 +1397,11 @@ locationlineeu = p0//'5.0, 1.0, 0.0>*'//pd
 !===========
 if (enl%cubochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
-    call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline )
+    if (num.eq.0) then 
+      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline )
+    else
+      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline, qAR )
+    end if
   end if
 ! create the rendering volume
   allocate(cuvol(-enl%nx:enl%nx,-enl%ny:enl%ny,-enl%nz:enl%nz),stat=istat)
@@ -1339,7 +1419,11 @@ end if
 !===========
 if (enl%homochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
-    call initFiles(EMsoft, enl, PoVcu, SO, 'ho', outname, dataunit2, locationline )
+    if (num.eq.0) then 
+      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline)
+    else
+      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline, qAR)
+    end if 
   end if
 ! create the rendering volume
   allocate(hovol(-enl%nx:enl%nx,-enl%ny:enl%ny,-enl%nz:enl%nz),stat=istat)
@@ -1357,7 +1441,11 @@ end if
 !===========
 if (enl%rodrigues.ne.0) then
   if (enl%mrcmode.eq.'off') then
-    call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline )
+    if (num.eq.0) then
+      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline)
+    else
+      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline, qAR )
+    end if
   end if
 ! create the rendering volume
   allocate(rovol(-enl%nx:enl%nx,-enl%ny:enl%ny,-enl%nz:enl%nz),stat=istat)
@@ -1377,7 +1465,11 @@ end if
 !==============
 if (enl%stereographic.ne.0) then
   if (enl%mrcmode.eq.'off') then
-    call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline )
+    if (num.eq.0) then 
+      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline)
+    else
+      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline, qAR )
+    end if
   end if
 ! create the rendering volume
   allocate(spvol(-enl%nx:enl%nx,-enl%ny:enl%ny,-enl%nz:enl%nz),stat=istat)
@@ -1391,7 +1483,7 @@ if (enl%stereographic.ne.0) then
 end if
 
 !==============
-! stereographic
+! Euler space
 !==============
 if (enl%eulerspace.ne.0) then
   if (enl%mrcmode.eq.'off') then
@@ -1400,7 +1492,11 @@ if (enl%eulerspace.ne.0) then
     skyline = 'sky <0.0, 1.0, 0.0>'
     PoVeu = PoVRay_T( EMsoft, fname, dunit=dataunit5, nmlfile=EMsoft%nmldeffile, skyline = skyline, &
                       locationline = locationlineeu )
-    call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu )
+    if (num.eq.0) then
+      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu)
+    else
+      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu, qAR )
+    end if 
   end if
 ! create the rendering volume
   allocate(euvol(1:2*enl%nx+1,1:2*enl%ny+1,1:2*enl%nz+1),stat=istat)
@@ -1417,7 +1513,7 @@ fname = EMsoft%generateFilePath('EMdatapathname', enl%anglefile)
 call SO%getOrientationsfromFile(fname)
 ! next, we reduce these orientations to the RFZ or MacKenzie cell
 if (enl%MacKenzieCell.eq.0) then
-  if (enl%reducetoRFZ.eq.1) call SO%ReducelisttoRFZ(Pm)
+  if (enl%reducetoRFZ.eq.1) call SO%ReducelisttoRFZ(qAR)
 else
   call SO%ReducelisttoMFZ(SG)  ! this requires the full crystal point group
 end if
@@ -1463,7 +1559,7 @@ pointloop: do ix = 1,numpoints
       write (dataunit5,"('sphere { <',2(F14.6,','),F14.6,'>,',F6.4,' }')") xyz(1:3) - sh(1:3), enl%sphrad
     end if
 
-  else  ! we're filling up the rendering volume(s)
+  else  ! we are filling up the rendering volume(s)
 
 ! cubochoric rendering volume
     if (enl%cubochoric.ne.0) then
@@ -1564,7 +1660,7 @@ if (enl%mrcmode.eq.'off') then
     write (dataunit4,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
     write (dataunit4,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
     call PoVst%closeFile()
-    call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-sp.pov')
+    call Message%printMessage('PoVray rendering script stored in '//trim(outname)//'-st.pov')
   end if
 
   if (enl%eulerspace.ne.0) then
@@ -1672,7 +1768,7 @@ end subroutine OrientationViz_
 
 
 !--------------------------------------------------------------------------
-subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit, locationline)
+subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit, locationline, qAR)
 !DEC$ ATTRIBUTES DLLEXPORT :: initFiles
 !! author: MDG
 !! version: 1.0
@@ -1684,6 +1780,7 @@ use mod_EMsoft
 use mod_io
 use mod_povray
 use mod_so3
+use mod_quaternions
 
 IMPLICIT NONE
 
@@ -1695,11 +1792,13 @@ type(so3_T),INTENT(INOUT)                         :: SO
 character(fnlen),INTENT(IN)                       :: outname
 integer(kind=irg),INTENT(IN)                      :: dunit
 character(fnlen),INTENT(IN)                       :: locationline
+type(QuaternionArray_T),INTENT(INOUT),OPTIONAL    :: qAR
 
 type(IO_T)                                        :: Message
 character(fnlen)                                  :: fname, DF3name
-logical                                           :: drawMK = .FALSE.
+logical                                           :: drawMK = .FALSE., drawEQ = .FALSE.
 integer(kind=irg)                                 :: dFZ
+real(kind=dbl)                                    :: cylr
 
 drawMK = SO%getMK()
 
@@ -1721,9 +1820,57 @@ call Message%printMessage('opening '//trim(fname))
 if (rep.ne.'eu') then
   PoV = PoVRay_T( EMsoft, fname, dunit=dunit, nmlfile=EMsoft%nmldeffile, locationline=locationline )
 end if
+
+! output the color definitions for equivalent RFZ drawings
+if (present(qAR)) then 
+    write (dunit,"('#declare c1a =  color rgb <  1.00,  0.00,  0.00>;')")
+    write (dunit,"('#declare c1b =  color rgb <  1.00,  0.31,  0.31>;')")
+    write (dunit,"('#declare c1c =  color rgb <  1.00,  0.63,  0.63>;')")
+    write (dunit,"('#declare c2a =  color rgb <  0.00,  0.88,  0.00>;')")
+    write (dunit,"('#declare c2b =  color rgb <  0.31,  1.00,  0.31>;')")
+    write (dunit,"('#declare c2c =  color rgb <  0.63,  1.00,  0.63>;')")
+    write (dunit,"('#declare c3a =  color rgb <  0.88,  0.88,  0.00>;')")
+    write (dunit,"('#declare c3b =  color rgb <  0.96,  0.96,  0.31>;')")
+    write (dunit,"('#declare c3c =  color rgb <  1.00,  1.00,  0.78>;')")
+    write (dunit,"('#declare c4a =  color rgb <  0.00,  0.00,  1.00>;')")
+    write (dunit,"('#declare c4b =  color rgb <  0.31,  0.31,  1.00>;')")
+    write (dunit,"('#declare c4c =  color rgb <  0.63,  0.63,  1.00>;')")
+    write (dunit,"('#declare c01 =  color rgb <  1.00,  0.00,  0.00>;')")
+    write (dunit,"('#declare c02 =  color rgb <  0.00,  0.88,  0.00>;')")
+    write (dunit,"('#declare c03 =  color rgb <  0.88,  0.88,  0.00>;')")
+    write (dunit,"('#declare c04 =  color rgb <  0.00,  0.00,  1.00>;')")
+    write (dunit,"('#declare c05 =  color rgb <  0.96,  0.96,  0.31>;')")
+    write (dunit,"('#declare c06 =  color rgb <  0.63,  0.63,  1.00>;')")
+    write (dunit,"('#declare c07 =  color rgb <  0.00,  0.88,  0.00>;')")
+    write (dunit,"('#declare c08 =  color rgb <  0.31,  0.31,  1.00>;')")
+    write (dunit,"('#declare c09 =  color rgb <  0.63,  1.00,  0.63>;')")
+    write (dunit,"('#declare c10 =  color rgb <  0.88,  0.88,  0.00>;')")
+    write (dunit,"('#declare c11 =  color rgb <  0.00,  0.00,  1.00>;')")
+    write (dunit,"('#declare c12 =  color rgb <  1.00,  0.00,  0.00>;')")
+    write (dunit,"('#declare c13 =  color rgb <  0.31,  1.00,  0.31>;')")
+    write (dunit,"('#declare c14 =  color rgb <  1.00,  0.31,  0.31>;')")
+    write (dunit,"('#declare c15 =  color rgb <  1.00,  1.00,  0.78>;')")
+    write (dunit,"('#declare c16 =  color rgb <  1.00,  0.63,  0.63>;')")
+    write (dunit,"('#declare c17 =  color rgb <  1.00,  0.63,  0.63>;')")
+    write (dunit,"('#declare c18 =  color rgb <  1.00,  0.31,  0.31>;')")
+    write (dunit,"('#declare c19 =  color rgb <  0.31,  0.31,  1.00>;')")
+    write (dunit,"('#declare c20 =  color rgb <  0.63,  1.00,  0.63>;')")
+    write (dunit,"('#declare c21 =  color rgb <  0.96,  0.96,  0.31>;')")
+    write (dunit,"('#declare c22 =  color rgb <  0.63,  0.63,  1.00>;')")
+    write (dunit,"('#declare c23 =  color rgb <  1.00,  1.00,  0.78>;')")
+    write (dunit,"('#declare c24 =  color rgb <  0.31,  1.00,  0.31>;')")
+end if 
+
+cylr = dble(enl%cylrad)
+
 if (trim(enl%df3file).eq.'undefined') then
 ! we're just going to draw a bunch of spheres, so put them together in a PoVRay union
-  call PoV%drawFZ(SO, dFZ, 0.005D0, enl%drawRFZoutline)
+! first we check whether or not we need to draw the RFZ in single mode or in multiple equivalent mode
+  if (enl%drawequivRFZoutlines.eq.1) then 
+    call PoV%drawFZ(SO, dFZ, cylr, enl%drawRFZoutline, qAR)
+  else
+    call PoV%drawFZ(SO, dFZ, cylr, enl%drawRFZoutline)
+  end if
 ! open the union here
   write (dunit,"('union { ')")
 else
@@ -1734,7 +1881,7 @@ else
   else
     call PoV%declare_DF3file(df3name)
   end if
-  call PoV%drawFZ(SO, dFZ, 0.005D0, enl%drawRFZoutline)
+  call PoV%drawFZ(SO, dFZ, cylr, enl%drawRFZoutline)
 end if
 
 end subroutine initFiles
