@@ -33,6 +33,9 @@
 ! [experimental] draw all equivalent RFZs in different colors; supercedes drawRFZoutline
 ! this option is currently not available for the Euler space representation
  drawequivRFZoutlines = 1,
+! offset factor; if 0.0, then all outlines coincide, set this to a small positive value
+! to offset the edges of the equivalent FZs so that the colors are continuous
+ FZoffset = 0.0,
 ! override the point group number read from the xtal file ?  0 for no, new pgnum for yes
  overridepgnum = 0,
 !==================== the following parameters are needed for PoVray output only
@@ -42,6 +45,10 @@
  sphrad = 0.015,
 ! cylinder radius for FZ outlines (0.015 or smaller produces reasonable results) 
  cylrad = 0.015,
+! set the location (viewpoint); if left to 0.0,0.0,0.0 then a default is used that 
+! involves the PoVray clock parameter ... if this is set then it will override the 
+! distance parameter.
+ location = 0.0, 0.0, 0.0,
 ! distance parameter; 4.0 is good for overall view, 1.5-2.0 for zoom; will be multiplied by 10 for euler space
  distance = 2.0,
 ! data scaling 'lin' for linear, 'log' for log10, 'lev' for discrete level contours (includes 'log')

@@ -54,8 +54,10 @@ type, public :: OrientationVizNameListType
   integer(kind=irg) :: overridepgnum
   integer(kind=irg) :: MacKenzieCell
   real(kind=sgl)    :: rgb(3)
+  real(kind=sgl)    :: location(3)
   real(kind=sgl)    :: sphrad
   real(kind=sgl)    :: cylrad
+  real(kind=sgl)    :: FZoffset
   real(kind=sgl)    :: distance
   character(3)      :: scalingmode
   character(3)      :: mrcmode
@@ -92,8 +94,10 @@ private
   procedure, pass(self) :: get_overridepgnum_
   procedure, pass(self) :: get_MacKenzieCell_
   procedure, pass(self) :: get_rgb_
+  procedure, pass(self) :: get_location_
   procedure, pass(self) :: get_sphrad_
   procedure, pass(self) :: get_cylrad_
+  procedure, pass(self) :: get_FZoffset_
   procedure, pass(self) :: get_distance_
   procedure, pass(self) :: get_scalingmode_
   procedure, pass(self) :: get_mrcmode_
@@ -115,8 +119,10 @@ private
   procedure, pass(self) :: set_overridepgnum_
   procedure, pass(self) :: set_MacKenzieCell_
   procedure, pass(self) :: set_rgb_
+  procedure, pass(self) :: set_location_
   procedure, pass(self) :: set_sphrad_
   procedure, pass(self) :: set_cylrad_
+  procedure, pass(self) :: set_FZoffset_
   procedure, pass(self) :: set_distance_
   procedure, pass(self) :: set_scalingmode_
   procedure, pass(self) :: set_mrcmode_
@@ -144,8 +150,10 @@ private
   generic, public :: get_overridepgnum => get_overridepgnum_
   generic, public :: get_MacKenzieCell => get_MacKenzieCell_
   generic, public :: get_rgb => get_rgb_
+  generic, public :: get_location => get_location_
   generic, public :: get_sphrad => get_sphrad_
   generic, public :: get_cylrad => get_cylrad_
+  generic, public :: get_FZoffset => get_FZoffset_
   generic, public :: get_distance => get_distance_
   generic, public :: get_scalingmode => get_scalingmode_
   generic, public :: get_mrcmode => get_mrcmode_
@@ -167,8 +175,10 @@ private
   generic, public :: set_overridepgnum => set_overridepgnum_
   generic, public :: set_MacKenzieCell => set_MacKenzieCell_
   generic, public :: set_rgb => set_rgb_
+  generic, public :: set_location => set_location_
   generic, public :: set_sphrad => set_sphrad_
   generic, public :: set_cylrad => set_cylrad_
+  generic, public :: set_FZoffset => set_FZoffset_
   generic, public :: set_distance => set_distance_
   generic, public :: set_scalingmode => set_scalingmode_
   generic, public :: set_mrcmode => set_mrcmode_
@@ -259,8 +269,10 @@ integer(kind=irg) :: nz
 integer(kind=irg) :: overridepgnum
 integer(kind=irg) :: MacKenzieCell
 real(kind=sgl)    :: rgb(3)
+real(kind=sgl)    :: location(3)
 real(kind=sgl)    :: sphrad
 real(kind=sgl)    :: cylrad
+real(kind=sgl)    :: FZoffset
 real(kind=sgl)    :: distance
 character(3)      :: scalingmode
 character(3)      :: mrcmode
@@ -273,9 +285,9 @@ character(fnlen)  :: anglefile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EMOrientationViz / cubochoric, homochoric, rodrigues, stereographic, eulerspace, cylrad, &
-                               xtalname, povrayfile, anglefile, reducetoRFZ, rgb, sphrad, df3file, &
+                               xtalname, povrayfile, anglefile, reducetoRFZ, rgb, sphrad, df3file, location, &
                                mrcfile, framemrcfile, mrcmode, drawRFZoutline, drawequivRFZoutlines, &
-                               nx, ny, nz, distance, scalingmode, overridepgnum, MacKenzieCell
+                               nx, ny, nz, distance, scalingmode, overridepgnum, MacKenzieCell, FZoffset
 
 ! initialize
 cubochoric = 0
@@ -289,8 +301,10 @@ drawequivRFZoutlines = 0
 overridepgnum = 0
 MacKenzieCell = 0
 rgb = (/ 0.0, 0.0, 1.0 /)
+location = (/ 0.0, 0.0, 0.0 /)
 sphrad = 0.015
 cylrad = 0.015
+FZoffset = 0.02
 distance = 4.0
 nx = 64
 ny = 64
@@ -352,8 +366,10 @@ self%nml%nz = nz
 self%nml%overridepgnum = overridepgnum
 self%nml%MacKenzieCell = MacKenzieCell
 self%nml%rgb = rgb
+self%nml%location = location
 self%nml%sphrad = sphrad
 self%nml%cylrad = cylrad
+self%nml%FZoffset = FZoffset
 self%nml%distance = distance
 self%nml%scalingmode = scalingmode
 self%nml%mrcmode = mrcmode
@@ -853,6 +869,42 @@ self%nml%rgb = inp
 end subroutine set_rgb_
 
 !--------------------------------------------------------------------------
+function get_location_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_location_
+!! author: MDG
+!! version: 1.0
+!! date: 03/27/20
+!!
+!! get location from the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+real(kind=sgl)                             :: out(3)
+
+out = self%nml%location
+
+end function get_location_
+
+!--------------------------------------------------------------------------
+subroutine set_location_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_location_
+!! author: MDG
+!! version: 1.0
+!! date: 03/27/20
+!!
+!! set location(3) in the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)                 :: inp(3)
+
+self%nml%location = inp
+
+end subroutine set_location_
+
+!--------------------------------------------------------------------------
 function get_sphrad_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_sphrad_
 !! author: MDG
@@ -923,6 +975,42 @@ real(kind=sgl), INTENT(IN)                 :: inp
 self%nml%cylrad = inp
 
 end subroutine set_cylrad_
+
+!--------------------------------------------------------------------------
+function get_FZoffset_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_FZoffset_
+!! author: MDG
+!! version: 1.0
+!! date: 03/27/20
+!!
+!! get FZoffset from the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+real(kind=sgl)                             :: out
+
+out = self%nml%FZoffset
+
+end function get_FZoffset_
+
+!--------------------------------------------------------------------------
+subroutine set_FZoffset_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_FZoffset_
+!! author: MDG
+!! version: 1.0
+!! date: 03/27/20
+!!
+!! set FZoffset in the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)                 :: inp
+
+self%nml%FZoffset= inp
+
+end subroutine set_FZoffset_
 
 !--------------------------------------------------------------------------
 function get_distance_(self) result(out)
@@ -1374,21 +1462,32 @@ if ((index(trim(outname),'.').ne.0).and.(index(trim(outname),'.').gt.20)) then
 end if
 outname = EMsoft%generateFilePath('EMdatapathname', enl%povrayfile)
 
-! generate the locationline parameters for PoVRay rendering
-dd = enl%distance
-eyepos = (/ 0.387, 0.825, 0.412 /)
-eyepos = eyepos/sqrt( sum( eyepos*eyepos))
-write (px,"(F9.3)") eyepos(1)
-write (py,"(F9.3)") eyepos(2)
-write (pz,"(F9.3)") eyepos(3)
-write (pd,"(F9.3)") dd
-
+! set the location of the camera
 p0 = "location < "
-p1 = "*cos(clock*0.0174533)"
-p2 = "*sin(clock*0.0174533)"
-
-locationline = p0//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1//","//pz//">*"//pd
+dd = enl%distance
+write (pd,"(F9.3)") dd
 locationlineeu = p0//'5.0, 1.0, 0.0>*'//pd
+
+if (sum(abs(enl%location)).eq.0.0) then
+
+! generate the locationline parameters for PoVRay rendering; this is the default
+! when enl%location is not set... it allows for movie rendering with the "clock" parameter
+  eyepos = (/ 0.387, 0.825, 0.412 /)
+  eyepos = eyepos/sqrt( sum( eyepos*eyepos))
+  write (px,"(F9.3)") eyepos(1)
+  write (py,"(F9.3)") eyepos(2)
+  write (pz,"(F9.3)") eyepos(3)
+
+  p1 = "*cos(clock*0.0174533)"
+  p2 = "*sin(clock*0.0174533)"
+
+  locationline = p0//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1//","//pz//">*"//pd
+else
+  write (px,"(F9.3)") enl%location(1)
+  write (py,"(F9.3)") enl%location(2)
+  write (pz,"(F9.3)") enl%location(3)
+  locationline = p0//px//","//py//","//pz//">"
+end if
 
 ! PoVRay/DF3 initializations  (this opens the file, sets the camera and light source
 ! and allocates the rendering volume)
@@ -1867,7 +1966,7 @@ if (trim(enl%df3file).eq.'undefined') then
 ! we're just going to draw a bunch of spheres, so put them together in a PoVRay union
 ! first we check whether or not we need to draw the RFZ in single mode or in multiple equivalent mode
   if (enl%drawequivRFZoutlines.eq.1) then 
-    call PoV%drawFZ(SO, dFZ, cylr, enl%drawRFZoutline, qAR)
+    call PoV%drawFZ(SO, dFZ, cylr, enl%drawRFZoutline, qAR, enl%FZoffset)
   else
     call PoV%drawFZ(SO, dFZ, cylr, enl%drawRFZoutline)
   end if

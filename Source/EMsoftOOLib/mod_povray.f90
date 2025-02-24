@@ -1511,7 +1511,7 @@ end if
 end subroutine getpos_FZ222_
 
 !--------------------------------------------------------------------------
-recursive subroutine drawFZ_(self, SO, rmode, cylr, outline, qAR)
+recursive subroutine drawFZ_(self, SO, rmode, cylr, outline, qAR, FZoffset)
 !DEC$ ATTRIBUTES DLLEXPORT :: drawFZ_
  !! author: MDG
  !! version: 1.0
@@ -1541,6 +1541,7 @@ real(kind=dbl),INTENT(INOUT)          :: cylr
  !! cylinder radius
 integer(kind=irg),INTENT(IN)          :: outline
 type(QuaternionArray_T),INTENT(INOUT),OPTIONAL  :: qAR
+real(kind=sgl),INTENT(IN),OPTIONAL    :: FZoffset
 
 type(e_T)                             :: eul, eu, euld, eulast
 type(r_T)                             :: ro1, ro2, ro, rolast, ron
@@ -1672,7 +1673,7 @@ end if
 
 ! this is to slightly separate the zones from each other 
 ! when all equivalent FZs are drawn
-if (num.ne.0) cpos = 0.97 * cpos    
+if (num.ne.0) cpos = (1.0-FZoffset) * cpos    
 
 ! add the reference frame and any necessary wireframes
 if (rmode.eq.1) then

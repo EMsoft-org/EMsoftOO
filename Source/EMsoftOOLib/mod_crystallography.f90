@@ -565,6 +565,33 @@ real(kind=dbl)                          :: oi_real(5)
  call Message%WriteValue('  gamma [deg]        : ', oi_real, 1, "(F9.5)")
  oi_real(1) = self%vol
  call Message%WriteValue('  Volume [nm^3]      : ', oi_real, 1, "(F12.8)")
+
+ call Message%printMessage('----------metric information---------', frm = "(/A/)")
+ call Message%printMessage(' Direct Metric Tensor: ', frm = "(A)")
+ do i=1,3
+    oi_real(1:3) = self%dmt(i,1:3)
+    call Message%WriteValue('', oi_real, 3)
+ end do
+  call Message%printMessage('', frm = "(A)")
+ call Message%printMessage(' Reciprocal Metric Tensor: ', frm = "(A)")
+ do i=1,3
+    oi_real(1:3) = self%rmt(i,1:3)
+    call Message%WriteValue('', oi_real, 3)
+ end do
+ call Message%printMessage('', frm = "(A)")
+ call Message%printMessage(' Direct Structure Matrix: ', frm = "(A)")
+ do i=1,3
+    oi_real(1:3) = self%dsm(i,1:3)
+    call Message%WriteValue('', oi_real, 3)
+ end do
+ call Message%printMessage('', frm = "(A)")
+ call Message%printMessage(' Reciprocal Structure Matrix: ', frm = "(A)")
+ do i=1,3
+    oi_real(1:3) = self%rsm(i,1:3)
+    call Message%WriteValue('', oi_real, 3)
+ end do
+
+ call Message%printMessage('----------Symmetry information---------', frm = "(/A/)")
  oi_int(1) = SG%getSpaceGroupNumber()
  call Message%WriteValue('  Space group #      : ', oi_int, 1, "(1x,I3)")
  if (SG%getuseHallSG().eqv..TRUE.) then 
