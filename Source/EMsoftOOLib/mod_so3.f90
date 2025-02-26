@@ -1983,7 +1983,7 @@ end do
 end subroutine SampleIsoMisorientation_
 
 !--------------------------------------------------------------------------
-recursive subroutine getOrientationsfromFile_(self, filename, listN)
+recursive subroutine getOrientationsfromFile_(self, filename, listN, qrot)
 !DEC$ ATTRIBUTES DLLEXPORT :: getOrientationsfromFile_
   !! author: MDG
   !! version: 1.0
@@ -1998,6 +1998,7 @@ recursive subroutine getOrientationsfromFile_(self, filename, listN)
   !! filename.ang or filename.ctf: EBSD vendor formatted files
 
 use mod_io
+use mod_quaternions
 
 IMPLICIT NONE
 
@@ -2006,6 +2007,7 @@ class(so3_T),INTENT(INOUT)              :: self
 character(fnlen),INTENT(IN)             :: filename
  !! complete path to input file name
 integer(kind=irg),INTENT(IN),OPTIONAL   :: listN 
+type(Quaternion_T),INTENT(IN),OPTIONAL  :: qrot
 
 type(e_T)                               :: e
 type(o_T)                               :: o
@@ -2017,6 +2019,7 @@ type(c_T)                               :: c
 type(s_T)                               :: s
 type(v_T)                               :: v
 type(IO_T)                              :: Message
+type(Quaternion_T)                      :: qin, qout
 
 character(2)                            :: anglemode
 integer(kind=irg)                       :: numang, i, ipf_wd, ipf_ht, sz(2) 
@@ -2256,6 +2259,20 @@ else
 end if 
 
 if (fread.eqv..FALSE.) call Message%printError('getOrientationsfromFile',' unknown angle file format')
+
+! do we need to pre-rotate all the data? optional parameter quat
+if (present(qrot)) then
+  call Message%printMessage(' rotating all orientations by q_rotate_data ')
+  FZtmp => self%FZlist
+  do i=1,self%FZcnt 
+    qin = Quaternion_T( qd=FZtmp%qu%q_copyd() )
+    qout = qrot * qin * conjg(qrot)
+    call qout%quat_pos()
+    FZtmp%qu = q_T( qdinp = qout%get_quatd() )
+    FZtmp%rod = FZtmp%qu%qr() 
+    FZtmp => FZtmp%next
+  end do
+end if 
 
 end subroutine getOrientationsfromFile_
 

@@ -38,6 +38,14 @@
  FZoffset = 0.0,
 ! override the point group number read from the xtal file ?  0 for no, new pgnum for yes
  overridepgnum = 0,
+! should we rotate the data before displaying it?  If so, set the first axis angle pair to 
+! something other than the identity rotation. [angle in degrees] You can concatenate 
+! up to three consecutive rotations in the order 1, 2, 3; this allows you to perform
+! any Euler or Tait-Bryant rotation by selecting the appropriate order of cartesian
+! axis rotations.
+ a_rotate_data1 = 0.0 0.0 1.0 0.0, 
+ a_rotate_data2 = 0.0 0.0 1.0 0.0, 
+ a_rotate_data3 = 0.0 0.0 1.0 0.0, 
 !==================== the following parameters are needed for PoVray output only
 ! RGB color triplet for the spheres
  rgb = 0.0, 0.0, 1.0,

@@ -55,6 +55,9 @@ type, public :: OrientationVizNameListType
   integer(kind=irg) :: MacKenzieCell
   real(kind=sgl)    :: rgb(3)
   real(kind=sgl)    :: location(3)
+  real(kind=sgl)    :: a_rotate_data1(4)
+  real(kind=sgl)    :: a_rotate_data2(4)
+  real(kind=sgl)    :: a_rotate_data3(4)
   real(kind=sgl)    :: sphrad
   real(kind=sgl)    :: cylrad
   real(kind=sgl)    :: FZoffset
@@ -95,6 +98,7 @@ private
   procedure, pass(self) :: get_MacKenzieCell_
   procedure, pass(self) :: get_rgb_
   procedure, pass(self) :: get_location_
+  procedure, pass(self) :: get_arotatedata_
   procedure, pass(self) :: get_sphrad_
   procedure, pass(self) :: get_cylrad_
   procedure, pass(self) :: get_FZoffset_
@@ -120,6 +124,7 @@ private
   procedure, pass(self) :: set_MacKenzieCell_
   procedure, pass(self) :: set_rgb_
   procedure, pass(self) :: set_location_
+  procedure, pass(self) :: set_arotatedata_
   procedure, pass(self) :: set_sphrad_
   procedure, pass(self) :: set_cylrad_
   procedure, pass(self) :: set_FZoffset_
@@ -151,6 +156,7 @@ private
   generic, public :: get_MacKenzieCell => get_MacKenzieCell_
   generic, public :: get_rgb => get_rgb_
   generic, public :: get_location => get_location_
+  generic, public :: get_arotatedata => get_arotatedata_
   generic, public :: get_sphrad => get_sphrad_
   generic, public :: get_cylrad => get_cylrad_
   generic, public :: get_FZoffset => get_FZoffset_
@@ -176,6 +182,7 @@ private
   generic, public :: set_MacKenzieCell => set_MacKenzieCell_
   generic, public :: set_rgb => set_rgb_
   generic, public :: set_location => set_location_
+  generic, public :: set_arotatedata => set_arotatedata_
   generic, public :: set_sphrad => set_sphrad_
   generic, public :: set_cylrad => set_cylrad_
   generic, public :: set_FZoffset => set_FZoffset_
@@ -270,6 +277,9 @@ integer(kind=irg) :: overridepgnum
 integer(kind=irg) :: MacKenzieCell
 real(kind=sgl)    :: rgb(3)
 real(kind=sgl)    :: location(3)
+real(kind=sgl)    :: a_rotate_data1(4)
+real(kind=sgl)    :: a_rotate_data2(4)
+real(kind=sgl)    :: a_rotate_data3(4)
 real(kind=sgl)    :: sphrad
 real(kind=sgl)    :: cylrad
 real(kind=sgl)    :: FZoffset
@@ -286,8 +296,9 @@ character(fnlen)  :: anglefile
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EMOrientationViz / cubochoric, homochoric, rodrigues, stereographic, eulerspace, cylrad, &
                                xtalname, povrayfile, anglefile, reducetoRFZ, rgb, sphrad, df3file, location, &
-                               mrcfile, framemrcfile, mrcmode, drawRFZoutline, drawequivRFZoutlines, &
-                               nx, ny, nz, distance, scalingmode, overridepgnum, MacKenzieCell, FZoffset
+                               mrcfile, framemrcfile, mrcmode, drawRFZoutline, drawequivRFZoutlines, a_rotate_data1, &
+                               nx, ny, nz, distance, scalingmode, overridepgnum, MacKenzieCell, FZoffset, &
+                               a_rotate_data2, a_rotate_data3
 
 ! initialize
 cubochoric = 0
@@ -302,6 +313,9 @@ overridepgnum = 0
 MacKenzieCell = 0
 rgb = (/ 0.0, 0.0, 1.0 /)
 location = (/ 0.0, 0.0, 0.0 /)
+a_rotate_data1 = (/ 0.0, 0.0, 1.0, 0.0 /)
+a_rotate_data2 = (/ 0.0, 0.0, 1.0, 0.0 /)
+a_rotate_data3 = (/ 0.0, 0.0, 1.0, 0.0 /)
 sphrad = 0.015
 cylrad = 0.015
 FZoffset = 0.02
@@ -367,6 +381,9 @@ self%nml%overridepgnum = overridepgnum
 self%nml%MacKenzieCell = MacKenzieCell
 self%nml%rgb = rgb
 self%nml%location = location
+self%nml%a_rotate_data1 = a_rotate_data1
+self%nml%a_rotate_data2 = a_rotate_data2
+self%nml%a_rotate_data3 = a_rotate_data3
 self%nml%sphrad = sphrad
 self%nml%cylrad = cylrad
 self%nml%FZoffset = FZoffset
@@ -893,7 +910,7 @@ subroutine set_location_(self,inp)
 !! version: 1.0
 !! date: 03/27/20
 !!
-!! set location(3) in the OrientationViz_T class
+!! set location in the OrientationViz_T class
 
 IMPLICIT NONE
 
@@ -903,6 +920,78 @@ real(kind=sgl), INTENT(IN)                 :: inp(3)
 self%nml%location = inp
 
 end subroutine set_location_
+
+!--------------------------------------------------------------------------
+function get_arotatedata_(self, k) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_arotatedata_
+!! author: MDG
+!! version: 1.0
+!! date: 03/27/20
+!!
+!! get arotatedata from the OrientationViz_T class
+
+use mod_IO
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+integer(kind=irg),INTENT(IN),OPTIONAL      :: k
+real(kind=sgl)                             :: out(4)
+
+type(IO_T)                                 :: Message
+
+if (present(k)) then 
+  select case(k)
+    case(1)
+      out = self%nml%a_rotate_data1
+    case(2)
+      out = self%nml%a_rotate_data2
+    case(3)
+      out = self%nml%a_rotate_data3
+    case default
+      call Message%printError('get_arotatedata_',' value of k outside of range [1..3]')
+  end select
+else
+  out = self%nml%a_rotate_data1
+end if
+
+end function get_arotatedata_
+
+!--------------------------------------------------------------------------
+subroutine set_arotatedata_(self,inp, k)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_arotatedata_
+!! author: MDG
+!! version: 1.0
+!! date: 03/27/20
+!!
+!! set arotatedata in the OrientationViz_T class
+
+use mod_IO 
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)                 :: inp(4)
+integer(kind=irg),INTENT(IN),OPTIONAL      :: k
+
+type(IO_T)                                 :: Message
+
+if (present(k)) then
+    select case(k)
+    case(1)
+      self%nml%a_rotate_data1 = inp
+    case(2)
+      self%nml%a_rotate_data2 = inp
+    case(3)
+      self%nml%a_rotate_data3 = inp
+    case default
+      call Message%printError('set_arotatedata_',' value of k outside of range [1..3]')
+  end select
+else
+  self%nml%a_rotate_data1 = inp
+end if
+ 
+end subroutine set_arotatedata_
 
 !--------------------------------------------------------------------------
 function get_sphrad_(self) result(out)
@@ -1377,8 +1466,9 @@ type(h_T)               :: ho
 type(s_T)               :: st
 type(e_T)               :: eu
 type(c_T)               :: cu
-type(q_T)               :: qu
-type(Quaternion_T)      :: quat
+type(q_T)               :: qu, q
+type(a_T)               :: a
+type(Quaternion_T)      :: quat, qrot1, qrot2, qrot3
 
 real(kind=dbl)          :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
 integer(kind=irg)       :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
@@ -1609,7 +1699,27 @@ end if
 
 ! data file of orientations, convert the orientations to the RFZ
 fname = EMsoft%generateFilePath('EMdatapathname', enl%anglefile)
-call SO%getOrientationsfromFile(fname)
+
+! do we need to rotate all the data before displaying it?
+if (enl%a_rotate_data1(4).ne.0.0) then 
+  a = a_T( adinp = (/ dble(enl%a_rotate_data1(1:3)),dble(enl%a_rotate_data1(4)*dtor) /) )
+  q = a%aq()
+  qrot1 = Quaternion_T( qd = q%q_copyd() )
+  if (enl%a_rotate_data2(4).ne.0.0) then 
+    a = a_T( adinp = (/ dble(enl%a_rotate_data2(1:3)),dble(enl%a_rotate_data2(4)*dtor) /) )
+    q = a%aq()
+    qrot1 = Quaternion_T( qd = q%q_copyd() ) * qrot1
+  end if
+  if (enl%a_rotate_data3(4).ne.0.0) then 
+    a = a_T( adinp = (/ dble(enl%a_rotate_data3(1:3)),dble(enl%a_rotate_data3(4)*dtor) /) )
+    q = a%aq()
+    qrot1 = Quaternion_T( qd = q%q_copyd() ) * qrot1
+  end if
+  call SO%getOrientationsfromFile(fname, qrot = qrot1 )
+else
+  call SO%getOrientationsfromFile(fname)
+end if
+
 ! next, we reduce these orientations to the RFZ or MacKenzie cell
 if (enl%MacKenzieCell.eq.0) then
   if (enl%reducetoRFZ.eq.1) call SO%ReducelisttoRFZ(qAR)

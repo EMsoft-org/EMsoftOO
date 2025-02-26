@@ -287,14 +287,6 @@ logical                         :: itsopen
 
 call reportDestructor('MRC_T')
 
-! if the MRC uit is still open, close it here
-inquire(unit=self%Unit_No, opened=itsopen)
-
-if (itsopen.eqv..TRUE.) then
-  close(unit=self%Unit_No, status='keep')
-  call Message%printMessage(' Closed MRC file '//trim(self%mrcname))
-end if
-
 end subroutine MRC_destructor
 
 !--------------------------------------------------------------------------
