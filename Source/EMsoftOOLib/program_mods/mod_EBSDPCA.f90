@@ -646,7 +646,7 @@ type(r_T)                                           :: ro
 type(SpaceGroup_T)                                  :: SG
 type(Cell_T)                                        :: cell
 
-integer(kind=irg)                                   :: num,ierr,irec,istat, jpar(7), SGnum, nlines
+integer(kind=irg)                                   :: num,ierr,irec,istat, jpar(8), SGnum, nlines
 integer(kind=irg),parameter                         :: iunit = 40
 integer(kind=irg),parameter                         :: iunitexpt = 41
 integer(kind=irg),parameter                         :: iunitdict = 42

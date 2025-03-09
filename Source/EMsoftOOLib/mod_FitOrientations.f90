@@ -141,7 +141,7 @@ integer(kind=irg),allocatable           :: img1(:), img2(:)
 
 ! other variables
 real(kind=sgl), allocatable             :: EBSDvector(:)
-integer(kind=irg)                       :: i, j, istat, jpar(7)
+integer(kind=irg)                       :: i, j, istat, jpar(8)
 
 logical                                 :: stat, readonly
 integer(kind=irg)                       :: hdferr, nlines

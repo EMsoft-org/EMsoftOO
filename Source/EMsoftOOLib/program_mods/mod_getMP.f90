@@ -372,12 +372,14 @@ modality = trim(MPFT%getModality())
 call Message%printMessage(' Master Pattern modality : '//trim(modality))
 
 ! 1. read Monte Carlo data so that we can compute the energy-weighted master pattern
-call HDFnames%set_ProgramData(SC_MCOpenCL)
-call HDFnames%set_NMLlist(SC_MCCLNameList)
-call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
-fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%masterfile))
-call MCFT%setFileName(fname)
-call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
+if (trim(modality).ne.'Kossel') then 
+  call HDFnames%set_ProgramData(SC_MCOpenCL)
+  call HDFnames%set_NMLlist(SC_MCCLNameList)
+  call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
+  fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%masterfile))
+  call MCFT%setFileName(fname)
+  call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
+end if 
 
 ! 2. read the master pattern file
 if (trim(modality).eq.'TKD') then
@@ -394,6 +396,11 @@ if (trim(modality).eq.'ECP') then
   call HDFnames%set_ProgramData(SC_ECPmaster)
   call HDFnames%set_NMLlist(SC_ECPmasterNameList)
   call HDFnames%set_NMLfilename(SC_ECPmasterNML)
+end if
+if (trim(modality).eq.'Kossel') then
+  call HDFnames%set_ProgramData(SC_Kosselmaster)
+  call HDFnames%set_NMLlist(SC_KosselmasterNameList)
+  call HDFnames%set_NMLfilename(SC_KosselmasterNML)
 end if
 if (trim(modality).eq.'Overlap') then
   call HDFnames%set_ProgramData(SC_MPoverlap)
@@ -413,12 +420,14 @@ call MPFT%readMPfile(HDF, HDFnames, mpnl, &
 ! ! first make sure that we do some appropriate energy weighting to make the master patterns 2D instead of 3D
 ! ! sum MC counts over rectangle [-1/2,1/2] and [-1,-1/3] in square Lambert, then normalize and use as
 ! ! weight factors, then store in 2D MPs
-n = size(MCDT%accum_e, 1) ! get number of energy bins
-allocate(weights(n)) ! allocate space for energy histogram
-do i = 1, n
-  weights(i) = sum(MCDT%accum_e(i,:,:)) ! this could be modified to sum over partial rectangle
-enddo
-weights = weights / sum(weights) ! this is currently wieghted over the full square Lambert
+if (trim(modality).ne.'Kossel') then
+  n = size(MCDT%accum_e, 1) ! get number of energy bins
+  allocate(weights(n)) ! allocate space for energy histogram
+  do i = 1, n
+    weights(i) = sum(MCDT%accum_e(i,:,:)) ! this could be modified to sum over partial rectangle
+  enddo
+  weights = weights / sum(weights) ! this is currently wieghted over the full square Lambert
+end if 
 
 sz = shape(MPDT%mLPNH)
 write (*,*) 'shape() : ', sz, n 
@@ -427,11 +436,17 @@ allocate(mLPNH(-d:d,-d:d))
 allocate(mLPSH(-d:d,-d:d))
 mLPNH = 0.D0
 mLPSH = 0.D0
-do i = 1, n
-  mLPNH = mLPNH + MPDT%mLPNH(:,:,i) * weights(i)
-  mLPSH = mLPSH + MPDT%mLPSH(:,:,i) * weights(i)
-enddo
-deallocate(MCDT%accum_e, weights, MPDT%mLPNH, MPDT%mLPSH)
+if (trim(modality).ne.'Kossel') then 
+  do i = 1, n
+    mLPNH = mLPNH + MPDT%mLPNH(:,:,i) * weights(i)
+    mLPSH = mLPSH + MPDT%mLPSH(:,:,i) * weights(i)
+  enddo
+  deallocate(MCDT%accum_e, weights, MPDT%mLPNH, MPDT%mLPSH)
+else
+  mLPNH = MPDT%mLPNH(:,:,1)
+  mLPSH = MPDT%mLPSH(:,:,1)
+  deallocate(MPDT%mLPNH, MPDT%mLPSH)
+end if
 
 ! and finally we generate the output arrays, depending on what the user asked for
 fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(enl%outputfile)

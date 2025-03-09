@@ -1008,7 +1008,8 @@ real(kind=sgl),allocatable                       :: farray(:)
 real(kind=sgl),allocatable                       :: mLPNH(:,:,:,:), mLPNH3(:,:,:)
 integer(HSIZE_T)                                 :: dims(1), dims2(2), dims3(3), offset3(3), dims4(4)
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
-logical                                          :: isEBSD=.FALSE., isECP=.FALSE., isTKD=.FALSE., isOverlap=.FALSE.
+logical                                          :: isEBSD=.FALSE., isECP=.FALSE., isTKD=.FALSE., isOverlap=.FALSE., &
+                                                    isKossel=.FALSE.
 character(7)                                     :: modality
 
 dfMP = .FALSE.
@@ -1029,10 +1030,12 @@ if (trim(modality).eq.'EBSD') then
     isTKD = .TRUE.
     else if (trim(modality).eq.'ECP') then
       isECP = .TRUE.
-      else if (trim(modality).eq.'Overlap') then
-        isOverlap = .TRUE.
-      else
-        call Message%printError('readMPfile', 'unknown master pattern type requested')
+      else if (trim(modality).eq.'Kossel') then
+        isKossel = .TRUE.
+        else if (trim(modality).eq.'Overlap') then
+          isOverlap = .TRUE.
+        else
+          call Message%printError('readMPfile', 'unknown master pattern type requested')
 end if
 
 associate( MPDT => self%MPDT )
@@ -1295,11 +1298,12 @@ if (present(getkeVs)) then
 end if
 
 if (isOverlap.eqv..TRUE.) dfMP = .TRUE.
+if (isKossel.eqv..TRUE.) dfMP = .TRUE.
 
 if (present(getmLPNH)) then
   if (getmLPNH.eqv..TRUE.) then
     dataset = SC_mLPNH
-    if ((isEBSD.eqv..TRUE.).or.(isTKD.eqv..TRUE.).or.(isOverlap.eqv..TRUE.)) then
+    if ((isEBSD.eqv..TRUE.).or.(isTKD.eqv..TRUE.).or.(isKossel.eqv..TRUE.).or.(isOverlap.eqv..TRUE.)) then
       if (dfMP.eqv..TRUE.) then
         call HDF%readDatasetFloatArray(dataset, dims3, hdferr, mLPNH3)
         allocate(MPDT%mLPNH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,dims3(3)),stat=istat)
@@ -1334,7 +1338,7 @@ end if
 if (present(getmLPSH)) then
   if (getmLPSH.eqv..TRUE.) then
     dataset = SC_mLPSH
-    if ((isEBSD.eqv..TRUE.).or.(isTKD.eqv..TRUE.).or.(isOverlap.eqv..TRUE.)) then
+    if ((isEBSD.eqv..TRUE.).or.(isTKD.eqv..TRUE.).or.(isKossel.eqv..TRUE.).or.(isOverlap.eqv..TRUE.)) then
       if (dfMP.eqv..TRUE.) then
         call HDF%readDatasetFloatArray(dataset, dims3, hdferr, mLPNH3)
         allocate(MPDT%mLPSH(-mpnl%npx:mpnl%npx,-mpnl%npx:mpnl%npx,dims3(3)),stat=istat)

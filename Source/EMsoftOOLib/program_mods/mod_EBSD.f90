@@ -297,7 +297,7 @@ end interface EBSD_T
 contains
 
 !--------------------------------------------------------------------------
-type(EBSD_T) function EBSD_constructor( nmlfile, isTKD ) result(EBSD)
+type(EBSD_T) function EBSD_constructor( nmlfile, isTKD, isKossel ) result(EBSD)
 !DEC$ ATTRIBUTES DLLEXPORT :: EBSD_constructor
 !! author: MDG
 !! version: 1.0
@@ -309,17 +309,20 @@ IMPLICIT NONE
 
 character(fnlen)    :: nmlfile
 logical, OPTIONAL   :: isTKD
+logical, OPTIONAL   :: isKossel
 
 if (present(isTKD)) then
   call EBSD%readNameList(nmlfile, isTKD=isTKD)
-else
-  call EBSD%readNameList(nmlfile)
+else if (present(isKossel)) then 
+    call EBSD%readNameList(nmlfile, isKossel=isKossel)
+  else
+    call EBSD%readNameList(nmlfile)
 end if
 
 end function EBSD_constructor
 
 !--------------------------------------------------------------------------
-subroutine readNameList_(self, nmlfile, initonly, isTKD)
+subroutine readNameList_(self, nmlfile, initonly, isTKD, isKossel)
 !DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
 !! author: MDG
 !! version: 1.0
@@ -337,6 +340,7 @@ character(fnlen),INTENT(IN)                 :: nmlfile
 logical,OPTIONAL,INTENT(IN)                 :: initonly
  !! fill in the default values only; do not read the file
 logical,OPTIONAL,INTENT(IN)                 :: isTKD
+logical,OPTIONAL,INTENT(IN)                 :: isKossel
 
 type(IO_T)                                  :: Message
 logical                                     :: skipread = .FALSE.
@@ -443,6 +447,7 @@ end if
 
 if (.not.skipread) then
 ! read the namelist file
+write (*,*) ' opening '//trim(nmlfile)
  open(UNIT=dataunit,FILE=trim(nmlfile),DELIM='apostrophe',STATUS='old')
  if (present(isTKD)) then
    read(UNIT=dataunit,NML=TKDdata)
@@ -2044,7 +2049,7 @@ end function getdatafile_
 
 
 !--------------------------------------------------------------------------
-subroutine EBSD_(self, EMsoft, progname, HDFnames, TKD)
+subroutine EBSD_(self, EMsoft, progname, HDFnames, TKD, Kossel)
 !DEC$ ATTRIBUTES DLLEXPORT :: EBSD_
 !! author: MDG
 !! version: 1.0
@@ -2072,6 +2077,7 @@ type(EMsoft_T), INTENT(INOUT)       :: EMsoft
 character(fnlen), INTENT(INOUT)     :: progname
 type(HDFnames_T), INTENT(INOUT)     :: HDFnames
 logical, OPTIONAL, INTENT(IN)       :: TKD
+logical, OPTIONAL, INTENT(IN)       :: Kossel 
 
 type(MCfile_T)                      :: MCFT
 type(MPfile_T)                      :: MPFT
@@ -2087,16 +2093,21 @@ type(EBSDmasterNameListType)        :: mpnl
 type(MCOpenCLNameListType)          :: mcnl
 type(EBSDAnglePCDefType)            :: orpcdef
 
-logical                             :: verbose, isTKD = .FALSE., NBeams = .FALSE.
+logical                             :: verbose, isTKD = .FALSE., NBeams = .FALSE., isKossel = .FALSE.
 character(fnlen)                    :: fname, nmldeffile
 integer(kind=irg)                   :: numangles, istat
 type(FZpointd),pointer              :: FZtmp
 type(r_T)                           :: rr
 
-if (present(TKD)) then
+if (present(TKD).or.present(Kossel)) then
   saveHDFnames = HDFnames
-  isTKD = .TRUE.
-  call MPFT%setModality('TKD')
+  if (present(TKD)) then
+    isTKD = .TRUE.
+    call MPFT%setModality('TKD')
+  else
+    isKossel = .TRUE.
+    call MPFT%setModality('Kossel')
+  end if
 else
   call MPFT%setModality('EBSD')
 end if
@@ -2149,24 +2160,30 @@ if ((numangles.gt.100).and.(enl%superimposeNBeams.eqv..TRUE.)) then
 ' #####################################################################################' /) )
 end if 
 
-! 2. read the Monte Carlo data file (HDF format)
-call HDFnames%set_ProgramData(SC_MCOpenCL)
-call HDFnames%set_NMLlist(SC_MCCLNameList)
-call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
-fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%energyfile))
-call MCFT%setFileName(fname)
-call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
-mcnl = MCFT%getnml()
+! 2. read the Monte Carlo data file if not a Kossel pattern (HDF format)
+if (isKossel.eqv..FALSE.) then
+  call HDFnames%set_ProgramData(SC_MCOpenCL)
+  call HDFnames%set_NMLlist(SC_MCCLNameList)
+  call HDFnames%set_NMLfilename(SC_MCOpenCLNML)
+  fname = EMsoft%generateFilePath('EMdatapathname',trim(enl%energyfile))
+  call MCFT%setFileName(fname)
+  call MCFT%readMCfile(HDF, HDFnames, getAccume=.TRUE.)
+  mcnl = MCFT%getnml()
+end if
 
 ! 3. read EBSD master pattern file (HDF format)
 if (isTKD.eqv..TRUE.) then
   call HDFnames%set_ProgramData(SC_TKDmaster)
   call HDFnames%set_NMLlist(SC_TKDmasterNameList)
   call HDFnames%set_NMLfilename(SC_TKDmasterNML)
-else
-  call HDFnames%set_ProgramData(SC_EBSDmaster)
-  call HDFnames%set_NMLlist(SC_EBSDmasterNameList)
-  call HDFnames%set_NMLfilename(SC_EBSDmasterNML)
+else if (isKossel.eqv..TRUE.) then
+    call HDFnames%set_ProgramData(SC_Kosselmaster)
+    call HDFnames%set_NMLlist(SC_KosselmasterNameList)
+    call HDFnames%set_NMLfilename(SC_KosselmasterNML)
+  else
+    call HDFnames%set_ProgramData(SC_EBSDmaster)
+    call HDFnames%set_NMLlist(SC_EBSDmasterNameList)
+    call HDFnames%set_NMLfilename(SC_EBSDmasterNML)
 end if
 call HDFnames%set_Variable(SC_MCOpenCL)
 
@@ -2178,7 +2195,7 @@ else
   call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
 end if 
 
-if (isTKD.eqv..TRUE.) then
+if ( (isTKD.eqv..TRUE.).or.(isKossel.eqv..TRUE.) ) then
   HDFnames = saveHDFnames
 else
   call HDFnames%set_ProgramData(SC_EBSD)
@@ -2196,7 +2213,11 @@ if (trim(enl%anglefiletype).eq.'orientations') then
   call mem%alloc(EBSDdetector%accum_e_detector, (/ EBSDMCdata%numEbins,enl%numsx,enl%numsy /), 'EBSDdetector%accum_e_detector' )
 
 ! 4. generate detector arrays
-  call self%GenerateDetector(MCFT, verbose, isTKD)
+  if (isKossel.eqv..TRUE.) then
+    call self%GenerateDetector(MCFT, verbose, isKossel=isKossel)
+  else
+    call self%GenerateDetector(MCFT, verbose, isTKD=isTKD)
+  end if
 
   ! perform the pattern computations
   call self%ComputeEBSDPatterns(EMsoft, MCFT, MPFT, HDF, HDFnames, mpnl, mem, numangles, qAR, progname, nmldeffile)
@@ -2295,7 +2316,7 @@ end associate
 end subroutine EBSDreadorpcdef_
 
 !--------------------------------------------------------------------------
-recursive subroutine GenerateDetector_(self, MCFT, verbose, isTKD)
+recursive subroutine GenerateDetector_(self, MCFT, verbose, isTKD, isKossel)
 !DEC$ ATTRIBUTES DLLEXPORT :: GenerateDetector_
 !! author: MDG
 !! version: 1.0
@@ -2314,6 +2335,7 @@ class(EBSD_T), INTENT(INOUT)            :: self
 type(MCfile_T), INTENT(INOUT)           :: MCFT
 logical,INTENT(IN),OPTIONAL             :: verbose
 logical,INTENT(IN),OPTIONAL             :: isTKD
+logical,INTENT(IN),OPTIONAL             :: isKossel
 
 type(IO_T)                              :: Message
 type(Lambert_T)                         :: L
@@ -2326,11 +2348,12 @@ integer(kind=irg)                       :: nix, niy, binx, biny , i, j, Emin, Em
 real(kind=sgl)                          :: dc(3), scl, alpha, theta, g, pcvec(3), s, dp           ! direction cosine array
 real(kind=sgl)                          :: sx, dx, dxm, dy, dym, rhos, x, bindx         ! various parameters
 real(kind=sgl)                          :: ixy(2)
-logical                                 :: TKD = .FALSE.
+logical                                 :: TKD = .FALSE., Kossel = .FALSE.
 
 associate( enl => self%nml, mcnl => MCFT%nml, EBSDMCdata => MCFT%MCDT, EBSDdetector => self%det )
 
 if (present(isTKD)) TKD=.TRUE.
+if (present(isKossel)) Kossel=.TRUE.
 
 !====================================
 ! ------ generate the detector arrays
@@ -2459,19 +2482,23 @@ deallocate(z)
           g = ((calpha*calpha + dp*dp - 1.0)**1.5)/(calpha**3) * 0.25
         end if
 ! interpolate the intensity
-        do k=Emin,Emax
-          s = EBSDMCdata%accum_e(k,nix,niy) * dxm * dym + &
-              EBSDMCdata%accum_e(k,nix+1,niy) * dx * dym + &
-              EBSDMCdata%accum_e(k,nix,niy+1) * dxm * dy + &
-              EBSDMCdata%accum_e(k,nix+1,niy+1) * dx * dy
-! EBSD intensities do not need to be flipped vertically, but TKD intensities apparently
-! do need to be flipped... we need to look into this a bit more to make sure it is correct.
-          if (TKD.eqv..TRUE.) then
-            EBSDdetector%accum_e_detector(k,i,elp-j) = g * s
-          else
-            EBSDdetector%accum_e_detector(k,i,j) = g * s
-          end if
-        end do
+        if (Kossel.eqv..TRUE.) then
+          EBSDdetector%accum_e_detector(:,i,j) = 1.0 
+        else
+          do k=Emin,Emax
+            s = EBSDMCdata%accum_e(k,nix,niy) * dxm * dym + &
+                EBSDMCdata%accum_e(k,nix+1,niy) * dx * dym + &
+                EBSDMCdata%accum_e(k,nix,niy+1) * dxm * dy + &
+                EBSDMCdata%accum_e(k,nix+1,niy+1) * dx * dy
+  ! EBSD intensities do not need to be flipped vertically, but TKD intensities apparently
+  ! do need to be flipped... we need to look into this a bit more to make sure it is correct.
+            if (TKD.eqv..TRUE.) then
+              EBSDdetector%accum_e_detector(k,i,elp-j) = g * s
+            else
+              EBSDdetector%accum_e_detector(k,i,j) = g * s
+            end if
+          end do
+      end if 
     end do
   end do
 
@@ -2554,7 +2581,7 @@ real(kind=sgl),allocatable              :: taccum(:,:,:)
 
 ! various items
 integer(kind=irg)                       :: i, j, iang, jang, k, io_int(6), hdferr, L, correctsize, dim1, dim2          ! various counters
-integer(kind=irg)                       :: istat, ipar(7), tick, tock, tickstart
+integer(kind=irg)                       :: istat, ipar(8), tick, tock, tickstart
 integer(kind=irg)                       :: nix, niy, binx, biny, nixp, niyp, maxthreads,nextra,ninlastbatch,nlastremainder, npy     ! various parameters
 integer(kind=irg)                       :: NUMTHREADS, TID   ! number of allocated threads, thread ID
 integer(kind=irg)                       :: ninbatch, nbatches,nremainder,ibatch,nthreads,maskradius,nlastbatches, totnumbatches
@@ -2600,9 +2627,10 @@ real(kind=sgl)                          :: bitrange
 ! new stuff: deformation tensor
 real(kind=dbl)                          :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3,3), quF(4), Fmatrix_inverse(3,3), &
                                            Gmatrix(3,3)
-logical                                 :: includeFmatrix=.FALSE., noise, isTKD=.FALSE.
+logical                                 :: includeFmatrix=.FALSE., noise, isTKD=.FALSE., isKossel = .FALSE.
 
 if (trim(HDFnames%get_ProgramData()).eq.trim(SC_TKD)) isTKD = .TRUE.
+if (trim(HDFnames%get_ProgramData()).eq.trim(SC_Kossel)) isKossel = .TRUE.
 
 associate( enl => self%nml, mcnl => MCFT%nml, &
            EBSDMCdata => MCFT%MCDT, EBSDMPdata => MPFT%MPDT, EBSDdetector => self%det )
@@ -2660,12 +2688,16 @@ io_real(1) = prefactor
 call Message%WriteValue(' Intensity scaling prefactor = ', io_real, 1)
 
 call mem%alloc(energywf, (/ Emax /), 'energywf', 0.0, startdims = (/ Emin /) )
-call mem%alloc(wf, (/ EBSDMCdata%numEbins /), 'wf', 0.0 )
+if (isKossel.eqv..FALSE.) then
+  call mem%alloc(wf, (/ EBSDMCdata%numEbins /), 'wf', 0.0 )
 
-wf = sum(sum(EBSDdetector%accum_e_detector,3),2)
-energywf(Emin:Emax) = wf(Emin:Emax)
-energywf = energywf/sum(energywf)
-call mem%dealloc(wf, 'wf')
+  wf = sum(sum(EBSDdetector%accum_e_detector,3),2)
+  energywf(Emin:Emax) = wf(Emin:Emax)
+  energywf = energywf/sum(energywf)
+  call mem%dealloc(wf, 'wf')
+else
+    energywf = 1.0
+end if 
 
 !====================================
 ! init a bunch of parameters
@@ -2677,7 +2709,7 @@ call mem%dealloc(wf, 'wf')
 !====================================
 
 ! get the crystal structure data
-call cell%getCrystalData(mcnl%xtalname, SG, EMsoft, useHDF=HDF)
+call cell%getCrystalData(MPFT%MPDT%xtalname, SG, EMsoft, useHDF=HDF)
 
 !====================================
 ! ------ and open the output file (only thread 0 can write to this file)
@@ -2973,6 +3005,7 @@ scl = dble(mpnl%npx)
 
 !====================================
 ! define the integer parameter list for the CalcEBSDPatternSingleFull call
+ipar = 0
 ipar(1) = enl%binning
 ipar(2) = enl%numsx
 ipar(3) = enl%numsy
@@ -2980,6 +3013,7 @@ ipar(4) = mpnl%npx
 ipar(5) = mpnl%npx
 ipar(6) = EBSDMCdata%numEbins
 ipar(7) = EBSDMCdata%numEbins
+if (isKossel.eqv..TRUE.) ipar(8) = 1
 
 !====================================
 ! set the number of OpenMP threads
@@ -3443,7 +3477,7 @@ IMPLICIT NONE
 integer, parameter                              :: K4B=selected_int_kind(9)
 
 class(EBSD_T), INTENT(INOUT)                    :: self
-integer(kind=irg),INTENT(IN)                    :: ipar(7)
+integer(kind=irg),INTENT(IN)                    :: ipar(8)
 type(Quaternion_T),INTENT(IN)                   :: qq
 real(kind=dbl),INTENT(IN)                       :: prefactor
 integer(kind=irg),INTENT(IN)                    :: Emin, Emax
@@ -3475,11 +3509,15 @@ logical                                         :: nobg, noise
 ! ipar(5) = ebsdnl%npy
 ! ipar(6) = ebsdnl%numEbins
 ! ipar(7) = ebsdnl%nE
+! ipar(8) = isKossel (1 or 0)
 
 nobg = .FALSE.
 if (present(removebackground)) then
   if (removebackground.eq.'y') nobg = .TRUE.
 end if
+
+! also no background for Kossel patterns 
+if (ipar(8).eq.1) nobg = .TRUE.
 
 noise = .FALSE.
 if (present(applynoise)) then
@@ -3530,14 +3568,14 @@ do ii = 1,ipar(2)
 ! interpolate the intensity
         if (nobg.eqv..TRUE.) then
           if (dc(3) .ge. 0.0) then
-            do kk = Emin, Emax
+            do kk = maxval((/ Emin, 1 /)), Emax
                 EBSDpattern(ii,jj) = EBSDpattern(ii,jj) + ( mLPNH(nix,niy,kk) * dxm * dym + &
                                                mLPNH(nixp,niy,kk) * dx * dym + mLPNH(nix,niyp,kk) * dxm * dy + &
                                                mLPNH(nixp,niyp,kk) * dx * dy )
 
             end do
           else
-            do kk = Emin, Emax
+            do kk = maxval((/ Emin, 1 /)), Emax
                 EBSDpattern(ii,jj) = EBSDpattern(ii,jj) + ( mLPSH(nix,niy,kk) * dxm * dym + &
                                                mLPSH(nixp,niy,kk) * dx * dym + mLPSH(nix,niyp,kk) * dxm * dy + &
                                                mLPSH(nixp,niyp,kk) * dx * dy )
@@ -3547,14 +3585,14 @@ do ii = 1,ipar(2)
           end if
         else
           if (dc(3) .ge. 0.0) then
-            do kk = Emin, Emax
+            do kk = maxval((/ Emin, 1 /)), Emax
                 EBSDpattern(ii,jj) = EBSDpattern(ii,jj) + accum(kk,ii,jj) * ( mLPNH(nix,niy,kk) * dxm * dym + &
                                                mLPNH(nixp,niy,kk) * dx * dym + mLPNH(nix,niyp,kk) * dxm * dy + &
                                                mLPNH(nixp,niyp,kk) * dx * dy )
 
             end do
           else
-            do kk = Emin, Emax
+            do kk = maxval((/ Emin, 1 /)), Emax
                 EBSDpattern(ii,jj) = EBSDpattern(ii,jj) + accum(kk,ii,jj) * ( mLPSH(nix,niy,kk) * dxm * dym + &
                                                mLPSH(nixp,niy,kk) * dx * dym + mLPSH(nix,niyp,kk) * dxm * dy + &
                                                mLPSH(nixp,niyp,kk) * dx * dy )
@@ -3865,7 +3903,7 @@ real(kind=sgl),allocatable              :: taccum(:,:,:)
 
 ! various items
 integer(kind=irg)                       :: i, j, iang, jang, k, io_int(6), hdferr, dim2          ! various counters
-integer(kind=irg)                       :: istat, ipar(7), tick, tock, tickstart
+integer(kind=irg)                       :: istat, ipar(8), tick, tock, tickstart
 integer(kind=irg)                       :: nix, niy, binx, biny, nixp, niyp, maxthreads,nextra,ninlastbatch,nlastremainder     ! various parameters
 integer(kind=irg)                       :: NUMTHREADS, TID   ! number of allocated threads, thread ID
 integer(kind=irg)                       :: ninbatch, nbatches,nremainder,ibatch,nthreads,maskradius,nlastbatches, totnumbatches

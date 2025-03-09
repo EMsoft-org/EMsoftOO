@@ -1155,7 +1155,7 @@ real(kind=sgl)                          :: ma, mi, dp, tstart, tstop, io_real(4)
                                            vlen, avec(3), fpar1(1), fpar2(2), WD, alpha, ca, sa, c2a, s2a, nn(3), omega, dx, dy, rho
 integer(kind=irg)                       :: ipar(10), Emin, Emax, nthreads, TID, io_int(2), tickstart, ierr, L, nvar, niter,i,j, &
                                            samplex, sampley, maxeindex, unchanged
-integer(kind=irg)                         :: ll, mm, jpar(7), Nexp, pgnum, FZcnt, nlines, dims2(2), correctsize, totnumexpt, mystat
+integer(kind=irg)                         :: ll, mm, jpar(8), Nexp, pgnum, FZcnt, nlines, dims2(2), correctsize, totnumexpt, mystat
 
 real(kind=dbl)                          :: prefactor, F, angleaxis(4)
 real(kind=sgl),allocatable              :: axPS(:,:), dpPS(:,:), eulerPS(:,:,:)
