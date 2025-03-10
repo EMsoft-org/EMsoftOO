@@ -46,6 +46,7 @@ type, public :: KosselmasterNameListType
   integer(kind=irg)       :: npx
   integer(kind=irg)       :: nthreads
   real(kind=sgl)          :: voltage
+  real(kind=sgl)          :: sig
   real(kind=sgl)          :: dmin
   real(kind=sgl)          :: startthick
   real(kind=sgl)          :: thickinc
@@ -71,6 +72,7 @@ private
   procedure, pass(self) :: get_numthick_
   procedure, pass(self) :: get_npx_
   procedure, pass(self) :: get_nthreads_
+  procedure, pass(self) :: get_sig_
   procedure, pass(self) :: get_voltage_
   procedure, pass(self) :: get_dmin_
   procedure, pass(self) :: get_startthick_
@@ -83,6 +85,7 @@ private
   procedure, pass(self) :: set_numthick_
   procedure, pass(self) :: set_npx_
   procedure, pass(self) :: set_nthreads_
+  procedure, pass(self) :: set_sig_
   procedure, pass(self) :: set_voltage_
   procedure, pass(self) :: set_dmin_
   procedure, pass(self) :: set_startthick_
@@ -101,6 +104,7 @@ private
   generic, public :: get_npx => get_npx_
   generic, public :: get_nthreads => get_nthreads_
   generic, public :: get_voltage => get_voltage_
+  generic, public :: get_sig => get_sig_
   generic, public :: get_dmin => get_dmin_
   generic, public :: get_startthick => get_startthick_
   generic, public :: get_thickinc => get_thickinc_
@@ -113,6 +117,7 @@ private
   generic, public :: set_npx => set_npx_
   generic, public :: set_nthreads => set_nthreads_
   generic, public :: set_voltage => set_voltage_
+  generic, public :: set_sig => set_sig_
   generic, public :: set_dmin => set_dmin_
   generic, public :: set_startthick => set_startthick_
   generic, public :: set_thickinc => set_thickinc_
@@ -191,6 +196,7 @@ logical                              :: skipread = .FALSE.
 integer(kind=irg)       :: numthick
 integer(kind=irg)       :: npx
 integer(kind=irg)       :: nthreads
+real(kind=sgl)          :: sig
 real(kind=sgl)          :: voltage
 real(kind=sgl)          :: dmin
 real(kind=sgl)          :: startthick
@@ -201,13 +207,14 @@ character(fnlen)        :: xtalname
 character(fnlen)        :: outname
 character(fnlen)        :: BetheParametersFile
 
-namelist /Kosselmasterlist/ xtalname, voltage, dmin, nthreads, BetheParametersFile, &
+namelist /Kosselmasterlist/ xtalname, voltage, dmin, nthreads, BetheParametersFile, sig, &
                             startthick, thickinc, numthick, tfraction, outname, npx, Kosselmode
 
 ! set the input parameters to default values (except for xtalname, which must be present)
 numthick = 10                   ! number of increments
 npx = 256                       ! output arrays will have size npix x npix
 nthreads = 4                    ! default number of threads for OpenMP
+sig = 70.0                      ! sample tilt angle [degrees]
 voltage = 20.0                  ! acceleration voltage [kV]
 dmin = 0.05                     ! smallest d-spacing to include in dynamical matrix [nm]
 startthick = 10.0               ! starting thickness [nm]
@@ -238,6 +245,7 @@ end if
 self%nml%numthick = numthick
 self%nml%npx = npx
 self%nml%nthreads = nthreads
+self%nml%sig = sig
 self%nml%voltage = voltage
 self%nml%dmin = dmin
 self%nml%startthick = startthick
@@ -289,7 +297,7 @@ class(Kosselmaster_T), INTENT(INOUT)    :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 3, n_real = 5
+integer(kind=irg),parameter             :: n_int = 3, n_real = 6
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -310,12 +318,13 @@ intlist(3) = 'nthreads'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single reals
-io_real = (/ knl%voltage, knl%dmin, knl%startthick, knl%thickinc, knl%tfraction /)
+io_real = (/ knl%voltage, knl%dmin, knl%startthick, knl%thickinc, knl%tfraction, knl%sig /)
 reallist(1) = 'voltage'
 reallist(2) = 'dmin'
 reallist(3) = 'startthick'
 reallist(4) = 'thickinc'
 reallist(5) = 'tfraction'
+reallist(6) = 'sig'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! write all the strings
@@ -449,6 +458,42 @@ integer(kind=irg), INTENT(IN)            :: inp
 self%nml%nthreads = inp
 
 end subroutine set_nthreads_
+
+!--------------------------------------------------------------------------
+function get_sig_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_sig_
+!! author: MDG
+!! version: 1.0
+!! date: 03/25/20
+!!
+!! get sig from the Kosselmaster_T class
+
+IMPLICIT NONE
+
+class(Kosselmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl)                           :: out
+
+out = self%nml%sig
+
+end function get_sig_
+
+!--------------------------------------------------------------------------
+subroutine set_sig_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_sig_
+!! author: MDG
+!! version: 1.0
+!! date: 03/25/20
+!!
+!! set sig in the Kosselmaster_T class
+
+IMPLICIT NONE
+
+class(Kosselmaster_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)               :: inp
+
+self%nml%sig = inp
+
+end subroutine set_sig_
 
 !--------------------------------------------------------------------------
 function get_voltage_(self) result(out)

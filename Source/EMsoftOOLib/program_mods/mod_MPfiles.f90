@@ -46,6 +46,7 @@ private
 type, public :: SEMmasterNameListType
   integer(kind=irg) :: npx = 0
   integer(kind=irg) :: nthreads
+  real(kind=sgl)    :: sig
   real(kind=sgl)    :: dmin
   character(3)      :: Notify
   character(fnlen)  :: copyfromenergyfile
@@ -1169,6 +1170,13 @@ dataset = SC_dmin
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
 if (g_exists.eqv..TRUE.) then
     call HDF%readDatasetFloat(dataset, hdferr, mpnl%dmin)
+end if
+
+! if this is a Kossel MP file, then also read the sig parameter
+dataset = SC_sig
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists.eqv..TRUE.) then
+    call HDF%readDatasetFloat(dataset, hdferr, mpnl%sig)
 end if
 
 dataset = SC_energyfile

@@ -2095,7 +2095,7 @@ type(EBSDAnglePCDefType)            :: orpcdef
 
 logical                             :: verbose, isTKD = .FALSE., NBeams = .FALSE., isKossel = .FALSE.
 character(fnlen)                    :: fname, nmldeffile
-integer(kind=irg)                   :: numangles, istat
+integer(kind=irg)                   :: numangles, istat, io_int(1)
 type(FZpointd),pointer              :: FZtmp
 type(r_T)                           :: rr
 
@@ -2136,7 +2136,8 @@ if (trim(enl%anglefiletype).eq.'orientations') then
   numangles = SO%getListCount('FZ')
   call SO%listtoQuaternionArray( qAR )
   call SO%delete_FZlist()
-  write (*,*) ' Number of orientations read from file: ', numangles
+  io_int(1) = numangles
+  call Message%WriteValue(' Number of orientations read from file: ', io_int, 1)
 else if (trim(enl%anglefiletype).eq.'orpcdef') then
 ! this requires a conversion from the Euler angles in the file to quaternions
 ! plus storage of the pattern center and deformation tensor arrays
@@ -2212,8 +2213,12 @@ if (trim(enl%anglefiletype).eq.'orientations') then
   call mem%alloc(EBSDdetector%rgz, (/ enl%numsx,enl%numsy /), 'EBSDdetector%rgz' )
   call mem%alloc(EBSDdetector%accum_e_detector, (/ EBSDMCdata%numEbins,enl%numsx,enl%numsy /), 'EBSDdetector%accum_e_detector' )
 
+write (*,*) ' shape(rgx) = ', shape(EBSDdetector%rgx), shape(EBSDdetector%accum_e_detector)
+
 ! 4. generate detector arrays
   if (isKossel.eqv..TRUE.) then
+    MCFT%nml%sig = mpnl%sig
+    write (*,*) ' sig = ', MCFT%nml%sig
     call self%GenerateDetector(MCFT, verbose, isKossel=isKossel)
   else
     call self%GenerateDetector(MCFT, verbose, isTKD=isTKD)

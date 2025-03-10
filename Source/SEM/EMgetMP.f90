@@ -41,7 +41,7 @@ use mod_getMP
 IMPLICIT NONE
 
 character(fnlen)  :: progname = 'EMgetMP.f90'
-character(fnlen)  :: progdesc = 'extract a master pattern from an EBSD/TKD/ECP/Laue MP file'
+character(fnlen)  :: progdesc = 'extract a master pattern from an EBSD/TKD/ECP/Laue/Kossel MP file'
 
 type(EMsoft_T)    :: EMsoft
 type(getMP_T)     :: MP 
