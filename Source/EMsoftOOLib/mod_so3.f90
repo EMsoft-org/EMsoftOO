@@ -1983,7 +1983,7 @@ end do
 end subroutine SampleIsoMisorientation_
 
 !--------------------------------------------------------------------------
-recursive subroutine getOrientationsfromFile_(self, filename, listN, qrot)
+recursive subroutine getOrientationsfromFile_(self, filename, listN, symmetrize, qarray, qrot)
 !DEC$ ATTRIBUTES DLLEXPORT :: getOrientationsfromFile_
   !! author: MDG
   !! version: 1.0
@@ -2007,6 +2007,8 @@ class(so3_T),INTENT(INOUT)              :: self
 character(fnlen),INTENT(IN)             :: filename
  !! complete path to input file name
 integer(kind=irg),INTENT(IN),OPTIONAL   :: listN 
+logical,INTENT(IN),OPTIONAL             :: symmetrize
+type(QuaternionArray_T),INTENT(INOUT),OPTIONAL :: qarray
 type(Quaternion_T),INTENT(IN),OPTIONAL  :: qrot
 
 type(e_T)                               :: e
@@ -2020,15 +2022,17 @@ type(s_T)                               :: s
 type(v_T)                               :: v
 type(IO_T)                              :: Message
 type(Quaternion_T)                      :: qin, qout
+type(Quaternion_T)                      :: qm, qus 
+type(q_T)                               :: qq
 
 character(2)                            :: anglemode
-integer(kind=irg)                       :: numang, i, ipf_wd, ipf_ht, sz(2) 
+integer(kind=irg)                       :: numang, i, k, num, ipf_wd, ipf_ht, sz(2), FZcnt, oldFZcnt, io_int(2) 
+real(kind=dbl)                          :: xx(4), qqd(4)
 real(kind=sgl),allocatable              :: Eangles(:,:), weights(:)
 real(kind=sgl)                          :: StepX, StepY
 real(kind=dbl)                          :: x3(3), x4(4), x9(9), w
-type(FZpointd),pointer                  :: FZtmp
+type(FZpointd),pointer                  :: FZtail, FZtmp, FZhead
 logical                                 :: fread
-
 
 ! is this a .txt file ?  If so, use the standard file read process
 ! if not, then maybe it is an .ang or .ctf file ?
@@ -2078,6 +2082,7 @@ if ((index(trim(filename),'.txt').ne.0).or.(index(trim(filename),'.wxt').ne.0)) 
         allocate(FZtmp%next)
         FZtmp => FZtmp%next
         nullify(FZtmp%next)
+
       end do
     case('ro')
       do i=1,numang
@@ -2260,9 +2265,54 @@ end if
 
 if (fread.eqv..FALSE.) call Message%printError('getOrientationsfromFile',' unknown angle file format')
 
+! do we need to symmetrize the data over the entire orientation space ?
+if (present(symmetrize)) then 
+  if (symmetrize.eqv..TRUE.) then
+    call Message%printMessage(' applying crystal symmetry to the orientation set')
+
+  ! get a pointer to the end of the current linked list
+    FZhead => self%getListHead('FZ')
+    FZtail => self%getListHead('FZ')
+    FZcnt = self%getListCount('FZ')
+    oldFZcnt = FZcnt
+    do i=1,FZcnt
+      FZtail => FZtail%next
+    end do
+
+  ! get the symmetry operator quaternions for the point group
+    num = qarray%getQnumber()
+    io_int(1) = num
+    call Message%WriteValue(' Number of symmetry operators ', io_int, 1)
+
+  ! loop over all current orientations and generate the equivalent ones
+  ! keep in mind that the identity operator is always the first one in the list so we skip it
+    do k=2,num 
+      FZtmp => FZhead
+      qm = qarray%getQuatfromArray(k)
+      do i=1,oldFZcnt
+        xx = FZtmp%qu%q_copyd() 
+        qus = qm * Quaternion_T( qd = xx ) 
+        call qus%quat_pos()
+        qq = q_T( qdinp = qus%get_quatd() )
+        allocate(FZtail%next)
+        FZtail%qu = qq
+        FZtail%rod = qq%qr()
+        FZtail%weight = FZtmp%weight
+        FZtail => FZtail%next
+        nullify(FZtail%next)       
+        FZtmp => FZtmp%next
+      end do
+    end do
+    FZcnt = num*oldFZcnt 
+    call self%setFZcnt(FZcnt, 'FZ')
+    io_int(1) = FZcnt
+    call Message%WriteValue(' FZcnt after symmetrization = ', io_int, 1)
+  end if 
+end if 
+
 ! do we need to pre-rotate all the data? optional parameter quat
 if (present(qrot)) then
-  call Message%printMessage(' rotating all orientations by q_rotate_data ')
+  call Message%printMessage(' rotating all orientations by a_rotate_data ')
   FZtmp => self%FZlist
   do i=1,self%FZcnt 
     qin = Quaternion_T( qd=FZtmp%qu%q_copyd() )
@@ -3560,7 +3610,7 @@ IMPLICIT NONE
 class(so3_T), INTENT(INOUT)             :: self
 type(QuaternionArray_T),INTENT(INOUT)   :: Pm
 
-integer(kind=irg)                       :: i
+integer(kind=irg)                       :: i, cnt
 type(QuaternionArray_T)                 :: qAR
 type(Quaternion_T)                      :: qq
 type(q_T)                               :: qu
@@ -3569,7 +3619,8 @@ type(r_T)                               :: roFZ
 ! first, convert the linked list to a QuaternionArray_T object
 call self%listtoQuaternionArray( qAR, 'FZ' )
 ! then reduce the orientations to the RFZ
-do i = 1, qAR%getQnumber()
+cnt = qAR%getQnumber()
+do i = 1, cnt
   qq = qAR%getQuatfromArray(i)
   qu = q_T( qdinp = qq%get_quatd() )
   call self%ReduceOrientationtoRFZ_( qu, Pm, roFZ )
@@ -3709,8 +3760,10 @@ FZloop: do j=1,Pmdims
   ! we really should never get to the following line ...
   if (j.eq.Pmdims) then 
     call Mu%quat_print()
-    bin=-1
+    if (present(bin)) bin=-1
     call Message%printWarning( 'ReduceOrientationtoRFZ: no solution found')
+    call qq%q_print(' -> ')
+    call qu%quat_print()
     stop
   end if 
 end do FZloop

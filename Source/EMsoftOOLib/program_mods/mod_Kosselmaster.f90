@@ -1364,8 +1364,10 @@ if (kmnl%Kosselmode.eq.'normal') then
         masterSPNH(i,j,1) = 0.0
         masterSPSH(i,j,1) = 0.0
       else
-        masterSPNH(i,j,1:numthick) = InterpolateLambert(xyz, mLPNH, kmnl%npx, numthick)
-        masterSPSH(i,j,1:numthick) = InterpolateLambert(xyz, mLPSH, kmnl%npx, numthick)
+        tav = InterpolateLambert(xyz, mLPNH, kmnl%npx, numthick, Iz)
+        masterSPNH(i,j,1:numthick) = Iz(1:numthick)
+        tav = InterpolateLambert(xyz, mLPSH, kmnl%npx, numthick, Iz)
+        masterSPSH(i,j,1:numthick) = Iz(1:numthick)
       end if
     end do
   end do

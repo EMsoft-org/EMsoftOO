@@ -2213,12 +2213,9 @@ if (trim(enl%anglefiletype).eq.'orientations') then
   call mem%alloc(EBSDdetector%rgz, (/ enl%numsx,enl%numsy /), 'EBSDdetector%rgz' )
   call mem%alloc(EBSDdetector%accum_e_detector, (/ EBSDMCdata%numEbins,enl%numsx,enl%numsy /), 'EBSDdetector%accum_e_detector' )
 
-write (*,*) ' shape(rgx) = ', shape(EBSDdetector%rgx), shape(EBSDdetector%accum_e_detector)
-
 ! 4. generate detector arrays
   if (isKossel.eqv..TRUE.) then
     MCFT%nml%sig = mpnl%sig
-    write (*,*) ' sig = ', MCFT%nml%sig
     call self%GenerateDetector(MCFT, verbose, isKossel=isKossel)
   else
     call self%GenerateDetector(MCFT, verbose, isTKD=isTKD)
@@ -2626,7 +2623,7 @@ character(10)                           :: char10
 character(fnlen)                        :: datafile
 logical                                 :: overwrite = .TRUE., insert = .TRUE., singlebatch, doNBeams
 character(5)                            :: bitmode
-integer(kind=irg)                       :: numbits
+integer(kind=irg)                       :: numbits, shp(3)
 real(kind=sgl)                          :: bitrange
 
 ! new stuff: deformation tensor
@@ -2682,8 +2679,13 @@ if (Emax.gt.EBSDMCdata%numEbins)  Emax=EBSDMCdata%numEbins
 
 ! modified by MDG, 03/26/18
 !nel = sum(acc%accum_e_detector)
-nel = float(mcnl%totnum_el) * float(mcnl%multiplier)
-emult = nAmpere * 1e-9 / nel  ! multiplicative factor to convert MC data to an equivalent incident beam of 1 nanoCoulomb
+if (isKossel.eqv..TRUE.) then 
+  nel = 1.0
+  emult = 1.0
+else
+  nel = float(mcnl%totnum_el) * float(mcnl%multiplier)
+  emult = nAmpere * 1e-9 / nel  ! multiplicative factor to convert MC data to an equivalent incident beam of 1 nanoCoulomb
+end if
 io_real(1) = emult
 call Message%WriteValue(' Multiplicative factor to generate 1 nC of incident electrons ', io_real, 1)
 ! intensity prefactor  (redefined by MDG, 3/23/18)
@@ -3018,7 +3020,11 @@ ipar(4) = mpnl%npx
 ipar(5) = mpnl%npx
 ipar(6) = EBSDMCdata%numEbins
 ipar(7) = EBSDMCdata%numEbins
-if (isKossel.eqv..TRUE.) ipar(8) = 1
+if (isKossel.eqv..TRUE.) then 
+  shp  =shape(MPFT%MPDT%mLPNH)
+  ipar(7) = shp(3)
+  ipar(8) = 1
+end if 
 
 !====================================
 ! set the number of OpenMP threads
@@ -3502,7 +3508,7 @@ real(kind=sgl),allocatable                      :: EBSDpattern(:,:)
 real(kind=sgl),allocatable                      :: wf(:)
 real(kind=sgl)                                  :: dc(3),ixy(2),scl,bindx, tmp, mv
 real(kind=sgl)                                  :: dx,dy,dxm,dym, x, y, z
-integer(kind=irg)                               :: ii,jj,kk,istat
+integer(kind=irg)                               :: ii,jj,kk,istat,kkstart,kkend
 integer(kind=irg)                               :: nix,niy,nixp,niyp
 logical                                         :: nobg, noise
 
@@ -3570,17 +3576,25 @@ do ii = 1,ipar(2)
         !                            nix, niy, nixp, niyp, dx, dy, dxm, dym
          end if 
 
-! interpolate the intensity
+! interpolate the intensity; for Kossel patterns, the master patterns vary
+! with depth instead of energy, so we need to properly set the summation range
+        if (ipar(8).eq.1) then 
+          kkstart = 1
+          kkend = ipar(7)
+        else
+          kkstart = maxval((/ Emin, 1 /))
+          kkend = Emax 
+        end if
         if (nobg.eqv..TRUE.) then
           if (dc(3) .ge. 0.0) then
-            do kk = maxval((/ Emin, 1 /)), Emax
+            do kk = kkstart, kkend
                 EBSDpattern(ii,jj) = EBSDpattern(ii,jj) + ( mLPNH(nix,niy,kk) * dxm * dym + &
                                                mLPNH(nixp,niy,kk) * dx * dym + mLPNH(nix,niyp,kk) * dxm * dy + &
                                                mLPNH(nixp,niyp,kk) * dx * dy )
 
             end do
           else
-            do kk = maxval((/ Emin, 1 /)), Emax
+            do kk = kkstart, kkend
                 EBSDpattern(ii,jj) = EBSDpattern(ii,jj) + ( mLPSH(nix,niy,kk) * dxm * dym + &
                                                mLPSH(nixp,niy,kk) * dx * dym + mLPSH(nix,niyp,kk) * dxm * dy + &
                                                mLPSH(nixp,niyp,kk) * dx * dy )
@@ -3590,14 +3604,14 @@ do ii = 1,ipar(2)
           end if
         else
           if (dc(3) .ge. 0.0) then
-            do kk = maxval((/ Emin, 1 /)), Emax
+            do kk = kkstart, kkend
                 EBSDpattern(ii,jj) = EBSDpattern(ii,jj) + accum(kk,ii,jj) * ( mLPNH(nix,niy,kk) * dxm * dym + &
                                                mLPNH(nixp,niy,kk) * dx * dym + mLPNH(nix,niyp,kk) * dxm * dy + &
                                                mLPNH(nixp,niyp,kk) * dx * dy )
 
             end do
           else
-            do kk = maxval((/ Emin, 1 /)), Emax
+            do kk = kkstart, kkend
                 EBSDpattern(ii,jj) = EBSDpattern(ii,jj) + accum(kk,ii,jj) * ( mLPSH(nix,niy,kk) * dxm * dym + &
                                                mLPSH(nixp,niy,kk) * dx * dym + mLPSH(nix,niyp,kk) * dxm * dy + &
                                                mLPSH(nixp,niyp,kk) * dx * dy )
