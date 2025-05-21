@@ -813,6 +813,7 @@ select case (self%itype)
       end if
       deallocate(buffer)
 
+
 ! then we need to place them in the exppatarray array
       exppatarray = 0.0
       pixcnt = (kkstart-1)*dims3(1)*dims3(2)+1
@@ -839,7 +840,7 @@ select case (self%itype)
       if (self%itype.eq.3) then
         where(exppatarray.lt.0.0) exppatarray = exppatarray + 65535.0
       else
-        where(exppatarray.lt.0.0) exppatarray = exppatarray + 255.0
+        where(exppatarray.lt.0.0) exppatarray = exppatarray + 256.0
       end if
 
     case(5)  ! "OxfordBinary"
@@ -1092,7 +1093,7 @@ select case (self%itype)
         lpatsz = patsz
         lL = L
         l1 = offset3(3)
-        if (itype.eq.2) then
+        if (self%itype.eq.2) then
          multfactor = 1_ill
         else
          multfactor = 2_ill
