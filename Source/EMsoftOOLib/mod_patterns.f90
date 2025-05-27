@@ -228,13 +228,15 @@ real(kind=dbl),allocatable                        :: rrdata(:,:), ffdata(:,:), k
 complex(kind=dbl),allocatable                     :: hpmask(:,:)
 complex(C_DOUBLE_COMPLEX),allocatable             :: inp(:,:), outp(:,:)
 type(C_PTR)                                       :: planf, HPplanf, HPplanb
-logical                                           :: isEBSD = .FALSE., isTKD = .FALSE.
+logical                                           :: isEBSD = .FALSE., isTKD = .FALSE., verb=.FALSE.
 
 if (present(verbose)) then 
     if (verbose.eqv..TRUE.) then
-        call Message%printMessage(' Preprocessing experimental patterns')
+        verb = .TRUE.
     end if 
 end if 
+
+if (verb) call Message%printMessage(' Preprocessing experimental patterns')
 
 ! standard or log-hipass processing ?
 if (present(log)) then 
@@ -289,11 +291,7 @@ if (inRAM.eqv..FALSE.) then
    end if
    inquire(file=trim(fname), exist=f_exists)
 
-   if (present(verbose)) then 
-        if (verbose.eqv..TRUE.) then 
-            call Message%WriteValue('Creating temporary file :',trim(fname))
-        end if 
-    end if
+   if (verb) call Message%WriteValue('Creating temporary file :',trim(fname))
 
    if (f_exists) then  ! delete the file if it already exists
       open(unit=itmpexpt,file=trim(fname),&
@@ -317,21 +315,18 @@ call VT%set_filename(nml%exptfile)
 ! open the file and leave it open, then use the getExpPatternRow() routine to read a row
 ! of patterns into the exppatarray variable ...  at the end, we use closeExpPatternFile() to
 ! properly close the experimental pattern file
-if (present(verbose)) then 
-    if (verbose.eqv..TRUE.) then 
-        if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
-          istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, nml%HDFstrings, HDF, verbose=.TRUE.)
-        else
-          istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, verbose=.TRUE.)
-        end if
+if (verb) then 
+    if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+      istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, nml%HDFstrings, HDF, verbose=.TRUE.)
     else
-        if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
-          istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, nml%HDFstrings, HDF)
-        else
-          istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize)
-        end if
-
-    end if 
+      istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, verbose=.TRUE.)
+    end if
+else
+    if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+      istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, nml%HDFstrings, HDF)
+    else
+      istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize)
+    end if
 end if
 
 if (istat.ne.0) then
@@ -341,12 +336,9 @@ end if
 ! this next part is done with OpenMP, with only thread 0 doing the reading;
 ! Thread 0 reads one line worth of patterns from the input file, then all threads do
 ! the work, and thread 0 adds them to the epatterns array in RAM; repeat until all patterns have been processed.
-if (present(verbose)) then 
-    if (verbose.eqv..TRUE.) then
-        call OMP_setNThreads(nml%nthreads, verbose=.TRUE.)
-    else
-        call OMP_setNThreads(nml%nthreads)
-    end if 
+if (verb) then 
+    call OMP_setNThreads(nml%nthreads, verbose=.TRUE.)
+else
     call OMP_setNThreads(nml%nthreads)
 end if 
 
@@ -372,11 +364,10 @@ if (istat .ne. 0) stop 'could not allocate hpmask array'
 call init_HiPassFilter(w, (/ binx, biny /), hpmask, inp, outp, HPplanf, HPplanb)
 deallocate(inp, outp)
 
-if (present(verbose)) then 
-    if (verbose.eqv..TRUE.) then 
-        call Message%printMessage('Starting processing of experimental patterns')
-    end if 
+if (verb) then 
+    call Message%printMessage('Starting processing of experimental patterns')
 end if
+
 timer = Timing_T()
 call timer%Time_tick(1)
 
@@ -495,26 +486,20 @@ deallocate(tmpimageexpt, Pat, rrdata, ffdata, pint, inp, outp)
 !$OMP END PARALLEL
 
 ! print an update of progress
-if (present(verbose)) then 
-    if (verbose.eqv..TRUE.) then 
-        if (mod(iii-iiistart+1,5).eq.0) then
-          if (ROIselected.eqv..TRUE.) then
-            io_int(1:2) = (/ iii-iiistart+1, nml%ROI(4) /)
-            call Message%WriteValue('Completed row ',io_int,2,"(I4,' of ',I4,' rows')")
-          else
-            io_int(1:2) = (/ iii-iiistart+1, nml%ipf_ht /)
-            call Message%WriteValue('Completed row ',io_int,2,"(I4,' of ',I4,' rows')")
-          end if
-        end if
-    end if 
+if (verb) then 
+    if (mod(iii-iiistart+1,5).eq.0) then
+      if (ROIselected.eqv..TRUE.) then
+        io_int(1:2) = (/ iii-iiistart+1, nml%ROI(4) /)
+        call Message%WriteValue('Completed row ',io_int,2,"(I4,' of ',I4,' rows')")
+      else
+        io_int(1:2) = (/ iii-iiistart+1, nml%ipf_ht /)
+        call Message%WriteValue('Completed row ',io_int,2,"(I4,' of ',I4,' rows')")
+      end if
+    end if
 end if
 end do prepexperimentalloop
 
-if (present(verbose)) then 
-    if (verbose.eqv..TRUE.) then 
-        call Message%printMessage(' -> experimental patterns preprocessed')
-    end if 
-end if
+if (verb) call Message%printMessage(' -> experimental patterns preprocessed')
 
 call VT%closeExpPatternFile()
 
@@ -523,17 +508,15 @@ if (inRAM.eqv..FALSE.) then
 end if
 
 ! print some timing information
-if (present(verbose)) then 
-    if (verbose.eqv..TRUE.) then 
-        call timer%Time_tock(1)
-        tstop = timer%getInterval(1)
-        if (tstop.eq.0.0) then
-          call Message%printMessage(' # experimental patterns processed per second : ? [time shorter than system time resolution] ')
-        else
-          io_real(1) = float(nml%nthreads) * float(totnumexpt)/tstop
-          call Message%WriteValue(' # experimental patterns processed per second : ',io_real,1,"(F10.1,/)")
-        end if
-    end if 
+if (verb) then 
+    call timer%Time_tock(1)
+    tstop = timer%getInterval(1)
+    if (tstop.eq.0.0) then
+      call Message%printMessage(' # experimental patterns processed per second : ? [time shorter than system time resolution] ')
+    else
+      io_real(1) = float(nml%nthreads) * float(totnumexpt)/tstop
+      call Message%WriteValue(' # experimental patterns processed per second : ',io_real,1,"(F10.1,/)")
+    end if
 end if 
 
 end subroutine PreProcessPatterns

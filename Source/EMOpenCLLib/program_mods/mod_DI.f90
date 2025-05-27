@@ -750,7 +750,7 @@ end if
 
 ! do a quick sanity check for the requested GPU memory
 call Message%printMessage(' --> Initializing OpenCL device')
-CL = OpenCL_T()
+CL = OpenCL_T(skipCPU=.TRUE.)
 Nres = Ne*Nd*4
 ! temporarily disabled lines (until we figure out why they don't work on Linux...)
 !call CL%query_platform_info(dinl%platid)
@@ -1054,7 +1054,8 @@ if (dinl%doNLPAR.eqv..TRUE.) then
   call NLPAR%setLambda(dinl%lambda) 
   call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
 else 
-  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
+  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
+                          exptIQ=exptIQ, verbose=.TRUE.)
 end if 
 
 !=====================================================

@@ -240,13 +240,20 @@ integer(kind=irg)               :: i
 integer(c_intptr_t)             :: platform_id 
 integer(c_int32_t)              :: num_devices = 0
 integer(c_intptr_t), allocatable, target :: platform_ids(:)
-logical                         :: verbose 
+logical                         :: verbose, skCPU 
 
 verbose = .FALSE.
 if (present(verb)) then
   if (verb.eqv..TRUE.) verbose = .TRUE.
 end if 
 
+skCPU = .FALSE.
+if (present(skipCPU)) then 
+  if (skipCPU.eqv..TRUE.) then 
+    skCPU = .TRUE.
+  end if 
+end if
+  
 ! Get the number of platforms, prior to allocating arrays.
   ! write (*,*) 'pre-clGetPlatformIDs: ', nplatforms, err
   err = clGetPlatformIDs(0, C_NULL_PTR, nplatforms)
@@ -308,21 +315,19 @@ end if
 
   ! get all relevant information for each platform
     do i=1, CL%num_platforms
-      if (present(skipCPU)) then
-        if (skipCPU.eqv..TRUE.) then
-          if (verbose.eqv..TRUE.) then 
-            call CL%query_platform_info_(i, verbose=.TRUE., skipCPU=.TRUE.)
-          else
-            call CL%query_platform_info_(i, skipCPU=.TRUE.)
-          end if 
+      if (skCPU.eqv..TRUE.) then
+        if (verbose.eqv..TRUE.) then 
+          call CL%query_platform_info_(i, verbose=.TRUE., skCPU=.TRUE.)
         else
-          if (verbose.eqv..TRUE.) then 
-            call CL%query_platform_info_(i, verbose=.TRUE.)
-          else
-            call CL%query_platform_info_(i)
-          end if 
+          call CL%query_platform_info_(i, skCPU=.TRUE.)
         end if 
-      end if
+      else
+        if (verbose.eqv..TRUE.) then 
+          call CL%query_platform_info_(i, verbose=.TRUE.)
+        else
+          call CL%query_platform_info_(i)
+        end if 
+      end if 
     end do
   else
   ! the number of platforms is 0 which means that OpenCL is either absent or incorrectly set up
@@ -380,7 +385,7 @@ type(OpenCL_T),INTENT(INOUT)  :: CL
 
 end subroutine CL_destructor
 ! -----------------------------------------------------------------------------
-recursive subroutine query_platform_info_(self, p_id, verbose, skipCPU)
+recursive subroutine query_platform_info_(self, p_id, verbose, skCPU)
 !DEC$ ATTRIBUTES DLLEXPORT :: query_platform_info_
   !! author: MDG
   !! version: 1.0
@@ -397,7 +402,7 @@ IMPLICIT NONE
 class(OpenCL_T), INTENT(INOUT) :: self
 integer(kind=irg), INTENT(IN)  :: p_id
 logical,INTENT(IN),OPTIONAL    :: verbose 
-logical,INTENT(IN),OPTIONAL    :: skipCPU
+logical,INTENT(IN),OPTIONAL    :: skCPU
 
 ! Input variable.
 integer(c_intptr_t)            :: platform_id
@@ -428,6 +433,19 @@ integer(c_int32_t), target     :: device_cu
 
 integer(c_int64_t), target     :: device_gms, device_mmas, device_lms
 
+logical                        :: verb = .TRUE., skipCPU = .FALSE.
+
+if (present(verbose)) then 
+  if (verbose.eqv..FALSE.) then 
+    verb = .FALSE.
+  end if 
+end if 
+
+if (present(skCPU)) then 
+  if (skCPU.eqv..TRUE.) then 
+    skipCPU = .TRUE.
+  end if 
+end if 
 
 platform_id = self%p_ids(p_id)
 
@@ -438,11 +456,7 @@ allocate(platform_profile(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, temp_size, C_LOC(platform_profile), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_profile(p_id) = trim(cv_a2s(platform_profile))
-if (present(verbose)) then 
-  if (verbose.eqv..TRUE.) then 
-    print *, 'Profile: ', trim(self%p_profile(p_id))
-  end if 
-end if 
+if (verb) print *, 'Profile: ', trim(self%p_profile(p_id))
 deallocate(platform_profile)
 
 ! Version.
@@ -452,11 +466,7 @@ allocate(platform_version(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, temp_size, C_LOC(platform_version), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_version(p_id) = trim(cv_a2s(platform_version))
-if (present(verbose)) then 
-  if (verbose.eqv..TRUE.) then 
-    print *, 'Version: ', trim(self%p_version(p_id))
-  end if 
-end if
+if (verb) print *, 'Version: ', trim(self%p_version(p_id))
 deallocate(platform_version)
 
 ! Name.
@@ -466,11 +476,7 @@ allocate(platform_name(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, temp_size, C_LOC(platform_name), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_name(p_id) = trim(cv_a2s(platform_name))
-if (present(verbose)) then 
-  if (verbose.eqv..TRUE.) then 
-    print *, 'Name: ', trim(self%p_name(p_id))
-  end if 
-end if
+if (verb) print *, 'Name: ', trim(self%p_name(p_id))
 deallocate(platform_name)
 
 ! Vendor.
@@ -480,11 +486,7 @@ allocate(platform_vendor(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, temp_size, C_LOC(platform_vendor), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_vendor(p_id) = trim(cv_a2s(platform_vendor))
-if (present(verbose)) then 
-  if (verbose.eqv..TRUE.) then 
-    print *, 'Vendor: ', trim(self%p_vendor(p_id))
-  end if 
-end if
+if (verb) print *, 'Vendor: ', trim(self%p_vendor(p_id))
 deallocate(platform_vendor)
 
 ! Extensions.
@@ -494,21 +496,16 @@ allocate(platform_extensions(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, temp_size, C_LOC(platform_extensions), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_extensions(p_id) = trim(cv_a2s(platform_extensions))
-if (present(verbose)) then 
-  if (verbose.eqv..TRUE.) then 
-    print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
-  end if 
-end if
+if (verb) print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
 deallocate(platform_extensions)
 
 !
 ! Get device information for this platform.
 !
 ! Get CPU device count.
-if (present(skipCPU)) then 
-  if (skipCPU.eqv..FALSE.) then 
+if (skipCPU.eqv..FALSE.) then 
     ! device_type = CL_DEVICE_TYPE_CPU
-    err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, zero32, C_NULL_PTR, num_devices)
+    err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, 0, C_NULL_PTR, num_devices)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs:numdevices',err,.TRUE.)
 
     if (err /= CL_SUCCESS .or. num_devices < 1) then
@@ -564,7 +561,6 @@ if (present(skipCPU)) then
         self%d_CPUname(p_id, i) = cv_a2s(device_name)
         deallocate(device_name)
       end do
-    end if
   end if 
 end if
 
@@ -689,6 +685,7 @@ class(OpenCL_T),INTENT(IN)     :: self
 type(IO_T)                     :: Message
 integer(kind=irg)              :: io_int(9), i, j
 
+call Message%printMessage(' ')
 io_int(1) = self%num_platforms
 call Message%WriteValue('Number of Platforms: ',io_int,1,"(I2)")
 

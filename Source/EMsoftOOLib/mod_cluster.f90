@@ -48,6 +48,8 @@ type, public :: Cluster_T
   integer(kind=irg)               :: GrainSize    ! used to control recursion
   integer(kind=irg)               :: TotSize      ! used to control recursion
   integer(kind=irg)               :: MaxSize      ! used to control recursion
+  integer(kind=irg)               :: ipf_wd       ! used to control recursion
+  integer(kind=irg)               :: ipf_ht       ! used to control recursion
   real(kind=sgl)                  :: gangle       ! threshold angle for clustering
   real(kind=dbl), allocatable     :: avor(:,:)    ! average orientation per grain
   real(kind=dbl), allocatable     :: kappa(:)     ! concentration parameters
@@ -94,7 +96,7 @@ type(q_T)                       :: qu
 type(e_T)                       :: eu
 type(DirStat_T)                 :: dictVMF
 
-integer(kind=irg)               :: ipf_wd, ipf_ht, nt, ix, iy, io_int(1), seed, icnt
+integer(kind=irg)               :: nt, ix, iy, io_int(2), seed, icnt
 integer(kind=irg),allocatable   :: grainIDs(:)
 real(kind=dbl)                  :: kappahat
 
@@ -107,26 +109,29 @@ cluster%gangle = gangle
 
 ! dimensions of region of interest
 if (sum(nml%ROI).eq.0) then 
-  ipf_wd = nml%ipf_wd
-  ipf_ht = nml%ipf_ht
+  cluster%ipf_wd = nml%ipf_wd
+  cluster%ipf_ht = nml%ipf_ht
 else
-  ipf_wd = nml%ROI(3)
-  ipf_ht = nml%ROI(4)
+  cluster%ipf_wd = nml%ROI(3)
+  cluster%ipf_ht = nml%ROI(4)
 end if
-nt = ipf_wd * ipf_ht
-allocate( cluster%grainID(ipf_wd, ipf_ht), cluster%kam(ipf_wd, ipf_ht), grainIDs(nt) )
+io_int = (/ cluster%ipf_wd, cluster%ipf_ht /)
+call Message%WriteValue(' ROI dimensions : ', io_int, 2)
+nt = cluster%ipf_wd * cluster%ipf_ht
+allocate( cluster%grainID(cluster%ipf_wd, cluster%ipf_ht), &
+          cluster%kam(cluster%ipf_wd, cluster%ipf_ht), grainIDs(nt) )
 
 ! next we need to compute the misorientations w.r.t. neighbors which
 ! is essentially the KAM map without thresholding... 
 call Message%printMessage(' Computing misorientation map (KAM)')
-call getKAMMap(nt, DIFT%DIDT%RefinedEulerAngles, ipf_wd, ipf_ht, DIFT%DIDT%pgnum, cluster%kam)
+call getKAMMap(nt, DIFT%DIDT%RefinedEulerAngles, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, cluster%kam)
 cluster%kam = cluster%kam*rtod
 
 ! to prevent weird edge cases, put the kam edges to a large value
-cluster%kam(1,1:ipf_ht) = 360.0
-cluster%kam(ipf_wd,1:ipf_ht) = 360.0
-cluster%kam(1:ipf_wd,1) = 360.0
-cluster%kam(1:ipf_wd,ipf_ht) = 360.0
+cluster%kam(1,1:cluster%ipf_ht) = 360.0
+cluster%kam(cluster%ipf_wd,1:cluster%ipf_ht) = 360.0
+cluster%kam(1:cluster%ipf_wd,1) = 360.0
+cluster%kam(1:cluster%ipf_wd,cluster%ipf_ht) = 360.0
 
 ! initialize number of grains and grainID array
 cluster%nGrains = 0 
@@ -136,13 +141,13 @@ cluster%grainID = 0
 cluster%MaxSize = nt       ! used to make sure that the recursion will actually end
 cluster%TotSize = 0
 
-do ix=1,ipf_wd
-  do iy=1,ipf_ht
+do ix=1,cluster%ipf_wd
+  do iy=1,cluster%ipf_ht
     if (cluster%grainID(ix,iy).eq.0) then 
       if (cluster%kam(ix,iy).le.cluster%gangle) then
         cluster%nGrains = cluster%nGrains+1
         cluster%GrainSize = 0
-        call cluster%ScanGrain_(ix, iy, ipf_wd, ipf_ht)
+        call cluster%ScanGrain_(ix, iy)
         if (cluster%GrainSize.eq.1) then 
           cluster%grainID(ix,iy) = -1
           cluster%nGrains = cluster%nGrains-1
@@ -156,7 +161,7 @@ end do
 
 ! for all grains, find the 2D bounding box needed for the modified DI algorithm
 allocate( cluster%ROI(4,cluster%nGrains) )
-call cluster%getROI_(ipf_wd, ipf_ht)
+call cluster%getROI_()
 
 ! from here on, it will be more useful to have the grain IDs in a 1D array
 grainIDs = reshape(cluster%grainID, (/ nt /) )
@@ -222,7 +227,7 @@ end associate
 end function cluster_constructor
 
 ! !--------------------------------------------------------------------------
-recursive subroutine ScanGrain_(self, is, js, wd, ht)
+recursive subroutine ScanGrain_(self, is, js)
 !DEC$ ATTRIBUTES DLLEXPORT :: ScanGrain_
 !! author: MDG 
 !! version: 1.0 
@@ -243,7 +248,7 @@ recursive subroutine ScanGrain_(self, is, js, wd, ht)
 IMPLICIT NONE
 
 class(Cluster_T), INTENT(INOUT) :: self
-integer(kind=irg), INTENT(IN)   :: is, js, wd, ht   ! IPF coordinates and size
+integer(kind=irg), INTENT(IN)   :: is, js   ! IPF coordinates and size
 
 ! have we reached the end of the recursion?  if yes, then force a stop
 if (self%TotSize.lt.self%MaxSize) then 
@@ -255,10 +260,10 @@ if (self%TotSize.lt.self%MaxSize) then
       self%TotSize = self%TotSize + 1             ! increment the pixel-on counter
       self%GrainSize = self%GrainSize + 1
 ! then recurse to the neighbors
-      if (is+1.le.wd) call self%ScanGrain_(is+1, js, wd, ht)   ! move to (x+1,y)
-      if (is.gt.0) call self%ScanGrain_(is-1, js, wd, ht)      ! move to (x-1,y)
-      if (js+1.le.ht) call self%ScanGrain_(is, js+1, wd, ht)   ! move to (x,y+1)
-      if (js.gt.0) call self%ScanGrain_(is, js-1, wd, ht)      ! move to (x,y-1)
+      if (is+1.le.self%ipf_wd) call self%ScanGrain_(is+1, js)   ! move to (x+1,y)
+      if (is.gt.0) call self%ScanGrain_(is-1, js)               ! move to (x-1,y)
+      if (js+1.le.self%ipf_ht) call self%ScanGrain_(is, js+1)   ! move to (x,y+1)
+      if (js.gt.0) call self%ScanGrain_(is, js-1)               ! move to (x,y-1)
     end if
   end if
 end if
@@ -267,7 +272,7 @@ end if
 end subroutine ScanGrain_
 
 !--------------------------------------------------------------------------
-recursive subroutine getROI_(self, wd, ht)
+recursive subroutine getROI_(self)
 !DEC$ ATTRIBUTES DLLEXPORT :: getROI_
 !! author: MDG 
 !! version: 1.0 
@@ -278,18 +283,17 @@ recursive subroutine getROI_(self, wd, ht)
 IMPLICIT NONE 
 
 class(Cluster_T),INTENT(INOUT)    :: self
-integer(kind=irg),INTENT(IN)      :: wd, ht 
 
 integer(kind=irg)                 :: i, ir, ic, xmin, xmax, ymin, ymax 
 
 ! simple brute force approach to finding each grain bounding box
 do i=1,self%nGrains
-  xmin = wd
+  xmin = self%ipf_wd
   xmax = 1
-  ymin = ht
+  ymin = self%ipf_ht
   ymax = 1
-  do ic=1,wd 
-    do ir=1,ht 
+  do ic=1,self%ipf_wd 
+    do ir=1,self%ipf_ht
       if (self%grainID(ic,ir).eq.i) then 
         if (ic.lt.xmin) xmin = ic
         if (ic.gt.xmax) xmax = ic
@@ -299,87 +303,8 @@ do i=1,self%nGrains
     end do 
   end do 
   self%ROI(1:4, i) = (/ xmin, ymin, xmax-xmin+1, ymax-ymin+1 /)
-  if (i.lt.20) write (*,*) self%ROI(1:4, i)
 end do 
 
 end subroutine getROI_
-
-! !--------------------------------------------------------------------------
-! recursive subroutine symmetrizeArray_(qAR, pgnum, qsym, num)
-! !DEC$ ATTRIBUTES DLLEXPORT :: symmetrizeArray_
-!   !! author: MDG
-!   !! version: 1.0
-!   !! date: 05/23/25
-!   !!
-!   !! symmetrize a quaternion array using the operators in qsym
-
-! use mod_symmetry
-! use mod_io
-! use mod_so3
-! use mod_quaternions
-! use mod_rotations
-
-! IMPLICIT NONE
-
-! type(QuaternionArray_T), INTENT(INOUT)    :: qAR
-! integer(kind=irg), INTENT(IN)             :: pgnum
-! type(QuaternionArray_T), INTENT(IN)       :: qsym
-! integer(kind=irg), INTENT(IN)             :: num
-
-! type(IO_T)                                :: Message
-! type(so3_T)                               :: SO
-! type(Quaternion_T)                        :: qrot
-! type(Quaternion_T)                        :: qin, qout
-! type(Quaternion_T)                        :: qm, qus 
-! type(q_T)                                 :: qq
-
-! type(FZpointd),pointer                    :: FZtail, FZtmp, FZhead
-! integer(kind=irg)                         :: oldFZcnt, FZcnt, i, k, io_int(1)
-! real(kind=dbl)                            :: xx(4), qqd(4)
-
-! SO = so3_T( pgnum )
-! call SO%setFZcnt( qAR%getQnumber(), 'FZ' )
-! call SO%QuaternionArraytonewlist( qAR, 'FZ' )
-
-! ! get a pointer to the end of the current linked list
-! FZhead => SO%getListHead('FZ')
-! FZtail => SO%getListHead('FZ')
-! FZcnt = SO%getListCount('FZ')
-! oldFZcnt = FZcnt
-! do i=1,FZcnt
-!   FZtail => FZtail%next
-! end do
-
-! write (*,*) ' FZcnt = ', FZcnt 
-
-! ! loop over all current orientations and generate the equivalent ones
-! ! keep in mind that the identity operator is always the first one in the list so we skip it
-! do k=2,num 
-!   FZtmp => FZhead
-!   qm = qsym%getQuatfromArray(k)
-!   do i=1,oldFZcnt
-!     xx = FZtmp%qu%q_copyd() 
-!     qus = qm * Quaternion_T( qd = xx ) 
-!     call qus%quat_pos()
-!     qq = q_T( qdinp = qus%get_quatd() )
-!     allocate(FZtail%next)
-!     FZtail%qu = qq
-!     FZtail%rod = qq%qr()
-!     FZtail%weight = FZtmp%weight
-!     FZtail => FZtail%next
-!     nullify(FZtail%next)       
-!     FZtmp => FZtmp%next
-!   end do
-! end do
-! FZcnt = num*oldFZcnt 
-! call SO%setFZcnt(FZcnt, 'FZ')
-! io_int(1) = FZcnt
-! call Message%WriteValue(' FZcnt after symmetrization = ', io_int, 1)
-
-! ! and return everything to a QuaternionArray
-! call SO%listtoQuaternionArray(qAR, 'FZ')
-
-! end subroutine symmetrizeArray_
-
 
 end module mod_cluster
