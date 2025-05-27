@@ -39,7 +39,7 @@ module mod_dirstats
  !! the details for this approach can be found in two papers:
  !!
  !! Y.H. Chen, Park S.U., D. Wei, G. Newstadt, M. Jackson, J.P. Simmons, M. De Graef,
- !! and A.O. Hero. “A selfionary approach to the EBSD indexing problem”.
+ !! and A.O. Hero. “A dictionary approach to the EBSD indexing problem”.
  !! Microsc. MicroAnal. 21, 739-752 (2015).
  !!
  !! Y.H. Chen, D. Wei, G. Newstadt, M. De Graef, J.P. Simmons, and A.O. Hero.
@@ -60,7 +60,7 @@ module mod_dirstats
  !! type(selftype)                  :: self
  !! real(kind=dbl)                  :: muhat(4), kappahat
  !!
- !! ! this is a test of the selfionary indexing portion that deals with the
+ !! ! this is a test of the dictionary indexing portion that deals with the
  !! ! modified von Mises-Fisher distribution; the results must be the same
  !! ! as those produced by the original Matlab code...
  !!
@@ -753,7 +753,7 @@ y = C * dexp(k*(x*x-1.D0))*dsqrt(1.D0-x*x)
 end function WatsonMeanDirDensity_
 
 !--------------------------------------------------------------------------
-recursive subroutine EMforDS_(self, seed, muhat, kappahat)
+recursive subroutine EMforDS_(self, seed, muhat, kappahat, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: EMforDS_
  !! author: MDG, based on 2015 Chen's Matlab code, with simplifications
  !! version: 1.0
@@ -774,6 +774,7 @@ class(DirStat_T), INTENT(INOUT)      :: self
 integer(kind=irg),INTENT(INOUT)      :: seed
 type(Quaternion_T),INTENT(OUT)       :: muhat
 real(kind=dbl),INTENT(OUT)           :: kappahat
+logical,INTENT(IN),OPTIONAL          :: verbose
 
 type(so3_T)                          :: SO
 integer(kind=irg)                    :: i, j, N, Pmdims, init, dd, NumEM, NumIter
@@ -866,7 +867,13 @@ kappahat = Kappa_All(dd)
 ! fundamental zone, which requires routines from the rotations and so3 modules.
 SO = so3_T( self%pgnum )
 MuMu = q_T( qdinp = Mu%get_quatd() )
-call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ )
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then
+    call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ, verbose )
+  else
+    call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ )
+  end if 
+end if 
 MuMu = roFZ%rq()
 muhat = Quaternion_T( qd = MuMu%q_copyd() )
 
@@ -1139,7 +1146,7 @@ real(kind=dbl)                  :: lCp
 ! pre-computed constants
 real(kind=dbl),parameter        :: C=-3.675754132818690967D0    ! C = ln(1.D0/(2.D0*cPi)**2)
 real(kind=dbl),parameter        :: C2=4.1746562059854348688D0   ! C2 = ln(512/sqrt(2)/pi^(3/2))
-real(kind=dbl),parameter        :: C2W=5.4243952068443172530D0  ! C2 = ln(128*sqrt(pi))
+real(kind=dbl),parameter        :: C2W=5.4243952068443172530D0  ! C2W = ln(128*sqrt(pi))
 
 if (self%DStype.eq.'VMF') then
 ! for arguments larger than kappa=30, we use a simple numerical approximation
@@ -1180,7 +1187,7 @@ end function logCp_
 ! !
 ! !> @details takes the kNN neighbor information as input and returns the
 ! !  whether the point lies in the interior of the grain or lies on the
-! !  grain boundary. Details in pg 11 of the selfionary indexing paper
+! !  grain boundary. Details in pg 11 of the dictionary indexing paper
 ! !
 ! !> @param array input array
 ! !> @param k number of top matches for each pixel

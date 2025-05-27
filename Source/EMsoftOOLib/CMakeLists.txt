@@ -109,6 +109,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_SphereIndexer.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_SphInxSupport.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_DIC.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_cluster.f90
 
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 

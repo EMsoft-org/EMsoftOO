@@ -477,7 +477,7 @@ self%funit = inp
 end subroutine set_funit_
 
 !--------------------------------------------------------------------------
-recursive function openExpPatternFile_(self, EMsoft, npat, L, recsize, HDFstrings, HDF) result(istat)
+recursive function openExpPatternFile_(self, EMsoft, npat, L, recsize, HDFstrings, HDF, verbose) result(istat)
 !DEC$ ATTRIBUTES DLLEXPORT :: openExpPatternFile_
 !! author: MDG
 !! version: 1.0
@@ -496,6 +496,7 @@ integer(kind=irg),INTENT(IN)          :: L
 integer(kind=irg),INTENT(IN)          :: recsize
 character(fnlen),INTENT(IN),OPTIONAL  :: HDFstrings(10)
 type(HDF_T),INTENT(INOUT),OPTIONAL    :: HDF
+logical,INTENT(IN),OPTIONAL           :: verbose  
 integer(kind=irg)                     :: istat
 
 type(IO_T)                            :: Message
@@ -529,8 +530,12 @@ if (.not.f_exists) then
    call Message%printError('openExpPatternFile','Unrecoverable error; file not found')
 end if
 
-call Message%printMessage(' Pattern input file '//trim(ename))
-call Message%printMessage('   input file type '//trim(self%inputtype))
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then 
+    call Message%printMessage(' Pattern input file '//trim(ename))
+    call Message%printMessage('   input file type '//trim(self%inputtype))
+  end if 
+end if 
 
 platform = trim(EMsoft%getConfigParameter('EMsoftplatform'))
 

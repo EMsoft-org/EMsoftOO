@@ -1,0 +1,18 @@
+ &HROSMdata
+! The line above must not be changed
+!
+! The values below are the default values for this program
+!
+! [deg] max grain misorientation angle for clustering
+ gangle = 5.0,
+! [deg] misorientation ball radius for sampling
+ misorang = 5.0,
+! number of sampling points along radius of misorientation ball
+ nsamples = 20,
+! input dot product file
+ dpfile = 'undefined',
+! output HDF5 file (contains grain clustering result, refined orientations, and new OSM)
+ OSMfile = 'undefined',   
+! new high resolution Orientation Similarity Map
+ OSMtiff = 'undefined',   
+ /

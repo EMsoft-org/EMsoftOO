@@ -22,6 +22,7 @@ set(EMOpenCLLib_SRCS
   ${EMOpenCLLib_SOURCE_DIR}/program_mods/mod_MCOpenCL.f90
   ${EMOpenCLLib_SOURCE_DIR}/program_mods/mod_SEMCLwrappers.f90
   ${EMOpenCLLib_SOURCE_DIR}/program_mods/mod_DI.f90
+  ${EMOpenCLLib_SOURCE_DIR}/program_mods/mod_HROSM.f90
 
 # 	${EMOpenCLLib_SOURCE_DIR}/EMdymodHDF.f90
 )

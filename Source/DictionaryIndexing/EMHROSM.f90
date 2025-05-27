@@ -26,42 +26,35 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMXXX
+program EMHROSM
   !! author: MDG
   !! version: 1.0 
-  !! date: 01/24/20
+  !! date: 05/21/25
   !!
-  !! 
+  !! This program starts with a DI output file, detects all the grains, and uses DI with 
+  !! a misorientation ball to compute a high angular resolution orientation similarity map
 
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_XXX
-use mod_HDFnames
+use mod_HROSM
 use stringconstants
 
 IMPLICIT NONE
 
-character(fnlen)                :: progname = 'EMXXX.f90'
-character(fnlen)                :: progdesc = ''
+character(fnlen)                :: progname = 'EMHROSM.f90'
+character(fnlen)                :: progdesc = 'Compute a high angular resolution Orientation Similarity Map'
 
 type(EMsoft_T)                  :: EMsoft
-type(XXX_T)     :: YYY 
-type(HDFnames_T)       :: HDFnames
+type(HROSM_T)                   :: HROSM 
 
 ! print the EMsoft header and handle any command line arguments  
-EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 87 /) )
+EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 293 /) )
 
 ! deal with the namelist stuff
-YYY = XXX_T(EMsoft%nmldeffile)
-
-HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_EBSDmaster) 
-call HDFnames%set_NMLlist(SC_EBSDmasterNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDmasterNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
+HROSM = HROSM_T(EMsoft%nmldeffile)
 
 ! perform the computations
-call YYY%XXX(EMsoft, progname, HDFnames)
+call HROSM%HROSM(EMsoft, progname)
 
-end program EMXXX
+end program EMHROSM

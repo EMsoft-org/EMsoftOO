@@ -211,7 +211,7 @@ IMPLICIT NONE
 contains
 
 !--------------------------------------------------------------------------
-type(OpenCL_T) function CL_constructor( verb ) result(CL)
+type(OpenCL_T) function CL_constructor( verb, skipCPU ) result(CL)
 !DEC$ ATTRIBUTES DLLEXPORT :: CL_constructor
   !! author: MDG
   !! version: 1.0
@@ -228,6 +228,7 @@ use mod_memory
 IMPLICIT NONE
 
 logical,INTENT(IN),OPTIONAL     :: verb 
+logical,INTENT(IN),OPTIONAL     :: skipCPU ! don't query the CPU devices if .TRUE.
 
 type(IO_T)                      :: Message
 type(memory_T)                  :: mem
@@ -247,7 +248,9 @@ if (present(verb)) then
 end if 
 
 ! Get the number of platforms, prior to allocating arrays.
+  ! write (*,*) 'pre-clGetPlatformIDs: ', nplatforms, err
   err = clGetPlatformIDs(0, C_NULL_PTR, nplatforms)
+  ! write (*,*) 'post-clGetPlatformIDs: ', nplatforms, err
   if (err /= CL_SUCCESS) call Message%printError('clGetPlatformIDs: ','Error quering platforms L249')
   CL%num_platforms = nplatforms
 
@@ -305,11 +308,21 @@ end if
 
   ! get all relevant information for each platform
     do i=1, CL%num_platforms
-      if (verbose.eqv..TRUE.) then 
-        call CL%query_platform_info_(i, verbose)
-      else
-        call CL%query_platform_info_(i)
-      end if 
+      if (present(skipCPU)) then
+        if (skipCPU.eqv..TRUE.) then
+          if (verbose.eqv..TRUE.) then 
+            call CL%query_platform_info_(i, verbose=.TRUE., skipCPU=.TRUE.)
+          else
+            call CL%query_platform_info_(i, skipCPU=.TRUE.)
+          end if 
+        else
+          if (verbose.eqv..TRUE.) then 
+            call CL%query_platform_info_(i, verbose=.TRUE.)
+          else
+            call CL%query_platform_info_(i)
+          end if 
+        end if 
+      end if
     end do
   else
   ! the number of platforms is 0 which means that OpenCL is either absent or incorrectly set up
@@ -367,7 +380,7 @@ type(OpenCL_T),INTENT(INOUT)  :: CL
 
 end subroutine CL_destructor
 ! -----------------------------------------------------------------------------
-recursive subroutine query_platform_info_(self, p_id, verbose)
+recursive subroutine query_platform_info_(self, p_id, verbose, skipCPU)
 !DEC$ ATTRIBUTES DLLEXPORT :: query_platform_info_
   !! author: MDG
   !! version: 1.0
@@ -384,6 +397,7 @@ IMPLICIT NONE
 class(OpenCL_T), INTENT(INOUT) :: self
 integer(kind=irg), INTENT(IN)  :: p_id
 logical,INTENT(IN),OPTIONAL    :: verbose 
+logical,INTENT(IN),OPTIONAL    :: skipCPU
 
 ! Input variable.
 integer(c_intptr_t)            :: platform_id
@@ -391,6 +405,7 @@ integer(c_intptr_t)            :: platform_id
 ! Helper variables to work with OpenCL API.
 integer(c_int32_t)             :: err
 integer(c_size_t)              :: zero_size = 0
+integer(c_int32_t)             :: zero32 = 0
 integer(c_size_t)              :: temp_size
 ! For quering devices.
 integer(c_int64_t)             :: device_type
@@ -423,7 +438,11 @@ allocate(platform_profile(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, temp_size, C_LOC(platform_profile), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_profile(p_id) = trim(cv_a2s(platform_profile))
-if (present(verbose)) print *, 'Profile: ', trim(self%p_profile(p_id))
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then 
+    print *, 'Profile: ', trim(self%p_profile(p_id))
+  end if 
+end if 
 deallocate(platform_profile)
 
 ! Version.
@@ -433,7 +452,11 @@ allocate(platform_version(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, temp_size, C_LOC(platform_version), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_version(p_id) = trim(cv_a2s(platform_version))
-if (present(verbose)) print *, 'Version: ', trim(self%p_version(p_id))
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then 
+    print *, 'Version: ', trim(self%p_version(p_id))
+  end if 
+end if
 deallocate(platform_version)
 
 ! Name.
@@ -443,7 +466,11 @@ allocate(platform_name(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, temp_size, C_LOC(platform_name), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_name(p_id) = trim(cv_a2s(platform_name))
-if (present(verbose)) print *, 'Name: ', trim(self%p_name(p_id))
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then 
+    print *, 'Name: ', trim(self%p_name(p_id))
+  end if 
+end if
 deallocate(platform_name)
 
 ! Vendor.
@@ -453,7 +480,11 @@ allocate(platform_vendor(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, temp_size, C_LOC(platform_vendor), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_vendor(p_id) = trim(cv_a2s(platform_vendor))
-if (present(verbose)) print *, 'Vendor: ', trim(self%p_vendor(p_id))
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then 
+    print *, 'Vendor: ', trim(self%p_vendor(p_id))
+  end if 
+end if
 deallocate(platform_vendor)
 
 ! Extensions.
@@ -463,71 +494,78 @@ allocate(platform_extensions(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, temp_size, C_LOC(platform_extensions), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_extensions(p_id) = trim(cv_a2s(platform_extensions))
-if (present(verbose)) print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then 
+    print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
+  end if 
+end if
 deallocate(platform_extensions)
 
 !
 ! Get device information for this platform.
 !
 ! Get CPU device count.
+if (present(skipCPU)) then 
+  if (skipCPU.eqv..FALSE.) then 
+    ! device_type = CL_DEVICE_TYPE_CPU
+    err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, zero32, C_NULL_PTR, num_devices)
+    call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs:numdevices',err,.TRUE.)
 
-! device_type = CL_DEVICE_TYPE_CPU
-err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, 0, C_NULL_PTR, num_devices)
-call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs:numdevices',err,.TRUE.)
+    if (err /= CL_SUCCESS .or. num_devices < 1) then
+      self%noCPUdevices(p_id) = .TRUE.
+    else
+      self%num_CPUdevices(p_id) = num_devices
+      allocate(device_ids(num_devices))
+      
+    ! Get device IDs.
+      err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, num_devices, C_LOC(device_ids), num_devices)
+      call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err)
+      self%d_CPUids(p_id,1:num_devices) = device_ids
 
-if (err /= CL_SUCCESS .or. num_devices < 1) then
-  self%noCPUdevices(p_id) = .TRUE.
-else
-  self%num_CPUdevices(p_id) = num_devices
-  allocate(device_ids(num_devices))
-  
-! Get device IDs.
-  err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, num_devices, C_LOC(device_ids), num_devices)
-  call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs',err)
-  self%d_CPUids(p_id,1:num_devices) = device_ids
+    ! Loop over devices and print information.
+      do i = 1, num_devices
+    ! Maximum compute units.
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, zero_size, C_LOC(device_cu), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, temp_size, C_LOC(device_cu), temp_size)
+        call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_cu',err)
+        self%d_CPUcu(p_id, i) = device_cu
 
-! Loop over devices and print information.
-  do i = 1, num_devices
-! Maximum compute units.
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, zero_size, C_LOC(device_cu), temp_size)
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, temp_size, C_LOC(device_cu), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_cu',err)
-    self%d_CPUcu(p_id, i) = device_cu
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, zero_size, C_LOC(device_gms), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
+        ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_gms',err)
+        device_gms = device_gms/1024/1024/1024
+        self%d_CPUgms(p_id, i) = device_gms
 
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, zero_size, C_LOC(device_gms), temp_size)
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
-    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_gms',err)
-    device_gms = device_gms/1024/1024/1024
-    self%d_CPUgms(p_id, i) = device_gms
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, zero_size, C_LOC(device_lms), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
+        ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_lms',err)
+        device_lms = device_lms/1024
+        self%d_CPUlms(p_id, i) = device_lms
 
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, zero_size, C_LOC(device_lms), temp_size)
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
-    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_lms',err)
-    device_lms = device_lms/1024
-    self%d_CPUlms(p_id, i) = device_lms
+    ! CL_DEVICE_MAX_WORK_GROUP_SIZE
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, zero_size, C_LOC(device_mwgs), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
+        call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwgs',err)
+        self%d_CPUmwgs(p_id, i) = device_mwgs
 
-! CL_DEVICE_MAX_WORK_GROUP_SIZE
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, zero_size, C_LOC(device_mwgs), temp_size)
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwgs',err)
-    self%d_CPUmwgs(p_id, i) = device_mwgs
+    ! CL_DEVICE_MAX_WORK_ITEM_SIZES
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, zero_size, C_LOC(device_mwis), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
+        ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwis',err)
+        self%d_CPUmwis(p_id, i, 1:3) = device_mwis
 
-! CL_DEVICE_MAX_WORK_ITEM_SIZES
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, zero_size, C_LOC(device_mwis), temp_size)
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
-    ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwis',err)
-    self%d_CPUmwis(p_id, i, 1:3) = device_mwis
-
-! Name.
-    temp_size = 4
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, zero_size, C_NULL_PTR, temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
-    allocate(device_name(temp_size))
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, temp_size, C_LOC(device_name), temp_size)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_name',err)
-    self%d_CPUname(p_id, i) = cv_a2s(device_name)
-    deallocate(device_name)
-  end do
+    ! Name.
+        temp_size = 4
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, zero_size, C_NULL_PTR, temp_size)
+        call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo',err)
+        allocate(device_name(temp_size))
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_NAME, temp_size, C_LOC(device_name), temp_size)
+        call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_name',err)
+        self%d_CPUname(p_id, i) = cv_a2s(device_name)
+        deallocate(device_name)
+      end do
+    end if
+  end if 
 end if
 
 ! Get GPU device count.
@@ -1165,12 +1203,12 @@ if (ierr.ne.0) then
     estr = errorStrings(-ierr)
   else
     iout(1) = ierr
-    call Message%WriteValue('Unknown CL error code : ', iout, 1)
+    call Message%WriteValue(' Unknown CL error code : ', iout, 1)
   end if
 
   if (present(nonfatal)) then
     if (nonfatal.eqv..TRUE.) then
-      print*,"Non fatal error"
+      print*,"mod_CLsupport:error_check:"//trim(routine)//" Non fatal error "//trim(estr)
 !     call Message%printMessage('error_check', ' Non-fatal error: '//trim(estr) )
 !     Temporary commented Clément Lafond : avoid a fatal error when executing  EMMCOpenCL, need to understand why
     end if

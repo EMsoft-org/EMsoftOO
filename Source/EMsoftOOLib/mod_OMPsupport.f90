@@ -84,7 +84,7 @@ call Message%WriteValue(' Allocated number of OpenMP threads : ', io_int, 1)
 end subroutine OMP_showAllocatedThreads
 
 !--------------------------------------------------------------------------
-subroutine OMP_setNThreads(n)
+subroutine OMP_setNThreads(n, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: OMP_setNThreads
 !! author: MDG
 !! version: 1.0
@@ -95,27 +95,41 @@ subroutine OMP_setNThreads(n)
 IMPLICIT NONE
 
 integer(kind=irg),INTENT(IN)  :: n
+logical,INTENT(IN),OPTIONAL   :: verbose
 
 type(IO_T)                    :: Message
 integer(kind=irg)             :: io_int(1)
+logical                       :: verb = .FALSE.
+
+if (present(verbose)) then 
+  if (verbose.eqv..TRUE.) then 
+    verb = .TRUE.
+  end if 
+end if 
 
 maxOMPthreads = OMP_GET_MAX_THREADS()
 
 if (n.eq.0) then
   io_int(1) = maxOMPthreads
-  call Message%WriteValue(' Number of OpenMP threads set to maximum available : ', io_int, 1)
+  if (verb.eqv..TRUE.) then 
+    call Message%WriteValue(' Number of OpenMP threads set to maximum available : ', io_int, 1)
+  end if 
   call OMP_SET_NUM_THREADS(n)
 else
   if (maxOMPthreads.lt.n) then
     io_int(1) = n
-    call Message%WriteValue(' Number of OpenMP threads requested : ', io_int, 1)
-    io_int(1) =  maxOMPthreads
-    call Message%WriteValue(' Number of OpenMP threads available : ', io_int, 1)
-    call Message%printMessage(' --> Setting number of threads to maximum available ')
+    if (verb.eqv..TRUE.) then
+      call Message%WriteValue(' Number of OpenMP threads requested : ', io_int, 1)
+      io_int(1) =  maxOMPthreads
+      call Message%WriteValue(' Number of OpenMP threads available : ', io_int, 1)
+      call Message%printMessage(' --> Setting number of threads to maximum available ')
+    end if 
     call OMP_SET_NUM_THREADS(maxOMPthreads)
   else
-    io_int(1) = n
-    call Message%WriteValue(' Number of OpenMP threads set to ', io_int, 1)
+    if (verb.eqv..TRUE.) then
+      io_int(1) = n
+      call Message%WriteValue(' Number of OpenMP threads set to ', io_int, 1)
+    end if 
     call OMP_SET_NUM_THREADS(n)
   end if
 end if
