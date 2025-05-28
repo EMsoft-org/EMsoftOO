@@ -46,6 +46,7 @@ type, public :: HROSMNameListType
   character(fnlen)        :: dpfile     ! input dot product file
   character(fnlen)        :: OSMfile    ! output HDF5 file
   character(fnlen)        :: OSMtiff    ! new high resolution Orientation Similarity Map
+  character(fnlen)        :: IPFmap     ! prefix of optional IPF maps
 end type HROSMNameListType
 
 ! class definition
@@ -58,10 +59,10 @@ contains
 private 
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: writeHDFNameList_
-  procedure, pass(self) :: getNameList_
+  ! procedure, pass(self) :: mygetNameList_
   procedure, pass(self) :: HROSM_
 
-  generic, public :: getNameList => getNameList_
+  ! generic, private :: mygetNameList => mygetNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: HROSM => HROSM_
@@ -137,9 +138,10 @@ real(kind=sgl)                      :: misorang   ! [deg] misorientation ball ra
 character(fnlen)                    :: dpfile     ! input dot product file
 character(fnlen)                    :: OSMfile    ! output HDF5 file
 character(fnlen)                    :: OSMtiff    ! new high resolution Orientation Similarity Map
+character(fnlen)                    :: IPFmap
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / HROSMdata / nsamples, gangle, misorang, dpfile, OSMfile, OSMtiff 
+namelist  / HROSMdata / nsamples, gangle, misorang, dpfile, OSMfile, OSMtiff, IPFmap 
 
 nsamples = 20           ! number of sampling points along radius of misorientation ball
 gangle = 5.0            ! [deg] max grain misorientation angle for clustering
@@ -147,6 +149,7 @@ misorang = 5.0          ! [deg] misorientation ball radius for sampling
 dpfile = 'undefined'    ! input dot product file
 OSMfile = 'undefined'   ! output HDF5 file
 OSMtiff ='undefined'    ! new high resolution Orientation Similarity Map
+IPFmap = 'undefined'    ! prefix for optional IPF maps
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -175,26 +178,27 @@ self%nml%misorang = misorang
 self%nml%dpfile = dpfile
 self%nml%OSMfile = OSMfile
 self%nml%OSMtiff = OSMtiff
+self%nml%IPFmap = IPFmap
 
 end subroutine readNameList_
 
-!--------------------------------------------------------------------------
-function getNameList_(self) result(nml)
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
-!! author: MDG 
-!! version: 1.0 
-!! date: 05/21/25
-!!
-!! pass the namelist for the HROSM_T Class to the calling program
+! !--------------------------------------------------------------------------
+! function mygetNameList_(self) result(nml)
+! !DEC$ ATTRIBUTES DLLEXPORT :: mygetNameList_
+! !! author: MDG 
+! !! version: 1.0 
+! !! date: 05/21/25
+! !!
+! !! pass the namelist for the HROSM_T Class to the calling program
 
-IMPLICIT NONE 
+! IMPLICIT NONE 
 
-class(HROSM_T), INTENT(INOUT)          :: self
-type(HROSMNameListType)                :: nml
+! class(HROSM_T), INTENT(INOUT)          :: self
+! type(HROSMNameListType)                :: nml
 
-nml = self%nml
+! nml = self%nml
 
-end function getNameList_
+! end function mygetNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
@@ -256,6 +260,11 @@ line2(1) = trim(enl%OSMtiff)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create OSMtiff dataset', hdferr)
 
+dataset = 'IPFmap'
+line2(1) = trim(enl%IPFmap)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create IPFmap dataset', hdferr)
+
 ! and pop this group off the stack
 call HDF%pop()
 
@@ -285,10 +294,13 @@ use mod_MPfiles
 use mod_DI
 use mod_io
 use mod_image
+use mod_IPF
+use mod_IPFsupport
 use mod_quaternions
 use mod_rotations
 use mod_so3
 use mod_memory
+use mod_timing
 use ISO_C_BINDING
 use mod_image
 use mod_EBSD
@@ -318,18 +330,31 @@ type(MCOpenCLNameListType)              :: mcnl
 type(SEMmasterNameListType)             :: mpnl
 type(Cluster_T)                         :: cluster
 type(Quaternion_T)                      :: quat
+type(QuaternionArray_T)                 :: sym, tmp, qAR
 type(q_T)                               :: qu 
+type(e_T)                               :: eu
 type(r_T)                               :: ro  
 type(so3_T)                             :: SO
 type(memory_T)                          :: mem
+type(Timing_T)                          :: timer
+type(IPF_T)                             :: IPF 
+type(IPFmap_T)                          :: IPFmap 
 
-character(fnlen)                        :: DIfile, fname, xtalname, TIFF_filename
+
+character(fnlen)                        :: DIfile, fname, xtalname, TIFF_filename, IPFmapfile, IPFmode
+character(fnlen)                        :: dataname, datagroupname, groupname, attributename, dataset
+character(11)                           :: dstr
+character(15)                           :: tstrb
+character(15)                           :: tstre
 character(2)                            :: listmode
-integer(kind=irg)                       :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4) 
-real(kind=sgl), allocatable             :: mainOSM(:,:), OSMmap(:,:)  
+integer(kind=irg)                       :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4), icnt, nt 
+real(kind=sgl), allocatable             :: mainOSM(:,:), OSMmap(:,:), mainEuler(:,:,:), mainResult(:,:)  
 real(kind=sgl)                          :: mi, ma
-integer(kind=irg),allocatable           :: indexmain(:,:)
-logical                                 :: verbose=.FALSE.
+real(kind=sgl),allocatable              :: rodarray(:,:,:), maineu(:,:)
+real(kind=sgl),allocatable              :: resultmain(:,:)
+
+logical                                 :: verbose=.FALSE., f_exists
+character(fnlen,kind=c_char)            :: HDF_FileVersion
 
 ! declare variables for use in object oriented image module
 integer                                 :: iostat
@@ -354,6 +379,9 @@ integer(int8), allocatable              :: TIFF_image(:,:)
 ! 6. if requested, also produce a tiff merged OSM 
 
 associate(osmnl=>self%nml, DIDT=>DIFT%DIDT, det=>EBSD%det, enl=>EBSD%nml)
+
+timer = Timing_T()
+tstrb = timer%getTimeString()
 
 ! 1. read the dpfile to get all parameters, including refined orientations
 !    also read the Monte Carlo and Master pattern datasets
@@ -452,9 +480,14 @@ call Message%WriteValue(' Number of non-converged average orientations : ', io_i
 ! is no need for this routine to produce the regular dp HDF5 file since that will
 ! be done by the present program.
 
-allocate(mainOSM( dinl%ipf_wd, dinl%ipf_ht ) )
+allocate(mainOSM( cluster%ipf_wd, cluster%ipf_ht ) )
+allocate(mainEuler( 3, cluster%ipf_wd, cluster%ipf_ht ) )
+allocate(mainResult( cluster%ipf_wd, cluster%ipf_ht ) )
 mainOSM = 0.0
+mainEuler = 0.0
+mainResult = 0.0
 dinl%binning  = 1
+nt = cluster%ipf_wd * cluster%ipf_ht
 
 ! do a portion of the array
 ! cluster%nGrains = 100
@@ -494,19 +527,24 @@ grainloop: do i=1,cluster%nGrains
   ! the best match orientations along with the list of N top-matches so that we can 
   ! compute an OSM for the ROI only, then copy those values into the overal OSM.
     dinl%ROI(1:4) = cluster%ROI(1:4, i)
-    call OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, OSMmap, indexmain)
+    call OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
+                     OSMmap, resultmain, rodarray)
 
   ! copy the OSMmap parameters to the mainOSM array 
     do ic = 1, dinl%ipf_wd 
       do ir = 1, dinl%ipf_ht
         if (cluster%grainID(ic, ir).eq.i) then 
           mainOSM(ic,ir) = OSMmap(ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)
+          ro = r_T( rdinp = dble(rodarray(1:4,ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)))
+          eu = ro%re()
+          mainEuler(1:3,ic,ir) = real( eu%e_copyd() )
+          mainResult(ic,ir) = resultmain(ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)
         end if 
       end do
     end do
 
   ! and delete the OSM array as well as the list of orientations
-    deallocate(OSMmap, indexmain)
+    deallocate(OSMmap, rodarray, resultmain)
     call SO%delete_FZlist('CM')
     call Message%printMessage(' ')
     ! if (i.eq.2) exit
@@ -517,14 +555,103 @@ grainloop: do i=1,cluster%nGrains
   end if 
 end do grainloop
 
+timer = Timing_T()
+dstr = timer%getDateString()
+tstre = timer%getTimeString()
 
-open(unit=dataunit, file ='OSM.data', status = 'unknown', form='unformatted')
-write(dataunit) mainOSM
-! write(dataunit) indexmain
-close(unit=dataunit,status='keep')
-
+! used for initial debugging
+! open(unit=dataunit, file ='OSM.data', status = 'unknown', form='unformatted')
+! write(dataunit) mainOSM
+! ! write(dataunit) indexmain
+! close(unit=dataunit,status='keep')
 
 ! 5. write all results to an HDF5 file 
+
+! get the filename; if it already exists, then delete it and create a new one
+dataname = EMsoft%generateFilePath('EMdatapathname', osmnl%OSMfile)
+inquire(file=trim(dataname), exist=f_exists)
+
+if (f_exists) then
+  open(unit=dataunit, file=trim(dataname), status='old',form='unformatted')
+  close(unit=dataunit, status='delete')
+end if
+
+call localHDFnames%set_ProgramData(SC_HROSM)
+call localHDFnames%set_NMLlist(SC_HROSMNameList)
+call localHDFnames%set_NMLfilename(SC_HROSMNML)
+
+! Create a new file using the default properties.
+hdferr = HDF%createFile(dataname)
+
+! write the EMheader to the file
+datagroupname = trim(localHDFnames%get_ProgramData()) 
+call HDF%writeEMheader(EMsoft,dstr, tstrb, tstre, progname, datagroupname)
+
+! add the CrystalData group at the top level of the file
+call cell%addXtalDataGroup(SG, EMsoft, HDF)
+
+! create a namelist group to write all the namelist files into
+hdferr = HDF%createGroup(localHDFnames%get_NMLfiles())
+
+! read the text file and write the array to the file
+dataset = trim(localHDFnames%get_NMLfilename())    
+hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
+
+! leave this group
+call HDF%pop()
+
+! create a namelist group to write all the namelist files into
+hdferr = HDF%createGroup(localHDFnames%get_NMLparameters())
+call self%writeHDFNameList(HDF, localHDFnames)
+
+! leave this group
+call HDF%pop()
+
+! then the remainder of the data in a EMData group
+hdferr = HDF%createGroup(localHDFnames%get_EMData())
+
+! here we add the data groupname and we attach to it a HDF_FileVersion attribute
+hdferr = HDF%createGroup(datagroupname)
+HDF_FileVersion = '4.0'
+HDF_FileVersion = cstringify(HDF_FileVersion)
+attributename = SC_HDFFileVersion
+hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
+
+dataset = 'nGrains'
+  hdferr = HDF%writeDatasetInteger(dataset, cluster%nGrains)
+
+dataset = 'grainID'
+    hdferr = HDF%writeDatasetIntegerArray(dataset, cluster%grainID, cluster%ipf_wd, cluster%ipf_ht )
+
+dataset = 'npixels'
+    hdferr = HDF%writeDatasetIntegerArray(dataset, cluster%npixels, cluster%nGrains)
+
+dataset = 'ROI'
+    hdferr = HDF%writeDatasetIntegerArray(dataset, cluster%ROI, 4, cluster%nGrains)
+
+dataset = 'avor'
+    hdferr = HDF%writeDatasetDoubleArray(dataset, cluster%avor, 4, cluster%nGrains)
+
+dataset = 'kappa'
+    hdferr = HDF%writeDatasetDoubleArray(dataset, cluster%kappa, cluster%nGrains)
+
+dataset = 'kam'
+    hdferr = HDF%writeDatasetFloatArray(dataset, cluster%kam, cluster%ipf_wd, cluster%ipf_ht)
+
+dataset = 'newOSM'
+    hdferr = HDF%writeDatasetFloatArray(dataset, mainOSM, cluster%ipf_wd, cluster%ipf_ht)
+
+dataset = 'newEuler'
+    hdferr = HDF%writeDatasetFloatArray(dataset, mainEuler, 3, cluster%ipf_wd, cluster%ipf_ht)
+
+dataset = 'newCI'
+    hdferr = HDF%writeDatasetFloatArray(dataset, mainResult, cluster%ipf_wd, cluster%ipf_ht)
+
+! =====================================================
+! end of HDF_FileVersion = 4.0 write statements
+! =====================================================
+
+call HDF%popall()
 
 
 ! 6. if requested, also produce a tiff file with the mainOSM array
@@ -544,6 +671,47 @@ if(0.ne.iostat) then
 else
   call Message%printMessage(' new OSM map written to '//trim(TIFF_filename))
 end if
+
+! 7. IPF maps if requested 
+if (trim(osmnl%IPFmap).ne.'undefined') then 
+! initialize the IPF map class; since we are not using an nmlfile argument here,
+! we must manually initialize the parameters in this class
+  IPF = IPF_T()
+  allocate(maineu(3,nt))
+  maineu = reshape(mainEuler,(/ 3, nt /))
+
+  write (*,*) maineu(1:3,1:5)
+
+  call tmp%QSym_Init(DIFT%DIDT%pgnum, sym)
+
+! here we initialize the parameters of the IPF class; we will take a default file name 
+! of IPFmapfile = 'IPFprefix_IPFZmap.tiff' with the current data path pre-pended.
+  IPFmapfile = trim(osmnl%IPFmap)//'_IPFZmap.tiff'
+  call IPF%set_nthreads(1)
+  IPFmode = 'TSL'
+  call IPF%set_IPFmode(IPFmode)
+  qAR = QuaternionArray_T( n=nt, s='d' )
+  do icnt=1,nt
+    eu = e_T( edinp = dble(maineu(1:3,icnt))  )
+    qu = eu%eq()
+    quat = quaternion_T( qd = qu%q_copyd() )
+    call qAR%insertQuatinArray( icnt, quat)
+    end do 
+! note the switch of x and y to get the same IPF map convention as DREAM.3D
+  IPFmapfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%IPFmap)//'_IPFXmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+  call IPF%updateIPFmap(EMsoft, progname, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, IPFmapfile, qAR, sym) 
+  IPFmapfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%IPFmap)//'_IPFYmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+  call IPF%updateIPFmap(EMsoft, progname, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, IPFmapfile, qAR, sym) 
+  IPFmapfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%IPFmap)//'_IPFZmap.tiff'
+  call IPF%set_IPFfilename(IPFmapfile)
+  call IPF%set_sampleDir( (/ 0, 0, 1 /) )
+  call IPF%updateIPFmap(EMsoft, progname, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, IPFmapfile, qAR, sym) 
+end if
+
 
 
 end associate

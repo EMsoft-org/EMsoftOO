@@ -183,7 +183,7 @@ private
   procedure, pass(self) :: setModality_
   procedure, pass(self) :: readDIModality_
   procedure, pass(self) :: readNameList_
-  procedure, pass(self) :: getNameList_
+  procedure, pass(self) :: getmyNameList_
   procedure, pass(self) :: getCPUGPU_
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: writeHDF2NameList_
@@ -193,7 +193,7 @@ private
   procedure, pass(self) :: h5ebsd_writeInfo
   procedure, pass(self) :: sphh5ebsd_writeFile_
 
-  generic, public :: getNameList => getNameList_
+  generic, public :: getNameList => getmyNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: getrefinementfilename => getrefinementfilename_
   generic, public :: getfilename => getfilename_
@@ -759,8 +759,8 @@ self%nml%Rout            = Rout
 end subroutine readNameList_
 
 !--------------------------------------------------------------------------
-function getNameList_(self) result(nml)
-!DEC$ ATTRIBUTES DLLEXPORT :: getNameList_
+function getmyNameList_(self) result(nml)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmyNameList_
 !! author: MDG
 !! version: 1.0
 !! date: 03/31/20
@@ -774,7 +774,7 @@ type(DictionaryIndexingNameListType)  :: nml
 
 nml = self%nml
 
-end function getNameList_
+end function getmyNameList_
 
 !--------------------------------------------------------------------------
 recursive subroutine writeHDFNameList_(self, HDF, HDFnames, emnl)

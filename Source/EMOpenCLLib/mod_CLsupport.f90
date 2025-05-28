@@ -240,14 +240,12 @@ integer(kind=irg)               :: i
 integer(c_intptr_t)             :: platform_id 
 integer(c_int32_t)              :: num_devices = 0
 integer(c_intptr_t), allocatable, target :: platform_ids(:)
-logical                         :: verbose, skCPU 
+logical                         :: verbose = .FALSE., skCPU = .FALSE. 
 
-verbose = .FALSE.
 if (present(verb)) then
   if (verb.eqv..TRUE.) verbose = .TRUE.
 end if 
 
-skCPU = .FALSE.
 if (present(skipCPU)) then 
   if (skipCPU.eqv..TRUE.) then 
     skCPU = .TRUE.
@@ -319,13 +317,13 @@ end if
         if (verbose.eqv..TRUE.) then 
           call CL%query_platform_info_(i, verbose=.TRUE., skCPU=.TRUE.)
         else
-          call CL%query_platform_info_(i, skCPU=.TRUE.)
+          call CL%query_platform_info_(i, verbose=.FALSE., skCPU=.TRUE.)
         end if 
       else
         if (verbose.eqv..TRUE.) then 
           call CL%query_platform_info_(i, verbose=.TRUE.)
         else
-          call CL%query_platform_info_(i)
+          call CL%query_platform_info_(i, verbose=.FALSE.)
         end if 
       end if 
     end do
@@ -456,7 +454,7 @@ allocate(platform_profile(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, temp_size, C_LOC(platform_profile), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_profile(p_id) = trim(cv_a2s(platform_profile))
-if (verb) print *, 'Profile: ', trim(self%p_profile(p_id))
+if (verb.eqv..TRUE.) print *, 'Profile: ', trim(self%p_profile(p_id))
 deallocate(platform_profile)
 
 ! Version.
@@ -466,7 +464,7 @@ allocate(platform_version(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, temp_size, C_LOC(platform_version), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_version(p_id) = trim(cv_a2s(platform_version))
-if (verb) print *, 'Version: ', trim(self%p_version(p_id))
+if (verb.eqv..TRUE.) print *, 'Version: ', trim(self%p_version(p_id))
 deallocate(platform_version)
 
 ! Name.
@@ -476,7 +474,7 @@ allocate(platform_name(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, temp_size, C_LOC(platform_name), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_name(p_id) = trim(cv_a2s(platform_name))
-if (verb) print *, 'Name: ', trim(self%p_name(p_id))
+if (verb.eqv..TRUE.) print *, 'Name: ', trim(self%p_name(p_id))
 deallocate(platform_name)
 
 ! Vendor.
@@ -486,7 +484,7 @@ allocate(platform_vendor(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, temp_size, C_LOC(platform_vendor), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_vendor(p_id) = trim(cv_a2s(platform_vendor))
-if (verb) print *, 'Vendor: ', trim(self%p_vendor(p_id))
+if (verb.eqv..TRUE.) print *, 'Vendor: ', trim(self%p_vendor(p_id))
 deallocate(platform_vendor)
 
 ! Extensions.
@@ -496,7 +494,7 @@ allocate(platform_extensions(temp_size))
 err = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, temp_size, C_LOC(platform_extensions), temp_size)
 call error_check_(self, 'CLquery_platform_info:clGetPlatformInfo',err)
 self%p_extensions(p_id) = trim(cv_a2s(platform_extensions))
-if (verb) print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
+if (verb.eqv..TRUE.) print *, 'platform_extensions: ', trim(self%p_extensions(p_id))
 deallocate(platform_extensions)
 
 !

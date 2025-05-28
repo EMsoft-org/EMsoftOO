@@ -15,4 +15,6 @@
  OSMfile = 'undefined',   
 ! new high resolution Orientation Similarity Map
  OSMtiff = 'undefined',   
+! optional prefix for IPF map output
+ IPFmap = 'undefined',
  /

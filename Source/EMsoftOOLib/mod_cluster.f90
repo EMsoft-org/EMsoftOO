@@ -48,8 +48,8 @@ type, public :: Cluster_T
   integer(kind=irg)               :: GrainSize    ! used to control recursion
   integer(kind=irg)               :: TotSize      ! used to control recursion
   integer(kind=irg)               :: MaxSize      ! used to control recursion
-  integer(kind=irg)               :: ipf_wd       ! used to control recursion
-  integer(kind=irg)               :: ipf_ht       ! used to control recursion
+  integer(kind=irg)               :: ipf_wd       ! ROI width
+  integer(kind=irg)               :: ipf_ht       ! ROI height
   real(kind=sgl)                  :: gangle       ! threshold angle for clustering
   real(kind=dbl), allocatable     :: avor(:,:)    ! average orientation per grain
   real(kind=dbl), allocatable     :: kappa(:)     ! concentration parameters

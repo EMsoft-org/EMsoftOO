@@ -1747,7 +1747,8 @@ end subroutine DIdriver
 
 
 !--------------------------------------------------------------------------
-subroutine OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, OSMmap, indexmain) 
+subroutine OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
+                       OSMmap, resarray, rodarray) 
 !DEC$ ATTRIBUTES DLLEXPORT :: OSMDIdriver
 !! author: MDG
 !! version: 1.0
@@ -1810,7 +1811,8 @@ type(SpaceGroup_T), INTENT(IN)                      :: SG
 type(EBSD_T), INTENT(INOUT)                         :: EBSD
 type(so3_T), INTENT(INOUT)                          :: SO
 real(kind=sgl),allocatable,INTENT(OUT)              :: OSMmap(:,:)
-integer(kind=irg),allocatable,INTENT(INOUT)         :: indexmain(:,:)
+real(kind=sgl),allocatable, target, INTENT(INOUT)   :: resarray(:,:)
+real(kind=sgl),allocatable, target, INTENT(INOUT)   :: rodarray(:,:,:)
 
 type(Timing_T)                                      :: timer
 type(HDF_T)                                         :: HDF
@@ -1874,8 +1876,8 @@ real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,
                                                        tmpimageexpt(:), maxsortarr(:), minsortarr(:), ep(:,:), &
                                                        pcavecs(:,:), pcasvs(:), dpatterns(:,:), dpatterns_tmp(:,:)
 real(kind=sgl),allocatable, target                  :: results(:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
-                                                       eulerarray(:,:),eulerarray2(:,:),resultmain(:,:),resulttmp(:,:)
-integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:), euarray(:,:)
+                                                       eulerarray(:,:),eulerarray2(:,:),resulttmp(:,:), resultmain(:,:)
+integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:), euarray(:,:),indexmain(:,:)
 integer(kind=irg),allocatable,target                :: indarray(:)
 integer*4,allocatable                               :: iexptCI(:,:), iexptIQ(:,:)
 real(kind=sgl),allocatable                          :: meandict(:),meanexpt(:),wf(:),mLPNH(:,:,:),mLPSH(:,:,:),accum_e_MC(:,:,:)
@@ -2064,7 +2066,7 @@ call mem%alloc(FZarray, (/ 4,FZcnt /), 'FZarray', initval = 0.0)
 
 FZtmp => SO%getListHead('CM')
 do ii = 1,FZcnt
-    FZarray(1:4,ii) = FZtmp%rod%r_copyd()
+    FZarray(1:4,ii) = FZtmp%trod%r_copyd()
     FZtmp => FZtmp%next
 end do
 
@@ -2510,18 +2512,22 @@ call CL%error_check('DIdriver:clReleaseContext', ierr)
 ! COMPUTE OSM AND RETURN TO CALLING PROGRAM
 ! ===================
 call mem%alloc(OSMmap, (/ dinl%ROI(3), dinl%ROI(4) /), 'OSMmap')
+call mem%alloc(rodarray, (/ 4,dinl%ROI(3), dinl%ROI(4) /), 'rodarray')
+call mem%alloc(resarray, (/ dinl%ROI(3), dinl%ROI(4) /), 'resarray')
 call getOrientationSimilarityMap( (/nnk,Ne*ceiling(float(totnumexpt)/float(Ne))/), & 
                                     indexmain, dinl%nosm, dinl%ROI(3), dinl%ROI(4), OSMmap)
-
-! write (*,*) 'indexmain: '
-! do i=1,10
-!   write (*,*) (indexmain(j,i),j=1,10)
-! end do 
-
-! write (*,*) 'resultmain: '
-! do i=1,10
-!   write (*,*) (resultmain(j,i),j=1,10)
-! end do 
+icnt = 1
+do ii=1,dinl%ROI(3)
+  do jj=1,dinl%ROI(4)
+    if (indexmain(1,icnt).gt.0) then
+      rodarray(1:4, ii, jj) = FZarray(1:4,indexmain(1,icnt))
+    else
+      rodarray(1:4, ii, jj) = (/ 0.0, 0.0, 1.0, 0.0 /)
+    end if
+    resarray(ii, jj) = resultmain(1,icnt)
+    icnt = icnt+1
+  end do 
+end do 
 
 ! explicitly deallocate all allocated arrays
 call mem%dealloc(mLPNH, 'mLPNH')
