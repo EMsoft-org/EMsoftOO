@@ -2375,10 +2375,10 @@ dictionaryloop: do ii = 1,cratio+1
 
       end do experimentalloop
 
-        if (mod(iii,50) .eq. 0) then
+        if (mod(iii,20) .eq. 0) then
 ! do a remaining time estimate
 ! and print information
-          if (iii.eq.50) then
+          if (iii.eq.20) then
               call timer%Time_tock(1)
               tock = timer%getInterval(1)
               ttime = float(tock) * float(cratio) / float(iii)

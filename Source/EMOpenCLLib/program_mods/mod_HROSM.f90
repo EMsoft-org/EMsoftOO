@@ -347,11 +347,13 @@ character(11)                           :: dstr
 character(15)                           :: tstrb
 character(15)                           :: tstre
 character(2)                            :: listmode
-integer(kind=irg)                       :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4), icnt, nt 
+integer(kind=irg)                       :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4), icnt, nt, &
+                                           FZcnt, ii 
 real(kind=sgl), allocatable             :: mainOSM(:,:), OSMmap(:,:), mainEuler(:,:,:), mainResult(:,:)  
 real(kind=sgl)                          :: mi, ma
 real(kind=sgl),allocatable              :: rodarray(:,:,:), maineu(:,:)
 real(kind=sgl),allocatable              :: resultmain(:,:)
+type(FZpointd),pointer                  :: FZlist, FZtmp
 
 logical                                 :: verbose=.FALSE., f_exists
 character(fnlen,kind=c_char)            :: HDF_FileVersion
@@ -518,8 +520,21 @@ grainloop: do i=1,cluster%nGrains
     nSamples = SO%getListCount(listmode)
   ! then move the orientation ball to the averaged grain orientation
     qu = q_T( qdinp = cluster%avor(1:4,i) )
+    ! write (*,*) ' avor, ROI = ', cluster%avor(1:4,i), cluster%ROI(1:4,i)
     ro = qu%qr()
     call SO%SampleIsoMisorientation(ro, dble(osmnl%misorang))
+
+!     if (i.eq.2) then 
+!       open(dataunit,file='grain2.txt',status='unknown',form='formatted')
+!       FZcnt = SO%getListCount('CM')
+! ! allocate and fill FZarray for OpenMP parallelization
+!       FZtmp => SO%getListHead('CM')
+!       do ii = 1,FZcnt
+!           write(dataunit,"(4(F12.8,' '))") FZtmp%trod%r_copyd()
+!           FZtmp => FZtmp%next
+!       end do
+!       close(dataunit,status='keep')
+!     end if
 
   ! for each grain, we need to compute a bounding box that will be treated as the 
   ! standard ROI; using the dinl name list, we can modify the parameters for each grain
@@ -680,8 +695,6 @@ if (trim(osmnl%IPFmap).ne.'undefined') then
   allocate(maineu(3,nt))
   maineu = reshape(mainEuler,(/ 3, nt /))
 
-  write (*,*) maineu(1:3,1:5)
-
   call tmp%QSym_Init(DIFT%DIDT%pgnum, sym)
 
 ! here we initialize the parameters of the IPF class; we will take a default file name 
@@ -710,9 +723,8 @@ if (trim(osmnl%IPFmap).ne.'undefined') then
   call IPF%set_IPFfilename(IPFmapfile)
   call IPF%set_sampleDir( (/ 0, 0, 1 /) )
   call IPF%updateIPFmap(EMsoft, progname, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, IPFmapfile, qAR, sym) 
+  call Message%printMessage(' IPF maps generated '
 end if
-
-
 
 end associate
 
