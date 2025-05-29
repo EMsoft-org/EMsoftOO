@@ -723,7 +723,7 @@ if (trim(osmnl%IPFmap).ne.'undefined') then
   call IPF%set_IPFfilename(IPFmapfile)
   call IPF%set_sampleDir( (/ 0, 0, 1 /) )
   call IPF%updateIPFmap(EMsoft, progname, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, IPFmapfile, qAR, sym) 
-  call Message%printMessage(' IPF maps generated '
+  call Message%printMessage(' IPF maps generated ')
 end if
 
 end associate
