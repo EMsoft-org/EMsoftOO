@@ -536,32 +536,39 @@ grainloop: do i=1,cluster%nGrains
 !       close(dataunit,status='keep')
 !     end if
 
-  ! for each grain, we need to compute a bounding box that will be treated as the 
-  ! standard ROI; using the dinl name list, we can modify the parameters for each grain
-  ! along with the list of orientations to perform the DI run; the output is then 
-  ! the best match orientations along with the list of N top-matches so that we can 
-  ! compute an OSM for the ROI only, then copy those values into the overal OSM.
-    dinl%ROI(1:4) = cluster%ROI(1:4, i)
-    call OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
-                     OSMmap, resultmain, rodarray)
+! we will skip grains that have less than 10 pixels
+    if (cluster%npixels(i).ge.10) then 
 
-  ! copy the OSMmap parameters to the mainOSM array 
-    do ic = 1, dinl%ipf_wd 
-      do ir = 1, dinl%ipf_ht
-        if (cluster%grainID(ic, ir).eq.i) then 
-          mainOSM(ic,ir) = OSMmap(ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)
-          ro = r_T( rdinp = dble(rodarray(1:4,ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)))
-          eu = ro%re()
-          mainEuler(1:3,ic,ir) = real( eu%e_copyd() )
-          mainResult(ic,ir) = resultmain(ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)
-        end if 
+! for each grain, we need to compute a bounding box that will be treated as the 
+! standard ROI; using the dinl name list, we can modify the parameters for each grain
+! along with the list of orientations to perform the DI run; the output is then 
+! the best match orientations along with the list of N top-matches so that we can 
+! compute an OSM for the ROI only, then copy those values into the overal OSM.
+      dinl%ROI(1:4) = cluster%ROI(1:4, i)
+      call OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
+                       OSMmap, resultmain, rodarray)
+
+! copy the OSMmap parameters to the mainOSM array 
+      do ic = 1, dinl%ipf_wd 
+        do ir = 1, dinl%ipf_ht
+          if (cluster%grainID(ic, ir).eq.i) then 
+            mainOSM(ic,ir) = OSMmap(ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)
+            ro = r_T( rdinp = dble(rodarray(1:4,ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)))
+            eu = ro%re()
+            mainEuler(1:3,ic,ir) = real( eu%e_copyd() )
+            mainResult(ic,ir) = resultmain(ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)
+          end if 
+        end do
       end do
-    end do
 
   ! and delete the OSM array as well as the list of orientations
-    deallocate(OSMmap, rodarray, resultmain)
-    call SO%delete_FZlist('CM')
-    call Message%printMessage(' ')
+      deallocate(OSMmap, rodarray, resultmain)
+      call SO%delete_FZlist('CM')
+      call Message%printMessage(' ')
+    else
+      io_int(1) = i 
+      call Message%WriteValue(' skipping small (< 10 pixels) grain ', io_int,1)
+    end if 
     ! if (i.eq.2) exit
   else
     io_int(1) = i 

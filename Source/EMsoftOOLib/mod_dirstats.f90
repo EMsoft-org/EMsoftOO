@@ -777,7 +777,7 @@ real(kind=dbl),INTENT(OUT)           :: kappahat
 logical,INTENT(IN),OPTIONAL          :: verbose
 
 type(so3_T)                          :: SO
-integer(kind=irg)                    :: i, j, N, Pmdims, init, dd, NumEM, NumIter
+integer(kind=irg)                    :: i, j, N, Pmdims, init, dd, NumEM, NumIter, bin
 real(kind=dbl),allocatable           :: Mu_All(:,:), Kappa_All(:), R_All(:,:,:), L_All(:), &
                                         R(:,:), Q(:), L(:)
 real(kind=dbl)                       :: MuKa(5), Qi, Li, rod(4), Kappa, x(4)
@@ -797,7 +797,8 @@ NumIter = self%NumIter
 
 ! initialize some auxiliary arrays
 allocate(Mu_All(NumEM,4), Kappa_All(NumEM), &
-         R_All(N,Pmdims,NumEM),L_All(NumIter))
+         R_All(N,Pmdims,NumEM),L_All(NumEM))
+         ! R_All(N,Pmdims,NumEM),L_All(NumIter))
 Mu_All = 0.D0
 Kappa_All = 0.D0
 R_All = 0.D0
@@ -867,13 +868,14 @@ kappahat = Kappa_All(dd)
 ! fundamental zone, which requires routines from the rotations and so3 modules.
 SO = so3_T( self%pgnum )
 MuMu = q_T( qdinp = Mu%get_quatd() )
-if (present(verbose)) then 
-  if (verbose.eqv..TRUE.) then
-    call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ, verbose )
-  else
-    call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ )
-  end if 
-end if 
+! if (present(verbose)) then 
+  ! if (verbose.eqv..TRUE.) then
+    call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ, &
+                                    MFZ = .FALSE., bin = bin, verbose = .TRUE.)
+  ! else
+    ! call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ )
+  ! end if 
+! end if 
 MuMu = roFZ%rq()
 muhat = Quaternion_T( qd = MuMu%q_copyd() )
 
@@ -941,12 +943,11 @@ real(kind=dbl)                          :: MuKa(5)
 
 type(Quaternion_T)                      :: qu
 real(kind=dbl)                          :: tmpGamma(4), nGamma, diff(self%Apnum), y, Tscatt(4,4), tmp(4,4), x(4)
-integer(kind=irg)                       :: minp, i, j
+integer(kind=irg)                       :: minp, i, j, pos(1)
 
-! variables needed for the dsyev Lapack eigenvalue routine
-CHARACTER                               :: JOBZ, UPLO
-INTEGER                                 :: INFO, LDA, LWORK, NN
-DOUBLE PRECISION                        :: A( 4 , 4 ), W( 4 ), WORK( 20 )
+real(kind=dbl)                          :: VL(4,4), VR(4,4), Wr(4), Wi(4), WORK(40)
+integer(kind=irg)                       :: nn, LDA, LDVL, LDVR, INFO, LWORK
+character(1)                            :: JOBVL, JOBVR
 
 if (self%DStype.eq.'VMF') then
 ! this is simplified from the Matlab routine and uses straight summations and
@@ -978,15 +979,21 @@ if (self%DStype.eq.'WAT') then
   end do
   Tscatt = Tscatt/dble(self%N)
 
-  JOBZ = 'V'
-  UPLO = 'U'
-  NN = 4
-  LDA = 4
-  LWORK = 20
-  A = Tscatt
-! DSYEV computes all eigenvalues and, optionally, eigenvectors of a real symmetric matrix A.
-  call DSYEV( JOBZ, UPLO, NN, A, LDA, W, WORK, LWORK, INFO )
-  x(1:4) = A(1:4,4)
+! initialize the parameters for the LAPACK DGEEV routines
+  nn = 4
+  LDA = nn
+  LDVL = nn
+  LDVR = nn
+  INFO = 0
+  JOBVL = 'N'   ! do not compute the left eigenvectors
+  JOBVR = 'V'   ! do compute the right eigenvectors
+  LWORK = 40   
+
+! call the eigenvalue solver
+  tmp = Tscatt
+  call dgeev(JOBVL,JOBVR,nn,Tscatt,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
+  pos = maxloc(Wr)
+  x(1:4) = VR(1:4,pos(1))
   MuKa(1:4) = x(1:4)
   y = dot_product(x,matmul(Tscatt,x))
 end if

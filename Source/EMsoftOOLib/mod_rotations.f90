@@ -6274,6 +6274,8 @@ recursive function quat_average_d(qlist, numq, qstdev, Tmatrix) result(res)
  !! date: 01/17/20
  !!
  !! computes the geometrical mean of a list of quaternions using the quaternion logarithm
+ !!
+ !! [MDG, 05/30/25] fixed sgl to dbl type for LAPACK routine ...  
 
 real(kind=dbl),INTENT(IN)       :: qlist(4,numq)
 integer(kind=irg)               :: numq
@@ -6289,9 +6291,10 @@ real(kind=dbl)                  :: axanglist(3,numq)
 logical                         :: doTmatrix
 
 !LAPACK parameters 
-real(kind=sgl)                  :: VL(4,4), VR(4,4), Wr(4), Wi(4), WORK(40)
+real(kind=dbl)                  :: VL(4,4), VR(4,4), Wr(4), Wi(4), WORK(40)
 integer(kind=irg)               :: nn, LDA, LDVL, LDVR, INFO, LWORK
 character(1)                    :: JOBVL, JOBVR
+
 
 doTmatrix=.FALSE.
 if (present(Tmatrix)) then 
@@ -6318,7 +6321,7 @@ if (doTmatrix.eqv..TRUE.) then
   LWORK = 40   
 
 ! call the eigenvalue solver
-  call sgeev(JOBVL,JOBVR,nn,Tmat,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
+  call dgeev(JOBVL,JOBVR,nn,Tmat,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
   pos = maxloc(Wr)
   res(1:4) = VR(1:4,pos(1))
   qstdev = Wr

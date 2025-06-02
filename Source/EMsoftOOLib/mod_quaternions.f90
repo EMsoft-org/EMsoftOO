@@ -2703,7 +2703,7 @@ select case (prot)
                 call Message%printError('QSym_Init','unknown rotational point group number')
 end select
 
-! and initialize the quatenrion array class
+! and initialize the quaternion array class
 qsym = QuaternionArray_T( n = Nqsym, nthreads = 1, qd = Pm )
 
 end subroutine QSym_Init_

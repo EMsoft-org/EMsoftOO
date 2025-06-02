@@ -3699,10 +3699,16 @@ type(q_T)                              :: qq
 type(r_T)                              :: rod
 real(kind=dbl)                         :: x(4), y(3), Mux(4)
 integer(kind=irg)                      :: i, j, Pmdims
-logical                                :: useMFZ = .FALSE.
+logical                                :: useMFZ = .FALSE., verb = .FALSE.
 real(kind=dbl)                         :: tol, eps = 1.0D-6
 
 tol = 1.0D+5
+
+if (present(verbose)) then
+  if (verbose.eqv..TRUE.) then 
+    verb = .TRUE.
+  end if 
+end if  
 
 if (present(MFZ)) then
   if (MFZ.eqv..TRUE.) useMFZ = .TRUE.
@@ -3747,9 +3753,6 @@ FZloop: do j=1,Pmdims
   x = rod%r_copyd()
   if(abs(x(4)) .gt. tol) rod = r_T( rdinp = (/ x(1:3), inftyd() /) )
 
-! if (abs(Mux(1)-0.10253525731947).lt.eps) then 
-!   write (*,*) j, x 
-! end if
   if (useMFZ.eqv..TRUE.) then
     if (self%IsinsideMFZ(rod)) EXIT FZloop
   else
