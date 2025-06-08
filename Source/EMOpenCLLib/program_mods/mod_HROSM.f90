@@ -348,7 +348,7 @@ character(15)                           :: tstrb
 character(15)                           :: tstre
 character(2)                            :: listmode
 integer(kind=irg)                       :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4), icnt, nt, &
-                                           FZcnt, ii
+                                           FZcnt, ii, ROIoffset(2)
 real(kind=sgl), allocatable             :: mainOSM(:,:), OSMmap(:,:), mainEuler(:,:,:), mainResult(:,:)  
 real(kind=sgl)                          :: mi, ma
 real(kind=sgl),allocatable              :: rodarray(:,:,:), maineu(:,:)
@@ -403,6 +403,7 @@ call DIFT%readDotProductFile(EMsoft, HDF, localHDFnames, DIfile, hdferr, &
                              getRefinedEulerAngles = .TRUE.) 
 dinl = DIFT%getNameList()
 savedinl = dinl
+ROIoffset(1:2) = dinl%ROI(1:2) 
 
 ! 1a. read the Monte Carlo data file
 call localHDFnames%set_ProgramData(SC_MCOpenCL)
@@ -536,7 +537,8 @@ grainloop: do i=1,cluster%nGrains
 ! prepare the namelist file in the current folder and pass the filename
 ! to the OSMDIdriver
       dinl = savedinl
-      dinl%ROI(1:4) = cluster%grainROI(1:4, i)
+      dinl%ROI(1:2) = cluster%grainROI(1:2, i) + ROIoffset(1:2)
+      dinl%ROI(3:4) = cluster%grainROI(3:4, i)
 
       call OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
                        OSMmap, resultmain, rodarray)
