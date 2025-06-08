@@ -2542,8 +2542,8 @@ call getOrientationSimilarityMap( (/nnk,Ne*ceiling(float(totnumexpt)/float(Ne))/
                                     indexmain, dinl%nosm, jjend, iiiend-iiistart+1, OSMmap)
 
 icnt = 1
-do ii=1,jjend
-  do jj=1,iiiend-iiistart+1
+do jj=1,iiiend-iiistart+1
+  do ii=1,jjend
     if (indexmain(1,icnt).gt.0) then
       rodarray(1:4, ii, jj) = FZarray(1:4,indexmain(1,icnt))
     else
