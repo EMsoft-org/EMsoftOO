@@ -183,6 +183,7 @@ private
   procedure, pass(self) :: setModality_
   procedure, pass(self) :: readDIModality_
   procedure, pass(self) :: readNameList_
+  procedure, pass(self) :: writeNameList_
   procedure, pass(self) :: getmyNameList_
   procedure, pass(self) :: getCPUGPU_
   procedure, pass(self) :: writeHDFNameList_
@@ -195,6 +196,7 @@ private
 
   generic, public :: getNameList => getmyNameList_
   generic, public :: readNameList => readNameList_
+  generic, public :: writeNameList => writeNameList_
   generic, public :: getrefinementfilename => getrefinementfilename_
   generic, public :: getfilename => getfilename_
   generic, public :: setfilename => setfilename_
@@ -223,7 +225,7 @@ end interface DIfile_T
 contains
 
 !--------------------------------------------------------------------------
-type(DIfile_T) function DIfile_constructor( nmlfile, fname, inRAM ) result(DIfile)
+type(DIfile_T) function DIfile_constructor( nmlfile, fname, inRAM, notest ) result(DIfile)
 !DEC$ ATTRIBUTES DLLEXPORT :: DIfile_constructor
 !! author: MDG
 !! version: 1.0
@@ -236,12 +238,17 @@ IMPLICIT NONE
 character(fnlen), OPTIONAL   :: nmlfile
 character(fnlen), OPTIONAL   :: fname
 logical, OPTIONAL            :: inRAM 
+logical,INTENT(IN), OPTIONAL :: notest
 
 if (present(nmlfile)) then 
   if (present(inRAM)) then 
     if (inRAM.eqv..TRUE.) call DIfile%readNameList(nmlfile, inRAM=.TRUE.)
   else
-    call DIfile%readNameList(nmlfile)
+    if (present(notest)) then
+      call DIfile%readNameList(nmlfile, nt=notest)
+    else
+      call DIfile%readNameList(nmlfile)
+    end if
   end if 
 end if 
 if (present(fname)) call DIfile%setfilename(fname)
@@ -442,7 +449,7 @@ call HDF%popall()
 end subroutine readDIModality_
 
 !--------------------------------------------------------------------------
-subroutine readNameList_(self, nmlfile, initonly, inRAM)
+subroutine readNameList_(self, nmlfile, initonly, inRAM, nt)
 !DEC$ ATTRIBUTES DLLEXPORT :: readNameList_
 !! author: MDG
 !! version: 1.0
@@ -461,10 +468,11 @@ character(fnlen),INTENT(IN)         :: nmlfile
 logical,OPTIONAL,INTENT(IN)         :: initonly
  !! fill in the default values only; do not read the file
 logical,OPTIONAL,INTENT(IN)         :: inRAM
+logical,OPTIONAL,INTENT(IN)         :: nt 
 
 type(EMsoft_T)                      :: EMsoft
 type(IO_T)                          :: Message
-logical                             :: skipread = .FALSE.
+logical                             :: skipread = .FALSE., dotest = .TRUE.
 
 integer(kind=irg)  :: numsx
 integer(kind=irg)  :: numsy
@@ -651,21 +659,29 @@ if (.not.skipread) then
     end if 
     close(UNIT=dataunit,STATUS='keep')
 
-    if (trim(indexingmode) .eq. 'static') then
-        if (trim(dictfile) .eq. 'undefined') then
-            call Message%printError('readNameList:',' dictionary file name is undefined in '//nmlfile)
-        end if
-    end if
-
 ! check for required entries
-    if (trim(indexingmode) .eq. 'dynamic') then
-        if (trim(masterfile).eq.'undefined') then
-            call Message%printError('readNameList:',' master pattern file name is undefined in '//nmlfile)
-        end if
-    end if
+    if (present(nt)) then 
+      if (nt.eqv..TRUE.) then 
+        dotest = .FALSE.
+      end if 
+    end if 
+      
+    if (dotest.eqv..TRUE.) then 
+      if (trim(indexingmode) .eq. 'static') then
+          if (trim(dictfile) .eq. 'undefined') then
+              call Message%printError('readNameList:',' dictionary file name is undefined in '//nmlfile)
+          end if
+      end if
 
-    if (trim(exptfile).eq.'undefined') then
-        call Message%printError('readNameList:',' experimental file name is undefined in '//nmlfile)
+      if (trim(indexingmode) .eq. 'dynamic') then
+          if (trim(masterfile).eq.'undefined') then
+              call Message%printError('readNameList:',' master pattern file name is undefined in '//nmlfile)
+          end if
+      end if
+
+      if (trim(exptfile).eq.'undefined') then
+          call Message%printError('readNameList:',' experimental file name is undefined in '//nmlfile)
+      end if
     end if
 
     if (exptnumsx.eq.0) then
@@ -757,6 +773,192 @@ self%nml%Rin             = Rin
 self%nml%Rout            = Rout
 
 end subroutine readNameList_
+
+
+!--------------------------------------------------------------------------
+subroutine writeNameList_(self, nmldeffile, dinl)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeNameList_
+!! author: MDG
+!! version: 1.0
+!! date: 06/06/25
+!!
+!! ead write the namelist to an nml file (used by EMHROSM)
+
+use mod_io
+use mod_EMsoft
+
+IMPLICIT NONE
+
+class(DIfile_T), INTENT(INOUT)                    :: self
+character(fnlen),INTENT(IN)                       :: nmldeffile
+type(DictionaryIndexingNameListType), INTENT(IN)  :: dinl
+
+integer(kind=irg)  :: numsx 
+integer(kind=irg)  :: numsy 
+integer(kind=irg)  :: exptnumsx
+integer(kind=irg)  :: exptnumsy
+integer(kind=irg)  :: ROI(4)
+integer(kind=irg)  :: binning
+integer(kind=irg)  :: devid
+integer(kind=irg)  :: multidevid(8)
+integer(kind=irg)  :: usenumd
+integer(kind=irg)  :: platid
+integer(kind=irg)  :: nregions
+integer(kind=irg)  :: nlines
+integer(kind=irg)  :: nthreads
+integer(kind=irg)  :: ncubochoric
+integer(kind=irg)  :: numexptsingle
+integer(kind=irg)  :: numdictsingle
+integer(kind=irg)  :: ipf_ht
+integer(kind=irg)  :: ipf_wd
+integer(kind=irg)  :: nnk
+integer(kind=irg)  :: nnav
+integer(kind=irg)  :: nosm
+integer(kind=irg)  :: nism
+integer(kind=irg)  :: maskradius
+integer(kind=irg)  :: sw
+integer(kind=irg)  :: npc 
+real(kind=sgl)     :: L 
+real(kind=sgl)     :: thetac 
+real(kind=sgl)     :: delta 
+real(kind=sgl)     :: xpc 
+real(kind=sgl)     :: ypc 
+real(kind=sgl)     :: isangle 
+real(kind=sgl)     :: gammavalue 
+real(kind=sgl)     :: omega 
+real(kind=sgl)     :: stepX 
+real(kind=sgl)     :: stepY 
+real(kind=sgl)     :: energymin 
+real(kind=sgl)     :: energymax 
+real(kind=sgl)     :: beamcurrent 
+real(kind=sgl)     :: dwelltime 
+real(kind=sgl)     :: hipassw 
+real(kind=sgl)     :: lambda 
+logical            :: doNLPAR 
+logical            :: whitenPCA 
+character(1)       :: maskpattern 
+character(1)       :: keeptmpfile 
+character(1)       :: usetmpfile 
+character(3)       :: scalingmode 
+character(3)       :: Notify 
+character(3)       :: similaritymetric 
+character(3)       :: CPUGPU 
+character(fnlen)   :: IPFprefix 
+! character(fnlen)   :: dotproductfile 
+character(fnlen)   :: masterfile 
+character(fnlen)   :: tmpfile 
+character(fnlen)   :: datafile 
+character(fnlen)   :: ctffile 
+character(fnlen)   :: avctffile 
+character(fnlen)   :: angfile 
+character(fnlen)   :: eulerfile 
+character(fnlen)   :: inputtype 
+character(fnlen)   :: HDFstrings(10) 
+character(fnlen)   :: refinementNMLfile 
+character(fnlen)   :: exptfile 
+character(fnlen)   :: dictfile 
+character(fnlen)   :: maskfile 
+character(fnlen)   :: indexingmode 
+character(fnlen)   :: DIModality 
+! ECP parameters 
+real(kind=sgl)     :: workingdistance 
+real(kind=sgl)     :: Rin 
+real(kind=sgl)     :: Rout 
+real(kind=sgl)     :: conesemiangle 
+real(kind=sgl)     :: sampletilt 
+integer(kind=irg)  :: npix 
+character(1)       :: spatialaverage  ! no longer used but kept for compatibility with older files
+integer(kind=irg)  :: energyaverage  ! no longer used but kept for compatibility with older files
+
+! define the IO namelist to facilitate passing variables to the program.
+namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
+                     beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
+                     scalingmode, maskpattern, L, omega, nthreads, energymax, datafile, angfile, ctffile, &
+                     ncubochoric, numexptsingle, numdictsingle, ipf_ht, ipf_wd, nnk, nnav, exptfile, maskradius, &
+                     dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
+                     HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, CPUGPU, &
+                     workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix
+
+numsx = dinl%numsx
+numsy = dinl%numsy
+exptnumsx = dinl%exptnumsx
+exptnumsy = dinl%exptnumsy
+ROI = dinl%ROI
+binning = dinl%binning
+devid = dinl%devid
+multidevid = dinl%multidevid
+usenumd = dinl%usenumd
+platid = dinl%platid
+nregions = dinl%nregions
+nlines = dinl%nlines
+nthreads = dinl%nthreads
+ncubochoric = dinl%ncubochoric
+numexptsingle = dinl%numexptsingle
+numdictsingle = dinl%numdictsingle
+ipf_ht = dinl%ipf_ht
+ipf_wd = dinl%ipf_wd
+nnk = dinl%nnk
+nnav = dinl%nnav
+nosm = dinl%nosm
+nism = dinl%nism
+maskradius = dinl%maskradius
+sw = dinl%sw
+npc = dinl%npc
+L = dinl%L
+thetac = dinl%thetac
+delta = dinl%delta
+xpc = dinl%xpc
+ypc = dinl%ypc
+isangle = dinl%isangle
+gammavalue = dinl%gammavalue
+omega = dinl%omega
+stepX = dinl%stepX
+stepY = dinl%stepY
+energymin = dinl%energymin
+energymax = dinl%energymax
+beamcurrent = dinl%beamcurrent
+dwelltime = dinl%dwelltime
+hipassw = dinl%hipassw
+lambda = dinl%lambda
+doNLPAR = dinl%doNLPAR
+whitenPCA = dinl%whitenPCA
+maskpattern = dinl%maskpattern
+keeptmpfile = dinl%keeptmpfile
+usetmpfile = dinl%usetmpfile
+scalingmode = dinl%scalingmode
+Notify = dinl%Notify
+similaritymetric = dinl%similaritymetric
+CPUGPU = dinl%CPUGPU
+IPFprefix = dinl%IPFprefix
+! dotproductfile = dinl%dotproductfile
+masterfile = dinl%masterfile
+tmpfile = dinl%tmpfile
+datafile = dinl%datafile
+ctffile = dinl%ctffile
+avctffile = dinl%avctffile
+angfile = dinl%angfile
+eulerfile = dinl%eulerfile
+inputtype = dinl%inputtype
+HDFstrings = dinl%HDFstrings
+refinementNMLfile = dinl%refinementNMLfile
+exptfile = dinl%exptfile
+dictfile = dinl%dictfile
+maskfile = dinl%maskfile
+indexingmode = dinl%indexingmode
+DIModality = dinl%DIModality
+workingdistance = dinl%workingdistance
+Rin = dinl%Rin 
+Rout = dinl%Rout
+conesemiangle = dinl%conesemiangle
+sampletilt = dinl%sampletilt
+npix = dinl%npix
+
+open(UNIT=dataunit,FILE=trim(nmldeffile),DELIM='apostrophe',STATUS='unknown')
+read(UNIT=dataunit,NML=DIdata)
+close(UNIT=dataunit,STATUS='keep')
+
+end subroutine writeNameList_
 
 !--------------------------------------------------------------------------
 function getmyNameList_(self) result(nml)

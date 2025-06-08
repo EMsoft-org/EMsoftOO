@@ -325,7 +325,7 @@ type(EBSD_T)                            :: EBSD
 type(DIfile_T)                          :: DIFT
 type(MCfile_T)                          :: MCFT
 type(MPfile_T)                          :: MPFT
-type(DictionaryIndexingNameListType)    :: dinl
+type(DictionaryIndexingNameListType)    :: dinl, savedinl
 type(MCOpenCLNameListType)              :: mcnl
 type(SEMmasterNameListType)             :: mpnl
 type(Cluster_T)                         :: cluster
@@ -341,14 +341,14 @@ type(IPF_T)                             :: IPF
 type(IPFmap_T)                          :: IPFmap 
 
 
-character(fnlen)                        :: DIfile, fname, xtalname, TIFF_filename, IPFmapfile, IPFmode
+character(fnlen)                        :: DIfile, fname, xtalname, TIFF_filename, IPFmapfile, IPFmode, nmldeffile
 character(fnlen)                        :: dataname, datagroupname, groupname, attributename, dataset
 character(11)                           :: dstr
 character(15)                           :: tstrb
 character(15)                           :: tstre
 character(2)                            :: listmode
 integer(kind=irg)                       :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4), icnt, nt, &
-                                           FZcnt, ii 
+                                           FZcnt, ii
 real(kind=sgl), allocatable             :: mainOSM(:,:), OSMmap(:,:), mainEuler(:,:,:), mainResult(:,:)  
 real(kind=sgl)                          :: mi, ma
 real(kind=sgl),allocatable              :: rodarray(:,:,:), maineu(:,:)
@@ -380,6 +380,8 @@ integer(int8), allocatable              :: TIFF_image(:,:)
 ! 5. write all results to HDF5 OSMfile 
 ! 6. if requested, also produce a tiff merged OSM 
 
+call setRotationPrecision('d')
+
 associate(osmnl=>self%nml, DIDT=>DIFT%DIDT, det=>EBSD%det, enl=>EBSD%nml)
 
 timer = Timing_T()
@@ -400,6 +402,7 @@ DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%dpfile)
 call DIFT%readDotProductFile(EMsoft, HDF, localHDFnames, DIfile, hdferr, &
                              getRefinedEulerAngles = .TRUE.) 
 dinl = DIFT%getNameList()
+savedinl = dinl
 
 ! 1a. read the Monte Carlo data file
 call localHDFnames%set_ProgramData(SC_MCOpenCL)
@@ -461,16 +464,9 @@ cluster = Cluster_T( DIFT, osmnl%gangle )
 
 io_int(1) = cluster%nGrains
 call Message%WriteValue(' Number of grains found : ', io_int, 1)
-call Message%printMessage(' Average grain orientations computed')
-io_int(1) = count(cluster%kappa.eq.-1.D0)
-call Message%WriteValue(' Number of non-converged average orientations : ', io_int, 1)
-
-! save the grain ID map so we can take a look in IDL
-! open(unit=dataunit,file='clustertest.data',status='unknown',form='unformatted')
-! write (dataunit) cluster%grainID
-! write (dataunit) real(cluster%avor)
-! write (dataunit) real(cluster%kappa)
-! close(unit=dataunit,status='keep')
+! call Message%printMessage(' Average grain orientations computed')
+! io_int(1) = count(cluster%kappa.eq.-1.D0)
+! call Message%WriteValue(' Number of non-converged average orientations : ', io_int, 1)
 
 ! 4.  loop over all grains
 ! Since the DI step is parallel with GPU support, we need to do this grain by grain
@@ -478,7 +474,7 @@ call Message%WriteValue(' Number of non-converged average orientations : ', io_i
 ! patterns from the main pattern file, pre-process them and store them in a tmp
 ! file.  We can read these in blocks but in many cases there will be a relatively 
 ! small number of patterns so we'll need to pad the array to maintain a multiple
-! of 16. We'll need a slightly modified DIdriver routine to perform these runs; there
+! of 16. We'll need a modified DIdriver routine to perform these runs; there
 ! is no need for this routine to produce the regular dp HDF5 file since that will
 ! be done by the present program.
 
@@ -504,11 +500,13 @@ call Message%WriteValue(' Starting indexing run; dictionary size : ', io_int,1)
 call Message%printMessage(' ')
 call SO%delete_FZlist('CM')
 
+nmldeffile = 'tmp.nml'
+
 grainloop: do i=1,cluster%nGrains
   if (cluster%kappa(i).ne.-1.0) then 
     io_int = (/ i, cluster%nGrains /)
     call Message%WriteValue(' Indexing grain/total # grains ', io_int,2)
-    io_int = (/ cluster%ROI(3,i), cluster%ROI(4,i) /)
+    io_int = (/ cluster%grainROI(3,i), cluster%grainROI(4,i) /)
     call Message%WriteValue(' OSM map size ', io_int,2)
 
   ! 4a. generate sampling misorientation ball around the averaged grain orientation;
@@ -520,21 +518,8 @@ grainloop: do i=1,cluster%nGrains
     nSamples = SO%getListCount(listmode)
   ! then move the orientation ball to the averaged grain orientation
     qu = q_T( qdinp = cluster%avor(1:4,i) )
-    ! write (*,*) ' avor, ROI = ', cluster%avor(1:4,i), cluster%ROI(1:4,i)
     ro = qu%qr()
     call SO%SampleIsoMisorientation(ro, dble(osmnl%misorang))
-
-!     if (i.eq.2) then 
-!       open(dataunit,file='grain2.txt',status='unknown',form='formatted')
-!       FZcnt = SO%getListCount('CM')
-! ! allocate and fill FZarray for OpenMP parallelization
-!       FZtmp => SO%getListHead('CM')
-!       do ii = 1,FZcnt
-!           write(dataunit,"(4(F12.8,' '))") FZtmp%trod%r_copyd()
-!           FZtmp => FZtmp%next
-!       end do
-!       close(dataunit,status='keep')
-!     end if
 
 ! we will skip grains that have less than 10 pixels
     if (cluster%npixels(i).ge.10) then 
@@ -544,19 +529,28 @@ grainloop: do i=1,cluster%nGrains
 ! along with the list of orientations to perform the DI run; the output is then 
 ! the best match orientations along with the list of N top-matches so that we can 
 ! compute an OSM for the ROI only, then copy those values into the overal OSM.
-      dinl%ROI(1:4) = cluster%ROI(1:4, i)
+! Note that patterns in the pattern input file are indexed using the original ROI parameters,
+! so we need to also pass on the absolute ROI origin to make sure the correct patterns 
+! are extracted.
+
+! prepare the namelist file in the current folder and pass the filename
+! to the OSMDIdriver
+      dinl = savedinl
+      dinl%ROI(1:4) = cluster%grainROI(1:4, i)
+
       call OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
                        OSMmap, resultmain, rodarray)
 
+
 ! copy the OSMmap parameters to the mainOSM array 
-      do ic = 1, dinl%ipf_wd 
-        do ir = 1, dinl%ipf_ht
+      do ic = 1, cluster%ipf_wd 
+        do ir = 1, cluster%ipf_ht
           if (cluster%grainID(ic, ir).eq.i) then 
-            mainOSM(ic,ir) = OSMmap(ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)
-            ro = r_T( rdinp = dble(rodarray(1:4,ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)))
+            mainOSM(ic,ir) = OSMmap(ic-cluster%grainROI(1,i)+1, ir-cluster%grainROI(2,i)+1)
+            ro = r_T( rdinp = dble(rodarray(1:4,ic-cluster%grainROI(1,i)+1, ir-cluster%grainROI(2,i)+1)))
             eu = ro%re()
             mainEuler(1:3,ic,ir) = real( eu%e_copyd() )
-            mainResult(ic,ir) = resultmain(ic-cluster%ROI(1,i)+1, ir-cluster%ROI(2,i)+1)
+            mainResult(ic,ir) = resultmain(ic-cluster%grainROI(1,i)+1, ir-cluster%grainROI(2,i)+1)
           end if 
         end do
       end do
@@ -566,11 +560,14 @@ grainloop: do i=1,cluster%nGrains
       call SO%delete_FZlist('CM')
       call Message%printMessage(' ')
     else
+      call Message%printMessage(' ')
       io_int(1) = i 
       call Message%WriteValue(' skipping small (< 10 pixels) grain ', io_int,1)
+      call Message%printMessage(' ')
     end if 
     ! if (i.eq.2) exit
   else
+    call Message%printMessage(' ')
     io_int(1) = i 
     call Message%WriteValue(' skipping grain ', io_int,1)
     call Message%printMessage(' ')
@@ -648,8 +645,8 @@ dataset = 'grainID'
 dataset = 'npixels'
     hdferr = HDF%writeDatasetIntegerArray(dataset, cluster%npixels, cluster%nGrains)
 
-dataset = 'ROI'
-    hdferr = HDF%writeDatasetIntegerArray(dataset, cluster%ROI, 4, cluster%nGrains)
+dataset = 'grainROI'
+    hdferr = HDF%writeDatasetIntegerArray(dataset, cluster%grainROI, 4, cluster%nGrains)
 
 dataset = 'avor'
     hdferr = HDF%writeDatasetDoubleArray(dataset, cluster%avor, 4, cluster%nGrains)

@@ -43,7 +43,8 @@ IMPLICIT NONE
 type, public :: Cluster_T
   integer(kind=irg), allocatable  :: grainID(:,:) ! grain identifier
   integer(kind=irg), allocatable  :: npixels(:)   ! number of pixels in each grain
-  integer(kind=irg), allocatable  :: ROI(:,:)     ! bounding box information for each grain
+  integer(kind=irg), allocatable  :: grainROI(:,:)! bounding box information for each grain
+  integer(kind=irg)               :: ROI(4)       ! bounding box information for complete data set
   integer(kind=irg)               :: nGrains      ! number of grains found
   integer(kind=irg)               :: GrainSize    ! used to control recursion
   integer(kind=irg)               :: TotSize      ! used to control recursion
@@ -108,7 +109,14 @@ call setRotationPrecision('Double')
 
 cluster%gangle = gangle 
 
+! Note: there are two different ROI variables...
+! - the original ROI (cluster%ROI) defined in the DI namelist file and read from the dp file
+! - a per grain ROI (cluster%grainROI) that defines the bounding box for each individual grain
+!
+! the first one is used to determine the location of the patterns in the pattern file ... 
+
 ! dimensions of region of interest
+cluster%ROI = nml%ROI
 if (sum(nml%ROI).eq.0) then 
   cluster%ipf_wd = nml%ipf_wd
   cluster%ipf_ht = nml%ipf_ht
@@ -129,7 +137,7 @@ write (*,*) ' shape = ', shape(DIFT%DIDT%RefinedEulerAngles), maxval(DIFT%DIDT%R
 call getKAMMap(nt, DIFT%DIDT%RefinedEulerAngles, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, cluster%kam)
 cluster%kam = cluster%kam*rtod
 
-ma = 3.0 * maxval( cluster%kam(2:cluster%ipf_wd-1,2:cluster%ipf_ht-1) )
+ma = 1.2 * maxval( cluster%kam(2:cluster%ipf_wd-1,2:cluster%ipf_ht-1) )
 
 ! to prevent weird edge cases, put the kam edges to a large value
 cluster%kam(1,1:cluster%ipf_ht) = ma
@@ -163,27 +171,19 @@ do ix=1,cluster%ipf_wd
   end do 
 end do 
 
-! do iy=1,cluster%ipf_ht
-!   do ix=1,cluster%ipf_wd
-!       if (cluster%grainID(ix,iy).eq.1) then
-!         write (*,*) ix, iy, (iy-1)*cluster%ipf_wd+ix
-!       end if 
-!   end do 
-! end do 
-
-
 ! for all grains, find the 2D bounding box needed for the modified DI algorithm
-
-allocate( cluster%ROI(4,cluster%nGrains) )
+allocate( cluster%grainROI(4,cluster%nGrains) )
 call cluster%getROI_()
 
 ! next we need to compute the average orientation for each grain; this will 
 ! become the center of the misorientation ball used for the modified DI approach.
 ! avor will contain those orientations in quaternion form.
+! Since there is currently an issue with the dirstats module, we simply take
+! the orientation of the center pixel as the starting orientation.
 allocate( cluster%avor(4,cluster%nGrains), cluster%kappa(cluster%nGrains) )
 do i=1,cluster%nGrains
-  ix = cluster%ROI(1,i) + cluster%ROI(3,i)/2
-  iy = cluster%ROI(2,i) + cluster%ROI(4,i)/2
+  ix = cluster%grainROI(1,i) + cluster%grainROI(3,i)/2
+  iy = cluster%grainROI(2,i) + cluster%grainROI(4,i)/2
   j = (iy-1)*cluster%ipf_wd + ix 
   eu = e_T( edinp = dble(DIFT%DIDT%RefinedEulerAngles(1:3,j)))
   qu = eu%eq()
@@ -192,7 +192,7 @@ do i=1,cluster%nGrains
 end do 
 
 ! from here on, it will be more useful to have the grain IDs in a 1D array
-grainIDs = reshape(cluster%grainID, (/ nt /) )
+! grainIDs = reshape(cluster%grainID, (/ nt /) )
 
 ! determine the number of pixels in each grain
 allocate( cluster%npixels(cluster%nGrains) )
@@ -334,7 +334,7 @@ do i=1,self%nGrains
       end if 
     end do 
   end do 
-  self%ROI(1:4, i) = (/ xmin, ymin, xmax-xmin+1, ymax-ymin+1 /)
+  self%grainROI(1:4, i) = (/ xmin, ymin, xmax-xmin+1, ymax-ymin+1 /)
 end do 
 
 end subroutine getROI_
