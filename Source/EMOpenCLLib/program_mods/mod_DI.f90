@@ -1747,7 +1747,7 @@ end subroutine DIdriver
 
 
 !--------------------------------------------------------------------------
-subroutine OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, OSMmap, resarray, rodarray)
+subroutine OSMDIdriver(EMsoft, inRAM, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, OSMmap, resarray, rodarray)
 !DEC$ ATTRIBUTES DLLEXPORT :: OSMDIdriver
 !! author: MDG
 !! version: 1.0
@@ -1805,6 +1805,7 @@ use mod_memory
 IMPLICIT NONE
 
 type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
+logical,INTENT(IN)                                  :: inRAM
 type(DIfile_T), INTENT(IN)                          :: DIFT
 type(MCfile_T), INTENT(IN)                          :: MCFT
 type(MPfile_T), INTENT(IN)                          :: MPFT
@@ -1889,7 +1890,7 @@ integer*4,allocatable                               :: iexptCI(:,:), iexptIQ(:,:
 real(kind=sgl),allocatable                          :: meandict(:),meanexpt(:),wf(:),mLPNH(:,:,:),mLPSH(:,:,:),accum_e_MC(:,:,:)
 real(kind=sgl),allocatable                          :: mLPNH_simple(:,:), mLPSH_simple(:,:), eangle(:), mLPNH2D(:,:), mLPSH2D(:,:)
 real(kind=sgl),allocatable                          :: pattern(:,:), FZarray(:,:), dpmap(:), lstore(:,:), pstore(:,:)
-real(kind=sgl),allocatable                          :: patternintd(:,:), lp(:), cp(:), EBSDpat(:,:)
+real(kind=sgl),allocatable                          :: patternintd(:,:), lp(:), cp(:), EBSDpat(:,:), epatterns(:,:), epts(:)
 integer(kind=irg),allocatable                       :: patterninteger(:,:), patternad(:,:), EBSDpint(:,:), kij(:,:)
 character(kind=c_char),allocatable                  :: EBSDdictpat(:,:,:)
 real(kind=sgl),allocatable                          :: dictpatflt(:,:), anglewf(:)
@@ -2014,9 +2015,6 @@ recordsize = 4*dinl%numsx*dinl%numsy/dinl%binning**2
 itmpexpt = 43
 w = dinl%hipassw
 source_l = source_length
-
-io_int(1:2) = dinl%ROI(3:4)
-call Message%WriteValue(' grain OSM dimensions : ', io_int,2)
 
 ! these will eventually need to be read from an experimental data file but we'll set default values here.
 WD = 10.0
@@ -2232,20 +2230,31 @@ end do
 
 !=====================================================
 ! Preprocess all the experimental patterns and store
-! them in a tmp file as vectors
+! them in a tmp file or in the epatterns array as vectors
 !=====================================================
-call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
-                        verbose=.FALSE.)
+if (inRAM.eqv..TRUE.) then 
+  call mem%alloc(epatterns, (/ correctsize, totnumexpt /), 'epatterns') 
+  call PreProcessPatterns(EMsoft, HDF, .TRUE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
+                          epatterns, verbose=.FALSE.)
+  call mem%alloc(epts, (/ correctsize * totnumexpt /), 'epts') 
+  epts = reshape( epatterns, (/ correctsize * totnumexpt /) )
+  call mem%dealloc(epatterns,'epatterns')
+else 
+  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
+                          verbose=.FALSE.)
+end if 
 
-! re-open the temporary file
-if (dinl%tmpfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
-  fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(dinl%tmpfile)
-else
-  fname = trim(dinl%tmpfile)
+! re-open the temporary file if inRAM = .FALSE.
+if (inRAM.eqv..FALSE.) then 
+  if (dinl%tmpfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
+    fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(dinl%tmpfile)
+  else
+    fname = trim(dinl%tmpfile)
+  end if
+
+  open(unit=itmpexpt,file=trim(fname),&
+       status='old',form='unformatted',access='direct',recl=recordsize_correct,iostat=ierr)
 end if
-
-open(unit=itmpexpt,file=trim(fname),&
-     status='old',form='unformatted',access='direct',recl=recordsize_correct,iostat=ierr)
 
 ! we will leave the itmpexpt file open, since we'll be reading from it again...
 
@@ -2355,10 +2364,16 @@ dictionaryloop: do ii = 1,cratio+1
 
         expt = 0.0
 
-        do pp = 1,ppendE(jj)   ! Ne or MODULO(totnumexpt,Ne)
-          read(itmpexpt,rec=(jj-1)*Ne+pp) tmpimageexpt
-          expt((pp-1)*correctsize+1:pp*correctsize) = tmpimageexpt
-        end do
+        if (inRAM.eqv..FALSE.) then ! read pre-processed patterns from temporary file
+          do pp = 1,ppendE(jj)   ! Ne or MODULO(totnumexpt,Ne)
+            read(itmpexpt,rec=(jj-1)*Ne+pp) tmpimageexpt
+            expt((pp-1)*correctsize+1:pp*correctsize) = tmpimageexpt
+          end do
+        else  ! use the inRAM pre-processed patterns from the epatterns array
+          do pp = 1,ppendE(jj)   ! Ne or MODULO(totnumexpt,Ne)
+            expt((pp-1)*correctsize+1:pp*correctsize) = epts((jj-1)*Ne+(pp-1)*correctsize+1:(jj-1)*Ne+pp*correctsize)
+          end do
+        end if 
 
         ierr = clEnqueueWriteBuffer(command_queue, cl_expt, CL_TRUE, 0_8, size_in_bytes_expt, C_LOC(expt(1)), &
                                     0, C_NULL_PTR, C_NULL_PTR)

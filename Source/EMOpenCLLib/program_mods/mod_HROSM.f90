@@ -43,6 +43,7 @@ type, public :: HROSMNameListType
   integer(kind=irg)       :: nsamples   ! number of sampling points along radius of misorientation ball
   real(kind=sgl)          :: gangle     ! [deg] max grain misorientation angle for clustering
   real(kind=sgl)          :: misorang   ! [deg] misorientation ball radius for sampling
+  real(kind=sgl)          :: maxRAMmem  ! [Gb] maximum data set size (per grain) for in RAM indexing
   character(fnlen)        :: dpfile     ! input dot product file
   character(fnlen)        :: OSMfile    ! output HDF5 file
   character(fnlen)        :: OSMtiff    ! new high resolution Orientation Similarity Map
@@ -135,17 +136,19 @@ logical                             :: skipread = .FALSE.
 integer(kind=irg)                   :: nsamples   ! number of sampling points along radius of misorientation ball
 real(kind=sgl)                      :: gangle     ! [deg] max grain misorientation angle for clustering
 real(kind=sgl)                      :: misorang   ! [deg] misorientation ball radius for sampling
+real(kind=sgl)                      :: maxRAMmem  ! max memory for in-RAM indexing (per grain)
 character(fnlen)                    :: dpfile     ! input dot product file
 character(fnlen)                    :: OSMfile    ! output HDF5 file
 character(fnlen)                    :: OSMtiff    ! new high resolution Orientation Similarity Map
 character(fnlen)                    :: IPFmap
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / HROSMdata / nsamples, gangle, misorang, dpfile, OSMfile, OSMtiff, IPFmap 
+namelist  / HROSMdata / nsamples, gangle, misorang, dpfile, OSMfile, OSMtiff, IPFmap, maxRAMmem 
 
 nsamples = 20           ! number of sampling points along radius of misorientation ball
 gangle = 5.0            ! [deg] max grain misorientation angle for clustering
 misorang = 5.0          ! [deg] misorientation ball radius for sampling
+maxRAMmem = 1.0         ! [Gb] maximum preprocessed data set size per grain for inRAM indexing
 dpfile = 'undefined'    ! input dot product file
 OSMfile = 'undefined'   ! output HDF5 file
 OSMtiff ='undefined'    ! new high resolution Orientation Similarity Map
@@ -175,6 +178,7 @@ end if
 self%nml%nsamples = nsamples 
 self%nml%gangle = gangle
 self%nml%misorang = misorang
+self%nml%maxRAMmem = maxRAMmem
 self%nml%dpfile = dpfile
 self%nml%OSMfile = OSMfile
 self%nml%OSMtiff = OSMtiff
@@ -221,7 +225,7 @@ class(HROSM_T), INTENT(INOUT)           :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 1, n_real = 2
+integer(kind=irg),parameter             :: n_int = 1, n_real = 3
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -239,9 +243,10 @@ intlist(1) = 'nsamples'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single reals
-io_real = (/ enl%gangle, enl%misorang /)
+io_real = (/ enl%gangle, enl%misorang, enl%maxRAMmem /)
 reallist(1) = 'gangle'
 reallist(2) = 'misorang'
+reallist(3) = 'maxRAMmem'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! write all the strings
@@ -350,12 +355,12 @@ character(2)                            :: listmode
 integer(kind=irg)                       :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4), icnt, nt, &
                                            FZcnt, ii, ROIoffset(2)
 real(kind=sgl), allocatable             :: mainOSM(:,:), OSMmap(:,:), mainEuler(:,:,:), mainResult(:,:)  
-real(kind=sgl)                          :: mi, ma
+real(kind=sgl)                          :: mi, ma, memoryNeeded, io_real(1)
 real(kind=sgl),allocatable              :: rodarray(:,:,:), maineu(:,:)
 real(kind=sgl),allocatable              :: resultmain(:,:)
 type(FZpointd),pointer                  :: FZlist, FZtmp
 
-logical                                 :: verbose=.FALSE., f_exists
+logical                                 :: verbose=.FALSE., f_exists, inRAM
 character(fnlen,kind=c_char)            :: HDF_FileVersion
 
 ! declare variables for use in object oriented image module
@@ -534,14 +539,26 @@ grainloop: do i=1,cluster%nGrains
 ! so we need to also pass on the absolute ROI origin to make sure the correct patterns 
 ! are extracted.
 
-! prepare the namelist file in the current folder and pass the filename
-! to the OSMDIdriver
+! we also need to compute how much memory the preprocessed data set for this grain will need; if
+! larger than maxRAMmem, then the data will be stored in a file in the tmp folder
+      memoryNeeded = dinl%numsx * dinl%numsy * cluster%grainROI(3,i) * cluster%grainROI(4,i) * 4.0
+      memoryNeeded = memoryNeeded / 1024.0/ 1024.0/ 1024.0  ! in Gb
+      inRAM = .FALSE.
+      if (memoryNeeded.lt.self%nml%maxRAMmem) then 
+        inRAM = .TRUE.
+        io_real(1) = memoryNeeded
+        call Message%WriteValue('   in RAM indexing memory needed [Gb] : ',io_real,1)
+      end if 
+
+! set the ROI in the dinl list and call the OSMDIdriver
       dinl = savedinl
       dinl%ROI(1:2) = cluster%grainROI(1:2, i) + ROIoffset(1:2)
       dinl%ROI(3:4) = cluster%grainROI(3:4, i)
 
-      call OSMDIdriver(EMsoft, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
+      call OSMDIdriver(EMsoft, inRAM, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
                        OSMmap, resultmain, rodarray)
+      ! call OSMDIdriver(EMsoft, .FALSE., DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
+      !                  OSMmap, resultmain, rodarray)
 
 
 ! copy the OSMmap parameters to the mainOSM array 
