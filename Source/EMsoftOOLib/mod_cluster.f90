@@ -60,6 +60,7 @@ contains
 private 
   procedure, pass(self) :: ScanGrain_
   procedure, pass(self) :: getROI_
+  procedure, pass(self) :: grain_dilate_
 end type Cluster_T
 
 ! the constructor routine for this class 
@@ -70,7 +71,7 @@ end interface Cluster_T
 contains
 
 !--------------------------------------------------------------------------
-type(Cluster_T) function cluster_constructor( DIFT, gangle ) result(cluster)
+type(Cluster_T) function cluster_constructor( DIFT, gangle, dilate ) result(cluster)
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/22/25
@@ -88,6 +89,7 @@ IMPLICIT NONE
 
 type(DIfile_T), INTENT(INOUT)   :: DIFT
 real(kind=sgl), INTENT(IN)      :: gangle
+logical,INTENT(IN)              :: dilate
 
 type(IO_T)                      :: Message 
 type(QuaternionArray_T)         :: qAR, QA
@@ -191,8 +193,13 @@ do i=1,cluster%nGrains
   cluster%kappa(i) = 1.D0
 end do 
 
-! from here on, it will be more useful to have the grain IDs in a 1D array
-! grainIDs = reshape(cluster%grainID, (/ nt /) )
+! this next step is experimental at the moment...
+! next, we optionally dilate all grains to remove most of the empty space at the grain boundaries
+! and then we need to re-run the ROI finding routine to update the box sizes
+if (dilate.eqv..TRUE.) then
+  call cluster%grain_dilate_()
+  call cluster%getROI_()
+end if 
 
 ! determine the number of pixels in each grain
 allocate( cluster%npixels(cluster%nGrains) )
@@ -338,5 +345,47 @@ do i=1,self%nGrains
 end do 
 
 end subroutine getROI_
+
+!--------------------------------------------------------------------------
+recursive subroutine grain_dilate_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: grain_dilate_
+!! author: MDG 
+!! version: 1.0 
+!! date: 06/12/25
+!!
+!! dilate all grains by one pixel in all directions to avoid empty spaces along 
+!! the grain boundaries; this is a very naive implementation, probably not very 
+!! efficient... ideally, we would use a convolution with a kernel to do this
+
+IMPLICIT NONE 
+
+class(Cluster_T),INTENT(INOUT)    :: self
+
+integer                           :: i, j, m, sub(3,3)
+integer(kind=irg),allocatable     :: im_in(:,:), im_out(:,:)
+
+
+! allocate local arrays
+allocate(im_in(0:self%ipf_wd+1, 0:self%ipf_ht+1), &
+         im_out(0:self%ipf_wd+1, 0:self%ipf_ht+1))
+
+!copy the current grainID into this array with a one-pixel zero border
+im_in = 0
+im_in(1:self%ipf_wd,1:self%ipf_ht) = self%grainID
+im_out = im_in
+
+! Scan each pixel (excluding borders)
+do i = 1, self%ipf_wd-1
+  do j = 1, self%ipf_ht-1
+    sub = im_in(i:i+2, j:j+2)
+    m = maxval(sub)
+    if (m.ne.0) im_out(i+1,j+1) = m
+  end do
+end do
+
+! copy the dilated array back into the grainID array
+self%grainID = im_out(1:self%ipf_wd,1:self%ipf_ht)
+
+end subroutine grain_dilate_
 
 end module mod_cluster

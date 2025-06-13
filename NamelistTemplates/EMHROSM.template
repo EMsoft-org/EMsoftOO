@@ -9,6 +9,10 @@
  misorang = 5.0,
 ! number of sampling points along radius of misorientation ball
  nsamples = 20,
+! number of top matches to be used for OSM; this overrides the value from the EMDI run
+ nosm = 10,
+! dilate the grains to partially remove empty spaces at grain boundaries ? [EXPERIMENTAL]
+ dilate = .FALSE.,
 ! input dot product file
  dpfile = 'undefined',
 ! output HDF5 file (contains grain clustering result, refined orientations, and new OSM)
