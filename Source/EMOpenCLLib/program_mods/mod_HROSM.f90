@@ -516,7 +516,9 @@ call Message%WriteValue(' Starting indexing run; dictionary size : ', io_int,1)
 call Message%printMessage(' ')
 call SO%delete_FZlist('CM')
 
+
 grainloop: do i=1,cluster%nGrains
+! grainloop: do i=58,58
   if (cluster%kappa(i).ne.-1.0) then 
     io_int = (/ i, cluster%nGrains /)
     call Message%WriteValue(' Indexing grain/total # grains ', io_int,2)
@@ -534,6 +536,8 @@ grainloop: do i=1,cluster%nGrains
     qu = q_T( qdinp = cluster%avor(1:4,i) )
     ro = qu%qr()
     call SO%SampleIsoMisorientation(ro, dble(osmnl%misorang))
+    ! fname = 'orientations.txt'
+    ! call SO%writeOrientationstoFile(fname,'ax','CM')
 
 ! we will skip grains that have less than 10 pixels
     if (cluster%npixels(i).ge.10) then 
@@ -549,7 +553,7 @@ grainloop: do i=1,cluster%nGrains
 
 ! we also need to compute how much memory the preprocessed data set for this grain will need; if
 ! larger than maxRAMmem, then the data will be stored in a file in the tmp folder
-      memoryNeeded = dinl%numsx * dinl%numsy * cluster%grainROI(3,i) * cluster%grainROI(4,i) * 4.0
+      memoryNeeded = real(dinl%numsx * dinl%numsy) * real(cluster%grainROI(3,i) * cluster%grainROI(4,i)) * 4.0
       memoryNeeded = memoryNeeded / 1024.0/ 1024.0/ 1024.0  ! in Gb
       inRAM = .FALSE.
       if (memoryNeeded.lt.self%nml%maxRAMmem) then 

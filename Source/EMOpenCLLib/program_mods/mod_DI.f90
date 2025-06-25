@@ -2304,6 +2304,8 @@ jpar(7) = numE
 
 verbose = .FALSE.
 
+! write (*,*) ' ppend ', ppend, FZcnt, Nd
+
 dictionaryloop: do ii = 1,cratio+1
     results = 0.0
 

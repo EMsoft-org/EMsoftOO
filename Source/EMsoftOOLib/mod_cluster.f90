@@ -39,6 +39,8 @@ use mod_DIfiles
 
 IMPLICIT NONE 
 
+integer(kind=irg), parameter :: max_stack_size = 1000000
+
 ! class definition
 type, public :: Cluster_T
   integer(kind=irg), allocatable  :: grainID(:,:) ! grain identifier
@@ -55,12 +57,15 @@ type, public :: Cluster_T
   real(kind=dbl), allocatable     :: avor(:,:)    ! average orientation per grain
   real(kind=dbl), allocatable     :: kappa(:)     ! concentration parameters
   real(kind=sgl), allocatable     :: kam(:,:)     ! kernel average orientation map
-
+  integer(kind=irg), allocatable  :: x_stack(:) 
+  integer(kind=irg), allocatable  :: y_stack(:)
 contains
 private 
   procedure, pass(self) :: ScanGrain_
   procedure, pass(self) :: getROI_
   procedure, pass(self) :: grain_dilate_
+  procedure, pass(self) :: grow_region_
+  procedure, pass(self) :: grow_region_driver_
 end type Cluster_T
 
 ! the constructor routine for this class 
@@ -139,39 +144,52 @@ write (*,*) ' shape = ', shape(DIFT%DIDT%RefinedEulerAngles), maxval(DIFT%DIDT%R
 call getKAMMap(nt, DIFT%DIDT%RefinedEulerAngles, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, cluster%kam)
 cluster%kam = cluster%kam*rtod
 
-ma = 1.2 * maxval( cluster%kam(2:cluster%ipf_wd-1,2:cluster%ipf_ht-1) )
+! ma = 1.2 * maxval( cluster%kam(2:cluster%ipf_wd-1,2:cluster%ipf_ht-1) )
 
 ! to prevent weird edge cases, put the kam edges to a large value
-cluster%kam(1,1:cluster%ipf_ht) = ma
-cluster%kam(cluster%ipf_wd,1:cluster%ipf_ht) = ma
-cluster%kam(1:cluster%ipf_wd,1) = ma
-cluster%kam(1:cluster%ipf_wd,cluster%ipf_ht) = ma
+! cluster%kam(1,1:cluster%ipf_ht) = ma
+! cluster%kam(cluster%ipf_wd,1:cluster%ipf_ht) = ma
+! cluster%kam(1:cluster%ipf_wd,1) = ma
+! cluster%kam(1:cluster%ipf_wd,cluster%ipf_ht) = ma
+
+! find the grains
+call cluster%grow_region_driver_()
+
+! reset all the -1 values to 0
+where(cluster%grainID==-1)
+  cluster%grainID = 0
+end where
+
+! this is old code that performed a recursive grain search; for very large datasets 
+! this caused potential memory problems, so we replaced it by the grow_region_driver
+! routine ... [MDG, 06/25/25]
 
 ! initialize number of grains and grainID array
-cluster%nGrains = 0 
-cluster%grainID = 0
+! cluster%nGrains = 0 
+! cluster%grainID = 0
 
-! next, we recursively scan for each grain ... 
-cluster%MaxSize = nt       ! used to make sure that the recursion will actually end
-cluster%TotSize = 0
 
-do ix=1,cluster%ipf_wd
-  do iy=1,cluster%ipf_ht
-    if (cluster%grainID(ix,iy).eq.0) then 
-      if (cluster%kam(ix,iy).le.cluster%gangle) then
-        cluster%nGrains = cluster%nGrains+1
-        cluster%GrainSize = 0
-        call cluster%ScanGrain_(ix, iy)
-        if (cluster%GrainSize.eq.1) then 
-          cluster%grainID(ix,iy) = -1
-          cluster%nGrains = cluster%nGrains-1
-        end if
-      else
-        cluster%grainID(ix,iy) = -1
-      end if 
-    end if 
-  end do 
-end do 
+! ! next, we recursively scan for each grain ... 
+! cluster%MaxSize = nt       ! used to make sure that the recursion will actually end
+! cluster%TotSize = 0
+
+! do ix=1,cluster%ipf_wd
+!   do iy=1,cluster%ipf_ht
+!     if (cluster%grainID(ix,iy).eq.0) then 
+!       if (cluster%kam(ix,iy).le.cluster%gangle) then
+!         cluster%nGrains = cluster%nGrains+1
+!         cluster%GrainSize = 0
+!         call cluster%ScanGrain_(ix, iy)
+!         if (cluster%GrainSize.eq.1) then 
+!           cluster%grainID(ix,iy) = -1
+!           cluster%nGrains = cluster%nGrains-1
+!         end if
+!       else
+!         cluster%grainID(ix,iy) = -1
+!       end if 
+!     end if 
+!   end do 
+! end do 
 
 ! for all grains, find the 2D bounding box needed for the modified DI algorithm
 allocate( cluster%grainROI(4,cluster%nGrains) )
@@ -387,5 +405,125 @@ end do
 self%grainID = im_out(1:self%ipf_wd,1:self%ipf_ht)
 
 end subroutine grain_dilate_
+
+!--------------------------------------------------------------------------
+subroutine grow_region_driver_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: grow_region_driver_
+!! author: MDG 
+!! version: 1.0 
+!! date: 06/25/25
+!!
+!! based on Chat-GPT suggested algorithm
+
+IMPLICIT NONE
+
+class(Cluster_T), INTENT(INOUT)   :: self
+
+integer(kind=irg)                 :: i, j
+
+allocate(self%x_stack(max_stack_size), self%y_stack(max_stack_size) )
+
+! initialize the grainID map and set the first label
+self%grainID= 0
+self%nGrains = 1
+
+! Find and label all connected regions
+do j = 1, self%ipf_ht
+  do i = 1, self%ipf_wd
+    if (self%grainID(i,j) == 0) then
+      call self%grow_region_(i, j)
+      ! don't accept grains that are only 1 pixel large
+      if (count(self%grainID==self%nGrains).eq.1) then 
+        self%grainID(i,j) = -1
+      else
+        self%nGrains = self%nGrains + 1
+      end if 
+    end if
+  end do
+end do
+
+deallocate(self%x_stack, self%y_stack)
+
+end subroutine grow_region_driver_
+
+!--------------------------------------------------------------------------
+subroutine grow_region_(self, x_seed, y_seed)
+!DEC$ ATTRIBUTES DLLEXPORT :: grow_region_
+!! author: MDG 
+!! version: 1.0 
+!! date: 06/25/25
+!!
+!! based on Chat-GPT suggested algorithm
+
+use mod_IO 
+
+IMPLICIT NONE 
+
+! Input
+class(Cluster_T),INTENT(INOUT)    :: self
+integer(kind=irg), INTENT(IN)     :: x_seed, y_seed
+
+type(IO_T)                        :: Message 
+
+! Local variables
+integer(kind=irg)                 :: top, x, y, xn, yn, i
+
+! 4-connected neighbor directions; can be extended to 8 neighbors if needed
+! integer(kind=irg), parameter      :: dx(4) = [0, 0, -1, 1]
+! integer(kind=irg), parameter      :: dy(4) = [-1, 1, 0, 0]
+integer(kind=irg), parameter      :: dx(8) = [0, 0, -1, 1, 1, 1,-1,-1]
+integer(kind=irg), parameter      :: dy(8) = [-1, 1, 0, 0, 1,-1, 1,-1]
+
+! Initialize stack
+self%x_stack = 0
+self%y_stack = 0
+
+! is this grain already labeled ?
+if (self%grainID(x_seed, y_seed) /= 0) then 
+  self%nGrains = self%nGrains-1 
+  return  ! already labeled
+end if
+
+! is the kam value higher than the threshold? If so, then this is not a new grain
+if (self%kam(x_seed, y_seed).gt.self%gangle) then 
+  self%nGrains = self%nGrains-1 
+  return  ! likely a grain boundary pixel
+end if
+
+top = 1
+self%x_stack(top) = x_seed
+self%y_stack(top) = y_seed
+self%grainID(x_seed, y_seed) = self%nGrains
+
+do while (top > 0)
+  x = self%x_stack(top)
+  y = self%y_stack(top)
+  top = top - 1
+
+  do i = 1, 8
+    xn = x + dx(i)
+    yn = y + dy(i)
+
+    if (xn >= 1 .and. xn <= self%ipf_wd .and. yn >= 1 .and. yn <= self%ipf_ht) then
+      if (self%grainID(xn, yn) == 0) then
+        if (abs(self%kam(xn,yn) - self%kam(x,y)) <= self%gangle) then
+          if (top < max_stack_size) then
+            top = top + 1
+            self%x_stack(top) = xn
+            self%y_stack(top) = yn
+            self%grainID(xn, yn) = self%nGrains
+          else
+            call Message%printMessage(' grow_region Error: Stack overflow! ... returning ')
+            return
+          end if
+        end if
+      end if
+    end if
+  end do
+end do
+end subroutine grow_region_
+
+
+
 
 end module mod_cluster
