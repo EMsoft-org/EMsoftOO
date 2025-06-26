@@ -2236,9 +2236,6 @@ if (inRAM.eqv..TRUE.) then
   call mem%alloc(epatterns, (/ correctsize, totnumexpt /), 'epatterns') 
   call PreProcessPatterns(EMsoft, HDF, .TRUE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
                           epatterns, verbose=.FALSE.)
-  call mem%alloc(epts, (/ correctsize * totnumexpt /), 'epts') 
-  epts = reshape( epatterns, (/ correctsize * totnumexpt /) )
-  call mem%dealloc(epatterns,'epatterns')
 else 
   call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
                           verbose=.FALSE.)
@@ -2373,7 +2370,7 @@ dictionaryloop: do ii = 1,cratio+1
           end do
         else  ! use the inRAM pre-processed patterns from the epatterns array
           do pp = 1,ppendE(jj)   ! Ne or MODULO(totnumexpt,Ne)
-            expt((pp-1)*correctsize+1:pp*correctsize) = epts((jj-1)*Ne+(pp-1)*correctsize+1:(jj-1)*Ne+pp*correctsize)
+            expt((pp-1)*correctsize+1:pp*correctsize) = epatterns(1:correctsize, (jj-1)*Ne+pp) ! epts((jj-1)*Ne+(pp-1)*correctsize+1:(jj-1)*Ne+pp*correctsize)
           end do
         end if 
 
