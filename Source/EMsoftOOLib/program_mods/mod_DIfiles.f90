@@ -1865,6 +1865,27 @@ if (present(getRefinedEulerAngles)) then
 end if
 
 call HDF%pop()
+
+groupname = SC_Header
+    hdferr = HDF%openGroup(groupname)
+
+dataset = SC_StepX
+    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists) then
+      call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%StepX)
+    else
+      call Message%printMessage('readDotProductFile: There is no StepX data set in this file')
+    end if
+
+dataset = SC_StepY
+    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists) then
+      call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%StepY)
+    else
+      call Message%printMessage('readDotProductFile: There is no StepY data set in this file')
+    end if
+
+call HDF%pop()
 call HDF%pop()
 call HDF%pop()
 
@@ -1876,6 +1897,7 @@ if (present(getInitial)) then
     groupname = 'FitOrientationNameListType'
     call H5Lexists_f(HDF%getObjectID(),trim(groupname),g_exists, hdferr)
     if (g_exists) then
+      call Message%printMessage(' reading initial pattern location ')
       hdferr = HDF%openGroup(groupname)
       dataset = 'initialx'
       call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
@@ -1898,25 +1920,6 @@ if (present(getInitial)) then
     end if 
   end if 
 end if 
-
-groupname = SC_Header
-    hdferr = HDF%openGroup(groupname)
-
-dataset = SC_StepX
-    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then
-      call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%StepX)
-    else
-      call Message%printMessage('readDotProductFile: There is no StepX data set in this file')
-    end if
-
-dataset = SC_StepY
-    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
-    if (g_exists) then
-      call HDF%readDatasetFloat(dataset, hdferr, ebsdnl%StepY)
-    else
-      call Message%printMessage('readDotProductFile: There is no StepY data set in this file')
-    end if
 
 ! and close the HDF5 dot product file
 call HDF%popall()
