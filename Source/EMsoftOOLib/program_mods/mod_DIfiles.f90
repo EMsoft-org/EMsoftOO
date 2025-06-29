@@ -1865,11 +1865,13 @@ if (present(getRefinedEulerAngles)) then
 end if
 
 call HDF%pop()
+call HDF%pop()
+call HDF%pop()
 
 ! get the initialx and initialy parameters if they are present
 if (present(getInitial)) then
   if (getInitial.eqv..TRUE.) then
-    groupname = 'NMLparameters'
+    groupname = SC_NMLparameters
     hdferr = HDF%openGroup(groupname)
     groupname = 'FitOrientationNameListType'
     call H5Lexists_f(HDF%getObjectID(),trim(groupname),g_exists, hdferr)
