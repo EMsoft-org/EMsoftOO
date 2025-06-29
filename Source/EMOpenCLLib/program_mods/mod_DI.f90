@@ -1747,7 +1747,8 @@ end subroutine DIdriver
 
 
 !--------------------------------------------------------------------------
-subroutine OSMDIdriver(EMsoft, inRAM, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, OSMmap, resarray, rodarray)
+subroutine OSMDIdriver(EMsoft, inRAM, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, OSMmap, resarray, rodarray, &
+                       doPCcorrection)
 !DEC$ ATTRIBUTES DLLEXPORT :: OSMDIdriver
 !! author: MDG
 !! version: 1.0
@@ -1806,9 +1807,9 @@ IMPLICIT NONE
 
 type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
 logical,INTENT(IN)                                  :: inRAM
-type(DIfile_T), INTENT(IN)                          :: DIFT
-type(MCfile_T), INTENT(IN)                          :: MCFT
-type(MPfile_T), INTENT(IN)                          :: MPFT
+type(DIfile_T), INTENT(INOUT)                       :: DIFT
+type(MCfile_T), INTENT(INOUT)                       :: MCFT
+type(MPfile_T), INTENT(INOUT)                       :: MPFT
 type(DictionaryIndexingNameListType), INTENT(INOUT) :: dinl
 type(MCOpenCLNameListType), INTENT(INOUT)           :: mcnl
 type(SEMmasterNameListType), INTENT(INOUT)          :: mpnl
@@ -1819,6 +1820,7 @@ type(so3_T), INTENT(INOUT)                          :: SO
 real(kind=sgl), INTENT(INOUT),allocatable           :: OSMmap(:,:)
 real(kind=sgl),allocatable, target, INTENT(INOUT)   :: resarray(:,:)
 real(kind=sgl),allocatable, target, INTENT(INOUT)   :: rodarray(:,:,:)
+logical,INTENT(IN),OPTIONAL                         :: doPCcorrection
 
 type(HDF_T)                                         :: HDF
 type(HDFnames_T)                                    :: HDFnames
@@ -1837,6 +1839,7 @@ type(NLPAR_T)                                       :: NLPAR
 type(memory_T)                                      :: mem, memth
 type(IPF_T)                                         :: IPF 
 type(IPFmap_T)                                      :: IPFmap 
+type(EBSD_T)                                        :: myEBSD
 
 logical                                             :: verbose
 
@@ -1881,9 +1884,11 @@ real(kind=sgl),allocatable                          :: imageexpt(:),imagedict(:)
                                                        exptCI(:), exptFit(:), exppatarray(:), tmpexppatarray(:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:), &
                                                        tmpimageexpt(:), maxsortarr(:), minsortarr(:), ep(:,:), &
-                                                       pcavecs(:,:), pcasvs(:), dpatterns(:,:), dpatterns_tmp(:,:)
+                                                       pcavecs(:,:), pcasvs(:), dpatterns(:,:), dpatterns_tmp(:,:), &
+                                                       DPCX(:), DPCY(:), DPCL(:)
 real(kind=sgl),allocatable, target                  :: results(:),expt(:),dicttranspose(:),resultarray(:), dparray(:), &
                                                        eulerarray(:,:),eulerarray2(:,:),resultmain(:,:),resulttmp(:,:)
+                                                       
 integer(kind=irg),allocatable                       :: acc_array(:,:), ppend(:), ppendE(:), euarray(:,:)
 integer(kind=irg),allocatable,target                :: indarray(:)
 integer*4,allocatable                               :: iexptCI(:,:), iexptIQ(:,:)
@@ -1891,13 +1896,14 @@ real(kind=sgl),allocatable                          :: meandict(:),meanexpt(:),w
 real(kind=sgl),allocatable                          :: mLPNH_simple(:,:), mLPSH_simple(:,:), eangle(:), mLPNH2D(:,:), mLPSH2D(:,:)
 real(kind=sgl),allocatable                          :: pattern(:,:), FZarray(:,:), dpmap(:), lstore(:,:), pstore(:,:)
 real(kind=sgl),allocatable                          :: patternintd(:,:), lp(:), cp(:), EBSDpat(:,:), epatterns(:,:), epts(:)
-integer(kind=irg),allocatable                       :: patterninteger(:,:), patternad(:,:), EBSDpint(:,:), kij(:,:)
+integer(kind=irg),allocatable                       :: patterninteger(:,:), patternad(:,:), EBSDpint(:,:), kij(:,:), & 
+                                                       PScorrectionmapth(:), PScorrectionmap(:)
 character(kind=c_char),allocatable                  :: EBSDdictpat(:,:,:)
 real(kind=sgl),allocatable                          :: dictpatflt(:,:), anglewf(:)
 real(kind=dbl),allocatable                          :: rdata(:,:), fdata(:,:), rrdata(:,:), ffdata(:,:), ksqarray(:,:), klist(:,:)
 complex(kind=dbl),allocatable                       :: hpmask(:,:)
 complex(C_DOUBLE_COMPLEX),allocatable               :: inp(:,:), outp(:,:)
-real(kind=dbl)                                      :: w, Jres
+real(kind=dbl)                                      :: w, Jres, dalpha, ca, sa, c2a, s2a
 integer(kind=irg)                                   :: dims(2)
 character(11)                                       :: dstr
 character(15)                                       :: tstrb
@@ -1913,7 +1919,7 @@ integer(c_int)                                      :: numd, nump
 type(C_PTR)                                         :: planf, HPplanf, HPplanb
 integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3), dms(1)
 
-integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn, icnt
+integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn, icnt, dindex
 integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(4)
 type(FZpointd),pointer                              :: FZlist, FZtmp
 integer(kind=irg),allocatable                       :: indexlist(:),indexarray(:),indexmain(:,:),indextmp(:,:)
@@ -1924,13 +1930,13 @@ character(fnlen)                                    :: xtalname, IPFmapfile, fna
 integer(kind=irg)                                   :: binx,biny,TID,nthreads,Emin,Emax, iiistart, iiiend, jjend
 real(kind=sgl)                                      :: sx,dx,dxm,dy,dym,rhos,x,projweight, dp, mvres, nel, emult
 real(kind=sgl)                                      :: dc(3),ixy(2),bindx, MCsig, WD, fpar1(1), fpar2(2)
-integer(kind=irg)                                   :: nix,niy,nixp,niyp
+integer(kind=irg)                                   :: nix,niy,nixp,niyp,samplex,sampley
 real(kind=sgl)                                      :: euler(3)
 integer(kind=irg)                                   :: indx
 integer(kind=irg)                                   :: correctsize
 logical                                             :: f_exists, init, ROIselected, Clinked, cancelled, isTKD = .FALSE.,  &
                                                        isOverlap = .FALSE., isEBSD = .FALSE., isECP = .FALSE., switchwfoff, &
-                                                       PCA=.FALSE.
+                                                       PCA=.FALSE., PCcorrection=.FALSE.
 
 integer(kind=irg)                                   :: ipar(10)
 
@@ -1965,6 +1971,13 @@ HDFnames = HDFnames_T()
 call setRotationPrecision('d')
 
 associate( MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
+
+! PCcorrection ?
+if (present(doPCcorrection)) then 
+  if (doPCcorrection.eqv..TRUE.) then 
+    PCcorrection = .TRUE.
+  end if 
+end if
 
 ! initialize the memory allocation classes
 mem = memory_T()
@@ -2255,6 +2268,46 @@ end if
 
 ! we will leave the itmpexpt file open, since we'll be reading from it again...
 
+!===============================================================
+!========Pattern center correction parameters===================
+!===============================================================
+
+if (PCcorrection.eqv..TRUE.) then 
+  dalpha = 0.5 * sngl(cPi) - (mcnl%sig - dinl%thetac) * dtor  
+  ca = cos(dalpha)
+  c2a = cos(2.0*dalpha)
+  sa = sin(dalpha)
+  s2a = sin(2.0*dalpha)
+! determine the shift vector for each sampling point (on the sample!) with respect to the 
+! (initialx, initialy) position
+  if (ROIselected.eqv..TRUE.) then 
+    call mem%alloc(DPCX, (/ dinl%ROI(3) /), 'DPCX', 0.0)
+    call mem%alloc(DPCY, (/ dinl%ROI(4) /), 'DPCY', 0.0)
+    call mem%alloc(DPCL, (/ dinl%ROI(4) /), 'DPCL', 0.0)
+    do i=1,dinl%ROI(3)
+      DPCX(i) = - ( DIFT%initialx - (dinl%ROI(1)+(i-1)) ) * dinl%StepX
+    end do 
+    do j=1,dinl%ROI(4)
+      DPCY(j) = - ( DIFT%initialy - (dinl%ROI(2)+(j-1)) ) * dinl%StepY
+    end do 
+  else
+    call mem%alloc(DPCX, (/ dinl%ipf_wd /), 'DPCX', 0.0)
+    call mem%alloc(DPCY, (/ dinl%ipf_ht /), 'DPCY', 0.0)
+    call mem%alloc(DPCL, (/ dinl%ipf_ht /), 'DPCL', 0.0)
+    do i=1,dinl%ipf_wd
+      DPCX(i) = - ( DIFT%initialx - i ) * dinl%StepX
+    end do 
+    do j=1,dinl%ipf_ht
+      DPCY(j) = - ( DIFT%initialy - j ) * dinl%StepY
+    end do 
+  end if
+! convert these shifts to shifts in the detector reference frame 
+! and put them in units of the detector pixel size 
+  DPCX = - DPCX / dinl%delta
+  DPCL = - DPCY * sa 
+  DPCY = - DPCY * ca / dinl%delta
+end if  
+
 !=====================================================
 ! MAIN COMPUTATIONAL LOOP (finally...)
 !
@@ -2302,6 +2355,7 @@ jpar(7) = numE
 verbose = .FALSE.
 
 ! write (*,*) ' ppend ', ppend, FZcnt, Nd
+call mem%alloc(PScorrectionmap, (/ Ne /), 'PScorrectionmap', initval=0)
 
 dictionaryloop: do ii = 1,cratio+1
     results = 0.0
@@ -2440,27 +2494,68 @@ dictionaryloop: do ii = 1,cratio+1
 
 !$OMP SECTION
     TID = OMP_GET_THREAD_NUM()
-! allocate the local arrays that are used by each thread
+! allocate all private arrays; one thread at a time to prevent conflicts accessing the memth class
+!$OMP CRITICAL
     call memth%alloc(patterninteger, (/ binx,biny /), 'patterninteger', TID=TID, initval = 0)
     call memth%alloc(patternad, (/ binx,biny /), 'patternad', TID=TID, initval = 0) 
     call memth%alloc(patternintd, (/ binx,biny /), 'patternintd', TID=TID, initval = 0.0)
     call memth%alloc(imagedictflt, (/ correctsize /), 'imagedictflt', TID=TID, initval = 0.0) 
     call memth%alloc(imagedictfltflip, (/ correctsize /), 'imagedictfltflip', TID=TID, initval = 0.0)
+    call memth%alloc(PScorrectionmapth, (/ Ne /), 'PScorrectionmapth', initval=0, TID=TID)
+!$OMP END CRITICAL 
+!!      !!$OMP BARRIER
 
 ! here we carry out the dictionary pattern computation, unless we are in the ii=cratio+1 step
     if (ii.lt.cratio+1) then
  
       call memth%alloc(binned, (/ binx,biny /), 'binned', TID=TID, initval = 0.0)
 
+     if (PCcorrection.eqv..TRUE.) then 
+! allocate the necessary arrays 
+        call memth%alloc(myEBSD%det%rgx, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgx', 0.0, TID=TID)
+        call memth%alloc(myEBSD%det%rgy, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgy', 0.0, TID=TID)
+        call memth%alloc(myEBSD%det%rgz, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgz', 0.0, TID=TID)
+        call memth%alloc(myEBSD%det%accum_e_detector, (/ MCDT%numEbins, dinl%numsx, dinl%numsy /), &
+                         'mydet%accum_e_detector', 0.0, TID=TID)
+        myEBSD%det%accum_e_detector = EBSD%det%accum_e_detector
+      end if 
+
 !$OMP PARALLEL DO SCHEDULE(DYNAMIC) DEFAULT(SHARED) PRIVATE(qu,binned,quat,ro,iii,jj,ll,mm,pp,ierr,io_int, &
-!$OMP& vlen, ma, mi, patternintd, patterninteger, patternad, imagedictflt, imagedictfltflip)
+!$OMP& vlen, ma, mi, patternintd, patterninteger, patternad, imagedictflt, imagedictfltflip, myEBSD, PScorrectionmapth, &
+!$OMP& samplex, sampley, dx, dy)
+
+
       do pp = 1,ppend(ii)  !Nd or MODULO(FZcnt,Nd)
+         dindex = (ii-1)*Nd + pp
          binned = 0.0
          ro = r_T( rdinp = dble(FZarray(1:4,(ii-1)*Nd+pp)) )
          quat = ro%rq()
          qu = Quaternion_T( qd = quat%q_copyd() )
-         call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,EBSD%det%rgx,&
-                                             EBSD%det%rgy,EBSD%det%rgz,binned,Emin,Emax,mask,prefactor)
+! do we need to generate a separate detector for each pattern ?
+         if (PCcorrection.eqv..TRUE.) then 
+           if (ROIselected.eqv..TRUE.) then 
+              samplex = mod(dindex-1, dinl%ROI(3))+1
+              sampley = (dindex-1)/dinl%ROI(3)+1
+            else 
+              samplex = mod(dindex-1, dinl%ipf_wd)+1
+              sampley = (dindex-1)/dinl%ipf_wd+1
+            end if 
+            myEBSD%nml = enl 
+            dx = DPCX(samplex)
+            dy = DPCY(sampley)
+            myEBSD%nml%xpc = dinl%xpc - dx
+            myEBSD%nml%ypc = dinl%ypc - dy
+            myEBSD%nml%L = dinl%L - DPCL(sampley)
+            call EBSD%GeneratemyEBSDDetector(MCFT, dinl%numsx, dinl%numsy, MCDT%numEbins, myEBSD%det%rgx, &
+                                             myEBSD%det%rgy, myEBSD%det%rgz, myEBSD%det%accum_e_detector, &
+                                             (/ myEBSD%nml%xpc, myEBSD%nml%ypc, myEBSD%nml%L /))
+            ! and compute the pattern
+            call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,myEBSD%det%rgx,&
+                                                myEBSD%det%rgy,myEBSD%det%rgz,binned,Emin,Emax,mask,prefactor)
+          else
+            call EBSD%CalcEBSDPatternSingleFull(jpar,qu,accum_e_MC,mLPNH,mLPSH,EBSD%det%rgx,&
+                                                EBSD%det%rgy,EBSD%det%rgz,binned,Emin,Emax,mask,prefactor)
+          end if
 
          if (DIFT%nml%scalingmode .eq. 'gam') then
            binned = binned**DIFT%nml%gammavalue
@@ -2505,6 +2600,13 @@ dictionaryloop: do ii = 1,cratio+1
       end do
 !$OMP END PARALLEL DO
       call memth%dealloc(binned, 'binned', TID=TID)
+      if (PCcorrection.eqv..TRUE.) then 
+! allocate the necessary arrays 
+         call memth%dealloc(myEBSD%det%rgx, 'myEBSD%det%rgx', TID=TID)
+         call memth%dealloc(myEBSD%det%rgy, 'myEBSD%det%rgy', TID=TID)
+         call memth%dealloc(myEBSD%det%rgz, 'myEBSD%det%rgz', TID=TID)
+         call memth%dealloc(myEBSD%det%accum_e_detector, 'mydet%accum_e_detector', TID=TID)
+       end if 
    end if
 
    call memth%dealloc(patterninteger, 'patterninteger', TID=TID)

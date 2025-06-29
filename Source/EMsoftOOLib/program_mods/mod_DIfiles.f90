@@ -172,6 +172,8 @@ private
   type(DIdataType),public                       :: DIDT
   character(fnlen)                              :: Modality = 'unknown'
   type(DictionaryIndexingNameListType), public  :: nml
+  integer(kind=irg),public                      :: initialx
+  integer(kind=irg),public                      :: initialy
 
 contains
 private
@@ -1374,7 +1376,7 @@ recursive subroutine readDotProductFile_(self, EMsoft, HDF, HDFnames, dpfile, hd
                                          getEulerAngles, getFit, getIQ, getKAM, getOSM, getPhase, getPhi1, &
                                          getPhi, getPhi2, getSEMsignal, getTopDotProductList, getTopMatchIndices, &
                                          getValid, getXPosition, getYPosition, getRefinedDotProducts, &
-                                         getRefinedEulerAngles, getDictionaryEulerAngles, setMPfile)
+                                         getRefinedEulerAngles, getDictionaryEulerAngles, setMPfile, getInitial)
 !DEC$ ATTRIBUTES DLLEXPORT :: readDotProductFile_
 !! author: MDG
 !! version: 1.0
@@ -1419,6 +1421,7 @@ logical,INTENT(IN),OPTIONAL                         :: getYPosition
 logical,INTENT(IN),OPTIONAL                         :: getRefinedDotProducts
 logical,INTENT(IN),OPTIONAL                         :: getRefinedEulerAngles
 character(fnlen),INTENT(IN),OPTIONAL                :: setMPfile
+logical,INTENT(IN),OPTIONAL                         :: getInitial
 
 type(IO_T)                                          :: Message
 type(HDFnames_T)                                    :: saveHDFnames
@@ -1862,6 +1865,37 @@ if (present(getRefinedEulerAngles)) then
 end if
 
 call HDF%pop()
+
+! get the initialx and initialy parameters if they are present
+if (present(getInitial)) then
+  if (getInitial.eqv..TRUE.) then
+    groupname = 'NMLparameters'
+    hdferr = HDF%openGroup(groupname)
+    groupname = 'FitOrientationNameListType'
+    call H5Lexists_f(HDF%getObjectID(),trim(groupname),g_exists, hdferr)
+    if (g_exists) then
+      hdferr = HDF%openGroup(groupname)
+      dataset = 'initialx'
+      call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+      if (g_exists) then
+        call HDF%readDatasetInteger(dataset, hdferr, self%initialx)
+      else
+        call Message%printMessage('readDotProductFile: There is no initialx data set in this file')
+      end if 
+      dataset = 'initialy'
+      call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+      if (g_exists) then
+        call HDF%readDatasetInteger(dataset, hdferr, self%initialy)
+      else
+        call Message%printMessage('readDotProductFile: There is no initialy data set in this file')
+      end if 
+      call HDF%pop()
+      call HDF%pop()
+    else
+      call Message%printMessage('readDotProductFile: There is no FitOrientationNameListType group in this file')
+    end if 
+  end if 
+end if 
 
 groupname = SC_Header
     hdferr = HDF%openGroup(groupname)
