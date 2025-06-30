@@ -266,8 +266,8 @@ type(DirStat_T), INTENT(INOUT)      :: self
 
 call reportDestructor('DirStat_T')
 
-if (allocated(self%xAp)) deallocate(self%xAp)
-if (allocated(self%yAp)) deallocate(self%yAp)
+! if (allocated(self%xAp)) deallocate(self%xAp)
+! if (allocated(self%yAp)) deallocate(self%yAp)
 
 end subroutine DirStats_destructor
 
@@ -558,7 +558,7 @@ tmpmu = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
 RS = 0.D0
 
 ! get the t-parameter
-t = randDSMarginal_(self, N, kappa, seed)
+t = self%randDSMarginal_(N, kappa, seed)
 
 ! and the distribution of random directions on the 2-sphere
 RandSphere = self%randUniformSphere(N,seed)
@@ -595,7 +595,7 @@ use mod_math
 
 IMPLICIT NONE
 
-class(DirStat_T), INTENT(INOUT)      :: self
+class(DirStat_T), INTENT(INOUT)         :: self
 integer(kind=irg),INTENT(IN)            :: N
 real(kind=dbl),INTENT(IN)               :: k
 integer(kind=irg),INTENT(INOUT)         :: seed
@@ -830,11 +830,11 @@ do init=1,NumEM
 ! quaternion multiplication has been verified against the 4x4 matrix multiplication of the Matlab code on 01/02/15
   iloop: do i=1,NumIter
 ! E-step
-    R = Estep_(self, Mu,Kappa)
+    R = self%Estep_(Mu,Kappa)
 ! M-step
-    MuKa = Mstep_(self, R)
+    MuKa = self%Mstep_(R)
 ! calculate the Q and Likelihood function values
-    call getQandL_(self, MuKa,R,Qi,Li)
+    call self%getQandL_(MuKa,R,Qi,Li)
     L(i) = Li
     Q(i) = Qi
 
@@ -907,11 +907,11 @@ integer(kind=irg)                       :: j
 real(kind=dbl)                          :: Rdenom(self%N), C
 type(Quaternion_T)                      :: PmMu
 
-C = logCp_(self, kappa)
+C = self%logCp_(kappa)
 
 do j=1,self%Pmdims
   PmMu = Mu * self%qsym%getQuatfromArray(j)
-  R(1:self%N,j) = Density_(self, PmMu%get_quatd(), Kappa, C)
+  R(1:self%N,j) = self%Density_(PmMu%get_quatd(), Kappa, C)
 end do
 ! and determine the normalization factors
 Rdenom = 1.D0/sum(R,2)
@@ -942,12 +942,16 @@ real(kind=dbl),INTENT(IN)               :: R(self%N,self%Pmdims)
 real(kind=dbl)                          :: MuKa(5)
 
 type(Quaternion_T)                      :: qu
-real(kind=dbl)                          :: tmpGamma(4), nGamma, diff(self%Apnum), y, Tscatt(4,4), tmp(4,4), x(4)
+real(kind=dbl)                          :: tmpGamma(4), nGamma, diff(self%Apnum), y, Tscatt(4,4), tmp(4,4), x(4), qq(4)
 integer(kind=irg)                       :: minp, i, j, pos(1)
 
-real(kind=dbl)                          :: VL(4,4), VR(4,4), Wr(4), Wi(4), WORK(40)
-integer(kind=irg)                       :: nn, LDA, LDVL, LDVR, INFO, LWORK
-character(1)                            :: JOBVL, JOBVR
+! real(kind=dbl)                          :: VL(4,4), VR(4,4), Wr(4), Wi(4), WORK(40)
+! integer(kind=irg)                       :: nn, LDA, LDVL, LDVR, INFO, LWORK
+! character(1)                            :: JOBVL, JOBVR
+
+CHARACTER                               :: JOBZ, UPLO
+INTEGER                                 :: INFO, LDA, LWORK, NN
+DOUBLE PRECISION                        :: A( 4 , 4 ), W( 4 ), WORK( 20 )
 
 if (self%DStype.eq.'VMF') then
 ! this is simplified from the Matlab routine and uses straight summations and
@@ -979,23 +983,36 @@ if (self%DStype.eq.'WAT') then
   end do
   Tscatt = Tscatt/dble(self%N)
 
-! initialize the parameters for the LAPACK DGEEV routines
-  nn = 4
-  LDA = nn
-  LDVL = nn
-  LDVR = nn
-  INFO = 0
-  JOBVL = 'N'   ! do not compute the left eigenvectors
-  JOBVR = 'V'   ! do compute the right eigenvectors
-  LWORK = 40   
+! this is new code but it appears to have an issue... reverting to the EMsoft 5.0 code.
 
-! call the eigenvalue solver
-  tmp = Tscatt
-  call dgeev(JOBVL,JOBVR,nn,Tscatt,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
-  pos = maxloc(Wr)
-  x(1:4) = VR(1:4,pos(1))
-  MuKa(1:4) = x(1:4)
-  y = dot_product(x,matmul(Tscatt,x))
+! ! initialize the parameters for the LAPACK DGEEV routines
+!   nn = 4
+!   LDA = nn
+!   LDVL = nn
+!   LDVR = nn
+!   INFO = 0
+!   JOBVL = 'N'   ! do not compute the left eigenvectors
+!   JOBVR = 'V'   ! do compute the right eigenvectors
+!   LWORK = 40   
+
+! ! call the eigenvalue solver
+!   tmp = Tscatt
+!   call dgeev(JOBVL,JOBVR,nn,Tscatt,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
+!   pos = maxloc(Wr)
+!   x(1:4) = VR(1:4,pos(1))
+!   MuKa(1:4) = x(1:4)
+!   y = dot_product(x,matmul(Tscatt,x))
+
+  JOBZ = 'V'
+  UPLO = 'U'
+  NN = 4
+  LDA = 4
+  LWORK = 20
+  A = Tscatt
+  call DSYEV( JOBZ, UPLO, NN, A, LDA, W, WORK, LWORK, INFO )
+  qq(1:4) = A(1:4,4)
+  MuKa(1:4) = qq(1:4)
+  y = dot_product(qq,matmul(Tscatt,qq))
 end if
 
 ! find kappa corresponding to this value of gamma (equation 17 in appendix of paper)
