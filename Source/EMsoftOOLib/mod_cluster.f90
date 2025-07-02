@@ -76,7 +76,7 @@ end interface Cluster_T
 contains
 
 !--------------------------------------------------------------------------
-type(Cluster_T) function cluster_constructor( DIFT, gangle, dilate ) result(cluster)
+type(Cluster_T) function cluster_constructor( DIFT, gangle, dilate, orav, numEM, numIter ) result(cluster)
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/22/25
@@ -95,6 +95,9 @@ IMPLICIT NONE
 type(DIfile_T), INTENT(INOUT)   :: DIFT
 real(kind=sgl), INTENT(IN)      :: gangle
 logical,INTENT(IN)              :: dilate
+character(fnlen), INTENT(IN)    :: orav
+integer(kind=irg), INTENT(IN)   :: numEM 
+integer(kind=irg), INTENT(IN)   :: numIter
 
 type(IO_T)                      :: Message 
 type(QuaternionArray_T)         :: qAR, QA
@@ -104,7 +107,7 @@ type(q_T)                       :: qu
 type(e_T)                       :: eu
 type(DirStat_T)                 :: dictVMF
 
-integer(kind=irg)               :: nt, ix, iy, i, j, k, io_int(2), seed, icnt
+integer(kind=irg)               :: nt, ix, iy, i, j, k, io_int(2), seed, icnt, values(8)
 integer(kind=irg),allocatable   :: grainIDs(:)
 real(kind=dbl)                  :: kappahat
 real(kind=sgl)                  :: ma
@@ -195,22 +198,6 @@ end where
 allocate( cluster%grainROI(4,cluster%nGrains) )
 call cluster%getROI_()
 
-! next we need to compute the average orientation for each grain; this will 
-! become the center of the misorientation ball used for the modified DI approach.
-! avor will contain those orientations in quaternion form.
-! Since there is currently an issue with the dirstats module, we simply take
-! the orientation of the center pixel as the starting orientation.
-allocate( cluster%avor(4,cluster%nGrains), cluster%kappa(cluster%nGrains) )
-do i=1,cluster%nGrains
-  ix = cluster%grainROI(1,i) + cluster%grainROI(3,i)/2
-  iy = cluster%grainROI(2,i) + cluster%grainROI(4,i)/2
-  j = (iy-1)*cluster%ipf_wd + ix 
-  eu = e_T( edinp = dble(DIFT%DIDT%RefinedEulerAngles(1:3,j)))
-  qu = eu%eq()
-  cluster%avor(1:4,i) = qu%q_copyd()
-  cluster%kappa(i) = 1.D0
-end do 
-
 ! this next step is experimental at the moment...
 ! next, we optionally dilate all grains to remove most of the empty space at the grain boundaries
 ! and then we need to re-run the ROI finding routine to update the box sizes
@@ -225,59 +212,93 @@ do ix = 1, cluster%nGrains
   cluster%npixels(ix) = count(cluster%grainID==ix)
 end do
 
-! the code below is commented out because it ran into a couple of issue with the 
-! dirstats module... 
-!
-! io_int(1) = DIFT%DIDT%pgnum
-! call Message%WriteValue(' Initializing von Mises-Fisher distribution for point group # ',io_int,1)
+! next we need to compute the average orientation for each grain; this will 
+! become the center of the misorientation ball used for the modified DI approach.
+! avor will contain those orientations in quaternion form.
+! There are three options to get the orientation:
+! - orientation of the center pixel of the bounding box
+! - von Mises-Fisher average
+! - Watson average
+allocate( cluster%avor(4,cluster%nGrains), cluster%kappa(cluster%nGrains) )
+if (trim(orav).eq.'center') then 
+  open(dataunit,file='center.txt',status='unknown',form='formatted')
+  write (dataunit,"(I5)") cluster%nGrains
+  do i=1,cluster%nGrains
+    ix = cluster%grainROI(1,i) + cluster%grainROI(3,i)/2
+    iy = cluster%grainROI(2,i) + cluster%grainROI(4,i)/2
+    j = (iy-1)*cluster%ipf_wd + ix 
+    eu = e_T( edinp = dble(DIFT%DIDT%RefinedEulerAngles(1:3,j)))
+    qu = eu%eq()
+    cluster%avor(1:4,i) = qu%q_copyd()
+    cluster%kappa(i) = 1.D0
+    write (dataunit,"(4(F10.6,','),F14.6,',',I5)") qu%q_copyd(), cluster%kappa(i), cluster%npixels(i)
+  end do 
+  close(dataunit,status='keep')
+else
+  io_int(1) = DIFT%DIDT%pgnum
 
-! ! initialize the von Mises-Fisher distribution code
-! dictVMF = DirStat_T( DStype='VMF', PGnum = DIFT%DIDT%pgnum)
-! ! dictVMF = DirStat_T( DStype='WAT', PGnum = DIFT%DIDT%pgnum)
-! call dictVMF%setNumEM(15)
-! call dictVMF%setNumIter(40)
+  ! initialize the von Mises-Fisher or Watson distribution code
+  if (trim(orav).eq.'averageVMF') then 
+    call Message%WriteValue(' Initializing von Mises-Fisher distribution for point group # ',io_int,1)
+    dictVMF = DirStat_T( DStype='VMF', PGnum = DIFT%DIDT%pgnum)
+    open(dataunit,file='VMF.txt',status='unknown',form='formatted')
+    write (dataunit,"(I5)") cluster%nGrains
+  else
+    if (trim(orav).eq.'averageWAT') then 
+      call Message%WriteValue(' Initializing Watson distribution for point group # ',io_int,1)
+      dictVMF = DirStat_T( DStype='WAT', PGnum = DIFT%DIDT%pgnum)
+      open(dataunit,file='WAT.txt',status='unknown',form='formatted')
+      write (dataunit,"(I5)") cluster%nGrains
+   else
+      call Message%printError('cluster_constructor: ', 'unknown orientation averaging procedure') 
+    end if
+  end if 
 
-! ! for each grain, set up the orientation array
-! seed = 43514
+  call dictVMF%setNumEM(numEM)
+  call dictVMF%setNumIter(numIter)
 
-! do j = 1, cluster%nGrains
-!   icnt = 1
-!   qAR = QuaternionArray_T( n=cluster%npixels(j), s='d' )
-!   do iy = 1, cluster%ipf_ht 
-!     do ix = 1, cluster%ipf_wd
-!       if (cluster%grainID(ix,iy).eq.j) then 
-!         k = (iy-1)*cluster%ipf_wd+ix
-!         eu = e_T( edinp = dble(DIFT%DIDT%RefinedEulerAngles(1:3,k)) )  
-!         qu = eu%eq()
-!         quat = Quaternion_T( qd = qu%q_copyd() )
-!         call qAR%insertQuatinArray(icnt,quat)
-!         icnt = icnt+1
-!       end if 
-!     end do
-!   end do
+  ! for each grain, set up the orientation array
+  call date_and_time(values=values)
+  seed = values(8)
 
-! ! pass these orientations to the dictVMF class  
-!   call dictVMF%setQuatArray( qAR )
-! ! and perform the averaging step
-!   muhat = Quaternion_T( qd=(/ 1.D0, 0.D0, 0.D0,0.D0 /) )
-!   call dictVMF%EMforDS( seed, muhat, kappahat, verbose=.TRUE. )
-!   if (kappahat.gt.100.D0) then   ! we only keep the orientations if Watson converged
-! ! store muhat in the cluster%avor array 
-!     cluster%avor(1:4, j) = muhat%get_quatd()
-!     cluster%kappa(ix) = kappahat
-!   else
-!     cluster%avor(1:4, j) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
-!     cluster%kappa(ix) = -1.D0
-!   end if
+  do j = 1, cluster%nGrains
+    icnt = 1
+    qAR = QuaternionArray_T( n=cluster%npixels(j), s='d' )
+    do iy = 1, cluster%ipf_ht 
+      do ix = 1, cluster%ipf_wd
+        if (cluster%grainID(ix,iy).eq.j) then 
+          k = (iy-1)*cluster%ipf_wd+ix
+          eu = e_T( edinp = dble(DIFT%DIDT%RefinedEulerAngles(1:3,k)) )  
+          qu = eu%eq()
+          quat = Quaternion_T( qd = qu%q_copyd() )
+          call qAR%insertQuatinArray(icnt,quat)
+          icnt = icnt+1
+        end if 
+      end do
+    end do
 
-! !   write (*,*) kappahat, muhat%get_quatd()
-! !   qu = q_T( qdinp = cluster%avor(1:4,ix) )
-! !   eu = qu%qe()
-! !   write (*,*) eu%e_copyd()
-! ! stop
-! ! and get rid of the orientation array
-!   call qAR%deleteArray()
-! end do
+  ! pass these orientations to the dictVMF class  
+    call dictVMF%setQuatArray( qAR )
+  ! and perform the averaging step
+    muhat = Quaternion_T( qd=(/ 1.D0, 0.D0, 0.D0,0.D0 /) )
+    call dictVMF%EMforDS( seed, muhat, kappahat, verbose=.TRUE. )
+    if (kappahat.gt.5.D0) then   ! we only keep the orientations if Watson converged
+  ! store muhat in the cluster%avor array 
+      cluster%avor(1:4, j) = muhat%get_quatd()
+      cluster%kappa(j) = kappahat
+    else
+      cluster%avor(1:4, j) = (/ 1.D0, 0.D0, 0.D0, 0.D0 /)
+      cluster%kappa(j) = -1.D0
+    end if
+
+    qu = q_T( qdinp = cluster%avor(1:4,j) )
+    write (dataunit,"(4(F10.6,','),F14.6,',',I5)") qu%q_copyd(), cluster%kappa(j), cluster%npixels(j)
+
+  ! and get rid of the orientation array
+    call qAR%deleteArray()
+  end do
+  close(dataunit,status='keep')
+end if
 
 end associate
 

@@ -333,12 +333,12 @@ call SO%delete_FZlist()
 
 ! initialize the directional statistics classes for von Mises-Fisher and Watson distributions
 dictVMF = DirStat_T( DStype='VMF', pgnum = pgnum)
-call dictVMF%setNumEM(15)
-call dictVMF%setNumIter(40)
+call dictVMF%setNumEM(25)
+call dictVMF%setNumIter(30)
 
 dictWAT = DirStat_T( DStype='WAT', pgnum = pgnum)
-call dictWAT%setNumEM(15)
-call dictWAT%setNumIter(40)
+call dictWAT%setNumEM(25)
+call dictWAT%setNumIter(30)
 
 ! next we need to store the qAR array into both dict classes and clean up qAR 
 call dictVMF%setQuatArray( qAR )

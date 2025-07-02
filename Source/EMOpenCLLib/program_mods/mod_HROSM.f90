@@ -46,6 +46,9 @@ type, public :: HROSMNameListType
   real(kind=sgl)          :: misorang   ! [deg] misorientation ball radius for sampling
   real(kind=sgl)          :: maxRAMmem  ! [Gb] maximum data set size (per grain) for in RAM indexing
   logical                 :: dilate     ! dilate the grains ?
+  character(fnlen)        :: orav       ! *averageWAT*/*averageVMF* orientations or take grain *center*
+  integer(kind=irg)       :: numEM      ! number of EM runs
+  integer(kind=irg)       :: numIter    ! number of iterations per EM run
   character(fnlen)        :: dpfile     ! input dot product file
   character(fnlen)        :: OSMfile    ! output HDF5 file
   character(fnlen)        :: OSMtiff    ! new high resolution Orientation Similarity Map
@@ -141,13 +144,17 @@ real(kind=sgl)                      :: gangle     ! [deg] max grain misorientati
 real(kind=sgl)                      :: misorang   ! [deg] misorientation ball radius for sampling
 real(kind=sgl)                      :: maxRAMmem  ! max memory for in-RAM indexing (per grain)
 logical                             :: dilate     ! dilate the grains ?
+character(fnlen)                    :: orav       ! *averageWAT*/*averageVMF* orientations or take grain *center*
+integer(kind=irg)                   :: numEM      ! number of EM runs
+integer(kind=irg)                   :: numIter    ! number of iterations per EM run
 character(fnlen)                    :: dpfile     ! input dot product file
 character(fnlen)                    :: OSMfile    ! output HDF5 file
 character(fnlen)                    :: OSMtiff    ! new high resolution Orientation Similarity Map
 character(fnlen)                    :: IPFmap
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / HROSMdata / nsamples, nosm, dilate, gangle, misorang, dpfile, OSMfile, OSMtiff, IPFmap, maxRAMmem 
+namelist  / HROSMdata / nsamples, nosm, dilate, gangle, misorang, dpfile, OSMfile, OSMtiff, IPFmap, maxRAMmem, orav, &
+                        numEM, numIter 
 
 nsamples = 20           ! number of sampling points along radius of misorientation ball
 nosm = 10               ! number of top matches to use for OSM
@@ -155,6 +162,9 @@ gangle = 5.0            ! [deg] max grain misorientation angle for clustering
 misorang = 5.0          ! [deg] misorientation ball radius for sampling
 maxRAMmem = 1.0         ! [Gb] maximum preprocessed data set size per grain for inRAM indexing
 dilate = .FALSE.        ! dilate the grains?
+orav = 'center'         ! can also be averageWAT or averageVMF
+numEM = 25              ! number of EM loops
+numIter = 40            ! number of iteration per EM loop
 dpfile = 'undefined'    ! input dot product file
 OSMfile = 'undefined'   ! output HDF5 file
 OSMtiff ='undefined'    ! new high resolution Orientation Similarity Map
@@ -187,6 +197,9 @@ self%nml%gangle = gangle
 self%nml%misorang = misorang
 self%nml%maxRAMmem = maxRAMmem
 self%nml%dilate = dilate 
+self%nml%orav = orav
+self%nml%numEM = numEM
+self%nml%numIter = numIter
 self%nml%dpfile = dpfile
 self%nml%OSMfile = OSMfile
 self%nml%OSMtiff = OSMtiff
@@ -233,7 +246,7 @@ class(HROSM_T), INTENT(INOUT)           :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 2, n_real = 3
+integer(kind=irg),parameter             :: n_int = 4, n_real = 3
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -246,9 +259,11 @@ associate( enl => self%nml )
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
 ! write all the single integers
-io_int = (/ enl%nsamples, enl%nosm /)
+io_int = (/ enl%nsamples, enl%nosm, enl%numEM, enl%numIter /)
 intlist(1) = 'nsamples'
 intlist(2) = 'nosm'
+intlist(3) = 'numEM'
+intlist(4) = 'numIter'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! write all the single reals
@@ -259,6 +274,11 @@ reallist(3) = 'maxRAMmem'
 call HDF%writeNMLreals(io_real, reallist, n_real)
 
 ! write all the strings
+dataset = 'orav'
+line2(1) = trim(enl%orav)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create orav dataset', hdferr)
+
 dataset = 'dpfile'
 line2(1) = trim(enl%dpfile)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
@@ -486,7 +506,7 @@ call EBSD%GenerateDetector(MCFT, verbose)
 
 ! 2. use orientations to find grains via clustering algorithm in mod_cluster
 ! 3. this routine also does the orientation averaging using the von Mises-Fisher distribution...
-cluster = Cluster_T( DIFT, osmnl%gangle, osmnl%dilate )
+cluster = Cluster_T( DIFT, osmnl%gangle, osmnl%dilate, osmnl%orav, osmnl%numEM, osmnl%numIter )
 
 io_int(1) = cluster%nGrains
 call Message%WriteValue(' Number of grains found : ', io_int, 1)
@@ -528,7 +548,6 @@ call SO%delete_FZlist('CM')
 
 
 grainloop: do i=1,cluster%nGrains
-! grainloop: do i=58,58
   if (cluster%kappa(i).ne.-1.0) then 
     io_int = (/ i, cluster%nGrains /)
     call Message%WriteValue(' Indexing grain/total # grains ', io_int,2)

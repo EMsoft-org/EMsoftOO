@@ -935,10 +935,11 @@ else  ! at least one of the optional parameters are present
     SG%xtal_system = xtalSystem
   end if
 
-  if (present(SGnumber) .and. (present(useHall))) then
+  if (present(SGnumber) .and. (present(xtalSystem)) .and. (present(useHall))) then
     SG%useHallSG = .TRUE.
     SG%SGnumber = SGnumber
     SG%HallSGnumber= HallSGnumber
+    SG%xtal_system = xtalSystem
     sgnum = SGnumber
   end if
 

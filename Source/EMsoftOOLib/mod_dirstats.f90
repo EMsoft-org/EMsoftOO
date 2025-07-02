@@ -798,12 +798,10 @@ NumIter = self%NumIter
 ! initialize some auxiliary arrays
 allocate(Mu_All(NumEM,4), Kappa_All(NumEM), &
          R_All(N,Pmdims,NumEM),L_All(NumEM))
-         ! R_All(N,Pmdims,NumEM),L_All(NumIter))
 Mu_All = 0.D0
 Kappa_All = 0.D0
 R_All = 0.D0
 L_All = 0.D0
-
 
 ! main loop (EM typically uses a few starting parameter sets to make sure we don't get stuck in a local maximum)
 do init=1,NumEM
@@ -868,6 +866,7 @@ kappahat = Kappa_All(dd)
 ! fundamental zone, which requires routines from the rotations and so3 modules.
 SO = so3_T( self%pgnum )
 MuMu = q_T( qdinp = Mu%get_quatd() )
+
 ! if (present(verbose)) then 
   ! if (verbose.eqv..TRUE.) then
     call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ, &
@@ -963,7 +962,8 @@ if (self%DStype.eq.'VMF') then
       tmpGamma = tmpGamma +  R(i,j) * qu%get_quatd()
     end do
   end do
-  nGamma = vecnorm(tmpGamma)
+  qu = Quaternion_T( qd=tmpGamma )
+  nGamma = cabs(qu)
   MuKa(1:4) = tmpGamma/nGamma
   y = nGamma/dble(self%N)
 end if

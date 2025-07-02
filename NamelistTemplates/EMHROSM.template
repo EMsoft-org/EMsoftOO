@@ -13,6 +13,16 @@
  nosm = 10,
 ! dilate the grains to partially remove empty spaces at grain boundaries ? [EXPERIMENTAL]
  dilate = .FALSE.,
+! method to use for grain orientation averaging
+! - 'center' of grain (default)
+! - 'averageVMF' use von Mises-Fisher averaging
+! - 'averageWAT' use Watson averaging
+ orav = 'center',
+! for von Mises-Fisher and Watson, we need the number of EM runs and the 
+! number of iterations per run; below are the default values. They will likely
+! need to be increased, not decreased
+ numEM = 25,
+ numIter = 40,
 ! input dot product file
  dpfile = 'undefined',
 ! output HDF5 file (contains grain clustering result, refined orientations, and new OSM)
