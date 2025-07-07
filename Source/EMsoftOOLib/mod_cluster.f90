@@ -463,6 +463,9 @@ do j = 1, self%ipf_ht
   end do
 end do
 
+! this routine apparently overcounts the number of grains by 1, so we subtract 1
+self%nGrains = self%nGrains - 1
+
 deallocate(self%x_stack, self%y_stack)
 
 end subroutine grow_region_driver_

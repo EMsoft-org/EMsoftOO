@@ -46,7 +46,7 @@ type, public :: HROSMNameListType
   real(kind=sgl)          :: misorang   ! [deg] misorientation ball radius for sampling
   real(kind=sgl)          :: maxRAMmem  ! [Gb] maximum data set size (per grain) for in RAM indexing
   logical                 :: dilate     ! dilate the grains ?
-  character(fnlen)        :: orav       ! *averageWAT*/*averageVMF* orientations or take grain *center*
+  character(fnlen)        :: orav       ! averageWAT/averageVMF orientations or take grain center
   integer(kind=irg)       :: numEM      ! number of EM runs
   integer(kind=irg)       :: numIter    ! number of iterations per EM run
   character(fnlen)        :: dpfile     ! input dot product file
@@ -144,7 +144,7 @@ real(kind=sgl)                      :: gangle     ! [deg] max grain misorientati
 real(kind=sgl)                      :: misorang   ! [deg] misorientation ball radius for sampling
 real(kind=sgl)                      :: maxRAMmem  ! max memory for in-RAM indexing (per grain)
 logical                             :: dilate     ! dilate the grains ?
-character(fnlen)                    :: orav       ! *averageWAT*/*averageVMF* orientations or take grain *center*
+character(fnlen)                    :: orav       ! averageWAT/averageVMF orientations or take grain center
 integer(kind=irg)                   :: numEM      ! number of EM runs
 integer(kind=irg)                   :: numIter    ! number of iterations per EM run
 character(fnlen)                    :: dpfile     ! input dot product file
