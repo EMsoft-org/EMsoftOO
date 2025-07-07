@@ -389,7 +389,7 @@ real(kind=sgl),allocatable              :: rodarray(:,:,:), maineu(:,:)
 real(kind=sgl),allocatable              :: resultmain(:,:)
 type(FZpointd),pointer                  :: FZlist, FZtmp
 
-logical                                 :: verbose=.FALSE., f_exists, inRAM, PCcorrection=.FALSE.
+logical                                 :: verbose=.FALSE., f_exists, inRAM
 character(fnlen,kind=c_char)            :: HDF_FileVersion
 
 ! declare variables for use in object oriented image module
@@ -436,14 +436,7 @@ call localHDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 ! if they exist; these are used for the Pattern Center correction. 
 DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%dpfile)
 call DIFT%readDotProductFile(EMsoft, HDF, localHDFnames, DIfile, hdferr, &
-                             getRefinedEulerAngles = .TRUE., &
-                             getInitial = .TRUE.) 
-
-if ((DIFT%initialx.eq.0).and.(DIFT%initialy.eq.0)) then 
-  PCcorrection = .FALSE. 
-else 
-  PCcorrection = .TRUE. 
-end if 
+                             getRefinedEulerAngles = .TRUE.) 
 
 dinl = DIFT%getNameList()
 dinl%nosm = osmnl%nosm   ! override the nosm value from the EMDI run
@@ -596,13 +589,8 @@ grainloop: do i=1,cluster%nGrains
       dinl%ROI(1:2) = cluster%grainROI(1:2, i) + ROIoffset(1:2)
       dinl%ROI(3:4) = cluster%grainROI(3:4, i)
 
-      if (PCcorrection.eqv..TRUE.) then 
-        call OSMDIdriver(EMsoft, inRAM, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
-                         OSMmap, resultmain, rodarray, PCcorrection)
-      else
-        call OSMDIdriver(EMsoft, inRAM, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
-                         OSMmap, resultmain, rodarray)
-      end if 
+      call OSMDIdriver(EMsoft, inRAM, DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
+                       OSMmap, resultmain, rodarray)
       ! call OSMDIdriver(EMsoft, .FALSE., DIFT, MCFT, MPFT, dinl, mcnl, mpnl, cell, SG, EBSD, SO, &
       !                  OSMmap, resultmain, rodarray)
 
