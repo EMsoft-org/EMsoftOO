@@ -496,7 +496,7 @@ use mod_math
 
 IMPLICIT NONE
 
-class(DirStat_T), INTENT(INOUT)      :: self
+class(DirStat_T), INTENT(INOUT)         :: self
 integer(kind=irg),INTENT(IN)            :: N
 integer(kind=irg),INTENT(INOUT)         :: seed
 real(kind=dbl)                          :: ranSphere(3,N)
@@ -510,7 +510,8 @@ randNorm = reshape( NR, (/ 3, N /) )
 
 ! and normalize the three-vectors
 do i=1,N
-  nq = vecnorm(randNorm(1:3,i))
+  ! nq = vecnorm(randNorm(1:3,i))
+  nq = dsqrt(sum(randNorm(1:3,i)**2))
   RanSphere(1:3,i) = randNorm(1:3,i)/nq
 end do
 
@@ -635,7 +636,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(DirStat_T), INTENT(INOUT)      :: self
+class(DirStat_T), INTENT(INOUT)         :: self
 real(kind=dbl),INTENT(IN)               :: k
 real(kind=dbl),INTENT(INOUT)            :: C
 real(kind=dbl)                          :: LBM(2)
@@ -777,13 +778,14 @@ real(kind=dbl),INTENT(OUT)           :: kappahat
 logical,INTENT(IN),OPTIONAL          :: verbose
 
 type(so3_T)                          :: SO
+type(q_T)                            :: ququ, MuMu 
+type(r_T)                            :: rod, roFZ 
+type(Quaternion_T)                   :: quat, Mu, PmMu, qu
+
 integer(kind=irg)                    :: i, j, N, Pmdims, init, dd, NumEM, NumIter, bin
 real(kind=dbl),allocatable           :: Mu_All(:,:), Kappa_All(:), R_All(:,:,:), L_All(:), &
                                         R(:,:), Q(:), L(:)
-real(kind=dbl)                       :: MuKa(5), Qi, Li, rod(4), Kappa, x(4)
-type(Quaternion_T)                   :: Mu, PmMu, qu
-type(q_T)                            :: MuMu
-type(r_T)                            :: roFZ
+real(kind=dbl)                       :: MuKa(5), Qi, Li, Kappa, x(4)
 
 ! In this routine, we perform the EM algorithm to obtain an estimate for the
 ! mean direction and concentration parameter of the modified von Mises-Fisher (mVMF)
@@ -865,17 +867,17 @@ kappahat = Kappa_All(dd)
 ! equivalent quaternions, and stop as soon as we find one in the Rodrigues
 ! fundamental zone, which requires routines from the rotations and so3 modules.
 SO = so3_T( self%pgnum )
-MuMu = q_T( qdinp = Mu%get_quatd() )
+quat = Mu
 
-! if (present(verbose)) then 
-  ! if (verbose.eqv..TRUE.) then
-    call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ, &
-                                    MFZ = .FALSE., bin = bin, verbose = .TRUE.)
-  ! else
-    ! call SO%ReduceOrientationtoRFZ( MuMu, self%qsym, roFZ )
-  ! end if 
-! end if 
-MuMu = roFZ%rq()
+FZloop: do i=1,Pmdims
+  qu = quat * self%qsym%getQuatfromArray(i)
+  call qu%quat_pos()
+  ququ = q_T( qdinp = qu%get_quatd() )
+  rod = ququ%qr()
+  if (SO%IsinsideFZ(rod)) EXIT FZloop
+end do FZloop
+
+MuMu = rod%rq()
 muhat = Quaternion_T( qd = MuMu%q_copyd() )
 
 deallocate(Mu_All, Kappa_All, R_All, L_All)

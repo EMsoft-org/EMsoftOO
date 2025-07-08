@@ -47,6 +47,7 @@ type, public :: HROSMNameListType
   real(kind=sgl)          :: maxRAMmem  ! [Gb] maximum data set size (per grain) for in RAM indexing
   logical                 :: dilate     ! dilate the grains ?
   character(fnlen)        :: orav       ! averageWAT/averageVMF orientations or take grain center
+  logical                 :: debug      ! hidden parameter to turn on grain orientation file creation for debugging
   integer(kind=irg)       :: numEM      ! number of EM runs
   integer(kind=irg)       :: numIter    ! number of iterations per EM run
   character(fnlen)        :: dpfile     ! input dot product file
@@ -144,6 +145,7 @@ real(kind=sgl)                      :: gangle     ! [deg] max grain misorientati
 real(kind=sgl)                      :: misorang   ! [deg] misorientation ball radius for sampling
 real(kind=sgl)                      :: maxRAMmem  ! max memory for in-RAM indexing (per grain)
 logical                             :: dilate     ! dilate the grains ?
+logical                             :: debug      ! 
 character(fnlen)                    :: orav       ! averageWAT/averageVMF orientations or take grain center
 integer(kind=irg)                   :: numEM      ! number of EM runs
 integer(kind=irg)                   :: numIter    ! number of iterations per EM run
@@ -154,7 +156,7 @@ character(fnlen)                    :: IPFmap
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / HROSMdata / nsamples, nosm, dilate, gangle, misorang, dpfile, OSMfile, OSMtiff, IPFmap, maxRAMmem, orav, &
-                        numEM, numIter 
+                        numEM, numIter, debug 
 
 nsamples = 20           ! number of sampling points along radius of misorientation ball
 nosm = 10               ! number of top matches to use for OSM
@@ -162,6 +164,7 @@ gangle = 5.0            ! [deg] max grain misorientation angle for clustering
 misorang = 5.0          ! [deg] misorientation ball radius for sampling
 maxRAMmem = 1.0         ! [Gb] maximum preprocessed data set size per grain for inRAM indexing
 dilate = .FALSE.        ! dilate the grains?
+debug = .FALSE.         !
 orav = 'center'         ! can also be averageWAT or averageVMF
 numEM = 25              ! number of EM loops
 numIter = 40            ! number of iteration per EM loop
@@ -197,6 +200,7 @@ self%nml%gangle = gangle
 self%nml%misorang = misorang
 self%nml%maxRAMmem = maxRAMmem
 self%nml%dilate = dilate 
+self%nml%debug = debug
 self%nml%orav = orav
 self%nml%numEM = numEM
 self%nml%numIter = numIter
@@ -499,7 +503,7 @@ call EBSD%GenerateDetector(MCFT, verbose)
 
 ! 2. use orientations to find grains via clustering algorithm in mod_cluster
 ! 3. this routine also does the orientation averaging using the von Mises-Fisher distribution...
-cluster = Cluster_T( DIFT, osmnl%gangle, osmnl%dilate, osmnl%orav, osmnl%numEM, osmnl%numIter )
+cluster = Cluster_T( DIFT, osmnl%gangle, osmnl%dilate, osmnl%orav, osmnl%numEM, osmnl%numIter, debug=osmnl%debug )
 
 io_int(1) = cluster%nGrains
 call Message%WriteValue(' Number of grains found : ', io_int, 1)

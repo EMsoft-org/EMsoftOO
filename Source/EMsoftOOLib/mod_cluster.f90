@@ -76,7 +76,7 @@ end interface Cluster_T
 contains
 
 !--------------------------------------------------------------------------
-type(Cluster_T) function cluster_constructor( DIFT, gangle, dilate, orav, numEM, numIter ) result(cluster)
+type(Cluster_T) function cluster_constructor( DIFT, gangle, dilate, orav, numEM, numIter, debug ) result(cluster)
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/22/25
@@ -98,6 +98,7 @@ logical,INTENT(IN)              :: dilate
 character(fnlen), INTENT(IN)    :: orav
 integer(kind=irg), INTENT(IN)   :: numEM 
 integer(kind=irg), INTENT(IN)   :: numIter
+logical,INTENT(IN),OPTIONAL     :: debug
 
 type(IO_T)                      :: Message 
 type(QuaternionArray_T)         :: qAR, QA
@@ -111,6 +112,9 @@ integer(kind=irg)               :: nt, ix, iy, i, j, k, io_int(2), seed, icnt, v
 integer(kind=irg),allocatable   :: grainIDs(:)
 real(kind=dbl)                  :: kappahat
 real(kind=sgl)                  :: ma
+
+character(fnlen)                :: outname
+character(3)                    :: filenum
 
 associate(nml=>DIFT%nml)
 
@@ -276,6 +280,15 @@ else
         end if 
       end do
     end do
+
+    if (present(debug)) then 
+      if (debug.eqv..TRUE.) then 
+        write (filenum,"(I3.3)") j
+        outname = 'qu_grain_'//filenum//'.txt'
+        call Message%printMessage(' writing orientations to '//trim(outname))
+        call qAR%writeArraytoFile(outname)
+      end if 
+    end if 
 
   ! pass these orientations to the dictVMF class  
     call dictVMF%setQuatArray( qAR )

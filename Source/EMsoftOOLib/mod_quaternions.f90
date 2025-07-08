@@ -368,6 +368,7 @@ IMPLICIT NONE
       procedure, pass(self) :: QSym_Init_
       procedure, pass(self) :: getQnumber_
       procedure, pass(self) :: deleteArray_
+      procedure, pass(self) :: writeArraytoFile_
 
 ! generics
       generic, public :: quat_print => quatarrayprint
@@ -386,6 +387,7 @@ IMPLICIT NONE
       generic, public :: QSym_Init => QSym_Init_
       generic, public :: getQnumber => getQnumber_
       generic, public :: deleteArray => deleteArray_
+      generic, public :: writeArraytoFile => writeArraytoFile_
 
   end type QuaternionArray_T
 
@@ -2766,5 +2768,38 @@ end if
 self%n = 0
 
 end subroutine deleteArray_
+
+!--------------------------------------------------------------------------
+recursive subroutine writeArraytoFile_(self, filename)
+!DEC$ ATTRIBUTES DLLEXPORT :: writeArraytoFile_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 07/08/21
+  !!
+  !! write the current array to a text file (mostly used for debugging purposes)
+
+IMPLICIT NONE
+
+class(QuaternionArray_T), INTENT(INOUT)   :: self
+character(fnlen),INTENT(IN)               :: filename
+
+integer(kind=irg)                         :: i 
+
+open(dataunit2,file=trim(filename),status='unknown',form='formatted')
+write (dataunit2,"(A)") 'qu'
+write (dataunit2,"(I6)") self%n
+do i=1,self%n
+  if (self%s.eq.'s') then 
+    write (dataunit2,"(4(F10.8,' '))") self%q(1:4,i)
+  else 
+    write (dataunit2,"(4(F10.8,' '))") real(self%qd(1:4,i))
+  end if
+end do
+
+close(dataunit2,status='keep')
+
+
+end subroutine writeArraytoFile_
+
 
 end module mod_quaternions
