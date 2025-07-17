@@ -49,9 +49,7 @@ module mod_GBoctonions
 use mod_kinds
 use mod_global
 use mod_octonions
-use, intrinsic :: iso_fortran_env, only : stdin=>input_unit, &
-                                          stdout=>output_unit, &
-                                          stderr=>error_unit
+use mod_quaternions
 
 IMPLICIT NONE 
 
@@ -62,70 +60,37 @@ IMPLICIT NONE
 ! Other than that, there really are not many differences between the two
 ! classes.  There are of course grain boundary specific operations which are defined in this module.
 
-! class definition
+! class definition for the Grain Boundary Octonion
 type, public, extends(Octonion_T) :: GBoctonion_T
 private 
 
 contains
 private 
 
-
 end type GBoctonion_T
 
-! ! next we define the quaternion array class
-! type, public, extends(OctonionArray_T) :: GBOctonionArray_T
-! private
-!     integer(kind=irg)            :: n
-!     integer(kind=irg)            :: nthreads
-!     real(kind=sgl), allocatable  :: o(:,:)
-!     real(kind=dbl), allocatable  :: od(:,:)
+! class definition for the Grain Boundary Octonion Array
+type, public, extends(OctonionArray_T) :: GBOctonionArray_T
+private
 
-!   contains
-!   private
-! ! quaternion IO routines
-!     procedure, pass(self) :: octarrayprint_
-! ! quaternion arithmetic routines
-!     procedure, pass(self) :: octarrayadd_
-!     procedure, pass(self) :: octarraysubtract_
-!     procedure, pass(self) :: octarraymult_
-!     procedure, pass(self) :: octarraysmult_
-!     procedure, pass(self) :: octarrayinverse_
-!     procedure, pass(self) :: octarraydivide_
-!     procedure, pass(self) :: octarraysdiv_
-!     procedure, pass(self) :: octarrayconjg_
-!     procedure, pass(self) :: octarraynorm_
-!     procedure, pass(self) :: octarraynormalize_
-! ! miscellaneous routines
-!     procedure, pass(self) :: extractfromOctArray_
-!     procedure, pass(self) :: insertOctintoArray_
-!     procedure, pass(self) :: getOnumber_
-!     procedure, pass(self) :: deleteArray_
+contains
+private
 
-! ! generics
-!     generic, public :: octarray_print => octarrayprint_
-!     generic, public :: operator(+) => octarrayadd_
-!     generic, public :: operator(-) => octarraysubtract_
-!     generic, public :: operator(*) => octarraymult_
-!     generic, public :: operator(*) => octarraysmult_
-!     generic, public :: operator(/) => octarraydivide_
-!     generic, public :: operator(/) => octarraysdiv_
-!     generic, public :: octarray_normalize => octarraynormalize_
-!     generic, public :: octarray_inverse => octarrayinverse_
-!     generic, public :: getOctfromArray => extractfromOctArray_
-!     generic, public :: insertOctinArray => insertOctintoArray_
-!     generic, public :: getOnumber => getOnumber_
-!     generic, public :: deleteArray => deleteArray_
+   procedure, pass(self) :: insertGBOctintoArray_
+   generic, public :: insertGBOctinArray => insertGBOctintoArray_
 
-!   end type GBOctonionArray_T
+end type GBOctonionArray_T
+
+private:: insertGBOctintoArray_
 
 ! the constructor routines for these classes 
 interface GBoctonion_T
   module procedure GBoctonion_constructor
 end interface GBoctonion_T
 
-! interface octonionArray_T
-!   module procedure OctonionArray_constructor
-! end interface octonionArray_T
+interface GBoctonionArray_T
+  module procedure GBOctonionArray_constructor
+end interface GBoctonionArray_T
 
 contains
 
@@ -159,230 +124,124 @@ call GBoctonion%o_normalize()
 
 end function GBoctonion_constructor
 
-! !--------------------------------------------------------------------------
-! subroutine Octonion_destructor(self) 
-! !! author: MDG 
-! !! version: 1.0 
-! !! date: 10/16/22
-! !!
-! !! destructor for the octonions_T Class
+!--------------------------------------------------------------------------
+subroutine GBOctonion_destructor(self) 
+!! author: MDG 
+!! version: 1.0 
+!! date: 07/17/25
+!!
+!! destructor for the GBoctonion_T Class
  
-! IMPLICIT NONE
+IMPLICIT NONE
 
-! type(GBoctonion_T), INTENT(INOUT)  :: self 
+type(GBoctonion_T), INTENT(INOUT)  :: self 
 
-! call reportDestructor('GBoctonion_T')
+call reportDestructor('GBoctonion_T')
 
-! end subroutine octonion_destructor
+end subroutine GBOctonion_destructor
 
-! !--------------------------------------------------------------------------
-! type(GBOctonionArray_T) function OctonionArray_constructor( n, nthreads, o, od, s ) result(OctArray)
-! !DEC$ ATTRIBUTES DLLEXPORT :: OctonionArray_constructor
-!   !! author: MDG
-!   !! version: 1.0
-!   !! date: 10/18/22
-!   !!
-!   !! constructor for the OctonionArray Class
-!   !!
-!   !! either call with parameters n and s
-!   !! or with n and either one of o or od
+!--------------------------------------------------------------------------
+type(GBOctonionArray_T) function GBOctonionArray_constructor( qAr1, qAr2 ) result(OctArray)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBOctonionArray_constructor
+  !! author: MDG
+  !! version: 1.0
+  !! date: 07/17/25
+  !!
+  !! constructor for the GBOctonionArray Class
+  !!
+  !! this constructor takes two QuaternionArrays and merges them into a GBOctonionArray
+  !! 
 
-! IMPLICIT NONE
+use mod_io 
 
-!   integer(kind=irg), INTENT(IN)             :: n
-!   integer(kind=irg), INTENT(IN), OPTIONAL   :: nthreads
-!   real(kind=sgl), INTENT(IN), OPTIONAL      :: o(8,n)
-!   real(kind=dbl), INTENT(IN), OPTIONAL      :: od(8,n)
-!   character(1), INTENT(IN), OPTIONAL        :: s
+IMPLICIT NONE
 
-! ! OpenMP threads
-!   OctArray % nthreads = 0
-!   if (present(nthreads)) OctArray % nthreads = nthreads
+  type(QuaternionArray_T),INTENT(INOUT)     :: qAr1 
+  type(QuaternionArray_T),INTENT(INOUT)     :: qAr2 
 
-! ! are we declaring just an empty variable with no entries, but with a given precision ?
-!   if ( present(s) .and. (.not.present(o)) .and. (.not.present(od)) ) then
-!     OctArray % n = n
-!     if (octonionprecision.eq.'s') then
-!       allocate(OctArray % o(8,n))
-!       OctArray % o = 0.0
-!     else
-!       allocate(OctArray % od(8,n))
-!       OctArray % od = 0.D0
-!     end if
-!     return
-!   end if
+  type(IO_T)                                :: Message 
 
-! ! single precision
-!   if (present(o)) then
-!     allocate(OctArray % o(8,n))
-!     OctArray % n = n
-!     OctArray % o = o
-!   end if
+  integer(kind=irg)                         :: i 
+  type(Quaternion_T)                        :: q1, q2
+  type(GBoctonion_T)                        :: gboct
 
-! ! double precision
-!   if (present(od)) then
-!     allocate(OctArray % od(8,n))
-!     OctArray % n = n
-!     OctArray % od = od
-!   end if
+! make sure the arrays have the same size
+  if (qAr1%getQnumber().ne.qAr2%getQnumber()) then 
+    call Message%printError('GBOctonionArray_constructor',' input quaternion arrays have different size')
+  end if 
 
-! end function OctonionArray_constructor
+! inherit quaternion array parameters
+  OctArray%nthreads = qAr1%getnthreads()
+  OctArray%n = qAr1%getQnumber()
+  OctArray%s = qAr1%getprecision()
+  
+! allocate the GBO array
+  if (OctArray%s.eq.'s') then
+    if (allocated(OctArray%o)) deallocate(OctArray%o)
+    allocate( OctArray%o(8,OctArray%n) ) 
+  else
+    if (allocated(OctArray%od)) deallocate(OctArray%od)
+    allocate( OctArray%od(8,OctArray%n) ) 
+  end if 
 
-! !--------------------------------------------------------------------------
-! subroutine OctonionArray_destructor(self)
-! !DEC$ ATTRIBUTES DLLEXPORT :: OctonionArray_destructor
-! !! author: MDG
-! !! version: 1.0
-! !! date: 10/18/22
-! !!
-! !! destructor for the GBOctonionArray_T Class
+  do i=1,OctArray%n
+    q1 = qAr1%getQuatfromArray(i)
+    q2 = qAr2%getQuatfromArray(i)
+    gboct = GBoctonion_T( q1, q2 )
+    call OctArray%insertGBOctinArray(i, gboct)
+  end do
 
-! IMPLICIT NONE
+end function GBOctonionArray_constructor
 
-! type(GBOctonionArray_T), INTENT(INOUT)     :: self
+!--------------------------------------------------------------------------
+subroutine GBOctonionArray_destructor(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBOctonionArray_destructor
+!! author: MDG
+!! version: 1.0
+!! date: 07/17/25
+!!
+!! destructor for the GBOctonionArray_T Class
 
-! call reportDestructor('GBOctonionArray_T')
+IMPLICIT NONE
 
-! if (allocated(self%o)) deallocate(self%o)
-! if (allocated(self%od)) deallocate(self%od)
+type(GBOctonionArray_T), INTENT(INOUT)     :: self
 
-! end subroutine OctonionArray_destructor
+call reportDestructor('GBOctonionArray_T')
 
-! !--------------------------------------------------------------------------
-! recursive subroutine octarraynormalize_(self)
-! !DEC$ ATTRIBUTES DLLEXPORT :: octarraynormalize_
-!   !! author: MDG
-!   !! version: 1.0
-!   !! date: 10/19/22
-!   !!
-!   !! normalize the input octonions
+if (allocated(self%o)) deallocate(self%o)
+if (allocated(self%od)) deallocate(self%od)
 
-! IMPLICIT NONE
+end subroutine GBOctonionArray_destructor
 
-!   class(GBOctonionArray_T),intent(inout)   :: self
+!--------------------------------------------------------------------------
+recursive subroutine insertGBOctintoArray_(self, i, o)
+!DEC$ ATTRIBUTES DLLEXPORT :: insertGBOctintoArray_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 07/16/25
+  !!
+  !! insert a GBoctonion in an existing array (overrides mod_octonions)
 
-!   integer(kind=irg)                      :: i
-!   type(Octonion_T)                       :: o 
+use mod_io 
 
-! do i=1,self%n 
-!   o = self%extractfromOctArray_(i)
-!   call o%octnormalize_()
-!   call self%insertOctintoArray_(i, o)
-! end do   
+IMPLICIT NONE
 
-! end subroutine octarraynormalize_
+class(GBOctonionArray_T),INTENT(INOUT)  :: self
+integer(kind=irg),INTENT(IN)            :: i
+type(GBOctonion_T),INTENT(INOUT)        :: o
 
+type(IO_T)                              :: Message
 
-! !--------------------------------------------------------------------------!
-! recursive function extractfromOctArray_(self, i) result (res)
-! !DEC$ ATTRIBUTES DLLEXPORT :: extractfromOctArray_
-!   !! author: MDG
-!   !! version: 1.0
-!   !! date: 10/18/22
-!   !!
-!   !! extract an octonion from an array of octonions
+! make sure that the index i is within the appropriate range 
+if (i.gt.self%n) call Message%printError('insertGBOctintoArray_',' index too large for octonion array')
 
-! use mod_io
+if (self%s.eq.'s') then 
+  self%o(1:8,i) = o%get_octs()
+else
+  self%od(1:8,i) = o%get_octd()
+end if
 
-! IMPLICIT NONE
-
-!   class(GBOctonionArray_T),intent(in)   :: self
-!   integer(kind=irg), intent(in)       :: i
-!   type(Octonion_T)                    :: res
-
-!   type(IO_T)                          :: Message
-
-!   if (i.le.self%n) then
-!     if (octonionprecision.eq.'s') then 
-!       res = Octonion_T( o = self%o(1:8,i) )
-!     else
-!       res = Octonion_T( od = self%od(1:8,i) )
-!     end if 
-!   else
-!     call Message%printWarning('extractfromOctonionArray_: requested octonion index larger than array size', &
-!                               (/'   ---> returning empty octonion'/) )
-!     if (octonionprecision.eq.'s') then
-!       res = Octonion_T( smode='s' )
-!     else
-!       res = Octonion_T( )
-!     end if
-!   end if
-
-! end function extractfromOctArray_
-
-! !--------------------------------------------------------------------------!
-! recursive subroutine insertOctintoArray_(self, i, o)
-! !DEC$ ATTRIBUTES DLLEXPORT :: insertOctintoArray_
-!   !! author: MDG
-!   !! version: 1.0
-!   !! date: 01/23/20
-!   !!
-!   !! insert an octonion into an array of octonions
-
-! use mod_io
-
-! IMPLICIT NONE
-
-!   class(GBOctonionArray_T),intent(inout):: self
-!   integer(kind=irg), intent(in)       :: i
-!   type(Octonion_T), intent(in)        :: o
-
-!   type(IO_T)                            :: Message
-
-!   if (i.le.self%n) then
-!     if (octonionprecision.eq.'s') then 
-!       self%o(1:8,i) = o%get_octs()
-!     else
-!       self%od(1:8,i) = o%get_octd()
-!     end if
-!   else
-!     call Message%printWarning('insertOctintoArray: requested octonion index larger than array size', &
-!                               (/'   ---> no octonion inserted'/) )
-!   end if
-
-! end subroutine insertOctintoArray_
-
-! !--------------------------------------------------------------------------
-! recursive subroutine deleteArray_(self)
-! !DEC$ ATTRIBUTES DLLEXPORT :: deleteArray_
-!   !! author: MDG
-!   !! version: 1.0
-!   !! date: 10/18/22
-!   !!
-!   !! deletes the current array of octonions in this class
-
-! IMPLICIT NONE
-
-! class(GBOctonionArray_T), INTENT(INOUT)   :: self
-
-! if (octonionprecision.eq.'s') then 
-!   if (allocated(self%o)) deallocate(self%o)
-! else 
-!   if (allocated(self%od)) deallocate(self%od)
-! end if
-
-! self%n = 0
-
-! end subroutine deleteArray_
-
-! !--------------------------------------------------------------------------
-! recursive function getOnumber_(self) result(num)
-! !DEC$ ATTRIBUTES DLLEXPORT :: getOnumber_
-!   !! author: MDG
-!   !! version: 1.0
-!   !! date: 10/18/22
-!   !!
-!   !! returns the number of octonions in the GBOctonionArray_T class
-
-! IMPLICIT NONE
-
-! class(GBOctonionArray_T), INTENT(INOUT)   :: self
-! integer(kind=irg)                       :: num
-
-! num = self%n
-
-! end function getOnumber_
-
+end subroutine insertGBOctintoArray_
 
 
 end module mod_GBoctonions

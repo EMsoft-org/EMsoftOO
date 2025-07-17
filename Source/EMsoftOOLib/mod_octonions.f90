@@ -114,7 +114,6 @@ end interface Octonion_T
 
 ! next we define the Octonion Array class
 type, public :: OctonionArray_T
-  private
     integer(kind=irg)            :: n
     integer(kind=irg)            :: nthreads
     real(kind=sgl), allocatable  :: o(:,:)
@@ -159,6 +158,8 @@ type, public :: OctonionArray_T
     generic, public :: writeArraytoFile => writeArraytoFile_
 
 end type OctonionArray_T
+
+PRIVATE:: insertOctintoArray_
 
 ! the constructor routine for this class 
 interface OctonionArray_T
@@ -207,7 +208,7 @@ subroutine Octonion_destructor(self)
 !DEC$ ATTRIBUTES DLLEXPORT :: Octonion_destructor
 !! author: MDG
 !! version: 1.0
-!! date: 02/02/20
+!! date: 07/17/25
 !!
 !! destructor for the Octonion_T Class
 
@@ -224,7 +225,7 @@ type(OctonionArray_T) function OctonionArray_constructor( n, nthreads, o, od, s 
 !DEC$ ATTRIBUTES DLLEXPORT :: OctonionArray_constructor
   !! author: MDG
   !! version: 1.0
-  !! date: 01/08/20
+  !! date: 07/17/25
   !!
   !! constructor for the OctonionArray Class
   !!
@@ -280,7 +281,7 @@ subroutine OctonionArray_destructor(self)
 !DEC$ ATTRIBUTES DLLEXPORT :: OctonionArray_destructor
 !! author: MDG
 !! version: 1.0
-!! date: 02/02/20
+!! date: 07/17/25
 !!
 !! destructor for the OctonionArray_T Class
 
@@ -540,7 +541,8 @@ end if
 do i=1,self%n 
   o1 = self%extractfromOctonionArray_(i)
   o2 = y%extractfromOctonionArray_(i)
-  call oct%insertOctintoArray_(i, o1 * o2 )
+  o1 = o1 * o2
+  call oct%insertOctintoArray_(i, o1 )
 end do
 
 end function o_arraymult_
@@ -815,7 +817,7 @@ function o_arrayconjugate_(self) result(c)
 class(OctonionArray_T), INTENT(IN)     :: self
 type(OctonionArray_T)                  :: c
 
-type(Octonion_T)                       :: o1
+type(Octonion_T)                       :: o1, o2
 integer(kind=irg)                      :: sz(2), i 
 
 c%n = self%n
@@ -840,7 +842,8 @@ end if
 
 do i=1,self%n 
   o1 = self%extractfromOctonionArray_(i)
-  call c%insertOctintoArray_(i, conjg(o1) )
+  o2 = conjg(o1)
+  call c%insertOctintoArray_(i, o2 )
 end do
 
 end function o_arrayconjugate_
@@ -1240,7 +1243,7 @@ IMPLICIT NONE
 
 class(OctonionArray_T),INTENT(INOUT)  :: self
 integer(kind=irg),INTENT(IN)          :: i
-type(Octonion_T),INTENT(IN)           :: o
+type(Octonion_T),INTENT(INOUT)        :: o
 
 type(IO_T)                            :: Message
 
