@@ -94,6 +94,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_QCgvectors.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_dualquaternions.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_octonions.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_GBoctonions.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_HallSG.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_so2.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_Grid_Interpolation.f90

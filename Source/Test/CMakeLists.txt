@@ -50,7 +50,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
     HDFdouble
     HDFhyperslab
     MODsymmetry
-    Image
+    # Image
     MODcrystal
     # MODMuellerCalculus
     MODRotations
