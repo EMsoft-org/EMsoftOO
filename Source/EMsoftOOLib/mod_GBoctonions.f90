@@ -67,6 +67,18 @@ private
 contains
 private 
 
+   procedure, pass(self) :: GBO_get_q_
+   procedure, pass(self) :: GBO_Omega_
+   procedure, pass(self) :: GBO_SLERP_
+   procedure, pass(self) :: GBO_Omega_Refine_
+   procedure, pass(self) :: GBO_Omega_Symmetric_
+
+   generic, public :: GBO_get_q => GBO_get_q_
+   generic, public :: GBO_Omega => GBO_Omega_
+   generic, public :: GBO_SLERP => GBO_SLERP_
+   generic, public :: GBO_Omega_Refine => GBO_Omega_Refine_
+   generic, public :: GBO_Omega_Symmetric => GBO_Omega_Symmetric_
+
 end type GBoctonion_T
 
 ! class definition for the Grain Boundary Octonion Array
@@ -77,11 +89,13 @@ contains
 private
 
    procedure, pass(self) :: insertGBOctintoArray_
+
    generic, public :: insertGBOctinArray => insertGBOctintoArray_
 
 end type GBOctonionArray_T
 
-private:: insertGBOctintoArray_
+private:: insertGBOctintoArray_, GBO_Omega_, GBO_SLERP_
+public :: GBO_minimal_U1_angle, GBO_minimize_U1_angle
 
 ! the constructor routines for these classes 
 interface GBoctonion_T
@@ -95,7 +109,7 @@ end interface GBoctonionArray_T
 contains
 
 !--------------------------------------------------------------------------
-type(GBoctonion_T) function GBoctonion_constructor( qu1, qu2 ) result(GBoctonion)
+type(GBoctonion_T) function GBoctonion_constructor( qu1, qu2, oct ) result(GBoctonion)
 !DEC$ ATTRIBUTES DLLEXPORT :: GBoctonion_constructor
 !! author: MDG 
 !! version: 1.0 
@@ -107,16 +121,29 @@ use mod_quaternions
 
 IMPLICIT NONE
 
-type(Quaternion_T), INTENT(IN)    :: qu1
-type(Quaternion_T), INTENT(IN)    :: qu2
+type(Quaternion_T), INTENT(IN),OPTIONAL    :: qu1
+type(Quaternion_T), INTENT(IN),OPTIONAL    :: qu2
+type(Octonion_T),INTENT(IN),OPTIONAL       :: oct
 
-if (qu1%quat_getprecision().eq.'s') then
-  GBoctonion%o = (/ qu1%get_quats(), qu2%get_quats() /)
-  GBoctonion%s = 's'
-else 
-  GBoctonion%od = (/ qu1%get_quatd(), qu2%get_quatd() /)
-  GBoctonion%s = 'd'
+if (present(qu1)) then 
+  if (qu1%quat_getprecision().eq.'s') then
+    GBoctonion%o = (/ qu1%get_quats(), qu2%get_quats() /)
+    GBoctonion%s = 's'
+  else 
+    GBoctonion%od = (/ qu1%get_quatd(), qu2%get_quatd() /)
+    GBoctonion%s = 'd'
+  end if 
 end if 
+
+if (present(oct)) then 
+  if (oct%s.eq.'s') then 
+    GBoctonion%o = oct%get_octs()
+    GBoctonion%s = 's'
+  else
+    GBoctonion%od = oct%get_octd()
+    GBoctonion%s = 'd'
+  end if 
+end if
 
 ! this normalization involves sqrt(2) due to the two unit quaternions, but this 
 ! is correctly handled by the parent class Octonion_T
@@ -243,5 +270,699 @@ end if
 
 end subroutine insertGBOctintoArray_
 
+!--------------------------------------------------------------------------
+recursive function GBO_get_q_(self, n)  result(qu)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_get_q_
+!! author: MDG
+!! version: 1.0
+!! date: 07/19/25
+!!
+!! extracts quaternion n from a grain boundary octonion 
+
+class(GBoctonion_T),INTENT(INOUT)                 :: self   ! this is oct1 
+integer(kind=irg),INTENT(IN)                      :: n
+type(Quaternion_T)                                :: qu
+
+if (self%s.eq.'s') then 
+  if (n.eq.1) then 
+    qu = Quaternion_T( q = self%o(1:4) )
+  else
+    qu = Quaternion_T( q = self%o(5:8) )
+  end if 
+else
+  if (n.eq.1) then 
+    qu = Quaternion_T( qd = self%od(1:4) )
+   else
+    qu = Quaternion_T( qd = self%od(5:8) )
+  end if 
+end if 
+
+end function GBO_get_q_
+
+!--------------------------------------------------------------------------
+recursive function GBO_Omega_symmetric_(self, oct2, DS, solution, arclengths, single, noU1, &
+                                       metric, refine)  result(Omega)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_Omega_symmetric_
+!! author: MDG
+!! version: 1.0
+!! date: 07/16/25
+!!
+!! Compute the S^7 geodesic arc length for a GBO pair (U(1) symmetry, grain exchange and crystal symmetry)
+
+use mod_dirstats
+
+IMPLICIT NONE
+
+class(GBoctonion_T),INTENT(INOUT)                 :: self   ! this is oct1 
+type(GBoctonion_T),INTENT(INOUT)                  :: oct2
+type(DirStat_T),INTENT(INOUT)                     :: DS
+type(GBOctonionArray_T),INTENT(OUT),OPTIONAL      :: solution
+real(kind=dbl),allocatable,INTENT(OUT),OPTIONAL   :: arclengths(:,:)  ! (/ Nqsym**2, Nqsym**2 /)
+logical,INTENT(IN),OPTIONAL                       :: single
+logical,INTENT(IN),OPTIONAL                       :: noU1
+character(fnlen),INTENT(IN),OPTIONAL              :: metric
+logical,INTENT(IN),OPTIONAL                       :: refine
+real(kind=dbl)                                    :: Omega
+
+type(GBoctonion_T)                                :: GBab, GBcd 
+type(QuaternionArray_T)                           :: qsym, qAr
+type(Quaternion_T)                                :: Sqa, Sqb, Sqc, Sqd, qa, qb, qc, qd
+
+integer(kind=irg)                                 :: i, j, k, l, Nqsym
+logical                                           :: keep, arcs, skipU1, dorefine
+real(kind=dbl)                                    :: smallest, x
+character(fnlen)                                  :: usemetric
+
+! handle the optional input parameters
+usemetric = 'octonion'
+if (present(metric)) usemetric = trim(metric)
+
+dorefine = .FALSE. 
+if (present(refine)) then 
+  if (refine.eqv..TRUE.) dorefine=.TRUE.
+end if 
+
+skipU1 = .FALSE.
+if (present(noU1)) then
+  if (noU1.eqv..TRUE.) skipU1 = .TRUE.
+end if
+
+keep = .FALSE.
+if (present(solution)) then
+  if (keep.eqv..TRUE.) then
+    keep = .TRUE.
+    qAr = QuaternionArray_T( n = 2, s = self%s )
+    solution = GBOctonionArray_T( qAr, qAr )
+  end if 
+end if 
+
+qsym = DS%getQuatArray(slot='qsym')
+Nqsym = qsym%getQnumber()
+arcs = .FALSE.
+if (present(arclengths)) then
+  if (arcs.eqv..TRUE.) then
+    arcs = .TRUE.
+    allocate( arclengths(Nqsym**2, Nqsym**2) )
+  end if 
+end if 
+smallest = 100.D0
+
+if (Nqsym.eq.1) then
+  if (skipU1.eqv..TRUE.) then
+    smallest = self%GBO_Omega_(oct2,noU1=.TRUE.,metric=usemetric)
+  else
+    if (dorefine.eqv..TRUE.) then
+      smallest = self%GBO_Omega_Refine_(oct2,metric=usemetric)
+    else
+      smallest = self%GBO_Omega_(oct2,metric=usemetric)
+    end if
+  end if
+  if (keep.eqv..TRUE.) then 
+    call solution%insertGBOctinArray(1, self)
+    call solution%insertGBOctinArray(2, oct2)
+  end if 
+  if (arcs.eqv..TRUE.) then
+    arclengths(1,1) = smallest
+  end if
+else
+  if (present(single)) then 
+    if (single.eqv..TRUE.) then
+      do k=1,Nqsym
+        qc = oct2%GBO_get_q(1)
+        Sqc = qsym%getQuatfromArray(k) * qc
+        call Sqc%quat_pos()
+        do l=1,Nqsym
+          Sqd = qsym%getQuatfromArray(l) * qd
+          call Sqc%quat_pos()
+          GBcd = GBoctonion_T( Sqc, Sqd )
+          if (skipU1.eqv..TRUE.) then  
+            x = self%GBO_Omega_( GBcd, noU1=.TRUE., metric=usemetric)
+          else
+            if (dorefine.eqv..TRUE.) then 
+              if ((k+l).eq.2) then    ! first time we need to initialize some arrays
+                x = GBab%GBO_Omega_Refine(GBcd,metric=usemetric,init=.TRUE.)
+              end if 
+              x = self%GBO_Omega_Refine_( GBcd, metric=usemetric)
+            else
+              x = self%GBO_Omega_( GBcd, metric=usemetric)
+            end if
+          end if
+          if (arcs.eqv..TRUE.) then 
+            arclengths((i-1)*Nqsym+j,(k-1)*Nqsym+l) = x
+          end if
+          if (x.lt.smallest) then 
+            smallest = x
+            if (keep) then 
+              call solution%insertGBOctinArray(1, self)
+              call solution%insertGBOctinArray(2, GBcd)
+            end if 
+          end if
+        end do
+      end do
+    end if 
+  else
+    do i=1,Nqsym
+      Sqa = qsym%getQuatfromArray(i) * qa
+      do j=1,Nqsym
+        Sqb = qsym%getQuatfromArray(j) * qb
+        GBab = GBoctonion_T( Sqa, Sqb )
+        do k=1,Nqsym
+          Sqc = qsym%getQuatfromArray(k) * qc
+          do l=1,Nqsym
+            Sqd = qsym%getQuatfromArray(l) * qd
+            GBcd = GBoctonion_T( Sqc, Sqd )
+            if (skipU1.eqv..TRUE.) then  
+              x = GBab%GBO_Omega(GBcd,noU1=.TRUE.,metric=usemetric)
+            else
+              if (dorefine.eqv..TRUE.) then 
+                if ((i+j+k+l).eq.4) then    ! first time we need to initialize some arrays
+                  x = GBab%GBO_Omega_Refine(GBcd,metric=usemetric,init=.TRUE.)
+                end if 
+                x = GBab%GBO_Omega_Refine(GBcd,metric=usemetric)
+              else
+                x = GBab%GBO_Omega(GBcd,metric=usemetric)
+              end if
+            end if
+            if (arcs) then 
+              arclengths((i-1)*Nqsym+j,(k-1)*Nqsym+l) = x
+            end if
+            if (x.lt.smallest) then 
+              smallest = x
+              if (keep) then 
+                call solution%insertGBOctinArray(1, GBab)
+                call solution%insertGBOctinArray(2, GBcd)
+              end if 
+            end if
+          end do
+        end do
+      end do
+    end do
+  end if 
+end if 
+
+Omega = smallest
+
+end function GBO_Omega_symmetric_
+
+!--------------------------------------------------------------------------
+recursive function GBO_Omega_(self,oct2,metric,noU1)  result(Omega)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_Omega_
+!! author: MDG
+!! version: 1.0
+!! date: 07/16/25
+!!
+!! Compute the angle that will minimize a geodesic quaternion arc length with respect to U(1) symmetry
+
+IMPLICIT NONE
+
+class(GBoctonion_T),INTENT(INOUT) :: self 
+type(GBoctonion_T),INTENT(INOUT)  :: oct2
+character(fnlen),INTENT(IN)       :: metric
+logical,INTENT(IN),OPTIONAL       :: noU1
+real(kind=dbl)                    :: Omega
+
+type(Quaternion_T)                :: qu
+
+real(kind=dbl)                    :: qq1(4), qq2(4), zeta, sigma, cac, cbd, cbc, cad, cz, sz, cs, ss, &
+                                     sum1, sum2, sum3, sum4, sums(4), smax, qa(4), qb(4), qc(4), qd(4)
+integer(kind=irg)                 :: isum(1), m
+real(kind=dbl),parameter          :: srt = 1.D0/sqrt(2.D0)     
+
+! extract the quaternions as regular 4-component arrays
+qu = self%GBO_get_q(1)
+qa = qu%get_quatd()
+qu = self%GBO_get_q(2)
+qb = qu%get_quatd()
+qu = oct2%GBO_get_q(1)
+qc = qu%get_quatd()
+qu = oct2%GBO_get_q(2)
+qd = qu%get_quatd()
+
+m = 1
+if (trim(metric).eq.'Olmsted') then 
+  m=2
+else if (trim(metric).eq.'Riemannian') then 
+       m=3
+     end if
+
+if (present(noU1)) then
+  if (noU1.eqv..TRUE.) then
+    cac = sum(qa*qc)
+    cbd = sum(qb*qd)
+    cbc = sum(qb*qc)
+    cad = sum(qa*qd)
+   
+    select case(m)
+    case(1) 
+      sum1 = 0.5D0 * maxval( abs( (/ cac+cbd, cac-cbd /) ) )
+      sum2 = 0.5D0 * maxval( abs( (/ cbc+cad, cbc-cad /) ) )
+      Omega = 2.0 * minval( (/ acos(sum1), acos(sum2) /) )
+    case(2)
+      sum1 = sqrt(4.0D0 * ( 2.D0 - cac*cac - cbd*cbd ))
+      sum2 = sqrt(4.0D0 * ( 2.D0 - cbc*cbc - cad*cad ))
+      Omega = minval( (/ sum1, sum2 /) )
+    case(3)
+      cac = 2.D0 * acos(cac)
+      cbd = 2.D0 * acos(cbd)
+      cbc = 2.D0 * acos(cbc)
+      cad = 2.D0 * acos(cad)
+      sum1 = sqrt(cac*cac + cbd*cbd )
+      sum2 = sqrt(cbc*cbc + cad*cad )
+      Omega = minval( (/ sum1, sum2 /) )
+    end select
+
+  end if
+else
+! determine the minimal U(1) angle for the (a,b) - (c,d) boundary pair
+  zeta = GBO_minimal_U1_angle(qa,qb,qc,qd)
+  cz = cos(zeta*0.5D0)
+  sz = sin(zeta*0.5D0)
+  qq1 = (/ qc(1)*cz-qc(4)*sz, cz*qc(2)+sz*qc(3), cz*qc(3)-sz*qc(2), cz*qc(4)+sz*qc(1) /)
+  qq2 = (/ qd(1)*cz-qd(4)*sz, cz*qd(2)+sz*qd(3), cz*qd(3)-sz*qd(2), cz*qd(4)+sz*qd(1) /)
+  cac = sum(qa*qq1)
+  cbd = sum(qb*qq2)
+  
+  select case(m)
+    case(1) 
+      sum1 = 0.5D0 * maxval( abs( (/ cac+cbd, cac-cbd /) ) )
+    case(2)
+      sum1 = sqrt(4.0D0 * ( 2.D0 - cac*cac - cbd*cbd ))
+    case(3)
+      cac = 2.D0 * acos(cac)
+      cbd = 2.D0 * acos(cbd)
+      sum1 = sqrt(cac*cac + cbd*cbd)
+  end select
+
+! determine the minimal U(1) angle for the (a,-b) - (c,d) boundary pair
+  zeta = GBO_minimal_U1_angle(qa,-qb,qc,qd)
+  cz = cos(zeta*0.5D0)
+  sz = sin(zeta*0.5D0)
+  qq1 = (/ qc(1)*cz-qc(4)*sz, cz*qc(2)+sz*qc(3), cz*qc(3)-sz*qc(2), cz*qc(4)+sz*qc(1) /)
+  qq2 = (/ qd(1)*cz-qd(4)*sz, cz*qd(2)+sz*qd(3), cz*qd(3)-sz*qd(2), cz*qd(4)+sz*qd(1) /)
+  cac = sum(qa*qq1)
+  cbd = sum(-qb*qq2)
+  
+  select case(m)
+    case(1) 
+      sum3 = 0.5D0 * maxval( abs( (/ cac+cbd, cac-cbd /) ) )
+    case(2)
+      sum3 = sqrt(4.0D0 * ( 2.D0 - cac*cac - cbd*cbd ))
+    case(3)
+      cac = 2.D0 * acos(cac)
+      cbd = 2.D0 * acos(cbd)
+      sum3 = sqrt(cac*cac + cbd*cbd)
+  end select
+
+! determine the minimal U(1) angle for the (b,a) - (c,d) boundary pair
+  sigma = GBO_minimal_U1_angle(qa,qb,qc,qd,exchange=.TRUE.)
+  cs = cos(sigma*0.5D0)
+  ss = sin(sigma*0.5D0)
+  qq1 = (/ qc(1)*cs-qc(4)*ss, cs*qc(2)+ss*qc(3), cs*qc(3)-ss*qc(2), cs*qc(4)+ss*qc(1) /)
+  qq2 = (/ qd(1)*cs-qd(4)*ss, cs*qd(2)+ss*qd(3), cs*qd(3)-ss*qd(2), cs*qd(4)+ss*qd(1) /)
+  cbc = sum(qb*qq1)
+  cad = sum(qa*qq2)
+
+  select case(m)
+    case(1) 
+      sum2 = 0.5D0 * maxval( abs( (/ cbc+cad, cbc-cad /) ) )
+    case(2)
+      sum2 = sqrt(4.0D0 * ( 2.D0 - cbc*cbc - cad*cad ))
+    case(3)
+      cbc = 2.D0 * acos(cbc)
+      cad = 2.D0 * acos(cad)
+      sum2 = sqrt(cbc*cbc + cad*cad)
+  end select
+
+! determine the minimal U(1) angle for the (b,-a) - (c,d) boundary pair
+  sigma = GBO_minimal_U1_angle(-qa,qb,qc,qd,exchange=.TRUE.)
+  cs = cos(sigma*0.5D0)
+  ss = sin(sigma*0.5D0)
+  qq1 = (/ qc(1)*cs-qc(4)*ss, cs*qc(2)+ss*qc(3), cs*qc(3)-ss*qc(2), cs*qc(4)+ss*qc(1) /)
+  qq2 = (/ qd(1)*cs-qd(4)*ss, cs*qd(2)+ss*qd(3), cs*qd(3)-ss*qd(2), cs*qd(4)+ss*qd(1) /)
+  cbc = sum(qb*qq1)
+  cad = sum(-qa*qq2)
+
+  select case(m)
+    case(1) 
+      sum4 = 0.5D0 * maxval( abs( (/ cbc+cad, cbc-cad /) ) )
+    case(2)
+      sum4 = sqrt(4.0D0 * ( 2.D0 - cbc*cbc - cad*cad ))
+    case(3)
+      cbc = 2.D0 * acos(cbc)
+      cad = 2.D0 * acos(cad)
+      sum4 = sqrt(cbc*cbc + cad*cad)
+  end select
+
+  sums = (/ sum1, sum2, sum3, sum4 /)
+  smax = maxval(sums)
+  isum = maxloc(sums)
+
+! and determine the smallest geodesic distance on S^7
+  select case(m)
+    case(1)
+      Omega = 2.0 * acos(smax)
+    case(2,3)
+      Omega = minval(sums)
+      Omega = Omega * srt
+  end select
+
+end if
+
+end function GBO_Omega_
+
+!--------------------------------------------------------------------------
+recursive function GBO_minimal_U1_angle(qa,qb,qc,qd,exchange)  result(zeta)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_minimal_U1_angle
+!! author: MDG
+!! version: 1.0
+!! date: 07/16/25
+!!
+!! Compute the angle that will minimize a geodesic quaternion arc length with respect to U(1) symmetry
+!!
+!! this needs to be rewritten with Oliver Johnson's new solution; in particular the grain exchange
+!! expression is currently incorrect...
+
+IMPLICIT NONE
+
+real(kind=dbl),INTENT(IN)         :: qa(4)
+real(kind=dbl),INTENT(IN)         :: qb(4)
+real(kind=dbl),INTENT(IN)         :: qc(4)
+real(kind=dbl),INTENT(IN)         :: qd(4)
+logical,INTENT(IN),OPTIONAL       :: exchange
+real(kind=dbl)                    :: zeta
+
+real(kind=dbl)                    :: nom, denom, mu
+
+zeta = 0.D0
+
+if (present(exchange)) then 
+  if (exchange.eqv..TRUE.) then 
+    nom = (qb(4)*qc(1)-qb(1)*qc(4)) + (qa(4)*qd(1)-qa(1)*qd(4)) + (qb(2)*qc(3)-qb(3)*qc(2)) + (qa(2)*qd(3)-qa(3)*qd(2))
+    denom = sum(qb*qc) + sum(qa*qd)
+  if ((denom.ne.0.D0).or.(nom.ne.0.D0)) then
+      mu = 2.D0 * atan2(nom, denom)
+    if (mu.lt.0.D0) then
+       zeta = 2.D0*cPi + mu
+    else
+       zeta = mu
+      end if 
+    end if 
+  end if 
+else
+  nom = (qa(4)*qc(1)-qa(1)*qc(4)) + (qb(4)*qd(1)-qb(1)*qd(4)) + (qa(2)*qc(3)-qa(3)*qc(2)) + (qb(2)*qd(3)-qb(3)*qd(2))
+  denom = sum(qa*qc) + sum(qb*qd)
+  if ((denom.ne.0.D0).or.(nom.ne.0.D0)) then
+    mu = 2.D0 * atan2(nom, denom)
+    if (mu.lt.0.D0) then
+      zeta = 2.D0*cPi + mu
+    else
+      zeta = mu
+    end if 
+  end if 
+end if 
+
+end function GBO_minimal_U1_angle
+
+!--------------------------------------------------------------------------
+recursive function GBO_minimize_U1_angle(qa,qb,qc,qd,numz,z,czs,szs,m,exchange)  result(zval)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_minimize_U1_angle
+
+IMPLICIT NONE
+
+real(kind=dbl),INTENT(IN)         :: qa(4)
+real(kind=dbl),INTENT(IN)         :: qb(4)
+real(kind=dbl),INTENT(IN)         :: qc(4)
+real(kind=dbl),INTENT(IN)         :: qd(4)
+integer(kind=irg),INTENT(IN)      :: numz 
+real(kind=dbl),INTENT(IN)         :: z(numz)
+real(kind=dbl),INTENT(IN)         :: czs(numz)
+real(kind=dbl),INTENT(IN)         :: szs(numz)
+integer(kind=irg),INTENT(IN)      :: m
+logical,INTENT(IN),OPTIONAL       :: exchange
+real(kind=dbl)                    :: zval
+
+real(kind=dbl)                    :: nom, denom, mu, qq1(4,numz), qq2(4,numz), cac(numz), cbd(numz), &
+                                     sm(numz), mval, x1, x2, x3, y1, y2, y3, A, B, C
+integer(kind=irg)                 :: i, mpos(1)
+
+zval = 0.D0
+
+qq1(1,:) = czs(:)*qc(1)-szs(:)*qc(4)
+qq1(2,:) = czs(:)*qc(2)+szs(:)*qc(3)
+qq1(3,:) = czs(:)*qc(3)-szs(:)*qc(2)
+qq1(4,:) = czs(:)*qc(4)+szs(:)*qc(1)
+
+qq2(1,:) = czs(:)*qd(1)-szs(:)*qd(4)
+qq2(2,:) = czs(:)*qd(2)+szs(:)*qd(3)
+qq2(3,:) = czs(:)*qd(3)-szs(:)*qd(2)
+qq2(4,:) = czs(:)*qd(4)+szs(:)*qd(1)
+
+if (present(exchange)) then 
+  if (exchange.eqv..TRUE.) then 
+    do i=1,numz
+      cac(i) = sum(qa(:)*qq1(:,i))
+      cbd(i) = sum(qb(:)*qq2(:,i))
+    end do
+  else
+    do i=1,numz
+      cac(i) = sum(qb(:)*qq1(:,i))
+      cbd(i) = sum(qa(:)*qq2(:,i))
+    end do
+  end if 
+end if 
+
+if (m.eq.2) then 
+  sm = sqrt(4.0D0 * ( 2.D0 - cac*cac - cbd*cbd ))
+else if (m.eq.3) then
+        cac = 2.D0 * acos(cac)
+        cbd = 2.D0 * acos(cbd)
+        sm = sqrt(cac*cac + cbd*cbd)
+     end if
+
+mval = minval(sm)
+mpos = minloc(sm)
+
+if ((mpos(1).ne.1).and.(mpos(1).ne.numz)) then 
+  x1 = z(mpos(1)-1)
+  x2 = z(mpos(1))
+  x3 = z(mpos(1)+1)
+
+  y1 = sm(mpos(1)-1)
+  y2 = sm(mpos(1))
+  y3 = sm(mpos(1)+1)
+else if (mpos(1).eq.1) then 
+        x1 = z(numz)
+        x2 = z(1)
+        x3 = z(2)
+
+        y1 = sm(numz)
+        y2 = sm(1)
+        y3 = sm(2)
+     else 
+        x1 = z(numz-1)
+        x2 = z(numz)
+        x3 = z(1)
+
+        y1 = sm(numz-1)
+        y2 = sm(numz)
+        y3 = sm(1)
+     end if
+
+! simply fit a parabola through three points and determine the location of the minimum.
+! denom = (x1 - x2) * (x1 - x3) * (x2 - x3)
+A = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) ! / denom;
+B = (x3*x3 * (y1 - y2) + x2*x2 * (y3 - y1) + x1*x1 * (y2 - y3)) !  / denom;
+! we don't need the value at the minimum, so no need to compute C
+! C = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
+
+zval = -B / (2.D0*A)
+
+end function GBO_minimize_U1_angle
+
+!--------------------------------------------------------------------------
+recursive function GBO_Omega_Refine_(self ,oct2,metric,init)  result(Omega)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_Omega_Refine_
+
+IMPLICIT NONE
+
+class(GBoctonion_T),INTENT(INOUT) :: self 
+type(GBoctonion_T),INTENT(INOUT)  :: oct2
+character(fnlen),INTENT(IN)       :: metric
+logical,INTENT(IN),OPTIONAL       :: init 
+real(kind=dbl)                    :: Omega
+
+type(Quaternion_T)                :: qu 
+
+real(kind=dbl)                    :: qq1(4), qq2(4), zeta, sigma, cac, cbd, cbc, cad, cz, sz, cs, ss, &
+                                     sum1, sum2, sum3, sum4, sums(4), smax, qa(4), qb(4), qc(4), qd(4)
+integer(kind=irg)                 :: isum(1), m, i
+real(kind=dbl),parameter          :: srt = 1.D0/sqrt(2.D0)     
+integer(kind=irg),parameter       :: numz = 180
+real(kind=dbl),save               :: czs(numz), szs(numz), z(numz)
+
+
+! extract the quaternions as regular 4-component arrays
+qu = self%GBO_get_q(1)
+qa = qu%get_quatd()
+qu = self%GBO_get_q(2)
+qb = qu%get_quatd()
+qu = oct2%GBO_get_q(1)
+qc = qu%get_quatd()
+qu = oct2%GBO_get_q(2)
+qd = qu%get_quatd()
+
+if (present(init)) then 
+  if (init.eqv..TRUE.) then 
+    z = (/ (i-1, i=1,numz) /) * 4.D0 * cPi / dble(numz) 
+    czs = cos( z * 0.5D0 ) 
+    szs = sin( z * 0.5D0 ) 
+    Omega = 0.D0
+    return
+  end if 
+end if 
+
+m = 1
+if (trim(metric).eq.'Olmsted') then 
+  m=2
+else if (trim(metric).eq.'Riemannian') then 
+       m=3
+     end if
+
+! determine the minimal U(1) angle for the (a,b) - (c,d) boundary pair
+  if (m.eq.1) then 
+    zeta = GBO_minimal_U1_angle(qa,qb,qc,qd)
+  else 
+    zeta = GBO_minimize_U1_angle(qa,qb,qc,qd,numz,z,czs,szs,m)
+  end if
+  cz = cos(zeta*0.5D0)
+  sz = sin(zeta*0.5D0)
+  qq1 = (/ qc(1)*cz-qc(4)*sz, cz*qc(2)+sz*qc(3), cz*qc(3)-sz*qc(2), cz*qc(4)+sz*qc(1) /)
+  qq2 = (/ qd(1)*cz-qd(4)*sz, cz*qd(2)+sz*qd(3), cz*qd(3)-sz*qd(2), cz*qd(4)+sz*qd(1) /)
+  cac = sum(qa*qq1)
+  cbd = sum(qb*qq2)
+
+  select case(m)
+    case(1) 
+      sum1 = 0.5D0 * maxval( abs( (/ cac+cbd, cac-cbd /) ) )
+    case(2)
+      sum1 = sqrt(4.0D0 * ( 2.D0 - cac*cac - cbd*cbd ))
+    case(3)
+      cac = 2.D0 * acos(cac)
+      cbd = 2.D0 * acos(cbd)
+      sum1 = sqrt(cac*cac + cbd*cbd)
+  end select
+
+! determine the minimal U(1) angle for the (a,-b) - (c,d) boundary pair
+  if (m.eq.1) then 
+    zeta = GBO_minimal_U1_angle(qa,-qb,qc,qd)
+  else 
+    zeta = GBO_minimize_U1_angle(qa,-qb,qc,qd,numz,z,czs,szs,m)
+  end if
+  cz = cos(zeta*0.5D0)
+  sz = sin(zeta*0.5D0)
+  qq1 = (/ qc(1)*cz-qc(4)*sz, cz*qc(2)+sz*qc(3), cz*qc(3)-sz*qc(2), cz*qc(4)+sz*qc(1) /)
+  qq2 = (/ qd(1)*cz-qd(4)*sz, cz*qd(2)+sz*qd(3), cz*qd(3)-sz*qd(2), cz*qd(4)+sz*qd(1) /)
+  cac = sum(qa*qq1)
+  cbd = sum(-qb*qq2)
+  
+  select case(m)
+    case(1) 
+      sum3 = 0.5D0 * maxval( abs( (/ cac+cbd, cac-cbd /) ) )
+    case(2)
+      sum3 = sqrt(4.0D0 * ( 2.D0 - cac*cac - cbd*cbd ))
+    case(3)
+      cac = 2.D0 * acos(cac)
+      cbd = 2.D0 * acos(cbd)
+      sum3 = sqrt(cac*cac + cbd*cbd)
+  end select
+
+! determine the minimal U(1) angle for the (b,a) - (c,d) boundary pair
+ if (m.eq.1) then 
+    sigma = GBO_minimal_U1_angle(qa,qb,qc,qd,exchange=.TRUE.)
+  else 
+    sigma = GBO_minimize_U1_angle(qa,qb,qc,qd,numz,z,czs,szs,m,exchange=.TRUE.)
+  end if
+  cs = cos(sigma*0.5D0)
+  ss = sin(sigma*0.5D0)
+  qq1 = (/ qc(1)*cs-qc(4)*ss, cs*qc(2)+ss*qc(3), cs*qc(3)-ss*qc(2), cs*qc(4)+ss*qc(1) /)
+  qq2 = (/ qd(1)*cs-qd(4)*ss, cs*qd(2)+ss*qd(3), cs*qd(3)-ss*qd(2), cs*qd(4)+ss*qd(1) /)
+  cbc = sum(qb*qq1)
+  cad = sum(qa*qq2)
+
+  select case(m)
+    case(1) 
+      sum2 = 0.5D0 * maxval( abs( (/ cbc+cad, cbc-cad /) ) )
+    case(2)
+      sum2 = sqrt(4.0D0 * ( 2.D0 - cbc*cbc - cad*cad ))
+    case(3)
+      cbc = 2.D0 * acos(cbc)
+      cad = 2.D0 * acos(cad)
+      sum2 = sqrt(cbc*cbc + cad*cad)
+  end select
+
+! determine the minimal U(1) angle for the (b,-a) - (c,d) boundary pair
+ if (m.eq.1) then 
+    sigma = GBO_minimal_U1_angle(-qa,qb,qc,qd,exchange=.TRUE.)
+  else 
+    sigma = GBO_minimize_U1_angle(-qa,qb,qc,qd,numz,z,czs,szs,m,exchange=.TRUE.)
+  end if
+  cs = cos(sigma*0.5D0)
+  ss = sin(sigma*0.5D0)
+  qq1 = (/ qc(1)*cs-qc(4)*ss, cs*qc(2)+ss*qc(3), cs*qc(3)-ss*qc(2), cs*qc(4)+ss*qc(1) /)
+  qq2 = (/ qd(1)*cs-qd(4)*ss, cs*qd(2)+ss*qd(3), cs*qd(3)-ss*qd(2), cs*qd(4)+ss*qd(1) /)
+  cbc = sum(qb*qq1)
+  cad = sum(-qa*qq2)
+ 
+  select case(m)
+    case(1) 
+      sum4 = 0.5D0 * maxval( abs( (/ cbc+cad, cbc-cad /) ) )
+    case(2)
+      sum4 = sqrt(4.0D0 * ( 2.D0 - cbc*cbc - cad*cad ))
+    case(3)
+      cbc = 2.D0 * acos(cbc)
+      cad = 2.D0 * acos(cad)
+      sum4 = sqrt(cbc*cbc + cad*cad)
+  end select
+
+  sums = (/ sum1, sum2, sum3, sum4 /)
+  smax = maxval(sums)
+  isum = maxloc(sums)
+
+! and determine the smallest geodesic distance on S^7
+  select case(m)
+    case(1)
+      Omega = 2.0 * acos(smax)
+    case(2,3)
+      Omega = minval(sums)
+      Omega = Omega * srt
+  end select
+
+end function GBO_Omega_Refine_
+
+!--------------------------------------------------------------------------
+recursive function GBO_SLERP_(self, hcn1, hcn2, Omega, t, n)  result(hcnt)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_SLERP_
+
+IMPLICIT NONE
+
+class(GBoctonion_T),INTENT(INOUT)     :: self
+integer(kind=irg),INTENT(IN)          :: n
+real(kind=dbl),INTENT(IN)             :: hcn1(n)
+real(kind=dbl),INTENT(IN)             :: hcn2(n)
+real(kind=dbl),INTENT(IN)             :: Omega
+real(kind=dbl),INTENT(IN)             :: t
+real(kind=dbl)                        :: hcnt(n)
+
+real(kind=dbl)                        :: st, sp, sm, theta
+ 
+theta = Omega*0.5D0
+
+st = sin(theta)
+sp = sin(t*theta)
+sm = sin((1.D0-t)*theta)
+
+hcnt = hcn1 * sm/st + hcn2 * sp/st
+
+end function GBO_SLERP_
 
 end module mod_GBoctonions

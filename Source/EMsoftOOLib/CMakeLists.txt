@@ -180,6 +180,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_ppEBSD.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_KAM.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_EBSDNBeams.f90 
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_oSLERP.f90 
 
   ${EMsoftOOLib_Additional_SRCS}
 )

@@ -1,8 +1,16 @@
 &oSLERPlist
-! GBmode 'normal' for normal/misorientation approach, 'octonions' for (qA, qB) approach
+! GBmode 'normal' for normal/misorientation approach, 'octonion' for (qA, qB) approach
  GBmode = 'octonion',
 ! output mode:  'spheres' or 'cubes'
  rendermode = 'cubes',
+! number of OpenMP threads
+ nthreads = 1,
+! full path to the PoVRay Include folder
+ PVincludepath = 'undefined',
+! full path to the PoVRay executable (including the name of the program)
+ PVexec = 'undefined'
+! full path to the ffmpeg executable (including the name of the program)
+ PVffmpeg = 'undefined'
 ! name of the crystal structure file
  xtalname = 'undefined',
 ! povrayfile with relative path

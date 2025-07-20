@@ -56,6 +56,33 @@ contains
 
 ! here are the calls for the Windows ifort compiler:
 @CMAKE_USE_IFORT@!--------------------------------------------------------------------------
+@CMAKE_USE_IFORT@function system_mkdir(c) result(status)
+@CMAKE_USE_IFORT@!DEC$ ATTRIBUTES DLLEXPORT :: system_mkdir
+@CMAKE_USE_IFORT@!! author: MDG
+@CMAKE_USE_IFORT@!! version: 1.0
+@CMAKE_USE_IFORT@!! date: 07/19/25 
+@CMAKE_USE_IFORT@!!
+@CMAKE_USE_IFORT@!! change directory wrapper for ifort
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@implicit none
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@character(*), INTENT(IN)  :: c 
+@CMAKE_USE_IFORT@integer(kind=irg)         :: status 
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@logical(4)                :: result
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@result = MAKEDIRQQ(c)
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@if (result.eqv..TRUE.) then 
+@CMAKE_USE_IFORT@  status = 0
+@CMAKE_USE_IFORT@else
+@CMAKE_USE_IFORT@  status = 1
+@CMAKE_USE_IFORT@  print *, 'Error creating directory; IFPORT error code ', result
+@CMAKE_USE_IFORT@end if
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@end function system_mkdir
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@!--------------------------------------------------------------------------
 @CMAKE_USE_IFORT@function system_chdir(c) result(status)
 @CMAKE_USE_IFORT@!DEC$ ATTRIBUTES DLLEXPORT :: system_chdir
 @CMAKE_USE_IFORT@!! author: MDG
@@ -72,6 +99,24 @@ contains
 @CMAKE_USE_IFORT@status = chdir(c)
 @CMAKE_USE_IFORT@
 @CMAKE_USE_IFORT@end function system_chdir
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@!--------------------------------------------------------------------------
+@CMAKE_USE_IFORT@function system_deletefile(c) result(status)
+@CMAKE_USE_IFORT@!DEC$ ATTRIBUTES DLLEXPORT :: system_deletefile
+@CMAKE_USE_IFORT@!! author: MDG
+@CMAKE_USE_IFORT@!! version: 1.0
+@CMAKE_USE_IFORT@!! date: 07/19/25 
+@CMAKE_USE_IFORT@!!
+@CMAKE_USE_IFORT@!! delete file wrapper for ifort
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@implicit none
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@character(*), INTENT(IN)  :: c 
+@CMAKE_USE_IFORT@integer(kind=irg)         :: status
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@status = UNLINK(c)
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@end function system_deletefile
 @CMAKE_USE_IFORT@
 @CMAKE_USE_IFORT@!--------------------------------------------------------------------------
 @CMAKE_USE_IFORT@function system_hostnm(c) result(status)
@@ -130,13 +175,31 @@ contains
 
 ! and here are the equivalent calls for the gfortran compiler:
 @CMAKE_USE_GFORTRAN@!--------------------------------------------------------------------------
+@CMAKE_USE_GFORTRAN@function system_mkdir(c) result(status)
+@CMAKE_USE_GFORTRAN@!DEC$ ATTRIBUTES DLLEXPORT :: system_mkdir
+@CMAKE_USE_GFORTRAN@!! author: MDG
+@CMAKE_USE_GFORTRAN@!! version: 1.0
+@CMAKE_USE_GFORTRAN@!! date: 07/19/25 
+@CMAKE_USE_GFORTRAN@!!
+@CMAKE_USE_GFORTRAN@!! make directory wrapper for gfortran
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@implicit none
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@character(*), INTENT(IN)  :: c 
+@CMAKE_USE_GFORTRAN@integer(kind=irg)         :: status
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@call system('mkdir '//trim(c), status)
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@end function system_mkdir
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@!--------------------------------------------------------------------------
 @CMAKE_USE_GFORTRAN@function system_chdir(c) result(status)
 @CMAKE_USE_GFORTRAN@!DEC$ ATTRIBUTES DLLEXPORT :: system_chdir
 @CMAKE_USE_GFORTRAN@!! author: MDG
 @CMAKE_USE_GFORTRAN@!! version: 1.0
 @CMAKE_USE_GFORTRAN@!! date: 08/29/23 
 @CMAKE_USE_GFORTRAN@!!
-@CMAKE_USE_GFORTRAN@!! change directory wrapper for ifort
+@CMAKE_USE_GFORTRAN@!! change directory wrapper for gfortran
 @CMAKE_USE_GFORTRAN@
 @CMAKE_USE_GFORTRAN@implicit none
 @CMAKE_USE_GFORTRAN@
@@ -148,13 +211,31 @@ contains
 @CMAKE_USE_GFORTRAN@end function system_chdir
 @CMAKE_USE_GFORTRAN@
 @CMAKE_USE_GFORTRAN@!--------------------------------------------------------------------------
+@CMAKE_USE_GFORTRAN@function system_deletefile(c) result(status)
+@CMAKE_USE_GFORTRAN@!DEC$ ATTRIBUTES DLLEXPORT :: system_deletefile
+@CMAKE_USE_GFORTRAN@!! author: MDG
+@CMAKE_USE_GFORTRAN@!! version: 1.0
+@CMAKE_USE_GFORTRAN@!! date: 07/19/25 
+@CMAKE_USE_GFORTRAN@!!
+@CMAKE_USE_GFORTRAN@!! change directory wrapper for gfortran
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@implicit none
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@character(*), INTENT(IN)  :: c 
+@CMAKE_USE_GFORTRAN@integer(kind=irg)         :: status
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@call system('rm '//trim(c), status)
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@end function system_deletefile
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@!--------------------------------------------------------------------------
 @CMAKE_USE_GFORTRAN@function system_hostnm(c) result(status)
 @CMAKE_USE_GFORTRAN@!DEC$ ATTRIBUTES DLLEXPORT :: system_hostnm
 @CMAKE_USE_GFORTRAN@!! author: MDG
 @CMAKE_USE_GFORTRAN@!! version: 1.0
 @CMAKE_USE_GFORTRAN@!! date: 08/29/23 
 @CMAKE_USE_GFORTRAN@!!
-@CMAKE_USE_GFORTRAN@!! get hostname wrapper for ifort
+@CMAKE_USE_GFORTRAN@!! get hostname wrapper for gfortran
 @CMAKE_USE_GFORTRAN@
 @CMAKE_USE_GFORTRAN@implicit none
 @CMAKE_USE_GFORTRAN@
@@ -172,7 +253,7 @@ contains
 @CMAKE_USE_GFORTRAN@!! version: 1.0
 @CMAKE_USE_GFORTRAN@!! date: 08/29/23 
 @CMAKE_USE_GFORTRAN@!!
-@CMAKE_USE_GFORTRAN@!! file rename wrapper for ifort
+@CMAKE_USE_GFORTRAN@!! file rename wrapper for gfortran
 @CMAKE_USE_GFORTRAN@
 @CMAKE_USE_GFORTRAN@implicit none
 @CMAKE_USE_GFORTRAN@
@@ -191,7 +272,7 @@ contains
 @CMAKE_USE_GFORTRAN@!! version: 1.0
 @CMAKE_USE_GFORTRAN@!! date: 08/29/23 
 @CMAKE_USE_GFORTRAN@!!
-@CMAKE_USE_GFORTRAN@!! system call wrapper for ifort
+@CMAKE_USE_GFORTRAN@!! system call wrapper for gfortran
 @CMAKE_USE_GFORTRAN@
 @CMAKE_USE_GFORTRAN@implicit none
 @CMAKE_USE_GFORTRAN@

@@ -395,7 +395,6 @@ IMPLICIT NONE
 
   end type QuaternionArray_T
 
-
 ! next we define the quaternion 3D array class; this doesn't need as many methods
 ! as the regular one, just inserting in and extracting from the array
 ! this type is used in microstructure descriptions when there is an orientation 

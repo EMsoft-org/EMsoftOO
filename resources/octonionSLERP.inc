@@ -71,8 +71,8 @@ sky_sphere{ pigment{ gradient <0,1,0>
 #declare R1  = 2.0;   
 #declare R2  = 4.0;
 
-#declare Rl  = 0.055; // radius of lines  - Radius der Strecken 
-#declare Rp  = 0.105; // radius of points - Radius der Punkte 
+#declare Rl  = 0.055; // radius of lines 
+#declare Rp  = 0.105; // radius of points 
 
 
 #macro WireFrameSphere(NrLongitudes, NrLatitudes, Rmaj, Rmin)
@@ -380,8 +380,6 @@ box {
 	}
 } 
 #end// of macro "TruncationB( ... )"
-
-// arrows.pov file
 
 #declare bx = 0.5; 
 #declare dx = 0.15; 
