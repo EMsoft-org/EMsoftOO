@@ -915,7 +915,10 @@ real(kind=dbl)                      :: n
 
 n = self%o_norm_()
 
-if (n == 0.0D0) call Message%printError('o_normalize',' Cannot normalize zero octonion') 
+if (n == 0.0D0) then 
+  call self%octprint_()
+  call Message%printError('o_normalize',' Cannot normalize zero octonion') 
+end if 
 
 call self%o_sdivide_(n)
 
@@ -1276,7 +1279,7 @@ character(*),INTENT(IN),OPTIONAL :: st
 
 type(IO_T)                      :: Message
 
-if (present(st)) call Message%printMessage( trim(st) )
+if (present(st)) call Message%printMessage( trim(st), frm='(A,$)' )
 
 if (self%s.eq.'s') then
   call Message % WriteValue('', self%o, 8, frm="('(',8f12.6,'); precision: '$)")

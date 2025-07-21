@@ -661,7 +661,7 @@ if (allocated(self%qd)) deallocate(self%qd)
 end subroutine Quaternion3DArray_destructor
 
 !--------------------------------------------------------------------------
-recursive subroutine quatprint(self)
+recursive subroutine quatprint(self, str)
 !DEC$ ATTRIBUTES DLLEXPORT :: quatprint
   !! author: MDG
   !! version: 1.0
@@ -674,9 +674,11 @@ use mod_io
 IMPLICIT NONE
 
   class(Quaternion_T),intent(in)    :: self
-   !! input quaternion
+  character(*),INTENT(IN),OPTIONAL  :: str
 
   type(IO_T)                        :: Message
+
+  if (present(str)) call Message%printMessage( trim(str), frm='(A,$)' )
 
   if (self%s.eq.'s') then
     call Message % WriteValue('', self%q, 4, frm="('(',4f12.6,'); precision: '$)")

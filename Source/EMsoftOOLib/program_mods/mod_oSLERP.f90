@@ -48,12 +48,14 @@ type, public :: oSLERPNameListType
   real(kind=dbl)          :: o1(8)
   real(kind=dbl)          :: o2(8)
   real(kind=dbl)          :: dOmega
+  logical                 :: silentrender
   character(fnlen)        :: rendermode
   character(fnlen)        :: GBmode
   character(fnlen)        :: xtalname
   character(fnlen)        :: povrayfile
   character(fnlen)        :: framefolder
   character(fnlen)        :: moviename
+  character(fnlen)        :: metric
   character(fnlen)        :: PVincludepath
   character(fnlen)        :: PVexec 
   character(fnlen)        :: PVffmpeg
@@ -147,6 +149,7 @@ real(kind=dbl)                        :: mA(3)
 real(kind=dbl)                        :: mC(3)
 real(kind=dbl)                        :: o1(8)
 real(kind=dbl)                        :: o2(8)
+logical                               :: silentrender
 real(kind=dbl)                        :: dOmega
 character(fnlen)                      :: GBmode
 character(fnlen)                      :: rendermode
@@ -157,9 +160,10 @@ character(fnlen)                      :: moviename
 character(fnlen)                      :: PVincludepath
 character(fnlen)                      :: PVexec 
 character(fnlen)                      :: PVffmpeg
+character(fnlen)                      :: metric
 
 namelist /oSLERPlist/ framesize, nthreads, qm, mA, mC, o1, o2, dOmega, GBmode, xtalname, povrayfile, framefolder, &
-                      rendermode, moviename, PVincludepath, PVexec, PVffmpeg
+                      rendermode, moviename, PVincludepath, PVexec, PVffmpeg, silentrender, metric
 
 framesize = 1024
 nthreads = 1
@@ -177,10 +181,12 @@ o2 = (/ 1.D0, 0.D0, 0.D0, 0.D0, 1.D0, 0.D0, 0.D0, 0.D0 /)   ! normalization will
 dOmega = 0.25D0
 GBmode = 'normal'      ! 'normal' for (mA, qm) description; 'octonion' for (qA, qB) description
 rendermode = 'cubes'
+silentrender = .TRUE.
 xtalname = 'undefined'
 povrayfile = 'underfined'
 framefolder = 'frames'
 moviename = 'render.mp4'
+metric = 'octonion'
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -209,6 +215,7 @@ self%nml%o1 = o1
 self%nml%o2 = o2
 self%nml%qm = qm
 self%nml%dOmega = dOmega
+self%nml%silentrender = silentrender
 self%nml%rendermode = rendermode
 self%nml%xtalname = trim(xtalname)
 self%nml%povrayfile = trim(povrayfile) 
@@ -217,6 +224,7 @@ self%nml%moviename = trim(moviename)
 self%nml%PVincludepath = trim(PVincludepath)
 self%nml%PVexec = trim(PVexec)
 self%nml%PVffmpeg = trim(PVffmpeg)
+self%nml%metric = metric
 
 end subroutine readNameList_
 
@@ -281,7 +289,7 @@ type(q_T)                               :: qu
 type(o_T)                               :: om
 
 integer(kind=irg)                       :: hdferr, pgnum, i, sgnum, numf, status, io_int(1) 
-character(fnlen)                        :: fname, pvcmd, subfolder, povname, str, dirstring
+character(fnlen)                        :: fname, pvcmd, subfolder, povname, str, dirstring, xname
 real(kind=dbl)                          :: Omega, dOmega, qn1(4), qn2(4), qmat(3,3), OB(3,3), ON(3,3), p, pA(4), pB(4), pC(4), &
                                            qinter(4), ointer(8), pD(4), qq(3), phiA, phiC, msA(3), msC(3), pp(3), io_real(1)
 logical                                 :: dexists, fexists, frames_generated
@@ -297,7 +305,7 @@ associate( nml=>self%nml )
 
 ! initialize the PoVRay class with a dummy file name
 fname = 'dummy.txt'
-PoVRay = PoVRay_T( EMsoft, fname )
+PoVRay = PoVRay_T( EMsoft, fname, nofile=.TRUE. )
 
 ! In order for the PoVRay program to properly function, two include files are needed;
 ! here we copy those files from the EMsoftOO resources folder into the current folder. 
@@ -308,7 +316,8 @@ call PoVRay%get_incfile(EMsoft, 'octonionSLERP.inc')
 
 ! get the point group number for this crystal structure
 cell = cell_T()
-call cell%readDataHDF(SG, EMsoft, useXtalName=nml%xtalname)
+xname = EMsoft%generateFilePath('EMXtalFolderpathname',trim(nml%xtalname))
+call cell%readDataHDF(SG, EMsoft, useXtalName=xname)
 
 pgnum = 0
 sgnum = SG%getSpaceGroupNumber()
@@ -342,8 +351,10 @@ if (trim(nml%GBmode).eq.'normal') then
 else
     o = Octonion_T( od = nml%o1 )
     oct1 = GBoctonion_T( oct = o )
+    call oct1%oct_print(' input oct1 (normalized) : ')
     o = Octonion_T( od = nml%o2 )
     oct2 = GBoctonion_T( oct = o )
+    call oct2%oct_print(' input oct2 (normalized) : ')
 end if
 
 ! define the subfolder name for the frames
@@ -366,7 +377,7 @@ end if
 DS = DirStat_T( PGnum = pgnum )
 
 ! compute the misorientation angle between the grain boundary octonions
-Omega = oct1%GBO_Omega_Symmetric(oct2, DS)
+Omega = oct1%GBO_Omega_Symmetric(oct2, DS, metric = trim(nml%metric))
 io_real(1) = Omega * 180.D0 / cPi
 call Message%WriteValue('--> octonion misorientation angle (degrees) ', io_real, 1)
 
@@ -383,9 +394,9 @@ io_int(1) = numf
 call Message%WriteValue('Number of movie frames requested = ',io_int,1)
 
 ! construct the t values array for the interpolation parameter
-allocate(tval(numf+1))
-do i=1,numf+1
-    tval(i) = float(i-1)/float(numf)
+allocate(tval(0:numf+1))
+do i=0,numf+1
+    tval(i) = float(i)/float(numf+1)
 end do
 
 ! convert the octonions to the correct parameters for POVray visualization
@@ -397,7 +408,7 @@ qn2 = quat%get_quatd()
 qn2 = qn2/vecnorm(qn2)
 
 ! create the PoVRay frame parameter files
-do i=1,numf+1
+do i=0,numf+1
     ! interpolate the octonions
     ointer = oct1%GBO_SLERP(oct1%get_octd(), oct2%get_octd(), Omega, tval(i), 8)
     qint1 = conjg( Quaternion_T( qd = ointer(1:4) ) )
@@ -454,12 +465,13 @@ else
     open(unit=dataunit,file='cube-scene.pov',status='unknown',form='formatted')
 end if
 write(dataunit,"('// POV-Ray 3.7 Scene File for visualization of grain boundary configurations')")
-write(dataunit,"('// produced by EMsoft 4.0')")
+write(dataunit,"('// produced by EMsoftOO 6.0')")
 write(dataunit,"('// email: degraef@cmu.edu')")
-write(dataunit,"('// homepage: http://materials.cmu.edu/degraef')")
+write(dataunit,"('// homepage: https://www.mse.engineering.cmu.edu/directory/bios/degraef-marc.html')")
 write(dataunit,"('//')")
 write(dataunit,"('')")
 write(dataunit,"('// load all the definitions')")
+write(dataunit,"('#version 3.7;')")
 write(dataunit,"('#include ""octonionSLERP.inc""')")
 write(dataunit,"('')")
 write(dataunit,"('#declare SubFolder = ""',A,'/""')") trim(subfolder)
@@ -520,7 +532,6 @@ else
 end if
 write(dataunit,"('Output_File_Name=',A,'/frame')") trim(subfolder)
 
-! write(dataunit,"('+L/Users/mdg/Applications/PovrayCommandLineMacV2/include')")
 str = '+L'//trim(nml%PVincludepath)
 write(dataunit,"(A)") trim(str)
 
@@ -553,17 +564,21 @@ call Message%printMessage(' --> povray.ini file created ')
 
 ! finally, execute the rendering programs if they can be found; 
 ! otherwise, print out some suggestions on how to proceed with the scene files
-dirstring = EMsoft%getConfigParameter('UserHomePath')
-! pvcmd = trim(dirstring)//'/Applications/PovrayCommandLineMacV2/Povray37UnofficialMacCmd'
-pvcmd = trim(dirstring)//'/'//trim(nml%PVexec)
+pvcmd = trim(nml%PVexec)
 inquire(file=trim(pvcmd),exist=fexists)
 frames_generated = .FALSE.
 
 if (fexists.eqv..TRUE.) then
     call Message%printMessage('')
-    call Message%printMessage('Found PovRay command line executable; rendering frames in silent mode (may take a while)')
-    call Message%printMessage('Executing '//trim(pvcmd)//' povray >/dev/null 2>/dev/null')
-    call system(trim(pvcmd)//' povray >/dev/null 2>/dev/null')
+    if (nml%silentrender.eqv..TRUE.) then
+      call Message%printMessage('Found PovRay command line executable; rendering frames in silent mode (may take a while)')
+      call Message%printMessage('Executing '//trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
+      call system(trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
+    else
+      call Message%printMessage('Found PovRay command line executable; rendering frames')
+      call Message%printMessage('Executing '//trim(pvcmd)//' povray.ini')
+      call system(trim(pvcmd)//' povray.ini')
+    end if 
     frames_generated = .TRUE.
 else
     call Message%printMessage(' =============================== ')

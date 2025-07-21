@@ -69,15 +69,19 @@ private
 
    procedure, pass(self) :: GBO_get_q_
    procedure, pass(self) :: GBO_Omega_
+   procedure, pass(self) :: GBO_Omega_NB_
    procedure, pass(self) :: GBO_SLERP_
    procedure, pass(self) :: GBO_Omega_Refine_
    procedure, pass(self) :: GBO_Omega_Symmetric_
+   procedure, pass(self) :: GBO_Omega_symmetric_NB_
 
    generic, public :: GBO_get_q => GBO_get_q_
    generic, public :: GBO_Omega => GBO_Omega_
+   generic, public :: GBO_Omega_NB => GBO_Omega_NB_
    generic, public :: GBO_SLERP => GBO_SLERP_
    generic, public :: GBO_Omega_Refine => GBO_Omega_Refine_
    generic, public :: GBO_Omega_Symmetric => GBO_Omega_Symmetric_
+   generic, public :: GBO_Omega_Symmetric_NB => GBO_Omega_Symmetric_NB_
 
 end type GBoctonion_T
 
@@ -94,7 +98,7 @@ private
 
 end type GBOctonionArray_T
 
-private:: insertGBOctintoArray_, GBO_Omega_, GBO_SLERP_
+private:: insertGBOctintoArray_, GBO_Omega_, GBO_Omega_NB_, GBO_SLERP_
 public :: GBO_minimal_U1_angle, GBO_minimize_U1_angle
 
 ! the constructor routines for these classes 
@@ -297,6 +301,9 @@ else
   end if 
 end if 
 
+! make sure that this is a properly normalized quaternion 
+call qu%quat_normalize()
+
 end function GBO_get_q_
 
 !--------------------------------------------------------------------------
@@ -310,6 +317,7 @@ recursive function GBO_Omega_symmetric_(self, oct2, DS, solution, arclengths, si
 !! Compute the S^7 geodesic arc length for a GBO pair (U(1) symmetry, grain exchange and crystal symmetry)
 
 use mod_dirstats
+use mod_IO
 
 IMPLICIT NONE
 
@@ -326,9 +334,10 @@ real(kind=dbl)                                    :: Omega
 
 type(GBoctonion_T)                                :: GBab, GBcd 
 type(QuaternionArray_T)                           :: qsym, qAr
-type(Quaternion_T)                                :: Sqa, Sqb, Sqc, Sqd, qa, qb, qc, qd
+type(Quaternion_T)                                :: Sqa, Sqb, Sqc, Sqd, qa, qb, qc, qd, qu
+type(IO_T)                                        :: Message
 
-integer(kind=irg)                                 :: i, j, k, l, Nqsym
+integer(kind=irg)                                 :: i, j, k, l, Nqsym, io_int(1), ss
 logical                                           :: keep, arcs, skipU1, dorefine
 real(kind=dbl)                                    :: smallest, x
 character(fnlen)                                  :: usemetric
@@ -336,6 +345,7 @@ character(fnlen)                                  :: usemetric
 ! handle the optional input parameters
 usemetric = 'octonion'
 if (present(metric)) usemetric = trim(metric)
+! call Message%printMessage(' Metric to be used for computation : '//trim(usemetric))
 
 dorefine = .FALSE. 
 if (present(refine)) then 
@@ -358,6 +368,8 @@ end if
 
 qsym = DS%getQuatArray(slot='qsym')
 Nqsym = qsym%getQnumber()
+io_int(1) = Nqsym
+! call Message%WriteValue(' Number of symmetry operators generated : ', io_int,1)
 arcs = .FALSE.
 if (present(arclengths)) then
   if (arcs.eqv..TRUE.) then
@@ -392,6 +404,7 @@ else
         Sqc = qsym%getQuatfromArray(k) * qc
         call Sqc%quat_pos()
         do l=1,Nqsym
+          qd = oct2%GBO_get_q(2)
           Sqd = qsym%getQuatfromArray(l) * qd
           call Sqc%quat_pos()
           GBcd = GBoctonion_T( Sqc, Sqd )
@@ -421,6 +434,16 @@ else
       end do
     end if 
   else
+    qa = self%GBO_get_q(1)
+    qb = self%GBO_get_q(2)
+    qc = oct2%GBO_get_q(1)
+    qd = oct2%GBO_get_q(2)
+    ! write (*,*) 'working with the following quaternions:'
+    ! call qa%quat_print(' qa : ')
+    ! call qb%quat_print(' qb : ')
+    ! call qc%quat_print(' qc : ')
+    ! call qd%quat_print(' qd : ')
+    ss = 0
     do i=1,Nqsym
       Sqa = qsym%getQuatfromArray(i) * qa
       do j=1,Nqsym
@@ -429,6 +452,7 @@ else
         do k=1,Nqsym
           Sqc = qsym%getQuatfromArray(k) * qc
           do l=1,Nqsym
+            ss = ss+1
             Sqd = qsym%getQuatfromArray(l) * qd
             GBcd = GBoctonion_T( Sqc, Sqd )
             if (skipU1.eqv..TRUE.) then  
@@ -463,6 +487,47 @@ end if
 Omega = smallest
 
 end function GBO_Omega_symmetric_
+
+!--------------------------------------------------------------------------
+recursive function GBO_Omega_symmetric_NB_(self, oct2, Nqsym, qsym)  result(Omega)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_Omega_symmetric_NB_
+
+use mod_quaternions
+
+IMPLICIT NONE
+
+class(GBoctonion_T),INTENT(INOUT) :: self
+type(GBoctonion_T),INTENT(INOUT)  :: oct2
+integer(kind=irg),INTENT(IN)      :: Nqsym 
+type(QuaternionArray_T),INTENT(IN):: qsym
+real(kind=dbl)                    :: Omega
+
+integer(kind=irg)                 :: i, k
+real(kind=dbl)                    :: smallest, x
+type(Quaternion_T)                :: qa, qc, Sqa, Sqc
+
+qa = self%GBO_get_q_(1)
+qc = oct2%GBO_get_q_(1)
+
+if (Nqsym.eq.1) then
+  smallest = self%GBO_Omega_NB_(qa,qc)
+else
+  smallest = 1000.D0
+  do i=1,Nqsym
+    Sqa = qsym%getQuatfromArray(i) * qa
+    call Sqa%quat_pos()
+    do k=1,Nqsym
+      Sqc = qsym%getQuatfromArray(k) * qc
+      call Sqc%quat_pos()
+      x = self%GBO_Omega_NB_(Sqa,Sqc)
+      if (x.lt.smallest) smallest = x
+    end do
+  end do
+end if 
+
+Omega = smallest
+
+end function GBO_Omega_symmetric_NB_
 
 !--------------------------------------------------------------------------
 recursive function GBO_Omega_(self,oct2,metric,noU1)  result(Omega)
@@ -535,6 +600,7 @@ if (present(noU1)) then
 else
 ! determine the minimal U(1) angle for the (a,b) - (c,d) boundary pair
   zeta = GBO_minimal_U1_angle(qa,qb,qc,qd)
+  ! write (*,*) ' (a,b) - (c,d) ',zeta/dtor
   cz = cos(zeta*0.5D0)
   sz = sin(zeta*0.5D0)
   qq1 = (/ qc(1)*cz-qc(4)*sz, cz*qc(2)+sz*qc(3), cz*qc(3)-sz*qc(2), cz*qc(4)+sz*qc(1) /)
@@ -555,6 +621,7 @@ else
 
 ! determine the minimal U(1) angle for the (a,-b) - (c,d) boundary pair
   zeta = GBO_minimal_U1_angle(qa,-qb,qc,qd)
+  ! write (*,*) ' (a,-b) - (c,d) ',zeta/dtor
   cz = cos(zeta*0.5D0)
   sz = sin(zeta*0.5D0)
   qq1 = (/ qc(1)*cz-qc(4)*sz, cz*qc(2)+sz*qc(3), cz*qc(3)-sz*qc(2), cz*qc(4)+sz*qc(1) /)
@@ -575,6 +642,7 @@ else
 
 ! determine the minimal U(1) angle for the (b,a) - (c,d) boundary pair
   sigma = GBO_minimal_U1_angle(qa,qb,qc,qd,exchange=.TRUE.)
+  ! write (*,*) ' (b, a) - (c,d) ',sigma/dtor
   cs = cos(sigma*0.5D0)
   ss = sin(sigma*0.5D0)
   qq1 = (/ qc(1)*cs-qc(4)*ss, cs*qc(2)+ss*qc(3), cs*qc(3)-ss*qc(2), cs*qc(4)+ss*qc(1) /)
@@ -595,6 +663,7 @@ else
 
 ! determine the minimal U(1) angle for the (b,-a) - (c,d) boundary pair
   sigma = GBO_minimal_U1_angle(-qa,qb,qc,qd,exchange=.TRUE.)
+  ! write (*,*) ' (b,-a) - (c,d) ',sigma/dtor
   cs = cos(sigma*0.5D0)
   ss = sin(sigma*0.5D0)
   qq1 = (/ qc(1)*cs-qc(4)*ss, cs*qc(2)+ss*qc(3), cs*qc(3)-ss*qc(2), cs*qc(4)+ss*qc(1) /)
@@ -617,6 +686,8 @@ else
   smax = maxval(sums)
   isum = maxloc(sums)
 
+  ! write (*,*) ' sums : ', sums 
+
 ! and determine the smallest geodesic distance on S^7
   select case(m)
     case(1)
@@ -631,6 +702,30 @@ end if
 end function GBO_Omega_
 
 !--------------------------------------------------------------------------
+recursive function GBO_Omega_NB_(self, qa, qc)  result(Omega)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_Omega_NB_
+
+use mod_quaternions
+
+IMPLICIT NONE
+
+class(GBoctonion_T),INTENT(IN)    :: self
+type(Quaternion_T),INTENT(INOUT)  :: qa
+type(Quaternion_T),INTENT(INOUT)  :: qc
+real(kind=dbl)                    :: Omega
+
+type(Quaternion_T)                :: qq, pp 
+real(kind=dbl)                    :: q(4), p(4)
+
+qq = qa * conjg(qc)
+pp = qc * conjg(qa)
+q = qq%get_quatd()
+p = pp%get_quatd()
+Omega = minval( (/ 2.D0 * acos(abs(q)), 2.D0*acos(abs(p)) /) )
+
+end function GBO_Omega_NB_
+
+!--------------------------------------------------------------------------
 recursive function GBO_minimal_U1_angle(qa,qb,qc,qd,exchange)  result(zeta)
 !DEC$ ATTRIBUTES DLLEXPORT :: GBO_minimal_U1_angle
 !! author: MDG
@@ -639,8 +734,11 @@ recursive function GBO_minimal_U1_angle(qa,qb,qc,qd,exchange)  result(zeta)
 !!
 !! Compute the angle that will minimize a geodesic quaternion arc length with respect to U(1) symmetry
 !!
-!! this needs to be rewritten with Oliver Johnson's new solution; in particular the grain exchange
-!! expression is currently incorrect...
+!! this was rewritten with Oliver Johnson's new solution; in particular the grain exchange
+!! expression.
+
+use mod_rotations
+use mod_quaternions
 
 IMPLICIT NONE
 
@@ -651,35 +749,34 @@ real(kind=dbl),INTENT(IN)         :: qd(4)
 logical,INTENT(IN),OPTIONAL       :: exchange
 real(kind=dbl)                    :: zeta
 
-real(kind=dbl)                    :: nom, denom, mu
+type(Quaternion_T)                :: qpi_x 
+type(Quaternion_T)                :: qua_x, qub_x
+
+real(kind=dbl)                    :: nom, denom, mu, v1, v4, qax(4), qbx(4)
 
 zeta = 0.D0
 
 if (present(exchange)) then 
   if (exchange.eqv..TRUE.) then 
-    nom = (qb(4)*qc(1)-qb(1)*qc(4)) + (qa(4)*qd(1)-qa(1)*qd(4)) + (qb(2)*qc(3)-qb(3)*qc(2)) + (qa(2)*qd(3)-qa(3)*qd(2))
-    denom = sum(qb*qc) + sum(qa*qd)
-  if ((denom.ne.0.D0).or.(nom.ne.0.D0)) then
-      mu = 2.D0 * atan2(nom, denom)
-    if (mu.lt.0.D0) then
-       zeta = 2.D0*cPi + mu
-    else
-       zeta = mu
-      end if 
-    end if 
-  end if 
+    qpi_x = Quaternion_T( qd = (/ 0.D0, 1.D0, 0.D0, 0.D0 /) ) 
+    qua_x = Quaternion_T( qd = qb ) * qpi_x
+    qub_x = Quaternion_T( qd = qa ) * qpi_x
+    qax = qua_x%get_quatd()
+    qbx = qub_x%get_quatd()
+    v1 = sum(qax*qc) + sum(qbx*qd)
+    v4 = (qax(4)*qc(1)-qax(1)*qc(4)) - (qax(3)*qc(2)-qax(2)*qc(3)) + &
+         (qbx(4)*qd(1)-qbx(1)*qd(4)) - (qbx(3)*qd(2)-qbx(2)*qd(3))
+    zeta = 2.D0 * atan2(v4, v1)
+  end if
 else
-  nom = (qa(4)*qc(1)-qa(1)*qc(4)) + (qb(4)*qd(1)-qb(1)*qd(4)) + (qa(2)*qc(3)-qa(3)*qc(2)) + (qb(2)*qd(3)-qb(3)*qd(2))
-  denom = sum(qa*qc) + sum(qb*qd)
-  if ((denom.ne.0.D0).or.(nom.ne.0.D0)) then
-    mu = 2.D0 * atan2(nom, denom)
-    if (mu.lt.0.D0) then
-      zeta = 2.D0*cPi + mu
-    else
-      zeta = mu
-    end if 
-  end if 
+! using Oliver Johnson's new results
+  v1 = sum(qa*qc) + sum(qb*qd)
+  v4 = (qa(4)*qc(1)-qa(1)*qc(4)) - (qa(3)*qc(2)-qa(2)*qc(3)) + &
+       (qb(4)*qd(1)-qb(1)*qd(4)) - (qb(3)*qd(2)-qb(2)*qd(3))
+  zeta = 2.D0 * atan2(v4, v1)
 end if 
+
+if (zeta.lt.0.D0) zeta = 4.D0*cPi + zeta
 
 end function GBO_minimal_U1_angle
 

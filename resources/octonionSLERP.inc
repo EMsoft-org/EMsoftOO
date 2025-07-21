@@ -1,5 +1,4 @@
 //------------------------------------------------------------------------
-#version 3.7;
 global_settings{ assumed_gamma 1.0 }
 //------------------------------------------------------------------------
 #include "colors.inc"
@@ -71,8 +70,8 @@ sky_sphere{ pigment{ gradient <0,1,0>
 #declare R1  = 2.0;   
 #declare R2  = 4.0;
 
-#declare Rl  = 0.055; // radius of lines 
-#declare Rp  = 0.105; // radius of points 
+#declare Rl  = 0.055; // radius of lines  - Radius der Strecken 
+#declare Rp  = 0.105; // radius of points - Radius der Punkte 
 
 
 #macro WireFrameSphere(NrLongitudes, NrLatitudes, Rmaj, Rmin)
@@ -380,6 +379,8 @@ box {
 	}
 } 
 #end// of macro "TruncationB( ... )"
+
+// arrows.pov file
 
 #declare bx = 0.5; 
 #declare dx = 0.15; 

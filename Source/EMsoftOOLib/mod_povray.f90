@@ -281,7 +281,7 @@ if (fexists.eqv..FALSE.) then   ! only copy the file if it doesn't already exist
       call Message%printMessage('WARNING: the analytical_g.inc file is missing from the EMsoft resource folder...')
       call Message%printMessage('         you will not be able to render the scene files, but they will still be generated.')
   else
-      outname = 'analytical_g.inc'
+      outname = trim(incname)  ! this goes in the current folder
       open(UNIT=dataunit,FILE=trim(fname), STATUS='old', FORM='formatted',ACCESS='sequential')
       open(UNIT=dataunit2,FILE=trim(outname), STATUS='unknown', FORM='formatted',ACCESS='sequential')
       do
