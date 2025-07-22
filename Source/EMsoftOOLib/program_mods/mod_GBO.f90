@@ -436,7 +436,8 @@ fname = EMsoft%generateFilePath('EMdatapathname',trim(nml%outname))
 open(unit=dataunit,file=trim(fname),status='unknown',form='formatted')
 write (dataunit,"(I6)") numb
 do i=0,numb
-  write (dataunit,"(3I10)") i, histogramSYM(i), histogramNBSYM(i)
+  write (dataunit,"(I10,' ',F12.8,' ',F12.8)") i, real(histogramSYM(i))/real(numoct), &
+                                               real(histogramNBSYM(i))/real(numoct)
 end do 
 close(unit=dataunit,status='keep')
 

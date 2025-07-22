@@ -58,7 +58,14 @@ IMPLICIT NONE
 ! Therefore, they use an octonion normalization by a factor of sqrt(2), but this is 
 ! handled transparently by the parent Octonion_T class.
 ! Other than that, there really are not many differences between the two
-! classes.  There are of course grain boundary specific operations which are defined in this module.
+! classes.  There are of course grain boundary specific operations which are 
+! defined in this module.
+
+! This module also implements the findings of Prof. Oliver Johnson from BYU.
+! In particular, his model introduces the concept of "simulated inversion" in 
+! addition to a correct grain exchange symmetry operation (the one in the octonion paper
+! is actually incorrect).  
+
 
 ! class definition for the Grain Boundary Octonion
 type, public, extends(Octonion_T) :: GBoctonion_T
