@@ -75,6 +75,7 @@ contains
 private 
 
    procedure, pass(self) :: GBO_get_q_
+   procedure, pass(self) :: GBO_get_equivalent_
    procedure, pass(self) :: GBO_Omega_
    procedure, pass(self) :: GBO_Omega_NB_
    procedure, pass(self) :: GBO_SLERP_
@@ -83,6 +84,7 @@ private
    procedure, pass(self) :: GBO_Omega_symmetric_NB_
 
    generic, public :: GBO_get_q => GBO_get_q_
+   generic, public :: GBO_get_equivalent => GBO_get_equivalent_
    generic, public :: GBO_Omega => GBO_Omega_
    generic, public :: GBO_Omega_NB => GBO_Omega_NB_
    generic, public :: GBO_SLERP => GBO_SLERP_
@@ -179,7 +181,7 @@ call reportDestructor('GBoctonion_T')
 end subroutine GBOctonion_destructor
 
 !--------------------------------------------------------------------------
-type(GBOctonionArray_T) function GBOctonionArray_constructor( qAr1, qAr2 ) result(OctArray)
+type(GBOctonionArray_T) function GBOctonionArray_constructor( qAr1, qAr2, n, nthreads, s ) result(OctArray)
 !DEC$ ATTRIBUTES DLLEXPORT :: GBOctonionArray_constructor
   !! author: MDG
   !! version: 1.0
@@ -188,21 +190,25 @@ type(GBOctonionArray_T) function GBOctonionArray_constructor( qAr1, qAr2 ) resul
   !! constructor for the GBOctonionArray Class
   !!
   !! this constructor takes two QuaternionArrays and merges them into a GBOctonionArray
-  !! 
+  !! Alternatively, it initializes the arrays to a requested size
 
 use mod_io 
 
 IMPLICIT NONE
 
-  type(QuaternionArray_T),INTENT(INOUT)     :: qAr1 
-  type(QuaternionArray_T),INTENT(INOUT)     :: qAr2 
+  type(QuaternionArray_T),INTENT(INOUT),OPTIONAL      :: qAr1 
+  type(QuaternionArray_T),INTENT(INOUT),OPTIONAL      :: qAr2 
+  integer(kind=irg),INTENT(IN),OPTIONAL               :: n 
+  integer(kind=irg),INTENT(IN),OPTIONAL               :: nthreads
+  character(1),INTENT(IN),OPTIONAL                    :: s 
 
-  type(IO_T)                                :: Message 
+  type(IO_T)                                          :: Message 
 
-  integer(kind=irg)                         :: i 
-  type(Quaternion_T)                        :: q1, q2
-  type(GBoctonion_T)                        :: gboct
+  integer(kind=irg)                                   :: i 
+  type(Quaternion_T)                                  :: q1, q2
+  type(GBoctonion_T)                                  :: gboct
 
+if (present(qAr1)) then
 ! make sure the arrays have the same size
   if (qAr1%getQnumber().ne.qAr2%getQnumber()) then 
     call Message%printError('GBOctonionArray_constructor',' input quaternion arrays have different size')
@@ -228,6 +234,25 @@ IMPLICIT NONE
     gboct = GBoctonion_T( q1, q2 )
     call OctArray%insertGBOctinArray(i, gboct)
   end do
+else
+! set array parameters
+  OctArray%nthreads = nthreads
+  OctArray%n = n
+  OctArray%s = s
+
+  ! allocate the GBO array
+  if (s.eq.'s') then
+    if (allocated(OctArray%o)) deallocate(OctArray%o)
+    allocate( OctArray%o(8,OctArray%n) ) 
+    Octarray%o = 0.0
+    Octarray%o(1,:) = 1.0
+  else
+    if (allocated(OctArray%od)) deallocate(OctArray%od)
+    allocate( OctArray%od(8,OctArray%n) ) 
+    Octarray%od = 0.D0
+    Octarray%od(1,:) = 1.D0
+  end if 
+end if 
 
 end function GBOctonionArray_constructor
 
@@ -790,6 +815,10 @@ end function GBO_minimal_U1_angle
 !--------------------------------------------------------------------------
 recursive function GBO_minimize_U1_angle(qa,qb,qc,qd,numz,z,czs,szs,m,exchange)  result(zval)
 !DEC$ ATTRIBUTES DLLEXPORT :: GBO_minimize_U1_angle
+!! author: MDG
+!! version: 1.0
+!! date: 07/16/25
+!!
 
 IMPLICIT NONE
 
@@ -886,6 +915,11 @@ end function GBO_minimize_U1_angle
 !--------------------------------------------------------------------------
 recursive function GBO_Omega_Refine_(self ,oct2,metric,init)  result(Omega)
 !DEC$ ATTRIBUTES DLLEXPORT :: GBO_Omega_Refine_
+!! author: MDG
+!! version: 1.0
+!! date: 07/16/25
+!!
+
 
 IMPLICIT NONE
 
@@ -1046,6 +1080,11 @@ end function GBO_Omega_Refine_
 !--------------------------------------------------------------------------
 recursive function GBO_SLERP_(self, hcn1, hcn2, Omega, t, n)  result(hcnt)
 !DEC$ ATTRIBUTES DLLEXPORT :: GBO_SLERP_
+!! author: MDG
+!! version: 1.0
+!! date: 07/16/25
+!!
+
 
 IMPLICIT NONE
 
@@ -1068,5 +1107,106 @@ sm = sin((1.D0-t)*theta)
 hcnt = hcn1 * sm/st + hcn2 * sp/st
 
 end function GBO_SLERP_
+
+!--------------------------------------------------------------------------
+recursive function GBO_get_equivalent_(self, qsym, nthreads, NBflag)  result(GBO_equiv)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_get_equivalent_
+!! author: MDG
+!! version: 1.0
+!! date: 07/23/25
+!!
+
+
+IMPLICIT NONE
+
+class(GBoctonion_T),INTENT(INOUT)     :: self
+type(QuaternionArray_T),INTENT(INOUT) :: qsym
+integer(kind=irg),INTENT(IN)          :: nthreads
+integer(kind=irg),INTENT(INOUT)       :: NBflag     ! no boundary flag 
+type(GBOctonionArray_T)               :: GBO_equiv
+
+type(GBOctonionArray_T)               :: GBO_temp
+type(Quaternion_T)                    :: qa, qb, Sqa, Sqb, qpi_x, qua_x, qub_x 
+type(GBoctonion_T)                    :: GBab
+type(Octonion_T)                      :: o
+
+integer(kind=irg)                     :: icnt, j, k, l, Nqsym, Nlist 
+real(kind=dbl)                        :: diff, epsd=1.0D-12, octo(8) 
+real(kind=dbl),allocatable            :: olist(:,:)
+logical                               :: newoct
+
+qa = self%GBO_get_q(1)
+qb = self%GBO_get_q(2)
+
+Nqsym = qsym%getQnumber()
+GBO_temp = GBOctonionArray_T( n = 2*Nqsym**2, s='d', nthreads = nthreads )
+qpi_x = Quaternion_T( qd = (/ 0.D0, 1.D0, 0.D0, 0.D0 /) ) 
+
+icnt = 0
+NBflag = 0
+do k=1,Nqsym
+  Sqa = qsym%getQuatfromArray(k) * qa
+  call Sqa%quat_pos()
+  do l=1,Nqsym
+    Sqb = qsym%getQuatfromArray(l) * qb
+    call Sqb%quat_pos()
+! this is regular crystallographic symmetry
+    GBab = GBoctonion_T( Sqa, Sqb )
+    diff = sum( abs(Sqa%get_quatd() - Sqb%get_quatd()) )
+    icnt = icnt + 1
+    if (diff.lt.epsd) NBflag = icnt
+    call GBO_temp%insertGBOctintoArray_(icnt, GBab)
+! next we do grain exchange symmetry
+    qua_x = Sqb * qpi_x
+    qub_x = Sqa * qpi_x
+    GBab = GBoctonion_T( qua_x, qub_x )
+    diff = sum( abs(qua_x%get_quatd() - qub_x%get_quatd()) )
+    icnt = icnt + 1
+    if (diff.lt.epsd) NBflag = icnt
+    call GBO_temp%insertGBOctintoArray_(icnt, GBab)
+  end do 
+end do
+
+if (NBflag.eq.0) then 
+! next we need to determine how many unique octonions there are and return
+! only those... that requires a two-step process...  for now we just return 
+! the temp class
+  Nlist = 1
+  allocate( olist(8, icnt) )
+  o = GBO_temp%getOctfromArray(1)
+  olist(1:8,1) = o%get_octd()
+  do k=2,icnt 
+    o = GBO_temp%getOctfromArray(k)
+    octo = o%get_octd()
+    newoct = .TRUE.
+    do j=1,k-1
+      diff = sum( abs( olist(1:8,j) - octo(1:8) ) )
+      if (diff.lt.epsd) then 
+        newoct = .FALSE.
+        EXIT 
+      end if 
+    end do 
+    if (newoct.eqv..TRUE.) then 
+      Nlist = Nlist + 1
+      olist(1:8,Nlist) = octo(1:8)
+    end if 
+  end do
+
+  if (Nlist.eq.icnt) then ! simply return the original list since they are all unique
+    GBO_equiv = GBO_temp
+  else  ! make a new (shorter) list
+    GBO_equiv = GBOctonionArray_T( n = Nlist, s='d', nthreads = nthreads )
+    do k = 1, Nlist
+      o = Octonion_T( od = olist(1:8,k) )
+      GBab = GBoctonion_T( oct = o  )
+      call GBO_equiv%insertGBOctintoArray_(k, GBab)
+    end do 
+  end if 
+else
+    GBO_equiv = GBO_temp
+end if 
+
+end function GBO_get_equivalent_
+
 
 end module mod_GBoctonions

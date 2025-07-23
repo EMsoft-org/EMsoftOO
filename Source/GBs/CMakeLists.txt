@@ -38,4 +38,12 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMsoftHDFLib_BINARY_DIR}
                         )
 
+  Add_EMSoftOO_Executable(TARGET EMGBOanalysis
+                        SOURCES ${APP_DIR}/EMGBOanalysis.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EMGBOanalysis.template
+                        SOLUTION_FOLDER EMsoftOOPublic/GBs
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMsoftHDFLib_BINARY_DIR}
+                        )
 endif()

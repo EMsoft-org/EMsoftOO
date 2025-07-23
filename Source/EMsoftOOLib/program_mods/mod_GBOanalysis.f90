@@ -172,41 +172,7 @@ nml = self%nml
 end function getNameList_
 
 !--------------------------------------------------------------------------
-recursive subroutine writeHDFNameList_(self, HDF, HDFnames)
-!DEC$ ATTRIBUTES DLLEXPORT :: writeHDFNameList_
-!! author: MDG 
-!! version: 1.0 
-!! date: 07/22/25
-!!
-!! write namelist to HDF file
-
-use mod_HDFsupport
-use mod_HDFnames
-use stringconstants 
-
-use ISO_C_BINDING
-
-IMPLICIT NONE
-
-class(GBOanalysis_T), INTENT(INOUT)        :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
-
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
-
-associate( mcnl => self%nml )
-
-end associate
-
-end subroutine writeHDFNameList_
-
-!--------------------------------------------------------------------------
-subroutine GBOanalysis_(self, EMsoft, progname, HDFnames)
+subroutine GBOanalysis_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: GBOanalysis_
 !! author: MDG 
 !! version: 1.0 
@@ -215,14 +181,111 @@ subroutine GBOanalysis_(self, EMsoft, progname, HDFnames)
 !! perform the computations
 
 use mod_EMsoft
-use mod_HDFnames
+use mod_octonions
+use mod_GBoctonions
+use mod_dirstats
+use mod_quaternions
+use mod_io
+use mod_symmetry 
 
 IMPLICIT NONE 
 
-class(GBOanalysis_T), INTENT(INOUT)       :: self
+class(GBOanalysis_T), INTENT(INOUT)     :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+
+type(DirStat_T)                         :: DS
+type(octonion_T)                        :: oct 
+type(GBoctonion_T)                      :: GBoct 
+type(GBoctonionArray_T)                 :: GBO_equiv 
+type(QuaternionArray_T)                 :: qsym 
+type(IO_T)                              :: Message
+type(Quaternion_T)                      :: qa, qb
+
+integer(kind=irg)                       :: Nqsym, io_int(1), NBflag
+logical                                 :: enantiomorphic, centrosymmetric
+real(kind=dbl)                          :: diff, io_real(1), epsd=1.0D-12  
+
+
+associate( nml => self%nml )
+
+! turn the input octonion into a properly normalized GBoctonion_T class 
+oct = octonion_T( od = nml%oct )
+GBoct = GBoctonion_T( oct = oct )
+
+! first make sure that the two member quaternions are different; if 
+! they are the same, then there is effectively no grain boundary and 
+! we treat this case separately.
+qa = GBoct%GBO_get_q(1)
+qb = GBoct%GBO_get_q(2)
+diff = sum( abs(qa%get_quatd() - qb%get_quatd()) )
+if (diff.lt.epsd) then 
+  io_real(1) = diff
+  call Message%WriteValue(' difference between member quaternions : ', io_real, 1)
+  call qa%quat_print(' qa: ')
+  call qb%quat_print(' qb: ')
+  call Message%printMessage(' so there is effectively no grain boundary here ... ')
+  call Message%printMessage(' ')
+  stop 'All is well that ends well ... [Shakespeare, 1623]'
+end if 
+ 
+! initialize the directional statistics class
+DS = DirStat_T( pgnum = nml%pgnum )
+qsym = DS%getQuatArray(slot='qsym')
+Nqsym = qsym%getQnumber()
+
+io_int(1) = Nqsym
+call Message%WriteValue( ' Number of symmetry operators ', io_int, 1)
+
+! we'll need to distinguish between the purely rotation (enantiomorphic) point
+! groups and the centrosymmetric point groups 
+
+! is this an enantiomorphic point group ?
+enantiomorphic = .FALSE.
+if (PGrot(nml%pgnum).eq.nml%pgnum) then 
+  enantiomorphic = .TRUE.
+  call Message%printMessage(' This point group ('//trim(adjustl(PGTHD(nml%pgnum)))//') is enantiomorphic. ')
+else
+  call Message%printMessage(' This point group ('//trim(adjustl(PGTHD(nml%pgnum)))//') is not enantiomorphic. ')
+end if 
+
+! is this a centrosymmetric point group ?
+centrosymmetric = .FALSE.
+if (PGLaue(nml%pgnum).eq.nml%pgnum) then 
+  centrosymmetric = .TRUE.
+  call Message%printMessage(' This point group ('//trim(adjustl(PGTHD(nml%pgnum)))//') is centrosymmetric. ')
+else
+  call Message%printMessage(' This point group ('//trim(adjustl(PGTHD(nml%pgnum)))//') is not centrosymmetric. ')
+end if 
+
+! check for the 10 point groups that have neither property and abort the program 
+! for them since they are, as far as we know, incompatible with the octonion framework
+if ( (.not.centrosymmetric).and.(.not.enantiomorphic)) then 
+  call Message%printMessage( (/ ' This point group belongs to the set of 10 point groups that cannot be', &
+                                ' handled by means of octonions (as far as we know).  This approach can', &
+                                ' only be carried out using symmetry matrices, not quaternions nor     ', &
+                                ' octonions. Hence, there is no point in continuing this program...    ' /)) 
+
+  stop 'All is well that ends well ... [Shakespeare, 1623]'
+end if 
+
+! get the symmetrically equivalent GB octonions 
+GBO_equiv = GBoct%GBO_get_equivalent(qsym, nthreads=1, NBflag=NBflag)
+io_int(1) = GBO_equiv%getOnumber()
+call Message%WriteValue(' Total number of unique equivalent GB octonions :', io_int, 1)
+call GBO_equiv%oct_arrayprint()
+
+if (NBflag.ne.0) then 
+  io_int(1) = NBflag
+  call Message%WriteValue(' The following octonion is a No Boundary octonion :', io_int, 1)
+  call Message%printMessage(' so basically all of them are No Boundary octonions... ')
+  call Message%printMessage(' Nothing further to do ... ')
+  call Message%printMessage(' ')
+  stop 'All is well that ends well ... [Shakespeare, 1623]'
+end if 
+
+
+end associate
 
 end subroutine GBOanalysis_
 

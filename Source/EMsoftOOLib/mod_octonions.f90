@@ -1262,7 +1262,7 @@ end if
 end subroutine insertOctintoArray_
 
 !--------------------------------------------------------------------------
-recursive subroutine octprint_(self, st)
+recursive subroutine octprint_(self, st, onum)
 !DEC$ ATTRIBUTES DLLEXPORT :: octprint_
   !! author: MDG
   !! version: 1.0
@@ -1274,20 +1274,32 @@ use mod_io
 
 IMPLICIT NONE
 
-class(Octonion_T),INTENT(IN)    :: self
-character(*),INTENT(IN),OPTIONAL :: st
+class(Octonion_T),INTENT(IN)            :: self
+character(*),INTENT(IN),OPTIONAL        :: st
+integer(kind=irg),INTENT(IN),OPTIONAL   :: onum
 
-type(IO_T)                      :: Message
+type(IO_T)                              :: Message
+integer(kind=irg)                       :: io_int(1)
 
 if (present(st)) call Message%printMessage( trim(st), frm='(A,$)' )
 
-if (self%s.eq.'s') then
-  call Message % WriteValue('', self%o, 8, frm="('(',8f12.6,'); precision: '$)")
-  call Message % WriteValue('',self%s)
+if (present(onum)) then 
+  io_int(1) = onum 
+  call Message%WriteValue('',io_int,1,frm="(I4,':',$)")
+  if (self%s.eq.'s') then
+    call Message % WriteValue('', self%o, 8, frm="('(',8f12.6,')')")
+  else
+    call Message % WriteValue('', self%od, 8, frm="('(',8f20.14,')')")
+  end if
 else
-  call Message % WriteValue('', self%od, 8, frm="('(',8f20.14,'); precision: '$)")
-  call Message % WriteValue('',self%s)
-end if
+  if (self%s.eq.'s') then
+    call Message % WriteValue('', self%o, 8, frm="('(',8f12.6,'); precision: '$)")
+    call Message % WriteValue('',self%s)
+  else
+    call Message % WriteValue('', self%od, 8, frm="('(',8f20.14,'); precision: '$)")
+    call Message % WriteValue('',self%s)
+  end if
+end if 
 
 end subroutine octprint_
 
@@ -1316,7 +1328,7 @@ end if
 
 do i=1,n
   oct = self%getOctfromArray(i)
-  call oct%octprint_()
+  call oct%octprint_(onum=i)
 end do
 
 end subroutine o_arrayprint_
