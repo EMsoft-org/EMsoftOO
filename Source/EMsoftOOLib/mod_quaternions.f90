@@ -367,6 +367,8 @@ IMPLICIT NONE
       procedure, pass(self) :: insertQuatintoArray
       procedure, pass(self) :: QSym_Init_
       procedure, pass(self) :: getQnumber_
+      procedure, pass(self) :: getnthreads_
+      procedure, pass(self) :: getprecision_
       procedure, pass(self) :: deleteArray_
       procedure, pass(self) :: writeArraytoFile_
 
@@ -386,11 +388,12 @@ IMPLICIT NONE
       generic, public :: insertQuatinArray => insertQuatintoArray
       generic, public :: QSym_Init => QSym_Init_
       generic, public :: getQnumber => getQnumber_
+      generic, public :: getnthreads => getnthreads_
+      generic, public :: getprecision => getprecision_
       generic, public :: deleteArray => deleteArray_
       generic, public :: writeArraytoFile => writeArraytoFile_
 
   end type QuaternionArray_T
-
 
 ! next we define the quaternion 3D array class; this doesn't need as many methods
 ! as the regular one, just inserting in and extracting from the array
@@ -658,7 +661,7 @@ if (allocated(self%qd)) deallocate(self%qd)
 end subroutine Quaternion3DArray_destructor
 
 !--------------------------------------------------------------------------
-recursive subroutine quatprint(self)
+recursive subroutine quatprint(self, str)
 !DEC$ ATTRIBUTES DLLEXPORT :: quatprint
   !! author: MDG
   !! version: 1.0
@@ -671,9 +674,11 @@ use mod_io
 IMPLICIT NONE
 
   class(Quaternion_T),intent(in)    :: self
-   !! input quaternion
+  character(*),INTENT(IN),OPTIONAL  :: str
 
   type(IO_T)                        :: Message
+
+  if (present(str)) call Message%printMessage( trim(str), frm='(A,$)' )
 
   if (self%s.eq.'s') then
     call Message % WriteValue('', self%q, 4, frm="('(',4f12.6,'); precision: '$)")
@@ -2727,6 +2732,42 @@ integer(kind=irg)                         :: num
 num = self%n
 
 end function getQnumber_
+
+!--------------------------------------------------------------------------
+recursive function getnthreads_(self) result(num)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnthreads_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 07/17/25
+  !!
+  !! returns the number of quaternions in the QuaternionArray_T class
+
+IMPLICIT NONE
+
+class(QuaternionArray_T), INTENT(INOUT)   :: self
+integer(kind=irg)                         :: num
+
+num = self%nthreads
+
+end function getnthreads_
+
+!--------------------------------------------------------------------------
+recursive function getprecision_(self) result(s)
+!DEC$ ATTRIBUTES DLLEXPORT :: getprecision_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 07/17/25
+  !!
+  !! returns the precision of the quaternions in the QuaternionArray_T class
+
+IMPLICIT NONE
+
+class(QuaternionArray_T), INTENT(INOUT)   :: self
+character(1)                              :: s
+
+s = self%s
+
+end function getprecision_
 
 !--------------------------------------------------------------------------
 recursive function get3DQnumber_(self) result(num)

@@ -125,7 +125,7 @@ private
   character(3)                        :: DStype    ! 'VMF' or 'WAT', sets the distribution type
   type(QuaternionArray_T)             :: Xquats    ! quaternion array (needs routines to set and get)
   type(QuaternionArray_T)             :: Xaux      ! auxiliary quaternion array
-  type(QuaternionArray_T)             :: qsym      ! quaternion symmetry operators
+  type(QuaternionArray_T),public      :: qsym      ! quaternion symmetry operators
   integer(kind=irg)                   :: N         ! number of samples in Xquats (to keep things simple)
   integer(kind=irg)                   :: Pmdims    ! number of symmetry operators
   type(Quaternion_T)                  :: Mumean    ! mean quaternion direction
@@ -421,6 +421,7 @@ type(QuaternionArray_T)               :: qAR
 
 if (present(slot)) then
   if (trim(slot).eq.'aux') qAR = self%Xaux
+  if (trim(slot).eq.'qsym') qAR = self%qsym
 else
   qAR = self%Xquats
 end if

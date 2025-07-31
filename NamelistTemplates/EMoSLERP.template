@@ -1,13 +1,23 @@
 &oSLERPlist
-! GBmode 'normal' for normal/misorientation approach, 'octonions' for (qA, qB) approach
+! GBmode 'normal' for normal/misorientation approach, 'octonion' for (qA, qB) approach
  GBmode = 'octonion',
 ! output mode:  'spheres' or 'cubes'
  rendermode = 'cubes',
+! when set to .FALSE., show PoVRay output while rendering
+ silentrender = .TRUE.
+! number of OpenMP threads
+ nthreads = 1,
+! full path to the PoVRay Include folder
+ PVincludepath = 'undefined',
+! full path to the PoVRay executable (including the name of the program)
+ PVexec = 'undefined',
+! full path to the ffmpeg executable (including the name of the program)
+ PVffmpeg = 'undefined',
 ! name of the crystal structure file
  xtalname = 'undefined',
 ! povrayfile with relative path
  povrayfile = 'undefined',
-! framefolder name (will be inside current folder)
+! framefolder name
  framefolder = 'frames',
 ! moviename (just the filename, no path)
  moviename = 'movie.mp4',
@@ -15,6 +25,8 @@
  dOmega = 0.25D0,
 ! framesize for the movie (square frames)
  framesize = 1024,
+! metric to be used for computations: 'octonion', 'Olmsted', or  'Riemannian'
+ metric = 'octonion',
 ! if GBmode = 'normal', then complete the following three variables:
  qm = 1.D0 0.D0 0.D0 0.D0,
  mA = 0.D0 0.D0 1.D0,

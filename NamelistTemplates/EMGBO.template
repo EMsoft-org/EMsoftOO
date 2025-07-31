@@ -12,10 +12,12 @@
  numbins = 180,
 ! number of threads for parallel computation
  nthreads = 1,
+! random number seed
+ seed = 543254,
 ! CSLtype
  CSLtype = '',
 ! fix A/B boundary ?
-fixedAB = .FALSE.,
+ fixedAB = .FALSE.,
 ! output will be stored in this text file (EMsoft relative pathname)
  outname = 'undefined'
 ! this last line must be present!

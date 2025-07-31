@@ -22,7 +22,7 @@ set(MODALITY_DIRS
     CTEMbook
     Demag
     DictionaryIndexing
-    # GBs
+    GBs
     # EEC
     # OLIO
     OM

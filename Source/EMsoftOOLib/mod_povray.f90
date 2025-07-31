@@ -83,7 +83,8 @@ type, public :: PoVRay_T
     procedure, pass(self) :: getpos_FZ222_
     procedure, pass(self) :: drawFZ_
     procedure, pass(self) :: initFZCyclic_
-    procedure, pass(self) :: fliprotationmatrix_
+    procedure, pass(self) :: flipRotationMatrix_
+    procedure, pass(self) :: get_incfile_
     procedure, pass(self) :: closeFile_
     final :: PoVRay_destructor
 
@@ -110,10 +111,11 @@ type, public :: PoVRay_T
     generic, public :: getpos_FZ222 => getpos_FZ222_
     generic, public :: drawFZ => drawFZ_
     generic, public :: initFZCyclic => initFZCyclic_
+    generic, public :: get_incfile => get_incfile_
     generic, public :: closeFile => closeFile_
 ! PoVRay uses a left-handed reference frame, so we provide a conversion routine
 ! for the EMsoft right-handed convention
-    generic, public :: fliprotationmatrix => fliprotationmatrix_
+    generic, public :: flipRotationMatrix => flipRotationMatrix_
 
 end type PoVRay_T
 
@@ -125,7 +127,7 @@ end interface PoVRay_T
 contains
 
 !--------------------------------------------------------------------------
-type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, locationline, lightline, skyline) result(PV)
+type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, locationline, lightline, skyline, nofile) result(PV)
 !DEC$ ATTRIBUTES DLLEXPORT :: PoVRay_constructor
 !! author: MDG
 !! version: 1.0
@@ -150,6 +152,7 @@ character(fnlen), INTENT(IN), OPTIONAL :: lightline
  !! position of first light source (default <1, 2, -2>*50)
 character(fnlen), INTENT(IN), OPTIONAL :: skyline
  !! position of first light source (default <1, 2, -2>*50)
+logical, INTENT(IN), OPTIONAL          :: nofile
 
 if (present(dunit)) then
   PV%dunit = dunit
@@ -183,9 +186,11 @@ else
   PV%nmlfile = 'undefined'
 end if
 
-call PV%openFile(EMsoft)
-call PV%setCamera()
-call PV%setLightSource()
+if (.not.present(nofile)) then 
+  call PV%openFile(EMsoft)
+  call PV%setCamera()
+  call PV%setLightSource()
+end if
 
 ! from here on, the output file is ready to receive user scene commands
 
@@ -244,6 +249,55 @@ close(unit=self%dunit, status = 'keep')
 
 end subroutine closeFile_
 
+!--------------------------------------------------------------------------
+recursive subroutine get_incfile_(self, EMsoft, incname)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_incfile_
+ !! author: MDG
+ !! version: 1.0
+ !! date: 07/18/25
+ !!
+ !! get an *.inc file from the resources folder and copy it into the local folder.
+
+use mod_EMsoft 
+use mod_io 
+
+IMPLICIT NONE
+
+class(PoVRay_T),INTENT(INOUT)         :: self
+type(EMsoft_T),INTENT(INOUT)          :: EMsoft
+character(*),INTENT(IN)               :: incname 
+
+type(IO_T)                            :: Message 
+
+logical                               :: fexists 
+character(fnlen)                      :: fname, outname, line 
+integer(kind=irg)                     :: ios 
+
+inquire(file=trim(incname),exist=fexists)
+if (fexists.eqv..FALSE.) then   ! only copy the file if it doesn't already exists
+  fname = EMsoft%generateFilePath('Resourcepathname',trim(incname))
+  inquire(file=trim(fname),exist=fexists)
+  if (fexists.eqv..FALSE.) then
+      call Message%printMessage('WARNING: the analytical_g.inc file is missing from the EMsoft resource folder...')
+      call Message%printMessage('         you will not be able to render the scene files, but they will still be generated.')
+  else
+      outname = trim(incname)  ! this goes in the current folder
+      open(UNIT=dataunit,FILE=trim(fname), STATUS='old', FORM='formatted',ACCESS='sequential')
+      open(UNIT=dataunit2,FILE=trim(outname), STATUS='unknown', FORM='formatted',ACCESS='sequential')
+      do
+          read(dataunit,'(A)',iostat=ios) line
+          if (ios.ne.0) then 
+            exit
+          end if
+          write(dataunit2,'(A)') trim(line)
+      end do
+      close(UNIT=dataunit, STATUS='keep')
+      close(UNIT=dataunit2, STATUS='keep')
+      call Message%printMessage(' --> copied '//trim(incname)//' file from resource folder')
+  end if
+end if 
+
+end subroutine get_incfile_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
@@ -769,8 +823,8 @@ call self%addCylinder((/ -ac, -ac, -ac /), (/-ac, -ac,  ac /), 0.005D0, (/ 0.7, 
 end subroutine addCubochoricCube_
 
 !--------------------------------------------------------------------------
-recursive function fliprotationmatrix_(self, M) result(O)
-!DEC$ ATTRIBUTES DLLEXPORT :: fliprotationmatrix_
+recursive function flipRotationMatrix_(self, M) result(O)
+!DEC$ ATTRIBUTES DLLEXPORT :: flipRotationMatrix_
  !! author: MDG
  !! version: 1.0
  !! date: 01/21/20
@@ -786,7 +840,7 @@ real(kind=dbl)                  :: O(3,3)
 
 O = reshape( (/ M(1,1), M(1,3), M(1,2), M(3,1), M(3,3), M(3,2), M(2,1), M(2,3), M(2,2) /), (/ 3,3 /) )
 
-end function fliprotationmatrix_
+end function flipRotationMatrix_
 
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
