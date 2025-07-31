@@ -10,6 +10,7 @@ use mod_EMsoft
 use mod_io
 ! use mod_dualquaternions
 use mod_quaternions
+use mod_rotations
 use mod_octonions
 use mod_GBoctonions
 ! use mod_HDFsupport
@@ -43,287 +44,391 @@ IMPLICIT NONE
 ! real(kind=dbl)          :: z(11,11), fit(5), mp1, mp2, sig1, sig2 
 
 
-integer(C_INT32_T)  :: res
+! integer(C_INT32_T)  :: res
 
-type(Octonion_T)        :: a, b, c, d, u
-type(Quaternion_T)      :: qu1, qu2
-type(GBOctonion_T)      :: gb
-real(kind=dbl)          :: diffd
-real(kind=sgl)          :: diff
+type(Octonion_T)        :: o
+! type(Quaternion_T)      :: qu1, qu2
+type(GBOctonion_T)      :: gb, newgb, sRL, sLR, sLL
+type(o_T)               :: Ra, Rb, Rpixs, tmpa, tmpb, ttt
+type(q_T)               :: qa, qb, qpixs, newa, newb
+type(Quaternion_T)      :: quat_pixs, quat_a, quat_b, quat_newa, quat_newb 
+real(kind=dbl)          :: mat_a(3,3), mat_b(3,3), mat_pixs(3,3), mat_inv(3,3), &
+                           mat_sigxs(3,3), mat_tmp(3,3)
 
-! threshold values 
-real(kind=dbl),parameter:: epsd = 1.0D-12
-real(kind=sgl),parameter:: eps  = 1.0E-7
 
-! various parameters
-integer(kind=irg)       :: i, errcnt 
+! real(kind=dbl)          :: diffd
+! real(kind=sgl)          :: diff
 
-type(Octonion_T) :: resdsum
-type(Octonion_T) :: resdsub
-type(Octonion_T) :: resdmult 
-type(Octonion_T) :: resdsmult 
-type(Octonion_T) :: resddiv 
-type(Octonion_T) :: resdconjg 
-type(Octonion_T) :: resdinv 
-type(Octonion_T) :: resdzero
-real(kind=dbl)   :: resdabs
+! ! threshold values 
+! real(kind=dbl),parameter:: epsd = 1.0D-12
+! real(kind=sgl),parameter:: eps  = 1.0E-7
 
-type(Octonion_T) :: resssum
-type(Octonion_T) :: resssub
-type(Octonion_T) :: ressmult 
-type(Octonion_T) :: resssmult 
-type(Octonion_T) :: ressdiv 
-type(Octonion_T) :: ressconjg 
-type(Octonion_T) :: ressinv 
-type(Octonion_T) :: resszero
-real(kind=sgl)   :: ressabs
-!===================================================
-! set the reference values (verified against values on <https://pypi.org/project/pyoctonion/#description>)
+! ! various parameters
+! integer(kind=irg)       :: i, errcnt 
 
-! correct answers for the Octonion_T class
-resdzero = Octonion_T()
-resdsum = Octonion_T( od = (/  2.0D0,   5.0D0,   8.0D0,  11.0D0,  14.0D0,   8.0D0,  11.0D0,  14.0D0 /) )
-resdsub = Octonion_T( od = (/  0.0D0,   -1.0D0,   -2.0D0,   -3.0D0,   -4.0D0,    4.0D0,    3.0D0,    2.0D0 /) )
-resdsmult = Octonion_T( od = (/ 1.41421356237310D0, 2.82842712474619D0, 4.24264068711929D0, 5.65685424949238D0, &
-                                7.07106781186548D0, 8.48528137423857D0, 9.89949493661167D0,11.31370849898476D0 /) )
-resdmult = Octonion_T( od = (/-181.0D0,  -48.0D0,  -17.0D0,  -40.0D0,   83.0D0,    0.0D0,   35.0D0,    4.0D0 /) )
-resddiv = Octonion_T( od = (/  0.82805429864253D0,    0.23529411764706D0,    0.10407239819005D0,    0.21719457013575D0,  &
-                              -0.33031674208145D0,    0.05429864253394D0,   -0.09502262443439D0,    0.05429864253394D0 /) )
-resdabs = 14.282856857085701D0
-resdconjg = Octonion_T( od = (/  1.0D0,   -2.0D0,   -3.0D0,   -4.0D0,   -5.0D0,   -6.0D0,   -7.0D0,   -8.0D0 /) )
-resdinv = Octonion_T( od = (/  0.00490196078431D0,  -0.00980392156863D0,  -0.01470588235294D0,  -0.01960784313725D0,  &
-                              -0.02450980392157D0,  -0.02941176470588D0,  -0.03431372549020D0, -0.03921568627451D0 /) )
+! type(Octonion_T) :: resdsum
+! type(Octonion_T) :: resdsub
+! type(Octonion_T) :: resdmult 
+! type(Octonion_T) :: resdsmult 
+! type(Octonion_T) :: resddiv 
+! type(Octonion_T) :: resdconjg 
+! type(Octonion_T) :: resdinv 
+! type(Octonion_T) :: resdzero
+! real(kind=dbl)   :: resdabs
 
-resszero = Octonion_T()
-resssum = Octonion_T( o = (/  2.00,   5.00,   8.00,  11.00,  14.00,   8.00,  11.00,  14.00 /) )
-resssub = Octonion_T( o = (/  0.00,   -1.00,   -2.00,   -3.00,   -4.00,    4.00,    3.00,    2.00 /) )
-resssmult = Octonion_T( o = (/ 1.414214, 2.828427, 4.242640, 5.656854, 7.071068, 8.485281, 9.899495, 11.313708 /) )
-ressmult = Octonion_T( o = (/-181.00,  -48.00,  -17.00,  -40.00,   83.00,    0.00,   35.00,    4.00 /) )
-ressdiv = Octonion_T( o = (/  0.828054,   0.235294,   0.104072,   0.217195,  -0.330317,   0.054299,  -0.095023,   0.054299 /) )
-ressabs  = 14.2828569
-ressconjg = Octonion_T( o = (/  1.0,   -2.0,   -3.0,   -4.0,   -5.0,   -6.0,   -7.0,   -8.0 /) )
-ressinv = Octonion_T( o = (/  0.004902,  -0.009804,  -0.014706,  -0.019608,  -0.024510,  -0.029412,  -0.034314,  -0.039216 /) )
+! type(Octonion_T) :: resssum
+! type(Octonion_T) :: resssub
+! type(Octonion_T) :: ressmult 
+! type(Octonion_T) :: resssmult 
+! type(Octonion_T) :: ressdiv 
+! type(Octonion_T) :: ressconjg 
+! type(Octonion_T) :: ressinv 
+! type(Octonion_T) :: resszero
+! real(kind=sgl)   :: ressabs
 
-! initialize the error identifier to zero (should remain zero upon successful exit)
-res = 0
+! quick trial of the crystallographic and holomorphic chirality concepts
+! for Grain Boundaries ... 
 
-!===================================================
-!=============Double Precision Tests================
-!===================================================
-! call set_octonionprecision('d')
-! call set_octonionGBmode(.FALSE.)
+quat_pixs = Quaternion_T( qd = (/ 0.D0, 1.D0, 0.D0, 0.D0 /) ) 
+qpixs = q_T( qdinp = (/ 0.D0, 1.D0, 0.D0, 0.D0 /) )
+o = Octonion_T( od = (/ 0.99513333D0,0.000000D0, 0.098537618D0,0.000000D0, &
+                        0.99513333D0,0.000000D0,-0.098537618D0,0.000000D0 /))
+gb = GBOctonion_T( oct = o )
 
-!===================================================
-! initialize zero quaternion 
-u = Octonion_T( od = (/ 0.D0, 0.D0, 0.D0, 0.D0, 0.D0, 0.D0, 0.D0, 0.D0 /) )
-diffd = cabs(u)
-if (diffd.gt.epsd) then 
-  res = 1
-  write (*,"('double precision zero initialization test failed = ',D18.10)") diff
-  return
-end if
+! set up the quaternions and rotation matrices
+quat_a = gb%GBO_get_q(1)
+quat_b = gb%GBO_get_q(2)
 
-if (.not.(u%octsequal(resdzero))) then 
-  res = 2
-  write (*,"('double precision zero comparison test failed = ',D18.10)") diff
-  return
-end if
+qa = q_T( qdinp = quat_a%get_quatd() )
+qb = q_T( qdinp = quat_b%get_quatd() )
 
-! arithmetic tests 
-a = Octonion_T( od = (/ 1.D0, 2.D0, 3.D0, 4.D0, 5.D0, 6.D0, 7.D0, 8.D0 /) )
-b = Octonion_T( od = (/ 1.D0, 3.D0, 5.D0, 7.D0, 9.D0, 2.D0, 4.D0, 6.D0 /) )
-c = Octonion_T( od = (/ 8.D0, 7.D0, 6.D0, 5.D0, 4.D0, 3.D0, 2.D0, 1.D0 /) )
+Ra = qa%qo()
+Rb = qb%qo()
+Rpixs = qpixs%qo()
 
-d = a+b
-if (.not.(d%octsequal(resdsum))) then 
-  res = 3
-  write (*,"('double precision addition test failed = ')") 
-  return
-end if
+call Ra%o_print(' Ra : ')
+call Rb%o_print(' Rb : ')
+call Rpixs%o_print(' Rpixs : ')
 
-d = a-b
-if (.not.(d%octsequal(resdsub))) then 
-  res = 4
-  write (*,"('double precision subtraction test failed = ')")
-  return
-end if
+mat_a = Ra%o_copyd()
+mat_b = Rb%o_copyd()
+mat_pixs = Rpixs%o_copyd()
+mat_inv = 0.D0 
+mat_inv(1,1) = -1.0D0
+mat_inv(2,2) = -1.0D0
+mat_inv(3,3) = -1.0D0
 
-d = a*sqrt(2.D0)
-if (.not.(d%octsequal(resdsmult))) then 
-  res = 5
-  write (*,"('double precision scalar multiplication test failed = ')")
-  return
-end if
+mat_sigxs = mat_inv 
+mat_sigxs(2,2) = 1.D0
+mat_sigxs(3,3) = 1.D0
 
-d = a*b
-if (.not.(d%octsequal(resdmult))) then 
-  res = 6
-  write (*,"('double precision quaternion multiplication test failed = ')") 
-  return
-end if
+mat_pixs = -mat_sigxs
 
-d = a/b
-if (.not.(d%octsequal(resddiv))) then 
-  res = 7
-  write (*,"('double precision division test failed = ')")
-  return
-end if
+write (*,*) ' Misorientation angle : ', 2.D0*acos( sum(quat_a%get_quatd()*quat_b%get_quatd()))/dtor
+call gb%oct_print(' input octonion : ')
+write (*,*) ' '
 
-d = conjg(a)
-if (.not.(d%octsequal(resdconjg))) then 
-  res = 8
-  write (*,"('double precision conjugation test failed = ')") 
-  return
-end if
+! if gb is in Sigma_RR, then what are the others ?
+write (*,*) ' Sigma_RR analysis '
+write (*,*) mat_pixs
+mat_tmp = matmul(mat_a,mat_pixs)
+tmpa = o_T( odinp = mat_tmp )
+mat_tmp = matmul(mat_b,mat_pixs)
+tmpb = o_T( odinp = mat_tmp )
+call tmpa%o_print(' Ra x Rpixs : ')
+call tmpb%o_print(' Rb x Rpixs : ')
+newa = tmpa%oq()
+newb = tmpb%oq()
+call newa%q_print(' newa :')
+call newb%q_print(' newb :')
+o = Octonion_T( od = (/ newa%q_copyd(), newb%q_copyd() /) )
+newgb = GBOctonion_T( oct = o )
+write (*,*) ' Misorientation angle : ', 2.D0*acos( sum(newa%q_copyd()*newb%q_copyd()))/dtor
+call newgb%oct_print(' starred quaternion: ')
+write (*,*) ' '
 
-diffd = abs(cabs(a) - resdabs)
-if (diffd.gt.epsd) then 
-  res = 9
-  write (*,"('double precision norm test failed = ',D18.10)") diffd
-  return
-end if
+! Sigma_RL
+write (*,*) ' Sigma_RL analysis '
+mat_tmp = matmul(mat_inv, mat_b)
+tmpa = o_T( odinp = mat_a )
+tmpb = o_T( odinp = mat_tmp )
+call tmpb%o_print(' I x Rb : ')
+newa = tmpa%oq()
+newb = tmpb%oq()
+call newa%q_print(' newa :')
+call newb%q_print(' newb :')
 
-! d = a%octinverse()
-! if (.not.(d%octsequal(resdinv))) then 
-!   res = 10
-!   write (*,"('double precision inverse test failed = ')") 
+! Sigma_LR
+write (*,*) ' Sigma_RL analysis '
+mat_tmp = matmul(mat_inv, mat_a)
+tmpa = o_T( odinp = mat_tmp )
+tmpb = o_T( odinp = mat_a )
+call tmpb%o_print(' I x Ra : ')
+newa = tmpa%oq()
+newb = tmpb%oq()
+call newa%q_print(' newa :')
+call newb%q_print(' newb :')
+
+! Sigma_LL
+write (*,*) ' Sigma_RL analysis '
+mat_tmp = matmul(mat_inv, mat_a)
+tmpa = o_T( odinp = mat_tmp )
+mat_tmp = matmul(mat_inv, mat_b)
+tmpb = o_T( odinp = mat_tmp )
+call tmpa%o_print(' I x Ra : ')
+call tmpb%o_print(' I x Rb : ')
+newa = tmpa%oq()
+newb = tmpb%oq()
+call newa%q_print(' newa :')
+call newb%q_print(' newb :')
+
+! !===================================================
+! ! set the reference values (verified against values on <https://pypi.org/project/pyoctonion/#description>)
+
+! ! correct answers for the Octonion_T class
+! resdzero = Octonion_T()
+! resdsum = Octonion_T( od = (/  2.0D0,   5.0D0,   8.0D0,  11.0D0,  14.0D0,   8.0D0,  11.0D0,  14.0D0 /) )
+! resdsub = Octonion_T( od = (/  0.0D0,   -1.0D0,   -2.0D0,   -3.0D0,   -4.0D0,    4.0D0,    3.0D0,    2.0D0 /) )
+! resdsmult = Octonion_T( od = (/ 1.41421356237310D0, 2.82842712474619D0, 4.24264068711929D0, 5.65685424949238D0, &
+!                                 7.07106781186548D0, 8.48528137423857D0, 9.89949493661167D0,11.31370849898476D0 /) )
+! resdmult = Octonion_T( od = (/-181.0D0,  -48.0D0,  -17.0D0,  -40.0D0,   83.0D0,    0.0D0,   35.0D0,    4.0D0 /) )
+! resddiv = Octonion_T( od = (/  0.82805429864253D0,    0.23529411764706D0,    0.10407239819005D0,    0.21719457013575D0,  &
+!                               -0.33031674208145D0,    0.05429864253394D0,   -0.09502262443439D0,    0.05429864253394D0 /) )
+! resdabs = 14.282856857085701D0
+! resdconjg = Octonion_T( od = (/  1.0D0,   -2.0D0,   -3.0D0,   -4.0D0,   -5.0D0,   -6.0D0,   -7.0D0,   -8.0D0 /) )
+! resdinv = Octonion_T( od = (/  0.00490196078431D0,  -0.00980392156863D0,  -0.01470588235294D0,  -0.01960784313725D0,  &
+!                               -0.02450980392157D0,  -0.02941176470588D0,  -0.03431372549020D0, -0.03921568627451D0 /) )
+
+! resszero = Octonion_T()
+! resssum = Octonion_T( o = (/  2.00,   5.00,   8.00,  11.00,  14.00,   8.00,  11.00,  14.00 /) )
+! resssub = Octonion_T( o = (/  0.00,   -1.00,   -2.00,   -3.00,   -4.00,    4.00,    3.00,    2.00 /) )
+! resssmult = Octonion_T( o = (/ 1.414214, 2.828427, 4.242640, 5.656854, 7.071068, 8.485281, 9.899495, 11.313708 /) )
+! ressmult = Octonion_T( o = (/-181.00,  -48.00,  -17.00,  -40.00,   83.00,    0.00,   35.00,    4.00 /) )
+! ressdiv = Octonion_T( o = (/  0.828054,   0.235294,   0.104072,   0.217195,  -0.330317,   0.054299,  -0.095023,   0.054299 /) )
+! ressabs  = 14.2828569
+! ressconjg = Octonion_T( o = (/  1.0,   -2.0,   -3.0,   -4.0,   -5.0,   -6.0,   -7.0,   -8.0 /) )
+! ressinv = Octonion_T( o = (/  0.004902,  -0.009804,  -0.014706,  -0.019608,  -0.024510,  -0.029412,  -0.034314,  -0.039216 /) )
+
+! ! initialize the error identifier to zero (should remain zero upon successful exit)
+! res = 0
+
+! !===================================================
+! !=============Double Precision Tests================
+! !===================================================
+! ! call set_octonionprecision('d')
+! ! call set_octonionGBmode(.FALSE.)
+
+! !===================================================
+! ! initialize zero quaternion 
+! u = Octonion_T( od = (/ 0.D0, 0.D0, 0.D0, 0.D0, 0.D0, 0.D0, 0.D0, 0.D0 /) )
+! diffd = cabs(u)
+! if (diffd.gt.epsd) then 
+!   res = 1
+!   write (*,"('double precision zero initialization test failed = ',D18.10)") diff
 !   return
 ! end if
 
-! from here on we work with unit quaternions
-call a%o_normalize()
-diffd = abs(cabs(a) - 1.D0)
-if (diffd.gt.epsd) then 
-  res = 11
-  write (*,"('double precision normalization test failed = ',D18.10)") diffd
-  return
-end if
+! if (.not.(u%octsequal(resdzero))) then 
+!   res = 2
+!   write (*,"('double precision zero comparison test failed = ',D18.10)") diff
+!   return
+! end if
 
-! 
-! call set_octonionGBmode(.TRUE.)
-! call a%octnormalize()
-! call a%oct_print(' GBOM normalization : ')
+! ! arithmetic tests 
+! a = Octonion_T( od = (/ 1.D0, 2.D0, 3.D0, 4.D0, 5.D0, 6.D0, 7.D0, 8.D0 /) )
+! b = Octonion_T( od = (/ 1.D0, 3.D0, 5.D0, 7.D0, 9.D0, 2.D0, 4.D0, 6.D0 /) )
+! c = Octonion_T( od = (/ 8.D0, 7.D0, 6.D0, 5.D0, 4.D0, 3.D0, 2.D0, 1.D0 /) )
+
+! d = a+b
+! if (.not.(d%octsequal(resdsum))) then 
+!   res = 3
+!   write (*,"('double precision addition test failed = ')") 
+!   return
+! end if
+
+! d = a-b
+! if (.not.(d%octsequal(resdsub))) then 
+!   res = 4
+!   write (*,"('double precision subtraction test failed = ')")
+!   return
+! end if
+
+! d = a*sqrt(2.D0)
+! if (.not.(d%octsequal(resdsmult))) then 
+!   res = 5
+!   write (*,"('double precision scalar multiplication test failed = ')")
+!   return
+! end if
+
+! d = a*b
+! if (.not.(d%octsequal(resdmult))) then 
+!   res = 6
+!   write (*,"('double precision quaternion multiplication test failed = ')") 
+!   return
+! end if
+
+! d = a/b
+! if (.not.(d%octsequal(resddiv))) then 
+!   res = 7
+!   write (*,"('double precision division test failed = ')")
+!   return
+! end if
+
+! d = conjg(a)
+! if (.not.(d%octsequal(resdconjg))) then 
+!   res = 8
+!   write (*,"('double precision conjugation test failed = ')") 
+!   return
+! end if
+
+! diffd = abs(cabs(a) - resdabs)
+! if (diffd.gt.epsd) then 
+!   res = 9
+!   write (*,"('double precision norm test failed = ',D18.10)") diffd
+!   return
+! end if
+
+! ! d = a%octinverse()
+! ! if (.not.(d%octsequal(resdinv))) then 
+! !   res = 10
+! !   write (*,"('double precision inverse test failed = ')") 
+! !   return
+! ! end if
+
+! ! from here on we work with unit quaternions
+! call a%o_normalize()
 ! diffd = abs(cabs(a) - 1.D0)
 ! if (diffd.gt.epsd) then 
-!   res = 12
+!   res = 11
 !   write (*,"('double precision normalization test failed = ',D18.10)") diffd
 !   return
 ! end if
-! call set_octonionGBmode(.FALSE.)
 
-!===================================================
-!=============Single Precision Tests================
-!===================================================
-! call set_octonionprecision('s')
+! ! 
+! ! call set_octonionGBmode(.TRUE.)
+! ! call a%octnormalize()
+! ! call a%oct_print(' GBOM normalization : ')
+! ! diffd = abs(cabs(a) - 1.D0)
+! ! if (diffd.gt.epsd) then 
+! !   res = 12
+! !   write (*,"('double precision normalization test failed = ',D18.10)") diffd
+! !   return
+! ! end if
+! ! call set_octonionGBmode(.FALSE.)
 
-!===================================================
-! initialize zero quaternion 
-u = Octonion_T( o = (/ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /) )
-diffd = cabs(u)
-if (diffd.gt.eps) then 
-  res = 13
-  write (*,"('single precision zero initialization test failed = ',D18.10)") diff
-  return
-end if
+! !===================================================
+! !=============Single Precision Tests================
+! !===================================================
+! ! call set_octonionprecision('s')
 
-if (.not.(u%octsequal(resszero))) then 
-  res = 14
-  write (*,"('single precision zero comparison test failed = ',D18.10)") diff
-  return
-end if
-
-! arithmetic tests 
-a = Octonion_T( o = (/ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0 /) )
-b = Octonion_T( o = (/ 1.0, 3.0, 5.0, 7.0, 9.0, 2.0, 4.0, 6.0 /) )
-c = Octonion_T( o = (/ 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0 /) )
-d = Octonion_T( )
-
-d = a+b
-if (.not.(d%octsequal(resssum))) then 
-  res = 15
-  write (*,"('single precision addition test failed = ')") 
-  return
-end if
-
-d = a-b
-if (.not.(d%octsequal(resssub))) then 
-  res = 16
-  write (*,"('single precision subtraction test failed = ')")
-  return
-end if
-
-d = a*sqrt(2.D0)
-if (.not.(d%octsequal(resssmult))) then 
-  res = 17
-  write (*,"('single precision scalar multiplication test failed = ')")
-  return
-end if
-
-d = a*b
-if (.not.(d%octsequal(ressmult))) then 
-  res = 18
-  write (*,"('single precision quaternion multiplication test failed = ')") 
-  return
-end if
-
-d = a/b
-if (.not.(d%octsequal(ressdiv))) then 
-  res = 19
-  write (*,"('single precision division test failed = ')")
-  return
-end if
-
-d = conjg(a)
-if (.not.(d%octsequal(ressconjg))) then 
-  res = 20
-  write (*,"('single precision conjugation test failed = ')") 
-  return
-end if
-
-diff = abs(cabs(a) - ressabs)
-if (diff.gt.eps) then 
-  res = 21
-  write (*,"('single precision norm test failed = ',D18.10)") diffd
-  return
-end if
-
-! d = a%octinverse()
-! if (.not.(d%octsequal(ressinv))) then 
-!   res = 22
-!   write (*,"('single precision inverse test failed = ')") 
+! !===================================================
+! ! initialize zero quaternion 
+! u = Octonion_T( o = (/ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /) )
+! diffd = cabs(u)
+! if (diffd.gt.eps) then 
+!   res = 13
+!   write (*,"('single precision zero initialization test failed = ',D18.10)") diff
 !   return
 ! end if
 
-! from here on we work with unit quaternions
-call a%o_normalize()
-diff = abs(cabs(a) - 1.0)
-if (diff.gt.eps) then 
-  res = 23
-  write (*,"('single precision normalization test failed = ',D18.10)") diffd
-  return
-end if
+! if (.not.(u%octsequal(resszero))) then 
+!   res = 14
+!   write (*,"('single precision zero comparison test failed = ',D18.10)") diff
+!   return
+! end if
 
-!
-! call set_octonionGBmode(.TRUE.)
-! call a%octnormalize()
-! call a%oct_print(' GBOM normalization : ')
+! ! arithmetic tests 
+! a = Octonion_T( o = (/ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0 /) )
+! b = Octonion_T( o = (/ 1.0, 3.0, 5.0, 7.0, 9.0, 2.0, 4.0, 6.0 /) )
+! c = Octonion_T( o = (/ 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0 /) )
+! d = Octonion_T( )
+
+! d = a+b
+! if (.not.(d%octsequal(resssum))) then 
+!   res = 15
+!   write (*,"('single precision addition test failed = ')") 
+!   return
+! end if
+
+! d = a-b
+! if (.not.(d%octsequal(resssub))) then 
+!   res = 16
+!   write (*,"('single precision subtraction test failed = ')")
+!   return
+! end if
+
+! d = a*sqrt(2.D0)
+! if (.not.(d%octsequal(resssmult))) then 
+!   res = 17
+!   write (*,"('single precision scalar multiplication test failed = ')")
+!   return
+! end if
+
+! d = a*b
+! if (.not.(d%octsequal(ressmult))) then 
+!   res = 18
+!   write (*,"('single precision quaternion multiplication test failed = ')") 
+!   return
+! end if
+
+! d = a/b
+! if (.not.(d%octsequal(ressdiv))) then 
+!   res = 19
+!   write (*,"('single precision division test failed = ')")
+!   return
+! end if
+
+! d = conjg(a)
+! if (.not.(d%octsequal(ressconjg))) then 
+!   res = 20
+!   write (*,"('single precision conjugation test failed = ')") 
+!   return
+! end if
+
+! diff = abs(cabs(a) - ressabs)
+! if (diff.gt.eps) then 
+!   res = 21
+!   write (*,"('single precision norm test failed = ',D18.10)") diffd
+!   return
+! end if
+
+! ! d = a%octinverse()
+! ! if (.not.(d%octsequal(ressinv))) then 
+! !   res = 22
+! !   write (*,"('single precision inverse test failed = ')") 
+! !   return
+! ! end if
+
+! ! from here on we work with unit quaternions
+! call a%o_normalize()
 ! diff = abs(cabs(a) - 1.0)
 ! if (diff.gt.eps) then 
-!   res = 24
+!   res = 23
 !   write (*,"('single precision normalization test failed = ',D18.10)") diffd
 !   return
 ! end if
-! call set_octonionGBmode(.FALSE.)
+
+! !
+! ! call set_octonionGBmode(.TRUE.)
+! ! call a%octnormalize()
+! ! call a%oct_print(' GBOM normalization : ')
+! ! diff = abs(cabs(a) - 1.0)
+! ! if (diff.gt.eps) then 
+! !   res = 24
+! !   write (*,"('single precision normalization test failed = ',D18.10)") diffd
+! !   return
+! ! end if
+! ! call set_octonionGBmode(.FALSE.)
 
 
-write (*,*) ' if we get here then all tests are correctly performed '
+! write (*,*) ' if we get here then all tests are correctly performed '
 
-! short GBoctonions test 
-qu1 = Quaternion_T( qd = (/ 1.D0, 0.D0, 0.D0, 0.D0 /) )
-qu2 = Quaternion_T( qd = (/ 0.D0, 0.D0, 1.D0, 0.D0 /) )
+! ! short GBoctonions test 
+! qu1 = Quaternion_T( qd = (/ 1.D0, 0.D0, 0.D0, 0.D0 /) )
+! qu2 = Quaternion_T( qd = (/ 0.D0, 0.D0, 1.D0, 0.D0 /) )
 
-gb = GBOctonion_T( qu1, qu2 )
-call gb%oct_print(' this should be a normalized octonion from two quaternions')
+! gb = GBOctonion_T( qu1, qu2 )
+! call gb%oct_print(' this should be a normalized octonion from two quaternions')
 
 
 
