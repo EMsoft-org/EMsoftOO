@@ -44,6 +44,61 @@
 ! 
 !> @todo comment the axonometry subroutines
 !
+!
+! Here's an example program that shows how to use this module:
+!
+! program tester 
+
+! use mod_global 
+! use mod_kinds
+! use mod_EMsoft
+! use mod_io
+! use mod_postscript
+! use mod_axonometry
+
+! IMPLICIT NONE 
+
+! type(axonometry_T)          :: AXO 
+! type(Postscript_T)          :: PS 
+! type(EMsoft_T)              :: EMsoft
+
+! integer(kind=irg)           :: nx, ny, i, j 
+
+! character(fnlen)            :: axname, progname, progdesc
+! real(kind=sgl)              :: g
+! real(kind=sgl),allocatable  :: zz(:,:), x(:), y(:)
+
+! progname = ' x '
+! progdesc = ' y '
+! axname = 'axotest.eps'
+! EMsoft = EMsoft_T( progname, progdesc )
+! PS = Postscript_T( progdesc, EMsoft, imanum = 1, dontask = .TRUE., psname = axname )
+! AXO = axonometry_T( progdesc, axw = 6.5, xll = 3.5, yll = 3.0 )
+
+! nx = 100
+! ny = 150
+! allocate( zz(nx,ny), x(nx), y(ny) )
+
+! x = (/ (real(i), i=1,nx) /)/ real(nx) - 0.5
+! y = (/ (real(i), i=1,ny) /)/ real(ny) - 0.5
+
+! do i=1,nx
+!     do j=1,ny
+!         zz(i,j) = 15.0 * exp(- (x(i)**2+y(j)**2) * 100.0 )
+!     end do 
+! end do
+
+! zz = cshift(zz, 25, 1)
+! zz = zz - cshift(zz, -50, 1) 
+
+! write (*,*) ' range = ', minval(zz), maxval(zz)
+
+! g = 1.0
+! call AXO%axonometry(PS,EMsoft,zz,nx,ny,g,axname)
+
+! end program tester
+!
+!
 !> @date   10/20/87 MDG/KM 1.0 original
 !> @date    5/21/01 MDG 2.0 f90 version
 !> @date   11/27/01 MDG 2.1 added kind support
@@ -66,10 +121,10 @@ IMPLICIT NONE
 
 ! class definition
 type, public :: axonometry_T
-private 
+! private 
  integer(kind=irg)      :: xi,yi,beta,xmod,ymod,countx,county
  real(kind=sgl)         :: grid,scle,vscle,xstart,ystart
- logical                :: visibility
+ logical                :: visibility, firstrun
  real(kind=sgl)         :: axw,xll,yll
  character(fnlen)       :: progdesc
 
@@ -122,6 +177,9 @@ axonometry%ymod=1
 axonometry%vscle=1.0
 axonometry%progdesc=trim(progdesc)
 
+! for some reason the first run does not produce a viable Postscript file ... 
+axonometry%firstrun = .TRUE.
+
 end function axonometry_constructor
 
 !--------------------------------------------------------------------------
@@ -159,9 +217,11 @@ class(axonometry_T),INTENT(INOUT)   :: self
 character(*),INTENT(IN)             :: what
 
 ! clear the screen
-! call system('clear')
+  call system('clear')
 
- write (*,'(3(/))')
+ write (*,'(/)')
+ write (*,*) 'Axonometry: please select an entry below'
+ write (*,'(/)')
  if (what.eq.'change_xi') then 
   write (*,"('1- xi        : ')",advance="no") 
   read (*,"(I8)") self%xi
@@ -221,8 +281,7 @@ character(*),INTENT(IN)             :: what
   write (*,"('8- vscale    : ',f10.4)") self%vscle
  end if
 
- write (*,"('D- make drawing')") 
- write (*,"('E- Export PostScript')") 
+ write (*,"('D- make drawing and export to PostScript file')") 
  write (*,"('Q- quit routine')") 
  write (*,'(3(/))')
 
@@ -277,37 +336,14 @@ real(kind=sgl)      :: alfa,v1,v2,w1,w2,w3,n(3),e(3),l(3),h(3),pointx,pointy,xr,
  w2=u1*v1
  w3=u2
 ! initalize the Postscript file
-! open a complete file for online mode, else
-! open a temporary file for export mode.
- if (dmode.eq.'export') then 
-  open(UNIT=PS%psunit,FILE=trim(EMsoft%generateFilePath('EMdatapathname',axname)),STATUS='UNKNOWN',FORM='FORMATTED')
- else
-  PS%psname = 'tmp.ps'
-  call PS%openfile(self%progdesc, EMsoft, .TRUE.)  ! PS, progdesc, imanum, dontask
-  PS%pspage = 0
- end if
+ call PS%openfile(self%progdesc, EMsoft, dontask = .TRUE.)  ! PS, progdesc, imanum, dontask
+ PS%pspage = 0
  write (PS%psunit,*) 'gsave'
 ! set the origin
  write (PS%psunit,"(f8.3,f8.3,' T')") self%xll-1.0, self%yll-1.0
-! determine the viewing window boundaries
- sx = self%scle/20.0
- sy = self%scle/20.0
- write (PS%psunit,"(E14.6,' ',E14.6,' scale')") sx,sy
-! clip the drawing, so that none of it appears outside of the square
- xmin = -self%axw/2.0/sx
- xmax =  self%axw/2.0/sx
- ymin = -self%axw/2.0/sy
- ymax =  self%axw/2.0/sy
- write (PS%psunit,*) '1.0 setgray'
- call PS%closepath
- call PS%move(xmin,ymin)
- call PS%draw(xmax,ymin)
- call PS%draw(xmax,ymax)
- call PS%draw(xmin,ymax)
- call PS%clippath
+ write (PS%psunit,"(E14.6,' dup scale')") self%axw/140.0
+ write (PS%psunit,*) '20 20 T'
  write (PS%psunit,*) '0.0 setgray'
-! the next line MUST be present, otherwise the clippath will be
-! visible on the drawing !
  call PS%newpath
  if (self%visibility) then
 ! Phong shading
@@ -316,29 +352,17 @@ real(kind=sgl)      :: alfa,v1,v2,w1,w2,w3,n(3),e(3),l(3),h(3),pointx,pointy,xr,
 ! M. Slater, Addison-Wesley, 1987, p. 418)
   call Message%printMessage('Computing bisector vector', frm = "(A)")
   zero = 0.0
+  inten = zero
 ! eye direction
-  e(1) = float(self%xi)
-  e(2) = float(self%yi)
+  e(1:2) = (/ float(self%xi), float(self%yi) /)
   e(3) = tan(sngl(cPi)*self%beta/180.0)*sqrt(e(1)**2+e(2)**2)
 ! light source direction
-  l(1) = 5.0
-  l(2) = -10.0
-  l(3) = 50.0
+  l = (/ 5.0, -10.0, 50.0 /)
 ! sum and normalize
-  do i=1,3
-   h(i) = e(i)+l(i)
-  end do
-  s = 0.0
-  t = 0.0
-  u = 0.0
-  do i=1,3
-   s = s + h(i)**2
-   t = t + l(i)**2
-   u = u + e(i)**2
-  end do
-  s = 1.0/sqrt(s)
-  t = 1.0/sqrt(t)
-  u = 1.0/sqrt(u)
+  h = e+l
+  s = 1.0/sqrt(sum( h**2 ))
+  t = 1.0/sqrt(sum( l**2 ))
+  u = 1.0/sqrt(sum( e**2 ))
   h = h*s
   l = l*t
   e = e*u
@@ -357,34 +381,28 @@ real(kind=sgl)      :: alfa,v1,v2,w1,w2,w3,n(3),e(3),l(3),h(3),pointx,pointy,xr,
    do j=1,self%county-1
     jp = j+1
 ! average normal 
-    n(1)= bb*(zz(i,j)-zz(ip,j)-zz(ip,jp)+zz(i,jp))
-    n(2)= bb*(zz(i,j)+zz(ip,j)-zz(ip,jp)-zz(i,jp))
-    n(3) = 2.0
+    n = (/ bb*(zz(i,j)-zz(ip,j)-zz(ip,jp)+zz(i,jp)), bb*(zz(i,j)+zz(ip,j)-zz(ip,jp)-zz(i,jp)), 2.0 /)
 ! normalize normals
     s = n(1)**2+n(2)**2+n(3)**2
     s = 1.0/sqrt(s)
     n = n*s
 ! compute Phong shading 
 !   I = I_ak_a + I_p[k_d N.L + k_s (H.N)^n]
-    nl=0.0
-    hn=0.0
-    do kk=1,3
-     nl = nl + n(kk)*l(kk)
-     hn = hn + n(kk)*h(kk)
-    end do
-! take only positive angles
-    nl = max(nl,zero)
-    hn = max(hn,zero)
+    nl = dot_product(n, l)
+    hn = dot_product(n, h)
+    ! take only positive angles
+    nl = maxval( (/ nl,zero /) )
+    hn = maxval( (/ hn,zero /) )
 ! and compute the intensity (keep track of the maximum)
-    inten(i,j)=In_a*k_a +  In_p*(k_d*nl + k_s * hn**pn)
-    inmax = max(inmax,inten(i,j))
+    inten(i,j)= In_a * k_a +  In_p * ( k_d * nl + k_s * hn * hn )
+    inmax = maxval( (/ inmax,inten(i,j) /) )
    end do
   end do
 ! normalize scattered intensities to maximum
   inmax = 1.0/inmax
   do i=1,self%countx
    do j=1,self%county
-    inten(i,j) = max(zero,inten(i,j)*inmax)
+    inten(i,j) = maxval( (/ zero,inten(i,j)*inmax /) )
    end do
   end do
   call Message%printMessage('Producing Postscript output', frm = "(A)")
@@ -418,6 +436,7 @@ real(kind=sgl)      :: alfa,v1,v2,w1,w2,w3,n(3),e(3),l(3),h(3),pointx,pointy,xr,
     write (PS%psunit,*) 'F'
    end do
   end do
+  call PS%stroke()
  else
 ! wireframe model 
 ! plot the x-lines
@@ -481,13 +500,9 @@ real(kind=sgl)      :: alfa,v1,v2,w1,w2,w3,n(3),e(3),l(3),h(3),pointx,pointy,xr,
   end do
   call Message%printMessage('y-grid completed', frm = "(A)")
  end if
- if (dmode.eq.'export') then
-  close (unit=PS%psunit,status='keep')
- else
-  call self%initframe_(PS,'stop ',.FALSE.)
-  call PS%closefile()
-  call Message%printMessage('Use a postscript viewing program to display the file '//PS%psname, frm = ("A"))
- end if
+ call self%initframe_(PS,'stop ',.FALSE.)
+ call PS%closefile()
+ call Message%printMessage('Use a postscript viewing program to display the file '//PS%psname, frm = ("(A)"))
 end subroutine drawing_
 
 ! ###################################################################
@@ -560,10 +575,9 @@ character(fnlen),INTENT(IN)          :: axname
 
 type(IO_T)                           :: Message 
 
-real(kind=sgl)                       :: inten(1)
+real(kind=sgl)                       :: inten(nx,ny)
 logical                              :: more
 character(1)                         :: selection 
-character(fnlen)                     :: dummyname
     
 ! initalize some parameters; the constructor call took care of the rest
  self%countx=nx
@@ -592,10 +606,11 @@ character(fnlen)                     :: dummyname
    case('8')
     call self%setmenu_('change_vscale')
    case('d','D')
-    dummyname = ''
-    call self%drawing_(PS,EMsoft,zz,inten,nx,ny,'online',dummyname)
-   case('e','E')
-    call self%drawing_(PS,EMsoft,zz,inten,nx,ny,'export',axname)
+    call self%drawing_(PS,EMsoft,zz,inten,nx,ny,'online',axname)
+    if (self%firstrun.eqv..TRUE.) then 
+      call self%drawing_(PS,EMsoft,zz,inten,nx,ny,'online',axname)
+      self%firstrun = .FALSE.
+    end if 
    case('q','Q')
     more = .FALSE.
    case default

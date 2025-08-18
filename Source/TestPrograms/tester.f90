@@ -9,10 +9,10 @@ use mod_EMsoft
 ! use mod_QCcrystallography
 use mod_io
 ! use mod_dualquaternions
-use mod_quaternions
-use mod_rotations
-use mod_octonions
-use mod_GBoctonions
+! use mod_quaternions
+! use mod_rotations
+! use mod_octonions
+! use mod_GBoctonions
 ! use mod_HDFsupport
 ! use HDF5
 ! use mod_vendors
@@ -21,13 +21,19 @@ use mod_GBoctonions
 ! use mod_platformsupport
 ! use mod_PGA3D
 ! use mod_PGA3Dsupport
+use mod_axonometry
+use mod_postscript
+
 
 IMPLICIT NONE 
 
 ! type(PGA3D_T)             :: mv_plane, mv_line, mv, pt, mv_pp
 ! real(kind=dbl)            :: L, a, b, c, d, alpha, x,y,z, ord, sa, ca
 
-! type(EMsoft_T)          :: EMsoft
+type(axonometry_T)          :: AXO 
+type(Postscript_T)          :: PS 
+type(EMsoft_T)              :: EMsoft
+
 ! type(HDF_T)             :: HDF
 ! type(Vendor_T)          :: VT
 ! type(HallSG_T)          :: HSG 
@@ -36,6 +42,7 @@ IMPLICIT NONE
 ! character(fnlen)        :: fname, groupname, inputtype, progname, progdesc, HDFstrings(10) 
 ! integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, sz(3), L, recordsize, &
 !                            patsz, i, j, numsx, numsy, correctsize, s1, s2,HSGn, info, status
+integer(kind=irg)         :: nx, ny, i, j 
 ! real(kind=sgl),allocatable   :: exppatarray(:), tot(:), totold(:)
 ! real(kind=dbl),allocatable   :: SG(:,:,:)
 ! integer(HSIZE_T)        :: dims3(3), offset3(3)
@@ -43,17 +50,20 @@ IMPLICIT NONE
 ! real(kind=dbl),allocatable          :: SGdirec(:,:,:)
 ! real(kind=dbl)          :: z(11,11), fit(5), mp1, mp2, sig1, sig2 
 
+character(fnlen)            :: axname, progname, progdesc
+real(kind=sgl)              :: g
+real(kind=sgl),allocatable  :: zz(:,:), x(:), y(:)
 
 ! integer(C_INT32_T)  :: res
 
-type(Octonion_T)        :: o
-! type(Quaternion_T)      :: qu1, qu2
-type(GBOctonion_T)      :: gb, newgb, sRL, sLR, sLL
-type(o_T)               :: Ra, Rb, Rpixs, tmpa, tmpb, ttt
-type(q_T)               :: qa, qb, qpixs, newa, newb
-type(Quaternion_T)      :: quat_pixs, quat_a, quat_b, quat_newa, quat_newb 
-real(kind=dbl)          :: mat_a(3,3), mat_b(3,3), mat_pixs(3,3), mat_inv(3,3), &
-                           mat_sigxs(3,3), mat_tmp(3,3)
+! type(Octonion_T)        :: o
+! ! type(Quaternion_T)      :: qu1, qu2
+! type(GBOctonion_T)      :: gb, newgb, sRL, sLR, sLL
+! type(o_T)               :: Ra, Rb, Rpixs, tmpa, tmpb, ttt
+! type(q_T)               :: qa, qb, qpixs, newa, newb
+! type(Quaternion_T)      :: quat_pixs, quat_a, quat_b, quat_newa, quat_newb 
+! real(kind=dbl)          :: mat_a(3,3), mat_b(3,3), mat_pixs(3,3), mat_inv(3,3), &
+!                            mat_sigxs(3,3), mat_tmp(3,3)
 
 
 ! real(kind=dbl)          :: diffd
@@ -86,101 +96,137 @@ real(kind=dbl)          :: mat_a(3,3), mat_b(3,3), mat_pixs(3,3), mat_inv(3,3), 
 ! type(Octonion_T) :: resszero
 ! real(kind=sgl)   :: ressabs
 
+
+! simple test of the axonometry module
+progname = ' x '
+progdesc = ' y '
+axname = 'axotest.eps'
+EMsoft = EMsoft_T( progname, progdesc )
+PS = Postscript_T( progdesc, EMsoft, imanum = 1, dontask = .TRUE., psname = axname )
+AXO = axonometry_T( progdesc, axw = 6.5, xll = 3.5, yll = 3.0 )
+
+nx = 100
+ny = 150
+allocate( zz(nx,ny), x(nx), y(ny) )
+
+x = (/ (real(i), i=1,nx) /)/ real(nx) - 0.5
+y = (/ (real(i), i=1,ny) /)/ real(ny) - 0.5
+
+do i=1,nx
+    do j=1,ny
+        zz(i,j) = 15.0 * exp(- (x(i)**2+y(j)**2) * 100.0 )
+    end do 
+end do
+
+zz = cshift(zz, 15, 1)
+zz = zz - cshift(zz, -30, 1) 
+
+write (*,*) ' range = ', minval(zz), maxval(zz)
+
+g = 1.0
+call AXO%axonometry(PS,EMsoft,zz,nx,ny,g,axname)
+
+
+
+
+
+
+
 ! quick trial of the crystallographic and holomorphic chirality concepts
 ! for Grain Boundaries ... 
 
-quat_pixs = Quaternion_T( qd = (/ 0.D0, 1.D0, 0.D0, 0.D0 /) ) 
-qpixs = q_T( qdinp = (/ 0.D0, 1.D0, 0.D0, 0.D0 /) )
-o = Octonion_T( od = (/ 0.99513333D0,0.000000D0, 0.098537618D0,0.000000D0, &
-                        0.99513333D0,0.000000D0,-0.098537618D0,0.000000D0 /))
-gb = GBOctonion_T( oct = o )
+! quat_pixs = Quaternion_T( qd = (/ 0.D0, 1.D0, 0.D0, 0.D0 /) ) 
+! qpixs = q_T( qdinp = (/ 0.D0, 1.D0, 0.D0, 0.D0 /) )
+! o = Octonion_T( od = (/ 0.99513333D0,0.000000D0, 0.098537618D0,0.000000D0, &
+!                         0.99513333D0,0.000000D0,-0.098537618D0,0.000000D0 /))
+! gb = GBOctonion_T( oct = o )
 
-! set up the quaternions and rotation matrices
-quat_a = gb%GBO_get_q(1)
-quat_b = gb%GBO_get_q(2)
+! ! set up the quaternions and rotation matrices
+! quat_a = gb%GBO_get_q(1)
+! quat_b = gb%GBO_get_q(2)
 
-qa = q_T( qdinp = quat_a%get_quatd() )
-qb = q_T( qdinp = quat_b%get_quatd() )
+! qa = q_T( qdinp = quat_a%get_quatd() )
+! qb = q_T( qdinp = quat_b%get_quatd() )
 
-Ra = qa%qo()
-Rb = qb%qo()
-Rpixs = qpixs%qo()
+! Ra = qa%qo()
+! Rb = qb%qo()
+! Rpixs = qpixs%qo()
 
-call Ra%o_print(' Ra : ')
-call Rb%o_print(' Rb : ')
-call Rpixs%o_print(' Rpixs : ')
+! call Ra%o_print(' Ra : ')
+! call Rb%o_print(' Rb : ')
+! call Rpixs%o_print(' Rpixs : ')
 
-mat_a = Ra%o_copyd()
-mat_b = Rb%o_copyd()
-mat_pixs = Rpixs%o_copyd()
-mat_inv = 0.D0 
-mat_inv(1,1) = -1.0D0
-mat_inv(2,2) = -1.0D0
-mat_inv(3,3) = -1.0D0
+! mat_a = Ra%o_copyd()
+! mat_b = Rb%o_copyd()
+! mat_pixs = Rpixs%o_copyd()
+! mat_inv = 0.D0 
+! mat_inv(1,1) = -1.0D0
+! mat_inv(2,2) = -1.0D0
+! mat_inv(3,3) = -1.0D0
 
-mat_sigxs = mat_inv 
-mat_sigxs(2,2) = 1.D0
-mat_sigxs(3,3) = 1.D0
+! mat_sigxs = mat_inv 
+! mat_sigxs(2,2) = 1.D0
+! mat_sigxs(3,3) = 1.D0
 
-mat_pixs = -mat_sigxs
+! mat_pixs = -mat_sigxs
 
-write (*,*) ' Misorientation angle : ', 2.D0*acos( sum(quat_a%get_quatd()*quat_b%get_quatd()))/dtor
-call gb%oct_print(' input octonion : ')
-write (*,*) ' '
+! write (*,*) ' Misorientation angle : ', 2.D0*acos( sum(quat_a%get_quatd()*quat_b%get_quatd()))/dtor
+! call gb%oct_print(' input octonion : ')
+! write (*,*) ' '
 
-! if gb is in Sigma_RR, then what are the others ?
-write (*,*) ' Sigma_RR analysis '
-write (*,*) mat_pixs
-mat_tmp = matmul(mat_a,mat_pixs)
-tmpa = o_T( odinp = mat_tmp )
-mat_tmp = matmul(mat_b,mat_pixs)
-tmpb = o_T( odinp = mat_tmp )
-call tmpa%o_print(' Ra x Rpixs : ')
-call tmpb%o_print(' Rb x Rpixs : ')
-newa = tmpa%oq()
-newb = tmpb%oq()
-call newa%q_print(' newa :')
-call newb%q_print(' newb :')
-o = Octonion_T( od = (/ newa%q_copyd(), newb%q_copyd() /) )
-newgb = GBOctonion_T( oct = o )
-write (*,*) ' Misorientation angle : ', 2.D0*acos( sum(newa%q_copyd()*newb%q_copyd()))/dtor
-call newgb%oct_print(' starred quaternion: ')
-write (*,*) ' '
+! ! if gb is in Sigma_RR, then what are the others ?
+! write (*,*) ' Sigma_RR analysis '
+! write (*,*) mat_pixs
+! mat_tmp = matmul(mat_a,mat_pixs)
+! tmpa = o_T( odinp = mat_tmp )
+! mat_tmp = matmul(mat_b,mat_pixs)
+! tmpb = o_T( odinp = mat_tmp )
+! call tmpa%o_print(' Ra x Rpixs : ')
+! call tmpb%o_print(' Rb x Rpixs : ')
+! newa = tmpa%oq()
+! newb = tmpb%oq()
+! call newa%q_print(' newa :')
+! call newb%q_print(' newb :')
+! o = Octonion_T( od = (/ newa%q_copyd(), newb%q_copyd() /) )
+! newgb = GBOctonion_T( oct = o )
+! write (*,*) ' Misorientation angle : ', 2.D0*acos( sum(newa%q_copyd()*newb%q_copyd()))/dtor
+! call newgb%oct_print(' starred quaternion: ')
+! write (*,*) ' '
 
-! Sigma_RL
-write (*,*) ' Sigma_RL analysis '
-mat_tmp = matmul(mat_inv, mat_b)
-tmpa = o_T( odinp = mat_a )
-tmpb = o_T( odinp = mat_tmp )
-call tmpb%o_print(' I x Rb : ')
-newa = tmpa%oq()
-newb = tmpb%oq()
-call newa%q_print(' newa :')
-call newb%q_print(' newb :')
+! ! Sigma_RL
+! write (*,*) ' Sigma_RL analysis '
+! mat_tmp = matmul(mat_inv, mat_b)
+! tmpa = o_T( odinp = mat_a )
+! tmpb = o_T( odinp = mat_tmp )
+! call tmpb%o_print(' I x Rb : ')
+! newa = tmpa%oq()
+! newb = tmpb%oq()
+! call newa%q_print(' newa :')
+! call newb%q_print(' newb :')
 
-! Sigma_LR
-write (*,*) ' Sigma_RL analysis '
-mat_tmp = matmul(mat_inv, mat_a)
-tmpa = o_T( odinp = mat_tmp )
-tmpb = o_T( odinp = mat_a )
-call tmpb%o_print(' I x Ra : ')
-newa = tmpa%oq()
-newb = tmpb%oq()
-call newa%q_print(' newa :')
-call newb%q_print(' newb :')
+! ! Sigma_LR
+! write (*,*) ' Sigma_RL analysis '
+! mat_tmp = matmul(mat_inv, mat_a)
+! tmpa = o_T( odinp = mat_tmp )
+! tmpb = o_T( odinp = mat_a )
+! call tmpb%o_print(' I x Ra : ')
+! newa = tmpa%oq()
+! newb = tmpb%oq()
+! call newa%q_print(' newa :')
+! call newb%q_print(' newb :')
 
-! Sigma_LL
-write (*,*) ' Sigma_RL analysis '
-mat_tmp = matmul(mat_inv, mat_a)
-tmpa = o_T( odinp = mat_tmp )
-mat_tmp = matmul(mat_inv, mat_b)
-tmpb = o_T( odinp = mat_tmp )
-call tmpa%o_print(' I x Ra : ')
-call tmpb%o_print(' I x Rb : ')
-newa = tmpa%oq()
-newb = tmpb%oq()
-call newa%q_print(' newa :')
-call newb%q_print(' newb :')
+! ! Sigma_LL
+! write (*,*) ' Sigma_RL analysis '
+! mat_tmp = matmul(mat_inv, mat_a)
+! tmpa = o_T( odinp = mat_tmp )
+! mat_tmp = matmul(mat_inv, mat_b)
+! tmpb = o_T( odinp = mat_tmp )
+! call tmpa%o_print(' I x Ra : ')
+! call tmpb%o_print(' I x Rb : ')
+! newa = tmpa%oq()
+! newb = tmpb%oq()
+! call newa%q_print(' newa :')
+! call newb%q_print(' newb :')
 
 ! !===================================================
 ! ! set the reference values (verified against values on <https://pypi.org/project/pyoctonion/#description>)
