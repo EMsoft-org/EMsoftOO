@@ -48,7 +48,6 @@ IMPLICIT NONE
 private
 
 type, public :: PoVRay_T
-  private
 
     character(fnlen)    :: filename = 'undefined'
     character(fnlen)    :: nmlfile = 'undefined'

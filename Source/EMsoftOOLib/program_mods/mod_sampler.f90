@@ -48,6 +48,10 @@ type, public :: samplerNameListType
   integer(kind=irg) :: norientations      ! number of orientations per dataset
   integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
   character(fnlen)  :: hdfname            ! name of output HDF5 file
+  character(fnlen)  :: imagefolder        ! folder path w.r.t EMdatapathname for image files
+  character(fnlen)  :: prefix             ! prefix for image files (will be png files)
+  character(fnlen)  :: PVexec             ! path to PoVray executable
+  character(fnlen)  :: PVincludepath      ! path to PoVray include files
 end type samplerNameListType
 
 ! class definition
@@ -55,6 +59,8 @@ type, public :: sampler_T
 private 
   character(fnlen)            :: nmldeffile = 'EMsampler.nml'
   type(samplerNameListType)   :: nml 
+  character(fnlen)            :: PVexec
+  character(fnlen)            :: PVincludepath
 
 contains
 private 
@@ -62,11 +68,13 @@ private
   procedure, pass(self) :: writeHDFNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: sampler_
+  procedure, pass(self) :: renderdata_
 
   generic, public :: getNameList => getNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: sampler => sampler_
+  generic, public :: renderdata => renderdata_
 
 end type sampler_T
 
@@ -140,8 +148,13 @@ real(kind=dbl)    :: dir4(3)            ! Rodrigues mean direction
 integer(kind=irg) :: norientations      ! number of orientations per dataset
 integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
 character(fnlen)  :: hdfname            ! name of output HDF5 file
+character(fnlen)  :: imagefolder        ! folder path w.r.t EMdatapathname for image files
+character(fnlen)  :: prefix             ! prefix for image files (will be png files)
+character(fnlen)  :: PVexec             ! path to PoVray executable
+character(fnlen)  :: PVincludepath      ! path to PoVray include files
 
-namelist / EMsampler / kappa, dir1, dir2, dir3, dir4, norientations, pgnum, hdfname 
+namelist / EMsampler / kappa, dir1, dir2, dir3, dir4, norientations, pgnum, hdfname, &
+                       imagefolder, prefix, PVexec, PVincludepath 
 
 kappa = (/ 512.D0, 3456.D0 /)
 dir1 = (/ 0.D0, 0.D0, 0.D0 /)
@@ -151,6 +164,10 @@ dir4 = (/ 0.D0, 0.D0, 0.D0 /)
 norientations = 5000
 pgnum = 1
 hdfname = 'undefined'
+imagefolder = 'undefined'
+prefix = 'undefined'
+PVexec = 'undefined'
+PVincludepath = 'undefined'
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -165,6 +182,20 @@ if (.not.skipread) then
   if (trim(hdfname).eq.'undefined') then
       call Message%printError('readNameList:',' hdfname is undefined in '//nmlfile)
   end if
+
+  if (PVexec.ne.'undefined') then
+    if (trim(imagefolder).eq.'undefined') then
+        call Message%printError('readNameList:',' imagefolder is undefined in '//nmlfile)
+    end if
+    if (trim(prefix).eq.'undefined') then
+        call Message%printError('readNameList:',' prefix is undefined in '//nmlfile)
+    end if
+    if (trim(PVincludepath).eq.'undefined') then
+        call Message%printError('readNameList:',' PVincludepath is undefined in '//nmlfile)
+    end if
+    self%PVexec = PVexec
+    self%PVincludepath = PVincludepath
+  end if 
 end if
 
 self%nml%kappa = kappa
@@ -175,6 +206,10 @@ self%nml%dir4 = dir4
 self%nml%norientations = norientations
 self%nml%pgnum = pgnum  
 self%nml%hdfname = hdfname
+self%nml%imagefolder = imagefolder
+self%nml%prefix = prefix
+self%nml%PVexec = PVexec
+self%nml%PVincludepath = PVincludepath
 
 end subroutine readNameList_
 
@@ -262,6 +297,26 @@ line2(1) = trim(enl%hdfname)
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create hdfname dataset', hdferr)
 
+dataset = 'imagefolder'
+line2(1) = trim(enl%imagefolder)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create imagefolder dataset', hdferr)
+
+dataset = 'prefix'
+line2(1) = trim(enl%prefix)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create prefix dataset', hdferr)
+
+dataset = 'PVexec'
+line2(1) = trim(enl%PVexec)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create PVexec dataset', hdferr)
+
+dataset = 'PVincludepath'
+line2(1) = trim(enl%PVincludepath)
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create PVincludepath dataset', hdferr)
+
 ! and pop this group off the stack
 call HDF%pop()
 
@@ -282,7 +337,8 @@ subroutine sampler_(self, EMsoft, progname, HDFnames)
 !! concentration parameters kappa and for both Watson and von Mises-Fisher 
 !! distributions (16 orientations sets in all).
 !! Then for each orientation data set, both WAT and vMF averaging are performed.
-!! All results are stored in an HDF file.
+!! All results are stored in an HDF file and if PVexec is set, then rendered
+!! 3D stereographic projections are generated for every dataset using PoVray
 
 use mod_EMsoft
 use mod_HDFnames
@@ -294,6 +350,8 @@ use mod_symmetry
 use mod_rotations
 use mod_timing
 use mod_so3
+use mod_povray
+use mod_OrientationViz
 use HDF5
 use mod_HDFsupport
 use stringconstants
@@ -308,7 +366,7 @@ type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
 type(DirStat_T)                         :: dictVMF, dictWAT
 type(Quaternion_T)                      :: mu, muhat, meanquat(4)
-type(QuaternionArray_T)                 :: qAR
+type(QuaternionArray_T)                 :: qAR, dummy, qsym
 type(IO_T)                              :: Message
 type(SpaceGroup_T)                      :: SG
 type(HDF_T)                             :: HDF
@@ -319,16 +377,18 @@ type(r_T)                               :: r
 type(o_T)                               :: o
 type(so3_T)                             :: SO
 type(Timing_T)                          :: timer
+type(PoVRay_T)                          :: PoVst
 
 real(kind=dbl),allocatable              :: vMFquatarray(:,:,:), WATquatarray(:,:,:), vMFkappahat(:), &
                                            WATkappahat(:), vMFmuhat(:,:), WATmuhat(:,:)
-integer(kind=irg)                       :: setcnt, seed1, seed2, hdferr, i, j, k, io_int(2)
+integer(kind=irg)                       :: setcnt, seed1, seed2, hdferr, i, j, k, io_int(2), FZtype, FZorder
 real(kind=dbl)                          :: rod(4), rodL, kappahat
 real(kind=sgl)                          :: tstop
 character(11)                           :: dstr
 character(15)                           :: tstrb
 character(15)                           :: tstre
-character(fnlen)                        :: dataset, datagroupname, fname, attributename, HDF_FileVersion, nmldeffile
+character(1)                            :: ch
+character(fnlen)                        :: dataset, datagroupname, fname, attributename, HDF_FileVersion, nmldeffile, outname
 logical                                 :: overwrite = .TRUE.
 character(fnlen,kind=c_char)            :: line2(1)
 
@@ -476,6 +536,13 @@ do i=1,2      ! loop over the kappa concentration parameter values
     vMFmuhat(1:4,setcnt) = muhat%get_quatd()
     write (*,*) muhat%get_quatd()
     write (*,*) meanquat(j)%get_quatd()
+! generate the PoVray file and run the program
+    if (trim(enl%prefix).ne.'undefined') then 
+      write (ch,"(I1)") setcnt
+      outname = trim(enl%imagefolder)//'/'//trim(enl%prefix)//'-vMF-'//ch
+      outname = EMsoft%generateFilePath('EMdatapathname', outname)
+      call self%renderdata_(EMsoft,outname,enl%imagefolder,qAR,enl%pgnum)
+    end if
     setcnt = setcnt + 1
  end do 
 end do
@@ -505,7 +572,7 @@ setcnt = 1
 do i=1,2      ! loop over the kappa concentration parameter values 
   do j=1,4    ! loop over the mean quaternion directions
     qAR = dictWAT%SampleDS( enl%norientations, seed1, meanquat(j), enl%kappa(i) )
-! copy the orientations into the vMFquatarray for storage in the output HDF file
+! copy the orientations into the WATquatarray for storage in the output HDF file
     do k=1,enl%norientations 
       mu = qAR%getQuatfromArray(k)
       WATquatarray(1:4,k,setcnt) = mu%get_quatd()
@@ -520,6 +587,13 @@ do i=1,2      ! loop over the kappa concentration parameter values
     WATmuhat(1:4,setcnt) = muhat%get_quatd()
     write (*,*) muhat%get_quatd()
     write (*,*) meanquat(j)%get_quatd()
+! generate the PoVray file and run the program
+    if (trim(enl%prefix).ne.'undefined') then 
+      write (ch,"(I1)") setcnt
+      outname = trim(enl%imagefolder)//'/'//trim(enl%prefix)//'-WAT-'//ch
+      outname = EMsoft%generateFilePath('EMdatapathname', outname)
+      call self%renderdata_(EMsoft,outname,enl%imagefolder,qAR,enl%pgnum)
+    end if
     setcnt = setcnt + 1
  end do 
 end do
@@ -572,6 +646,137 @@ end associate
 
 end subroutine sampler_
 
+!--------------------------------------------------------------------------
+subroutine renderdata_(self, EMsoft, povname, subfolder, qAR, pgnum)
+!DEC$ ATTRIBUTES DLLEXPORT :: renderdata_
+!! author: MDG 
+!! version: 1.0 
+!! date: 09/04/25
+!!
+!! render the orientation data into a stereographic projection using PoVray
+
+use mod_EMsoft
+use mod_crystallography
+use mod_quaternions
+use mod_io
+use mod_symmetry
+use mod_rotations
+use mod_so3
+use mod_povray
+use mod_OrientationViz
+use stringconstants
+use ISO_C_BINDING
+
+IMPLICIT NONE 
+
+class(sampler_T), INTENT(INOUT)         :: self
+type(EMsoft_T), INTENT(INOUT)           :: EMsoft
+character(fnlen), INTENT(IN)            :: povname
+character(fnlen), INTENT(IN)            :: subfolder
+type(QuaternionArray_T), INTENT(INOUT)  :: qAR
+integer(kind=irg), INTENT(IN)           :: pgnum
+
+type(so3_T)                             :: SO
+type(IO_T)                              :: Message
+type(QuaternionArray_T)                 :: dummy, qsym 
+type(PoVRay_T)                          :: PoV
+type(q_T)                               :: q
+type(s_T)                               :: st
+
+integer(kind=irg)                       :: FZtype, FZorder, num, norientations, dFZ, ix 
+real(kind=sgl)                          :: eyepos(3), sphrad, xyz(3), dd
+real(kind=dbl)                          :: cylr
+character(fnlen)                        :: locationline, lightline, skyline, colorstring, rgbstring, str, pvcmd, povfile
+character(9)                            :: px, py, pz, pd
+character(21)                           :: p1, p2
+type(FZpointd),pointer                  :: FZtmp
+logical                                 :: fexists 
+
+! set up the SO3 class
+SO = so3_T( pgnum, zerolist='FZ')
+call SO%getFZtypeandorder(FZtype, FZorder)
+call SO%QuaternionArraytonewlist(qAR, 'FZ')
+
+! get the symmetry operator quaternions for the point group
+call dummy%QSym_Init(pgnum, qsym)
+num = qsym%getQnumber()
+norientations = qAR%getQnumber()
+
+! initialize PoVray parameters
+dd = 2.5
+write (pd,"(F9.3)") dd
+locationline = "location < "
+eyepos = (/ 0.387, 0.825, 0.412 /)
+eyepos = eyepos/sqrt( sum( eyepos*eyepos))
+write (px,"(F9.3)") eyepos(1)
+write (py,"(F9.3)") eyepos(2)
+write (pz,"(F9.3)") eyepos(3)
+
+p1 = "*cos(clock*0.0174533)"
+p2 = "*sin(clock*0.0174533)"
+
+locationline = trim(locationline)//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1//","//pz//">*"//pd
+
+povfile = trim(povname)//'-st.pov'
+call Message%printMessage(' opening '//trim(povfile))
+PoV = PoVRay_T( EMsoft, povfile, locationline=locationline )
+
+! reduce to RFZ
+call SO%ReducelisttoRFZ(qsym)
+FZtmp => SO%getListHead('FZ')          ! point to the top of the list
+
+! draw RFZ outline
+cylr = 0.005D0
+sphrad = 0.005
+dFZ = 3  ! for stereographic projections
+call PoV%drawFZ(SO, dFZ, cylr, outline=1)
+! open the union of spheres...
+write (90,"('union { ')")
+
+pointloop: do ix = 1,norientations
+  q = FZtmp%qu
+  st = q%qs()
+  xyz = sngl(st%s_copyd())
+  write (90,"('sphere { <',2(F14.6,','),F14.6,'>,',F6.4,' }')") xyz(1:3), sphrad
+  FZtmp => FZtmp%next
+end do pointloop
+
+write(rgbstring,"(F8.6,',',F8.6,',',F8.6)") (/ 0.0, 0.0, 1.0 /)
+colorstring = 'material { texture { pigment { rgb <'//trim(rgbstring)//'> filter 0.95 }'
+
+write (90,"(A)") trim(colorstring)
+write (90,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
+write (90,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
+call PoV%closeFile()
+call Message%printMessage('PoVray rendering script stored in '//trim(povname)//'-st.pov')
+
+!---------------------------------------------------------------------
+! next we generate the PoVRay.ini file with the rendering instructions
+open(unit=dataunit,file='povray.ini',status='unknown',form='formatted')
+write(dataunit,"('Input_File_Name=',A)") trim(povfile)
+write(dataunit,"('Output_File_Name=',A)") trim(povfile)//'-st.png'
+
+str = '+L'//trim(self%PVincludepath)
+write(dataunit,"(A)") trim(str)
+write(dataunit,"('+W',I4,' +H',I4)") 1024, 1024
+write(dataunit,"('Initial_Clock=1')")
+write(dataunit,"('Initial_Frame=1')")
+write(dataunit,"('Final_Clock=1')")
+write(dataunit,"('Final_Frame=1')")
+write(dataunit,"('Work_Threads=6')")
+close(unit=dataunit,status='keep')
+call Message%printMessage(' --> povray.ini file created ')
+
+pvcmd = trim(self%PVexec)
+inquire(file=trim(pvcmd),exist=fexists)
+if (fexists.eqv..TRUE.) then
+  call Message%printMessage('Found PovRay command line executable; rendering frame')
+  call Message%printMessage('Executing '//trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
+  call system(trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
+end if
+
+
+end subroutine renderdata_
 
 
 end module mod_sampler
