@@ -20,6 +20,8 @@
 ! seeds for random number generator; seed1 for sampling, seed2 for averaging
  seed1 = 4533321,
  seed2 = 7642029,
+! viewangle (degrees): 0.D0 means that the observer point lies along the x-axis, a bit above the horizontal plane
+ viewangle = 0.D0,
 ! concentration parameters (2, double precision)
  kappa = 512.D0, 3456.D0,
 ! 4 mean directions (3-component Rodrigues vectors)

@@ -45,6 +45,7 @@ type, public :: samplerNameListType
   real(kind=dbl)    :: dir2(3)            ! Rodrigues mean direction
   real(kind=dbl)    :: dir3(3)            ! Rodrigues mean direction
   real(kind=dbl)    :: dir4(3)            ! Rodrigues mean direction
+  real(kind=dbl)    :: viewangle          ! view angle of the observer in PoVray renderings
   integer(kind=irg) :: norientations      ! number of orientations per dataset
   integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
   integer(kind=irg) :: seed1              ! seed 1 for pseudo-random number generator [sampling]
@@ -147,6 +148,7 @@ real(kind=dbl)    :: dir1(3)            ! Rodrigues mean direction
 real(kind=dbl)    :: dir2(3)            ! Rodrigues mean direction
 real(kind=dbl)    :: dir3(3)            ! Rodrigues mean direction
 real(kind=dbl)    :: dir4(3)            ! Rodrigues mean direction
+real(kind=dbl)    :: viewangle          ! view angle of the observer in PoVray renderings
 integer(kind=irg) :: norientations      ! number of orientations per dataset
 integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
 integer(kind=irg) :: seed1              ! seed 1 for pseudo-random number generator [sampling]
@@ -158,7 +160,7 @@ character(fnlen)  :: PVexec             ! path to PoVray executable
 character(fnlen)  :: PVincludepath      ! path to PoVray include files
 
 namelist / EMsampler / kappa, dir1, dir2, dir3, dir4, norientations, pgnum, hdfname, &
-                       imagefolder, prefix, PVexec, PVincludepath 
+                       imagefolder, prefix, PVexec, PVincludepath, seed1, seed2, viewangle 
 
 kappa = (/ 512.D0, 3456.D0 /)
 dir1 = (/ 0.D0, 0.D0, 0.D0 /)
@@ -209,6 +211,7 @@ self%nml%dir1 = dir1
 self%nml%dir2 = dir2
 self%nml%dir3 = dir3
 self%nml%dir4 = dir4
+self%nml%viewangle = viewangle
 self%nml%norientations = norientations
 self%nml%pgnum = pgnum  
 self%nml%seed1 = seed1  
@@ -731,19 +734,19 @@ norientations = qAR%getQnumber()
 dd = 2.5
 write (pd,"(F9.3)") dd
 locationline = "location < "
-eyepos = (/ 0.387, 0.825, 0.412 /)
+eyepos = (/ 0.911259, 0.0, 0.412 /)
 eyepos = eyepos/sqrt( sum( eyepos*eyepos))
 write (px,"(F9.3)") eyepos(1)
 write (py,"(F9.3)") eyepos(2)
 write (pz,"(F9.3)") eyepos(3)
 
-p1 = "*cos(clock*0.0174533)"
-p2 = "*sin(clock*0.0174533)"
+p1 = "*cos(clck*0.0174533)"
+p2 = "*sin(clck*0.0174533)"
 
 locationline = trim(locationline)//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1//","//pz//">*"//pd
 
 povfile = trim(povname)//'-st.pov'
-PoV = PoVRay_T( EMsoft, povfile, locationline=locationline )
+PoV = PoVRay_T( EMsoft, povfile, locationline=locationline, viewangle = self%nml%viewangle )
 
 ! reduce to RFZ
 call SO%ReducelisttoRFZ(qsym)

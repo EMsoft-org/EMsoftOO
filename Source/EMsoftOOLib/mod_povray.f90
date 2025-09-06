@@ -81,10 +81,6 @@ type, public :: PoVRay_T
     procedure, pass(self) :: getpos_FZ422_
     procedure, pass(self) :: getpos_FZ32_
     procedure, pass(self) :: getpos_FZ222_
-    procedure, pass(self) :: getpos_FZ2_
-    procedure, pass(self) :: getpos_FZ3_
-    procedure, pass(self) :: getpos_FZ4_
-    procedure, pass(self) :: getpos_FZ6_
     procedure, pass(self) :: drawFZ_
     procedure, pass(self) :: initFZCyclic_
     procedure, pass(self) :: flipRotationMatrix_
@@ -114,10 +110,6 @@ type, public :: PoVRay_T
     generic, public :: getpos_FZ422 => getpos_FZ422_
     generic, public :: getpos_FZ32 => getpos_FZ32_
     generic, public :: getpos_FZ222 => getpos_FZ222_
-    generic, public :: getpos_FZ2 => getpos_FZ2_
-    generic, public :: getpos_FZ3 => getpos_FZ3_
-    generic, public :: getpos_FZ4 => getpos_FZ4_
-    generic, public :: getpos_FZ6 => getpos_FZ6_
     generic, public :: drawFZ => drawFZ_
     generic, public :: initFZCyclic => initFZCyclic_
     generic, public :: get_incfile => get_incfile_
@@ -137,7 +129,7 @@ end interface PoVRay_T
 contains
 
 !--------------------------------------------------------------------------
-type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, locationline, lightline, skyline, nofile) result(PV)
+type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, locationline, lightline, skyline, nofile, viewangle) result(PV)
 !DEC$ ATTRIBUTES DLLEXPORT :: PoVRay_constructor
 !! author: MDG
 !! version: 1.0
@@ -163,6 +155,7 @@ character(fnlen), INTENT(IN), OPTIONAL :: lightline
 character(fnlen), INTENT(IN), OPTIONAL :: skyline
  !! position of first light source (default <1, 2, -2>*50)
 logical, INTENT(IN), OPTIONAL          :: nofile
+real(kind=dbl),INTENT(IN),OPTIONAL     :: viewangle
 
 if (present(dunit)) then
   PV%dunit = dunit
@@ -197,7 +190,11 @@ else
 end if
 
 if (.not.present(nofile)) then 
-  call PV%openFile(EMsoft)
+  if (present(viewangle)) then 
+    call PV%openFile(EMsoft, viewangle)
+  else
+    call PV%openFile(EMsoft)
+  end if
   call PV%setCamera()
   call PV%setLightSource()
 end if
@@ -333,7 +330,7 @@ end subroutine get_incfile_
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-recursive subroutine openFile_(self, EMsoft)
+recursive subroutine openFile_(self, EMsoft, viewangle)
 !DEC$ ATTRIBUTES DLLEXPORT :: openFile_
  !! author: MDG
  !! version: 1.0
@@ -347,7 +344,7 @@ IMPLICIT NONE
 
 class(PoVRay_T),INTENT(INOUT)         :: self
 type(EMsoft_T),INTENT(INOUT)          :: EMsoft
-
+real(kind=dbl),INTENT(IN),OPTIONAL    :: viewangle
 character(fnlen)                      :: fname, line, cwd
 integer(kind=irg)                     :: io
 
@@ -381,6 +378,9 @@ write (self%dunit,"(A)") "#include ""colors.inc"""
 write (self%dunit,"(A)") "#include ""textures.inc"""
 write (self%dunit,"(A)") "#include ""glass.inc"""
 write (self%dunit,"(A)") "// "
+if (present(viewangle)) then 
+  write (self%dunit,"('#declare clck=',F9.5,';')") viewangle
+end if
 write (self%dunit,"(A)") "global_settings"
 write (self%dunit,"(A)") "{  ambient_light <1,1,1>"
 write (self%dunit,"(A)") "   assumed_gamma 1"
@@ -1592,335 +1592,6 @@ end if
 end subroutine getpos_FZ222_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ2_(self, dims, cpos, dpos, s_edge, ns, d, nt, MFZ)
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ2_
- !! author: MDG
- !! version: 1.0
- !! date: 01/21/20
- !!
- !! initialize the PoVRay output for cyclic rotational group 2
-
-IMPLICIT NONE
-
-class(PoVRay_T),INTENT(INOUT)         :: self
-
-integer(kind=irg),INTENT(IN)          :: dims(3)
- !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
-real(kind=dbl),INTENT(INOUT)          :: dpos(dims(1))
- !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
- !! set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
- !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
- !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
- !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
- !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-
-! the parameter a represents infinity as tan(178°/2)
-real(kind=dbl)    :: a = 570.289922125538D0, b = 1.0D0, c = 1.0D0, dt = 114.57984425107713D0, &
-                     ds = 2.0D0, dd, zz = 0.D0, oo = 1.D0, tmp
-integer(kind=irg) :: i,j,k, icnt, imax
-
-
-! define the coordinates of the monoclinic C2 (2) FZ in Rodrigues Space
-
-do i=-12,12
-  if (abs(i).ne.12) then 
-    cpos(1:3, 13+i) = (/ -a, dtan(dble(i)*15.D0*dtor*0.5D0) ,  c /)
-  else
-    cpos(1:3, 13+i) = (/ -a, a ,  c /)
-    if (i.lt.0) cpos(2,13+i) = -cpos(2,13+i)
-  end if
-end do
-
-do i=1,25
-  cpos(1:3,25+i) = cpos(1:3,i)
-  cpos(1,25+i) = -cpos(1,25+i)
-end do
-
-do i=1,50
-  cpos(1:3,50+i) = cpos(1:3,i)
-  tmp = cpos(1,50+i)
-  cpos(1,50+i) = cpos(2,50+i)
-  cpos(2,50+i) = tmp
-end do
-
-do i=1,100
-  cpos(1:3,100+i) = cpos(1:3,i)
-  cpos(3,100+i) = -cpos(3,100+i)
-end do
-
-! and normalize
-do i=1,200
-  dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
-end do
-
-ns = 2000
-d  = dt/float(ns-1)
-
-! define the connectivity of all the edges
-do i=1,25
-  s_edge(1:2,i)    = (/    i, 25+i /)
-  s_edge(1:2,25+i) = (/ 50+i, 75+i /)
-  s_edge(1:2,50+i) = (/100+i,125+i /)
-  s_edge(1:2,75+i) = (/150+i,175+i /)
-end do
-
-end subroutine getpos_FZ2_
-
-!--------------------------------------------------------------------------
-recursive subroutine getpos_FZ3_(self, dims, cpos, dpos, s_edge, ns, d, nt, MFZ)
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ3_
- !! author: MDG
- !! version: 1.0
- !! date: 01/21/20
- !!
- !! initialize the PoVRay output for cyclic rotational group 3
-
-IMPLICIT NONE
-
-class(PoVRay_T),INTENT(INOUT)         :: self
-
-integer(kind=irg),INTENT(IN)          :: dims(3)
- !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
-real(kind=dbl),INTENT(INOUT)          :: dpos(dims(1))
- !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
- !! set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
- !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
- !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
- !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
- !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-
-! the parameter a represents infinity as tan(178°/2)
-real(kind=dbl)   :: a = 57.289922125538D0, b = 1.0D0, c = 0.577350269120D0, dt = 114.57984425107713D0, &
-                    ds = 2.0D0, dd, zz = 0.D0, oo = 1.D0, c2 = 1.7320508075688767D0, tmp
-
-integer(kind=irg):: i 
-
-do i=-6,6 
-  if (abs(i).ne.6) then 
-    cpos(1:3, 7+i) = (/ -a, dtan(dble(i)*30.D0*dtor*0.5D0) ,  c /)
-  else
-    cpos(1:3, 7+i) = (/ -a, a ,  c /)
-    if (i.lt.0) cpos(2,7+i) = -cpos(2,7+i)
-  end if
-end do
-do i=1,13
-  cpos(1:3,13+i) = cpos(1:3,i)
-  cpos(1,13+i) = -cpos(1,13+i)
-end do
-
-do i=1,26
-  cpos(1:3,26+i) = cpos(1:3,i)
-  tmp = cpos(1,26+i)
-  cpos(1,26+i) = cpos(2,26+i)
-  cpos(2,26+i) = tmp
-end do
-
-do i=1,52
-  cpos(1:3,52+i) = cpos(1:3,i)
-  cpos(3,52+i) = -cpos(3,52+i)
-end do
-
-do i=1,104
-  cpos(1:3,104+i) = cpos(1:3,i)
-  if (cpos(3,104+i).lt.0.D0) then
-    cpos(3,104+i) = -c2
-  else 
-    cpos(3,104+i) = c2
-  end if
-end do
-
-! and normalize
-do i=1,208
-  dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
-end do
-
-ns = 200
-d = dt/float(ns-1)
-
-! define the connectivity of all the edges
-do i=1,13
-  s_edge(1:2,i)    = (/    i, 13+i /)
-  s_edge(1:2,13+i) = (/ 26+i, 39+i /)
-  s_edge(1:2,26+i) = (/ 52+i, 65+i /)
-  s_edge(1:2,39+i) = (/ 78+i, 91+i /)
-
-  s_edge(1:2,52+i) = (/104+i,117+i /)
-  s_edge(1:2,65+i) = (/130+i,143+i /)
-  s_edge(1:2,78+i) = (/156+i,169+i /)
-  s_edge(1:2,91+i) = (/182+i,195+i /)
-end do
-
-end subroutine getpos_FZ3_
-
-!--------------------------------------------------------------------------
-recursive subroutine getpos_FZ4_(self, dims, cpos, dpos, s_edge, ns, d, nt, MFZ)
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ4_
- !! author: MDG
- !! version: 1.0
- !! date: 01/21/20
- !!
- !! initialize the PoVRay output for cyclic rotational group 4
-
-IMPLICIT NONE
-
-class(PoVRay_T),INTENT(INOUT)         :: self
-
-integer(kind=irg),INTENT(IN)          :: dims(3)
- !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
-real(kind=dbl),INTENT(INOUT)          :: dpos(dims(1))
- !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
- !! set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
- !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
- !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
- !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
- !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-
-! the parameter a represents infinity as tan(178°/2)
-real(kind=dbl)  :: a = 57.289922125538D0, b = 1.0D0, c = 1.0D0, dt = 114.57984425107713D0, &
-                   ds = 2.0D0, dd, zz = 0.D0, oo = 1.D0, tmp
-
-integer(kind=irg):: i 
-
-do i=-6,6 
-  if (abs(i).ne.6) then 
-    cpos(1:3, 7+i) = (/ -a, dtan(dble(i)*30.D0*dtor*0.5D0) ,  c /)
-  else
-    cpos(1:3, 7+i) = (/ -a, a ,  c /)
-    if (i.lt.0) cpos(2,7+i) = -cpos(2,7+i)
-  end if
-end do
-do i=1,13
-  cpos(1:3,13+i) = cpos(1:3,i)
-  cpos(1,13+i) = -cpos(1,13+i)
-end do
-
-do i=1,26
-  cpos(1:3,26+i) = cpos(1:3,i)
-  tmp = cpos(1,26+i)
-  cpos(1,26+i) = cpos(2,26+i)
-  cpos(2,26+i) = tmp
-end do
-
-do i=1,52
-  cpos(1:3,52+i) = cpos(1:3,i)
-  cpos(3,52+i) = -cpos(3,52+i)
-end do
-
-! and normalize
-do i=1,104
-  dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
-end do
-
-ns = 200
-d  = dt/float(ns-1)
-
-! define the connectivity of all the edges
-do i=1,13
-  s_edge(1:2,i)    = (/    i, 13+i /)
-  s_edge(1:2,13+i) = (/ 26+i, 39+i /)
-  s_edge(1:2,26+i) = (/ 52+i, 65+i /)
-  s_edge(1:2,39+i) = (/ 78+i, 91+i /)
-end do
-
-end subroutine getpos_FZ4_
-
-!--------------------------------------------------------------------------
-recursive subroutine getpos_FZ6_(self, dims, cpos, dpos, s_edge, ns, d, nt, MFZ)
-!DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ6_
- !! author: MDG
- !! version: 1.0
- !! date: 01/21/20
- !!
- !! initialize the PoVRay output for cyclic rotational group 6
-
-IMPLICIT NONE
-
-class(PoVRay_T),INTENT(INOUT)         :: self
-
-integer(kind=irg),INTENT(IN)          :: dims(3)
- !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
-real(kind=dbl),INTENT(INOUT)          :: dpos(dims(1))
- !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
- !! set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
- !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
- !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
- !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
- !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-
-! the parameter a represents infinity as tan(178°/2)
-real(kind=dbl)   :: a = 57.289922125538D0, b = 1.0D0, c = 1.0D0, dt = 114.57984425107713D0, &
-                    ds = 2.0D0,  dd, zz = 0.D0, oo = 1.D0, tmp
-
-integer(kind=irg):: i 
-
-do i=-6,6 
-  if (abs(i).ne.6) then 
-    cpos(1:3, 7+i) = (/ -a, dtan(dble(i)*30.D0*dtor*0.5D0) ,  c /)
-  else
-    cpos(1:3, 7+i) = (/ -a, a ,  c /)
-    if (i.lt.0) cpos(2,7+i) = -cpos(2,7+i)
-  end if
-end do
-do i=1,13
-  cpos(1:3,13+i) = cpos(1:3,i)
-  cpos(1,13+i) = -cpos(1,13+i)
-end do
-
-do i=1,26
-  cpos(1:3,26+i) = cpos(1:3,i)
-  tmp = cpos(1,26+i)
-  cpos(1,26+i) = cpos(2,26+i)
-  cpos(2,26+i) = tmp
-end do
-
-do i=1,52
-  cpos(1:3,52+i) = cpos(1:3,i)
-  cpos(3,52+i) = -cpos(3,52+i)
-end do
-
-! and normalize
-do i=1,104
-  dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
-end do
-
-ns = 200
-d  = dt/float(ns-1)
-
-! define the connectivity of all the edges
-do i=1,13
-  s_edge(1:2,i)    = (/    i, 13+i /)
-  s_edge(1:2,13+i) = (/ 26+i, 39+i /)
-  s_edge(1:2,26+i) = (/ 52+i, 65+i /)
-  s_edge(1:2,39+i) = (/ 78+i, 91+i /)
-end do
-
-end subroutine getpos_FZ6_
-
-!--------------------------------------------------------------------------
 recursive subroutine drawFZ_(self, SO, rmode, cylr, outline, qAR, FZoffset)
 !DEC$ ATTRIBUTES DLLEXPORT :: drawFZ_
  !! author: MDG
@@ -1997,32 +1668,8 @@ io_int(1:2) = (/ FZtype, FZorder /)
 if (self%verbose.eqv..TRUE.) call Message%WriteValue(' FZ parameters (type/order) : ', io_int, 2)
 
 if (FZtype.eq.1) then   ! these are the cyclic groups 2, 3, 4, and 6
-    if (FZorder.eq.2) then
-        twostep = .FALSE.
-        dims = (/ 200, 100, 0 /)
-        allocate(cpos(3,dims(1)), dpos(dims(1)), s_edge(2,dims(2)))
-        call self%getpos_FZ2(dims, cpos, dpos, s_edge, ns, d, nt)
-    end if
-    if (FZorder.eq.3) then
-        twostep = .FALSE.
-        dims = (/ 208, 104, 0 /)
-        allocate(cpos(3,dims(1)), dpos(dims(1)), s_edge(2,dims(2)))
-        call self%getpos_FZ3(dims, cpos, dpos, s_edge, ns, d, nt)
-    end if
-    if (FZorder.eq.4) then
-        twostep = .FALSE.
-        dims = (/ 104, 52, 0 /)
-        allocate(cpos(3,dims(1)), dpos(dims(1)), s_edge(2,dims(2)))
-        call self%getpos_FZ4(dims, cpos, dpos, s_edge, ns, d, nt)
-    end if
-    if (FZorder.eq.6) then
-        twostep = .FALSE.
-        dims = (/ 104, 52, 0 /)
-        allocate(cpos(3,dims(1)), dpos(dims(1)), s_edge(2,dims(2)))
-        call self%getpos_FZ6(dims, cpos, dpos, s_edge, ns, d, nt)
-        write (*,*) 'calling getpos_F6; ', dims, shape(cpos), shape(dpos), shape(s_edge), ns, d, nt
-        write (*,*) ' dunit = ', self%dunit
-    end if
+  call self%initFZCyclic_(FZorder, cylr, rmode)
+  RETURN  ! we are done so return to the calling routine.
 end if
 
 if (FZtype.eq.2) then
@@ -2844,6 +2491,13 @@ select case(FZorder)
       dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
     end do
 
+! this FZ must be rotated so that the two-fold axis falls along the monoclinic b-axis.
+    do i=1,200
+       tmp = cpos(2,i)
+       cpos(2,i) = cpos(3,i)
+       cpos(3,i) = tmp
+    end do
+
     ns = 2000
     dx = dt/float(ns-1)
 
@@ -3071,16 +2725,16 @@ if ((rmode.eq.1).or.(rmode.eq.2)) then
   culast = ro1%rc()
   holast = ro1%rh()
   do j=1,ns+1
-    aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+    aux = dpos(i)*ro1%r_copyd() + dpos(i)*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
     cu = ro%rc()
     ho = ro%rh()
 ! and create a cylinder with these points
     if (rmode.eq.1) then
-      call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+      call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 0.5, 0.0, 0.0 /))
     else
-      call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+      call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 0.5, 0.0, 0.0 /))
     end if
     culast = cu
     holast = ho
@@ -3098,18 +2752,19 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
   qu = ro1%rq()
   splast = qu%qs()
   do j=1,ns+1
-    aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+    ! aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+    aux = dpos(i)*ro1%r_copyd() + dpos(i)*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
     qu = ro%rq()
     sp = qu%qs()
 ! and create a cylinder with these points
     if (rmode.eq.3) then
-      call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+      call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.5, 0.0, 0.0 /))
     else
       aux4a = rolast%r_copyd()
       aux4b = ro%r_copyd()
-      call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.0, 0.0, 1.0 /))
+      call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.5, 0.0, 0.0 /))
     end if
     rolast = ro
     splast = sp
