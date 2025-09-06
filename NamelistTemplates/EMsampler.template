@@ -13,11 +13,16 @@
  prefix = 'undefined',
 ! PoVray executable location
  PVexec = 'undefined',
+! location of PoVray indluce files
+ PVincludepath = 'undefined'
 ! number of orientations to sample
  norientations = 5000,
+! seeds for random number generator; seed1 for sampling, seed2 for averaging
+ seed1 = 4533321,
+ seed2 = 7642029,
 ! concentration parameters (2, double precision)
  kappa = 512.D0, 3456.D0,
-! 4 mean directions (Rodrigues vectors)
+! 4 mean directions (3-component Rodrigues vectors)
  dir1 = 0.D0, 0.D0, 0.D0,
  dir2 = 0.D0, 0.D0, 0.D0,
  dir3 = 0.D0, 0.D0, 0.D0,

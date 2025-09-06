@@ -47,6 +47,8 @@ type, public :: samplerNameListType
   real(kind=dbl)    :: dir4(3)            ! Rodrigues mean direction
   integer(kind=irg) :: norientations      ! number of orientations per dataset
   integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
+  integer(kind=irg) :: seed1              ! seed 1 for pseudo-random number generator [sampling]
+  integer(kind=irg) :: seed2              ! seed 2 for pseudo-random number generator [averaging]
   character(fnlen)  :: hdfname            ! name of output HDF5 file
   character(fnlen)  :: imagefolder        ! folder path w.r.t EMdatapathname for image files
   character(fnlen)  :: prefix             ! prefix for image files (will be png files)
@@ -147,6 +149,8 @@ real(kind=dbl)    :: dir3(3)            ! Rodrigues mean direction
 real(kind=dbl)    :: dir4(3)            ! Rodrigues mean direction
 integer(kind=irg) :: norientations      ! number of orientations per dataset
 integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
+integer(kind=irg) :: seed1              ! seed 1 for pseudo-random number generator [sampling]
+integer(kind=irg) :: seed2              ! seed 2 for pseudo-random number generator [averaging]
 character(fnlen)  :: hdfname            ! name of output HDF5 file
 character(fnlen)  :: imagefolder        ! folder path w.r.t EMdatapathname for image files
 character(fnlen)  :: prefix             ! prefix for image files (will be png files)
@@ -163,6 +167,8 @@ dir3 = (/ 0.D0, 0.D0, 0.D0 /)
 dir4 = (/ 0.D0, 0.D0, 0.D0 /) 
 norientations = 5000
 pgnum = 1
+seed1 = 54321
+seed2 = 3514
 hdfname = 'undefined'
 imagefolder = 'undefined'
 prefix = 'undefined'
@@ -205,6 +211,8 @@ self%nml%dir3 = dir3
 self%nml%dir4 = dir4
 self%nml%norientations = norientations
 self%nml%pgnum = pgnum  
+self%nml%seed1 = seed1  
+self%nml%seed2 = seed2  
 self%nml%hdfname = hdfname
 self%nml%imagefolder = imagefolder
 self%nml%prefix = prefix
@@ -252,7 +260,7 @@ class(sampler_T), INTENT(INOUT)         :: self
 type(HDF_T), INTENT(INOUT)              :: HDF
 type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 2, n_real = 9
+integer(kind=irg),parameter             :: n_int = 4, n_real = 9
 integer(kind=irg)                       :: hdferr,  io_int(n_int)
 real(kind=sgl)                          :: io_real(n_real)
 character(20)                           :: intlist(n_int), reallist(n_real)
@@ -265,9 +273,11 @@ associate( enl => self%nml )
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
 ! write all the single integers
-io_int = (/ enl%norientations, enl%pgnum /)
+io_int = (/ enl%norientations, enl%pgnum, enl%seed1, enl%seed2 /)
 intlist(1) = 'norientations'
 intlist(2) = 'pgnum'
+intlist(3) = 'seed1'
+intlist(4) = 'seed2'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 ! a 2-vector
@@ -380,8 +390,8 @@ type(Timing_T)                          :: timer
 type(PoVRay_T)                          :: PoVst
 
 real(kind=dbl),allocatable              :: vMFquatarray(:,:,:), WATquatarray(:,:,:), vMFkappahat(:), &
-                                           WATkappahat(:), vMFmuhat(:,:), WATmuhat(:,:)
-integer(kind=irg)                       :: setcnt, seed1, seed2, hdferr, i, j, k, io_int(2), FZtype, FZorder
+                                           WATkappahat(:), vMFmuhat(:,:), WATmuhat(:,:), misor(:,:)
+integer(kind=irg)                       :: setcnt, seed1, seed2, hdferr, i, j, k, io_int(2), FZtype, FZorder, seedarray(2,2,8)
 real(kind=dbl)                          :: rod(4), rodL, kappahat
 real(kind=sgl)                          :: tstop
 character(11)                           :: dstr
@@ -404,7 +414,7 @@ dstr = timer%getDateString()
 associate( enl => self%nml )
 
 allocate(vMFquatarray( 4, enl%norientations, 8), WATquatarray( 4, enl%norientations, 8) )
-allocate( vMFkappahat(8), WATkappahat(8), vMFmuhat(4,8), WATmuhat(4,8) )
+allocate( vMFkappahat(8), WATkappahat(8), vMFmuhat(4,8), WATmuhat(4,8), misor(2,8) )
 
 ! put the 4 mean directions in quaternion format 
 ! dir1 
@@ -510,16 +520,27 @@ hdferr = HDF%addStringAttributeToGroup(attributename, HDF_FileVersion)
 ! start the computations
 call Message%printMessage(' Starting computation for Laue point group '//PGTHD(enl%pgnum))
 
+! first put the mean directions inside the RFZ
+SO = so3_T( pgnum = enl%pgnum )
+! get the symmetry operator quaternions for the point group
+call dummy%QSym_Init(enl%pgnum, qsym)
+do i=1,4
+  q = q_T( qdinp = meanquat(i)%get_quatd() )
+  call SO%ReduceOrientationtoRFZ( q, qsym, r )
+  q = r%rq()
+  mu = Quaternion_T( qd = q%q_copyd() )
+  meanquat(i) = mu 
+end do 
+
 ! we'll do vMF sampling first and generate 8 orientation data sets 
 dictVMF = DirStat_T( DStype='VMF', PGnum=enl%pgnum )
 call dictVMF%setNumEM(25)
 call dictVMF%setNumIter(30)
-seed1 = 54321
-seed2 = 43514
 
 setcnt = 1 
 do i=1,2      ! loop over the kappa concentration parameter values 
   do j=1,4    ! loop over the mean quaternion directions
+    seedarray(1:2,1,setcnt) = (/ seed1, seed2 /)
     qAR = dictVMF%SampleDS( enl%norientations, seed1, meanquat(j), enl%kappa(i) )
 ! copy the orientations into the vMFquatarray for storage in the output HDF file
     do k=1,enl%norientations 
@@ -534,8 +555,7 @@ do i=1,2      ! loop over the kappa concentration parameter values
     call dictVMF%EMforDS( seed2, muhat, kappahat )
     vMFkappahat(setcnt) = kappahat
     vMFmuhat(1:4,setcnt) = muhat%get_quatd()
-    write (*,*) muhat%get_quatd()
-    write (*,*) meanquat(j)%get_quatd()
+    misor(1,setcnt) = 2.0 * acos( sum( muhat%get_quatd() * meanquat(j)%get_quatd() ) )/dtor
 ! generate the PoVray file and run the program
     if (trim(enl%prefix).ne.'undefined') then 
       write (ch,"(I1)") setcnt
@@ -565,12 +585,11 @@ if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetDoubleArray2D vMFmuhat', 
 dictWAT = DirStat_T( DStype='WAT', PGnum=enl%pgnum )
 call dictWAT%setNumEM(25)
 call dictWAT%setNumIter(30)
-seed1 = 54321
-seed2 = 43514
 
 setcnt = 1 
 do i=1,2      ! loop over the kappa concentration parameter values 
   do j=1,4    ! loop over the mean quaternion directions
+    seedarray(1:2,2,setcnt) = (/ seed1, seed2 /)
     qAR = dictWAT%SampleDS( enl%norientations, seed1, meanquat(j), enl%kappa(i) )
 ! copy the orientations into the WATquatarray for storage in the output HDF file
     do k=1,enl%norientations 
@@ -585,8 +604,7 @@ do i=1,2      ! loop over the kappa concentration parameter values
     call dictWAT%EMforDS( seed2, muhat, kappahat )
     WATkappahat(setcnt) = kappahat
     WATmuhat(1:4,setcnt) = muhat%get_quatd()
-    write (*,*) muhat%get_quatd()
-    write (*,*) meanquat(j)%get_quatd()
+    misor(2,setcnt) = 2.0 * acos( sum( muhat%get_quatd() * meanquat(j)%get_quatd() ) )/dtor
 ! generate the PoVray file and run the program
     if (trim(enl%prefix).ne.'undefined') then 
       write (ch,"(I1)") setcnt
@@ -611,6 +629,13 @@ dataset = 'WATmuhat'
 hdferr = HDF%writeDatasetDoubleArray(dataset, WATmuhat, 4, 8)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetDoubleArray2D WATmuhat', hdferr)
 
+dataset = 'seedarray'
+hdferr = HDF%writeDatasetIntegerArray(dataset, seedarray, 2, 2, 8)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetIntegerArray seedarray', hdferr)
+
+dataset = 'misor'
+hdferr = HDF%writeDatasetDoubleArray(dataset, misor, 2, 8)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray misor', hdferr)
 call HDF%pop() 
 call HDF%pop() 
 
@@ -718,7 +743,6 @@ p2 = "*sin(clock*0.0174533)"
 locationline = trim(locationline)//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1//","//pz//">*"//pd
 
 povfile = trim(povname)//'-st.pov'
-call Message%printMessage(' opening '//trim(povfile))
 PoV = PoVRay_T( EMsoft, povfile, locationline=locationline )
 
 ! reduce to RFZ
@@ -726,7 +750,7 @@ call SO%ReducelisttoRFZ(qsym)
 FZtmp => SO%getListHead('FZ')          ! point to the top of the list
 
 ! draw RFZ outline
-cylr = 0.005D0
+cylr = 0.0015D0
 sphrad = 0.005
 dFZ = 3  ! for stereographic projections
 call PoV%drawFZ(SO, dFZ, cylr, outline=1)
@@ -748,7 +772,7 @@ write (90,"(A)") trim(colorstring)
 write (90,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
 write (90,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
 call PoV%closeFile()
-call Message%printMessage('PoVray rendering script stored in '//trim(povname)//'-st.pov')
+if (POV%verbose) call Message%printMessage('PoVray rendering script stored in '//trim(povname)//'-st.pov')
 
 !---------------------------------------------------------------------
 ! next we generate the PoVRay.ini file with the rendering instructions
@@ -765,13 +789,13 @@ write(dataunit,"('Final_Clock=1')")
 write(dataunit,"('Final_Frame=1')")
 write(dataunit,"('Work_Threads=6')")
 close(unit=dataunit,status='keep')
-call Message%printMessage(' --> povray.ini file created ')
+if (POV%verbose) call Message%printMessage(' --> povray.ini file created ')
 
 pvcmd = trim(self%PVexec)
 inquire(file=trim(pvcmd),exist=fexists)
 if (fexists.eqv..TRUE.) then
-  call Message%printMessage('Found PovRay command line executable; rendering frame')
-  call Message%printMessage('Executing '//trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
+  if (POV%verbose) call Message%printMessage('Found PovRay command line executable; rendering frame')
+  if (POV%verbose) call Message%printMessage('Executing '//trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
   call system(trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
 end if
 
