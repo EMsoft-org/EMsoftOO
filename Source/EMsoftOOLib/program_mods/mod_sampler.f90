@@ -559,6 +559,9 @@ do i=1,2      ! loop over the kappa concentration parameter values
     vMFkappahat(setcnt) = kappahat
     vMFmuhat(1:4,setcnt) = muhat%get_quatd()
     misor(1,setcnt) = 2.0 * acos( sum( muhat%get_quatd() * meanquat(j)%get_quatd() ) )/dtor
+    write (*,*) ' input    : ', meanquat(j)%get_quatd(), enl%kappa(i)
+    write (*,*) ' averaged : ', muhat%get_quatd(), kappahat
+    write (*,*) ' misor (°): ', misor(1,setcnt)
 ! generate the PoVray file and run the program
     if (trim(enl%prefix).ne.'undefined') then 
       write (ch,"(I1)") setcnt
@@ -608,6 +611,9 @@ do i=1,2      ! loop over the kappa concentration parameter values
     WATkappahat(setcnt) = kappahat
     WATmuhat(1:4,setcnt) = muhat%get_quatd()
     misor(2,setcnt) = 2.0 * acos( sum( muhat%get_quatd() * meanquat(j)%get_quatd() ) )/dtor
+    write (*,*) ' input    : ', meanquat(j)%get_quatd(), enl%kappa(i)
+    write (*,*) ' averaged : ', muhat%get_quatd(), kappahat
+    write (*,*) ' misor (°): ', misor(2,setcnt)
 ! generate the PoVray file and run the program
     if (trim(enl%prefix).ne.'undefined') then 
       write (ch,"(I1)") setcnt

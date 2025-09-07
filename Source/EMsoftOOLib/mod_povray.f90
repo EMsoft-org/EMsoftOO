@@ -2517,7 +2517,7 @@ select case(FZorder)
     d = 1.7320508075688772D0
     zz = 0.D0
     oo = 1.D0
-    c2 = 1.7320508075688767D0
+    c2 = c ! 1.7320508075688767D0
     icpos = 208
     idpos = 208
     ihedge = 104
@@ -2558,7 +2558,7 @@ select case(FZorder)
     end do
 
     ! and normalize
-    do i=1,208
+    do i=1,104
       dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
     end do
 
@@ -2582,7 +2582,7 @@ select case(FZorder)
     ! NEEDS TO BE FIXED !!!
     a = 57.289922125538D0
     b = 1.0D0
-    c = 1.0D0
+    c = 0.414213562D0
     dt = 114.57984425107713D0
     ds = 2.0D0
     d = 1.7320508075688772D0
@@ -2636,7 +2636,7 @@ select case(FZorder)
   case(6) ! define the coordinates of the hexagonal C6 (6) FZ in Rodrigues Space
     a = 57.289922125538D0
     b = 1.0D0
-    c = 1.0D0
+    c = 0.2679491924D0
     dt = 114.57984425107713D0
     ds = 2.0D0
     d = 1.7320508075688772D0
