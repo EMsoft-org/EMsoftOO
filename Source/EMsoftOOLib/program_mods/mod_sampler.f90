@@ -50,6 +50,7 @@ type, public :: samplerNameListType
   integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
   integer(kind=irg) :: seed1              ! seed 1 for pseudo-random number generator [sampling]
   integer(kind=irg) :: seed2              ! seed 2 for pseudo-random number generator [averaging]
+  logical           :: reduce             ! reduce dir# parameters to RFZ before sampling ?
   character(fnlen)  :: hdfname            ! name of output HDF5 file
   character(fnlen)  :: imagefolder        ! folder path w.r.t EMdatapathname for image files
   character(fnlen)  :: prefix             ! prefix for image files (will be png files)
@@ -153,13 +154,14 @@ integer(kind=irg) :: norientations      ! number of orientations per dataset
 integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
 integer(kind=irg) :: seed1              ! seed 1 for pseudo-random number generator [sampling]
 integer(kind=irg) :: seed2              ! seed 2 for pseudo-random number generator [averaging]
+logical           :: reduce             ! reduce dir# parameters to RFZ before sampling ?
 character(fnlen)  :: hdfname            ! name of output HDF5 file
 character(fnlen)  :: imagefolder        ! folder path w.r.t EMdatapathname for image files
 character(fnlen)  :: prefix             ! prefix for image files (will be png files)
 character(fnlen)  :: PVexec             ! path to PoVray executable
 character(fnlen)  :: PVincludepath      ! path to PoVray include files
 
-namelist / EMsampler / kappa, dir1, dir2, dir3, dir4, norientations, pgnum, hdfname, &
+namelist / EMsampler / kappa, dir1, dir2, dir3, dir4, norientations, pgnum, hdfname, reduce, &
                        imagefolder, prefix, PVexec, PVincludepath, seed1, seed2, viewangle 
 
 kappa = (/ 512.D0, 3456.D0 /)
@@ -171,6 +173,7 @@ norientations = 5000
 pgnum = 1
 seed1 = 54321
 seed2 = 3514
+reduce = .TRUE.
 hdfname = 'undefined'
 imagefolder = 'undefined'
 prefix = 'undefined'
@@ -216,6 +219,7 @@ self%nml%norientations = norientations
 self%nml%pgnum = pgnum  
 self%nml%seed1 = seed1  
 self%nml%seed2 = seed2  
+self%nml%reduce = reduce
 self%nml%hdfname = hdfname
 self%nml%imagefolder = imagefolder
 self%nml%prefix = prefix
@@ -392,7 +396,7 @@ type(so3_T)                             :: SO
 type(Timing_T)                          :: timer
 type(PoVRay_T)                          :: PoVst
 
-real(kind=dbl),allocatable              :: vMFquatarray(:,:,:), WATquatarray(:,:,:), vMFkappahat(:), &
+real(kind=dbl),allocatable              :: vMFquatarray(:,:,:), WATquatarray(:,:,:), vMFkappahat(:), inputquat(:,:), &
                                            WATkappahat(:), vMFmuhat(:,:), WATmuhat(:,:), misor(:,:)
 integer(kind=irg)                       :: setcnt, seed1, seed2, hdferr, i, j, k, io_int(2), FZtype, FZorder, seedarray(2,2,8)
 real(kind=dbl)                          :: rod(4), rodL, kappahat
@@ -417,7 +421,7 @@ dstr = timer%getDateString()
 associate( enl => self%nml )
 
 allocate(vMFquatarray( 4, enl%norientations, 8), WATquatarray( 4, enl%norientations, 8) )
-allocate( vMFkappahat(8), WATkappahat(8), vMFmuhat(4,8), WATmuhat(4,8), misor(2,8) )
+allocate( vMFkappahat(8), WATkappahat(8), vMFmuhat(4,8), WATmuhat(4,8), misor(2,8), inputquat(4,4) )
 
 ! put the 4 mean directions in quaternion format 
 ! dir1 
@@ -527,13 +531,20 @@ call Message%printMessage(' Starting computation for Laue point group '//PGTHD(e
 SO = so3_T( pgnum = enl%pgnum )
 ! get the symmetry operator quaternions for the point group
 call dummy%QSym_Init(enl%pgnum, qsym)
+
+if (enl%reduce.eqv..TRUE.) then
+  do i=1,4
+    q = q_T( qdinp = meanquat(i)%get_quatd() )
+    call SO%ReduceOrientationtoRFZ( q, qsym, r )
+    q = r%rq()
+    mu = Quaternion_T( qd = q%q_copyd() )
+    meanquat(i) = mu 
+  end do 
+end if
+
 do i=1,4
-  q = q_T( qdinp = meanquat(i)%get_quatd() )
-  call SO%ReduceOrientationtoRFZ( q, qsym, r )
-  q = r%rq()
-  mu = Quaternion_T( qd = q%q_copyd() )
-  meanquat(i) = mu 
-end do 
+  inputquat(1:4,i) = meanquat(i)%get_quatd()
+end do  
 
 ! we'll do vMF sampling first and generate 8 orientation data sets 
 dictVMF = DirStat_T( DStype='VMF', PGnum=enl%pgnum )
@@ -645,6 +656,11 @@ if (hdferr.ne.0) call HDF%error_check('writeDatasetIntegerArray seedarray', hdfe
 dataset = 'misor'
 hdferr = HDF%writeDatasetDoubleArray(dataset, misor, 2, 8)
 if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray misor', hdferr)
+
+dataset = 'inputquat'
+hdferr = HDF%writeDatasetDoubleArray(dataset, inputquat, 4, 4)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray inputquat', hdferr)
+
 call HDF%pop() 
 call HDF%pop() 
 
@@ -787,7 +803,7 @@ if (POV%verbose) call Message%printMessage('PoVray rendering script stored in '/
 ! next we generate the PoVRay.ini file with the rendering instructions
 open(unit=dataunit,file='povray.ini',status='unknown',form='formatted')
 write(dataunit,"('Input_File_Name=',A)") trim(povfile)
-write(dataunit,"('Output_File_Name=',A)") trim(povfile)//'-st.png'
+write(dataunit,"('Output_File_Name=',A)") trim(povname)//'-st.png'
 
 str = '+L'//trim(self%PVincludepath)
 write(dataunit,"(A)") trim(str)

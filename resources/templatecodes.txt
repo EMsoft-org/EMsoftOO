@@ -47,6 +47,7 @@
 060EMsampleRFZ
 061EMCliffordTorus
 062EMsampler
+063EMRFZwf
 070EMECPIndexing
 071EMECPSingle
 072EMECPDI

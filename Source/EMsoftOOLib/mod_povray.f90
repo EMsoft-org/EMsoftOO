@@ -1792,30 +1792,6 @@ if (outline.eq.1) then
     slist(1:num) = (/ (i,i=1,num) /)
   end if
 
-! special handling of cyclic groups; rmode=3 only for now ... 
-  if ((FZtype.eq.1).and.(rmode.eq.3)) then 
-      if (FZorder.eq.2) irange = 100
-      if (FZorder.eq.3) irange = 104
-      if (FZorder.ge.4) irange = 52
-      dx = 1.D0/dble(ns)
-      do i=1,irange
-        ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i))/dpos(i), dpos(i) /) )
-        ! ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i))/dpos(i), dpos(i) /) )
-        rolast = ro1
-        splast = ro1%rs()
-        do j=1,ns+1
-          roc(1:3) = cpos(1:3,s_edge(1,i)) + (cpos(1:3,s_edge(2,i))-cpos(1:3,s_edge(1,i))) * j * dx
-          xx = dsqrt( sum (roc(1:3)**2) )
-          ro = r_T( rdinp = (/ roc(1:3)/xx, xx /) )
-          sp = ro%rs()
-      ! and create a cylinder with these points
-          call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.6, 0.0, 0.0 /))
-          ! rolast = ro
-          splast = sp
-        end do 
-      end do
-  end if 
-
 ! and next, draw the outline of the FZ or MFZ
   if (((rmode.eq.1).or.(rmode.eq.2)).and.(FZtype.ne.1)) then
   ! create the square edges first
@@ -2415,6 +2391,7 @@ recursive subroutine initFZCyclic_(self, FZorder, cylr, rmode)
 !! generate the PoVRay output for the cyclic rotational groups
 
 use mod_rotations
+use mod_io
 
 IMPLICIT NONE
 
@@ -2435,6 +2412,7 @@ type(o_T)                             :: om
 type(c_T)                             :: cu, culast
 type(a_T)                             :: axang
 type(orientation_T)                   :: ot
+type(IO_T)                            :: Message
 
 real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, &
                                          tpi, hpi, aux(4), aux4a(4), aux4b(4)
@@ -2714,10 +2692,8 @@ if (rmode.eq.5) then
   call self%addEulerBox()
 end if
 
-
-
 if ((rmode.eq.1).or.(rmode.eq.2)) then
-  ! create the square edges first
+
  dx = 1.D0/dble(ns)
  do i=1, ihedge
   ro1 = r_T( rdinp = (/ cpos(1:3,h_edge(1,i))/dpos(i), dpos(i) /) )
@@ -2764,11 +2740,11 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
     else
       aux4a = rolast%r_copyd()
       aux4b = ro%r_copyd()
-      call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.5, 0.0, 0.0 /))
+       call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.5, 0.0, 0.0 /))
     end if
     rolast = ro
     splast = sp
-  end do
+   end do
  end do
 
 end if
