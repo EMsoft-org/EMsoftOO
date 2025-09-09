@@ -41,6 +41,9 @@ IMPLICIT NONE
 ! namelist for the EMRFZwf program
 type, public :: RFZwfNameListType
   character(fnlen)  :: hdfname
+  character(fnlen)  :: prefix
+  character(fnlen)  :: PVexec             ! path to PoVray executable
+  character(fnlen)  :: PVincludepath      ! path to PoVray include files
 end type RFZwfNameListType
 
 ! class definition
@@ -60,20 +63,12 @@ private
   procedure, pass(self) :: readNameList_
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: RFZwf_
-  ! procedure, pass(self) :: doCubochoric_
-  ! procedure, pass(self) :: doHomochoric_
-  ! procedure, pass(self) :: doStereographic_
-  ! procedure, pass(self) :: doRodrigues_
-  ! procedure, pass(self) :: doEuler_
+  procedure, pass(self) :: verify_
 
   generic, public :: getNameList => getNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: RFZwf => RFZwf_
-  ! generic, public :: doCubochoric => doCubochoric_
-  ! generic, public :: doHomochoric => doHomochoric_
-  ! generic, public :: doStereographic => doStereographic_
-  ! generic, public :: doRodrigues => doRodrigues_
-  ! generic, public :: doEuler => doEuler_
+  generic, public :: verify => verify_
 
 end type RFZwf_T
 
@@ -141,10 +136,16 @@ type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
 character(fnlen)  :: hdfname
+character(fnlen)  :: prefix
+character(fnlen)  :: PVexec             ! path to PoVray executable
+character(fnlen)  :: PVincludepath      ! path to PoVray include files
 
-namelist / EMRFZwf / hdfname 
+namelist / EMRFZwf / hdfname, prefix, PVexec, PVincludepath
 
 hdfname = 'undefined'
+prefix  = 'undefined'
+PVexec  = 'undefined'
+PVincludepath = 'undefined'
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -156,12 +157,25 @@ if (.not.skipread) then
   read(UNIT=dataunit,NML=EMRFZwf)
   close(UNIT=dataunit,STATUS='keep')
 
-  ! if (trim(hdfname).eq.'undefined') then
-  !     call Message%printError('readNameList:',' hdfname is undefined in '//nmlfile)
-  ! end if
+  if (trim(hdfname).eq.'undefined') then
+      call Message%printError('readNameList:',' hdfname is undefined in '//nmlfile)
+  end if
+  if (PVexec.ne.'undefined') then
+    if (trim(prefix).eq.'undefined') then
+        call Message%printError('readNameList:',' prefix is undefined in '//nmlfile)
+    end if
+    if (trim(PVincludepath).eq.'undefined') then
+        call Message%printError('readNameList:',' PVincludepath is undefined in '//nmlfile)
+    end if
+    self%nml%PVexec = PVexec
+    self%nml%PVincludepath = PVincludepath
+  end if 
 end if 
 
 self%nml%hdfname = hdfname 
+self%nml%prefix = prefix 
+self%nml%PVexec = PVexec
+self%nml%PVincludepath = PVincludepath
 
 end subroutine readNameList_
 
@@ -184,25 +198,6 @@ nml = self%nml
 end function getNameList_
 
 !--------------------------------------------------------------------------
-subroutine do_(self, HDF)
-!DEC$ ATTRIBUTES DLLEXPORT :: do_
-!! author: MDG 
-!! version: 1.0 
-!! date: 09/08/25
-!!
-!! handle the   representation
-
-use HDF5
-use mod_HDFsupport
-
-class(RFZwf_T), INTENT(INOUT)   :: self
-type(HDF_T),INTENT(INOUT)       :: HDF
-
-
-
-end subroutine do_
-
-!--------------------------------------------------------------------------
 subroutine RFZwf_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: RFZwf_
 !! author: MDG 
@@ -218,6 +213,7 @@ use mod_EMsoft
 use mod_rotations
 use mod_quaternions
 use mod_io
+use mod_so3
 use HDF5
 use mod_HDFsupport
 
@@ -228,15 +224,17 @@ type(EMsoft_T), INTENT(INOUT)       :: EMsoft
 character(fnlen), INTENT(INOUT)     :: progname 
 
 type(HDF_T)                         :: HDF
+type(so3_T)                         :: SO
 type(IO_T)                          :: Message
 
 real(kind=dbl),allocatable          :: ropos(:,:), sppos(:,:), cupos(:,:), hopos(:,:), eupos(:,:)
 
-integer(kind=irg)                   :: FZorder, sz(2), i, hdferr, iL, FZcyclic(4)
+integer(kind=irg)                   :: FZorder, FZtype, sz(2), i, hdferr, iL, FZcyclic(4), FZdihedral(4)
 character(fnlen)                    :: datafile, dataset, groupname
 
 
 FZcyclic = (/ 2, 3, 4, 6 /)
+FZdihedral = (/ 2, 3, 4, 6 /)
 
 call openFortranHDFInterface()
 
@@ -258,12 +256,19 @@ end do
 ! each one of these groups will contain 10 datasets that represent the 
 ! entire wireframe for each of the Laue groups in each of the representations.
 
-! loop over the cyclic Laue groups
-do i=1,4
-  FZorder = FZcyclic(i)
+! loop over the cyclic Laue groups and do all but the Euler representations
+do i=1,10
   if (allocated(ropos)) deallocate(ropos)
+  call Message%printMessage(' --> starting on point group '//trim(self%Laue(i)))
+
 ! get the Rodrigues wireframe and store it in the Rodrigues group
-  call initFZCyclic_(FZorder, ropos)
+  if (i.le.4) then
+    call initFZCyclic_(FZcyclic(i), ropos)
+  else
+    SO = so3_T( self%nLaue(i), zerolist='FZ')
+    call SO%getFZtypeandorder(FZtype, FZorder) 
+    call initFZother_(FZorder, FZtype, ropos)
+  end if
   sz = shape(ropos)
   groupname = 'Rodrigues'
   hdferr = HDF%openGroup(groupname)
@@ -272,8 +277,8 @@ do i=1,4
   if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray ropos', hdferr)
   call HDF%pop()
 
-! then do the other representations
-  call convert_orep_(ropos, sz, sppos, cupos, hopos, eupos)
+! then do the other representations (except for Euler which is handled separately)
+  call convert_orep_(ropos, sz, sppos, cupos, hopos)
 
 ! Stereographic
   groupname = 'Stereographic'
@@ -301,30 +306,52 @@ do i=1,4
   if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray hopos', hdferr)
   deallocate(hopos)
   call HDF%pop()
-
-! Euler
-  groupname = 'Euler'
-  hdferr = HDF%openGroup(groupname)
-  dataset = 'Laue_'//trim(self%Laue(i))
-  hdferr = HDF%writeDatasetDoubleArray(dataset, eupos, sz(1), sz(2))
-  if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray eupos', hdferr)
-  deallocate(eupos)
-  call HDF%pop()
 end do 
 
 
+! Euler: this is a bit different from the others since there are extra bits
+!        to be drawn...in addition, the cyclic RFZs are basically just prisms
+groupname = 'Euler'
+hdferr = HDF%openGroup(groupname)
+call Message%printMessage(' Starting on Euler RFZs')
+do i=1,10
+  if (allocated(ropos)) deallocate(ropos)
+  if (allocated(eupos)) deallocate(eupos)
+  call Message%printMessage(' --> starting on point group '//trim(self%Laue(i)))
 
+! get the Euler wireframe 
+  SO = so3_T( self%nLaue(i), zerolist='FZ')
+  call SO%getFZtypeandorder(FZtype, FZorder) 
+! for the non-cyclic groups, we need to first get the ropos array
+  if (i.gt.4) then 
+    call initFZother_(FZorder, FZtype, ropos)
+    sz = shape(ropos)
+    call EulerinitFZ_(FZorder, FZtype, eupos, ropos)
+  else
+    call EulerinitFZ_(FZorder, FZtype, eupos)
+  end if
+  sz = shape(eupos)
+
+  dataset = 'Laue_'//trim(self%Laue(i))
+  hdferr = HDF%writeDatasetDoubleArray(dataset, eupos, sz(1), sz(2))
+  if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray eupos', hdferr)
+end do 
+
+! and close the HDF5 file
 call HDF%popall()
 
+! next we generate all the RFZdrawings for all the point groups to make sure they
+! are correct.  This requires a routine that employs the PoVray module to generate
+! the correct drawing volumes, followed by reading the wire frame from the hdf file
+! that we just generated.
+if (self%nml%prefix.ne.'undefined') call self%verify_(EMsoft, HDF)
 
 call closeFortranHDFInterface()
 
 end subroutine RFZwf_
 
-
-
 !--------------------------------------------------------------------------
-recursive subroutine convert_orep_(ropos, sz, sppos, cupos, hopos, eupos)
+recursive subroutine convert_orep_(ropos, sz, sppos, cupos, hopos)
 !DEC$ ATTRIBUTES DLLEXPORT :: convert_orep_
 !! author: MDG
 !! version: 1.0
@@ -342,25 +369,22 @@ real(kind=dbl),INTENT(IN)             :: ropos(sz(1),sz(2))
 real(kind=dbl),INTENT(OUT),allocatable:: sppos(:,:)
 real(kind=dbl),INTENT(OUT),allocatable:: cupos(:,:)
 real(kind=dbl),INTENT(OUT),allocatable:: hopos(:,:)
-real(kind=dbl),INTENT(OUT),allocatable:: eupos(:,:)
 
 type(r_T)                             :: r
 type(s_T)                             :: s
 type(c_T)                             :: c
 type(h_T)                             :: h
-type(e_T)                             :: e
 
 integer(kind=irg)                     :: i 
 real(kind=dbl)                        :: x
 
 call setRotationPrecision('d')
 
-allocate( sppos(sz(1),sz(2)), cupos(sz(1),sz(2)), hopos(sz(1),sz(2)), eupos(sz(1),sz(2)))
+allocate( sppos(sz(1),sz(2)), cupos(sz(1),sz(2)), hopos(sz(1),sz(2)) )
 
 sppos = 0.D0 
 cupos = 0.D0 
 hopos = 0.D0 
-eupos = 0.D0 
 
 do i=1,sz(2)
   if (sum(abs(ropos(1:3,i))).ne.0.D0) then 
@@ -372,8 +396,6 @@ do i=1,sz(2)
     cupos(1:3,i) = c%c_copyd() 
     h = r%rh()
     hopos(1:3,i) = h%h_copyd() 
-    e = r%re()
-    eupos(1:3,i) = e%e_copyd() 
   end if 
 end do 
 
@@ -410,7 +432,7 @@ type(orientation_T)                   :: ot
 type(IO_T)                            :: Message
 
 real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, &
-                                         tpi, hpi, aux(4), aux4a(4), aux4b(4)
+                                         tPi, hpi, aux(4), aux4a(4), aux4b(4)
 
 integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, idpos, icpos, ihedge
 integer(kind=irg),allocatable         :: h_edge(:,:)
@@ -692,6 +714,766 @@ end do
 
 end subroutine initFZCyclic_
 
+!--------------------------------------------------------------------------
+recursive subroutine EulerinitFZ_(FZorder, FZtype, eupos, ropos)
+!DEC$ ATTRIBUTES DLLEXPORT :: EulerinitFZ_
+!! author: MDG
+!! version: 1.0
+!! date: 09/09/25
+!!
+!! generate the coordinates of the wireframe for the Euler representation.
 
+use mod_rotations
+use mod_io
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN)          :: FZorder
+integer(kind=irg),INTENT(IN)          :: FZtype
+real(kind=dbl),INTENT(OUT),allocatable:: eupos(:,:)
+real(kind=dbl),INTENT(IN),OPTIONAL    :: ropos(:,:)
+
+type(e_T)                             :: eu, eulast
+type(r_T)                             :: ro
+type(IO_T)                            :: Message
+
+real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, &
+                                         tPi, aux(4), aux4a(4), aux4b(4), hPi
+
+integer(kind=irg)                     :: i,j,k, icnt, imax, nt, ns, idpos, icpos, ihedge, rosz(2)
+integer(kind=irg),allocatable         :: h_edge(:,:)
+real(kind=dbl),allocatable            :: cpos(:,:), dpos(:)
+! parameters that depend on the cyclic group
+real(kind=dbl)                        :: a, b, c, dt, ds, d, dd, zz, oo, c2, tmp
+
+tPi = 2.D0 * cPi
+hPi = 0.5D0 * cPi
+sh = (/ cPi, cPi/2.D0, cPi /)
+
+if (present(ropos)) then 
+  rosz = shape(ropos)
+end if
+
+if (FZtype.eq.1) then   ! these are the cyclic groups
+  allocate( eupos(3,48) )
+  eupos = 0.D0
+  xx = cPi/dble(FZorder)
+  ! draw four diagonal lines
+  icnt = 1
+  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3 
+  eu = e_T( edinp = (/ tPi-xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, tPi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3 
+  eu = e_T( edinp = (/ tPi, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ xx, 0.D0, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3 
+  eu = e_T( edinp = (/ tPi, 0.D0, tPi-xx /) - sh )
+  eulast = e_T( edinp = (/ tPi-xx, 0.D0, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3 
+! for cyclic groups we also need to draw the diagonals in the top surface
+! and the vertical lines connecting bottom and top planes
+! top plane
+  eu = e_T( edinp = (/ xx, cPi, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, cPi, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi-xx, cPi, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, cPi, tPi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi, cPi, xx /) - sh )
+  eulast = e_T( edinp = (/ xx, cPi, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi, cPi, tPi-xx /) - sh )
+  eulast = e_T( edinp = (/ tPi-xx, cPi, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  ! verticals
+  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ xx, cPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, cPi, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi-xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tPi-xx, cPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tPi-xx /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, cPi, tPi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ tPi, cPi, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ xx, 0.D0, tPi /) - sh )
+  eulast = e_T( edinp = (/ xx, cPi, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi, 0.D0, tPi-xx /) - sh )
+  eulast = e_T( edinp = (/ tPi, cPi, tPi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi-xx, 0.D0, tPi /) - sh )
+  eulast = e_T( edinp = (/ tPi-xx, cPi, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+
+! and return to the calling routine
+  RETURN
+end if 
+
+if (FZtype.eq.2) then   ! these are the dihedral groups
+! first we need to convert the existing ropos entries to Euler space
+  allocate( eupos(3,rosz(2) + 36) )
+  eupos = 0.D0
+  do i=1,rosz(2)
+    xx = sqrt(sum(ropos(1:3,i)**2))
+    ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
+    eu = ro%re()
+    eupos(1:3,i) = eu%e_copyd()
+  end do   
+
+  ! draw four diagonal lines
+  xx = cPi/dble(FZorder)
+  icnt = rosz(2) + 1
+  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3 
+  eu = e_T( edinp = (/ tPi-xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, tPi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3 
+  eu = e_T( edinp = (/ tPi, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ xx, 0.D0, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3 
+  eu = e_T( edinp = (/ tPi, 0.D0, tPi-xx /) - sh )
+  eulast = e_T( edinp = (/ tPi-xx, 0.D0, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3 
+
+! the verticals need to be drawn but only up to the level of the FZ surface
+  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi-xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tPi-xx, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tPi-xx /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, tPi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ tPi, hPi, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ xx, 0.D0, tPi /) - sh )
+  eulast = e_T( edinp = (/ xx, hPi, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi, 0.D0, tPi-xx /) - sh )
+  eulast = e_T( edinp = (/ tPi, hPi, tPi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tPi-xx, 0.D0, tPi /) - sh )
+  eulast = e_T( edinp = (/ tPi-xx, hPi, tPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+
+! and return to the calling routine
+  RETURN
+end if
+
+if (FZtype.eq.3) then   ! this is the tetrahedral group
+! first we need to convert the existing ropos entries to Euler space
+  allocate( eupos(3,rosz(2) + 48) )
+  eupos = 0.D0
+  do i=1,rosz(2)
+    xx = sqrt(sum(ropos(1:3,i)**2))
+    ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
+    eu = ro%re()
+    eupos(1:3,i) = eu%e_copyd()
+  end do   
+
+  ! draw four diagonal lines
+  icnt = rosz(2) + 1
+  xx = cPi/dble(2)
+  ! draw four diagonal lines
+  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
+  eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+
+! and finally the corner posts
+  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+
+  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt + 3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+
+! and return to the calling routine
+  RETURN
+end if
+
+if (FZtype.eq.4) then   ! this is the octahedral group
+! first we need to convert the existing ropos entries to Euler space
+  allocate( eupos(3,rosz(2) + 96) )
+  eupos = 0.D0
+  do i=1,rosz(2)
+    xx = sqrt(sum(ropos(1:3,i)**2))
+    ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
+    eu = ro%re()
+    eupos(1:3,i) = eu%e_copyd()
+  end do   
+
+  ! draw four diagonal lines
+  icnt = rosz(2) + 1
+
+  xx = cPi/dble(4)
+! draw four diagonal lines
+  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
+  eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+! and verticals
+  hPi = hPi * 0.5D0
+  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tpi-xx, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, tpi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ xx, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, tpi-xx /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ tpi-xx, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+! and the closing segments
+  eu = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi-xx, hPi, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, hPi, tpi-xx /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, hPi, xx /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ xx, hPi, tpi /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, hPi, tpi-xx /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi-xx, hPi, tpi /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+! and finally the corner posts
+  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+
+  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
+  eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+  icnt = icnt+3
+  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
+  eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
+  eupos(1:3, icnt+1) = eulast%e_copyd()
+  eupos(1:3, icnt+2) = eu%e_copyd()
+
+! and return to the calling routine
+  RETURN
+end if
+
+end subroutine EulerinitFZ_
+
+!--------------------------------------------------------------------------
+recursive subroutine initFZother_(FZorder, FZtype, ropos)
+!DEC$ ATTRIBUTES DLLEXPORT :: initFZother_
+!! author: MDG
+!! version: 1.0
+!! date: 09/08/25
+!!
+!! generate the coordinates of the wireframe for the cyclic rotational groups
+!! these are stored as 3-component Rodrigues vectors, with (0,0,0) entries
+!! separating the major line segments.
+
+use mod_rotations
+use mod_povray
+
+IMPLICIT NONE
+
+integer(kind=irg),INTENT(IN)          :: FZorder
+integer(kind=irg),INTENT(IN)          :: FZtype
+real(kind=dbl),INTENT(OUT),allocatable:: ropos(:,:)
+
+type(r_T)                             :: ro1, ro2, rolast, ro
+type(PoVRay_T)                        :: PoV
+
+real(kind=dbl)                        :: aux4b(4), d, aux(3), xx, dx
+
+integer(kind=irg)                     :: i,j,k, icnt, dims(3), nt, ns
+integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:)
+real(kind=dbl),allocatable            :: cpos(:,:)
+logical                               :: twostep
+
+! use the PoVray routines to get all the coordinates and connectivities
+if (FZtype.eq.2) then
+    if (FZorder.eq.6) then
+        twostep = .TRUE.
+        dims = (/ 24, 24, 24 /)
+        allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+        call PoV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
+    end if
+    if (FZorder.eq.4) then
+        twostep = .TRUE.
+        dims = (/ 16, 16, 16 /)
+        allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+        call PoV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
+    end if
+    if (FZorder.eq.3) then
+        twostep = .TRUE.
+        dims = (/ 12, 12, 12 /)
+        allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+        call PoV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
+    end if
+    if (FZorder.eq.2) then
+        twostep = .TRUE.
+        dims = (/ 8, 8, 16 /)
+        allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+        call PoV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+    end if
+end if
+
+if (FZtype.eq.3) then
+! rotational group 23
+      twostep = .FALSE.
+      dims = (/ 6, 12, 1 /)
+      allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+      call PoV%getpos_FZ23(dims, cpos, s_edge, t_edge, ns, d, nt)
+end if
+
+if (FZtype.eq.4) then
+! rotational group 432
+      twostep = .TRUE.
+      dims = (/ 24, 12, 24 /)
+      allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+      call PoV%getpos_FZ432(dims, cpos, s_edge, t_edge, ns, d, nt)
+end if
+
+allocate( ropos(3, (ns+2)*dims(2) + (nt+2)*dims(3) ) )
+ropos = 0.D0
+
+! next we determine the actual Rodrigues coordinates that will go into the ropos array 
+icnt = 1
+ dx = 1.D0/dble(ns)
+ do i=1,dims(2)
+  ro1 = r_T( rdinp = (/ cpos(1:3,s_edge(1,i)), d /) )
+  ro2 = r_T( rdinp = (/ cpos(1:3,s_edge(2,i)), d /) )
+  rolast = ro1
+  ropos(1:3,icnt) = (/ 0.D0, 0.D0, 0.D0 /) 
+  icnt = icnt+1
+  do j=1,ns+1
+    aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+    xx = dsqrt( sum (aux(1:3)**2) )
+    ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
+    aux4b = ro%r_copyd()
+    ropos(1:3,icnt) = aux4b(1:3)*aux4b(4)
+    rolast = ro
+    icnt = icnt+1
+  end do
+ end do
+
+ if (twostep) then
+   dx = 1.D0/dble(nt)
+   do i=1,dims(3)
+    ro1 = r_T( rdinp = (/ cpos(1:3,t_edge(1,i)), d /) )
+    ro2 = r_T( rdinp = (/ cpos(1:3,t_edge(2,i)), d /) )
+    rolast = ro1
+    ropos(1:3,icnt) = (/ 0.D0, 0.D0, 0.D0 /) 
+    icnt = icnt+1
+    do j=1,nt+1
+      aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+      xx = dsqrt( sum (aux(1:3)**2) )
+      ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
+      aux4b = ro%r_copyd()
+      ropos(1:3,icnt) = aux4b(1:3)*aux4b(4)
+      rolast = ro
+      icnt = icnt+1
+    end do
+   end do
+ end if
+
+end subroutine initFZother_
+
+!--------------------------------------------------------------------------
+recursive subroutine verify_(self, EMsoft, HDF)
+!DEC$ ATTRIBUTES DLLEXPORT :: verify_
+!! author: MDG
+!! version: 1.0
+!! date: 09/09/25
+
+use mod_EMsoft
+use HDF5
+use mod_HDFsupport
+use mod_povray
+use ISO_C_BINDING
+
+class(RFZwf_T), INTENT(INOUT)       :: self
+type(EMsoft_T), INTENT(INOUT)       :: EMsoft
+type(HDF_T),INTENT(INOUT)           :: HDF
+
+type(PoVRay_T)                      :: PoV
+
+real(real_kind_15),allocatable      :: wireframe(:,:)
+integer(HSIZE_T)                    :: dims(2)
+
+integer(kind=irg)                   :: sz(2), i, j, iG, iL, hdferr, icnt
+character(fnlen)                    :: povname, groupname, dataset
+character(fnlen)                    :: locationline, locline2, datafile, pvcmd, str
+real(kind=sgl)                      :: eyepos(3), dd, dis(5)
+real(kind=dbl)                      :: cylr, ac
+character(9)                        :: px, py, pz, pd
+character(21)                       :: p1, p2
+logical                             :: readonly = .TRUE., fexists
+
+! initialize PoVray parameters
+cylr = 0.005D0
+dis = (/ 4.0, 4.0, 2.5, 3.5, 10.0 /)
+locline2 = "location < "
+eyepos = (/ 0.911259, 0.0, 0.112 /)
+eyepos = eyepos/sqrt( sum( eyepos*eyepos))
+write (px,"(F9.3)") eyepos(1)
+write (py,"(F9.3)") eyepos(2)
+write (pz,"(F9.3)") eyepos(3)
+
+p1 = "*cos(clck*0.0174533)"
+p2 = "*sin(clck*0.0174533)"
+
+locline2 = trim(locline2)//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1//","//pz//">*"
+
+datafile = EMsoft%generateFilePath('EMdatapathname', self%nml%hdfname)
+
+hdferr = HDF%openFile(datafile, readonly)
+
+! loop over the orientation representations
+! 1(cubochoric)|2(homochoric)|3(stereographic)|4(Rodrigues)|5(Euler)
+ do iG=1,5 
+  groupname = trim(self%ortype(iG))
+  hdferr = HDF%openGroup(groupname)
+  do iL=1,10
+! read the dataset
+    dataset = 'Laue_'//trim(self%Laue(iL))
+    call HDF%readDatasetDoubleArray(dataset, dims, hdferr, wireframe)
+    sz = dims
+! set up the PoVray output file
+    datafile = EMsoft%generateFilePath('EMdatapathname', self%nml%prefix)
+    datafile = trim(datafile)//'_'//trim(groupname)//'_'//trim(self%Laue(iL))
+    povname = trim(datafile)//'.pov'
+    dd = dis(iG)
+    write (pd,"(F9.3)") dd 
+    locationline = trim(locline2)//pd
+    PoV = PoVRay_T( EMsoft, povname, locationline=locationline, viewangle = 15.D0)
+    write (*,*) ' Creating '//trim(povname)
+! add the reference frame and any necessary wireframes
+    if (iG.eq.1) then
+      ac = 0.5D0 * LPs%ap
+      call PoV%addReferenceFrame(ac, cylr)
+      call PoV%addCubochoricCube()
+    end if
+    if (iG.eq.2) then
+      ac = 1.33067D0
+      call PoV%addReferenceFrame(ac, cylr)
+      call PoV%addWireFrameSphere(ac)
+    end if
+    if (iG.eq.3) then
+      ac = 1.0D0
+      call PoV%addReferenceFrame(ac, cylr)
+      call PoV%addWireFrameSphere(ac)
+    end if
+    if (iG.eq.4) then
+      ac = 1.0D0
+      call PoV%addReferenceFrame(ac, cylr)
+    end if
+    if (iG.eq.5) then
+      call PoV%addEulerBox()
+    end if
+! add the current wireframe array as rendered cylinders
+    icnt = 1
+    do while (icnt.lt.sz(2)) 
+      if (sum(abs(wireframe(1:3,icnt))).eq.0.D0) then 
+        icnt = icnt+1
+      else
+        if (sum(abs(wireframe(1:3,icnt+1))).ne.0.D0) then 
+          call PoV%addCylinder(wireframe(1:3,icnt),wireframe(1:3,icnt+1),cylr,(/ 1.0, 0.0, 0.0 /))
+        end if 
+      end if 
+      icnt = icnt+1
+    end do
+    call PoV%closeFile()
+
+! and run the rendering using a povray.ini file
+!---------------------------------------------------------------------
+! next we generate the PoVRay.ini file with the rendering instructions
+    open(unit=dataunit,file='povray.ini',status='unknown',form='formatted')
+    write(dataunit,"('Input_File_Name=',A)") trim(povname)
+    write(dataunit,"('Output_File_Name=',A)") trim(datafile)//'.png'
+
+    str = '+L'//trim(self%nml%PVincludepath)
+    write(dataunit,"(A)") trim(str)
+    write(dataunit,"('+W',I4,' +H',I4)") 1024, 1024
+    write(dataunit,"('Initial_Clock=1')")
+    write(dataunit,"('Initial_Frame=1')")
+    write(dataunit,"('Final_Clock=1')")
+    write(dataunit,"('Final_Frame=1')")
+    write(dataunit,"('Work_Threads=6')")
+    close(unit=dataunit,status='keep')
+
+    pvcmd = trim(self%nml%PVexec)
+    inquire(file=trim(pvcmd),exist=fexists)
+    if (fexists.eqv..TRUE.) then
+      call system(trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
+    end if
+  end do 
+  call HDF%pop()
+end do 
+
+call HDF%popall()
+
+end subroutine verify_
 
 end module mod_RFZwf

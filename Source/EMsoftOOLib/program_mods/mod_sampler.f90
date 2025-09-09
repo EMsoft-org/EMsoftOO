@@ -795,7 +795,7 @@ colorstring = 'material { texture { pigment { rgb <'//trim(rgbstring)//'> filter
 
 write (90,"(A)") trim(colorstring)
 write (90,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
-write (90,"(A)") 'background { color rgb <0.9, 0.9, 0.9> }'
+write (90,"(A)") 'background {   color rgb <0.9, 0.9, 0.9> }'
 call PoV%closeFile()
 if (POV%verbose) call Message%printMessage('PoVray rendering script stored in '//trim(povname)//'-st.pov')
 

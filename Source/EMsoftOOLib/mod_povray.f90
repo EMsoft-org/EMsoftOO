@@ -55,7 +55,7 @@ type, public :: PoVRay_T
     character(fnlen)    :: skyline         ! default < 0.0, 0.0, 1.0>
     character(fnlen)    :: lightline       ! default <1, 2, -2>*50
     real(kind=sgl)      :: eyepos(3)
-    logical             :: background
+    logical,public      :: background
     logical,public      :: verbose = .FALSE.
     integer(kind=irg)   :: dunit = 0       ! default value = 90
     integer(kind=irg)   :: nmlunit = 88    ! default value
@@ -196,6 +196,7 @@ if (.not.present(nofile)) then
     call PV%openFile(EMsoft)
   end if
   call PV%setCamera()
+  PV%background = .TRUE.
   call PV%setLightSource()
 end if
 
@@ -436,7 +437,7 @@ write (self%dunit,"(A)") "media_interaction on"
 write (self%dunit,"(A)") "media_attenuation on"
 write (self%dunit,"(A)") "shadowless"
 write (self%dunit,"(A)") "}"
-if (self%background) then
+if (self%background.eqv..TRUE.) then
   write (self%dunit,"(A)") "background { color White }"
   write (self%dunit,"(A)") " "
 end if
@@ -1263,6 +1264,19 @@ else ! define the coordinates of the hexagonal FZ in Rodrigues Space
     t_edge(1:2,10) = (/ 10, 22 /)
     t_edge(1:2,11) = (/ 11, 23 /)
     t_edge(1:2,12) = (/ 12, 24 /)
+
+    t_edge(1:2,13) = (/  1,  7 /)
+    t_edge(1:2,14) = (/  2,  8 /)
+    t_edge(1:2,15) = (/  3,  9 /)
+    t_edge(1:2,16) = (/  4, 10 /)
+    t_edge(1:2,17) = (/  5, 11 /)
+    t_edge(1:2,18) = (/  6, 12 /)
+    t_edge(1:2,19) = (/ 13, 19 /)
+    t_edge(1:2,20) = (/ 14, 20 /)
+    t_edge(1:2,21) = (/ 15, 21 /)
+    t_edge(1:2,22) = (/ 16, 22 /)
+    t_edge(1:2,23) = (/ 17, 23 /)
+    t_edge(1:2,24) = (/ 18, 24 /)
 end if
 
 end subroutine getpos_FZ622_
@@ -1373,6 +1387,7 @@ else ! define the coordinates of the tetragonal 422 FZ in Rodrigues Space
     s_edge(1:2,15) = (/ 15, 16 /)
     s_edge(1:2,16) = (/ 16,  9 /)
 
+! vertical
     t_edge(1:2, 1) = (/  1,  9 /)
     t_edge(1:2, 2) = (/  2, 10 /)
     t_edge(1:2, 3) = (/  3, 11 /)
@@ -1381,6 +1396,15 @@ else ! define the coordinates of the tetragonal 422 FZ in Rodrigues Space
     t_edge(1:2, 6) = (/  6, 14 /)
     t_edge(1:2, 7) = (/  7, 15 /)
     t_edge(1:2, 8) = (/  8, 16 /)
+! in top and bottom faces
+    t_edge(1:2, 9) = (/  1,  5 /)
+    t_edge(1:2,10) = (/  2,  6 /)
+    t_edge(1:2,11) = (/  3,  7 /)
+    t_edge(1:2,12) = (/  4,  8 /)
+    t_edge(1:2,13) = (/  9, 13 /)
+    t_edge(1:2,14) = (/ 10, 14 /)
+    t_edge(1:2,15) = (/ 11, 15 /)
+    t_edge(1:2,16) = (/ 12, 16 /)
 
 end if
 
@@ -1482,12 +1506,21 @@ else ! define the coordinates of the cubic FZ in Rodrigues Space
     s_edge(1:2,11) = (/ 11, 12 /)
     s_edge(1:2,12) = (/ 12,  7 /)
 
+! vertical
     t_edge(1:2, 1) = (/  1,  7 /)
     t_edge(1:2, 2) = (/  2,  8 /)
     t_edge(1:2, 3) = (/  3,  9 /)
     t_edge(1:2, 4) = (/  4, 10 /)
     t_edge(1:2, 5) = (/  5, 11 /)
     t_edge(1:2, 6) = (/  6, 12 /)
+! in top and bottom plane
+    t_edge(1:2, 7) = (/  1,  4 /)
+    t_edge(1:2, 8) = (/  2,  5 /)
+    t_edge(1:2, 9) = (/  3,  6 /)
+    t_edge(1:2,10) = (/  7, 10 /)
+    t_edge(1:2,11) = (/  8, 11 /)
+    t_edge(1:2,12) = (/  9, 12 /)
+
 
 end if
 
@@ -1583,10 +1616,25 @@ else ! define the coordinates of the FZ in Rodrigues Space
     s_edge(1:2, 7) = (/  7,  8 /)
     s_edge(1:2, 8) = (/  8,  5 /)
 
+! vertical
     t_edge(1:2, 1) = (/  1,  5 /)
     t_edge(1:2, 2) = (/  2,  6 /)
     t_edge(1:2, 3) = (/  3,  7 /)
     t_edge(1:2, 4) = (/  4,  8 /)
+! diagonals in faces
+    t_edge(1:2, 5) = (/  1,  6 /)
+    t_edge(1:2, 6) = (/  2,  5 /)
+    t_edge(1:2, 7) = (/  1,  3 /)
+    t_edge(1:2, 8) = (/  2,  4 /)
+    t_edge(1:2, 9) = (/  1,  8 /)
+    t_edge(1:2,10) = (/  4,  5 /)
+    t_edge(1:2,11) = (/  7,  4 /)
+    t_edge(1:2,12) = (/  3,  8 /)
+    t_edge(1:2,13) = (/  7,  5 /)
+    t_edge(1:2,14) = (/  8,  6 /)
+    t_edge(1:2,15) = (/  2,  7 /)
+    t_edge(1:2,16) = (/  3,  6 /)
+
 end if
 
 end subroutine getpos_FZ222_
@@ -1681,7 +1729,7 @@ if (FZtype.eq.2) then
         call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
       else
         twostep = .TRUE.
-        dims = (/ 24, 24, 12 /)
+        dims = (/ 24, 24, 24 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
         call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
       end if
@@ -1694,7 +1742,7 @@ if (FZtype.eq.2) then
         call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
       else
         twostep = .TRUE.
-        dims = (/ 16, 16, 8 /)
+        dims = (/ 16, 16, 16 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
         call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
       end if
@@ -1707,7 +1755,7 @@ if (FZtype.eq.2) then
         call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
       else
         twostep = .TRUE.
-        dims = (/ 12, 12, 6 /)
+        dims = (/ 12, 12, 12 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
         call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
       end if
@@ -1720,7 +1768,7 @@ if (FZtype.eq.2) then
         call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
       else
         twostep = .TRUE.
-        dims = (/ 8, 8, 4 /)
+        dims = (/ 8, 8, 16 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
         call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
       end if
