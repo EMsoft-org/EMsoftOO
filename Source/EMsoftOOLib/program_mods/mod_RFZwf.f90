@@ -311,6 +311,10 @@ end do
 
 ! Euler: this is a bit different from the others since there are extra bits
 !        to be drawn...in addition, the cyclic RFZs are basically just prisms
+! we have to be carefull here because the extra lines that were drawn for the 
+! dihedral groups, to show the curvature of top and bottom faces more clearly,
+! causes issues with the Euler plots; so for the Euler plots, we recalculate
+! the ropos array
 groupname = 'Euler'
 hdferr = HDF%openGroup(groupname)
 call Message%printMessage(' Starting on Euler RFZs')
@@ -324,7 +328,7 @@ do i=1,10
   call SO%getFZtypeandorder(FZtype, FZorder) 
 ! for the non-cyclic groups, we need to first get the ropos array
   if (i.gt.4) then 
-    call initFZother_(FZorder, FZtype, ropos)
+    call initFZother_(FZorder, FZtype, ropos, euler=.TRUE.)
     sz = shape(ropos)
     call EulerinitFZ_(FZorder, FZtype, eupos, ropos)
   else
@@ -760,89 +764,57 @@ if (FZtype.eq.1) then   ! these are the cyclic groups
   xx = cPi/dble(FZorder)
   ! draw four diagonal lines
   icnt = 1
-  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, 0.D0, xx /) - sh
+  eupos(1:3, icnt+2) = (/ xx, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3 
-  eu = e_T( edinp = (/ tPi-xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, 0.D0, tPi-xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, 0.D0, tPi-xx /) - sh
+  eupos(1:3, icnt+2) = (/ tPi-xx, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3 
-  eu = e_T( edinp = (/ tPi, 0.D0, xx /) - sh )
-  eulast = e_T( edinp = (/ xx, 0.D0, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ xx, 0.D0, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, 0.D0, xx /) - sh
   icnt = icnt + 3 
-  eu = e_T( edinp = (/ tPi, 0.D0, tPi-xx /) - sh )
-  eulast = e_T( edinp = (/ tPi-xx, 0.D0, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi-xx, 0.D0, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, 0.D0, tPi-xx /) - sh
   icnt = icnt + 3 
 ! for cyclic groups we also need to draw the diagonals in the top surface
 ! and the vertical lines connecting bottom and top planes
 ! top plane
-  eu = e_T( edinp = (/ xx, cPi, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, cPi, xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, cPi, xx /) - sh
+  eupos(1:3, icnt+2) = (/ xx, cPi, 0.D0 /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi-xx, cPi, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, cPi, tPi-xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, cPi, tPi-xx /) - sh
+  eupos(1:3, icnt+2) = (/ tPi-xx, cPi, 0.D0 /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi, cPi, xx /) - sh )
-  eulast = e_T( edinp = (/ xx, cPi, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ xx, cPi, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, cPi, xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi, cPi, tPi-xx /) - sh )
-  eulast = e_T( edinp = (/ tPi-xx, cPi, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi-xx, cPi, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, cPi, tPi-xx /) - sh
   icnt = icnt+3
   ! verticals
-  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ xx, cPi, 0.D0 /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ xx, cPi, 0.D0 /) - sh
+  eupos(1:3, icnt+2) = (/ xx, 0.D0, 0.D0 /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, cPi, xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, cPi, xx /) - sh 
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi-xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ tPi-xx, cPi, 0.D0 /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi-xx, cPi, 0.D0 /) - sh
+  eupos(1:3, icnt+2) = (/ tPi-xx, 0.D0, 0.D0 /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ 0.D0, 0.D0, tPi-xx /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, cPi, tPi-xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, cPi, tPi-xx /) - sh
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, tPi-xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi, 0.D0, xx /) - sh )
-  eulast = e_T( edinp = (/ tPi, cPi, xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi, cPi, xx /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, 0.D0, xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ xx, 0.D0, tPi /) - sh )
-  eulast = e_T( edinp = (/ xx, cPi, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ xx, cPi, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ xx, 0.D0, tPi /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi, 0.D0, tPi-xx /) - sh )
-  eulast = e_T( edinp = (/ tPi, cPi, tPi-xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi, cPi, tPi-xx /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, 0.D0, tPi-xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi-xx, 0.D0, tPi /) - sh )
-  eulast = e_T( edinp = (/ tPi-xx, cPi, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi-xx, cPi, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ tPi-xx, 0.D0, tPi /) - sh
 
 ! and return to the calling routine
   RETURN
@@ -853,76 +825,59 @@ if (FZtype.eq.2) then   ! these are the dihedral groups
   allocate( eupos(3,rosz(2) + 36) )
   eupos = 0.D0
   do i=1,rosz(2)
-    xx = sqrt(sum(ropos(1:3,i)**2))
-    ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
-    eu = ro%re()
-    eupos(1:3,i) = eu%e_copyd()
+    xx = sum(abs(ropos(1:3,i)))
+    if (xx.ne.0.D0) then
+      xx = sqrt(sum(ropos(1:3,i)**2))
+      ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
+      eu = ro%re()
+      eupos(1:3,i) = eu%e_copyd() 
+      eupos(1,i) = mod(eupos(1,i)+10.D0*cPi,2.D0*cPi)
+      eupos(2,i) = mod(eupos(2,i)+10.D0*cPi,cPi)
+      eupos(3,i) = mod(eupos(3,i)+10.D0*cPi,2.D0*cPi)
+      eupos(1:3,i) = eupos(1:3,i) - sh
+    end if
   end do   
 
   ! draw four diagonal lines
   xx = cPi/dble(FZorder)
   icnt = rosz(2) + 1
-  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, 0.D0, xx /) - sh
+  eupos(1:3, icnt+2) = (/ xx, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3 
-  eu = e_T( edinp = (/ tPi-xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, 0.D0, tPi-xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, 0.D0, tPi-xx /) - sh
+  eupos(1:3, icnt+2) = (/ tPi-xx, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3 
-  eu = e_T( edinp = (/ tPi, 0.D0, xx /) - sh )
-  eulast = e_T( edinp = (/ xx, 0.D0, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ xx, 0.D0, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, 0.D0, xx /) - sh
   icnt = icnt + 3 
-  eu = e_T( edinp = (/ tPi, 0.D0, tPi-xx /) - sh )
-  eulast = e_T( edinp = (/ tPi-xx, 0.D0, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi-xx, 0.D0, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, 0.D0, tPi-xx /) - sh
   icnt = icnt + 3 
 
 ! the verticals need to be drawn but only up to the level of the FZ surface
-  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ xx, hPi, 0.D0 /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ xx, hPi, 0.D0 /) - sh
+  eupos(1:3, icnt+2) = (/ xx, 0.D0, 0.D0 /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, hPi, xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, hPi, xx /) - sh
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi-xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ tPi-xx, hPi, 0.D0 /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi-xx, hPi, 0.D0 /) - sh
+  eupos(1:3, icnt+2) = (/ tPi-xx, 0.D0, 0.D0 /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ 0.D0, 0.D0, tPi-xx /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, hPi, tPi-xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, hPi, tPi-xx /) - sh
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, tPi-xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi, 0.D0, xx /) - sh )
-  eulast = e_T( edinp = (/ tPi, hPi, xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi, hPi, xx /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, 0.D0, xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ xx, 0.D0, tPi /) - sh )
-  eulast = e_T( edinp = (/ xx, hPi, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ xx, hPi, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ xx, 0.D0, tPi /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi, 0.D0, tPi-xx /) - sh )
-  eulast = e_T( edinp = (/ tPi, hPi, tPi-xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi, hPi, tPi-xx /) - sh
+  eupos(1:3, icnt+2) = (/ tPi, 0.D0, tPi-xx /) - sh
   icnt = icnt+3
-  eu = e_T( edinp = (/ tPi-xx, 0.D0, tPi /) - sh )
-  eulast = e_T( edinp = (/ tPi-xx, hPi, tPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tPi-xx, hPi, tPi /) - sh
+  eupos(1:3, icnt+2) = (/ tPi-xx, 0.D0, tPi /) - sh
 
 ! and return to the calling routine
   RETURN
@@ -933,100 +888,75 @@ if (FZtype.eq.3) then   ! this is the tetrahedral group
   allocate( eupos(3,rosz(2) + 48) )
   eupos = 0.D0
   do i=1,rosz(2)
+    xx = sum(abs(ropos(1:3,i)))
+    if (xx.ne.0.D0) then
     xx = sqrt(sum(ropos(1:3,i)**2))
-    ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
-    eu = ro%re()
-    eupos(1:3,i) = eu%e_copyd()
+      ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
+      eu = ro%re()
+      eupos(1:3,i) = eu%e_copyd() 
+      eupos(1,i) = mod(eupos(1,i)+10.D0*cPi,2.D0*cPi)
+      eupos(2,i) = mod(eupos(2,i)+10.D0*cPi,cPi)
+      eupos(3,i) = mod(eupos(3,i)+10.D0*cPi,2.D0*cPi)
+      eupos(1:3,i) = eupos(1:3,i) - sh
+    end if 
   end do   
 
   ! draw four diagonal lines
   icnt = rosz(2) + 1
   xx = cPi/dble(2)
   ! draw four diagonal lines
-  eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, 0.D0, xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, 0.D0, xx /) - sh
+  eupos(1:3, icnt+2) = (/ xx, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ tpi-xx, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-xx /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, 0.D0, tpi-xx /) - sh
+  eupos(1:3, icnt+2) = (/ tpi-xx, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ tpi, 0.D0, xx /) - sh )
-  eulast = e_T( edinp = (/ xx, 0.D0, tpi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ xx, 0.D0, tpi /) - sh
+  eupos(1:3, icnt+2) = (/ tpi, 0.D0, xx /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ tpi, 0.D0, tpi-xx /) - sh )
-  eulast = e_T( edinp = (/ tpi-xx, 0.D0, tpi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tpi-xx, 0.D0, tpi /) - sh
+  eupos(1:3, icnt+2) = (/ tpi, 0.D0, tpi-xx /) - sh
   icnt = icnt + 3
 
 ! and finally the corner posts
-  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ hPi, 0.D0, 0.D0 /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ hPi, 0.D0, 0.D0 /) - sh 
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, hPi, 0.D0 /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, hPi, 0.D0 /) - sh
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ 0.D0, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, 0.D0, hPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, 0.D0, hPi /) - sh
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3
 
-  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ tpi - hPi, 0.D0, 0.D0 /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tpi - hPi, 0.D0, 0.D0 /) - sh
+  eupos(1:3, icnt+2) = (/ tpi, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ tpi, hPi, 0.D0 /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tpi, hPi, 0.D0 /) - sh
+  eupos(1:3, icnt+2) = (/ tpi, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ tpi, 0.D0, 0.D0 /) - sh )
-  eulast = e_T( edinp = (/ tpi, 0.D0, hPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tpi, 0.D0, hPi /) - sh 
+  eupos(1:3, icnt+2) = (/ tpi, 0.D0, 0.D0 /) - sh
   icnt = icnt + 3
 
-  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-  eulast = e_T( edinp = (/ tpi - hPi, 0.D0, tpi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tpi - hPi, 0.D0, tpi /) - sh
+  eupos(1:3, icnt+2) = (/ tpi, 0.D0, tpi /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-  eulast = e_T( edinp = (/ tpi, hPi, tpi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tpi, hPi, tpi /) - sh
+  eupos(1:3, icnt+2) = (/ tpi, 0.D0, tpi /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ tpi, 0.D0, tpi /) - sh )
-  eulast = e_T( edinp = (/ tpi, 0.D0, tpi-hPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ tpi, 0.D0, tpi-hPi /) - sh
+  eupos(1:3, icnt+2) = (/ tpi, 0.D0, tpi /) - sh
   icnt = icnt + 3
 
-  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-  eulast = e_T( edinp = (/ 0.D0 + hPi, 0.D0, tpi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0 + hPi, 0.D0, tpi /) - sh
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, tpi /) - sh
   icnt = icnt + 3
-  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, hPi, tpi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, hPi, tpi /) - sh 
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, tpi /) - sh 
   icnt = icnt + 3
-  eu = e_T( edinp = (/ 0.D0, 0.D0, tpi /) - sh )
-  eulast = e_T( edinp = (/ 0.D0, 0.D0, tpi-hPi /) - sh )
-  eupos(1:3, icnt+1) = eulast%e_copyd()
-  eupos(1:3, icnt+2) = eu%e_copyd()
+  eupos(1:3, icnt+1) = (/ 0.D0, 0.D0, tpi-hPi /) - sh
+  eupos(1:3, icnt+2) = (/ 0.D0, 0.D0, tpi /) - sh 
 
 ! and return to the calling routine
   RETURN
@@ -1038,9 +968,15 @@ if (FZtype.eq.4) then   ! this is the octahedral group
   eupos = 0.D0
   do i=1,rosz(2)
     xx = sqrt(sum(ropos(1:3,i)**2))
-    ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
-    eu = ro%re()
-    eupos(1:3,i) = eu%e_copyd()
+    if (xx.ne.0.D0) then
+      ro = r_T( rdinp = (/ ropos(1:3,i)/xx, xx /) )
+      eu = ro%re()
+      eupos(1:3,i) = eu%e_copyd() 
+      eupos(1,i) = mod(eupos(1,i)+10.D0*cPi,2.D0*cPi)
+      eupos(2,i) = mod(eupos(2,i)+10.D0*cPi,cPi)
+      eupos(3,i) = mod(eupos(3,i)+10.D0*cPi,2.D0*cPi)
+      eupos(1:3,i) = eupos(1:3,i) - sh
+    end if 
   end do   
 
   ! draw four diagonal lines
@@ -1222,7 +1158,7 @@ end if
 end subroutine EulerinitFZ_
 
 !--------------------------------------------------------------------------
-recursive subroutine initFZother_(FZorder, FZtype, ropos)
+recursive subroutine initFZother_(FZorder, FZtype, ropos, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: initFZother_
 !! author: MDG
 !! version: 1.0
@@ -1240,6 +1176,7 @@ IMPLICIT NONE
 integer(kind=irg),INTENT(IN)          :: FZorder
 integer(kind=irg),INTENT(IN)          :: FZtype
 real(kind=dbl),INTENT(OUT),allocatable:: ropos(:,:)
+logical,INTENT(IN),OPTIONAL           :: euler
 
 type(r_T)                             :: ro1, ro2, rolast, ro
 type(PoVRay_T)                        :: PoV
@@ -1255,27 +1192,51 @@ logical                               :: twostep
 if (FZtype.eq.2) then
     if (FZorder.eq.6) then
         twostep = .TRUE.
-        dims = (/ 24, 24, 24 /)
-        allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call PoV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
+        if (present(euler)) then
+          dims = (/ 24, 24, 12 /)
+          allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+          call PoV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, euler=.TRUE.)
+        else
+          dims = (/ 24, 24, 24 /)
+          allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+          call PoV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
+        end if
     end if
     if (FZorder.eq.4) then
         twostep = .TRUE.
-        dims = (/ 16, 16, 16 /)
-        allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call PoV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
+        if (present(euler)) then
+          dims = (/ 16, 16, 8 /)
+          allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+          call PoV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, euler=.TRUE.)
+        else
+          dims = (/ 16, 16, 16 /)
+          allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+          call PoV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
+        end if
     end if
     if (FZorder.eq.3) then
         twostep = .TRUE.
-        dims = (/ 12, 12, 12 /)
-        allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call PoV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
+        if (present(euler)) then
+          dims = (/ 12, 12, 6 /)
+          allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+          call PoV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, euler=.TRUE.)
+        else
+          dims = (/ 12, 12, 12 /)
+          allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+          call PoV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
+        end if
     end if
     if (FZorder.eq.2) then
         twostep = .TRUE.
-        dims = (/ 8, 8, 16 /)
-        allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call PoV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+        if (present(euler)) then
+          dims = (/ 8, 8, 4 /)
+          allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+          call PoV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, euler=.TRUE.)
+        else
+          dims = (/ 8, 8, 16 /)
+          allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
+          call PoV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+        end if
     end if
 end if
 
@@ -1285,6 +1246,7 @@ if (FZtype.eq.3) then
       dims = (/ 6, 12, 1 /)
       allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
       call PoV%getpos_FZ23(dims, cpos, s_edge, t_edge, ns, d, nt)
+      nt = 0  ! to avoid extra point appearing in drawings...
 end if
 
 if (FZtype.eq.4) then
@@ -1295,7 +1257,9 @@ if (FZtype.eq.4) then
       call PoV%getpos_FZ432(dims, cpos, s_edge, t_edge, ns, d, nt)
 end if
 
-allocate( ropos(3, (ns+2)*dims(2) + (nt+2)*dims(3) ) )
+! allocate( ropos(3, (ns+2)*dims(2) + (nt+2)*dims(3) ) )
+! allocate( ropos(3, (ns+1)*dims(2) + (nt+1)*dims(3) ) )
+allocate( ropos(3, ns*dims(2) + nt*dims(3) ) )
 ropos = 0.D0
 
 ! next we determine the actual Rodrigues coordinates that will go into the ropos array 
@@ -1307,7 +1271,7 @@ icnt = 1
   rolast = ro1
   ropos(1:3,icnt) = (/ 0.D0, 0.D0, 0.D0 /) 
   icnt = icnt+1
-  do j=1,ns+1
+  do j=1,ns-1!+1
     aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
@@ -1326,7 +1290,7 @@ icnt = 1
     rolast = ro1
     ropos(1:3,icnt) = (/ 0.D0, 0.D0, 0.D0 /) 
     icnt = icnt+1
-    do j=1,nt+1
+    do j=1,nt-1!+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
@@ -1364,16 +1328,17 @@ integer(HSIZE_T)                    :: dims(2)
 
 integer(kind=irg)                   :: sz(2), i, j, iG, iL, hdferr, icnt
 character(fnlen)                    :: povname, groupname, dataset
-character(fnlen)                    :: locationline, locline2, datafile, pvcmd, str
+character(fnlen)                    :: locationline, locline2, datafile, pvcmd, str, skyline
 real(kind=sgl)                      :: eyepos(3), dd, dis(5)
-real(kind=dbl)                      :: cylr, ac
+real(kind=dbl)                      :: cylr, ac, va(5)
 character(9)                        :: px, py, pz, pd
 character(21)                       :: p1, p2
 logical                             :: readonly = .TRUE., fexists
 
 ! initialize PoVray parameters
 cylr = 0.005D0
-dis = (/ 4.0, 4.0, 2.5, 3.5, 10.0 /)
+dis = (/ 4.0, 4.0, 2.5, 3.5, 11.0 /)
+va = (/ 15.D0, 15.D0, 15.D0, 15.D0, 155.D0 /)
 locline2 = "location < "
 eyepos = (/ 0.911259, 0.0, 0.112 /)
 eyepos = eyepos/sqrt( sum( eyepos*eyepos))
@@ -1407,40 +1372,49 @@ hdferr = HDF%openFile(datafile, readonly)
     dd = dis(iG)
     write (pd,"(F9.3)") dd 
     locationline = trim(locline2)//pd
-    PoV = PoVRay_T( EMsoft, povname, locationline=locationline, viewangle = 15.D0)
-    write (*,*) ' Creating '//trim(povname)
+    if (iG.eq.5) then ! this is an Euler plot so it uses a different sky parameter
+      PoV = PoVRay_T( EMsoft, povname, locationline=locationline, viewangle = va(iG) )
+    else
+      skyline = 'sky <0.0, 0.0, 1.0>'
+      PoV = PoVRay_T( EMsoft, povname, locationline=locationline, skyline=skyline, viewangle = va(iG) )
+    end if
+    write (*,*) ' Creating '//trim(povname), dims, hdferr
 ! add the reference frame and any necessary wireframes
     if (iG.eq.1) then
       ac = 0.5D0 * LPs%ap
       call PoV%addReferenceFrame(ac, cylr)
       call PoV%addCubochoricCube()
+      call PoV%addOrigin( (/ 0.0, 0.0, 0.0 /) )
     end if
     if (iG.eq.2) then
       ac = 1.33067D0
       call PoV%addReferenceFrame(ac, cylr)
       call PoV%addWireFrameSphere(ac)
+      call PoV%addOrigin( (/ 0.0, 0.0, 0.0 /) )
     end if
     if (iG.eq.3) then
       ac = 1.0D0
       call PoV%addReferenceFrame(ac, cylr)
       call PoV%addWireFrameSphere(ac)
+      call PoV%addOrigin( (/ 0.0, 0.0, 0.0 /) )
     end if
     if (iG.eq.4) then
       ac = 1.0D0
       call PoV%addReferenceFrame(ac, cylr)
+      call PoV%addOrigin( (/ 0.0, 0.0, 0.0 /) )
     end if
     if (iG.eq.5) then
       call PoV%addEulerBox()
+      call PoV%addOrigin( (/ -3.141593,-1.570796,-3.141593 /) )
     end if
 ! add the current wireframe array as rendered cylinders
     icnt = 1
     do while (icnt.lt.sz(2)) 
       if (sum(abs(wireframe(1:3,icnt))).eq.0.D0) then 
         icnt = icnt+1
-      else
-        if (sum(abs(wireframe(1:3,icnt+1))).ne.0.D0) then 
-          call PoV%addCylinder(wireframe(1:3,icnt),wireframe(1:3,icnt+1),cylr,(/ 1.0, 0.0, 0.0 /))
-        end if 
+      end if
+      if (sum(abs(wireframe(1:3,icnt+1))).ne.0.D0) then 
+        call PoV%addCylinder(wireframe(1:3,icnt),wireframe(1:3,icnt+1),cylr,(/ 1.0, 0.0, 0.0 /))
       end if 
       icnt = icnt+1
     end do

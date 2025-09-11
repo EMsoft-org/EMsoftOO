@@ -52,7 +52,7 @@ type, public :: PoVRay_T
     character(fnlen)    :: filename = 'undefined'
     character(fnlen)    :: nmlfile = 'undefined'
     character(fnlen)    :: locationline    ! default < 1.0, 0.0, 0.0 >
-    character(fnlen)    :: skyline         ! default < 0.0, 0.0, 1.0>
+    character(fnlen)    :: skyline = ''    
     character(fnlen)    :: lightline       ! default <1, 2, -2>*50
     real(kind=sgl)      :: eyepos(3)
     logical,public      :: background
@@ -72,6 +72,7 @@ type, public :: PoVRay_T
     procedure, pass(self) :: write_DF3file_
     procedure, pass(self) :: addWireFrameSphere_
     procedure, pass(self) :: addReferenceFrame_
+    procedure, pass(self) :: addOrigin_
     procedure, pass(self) :: addSphere_
     procedure, pass(self) :: addCylinder_
     procedure, pass(self) :: addCubochoricCube_
@@ -99,6 +100,7 @@ type, public :: PoVRay_T
 ! routines for drawing selected primitives and other scene objects
     generic, public :: addWireFrameSphere => addWireFrameSphere_
     generic, public :: addReferenceFrame => addReferenceFrame_
+    generic, public :: addOrigin => addOrigin_
     generic, public :: addSphere => addSphere_
     generic, public :: addCylinder => addCylinder_
 ! routines for drawing fundamental zones
@@ -165,8 +167,6 @@ end if
 
 if (present(skyline)) then
   PV%skyline = trim(skyline)
-else
-  PV%skyline = 'sky < 0.0, 0.0, 1.0>'
 end if
 
 if (present(locationline)) then
@@ -406,7 +406,7 @@ write (self%dunit,"(A)") " "
 write (self%dunit,"(A)") "camera {"
 write (self%dunit,"(A)") "perspective "
 write (self%dunit,"(A)") trim(self%locationline)
-write (self%dunit,"(A)") trim(self%skyline)
+if (trim(self%skyline).ne.'') write (self%dunit,"(A)") trim(self%skyline)
 write (self%dunit,"(A)") "right y * 1"
 write (self%dunit,"(A)") "up z"
 write (self%dunit,"(A)") "angle 50"
@@ -444,6 +444,23 @@ end if
 
 end subroutine setLightSource_
 
+!--------------------------------------------------------------------------
+recursive subroutine addOrigin_(self, pos)
+!DEC$ ATTRIBUTES DLLEXPORT :: addOrigin_
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/21/20
+ !!
+ !! add a small sphere at the origin of the plot
+
+IMPLICIT NONE
+
+class(PoVRay_T),INTENT(INOUT)   :: self
+real(kind=sgl),INTENT(IN)       :: pos(3)
+
+write (self%dunit,"('sphere {<',3(F8.5,','),'>, 0.075 pigment {color Green*0.7}}')") pos(1), pos(2), pos(3)
+
+end subroutine addOrigin_
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 ! routines to create and handle DF3 volume files
@@ -767,10 +784,10 @@ real(kind=sgl),INTENT(IN)             :: rgb(3)
 character(3),INTENT(IN),OPTIONAL      :: rgblabel
 
 if (present(rgblabel)) then 
-  write (self%dunit,"('cylinder { <',2(F12.8,','),F12.8,'>,<',2(F12.8,','),F12.8,'>,', F9.6,' pigment { ', &
+  write (self%dunit,"('cylinder { <',2(F12.6,','),F12.6,'>,<',2(F12.6,','),F12.6,'>,', F9.6,' pigment { ', &
                     &'color ',A3,'}}')") p1(1:3), p2(1:3), radius, rgblabel
 else
-  write (self%dunit,"('cylinder { <',2(F12.8,','),F12.8,'>,<',2(F12.8,','),F12.8,'>,', F9.6,' pigment { ', &
+  write (self%dunit,"('cylinder { <',2(F12.6,','),F12.6,'>,<',2(F12.6,','),F12.6,'>,', F9.6,' pigment { ', &
                     &'rgb <',2(F9.6,','),F9.6,'>}}')") p1(1:3), p2(1:3), radius, rgb(1:3)
 end if
 
@@ -800,18 +817,18 @@ class(PoVRay_T),INTENT(INOUT)   :: self
 type(IO_T)                      :: Message
 
 call Message%printMessage( (/ &
-  "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593,-1.570796, 3.141593>,<-3.141593, 1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593,-1.570796,-3.141593>,< 3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593,-1.570796, 3.141593>,< 3.141593, 1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593,-1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593,-1.570796, 3.141593>,< 3.141593,-1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593,-1.570796, 3.141593>,< 3.141593,-1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593,-1.570796,-3.141593>,<-3.141593,-1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593, 1.570796,-3.141593>,<-3.141593, 1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593, 1.570796, 3.141593>,< 3.141593, 1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593, 1.570796, 3.141593>,< 3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593, 1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}"/), &
+  "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593,-1.570796, 3.141593>,<-3.141593, 1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593,-1.570796,-3.141593>,< 3.141593, 1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593,-1.570796, 3.141593>,< 3.141593, 1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593,-1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593,-1.570796, 3.141593>,< 3.141593,-1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593,-1.570796, 3.141593>,< 3.141593,-1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593,-1.570796,-3.141593>,<-3.141593,-1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593, 1.570796,-3.141593>,<-3.141593, 1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593, 1.570796, 3.141593>,< 3.141593, 1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593, 1.570796, 3.141593>,< 3.141593, 1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593, 1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}"/), &
   redirect = self%dunit)
 
 end subroutine addEulerBox_
@@ -1032,7 +1049,7 @@ end if
 end subroutine getpos_FZ432_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ23_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ23_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ23_
  !! author: MDG
  !! version: 1.0
@@ -1060,6 +1077,7 @@ integer(kind=irg),INTENT(OUT)         :: nt
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)  :: a = 1.D0, b = 0.0D0, c = 0.5773502692D0, e = 0.333333333D0, &
                    ds = 0.6340506711D0, dt = 1.4142135623730D0, dd, zz = 0.D0, oo = 1.D0
@@ -1107,21 +1125,21 @@ else ! define the coordinates of the cubic FZ in Rodrigues Space
     s_edge(1:2, 2) = (/  2,  3 /)
     s_edge(1:2, 3) = (/  3,  4 /)
     s_edge(1:2, 4) = (/  4,  1 /)
-    s_edge(1:2, 5) = (/  1,  5 /)
-    s_edge(1:2, 6) = (/  2,  5 /)
-    s_edge(1:2, 7) = (/  3,  5 /)
-    s_edge(1:2, 8) = (/  4,  5 /)
-    s_edge(1:2, 9) = (/  1,  6 /)
-    s_edge(1:2,10) = (/  2,  6 /)
-    s_edge(1:2,11) = (/  3,  6 /)
-    s_edge(1:2,12) = (/  4,  6 /)
+    s_edge(1:2, 5) = (/  1,  6 /)
+    s_edge(1:2, 6) = (/  2,  6 /)
+    s_edge(1:2, 7) = (/  3,  6 /)
+    s_edge(1:2, 8) = (/  4,  6 /)
+    s_edge(1:2, 9) = (/  1,  5 /)
+    s_edge(1:2,10) = (/  2,  5 /)
+    s_edge(1:2,11) = (/  3,  5 /)
+    s_edge(1:2,12) = (/  4,  5 /)
 
 end if
 
 end subroutine getpos_FZ23_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ622_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ622_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ622_
  !! author: MDG
  !! version: 1.0
@@ -1149,6 +1167,7 @@ integer(kind=irg),INTENT(OUT)         :: nt
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)  :: a = 1.0D0, b = 0.267949192431D0, c = 0.732050807569D0, &
                    dt = 0.5358983848622454D0, ds = 0.5358983848622454D0, di =1.069389330154823D0, dd, &
@@ -1265,24 +1284,28 @@ else ! define the coordinates of the hexagonal FZ in Rodrigues Space
     t_edge(1:2,11) = (/ 11, 23 /)
     t_edge(1:2,12) = (/ 12, 24 /)
 
-    t_edge(1:2,13) = (/  1,  7 /)
-    t_edge(1:2,14) = (/  2,  8 /)
-    t_edge(1:2,15) = (/  3,  9 /)
-    t_edge(1:2,16) = (/  4, 10 /)
-    t_edge(1:2,17) = (/  5, 11 /)
-    t_edge(1:2,18) = (/  6, 12 /)
-    t_edge(1:2,19) = (/ 13, 19 /)
-    t_edge(1:2,20) = (/ 14, 20 /)
-    t_edge(1:2,21) = (/ 15, 21 /)
-    t_edge(1:2,22) = (/ 16, 22 /)
-    t_edge(1:2,23) = (/ 17, 23 /)
-    t_edge(1:2,24) = (/ 18, 24 /)
+! the following edges cause issues in the Euler visualization,
+! so we only include them for non-Euler visualizations
+    if (.not.present(euler)) then 
+      t_edge(1:2,13) = (/  1,  7 /)
+      t_edge(1:2,14) = (/  2,  8 /)
+      t_edge(1:2,15) = (/  3,  9 /)
+      t_edge(1:2,16) = (/  4, 10 /)
+      t_edge(1:2,17) = (/  5, 11 /)
+      t_edge(1:2,18) = (/  6, 12 /)
+      t_edge(1:2,19) = (/ 13, 19 /)
+      t_edge(1:2,20) = (/ 14, 20 /)
+      t_edge(1:2,21) = (/ 15, 21 /)
+      t_edge(1:2,22) = (/ 16, 22 /)
+      t_edge(1:2,23) = (/ 17, 23 /)
+      t_edge(1:2,24) = (/ 18, 24 /)
+    end if
 end if
 
 end subroutine getpos_FZ622_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ422_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ422_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ422_
  !! author: MDG
  !! version: 1.0
@@ -1310,6 +1333,7 @@ integer(kind=irg),INTENT(OUT)         :: nt
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 1.0D0, b = 0.41421354D0, c = 0.41421354D0, dt = 0.8284270763397216D0, &
                      ds = 0.8284270763397216D0, dd, z = 0.D0, o = 0.70710678118654746D0
@@ -1397,21 +1421,25 @@ else ! define the coordinates of the tetragonal 422 FZ in Rodrigues Space
     t_edge(1:2, 7) = (/  7, 15 /)
     t_edge(1:2, 8) = (/  8, 16 /)
 ! in top and bottom faces
-    t_edge(1:2, 9) = (/  1,  5 /)
-    t_edge(1:2,10) = (/  2,  6 /)
-    t_edge(1:2,11) = (/  3,  7 /)
-    t_edge(1:2,12) = (/  4,  8 /)
-    t_edge(1:2,13) = (/  9, 13 /)
-    t_edge(1:2,14) = (/ 10, 14 /)
-    t_edge(1:2,15) = (/ 11, 15 /)
-    t_edge(1:2,16) = (/ 12, 16 /)
+! the following edges cause issues in the Euler visualization,
+! so we only include them for non-Euler visualizations
+    if (.not.present(euler)) then     
+      t_edge(1:2, 9) = (/  1,  5 /)
+      t_edge(1:2,10) = (/  2,  6 /)
+      t_edge(1:2,11) = (/  3,  7 /)
+      t_edge(1:2,12) = (/  4,  8 /)
+      t_edge(1:2,13) = (/  9, 13 /)
+      t_edge(1:2,14) = (/ 10, 14 /)
+      t_edge(1:2,15) = (/ 11, 15 /)
+      t_edge(1:2,16) = (/ 12, 16 /)
+    end if
 
 end if
 
 end subroutine getpos_FZ422_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ32_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ32_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ32_
  !! author: MDG
  !! version: 1.0
@@ -1439,6 +1467,7 @@ integer(kind=irg),INTENT(OUT)         :: nt
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 0.8660254038D0, b = 0.5D0, c = 0.5773502692D0, dt = 0.34314575050D0, &
                      ds = 0.6340506711D0, dd, z = 0.D0, oo = 1.D0, o = 0.86602540378443D0, p = 0.5D0
@@ -1514,12 +1543,16 @@ else ! define the coordinates of the cubic FZ in Rodrigues Space
     t_edge(1:2, 5) = (/  5, 11 /)
     t_edge(1:2, 6) = (/  6, 12 /)
 ! in top and bottom plane
-    t_edge(1:2, 7) = (/  1,  4 /)
-    t_edge(1:2, 8) = (/  2,  5 /)
-    t_edge(1:2, 9) = (/  3,  6 /)
-    t_edge(1:2,10) = (/  7, 10 /)
-    t_edge(1:2,11) = (/  8, 11 /)
-    t_edge(1:2,12) = (/  9, 12 /)
+! the following edges cause issues in the Euler visualization,
+! so we only include them for non-Euler visualizations
+    if (.not.present(euler)) then     
+      t_edge(1:2, 7) = (/  1,  4 /)
+      t_edge(1:2, 8) = (/  2,  5 /)
+      t_edge(1:2, 9) = (/  3,  6 /)
+      t_edge(1:2,10) = (/  7, 10 /)
+      t_edge(1:2,11) = (/  8, 11 /)
+      t_edge(1:2,12) = (/  9, 12 /)
+    end if
 
 
 end if
@@ -1527,7 +1560,7 @@ end if
 end subroutine getpos_FZ32_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ222_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ222_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ222_
  !! author: MDG
  !! version: 1.0
@@ -1555,6 +1588,7 @@ integer(kind=irg),INTENT(OUT)         :: nt
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 1.0D0, b = 1.0D0, c = 1D0, dt = 2.0D0, &
                      ds = 2.0D0, dd, z = 0.D0, oo = 1.D0
@@ -1622,18 +1656,22 @@ else ! define the coordinates of the FZ in Rodrigues Space
     t_edge(1:2, 3) = (/  3,  7 /)
     t_edge(1:2, 4) = (/  4,  8 /)
 ! diagonals in faces
-    t_edge(1:2, 5) = (/  1,  6 /)
-    t_edge(1:2, 6) = (/  2,  5 /)
-    t_edge(1:2, 7) = (/  1,  3 /)
-    t_edge(1:2, 8) = (/  2,  4 /)
-    t_edge(1:2, 9) = (/  1,  8 /)
-    t_edge(1:2,10) = (/  4,  5 /)
-    t_edge(1:2,11) = (/  7,  4 /)
-    t_edge(1:2,12) = (/  3,  8 /)
-    t_edge(1:2,13) = (/  7,  5 /)
-    t_edge(1:2,14) = (/  8,  6 /)
-    t_edge(1:2,15) = (/  2,  7 /)
-    t_edge(1:2,16) = (/  3,  6 /)
+! the following edges cause issues in the Euler visualization,
+! so we only include them for non-Euler visualizations
+    if (.not.present(euler)) then     
+      t_edge(1:2, 5) = (/  1,  6 /)
+      t_edge(1:2, 6) = (/  2,  5 /)
+      t_edge(1:2, 7) = (/  1,  3 /)
+      t_edge(1:2, 8) = (/  2,  4 /)
+      t_edge(1:2, 9) = (/  1,  8 /)
+      t_edge(1:2,10) = (/  4,  5 /)
+      t_edge(1:2,11) = (/  7,  4 /)
+      t_edge(1:2,12) = (/  3,  8 /)
+      t_edge(1:2,13) = (/  7,  5 /)
+      t_edge(1:2,14) = (/  8,  6 /)
+      t_edge(1:2,15) = (/  2,  7 /)
+      t_edge(1:2,16) = (/  3,  6 /)
+    end if 
 
 end if
 
