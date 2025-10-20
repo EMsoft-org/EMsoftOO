@@ -8,6 +8,7 @@ use mod_EMsoft
 ! use mod_QCsymmetry
 ! use mod_QCcrystallography
 use mod_io
+use mod_dirstats
 ! use mod_dualquaternions
 ! use mod_quaternions
 ! use mod_rotations
@@ -33,6 +34,8 @@ IMPLICIT NONE
 type(axonometry_T)          :: AXO 
 type(Postscript_T)          :: PS 
 type(EMsoft_T)              :: EMsoft
+
+type(DirStat_T)             :: DSvmf, DSwat
 
 ! type(HDF_T)             :: HDF
 ! type(Vendor_T)          :: VT
@@ -97,34 +100,47 @@ real(kind=sgl),allocatable  :: zz(:,:), x(:), y(:)
 ! real(kind=sgl)   :: ressabs
 
 
-! simple test of the axonometry module
-progname = ' x '
-progdesc = ' y '
-axname = 'axotest.eps'
-EMsoft = EMsoft_T( progname, progdesc )
-PS = Postscript_T( progdesc, EMsoft, imanum = 1, dontask = .TRUE., psname = axname )
-AXO = axonometry_T( progdesc, axw = 6.5, xll = 3.5, yll = 3.0 )
+DSvmf = DirStat_T(DStype='VMF')
+call DSvmf%UnitTests( 1, 100, 'VMF-logCp.txt')
 
-nx = 100
-ny = 150
-allocate( zz(nx,ny), x(nx), y(ny) )
+DSwat = DirStat_T(DStype='WAT')
+call DSwat%UnitTests( 1, 100, 'WAT-logCp.txt')
 
-x = (/ (real(i), i=1,nx) /)/ real(nx) - 0.5
-y = (/ (real(i), i=1,ny) /)/ real(ny) - 0.5
 
-do i=1,nx
-    do j=1,ny
-        zz(i,j) = 15.0 * exp(- (x(i)**2+y(j)**2) * 100.0 )
-    end do 
-end do
 
-zz = cshift(zz, 15, 1)
-zz = zz - cshift(zz, -30, 1) 
 
-write (*,*) ' range = ', minval(zz), maxval(zz)
 
-g = 1.0
-call AXO%axonometry(PS,EMsoft,zz,nx,ny,g,axname)
+
+
+
+! ! simple test of the axonometry module
+! progname = ' x '
+! progdesc = ' y '
+! axname = 'axotest.eps'
+! EMsoft = EMsoft_T( progname, progdesc )
+! PS = Postscript_T( progdesc, EMsoft, imanum = 1, dontask = .TRUE., psname = axname )
+! AXO = axonometry_T( progdesc, axw = 6.5, xll = 3.5, yll = 3.0 )
+
+! nx = 100
+! ny = 150
+! allocate( zz(nx,ny), x(nx), y(ny) )
+
+! x = (/ (real(i), i=1,nx) /)/ real(nx) - 0.5
+! y = (/ (real(i), i=1,ny) /)/ real(ny) - 0.5
+
+! do i=1,nx
+!     do j=1,ny
+!         zz(i,j) = 15.0 * exp(- (x(i)**2+y(j)**2) * 100.0 )
+!     end do 
+! end do
+
+! zz = cshift(zz, 15, 1)
+! zz = zz - cshift(zz, -30, 1) 
+
+! write (*,*) ' range = ', minval(zz), maxval(zz)
+
+! g = 1.0
+! call AXO%axonometry(PS,EMsoft,zz,nx,ny,g,axname)
 
 
 

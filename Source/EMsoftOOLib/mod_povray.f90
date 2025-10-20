@@ -57,7 +57,7 @@ type, public :: PoVRay_T
     real(kind=sgl)      :: eyepos(3)
     logical,public      :: background
     logical,public      :: verbose = .FALSE.
-    integer(kind=irg)   :: dunit = 0       ! default value = 90
+    integer(kind=irg)   :: dunit = 0       ! default value 
     integer(kind=irg)   :: nmlunit = 88    ! default value
     integer(kind=irg)   :: df3unit = 86    ! default value
 
@@ -167,6 +167,8 @@ end if
 
 if (present(skyline)) then
   PV%skyline = trim(skyline)
+else
+  PV%skyline = "sky <0.0,0.0,1.0>"
 end if
 
 if (present(locationline)) then

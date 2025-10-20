@@ -794,6 +794,7 @@ write(rgbstring,"(F8.6,',',F8.6,',',F8.6)") (/ 0.0, 0.0, 1.0 /)
 colorstring = 'material { texture { pigment { rgb <'//trim(rgbstring)//'> filter 0.95 }'
 
 write (90,"(A)") trim(colorstring)
+! this next line also closes the union of spheres...
 write (90,"(' finish { diffuse 0.6, 0.6 brilliance 1.0 }  } } }')")
 write (90,"(A)") 'background {   color rgb <0.9, 0.9, 0.9> }'
 call PoV%closeFile()

@@ -130,6 +130,8 @@ private
   integer(kind=irg)                   :: Pmdims    ! number of symmetry operators
   type(Quaternion_T)                  :: Mumean    ! mean quaternion direction
   real(kind=dbl)                      :: kappa     ! concentration parameter
+  logical                             :: dotest=.FALSE.    ! generate extensive ouotput for unit testing
+  integer(kind=irg)                   :: testunit = 134    ! unit number for test output
 
 contains
 private
@@ -155,6 +157,7 @@ private
   procedure, pass(self) :: getNumIter_
   procedure, pass(self) :: setQuatArray_
   procedure, pass(self) :: getQuatArray_
+  procedure, pass(self) :: UnitTests_
   final :: DirStats_destructor
 
   generic, public :: RotateToMu => RotateToMu_
@@ -172,6 +175,7 @@ private
   generic, public :: setPGnum => setPGnum_
   generic, public :: setQuatArray => setQuatArray_
   generic, public :: getQuatArray => getQuatArray_
+  generic, public :: UnitTests => UnitTests_
 
 end type DirStat_T
 
@@ -183,7 +187,7 @@ end interface DirStat_T
 contains
 
 !--------------------------------------------------------------------------
-type(DirStat_T) function DirStat_constructor( DStype, PGnum ) result(DS)
+type(DirStat_T) function DirStat_constructor( DStype, PGnum, test ) result(DS)
 !DEC$ ATTRIBUTES DLLEXPORT :: DirStat_constructor
  !! author: MDG
  !! version: 1.0
@@ -199,11 +203,13 @@ IMPLICIT NONE
 
 character(3),INTENT(IN),OPTIONAL        :: DStype
 integer(kind=irg),INTENT(IN),OPTIONAL   :: PGnum
+integer(kind=irg),INTENT(IN),OPTIONAL   :: test
 
 type(QuaternionArray_T)                 :: qsym
 type(QuaternionArray_T)                 :: qq
 integer(kind=irg)                       :: i
 real(kind=dbl)                          :: y1, y2
+
 
 if (present(DStype)) then 
   DS%DStype = DStype
@@ -218,6 +224,20 @@ if (present(DStype)) then
 ! which case we use the standard ratio of Kummer functions:  Kummer[3/2,3,k]/Kummer[1/2,2,k]/k.  For
 ! larger kappa values, we have an expansion using the large argument behavior of the modified Bessel functions.
 !
+  if (present(test)) then
+    if (test.ne.0) then 
+      write (*,*) ' INITIALIZING TEST OUTPUT'
+      DS%dotest = .TRUE.
+      DS%testunit = test
+      if (DS%DStype.eq.'VMF') then 
+        open(unit=DS%testunit,file='dirstats_test_VMF.txt',status='unknown',form='formatted')
+      else
+        open(unit=DS%testunit,file='dirstats_test_WAT.txt',status='unknown',form='formatted')
+      end if
+      write (DS%testunit,"(/A)") ' Test output from dirstats module'
+      write (DS%testunit,"(A/)") ' distribution used : '//trim(DS%DStype)
+    end if   
+  end if   
 
 ! allocate the parameter arrays
   DS%Apnum = 35000
@@ -241,12 +261,23 @@ if (present(DStype)) then
   end if
 end if 
 
+if (DS%dotest.eqv..TRUE.) then ! print the first 20 values 
+  write (DS%testunit,"(A)") ' first 20 values of the xAp and yAp arrays '
+  do i=1,20 
+    write (DS%testunit,"(F14.8,' -> ',F14.8)") DS%xAp(i), DS%yAp(i)
+  end do 
+end if 
+
 ! do we need to initialize the list of quaternion symmetry operators ?
 if (present(PGnum)) then
   DS%pgnum = PGnum
   call qq%QSym_Init(PGnum, qsym)
   DS%qsym = qsym
   DS%Pmdims = DS%qsym%getQnumber()
+  if (DS%dotest.eqv..TRUE.) then 
+    write (DS%testunit,"(/A)") ' symmetry quaternions '
+    call DS%qsym%quat_print(DS%Pmdims,redir=DS%testunit)
+  end if 
 end if
 
 end function DirStat_constructor
@@ -341,6 +372,10 @@ integer(kind=irg),INTENT(IN)          :: NumEM
 
 self%NumEM = NumEM
 
+if (self%dotest.eqv..TRUE.) then 
+  write (self%testunit,"(' setting NumEM to ',I3)") NumEM
+end if 
+
 end subroutine setNumEM_
 
 !--------------------------------------------------------------------------
@@ -359,6 +394,10 @@ integer(kind=irg),INTENT(IN)          :: NumIter
 
 self%NumIter = NumIter
 
+if (self%dotest.eqv..TRUE.) then 
+  write (self%testunit,"(' setting NumIter to ',I3)") NumIter
+end if 
+
 end subroutine setNumIter_
 
 !--------------------------------------------------------------------------
@@ -376,6 +415,10 @@ class(DirStat_T), INTENT(INOUT)       :: self
 integer(kind=irg),INTENT(IN)          :: PGnum
 
 self%PGnum = PGnum
+
+if (self%dotest.eqv..TRUE.) then 
+  write (self%testunit,"(' setting PGnum to ',I3)") PGnum
+end if 
 
 end subroutine setPGnum_
 
@@ -401,6 +444,10 @@ else
 end if
 
 self%N = qAR%getQnumber()
+
+if (self%dotest.eqv..TRUE.) then 
+  write (self%testunit,"(' copying qAR to self%Xquats; # entries: ',I6)") self%N
+end if 
 
 end subroutine setQuatArray_
 
@@ -792,6 +839,10 @@ real(kind=dbl)                       :: MuKa(5), Qi, Li, Kappa, x(4)
 ! mean direction and concentration parameter of the modified von Mises-Fisher (mVMF)
 ! distribution that models the statistics of the orientation point cloud.
 
+if (self%dotest.eqv..TRUE.) then 
+  write (self%testunit,"(//A/)") ' Starting EMforDS routine '
+end if
+
 ! array sizes
 N = self%getN()
 Pmdims = self%qsym%getQnumber()
@@ -807,6 +858,10 @@ R_All = 0.D0
 L_All = 0.D0
 
 ! main loop (EM typically uses a few starting parameter sets to make sure we don't get stuck in a local maximum)
+if (self%dotest.eqv..TRUE.) then 
+  write (self%testunit,"(//A/)") ' Starting outer loop'
+end if
+
 do init=1,NumEM
 ! create a vector to hold the results
   allocate(R(N,Pmdims))
@@ -821,6 +876,12 @@ do init=1,NumEM
 ! starting value for Kappa
   Kappa = 30.D0
 
+  if (self%dotest.eqv..TRUE.) then 
+    write (self%testunit,"(/' starting iteration ',I4)") init
+    write (self%testunit,"(' Initial guess for Mu : ',4(F12.8,' '))") Mu%get_quatd()
+    write (self%testunit,"(' Initial guess for Kappa : ',F12.8)") Kappa
+  end if
+
 ! define the number of iterations and the Q and L function arrays
   allocate (Q(NumIter), L(NumIter))
   Q = 0.D0
@@ -829,6 +890,10 @@ do init=1,NumEM
 ! and here we go with the EM iteration...
 ! we use quaternion multiplication throughout instead of the matrix version in the Matlab version
 ! quaternion multiplication has been verified against the 4x4 matrix multiplication of the Matlab code on 01/02/15
+  if (self%dotest.eqv..TRUE.) then 
+    write (self%testunit,"(/A/)") ' Starting inner loop'
+  end if
+
   iloop: do i=1,NumIter
 ! E-step
     R = self%Estep_(Mu,Kappa)
@@ -838,6 +903,12 @@ do init=1,NumEM
     call self%getQandL_(MuKa,R,Qi,Li)
     L(i) = Li
     Q(i) = Qi
+    if (self%dotest.eqv..TRUE.) then 
+      write (self%testunit,"(' inner loop : ',I4)") i
+      write (self%testunit,"('   Li : ',F16.8)") Li
+      write (self%testunit,"('   Qi : ',F16.8)") Qi
+      write (self%testunit,"('   Current guess for MuKa : ',5(F12.8,' '))") MuKa
+    end if
 
 ! update the containers
     Mu_All(init,1:4) = MuKa(1:4)
@@ -850,6 +921,9 @@ do init=1,NumEM
 ! and terminate if necessary
     if (i.ge.2) then
       if (abs(Q(i)-Q(i-1)).lt.0.01) then
+        if (self%dotest.eqv..TRUE.) then 
+          write (self%testunit,"(' Exiting inner loop : ',I4)") i
+        end if
         EXIT iloop
       end if
     end if
@@ -861,6 +935,11 @@ dd = maxloc(L_All,1)
 Mu = Quaternion_T( qd = Mu_all(dd,1:4) )
 call Mu%quat_pos()
 kappahat = Kappa_All(dd)
+
+if (self%dotest.eqv..TRUE.) then 
+  write (self%testunit,"(' best fit Mu : ',4(F12.8,' '))") Mu%get_quatd()
+  write (self%testunit,"(' best fit kappa : ',F12.8)") kappahat
+end if 
 
 ! the final step is to make sure that the resulting Mu lies in the fundamental zone.
 ! since we start the EM iterations from a random quaternion, there is no guarantee that the
@@ -881,7 +960,15 @@ end do FZloop
 MuMu = rod%rq()
 muhat = Quaternion_T( qd = MuMu%q_copyd() )
 
+if (self%dotest.eqv..TRUE.) then 
+  write (self%testunit,"(' RFZ-reduced Mu : ',4(F12.8,' '))") muhat%get_quatd()
+end if 
+
 deallocate(Mu_All, Kappa_All, R_All, L_All)
+
+if (self%dotest.eqv..TRUE.) then 
+  close(self%testunit,status='keep')
+end if 
 
 end subroutine EMforDS_
 
@@ -1196,6 +1283,50 @@ if (self%DStype.eq.'WAT') then
 end if
 
 end function logCp_
+
+!--------------------------------------------------------------------------
+recursive subroutine UnitTests_(self, sel, N, fname) 
+!DEC$ ATTRIBUTES DLLEXPORT :: UnitTests_
+ !! author: MDG
+ !! date: 10/15/25
+ !!
+ !! perform a couple of test runs of private functions/subroutines
+
+IMPLICIT NONE
+
+class(DirStat_T), INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)    :: sel, N
+character(*),INTENT(IN)         :: fname
+
+real(kind=dbl)                  :: kp, lCp
+integer(kind=irg)               :: i 
+
+! use sel to determine which test to run; put the results in the file fname 
+
+if (sel.eq.1) then 
+! tests the logCp_ function
+  open(unit=dataunit,file=trim(fname),status='unknown',form='formatted')
+  write (dataunit,"(A)") ' Output values for DirStat_T%logCp function '
+  do i=1,N 
+    kp = dble(i)
+    write(dataunit,"(F7.3,',',F16.8)") kp, self%logCp_(kp)
+  end do
+  close(unit=dataunit, status='keep')
+end if
+
+! if (sel.eq.2) then 
+!   ! test the WatsonMeanDirDensity_(self, x, k, C) function
+!   open(unit=dataunit,file=trim(fname),status='unknown',form='formatted')
+!   write (dataunit,"(A)") ' Output values for DirStat_T%WatsonMeanDirDensity_ function '
+!   do i=1,N 
+!     kp = dble(i)
+!     write(dataunit,"(F7.3,',',F16.8)") kp, self%logCp_(kp)
+!   end do
+
+! WatsonMeanDirDensity_(self, x, k, C)
+
+end subroutine UnitTests_
+
 
 ! !--------------------------------------------------------------------------
 ! !--------------------------------------------------------------------------

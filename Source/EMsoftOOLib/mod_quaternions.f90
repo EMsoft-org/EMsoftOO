@@ -831,7 +831,7 @@ self%mud(3,1:3) = mu3
 end subroutine setsimplecticd
 
 !--------------------------------------------------------------------------
-recursive subroutine quatarrayprint(self, listN)
+recursive subroutine quatarrayprint(self, listN, redir)
 !DEC$ ATTRIBUTES DLLEXPORT :: quatarrayprint
   !! author: MDG 
   !! version: 1.0 
@@ -846,6 +846,7 @@ IMPLICIT NONE
   class(QuaternionArray_T),intent(in)   :: self
    !! input quaternion 
   integer(kind=irg),INTENT(IN),OPTIONAL :: listN
+  integer(kind=irg),INTENT(IN),OPTIONAL :: redir
 
   type(IO_T)                            :: Message 
   integer(kind=irg)                     :: i, n
@@ -856,13 +857,25 @@ IMPLICIT NONE
     n = self%n 
   end if
   if (self%s.eq.'s') then 
-    do i=1,n
-      call Message % WriteValue('', self%q(:,i), 4, frm="('(',4f12.6,')')")
-    end do
+    if (present(redir)) then 
+      do i=1,n
+        call Message % WriteValue('', self%q(:,i), 4, frm="('(',4f12.6,')')", redirect = redir)
+      end do
+    else
+      do i=1,n
+        call Message % WriteValue('', self%q(:,i), 4, frm="('(',4f12.6,')')")
+      end do
+    end if
   else 
-    do i=1,n
-      call Message % WriteValue('', self%qd(:,i), 4, frm="('(',4f20.14,')')")
-    end do
+    if (present(redir)) then 
+      do i=1,n
+        call Message % WriteValue('', self%qd(:,i), 4, frm="('(',4f20.14,')')", redirect = redir)
+      end do
+    else
+      do i=1,n
+        call Message % WriteValue('', self%qd(:,i), 4, frm="('(',4f20.14,')')")
+      end do
+    end if
   end if 
 
 end subroutine quatarrayprint

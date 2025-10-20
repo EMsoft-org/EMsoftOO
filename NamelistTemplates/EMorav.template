@@ -7,4 +7,9 @@
  pgnum = 32,
 ! relative path to the orientations file [relative to EMdatapathname]
  orientationfilename = 'undefined',
+! iteration parameters for Expectation Maximimization loop
+! number of restarts with random starting quaternion
+ NumEM = 5,
+! number of iterations for each starting quaternion
+ NumIter = 10,
  /

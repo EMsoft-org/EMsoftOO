@@ -42,6 +42,8 @@ IMPLICIT NONE
 type, public :: oravNameListType
   character(fnlen)        :: orientationfilename
   integer(kind=irg)       :: pgnum
+  integer(kind=irg)       :: NumEM
+  integer(kind=irg)       :: NumIter
 end type oravNameListType
 
 ! class definition
@@ -138,10 +140,14 @@ logical                              :: skipread = .FALSE.
 
 character(fnlen)        :: orientationfilename
 integer(kind=irg)       :: pgnum
+integer(kind=irg)       :: NumEM
+integer(kind=irg)       :: NumIter
 
-namelist / orav /  orientationfilename, pgnum 
+namelist / orav /  orientationfilename, pgnum, NumEM, NumIter 
 
 orientationfilename = 'undefined'
+NumEM = 5
+NumIter = 10
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -160,6 +166,8 @@ end if
 
 self%nml%orientationfilename = trim(orientationfilename)
 self%nml%pgnum = pgnum 
+self%nml%NumEM = NumEM 
+self%nml%NumIter = NumIter 
 
 end subroutine readNameList_
 
@@ -332,13 +340,13 @@ qAR = QuaternionArray_T( n=numors, qd=samples )
 call SO%delete_FZlist()
 
 ! initialize the directional statistics classes for von Mises-Fisher and Watson distributions
-dictVMF = DirStat_T( DStype='VMF', pgnum = pgnum)
-call dictVMF%setNumEM(25)
-call dictVMF%setNumIter(30)
+dictVMF = DirStat_T( DStype='VMF', pgnum = pgnum, test=134)
+call dictVMF%setNumEM(nml%NumEM)
+call dictVMF%setNumIter(nml%NumIter)
 
-dictWAT = DirStat_T( DStype='WAT', pgnum = pgnum)
-call dictWAT%setNumEM(25)
-call dictWAT%setNumIter(30)
+dictWAT = DirStat_T( DStype='WAT', pgnum = pgnum, test=135)
+call dictWAT%setNumEM(nml%NumEM)
+call dictWAT%setNumIter(nml%NumIter)
 
 ! next we need to store the qAR array into both dict classes and clean up qAR 
 call dictVMF%setQuatArray( qAR )
