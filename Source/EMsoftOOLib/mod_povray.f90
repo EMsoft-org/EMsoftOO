@@ -60,6 +60,7 @@ type, public :: PoVRay_T
     integer(kind=irg)   :: dunit = 0       ! default value 
     integer(kind=irg)   :: nmlunit = 88    ! default value
     integer(kind=irg)   :: df3unit = 86    ! default value
+    integer(kind=irg)   :: roto = 0
 
   contains
   private
@@ -85,6 +86,7 @@ type, public :: PoVRay_T
     procedure, pass(self) :: drawFZ_
     procedure, pass(self) :: initFZCyclic_
     procedure, pass(self) :: flipRotationMatrix_
+    procedure, pass(self) :: set_roto_
     procedure, pass(self) :: get_incfile_
     procedure, pass(self) :: closeFile_
     procedure, pass(self) :: toggleVerbose_
@@ -112,6 +114,7 @@ type, public :: PoVRay_T
     generic, public :: getpos_FZ422 => getpos_FZ422_
     generic, public :: getpos_FZ32 => getpos_FZ32_
     generic, public :: getpos_FZ222 => getpos_FZ222_
+    generic, public :: set_roto => set_roto_
     generic, public :: drawFZ => drawFZ_
     generic, public :: initFZCyclic => initFZCyclic_
     generic, public :: get_incfile => get_incfile_
@@ -1141,7 +1144,7 @@ end if
 end subroutine getpos_FZ23_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ622_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
+recursive subroutine getpos_FZ622_(self, dims, cpos, s_edge, t_edge, ns, d, nt, rotate, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ622_
  !! author: MDG
  !! version: 1.0
@@ -1166,6 +1169,7 @@ integer(kind=irg),INTENT(OUT)         :: ns
 real(kind=dbl),INTENT(OUT)            :: d
  !! aux parameter
 integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(IN)          :: rotate
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
@@ -1173,8 +1177,13 @@ logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)  :: a = 1.0D0, b = 0.267949192431D0, c = 0.732050807569D0, &
                    dt = 0.5358983848622454D0, ds = 0.5358983848622454D0, di =1.069389330154823D0, dd, &
-                   z = 0.D0, o = 0.86602540378443D0, p = 0.5D0
+                   z = 0.D0, o = 0.86602540378443D0, p = 0.5D0, crot, srot, xtmp, ytmp
+integer(kind=irg) :: i 
 
+if (rotate.ne.0) then 
+  crot = cos(cPi/(2.D0*dble(rotate)))
+  srot = sin(cPi/(2.D0*dble(rotate)))
+end if
 
 d = 1.0693893290743279D0
 if (present(MFZ)) then
@@ -1190,6 +1199,14 @@ if (present(MFZ)) then
     cpos(1:3, 8) = (/  o,  p,  b /)
 
     cpos = cpos/d
+
+    if (rotate.ne.0) then 
+      do i=1,8
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1244,6 +1261,14 @@ else ! define the coordinates of the hexagonal FZ in Rodrigues Space
 
     cpos = cpos / d
 
+    if (rotate.ne.0) then 
+      do i=1,24
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
+    
     ns = 200
     nt = nint( ns * dt/ds )
 
@@ -1307,7 +1332,7 @@ end if
 end subroutine getpos_FZ622_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ422_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
+recursive subroutine getpos_FZ422_(self, dims, cpos, s_edge, t_edge, ns, d, nt, rotate, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ422_
  !! author: MDG
  !! version: 1.0
@@ -1332,13 +1357,20 @@ integer(kind=irg),INTENT(OUT)         :: ns
 real(kind=dbl),INTENT(OUT)            :: d
  !! aux parameter
 integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(IN)          :: rotate
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
 logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 1.0D0, b = 0.41421354D0, c = 0.41421354D0, dt = 0.8284270763397216D0, &
-                     ds = 0.8284270763397216D0, dd, z = 0.D0, o = 0.70710678118654746D0
+                     ds = 0.8284270763397216D0, dd, z = 0.D0, o = 0.70710678118654746D0, crot, srot, xtmp, ytmp
+integer(kind=irg) :: i 
+
+if (rotate.ne.0) then 
+  crot = cos(cPi/(2.D0*dble(rotate)))
+  srot = sin(cPi/(2.D0*dble(rotate)))
+end if
 
 d = 1.158941651036677D0
 if (present(MFZ)) then
@@ -1354,6 +1386,14 @@ if (present(MFZ)) then
     cpos(1:3, 8) = (/  o,  o,  c /)
 
     cpos = cpos/d
+
+    if (rotate.ne.0) then 
+      do i=1,8
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1391,6 +1431,14 @@ else ! define the coordinates of the tetragonal 422 FZ in Rodrigues Space
     cpos(1:3,16) = (/  a, -b, -c /)
 
     cpos = cpos / d
+
+    if (rotate.ne.0) then 
+      do i=1,16
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1441,7 +1489,7 @@ end if
 end subroutine getpos_FZ422_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ32_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
+recursive subroutine getpos_FZ32_(self, dims, cpos, s_edge, t_edge, ns, d, nt, rotate, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ32_
  !! author: MDG
  !! version: 1.0
@@ -1466,13 +1514,23 @@ integer(kind=irg),INTENT(OUT)         :: ns
 real(kind=dbl),INTENT(OUT)            :: d
  !! aux parameter
 integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(IN)          :: rotate
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
 logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 0.8660254038D0, b = 0.5D0, c = 0.5773502692D0, dt = 0.34314575050D0, &
-                     ds = 0.6340506711D0, dd, z = 0.D0, oo = 1.D0, o = 0.86602540378443D0, p = 0.5D0
+                     ds = 0.6340506711D0, dd, z = 0.D0, oo = 1.D0, o = 0.86602540378443D0, p = 0.5D0, crot, srot, xtmp, ytmp
+integer(kind=irg) :: i 
+
+if (rotate.ne.0) then 
+  write (*,*) 'rotating 32 zone by ',360.0D0/(2.D0*dble(rotate)), rotate, cPi, cPi/(2.D0*dble(rotate))
+  crot = cos(cPi/(2.D0*dble(rotate)))
+  srot = sin(cPi/(2.D0*dble(rotate)))
+  write(*,*) crot, srot
+end if
+
 
 d = 1.1547005384D0
 if (present(MFZ)) then
@@ -1486,6 +1544,14 @@ if (present(MFZ)) then
     cpos(1:3, 6) = (/  a,  p,  c /)
 
     cpos = cpos/d
+
+    if (rotate.ne.0) then 
+      do i=1,6
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1519,6 +1585,18 @@ else ! define the coordinates of the cubic FZ in Rodrigues Space
     cpos(1:3,12) = (/  a, -b, -c /)
 
     cpos = cpos / d
+
+    if (rotate.ne.0) then 
+      do i=1,12
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        if (i.eq.1) then
+          write (*,*) ' before : ',cpos(1,i),cpos(2,i)
+          write (*,*) ' after  : ',xtmp,ytmp
+        end if
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1680,6 +1758,22 @@ end if
 end subroutine getpos_FZ222_
 
 !--------------------------------------------------------------------------
+recursive subroutine set_roto_(self, value)
+!DEC$ ATTRIBUTES DLLEXPORT :: drawFZ_
+ !! author: MDG
+ !! version: 1.0
+ !! date: 10/21/25
+
+IMPLICIT NONE
+
+class(PoVRay_T),INTENT(INOUT)         :: self
+integer(kind=irg),INTENT(IN)          :: value 
+
+self%roto = value 
+
+end subroutine set_roto_
+
+!--------------------------------------------------------------------------
 recursive subroutine drawFZ_(self, SO, rmode, cylr, outline, qAR, FZoffset)
 !DEC$ ATTRIBUTES DLLEXPORT :: drawFZ_
  !! author: MDG
@@ -1731,10 +1825,12 @@ integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:), slist(:)
 real(kind=dbl),allocatable            :: cpos(:,:), dpos(:), quar(:,:), quarlast(:,:)
 
 logical                               :: doMFZ, twostep
-integer(kind=irg)                     :: i,j,jj,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder, io_int(2), num=0, irange
+integer(kind=irg)                     :: i,j,jj,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder, io_int(2), num=0, irange, rotate
 character(3)                          :: clrs(24)
 
 call setRotationPrecision('Double')
+
+rotate = self%roto
 
 if (present(qAR)) then  
   num = qAR%getQnumber()
@@ -1766,12 +1862,12 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
+        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, doMFZ)
       else
         twostep = .TRUE.
         dims = (/ 24, 24, 24 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
+        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
       end if
     end if
     if (FZorder.eq.4) then
@@ -1779,12 +1875,12 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
+        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, doMFZ)
       else
         twostep = .TRUE.
         dims = (/ 16, 16, 16 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
+        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
       end if
     end if
     if (FZorder.eq.3) then
@@ -1792,12 +1888,12 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 6, 9, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
+        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, doMFZ)
       else
         twostep = .TRUE.
         dims = (/ 12, 12, 12 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
+        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
       end if
     end if
     if (FZorder.eq.2) then

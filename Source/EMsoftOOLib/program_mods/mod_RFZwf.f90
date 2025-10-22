@@ -32,6 +32,8 @@ module mod_RFZwf
   !! date: 09/08/25
   !!
   !! class definition for the EMRFZwf program
+  !!
+  !! updated on 10/21/25 to cover the case of rotated RFZs (e.g. 321 vs. 312)
 
 use mod_kinds
 use mod_global
@@ -51,9 +53,10 @@ type, public :: RFZwf_T
 private 
   character(fnlen)                :: nmldeffile = 'EMRFZwf.nml'
   type(RFZwfNameListType)         :: nml 
-  integer(kind=irg),dimension(10) :: nLaue = (/ 3, 16, 9, 21, 6, 18, 12, 24, 28, 30 /)
-  character(3),dimension(10)      :: Laue = (/ '2  ', '3  ', '4  ', '6  ', '222', &
-                                               '32 ', '422', '622', '23 ', '432' /)
+  integer(kind=irg),dimension(13) :: nLaue = (/ 3, 16, 9, 21, 6, 18, 12, 24, 28, 30, 18, 12, 24 /)
+  character(4),dimension(13)      :: Laue = (/ '2   ', '3   ', '4   ', '6   ', '222 ', &
+                                               '32  ', '422 ', '622 ', '23  ', '432 ', &
+                                               '32R ', '422R', '622R' /)
   ! group names in the HDF output file
   character(13)                   :: ortype(5) = (/ 'Cubochoric   ','Homochoric   ','Stereographic', &
                                                     'Rodrigues    ','Euler        '/)
@@ -230,6 +233,7 @@ type(IO_T)                          :: Message
 real(kind=dbl),allocatable          :: ropos(:,:), sppos(:,:), cupos(:,:), hopos(:,:), eupos(:,:)
 
 integer(kind=irg)                   :: FZorder, FZtype, sz(2), i, hdferr, iL, FZcyclic(4), FZdihedral(4)
+integer(kind=irg)                   :: roto(3) = (/3,4,6/)
 character(fnlen)                    :: datafile, dataset, groupname
 
 
@@ -257,17 +261,22 @@ end do
 ! entire wireframe for each of the Laue groups in each of the representations.
 
 ! loop over the cyclic Laue groups and do all but the Euler representations
-do i=1,10
+do i=1,13
   if (allocated(ropos)) deallocate(ropos)
   call Message%printMessage(' --> starting on point group '//trim(self%Laue(i)))
 
 ! get the Rodrigues wireframe and store it in the Rodrigues group
+! pay attention to the rotated RFZs !!! (i>10)
   if (i.le.4) then
     call initFZCyclic_(FZcyclic(i), ropos)
   else
     SO = so3_T( self%nLaue(i), zerolist='FZ')
     call SO%getFZtypeandorder(FZtype, FZorder) 
-    call initFZother_(FZorder, FZtype, ropos)
+    if (i.gt.10) then 
+      call initFZother_(FZorder, FZtype, ropos, rotorder=roto(i-10))
+    else
+      call initFZother_(FZorder, FZtype, ropos)
+    end if
   end if
   sz = shape(ropos)
   groupname = 'Rodrigues'
@@ -311,14 +320,14 @@ end do
 
 ! Euler: this is a bit different from the others since there are extra bits
 !        to be drawn...in addition, the cyclic RFZs are basically just prisms
-! we have to be carefull here because the extra lines that were drawn for the 
+! we have to be careful here because the extra lines that were drawn for the 
 ! dihedral groups, to show the curvature of top and bottom faces more clearly,
 ! causes issues with the Euler plots; so for the Euler plots, we recalculate
 ! the ropos array
 groupname = 'Euler'
 hdferr = HDF%openGroup(groupname)
 call Message%printMessage(' Starting on Euler RFZs')
-do i=1,10
+do i=1,13
   if (allocated(ropos)) deallocate(ropos)
   if (allocated(eupos)) deallocate(eupos)
   call Message%printMessage(' --> starting on point group '//trim(self%Laue(i)))
@@ -328,7 +337,11 @@ do i=1,10
   call SO%getFZtypeandorder(FZtype, FZorder) 
 ! for the non-cyclic groups, we need to first get the ropos array
   if (i.gt.4) then 
-    call initFZother_(FZorder, FZtype, ropos, euler=.TRUE.)
+    if (i.gt.10) then 
+      call initFZother_(FZorder, FZtype, ropos, rotorder=roto(i-10), euler=.TRUE.)
+    else
+      call initFZother_(FZorder, FZtype, ropos, euler=.TRUE.)
+    end if
     sz = shape(ropos)
     call EulerinitFZ_(FZorder, FZtype, eupos, ropos)
   else
@@ -1158,7 +1171,7 @@ end if
 end subroutine EulerinitFZ_
 
 !--------------------------------------------------------------------------
-recursive subroutine initFZother_(FZorder, FZtype, ropos, euler)
+recursive subroutine initFZother_(FZorder, FZtype, ropos, euler, rotorder)
 !DEC$ ATTRIBUTES DLLEXPORT :: initFZother_
 !! author: MDG
 !! version: 1.0
@@ -1167,6 +1180,9 @@ recursive subroutine initFZother_(FZorder, FZtype, ropos, euler)
 !! generate the coordinates of the wireframe for the cyclic rotational groups
 !! these are stored as 3-component Rodrigues vectors, with (0,0,0) entries
 !! separating the major line segments.
+!!
+!! 10/21/25: added option to rotate the coordinates for second settings of 
+!! some of the point groups (e.g., 32 vs. 312)
 
 use mod_rotations
 use mod_povray
@@ -1177,16 +1193,20 @@ integer(kind=irg),INTENT(IN)          :: FZorder
 integer(kind=irg),INTENT(IN)          :: FZtype
 real(kind=dbl),INTENT(OUT),allocatable:: ropos(:,:)
 logical,INTENT(IN),OPTIONAL           :: euler
+integer(kind=irg),INTENT(IN),OPTIONAL :: rotorder
 
 type(r_T)                             :: ro1, ro2, rolast, ro
 type(PoVRay_T)                        :: PoV
 
 real(kind=dbl)                        :: aux4b(4), d, aux(3), xx, dx
 
-integer(kind=irg)                     :: i,j,k, icnt, dims(3), nt, ns
+integer(kind=irg)                     :: i,j,k, icnt, dims(3), nt, ns, rotate
 integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:)
 real(kind=dbl),allocatable            :: cpos(:,:)
 logical                               :: twostep
+
+rotate = 0
+if (present(rotorder)) rotate = rotorder
 
 ! use the PoVray routines to get all the coordinates and connectivities
 if (FZtype.eq.2) then
@@ -1195,11 +1215,11 @@ if (FZtype.eq.2) then
         if (present(euler)) then
           dims = (/ 24, 24, 12 /)
           allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-          call PoV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, euler=.TRUE.)
+          call PoV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, euler=.TRUE.)
         else
           dims = (/ 24, 24, 24 /)
           allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-          call PoV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
+          call PoV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
         end if
     end if
     if (FZorder.eq.4) then
@@ -1207,11 +1227,11 @@ if (FZtype.eq.2) then
         if (present(euler)) then
           dims = (/ 16, 16, 8 /)
           allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-          call PoV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, euler=.TRUE.)
+          call PoV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, euler=.TRUE.)
         else
           dims = (/ 16, 16, 16 /)
           allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-          call PoV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
+          call PoV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
         end if
     end if
     if (FZorder.eq.3) then
@@ -1219,11 +1239,11 @@ if (FZtype.eq.2) then
         if (present(euler)) then
           dims = (/ 12, 12, 6 /)
           allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-          call PoV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, euler=.TRUE.)
+          call PoV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, euler=.TRUE.)
         else
           dims = (/ 12, 12, 12 /)
           allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-          call PoV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
+          call PoV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
         end if
     end if
     if (FZorder.eq.2) then
@@ -1360,7 +1380,7 @@ hdferr = HDF%openFile(datafile, readonly)
  do iG=1,5 
   groupname = trim(self%ortype(iG))
   hdferr = HDF%openGroup(groupname)
-  do iL=1,10
+  do iL=1,13
 ! read the dataset
     dataset = 'Laue_'//trim(self%Laue(iL))
     call HDF%readDatasetDoubleArray(dataset, dims, hdferr, wireframe)

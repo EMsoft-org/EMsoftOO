@@ -37,6 +37,15 @@ module mod_so3
   !! Rodrigues vectors after discovery of some uniformity issues related to 
   !! rotations by 180° ... Quaternions behave better in this case; this problem 
   !! was discovered by plotting the orientations on a Clifford Torus zone plate.
+  !!
+  !! 10/21/25: we were not covering the rotated versions of several of the point
+  !! groups, in particular the trigonal groups (e.g., 321 and 312); this is now 
+  !! corrected.
+  !! Changes have been propagated to all programs that use this module. The main 
+  !! change is that the orientations are rotated by the proper angle (pi/2n) around 
+  !! the RFZs z-axis.  This uses a pre-existing option in EMsampleRFZ to rotate
+  !! all orientations after sampling.  It also updates the visualization code by
+  !! correcting the wire frames for the affected FZs.
 
 use mod_kinds
 use mod_global
@@ -129,12 +138,22 @@ integer(kind=irg), dimension(32,32) :: FZtypeTable = reshape( (/ &
 ! 2        dihedral symmetry
 ! 3        tetrahedral symmetry
 ! 4        octahedral symmetry
+! 5        icosahedral symmetry
 !
-integer(kind=irg),dimension(36)     :: FZtarray = (/ 0,0,1,1,1,2,2,2,1,1,1,2,2,2,2,1,1,2, &
-                                                     2,2,1,1,1,2,2,2,2,3,3,4,3,4,5,2,2,2 /)
+! entries 33-36 cover icosahedral symmetry (33) and three dihedral groups of orders
+! 8, 10, and 12.
+!
+!================
+! update 10/21/25: account for the rotated FZs in point group pairs like 32 and 312
+! 
+! corrections to FZtarray and FZoarray... the entries should be cyclic groups when there
+! is only one rotation axis... for instance, 6mm should have the six-fold cyclic RFZ...
+!
+integer(kind=irg),dimension(36)     :: FZtarray = (/ 0,0,1,1,1, 2,1,2,1,1, 1,2,1,2,2, 1,1,2,1,2, &
+                                                     1,1,1,2,1, 2,2,3,3,4, 3,4,5,2,2, 2 /)
 
-integer(kind=irg),dimension(36)     :: FZoarray = (/ 0,0,2,2,2,2,2,2,4,4,4,4,4,4,4,3,3,3, &
-                                                     3,3,6,6,6,6,6,6,6,0,0,0,0,0,0,8,10,12 /)
+integer(kind=irg),dimension(36)     :: FZoarray = (/ 0,0,2,2,2, 2,2,2,4,4, 4,4,4,2,4, 3,3,3,3,3, &
+                                                     6,6,6,6,6, 3,6,0,0,0, 0,0,0,8,10, 12 /)
 
 
 
@@ -157,7 +176,7 @@ end type FZpointd
 type, public :: so3_T
   private
     integer(kind=irg)       :: FZtype
-    integer(kind=irg)       :: FZ2type
+    integer(kind=irg)       :: FZrottype  ! used to distinguish pg 321 from 312 for instance
     integer(kind=irg)       :: FZorder
     integer(kind=irg)       :: MFZtype
     integer(kind=irg)       :: MFZorder
@@ -429,6 +448,12 @@ end subroutine nullifyList_
 !
 ! this routine also allows for icosahedral symmetry, although this is not part
 ! of the paper above.
+!
+! In a project with BlueQuartz we discovered that we are not correctly handling
+! the rotated alternatives of the point groups; for instance, we do cover 32, but
+! not 312, which is rotated 30° with respect to 32.  There are several other cases
+! but not just for the Laue groups... -42m and -4m2 is another example.  The code
+! was updated in Ooctober 2025 to correct for this omission.
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 

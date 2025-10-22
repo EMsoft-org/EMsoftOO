@@ -264,6 +264,7 @@ end function getNameList_
 !> @date 12/23/22 MDG 3.1 added Marsaglia and uniform sampling
 !> @date 01/09/23 MDG 3.2 added von Mises-Fisher and Watson sampling
 !> @date 01/10/23 MDG 3.3 added texture component sampling
+!> @date 10/21/25 MDG 3.4 added handling of alternate point group settings
 !--------------------------------------------------------------------------
 subroutine CreateSampling_(self, EMsoft)
 !DEC$ ATTRIBUTES DLLEXPORT :: CreateSampling_
