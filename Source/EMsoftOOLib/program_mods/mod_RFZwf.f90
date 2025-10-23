@@ -53,10 +53,10 @@ type, public :: RFZwf_T
 private 
   character(fnlen)                :: nmldeffile = 'EMRFZwf.nml'
   type(RFZwfNameListType)         :: nml 
-  integer(kind=irg),dimension(13) :: nLaue = (/ 3, 16, 9, 21, 6, 18, 12, 24, 28, 30, 18, 12, 24 /)
-  character(4),dimension(13)      :: Laue = (/ '2   ', '3   ', '4   ', '6   ', '222 ', &
+  integer(kind=irg),dimension(12) :: nLaue = (/ 3, 16, 9, 21, 6, 18, 12, 24, 28, 30, 37, 40 /)
+  character(4),dimension(12)      :: Laue = (/ '2   ', '3   ', '4   ', '6   ', '222 ', &
                                                '32  ', '422 ', '622 ', '23  ', '432 ', &
-                                               '32R ', '422R', '622R' /)
+                                               '32R ', '222R' /)
   ! group names in the HDF output file
   character(13)                   :: ortype(5) = (/ 'Cubochoric   ','Homochoric   ','Stereographic', &
                                                     'Rodrigues    ','Euler        '/)
@@ -233,7 +233,6 @@ type(IO_T)                          :: Message
 real(kind=dbl),allocatable          :: ropos(:,:), sppos(:,:), cupos(:,:), hopos(:,:), eupos(:,:)
 
 integer(kind=irg)                   :: FZorder, FZtype, sz(2), i, hdferr, iL, FZcyclic(4), FZdihedral(4)
-integer(kind=irg)                   :: roto(3) = (/3,4,6/)
 character(fnlen)                    :: datafile, dataset, groupname
 
 
@@ -261,7 +260,7 @@ end do
 ! entire wireframe for each of the Laue groups in each of the representations.
 
 ! loop over the cyclic Laue groups and do all but the Euler representations
-do i=1,13
+do i=1,12
   if (allocated(ropos)) deallocate(ropos)
   call Message%printMessage(' --> starting on point group '//trim(self%Laue(i)))
 
@@ -272,8 +271,9 @@ do i=1,13
   else
     SO = so3_T( self%nLaue(i), zerolist='FZ')
     call SO%getFZtypeandorder(FZtype, FZorder) 
-    if (i.gt.10) then 
-      call initFZother_(FZorder, FZtype, ropos, rotorder=roto(i-10))
+    write (*,*) self%nLaue(i), FZtype, FZorder 
+    if (FZorder.lt.0) then 
+      call initFZother_(abs(FZorder), FZtype, ropos, rotorder=abs(FZorder) ) 
     else
       call initFZother_(FZorder, FZtype, ropos)
     end if
@@ -327,7 +327,7 @@ end do
 groupname = 'Euler'
 hdferr = HDF%openGroup(groupname)
 call Message%printMessage(' Starting on Euler RFZs')
-do i=1,13
+do i=1,12
   if (allocated(ropos)) deallocate(ropos)
   if (allocated(eupos)) deallocate(eupos)
   call Message%printMessage(' --> starting on point group '//trim(self%Laue(i)))
@@ -337,8 +337,8 @@ do i=1,13
   call SO%getFZtypeandorder(FZtype, FZorder) 
 ! for the non-cyclic groups, we need to first get the ropos array
   if (i.gt.4) then 
-    if (i.gt.10) then 
-      call initFZother_(FZorder, FZtype, ropos, rotorder=roto(i-10), euler=.TRUE.)
+    if (FZorder.lt.0) then 
+      call initFZother_(abs(FZorder), FZtype, ropos, rotorder=abs(FZorder), euler=.TRUE.)
     else
       call initFZother_(FZorder, FZtype, ropos, euler=.TRUE.)
     end if
@@ -1251,11 +1251,11 @@ if (FZtype.eq.2) then
         if (present(euler)) then
           dims = (/ 8, 8, 4 /)
           allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-          call PoV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, euler=.TRUE.)
+          call PoV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, euler=.TRUE.)
         else
           dims = (/ 8, 8, 16 /)
           allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-          call PoV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+          call PoV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
         end if
     end if
 end if
@@ -1380,7 +1380,7 @@ hdferr = HDF%openFile(datafile, readonly)
  do iG=1,5 
   groupname = trim(self%ortype(iG))
   hdferr = HDF%openGroup(groupname)
-  do iL=1,13
+  do iL=1,12
 ! read the dataset
     dataset = 'Laue_'//trim(self%Laue(iL))
     call HDF%readDatasetDoubleArray(dataset, dims, hdferr, wireframe)
@@ -1392,12 +1392,12 @@ hdferr = HDF%openFile(datafile, readonly)
     dd = dis(iG)
     write (pd,"(F9.3)") dd 
     locationline = trim(locline2)//pd
-    if (iG.eq.5) then ! this is an Euler plot so it uses a different sky parameter
-      PoV = PoVRay_T( EMsoft, povname, locationline=locationline, viewangle = va(iG) )
-    else
+    if (iG.lt.5) then 
       skyline = 'sky <0.0, 0.0, 1.0>'
-      PoV = PoVRay_T( EMsoft, povname, locationline=locationline, skyline=skyline, viewangle = va(iG) )
+    else
+      skyline = 'sky <0.0, 1.0, 0.0>'
     end if
+    PoV = PoVRay_T( EMsoft, povname, locationline=locationline, skyline=skyline, viewangle = va(iG) )
     write (*,*) ' Creating '//trim(povname), dims, hdferr
 ! add the reference frame and any necessary wireframes
     if (iG.eq.1) then

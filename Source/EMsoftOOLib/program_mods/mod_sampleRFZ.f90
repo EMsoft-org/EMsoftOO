@@ -410,6 +410,8 @@ end if
 ! determine which function we should call for this point group symmetry
 SO = so3_T( rfznl%pgnum )
 call SO%setGridType( rfznl%gridtype )
+call SO%getFZtypeandorder( FZtype, FZorder )
+call SO%setFZordersign( FZorder )
 
 ! get the linked list for the FZ for point group symmetry pgnum for nsteps along the cubic semi-edge
 if (trim(rfznl%samplemode).eq.'RFZ') then

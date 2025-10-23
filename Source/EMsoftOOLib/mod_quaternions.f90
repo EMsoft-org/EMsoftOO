@@ -2567,7 +2567,7 @@ real(kind=dbl), allocatable               :: Pm(:,:)
 ! first get the number of the rotational point group that corresponds to the crystal point group
 prot = PGrot(pgnum)
 ! possible values for prot are: (/1,3,6,9,12,16,18,21,24,28,30/)
-! corresponding to the point groups 1, 2, 222, 4, 422, 3, 32, 6, 622, 23, 432 and 532 respectively
+! corresponding to the point groups 1, 2, 222, 4, 422, 3, 32, 6, 622, 23, 432, 532, 32R, and 222R respectively
 
 !------------
 ! IMPORTANT NOTE: the original von Mises-Fischer (VMF) approach requires that q and -q are considered to
@@ -2717,6 +2717,24 @@ select case (prot)
                 do i = 1,23
                   Pm(1:4,i+1) = SYM_Qsymop(1:4,129+i)
                 end do
+
+        case(37,39) ! 312 and -31m  [this is 32 rotated by 30°; also -62m]
+                allocate(Pm(4,6))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Nqsym = 6
+                Pm(1:4,2) = SYM_Qsymop(1:4,26)
+                Pm(1:4,3) = SYM_Qsymop(1:4,28)
+                Pm(1:4,4) = SYM_Qsymop(1:4,31)
+                Pm(1:4,5) = SYM_Qsymop(1:4,33)
+                Pm(1:4,6) = SYM_Qsymop(1:4,35)
+
+        case(40)         ! this is -4m2 which is a rotated 222 (45°)
+                allocate(Pm(4,4))
+                Pm(1:4,1) = SYM_Qsymop(1:4,1)
+                Pm(1:4,2) = SYM_Qsymop(1:4,11)
+                Pm(1:4,3) = SYM_Qsymop(1:4,12)
+                Pm(1:4,4) = SYM_Qsymop(1:4,4)
+                Nqsym = 4
 
         case default    ! this should never happen ...
                 write (*,*) 'requested rotational point group ', prot

@@ -899,7 +899,12 @@ offset = (num-1)/2 + 1
 
 call SO%getFZtypeandorder(FZtype, FZorder)
 
-rotate = POV%roto 
+rotate = 0
+if (FZorder.lt.0) then
+  FZorder = abs(FZorder)
+  call POV%set_roto(FZorder)
+  rotate = FZorder 
+end if 
 
 ! there is no need to instantiate the PoVRay_T class; we only need to call 
 ! one of its methods which does not affect any parameters in the class 
@@ -928,7 +933,7 @@ if (FZtype.eq.2) then
     twostep = .TRUE.
     dims = (/ 8, 8, 4 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
 end if
 

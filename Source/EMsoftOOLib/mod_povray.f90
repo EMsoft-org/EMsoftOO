@@ -1525,10 +1525,8 @@ real(kind=dbl)    :: a = 0.8660254038D0, b = 0.5D0, c = 0.5773502692D0, dt = 0.3
 integer(kind=irg) :: i 
 
 if (rotate.ne.0) then 
-  write (*,*) 'rotating 32 zone by ',360.0D0/(2.D0*dble(rotate)), rotate, cPi, cPi/(2.D0*dble(rotate))
   crot = cos(cPi/(2.D0*dble(rotate)))
   srot = sin(cPi/(2.D0*dble(rotate)))
-  write(*,*) crot, srot
 end if
 
 
@@ -1590,10 +1588,6 @@ else ! define the coordinates of the cubic FZ in Rodrigues Space
       do i=1,12
         xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
         ytmp = cpos(1,i)*srot+cpos(2,i)*crot
-        if (i.eq.1) then
-          write (*,*) ' before : ',cpos(1,i),cpos(2,i)
-          write (*,*) ' after  : ',xtmp,ytmp
-        end if
         cpos(1:2,i) = (/xtmp,ytmp/)
       end do 
     end if 
@@ -1640,7 +1634,7 @@ end if
 end subroutine getpos_FZ32_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ222_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
+recursive subroutine getpos_FZ222_(self, dims, cpos, s_edge, t_edge, ns, d, nt, rotate, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ222_
  !! author: MDG
  !! version: 1.0
@@ -1665,13 +1659,20 @@ integer(kind=irg),INTENT(OUT)         :: ns
 real(kind=dbl),INTENT(OUT)            :: d
  !! aux parameter
 integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(IN)          :: rotate
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
 logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 1.0D0, b = 1.0D0, c = 1D0, dt = 2.0D0, &
-                     ds = 2.0D0, dd, z = 0.D0, oo = 1.D0
+                     ds = 2.0D0, dd, z = 0.D0, oo = 1.D0, crot, srot, xtmp, ytmp
+integer(kind=irg) :: i 
+
+if (rotate.ne.0) then 
+  crot = cos(cPi/(2.D0*dble(rotate)))
+  srot = sin(cPi/(2.D0*dble(rotate)))
+end if
 
 d = 1.7320508075688772D0
 if (present(MFZ)) then
@@ -1687,6 +1688,14 @@ if (present(MFZ)) then
     cpos(1:3, 8) = (/  z,  a,  c /)
 
     cpos = cpos/d
+
+    if (rotate.ne.0) then 
+      do i=1,8
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1716,6 +1725,14 @@ else ! define the coordinates of the FZ in Rodrigues Space
     cpos(1:3, 8) = (/  a, -b, -c /)
 
     cpos = cpos / d
+
+    if (rotate.ne.0) then 
+      do i=1,8
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1848,13 +1865,19 @@ if (num.ne.0) doMFZ = .FALSE.
 
 call SO%getFZtypeandorder(FZtype, FZorder)
 
-io_int(1:2) = (/ FZtype, FZorder /)
-if (self%verbose.eqv..TRUE.) call Message%WriteValue(' FZ parameters (type/order) : ', io_int, 2)
+if (self%verbose.eqv..TRUE.) then 
+  io_int(1:2) = (/ FZtype, FZorder /)
+  call Message%WriteValue(' FZ parameters (type/order) : ', io_int, 2)
+  io_int(1) = rotate 
+  call Message%WriteValue(' rotate : ', io_int, 1)
+end if 
 
 if (FZtype.eq.1) then   ! these are the cyclic groups 2, 3, 4, and 6
   call self%initFZCyclic_(FZorder, cylr, rmode)
   RETURN  ! we are done so return to the calling routine.
 end if
+
+FZorder = abs(FZorder)
 
 if (FZtype.eq.2) then
     if (FZorder.eq.6) then
@@ -1901,12 +1924,12 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
+        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, doMFZ)
       else
         twostep = .TRUE.
         dims = (/ 8, 8, 16 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
       end if
     end if
 end if
@@ -2396,7 +2419,8 @@ if (outline.eq.1) then
     end if
   end if
 
-  if (FZtype.eq.3) then
+  if ((FZtype.eq.3).and.(rmode.eq.5)) then
+    write (*,*) 'ADDING LINES THAT SHOULD NOT BE THERE ...'
       xx = cPi/dble(2)
   ! draw four diagonal lines
       eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
@@ -2580,7 +2604,7 @@ use mod_io
 IMPLICIT NONE
 
 class(PoVRay_T), INTENT(INOUT)        :: self
-integer(kind=irg),INTENT(IN)          :: FZorder
+integer(kind=irg),INTENT(INOUT)       :: FZorder
  !! 2, 3, 4, or 6
 real(kind=dbl),INTENT(IN)             :: cylr
  !! cylinder radius
@@ -2606,6 +2630,11 @@ integer(kind=irg),allocatable         :: h_edge(:,:)
 real(kind=dbl),allocatable            :: cpos(:,:), dpos(:)
 ! parameters that depend on the cyclic group
 real(kind=dbl)                        :: a, b, c, dt, ds, d, dd, zz, oo, c2, tmp
+
+if (FZorder.lt.0) then 
+  self%roto = 2 
+  FZorder = abs(FZorder)
+end if 
 
 select case(FZorder)
   case(2) ! define the coordinates of the monoclinic C2 (2) FZ in Rodrigues Space
@@ -2653,12 +2682,15 @@ select case(FZorder)
       dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
     end do
 
-! this FZ must be rotated so that the two-fold axis falls along the monoclinic b-axis.
-    do i=1,200
-       tmp = cpos(2,i)
-       cpos(2,i) = cpos(3,i)
-       cpos(3,i) = tmp
-    end do
+! this FZ must be rotated so that the two-fold axis falls along the monoclinic b-axis,
+! unless this is point group 7 (mm2) which should not be rotated.
+    if (self%roto.eq.0) then 
+      do i=1,200
+         tmp = cpos(2,i)
+         cpos(2,i) = cpos(3,i)
+         cpos(3,i) = tmp
+      end do
+    end if 
 
     ns = 2000
     dx = dt/float(ns-1)

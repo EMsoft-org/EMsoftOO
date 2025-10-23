@@ -376,12 +376,13 @@ IMPLICIT NONE
 
 !> 32 3D point group symbols in International Tables order; additional quasi-crystal rotational
 !> groups are added at the end of the list
-  character(5), public, dimension(36):: PGTHD =(/ '    1','   -1','    2','    m','  2/m','  222', &
+  character(5), public, dimension(41):: PGTHD =(/ '    1','   -1','    2','    m','  2/m','  222', &
                                                   '  mm2','  mmm','    4','   -4','  4/m','  422', &
                                                   '  4mm',' -42m','4/mmm','    3','   -3','   32', &
                                                   '   3m','  -3m','    6','   -6','  6/m','  622', &
                                                   '  6mm',' -6m2','6/mmm','   23','   m3','  432', &
-                                                  ' -43m',' m-3m','  532','  822',' 1022',' 1222' /)
+                                                  ' -43m',' m-3m','  532','  822',' 1022',' 1222', &
+                                                  '  312','  31m',' -31m',' -4m2',' -62m' /)
 !DEC$ ATTRIBUTES DLLEXPORT :: PGTHD
 
 !> 32 3D point group orders in International Tables order
@@ -399,10 +400,11 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: RPGorder
 
 !> 3D point groups : purely rotational point groups corresponding to each point group
-  integer(kind=irg), public, dimension(36)   :: PGrot = (/ &
+! updated with special cases of point groups with two orientations [10/22/25]
+  integer(kind=irg), public, dimension(41)   :: PGrot = (/ &
                                                 1,1,3,1,3,6,3,6,9,3,9,12,9,6,12,16,16, &
                                                 18,16,18,21,16,21,24,21,18,24,28,28,30, &
-                                                28,30,33,34,35,36/)
+                                                28,30,33,34,35,36,37,16,37,40,37/)
 !DEC$ ATTRIBUTES DLLEXPORT :: PGrot
 
 !> 3D point groups : Laue group number

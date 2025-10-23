@@ -149,11 +149,15 @@ integer(kind=irg), dimension(32,32) :: FZtypeTable = reshape( (/ &
 ! corrections to FZtarray and FZoarray... the entries should be cyclic groups when there
 ! is only one rotation axis... for instance, 6mm should have the six-fold cyclic RFZ...
 !
-integer(kind=irg),dimension(36)     :: FZtarray = (/ 0,0,1,1,1, 2,1,2,1,1, 1,2,1,2,2, 1,1,2,1,2, &
-                                                     1,1,1,2,1, 2,2,3,3,4, 3,4,5,2,2, 2 /)
+! we also introduced point groups 312, 31m, -31m, -4m2, and -62m as groups 37 through 41; they have 
+! a negative value for the FZoarray ... mm2 is also an exception because the orientation of the 
+! cyclic 2-fold axis is different from that in the monoclinic groups...
+!
+integer(kind=irg),dimension(41)     :: FZtarray = (/ 0,0,1,1,1, 2,1,2,1,1, 1,2,1,2,2, 1,1,2,1,2, &
+                                                     1,1,1,2,1, 2,2,3,3,4, 3,4,5,2,2, 2,2,1,2,2, 2 /)
 
-integer(kind=irg),dimension(36)     :: FZoarray = (/ 0,0,2,2,2, 2,2,2,4,4, 4,4,4,2,4, 3,3,3,3,3, &
-                                                     6,6,6,6,6, 3,6,0,0,0, 0,0,0,8,10, 12 /)
+integer(kind=irg),dimension(41)     :: FZoarray = (/ 0,0,2,2,2, 2,-2,2,4,4, 4,4,4,2,4, 3,3,3,3,3, &
+                                                     6,6,6,6,6, 3,6,0,0,0, 0,0,0,8,10, 12,-3,-3,-3,-2, -3 /)
 
 
 
@@ -176,7 +180,7 @@ end type FZpointd
 type, public :: so3_T
   private
     integer(kind=irg)       :: FZtype
-    integer(kind=irg)       :: FZrottype  ! used to distinguish pg 321 from 312 for instance
+    integer(kind=irg)       :: FZordersign = 1! used to distinguish pg 321 from 312 for instance
     integer(kind=irg)       :: FZorder
     integer(kind=irg)       :: MFZtype
     integer(kind=irg)       :: MFZorder
@@ -206,6 +210,7 @@ type, public :: so3_T
 
     procedure, pass(self) :: getFZtypeandorder_
     procedure, pass(self) :: setFZtypeandorder_
+    procedure, pass(self) :: setFZordersign_
     procedure, pass(self) :: getMFZtypeandorder_
     procedure, pass(self) :: setMFZtypeandorder_
     procedure, pass(self) :: setFZcnt_
@@ -263,6 +268,7 @@ type, public :: so3_T
 
     generic, public :: getFZtypeandorder => getFZtypeandorder_
     generic, public :: setFZtypeandorder => setFZtypeandorder_
+    generic, public :: setFZordersign => setFZordersign_
     generic, public :: getMFZtypeandorder => getMFZtypeandorder_
     generic, public :: setMFZtypeandorder => setMFZtypeandorder_
     generic, public :: setFZcnt => setFZcnt_
@@ -519,9 +525,29 @@ if (twophase.eqv..TRUE.) then
 else  ! single phase so use the old way of doing things...
   self%FZtype = FZtarray(pgnum1)
   self%FZorder = FZoarray(pgnum1)
+  call self%setFZordersign(self%FZorder)
 end if
 
 end subroutine setFZtypeandorder_
+
+!--------------------------------------------------------------------------
+recursive subroutine setFZordersign_(self, FZorder)
+!DEC$ ATTRIBUTES DLLEXPORT :: setFZordersign_
+!! author: MDG
+!! version: 1.0
+!! date: 10/23/25
+!!
+!! set the sign parameter for the FZorder
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(OUT)            :: FZorder
+
+self%FZordersign = 1
+if (FZorder.lt.0) self%FZordersign = -1
+
+end subroutine setFZordersign_
 
 !--------------------------------------------------------------------------
 recursive subroutine getFZtypeandorder_(self, FZtype, FZorder)
@@ -868,12 +894,12 @@ if (x(4).ne.inftyd()) then
       res = dabs(x(3)*x(4)).le.LPs%BP(self%MFZorder)
     end if
   else
-    if ((self%FZtype.eq.1.).and.(self%FZorder.eq.2)) then
+    if ((self%FZtype.eq.1.).and.(abs(self%FZorder).eq.2).and.(self%FZordersign.eq.1) ) then
 ! check the y-component vs. tan(pi/2n)
       res = dabs(x(2)*x(4)).le.LPs%BP(self%FZorder)
     else
 ! check the z-component vs. tan(pi/2n)
-      res = dabs(x(3)*x(4)).le.LPs%BP(self%FZorder)
+      res = dabs(x(3)*x(4)).le.LPs%BP(abs(self%FZorder))
     end if
   end if
 else
@@ -902,6 +928,9 @@ recursive function insideDihedralFZ_(self, rod, order) result(res)
   !! date: 01/21/20
   !!
   !! does Rodrigues point lie inside dihedral FZ (for 2, 3, 4, and 6-fold)?
+  !!
+  !! [10/22/25] added support for rotated dihedral FZs, e.g., for 312, 31m, -31m,
+  !! 222 (rotated 45°)
 
 IMPLICIT NONE
 
@@ -922,21 +951,24 @@ else
   r(1:3) = x(1:3) * x(4)
 
   ! first, check the z-component vs. tan(pi/2n)  (same as insideCyclicFZ)
-  c1 = dabs(r(3)).le.(LPs%BP(order)+eps)
+  c1 = dabs(r(3)).le.(LPs%BP(abs(order))+eps)
   res = .FALSE.
 
   ! check the square boundary planes if c1=.TRUE.
   if (c1) then
     select case (order)
-      case (2)
+      case (2)  ! 222
         c2 = maxval(dabs(r)).le.(r1+eps)
+      case (-2) ! 222 rotated 45° around the z axis
+        c2 = ((dabs(r(1)+r(2)).le.LPs%r2).and.(dabs(r(1)-r(2)).le.LPs%r2))
       case (3)
-        ! c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
-        ! c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
-        ! c2 = c2.and.( dabs(r(2)).le.r1 )
         c2 =          dabs( LPs%srt*r(2)+0.5D0*r(1)).le.(r1+eps)
         c2 = c2.and.( dabs( LPs%srt*r(2)-0.5D0*r(1)).le.(r1+eps) )
         c2 = c2.and.( dabs(r(1)).le.(r1+eps) )
+      case (-3)
+        c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
+        c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
+        c2 = c2.and.( dabs(r(2)).le.r1 )
       case (4)
         c2 = (dabs(r(1)).le.r1).and.(dabs(r(2)).le.r1)
         c2 = c2.and.((LPs%r22*dabs(r(1)+r(2)).le.r1).and.(LPs%r22*dabs(r(1)-r(2)).le.r1))
@@ -1199,6 +1231,7 @@ self%FZcnt = 0
 
 ! note that when FZtype is cyclic (1) and FZorder is 2, then we must rotate the
 ! rotation axis to lie along the b (y) direction, not z !!!!
+! BUT, when FZorder is -2, then we need to stick to the regular z orientation.
 
 ! loop over the cube of volume pi^2; note that we do not want to include
 ! the opposite edges/facets of the cube, to avoid double counting rotations
