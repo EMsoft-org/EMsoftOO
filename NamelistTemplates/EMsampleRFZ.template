@@ -70,7 +70,11 @@
 ! number of sampling points along cube semi-edge
  nsteps = 100,
 ! grid type: 0 contains origin, 1 is has origin at center of grid box
+! if SamplingLattice - 'cF', then gridtype will automatically be set to 1
  gridtype = 0,
+! NEW FEATURE: SamplingLattice allows the user to select a Bravais lattice type
+! for sampling... currently available 'cP' (default), and 'cF' (more dense sampling...)
+ SamplingLattice = 'cP',
 !=================
 ! parameters for FIB mode
 !=================

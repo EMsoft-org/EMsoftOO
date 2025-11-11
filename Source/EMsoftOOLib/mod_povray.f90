@@ -1566,21 +1566,21 @@ if (present(MFZ)) then
     s_edge(1:2, 9) = (/  5, 6 /)
   end if
 else ! define the coordinates of the cubic FZ in Rodrigues Space
-    cpos(1:3, 1) = (/  a,  b,  c /)
-    cpos(1:3, 2) = (/  z, oo,  c /)
-    cpos(1:3, 3) = (/ -a,  b,  c /)
+    cpos(1:3, 1) = (/  a*d,  b*d,  c /)
+    cpos(1:3, 2) = (/  z*d, oo*d,  c /)
+    cpos(1:3, 3) = (/ -a*d,  b*d,  c /)
 
-    cpos(1:3, 4) = (/ -a, -b,  c /)
-    cpos(1:3, 5) = (/  z,-oo,  c /)
-    cpos(1:3, 6) = (/  a, -b,  c /)
+    cpos(1:3, 4) = (/ -a*d, -b*d,  c /)
+    cpos(1:3, 5) = (/  z*d,-oo*d,  c /)
+    cpos(1:3, 6) = (/  a*d, -b*d,  c /)
 
-    cpos(1:3, 7) = (/  a,  b, -c /)
-    cpos(1:3, 8) = (/  z, oo, -c /)
-    cpos(1:3, 9) = (/ -a,  b, -c /)
+    cpos(1:3, 7) = (/  a*d,  b*d, -c /)
+    cpos(1:3, 8) = (/  z*d, oo*d, -c /)
+    cpos(1:3, 9) = (/ -a*d,  b*d, -c /)
 
-    cpos(1:3,10) = (/ -a, -b, -c /)
-    cpos(1:3,11) = (/  z,-oo, -c /)
-    cpos(1:3,12) = (/  a, -b, -c /)
+    cpos(1:3,10) = (/ -a*d, -b*d, -c /)
+    cpos(1:3,11) = (/  z*d,-oo*d, -c /)
+    cpos(1:3,12) = (/  a*d, -b*d, -c /)
 
     cpos = cpos / d
 
@@ -2420,7 +2420,6 @@ if (outline.eq.1) then
   end if
 
   if ((FZtype.eq.3).and.(rmode.eq.5)) then
-    write (*,*) 'ADDING LINES THAT SHOULD NOT BE THERE ...'
       xx = cPi/dble(2)
   ! draw four diagonal lines
       eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )

@@ -46,6 +46,10 @@ module mod_so3
   !! the RFZs z-axis.  This uses a pre-existing option in EMsampleRFZ to rotate
   !! all orientations after sampling.  It also updates the visualization code by
   !! correcting the wire frames for the affected FZs.
+  !!
+  !! 11/10/25: conversation with Zach Varley about using Bravais lattices instead of 
+  !! simple (primitive) cubic sampling lattice... fcc has significantly denser packing
+  !! than cP... added new option for fcc sampling 
 
 use mod_kinds
 use mod_global
@@ -197,6 +201,7 @@ type, public :: so3_T
     integer(kind=irg)       :: MAcnt
     integer(kind=irg)       :: UNcnt
     integer(kind=irg)       :: VZcnt
+    character(2)            :: SamplingLattice = 'cP'
     type(FZpointd),pointer  :: FZlist
     type(FZpointd),pointer  :: CMlist  ! CM = Constant Misorientation
     type(FZpointd),pointer  :: COlist  ! CO = Cone sampling
@@ -235,6 +240,7 @@ type, public :: so3_T
     procedure, pass(self) :: getListHead_
     procedure, pass(self) :: getListCount_
     procedure, pass(self) :: setGridType_
+    procedure, pass(self) :: setSamplingLattice_
 
     procedure, pass(self) :: delete_FZlist_
     procedure, pass(self) :: nullifyList_
@@ -293,6 +299,7 @@ type, public :: so3_T
     generic, public :: getListHead => getListHead_
     generic, public :: getListCount => getListCount_
     generic, public :: setGridType => setGridType_
+    generic, public :: setSamplingLattice => setSamplingLattice_
 
     generic, public :: delete_FZlist => delete_FZlist_
     generic, public :: nullifyList => nullifyList_
@@ -1209,8 +1216,9 @@ type(r_T)                            :: rod
 type(c_T)                            :: cu
 type(q_T)                            :: q 
 real(kind=dbl)                       :: x, y, z, delta, shift, sedge, ztmp
+real(kind=dbl)                       :: cFshifts(3,0:3) ! face centering vectors
 type(FZpointd), pointer              :: FZtmp, FZtmp2
-integer(kind=irg)                    :: i, j, k
+integer(kind=irg)                    :: i, j, k, icF
 logical                              :: b, rotateFZ = .FALSE.
 
 if (present(qFZ)) rotateFZ = .TRUE.
@@ -1233,6 +1241,8 @@ self%FZcnt = 0
 ! rotation axis to lie along the b (y) direction, not z !!!!
 ! BUT, when FZorder is -2, then we need to stick to the regular z orientation.
 
+
+if (self%SamplingLattice.eq.'cP') then
 ! loop over the cube of volume pi^2; note that we do not want to include
 ! the opposite edges/facets of the cube, to avoid double counting rotations
 ! with a rotation angle of 180 degrees.  This only affects the cyclic groups.
@@ -1273,9 +1283,63 @@ self%FZcnt = 0
         self%FZcnt = self%FZcnt + 1
        end if
     end if
+   end do
+  end do
+ end do
+end if
+
+if (self%SamplingLattice.eq.'cF') then ! use an fcc sampling lattice
+! loop over the cube of volume pi^2; note that we do not want to include
+! the opposite edges/facets of the cube, to avoid double counting rotations
+! with a rotation angle of 180 degrees.  This only affects the cyclic groups.
+
+cFshifts(1:3,0) = (/ 0.D0, 0.D0, 0.D0 /)
+cFshifts(1:3,1) = (/ 0.5D0, 0.5D0, 0.D0 /)
+cFshifts(1:3,2) = (/ 0.5D0, 0.0D0, 0.5D0 /)
+cFshifts(1:3,3) = (/ 0.0D0, 0.5D0, 0.5D0 /)
+
+do icF=0,3
+ do i=-nsteps+1,nsteps
+  x = (dble(i)+shift+cFshifts(1,icF))*delta
+  do j=-nsteps+1,nsteps
+   y = (dble(j)+shift+cFshifts(2,icF))*delta
+   do k=-nsteps+1,nsteps
+    z = (dble(k)+shift+cFshifts(3,icF))*delta
+! make sure that this point lies inside the cubochoric cell
+    if (maxval( (/ abs(x), abs(y), abs(z) /) ).le.sedge) then
+
+! convert to Rodrigues representation
+      cu = c_T( cdinp = (/ x, y, z /) )
+      q = cu%cq()
+      rod = cu%cr()
+
+! If insideFZ=.TRUE., then add this point to the linked list FZlist and keep
+! track of how many points there are on this list
+       if (rotateFZ.eqv..TRUE.) then
+         b = self%IsinsideFZ(rod, qFZ)
+       else
+         b = self%IsinsideFZ(rod)
+       end if
+       if (b) then
+        if (.not.associated(self%FZlist)) then
+          allocate(self%FZlist)
+          FZtmp => self%FZlist
+        else
+          allocate(FZtmp%next)
+          FZtmp => FZtmp%next
+        end if
+        nullify(FZtmp%next)
+        FZtmp%rod = rod
+        FZtmp%qu = q
+        FZtmp%gridpt(1:3) = (/i, j, k/)
+        self%FZcnt = self%FZcnt + 1
+       end if
+    end if
+   end do
   end do
  end do
 end do
+end if 
 
 end subroutine SampleRFZ_
 
@@ -3116,6 +3180,26 @@ integer(kind=irg)             :: g
 self%gridtype = g
 
 end subroutine setGridType_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSamplingLattice_(self, SL)
+!DEC$ ATTRIBUTES DLLEXPORT :: setSamplingLattice_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/10/25
+  !!
+  !! set the SamplingLattice parameter
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)    :: self
+character(2)                  :: SL
+
+self%SamplingLattice = SL
+! for cF, the gridtype should always be 1
+if (SL.eq.'cF') self%gridtype = 1
+
+end subroutine setSamplingLattice_
 
 !--------------------------------------------------------------------------
 recursive function IsinsideMFZ_(self, rod) result(insideMFZ)
