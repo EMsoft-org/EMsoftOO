@@ -37,6 +37,19 @@ module mod_so3
   !! Rodrigues vectors after discovery of some uniformity issues related to 
   !! rotations by 180° ... Quaternions behave better in this case; this problem 
   !! was discovered by plotting the orientations on a Clifford Torus zone plate.
+  !!
+  !! 10/21/25: we were not covering the rotated versions of several of the point
+  !! groups, in particular the trigonal groups (e.g., 321 and 312); this is now 
+  !! corrected.
+  !! Changes have been propagated to all programs that use this module. The main 
+  !! change is that the orientations are rotated by the proper angle (pi/2n) around 
+  !! the RFZs z-axis.  This uses a pre-existing option in EMsampleRFZ to rotate
+  !! all orientations after sampling.  It also updates the visualization code by
+  !! correcting the wire frames for the affected FZs.
+  !!
+  !! 11/10/25: conversation with Zach Varley about using Bravais lattices instead of 
+  !! simple (primitive) cubic sampling lattice... fcc has significantly denser packing
+  !! than cP... added new option for fcc sampling 
 
 use mod_kinds
 use mod_global
@@ -129,12 +142,26 @@ integer(kind=irg), dimension(32,32) :: FZtypeTable = reshape( (/ &
 ! 2        dihedral symmetry
 ! 3        tetrahedral symmetry
 ! 4        octahedral symmetry
+! 5        icosahedral symmetry
 !
-integer(kind=irg),dimension(36)     :: FZtarray = (/ 0,0,1,1,1,2,2,2,1,1,1,2,2,2,2,1,1,2, &
-                                                     2,2,1,1,1,2,2,2,2,3,3,4,3,4,5,2,2,2 /)
+! entries 33-36 cover icosahedral symmetry (33) and three dihedral groups of orders
+! 8, 10, and 12.
+!
+!================
+! update 10/21/25: account for the rotated FZs in point group pairs like 32 and 312
+! 
+! corrections to FZtarray and FZoarray... the entries should be cyclic groups when there
+! is only one rotation axis... for instance, 6mm should have the six-fold cyclic RFZ...
+!
+! we also introduced point groups 312, 31m, -31m, -4m2, and -62m as groups 37 through 41; they have 
+! a negative value for the FZoarray ... mm2 is also an exception because the orientation of the 
+! cyclic 2-fold axis is different from that in the monoclinic groups...
+!
+integer(kind=irg),dimension(41)     :: FZtarray = (/ 0,0,1,1,1, 2,1,2,1,1, 1,2,1,2,2, 1,1,2,1,2, &
+                                                     1,1,1,2,1, 2,2,3,3,4, 3,4,5,2,2, 2,2,1,2,2, 2 /)
 
-integer(kind=irg),dimension(36)     :: FZoarray = (/ 0,0,2,2,2,2,2,2,4,4,4,4,4,4,4,3,3,3, &
-                                                     3,3,6,6,6,6,6,6,6,0,0,0,0,0,0,8,10,12 /)
+integer(kind=irg),dimension(41)     :: FZoarray = (/ 0,0,2,2,2, 2,-2,2,4,4, 4,4,4,2,4, 3,3,3,3,3, &
+                                                     6,6,6,6,6, 3,6,0,0,0, 0,0,0,8,10, 12,-3,-3,-3,-2, -3 /)
 
 
 
@@ -157,7 +184,7 @@ end type FZpointd
 type, public :: so3_T
   private
     integer(kind=irg)       :: FZtype
-    integer(kind=irg)       :: FZ2type
+    integer(kind=irg)       :: FZordersign = 1! used to distinguish pg 321 from 312 for instance
     integer(kind=irg)       :: FZorder
     integer(kind=irg)       :: MFZtype
     integer(kind=irg)       :: MFZorder
@@ -174,6 +201,7 @@ type, public :: so3_T
     integer(kind=irg)       :: MAcnt
     integer(kind=irg)       :: UNcnt
     integer(kind=irg)       :: VZcnt
+    character(2)            :: SamplingLattice = 'cP'
     type(FZpointd),pointer  :: FZlist
     type(FZpointd),pointer  :: CMlist  ! CM = Constant Misorientation
     type(FZpointd),pointer  :: COlist  ! CO = Cone sampling
@@ -187,6 +215,7 @@ type, public :: so3_T
 
     procedure, pass(self) :: getFZtypeandorder_
     procedure, pass(self) :: setFZtypeandorder_
+    procedure, pass(self) :: setFZordersign_
     procedure, pass(self) :: getMFZtypeandorder_
     procedure, pass(self) :: setMFZtypeandorder_
     procedure, pass(self) :: setFZcnt_
@@ -211,6 +240,7 @@ type, public :: so3_T
     procedure, pass(self) :: getListHead_
     procedure, pass(self) :: getListCount_
     procedure, pass(self) :: setGridType_
+    procedure, pass(self) :: setSamplingLattice_
 
     procedure, pass(self) :: delete_FZlist_
     procedure, pass(self) :: nullifyList_
@@ -244,6 +274,7 @@ type, public :: so3_T
 
     generic, public :: getFZtypeandorder => getFZtypeandorder_
     generic, public :: setFZtypeandorder => setFZtypeandorder_
+    generic, public :: setFZordersign => setFZordersign_
     generic, public :: getMFZtypeandorder => getMFZtypeandorder_
     generic, public :: setMFZtypeandorder => setMFZtypeandorder_
     generic, public :: setFZcnt => setFZcnt_
@@ -268,6 +299,7 @@ type, public :: so3_T
     generic, public :: getListHead => getListHead_
     generic, public :: getListCount => getListCount_
     generic, public :: setGridType => setGridType_
+    generic, public :: setSamplingLattice => setSamplingLattice_
 
     generic, public :: delete_FZlist => delete_FZlist_
     generic, public :: nullifyList => nullifyList_
@@ -429,6 +461,12 @@ end subroutine nullifyList_
 !
 ! this routine also allows for icosahedral symmetry, although this is not part
 ! of the paper above.
+!
+! In a project with BlueQuartz we discovered that we are not correctly handling
+! the rotated alternatives of the point groups; for instance, we do cover 32, but
+! not 312, which is rotated 30° with respect to 32.  There are several other cases
+! but not just for the Laue groups... -42m and -4m2 is another example.  The code
+! was updated in Ooctober 2025 to correct for this omission.
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
@@ -494,9 +532,29 @@ if (twophase.eqv..TRUE.) then
 else  ! single phase so use the old way of doing things...
   self%FZtype = FZtarray(pgnum1)
   self%FZorder = FZoarray(pgnum1)
+  call self%setFZordersign(self%FZorder)
 end if
 
 end subroutine setFZtypeandorder_
+
+!--------------------------------------------------------------------------
+recursive subroutine setFZordersign_(self, FZorder)
+!DEC$ ATTRIBUTES DLLEXPORT :: setFZordersign_
+!! author: MDG
+!! version: 1.0
+!! date: 10/23/25
+!!
+!! set the sign parameter for the FZorder
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(OUT)            :: FZorder
+
+self%FZordersign = 1
+if (FZorder.lt.0) self%FZordersign = -1
+
+end subroutine setFZordersign_
 
 !--------------------------------------------------------------------------
 recursive subroutine getFZtypeandorder_(self, FZtype, FZorder)
@@ -843,12 +901,12 @@ if (x(4).ne.inftyd()) then
       res = dabs(x(3)*x(4)).le.LPs%BP(self%MFZorder)
     end if
   else
-    if ((self%FZtype.eq.1.).and.(self%FZorder.eq.2)) then
+    if ((self%FZtype.eq.1.).and.(abs(self%FZorder).eq.2).and.(self%FZordersign.eq.1) ) then
 ! check the y-component vs. tan(pi/2n)
       res = dabs(x(2)*x(4)).le.LPs%BP(self%FZorder)
     else
 ! check the z-component vs. tan(pi/2n)
-      res = dabs(x(3)*x(4)).le.LPs%BP(self%FZorder)
+      res = dabs(x(3)*x(4)).le.LPs%BP(abs(self%FZorder))
     end if
   end if
 else
@@ -877,6 +935,9 @@ recursive function insideDihedralFZ_(self, rod, order) result(res)
   !! date: 01/21/20
   !!
   !! does Rodrigues point lie inside dihedral FZ (for 2, 3, 4, and 6-fold)?
+  !!
+  !! [10/22/25] added support for rotated dihedral FZs, e.g., for 312, 31m, -31m,
+  !! 222 (rotated 45°)
 
 IMPLICIT NONE
 
@@ -897,21 +958,24 @@ else
   r(1:3) = x(1:3) * x(4)
 
   ! first, check the z-component vs. tan(pi/2n)  (same as insideCyclicFZ)
-  c1 = dabs(r(3)).le.(LPs%BP(order)+eps)
+  c1 = dabs(r(3)).le.(LPs%BP(abs(order))+eps)
   res = .FALSE.
 
   ! check the square boundary planes if c1=.TRUE.
   if (c1) then
     select case (order)
-      case (2)
+      case (2)  ! 222
         c2 = maxval(dabs(r)).le.(r1+eps)
+      case (-2) ! 222 rotated 45° around the z axis
+        c2 = ((dabs(r(1)+r(2)).le.LPs%r2).and.(dabs(r(1)-r(2)).le.LPs%r2))
       case (3)
-        ! c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
-        ! c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
-        ! c2 = c2.and.( dabs(r(2)).le.r1 )
         c2 =          dabs( LPs%srt*r(2)+0.5D0*r(1)).le.(r1+eps)
         c2 = c2.and.( dabs( LPs%srt*r(2)-0.5D0*r(1)).le.(r1+eps) )
         c2 = c2.and.( dabs(r(1)).le.(r1+eps) )
+      case (-3)
+        c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
+        c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
+        c2 = c2.and.( dabs(r(2)).le.r1 )
       case (4)
         c2 = (dabs(r(1)).le.r1).and.(dabs(r(2)).le.r1)
         c2 = c2.and.((LPs%r22*dabs(r(1)+r(2)).le.r1).and.(LPs%r22*dabs(r(1)-r(2)).le.r1))
@@ -1152,8 +1216,9 @@ type(r_T)                            :: rod
 type(c_T)                            :: cu
 type(q_T)                            :: q 
 real(kind=dbl)                       :: x, y, z, delta, shift, sedge, ztmp
+real(kind=dbl)                       :: cFshifts(3,0:3) ! face centering vectors
 type(FZpointd), pointer              :: FZtmp, FZtmp2
-integer(kind=irg)                    :: i, j, k
+integer(kind=irg)                    :: i, j, k, icF
 logical                              :: b, rotateFZ = .FALSE.
 
 if (present(qFZ)) rotateFZ = .TRUE.
@@ -1174,7 +1239,10 @@ self%FZcnt = 0
 
 ! note that when FZtype is cyclic (1) and FZorder is 2, then we must rotate the
 ! rotation axis to lie along the b (y) direction, not z !!!!
+! BUT, when FZorder is -2, then we need to stick to the regular z orientation.
 
+
+if (self%SamplingLattice.eq.'cP') then
 ! loop over the cube of volume pi^2; note that we do not want to include
 ! the opposite edges/facets of the cube, to avoid double counting rotations
 ! with a rotation angle of 180 degrees.  This only affects the cyclic groups.
@@ -1215,9 +1283,63 @@ self%FZcnt = 0
         self%FZcnt = self%FZcnt + 1
        end if
     end if
+   end do
+  end do
+ end do
+end if
+
+if (self%SamplingLattice.eq.'cF') then ! use an fcc sampling lattice
+! loop over the cube of volume pi^2; note that we do not want to include
+! the opposite edges/facets of the cube, to avoid double counting rotations
+! with a rotation angle of 180 degrees.  This only affects the cyclic groups.
+
+cFshifts(1:3,0) = (/ 0.D0, 0.D0, 0.D0 /)
+cFshifts(1:3,1) = (/ 0.5D0, 0.5D0, 0.D0 /)
+cFshifts(1:3,2) = (/ 0.5D0, 0.0D0, 0.5D0 /)
+cFshifts(1:3,3) = (/ 0.0D0, 0.5D0, 0.5D0 /)
+
+do icF=0,3
+ do i=-nsteps+1,nsteps
+  x = (dble(i)+shift+cFshifts(1,icF))*delta
+  do j=-nsteps+1,nsteps
+   y = (dble(j)+shift+cFshifts(2,icF))*delta
+   do k=-nsteps+1,nsteps
+    z = (dble(k)+shift+cFshifts(3,icF))*delta
+! make sure that this point lies inside the cubochoric cell
+    if (maxval( (/ abs(x), abs(y), abs(z) /) ).le.sedge) then
+
+! convert to Rodrigues representation
+      cu = c_T( cdinp = (/ x, y, z /) )
+      q = cu%cq()
+      rod = cu%cr()
+
+! If insideFZ=.TRUE., then add this point to the linked list FZlist and keep
+! track of how many points there are on this list
+       if (rotateFZ.eqv..TRUE.) then
+         b = self%IsinsideFZ(rod, qFZ)
+       else
+         b = self%IsinsideFZ(rod)
+       end if
+       if (b) then
+        if (.not.associated(self%FZlist)) then
+          allocate(self%FZlist)
+          FZtmp => self%FZlist
+        else
+          allocate(FZtmp%next)
+          FZtmp => FZtmp%next
+        end if
+        nullify(FZtmp%next)
+        FZtmp%rod = rod
+        FZtmp%qu = q
+        FZtmp%gridpt(1:3) = (/i, j, k/)
+        self%FZcnt = self%FZcnt + 1
+       end if
+    end if
+   end do
   end do
  end do
 end do
+end if 
 
 end subroutine SampleRFZ_
 
@@ -3058,6 +3180,26 @@ integer(kind=irg)             :: g
 self%gridtype = g
 
 end subroutine setGridType_
+
+!--------------------------------------------------------------------------
+recursive subroutine setSamplingLattice_(self, SL)
+!DEC$ ATTRIBUTES DLLEXPORT :: setSamplingLattice_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/10/25
+  !!
+  !! set the SamplingLattice parameter
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)    :: self
+character(2)                  :: SL
+
+self%SamplingLattice = SL
+! for cF, the gridtype should always be 1
+if (SL.eq.'cF') self%gridtype = 1
+
+end subroutine setSamplingLattice_
 
 !--------------------------------------------------------------------------
 recursive function IsinsideMFZ_(self, rod) result(insideMFZ)

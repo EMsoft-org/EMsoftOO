@@ -885,7 +885,7 @@ type(PoVRay_T)                          :: POV
 type(r_T)                               :: ro1, ro2, ro
 type(q_T)                               :: qu, q 
 
-integer(kind=irg)                       :: dims(3), FZtype, FZorder, ns, nt, i, j, intXY(2), offset
+integer(kind=irg)                       :: dims(3), FZtype, FZorder, ns, nt, i, j, intXY(2), offset, rotate
 real(kind=dbl)                          :: d, dx, tpi, hpi, aux(4), xx, rod(3), XY(2), scl
 integer(kind=irg),allocatable           :: s_edge(:,:), t_edge(:,:)
 real(kind=dbl),allocatable              :: cpos(:,:)
@@ -899,6 +899,13 @@ offset = (num-1)/2 + 1
 
 call SO%getFZtypeandorder(FZtype, FZorder)
 
+rotate = 0
+if (FZorder.lt.0) then
+  FZorder = abs(FZorder)
+  call POV%set_roto(FZorder)
+  rotate = FZorder 
+end if 
+
 ! there is no need to instantiate the PoVRay_T class; we only need to call 
 ! one of its methods which does not affect any parameters in the class 
 ! we need to get the coordinates and connectivity of the vertices of the RFZ
@@ -908,25 +915,25 @@ if (FZtype.eq.2) then
     twostep = .TRUE.
     dims = (/ 24, 24, 12 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
   if (FZorder.eq.4) then
     twostep = .TRUE.
     dims = (/ 16, 16, 8 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
   if (FZorder.eq.3) then
     twostep = .TRUE.
     dims = (/ 12, 12, 6 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
   if (FZorder.eq.2) then
     twostep = .TRUE.
     dims = (/ 8, 8, 4 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
 end if
 

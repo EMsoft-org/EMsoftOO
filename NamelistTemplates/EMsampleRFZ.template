@@ -31,7 +31,20 @@
 !#9:    '4', #10:   '-4', #11:   '4/m', #12: '422', #13: '4mm', #14: '-42m', #15: '4/mmm', #16:    '3'
 !#17:  '-3', #18:   '32', #19:    '3m', #20: '-3m', #21:   '6', #22:   '-6', #23:   '6/m', #24:  '622'
 !#25: '6mm', #26: '-6m2', #27: '6/mmm', #28:  '23', #29:  'm3', #30:  '432', #31:  '-43m', #32: 'm-3m'
+! additional point groups (note that not all EMsoftOO functionality may be available for these groups)
+!#33: '532', #34: ' 822', #35:  '1022', #36:'1222', #37: '312', #38:  '31m', #39:  '-31m', #40: '-4m2'
+!#41:'-62m'
  pgnum = 32,
+!
+! To obtain the alternative settings of several of the point groups one must use
+! the qFZ parameter defined above... This is the case for the following
+! point groups:
+! #14: -42m -> -4m2  [qFZ = 0.9999994050D0, 0.0D0, 0.0D0, 0.0010908306D0]
+! #18: 32 -> 312     [qFZ = 0.9999989423D0, 0.0D0, 0.0D0, 0.0014544405D0]
+! #19: 3m -> 31m
+! #20: -3m -> -31m
+! #26: -6m2 -> -62m  [qFZ = 0.9999997356D0, 0.0D0, 0.0D0, 0.0007272205D0]
+! 
 ! euler angle output file name
  euoutname = 'undefined',
 ! cubochoric output file name
@@ -57,7 +70,11 @@
 ! number of sampling points along cube semi-edge
  nsteps = 100,
 ! grid type: 0 contains origin, 1 is has origin at center of grid box
+! if SamplingLattice - 'cF', then gridtype will automatically be set to 1
  gridtype = 0,
+! NEW FEATURE: SamplingLattice allows the user to select a Bravais lattice type
+! for sampling... currently available 'cP' (default), and 'cF' (more dense sampling...)
+ SamplingLattice = 'cP',
 !=================
 ! parameters for FIB mode
 !=================

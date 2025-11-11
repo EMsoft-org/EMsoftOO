@@ -343,8 +343,8 @@ if (.not.skipread) then
  close(UNIT=dataunit,STATUS='keep')
 
 ! check for required entries
- if (trim(xtalname).eq.'undefined') then
-  call Message%printError('readNameList:',' structure file name is undefined in '//nmlfile)
+ if ( (trim(xtalname).eq.'undefined') .and. (overridepgnum.eq.0) ) then
+  call Message%printError('readNameList:',' no point group number available in '//nmlfile)
  end if
  if (mrcmode.eq.'off') then
    if (trim(povrayfile).eq.'undefined') then
@@ -1506,18 +1506,21 @@ grid3 = trilinear_splat( (/ 0.0, 0.0, 0.0/), (/ 0.0, 0.0, 0.0/), init=.TRUE.)
 ! define some parameters
 sh = (/ sngl(cPi), sngl(cPi/2.D0), sngl(cPi) /)   ! offset parameter for primary Euler cell
 
-! get the space group symmetry
-call openFortranHDFInterface()
-call cell%getCrystalData(enl%xtalname, SG, EMsoft)
-call closeFortranHDFInterface()
-pgnum = SG%getPGnumber()
-
 ! set the FZtype and FZorder parameters in the SO class
 if (enl%overridepgnum.ne.0) then
   pgnum = enl%overridepgnum
+else
+! get the space group symmetry
+  call openFortranHDFInterface()
+  call cell%getCrystalData(enl%xtalname, SG, EMsoft)
+  call closeFortranHDFInterface()
+  pgnum = SG%getPGnumber()
 end if
 SO = so3_T( pgnum, zerolist='FZ')
 call SO%getFZtypeandorder(FZtype, FZorder)
+
+io_int(1:2) = (/ FZtype, FZorder /)
+call Message%WriteValue(' FZtype/order : ',io_int, 2)
 
 ! Regular or MacKenzie FZ ?
 if (enl%MacKenzieCell.eq.1) then
@@ -1587,9 +1590,9 @@ end if
 if (enl%cubochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
     if (num.eq.0) then 
-      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline )
+      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline, FZorder )
     else
-      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline, qAR )
+      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline, FZorder, qAR )
     end if
   end if
 ! create the rendering volume
@@ -1609,9 +1612,9 @@ end if
 if (enl%homochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
     if (num.eq.0) then 
-      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline)
+      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline, FZorder)
     else
-      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline, qAR)
+      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline, FZorder, qAR)
     end if 
   end if
 ! create the rendering volume
@@ -1631,9 +1634,9 @@ end if
 if (enl%rodrigues.ne.0) then
   if (enl%mrcmode.eq.'off') then
     if (num.eq.0) then
-      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline)
+      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline, FZorder)
     else
-      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline, qAR )
+      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline, FZorder, qAR )
     end if
   end if
 ! create the rendering volume
@@ -1655,9 +1658,9 @@ end if
 if (enl%stereographic.ne.0) then
   if (enl%mrcmode.eq.'off') then
     if (num.eq.0) then 
-      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline)
+      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline, FZorder)
     else
-      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline, qAR )
+      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline, FZorder, qAR )
     end if
   end if
 ! create the rendering volume
@@ -1682,9 +1685,9 @@ if (enl%eulerspace.ne.0) then
     PoVeu = PoVRay_T( EMsoft, fname, dunit=dataunit5, nmlfile=EMsoft%nmldeffile, skyline = skyline, &
                       locationline = locationlineeu )
     if (num.eq.0) then
-      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu)
+      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu, FZorder)
     else
-      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu, qAR )
+      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu, FZorder, qAR )
     end if 
   end if
 ! create the rendering volume
@@ -1977,7 +1980,7 @@ end subroutine OrientationViz_
 
 
 !--------------------------------------------------------------------------
-subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit, locationline, qAR)
+subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit, locationline, FZO, qAR)
 !DEC$ ATTRIBUTES DLLEXPORT :: initFiles
 !! author: MDG
 !! version: 1.0
@@ -2001,6 +2004,7 @@ type(so3_T),INTENT(INOUT)                         :: SO
 character(fnlen),INTENT(IN)                       :: outname
 integer(kind=irg),INTENT(IN)                      :: dunit
 character(fnlen),INTENT(IN)                       :: locationline
+integer(kind=irg),INTENT(IN)                      :: FZO
 type(QuaternionArray_T),INTENT(INOUT),OPTIONAL    :: qAR
 
 type(IO_T)                                        :: Message
@@ -2028,6 +2032,7 @@ fname = trim(outname)//'-'//rep//'.pov'
 call Message%printMessage('opening '//trim(fname))
 if (rep.ne.'eu') then
   PoV = PoVRay_T( EMsoft, fname, dunit=dunit, nmlfile=EMsoft%nmldeffile, locationline=locationline )
+  if (FZO.lt.0) call PoV%set_roto(abs(FZO))
 end if
 
 ! output the color definitions for equivalent RFZ drawings

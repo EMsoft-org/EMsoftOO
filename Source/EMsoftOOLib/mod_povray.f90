@@ -48,18 +48,19 @@ IMPLICIT NONE
 private
 
 type, public :: PoVRay_T
-  private
 
     character(fnlen)    :: filename = 'undefined'
     character(fnlen)    :: nmlfile = 'undefined'
     character(fnlen)    :: locationline    ! default < 1.0, 0.0, 0.0 >
-    character(fnlen)    :: skyline         ! default < 0.0, 0.0, 1.0>
+    character(fnlen)    :: skyline = ''    
     character(fnlen)    :: lightline       ! default <1, 2, -2>*50
     real(kind=sgl)      :: eyepos(3)
-    logical             :: background
-    integer(kind=irg)   :: dunit = 0       ! default value = 90
+    logical,public      :: background
+    logical,public      :: verbose = .FALSE.
+    integer(kind=irg)   :: dunit = 0       ! default value 
     integer(kind=irg)   :: nmlunit = 88    ! default value
     integer(kind=irg)   :: df3unit = 86    ! default value
+    integer(kind=irg)   :: roto = 0
 
   contains
   private
@@ -72,6 +73,7 @@ type, public :: PoVRay_T
     procedure, pass(self) :: write_DF3file_
     procedure, pass(self) :: addWireFrameSphere_
     procedure, pass(self) :: addReferenceFrame_
+    procedure, pass(self) :: addOrigin_
     procedure, pass(self) :: addSphere_
     procedure, pass(self) :: addCylinder_
     procedure, pass(self) :: addCubochoricCube_
@@ -84,8 +86,10 @@ type, public :: PoVRay_T
     procedure, pass(self) :: drawFZ_
     procedure, pass(self) :: initFZCyclic_
     procedure, pass(self) :: flipRotationMatrix_
+    procedure, pass(self) :: set_roto_
     procedure, pass(self) :: get_incfile_
     procedure, pass(self) :: closeFile_
+    procedure, pass(self) :: toggleVerbose_
     final :: PoVRay_destructor
 
 ! general utility procedures
@@ -98,6 +102,7 @@ type, public :: PoVRay_T
 ! routines for drawing selected primitives and other scene objects
     generic, public :: addWireFrameSphere => addWireFrameSphere_
     generic, public :: addReferenceFrame => addReferenceFrame_
+    generic, public :: addOrigin => addOrigin_
     generic, public :: addSphere => addSphere_
     generic, public :: addCylinder => addCylinder_
 ! routines for drawing fundamental zones
@@ -109,10 +114,12 @@ type, public :: PoVRay_T
     generic, public :: getpos_FZ422 => getpos_FZ422_
     generic, public :: getpos_FZ32 => getpos_FZ32_
     generic, public :: getpos_FZ222 => getpos_FZ222_
+    generic, public :: set_roto => set_roto_
     generic, public :: drawFZ => drawFZ_
     generic, public :: initFZCyclic => initFZCyclic_
     generic, public :: get_incfile => get_incfile_
     generic, public :: closeFile => closeFile_
+    generic, public :: toggleVerbose => toggleVerbose_
 ! PoVRay uses a left-handed reference frame, so we provide a conversion routine
 ! for the EMsoft right-handed convention
     generic, public :: flipRotationMatrix => flipRotationMatrix_
@@ -127,7 +134,7 @@ end interface PoVRay_T
 contains
 
 !--------------------------------------------------------------------------
-type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, locationline, lightline, skyline, nofile) result(PV)
+type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, locationline, lightline, skyline, nofile, viewangle) result(PV)
 !DEC$ ATTRIBUTES DLLEXPORT :: PoVRay_constructor
 !! author: MDG
 !! version: 1.0
@@ -153,6 +160,7 @@ character(fnlen), INTENT(IN), OPTIONAL :: lightline
 character(fnlen), INTENT(IN), OPTIONAL :: skyline
  !! position of first light source (default <1, 2, -2>*50)
 logical, INTENT(IN), OPTIONAL          :: nofile
+real(kind=dbl),INTENT(IN),OPTIONAL     :: viewangle
 
 if (present(dunit)) then
   PV%dunit = dunit
@@ -163,7 +171,7 @@ end if
 if (present(skyline)) then
   PV%skyline = trim(skyline)
 else
-  PV%skyline = 'sky < 0.0, 0.0, 1.0>'
+  PV%skyline = "sky <0.0,0.0,1.0>"
 end if
 
 if (present(locationline)) then
@@ -187,8 +195,13 @@ else
 end if
 
 if (.not.present(nofile)) then 
-  call PV%openFile(EMsoft)
+  if (present(viewangle)) then 
+    call PV%openFile(EMsoft, viewangle)
+  else
+    call PV%openFile(EMsoft)
+  end if
   call PV%setCamera()
+  PV%background = .TRUE.
   call PV%setLightSource()
 end if
 
@@ -250,6 +263,23 @@ close(unit=self%dunit, status = 'keep')
 end subroutine closeFile_
 
 !--------------------------------------------------------------------------
+recursive subroutine toggleVerbose_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: toggleVerbose_
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/21/20
+ !!
+ !! clean up routine
+
+IMPLICIT NONE
+
+class(PoVRay_T),INTENT(INOUT)         :: self
+
+self%verbose = .not.self%verbose
+
+end subroutine toggleVerbose_
+
+!--------------------------------------------------------------------------
 recursive subroutine get_incfile_(self, EMsoft, incname)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_incfile_
  !! author: MDG
@@ -306,7 +336,7 @@ end subroutine get_incfile_
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-recursive subroutine openFile_(self, EMsoft)
+recursive subroutine openFile_(self, EMsoft, viewangle)
 !DEC$ ATTRIBUTES DLLEXPORT :: openFile_
  !! author: MDG
  !! version: 1.0
@@ -320,7 +350,7 @@ IMPLICIT NONE
 
 class(PoVRay_T),INTENT(INOUT)         :: self
 type(EMsoft_T),INTENT(INOUT)          :: EMsoft
-
+real(kind=dbl),INTENT(IN),OPTIONAL    :: viewangle
 character(fnlen)                      :: fname, line, cwd
 integer(kind=irg)                     :: io
 
@@ -354,6 +384,9 @@ write (self%dunit,"(A)") "#include ""colors.inc"""
 write (self%dunit,"(A)") "#include ""textures.inc"""
 write (self%dunit,"(A)") "#include ""glass.inc"""
 write (self%dunit,"(A)") "// "
+if (present(viewangle)) then 
+  write (self%dunit,"('#declare clck=',F9.5,';')") viewangle
+end if
 write (self%dunit,"(A)") "global_settings"
 write (self%dunit,"(A)") "{  ambient_light <1,1,1>"
 write (self%dunit,"(A)") "   assumed_gamma 1"
@@ -378,7 +411,7 @@ write (self%dunit,"(A)") " "
 write (self%dunit,"(A)") "camera {"
 write (self%dunit,"(A)") "perspective "
 write (self%dunit,"(A)") trim(self%locationline)
-write (self%dunit,"(A)") trim(self%skyline)
+if (trim(self%skyline).ne.'') write (self%dunit,"(A)") trim(self%skyline)
 write (self%dunit,"(A)") "right y * 1"
 write (self%dunit,"(A)") "up z"
 write (self%dunit,"(A)") "angle 50"
@@ -409,13 +442,30 @@ write (self%dunit,"(A)") "media_interaction on"
 write (self%dunit,"(A)") "media_attenuation on"
 write (self%dunit,"(A)") "shadowless"
 write (self%dunit,"(A)") "}"
-if (self%background) then
+if (self%background.eqv..TRUE.) then
   write (self%dunit,"(A)") "background { color White }"
   write (self%dunit,"(A)") " "
 end if
 
 end subroutine setLightSource_
 
+!--------------------------------------------------------------------------
+recursive subroutine addOrigin_(self, pos)
+!DEC$ ATTRIBUTES DLLEXPORT :: addOrigin_
+ !! author: MDG
+ !! version: 1.0
+ !! date: 01/21/20
+ !!
+ !! add a small sphere at the origin of the plot
+
+IMPLICIT NONE
+
+class(PoVRay_T),INTENT(INOUT)   :: self
+real(kind=sgl),INTENT(IN)       :: pos(3)
+
+write (self%dunit,"('sphere {<',3(F8.5,','),'>, 0.075 pigment {color Green*0.7}}')") pos(1), pos(2), pos(3)
+
+end subroutine addOrigin_
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 ! routines to create and handle DF3 volume files
@@ -739,10 +789,10 @@ real(kind=sgl),INTENT(IN)             :: rgb(3)
 character(3),INTENT(IN),OPTIONAL      :: rgblabel
 
 if (present(rgblabel)) then 
-  write (self%dunit,"('cylinder { <',2(F9.5,','),F9.5,'>,<',2(F9.5,','),F9.5,'>,', F9.6,' pigment { ', &
+  write (self%dunit,"('cylinder { <',2(F12.6,','),F12.6,'>,<',2(F12.6,','),F12.6,'>,', F9.6,' pigment { ', &
                     &'color ',A3,'}}')") p1(1:3), p2(1:3), radius, rgblabel
 else
-  write (self%dunit,"('cylinder { <',2(F9.5,','),F9.5,'>,<',2(F9.5,','),F9.5,'>,', F9.6,' pigment { ', &
+  write (self%dunit,"('cylinder { <',2(F12.6,','),F12.6,'>,<',2(F12.6,','),F12.6,'>,', F9.6,' pigment { ', &
                     &'rgb <',2(F9.6,','),F9.6,'>}}')") p1(1:3), p2(1:3), radius, rgb(1:3)
 end if
 
@@ -772,18 +822,18 @@ class(PoVRay_T),INTENT(INOUT)   :: self
 type(IO_T)                      :: Message
 
 call Message%printMessage( (/ &
-  "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593,-1.570796, 3.141593>,<-3.141593, 1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593,-1.570796,-3.141593>,< 3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593,-1.570796, 3.141593>,< 3.141593, 1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593,-1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593,-1.570796, 3.141593>,< 3.141593,-1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593,-1.570796, 3.141593>,< 3.141593,-1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593,-1.570796,-3.141593>,<-3.141593,-1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593, 1.570796,-3.141593>,<-3.141593, 1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {<-3.141593, 1.570796, 3.141593>,< 3.141593, 1.570796, 3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593, 1.570796, 3.141593>,< 3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}", &
-  "cylinder {< 3.141593, 1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.005 pigment {color Green*0.7}}"/), &
+  "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593,-1.570796, 3.141593>,<-3.141593, 1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593,-1.570796,-3.141593>,< 3.141593, 1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593,-1.570796, 3.141593>,< 3.141593, 1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593,-1.570796,-3.141593>,<-3.141593,-1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593,-1.570796, 3.141593>,< 3.141593,-1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593,-1.570796, 3.141593>,< 3.141593,-1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593,-1.570796,-3.141593>,<-3.141593,-1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593, 1.570796,-3.141593>,<-3.141593, 1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {<-3.141593, 1.570796, 3.141593>,< 3.141593, 1.570796, 3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593, 1.570796, 3.141593>,< 3.141593, 1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}", &
+  "cylinder {< 3.141593, 1.570796,-3.141593>,<-3.141593, 1.570796,-3.141593>, 0.0075 pigment {color Green*0.7}}"/), &
   redirect = self%dunit)
 
 end subroutine addEulerBox_
@@ -1004,7 +1054,7 @@ end if
 end subroutine getpos_FZ432_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ23_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ23_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ23_
  !! author: MDG
  !! version: 1.0
@@ -1032,6 +1082,7 @@ integer(kind=irg),INTENT(OUT)         :: nt
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)  :: a = 1.D0, b = 0.0D0, c = 0.5773502692D0, e = 0.333333333D0, &
                    ds = 0.6340506711D0, dt = 1.4142135623730D0, dd, zz = 0.D0, oo = 1.D0
@@ -1079,21 +1130,21 @@ else ! define the coordinates of the cubic FZ in Rodrigues Space
     s_edge(1:2, 2) = (/  2,  3 /)
     s_edge(1:2, 3) = (/  3,  4 /)
     s_edge(1:2, 4) = (/  4,  1 /)
-    s_edge(1:2, 5) = (/  1,  5 /)
-    s_edge(1:2, 6) = (/  2,  5 /)
-    s_edge(1:2, 7) = (/  3,  5 /)
-    s_edge(1:2, 8) = (/  4,  5 /)
-    s_edge(1:2, 9) = (/  1,  6 /)
-    s_edge(1:2,10) = (/  2,  6 /)
-    s_edge(1:2,11) = (/  3,  6 /)
-    s_edge(1:2,12) = (/  4,  6 /)
+    s_edge(1:2, 5) = (/  1,  6 /)
+    s_edge(1:2, 6) = (/  2,  6 /)
+    s_edge(1:2, 7) = (/  3,  6 /)
+    s_edge(1:2, 8) = (/  4,  6 /)
+    s_edge(1:2, 9) = (/  1,  5 /)
+    s_edge(1:2,10) = (/  2,  5 /)
+    s_edge(1:2,11) = (/  3,  5 /)
+    s_edge(1:2,12) = (/  4,  5 /)
 
 end if
 
 end subroutine getpos_FZ23_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ622_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ622_(self, dims, cpos, s_edge, t_edge, ns, d, nt, rotate, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ622_
  !! author: MDG
  !! version: 1.0
@@ -1118,14 +1169,21 @@ integer(kind=irg),INTENT(OUT)         :: ns
 real(kind=dbl),INTENT(OUT)            :: d
  !! aux parameter
 integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(IN)          :: rotate
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)  :: a = 1.0D0, b = 0.267949192431D0, c = 0.732050807569D0, &
                    dt = 0.5358983848622454D0, ds = 0.5358983848622454D0, di =1.069389330154823D0, dd, &
-                   z = 0.D0, o = 0.86602540378443D0, p = 0.5D0
+                   z = 0.D0, o = 0.86602540378443D0, p = 0.5D0, crot, srot, xtmp, ytmp
+integer(kind=irg) :: i 
 
+if (rotate.ne.0) then 
+  crot = cos(cPi/(2.D0*dble(rotate)))
+  srot = sin(cPi/(2.D0*dble(rotate)))
+end if
 
 d = 1.0693893290743279D0
 if (present(MFZ)) then
@@ -1141,6 +1199,14 @@ if (present(MFZ)) then
     cpos(1:3, 8) = (/  o,  p,  b /)
 
     cpos = cpos/d
+
+    if (rotate.ne.0) then 
+      do i=1,8
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1195,6 +1261,14 @@ else ! define the coordinates of the hexagonal FZ in Rodrigues Space
 
     cpos = cpos / d
 
+    if (rotate.ne.0) then 
+      do i=1,24
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
+    
     ns = 200
     nt = nint( ns * dt/ds )
 
@@ -1236,12 +1310,29 @@ else ! define the coordinates of the hexagonal FZ in Rodrigues Space
     t_edge(1:2,10) = (/ 10, 22 /)
     t_edge(1:2,11) = (/ 11, 23 /)
     t_edge(1:2,12) = (/ 12, 24 /)
+
+! the following edges cause issues in the Euler visualization,
+! so we only include them for non-Euler visualizations
+    if (.not.present(euler)) then 
+      t_edge(1:2,13) = (/  1,  7 /)
+      t_edge(1:2,14) = (/  2,  8 /)
+      t_edge(1:2,15) = (/  3,  9 /)
+      t_edge(1:2,16) = (/  4, 10 /)
+      t_edge(1:2,17) = (/  5, 11 /)
+      t_edge(1:2,18) = (/  6, 12 /)
+      t_edge(1:2,19) = (/ 13, 19 /)
+      t_edge(1:2,20) = (/ 14, 20 /)
+      t_edge(1:2,21) = (/ 15, 21 /)
+      t_edge(1:2,22) = (/ 16, 22 /)
+      t_edge(1:2,23) = (/ 17, 23 /)
+      t_edge(1:2,24) = (/ 18, 24 /)
+    end if
 end if
 
 end subroutine getpos_FZ622_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ422_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ422_(self, dims, cpos, s_edge, t_edge, ns, d, nt, rotate, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ422_
  !! author: MDG
  !! version: 1.0
@@ -1266,12 +1357,20 @@ integer(kind=irg),INTENT(OUT)         :: ns
 real(kind=dbl),INTENT(OUT)            :: d
  !! aux parameter
 integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(IN)          :: rotate
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 1.0D0, b = 0.41421354D0, c = 0.41421354D0, dt = 0.8284270763397216D0, &
-                     ds = 0.8284270763397216D0, dd, z = 0.D0, o = 0.70710678118654746D0
+                     ds = 0.8284270763397216D0, dd, z = 0.D0, o = 0.70710678118654746D0, crot, srot, xtmp, ytmp
+integer(kind=irg) :: i 
+
+if (rotate.ne.0) then 
+  crot = cos(cPi/(2.D0*dble(rotate)))
+  srot = sin(cPi/(2.D0*dble(rotate)))
+end if
 
 d = 1.158941651036677D0
 if (present(MFZ)) then
@@ -1287,6 +1386,14 @@ if (present(MFZ)) then
     cpos(1:3, 8) = (/  o,  o,  c /)
 
     cpos = cpos/d
+
+    if (rotate.ne.0) then 
+      do i=1,8
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1325,6 +1432,14 @@ else ! define the coordinates of the tetragonal 422 FZ in Rodrigues Space
 
     cpos = cpos / d
 
+    if (rotate.ne.0) then 
+      do i=1,16
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
+
     ns = 200
     nt = nint( ns * dt/ds )
 
@@ -1346,6 +1461,7 @@ else ! define the coordinates of the tetragonal 422 FZ in Rodrigues Space
     s_edge(1:2,15) = (/ 15, 16 /)
     s_edge(1:2,16) = (/ 16,  9 /)
 
+! vertical
     t_edge(1:2, 1) = (/  1,  9 /)
     t_edge(1:2, 2) = (/  2, 10 /)
     t_edge(1:2, 3) = (/  3, 11 /)
@@ -1354,13 +1470,26 @@ else ! define the coordinates of the tetragonal 422 FZ in Rodrigues Space
     t_edge(1:2, 6) = (/  6, 14 /)
     t_edge(1:2, 7) = (/  7, 15 /)
     t_edge(1:2, 8) = (/  8, 16 /)
+! in top and bottom faces
+! the following edges cause issues in the Euler visualization,
+! so we only include them for non-Euler visualizations
+    if (.not.present(euler)) then     
+      t_edge(1:2, 9) = (/  1,  5 /)
+      t_edge(1:2,10) = (/  2,  6 /)
+      t_edge(1:2,11) = (/  3,  7 /)
+      t_edge(1:2,12) = (/  4,  8 /)
+      t_edge(1:2,13) = (/  9, 13 /)
+      t_edge(1:2,14) = (/ 10, 14 /)
+      t_edge(1:2,15) = (/ 11, 15 /)
+      t_edge(1:2,16) = (/ 12, 16 /)
+    end if
 
 end if
 
 end subroutine getpos_FZ422_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ32_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ32_(self, dims, cpos, s_edge, t_edge, ns, d, nt, rotate, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ32_
  !! author: MDG
  !! version: 1.0
@@ -1385,12 +1514,21 @@ integer(kind=irg),INTENT(OUT)         :: ns
 real(kind=dbl),INTENT(OUT)            :: d
  !! aux parameter
 integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(IN)          :: rotate
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 0.8660254038D0, b = 0.5D0, c = 0.5773502692D0, dt = 0.34314575050D0, &
-                     ds = 0.6340506711D0, dd, z = 0.D0, oo = 1.D0, o = 0.86602540378443D0, p = 0.5D0
+                     ds = 0.6340506711D0, dd, z = 0.D0, oo = 1.D0, o = 0.86602540378443D0, p = 0.5D0, crot, srot, xtmp, ytmp
+integer(kind=irg) :: i 
+
+if (rotate.ne.0) then 
+  crot = cos(cPi/(2.D0*dble(rotate)))
+  srot = sin(cPi/(2.D0*dble(rotate)))
+end if
+
 
 d = 1.1547005384D0
 if (present(MFZ)) then
@@ -1404,6 +1542,14 @@ if (present(MFZ)) then
     cpos(1:3, 6) = (/  a,  p,  c /)
 
     cpos = cpos/d
+
+    if (rotate.ne.0) then 
+      do i=1,6
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1420,23 +1566,31 @@ if (present(MFZ)) then
     s_edge(1:2, 9) = (/  5, 6 /)
   end if
 else ! define the coordinates of the cubic FZ in Rodrigues Space
-    cpos(1:3, 1) = (/  a,  b,  c /)
-    cpos(1:3, 2) = (/  z, oo,  c /)
-    cpos(1:3, 3) = (/ -a,  b,  c /)
+    cpos(1:3, 1) = (/  a*d,  b*d,  c /)
+    cpos(1:3, 2) = (/  z*d, oo*d,  c /)
+    cpos(1:3, 3) = (/ -a*d,  b*d,  c /)
 
-    cpos(1:3, 4) = (/ -a, -b,  c /)
-    cpos(1:3, 5) = (/  z,-oo,  c /)
-    cpos(1:3, 6) = (/  a, -b,  c /)
+    cpos(1:3, 4) = (/ -a*d, -b*d,  c /)
+    cpos(1:3, 5) = (/  z*d,-oo*d,  c /)
+    cpos(1:3, 6) = (/  a*d, -b*d,  c /)
 
-    cpos(1:3, 7) = (/  a,  b, -c /)
-    cpos(1:3, 8) = (/  z, oo, -c /)
-    cpos(1:3, 9) = (/ -a,  b, -c /)
+    cpos(1:3, 7) = (/  a*d,  b*d, -c /)
+    cpos(1:3, 8) = (/  z*d, oo*d, -c /)
+    cpos(1:3, 9) = (/ -a*d,  b*d, -c /)
 
-    cpos(1:3,10) = (/ -a, -b, -c /)
-    cpos(1:3,11) = (/  z,-oo, -c /)
-    cpos(1:3,12) = (/  a, -b, -c /)
+    cpos(1:3,10) = (/ -a*d, -b*d, -c /)
+    cpos(1:3,11) = (/  z*d,-oo*d, -c /)
+    cpos(1:3,12) = (/  a*d, -b*d, -c /)
 
     cpos = cpos / d
+
+    if (rotate.ne.0) then 
+      do i=1,12
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1455,19 +1609,32 @@ else ! define the coordinates of the cubic FZ in Rodrigues Space
     s_edge(1:2,11) = (/ 11, 12 /)
     s_edge(1:2,12) = (/ 12,  7 /)
 
+! vertical
     t_edge(1:2, 1) = (/  1,  7 /)
     t_edge(1:2, 2) = (/  2,  8 /)
     t_edge(1:2, 3) = (/  3,  9 /)
     t_edge(1:2, 4) = (/  4, 10 /)
     t_edge(1:2, 5) = (/  5, 11 /)
     t_edge(1:2, 6) = (/  6, 12 /)
+! in top and bottom plane
+! the following edges cause issues in the Euler visualization,
+! so we only include them for non-Euler visualizations
+    if (.not.present(euler)) then     
+      t_edge(1:2, 7) = (/  1,  4 /)
+      t_edge(1:2, 8) = (/  2,  5 /)
+      t_edge(1:2, 9) = (/  3,  6 /)
+      t_edge(1:2,10) = (/  7, 10 /)
+      t_edge(1:2,11) = (/  8, 11 /)
+      t_edge(1:2,12) = (/  9, 12 /)
+    end if
+
 
 end if
 
 end subroutine getpos_FZ32_
 
 !--------------------------------------------------------------------------
-recursive subroutine getpos_FZ222_(self, dims, cpos, s_edge, t_edge, ns, d, nt, MFZ)
+recursive subroutine getpos_FZ222_(self, dims, cpos, s_edge, t_edge, ns, d, nt, rotate, MFZ, euler)
 !DEC$ ATTRIBUTES DLLEXPORT :: getpos_FZ222_
  !! author: MDG
  !! version: 1.0
@@ -1492,12 +1659,20 @@ integer(kind=irg),INTENT(OUT)         :: ns
 real(kind=dbl),INTENT(OUT)            :: d
  !! aux parameter
 integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(IN)          :: rotate
  !! aux parameter
 logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
+logical,OPTIONAL,INTENT(IN)           :: euler
 
 real(kind=dbl)    :: a = 1.0D0, b = 1.0D0, c = 1D0, dt = 2.0D0, &
-                     ds = 2.0D0, dd, z = 0.D0, oo = 1.D0
+                     ds = 2.0D0, dd, z = 0.D0, oo = 1.D0, crot, srot, xtmp, ytmp
+integer(kind=irg) :: i 
+
+if (rotate.ne.0) then 
+  crot = cos(cPi/(2.D0*dble(rotate)))
+  srot = sin(cPi/(2.D0*dble(rotate)))
+end if
 
 d = 1.7320508075688772D0
 if (present(MFZ)) then
@@ -1513,6 +1688,14 @@ if (present(MFZ)) then
     cpos(1:3, 8) = (/  z,  a,  c /)
 
     cpos = cpos/d
+
+    if (rotate.ne.0) then 
+      do i=1,8
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
 
     ns = 200
     nt = nint( ns * dt/ds )
@@ -1543,6 +1726,14 @@ else ! define the coordinates of the FZ in Rodrigues Space
 
     cpos = cpos / d
 
+    if (rotate.ne.0) then 
+      do i=1,8
+        xtmp = cpos(1,i)*crot-cpos(2,i)*srot 
+        ytmp = cpos(1,i)*srot+cpos(2,i)*crot
+        cpos(1:2,i) = (/xtmp,ytmp/)
+      end do 
+    end if 
+
     ns = 200
     nt = nint( ns * dt/ds )
 
@@ -1556,13 +1747,48 @@ else ! define the coordinates of the FZ in Rodrigues Space
     s_edge(1:2, 7) = (/  7,  8 /)
     s_edge(1:2, 8) = (/  8,  5 /)
 
+! vertical
     t_edge(1:2, 1) = (/  1,  5 /)
     t_edge(1:2, 2) = (/  2,  6 /)
     t_edge(1:2, 3) = (/  3,  7 /)
     t_edge(1:2, 4) = (/  4,  8 /)
+! diagonals in faces
+! the following edges cause issues in the Euler visualization,
+! so we only include them for non-Euler visualizations
+    if (.not.present(euler)) then     
+      t_edge(1:2, 5) = (/  1,  6 /)
+      t_edge(1:2, 6) = (/  2,  5 /)
+      t_edge(1:2, 7) = (/  1,  3 /)
+      t_edge(1:2, 8) = (/  2,  4 /)
+      t_edge(1:2, 9) = (/  1,  8 /)
+      t_edge(1:2,10) = (/  4,  5 /)
+      t_edge(1:2,11) = (/  7,  4 /)
+      t_edge(1:2,12) = (/  3,  8 /)
+      t_edge(1:2,13) = (/  7,  5 /)
+      t_edge(1:2,14) = (/  8,  6 /)
+      t_edge(1:2,15) = (/  2,  7 /)
+      t_edge(1:2,16) = (/  3,  6 /)
+    end if 
+
 end if
 
 end subroutine getpos_FZ222_
+
+!--------------------------------------------------------------------------
+recursive subroutine set_roto_(self, value)
+!DEC$ ATTRIBUTES DLLEXPORT :: drawFZ_
+ !! author: MDG
+ !! version: 1.0
+ !! date: 10/21/25
+
+IMPLICIT NONE
+
+class(PoVRay_T),INTENT(INOUT)         :: self
+integer(kind=irg),INTENT(IN)          :: value 
+
+self%roto = value 
+
+end subroutine set_roto_
 
 !--------------------------------------------------------------------------
 recursive subroutine drawFZ_(self, SO, rmode, cylr, outline, qAR, FZoffset)
@@ -1598,7 +1824,7 @@ type(QuaternionArray_T),INTENT(INOUT),OPTIONAL  :: qAR
 real(kind=sgl),INTENT(IN),OPTIONAL    :: FZoffset
 
 type(e_T)                             :: eul, eu, euld, eulast
-type(r_T)                             :: ro1, ro2, ro, rolast, ron
+type(r_T)                             :: ro1, ro2, rolast, ron, ro
 type(q_T)                             :: qu, qutmp
 type(s_T)                             :: sp, splast
 type(h_T)                             :: h, ho, holast, ho1, ho2
@@ -1610,16 +1836,18 @@ type(IO_T)                            :: Message
 type(Quaternion_T)                    :: qu1, qu2, qtmp
 
 real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, d, dd, eps = 1.0D-6, &
-                                         tpi, hpi, aux(4), aux3(3), aux4a(4), aux4b(4), qul(4), sp1(3), sp2(3)
+                                         tpi, hpi, aux(4), aux3(3), aux4a(4), aux4b(4), qul(4), sp1(3), sp2(3), roc(3)
 
 integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:), slist(:)
-real(kind=dbl),allocatable            :: cpos(:,:), quar(:,:), quarlast(:,:)
+real(kind=dbl),allocatable            :: cpos(:,:), dpos(:), quar(:,:), quarlast(:,:)
 
 logical                               :: doMFZ, twostep
-integer(kind=irg)                     :: i,j,jj,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder, io_int(2), num=0
+integer(kind=irg)                     :: i,j,jj,k, icnt, imax, nt, ns, dims(3), FZtype, FZorder, io_int(2), num=0, irange, rotate
 character(3)                          :: clrs(24)
 
 call setRotationPrecision('Double')
+
+rotate = self%roto
 
 if (present(qAR)) then  
   num = qAR%getQnumber()
@@ -1637,8 +1865,19 @@ if (num.ne.0) doMFZ = .FALSE.
 
 call SO%getFZtypeandorder(FZtype, FZorder)
 
-io_int(1:2) = (/ FZtype, FZorder /)
-call Message%WriteValue(' FZ parameters (type/order) : ', io_int, 2)
+if (self%verbose.eqv..TRUE.) then 
+  io_int(1:2) = (/ FZtype, FZorder /)
+  call Message%WriteValue(' FZ parameters (type/order) : ', io_int, 2)
+  io_int(1) = rotate 
+  call Message%WriteValue(' rotate : ', io_int, 1)
+end if 
+
+if (FZtype.eq.1) then   ! these are the cyclic groups 2, 3, 4, and 6
+  call self%initFZCyclic_(FZorder, cylr, rmode)
+  RETURN  ! we are done so return to the calling routine.
+end if
+
+FZorder = abs(FZorder)
 
 if (FZtype.eq.2) then
     if (FZorder.eq.6) then
@@ -1646,12 +1885,12 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
+        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, doMFZ)
       else
         twostep = .TRUE.
-        dims = (/ 24, 24, 12 /)
+        dims = (/ 24, 24, 24 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
+        call self%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
       end if
     end if
     if (FZorder.eq.4) then
@@ -1659,12 +1898,12 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
+        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, doMFZ)
       else
         twostep = .TRUE.
-        dims = (/ 16, 16, 8 /)
+        dims = (/ 16, 16, 16 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
+        call self%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
       end if
     end if
     if (FZorder.eq.3) then
@@ -1672,12 +1911,12 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 6, 9, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
+        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, doMFZ)
       else
         twostep = .TRUE.
-        dims = (/ 12, 12, 6 /)
+        dims = (/ 12, 12, 12 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
+        call self%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
       end if
     end if
     if (FZorder.eq.2) then
@@ -1685,12 +1924,12 @@ if (FZtype.eq.2) then
         twostep = .FALSE.
         dims = (/ 8, 12, 1 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, doMFZ)
+        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate, doMFZ)
       else
         twostep = .TRUE.
-        dims = (/ 8, 8, 4 /)
+        dims = (/ 8, 8, 16 /)
         allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+        call self%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
       end if
     end if
 end if
@@ -1761,7 +2000,7 @@ if (outline.eq.1) then
   end if
 
 ! and next, draw the outline of the FZ or MFZ
-  if ((rmode.eq.1).or.(rmode.eq.2)) then
+  if (((rmode.eq.1).or.(rmode.eq.2)).and.(FZtype.ne.1)) then
   ! create the square edges first
    dx = 1.D0/dble(ns)
    do i=1,dims(2)
@@ -1860,8 +2099,7 @@ if (outline.eq.1) then
     end if
   end if
 
-  if ((rmode.eq.3).or.(rmode.eq.4)) then
-
+  if (((rmode.eq.3).or.(rmode.eq.4)).and.(FZtype.ne.1)) then
 
    dx = 1.D0/dble(ns)
    do i=1,dims(2)
@@ -2024,7 +2262,7 @@ if (outline.eq.1) then
   end if
 
   ! and next, draw the outline of the FZ or MFZ
-  if (rmode.eq.5) then
+  if ((rmode.eq.5).and.(FZtype.ne.1)) then
     sh = (/ cPi, cPi/2.D0, cPi /)
   ! create the square edges first
    dx = 1.D0/dble(ns)
@@ -2181,7 +2419,7 @@ if (outline.eq.1) then
     end if
   end if
 
-  if (FZtype.eq.3) then
+  if ((FZtype.eq.3).and.(rmode.eq.5)) then
       xx = cPi/dble(2)
   ! draw four diagonal lines
       eu = e_T( edinp = (/ xx, 0.D0, 0.D0 /) - sh )
@@ -2360,11 +2598,12 @@ recursive subroutine initFZCyclic_(self, FZorder, cylr, rmode)
 !! generate the PoVRay output for the cyclic rotational groups
 
 use mod_rotations
+use mod_io
 
 IMPLICIT NONE
 
 class(PoVRay_T), INTENT(INOUT)        :: self
-integer(kind=irg),INTENT(IN)          :: FZorder
+integer(kind=irg),INTENT(INOUT)       :: FZorder
  !! 2, 3, 4, or 6
 real(kind=dbl),INTENT(IN)             :: cylr
  !! cylinder radius
@@ -2380,6 +2619,7 @@ type(o_T)                             :: om
 type(c_T)                             :: cu, culast
 type(a_T)                             :: axang
 type(orientation_T)                   :: ot
+type(IO_T)                            :: Message
 
 real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, &
                                          tpi, hpi, aux(4), aux4a(4), aux4b(4)
@@ -2389,6 +2629,11 @@ integer(kind=irg),allocatable         :: h_edge(:,:)
 real(kind=dbl),allocatable            :: cpos(:,:), dpos(:)
 ! parameters that depend on the cyclic group
 real(kind=dbl)                        :: a, b, c, dt, ds, d, dd, zz, oo, c2, tmp
+
+if (FZorder.lt.0) then 
+  self%roto = 2 
+  FZorder = abs(FZorder)
+end if 
 
 select case(FZorder)
   case(2) ! define the coordinates of the monoclinic C2 (2) FZ in Rodrigues Space
@@ -2436,6 +2681,16 @@ select case(FZorder)
       dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
     end do
 
+! this FZ must be rotated so that the two-fold axis falls along the monoclinic b-axis,
+! unless this is point group 7 (mm2) which should not be rotated.
+    if (self%roto.eq.0) then 
+      do i=1,200
+         tmp = cpos(2,i)
+         cpos(2,i) = cpos(3,i)
+         cpos(3,i) = tmp
+      end do
+    end if 
+
     ns = 2000
     dx = dt/float(ns-1)
 
@@ -2455,7 +2710,7 @@ select case(FZorder)
     d = 1.7320508075688772D0
     zz = 0.D0
     oo = 1.D0
-    c2 = 1.7320508075688767D0
+    c2 = c ! 1.7320508075688767D0
     icpos = 208
     idpos = 208
     ihedge = 104
@@ -2496,7 +2751,7 @@ select case(FZorder)
     end do
 
     ! and normalize
-    do i=1,208
+    do i=1,104
       dpos(i) = dsqrt(sum(cpos(1:3,i)*cpos(1:3,i)))
     end do
 
@@ -2520,7 +2775,7 @@ select case(FZorder)
     ! NEEDS TO BE FIXED !!!
     a = 57.289922125538D0
     b = 1.0D0
-    c = 1.0D0
+    c = 0.414213562D0
     dt = 114.57984425107713D0
     ds = 2.0D0
     d = 1.7320508075688772D0
@@ -2574,7 +2829,7 @@ select case(FZorder)
   case(6) ! define the coordinates of the hexagonal C6 (6) FZ in Rodrigues Space
     a = 57.289922125538D0
     b = 1.0D0
-    c = 1.0D0
+    c = 0.2679491924D0
     dt = 114.57984425107713D0
     ds = 2.0D0
     d = 1.7320508075688772D0
@@ -2652,10 +2907,8 @@ if (rmode.eq.5) then
   call self%addEulerBox()
 end if
 
-
-
 if ((rmode.eq.1).or.(rmode.eq.2)) then
-  ! create the square edges first
+
  dx = 1.D0/dble(ns)
  do i=1, ihedge
   ro1 = r_T( rdinp = (/ cpos(1:3,h_edge(1,i))/dpos(i), dpos(i) /) )
@@ -2663,16 +2916,16 @@ if ((rmode.eq.1).or.(rmode.eq.2)) then
   culast = ro1%rc()
   holast = ro1%rh()
   do j=1,ns+1
-    aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+    aux = dpos(i)*ro1%r_copyd() + dpos(i)*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
     cu = ro%rc()
     ho = ro%rh()
 ! and create a cylinder with these points
     if (rmode.eq.1) then
-      call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+      call self%addCylinder(culast%c_copyd(),cu%c_copyd(),cylr,(/ 0.5, 0.0, 0.0 /))
     else
-      call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+      call self%addCylinder(holast%h_copyd(),ho%h_copyd(),cylr,(/ 0.5, 0.0, 0.0 /))
     end if
     culast = cu
     holast = ho
@@ -2690,22 +2943,23 @@ if ((rmode.eq.3).or.(rmode.eq.4)) then
   qu = ro1%rq()
   splast = qu%qs()
   do j=1,ns+1
-    aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+    ! aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
+    aux = dpos(i)*ro1%r_copyd() + dpos(i)*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
     qu = ro%rq()
     sp = qu%qs()
 ! and create a cylinder with these points
     if (rmode.eq.3) then
-      call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.0, 0.0, 1.0 /))
+      call self%addCylinder(splast%s_copyd(),sp%s_copyd(),cylr,(/ 0.5, 0.0, 0.0 /))
     else
       aux4a = rolast%r_copyd()
       aux4b = ro%r_copyd()
-      call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.0, 0.0, 1.0 /))
+       call self%addCylinder(aux4a(1:3)*aux4a(4),aux4b(1:3)*aux4b(4),cylr,(/ 0.5, 0.0, 0.0 /))
     end if
     rolast = ro
     splast = sp
-  end do
+   end do
  end do
 
 end if

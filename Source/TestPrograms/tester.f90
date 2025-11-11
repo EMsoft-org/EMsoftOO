@@ -8,9 +8,10 @@ use mod_EMsoft
 ! use mod_QCsymmetry
 ! use mod_QCcrystallography
 use mod_io
+use mod_dirstats
 ! use mod_dualquaternions
-! use mod_quaternions
-! use mod_rotations
+use mod_quaternions
+use mod_rotations
 ! use mod_octonions
 ! use mod_GBoctonions
 ! use mod_HDFsupport
@@ -30,9 +31,20 @@ IMPLICIT NONE
 ! type(PGA3D_T)             :: mv_plane, mv_line, mv, pt, mv_pp
 ! real(kind=dbl)            :: L, a, b, c, d, alpha, x,y,z, ord, sa, ca
 
-type(axonometry_T)          :: AXO 
-type(Postscript_T)          :: PS 
+! type(axonometry_T)          :: AXO 
+! type(Postscript_T)          :: PS 
 type(EMsoft_T)              :: EMsoft
+
+type(c_T)                   :: cu 
+type(q_T)                   :: qa, qb 
+
+integer(kind=irg)           :: offsets(3,12), pnum, N 
+integer(kind=irg)           :: nx, ny, i, j , k
+real(kind=dbl)              :: delta 
+
+
+
+! type(DirStat_T)             :: DSvmf, DSwat
 
 ! type(HDF_T)             :: HDF
 ! type(Vendor_T)          :: VT
@@ -42,17 +54,12 @@ type(EMsoft_T)              :: EMsoft
 ! character(fnlen)        :: fname, groupname, inputtype, progname, progdesc, HDFstrings(10) 
 ! integer(kind=irg)       :: hdferr, itype, istat, ipf_wd, ipf_ht, sz(3), L, recordsize, &
 !                            patsz, i, j, numsx, numsy, correctsize, s1, s2,HSGn, info, status
-integer(kind=irg)         :: nx, ny, i, j 
 ! real(kind=sgl),allocatable   :: exppatarray(:), tot(:), totold(:)
 ! real(kind=dbl),allocatable   :: SG(:,:,:)
 ! integer(HSIZE_T)        :: dims3(3), offset3(3)
 ! character(16)           :: HS
 ! real(kind=dbl),allocatable          :: SGdirec(:,:,:)
 ! real(kind=dbl)          :: z(11,11), fit(5), mp1, mp2, sig1, sig2 
-
-character(fnlen)            :: axname, progname, progdesc
-real(kind=sgl)              :: g
-real(kind=sgl),allocatable  :: zz(:,:), x(:), y(:)
 
 ! integer(C_INT32_T)  :: res
 
@@ -96,35 +103,84 @@ real(kind=sgl),allocatable  :: zz(:,:), x(:), y(:)
 ! type(Octonion_T) :: resszero
 ! real(kind=sgl)   :: ressabs
 
+! computation of average disorientations for fcc sampling of cubochoric space
+! offset(1:3,1) = (/ 1, 1, 0 /)
+! offset(1:3,2) = (/ 1,-1, 0 /)
+! offset(1:3,3) = (/-1, 1, 0 /)
+! offset(1:3,4) = (/-1,-1, 0 /)
+! offset(1:3,5) = (/ 1, 0, 1 /)
+! offset(1:3,6) = (/ 1, 0,-1 /)
+! offset(1:3,7) = (/-1, 0, 1 /)
+! offset(1:3,8) = (/-1, 0,-1 /)
+! offset(1:3,9) = (/ 0, 1, 1 /)
+! offset(1:3,10) = (/ 0, 1,-1 /)
+! offset(1:3,11) = (/ 0,-1, 1 /)
+! offset(1:3,12) = (/ 0,-1,-1 /)
 
-! simple test of the axonometry module
-progname = ' x '
-progdesc = ' y '
-axname = 'axotest.eps'
-EMsoft = EMsoft_T( progname, progdesc )
-PS = Postscript_T( progdesc, EMsoft, imanum = 1, dontask = .TRUE., psname = axname )
-AXO = axonometry_T( progdesc, axw = 6.5, xll = 3.5, yll = 3.0 )
+! ! number of points and cubochoric grid spacing
+! N = 20
+! delta = cPi**(2.D0/3.D0) / dble(2*N)
+! pnum = 4*(2*N)**3
 
-nx = 100
-ny = 150
-allocate( zz(nx,ny), x(nx), y(ny) )
 
-x = (/ (real(i), i=1,nx) /)/ real(nx) - 0.5
-y = (/ (real(i), i=1,ny) /)/ real(ny) - 0.5
 
-do i=1,nx
-    do j=1,ny
-        zz(i,j) = 15.0 * exp(- (x(i)**2+y(j)**2) * 100.0 )
-    end do 
-end do
 
-zz = cshift(zz, 15, 1)
-zz = zz - cshift(zz, -30, 1) 
 
-write (*,*) ' range = ', minval(zz), maxval(zz)
 
-g = 1.0
-call AXO%axonometry(PS,EMsoft,zz,nx,ny,g,axname)
+
+
+
+
+
+
+
+
+
+
+
+
+
+! DSvmf = DirStat_T(DStype='VMF')
+! call DSvmf%UnitTests( 1, 100, 'VMF-logCp.txt')
+
+! DSwat = DirStat_T(DStype='WAT')
+! call DSwat%UnitTests( 1, 100, 'WAT-logCp.txt')
+
+
+
+
+
+
+
+
+! ! simple test of the axonometry module
+! progname = ' x '
+! progdesc = ' y '
+! axname = 'axotest.eps'
+! EMsoft = EMsoft_T( progname, progdesc )
+! PS = Postscript_T( progdesc, EMsoft, imanum = 1, dontask = .TRUE., psname = axname )
+! AXO = axonometry_T( progdesc, axw = 6.5, xll = 3.5, yll = 3.0 )
+
+! nx = 100
+! ny = 150
+! allocate( zz(nx,ny), x(nx), y(ny) )
+
+! x = (/ (real(i), i=1,nx) /)/ real(nx) - 0.5
+! y = (/ (real(i), i=1,ny) /)/ real(ny) - 0.5
+
+! do i=1,nx
+!     do j=1,ny
+!         zz(i,j) = 15.0 * exp(- (x(i)**2+y(j)**2) * 100.0 )
+!     end do 
+! end do
+
+! zz = cshift(zz, 15, 1)
+! zz = zz - cshift(zz, -30, 1) 
+
+! write (*,*) ' range = ', minval(zz), maxval(zz)
+
+! g = 1.0
+! call AXO%axonometry(PS,EMsoft,zz,nx,ny,g,axname)
 
 
 
