@@ -1520,8 +1520,10 @@ logical,OPTIONAL,INTENT(IN)           :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
 logical,OPTIONAL,INTENT(IN)           :: euler
 
-real(kind=dbl)    :: a = 0.8660254038D0, b = 0.5D0, c = 0.5773502692D0, dt = 0.34314575050D0, &
-                     ds = 0.6340506711D0, dd, z = 0.D0, oo = 1.D0, o = 0.86602540378443D0, p = 0.5D0, crot, srot, xtmp, ytmp
+! [11/11/25, MDG] correction of a and b values to get proper scaling behavior with d ... 
+! old values: a = 0.8660254038D0, b = 0.5D0, oo=1.D0
+real(kind=dbl)    :: a = 1.0D0, b = 0.5773502692D0, c = 0.5773502692D0, dt = 0.34314575050D0, &
+                     ds = 0.6340506711D0, dd, z = 0.D0, oo = 1.1547005383792517D0, o = 0.86602540378443D0, p = 0.5D0, crot, srot, xtmp, ytmp
 integer(kind=irg) :: i 
 
 if (rotate.ne.0) then 
@@ -1529,8 +1531,7 @@ if (rotate.ne.0) then
   srot = sin(cPi/(2.D0*dble(rotate)))
 end if
 
-
-d = 1.1547005384D0
+d = 1.291052344420773D0
 if (present(MFZ)) then
   if (MFZ) then ! define the coordinates of the tetragonal Mackenzie FZ in Rodrigues Space
     d = 1.0
@@ -1566,21 +1567,21 @@ if (present(MFZ)) then
     s_edge(1:2, 9) = (/  5, 6 /)
   end if
 else ! define the coordinates of the cubic FZ in Rodrigues Space
-    cpos(1:3, 1) = (/  a*d,  b*d,  c /)
-    cpos(1:3, 2) = (/  z*d, oo*d,  c /)
-    cpos(1:3, 3) = (/ -a*d,  b*d,  c /)
+    cpos(1:3, 1) = (/  a,  b,  c /)
+    cpos(1:3, 2) = (/  z, oo,  c /)
+    cpos(1:3, 3) = (/ -a,  b,  c /)
 
-    cpos(1:3, 4) = (/ -a*d, -b*d,  c /)
-    cpos(1:3, 5) = (/  z*d,-oo*d,  c /)
-    cpos(1:3, 6) = (/  a*d, -b*d,  c /)
+    cpos(1:3, 4) = (/ -a, -b,  c /)
+    cpos(1:3, 5) = (/  z,-oo,  c /)
+    cpos(1:3, 6) = (/  a, -b,  c /)
 
-    cpos(1:3, 7) = (/  a*d,  b*d, -c /)
-    cpos(1:3, 8) = (/  z*d, oo*d, -c /)
-    cpos(1:3, 9) = (/ -a*d,  b*d, -c /)
+    cpos(1:3, 7) = (/  a,  b, -c /)
+    cpos(1:3, 8) = (/  z, oo, -c /)
+    cpos(1:3, 9) = (/ -a,  b, -c /)
 
-    cpos(1:3,10) = (/ -a*d, -b*d, -c /)
-    cpos(1:3,11) = (/  z*d,-oo*d, -c /)
-    cpos(1:3,12) = (/  a*d, -b*d, -c /)
+    cpos(1:3,10) = (/ -a, -b, -c /)
+    cpos(1:3,11) = (/  z,-oo, -c /)
+    cpos(1:3,12) = (/  a, -b, -c /)
 
     cpos = cpos / d
 
@@ -1963,6 +1964,12 @@ if (FZtype.eq.4) then
       call self%getpos_FZ432(dims, cpos, s_edge, t_edge, ns, d, nt)
     end if
 end if
+
+write (*,*) 'FZ vertex coordinates:'
+do i=1,dims(1)
+  write (*,*) i, cpos(1:3,i)*d
+end do 
+write (*,*) '======================'
 
 ! this is to slightly separate the zones from each other 
 ! when all equivalent FZs are drawn
