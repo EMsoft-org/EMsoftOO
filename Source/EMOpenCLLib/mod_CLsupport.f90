@@ -504,7 +504,9 @@ deallocate(platform_extensions)
 if (skipCPU.eqv..FALSE.) then 
     ! device_type = CL_DEVICE_TYPE_CPU
     err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_CPU, 0, C_NULL_PTR, num_devices)
-    call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs:numdevices',err,.TRUE.)
+    if (err /= CL_DEVICE_NOT_FOUND) then
+      call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs:numdevices',err,.TRUE.)
+    end if
 
     if (err /= CL_SUCCESS .or. num_devices < 1) then
       self%noCPUdevices(p_id) = .TRUE.
@@ -520,31 +522,31 @@ if (skipCPU.eqv..FALSE.) then
     ! Loop over devices and print information.
       do i = 1, num_devices
     ! Maximum compute units.
-        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, zero_size, C_LOC(device_cu), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, zero_size, C_NULL_PTR, temp_size)
         err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, temp_size, C_LOC(device_cu), temp_size)
         call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_cu',err)
         self%d_CPUcu(p_id, i) = device_cu
 
-        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, zero_size, C_LOC(device_gms), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, zero_size, C_NULL_PTR, temp_size)
         err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
         ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_gms',err)
         device_gms = device_gms/1024/1024/1024
         self%d_CPUgms(p_id, i) = device_gms
 
-        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, zero_size, C_LOC(device_lms), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, zero_size, C_NULL_PTR, temp_size)
         err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
         ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_lms',err)
         device_lms = device_lms/1024
         self%d_CPUlms(p_id, i) = device_lms
 
     ! CL_DEVICE_MAX_WORK_GROUP_SIZE
-        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, zero_size, C_LOC(device_mwgs), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, zero_size, C_NULL_PTR, temp_size)
         err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
         call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwgs',err)
         self%d_CPUmwgs(p_id, i) = device_mwgs
 
     ! CL_DEVICE_MAX_WORK_ITEM_SIZES
-        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, zero_size, C_LOC(device_mwis), temp_size)
+        err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, zero_size, C_NULL_PTR, temp_size)
         err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
         ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwis',err)
         self%d_CPUmwis(p_id, i, 1:3) = device_mwis
@@ -565,7 +567,9 @@ end if
 ! Get GPU device count.
 ! device_type = CL_DEVICE_TYPE_GPU
 err = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 0, C_NULL_PTR, num_devices)
-call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs:num_devices',err,.TRUE.)
+if (err /= CL_DEVICE_NOT_FOUND) then
+  call error_check_(self, 'CLquery_platform_info:clGetDeviceIDs:num_devices',err,.TRUE.)
+end if
 
 if (err /= CL_SUCCESS .or. num_devices < 1) then
   self%noGPUdevices(p_id) = .TRUE.
@@ -584,33 +588,33 @@ else
 ! Loop over devices and print information.
   do i = 1, num_devices
 ! Maximum compute units.
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, zero_size, C_LOC(device_cu), temp_size)
+    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, zero_size, C_NULL_PTR, temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_COMPUTE_UNITS, temp_size, C_LOC(device_cu), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_cu',err)
     self%d_GPUcu(p_id, i) = device_cu
 
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, zero_size, C_LOC(device_gms), temp_size)
+    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, zero_size, C_NULL_PTR, temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_GLOBAL_MEM_SIZE, temp_size, C_LOC(device_gms), temp_size)
     ! err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, temp_size, C_LOC(device_gms), temp_size)
     ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_gms',err)
     device_gms = device_gms/1024/1024/1024
     self%d_GPUgms(p_id, i) = device_gms
 
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, zero_size, C_LOC(device_lms), temp_size)
+    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, zero_size, C_NULL_PTR, temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_LOCAL_MEM_SIZE, temp_size, C_LOC(device_lms), temp_size)
     ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_lms',err)
     device_lms = device_lms/1024
     self%d_GPUlms(p_id, i) = device_lms
 
 ! CL_DEVICE_MAX_WORK_GROUP_SIZE
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, zero_size, C_LOC(device_mwgs), temp_size)
+    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, zero_size, C_NULL_PTR, temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_GROUP_SIZE, temp_size, C_LOC(device_mwgs), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwgs',err)
     self%d_GPUmwgs(p_id, i) = device_mwgs
 
 
 ! CL_DEVICE_MAX_WORK_ITEM_SIZES
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, zero_size, C_LOC(device_mwis), temp_size)
+    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, zero_size, C_NULL_PTR, temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_WORK_ITEM_SIZES, temp_size, C_LOC(device_mwis), temp_size)
     ! call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_mwis',err)
     self%d_GPUmwis(p_id, i, 1:3) = device_mwis(1:3)
@@ -625,7 +629,7 @@ else
     deallocate(device_name)
 
 ! CL_DEVICE_MAX_MEM_ALLOC_SIZE
-    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, zero_size, C_LOC(device_maxalloc), temp_size)
+    err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, zero_size, C_NULL_PTR, temp_size)
     err = clGetDeviceInfo(device_ids(i), CL_DEVICE_MAX_MEM_ALLOC_SIZE, temp_size, C_LOC(device_maxalloc), temp_size)
     call error_check_(self, 'CLquery_platform_info:clGetDeviceInfo:device_maxalloc',err)
     device_maxalloc = device_maxalloc/1024/1024
