@@ -1,6 +1,6 @@
 !* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 !*                                                                     *
-!* Copyright (c) 2019-2025, De Graef Group, Carnegie Mellon University *
+!* Copyright (c) 2019-2026, De Graef Group, Carnegie Mellon University *
 !* All rights reserved.                                                *
 !*                                                                     *
 !* Author: William C. Lenthe                                           *

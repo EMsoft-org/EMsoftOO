@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -6322,6 +6322,14 @@ if (doTmatrix.eqv..TRUE.) then
 
 ! call the eigenvalue solver
   call dgeev(JOBVL,JOBVR,nn,Tmat,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
+
+write (*,*) 'Eigenvalue-eigenvector information : '
+write (*,*) 'Eigenvalues : ',Wr 
+write (*,*) '  Imag. part: ',Wi 
+do i=1,4
+  write (*,*) VR(i,1:4)
+end do
+
   pos = maxloc(Wr)
   res(1:4) = VR(1:4,pos(1))
   qstdev = Wr

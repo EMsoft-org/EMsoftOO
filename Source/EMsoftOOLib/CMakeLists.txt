@@ -186,6 +186,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_GBOanalysis.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampler.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_RFZwf.f90 
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_avdis.f90 
 
   ${EMsoftOOLib_Additional_SRCS}
 )
@@ -342,6 +343,7 @@ else()
         $<$<COMPILE_LANGUAGE:Fortran>:-fno-f2c>
         $<$<COMPILE_LANGUAGE:Fortran>:-std=gnu>
         $<$<COMPILE_LANGUAGE:Fortran>:-fbacktrace>
+        $<$<COMPILE_LANGUAGE:Fortran>:-ffree-line-length-none>
     )
     # Next, DEBUG compiler options.
     target_compile_options(EMsoftOOLib PUBLIC $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Debug>>:-g>

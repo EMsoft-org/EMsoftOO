@@ -1137,7 +1137,7 @@ type(q_T)                               :: q
 type(IO_T)                              :: Message 
 
 integer(kind=irg)                       :: i, j, k, nn, ixx, iyy, px, py, io_int(2), nthreads, TID, sw  
-real(kind=dbl)                          :: ss, kk, dx, dy, zx, ee, qq(4), XY(2), z1(cnt), z2(cnt)
+real(kind=dbl)                          :: ss, kk, dx, dy, zx, ee, qq(4), XY(2), z1(cnt), z2(cnt), io_dbl(2)
 real(kind=dbl),parameter                :: s2 = 1.D0/sqrt(2.D0), r(4) = (/ s2, 0.D0, s2, 0.D0 /)
 real(kind=dbl),allocatable              :: hlocal(:,:), h2local(:,:)
 
@@ -1173,8 +1173,9 @@ do i=1,cnt
 end do 
 
 ! rescale the arctangent coordinates to the output grid
-z1 = z1*dble(nn)/cPi
-z2 = z2*dble(nn)/cPi
+! incorporate the offset into the arry here...
+z1 = z1*dble(nn)/cPi + dble(nn+w)
+z2 = z2*dble(nn)/cPi + dble(nn+w)
 
 call Message%printMessage('  - adding orientations to zone plate ')
 ! and fill the h arrays to obtain the zone plate; we'll use parallel threads to do this...
@@ -1198,8 +1199,8 @@ do i=1,cnt
   dx = z1(i) - dble(ixx)
   dy = z2(i) - dble(iyy)
   zx = 0.5D0 * (1.D0 + cos( kk * acos( sum( qu(1:4,i) * r(1:4) ))**2 ))
-  px = offset+ixx-w-1
-  py = offset+iyy-w-1 
+  px = ixx-w-1
+  py = iyy-w-1 
   if ((px.gt.0).and.(px.lt.num+2*w).and.(py.gt.0).and.(py.lt.num+2*w)) then
     do j=1,2*w+1
       do k=1,2*w+1
@@ -1222,6 +1223,17 @@ h2 = h2 + h2local
 !$OMP END CRITICAL
 
 !$OMP END PARALLEL
+
+write (*,*) ' array dims ', num, w, shape(h), w+1, w+num
+
+io_dbl(1) = minval(h(w+1:w+num,w+1:w+num),mask=(h(w+1:w+num,w+1:w+num) > 0.D0))
+io_dbl(2) = maxval(h(w+1:w+num,w+1:w+num))
+call Message%WriteValue('  - range of h ', io_dbl, 2)
+
+io_dbl(1) = minval(h2(w+1:w+num,w+1:w+num),mask=(h2(w+1:w+num,w+1:w+num) > 0.D0))
+io_dbl(2) = maxval(h2(w+1:w+num,w+1:w+num))
+call Message%WriteValue('  - range of h2 ', io_dbl, 2)
+
 
 end subroutine makeSquareTorus_
 
@@ -1431,7 +1443,7 @@ character(fnlen)                :: vizname, fname, dataset, groupname
 nn = self%nml%n
 num = 2*nn+1
 w = 5 
-offset = w+(num-1)/2
+offset = w+nn
 ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
 kk = 40.D0 * dble(self%nml%n) / 500.D0
 

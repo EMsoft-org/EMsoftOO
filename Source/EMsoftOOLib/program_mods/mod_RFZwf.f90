@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -1277,9 +1277,11 @@ if (FZtype.eq.4) then
       call PoV%getpos_FZ432(dims, cpos, s_edge, t_edge, ns, d, nt)
 end if
 
-! allocate( ropos(3, (ns+2)*dims(2) + (nt+2)*dims(3) ) )
-! allocate( ropos(3, (ns+1)*dims(2) + (nt+1)*dims(3) ) )
-allocate( ropos(3, ns*dims(2) + nt*dims(3) ) )
+if (FZtype.eq.3) then
+  allocate( ropos(3, (ns+2)*dims(2) + (nt+1)*dims(3) ) )
+else
+  allocate( ropos(3, (ns+2)*dims(2) + (nt+2)*dims(3) ) )
+end if 
 ropos = 0.D0
 
 ! next we determine the actual Rodrigues coordinates that will go into the ropos array 
@@ -1291,7 +1293,7 @@ icnt = 1
   rolast = ro1
   ropos(1:3,icnt) = (/ 0.D0, 0.D0, 0.D0 /) 
   icnt = icnt+1
-  do j=1,ns-1!+1
+  do j=1,ns+1
     aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
     xx = dsqrt( sum (aux(1:3)**2) )
     ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )
@@ -1310,7 +1312,7 @@ icnt = 1
     rolast = ro1
     ropos(1:3,icnt) = (/ 0.D0, 0.D0, 0.D0 /) 
     icnt = icnt+1
-    do j=1,nt-1!+1
+    do j=1,nt+1
       aux = d*ro1%r_copyd() + d*(ro2%r_copyd() - ro1%r_copyd()) * j * dx
       xx = dsqrt( sum (aux(1:3)**2) )
       ro = r_T( rdinp = (/ aux(1:3)/xx, xx /) )

@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2016-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2016-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -1965,11 +1965,11 @@ if (FZtype.eq.4) then
     end if
 end if
 
-write (*,*) 'FZ vertex coordinates:'
-do i=1,dims(1)
-  write (*,*) i, cpos(1:3,i)*d
-end do 
-write (*,*) '======================'
+! write (*,*) 'FZ vertex coordinates:'
+! do i=1,dims(1)
+!   write (*,*) i, cpos(1:3,i)*d
+! end do 
+! write (*,*) '======================'
 
 ! this is to slightly separate the zones from each other 
 ! when all equivalent FZs are drawn

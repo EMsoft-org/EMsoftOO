@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -100,7 +100,7 @@ character(55),parameter :: PSpreamble(23) = (/ &
 
 
 ! font-related stuff
-character(25),public,parameter :: PSlbl = "Written by MDG, 2001-2025"
+character(25),public,parameter :: PSlbl = "Written by MDG, 2001-2026"
 character(20),public,parameter :: PSfonts(5) = (/"Symbol              ", &
                                           "Times-Bold          ", &
                                           "Times-BoldItalic    ", &

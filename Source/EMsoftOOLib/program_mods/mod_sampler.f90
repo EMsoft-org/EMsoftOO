@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -769,7 +769,7 @@ locationline = trim(locationline)//px//p1//"-"//py//p2//","//px//p2//"+"//py//p1
 
 povfile = trim(povname)//'-st.pov'
 PoV = PoVRay_T( EMsoft, povfile, locationline=locationline, viewangle = self%nml%viewangle )
-call PoV%toggleVerbose()
+! call PoV%toggleVerbose()
 if (FZorder.lt.0) call PoV%set_roto(abs(FZorder))
 
 ! reduce to RFZ

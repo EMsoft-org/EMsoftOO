@@ -62,7 +62,7 @@ end type EBSDdefectNameListType
 ! class definition
 type, public :: EBSDdefect_T
 private 
-  character(fnlen)       :: nmldeffile = 'EMEBSDdefect.nml'
+  character(fnlen)              :: nmldeffile = 'EMEBSDdefect.nml'
   type(EBSDdefectNameListType)  :: nml 
 
 contains
@@ -1065,7 +1065,7 @@ out = trim(self%nml%defectfilename)
 end function getdefectfilename_
 
 !--------------------------------------------------------------------------
-subroutine EBSDdefect_(self, EMsoft, progname, HDFnames)
+subroutine EBSDdefect_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: EBSDdefect_
 !! author: MDG 
 !! version: 1.0 
@@ -1103,8 +1103,8 @@ IMPLICIT NONE
 class(EBSDdefect_T), INTENT(INOUT)      :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
 
+type(HDFnames_T)                        :: HDFnames
 type(MCfile_T)                          :: MCFT
 type(MPfile_T)                          :: MPFT
 type(HDF_T)                             :: HDF
@@ -1207,7 +1207,6 @@ call HDFnames%set_NMLlist(SC_EBSDdefectNameList)
 call HDFnames%set_NMLfilename(SC_EBSDdefectNML)
 call HDFnames%set_Variable(SC_MCOpenCL)
 
-
 ! 3. create the output HDF file 
 ! Create a new file using the default properties.
 timer = Timing_T()
@@ -1278,9 +1277,9 @@ stringarray(1)= trim(MPFT%MPDT%xtalname)
 hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray xtalname', hdferr)
 
-dataset = 'TransformationQuaternion'
-hdferr = HDF%writeDatasetDoubleArray(dataset, quat%get_quatd(), 4 )
-if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray quat', hdferr)
+! dataset = 'TransformationQuaternion'
+! hdferr = HDF%writeDatasetDoubleArray(dataset, quat%get_quatd(), 4 )
+! if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray quat', hdferr)
 
 ! generate a 4D hyperslab array to store the individual EBSD patterns
 dataset = SC_EBSDpatterns
@@ -1303,6 +1302,7 @@ dataset = SC_EBSDpatterns
 call cell%getCrystalData(MPFT%MPDT%xtalname, SG, EMsoft, useHDF=HDF)
 
 ! copy some of the namelist parameters into the defects structure
+Defects = Defect_T()
 Defects%DF_npix = enl%DF_npix
 Defects%DF_npiy = enl%DF_npiy
 Defects%DF_L = enl%DF_L

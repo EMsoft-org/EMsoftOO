@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -45,6 +45,7 @@ type, public :: DisOrMapNameListType
   character(fnlen)    :: dotproductfile
   character(fnlen)    :: DisOrMapfile
   character(fnlen)    :: DisOrType
+  character(fnlen)    :: angletype
 end type DisOrMapNameListType
 
 ! class definition
@@ -63,11 +64,13 @@ private
   procedure, pass(self) :: get_dotproductfile_
   procedure, pass(self) :: get_DisOrMapfile_
   procedure, pass(self) :: get_DisOrType_
+  procedure, pass(self) :: get_angletype_
   procedure, pass(self) :: set_px_
   procedure, pass(self) :: set_py_
   procedure, pass(self) :: set_dotproductfile_
   procedure, pass(self) :: set_DisOrMapfile_
   procedure, pass(self) :: set_DisOrType_
+  procedure, pass(self) :: set_angletype_
 
   generic, public :: getNameList => getNameList_
   generic, public :: readNameList => readNameList_
@@ -77,11 +80,13 @@ private
   generic, public :: get_dotproductfile => get_dotproductfile_
   generic, public :: get_DisOrMapfile => get_DisOrMapfile_
   generic, public :: get_DisOrType => get_DisOrType_
+  generic, public :: get_angletype => get_angletype_
   generic, public :: set_px => set_px_
   generic, public :: set_py => set_py_
   generic, public :: set_dotproductfile => set_dotproductfile_
   generic, public :: set_DisOrMapfile => set_DisOrMapfile_
   generic, public :: set_DisOrType => set_DisOrType_
+  generic, public :: set_angletype => set_angletype_
 
 end type DisOrMap_T
 
@@ -155,8 +160,9 @@ integer(kind=irg)   :: py(10)
 character(fnlen)    :: dotproductfile
 character(fnlen)    :: DisOrMapfile
 character(fnlen)    :: DisOrType
+character(fnlen)    :: angletype
 
-namelist / DisOrMap / px, py, dotproductfile, DisOrMapfile, DisOrType
+namelist / DisOrMap / px, py, dotproductfile, DisOrMapfile, DisOrType, angletype
 
 ! set the input parameters to default values
 px = (/ 0,0,0,0,0,0,0,0,0,0 /)
@@ -164,6 +170,7 @@ py = (/ 0,0,0,0,0,0,0,0,0,0 /)
 dotproductfile = 'undefined'
 DisOrMapfile = 'undefined'
 DisOrType = 'KAM'
+angletype = 'regular'
 
 ! read the name list, depending on the class type
 if (.not.skipread) then
@@ -188,6 +195,7 @@ self%nml%py = py
 self%nml%dotproductfile = dotproductfile
 self%nml%DisOrMapfile = DisOrMapfile
 self%nml%DisOrType = DisOrType
+self%nml%angletype = angletype
 
 end subroutine readNameList_
 
@@ -394,6 +402,42 @@ self%nml%DisOrType = inp
 end subroutine set_DisOrType_
 
 !--------------------------------------------------------------------------
+function get_angletype_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_angletype_
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/26/22
+!!
+!! get angletype from the DisOrMap_T class
+
+IMPLICIT NONE 
+
+class(DisOrMap_T), INTENT(INOUT)     :: self
+character(fnlen)                     :: out
+
+out = self%nml%angletype
+
+end function get_angletype_
+
+!--------------------------------------------------------------------------
+subroutine set_angletype_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_angletype_
+!! author: MDG 
+!! version: 1.0 
+!! date: 04/26/22
+!!
+!! set angletype in the DisOrMap_T class
+
+IMPLICIT NONE 
+
+class(DisOrMap_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)         :: inp
+
+self%nml%angletype = inp
+
+end subroutine set_angletype_
+
+!--------------------------------------------------------------------------
 subroutine DisOrMap_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: DisOrMap_
 !! author: MDG 
@@ -467,8 +511,13 @@ call HDFnames%set_NMLlist(SC_DictionaryIndexingNameListType)
 
 ! read data from the dot product file
 DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(domnl%dotproductfile)
-call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
-                             getRefinedEulerAngles = .TRUE.)
+if (trim(domnl%angletype).eq.'refined') then 
+  call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
+                               getRefinedEulerAngles = .TRUE.)
+else
+  call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
+                               getEulerAngles = .TRUE.)
+end if
 dinl = DIFT%getNameList()
 
 ! get the ROI if there is one
@@ -490,11 +539,19 @@ call Message%WriteValue('Size of the IPF map : ', io_int, 2, frm="(I5,' by ',I5)
 call setRotationPrecision( 'd' )
 ! perform all rotation operations in double precision
 call mem%alloc(qdinp, (/ 4, numdis /), 'qdinp', initval=0.D0)
-do i=1,numdis
-  eu = e_T( edinp = dble(DIDT%RefinedEulerAngles(1:3,i)) )
-  qu = eu%eq()
-  qdinp(1:4,i) = qu%q_copyd()
-end do
+if (trim(domnl%angletype).eq.'refined') then
+  do i=1,numdis
+    eu = e_T( edinp = dble(DIDT%RefinedEulerAngles(1:3,i)) )
+    qu = eu%eq()
+    qdinp(1:4,i) = qu%q_copyd()
+  end do
+else
+  do i=1,numdis
+    eu = e_T( edinp = dble(DIDT%EulerAngles(1:3,i)) )
+    qu = eu%eq()
+    qdinp(1:4,i) = qu%q_copyd()
+  end do
+end if 
 
 ! put the refined orientations in a quaternion array
 qInp = QuaternionArray_T( n = numdis, qd = qdinp )
@@ -533,7 +590,11 @@ if (trim(domnl%DisOrType).eq.'point') then
   do i=1,nump 
 ! get the reference point Euler angles and convert to quaternion quref
     ipos = (domnl%py(i)-1) * ipf_wd + domnl%px(i)
-    eu = e_T( edinp = dble(DIDT%RefinedEulerAngles(1:3, ipos)) )
+    if (trim(domnl%angletype).eq.'refined') then
+      eu = e_T( edinp = dble(DIDT%RefinedEulerAngles(1:3, ipos)) )
+    else
+      eu = e_T( edinp = dble(DIDT%EulerAngles(1:3, ipos)) )
+    end if 
     quref = eu%eq()
 ! loop over all the input orientations to get the disorientation w.r.t. the 
 ! reference orientation quref
@@ -573,7 +634,11 @@ if (trim(domnl%DisOrType).eq.'point') then
 else ! DisOrType = 'KAM'
   call Message%printMessage(' Computing KAM map with refined orientation data')
   call mem%alloc(kam, (/ ipf_wd, ipf_ht /), 'kam', initval=0.0)
-  call getKAMMap(numdis, DIDT%RefinedEulerAngles, ipf_wd, ipf_ht, DIDT%pgnum, kam)
+  if (trim(domnl%angletype).eq.'refined') then
+    call getKAMMap(numdis, DIDT%RefinedEulerAngles, ipf_wd, ipf_ht, DIDT%pgnum, kam)
+  else
+    call getKAMMap(numdis, DIDT%EulerAngles, ipf_wd, ipf_ht, DIDT%pgnum, kam)
+  end if
   dmap = dble(kam)
   call mem%dealloc(kam, 'kam')
   open(dataunit, file='kam.txt', status='unknown', form='formatted')

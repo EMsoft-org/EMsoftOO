@@ -31,6 +31,10 @@
  OSMtiff = 'undefined',   
 ! optional prefix for IPF map output
  IPFmap = 'undefined',
+! optional ang file
+ angfile = 'undefined',
+! optional ctf file
+ ctffile = 'undefined',
 ! maximum memory [in Gb] for inRAM indexing calculations; if a data set becomes 
 ! larger than this value, the preprocessing step will generate a file in
 ! the tmp folder rather than perform the indexing in RAM.  Note that this 

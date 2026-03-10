@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -210,6 +210,10 @@ type, public :: so3_T
     type(FZpointd),pointer  :: MAlist  ! MA = Marsaglia random quaternions
     type(FZpointd),pointer  :: UNlist  ! UN = straight uniform sampling
     type(FZpointd),pointer  :: VZlist  ! only used for Clifford torus visualization purposes
+    real(kind=dbl)          :: cPshifts(3,6)
+    real(kind=dbl)          :: cIshifts(3,14)
+    real(kind=dbl)          :: cFshifts(3,12)
+    integer(kind=irg)       :: nshifts
   contains
   private
 
@@ -261,6 +265,7 @@ type, public :: so3_T
     procedure, pass(self) :: getAnglesfromCTFfile_
     procedure, pass(self) :: getVertex_
     procedure, pass(self) :: getMacKenzieDistribution_
+    procedure, pass(self) :: getcuboNN_
 ! some other related routines
     procedure, pass(self) :: ReducelisttoRFZ_
     procedure, pass(self) :: ReducelisttoMFZ_
@@ -320,6 +325,7 @@ type, public :: so3_T
     generic, public :: writeOrientationstoFile => writeOrientationstoFile_
     generic, public :: getVertex => getVertex_
     generic, public :: getMacKenzieDistribution => getMacKenzieDistribution_
+    generic, public :: getcuboNN => getcuboNN_
 
     generic, public :: ReducelisttoRFZ => ReducelisttoRFZ_
     generic, public :: ReducelisttoMFZ => ReducelisttoMFZ_
@@ -338,7 +344,7 @@ end interface so3_T
 contains
 
 !--------------------------------------------------------------------------
-type(so3_T) function so3_constructor( pgnum, pgnum2, zerolist ) result(SO)
+type(so3_T) function so3_constructor( pgnum, pgnum2, zerolist, initshifts ) result(SO)
 !DEC$ ATTRIBUTES DLLEXPORT :: so3_constructor
 !! author: MDG
 !! version: 1.0
@@ -354,6 +360,7 @@ integer(kind=irg), INTENT(IN), OPTIONAL   :: pgnum2
  !! optional secondary point group
 character(2), INTENT(IN), OPTIONAL        :: zerolist
  !! optional selector for linked list to be reset
+character(2), INTENT(IN), OPTIONAL        :: initshifts
 
 if (present(pgnum2)) then
   call SO%setFZtypeandorder(pgnum, pgnum2)
@@ -367,6 +374,47 @@ if (present(zerolist)) then
   call SO%nullifyList(zerolist)
 else
   call SO%nullifyList()
+end if
+
+if (present(initshifts)) then
+  if (initshifts.eq.'cP') then 
+    SO%cPshifts(1:3,1) = (/ 1.D0, 0.D0, 0.D0 /)
+    SO%cPshifts(1:3,2) = (/-1.D0, 0.D0, 0.D0 /)
+    SO%cPshifts(1:3,3) = (/ 0.D0, 1.D0, 0.D0 /)
+    SO%cPshifts(1:3,4) = (/ 0.D0,-1.D0, 0.D0 /)
+    SO%cPshifts(1:3,5) = (/ 0.D0, 0.D0, 1.D0 /)
+    SO%cPshifts(1:3,6) = (/ 0.D0, 0.D0,-1.D0 /)
+  end if 
+  if (initshifts.eq.'cI') then 
+    SO%cIshifts(1:3,1) = (/ 0.5D0, 0.5D0,-0.5D0 /)
+    SO%cIshifts(1:3,2) = (/ 0.5D0,-0.5D0,-0.5D0 /)
+    SO%cIshifts(1:3,3) = (/-0.5D0, 0.5D0,-0.5D0 /)
+    SO%cIshifts(1:3,4) = (/-0.5D0,-0.5D0,-0.5D0 /)
+    SO%cIshifts(1:3,5) = (/ 0.5D0, 0.5D0, 0.5D0 /)
+    SO%cIshifts(1:3,6) = (/ 0.5D0,-0.5D0, 0.5D0 /)
+    SO%cIshifts(1:3,7) = (/-0.5D0, 0.5D0, 0.5D0 /)
+    SO%cIshifts(1:3,8) = (/-0.5D0,-0.5D0, 0.5D0 /)
+    SO%cIshifts(1:3,9) = (/ 1.D0, 0.D0, 0.D0 /)
+    SO%cIshifts(1:3,10) = (/-1.D0, 0.D0, 0.D0 /)
+    SO%cIshifts(1:3,11) = (/ 0.D0, 1.D0, 0.D0 /)
+    SO%cIshifts(1:3,12) = (/ 0.D0,-1.D0, 0.D0 /)
+    SO%cIshifts(1:3,13) = (/ 0.D0, 0.D0, 1.D0 /)
+    SO%cIshifts(1:3,14) = (/ 0.D0, 0.D0,-1.D0 /)
+  end if 
+  if (initshifts.eq.'cF') then
+    SO%cFshifts(1:3,1) = (/ 0.5D0, 0.5D0, 0.0D0 /)
+    SO%cFshifts(1:3,2) = (/-0.5D0, 0.5D0, 0.0D0 /)
+    SO%cFshifts(1:3,3) = (/ 0.5D0,-0.5D0, 0.0D0 /)
+    SO%cFshifts(1:3,4) = (/-0.5D0,-0.5D0, 0.0D0 /)
+    SO%cFshifts(1:3,5) = (/ 0.5D0, 0.0D0, 0.5D0 /)
+    SO%cFshifts(1:3,6) = (/-0.5D0, 0.0D0, 0.5D0 /)
+    SO%cFshifts(1:3,7) = (/ 0.0D0, 0.5D0, 0.5D0 /)
+    SO%cFshifts(1:3,8) = (/ 0.0D0,-0.5D0, 0.5D0 /)
+    SO%cFshifts(1:3,9) = (/ 0.5D0, 0.0D0,-0.5D0 /)
+    SO%cFshifts(1:3,10) = (/-0.5D0, 0.0D0,-0.5D0 /)
+    SO%cFshifts(1:3,11) = (/ 0.0D0, 0.5D0,-0.5D0 /)
+    SO%cFshifts(1:3,12) = (/ 0.0D0,-0.5D0,-0.5D0 /)
+  end if 
 end if
 
 end function so3_constructor
@@ -1247,11 +1295,17 @@ if (self%SamplingLattice.eq.'cP') then
 ! the opposite edges/facets of the cube, to avoid double counting rotations
 ! with a rotation angle of 180 degrees.  This only affects the cyclic groups.
 
- do i=-nsteps+1,nsteps
+ ! do i=-nsteps+1,nsteps
+ !  x = (dble(i)+shift)*delta
+ !  do j=-nsteps+1,nsteps
+ !   y = (dble(j)+shift)*delta
+ !   do k=-nsteps+1,nsteps
+ !    z = (dble(k)+shift)*delta
+ do i=-nsteps+0,nsteps-1
   x = (dble(i)+shift)*delta
-  do j=-nsteps+1,nsteps
+  do j=-nsteps+0,nsteps-1
    y = (dble(j)+shift)*delta
-   do k=-nsteps+1,nsteps
+   do k=-nsteps+0,nsteps-1
     z = (dble(k)+shift)*delta
 ! make sure that this point lies inside the cubochoric cell
     if (maxval( (/ abs(x), abs(y), abs(z) /) ).le.sedge) then
@@ -1771,8 +1825,12 @@ type(c_T)                               :: cu
 type(q_T)                               :: q
 type(FZpointd),pointer                  :: tmp, tmp2
 
-real(kind=dbl),parameter                :: tau = 0.6180339887498D0, & ! inverse of golden ratio 
-                                           psi = 0.6519962431791D0    ! inverse of psi constant
+! real(kind=dbl),parameter                :: tau = 0.6180339887498D0, & ! inverse of golden ratio 
+                                           ! psi = 0.68232780386376D0 ! 0.6519962431791D0    ! inverse of psi constant
+
+real(kind=dbl),parameter                :: tau = 0.7071067811865475244D0, & ! inverse of sqrt(2.0)
+                                           psi = 0.6519962431791345448D0 ! inverse of real positive root of p^4=p+4
+
 real(kind=dbl)                          :: s, t, d, r, RR, alpha, beta, nsi, x(4) 
 integer(kind=irg)                       :: i, j, nsamples, io_int(1)
 
@@ -1780,7 +1838,7 @@ integer(kind=irg)                       :: i, j, nsamples, io_int(1)
 self%SFcnt = 0
 
 ! make sure the linked list is empty
-if (associated(self%SFlist)) call self%delete_FZlist('SF')
+! if (associated(self%SFlist)) call self%delete_FZlist('SF')
 
 ! allocate the linked list and insert the origin
 allocate(self%SFlist)
@@ -1861,7 +1919,7 @@ integer(kind=irg)                       :: i, nsamples, io_int(1), seed
 self%SFcnt = 0
 
 ! make sure the linked list is empty
-if (associated(self%SFlist)) call self%delete_FZlist('SF')
+! if (associated(self%SFlist)) call self%delete_FZlist('SF')
 
 ! allocate the linked list and insert the origin
 allocate(self%SFlist)
@@ -3197,7 +3255,7 @@ character(2)                  :: SL
 
 self%SamplingLattice = SL
 ! for cF, the gridtype should always be 1
-if (SL.eq.'cF') self%gridtype = 1
+! if (SL.eq.'cF') self%gridtype = 1
 
 end subroutine setSamplingLattice_
 
@@ -3627,6 +3685,77 @@ else
 end if
 
 end subroutine getMacKenzieDistribution_
+
+!--------------------------------------------------------------------------
+recursive subroutine getcuboNN_(self, cu, delta, sampletype, NNlist, n, nvalid)
+!DEC$ ATTRIBUTES DLLEXPORT :: getcuboNN_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/15/25
+  !!
+  !! returns the n nearest neighbors of a cubochoric point for a given sampling
+  !! type ('CP', 'cI', 'cF') and sampling step size delta
+  !!
+
+use mod_io
+use mod_rotations
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)       :: self
+type(c_T),INTENT(INOUT)          :: cu
+real(kind=dbl),INTENT(IN)        :: delta
+character(2),INTENT(IN)          :: sampletype
+integer(kind=irg),INTENT(IN)     :: n
+type(c_T),INTENT(INOUT)          :: NNlist(n)
+integer(kind=irg),INTENT(INOUT)  :: nvalid
+
+type(IO_T)                       :: Message 
+type(c_T)                        :: ctry 
+
+integer(kind=irg)                :: i, j, k 
+real(kind=dbl)                   :: coor(3), coorNN(3)
+
+
+coor = cu%c_copyd()
+nvalid = 0 
+
+select case(sampletype)
+  case('cP')
+    self%nshifts = 6
+    do i=1,self%nshifts
+      coorNN = coor + self%cPshifts(1:3,i)*delta 
+      if (maxval(abs(coorNN)).lt.0.5D0*LPs%ap) then 
+        nvalid = nvalid+1
+        NNlist(nvalid) = c_T( cdinp = coorNN(1:3) )
+      end if 
+    end do
+
+  case('cI')
+    self%nshifts = 14
+    do i=1,self%nshifts
+      coorNN = coor + self%cIshifts(1:3,i)*delta 
+      if (maxval(abs(coorNN)).lt.0.5D0*LPs%ap) then 
+        nvalid = nvalid+1
+        NNlist(nvalid) = c_T( cdinp = coorNN(1:3) )
+      end if 
+    end do
+
+  case('cF')
+    self%nshifts = 12
+    do i=1,self%nshifts
+      coorNN = coor + self%cFshifts(1:3,i)*delta 
+      if (maxval(abs(coorNN)).lt.0.5D0*LPs%ap) then 
+        nvalid = nvalid+1
+        NNlist(nvalid) = c_T( cdinp = coorNN(1:3) )
+      end if 
+    end do
+
+  case default
+    call Message%printError('getcuboNN_', 'unknown sampling type')
+end select
+
+end subroutine getcuboNN_
 
 !--------------------------------------------------------------------------
 recursive subroutine ReduceDisorientationtoMFZ_(self, ro, SG, roMFZ)
