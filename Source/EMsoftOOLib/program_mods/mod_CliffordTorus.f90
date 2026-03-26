@@ -1145,10 +1145,12 @@ sw = 0
 if (present(swap)) sw = swap 
 
 nn = self%nml%n
-ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
-kk = 40.D0 * dble(self%nml%n) / 500.D0
+! ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
+! kk = 40.D0 * dble(self%nml%n) / 500.D0
+ss = 0.25D0 * 500.D0 / dble(self%nml%n)    ! initial plots were made on a 1001x1001 grid
+kk = 40.D0 * 500.D0 / dble(self%nml%n) 
 
-ss = ss * 0.25D0
+! ss = ss * 0.25D0
 
 ! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
 do i=1,cnt 
