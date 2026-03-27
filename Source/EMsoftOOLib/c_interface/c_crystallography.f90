@@ -239,7 +239,7 @@ subroutine c_cell_calc_cross(handle, p, q, r, inspace, outspace) &
   type(Cell_T), pointer           :: obj
 
   call c_f_pointer(handle, obj)
-  r = obj%calcCross(p, q, inspace, outspace, 0)
+  call obj%calcCross(p, q, r, inspace, outspace, 0)
 
 end subroutine c_cell_calc_cross
 
