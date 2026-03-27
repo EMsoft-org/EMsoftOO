@@ -106,7 +106,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                    INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                                    )
 
-      Add_EMSoftOO_Executable(TARGET testXCorr 
+      Add_EMSoftOO_Executable(TARGET testXCorr
                                    SOURCES ${APP_DIR}/testXCorr.f90
                                    LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
                                    SOLUTION_FOLDER EMsoftOOPublic/TestPrograms
@@ -114,5 +114,20 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                                    INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                                    )
 
+      Add_EMSoftOO_Executable(TARGET TestProgram
+                                   SOURCES ${APP_DIR}/TestProgram.f90
+                                   LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
+                                   SOLUTION_FOLDER EMsoftOOPublic/TestPrograms
+                                   INSTALL_PROGRAM TRUE
+                                   INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                                   )
+
+      Add_EMSoftOO_Executable(TARGET modtest
+                                   SOURCES ${APP_DIR}/modtest.f90
+                                   LINK_LIBRARIES EMsoftOOLib ${EMSOFTOO_hdf5LinkLibs}
+                                   SOLUTION_FOLDER EMsoftOOPublic/TestPrograms
+                                   INSTALL_PROGRAM TRUE
+                                   INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                                   )
 
 endif()

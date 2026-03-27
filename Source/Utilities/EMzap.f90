@@ -43,6 +43,8 @@ use mod_postscript
 use mod_diffraction
 use mod_HDFsupport
 
+IMPLICIT NONE
+
 character(fnlen)        :: progname = 'EMzap.f90'
 character(fnlen)        :: progdesc = 'Kinematical Zone Axis Diffraction Patterns'
 

@@ -47,7 +47,7 @@ character(fnlen)              :: progdesc = 'Sends a simple test message to the 
 type(EMsoft_T)                :: EMsoft 
 
 type(IO_T)                    :: Message
-character(fnlen),ALLOCATABLE  :: MessageLines(:)
+character(fnlen), allocatable :: MessageLines(:)
 integer(kind=irg)             :: NumLines, i
 integer(kind=4)               :: hnStat
 character(fnlen)              :: MessageTitle, line

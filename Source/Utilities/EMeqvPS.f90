@@ -57,9 +57,9 @@ type(r_T)                     :: ro1, roFZ
 type(e_T)                     :: eu, eu2
 type(Quaternion_T)            :: qm, qq, q2 
 
-type(a_T),allocatable         :: axlist(:)
-type(e_T),allocatable         :: eulist(:)
-integer(kind=irg),allocatable :: unique(:)
+type(a_T), allocatable        :: axlist(:)
+type(e_T), allocatable        :: eulist(:)
+integer(kind=irg), allocatable :: unique(:)
 
 integer(kind=irg)             :: pgnum, io_int(1), num, k, FZtype, FZorder, i, j
 real(kind=dbl)                :: ro(4), rod(3), io_dbl(4), qus(4), io_dbl3(3), &

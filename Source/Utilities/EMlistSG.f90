@@ -57,7 +57,7 @@ character(fnlen)            :: progdesc = 'List equivalent positions for arbitra
 character(3)                :: pos
 integer(kind=irg)           :: p(4),ii,jj,i, io_int(1), HSGnum
 real(kind=sgl)              :: ppp, io_real(1)
-real(kind=dbl),allocatable  :: sgdata(:,:,:)
+real(kind=dbl), allocatable :: sgdata(:,:,:)
 character(fnlen)            :: mess
 character(16)               :: HS
 

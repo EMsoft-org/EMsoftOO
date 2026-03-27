@@ -50,7 +50,7 @@ type(SpaceGroup_T)          :: SG
 character(fnlen)            :: progname = 'EMorbit.f90'
 character(fnlen)            :: progdesc = 'List the orbit of a given position'
 
-real(kind=dbl),allocatable  :: ctmp(:,:)
+real(kind=dbl), allocatable :: ctmp(:,:)
 integer(kind=irg)           :: i,n,ans, io_int(1)
 real(kind=sgl)              :: io_real(3)
 character(fnlen)            :: xtalname

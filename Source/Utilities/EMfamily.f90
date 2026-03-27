@@ -47,23 +47,23 @@ use mod_HDFsupport
 
 IMPLICIT NONE
 
-type(EMsoft_T)                 :: EMsoft 
+type(EMsoft_T)                 :: EMsoft
 type(IO_T)                     :: Message
 type(Cell_T)                   :: cell
 type(SpaceGroup_T)             :: SG
 type(PostScript_T)             :: PS
-        
+
 character(fnlen)               :: progname = 'EMfamily.f90'
 character(fnlen)               :: progdesc = 'Stereographic projection of a family of directions/planes'
-        
-character(1)                        :: sp
-logical                             :: nn,topbot
-real(kind=sgl)                      :: rr(3),g(3),r(3),M(3,3), CX, CY, CRad, negthresh,xst,yst
-integer(kind=irg)                   :: h,k,l,hkl(3),iview(3),cr,ans,sgn,i,j,num, io_int(1), imanum
+
+character(1)                   :: sp
+logical                        :: nn, topbot
+real(kind=sgl)                 :: rr(3), g(3), r(3), M(3,3), CX, CY, CRad, negthresh, xst, yst
+integer(kind=irg)              :: h, k, l, hkl(3), iview(3), cr, ans, sgn, i, j, num, io_int(4), imanum
 character(fnlen)               :: xtalname
 character(200)                 :: parta
-integer(kind=irg),allocatable  :: itmp(:,:)
-real(kind=dbl),allocatable     :: SGdirec(:,:,:)
+integer(kind=irg), allocatable :: itmp(:,:)
+real(kind=dbl), allocatable    :: SGdirec(:,:,:)
  
  EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 912 /) )
 
@@ -118,7 +118,9 @@ real(kind=dbl),allocatable     :: SGdirec(:,:,:)
     hkl(1)=h
     hkl(2)=k
     hkl(3)=l
-    write(*,*) i, hkl
+    io_int(1) = i
+    io_int(2:4) = hkl(1:3)
+    call Message%WriteValue(' ', io_int, 4, "(I4,': (',I4,I4,I4,')')")
 
 ! reduce to smallest integers to avoid overlap
 ! of indices, such as (111) and (222)

@@ -54,7 +54,7 @@ character(fnlen)            :: progdesc = 'Computes the star of a lattice transl
 
 integer(kind=irg)           :: g(3),gg(3),ans,n,i, io_int(4)
 real(kind=dbl)              :: kk(3)
-real(kind=dbl),allocatable  :: stmp(:,:)
+real(kind=dbl), allocatable :: stmp(:,:)
 character(1)                :: space
 character(fnlen)            :: xtalname
 

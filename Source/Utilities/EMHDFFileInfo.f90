@@ -61,10 +61,10 @@ type(SpaceGroup_T)              :: SG
 integer(kind=irg)               :: numarg, hdferr, nmembers, i, j, otype, io_int(1), PNindex, nlines
 character(fnlen)                :: name_buffer 
 character(fnlen)                :: HDFname, groupname, dataset 
-character(fnlen),allocatable    :: membernames(:), prognames(:)    
-integer(kind=irg),allocatable   :: membertypes(:)
+character(fnlen), allocatable   :: membernames(:), prognames(:)
+integer(kind=irg), allocatable  :: membertypes(:)
 logical                         :: f_exists, g_exists, stat, singleprogram, crystalfile
-character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen, kind=c_char), allocatable, target :: stringarray(:)
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc )

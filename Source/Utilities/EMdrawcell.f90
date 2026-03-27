@@ -58,10 +58,10 @@ type(Cell_T)                   :: cell
 type(SpaceGroup_T)             :: SG 
 type(PostScript_T)             :: PS
 
-real(kind=dbl),allocatable     :: apos(:,:,:)
-integer(kind=irg),allocatable  :: atype(:), numat(:)
+real(kind=dbl), allocatable    :: apos(:,:,:)
+integer(kind=irg), allocatable :: atype(:), numat(:)
 
-integer(kind=irg),parameter    :: n=1000
+integer(kind=irg), parameter   :: n=1000
 character(1)                   :: sp
 integer(kind=irg)              :: acol(n)
         

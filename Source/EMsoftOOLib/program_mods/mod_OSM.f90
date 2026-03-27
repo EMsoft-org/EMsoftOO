@@ -42,6 +42,7 @@ IMPLICIT NONE
 type, public :: OSMNameListType
   integer(kind=irg)  :: nmatch(5)
   character(fnlen)   :: dotproductfile
+  logical            :: dpweighted
   character(fnlen)   :: tiffname
 end type OSMNameListType
 
@@ -59,6 +60,8 @@ private
   procedure, pass(self) :: get_nmatch_
   procedure, pass(self) :: get_dotproductfile_
   procedure, pass(self) :: get_tiffname_
+  procedure, pass(self) :: get_dpweighted_
+  procedure, pass(self) :: set_dpweighted_
   procedure, pass(self) :: set_nmatch_
   procedure, pass(self) :: set_dotproductfile_
   procedure, pass(self) :: set_tiffname_
@@ -69,6 +72,8 @@ private
   generic, public :: get_nmatch => get_nmatch_
   generic, public :: get_dotproductfile => get_dotproductfile_
   generic, public :: get_tiffname => get_tiffname_
+  generic, public :: get_dpweighted => get_dpweighted_
+  generic, public :: set_dpweighted => set_dpweighted_
   generic, public :: set_nmatch => set_nmatch_
   generic, public :: set_dotproductfile => set_dotproductfile_
   generic, public :: set_tiffname => set_tiffname_
@@ -143,14 +148,16 @@ logical                              :: skipread = .FALSE.
 integer(kind=irg)       :: nmatch(5)
 character(fnlen)        :: dotproductfile
 character(fnlen)        :: tiffname
+logical                 :: dpweighted
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / getOSM / nmatch, dotproductfile, tiffname
+namelist  / getOSM / nmatch, dotproductfile, tiffname, dpweighted
 
 ! set the input parameters to default values
 nmatch = (/ 20, 0, 0, 0, 0 /)
 dotproductfile = 'undefined'
 tiffname = 'undefined'
+dpweighted = .FALSE.
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -176,6 +183,7 @@ if (.not.skipread) then
 self%nml%nmatch = nmatch
 self%nml%dotproductfile = dotproductfile
 self%nml%tiffname = tiffname
+self%nml%dpweighted = dpweighted
 
 end subroutine readNameList_
 
@@ -304,6 +312,42 @@ character(fnlen), INTENT(IN)    :: inp
 self%nml%tiffname = inp
 
 end subroutine set_tiffname_
+
+!--------------------------------------------------------------------------
+function get_dpweighted_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dpweighted_
+!! author: MDG
+!! version: 1.0
+!! date: 04/06/20
+!!
+!! get dpweighted from the OSM_T class
+
+IMPLICIT NONE
+
+class(OSM_T), INTENT(INOUT)     :: self
+logical                         :: out
+
+out = self%nml%dpweighted
+
+end function get_dpweighted_
+
+!--------------------------------------------------------------------------
+subroutine set_dpweighted_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dpweighted_
+!! author: MDG
+!! version: 1.0
+!! date: 04/06/20
+!!
+!! set dpweighted in the OSM_T class
+
+IMPLICIT NONE
+
+class(OSM_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)             :: inp
+
+self%nml%dpweighted = inp
+
+end subroutine set_dpweighted_
 
 !--------------------------------------------------------------------------
 subroutine OSM_(self, EMsoft, progname)

@@ -56,7 +56,7 @@ character(fnlen)            :: progdesc = 'Computes the star of a reciprocal lat
 
 integer(kind=irg)           :: g(3),gg(3),ans,n,i, io_int(3)
 real(kind=dbl)              :: kk(3)
-real(kind=dbl),allocatable  :: stmp(:,:)
+real(kind=dbl), allocatable :: stmp(:,:)
 logical                     :: first
 character(1)                :: space
 character(fnlen)            :: xtalname
