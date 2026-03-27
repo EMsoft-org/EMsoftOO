@@ -4,6 +4,9 @@
 
 set(C_INTERFACE_SOURCES
     c_quaternions.f90
+    c_rotations.f90
+    c_crystallography.f90
+    c_symmetry.f90
 )
 
 add_library(EMsoftOO_c SHARED ${C_INTERFACE_SOURCES})
