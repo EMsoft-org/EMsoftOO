@@ -9,6 +9,9 @@ Launch with:
 import os
 import sys
 import platform
+import shutil
+import subprocess
+import threading
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
@@ -45,6 +48,34 @@ def find_templates_dir(explicit_path=None):
     return None
 
 
+def _find_executable(program_name):
+    """Find an EMsoftOO executable by name."""
+    # 1. Check PATH
+    path = shutil.which(program_name)
+    if path:
+        return path
+
+    # 2. Check EMSOFTOO_BIN environment variable
+    bin_dir = os.environ.get('EMSOFTOO_BIN')
+    if bin_dir:
+        candidate = os.path.join(bin_dir, program_name)
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+
+    return None
+
+
+def _program_name_from_file(filepath):
+    """Derive the EMsoftOO program name from a .nml or .template filename."""
+    base = os.path.basename(filepath)
+    name = base.replace('.nml', '').replace('.template', '')
+    # Template names like "BetheParameters" don't correspond to programs
+    # Program names start with "EM" (convention)
+    if name.startswith('EM'):
+        return name
+    return None
+
+
 class NmlEditor:
     """Main application window."""
 
@@ -54,10 +85,11 @@ class NmlEditor:
         self.current_file = None
         self.modified = False
         self._highlight_job = None
+        self._process = None
 
         self.root.title('EMsoftOO Namelist Editor')
-        self.root.geometry('1000x700')
-        self.root.minsize(700, 450)
+        self.root.geometry('1000x750')
+        self.root.minsize(700, 500)
 
         # Handle window close
         self.root.protocol('WM_DELETE_WINDOW', self.on_close)
@@ -84,6 +116,19 @@ class NmlEditor:
         tk.Button(toolbar, text=f'  Save .nml ({MOD_LABEL}+S)  ',
                   command=self.save_file).pack(side=tk.LEFT, padx=4)
 
+        # Separator
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
+
+        # Run button
+        self.run_btn = tk.Button(toolbar, text='  Run Program  ', command=self.run_program,
+                                 state=tk.DISABLED)
+        self.run_btn.pack(side=tk.LEFT, padx=4)
+
+        # Stop button (hidden initially)
+        self.stop_btn = tk.Button(toolbar, text='  Stop  ', command=self.stop_program,
+                                  state=tk.DISABLED, fg='red')
+        self.stop_btn.pack(side=tk.LEFT, padx=4)
+
         # Font size controls (right side of toolbar)
         font_frame = tk.Frame(toolbar)
         font_frame.pack(side=tk.RIGHT, padx=4)
@@ -94,13 +139,13 @@ class NmlEditor:
                  anchor=tk.CENTER).pack(side=tk.LEFT)
         tk.Button(font_frame, text=' + ', command=self._font_larger).pack(side=tk.LEFT, padx=1)
 
-        # --- Main paned layout: template list on left, editor on right ---
-        paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-        paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 0))
+        # --- Main paned layout: template list on left, editor+output on right ---
+        h_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
+        h_paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 0))
 
         # --- Left panel: template list with search ---
-        left_frame = ttk.Frame(paned, padding=2)
-        paned.add(left_frame, weight=0)
+        left_frame = ttk.Frame(h_paned, padding=2)
+        h_paned.add(left_frame, weight=0)
 
         ttk.Label(left_frame, text='Templates:').pack(anchor=tk.W)
 
@@ -135,11 +180,18 @@ class NmlEditor:
         self.display_names = [f.replace('.template', '') for f in self.all_templates]
         self._populate_list(self.display_names)
 
-        # --- Right panel: editor ---
-        right_frame = ttk.Frame(paned, padding=2)
-        paned.add(right_frame, weight=1)
+        # --- Right panel: editor (top) + output (bottom) ---
+        right_frame = ttk.Frame(h_paned, padding=2)
+        h_paned.add(right_frame, weight=1)
 
-        editor_frame = ttk.Frame(right_frame)
+        v_paned = ttk.PanedWindow(right_frame, orient=tk.VERTICAL)
+        v_paned.pack(fill=tk.BOTH, expand=True)
+
+        # --- Editor pane ---
+        editor_container = ttk.Frame(v_paned)
+        v_paned.add(editor_container, weight=3)
+
+        editor_frame = ttk.Frame(editor_container)
         editor_frame.pack(fill=tk.BOTH, expand=True)
 
         # Line numbers
@@ -149,7 +201,7 @@ class NmlEditor:
                                 font=self.editor_font)
         self.linenums.pack(side=tk.LEFT, fill=tk.Y)
 
-        # Scrollbar
+        # Editor scrollbar
         scrollbar = ttk.Scrollbar(editor_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
@@ -164,6 +216,38 @@ class NmlEditor:
         # Track modifications
         self.editor.bind('<<Modified>>', self._on_modified)
         self.editor.bind('<KeyRelease>', self._schedule_highlight)
+
+        # --- Output pane ---
+        output_container = ttk.Frame(v_paned)
+        v_paned.add(output_container, weight=2)
+
+        # Output header with label and Save .log button
+        output_header = tk.Frame(output_container, padx=2, pady=2)
+        output_header.pack(fill=tk.X)
+        tk.Label(output_header, text='Program Output:',
+                 font=('TkDefaultFont', 10, 'bold')).pack(side=tk.LEFT)
+        tk.Button(output_header, text=' Clear ', command=self.clear_output).pack(side=tk.RIGHT, padx=2)
+        tk.Button(output_header, text=' Save .log ', command=self.save_log).pack(side=tk.RIGHT, padx=2)
+
+        # Output text widget
+        output_frame = ttk.Frame(output_container)
+        output_frame.pack(fill=tk.BOTH, expand=True)
+
+        output_scroll = ttk.Scrollbar(output_frame)
+        output_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.output = tk.Text(output_frame, wrap=tk.WORD, state=tk.DISABLED,
+                              padx=6, pady=4, font=self.editor_font,
+                              background='#1e1e1e', foreground='#cccccc',
+                              insertbackground='#cccccc',
+                              yscrollcommand=output_scroll.set)
+        self.output.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        output_scroll.config(command=self.output.yview)
+
+        # Output text tags
+        self.output.tag_configure('stderr', foreground='#f44747')
+        self.output.tag_configure('info', foreground='#569cd6')
+        self.output.tag_configure('success', foreground='#4ec9b0')
 
         # --- Status bar ---
         self.status_var = tk.StringVar(value='Select a template from the list to begin')
@@ -215,6 +299,7 @@ class NmlEditor:
 
         self.editor.configure(font=self.editor_font)
         self.linenums.configure(font=self.editor_font)
+        self.output.configure(font=self.editor_font)
         self.template_list.configure(font=('TkDefaultFont', size))
 
         # Re-apply highlighting tags with new font size
@@ -235,6 +320,8 @@ class NmlEditor:
         self.root.bind(f'<{mod}-equal>', lambda e: self._font_larger())
         self.root.bind(f'<{mod}-plus>', lambda e: self._font_larger())
         self.root.bind(f'<{mod}-minus>', lambda e: self._font_smaller())
+        self.root.bind(f'<{mod}-r>', lambda e: self.run_program())
+        self.root.bind(f'<{mod}-R>', lambda e: self.run_program())
 
     def _apply_theme(self):
         """Apply consistent styling."""
@@ -301,33 +388,27 @@ class NmlEditor:
             if not stripped:
                 continue
 
-            # Namelist group start (&name)
             if stripped.startswith('&'):
                 self.editor.tag_add('group', line_start, line_end)
                 continue
 
-            # Namelist terminator (/)
             if stripped == '/':
                 self.editor.tag_add('group', line_start, line_end)
                 continue
 
-            # Section divider comments (!====)
             if stripped.startswith('!') and '===' in stripped:
                 self.editor.tag_add('section', line_start, line_end)
                 continue
 
-            # Regular comments
             if stripped.startswith('!'):
                 self.editor.tag_add('comment', line_start, line_end)
                 continue
 
-            # Lines with parameter = value
             if '=' in line and not stripped.startswith('!'):
                 eq_pos = line.index('=')
                 param_end = f'{i + 1}.{eq_pos}'
                 self.editor.tag_add('param', line_start, param_end)
 
-                # Find inline comment
                 value_part = line[eq_pos + 1:]
                 in_string = False
                 comment_offset = None
@@ -347,7 +428,6 @@ class NmlEditor:
                 else:
                     value_text = value_part
 
-                # Highlight strings
                 val_start = eq_pos + 1
                 in_str = False
                 str_begin = 0
@@ -361,7 +441,6 @@ class NmlEditor:
                                             f'{i + 1}.{str_begin}',
                                             f'{i + 1}.{val_start + j + 1}')
 
-                # Highlight booleans
                 val_upper = value_text.upper()
                 for bval in ['.TRUE.', '.FALSE.']:
                     idx = val_upper.find(bval)
@@ -389,6 +468,15 @@ class NmlEditor:
         if self.modified:
             title += ' (modified)'
         self.root.title(title)
+
+    def _update_run_button(self):
+        """Enable/disable the Run button based on current file."""
+        if self.current_file and self.current_file.endswith('.nml'):
+            prog = _program_name_from_file(self.current_file)
+            if prog and _find_executable(prog):
+                self.run_btn.config(state=tk.NORMAL)
+                return
+        self.run_btn.config(state=tk.DISABLED)
 
     # --- Template loading ---
 
@@ -428,6 +516,7 @@ class NmlEditor:
         self.current_file = filepath
         self._update_title()
         self._apply_highlighting()
+        self._update_run_button()
         self.editor.see('1.0')
 
     # --- File operations ---
@@ -484,11 +573,193 @@ class NmlEditor:
             self.current_file = filepath
             self.modified = False
             self._update_title()
+            self._update_run_button()
             self.status_var.set(f'Saved: {filepath}')
+
+    # --- Program execution ---
+
+    def run_program(self):
+        """Launch the EMsoftOO program for the current .nml file."""
+        if self._process is not None:
+            messagebox.showinfo('Already Running', 'A program is already running.')
+            return
+
+        if not self.current_file or not self.current_file.endswith('.nml'):
+            # Offer to save first
+            if messagebox.askyesno('Save First',
+                    'The file must be saved as .nml before running.\nSave now?'):
+                self.save_file()
+                if not self.current_file or not self.current_file.endswith('.nml'):
+                    return
+            else:
+                return
+
+        if self.modified:
+            if messagebox.askyesno('Unsaved Changes',
+                    'Save changes before running?'):
+                # Quick-save to current path
+                content = self.editor.get('1.0', 'end-1c')
+                with open(self.current_file, 'w') as f:
+                    f.write(content)
+                    if not content.endswith('\n'):
+                        f.write('\n')
+                self.modified = False
+                self._update_title()
+
+        prog_name = _program_name_from_file(self.current_file)
+        if not prog_name:
+            messagebox.showerror('Error',
+                'Could not determine program name from filename.\n'
+                'EMsoftOO programs start with "EM".')
+            return
+
+        exe_path = _find_executable(prog_name)
+        if not exe_path:
+            messagebox.showerror('Program Not Found',
+                f'Could not find executable: {prog_name}\n\n'
+                f'Make sure it is in your PATH or set the\n'
+                f'EMSOFTOO_BIN environment variable to the\n'
+                f'directory containing EMsoftOO executables.')
+            return
+
+        nml_path = os.path.abspath(self.current_file)
+        work_dir = os.path.dirname(nml_path)
+        nml_basename = os.path.basename(nml_path)
+
+        # Clear output and show start message
+        self.clear_output()
+        self._append_output(f'Running: {prog_name} {nml_basename}\n', 'info')
+        self._append_output(f'Working directory: {work_dir}\n', 'info')
+        self._append_output(f'{"-" * 60}\n', 'info')
+
+        self.status_var.set(f'Running {prog_name}...')
+        self.run_btn.config(state=tk.DISABLED)
+        self.stop_btn.config(state=tk.NORMAL)
+
+        # Launch the process in a background thread
+        self._process_thread = threading.Thread(
+            target=self._run_in_thread,
+            args=(exe_path, nml_basename, work_dir),
+            daemon=True)
+        self._process_thread.start()
+
+    def _run_in_thread(self, exe_path, nml_file, work_dir):
+        """Run the program in a background thread, streaming output to the GUI."""
+        try:
+            self._process = subprocess.Popen(
+                [exe_path, nml_file],
+                cwd=work_dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1)
+
+            # Read stdout and stderr in parallel
+            def read_stream(stream, tag):
+                try:
+                    for line in stream:
+                        self.root.after(0, self._append_output, line, tag)
+                except Exception:
+                    pass
+
+            stderr_thread = threading.Thread(
+                target=read_stream, args=(self._process.stderr, 'stderr'),
+                daemon=True)
+            stderr_thread.start()
+
+            # Read stdout in this thread
+            read_stream(self._process.stdout, None)
+
+            # Wait for process to finish
+            self._process.wait()
+            stderr_thread.join(timeout=2)
+
+            retcode = self._process.returncode
+            self.root.after(0, self._on_process_finished, retcode)
+
+        except Exception as e:
+            self.root.after(0, self._append_output,
+                           f'\nError launching program: {e}\n', 'stderr')
+            self.root.after(0, self._on_process_finished, -1)
+
+    def _on_process_finished(self, retcode):
+        """Called when the program finishes (on the main thread)."""
+        self._process = None
+        self.run_btn.config(state=tk.NORMAL)
+        self.stop_btn.config(state=tk.DISABLED)
+        self._update_run_button()
+
+        self._append_output(f'\n{"-" * 60}\n', 'info')
+        if retcode == 0:
+            self._append_output('Program completed successfully.\n', 'success')
+            self.status_var.set('Program completed successfully')
+        else:
+            self._append_output(f'Program exited with code {retcode}.\n', 'stderr')
+            self.status_var.set(f'Program exited with code {retcode}')
+
+    def stop_program(self):
+        """Stop the running program."""
+        if self._process is not None:
+            self._process.terminate()
+            self._append_output('\n*** Program terminated by user ***\n', 'stderr')
+            self.status_var.set('Program terminated')
+
+    # --- Output pane ---
+
+    def _append_output(self, text, tag=None):
+        """Append text to the output pane (must be called from main thread)."""
+        self.output.config(state=tk.NORMAL)
+        if tag:
+            self.output.insert(tk.END, text, tag)
+        else:
+            self.output.insert(tk.END, text)
+        self.output.see(tk.END)
+        self.output.config(state=tk.DISABLED)
+
+    def clear_output(self):
+        """Clear the output pane."""
+        self.output.config(state=tk.NORMAL)
+        self.output.delete('1.0', tk.END)
+        self.output.config(state=tk.DISABLED)
+
+    def save_log(self):
+        """Save the output pane content as a .log file."""
+        content = self.output.get('1.0', 'end-1c')
+        if not content.strip():
+            messagebox.showinfo('Empty Output', 'There is no output to save.')
+            return
+
+        if self.current_file:
+            default_name = os.path.basename(self.current_file).replace('.nml', '.log')
+        else:
+            default_name = 'output.log'
+
+        filepath = filedialog.asksaveasfilename(
+            title='Save Log File',
+            defaultextension='.log',
+            filetypes=[
+                ('Log files', '*.log'),
+                ('Text files', '*.txt'),
+                ('All files', '*.*'),
+            ],
+            initialfile=default_name,
+            initialdir=os.getcwd(),
+        )
+        if filepath:
+            with open(filepath, 'w') as f:
+                f.write(content)
+                if not content.endswith('\n'):
+                    f.write('\n')
+            self.status_var.set(f'Log saved: {filepath}')
 
     # --- Window close ---
 
     def on_close(self):
+        if self._process is not None:
+            if not messagebox.askyesno('Program Running',
+                    'A program is still running. Quit anyway?'):
+                return
+            self._process.terminate()
         if self.modified:
             if not messagebox.askyesno('Unsaved Changes',
                     'You have unsaved changes. Quit anyway?'):
