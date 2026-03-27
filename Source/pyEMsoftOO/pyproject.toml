@@ -14,7 +14,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=7.0"]
+hdf5 = ["h5py>=3.0"]
+test = ["pytest>=7.0", "h5py>=3.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]

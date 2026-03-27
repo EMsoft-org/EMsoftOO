@@ -122,6 +122,48 @@ class Crystal:
         arr = (c_double * 6)(a, b, c, alpha, beta, gamma)
         self._handle = self._lib.emsoft_cell_create(arr)
 
+    @classmethod
+    def from_file(cls, filename):
+        """Load a crystal structure from an EMsoftOO .xtal file.
+
+        Reads lattice parameters, atom types, and atom positions from the
+        HDF5 file and sets up the crystal with full symmetry information.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the .xtal file.
+
+        Returns
+        -------
+        Crystal
+            A fully initialized crystal with atom positions.
+
+        Examples
+        --------
+        >>> ni = Crystal.from_file('Ni.xtal')
+        >>> ni.volume
+        0.04376...
+        """
+        from .fileio import read_xtal
+        from .symmetry import SpaceGroup
+
+        data = read_xtal(filename)
+        lp = data['lattice_parameters']
+        crystal = cls(lp[0], lp[1], lp[2], lp[3], lp[4], lp[5])
+
+        sg = SpaceGroup(data['space_group_number'])
+
+        atoms = []
+        for i in range(data['n_atom_types']):
+            z = int(data['atom_types'][i])
+            row = data['atom_data'][i]
+            atoms.append((z, float(row[0]), float(row[1]), float(row[2]),
+                          float(row[3]), float(row[4])))
+
+        crystal.setup_atoms(sg, atoms)
+        return crystal
+
     def __del__(self):
         if hasattr(self, '_handle') and self._handle is not None:
             self._lib.emsoft_cell_destroy(self._handle)
