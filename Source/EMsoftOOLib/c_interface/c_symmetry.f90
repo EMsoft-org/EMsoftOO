@@ -50,14 +50,13 @@ contains
 
 function c_sg_create(sgnum) result(handle) bind(c, name='emsoft_sg_create')
   !! Create a SpaceGroup_T from a space group number (1-230).
-  !! Automatically generates the full symmetry.
+  !! Generates the symmetry matrices including point group operators.
   integer(c_int), value, INTENT(IN) :: sgnum
   type(c_ptr)                        :: handle
   type(SpaceGroup_T), pointer        :: obj
 
   allocate(obj)
   obj = SpaceGroup_T( SGnumber = sgnum )
-  call obj%GenerateSymmetry(.TRUE.)
   handle = c_loc(obj)
 
 end function c_sg_create
