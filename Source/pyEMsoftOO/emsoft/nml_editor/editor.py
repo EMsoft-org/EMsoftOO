@@ -162,20 +162,19 @@ class NmlEditor:
         search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=20)
         search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
 
-        # Template listbox with scrollbar
+        # Template tree list with scrollbar
         list_frame = ttk.Frame(left_frame)
         list_frame.pack(fill=tk.BOTH, expand=True)
 
         list_scroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL)
         list_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.template_list = tk.Listbox(list_frame, width=28, activestyle='dotbox',
-                                         yscrollcommand=list_scroll.set,
-                                         font=('TkDefaultFont', 11))
+        self.template_list = ttk.Treeview(list_frame, show='tree', selectmode='browse',
+                                           yscrollcommand=list_scroll.set)
         self.template_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         list_scroll.config(command=self.template_list.yview)
 
-        self.template_list.bind('<<ListboxSelect>>', self.on_template_selected)
+        self.template_list.bind('<<TreeviewSelect>>', self.on_template_selected)
 
         # Populate the list
         self.all_templates = sorted(
@@ -279,10 +278,11 @@ class NmlEditor:
         self.editor.tag_configure('boolean', foreground='#7b2fa0')
 
     def _populate_list(self, names):
-        """Fill the listbox with template names."""
-        self.template_list.delete(0, tk.END)
+        """Fill the tree list with template names."""
+        for item in self.template_list.get_children():
+            self.template_list.delete(item)
         for name in names:
-            self.template_list.insert(tk.END, name)
+            self.template_list.insert('', tk.END, iid=name, text=name)
 
     def _on_search_changed(self, *args):
         """Filter the template list based on search text."""
@@ -313,7 +313,11 @@ class NmlEditor:
         self.editor.configure(font=self.editor_font)
         self.linenums.configure(font=self.editor_font)
         self.output.configure(font=self.editor_font)
-        self.template_list.configure(font=('TkDefaultFont', size))
+
+        # Treeview uses style for font
+        style = ttk.Style()
+        style.configure('Treeview', font=('TkDefaultFont', size),
+                        rowheight=size + 8)
 
         # Re-apply highlighting tags with new font size
         self.editor.tag_configure('section',
@@ -494,11 +498,11 @@ class NmlEditor:
     # --- Template loading ---
 
     def on_template_selected(self, event=None):
-        selection = self.template_list.curselection()
+        selection = self.template_list.selection()
         if not selection:
             return
 
-        name = self.template_list.get(selection[0])
+        name = selection[0]
 
         if self.modified:
             if not messagebox.askyesno('Unsaved Changes',
