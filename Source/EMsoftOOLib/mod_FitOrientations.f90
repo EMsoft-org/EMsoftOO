@@ -102,11 +102,11 @@ use,INTRINSIC :: ISO_C_BINDING
            
 implicit none
 
-integer(c_size_t),intent(in)            :: ipar(10)
-real(sgl),intent(in)                    :: initmeanval(3)
-real(sgl),intent(in)                    :: stepsize(3)
+integer(c_size_t),INTENT(IN)            :: ipar(10)
+real(sgl),INTENT(IN)                    :: initmeanval(3)
+real(sgl),INTENT(IN)                    :: stepsize(3)
 
-real(c_float),intent(in)                :: expt(ipar(2)*ipar(3)/ipar(1)**2)
+real(c_float),INTENT(IN)                :: expt(ipar(2)*ipar(3)/ipar(1)**2)
 real(kind=sgl),INTENT(IN)               :: accum(ipar(6),ipar(2),ipar(3))
 real(kind=sgl),INTENT(IN)               :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
 real(kind=sgl),INTENT(IN)               :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
@@ -115,11 +115,11 @@ real(kind=sgl),INTENT(IN)               :: rgy(ipar(2),ipar(3))
 real(kind=sgl),INTENT(IN)               :: rgz(ipar(2),ipar(3))
 real(kind=sgl),INTENT(IN)               :: mask(ipar(2)/ipar(1),ipar(3)/ipar(1))
 real(kind=dbl),INTENT(IN)               :: prefactor
-integer(irg),intent(in)                 :: n
-real(dbl),dimension(n),intent(in)       :: X
-real(dbl),intent(out)                   :: f
-real(kind=sgl),intent(IN)               :: gammaval
-logical,intent(in),optional             :: verbose
+integer(irg),INTENT(IN)                 :: n
+real(dbl),dimension(n),INTENT(IN)       :: X
+real(dbl),INTENT(OUT)                   :: f
+real(kind=sgl),INTENT(IN)               :: gammaval
+logical,INTENT(IN),optional             :: verbose
 
 type(EBSD_T)                            :: EBSD
 type(IO_T)                              :: Message 
@@ -330,11 +330,11 @@ use,INTRINSIC :: ISO_C_BINDING
            
 implicit none
 
-integer(c_size_t),intent(in)            :: ipar(10)
-real(sgl),intent(in)                    :: initmeanval(3)
-real(sgl),intent(in)                    :: stepsize(3)
+integer(c_size_t),INTENT(IN)            :: ipar(10)
+real(sgl),INTENT(IN)                    :: initmeanval(3)
+real(sgl),INTENT(IN)                    :: stepsize(3)
 
-real(c_float),intent(in)                :: expt(ipar(2)*ipar(3)/ipar(1)**2)
+real(c_float),INTENT(IN)                :: expt(ipar(2)*ipar(3)/ipar(1)**2)
 real(kind=sgl),INTENT(IN)               :: accum(ipar(6),ipar(2),ipar(3))
 real(kind=sgl),INTENT(IN)               :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
 real(kind=sgl),INTENT(IN)               :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
@@ -343,11 +343,11 @@ real(kind=sgl),INTENT(IN)               :: rgy(ipar(2),ipar(3))
 real(kind=sgl),INTENT(IN)               :: rgz(ipar(2),ipar(3))
 real(kind=sgl),INTENT(IN)               :: mask(ipar(2)/ipar(1),ipar(3)/ipar(1))
 real(kind=dbl),INTENT(IN)               :: prefactor
-integer(irg),intent(in)                 :: n
-real(dbl),dimension(n),intent(in)       :: X
-real(dbl),intent(out)                   :: f
-real(kind=sgl),intent(IN)               :: gammaval
-logical,intent(in),optional             :: verbose
+integer(irg),INTENT(IN)                 :: n
+real(dbl),dimension(n),INTENT(IN)       :: X
+real(dbl),INTENT(OUT)                   :: f
+real(kind=sgl),INTENT(IN)               :: gammaval
+logical,INTENT(IN),optional             :: verbose
 
 type(ECP_T)                             :: ECP
 type(IO_T)                              :: Message 

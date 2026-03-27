@@ -827,13 +827,13 @@ use mod_io
 
 IMPLICIT NONE
 
-integer(kind=irg), intent(in), OPTIONAL :: SGnumber
-integer(kind=irg), intent(in), OPTIONAL :: xtalSystem
-integer(kind=irg), intent(in), OPTIONAL :: setting
-real(kind=dbl), intent(in),OPTIONAL     :: dmt(3,3)
-real(kind=dbl), intent(in),OPTIONAL     :: rmt(3,3)
-logical, intent(in), OPTIONAL           :: useHall
-integer(kind=irg), intent(in), OPTIONAL :: HallSGnumber
+integer(kind=irg), INTENT(IN), OPTIONAL :: SGnumber
+integer(kind=irg), INTENT(IN), OPTIONAL :: xtalSystem
+integer(kind=irg), INTENT(IN), OPTIONAL :: setting
+real(kind=dbl), INTENT(IN),OPTIONAL     :: dmt(3,3)
+real(kind=dbl), INTENT(IN),OPTIONAL     :: rmt(3,3)
+logical, INTENT(IN), OPTIONAL           :: useHall
+integer(kind=irg), INTENT(IN), OPTIONAL :: HallSGnumber
 
 type(IO_T)                              :: Message
 type(PointGroup_T)                      :: PG 
@@ -1030,7 +1030,7 @@ recursive subroutine SpaceGroup_destructor(self)
 
 IMPLICIT NONE
 
-type(SpaceGroup_T), intent(inout)     :: self
+type(SpaceGroup_T), INTENT(INOUT)     :: self
 
 call reportDestructor('SpaceGroup_T')
 
@@ -1052,8 +1052,8 @@ type(PointGroup_T) function PointGroup_constructor( SG, dmt, rmt ) result(PG)
 IMPLICIT NONE
 
 class(SpaceGroup_T), INTENT(INOUT)  :: SG
-real(kind=dbl), intent(in)          :: dmt(3,3)
-real(kind=dbl), intent(in)          :: rmt(3,3)
+real(kind=dbl), INTENT(IN)          :: dmt(3,3)
+real(kind=dbl), INTENT(IN)          :: rmt(3,3)
 
 integer(kind=irg)                   :: i, pgnum, SGnumber 
 
@@ -1102,7 +1102,7 @@ recursive subroutine PointGroup_destructor(self)
 
 IMPLICIT NONE
 
-type(PointGroup_T), intent(inout)     :: self
+type(PointGroup_T), INTENT(INOUT)     :: self
 
 call reportDestructor('SpaceGroup_T')
 
@@ -1121,7 +1121,7 @@ recursive subroutine resetSpaceGroup_(self)
 
 IMPLICIT NONE
 
-class(SpaceGroup_T), intent(inout)     :: self
+class(SpaceGroup_T), INTENT(INOUT)     :: self
 
 if (allocated(self%data)) deallocate(self%data)
 if (allocated(self%direc)) deallocate(self%direc)
@@ -1153,7 +1153,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(SpaceGroup_T), intent(inout)     :: self
+class(SpaceGroup_T), INTENT(INOUT)     :: self
 
 type(IO_T)                             :: Message
 integer(kind=irg)                      :: io_int(1)
@@ -1214,7 +1214,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(SpaceGroup_T), intent(inout)     :: self
+class(SpaceGroup_T), INTENT(INOUT)     :: self
 
 type(IO_T)                             :: Message
 integer(kind=irg)                      :: sgmin,sgmax,i,j,TRIG(7), io_int(1), HallSGnumber
@@ -1368,7 +1368,7 @@ use mod_HallSG
 
 IMPLICIT NONE
 
-class(SpaceGroup_T), intent(inout)      :: self
+class(SpaceGroup_T), INTENT(INOUT)      :: self
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: io_int(1), TRIG(7)
@@ -1514,7 +1514,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(SpaceGroup_T),intent(inout)     :: self
+class(SpaceGroup_T),INTENT(INOUT)     :: self
 
 real(kind=dbl)                        :: lp(6)
 

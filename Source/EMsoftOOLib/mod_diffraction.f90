@@ -902,7 +902,7 @@ module mod_diffraction
   IMPLICIT NONE
   
   class(Diffraction_T),INTENT(INOUT)      :: self
-  logical,optional,intent(INOUT)          :: first
+  logical,optional,INTENT(INOUT)          :: first
    !! switch for long/short output
   
   type(IO_T)                              :: Message

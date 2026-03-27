@@ -59,10 +59,10 @@ contains
   !DEC$ ATTRIBUTES DLLEXPORT :: RescaleImage
     use mod_io
   implicit none
-    real   (kind=dbl     ),INTENT(IN   )          :: in (1:,:)
+    real   (kind=dbl     ),INTENT(IN)          :: in (1:,:)
     real   (kind=dbl     ),INTENT(INOUT)          :: out(1:,:)
 !f2py intent(in,out) ::  out
-    logical               ,INTENT(IN   ),optional :: dc0
+    logical               ,INTENT(IN),optional :: dc0
 
     real   (kind=dbl     )                        :: s
     integer(kind=irg     )                        :: iIn(2), iOut(2)
@@ -99,9 +99,9 @@ contains
   implicit none
     class  (ImageRescaler),INTENT(INOUT) :: this ! structure to initialize
 !f2py intent(in,out) ::  this ! structure to initialize
-    integer(kind=irg     ),INTENT(IN   ) :: w    ! input image width
-    integer(kind=irg     ),INTENT(IN   ) :: h    ! image height
-    real   (kind=dbl     ),INTENT(IN   ) :: s    ! scale factor such that output size is rounded from s * (w, h)
+    integer(kind=irg     ),INTENT(IN) :: w    ! input image width
+    integer(kind=irg     ),INTENT(IN) :: h    ! image height
+    real   (kind=dbl     ),INTENT(IN) :: s    ! scale factor such that output size is rounded from s * (w, h)
 
     integer(kind=irg     )               :: wMax, hMax
     type   (io_T         )               :: Message
@@ -204,7 +204,7 @@ contains
 !f2py intent(in,out) ::  this ! structure to use for rescaling
     real (kind=dbl     ),INTENT(INOUT) :: out(1:this%wOut, 1:this%hOut) ! structure to use for rescaling
 !f2py intent(in,out) ::  out
-    logical             ,INTENT(IN   ) :: dc0
+    logical             ,INTENT(IN) :: dc0
 
     ! first compute DCT of input image
     call fftw_execute_r2r(this%pFwd, this%pImIn, this%pImOut) ! do forward transformation
@@ -237,10 +237,10 @@ contains
   implicit none
     class  (ImageRescaler),INTENT(INOUT)          :: this ! structure to use for rescaling
 !f2py intent(in,out) ::  this ! structure to use for rescaling
-    integer(kind=1       ),INTENT(IN   )          :: in (1:this%wIn , 1:this%hIn ) ! structure to use for rescaling
+    integer(kind=1       ),INTENT(IN)          :: in (1:this%wIn , 1:this%hIn ) ! structure to use for rescaling
     real   (kind=dbl     ),INTENT(INOUT)          :: out(1:this%wOut, 1:this%hOut) ! structure to use for rescaling
 !f2py intent(in,out) ::  out
-    logical               ,INTENT(IN   ),optional :: dc0
+    logical               ,INTENT(IN),optional :: dc0
     logical                                       :: zer = .false.
     if(present(dc0)) zer = dc0
     this%pImIn = in ! copy input to fftw allocated array
@@ -257,10 +257,10 @@ contains
   implicit none
     class  (ImageRescaler),INTENT(INOUT)          :: this ! structure to use for rescaling
 !f2py intent(in,out) ::  this ! structure to use for rescaling
-    integer(kind=2       ),INTENT(IN   )          :: in (1:this%wIn , 1:this%hIn ) ! structure to use for rescaling
+    integer(kind=2       ),INTENT(IN)          :: in (1:this%wIn , 1:this%hIn ) ! structure to use for rescaling
     real   (kind=dbl     ),INTENT(INOUT)          :: out(1:this%wOut, 1:this%hOut) ! structure to use for rescaling
 !f2py intent(in,out) ::  out
-    logical               ,INTENT(IN   ),optional :: dc0
+    logical               ,INTENT(IN),optional :: dc0
     logical                                       :: zer = .false.
     if(present(dc0)) zer = dc0
     this%pImIn = in ! copy input to fftw allocated array
@@ -277,10 +277,10 @@ contains
   implicit none
     class(ImageRescaler),INTENT(INOUT)          :: this ! structure to use for rescaling
 !f2py intent(in,out) ::  this ! structure to use for rescaling
-    real (kind=sgl     ),INTENT(IN   )          :: in (1:this%wIn , 1:this%hIn ) ! structure to use for rescaling
+    real (kind=sgl     ),INTENT(IN)          :: in (1:this%wIn , 1:this%hIn ) ! structure to use for rescaling
     real (kind=dbl     ),INTENT(INOUT)          :: out(1:this%wOut, 1:this%hOut) ! structure to use for rescaling
 !f2py intent(in,out) ::  out
-    logical             ,INTENT(IN   ),optional :: dc0
+    logical             ,INTENT(IN),optional :: dc0
     logical                                     :: zer = .false.
     if(present(dc0)) zer = dc0
     this%pImIn = in ! copy input to fftw allocated array
@@ -297,10 +297,10 @@ contains
   implicit none
     class(ImageRescaler),INTENT(INOUT)          :: this ! structure to use for rescaling
 !f2py intent(in,out) ::  this ! structure to use for rescaling
-    real (kind=dbl     ),INTENT(IN   )          :: in (1:this%wIn , 1:this%hIn ) ! structure to use for rescaling
+    real (kind=dbl     ),INTENT(IN)          :: in (1:this%wIn , 1:this%hIn ) ! structure to use for rescaling
     real (kind=dbl     ),INTENT(INOUT)          :: out(1:this%wOut, 1:this%hOut) ! structure to use for rescaling
 !f2py intent(in,out) ::  out
-    logical             ,INTENT(IN   ),optional :: dc0
+    logical             ,INTENT(IN),optional :: dc0
     logical                                     :: zer = .false.
     if(present(dc0)) zer = dc0
     this%pImIn = in ! copy input to fftw allocated array

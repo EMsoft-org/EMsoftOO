@@ -1494,9 +1494,9 @@ recursive subroutine ifftshift(dims, X, Y)
 
 IMPLICIT NONE
 
-integer(kind=irg),intent(in)                    :: dims(2)
-real(kind=dbl),intent(in)                       :: X(dims(1),dims(2))
-real(kind=dbl),intent(out)                      :: Y(dims(1),dims(2))
+integer(kind=irg),INTENT(IN)                    :: dims(2)
+real(kind=dbl),INTENT(IN)                       :: X(dims(1),dims(2))
+real(kind=dbl),INTENT(OUT)                      :: Y(dims(1),dims(2))
 
 ! shift the quadrants
 if (mod(dims(1),2).eq.0) then

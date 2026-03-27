@@ -201,8 +201,8 @@ contains
 ! Seeds the RNG using a single integer and a default seed vector.
 recursive subroutine rng_seed(self, seed)
 !DEC$ ATTRIBUTES DLLEXPORT :: rng_seed
-    type(rng_t), intent(inout) :: self
-    integer, intent(in) :: seed
+    type(rng_t), INTENT(INOUT) :: self
+    integer, INTENT(IN) :: seed
 
     self%state(1) = seed
     self%state(2:ns) = rng_default_seed(2:ns)
@@ -213,7 +213,7 @@ end subroutine rng_seed
 recursive function rng_uniform(self) result(u)
 !DEC$ ATTRIBUTES DLLEXPORT :: rng_uniform
 
-    type(rng_t), intent(inout) :: self
+    type(rng_t), INTENT(INOUT) :: self
     real :: u
     integer :: imz
 
@@ -297,7 +297,7 @@ end function rng_uniform
 
     intrinsic :: ibits, ior, ishft
 
-    integer( kind = wi ), intent( in )  :: a, b
+    integer( kind = wi ), INTENT(IN)  :: a, b
 
     integer( kind = wi )  :: c
 
@@ -318,7 +318,7 @@ end function rng_uniform
 
     intrinsic :: ibits, ior, ishft
 
-    integer( kind = wi ), intent( in )  :: a, b
+    integer( kind = wi ), INTENT(IN)  :: a, b
 
     integer( kind = wi )  :: c
 
@@ -339,7 +339,7 @@ end function rng_uniform
 
     intrinsic :: ibits, ior, ishft
 
-    integer(kind=wi), intent(in)  :: a, b
+    integer(kind=wi), INTENT(IN)  :: a, b
 
     integer(kind=wi)  :: c
 
@@ -370,7 +370,7 @@ end function rng_uniform
     
     intrinsic :: btest, ishft
 
-    integer(kind=wi), intent(in)  :: a, b
+    integer(kind=wi), INTENT(IN)  :: a, b
 
     integer(kind=wi)  :: c
 
@@ -407,7 +407,7 @@ end function rng_uniform
     
     intrinsic :: modulo, btest, ishft
 
-    integer(kind=wi), intent(in)  :: a, b
+    integer(kind=wi), INTENT(IN)  :: a, b
 
     integer(kind=wi)  :: c
 
@@ -444,8 +444,8 @@ end function rng_uniform
 
     intrinsic :: present
 
-    type(genrand_state), optional, intent(in ) :: put
-    type(genrand_state), optional, intent(out) :: get
+    type(genrand_state), optional, INTENT(IN) :: put
+    type(genrand_state), optional, INTENT(OUT) :: get
 
     if ( present( put ) ) then
       if ( put%ini ) state = put
@@ -466,7 +466,7 @@ end function rng_uniform
 
     integer(kind=wi), parameter :: mult_a = 1812433253_wi !z'6C078965'
 
-    integer(kind=wi), intent(in)  :: put
+    integer(kind=wi), INTENT(IN)  :: put
 
     integer(kind=wi)  :: i
 
@@ -500,7 +500,7 @@ end function rng_uniform
     integer(kind=wi), parameter :: mult_b =  1566083941_wi !z'5D588B65'
     integer(kind=wi), parameter :: msb1_d = ishft( 1_wi, fbs-1 ) !z'80000000'
 
-    integer(kind=wi), dimension(:), intent(in)  :: put
+    integer(kind=wi), dimension(:), INTENT(IN)  :: put
 
     integer(kind=wi)  :: i, j, k, tp, key_length
 
@@ -573,8 +573,8 @@ end function rng_uniform
     
     intrinsic :: len
 
-    character(len=*), intent(out) :: chr
-    integer(kind=wi), intent(in ) :: val
+    character(len=*), INTENT(OUT) :: chr
+    integer(kind=wi), INTENT(IN) :: val
     
     integer(kind=wi)  :: i, m, d
 
@@ -594,8 +594,8 @@ end function rng_uniform
     
     intrinsic :: len, len_trim, trim, adjustl, scan
 
-    integer(kind=wi), intent(out) :: val
-    character(len=*), intent(in ) :: chr
+    integer(kind=wi), INTENT(OUT) :: val
+    character(len=*), INTENT(IN) :: chr
     
     integer(kind=wi)        :: i, e, p
     character(len=len(chr)) :: c
@@ -618,8 +618,8 @@ end function rng_uniform
 
     intrinsic :: scan
 
-    type(genrand_state), intent(out)  :: stt
-    type(genrand_srepr), intent(in )  :: rpr
+    type(genrand_state), INTENT(OUT)  :: stt
+    type(genrand_srepr), INTENT(IN)  :: rpr
 
     integer(kind=wi)    :: i, j
     character(len=clen) :: c
@@ -646,8 +646,8 @@ end function rng_uniform
 
     intrinsic :: len_trim
 
-    type(genrand_srepr), intent(out) :: rpr
-    type(genrand_state), intent(in ) :: stt
+    type(genrand_srepr), INTENT(OUT) :: rpr
+    type(genrand_state), INTENT(IN) :: stt
 
     integer(kind=wi)  :: i, j
 
@@ -672,7 +672,7 @@ end function rng_uniform
     integer(kind=wi), parameter :: temper_a = -1658038656_wi !z'9D2C5680'
     integer(kind=wi), parameter :: temper_b =  -272236544_wi !z'EFC60000'
 
-    integer(kind=wi), intent(out) :: y
+    integer(kind=wi), INTENT(OUT) :: y
     
     if ( state%cnt > n ) call next_state( )
     y = state%val(state%cnt)
@@ -690,7 +690,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:), intent(out) :: y
+    integer(kind=wi), dimension(:), INTENT(OUT) :: y
 
     integer(kind=wi)  :: i
 
@@ -705,7 +705,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:), INTENT(OUT) :: y
     
     integer(kind=wi)  :: i
 
@@ -720,7 +720,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:), INTENT(OUT) :: y
     
     integer(kind=wi)  :: i
 
@@ -735,7 +735,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:,:), INTENT(OUT) :: y
     
     integer(kind=wi)  :: i
 
@@ -750,7 +750,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:,:,:), INTENT(OUT) :: y
     
     integer(kind=wi)  :: i
 
@@ -765,7 +765,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:,:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:,:,:,:), INTENT(OUT) :: y
     
     integer(kind=wi)  :: i
 
@@ -780,7 +780,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:,:,:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:,:,:,:,:), INTENT(OUT) :: y
     
     integer(kind=wi)  :: i
 
@@ -796,7 +796,7 @@ end function rng_uniform
 
     intrinsic :: ishft
 
-    integer(kind=wi), intent(out) :: y
+    integer(kind=wi), INTENT(OUT) :: y
 
     call genrand_int32_0d( y )
     y = ishft( y, -1 )
@@ -808,7 +808,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:), intent(out) :: y
+    integer(kind=wi), dimension(:), INTENT(OUT) :: y
 
     integer(kind=wi)  :: i
 
@@ -823,7 +823,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:), INTENT(OUT) :: y
 
     integer(kind=wi)  :: i
 
@@ -838,7 +838,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:), INTENT(OUT) :: y
 
     integer(kind=wi)  :: i
 
@@ -853,7 +853,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:,:), INTENT(OUT) :: y
 
     integer(kind=wi)  :: i
 
@@ -868,7 +868,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:,:,:), INTENT(OUT) :: y
 
     integer(kind=wi)  :: i
 
@@ -883,7 +883,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:,:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:,:,:,:), INTENT(OUT) :: y
 
     integer(kind=wi)  :: i
 
@@ -898,7 +898,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    integer(kind=wi), dimension(:,:,:,:,:,:,:), intent(out) :: y
+    integer(kind=wi), dimension(:,:,:,:,:,:,:), INTENT(OUT) :: y
 
     integer(kind=wi)  :: i
 
@@ -914,7 +914,7 @@ end function rng_uniform
 
     intrinsic :: real
 
-    real(kind=wr), intent(out)  :: r
+    real(kind=wr), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: a
 
@@ -929,7 +929,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:), intent(out)  :: r
+    real(kind=wr), dimension(:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -944,7 +944,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -959,7 +959,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -974,7 +974,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -989,7 +989,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1004,7 +1004,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1019,7 +1019,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1035,7 +1035,7 @@ end function rng_uniform
 
     intrinsic :: real
 
-    real(kind=wr), intent(out)  :: r
+    real(kind=wr), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: a
 
@@ -1050,7 +1050,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:), intent(out)  :: r
+    real(kind=wr), dimension(:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1065,7 +1065,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1080,7 +1080,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1095,7 +1095,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1110,7 +1110,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1125,7 +1125,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1140,7 +1140,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1156,7 +1156,7 @@ end function rng_uniform
 
     intrinsic :: real
 
-    real(kind=wr), intent(out)  :: r
+    real(kind=wr), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: a
 
@@ -1171,7 +1171,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:), intent(out)  :: r
+    real(kind=wr), dimension(:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1186,7 +1186,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1201,7 +1201,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1216,7 +1216,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1231,7 +1231,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1246,7 +1246,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1261,7 +1261,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1277,7 +1277,7 @@ end function rng_uniform
 
     intrinsic :: ishft, real
 
-    real(kind=wr), intent(out)  :: r
+    real(kind=wr), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: a, b
 
@@ -1294,7 +1294,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:), intent(out)  :: r
+    real(kind=wr), dimension(:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1309,7 +1309,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1324,7 +1324,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1339,7 +1339,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1354,7 +1354,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1369,7 +1369,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 
@@ -1384,7 +1384,7 @@ end function rng_uniform
 
     intrinsic :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:,:), intent(out)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT)  :: r
 
     integer(kind=wi)  :: i
 

@@ -317,8 +317,8 @@ real(kind=sgl)    :: l,r,h
 character(2)      :: hilo
 real(kind=sgl),parameter    :: hl(10) = (/0.0,1.0,1.50,2.0,2.50,3.0,4.0,5.0,6.0,8.0/)
 
-intent(IN)        :: n,hilo
-intent(INOUT)     :: l
+INTENT(IN)        :: n,hilo
+INTENT(INOUT)     :: l
 
  l=abs(l)
  r=power(1-n)
@@ -555,7 +555,7 @@ real(kind=sgl)                      :: xs,ys
 integer(kind=irg)                   :: n
 character(3)                        :: s
 
-intent(IN)                          :: n,s
+INTENT(IN)                          :: n,s
 
  if (s.eq.'BOT') then 
   xs=102

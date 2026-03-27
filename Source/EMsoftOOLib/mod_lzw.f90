@@ -74,7 +74,7 @@ contains
   ! @param this: dict to initialize
   subroutine dict_init(this)
  !DEC$ ATTRIBUTES DLLEXPORT :: dict_init
-   class(dict) , intent(inout) :: this ! dict to initialize
+   class(dict) , INTENT(INOUT) :: this ! dict to initialize
     integer                     :: i
     this%prevChar(:) = -1
     this%bits = 9
@@ -90,8 +90,8 @@ contains
   ! @return: length of string
   function dict_code_string_length(this, code) result(length)
  !DEC$ ATTRIBUTES DLLEXPORT :: dict_code_string_length
-   class(dict)   , intent(in) :: this
-    integer(int16), intent(in) :: code
+   class(dict)   , INTENT(IN) :: this
+    integer(int16), INTENT(IN) :: code
     integer(int16)             :: length, i
     length = 1
     i = code
@@ -108,10 +108,10 @@ contains
   ! @param endindex: index of final character position in string
   subroutine dict_build_code_string(this, code, string, endindex)
  !DEC$ ATTRIBUTES DLLEXPORT :: dict_build_code_string
-   class(dict)   , intent(in   ) :: this
-    integer(int16), intent(in   ) :: code
-    integer(int8 ), intent(inout) :: string(:)
-    integer       , intent(in   ) :: endindex
+   class(dict)   , INTENT(IN) :: this
+    integer(int16), INTENT(IN) :: code
+    integer(int8 ), INTENT(INOUT) :: string(:)
+    integer       , INTENT(IN) :: endindex
     integer(int16)                :: i, j
     i = code
     j = endindex
@@ -131,9 +131,9 @@ contains
   ! @return: bytes extracted
   function dict_decode(this, code, oldCode, string) result(count)
  !DEC$ ATTRIBUTES DLLEXPORT :: dict_decode
-   class(dict)   , intent(inout)              :: this
-    integer(int16), intent(in   )              :: code, oldCode
-    integer(int8 ), intent(inout), allocatable :: string(:)
+   class(dict)   , INTENT(INOUT)              :: this
+    integer(int16), INTENT(IN)              :: code, oldCode
+    integer(int8 ), INTENT(INOUT), allocatable :: string(:)
     integer                                    :: count
     integer                                    :: codeLength
     logical                                    :: codeInTable
@@ -186,8 +186,8 @@ contains
   ! @param encoded: encoded stream to read from
   subroutine stream_init(this, encoded)
 !DEC$ ATTRIBUTES DLLEXPORT :: stream_init
-    class(stream) , intent(inout)         :: this ! stream to initialize
-    integer(int8 ), intent(in   ), target :: encoded(:)
+    class(stream) , INTENT(INOUT)         :: this ! stream to initialize
+    integer(int8 ), INTENT(IN), target :: encoded(:)
     this%index = 1
     this%bitsLeft = 8
     this%encoded => encoded
@@ -199,7 +199,7 @@ contains
   ! @return: extracted bits padded to 16 bits wide
   function stream_extract(this) result(code)
  !DEC$ ATTRIBUTES DLLEXPORT :: stream_extract
-   class(stream) , intent(inout) :: this ! stream to extract bits from
+   class(stream) , INTENT(INOUT) :: this ! stream to extract bits from
     integer(int16)                :: code ! extracted bits padded to 16 wide
     integer(int16)                :: b0, b1, b2
     integer(int16), parameter     :: magicBytes (19)  = [   1,  3,  7, 15, 31, 63,127,255,&
@@ -236,10 +236,10 @@ contains
   ! @result bytesRead: bytes read into the the decoded array
   function lzw_decode(encoded, decoded) result(bytesRead)
 !DEC$ ATTRIBUTES DLLEXPORT :: lzw_decode
-    integer(int8 ), intent(in   ), target :: encoded(:)
+    integer(int8 ), INTENT(IN), target :: encoded(:)
     integer(int16)                        :: code, oldCode, i
     integer(int64)                        :: bytesRead
-    integer(int8 ), intent(inout)         :: decoded(:)
+    integer(int8 ), INTENT(INOUT)         :: decoded(:)
     integer(int8 ), allocatable           :: string(:)
     type(stream)                          :: strm
 

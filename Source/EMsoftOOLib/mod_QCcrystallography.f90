@@ -1838,7 +1838,7 @@ recursive subroutine TransSpaceQC5_(self, t, d, inspace, outspace)
 
 IMPLICIT NONE
 
-class(QCcell_axial_T),intent(inout)   :: self
+class(QCcell_axial_T),INTENT(INOUT)   :: self
 real(kind=dbl),INTENT(IN)             :: t(5)
 real(kind=dbl),INTENT(OUT)            :: d(5)
 character(1),INTENT(IN)               :: inspace
@@ -1902,7 +1902,7 @@ recursive subroutine TransSpaceQC6_(self, t, d, inspace, outspace)
 
 IMPLICIT NONE
 
-class(QCcell_icosahedral_T),intent(inout)   :: self
+class(QCcell_icosahedral_T),INTENT(INOUT)   :: self
 real(kind=dbl),INTENT(IN)                   :: t(6)
 real(kind=dbl),INTENT(OUT)                  :: d(6)
 character(1),INTENT(IN)                     :: inspace
@@ -2562,7 +2562,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(QCcell_T),intent(inout)           :: self
+class(QCcell_T),INTENT(INOUT)           :: self
 type (IO_T)                             :: Message
 
 call Message%printMessage( (/ &

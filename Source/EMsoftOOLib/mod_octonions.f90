@@ -332,7 +332,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OctonionArray_T),intent(in)   :: self, y
+class(OctonionArray_T),INTENT(IN)   :: self, y
 type(OctonionArray_T)               :: oct
 
 type(IO_T)                          :: Message
@@ -407,7 +407,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OctonionArray_T),intent(in)   :: self, y
+class(OctonionArray_T),INTENT(IN)   :: self, y
 type(OctonionArray_T)               :: oct
 
 type(IO_T)                          :: Message
@@ -501,7 +501,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OctonionArray_T),intent(in)   :: self, y
+class(OctonionArray_T),INTENT(IN)   :: self, y
 type(OctonionArray_T)               :: oct
 
 type(IO_T)                          :: Message
@@ -676,7 +676,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OctonionArray_T),intent(in)   :: self, y
+class(OctonionArray_T),INTENT(IN)   :: self, y
 type(OctonionArray_T)               :: oct
 
 type(IO_T)                          :: Message
@@ -1314,7 +1314,7 @@ recursive subroutine o_arrayprint_(self, listN)
 
 IMPLICIT NONE 
 
-class(OctonionArray_T),intent(in)     :: self
+class(OctonionArray_T),INTENT(IN)     :: self
 integer(kind=irg),INTENT(IN),OPTIONAL :: listN
 
 type(Octonion_T)                      :: oct

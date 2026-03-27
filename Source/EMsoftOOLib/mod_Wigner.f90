@@ -1350,7 +1350,7 @@ contains
 
   IMPLICIT NONE
 
-    integer(kind=ill),INTENT(IN )            :: bw
+    integer(kind=ill),INTENT(IN)            :: bw
     logical                                  :: pass
 
     real(kind=dbl)                           :: wigD1(    0:bw-1,0:bw-1,0:bw-1)

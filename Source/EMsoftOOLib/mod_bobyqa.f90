@@ -68,22 +68,22 @@ module mod_bobyqa
             use,INTRINSIC :: ISO_C_BINDING
             implicit none
   
-            integer(irg),intent(in)              :: nipar
-            integer(irg),intent(in)              :: nfpar
-            integer(irg),intent(in)              :: ninit
-            integer(irg),intent(in)              :: nstep
-            integer(c_size_t),intent(in)         :: ipar(nipar)
-            real(sgl),intent(inout)              :: fpar(nfpar)
-            real(sgl),intent(in)                 :: stepsize(nstep)
-            real(sgl),intent(in)                 :: initmeanval(ninit)
-            real(c_float),intent(in)             :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
-            real(sgl),intent(in)                 :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
-            real(sgl),intent(in)                 :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-            real(sgl),intent(in)                 :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-            integer(irg),intent(in)              :: n
-            real(dbl),dimension(3),intent(in)    :: x
-            real(dbl),intent(out)                :: f
-            logical,intent(in),optional          :: verbose
+            integer(irg),INTENT(IN)              :: nipar
+            integer(irg),INTENT(IN)              :: nfpar
+            integer(irg),INTENT(IN)              :: ninit
+            integer(irg),INTENT(IN)              :: nstep
+            integer(c_size_t),INTENT(IN)         :: ipar(nipar)
+            real(sgl),INTENT(INOUT)              :: fpar(nfpar)
+            real(sgl),INTENT(IN)                 :: stepsize(nstep)
+            real(sgl),INTENT(IN)                 :: initmeanval(ninit)
+            real(c_float),INTENT(IN)             :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
+            real(sgl),INTENT(IN)                 :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
+            real(sgl),INTENT(IN)                 :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+            real(sgl),INTENT(IN)                 :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+            integer(irg),INTENT(IN)              :: n
+            real(dbl),dimension(3),INTENT(IN)    :: x
+            real(dbl),INTENT(OUT)                :: f
+            logical,INTENT(IN),optional          :: verbose
         end subroutine func
     end interface
  
@@ -133,49 +133,49 @@ contains
 
         implicit none
                 
-        integer(irg),intent(in)             :: ninit
-        integer(irg),intent(in)             :: nipar
-        integer(irg),intent(in)             :: nfpar
-        integer(irg),intent(in)             :: nstep        
-        integer(8),intent(in)               :: ipar(nipar)
-        real(sgl),intent(inout)             :: fpar(nfpar)
-        real(sgl),intent(in)                :: initmeanval(ninit)
-        real(sgl),intent(in)                :: stepsize(nstep)
-        real(c_float),intent(in)            :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
-        real(sgl),intent(in)                :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
-        real(sgl),intent(in)                :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-        real(sgl),intent(in)                :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-        logical,intent(in),optional         :: verbose
+        integer(irg),INTENT(IN)             :: ninit
+        integer(irg),INTENT(IN)             :: nipar
+        integer(irg),INTENT(IN)             :: nfpar
+        integer(irg),INTENT(IN)             :: nstep        
+        integer(8),INTENT(IN)               :: ipar(nipar)
+        real(sgl),INTENT(INOUT)             :: fpar(nfpar)
+        real(sgl),INTENT(IN)                :: initmeanval(ninit)
+        real(sgl),INTENT(IN)                :: stepsize(nstep)
+        real(c_float),INTENT(IN)            :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
+        real(sgl),INTENT(IN)                :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
+        real(sgl),INTENT(IN)                :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+        real(sgl),INTENT(IN)                :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+        logical,INTENT(IN),optional         :: verbose
  
-        integer,intent(in)                  :: n       !! number of variables (must be at least two)
-        integer,intent(in)                  :: npt     !! number of interpolation conditions. Its value must be in
+        integer,INTENT(IN)                  :: n       !! number of variables (must be at least two)
+        integer,INTENT(IN)                  :: npt     !! number of interpolation conditions. Its value must be in
                                                        !! the interval [N+2,(N+1)(N+2)/2]. Choices that exceed 2*N+1 are not
                                                        !! recommended.
-        real(dbl),dimension(n),intent(inout) :: x       !! Initial values of the variables must be set in X(1),X(2),...,X(N). They
+        real(dbl),dimension(n),INTENT(INOUT) :: x       !! Initial values of the variables must be set in X(1),X(2),...,X(N). They
                                                        !! will be changed to the values that give the least calculated F.
-        real(dbl),dimension(n),intent(in)    :: xl      !! lower bounds on x. The construction of quadratic models
+        real(dbl),dimension(n),INTENT(IN)    :: xl      !! lower bounds on x. The construction of quadratic models
                                                        !! requires XL(I) to be strictly less than XU(I) for each I. Further,
                                                        !! the contribution to a model from changes to the I-th variable is
                                                        !! damaged severely by rounding errors if XU(I)-XL(I) is too small.
-        real(dbl),dimension(n),intent(in)    :: xu      !! upper bounds on x. The construction of quadratic models
+        real(dbl),dimension(n),INTENT(IN)    :: xu      !! upper bounds on x. The construction of quadratic models
                                                        !! requires XL(I) to be strictly less than XU(I) for each I. Further,
                                                        !! the contribution to a model from changes to the I-th variable is
                                                        !! damaged severely by rounding errors if XU(I)-XL(I) is too small.
-        real(dbl),intent(in)                 :: rhobeg  !! RHOBEG must be set to the initial value of a trust region radius.  
+        real(dbl),INTENT(IN)                 :: rhobeg  !! RHOBEG must be set to the initial value of a trust region radius.  
                                                        !! It must be positive, and typically should be about one tenth of the greatest
                                                        !! expected change to a variable.  An error return occurs if any of 
                                                        !! the differences XU(I)-XL(I), I=1,...,N, is less than 2*RHOBEG.
-        real(dbl),intent(in)                 :: rhoend  !! RHOEND must be set to the final value of a trust
+        real(dbl),INTENT(IN)                 :: rhoend  !! RHOEND must be set to the final value of a trust
                                                        !! region radius. It must be positive with RHOEND no greater than
                                                        !! RHOBEG. Typically, RHOEND should indicate the
                                                        !! accuracy that is required in the final values of the variables.
-        integer,intent(in)                  :: iprint  !! IPRINT should be set to 0, 1, 2 or 3, which controls the
+        integer,INTENT(IN)                  :: iprint  !! IPRINT should be set to 0, 1, 2 or 3, which controls the
                                                        !! amount of printing. Specifically, there is no output if IPRINT=0 and
                                                        !! there is output only at the return if IPRINT=1. Otherwise, each new
                                                        !! value of RHO is printed, with the best vector of variables so far and
                                                        !! the corresponding value of the objective function. Further, each new
                                                        !! value of F with its variables are output if IPRINT=3.
-        integer,intent(in)                  :: maxfun  !! an upper bound on the number of calls of CALFUN.
+        integer,INTENT(IN)                  :: maxfun  !! an upper bound on the number of calls of CALFUN.
         procedure (func)                    :: calfun  !! SUBROUTINE CALFUN (N,X,F) has to be provided by the user. It must set
                                                        !! F to the value of the objective function for the current values of the
                                                        !! variables X(1),X(2),...,X(N), which are generated automatically in a
@@ -295,19 +295,19 @@ contains
 
         implicit real (dbl) (a-h, o-z)
         
-        integer(8),intent(in)       :: ipar(nipar)
-        real(sgl),intent(inout)     :: fpar(nfpar)
-        real(sgl),intent(in)        :: initmeanval(ninit)
-        integer(irg),intent(in)     :: ninit
-        integer(irg),intent(in)     :: nipar
-        integer(irg),intent(in)     :: nfpar
-        integer(irg),intent(in)     :: nstep
-        real(sgl),intent(in)        :: stepsize(nstep)
-        real(c_float),intent(in)             :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
-        real(sgl),intent(in)                 :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
-        real(sgl),intent(in)                 :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-        real(sgl),intent(in)                 :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-        logical,intent(in),optional :: verbose
+        integer(8),INTENT(IN)       :: ipar(nipar)
+        real(sgl),INTENT(INOUT)     :: fpar(nfpar)
+        real(sgl),INTENT(IN)        :: initmeanval(ninit)
+        integer(irg),INTENT(IN)     :: ninit
+        integer(irg),INTENT(IN)     :: nipar
+        integer(irg),INTENT(IN)     :: nfpar
+        integer(irg),INTENT(IN)     :: nstep
+        real(sgl),INTENT(IN)        :: stepsize(nstep)
+        real(c_float),INTENT(IN)             :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
+        real(sgl),INTENT(IN)                 :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
+        real(sgl),INTENT(IN)                 :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+        real(sgl),INTENT(IN)                 :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+        logical,INTENT(IN),optional :: verbose
         dimension x (*), xl (*), xu (*), xbase (*), xpt (npt,*), fval (*), xopt (*), &
                   gopt (*), hq (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*), &
                   xnew (*), xalt (*), d (*), vlag (*), w (*)
@@ -1375,19 +1375,19 @@ contains
    
         implicit real (dbl) (a-h, o-z)
 
-        integer(8),intent(in)       :: ipar(nipar)
-        real(sgl),intent(inout)     :: fpar(nfpar)
-        real(sgl),intent(in)        :: initmeanval(ninit)
-        integer(irg),intent(in)     :: ninit
-        integer(irg),intent(in)     :: nipar
-        integer(irg),intent(in)     :: nfpar
-        integer(irg),intent(in)     :: nstep
-        real(sgl),intent(in)        :: stepsize(nstep)
-        real(c_float),intent(in)    :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
-        real(sgl),intent(in)        :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
-        real(sgl),intent(in)        :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-        real(sgl),intent(in)        :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-        logical,intent(in),optional :: verbose   
+        integer(8),INTENT(IN)       :: ipar(nipar)
+        real(sgl),INTENT(INOUT)     :: fpar(nfpar)
+        real(sgl),INTENT(IN)        :: initmeanval(ninit)
+        integer(irg),INTENT(IN)     :: ninit
+        integer(irg),INTENT(IN)     :: nipar
+        integer(irg),INTENT(IN)     :: nfpar
+        integer(irg),INTENT(IN)     :: nstep
+        real(sgl),INTENT(IN)        :: stepsize(nstep)
+        real(c_float),INTENT(IN)    :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
+        real(sgl),INTENT(IN)        :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
+        real(sgl),INTENT(IN)        :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+        real(sgl),INTENT(IN)        :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+        logical,INTENT(IN),optional :: verbose   
         dimension x (*), xl (*), xu (*), xbase (*), xpt (npt,*), fval (*), gopt (*), hq &
        & (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*)
         procedure (func) :: calfun
@@ -1570,19 +1570,19 @@ contains
    
         implicit real (dbl) (a-h, o-z)
 
-        integer(8),intent(in)       :: ipar(nipar)
-        real(sgl),intent(inout)     :: fpar(nfpar) 
-        real(sgl),intent(in)        :: initmeanval(ninit)
-        integer(irg),intent(in)     :: ninit
-        integer(irg),intent(in)     :: nipar
-        integer(irg),intent(in)     :: nfpar
-        integer(irg),intent(in)     :: nstep
-        real(sgl),intent(in)        :: stepsize(nstep)
-        real(c_float),intent(in)    :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
-        real(sgl),intent(in)        :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
-        real(sgl),intent(in)        :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-        real(sgl),intent(in)        :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
-        logical,intent(in),optional :: verbose   
+        integer(8),INTENT(IN)       :: ipar(nipar)
+        real(sgl),INTENT(INOUT)     :: fpar(nfpar) 
+        real(sgl),INTENT(IN)        :: initmeanval(ninit)
+        integer(irg),INTENT(IN)     :: ninit
+        integer(irg),INTENT(IN)     :: nipar
+        integer(irg),INTENT(IN)     :: nfpar
+        integer(irg),INTENT(IN)     :: nstep
+        real(sgl),INTENT(IN)        :: stepsize(nstep)
+        real(c_float),INTENT(IN)    :: expt1(ipar(2)*ipar(3)/ipar(12)**2)
+        real(sgl),INTENT(IN)        :: accum_e(ipar(4),-ipar(5):ipar(5),-ipar(5):ipar(5))
+        real(sgl),INTENT(IN)        :: mLPNH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+        real(sgl),INTENT(IN)        :: mLPSH(-ipar(6):ipar(6), -ipar(6):ipar(6), ipar(10), ipar(7))
+        logical,INTENT(IN),optional :: verbose   
       
         dimension xl (*), xu (*), xbase (*), xpt (npt,*), fval (*), xopt (*), gopt (*), &
        & hq (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*), vlag (*), ptsaux &

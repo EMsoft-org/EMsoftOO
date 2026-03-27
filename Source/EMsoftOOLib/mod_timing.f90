@@ -149,7 +149,7 @@ recursive subroutine Time_tick(self, n)
 IMPLICIT NONE
 
 class(Timing_T)                         :: self
-integer(kind=irg), intent(IN), OPTIONAL :: n
+integer(kind=irg), INTENT(IN), OPTIONAL :: n
  !! integer labeling the counter to be used
 
 integer(kind=irg)                       :: i, t
@@ -175,7 +175,7 @@ recursive subroutine Time_tock(self, n)
 IMPLICIT NONE
 
 class(Timing_T)                         :: self
-integer(kind=irg), intent(in), OPTIONAL :: n
+integer(kind=irg), INTENT(IN), OPTIONAL :: n
  !! integer labeling the counter to be used
 
 integer(kind=irg)                       :: i, now, clock_rate
@@ -202,7 +202,7 @@ recursive subroutine Time_reset(self, n)
 IMPLICIT NONE
 
 class(Timing_T)                         :: self
-integer(kind=irg), intent(in), OPTIONAL :: n
+integer(kind=irg), INTENT(IN), OPTIONAL :: n
  !! selects which clock to reset; if absent, reset all
 
 integer(kind=irg)                       :: i
@@ -232,7 +232,7 @@ recursive function getInterval(self, n) result(t)
 IMPLICIT NONE
 
 class(Timing_T)                         :: self
-integer(kind=irg), intent(in), OPTIONAL :: n
+integer(kind=irg), INTENT(IN), OPTIONAL :: n
  !! optional selected timer
 
 real(kind=sgl)                          :: t
@@ -332,7 +332,7 @@ subroutine makeTimeStamp (self)
 
   IMPLICIT NONE
 
-  class(Timing_T),intent(inout)         :: self
+  class(Timing_T),INTENT(INOUT)         :: self
 
   integer(kind=irg)                     :: d, h, mo, mm, n, s, v(8), y
   character ( len = 8 )                 :: ampm, date

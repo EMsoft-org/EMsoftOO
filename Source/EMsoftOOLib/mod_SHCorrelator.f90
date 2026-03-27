@@ -189,7 +189,7 @@ contains
     use mod_Wigner
   implicit none
     class  (SphereXcConstants),INTENT(INOUT) :: this       ! structure to initialize
-    integer                   ,INTENT(IN   ) :: bw         ! bandwidth to initialize with
+    integer                   ,INTENT(IN) :: bw         ! bandwidth to initialize with
 
     ! clean up an existing object
     call this%destroy()
@@ -272,7 +272,7 @@ contains
   !DEC$ ATTRIBUTES DLLEXPORT :: SphereCorrelator_Init
   implicit none
     class  (SphereCorrelator),INTENT(INOUT) :: this     ! structure to initialize
-    integer                  ,INTENT(IN   ) :: bw       ! bandwidth to initialize with
+    integer                  ,INTENT(IN) :: bw       ! bandwidth to initialize with
 
     integer                                 :: bwP, slP ! since full name with xcLut is pretty long
 
@@ -377,13 +377,13 @@ contains
   implicit none
 
     class  (SphereCorrelator),INTENT(INOUT) :: this
-    complex(kind=dbl        ),INTENT(IN   ) :: flm(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
-    complex(kind=dbl        ),INTENT(IN   ) :: gln(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
-    logical                  ,INTENT(IN   ) :: fMr 
-    integer(kind=irg        ),INTENT(IN   ) :: fNf
+    complex(kind=dbl        ),INTENT(IN) :: flm(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
+    complex(kind=dbl        ),INTENT(IN) :: gln(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
+    logical                  ,INTENT(IN) :: fMr 
+    integer(kind=irg        ),INTENT(IN) :: fNf
     real   (kind=dbl        ),INTENT(INOUT) :: eu(0:2)
-    logical                  ,INTENT(IN   ) :: ref
-    real   (kind=dbl        ),INTENT(IN   ) :: eps
+    logical                  ,INTENT(IN) :: ref
+    real   (kind=dbl        ),INTENT(IN) :: eps
     real   (kind=dbl        )               :: peak
 
     integer                                 :: indMax(3)                                ! location of maximum cross correlation
@@ -460,8 +460,8 @@ contains
    implicit none
     real   (kind=dbl        ),INTENT(INOUT) :: a(0:n-1, 0:n-1) ! n by n symmetric matrix
     real   (kind=dbl        ),INTENT(INOUT) :: x(0:n-1)        ! n component vector (location to write result)
-    real   (kind=dbl        ),INTENT(IN   ) :: b(0:n-1)        ! n component vector a * x = b
-    integer(kind=irg        ),INTENT(IN   ) :: n               ! problem size
+    real   (kind=dbl        ),INTENT(IN) :: b(0:n-1)        ! n component vector a * x = b
+    integer(kind=irg        ),INTENT(IN) :: n               ! problem size
     logical                                 :: worked          ! return true on success, false otherwise
     logical                                 :: neg
     real                                    :: sum, d(0:n-1)
@@ -545,12 +545,12 @@ contains
   implicit none
 
     class  (SphereCorrelator),INTENT(INOUT) :: this
-    complex(kind=dbl        ),INTENT(IN   ) :: flm(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
-    complex(kind=dbl        ),INTENT(IN   ) :: gln(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
-    logical                  ,INTENT(IN   ) :: fMr 
-    integer(kind=irg        ),INTENT(IN   ) :: fNf
+    complex(kind=dbl        ),INTENT(IN) :: flm(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
+    complex(kind=dbl        ),INTENT(IN) :: gln(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
+    logical                  ,INTENT(IN) :: fMr 
+    integer(kind=irg        ),INTENT(IN) :: fNf
     real   (kind=dbl        ),INTENT(INOUT) :: eu(0:2)
-    real   (kind=dbl        ),INTENT(IN   ) :: eps
+    real   (kind=dbl        ),INTENT(IN) :: eps
     real   (kind=dbl        )               :: peak
 
     integer                                 :: iter, maxIter, info, n, nrhs, i
@@ -758,10 +758,10 @@ contains
   implicit none
 
     class  (SphereCorrelator) ,INTENT(INOUT) :: this
-    complex(kind=dbl         ),INTENT(IN   ) :: flm(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
-    complex(kind=dbl         ),INTENT(IN   ) :: gln(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
-    logical                   ,INTENT(IN   ) :: fMr 
-    integer(kind=irg         ),INTENT(IN   ) :: fNf
+    complex(kind=dbl         ),INTENT(IN) :: flm(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
+    complex(kind=dbl         ),INTENT(IN) :: gln(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
+    logical                   ,INTENT(IN) :: fMr 
+    integer(kind=irg         ),INTENT(IN) :: fNf
 
     integer                                  :: mBw , flmFold, glnFold, slP, bwP           ! storage for useful values
     logical                                  :: fMir, gMir   , mirror                      ! storage for useful values
@@ -972,14 +972,14 @@ contains
   implicit none
 
     class  (SphereCorrelator),INTENT(INOUT) :: this
-    complex(kind=dbl        ),INTENT(IN   ) :: flm(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
-    complex(kind=dbl        ),INTENT(IN   ) :: gln(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
+    complex(kind=dbl        ),INTENT(IN) :: flm(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
+    complex(kind=dbl        ),INTENT(IN) :: gln(0:this%xcLut%bw-1,0:this%xcLut%bw-1)
     real   (kind=dbl        ),INTENT(INOUT) :: eu(0:2)
     real   (kind=dbl        ),INTENT(INOUT) :: jac(0:2)
     real   (kind=dbl        ),INTENT(INOUT) :: hes(0:8)
-    integer(kind=irg        ),INTENT(IN   ) :: mBW 
-    logical                  ,INTENT(IN   ) :: fMr 
-    integer(kind=irg        ),INTENT(IN   ) :: fNf
+    integer(kind=irg        ),INTENT(IN) :: mBW 
+    logical                  ,INTENT(IN) :: fMr 
+    integer(kind=irg        ),INTENT(IN) :: fNf
     real   (kind=dbl        )               :: corr 
 
     integer(kind=irg        )               :: flmFold, glnFold, dJ, m, start, j, n, k
@@ -1280,9 +1280,9 @@ contains
 
   implicit none
 
-    real   (kind=dbl),INTENT(IN   ) :: p(-1:1,-1:1,-1:1)
+    real   (kind=dbl),INTENT(IN) :: p(-1:1,-1:1,-1:1)
     real   (kind=dbl),INTENT(INOUT) :: x(0:2)
-    integer(kind=irg),INTENT(IN   ) :: maxIter
+    integer(kind=irg),INTENT(IN) :: maxIter
     real   (kind=dbl)               :: vPeak
 
     integer(kind=irg)               :: i 
@@ -1489,8 +1489,8 @@ contains
 
   implicit none
 
-    complex(kind=dbl),INTENT(IN   ) :: ab
-    complex(kind=dbl),INTENT(IN   ) :: cd
+    complex(kind=dbl),INTENT(IN) :: ab
+    complex(kind=dbl),INTENT(IN) :: cd
     complex(kind=dbl),INTENT(INOUT) :: vp
     complex(kind=dbl),INTENT(INOUT) :: vc
 

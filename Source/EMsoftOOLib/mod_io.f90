@@ -158,7 +158,7 @@ subroutine printMessageSingle(self, mess, frm, advance, redirect)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)               :: self
+  class(IO_T),INTENT(INOUT)               :: self
 
   character(*),INTENT(IN)                 :: mess
    !! message string
@@ -205,7 +205,7 @@ subroutine printMessageMultiple(self, mess, frm, redirect)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)               :: self
+  class(IO_T),INTENT(INOUT)               :: self
 
   character(*),INTENT(IN)                 :: mess(:)
    !! message array of strings
@@ -245,7 +245,7 @@ subroutine printShortError(self, s1, s2)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)  :: s1
    !! first part of error message (routine name)
@@ -268,7 +268,7 @@ subroutine printErrorStatus(self, s1, status, s2)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)           :: self
+  class(IO_T),INTENT(INOUT)           :: self
 
   character(*), INTENT(IN)            :: s1
    !! first part of error message (routine name)
@@ -305,7 +305,7 @@ subroutine printWarning(self, s1, s2)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)           :: self
+  class(IO_T),INTENT(INOUT)           :: self
 
   character(*), INTENT(IN)            :: s1
    !! first part of error message (routine name)
@@ -342,7 +342,7 @@ subroutine ReadValueString(self, Qstring, rd_string, frm)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*),INTENT(IN)                         :: Qstring
    !! user prompt string
@@ -372,7 +372,7 @@ subroutine ReadValueStringArray(self, Qstring, rd_string, num, frm)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*),INTENT(IN)                         :: Qstring
    !! user prompt string
@@ -410,7 +410,7 @@ subroutine ReadValueIntShort(self, Qstring, rd_int, num)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! user prompt string
@@ -443,7 +443,7 @@ subroutine ReadValueIntLong(self, Qstring, rd_int, num)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! user prompt string
@@ -476,7 +476,7 @@ subroutine ReadValueRealSingle(self, Qstring, rd_real, num)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! user prompt string
@@ -509,7 +509,7 @@ subroutine ReadValueRealDouble(self, Qstring, rd_real, num)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! user prompt string
@@ -542,7 +542,7 @@ subroutine WriteValueString(self, Qstring, out_string, frm, advance, redirect)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*),INTENT(IN)                         :: Qstring
    !! comment string
@@ -600,7 +600,7 @@ subroutine WriteValueIntShort(self, Qstring, out_int, num, frm, advance, redirec
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -664,7 +664,7 @@ subroutine WriteValueIntLong(self, Qstring, out_int, num, frm, advance, redirect
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -728,7 +728,7 @@ subroutine WriteValueIntLongLong(self, Qstring, out_int, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -792,7 +792,7 @@ subroutine WriteValueRealSingle(self, Qstring, out_real, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -856,7 +856,7 @@ subroutine WriteValueRealDouble(self, Qstring, out_real, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! comment string
@@ -920,7 +920,7 @@ subroutine WriteValueRealComplex(self, Qstring, out_cmplx, num, frm, advance, re
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)                        :: Qstring
    !! comment string

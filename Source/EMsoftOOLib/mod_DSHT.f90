@@ -349,10 +349,10 @@ contains
     use mod_imageOPs
     use mod_Lambert
   implicit none
-    integer  (kind=irg),INTENT(IN   ) :: di
-    real     (kind=dbl),INTENT(IN   ) :: ni(-di:di,-di:di)
-    real     (kind=dbl),INTENT(IN   ) :: si(-di:di,-di:di)
-    integer  (kind=irg),INTENT(IN   ) :: do
+    integer  (kind=irg),INTENT(IN) :: di
+    real     (kind=dbl),INTENT(IN) :: ni(-di:di,-di:di)
+    real     (kind=dbl),INTENT(IN) :: si(-di:di,-di:di)
+    integer  (kind=irg),INTENT(IN) :: do
     real     (kind=dbl),INTENT(INOUT) :: no(-do:do,-do:do)
     real     (kind=dbl),INTENT(INOUT) :: so(-do:do,-do:do)
 
@@ -544,9 +544,9 @@ contains
 
   implicit none
 
-    integer(kind=irg),INTENT(IN   ) :: d 
-    real   (kind=dbl),INTENT(IN   ) :: MP(-d:d,-d:d)
-    integer(kind=irg),INTENT(IN   ) :: ringID
+    integer(kind=irg),INTENT(IN) :: d 
+    real   (kind=dbl),INTENT(IN) :: MP(-d:d,-d:d)
+    integer(kind=irg),INTENT(IN) :: ringID
     real   (kind=dbl),INTENT(INOUT) :: buffer(0:8*ringID-1)
 
     type   (io_T    )               :: Message
@@ -625,10 +625,10 @@ contains
 
   implicit none
 
-    integer(kind=irg),INTENT(IN   ) :: d 
+    integer(kind=irg),INTENT(IN) :: d 
     real   (kind=dbl),INTENT(INOUT) :: MP(-d:d,-d:d)
-    integer(kind=irg),INTENT(IN   ) :: ringID
-    real   (kind=dbl),INTENT(IN   ) :: buffer(0:8*ringID-1)
+    integer(kind=irg),INTENT(IN) :: ringID
+    real   (kind=dbl),INTENT(IN) :: buffer(0:8*ringID-1)
 
     type   (io_T    )               :: Message
     integer(kind=irg)               :: i, j, icol, jrow, idx
@@ -711,8 +711,8 @@ contains
   implicit none
 
     type   (DiscreteSHTConstants),INTENT(INOUT) :: SHTC 
-    integer(kind=irg            ),INTENT(IN   ) :: skp
-    integer(kind=irg            ),INTENT(IN   ) :: ind
+    integer(kind=irg            ),INTENT(IN) :: skp
+    integer(kind=irg            ),INTENT(IN) :: ind
 
     integer(kind=irg            )               :: dim, nMat, gridPoints, INFO, i, j, io_int(1)
     integer(kind=irg            ),allocatable   :: IPIV(:)
@@ -830,9 +830,9 @@ contains
   implicit none
 
     class    (DiscreteSHTConstants),INTENT(INOUT) :: this 
-    integer  (kind=irg            ),INTENT(IN   ) :: d 
-    integer  (kind=irg            ),INTENT(IN   ) :: l 
-    character(fnlen               ),INTENT(IN   ) :: layout
+    integer  (kind=irg            ),INTENT(IN) :: d 
+    integer  (kind=irg            ),INTENT(IN) :: l 
+    character(fnlen               ),INTENT(IN) :: layout
 
     integer  (kind=irg            )               :: n, m, m2, n2, i, y, Nr, limit
     type     (io_T                )               :: Message
@@ -975,9 +975,9 @@ contains
   implicit none
 
     class  (DiscreteSHT),INTENT(INOUT) :: this 
-    integer  (kind=irg ),INTENT(IN   ) :: d 
-    integer  (kind=irg ),INTENT(IN   ) :: l 
-    character(fnlen    ),INTENT(IN   ) :: layout
+    integer  (kind=irg ),INTENT(IN) :: d 
+    integer  (kind=irg ),INTENT(IN) :: l 
+    character(fnlen    ),INTENT(IN) :: layout
     integer(kind=irg   )               :: Npy
 
     ! clean up an existing object
@@ -1078,8 +1078,8 @@ contains
   implicit none
 
     class  (DiscreteSHT),INTENT(INOUT)   :: this 
-    real   (kind=dbl   ),INTENT(IN   )   :: mLPNH(-this%shtLut%d:this%shtLut%d     ,-this%shtLut%d:this%shtLut%d     ) 
-    real   (kind=dbl   ),INTENT(IN   )   :: mLPSH(-this%shtLut%d:this%shtLut%d     ,-this%shtLut%d:this%shtLut%d     ) 
+    real   (kind=dbl   ),INTENT(IN)   :: mLPNH(-this%shtLut%d:this%shtLut%d     ,-this%shtLut%d:this%shtLut%d     ) 
+    real   (kind=dbl   ),INTENT(IN)   :: mLPSH(-this%shtLut%d:this%shtLut%d     ,-this%shtLut%d:this%shtLut%d     ) 
     complex(kind=dbl   ),INTENT(INOUT)   :: alm  (             0:this%shtLut%maxL-1,             0:this%shtLut%maxL-1)
 
     integer(kind=irg        )            :: y, Npy, fftN, maxdim, mLim, m, d , n
@@ -1179,10 +1179,10 @@ contains
   implicit none
 
     class  (DiscreteSHT),INTENT(INOUT)       :: this 
-    complex(kind=dbl   ),INTENT(IN   )       :: alm(               0:this%shtLut%maxL-1,             0:this%shtLut%maxL-1)
+    complex(kind=dbl   ),INTENT(IN)       :: alm(               0:this%shtLut%maxL-1,             0:this%shtLut%maxL-1)
     real   (kind=dbl   ),INTENT(INOUT)       :: mLPNH(-this%shtLut%d:this%shtLut%d     ,-this%shtLut%d:this%shtLut%d     ) 
     real   (kind=dbl   ),INTENT(INOUT)       :: mLPSH(-this%shtLut%d:this%shtLut%d     ,-this%shtLut%d:this%shtLut%d     ) 
-    integer(kind=irg   ),INTENT(IN   )       :: limL
+    integer(kind=irg   ),INTENT(IN)       :: limL
 
     integer(kind=irg)                        :: y, Npy, fftN, mLim, bndMax, d, m, n, Nr, i
     real   (kind=dbl)                        :: x, r1x2, kpmm, pmn1, pmn2, pmn

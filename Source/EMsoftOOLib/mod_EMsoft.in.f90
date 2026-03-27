@@ -362,7 +362,7 @@ subroutine init(self)
   !!
   !! initializes all the components of EMsoftClass
 
-  class(EMsoft_T),intent(inout) :: self
+  class(EMsoft_T),INTENT(INOUT) :: self
 
 ! fill in all the values; the first set MUST be done in this order ...
   call self % getEMsoftplatform()
@@ -421,7 +421,7 @@ subroutine printConfigParameters(self)
 
   IMPLICIT NONE
 
-  class(EMsoft_T),intent(inout) :: self
+  class(EMsoft_T),INTENT(INOUT) :: self
   type(IO_T)               :: Message
 
   character(fnlen)              :: m
@@ -476,7 +476,7 @@ function getConfigParameter(self, inp) result(cp)
   !!
   !! get a particular component of EMsoftClass
 
-  class(EMsoft_T),intent(inout) :: self
+  class(EMsoft_T),INTENT(INOUT) :: self
   character(*),INTENT(IN)       :: inp
    !! string describing the requested configuration parameter
 
@@ -571,7 +571,7 @@ subroutine setConfigParameter(self, inp, value)
   !!
   !! set a particular component of EMsoft_T
 
-  class(EMsoft_T),intent(inout) :: self
+  class(EMsoft_T),INTENT(INOUT) :: self
   character(*),INTENT(IN)       :: inp
    !! string describing the requested configuration parameter
   character(*),INTENT(IN)       :: value
@@ -670,7 +670,7 @@ function generateFilePath(self, cp, fn) result(fp)
 
   IMPLICIT NONE
 
-  class(EMsoft_T),intent(inout)      :: self
+  class(EMsoft_T),INTENT(INOUT)      :: self
   character(*),INTENT(IN)            :: cp
    !! configuration parameter string
   character(*),INTENT(IN),OPTIONAL   :: fn
@@ -720,7 +720,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)     :: self
+class(EMsoft_T),INTENT(INOUT)     :: self
 
 character(fnlen)                  :: EMsoftpathname, ep, envParam, envReturn, m
 integer                           :: l, status
@@ -764,7 +764,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 type(IO_T)                         :: Message
 character(fnlen)                   :: ep, envParam, envReturn
@@ -807,7 +807,7 @@ subroutine getXtalpathname(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%xtalpathname = trim(self%EMXtalFolderpathname)
 
@@ -827,7 +827,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)     :: self
+class(EMsoft_T),INTENT(INOUT)     :: self
 
 type(IO_T)                        :: Message
 character(fnlen)                  :: ep, envParam, envReturn
@@ -874,7 +874,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 type(IO_T)                    :: Message
 character(fnlen)                   :: ep, envParam, envReturn
@@ -917,7 +917,7 @@ subroutine getSlackWebHookURL(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)     :: self
+class(EMsoft_T),INTENT(INOUT)     :: self
 
 character(fnlen)                  :: ep
 
@@ -937,7 +937,7 @@ subroutine getSlackChannel(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(fnlen)                   :: ep
 
@@ -957,7 +957,7 @@ subroutine getUsername(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(fnlen)                   :: ep, envParam, envReturn, loginname
 
@@ -988,7 +988,7 @@ subroutine getUserlocation(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(fnlen)                   :: ep, envParam, envReturn, hostname
 integer(kind=4)                    :: hnStat
@@ -1020,7 +1020,7 @@ subroutine getUseremail(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(fnlen)                   :: ep, envParam, envReturn, hostname
 
@@ -1044,7 +1044,7 @@ subroutine getNotify(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)     :: self
+class(EMsoft_T),INTENT(INOUT)     :: self
 
 character(fnlen)                  :: ep
 
@@ -1064,7 +1064,7 @@ subroutine getEMdevelop(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(fnlen)                        :: EMstring, ep, envParam, envReturn
 logical                                 :: EMdevelop
@@ -1102,7 +1102,7 @@ subroutine getRelease(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(fnlen)                   :: ep
 
@@ -1122,7 +1122,7 @@ subroutine getEMsoftplatform(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%EMsoftplatform = "@CMAKE_SYSTEM_NAME@"
 
@@ -1139,7 +1139,7 @@ subroutine geth5copypath(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 if (trim(self%EMsoftplatform).eq.SC_Windows) then
   self%h5copypath = "@HDF5_INSTALL@"//SC_h5copy//".exe"
@@ -1160,7 +1160,7 @@ subroutine getEMsofttestpath(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)     :: self
+class(EMsoft_T),INTENT(INOUT)     :: self
 
 character(fnlen)                  :: binarypath
 
@@ -1183,7 +1183,7 @@ subroutine getEMsoftTestingPath(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%EMsoftTestingpath = "@EMsoftOO_TESTING_DIR@"
 
@@ -1200,7 +1200,7 @@ subroutine getEMsoftversion(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%EMsoftversion = "@EMsoftOO_VER_MAJOR@_@EMsoftOO_VER_MINOR@_@EMsoftOO_VER_PATCH@_@EMsoftOO_VERSION_TWEAK@"
 
@@ -1217,7 +1217,7 @@ subroutine getConfigpath(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%configpath = trim(self%userHomePathname)//self%EMsoftnativedelimiter//SC_config &
                   //self%EMsoftnativedelimiter//SC_EMsoft//self%EMsoftnativedelimiter
@@ -1235,7 +1235,7 @@ subroutine getTemplatepathname(self, json)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 logical,INTENT(IN),OPTIONAL        :: json
 
@@ -1262,7 +1262,7 @@ subroutine getResourcepathname(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%resourcepathname = trim(self%EMsoftpathname)//SC_resources//self%EMsoftnativedelimiter
 
@@ -1279,7 +1279,7 @@ subroutine getUserHomePath(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(9)      :: Home
 character(2)      :: HomeDrive
@@ -1308,7 +1308,7 @@ subroutine getOpenCLpathname(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%openclpathname = trim(self%EMsoftpathname)//SC_opencl//self%EMsoftnativedelimiter
 
@@ -1325,7 +1325,7 @@ subroutine getTemplatecodefilename(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%templatecodefilename = trim(self%Resourcepathname)//SC_templatecodestxt
 
@@ -1342,7 +1342,7 @@ subroutine getWyckoffPositionsfilename(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%WyckoffPositionsfilename = trim(self%Resourcepathname)//SC_WyckoffPositionstxt
 
@@ -1359,7 +1359,7 @@ subroutine getRandomseedfilename(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%randomseedfilename = trim(self%Resourcepathname)//SC_RandomSeedsdata
 
@@ -1376,7 +1376,7 @@ subroutine getEMsoftnativedelimiter(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 if (trim(self%EMsoftplatform).eq.SC_Windows) then
   self%EMsoftnativedelimiter = '\'  ! ' <- this single prime inside a comment prevents syntax issues with some source code editors
@@ -1397,7 +1397,7 @@ subroutine getEMsoftRevision(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%EMsoftrevision = "@EMsoftOO_SHORT_GIT_HASH@"
 
@@ -1414,7 +1414,7 @@ subroutine getEMsoftBuildDate(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%EMsoftBuildDate = "@EMsoftOO_BUILD_TIMESTAMP@"
 
@@ -1431,7 +1431,7 @@ subroutine getwikipathname(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%wikipathname = trim(self%EMsoftpathname)//SC_wiki//self%EMsoftnativedelimiter
 
@@ -1448,7 +1448,7 @@ subroutine getUser(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(9)                       :: User
 character(fnlen)                   :: uName
@@ -1471,7 +1471,7 @@ subroutine getfftwWisdomfilename(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%fftwWisdomfilename = trim(self%Resourcepathname)//SC_fftwwisdomtxt
 
@@ -1488,7 +1488,7 @@ subroutine getwikicodefilename(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 self%wikicodefilename = trim(self%Resourcepathname)//SC_wikicodestxt
 
@@ -1507,7 +1507,7 @@ use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(fnlen)                   :: envParam, envReturn
 
@@ -1533,7 +1533,7 @@ use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)      :: self
+class(EMsoft_T),INTENT(INOUT)      :: self
 
 character(fnlen)                   :: envParam, envReturn
 
@@ -1557,8 +1557,8 @@ subroutine setnmldeffile(self, nmlfile)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)  :: self
-character(*),intent(in)        :: nmlfile
+class(EMsoft_T),INTENT(INOUT)  :: self
+character(*),INTENT(IN)        :: nmlfile
 
 self%nmldeffile = trim(nmlfile)
 
@@ -1580,7 +1580,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)           :: self
+class(EMsoft_T),INTENT(INOUT)           :: self
 
 character(fnlen),INTENT(IN)             :: ep
  !! JSON variable name string
@@ -1680,7 +1680,7 @@ use mod_timing
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)           :: self
+class(EMsoft_T),INTENT(INOUT)           :: self
 character(fnlen),INTENT(IN)             :: progname
  !! name of the calling program
 character(fnlen),INTENT(IN)             :: progdesc
@@ -1751,7 +1751,7 @@ function toNativePath_(self, inpath) result(outpath)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)    :: self
+class(EMsoft_T),INTENT(INOUT)    :: self
 
 character(fnlen),INTENT(IN)           :: inpath
  !! path to be converted
@@ -1791,7 +1791,7 @@ function fromNativePath_(self, inpath) result(outpath)
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)        :: self
+class(EMsoft_T),INTENT(INOUT)        :: self
 
 character(fnlen),INTENT(IN)          :: inpath
  !! input path to be converted
@@ -1836,7 +1836,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),intent(inout)           :: self
+class(EMsoft_T),INTENT(INOUT)           :: self
 
 type(IO_T)                         :: Message
 character(fnlen)                        :: pathstring, dirstring, ep, EMsoftpathname, EMdatapathname, &

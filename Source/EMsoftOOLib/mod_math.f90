@@ -4055,9 +4055,9 @@ contains
         ! that will be used by the LMDIF routine.
 
         implicit none
-        real(kind=dbl), intent(in) :: parameters(n)
-        integer(kind=irg), intent(in) :: m, n, iflag
-        real(kind=dbl), intent(out) :: residuals(m)
+        real(kind=dbl), INTENT(IN) :: parameters(n)
+        integer(kind=irg), INTENT(IN) :: m, n, iflag
+        real(kind=dbl), INTENT(OUT) :: residuals(m)
         real(kind=dbl) :: amplitude, x0, y0, sigma_x, sigma_y, background
         real(kind=dbl) :: dx, dy, dx2, dy2, arg_x, arg_y, fit_value
         integer(kind=irg) :: i, j, data_idx
