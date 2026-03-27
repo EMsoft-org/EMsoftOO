@@ -6,6 +6,9 @@ EMsoftOO Version 6.0 should be considered a beta version; the code is still very
 
 ### **This release of EMsoftOO requires an updated Software Developer Toolkit (SDK); please go to [this page](https://github.com/EMsoft-org/EMsoftSuperbuild) and follow the instructions to install a new SDK before you attempt to build the present release.  As of 11/04/2022, you should use the DevelopOO branch of this respository!!**
 
+## New in this Release !!
+There is now a lightweight graphical user interface, written in python, that allows the user to load any of the namelist template files, edit it with the proper parameters, save the file to the correct working directory, and then execute the program. The usual command line output is displayed in a separate region of the GUI and can be saved to a log file.  This is a very early implementation of what will likely become a more powerful user interface. The nml_editor.py is located in the Source/pyEMsoftOO/emsoft folder and requires a standard python environment like miniconda.
+
 ## Financial Support 
 EBSD/ECP/EKP development of this package, including dictionary indexing for EBSD/ECP, was started with support from an AFOSR/MURI grant, FA9550-12-1-0458; the original EBSD code from CTEMsoft 2.0 was developed with support from an ONR grant, N00014-12-1-0075.  All recent development of EMsoft was performed with support from an ONR Vannevar Bush Faculty Fellowship, N00014-­16-­1-­2821, and an NSF research program DMR \#1904629. Current development is carried out with support from NSF grant DMR-2203378. MDG would also like to acknowledge support from the John and Claire Bertucci Distinguished Professorship in Engineering.
 
@@ -20,6 +23,7 @@ EMsoft started as a source code base used for the creation of all figures in the
 - Chaoyi Zhu
 - Clément Lafond
 - Joseph Tessmer
+- Claude Code
 - Ke-Wei Jin
 - Michael Atkinson
 - Joao Fonseca
