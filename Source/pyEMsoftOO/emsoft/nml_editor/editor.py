@@ -86,6 +86,7 @@ class NmlEditor:
         self.modified = False
         self._highlight_job = None
         self._process = None
+        self.work_dir = os.getcwd()
 
         self.root.title('EMsoftOO Namelist Editor')
         self.root.geometry('1000x750')
@@ -119,12 +120,19 @@ class NmlEditor:
         # Separator
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
 
+        # Working directory
+        tk.Button(toolbar, text='  Set Work Dir  ',
+                  command=self.set_work_dir).pack(side=tk.LEFT, padx=4)
+
+        # Separator
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
+
         # Run button
         self.run_btn = tk.Button(toolbar, text='  Run Program  ', command=self.run_program,
                                  state=tk.DISABLED)
         self.run_btn.pack(side=tk.LEFT, padx=4)
 
-        # Stop button (hidden initially)
+        # Stop button
         self.stop_btn = tk.Button(toolbar, text='  Stop  ', command=self.stop_program,
                                   state=tk.DISABLED, fg='red')
         self.stop_btn.pack(side=tk.LEFT, padx=4)
@@ -249,11 +257,20 @@ class NmlEditor:
         self.output.tag_configure('info', foreground='#569cd6')
         self.output.tag_configure('success', foreground='#4ec9b0')
 
-        # --- Status bar ---
+        # --- Status bar (two rows: work dir + status) ---
+        status_frame = tk.Frame(self.root)
+        status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+
+        self.workdir_var = tk.StringVar(value=f'Work dir: {self.work_dir}')
+        workdir_label = ttk.Label(status_frame, textvariable=self.workdir_var,
+                                  relief=tk.SUNKEN, anchor=tk.W, padding=(5, 2),
+                                  foreground='#555555')
+        workdir_label.pack(fill=tk.X)
+
         self.status_var = tk.StringVar(value='Select a template from the list to begin')
-        status = ttk.Label(self.root, textvariable=self.status_var,
+        status = ttk.Label(status_frame, textvariable=self.status_var,
                            relief=tk.SUNKEN, anchor=tk.W, padding=(5, 2))
-        status.pack(fill=tk.X, side=tk.BOTTOM)
+        status.pack(fill=tk.X)
 
         # --- Syntax highlighting tags ---
         self.editor.tag_configure('comment', foreground='#6a9955')
@@ -519,6 +536,18 @@ class NmlEditor:
         self._update_run_button()
         self.editor.see('1.0')
 
+    # --- Working directory ---
+
+    def set_work_dir(self):
+        """Choose the working directory for saving .nml files and running programs."""
+        d = filedialog.askdirectory(
+            title='Select Working Directory',
+            initialdir=self.work_dir)
+        if d:
+            self.work_dir = d
+            self.workdir_var.set(f'Work dir: {self.work_dir}')
+            self.status_var.set(f'Working directory set to: {d}')
+
     # --- File operations ---
 
     def open_file(self):
@@ -535,7 +564,7 @@ class NmlEditor:
                 ('Template files', '*.template'),
                 ('All files', '*.*'),
             ],
-            initialdir=os.getcwd(),
+            initialdir=self.work_dir,
         )
         if filepath:
             self._load_file(filepath)
@@ -561,7 +590,7 @@ class NmlEditor:
                 ('All files', '*.*'),
             ],
             initialfile=default_name,
-            initialdir=os.getcwd(),
+            initialdir=self.work_dir,
         )
         if filepath:
             content = self.editor.get('1.0', 'end-1c')
@@ -623,7 +652,7 @@ class NmlEditor:
             return
 
         nml_path = os.path.abspath(self.current_file)
-        work_dir = os.path.dirname(nml_path)
+        work_dir = self.work_dir
         nml_basename = os.path.basename(nml_path)
 
         # Clear output and show start message
@@ -743,7 +772,7 @@ class NmlEditor:
                 ('All files', '*.*'),
             ],
             initialfile=default_name,
-            initialdir=os.getcwd(),
+            initialdir=self.work_dir,
         )
         if filepath:
             with open(filepath, 'w') as f:
