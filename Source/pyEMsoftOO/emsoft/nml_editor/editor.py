@@ -363,29 +363,19 @@ class NmlEditor:
             pass
 
     def _setup_focus_follows_mouse(self):
-        """Make focus follow the mouse cursor across all interactive widgets."""
+        """Make focus follow the mouse cursor for major panel widgets.
+
+        Only applied to text/list panels, NOT to buttons (where it
+        interferes with click handling on macOS).
+        """
         def focus_on_enter(event):
-            widget = event.widget
             try:
-                widget.focus_set()
+                event.widget.focus_set()
             except tk.TclError:
                 pass
 
-        # Bind <Enter> to all interactive widgets so they get focus on hover
         for widget in (self.editor, self.output, self.template_list):
             widget.bind('<Enter>', focus_on_enter)
-
-        # For the toolbar and its children (buttons), bind recursively
-        self._bind_focus_recursive(self.root)
-
-    def _bind_focus_recursive(self, widget):
-        """Recursively bind focus-on-enter to all button and entry widgets."""
-        widget_class = widget.winfo_class()
-        if widget_class in ('TButton', 'Button', 'TEntry', 'Entry', 'Listbox',
-                            'Text', 'Treeview', 'TCombobox'):
-            widget.bind('<Enter>', lambda e: e.widget.focus_set())
-        for child in widget.winfo_children():
-            self._bind_focus_recursive(child)
 
     # --- Scrolling ---
 
