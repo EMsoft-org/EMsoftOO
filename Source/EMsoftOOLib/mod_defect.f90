@@ -276,27 +276,27 @@ use mod_crystallography
 use mod_JSONsupport
 use mod_EMsoft
 
-use, intrinsic :: iso_fortran_env, only: wp => real64
+use, intrinsic                           :: iso_fortran_env, only: wp => real64
 
 IMPLICIT NONE
 
-class(Defect_T), INTENT(INOUT)                        :: self
-type(Cell_T),INTENT(IN)                               :: cell
-type(IO_T)                                            :: Message
-type(EMsoft_T), INTENT(INOUT)                         :: EMsoft
-character(fnlen),INTENT(IN)                           :: jsonname
-real(kind=dbl),INTENT(IN)                             :: kvec(3)
-real(kind=dbl),INTENT(IN)                             :: qvec(3)
-integer(kind=irg),INTENT(INOUT)                       :: error_cnt
+class(Defect_T), INTENT(INOUT)           :: self
+type(Cell_T),INTENT(IN)                  :: cell
+type(IO_T)                               :: Message
+type(EMsoft_T), INTENT(INOUT)            :: EMsoft
+character(fnlen),INTENT(IN)              :: jsonname
+real(kind=dbl),INTENT(IN)                :: kvec(3)
+real(kind=dbl),INTENT(IN)                :: qvec(3)
+integer(kind=irg),INTENT(INOUT)          :: error_cnt
 
-type(json_file)                                       :: json    !the JSON structure read from the file:
-type(json_value),pointer                              :: jval, child, child2, child3, child4
-character(kind=jsonCK,len=:),allocatable              :: name
-integer(kind=irg)                                     :: i, j, jj, kk, v, io_int(3), jskip, ndis
-integer(kind=irg)                                     :: vart,nc, nc2, nc3, nc4, nc5
-logical                                               :: found
-character(fnlen)                                      :: foilfilename, str, filename, dummystr
-real(wp)                                              :: v4(4), v5(5), v6(6), v9(9), io_real(6)
+type(json_file)                          :: json    !the JSON structure read from the file:
+type(json_value),pointer                 :: jval, child, child2, child3, child4
+character(kind=jsonCK,len=:),allocatable :: name
+integer(kind=irg)                        :: i, j, jj, kk, v, io_int(3), jskip, ndis
+integer(kind=irg)                        :: vart,nc, nc2, nc3, nc4, nc5
+logical                                  :: found
+character(fnlen)                         :: foilfilename, str, filename, dummystr
+real(wp)                                 :: v4(4), v5(5), v6(6), v9(9), io_real(6)
 
 v = 0
 if (self%dinfo.eqv..TRUE.) v=1
@@ -640,28 +640,28 @@ use mod_crystallography
 use mod_EMsoft
 use mod_JSONsupport
 
-use, intrinsic :: iso_fortran_env, only: wp => real64
+use, intrinsic                           :: iso_fortran_env, only: wp => real64
 
 IMPLICIT NONE
 
-class(Defect_T), INTENT(INOUT)                        :: self
-type(Cell_T),INTENT(IN)                               :: cell
-real(kind=dbl),INTENT(IN)                             :: kvec(3)
-real(kind=dbl),INTENT(IN)                             :: qvec(3)
-type(IO_T)                                            :: Message
-type(EMsoft_T), INTENT(INOUT)                         :: EMsoft
-integer(kind=irg),INTENT(INOUT)                       :: error_cnt
+class(Defect_T), INTENT(INOUT)           :: self
+type(Cell_T),INTENT(IN)                  :: cell
+real(kind=dbl),INTENT(IN)                :: kvec(3)
+real(kind=dbl),INTENT(IN)                :: qvec(3)
+type(IO_T)                               :: Message
+type(EMsoft_T), INTENT(INOUT)            :: EMsoft
+integer(kind=irg),INTENT(INOUT)          :: error_cnt
 
-type(json_value),pointer                              :: jval, child, child2, child3
-type(json_value), pointer                             :: tmp_json_ptr
-character(kind=jsonCK,len=:),allocatable              :: name
-integer(kind=irg)                                     :: v, i, j, jj, vart, nc, nc2, nc3, io_int(3)
-real(kind=wp),dimension(:),allocatable                :: vec3
-real(kind=wp)                                         :: val
-real(kind=sgl)                                        :: io_real(6), x
-logical                                               :: found
-character(4),parameter                                :: row(6) = (/ 'row1', 'row2', 'row3', 'row4', 'row5', 'row6' /)
-character(fnlen)                                      :: str, filename
+type(json_value),pointer                 :: jval, child, child2, child3
+type(json_value), pointer                :: tmp_json_ptr
+character(kind=jsonCK,len=:),allocatable :: name
+integer(kind=irg)                        :: v, i, j, jj, vart, nc, nc2, nc3, io_int(3)
+real(kind=wp),dimension(:),allocatable   :: vec3
+real(kind=wp)                            :: val
+real(kind=sgl)                           :: io_real(6), x
+logical                                  :: found
+character(4),parameter                   :: row(6) = (/ 'row1', 'row2', 'row3', 'row4', 'row5', 'row6' /)
+character(fnlen)                         :: str, filename
 
 v = 0
 if (self%dinfo.eqv..TRUE.) v = 1
@@ -804,22 +804,22 @@ use HDF5
 use mod_EMsoft
 use mod_io 
 
-use, intrinsic :: iso_fortran_env, only: wp => real64
+use, intrinsic                 :: iso_fortran_env, only: wp => real64
 
 IMPLICIT NONE
 
-class(Defect_T), INTENT(INOUT)                        :: self
-type(HDF_T),INTENT(INOUT)                             :: HDF
-character(fnlen),INTENT(IN)                           :: fname
+class(Defect_T), INTENT(INOUT) :: self
+type(HDF_T),INTENT(INOUT)      :: HDF
+character(fnlen),INTENT(IN)    :: fname
 
-type(IO_T)                                            :: Message 
+type(IO_T)                     :: Message 
 
-character(fnlen)                                      :: groupname, dataset 
-integer(kind=irg)                                     :: hdferr 
-integer(kind=irg),allocatable                         :: nvox(:)
-real(kind=dbl),allocatable                            :: stepsize(:)
-logical                                               :: g_exists, d_exists
-integer(HSIZE_T)                                      :: dims1(1)
+character(fnlen)               :: groupname, dataset 
+integer(kind=irg)              :: hdferr 
+integer(kind=irg),allocatable  :: nvox(:)
+real(kind=dbl),allocatable     :: stepsize(:)
+logical                        :: g_exists, d_exists
+integer(HSIZE_T)               :: dims1(1)
 
 hdferr = HDF%openFile(fname, readonly=.TRUE.)
 
@@ -1969,11 +1969,11 @@ recursive function YSHDisp_(self,x,y,z,ii) result(res)
 
 IMPLICIT NONE
 
-class(Defect_T),INTENT(INOUT)  :: self
-real(kind=dbl),INTENT(IN)       :: x,y,z
-integer(kind=irg),INTENT(IN)    :: ii
+class(Defect_T),INTENT(INOUT) :: self
+real(kind=dbl),INTENT(IN)     :: x,y,z
+integer(kind=irg),INTENT(IN)  :: ii
 
-real(kind=dbl)                  :: eta, zeta, etap, zetap, r, oms, omts, xx, sgn, om, omp, AA, BB, BBp, th, &
+real(kind=dbl)                :: eta, zeta, etap, zetap, r, oms, omts, xx, sgn, om, omp, AA, BB, BBp, th, &
                                  k, lam, alA, alB, u, v, w, ms, S, du, dv, dw, qe, me, De, qx, mx, Dx, rr, eps
 real(kind=dbl)                  :: res(3)
 
@@ -2138,19 +2138,19 @@ use mod_rotations
 
 IMPLICIT NONE
 
-class(Defect_T),INTENT(INOUT)       :: self
-type(Cell_T)                        :: cell
-type(IO_T)                          :: Message
+class(Defect_T),INTENT(INOUT) :: self
+type(Cell_T)                  :: cell
+type(IO_T)                    :: Message
 
-integer(kind=irg),INTENT(IN)        :: i
-integer(kind=irg),INTENT(IN)        :: dinfo
-real(kind=sgl),INTENT(IN)           :: L
+integer(kind=irg),INTENT(IN)  :: i
+integer(kind=irg),INTENT(IN)  :: dinfo
+real(kind=sgl),INTENT(IN)     :: L
 
-type(orientation_T)                 :: ot
-type(o_T)                           :: a_di_om
-type(q_T)                           :: a_di_qu
+type(orientation_T)           :: ot
+type(o_T)                     :: a_di_om
+type(q_T)                     :: a_di_qu
 
-real(kind=dbl)                       :: alpha, beta, tu(3), tx(3), ty(3), te(3), tb(3), bl, fx(3), fy(3), fz(3), &
+real(kind=dbl)                :: alpha, beta, tu(3), tx(3), ty(3), te(3), tb(3), bl, fx(3), fy(3), fz(3), &
                                        dx, dy, a_di(3,3), io_real(3)
 
 ! first, determine the alpha angle between the
@@ -2758,13 +2758,13 @@ use mod_math
 
 IMPLICIT NONE
 
-class(Defect_T),INTENT(INOUT)      :: self
-integer(kind=irg),INTENT(IN)    :: i
-real(kind=dbl),INTENT(IN)       :: xyz(3)
-real(kind=dbl)                  :: u(3)
+class(Defect_T),INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)  :: i
+real(kind=dbl),INTENT(IN)     :: xyz(3)
+real(kind=dbl)                :: u(3)
 
-integer(kind=irg)               :: itheta, j, l, k
-real(kind=dbl)                  :: Treps, r2(3), rsq, dd, v, w, modt, lambda, xx, thetaEl, dtheta, sigma, &
+integer(kind=irg)             :: itheta, j, l, k
+real(kind=dbl)                :: Treps, r2(3), rsq, dd, v, w, modt, lambda, xx, thetaEl, dtheta, sigma, &
                                    II1, II3, II(3), IIJ(3,3), phici(3), psicjli(3,3,3), c, t1, t2, dt(3), Delta, EE, EF
 complex(kind=dbl)               :: t, s, q
 

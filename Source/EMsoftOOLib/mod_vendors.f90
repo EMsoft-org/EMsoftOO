@@ -353,7 +353,7 @@ subroutine set_inputtype_(self,inp)
 
 IMPLICIT NONE
 
-class(Vendor_T), INTENT(INOUT)     :: self
+class(Vendor_T), INTENT(INOUT) :: self
 character(*), INTENT(IN)       :: inp
 
 self%inputtype = inp
@@ -2684,32 +2684,32 @@ use mod_rotations
 
 IMPLICIT NONE
 
-class(Vendor_T),INTENT(INOUT)             :: self
-character(fnlen),INTENT(IN)               :: inpfile
-character(fnlen),INTENT(IN)               :: HDFstring
-real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
-type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=dbl),INTENT(IN)                 :: fpar(3)
-real(kind=dbl),INTENT(OUT)                :: sig
+class(Vendor_T),INTENT(INOUT)                    :: self
+character(fnlen),INTENT(IN)                      :: inpfile
+character(fnlen),INTENT(IN)                      :: HDFstring
+real(kind=dbl),INTENT(OUT)                       :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)            :: qAR
+real(kind=dbl),allocatable,INTENT(OUT)           :: PC(:,:)
+real(kind=dbl),INTENT(IN)                        :: fpar(3)
+real(kind=dbl),INTENT(OUT)                       :: sig
 
-type(HDF_T)                               :: HDF
-type(IO_T)                                :: Message
-type(e_T)                                 :: eu
-type(q_T)                                 :: qu  
-type(Quaternion_T)                        :: q
+type(HDF_T)                                      :: HDF
+type(IO_T)                                       :: Message
+type(e_T)                                        :: eu
+type(q_T)                                        :: qu  
+type(Quaternion_T)                               :: q
 
-logical                                   :: stat, readonly, g_exists 
-integer(kind=irg)                         :: hdferr, i, io_int(1), nlines 
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-character(len=1), dimension(:), allocatable     :: rdata
-character(4)                              :: edax
+logical                                          :: stat, readonly, g_exists 
+integer(kind=irg)                                :: hdferr, i, io_int(1), nlines 
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(len=1), dimension(:), allocatable      :: rdata
+character(4)                                     :: edax
 
-character(fnlen, KIND=c_char)             :: line
-character(fnlen)                          :: groupname, dataset
-real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
-integer(HSIZE_T)                          :: dims1(1)
-real(kind=sgl)                            :: p1, p2, p3, io_real(3), s
+character(fnlen, KIND=c_char)                    :: line
+character(fnlen)                                 :: groupname, dataset
+real(kind=sgl), allocatable                      :: eu1(:), eu2(:), eu3(:)
+integer(HSIZE_T)                                 :: dims1(1)
+real(kind=sgl)                                   :: p1, p2, p3, io_real(3), s
 
 
 ! fpar(1) = numsx 
@@ -2873,32 +2873,32 @@ use mod_rotations
 
 IMPLICIT NONE
 
-class(Vendor_T),INTENT(INOUT)             :: self
-character(fnlen),INTENT(IN)               :: inpfile
-character(fnlen),INTENT(IN)               :: HDFstrings(10)
-real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
-type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=dbl),INTENT(IN)                 :: fpar(3)
-real(kind=dbl),INTENT(OUT)                :: sig
+class(Vendor_T),INTENT(INOUT)                    :: self
+character(fnlen),INTENT(IN)                      :: inpfile
+character(fnlen),INTENT(IN)                      :: HDFstrings(10)
+real(kind=dbl),INTENT(OUT)                       :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)            :: qAR
+real(kind=dbl),allocatable,INTENT(OUT)           :: PC(:,:)
+real(kind=dbl),INTENT(IN)                        :: fpar(3)
+real(kind=dbl),INTENT(OUT)                       :: sig
 
-type(HDF_T)                               :: HDF
-type(IO_T)                                :: Message
-type(o_T)                                 :: om
-type(q_T)                                 :: qu  
-type(Quaternion_T)                        :: q
+type(HDF_T)                                      :: HDF
+type(IO_T)                                       :: Message
+type(o_T)                                        :: om
+type(q_T)                                        :: qu  
+type(Quaternion_T)                               :: q
 
-logical                                   :: stat, readonly, g_exists 
-integer(kind=irg)                         :: hdferr, i, io_int(1), dims, ipf_wd, ipf_ht 
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-character(len=1), dimension(:), allocatable     :: rdata
-character(4)                              :: edax
+logical                                          :: stat, readonly, g_exists 
+integer(kind=irg)                                :: hdferr, i, io_int(1), dims, ipf_wd, ipf_ht 
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(len=1), dimension(:), allocatable      :: rdata
+character(4)                                     :: edax
 
-character(fnlen, KIND=c_char)             :: line
-character(fnlen)                          :: groupchainname, groupname, dataset
-real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
-integer(HSIZE_T)                          :: dims1(1)
-real(kind=sgl)                            :: p1, p2, p3, io_real(3), s
+character(fnlen, KIND=c_char)                    :: line
+character(fnlen)                                 :: groupchainname, groupname, dataset
+real(kind=sgl), allocatable                      :: eu1(:), eu2(:), eu3(:)
+integer(HSIZE_T)                                 :: dims1(1)
+real(kind=sgl)                                   :: p1, p2, p3, io_real(3), s
 
 ! data type for reading the orientation matrices from the compound data set
 
@@ -3098,30 +3098,30 @@ use mod_rotations
 
 IMPLICIT NONE
 
-class(Vendor_T),INTENT(INOUT)             :: self
-character(fnlen),INTENT(IN)               :: inpfile
-character(fnlen),INTENT(IN)               :: HDFstring
-real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
-type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=dbl),INTENT(IN)                 :: fpar(3)
-real(kind=dbl),INTENT(OUT)                :: sig
+class(Vendor_T),INTENT(INOUT)                    :: self
+character(fnlen),INTENT(IN)                      :: inpfile
+character(fnlen),INTENT(IN)                      :: HDFstring
+real(kind=dbl),INTENT(OUT)                       :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)            :: qAR
+real(kind=dbl),allocatable,INTENT(OUT)           :: PC(:,:)
+real(kind=dbl),INTENT(IN)                        :: fpar(3)
+real(kind=dbl),INTENT(OUT)                       :: sig
 
-type(HDF_T)                               :: HDF
-type(IO_T)                                :: Message
-type(e_T)                                 :: eu
-type(q_T)                                 :: qu  
-type(Quaternion_T)                        :: q
+type(HDF_T)                                      :: HDF
+type(IO_T)                                       :: Message
+type(e_T)                                        :: eu
+type(q_T)                                        :: qu  
+type(Quaternion_T)                               :: q
 
-logical                                   :: stat, readonly, g_exists 
-integer(kind=irg)                         :: hdferr, i, io_int(1), nlines
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-character(fnlen)                          :: line, groupname, dataset
-character(6)                              :: oxford
-real(kind=sgl), allocatable               :: eulers(:,:)
-integer(HSIZE_T)                          :: dims2(2), dims1(1)
-real(kind=sgl),allocatable                :: p1(:), p2(:), p3(:)
-real(kind=sgl)                            :: io_real(3), s
+logical                                          :: stat, readonly, g_exists 
+integer(kind=irg)                                :: hdferr, i, io_int(1), nlines
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen)                                 :: line, groupname, dataset
+character(6)                                     :: oxford
+real(kind=sgl), allocatable                      :: eulers(:,:)
+integer(HSIZE_T)                                 :: dims2(2), dims1(1)
+real(kind=sgl),allocatable                       :: p1(:), p2(:), p3(:)
+real(kind=sgl)                                   :: io_real(3), s
 
 
 ! fpar(1) = numsx 
@@ -3263,33 +3263,33 @@ use mod_rotations
 
 IMPLICIT NONE
 
-class(Vendor_T),INTENT(INOUT)             :: self
-character(fnlen),INTENT(IN)               :: inpfile
-character(fnlen),INTENT(IN)               :: HDFstring
-real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
-type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=dbl),INTENT(IN)                 :: fpar(3)
-integer(kind=irg),allocatable,INTENT(OUT) :: SEMX(:)
-integer(kind=irg),allocatable,INTENT(OUT) :: SEMY(:)
-real(kind=dbl),INTENT(OUT)                :: sig 
+class(Vendor_T),INTENT(INOUT)                    :: self
+character(fnlen),INTENT(IN)                      :: inpfile
+character(fnlen),INTENT(IN)                      :: HDFstring
+real(kind=dbl),INTENT(OUT)                       :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)            :: qAR
+real(kind=dbl),allocatable,INTENT(OUT)           :: PC(:,:)
+real(kind=dbl),INTENT(IN)                        :: fpar(3)
+integer(kind=irg),allocatable,INTENT(OUT)        :: SEMX(:)
+integer(kind=irg),allocatable,INTENT(OUT)        :: SEMY(:)
+real(kind=dbl),INTENT(OUT)                       :: sig 
 
-type(HDF_T)                               :: HDF
-type(IO_T)                                :: Message
-type(e_T)                                 :: eu
-type(q_T)                                 :: qu  
-type(Quaternion_T)                        :: q
+type(HDF_T)                                      :: HDF
+type(IO_T)                                       :: Message
+type(e_T)                                        :: eu
+type(q_T)                                        :: qu  
+type(Quaternion_T)                               :: q
 
-logical                                   :: stat, readonly, g_exists 
-integer(kind=irg)                         :: hdferr, i, io_int(1), nlines
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-character(fnlen)                          :: line, groupname, dataset
-real(kind=sgl), allocatable               :: eu1(:), eu2(:), eu3(:)
-character(6)                              :: bruker
-integer(HSIZE_T)                          :: dims1(1)
-real(kind=sgl)                            :: io_real(3)
-real(kind=dbl)                            :: sx, sy, s
-real(kind=sgl),allocatable                :: p1(:), p2(:), p3(:)
+logical                                          :: stat, readonly, g_exists 
+integer(kind=irg)                                :: hdferr, i, io_int(1), nlines
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen)                                 :: line, groupname, dataset
+real(kind=sgl), allocatable                      :: eu1(:), eu2(:), eu3(:)
+character(6)                                     :: bruker
+integer(HSIZE_T)                                 :: dims1(1)
+real(kind=sgl)                                   :: io_real(3)
+real(kind=dbl)                                   :: sx, sy, s
+real(kind=sgl),allocatable                       :: p1(:), p2(:), p3(:)
 
 ! fpar(1) = numsx 
 ! fpar(2) = numsy 
@@ -3471,27 +3471,27 @@ use mod_rotations
 
 IMPLICIT NONE
 
-class(Vendor_T),INTENT(INOUT)             :: self
-character(fnlen),INTENT(IN)               :: inpfile
-character(fnlen),INTENT(IN)               :: HDFstring
-real(kind=dbl),INTENT(OUT)                :: stepsizes(2)
-type(QuaternionArray_T),INTENT(INOUT)     :: qAR
-real(kind=dbl),allocatable,INTENT(OUT)    :: PC(:,:)
-real(kind=dbl),INTENT(IN)                 :: fpar(3)
+class(Vendor_T),INTENT(INOUT)                    :: self
+character(fnlen),INTENT(IN)                      :: inpfile
+character(fnlen),INTENT(IN)                      :: HDFstring
+real(kind=dbl),INTENT(OUT)                       :: stepsizes(2)
+type(QuaternionArray_T),INTENT(INOUT)            :: qAR
+real(kind=dbl),allocatable,INTENT(OUT)           :: PC(:,:)
+real(kind=dbl),INTENT(IN)                        :: fpar(3)
 
-type(HDF_T)                               :: HDF
-type(IO_T)                                :: Message
-type(e_T)                                 :: eu
-type(q_T)                                 :: qu  
-type(Quaternion_T)                        :: q
+type(HDF_T)                                      :: HDF
+type(IO_T)                                       :: Message
+type(e_T)                                        :: eu
+type(q_T)                                        :: qu  
+type(Quaternion_T)                               :: q
 
-logical                                   :: stat, readonly, g_exists 
-integer(kind=irg)                         :: hdferr, i, io_int(1), nlines 
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-character(fnlen)                          :: line, groupname, dataset
-real(kind=sgl), allocatable               :: eulers(:,:)
-integer(HSIZE_T)                          :: dims1(1), dims2(2)
-real(kind=sgl)                            :: p1, p2, p3, io_real(3), s
+logical                                          :: stat, readonly, g_exists 
+integer(kind=irg)                                :: hdferr, i, io_int(1), nlines 
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen)                                 :: line, groupname, dataset
+real(kind=sgl), allocatable                      :: eulers(:,:)
+integer(HSIZE_T)                                 :: dims1(1), dims2(2)
+real(kind=sgl)                                   :: p1, p2, p3, io_real(3), s
 
 
 ! fpar(1) = numsx 

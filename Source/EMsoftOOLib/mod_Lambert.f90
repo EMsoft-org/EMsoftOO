@@ -1652,19 +1652,19 @@ recursive function StereoGraphicInverseSingle(self, res, Radius, quat) result(ie
 
 IMPLICIT NONE
 
-  class(Lambert_T),INTENT(IN)             :: self
+  class(Lambert_T),INTENT(IN)            :: self
    !! input Lambert class
-  real(kind=sgl),INTENT(OUT)              :: res(3)
+  real(kind=sgl),INTENT(OUT)             :: res(3)
    !! output coordinate triplet
-  real(kind=sgl),INTENT(IN)               :: Radius
+  real(kind=sgl),INTENT(IN)              :: Radius
    !! projection sphere radius
-  type(Quaternion_T),INTENT(IN),OPTIONAL  :: quat
+  type(Quaternion_T),INTENT(IN),OPTIONAL :: quat
    !! optional rotation quaternion
-  integer(kind=irg)                       :: ierr
+  integer(kind=irg)                      :: ierr
   !f2py intent(in,out) ::  ierr
 
-  real(kind=sgl)                          :: q, qq
-  logical                                                 :: torot
+  real(kind=sgl)                         :: q, qq
+  logical                                :: torot
 
 torot = .FALSE.
 if(present(quat)) torot = .TRUE.
@@ -2312,27 +2312,27 @@ use mod_io
 
 IMPLICIT NONE
 
-class(Lambert_T), INTENT(INOUT) :: self
-type(Cell_T),INTENT(INOUT)      :: cell
-type(SpaceGroup_T),INTENT(INOUT):: SG
-integer(kind=irg),INTENT(IN)    :: ipx
-integer(kind=irg),INTENT(IN)    :: ipy
-integer(kind=irg),INTENT(IN)    :: ipz
-integer(kind=irg),INTENT(IN)    :: npx
-integer(kind=irg),INTENT(OUT)   :: iequiv(3,48)
-integer(kind=irg),INTENT(OUT)   :: nequiv
-logical,INTENT(IN),OPTIONAL     :: usehex
-logical,INTENT(IN),OPTIONAL     :: stereographic
+class(Lambert_T), INTENT(INOUT)       :: self
+type(Cell_T),INTENT(INOUT)            :: cell
+type(SpaceGroup_T),INTENT(INOUT)      :: SG
+integer(kind=irg),INTENT(IN)          :: ipx
+integer(kind=irg),INTENT(IN)          :: ipy
+integer(kind=irg),INTENT(IN)          :: ipz
+integer(kind=irg),INTENT(IN)          :: npx
+integer(kind=irg),INTENT(OUT)         :: iequiv(3,48)
+integer(kind=irg),INTENT(OUT)         :: nequiv
+logical,INTENT(IN),OPTIONAL           :: usehex
+logical,INTENT(IN),OPTIONAL           :: stereographic
 integer(kind=irg),INTENT(IN),OPTIONAL :: cubictype
 
-type(Lambert_T)                 :: L
-type(IO_T)                      :: Message
-real(kind=dbl)                  :: xy(2), xyz(3), kstar(3)
-real(kind=dbl),parameter        :: neps = -0.0001D0
-integer(kind=irg)               :: ierr, i, ix, iy
-real(kind=dbl),allocatable      :: stmp(:,:)            !< output array with equivalent vectors
-integer(kind=irg)               :: n                    !< number of entries in equivalent vector array
-character(1)                    :: space                !< 'd' or 'r'
+type(Lambert_T)                       :: L
+type(IO_T)                            :: Message
+real(kind=dbl)                        :: xy(2), xyz(3), kstar(3)
+real(kind=dbl),parameter              :: neps = -0.0001D0
+integer(kind=irg)                     :: ierr, i, ix, iy
+real(kind=dbl),allocatable            :: stmp(:,:)            !< output array with equivalent vectors
+integer(kind=irg)                     :: n                    !< number of entries in equivalent vector array
+character(1)                          :: space                !< 'd' or 'r'
 
 
 ! for the cubic groups, we need to apply a lower symmetry group due to the fact that we
@@ -2469,23 +2469,23 @@ IMPLICIT NONE
 
 
 class(Lambert_T), INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)     :: mu(3)
-real(kind=dbl),INTENT(IN)     :: kappa
-real(kind=dbl),INTENT(IN)     :: VMFscale
-real(kind=dbl),INTENT(IN)     :: inten
-integer(kind=irg),INTENT(IN)  :: npx
-integer(kind=irg),INTENT(IN)  :: nix
-integer(kind=irg),INTENT(IN)  :: niy
-integer(kind=irg),INTENT(IN)  :: w
-real(kind=sgl),INTENT(INOUT)  :: mLPNH(-npx:npx, -npx:npx)
+real(kind=sgl),INTENT(IN)       :: mu(3)
+real(kind=dbl),INTENT(IN)       :: kappa
+real(kind=dbl),INTENT(IN)       :: VMFscale
+real(kind=dbl),INTENT(IN)       :: inten
+integer(kind=irg),INTENT(IN)    :: npx
+integer(kind=irg),INTENT(IN)    :: nix
+integer(kind=irg),INTENT(IN)    :: niy
+integer(kind=irg),INTENT(IN)    :: w
+real(kind=sgl),INTENT(INOUT)    :: mLPNH(-npx:npx, -npx:npx)
 !f2py intent(in,out) ::  mLPNH
-real(kind=sgl),INTENT(INOUT)  :: mLPSH(-npx:npx, -npx:npx)
+real(kind=sgl),INTENT(INOUT)    :: mLPSH(-npx:npx, -npx:npx)
 !f2py intent(in,out) ::  mLPSH
-real(kind=dbl),INTENT(IN)     :: LegendreArray(0:2*npx)
+real(kind=dbl),INTENT(IN)       :: LegendreArray(0:2*npx)
 
-real(kind=sgl)                :: xyz(3), vmf , LegendreLattitude, p
-integer(kind=irg)             :: i, j, ix, iy
-logical                       :: North, xN, yN  
+real(kind=sgl)                  :: xyz(3), vmf , LegendreLattitude, p
+integer(kind=irg)               :: i, j, ix, iy
+logical                         :: North, xN, yN  
 
 North = .TRUE.
 if (mu(3).lt.0.0) North = .FALSE.
@@ -2524,17 +2524,17 @@ recursive function HemiCheck_(self, ix, iy, npx, North) result(xyz)
 IMPLICIT NONE 
 
 class(Lambert_T), INTENT(INOUT) :: self
-integer(kind=irg),INTENT(INOUT)     :: ix
+integer(kind=irg),INTENT(INOUT) :: ix
 !f2py intent(in,out) ::  ix
-integer(kind=irg),INTENT(INOUT)     :: iy
+integer(kind=irg),INTENT(INOUT) :: iy
 !f2py intent(in,out) ::  iy
-integer(kind=irg),INTENT(IN)        :: npx
-logical,INTENT(IN)                  :: North
-real(kind=sgl)                      :: xyz(3)
+integer(kind=irg),INTENT(IN)    :: npx
+logical,INTENT(IN)              :: North
+real(kind=sgl)                  :: xyz(3)
 
-type(Lambert_T)                     :: L
+type(Lambert_T)                 :: L
 
-integer(kind=irg)                   :: ierr 
+integer(kind=irg)               :: ierr 
 
 if ((abs(ix).le.npx).and.(abs(iy).le.npx)) then
 ! regular case

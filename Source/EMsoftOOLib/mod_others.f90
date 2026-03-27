@@ -459,9 +459,9 @@ SUBROUTINE GETWK (Z,SYMBOL,A,B)
 
 
 ! DATEN VON UND FUER DIE AUFRUFENDE ROUTINE
-integer       :: Z
-real(kind=sgl):: A(4),B(4)
-character(2)  :: SYMBOL 
+integer                :: Z
+real(kind=sgl)         :: A(4),B(4)
+character(2)           :: SYMBOL 
 
 ! DATEN, DIE NUR INTERN BENOETIGT WERDEN
 character(2),parameter :: SY(98) = (/'H ','He','Li','Be','B ','C ','N ','O ','F ','Ne', &

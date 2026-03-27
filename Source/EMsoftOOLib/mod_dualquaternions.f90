@@ -354,10 +354,10 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),INTENT(IN)    :: self
+  class(DualQuaternion_T),INTENT(IN) :: self
    !! input dual quaternion
 
-  type(IO_T)                        :: Message
+  type(IO_T)                         :: Message
 
   if (self%s.eq.'s') then
     call Message % WriteValue('', self%q, 8, frm="('(',8f12.6,'); precision: '$)")

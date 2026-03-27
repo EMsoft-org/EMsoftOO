@@ -179,7 +179,7 @@ contains
   ! @return: true if big endian, false if little endian
   function sys_big_endian(iostat, iomsg) result(sysBig)
  !DEC$ ATTRIBUTES DLLEXPORT :: sys_big_endian
-   integer         , INTENT(OUT) :: iostat ! error flag
+   integer         , INTENT(OUT)  :: iostat ! error flag
     character(len=*), INTENT(OUT) :: iomsg  ! error message
     logical                       :: sysBig ! true/false for little/big ended system
     integer(int8) , parameter     :: i8x4(4) = [1,2,3,4]
@@ -202,7 +202,7 @@ contains
   pure elemental function type_bytes(type) result(bytes)
  !DEC$ ATTRIBUTES DLLEXPORT :: type_bytes
    integer(int16), INTENT(IN) :: type  ! tiff data type id
-    integer                    :: bytes ! size of data type in bytes
+    integer                   :: bytes ! size of data type in bytes
     select case(type)
       case(tiff_byte     )
         bytes = 1
@@ -253,16 +253,16 @@ contains
   ! @param parse: flag for if appended data should be read
   subroutine entry_read(this, unit, wrongEndian, iostat, iomsg, parse)
 !DEC$ ATTRIBUTES DLLEXPORT :: entry_read
-    class(entry)    , INTENT(INOUT)           :: this        ! ifd entry to read data into
+    class(entry)    , INTENT(INOUT)        :: this        ! ifd entry to read data into
     integer         , INTENT(IN)           :: unit        ! file handle to read from
-    integer(int8)                             :: buff(12)    ! ifd entry header is always 12 bytes
+    integer(int8)                          :: buff(12)    ! ifd entry header is always 12 bytes
     logical         , INTENT(IN)           :: wrongEndian ! flag for files not in native ended-ness
-    integer         , INTENT(OUT)           :: iostat      ! error flag
-    character(len=*), INTENT(OUT)           :: iomsg       ! error message
+    integer         , INTENT(OUT)          :: iostat      ! error flag
+    character(len=*), INTENT(OUT)          :: iomsg       ! error message
     logical         , INTENT(IN), optional :: parse       ! flag for if extended data should be read
-    integer                                   :: i, typeBytes
-    integer(int32)                            :: offset
-    logical                                   :: doParse
+    integer                                :: i, typeBytes
+    integer(int32)                         :: offset
+    logical                                :: doParse
     doParse = .true.
     if(present(parse)) doParse = parse
 
@@ -322,9 +322,9 @@ contains
   ! @param return: bytes of appended data written
   function entry_write(this, unit, dataOffset, iostat, iomsg) result(dataWidth)
 !DEC$ ATTRIBUTES DLLEXPORT :: entry_write
-    class(entry)    , INTENT(IN) :: this       ! ifd entry to read data into
-    integer         , INTENT(IN) :: unit       ! file handle to write to
-    integer(int32)  , INTENT(IN) :: dataOffset ! position of to write appended data
+    class(entry)    , INTENT(IN)  :: this       ! ifd entry to read data into
+    integer         , INTENT(IN)  :: unit       ! file handle to write to
+    integer(int32)  , INTENT(IN)  :: dataOffset ! position of to write appended data
     integer         , INTENT(OUT) :: iostat     ! error flag
     character(len=*), INTENT(OUT) :: iomsg      ! error message
     integer(int32)                :: dataWidth  ! bytes of appended data written
@@ -366,9 +366,9 @@ contains
   ! @param value: int16 value
   subroutine entry_from_short(this, tag, value)
 !DEC$ ATTRIBUTES DLLEXPORT :: entry_from_short
-    class(entry)  , INTENT(INOUT)   :: this  ! ifd entry to format
-    integer(int16), INTENT(IN)   :: tag   ! entry tag
-    integer(int16), INTENT(IN)   :: value ! entry value
+    class(entry)  , INTENT(INOUT) :: this  ! ifd entry to format
+    integer(int16), INTENT(IN)    :: tag   ! entry tag
+    integer(int16), INTENT(IN)    :: value ! entry value
     if(allocated(this%valueBuff)) deallocate(this%valueBuff)
     allocate(this%valueBuff(2))
     this%tag            = tag
@@ -383,9 +383,9 @@ contains
   ! @param value: int32 value
   subroutine entry_from_long(this, tag, value)
 !DEC$ ATTRIBUTES DLLEXPORT :: entry_from_long
-    class(entry)  , INTENT(INOUT)   :: this  ! ifd entry to format
-    integer(int16), INTENT(IN)   :: tag   ! entry tag
-    integer(int32), INTENT(IN)   :: value ! entry value
+    class(entry)  , INTENT(INOUT) :: this  ! ifd entry to format
+    integer(int16), INTENT(IN)    :: tag   ! entry tag
+    integer(int32), INTENT(IN)    :: value ! entry value
     if(allocated(this%valueBuff)) deallocate(this%valueBuff)
     allocate(this%valueBuff(4))
     this%tag            = tag
@@ -401,8 +401,8 @@ contains
   subroutine entry_from_shorts(this, tag, values)
 !DEC$ ATTRIBUTES DLLEXPORT :: entry_from_shorts
     class(entry)  , INTENT(INOUT) :: this   ! ifd entry to format
-    integer(int16), INTENT(IN) :: tag    ! entry tag
-    integer(int16), INTENT(IN) :: values(:) ! entry values
+    integer(int16), INTENT(IN)    :: tag    ! entry tag
+    integer(int16), INTENT(IN)    :: values(:) ! entry values
     if(allocated(this%valueBuff)) deallocate(this%valueBuff)
     allocate(this%valueBuff(2*size(values)))
     this%tag            = tag
@@ -418,8 +418,8 @@ contains
   subroutine entry_from_longs(this, tag, values)
 !DEC$ ATTRIBUTES DLLEXPORT :: entry_from_longs
     class(entry)  , INTENT(INOUT) :: this   ! ifd entry to format
-    integer(int16), INTENT(IN) :: tag    ! entry tag
-    integer(int32), INTENT(IN) :: values(:) ! entry values
+    integer(int16), INTENT(IN)    :: tag    ! entry tag
+    integer(int32), INTENT(IN)    :: values(:) ! entry values
     if(allocated(this%valueBuff)) deallocate(this%valueBuff)
     allocate(this%valueBuff(4*size(values)))
     this%tag            = tag
@@ -494,7 +494,7 @@ contains
   pure subroutine ifd_parse_entry(this, e)
 !DEC$ ATTRIBUTES DLLEXPORT :: ifd_parse_entry
     type(ifd)  , INTENT(INOUT) :: this ! ifd to parse into
-    type(entry), INTENT(IN) :: e    ! entry to parse
+    type(entry), INTENT(IN)    :: e    ! entry to parse
     integer                    :: i
     select case(e%tag)
       case(NewSubfileType           )
@@ -666,17 +666,17 @@ contains
   ! @return: offset to next ifd header (0 if this is the last ifd)
   function ifd_read_header(this, unit, pos, wrongEndian, iostat, iomsg, parse) result(nextOffset)
  !DEC$ ATTRIBUTES DLLEXPORT :: ifd_read_header
-   class(ifd)      , INTENT(INOUT)           :: this        ! ifd entry to read data into
+   class(ifd)      , INTENT(INOUT)         :: this        ! ifd entry to read data into
     integer         , INTENT(IN)           :: unit        ! file handle to read from
     integer(int32)  , INTENT(IN)           :: pos         ! position of ifd in stream
     logical         , INTENT(IN)           :: wrongEndian ! flag for files not in native ended-ness
-    integer         , INTENT(OUT)           :: iostat      ! error flag
-    character(len=*), INTENT(OUT)           :: iomsg       ! error message
+    integer         , INTENT(OUT)          :: iostat      ! error flag
+    character(len=*), INTENT(OUT)          :: iomsg       ! error message
     logical         , INTENT(IN), optional :: parse       ! flag for if data should actually be parsed (defaults to true)
-    integer(int32)                            :: nextOffset  ! offset to next ifd header
-    integer(int16)                            :: numEntries, i
-    integer(int8 )                            :: buff(4)
-    logical                                   :: overflow, doParse
+    integer(int32)                         :: nextOffset  ! offset to next ifd header
+    integer(int16)                         :: numEntries, i
+    integer(int8 )                         :: buff(4)
+    logical                                :: overflow, doParse
     overflow = .false.
     doParse = .true.
     if(present(parse)) doParse = parse
@@ -734,10 +734,10 @@ contains
   subroutine ifd_read_image_data(this, unit, wrongEndian, iostat, iomsg)
 !DEC$ ATTRIBUTES DLLEXPORT :: ifd_read_image_data
     class(ifd)      , INTENT(INOUT)                       :: this        ! ifd entry to read data into
-    integer         , INTENT(IN)                       :: unit        ! file handle to read from
-    logical         , INTENT(IN)                       :: wrongEndian ! flag for files not in native ended-ness
-    integer         , INTENT(OUT)                       :: iostat      ! error flag
-    character(len=*), INTENT(OUT)                       :: iomsg       ! error message
+    integer         , INTENT(IN)                          :: unit        ! file handle to read from
+    logical         , INTENT(IN)                          :: wrongEndian ! flag for files not in native ended-ness
+    integer         , INTENT(OUT)                         :: iostat      ! error flag
+    character(len=*), INTENT(OUT)                         :: iomsg       ! error message
     integer(int32)                                        :: buffOffsets(size(this%stripByteCounts))
     integer         , dimension(size(this%bitsPerSample)) :: bytesPerSample, sampleOffsets
     integer                                               :: i, j, bytesPerPix, offset, pixelsPerStrip, bytesDecoded
@@ -877,9 +877,9 @@ contains
   ! @param iomsg: error message (filled if iostat.ne.0)
   subroutine ifd_write_header(this, unit, lastEntry, iostat, iomsg)
 !DEC$ ATTRIBUTES DLLEXPORT :: ifd_write_header
-    class(ifd)      , INTENT(IN) :: this      ! ifd entry to write data from
-    integer         , INTENT(IN) :: unit      ! file handle to write into
-    logical         , INTENT(IN) :: lastEntry ! flag for if this is the last ifd
+    class(ifd)      , INTENT(IN)  :: this      ! ifd entry to write data from
+    integer         , INTENT(IN)  :: unit      ! file handle to write into
+    logical         , INTENT(IN)  :: lastEntry ! flag for if this is the last ifd
     integer         , INTENT(OUT) :: iostat    ! error flag
     character(len=*), INTENT(OUT) :: iomsg     ! error message
     integer(int32)                :: dataOffset
@@ -909,8 +909,8 @@ contains
   function ifd_size(this) result(byteCount)
 !DEC$ ATTRIBUTES DLLEXPORT :: ifd_size
     class(ifd)    , INTENT(IN) :: this      ! ifd entry to compute size of
-    integer(int32)              :: byteCount ! size in bytes of ifd header on disk
-    integer(int16)              :: numEntries, i, entryBytes
+    integer(int32)             :: byteCount ! size in bytes of ifd header on disk
+    integer(int16)             :: numEntries, i, entryBytes
 
     ! compute size of entries without appended data
     numEntries = size(this%entries)
@@ -930,9 +930,9 @@ contains
   subroutine ifd_set_type_and_dims(this, type, typeBytes, count, width, length)
 !DEC$ ATTRIBUTES DLLEXPORT :: ifd_set_type_and_dims
     class(ifd)    , INTENT(INOUT) :: this             ! ifd data structure to fill
-    integer       , INTENT(IN) :: type             ! 1,2,3,5,6 for uint,int,fp,complex int,complex fp
-    integer(int16), INTENT(IN) :: typeBytes, count ! sample bytes + count
-    integer       , INTENT(IN) :: width, length    ! image dimension
+    integer       , INTENT(IN)    :: type             ! 1,2,3,5,6 for uint,int,fp,complex int,complex fp
+    integer(int16), INTENT(IN)    :: typeBytes, count ! sample bytes + count
+    integer       , INTENT(IN)    :: width, length    ! image dimension
     
     ! allocate arrays
     if(allocated(this%bitsPerSample  )) deallocate(this%bitsPerSample  )
@@ -1027,9 +1027,9 @@ contains
   subroutine tif_read(this, filename, iostat, iomsg)
 !DEC$ ATTRIBUTES DLLEXPORT :: tif_read
     class(tif_t)    , INTENT(INOUT) :: this     ! tif data structure to read file into
-    character(len=*), INTENT(IN) :: filename ! name of tiff file to read
-    integer         , INTENT(OUT) :: iostat   ! error flag
-    character(len=*), INTENT(OUT) :: iomsg    ! error message
+    character(len=*), INTENT(IN)    :: filename ! name of tiff file to read
+    integer         , INTENT(OUT)   :: iostat   ! error flag
+    character(len=*), INTENT(OUT)   :: iomsg    ! error message
     integer(int8)                   :: buff(4)
     integer(int32)                  :: offset, start
     logical                         :: matchBig, matchLit, sysBig, wrongEndian, overflow
@@ -1108,14 +1108,14 @@ contains
   subroutine tif_write(this, filename, iostat, iomsg)
  !DEC$ ATTRIBUTES DLLEXPORT :: tif_write
    class(tif_t)    , INTENT(INOUT) :: this     ! tif data structure to write to file
-    character(len=*), INTENT(IN) :: filename ! name of tiff file to write
-    integer         , INTENT(OUT) :: iostat   ! error flag
-    character(len=*), INTENT(OUT) :: iomsg    ! error message
-    integer(int8)                   :: header(8)
-    integer(int32)                  :: offset
-    logical                         :: sysBig
-    integer                         :: unit, ifdCount, i
-    type(ifd)                       :: dir
+    character(len=*), INTENT(IN)   :: filename ! name of tiff file to write
+    integer         , INTENT(OUT)  :: iostat   ! error flag
+    character(len=*), INTENT(OUT)  :: iomsg    ! error message
+    integer(int8)                  :: header(8)
+    integer(int32)                 :: offset
+    logical                        :: sysBig
+    integer                        :: unit, ifdCount, i
+    type(ifd)                      :: dir
     iostat = 0
 
     ! make sure the file has been properly formatted
@@ -1266,9 +1266,9 @@ contains
   subroutine tif_from_image(this, im)
  !DEC$ ATTRIBUTES DLLEXPORT :: tif_from_image
    class(tif_t) , INTENT(INOUT) :: this ! tif structure to fill
-    type(image_t), INTENT(IN) :: im   ! imnage to build tif from
-    integer                      :: i, type, width, length, sliceBytes
-    integer(int16)               :: typeBytes
+    type(image_t), INTENT(IN)   :: im   ! imnage to build tif from
+    integer                     :: i, type, width, length, sliceBytes
+    integer(int16)              :: typeBytes
     if(allocated(this%directories)) deallocate(this%directories)
     if(allocated(im%dims)) then
       ! parse dimensions

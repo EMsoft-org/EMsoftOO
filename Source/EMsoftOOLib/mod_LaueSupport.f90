@@ -159,11 +159,11 @@ module mod_LaueSupport
 
   IMPLICIT NONE
 
-  class(LaueReflist_T), INTENT(INOUT)  :: self
-  logical,INTENT(IN),OPTIONAL          :: grow 
+  class(LaueReflist_T), INTENT(INOUT) :: self
+  logical,INTENT(IN),OPTIONAL         :: grow 
 
-  type(IO_T)                        :: Message
-  integer(kind=irg)                 :: istat
+  type(IO_T)                          :: Message
+  integer(kind=irg)                   :: istat
 
   ! create it if it does not already exist
   if (present(grow)) then 
@@ -197,8 +197,8 @@ module mod_LaueSupport
 
   IMPLICIT NONE
 
-  class(LaueReflist_T), INTENT(INOUT)  :: self
-  type(Laue_g_list), pointer    :: glist
+  class(LaueReflist_T), INTENT(INOUT) :: self
+  type(Laue_g_list), pointer          :: glist
 
   glist => self%reflist
 
@@ -867,31 +867,31 @@ use mod_memory
 
 IMPLICIT NONE
 
-class(LaueReflist_T),INTENT(INOUT):: self
-type(Cell_T),INTENT(INOUT)        :: cell
-type(SpaceGroup_T),INTENT(INOUT)  :: SG 
-type(Diffraction_T), INTENT(INOUT):: Diff
-real(kind=sgl),INTENT(IN)         :: lambdamin
-real(kind=sgl),INTENT(IN)         :: intfactor
-integer(kind=irg),INTENT(OUT)     :: gcnt
-logical,OPTIONAL,INTENT(IN)       :: verbose                    ! print output or not ?
+class(LaueReflist_T),INTENT(INOUT)    :: self
+type(Cell_T),INTENT(INOUT)            :: cell
+type(SpaceGroup_T),INTENT(INOUT)      :: SG 
+type(Diffraction_T), INTENT(INOUT)    :: Diff
+real(kind=sgl),INTENT(IN)             :: lambdamin
+real(kind=sgl),INTENT(IN)             :: intfactor
+integer(kind=irg),INTENT(OUT)         :: gcnt
+logical,OPTIONAL,INTENT(IN)           :: verbose                    ! print output or not ?
 real(kind=sgl),INTENT(INOUT),OPTIONAL :: shortg
 
-type(Laue_grow_list),pointer      :: gtmp, gtail                ! linked list for allowed g-vector search 
-type(gnode)                       :: rlp
-type(IO_T)                        :: Message 
-type(memory_T)                    :: mem 
+type(Laue_grow_list),pointer          :: gtmp, gtail                ! linked list for allowed g-vector search 
+type(gnode)                           :: rlp
+type(IO_T)                            :: Message 
+type(memory_T)                        :: mem 
 
-logical,allocatable               :: z(:,:,:)
+logical,allocatable                   :: z(:,:,:)
 
-real(kind=sgl)                    :: gmax                       !< diameter of limiting sphere
-real(kind=sgl)                    :: ghkl, shg                  !< length of a reciprocal lattice vector
-integer(kind=irg)                 :: imh, imk, iml              !< maximum index along a*, b*, and c*
-real(kind=sgl)                    :: tt                         !< 2theta
-integer(kind=irg)                 :: io_int(3)                  !< io variable
-real(kind=sgl)                    :: io_real(1)                 !< io variable
-integer(kind=irg)                 :: i, istat, h, k, l, icnt, g(3), gr(3), rf, lcnt       !< status variables and such
-real(kind=sgl)                    :: threshold, th, sfs         !< threshold for discarding allowed reflections, |F|^2
+real(kind=sgl)                        :: gmax                       !< diameter of limiting sphere
+real(kind=sgl)                        :: ghkl, shg                  !< length of a reciprocal lattice vector
+integer(kind=irg)                     :: imh, imk, iml              !< maximum index along a*, b*, and c*
+real(kind=sgl)                        :: tt                         !< 2theta
+integer(kind=irg)                     :: io_int(3)                  !< io variable
+real(kind=sgl)                        :: io_real(1)                 !< io variable
+integer(kind=irg)                     :: i, istat, h, k, l, icnt, g(3), gr(3), rf, lcnt       !< status variables and such
+real(kind=sgl)                        :: threshold, th, sfs         !< threshold for discarding allowed reflections, |F|^2
 
 ! first get the range of Miller indices based on the lattice parameters and the xray wave length
  gmax = 2.0 / lambdamin      ! radius of the limiting sphere for smallest wave length  [nm^-1]

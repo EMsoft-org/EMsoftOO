@@ -2183,37 +2183,37 @@ use mod_quaternions
 
 IMPLICIT NONE
 
-class(so3_T),INTENT(INOUT)              :: self
+class(so3_T),INTENT(INOUT)                     :: self
 
-character(fnlen),INTENT(IN)             :: filename
+character(fnlen),INTENT(IN)                    :: filename
  !! complete path to input file name
-integer(kind=irg),INTENT(IN),OPTIONAL   :: listN 
-logical,INTENT(IN),OPTIONAL             :: symmetrize
+integer(kind=irg),INTENT(IN),OPTIONAL          :: listN 
+logical,INTENT(IN),OPTIONAL                    :: symmetrize
 type(QuaternionArray_T),INTENT(INOUT),OPTIONAL :: qarray
-type(Quaternion_T),INTENT(IN),OPTIONAL  :: qrot
+type(Quaternion_T),INTENT(IN),OPTIONAL         :: qrot
 
-type(e_T)                               :: e
-type(o_T)                               :: o
-type(a_T)                               :: a
-type(r_T)                               :: r
-type(q_T)                               :: q
-type(h_T)                               :: h
-type(c_T)                               :: c
-type(s_T)                               :: s
-type(v_T)                               :: v
-type(IO_T)                              :: Message
-type(Quaternion_T)                      :: qin, qout
-type(Quaternion_T)                      :: qm, qus 
-type(q_T)                               :: qq
+type(e_T)                                      :: e
+type(o_T)                                      :: o
+type(a_T)                                      :: a
+type(r_T)                                      :: r
+type(q_T)                                      :: q
+type(h_T)                                      :: h
+type(c_T)                                      :: c
+type(s_T)                                      :: s
+type(v_T)                                      :: v
+type(IO_T)                                     :: Message
+type(Quaternion_T)                             :: qin, qout
+type(Quaternion_T)                             :: qm, qus 
+type(q_T)                                      :: qq
 
-character(2)                            :: anglemode
-integer(kind=irg)                       :: numang, i, k, num, ipf_wd, ipf_ht, sz(2), FZcnt, oldFZcnt, io_int(2) 
-real(kind=dbl)                          :: xx(4), qqd(4)
-real(kind=sgl),allocatable              :: Eangles(:,:), weights(:)
-real(kind=sgl)                          :: StepX, StepY
-real(kind=dbl)                          :: x3(3), x4(4), x9(9), w
-type(FZpointd),pointer                  :: FZtail, FZtmp, FZhead
-logical                                 :: fread
+character(2)                                   :: anglemode
+integer(kind=irg)                              :: numang, i, k, num, ipf_wd, ipf_ht, sz(2), FZcnt, oldFZcnt, io_int(2) 
+real(kind=dbl)                                 :: xx(4), qqd(4)
+real(kind=sgl),allocatable                     :: Eangles(:,:), weights(:)
+real(kind=sgl)                                 :: StepX, StepY
+real(kind=dbl)                                 :: x3(3), x4(4), x9(9), w
+type(FZpointd),pointer                         :: FZtail, FZtmp, FZhead
+logical                                        :: fread
 
 ! is this a .txt file ?  If so, use the standard file read process
 ! if not, then maybe it is an .ang or .ctf file ?
@@ -3351,13 +3351,13 @@ recursive function insideDihedralMFZ_(self, rod) result(res)
 
 IMPLICIT NONE
 
-class(so3_T),INTENT(INOUT)    :: self
+class(so3_T),INTENT(INOUT) :: self
 
-type(r_T), INTENT(INOUT)         :: rod
+type(r_T), INTENT(INOUT)   :: rod
 
-logical                       :: res, c0, c1, c2, c3
-real(kind=dbl)                :: r(3), x(4)
-real(kind=dbl),parameter      :: v = 0.57735026918962584D0
+logical                    :: res, c0, c1, c2, c3
+real(kind=dbl)             :: r(3), x(4)
+real(kind=dbl),parameter   :: v = 0.57735026918962584D0
 
 res = .FALSE.
 
@@ -3956,22 +3956,22 @@ use mod_math
 
 IMPLICIT NONE
 
-class(so3_T),INTENT(INOUT)             :: self
-class(*), INTENT(INOUT)                :: rot
-type(QuaternionArray_T),INTENT(INOUT)  :: Pm
-type(r_T), INTENT(OUT)                 :: roFZ
-logical,OPTIONAL,INTENT(IN)            :: MFZ
+class(so3_T),INTENT(INOUT)               :: self
+class(*), INTENT(INOUT)                  :: rot
+type(QuaternionArray_T),INTENT(INOUT)    :: Pm
+type(r_T), INTENT(OUT)                   :: roFZ
+logical,OPTIONAL,INTENT(IN)              :: MFZ
 integer(kind=irg),OPTIONAL,INTENT(INOUT) :: bin
-logical,OPTIONAL,INTENT(IN)            :: verbose
+logical,OPTIONAL,INTENT(IN)              :: verbose
 
-type(IO_T)                             :: Message
-type(Quaternion_T)                     :: Mu, qu, qS, pp
-type(q_T)                              :: qq
-type(r_T)                              :: rod
-real(kind=dbl)                         :: x(4), y(3), Mux(4)
-integer(kind=irg)                      :: i, j, Pmdims
-logical                                :: useMFZ = .FALSE., verb = .FALSE.
-real(kind=dbl)                         :: tol, eps = 1.0D-6
+type(IO_T)                               :: Message
+type(Quaternion_T)                       :: Mu, qu, qS, pp
+type(q_T)                                :: qq
+type(r_T)                                :: rod
+real(kind=dbl)                           :: x(4), y(3), Mux(4)
+integer(kind=irg)                        :: i, j, Pmdims
+logical                                  :: useMFZ = .FALSE., verb = .FALSE.
+real(kind=dbl)                           :: tol, eps = 1.0D-6
 
 tol = 1.0D+5
 

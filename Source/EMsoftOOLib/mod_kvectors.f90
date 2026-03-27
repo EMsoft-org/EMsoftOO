@@ -262,12 +262,12 @@ module mod_kvectors
  
  IMPLICIT NONE
  
- class(kvectors_T),INTENT(INOUT)       :: self
- character(fnlen),INTENT(IN),OPTIONAL  :: mp
- logical                               :: ok
+ class(kvectors_T),INTENT(INOUT)      :: self
+ character(fnlen),INTENT(IN),OPTIONAL :: mp
+ logical                              :: ok
  
- integer(kind=irg) :: i
- character(20)     :: modes(6) = (/ 'Conical             ', &
+ integer(kind=irg)                    :: i
+ character(20)                        :: modes(6) = (/ 'Conical             ', &
                                     'ECCI                ', &
                                     'Standard            ', &
                                     'StandardConical     ', &
@@ -1891,11 +1891,11 @@ module mod_kvectors
  
  IMPLICIT NONE
  
- real(kind=dbl),INTENT(IN):: x, y
+ real(kind=dbl),INTENT(IN) :: x, y
  
- real(kind=dbl),parameter        :: srt = 1.732050808   ! sqrt(3.D0)
- integer(kind=irg)               :: res
- real(kind=dbl)                  :: xx
+ real(kind=dbl),parameter  :: srt = 1.732050808   ! sqrt(3.D0)
+ integer(kind=irg)         :: res
+ real(kind=dbl)            :: xx
  
  xx = dabs(x*srt)        ! |x| sqrt(3)
  

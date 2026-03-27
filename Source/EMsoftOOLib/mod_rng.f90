@@ -202,7 +202,7 @@ contains
 recursive subroutine rng_seed(self, seed)
 !DEC$ ATTRIBUTES DLLEXPORT :: rng_seed
     type(rng_t), INTENT(INOUT) :: self
-    integer, INTENT(IN) :: seed
+    integer, INTENT(IN)        :: seed
 
     self%state(1) = seed
     self%state(2:ns) = rng_default_seed(2:ns)
@@ -214,8 +214,8 @@ recursive function rng_uniform(self) result(u)
 !DEC$ ATTRIBUTES DLLEXPORT :: rng_uniform
 
     type(rng_t), INTENT(INOUT) :: self
-    real :: u
-    integer :: imz
+    real                       :: u
+    integer                    :: imz
 
     imz = self%state(1) - self%state(3)
 
@@ -295,13 +295,13 @@ end function rng_uniform
   
   elemental function uiadd( a, b ) result( c )
 
-    intrinsic :: ibits, ior, ishft
+    intrinsic                        :: ibits, ior, ishft
 
-    integer( kind = wi ), INTENT(IN)  :: a, b
+    integer( kind = wi ), INTENT(IN) :: a, b
 
-    integer( kind = wi )  :: c
+    integer( kind = wi )             :: c
 
-    integer( kind = wi )  :: a1, a2, b1, b2, s1, s2
+    integer( kind = wi )             :: a1, a2, b1, b2, s1, s2
 
     a1 = ibits( a, 0, hbs )
     a2 = ibits( a, hbs, hbs )
@@ -316,13 +316,13 @@ end function rng_uniform
   
   elemental function uisub( a, b ) result( c )
 
-    intrinsic :: ibits, ior, ishft
+    intrinsic                        :: ibits, ior, ishft
 
-    integer( kind = wi ), INTENT(IN)  :: a, b
+    integer( kind = wi ), INTENT(IN) :: a, b
 
-    integer( kind = wi )  :: c
+    integer( kind = wi )             :: c
 
-    integer( kind = wi )  :: a1, a2, b1, b2, s1, s2
+    integer( kind = wi )             :: a1, a2, b1, b2, s1, s2
 
     a1 = ibits( a, 0, hbs )
     a2 = ibits( a, hbs, hbs )
@@ -337,15 +337,15 @@ end function rng_uniform
   
   elemental function uimlt( a, b ) result( c )
 
-    intrinsic :: ibits, ior, ishft
+    intrinsic                    :: ibits, ior, ishft
 
-    integer(kind=wi), INTENT(IN)  :: a, b
+    integer(kind=wi), INTENT(IN) :: a, b
 
-    integer(kind=wi)  :: c
+    integer(kind=wi)             :: c
 
-    integer(kind=wi)  :: a0, a1, a2, a3
-    integer(kind=wi)  :: b0, b1, b2, b3
-    integer(kind=wi)  :: p0, p1, p2, p3
+    integer(kind=wi)             :: a0, a1, a2, a3
+    integer(kind=wi)             :: b0, b1, b2, b3
+    integer(kind=wi)             :: p0, p1, p2, p3
 
     a0 = ibits( a, 0, qbs )
     a1 = ibits( a, qbs, qbs )
@@ -368,13 +368,13 @@ end function rng_uniform
 
   elemental function uidiv( a, b ) result( c )
     
-    intrinsic :: btest, ishft
+    intrinsic                    :: btest, ishft
 
-    integer(kind=wi), INTENT(IN)  :: a, b
+    integer(kind=wi), INTENT(IN) :: a, b
 
-    integer(kind=wi)  :: c
+    integer(kind=wi)             :: c
 
-    integer(kind=wi)  :: dl, rl
+    integer(kind=wi)             :: dl, rl
 
     if ( btest( a, fbs-1 ) ) then
       if ( btest( b, fbs-1 ) ) then
@@ -405,13 +405,13 @@ end function rng_uniform
 
   elemental function uimod( a, b ) result( c )
     
-    intrinsic :: modulo, btest, ishft
+    intrinsic                    :: modulo, btest, ishft
 
-    integer(kind=wi), INTENT(IN)  :: a, b
+    integer(kind=wi), INTENT(IN) :: a, b
 
-    integer(kind=wi)  :: c
+    integer(kind=wi)             :: c
 
-    integer(kind=wi)  :: dl, rl
+    integer(kind=wi)             :: dl, rl
 
     if ( btest( a, fbs-1 ) ) then
       if ( btest( b, fbs-1 ) ) then
@@ -442,9 +442,9 @@ end function rng_uniform
 
   subroutine init_by_type( put, get )
 
-    intrinsic :: present
+    intrinsic                                  :: present
 
-    type(genrand_state), optional, INTENT(IN) :: put
+    type(genrand_state), optional, INTENT(IN)  :: put
     type(genrand_state), optional, INTENT(OUT) :: get
 
     if ( present( put ) ) then
@@ -462,13 +462,13 @@ end function rng_uniform
   ! initializes mt[N] with a seed
   subroutine init_by_scalar( put )
 
-    intrinsic :: ishft, ieor, ibits
+    intrinsic                    :: ishft, ieor, ibits
 
-    integer(kind=wi), parameter :: mult_a = 1812433253_wi !z'6C078965'
+    integer(kind=wi), parameter  :: mult_a = 1812433253_wi !z'6C078965'
 
-    integer(kind=wi), INTENT(IN)  :: put
+    integer(kind=wi), INTENT(IN) :: put
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)             :: i
 
     state%ini = .true._wi
     state%val(1) = ibits( put, 0, fbs )
@@ -493,16 +493,16 @@ end function rng_uniform
   ! key_length is its length
   subroutine init_by_array( put )
 
-    intrinsic :: size, max, ishft, ieor, ibits
+    intrinsic                                  :: size, max, ishft, ieor, ibits
     
-    integer(kind=wi), parameter :: seed_d =    19650218_wi !z'12BD6AA'
-    integer(kind=wi), parameter :: mult_a =     1664525_wi !z'19660D'
-    integer(kind=wi), parameter :: mult_b =  1566083941_wi !z'5D588B65'
-    integer(kind=wi), parameter :: msb1_d = ishft( 1_wi, fbs-1 ) !z'80000000'
+    integer(kind=wi), parameter                :: seed_d =    19650218_wi !z'12BD6AA'
+    integer(kind=wi), parameter                :: mult_a =     1664525_wi !z'19660D'
+    integer(kind=wi), parameter                :: mult_b =  1566083941_wi !z'5D588B65'
+    integer(kind=wi), parameter                :: msb1_d = ishft( 1_wi, fbs-1 ) !z'80000000'
 
-    integer(kind=wi), dimension(:), INTENT(IN)  :: put
+    integer(kind=wi), dimension(:), INTENT(IN) :: put
 
-    integer(kind=wi)  :: i, j, k, tp, key_length
+    integer(kind=wi)                           :: i, j, k, tp, key_length
 
     call init_by_scalar( seed_d )
     key_length = size( put, dim=1 )
@@ -541,11 +541,11 @@ end function rng_uniform
 
   subroutine next_state( )
 
-    intrinsic :: ishft, ieor, btest, ibits, mvbits
+    intrinsic                   :: ishft, ieor, btest, ibits, mvbits
 
     integer(kind=wi), parameter :: matrix_a = -1727483681_wi !z'9908b0df'
 
-    integer(kind=wi)  :: i, mld
+    integer(kind=wi)            :: i, mld
 
     if ( .not. state%ini ) call init_by_scalar( default_seed )
     do i = 1, n-m, 1
@@ -571,12 +571,12 @@ end function rng_uniform
 
   elemental subroutine genrand_encode( chr, val )
     
-    intrinsic :: len
+    intrinsic                     :: len
 
     character(len=*), INTENT(OUT) :: chr
-    integer(kind=wi), INTENT(IN) :: val
+    integer(kind=wi), INTENT(IN)  :: val
     
-    integer(kind=wi)  :: i, m, d
+    integer(kind=wi)              :: i, m, d
 
     d = val
     chr = ""
@@ -592,13 +592,13 @@ end function rng_uniform
 
   elemental subroutine genrand_decode( val, chr )
     
-    intrinsic :: len, len_trim, trim, adjustl, scan
+    intrinsic                     :: len, len_trim, trim, adjustl, scan
 
     integer(kind=wi), INTENT(OUT) :: val
-    character(len=*), INTENT(IN) :: chr
+    character(len=*), INTENT(IN)  :: chr
     
-    integer(kind=wi)        :: i, e, p
-    character(len=len(chr)) :: c
+    integer(kind=wi)              :: i, e, p
+    character(len=len(chr))       :: c
 
     e = 1
     c = trim( adjustl( chr ) )
@@ -616,13 +616,13 @@ end function rng_uniform
 
   elemental subroutine genrand_load_state( stt, rpr )
 
-    intrinsic :: scan
+    intrinsic                        :: scan
 
-    type(genrand_state), INTENT(OUT)  :: stt
+    type(genrand_state), INTENT(OUT) :: stt
     type(genrand_srepr), INTENT(IN)  :: rpr
 
-    integer(kind=wi)    :: i, j
-    character(len=clen) :: c
+    integer(kind=wi)                 :: i, j
+    character(len=clen)              :: c
 
     i = 1
     c = rpr%repr
@@ -644,12 +644,12 @@ end function rng_uniform
 
   elemental subroutine genrand_dump_state( rpr, stt )
 
-    intrinsic :: len_trim
+    intrinsic                        :: len_trim
 
     type(genrand_srepr), INTENT(OUT) :: rpr
-    type(genrand_state), INTENT(IN) :: stt
+    type(genrand_state), INTENT(IN)  :: stt
 
-    integer(kind=wi)  :: i, j
+    integer(kind=wi)                 :: i, j
 
     j = 1
     rpr%repr = ""
@@ -667,10 +667,10 @@ end function rng_uniform
   ! generates a random number on [0,0xffffffff]-interval
   subroutine genrand_int32_0d( y )
 
-    intrinsic :: ieor, iand, ishft
+    intrinsic                     :: ieor, iand, ishft
 
-    integer(kind=wi), parameter :: temper_a = -1658038656_wi !z'9D2C5680'
-    integer(kind=wi), parameter :: temper_b =  -272236544_wi !z'EFC60000'
+    integer(kind=wi), parameter   :: temper_a = -1658038656_wi !z'9D2C5680'
+    integer(kind=wi), parameter   :: temper_b =  -272236544_wi !z'EFC60000'
 
     integer(kind=wi), INTENT(OUT) :: y
     
@@ -688,11 +688,11 @@ end function rng_uniform
 
   subroutine genrand_int32_1d( y )
 
-    intrinsic :: size
+    intrinsic                                   :: size
 
     integer(kind=wi), dimension(:), INTENT(OUT) :: y
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                            :: i
 
     do i = 1, size( y, 1 ), 1
       call genrand_int32_0d( y(i) )
@@ -703,11 +703,11 @@ end function rng_uniform
 
   subroutine genrand_int32_2d( y )
 
-    intrinsic :: size
+    intrinsic                                     :: size
 
     integer(kind=wi), dimension(:,:), INTENT(OUT) :: y
     
-    integer(kind=wi)  :: i
+    integer(kind=wi)                              :: i
 
     do i = 1, size( y, 2 ), 1
       call genrand_int32_1d( y(:,i) )
@@ -718,11 +718,11 @@ end function rng_uniform
 
   subroutine genrand_int32_3d( y )
 
-    intrinsic :: size
+    intrinsic                                       :: size
 
     integer(kind=wi), dimension(:,:,:), INTENT(OUT) :: y
     
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                :: i
 
     do i = 1, size( y, 3 ), 1
       call genrand_int32_2d( y(:,:,i) )
@@ -733,11 +733,11 @@ end function rng_uniform
 
   subroutine genrand_int32_4d( y )
 
-    intrinsic :: size
+    intrinsic                                         :: size
 
     integer(kind=wi), dimension(:,:,:,:), INTENT(OUT) :: y
     
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                  :: i
 
     do i = 1, size( y, 4 ), 1
       call genrand_int32_3d( y(:,:,:,i) )
@@ -748,11 +748,11 @@ end function rng_uniform
 
   subroutine genrand_int32_5d( y )
 
-    intrinsic :: size
+    intrinsic                                           :: size
 
     integer(kind=wi), dimension(:,:,:,:,:), INTENT(OUT) :: y
     
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                    :: i
 
     do i = 1, size( y, 5 ), 1
       call genrand_int32_4d( y(:,:,:,:,i) )
@@ -763,11 +763,11 @@ end function rng_uniform
 
   subroutine genrand_int32_6d( y )
 
-    intrinsic :: size
+    intrinsic                                             :: size
 
     integer(kind=wi), dimension(:,:,:,:,:,:), INTENT(OUT) :: y
     
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                      :: i
 
     do i = 1, size( y, 6 ), 1
       call genrand_int32_5d( y(:,:,:,:,:,i) )
@@ -778,11 +778,11 @@ end function rng_uniform
 
   subroutine genrand_int32_7d( y )
 
-    intrinsic :: size
+    intrinsic                                               :: size
 
     integer(kind=wi), dimension(:,:,:,:,:,:,:), INTENT(OUT) :: y
     
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                        :: i
 
     do i = 1, size( y, 7 ), 1
       call genrand_int32_6d( y(:,:,:,:,:,:,i) )
@@ -794,7 +794,7 @@ end function rng_uniform
   ! generates a random number on [0,0x7fffffff]-interval
   subroutine genrand_int31_0d( y )
 
-    intrinsic :: ishft
+    intrinsic                     :: ishft
 
     integer(kind=wi), INTENT(OUT) :: y
 
@@ -806,11 +806,11 @@ end function rng_uniform
 
   subroutine genrand_int31_1d( y )
 
-    intrinsic :: size
+    intrinsic                                   :: size
 
     integer(kind=wi), dimension(:), INTENT(OUT) :: y
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                            :: i
 
     do i = 1, size( y, 1 ), 1
       call genrand_int31_0d( y(i) )
@@ -821,11 +821,11 @@ end function rng_uniform
 
   subroutine genrand_int31_2d( y )
 
-    intrinsic :: size
+    intrinsic                                     :: size
 
     integer(kind=wi), dimension(:,:), INTENT(OUT) :: y
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                              :: i
 
     do i = 1, size( y, 2 ), 1
       call genrand_int31_1d( y(:,i) )
@@ -836,11 +836,11 @@ end function rng_uniform
 
   subroutine genrand_int31_3d( y )
 
-    intrinsic :: size
+    intrinsic                                       :: size
 
     integer(kind=wi), dimension(:,:,:), INTENT(OUT) :: y
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                :: i
 
     do i = 1, size( y, 3 ), 1
       call genrand_int31_2d( y(:,:,i) )
@@ -851,11 +851,11 @@ end function rng_uniform
 
   subroutine genrand_int31_4d( y )
 
-    intrinsic :: size
+    intrinsic                                         :: size
 
     integer(kind=wi), dimension(:,:,:,:), INTENT(OUT) :: y
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                  :: i
 
     do i = 1, size( y, 4 ), 1
       call genrand_int31_3d( y(:,:,:,i) )
@@ -866,11 +866,11 @@ end function rng_uniform
 
   subroutine genrand_int31_5d( y )
 
-    intrinsic :: size
+    intrinsic                                           :: size
 
     integer(kind=wi), dimension(:,:,:,:,:), INTENT(OUT) :: y
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                    :: i
 
     do i = 1, size( y, 5 ), 1
       call genrand_int31_4d( y(:,:,:,:,i) )
@@ -881,11 +881,11 @@ end function rng_uniform
 
   subroutine genrand_int31_6d( y )
 
-    intrinsic :: size
+    intrinsic                                             :: size
 
     integer(kind=wi), dimension(:,:,:,:,:,:), INTENT(OUT) :: y
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                      :: i
 
     do i = 1, size( y, 6 ), 1
       call genrand_int31_5d( y(:,:,:,:,:,i) )
@@ -896,11 +896,11 @@ end function rng_uniform
 
   subroutine genrand_int31_7d( y )
 
-    intrinsic :: size
+    intrinsic                                               :: size
 
     integer(kind=wi), dimension(:,:,:,:,:,:,:), INTENT(OUT) :: y
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                        :: i
 
     do i = 1, size( y, 7 ), 1
       call genrand_int31_6d( y(:,:,:,:,:,:,i) )
@@ -912,11 +912,11 @@ end function rng_uniform
   ! generates a random number on [0,1]-real-interval
   subroutine genrand_real1_0d( r )
 
-    intrinsic :: real
+    intrinsic                  :: real
 
-    real(kind=wr), INTENT(OUT)  :: r
+    real(kind=wr), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: a
+    integer(kind=wi)           :: a
 
     call genrand_int32_0d( a )
     r = real( a, kind=wr ) * pi232_1 + p231d232_1
@@ -927,11 +927,11 @@ end function rng_uniform
 
   subroutine genrand_real1_1d( r )
 
-    intrinsic :: size
+    intrinsic                                :: size
 
-    real(kind=wr), dimension(:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                         :: i
 
     do i = 1, size( r, 1 ), 1
       call genrand_real1_0d( r(i) )
@@ -942,11 +942,11 @@ end function rng_uniform
 
   subroutine genrand_real1_2d( r )
 
-    intrinsic :: size
+    intrinsic                                  :: size
 
-    real(kind=wr), dimension(:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                           :: i
 
     do i = 1, size( r, 2 ), 1
       call genrand_real1_1d( r(:,i) )
@@ -957,11 +957,11 @@ end function rng_uniform
 
   subroutine genrand_real1_3d( r )
 
-    intrinsic :: size
+    intrinsic                                    :: size
 
-    real(kind=wr), dimension(:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                             :: i
 
     do i = 1, size( r, 3 ), 1
       call genrand_real1_2d( r(:,:,i) )
@@ -972,11 +972,11 @@ end function rng_uniform
 
   subroutine genrand_real1_4d( r )
 
-    intrinsic :: size
+    intrinsic                                      :: size
 
-    real(kind=wr), dimension(:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                               :: i
 
     do i = 1, size( r, 4 ), 1
       call genrand_real1_3d( r(:,:,:,i) )
@@ -987,11 +987,11 @@ end function rng_uniform
 
   subroutine genrand_real1_5d( r )
 
-    intrinsic :: size
+    intrinsic                                        :: size
 
-    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                 :: i
 
     do i = 1, size( r, 5 ), 1
       call genrand_real1_4d( r(:,:,:,:,i) )
@@ -1002,11 +1002,11 @@ end function rng_uniform
 
   subroutine genrand_real1_6d( r )
 
-    intrinsic :: size
+    intrinsic                                          :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                   :: i
 
     do i = 1, size( r, 6 ), 1
       call genrand_real1_5d( r(:,:,:,:,:,i) )
@@ -1017,11 +1017,11 @@ end function rng_uniform
 
   subroutine genrand_real1_7d( r )
 
-    intrinsic :: size
+    intrinsic                                            :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                     :: i
 
     do i = 1, size( r, 7 ), 1
       call genrand_real1_6d( r(:,:,:,:,:,:,i) )
@@ -1033,11 +1033,11 @@ end function rng_uniform
   ! generates a random number on [0,1)-real-interval
   subroutine genrand_real2_0d( r )
 
-    intrinsic :: real
+    intrinsic                  :: real
 
-    real(kind=wr), INTENT(OUT)  :: r
+    real(kind=wr), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: a
+    integer(kind=wi)           :: a
 
     call genrand_int32_0d( a )
     r = real( a, kind=wr ) * pi232 + 0.5_wr
@@ -1048,11 +1048,11 @@ end function rng_uniform
 
   subroutine genrand_real2_1d( r )
 
-    intrinsic :: size
+    intrinsic                                :: size
 
-    real(kind=wr), dimension(:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                         :: i
 
     do i = 1, size( r, 1 ), 1
       call genrand_real2_0d( r(i) )
@@ -1063,11 +1063,11 @@ end function rng_uniform
 
   subroutine genrand_real2_2d( r )
 
-    intrinsic :: size
+    intrinsic                                  :: size
 
-    real(kind=wr), dimension(:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                           :: i
 
     do i = 1, size( r, 2 ), 1
       call genrand_real2_1d( r(:,i) )
@@ -1078,11 +1078,11 @@ end function rng_uniform
 
   subroutine genrand_real2_3d( r )
 
-    intrinsic :: size
+    intrinsic                                    :: size
 
-    real(kind=wr), dimension(:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                             :: i
 
     do i = 1, size( r, 3 ), 1
       call genrand_real2_2d( r(:,:,i) )
@@ -1093,11 +1093,11 @@ end function rng_uniform
 
   subroutine genrand_real2_4d( r )
 
-    intrinsic :: size
+    intrinsic                                      :: size
 
-    real(kind=wr), dimension(:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                               :: i
 
     do i = 1, size( r, 4 ), 1
       call genrand_real2_3d( r(:,:,:,i) )
@@ -1108,11 +1108,11 @@ end function rng_uniform
 
   subroutine genrand_real2_5d( r )
 
-    intrinsic :: size
+    intrinsic                                        :: size
 
-    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                 :: i
 
     do i = 1, size( r, 5 ), 1
       call genrand_real2_4d( r(:,:,:,:,i) )
@@ -1123,11 +1123,11 @@ end function rng_uniform
 
   subroutine genrand_real2_6d( r )
 
-    intrinsic :: size
+    intrinsic                                          :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                   :: i
 
     do i = 1, size( r, 6 ), 1
       call genrand_real2_5d( r(:,:,:,:,:,i) )
@@ -1138,11 +1138,11 @@ end function rng_uniform
 
   subroutine genrand_real2_7d( r )
 
-    intrinsic :: size
+    intrinsic                                            :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                     :: i
 
     do i = 1, size( r, 7 ), 1
       call genrand_real2_6d( r(:,:,:,:,:,:,i) )
@@ -1154,11 +1154,11 @@ end function rng_uniform
   ! generates a random number on (0,1)-real-interval
   subroutine genrand_real3_0d( r )
 
-    intrinsic :: real
+    intrinsic                  :: real
 
-    real(kind=wr), INTENT(OUT)  :: r
+    real(kind=wr), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: a
+    integer(kind=wi)           :: a
 
     call genrand_int32_0d( a )
     r = real( a, kind=wr ) * pi232 + p231_5d232
@@ -1169,11 +1169,11 @@ end function rng_uniform
 
   subroutine genrand_real3_1d( r )
 
-    intrinsic :: size
+    intrinsic                                :: size
 
-    real(kind=wr), dimension(:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                         :: i
 
     do i = 1, size( r, 1 ), 1
       call genrand_real3_0d( r(i) )
@@ -1184,11 +1184,11 @@ end function rng_uniform
 
   subroutine genrand_real3_2d( r )
 
-    intrinsic :: size
+    intrinsic                                  :: size
 
-    real(kind=wr), dimension(:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                           :: i
 
     do i = 1, size( r, 2 ), 1
       call genrand_real3_1d( r(:,i) )
@@ -1199,11 +1199,11 @@ end function rng_uniform
 
   subroutine genrand_real3_3d( r )
 
-    intrinsic :: size
+    intrinsic                                    :: size
 
-    real(kind=wr), dimension(:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                             :: i
 
     do i = 1, size( r, 3 ), 1
       call genrand_real3_2d( r(:,:,i) )
@@ -1214,11 +1214,11 @@ end function rng_uniform
 
   subroutine genrand_real3_4d( r )
 
-    intrinsic :: size
+    intrinsic                                      :: size
 
-    real(kind=wr), dimension(:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                               :: i
 
     do i = 1, size( r, 4 ), 1
       call genrand_real3_3d( r(:,:,:,i) )
@@ -1229,11 +1229,11 @@ end function rng_uniform
 
   subroutine genrand_real3_5d( r )
 
-    intrinsic :: size
+    intrinsic                                        :: size
 
-    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                 :: i
 
     do i = 1, size( r, 5 ), 1
       call genrand_real3_4d( r(:,:,:,:,i) )
@@ -1244,11 +1244,11 @@ end function rng_uniform
 
   subroutine genrand_real3_6d( r )
 
-    intrinsic :: size
+    intrinsic                                          :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                   :: i
 
     do i = 1, size( r, 6 ), 1
       call genrand_real3_5d( r(:,:,:,:,:,i) )
@@ -1259,11 +1259,11 @@ end function rng_uniform
 
   subroutine genrand_real3_7d( r )
 
-    intrinsic :: size
+    intrinsic                                            :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                     :: i
 
     do i = 1, size( r, 7 ), 1
       call genrand_real3_6d( r(:,:,:,:,:,:,i) )
@@ -1275,11 +1275,11 @@ end function rng_uniform
   ! generates a random number on [0,1) with 53-bit resolution
   subroutine genrand_res53_0d( r )
 
-    intrinsic :: ishft, real
+    intrinsic                  :: ishft, real
 
-    real(kind=wr), INTENT(OUT)  :: r
+    real(kind=wr), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: a, b
+    integer(kind=wi)           :: a, b
 
     call genrand_int32_0d( a )
     call genrand_int32_0d( b )
@@ -1292,11 +1292,11 @@ end function rng_uniform
 
   subroutine genrand_res53_1d( r )
 
-    intrinsic :: size
+    intrinsic                                :: size
 
-    real(kind=wr), dimension(:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                         :: i
 
     do i = 1, size( r, 1 ), 1
       call genrand_res53_0d( r(i) )
@@ -1307,11 +1307,11 @@ end function rng_uniform
 
   subroutine genrand_res53_2d( r )
 
-    intrinsic :: size
+    intrinsic                                  :: size
 
-    real(kind=wr), dimension(:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                           :: i
 
     do i = 1, size( r, 2 ), 1
       call genrand_res53_1d( r(:,i) )
@@ -1322,11 +1322,11 @@ end function rng_uniform
 
   subroutine genrand_res53_3d( r )
 
-    intrinsic :: size
+    intrinsic                                    :: size
 
-    real(kind=wr), dimension(:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                             :: i
 
     do i = 1, size( r, 3 ), 1
       call genrand_res53_2d( r(:,:,i) )
@@ -1337,11 +1337,11 @@ end function rng_uniform
 
   subroutine genrand_res53_4d( r )
 
-    intrinsic :: size
+    intrinsic                                      :: size
 
-    real(kind=wr), dimension(:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                               :: i
 
     do i = 1, size( r, 4 ), 1
       call genrand_res53_3d( r(:,:,:,i) )
@@ -1352,11 +1352,11 @@ end function rng_uniform
 
   subroutine genrand_res53_5d( r )
 
-    intrinsic :: size
+    intrinsic                                        :: size
 
-    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                 :: i
 
     do i = 1, size( r, 5 ), 1
       call genrand_res53_4d( r(:,:,:,:,i) )
@@ -1367,11 +1367,11 @@ end function rng_uniform
 
   subroutine genrand_res53_6d( r )
 
-    intrinsic :: size
+    intrinsic                                          :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                   :: i
 
     do i = 1, size( r, 6 ), 1
       call genrand_res53_5d( r(:,:,:,:,:,i) )
@@ -1382,11 +1382,11 @@ end function rng_uniform
 
   subroutine genrand_res53_7d( r )
 
-    intrinsic :: size
+    intrinsic                                            :: size
 
-    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT)  :: r
+    real(kind=wr), dimension(:,:,:,:,:,:,:), INTENT(OUT) :: r
 
-    integer(kind=wi)  :: i
+    integer(kind=wi)                                     :: i
 
     do i = 1, size( r, 7 ), 1
       call genrand_res53_6d( r(:,:,:,:,:,:,i) )

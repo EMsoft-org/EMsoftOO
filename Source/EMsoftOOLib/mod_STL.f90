@@ -153,13 +153,13 @@ subroutine writeSTLfile_(self, MCAlist)
 
 IMPLICIT NONE 
 
-class(STL_T), INTENT(INOUT)       :: self
-type(MCAtriangle), INTENT(IN), pointer     :: MCAlist
+class(STL_T), INTENT(INOUT)            :: self
+type(MCAtriangle), INTENT(IN), pointer :: MCAlist
 
-type(STLtriangle)                 :: tr 
-integer(kind=irg)                 :: i 
-real(c_float)                     :: nv(3)
-type(MCAtriangle),pointer         :: tmp, tmp2
+type(STLtriangle)                      :: tr 
+integer(kind=irg)                      :: i 
+real(c_float)                          :: nv(3)
+type(MCAtriangle),pointer              :: tmp, tmp2
 
 tmp => MCAlist
 

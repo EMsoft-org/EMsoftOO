@@ -2240,14 +2240,14 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),INTENT(INOUT)             :: self
+class(Cell_T),INTENT(INOUT)                     :: self
 
-real(kind=sgl),OPTIONAL,INTENT(OUT),allocatable  :: Z2percent(:)
+real(kind=sgl),OPTIONAL,INTENT(OUT),allocatable :: Z2percent(:)
  !! optional array with percentages of Z^2 values for each general atom type
 
-real(kind=sgl),allocatable              :: Z2list(:)
-real(kind=dbl)                          :: AW, Z
-integer(kind=irg)                       :: i
+real(kind=sgl),allocatable                      :: Z2list(:)
+real(kind=dbl)                                  :: AW, Z
+integer(kind=irg)                               :: i
 
 ! compute the total atomic weight for the unit cell (g/mol)
 ! also compute the total atomic number
@@ -2808,14 +2808,14 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-class(Cell_T),INTENT(INOUT)     :: self
-type(SpaceGroup_T),INTENT(INOUT):: SG
-character(1),INTENT(IN)         :: switch ! if switch='m', then multiple unit cells, otherwise single cell
+class(Cell_T),INTENT(INOUT)           :: self
+type(SpaceGroup_T),INTENT(INOUT)      :: SG
+character(1),INTENT(IN)               :: switch ! if switch='m', then multiple unit cells, otherwise single cell
 integer(kind=irg),INTENT(IN),OPTIONAL :: numcells(3)
 
-type(IO_T)                      :: Message
-logical                         :: inside                       ! auxiliary logical
-integer(kind=irg)               :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3), &
+type(IO_T)                            :: Message
+logical                               :: inside                       ! auxiliary logical
+integer(kind=irg)                     :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3), &
                                    jstart, kstart, lstart       ! various auxiliary variables
 real(kind=dbl)                  :: ff(3),sh(3)                  ! auxiliary variables
 real(kind=sgl)                  :: r(3),g(3)                    ! auxiliary variables

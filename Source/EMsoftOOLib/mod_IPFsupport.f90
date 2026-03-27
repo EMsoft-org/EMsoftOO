@@ -151,8 +151,8 @@ function get_ipf_wd_(self) result(out)
 
 IMPLICIT NONE 
 
-class(IPFmap_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(IPFmap_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%ipf_wd
 
@@ -169,8 +169,8 @@ subroutine set_ipf_wd_(self,inp)
 
 IMPLICIT NONE 
 
-class(IPFmap_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(IPFmap_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%ipf_wd = inp
 
@@ -187,8 +187,8 @@ function get_ipf_ht_(self) result(out)
 
 IMPLICIT NONE 
 
-class(IPFmap_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(IPFmap_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%ipf_ht
 
@@ -205,8 +205,8 @@ subroutine set_ipf_ht_(self,inp)
 
 IMPLICIT NONE 
 
-class(IPFmap_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(IPFmap_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%ipf_ht = inp
 
@@ -223,8 +223,8 @@ function get_ipf_nthreads_(self) result(out)
 
 IMPLICIT NONE 
 
-class(IPFmap_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(IPFmap_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%ipf_nthreads
 
@@ -241,8 +241,8 @@ subroutine set_ipf_nthreads_(self,inp)
 
 IMPLICIT NONE 
 
-class(IPFmap_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(IPFmap_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%ipf_nthreads = inp
 
@@ -2134,34 +2134,34 @@ use mod_image
 use mod_io
 use mod_colorspace
 use ISO_C_BINDING
-use, intrinsic :: iso_fortran_env
+use, intrinsic                         :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(IPFmap_T), INTENT(INOUT)              :: self
-type(EMsoft_T), INTENT(INOUT)               :: EMsoft
-integer(kind=irg), INTENT(IN)               :: sampleDir(3)
-type(QuaternionArray_T), INTENT(IN)         :: Orientations
-type(QuaternionArray_T), INTENT(INOUT)      :: sym
-logical,INTENT(IN),OPTIONAL                 :: cDir
+class(IPFmap_T), INTENT(INOUT)         :: self
+type(EMsoft_T), INTENT(INOUT)          :: EMsoft
+integer(kind=irg), INTENT(IN)          :: sampleDir(3)
+type(QuaternionArray_T), INTENT(IN)    :: Orientations
+type(QuaternionArray_T), INTENT(INOUT) :: sym
+logical,INTENT(IN),OPTIONAL            :: cDir
 
-integer(kind=irg),allocatable               :: IPFmap(:,:,:)
-integer(kind=irg)                           :: ix, iy, iq, TID, RGB(0:2) 
-type(Quaternion_T)                          :: qu
-type(IO_T)                                  :: Message
-type(colorspace_T)                          :: clr
+integer(kind=irg),allocatable          :: IPFmap(:,:,:)
+integer(kind=irg)                      :: ix, iy, iq, TID, RGB(0:2) 
+type(Quaternion_T)                     :: qu
+type(IO_T)                             :: Message
+type(colorspace_T)                     :: clr
 
-character(fnlen)                            :: fname, TIFF_filename
-real(kind=dbl)                              :: sDir(3)
+character(fnlen)                       :: fname, TIFF_filename
+real(kind=dbl)                         :: sDir(3)
 
 ! declare variables for use in object oriented image module
-integer                                     :: iostat, io_int(2)
-character(len=128)                          :: iomsg
-logical                                     :: isInteger, OPC, PUC
-type(image_t)                               :: im
-integer(int8), allocatable                  :: TIFF_image(:,:)
-integer                                     :: dim2(2), Pm
-integer(c_int32_t)                          :: result
+integer                                :: iostat, io_int(2)
+character(len=128)                     :: iomsg
+logical                                :: isInteger, OPC, PUC
+type(image_t)                          :: im
+integer(int8), allocatable             :: TIFF_image(:,:)
+integer                                :: dim2(2), Pm
+integer(c_int32_t)                     :: result
 
 allocate(IPFmap(3, self%ipf_wd, self%ipf_ht))
 

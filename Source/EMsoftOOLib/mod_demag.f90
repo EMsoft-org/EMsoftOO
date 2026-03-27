@@ -229,20 +229,20 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(demag_T), INTENT(INOUT)        :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(demag_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)   :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)   :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                :: EMsoft 
+type(IO_T)                    :: Message       
+logical                       :: skipread = .FALSE.
 
-integer(kind=irg)         :: dims
-logical                   :: dtf
-character(fnlen)          :: shampFilename
-character(fnlen)          :: outname
+integer(kind=irg)             :: dims
+logical                       :: dtf
+character(fnlen)              :: shampFilename
+character(fnlen)              :: outname
 
 namelist / Demag / dims, dtf, shampFilename, outname 
 

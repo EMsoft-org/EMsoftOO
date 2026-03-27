@@ -876,20 +876,20 @@ use mod_FFTW3
 
 IMPLICIT NONE
 
-integer(kind=irg),INTENT(IN)            :: dims(2)
-real(kind=dbl),INTENT(IN)               :: w
-real(kind=dbl),INTENT(IN)               :: rdata(dims(1),dims(2))
-logical,INTENT(IN),OPTIONAL             :: init
-logical,INTENT(IN),OPTIONAL             :: destroy
-real(kind=dbl)                          :: fdata(dims(1),dims(2))
+integer(kind=irg),INTENT(IN)               :: dims(2)
+real(kind=dbl),INTENT(IN)                  :: w
+real(kind=dbl),INTENT(IN)                  :: rdata(dims(1),dims(2))
+logical,INTENT(IN),OPTIONAL                :: init
+logical,INTENT(IN),OPTIONAL                :: destroy
+real(kind=dbl)                             :: fdata(dims(1),dims(2))
 
-complex(kind=dbl),SAVE,allocatable      :: hpmask(:,:)
-complex(kind=dbl)                       :: cone = cmplx(1.D0,0.D0), czero = cmplx(0.D0,0.D0)
-integer(kind=irg)                       :: i, j, k, ii, jj
-real(kind=dbl)                          :: x, y, val
+complex(kind=dbl),SAVE,allocatable         :: hpmask(:,:)
+complex(kind=dbl)                          :: cone = cmplx(1.D0,0.D0), czero = cmplx(0.D0,0.D0)
+integer(kind=irg)                          :: i, j, k, ii, jj
+real(kind=dbl)                             :: x, y, val
 
 ! fftw variables
-type(C_PTR),SAVE                        :: planf, planb
+type(C_PTR),SAVE                           :: planf, planb
 complex(C_DOUBLE_COMPLEX),SAVE,allocatable :: inp(:,:), outp(:,:)
 
 ! are we just destroying the fftw plans ?
@@ -1051,19 +1051,19 @@ use mod_FFTW3
 
 IMPLICIT NONE
 
-integer(kind=irg),INTENT(IN)            :: dims(2)
-real(kind=dbl),INTENT(IN)               :: w
-real(kind=dbl),INTENT(IN)               :: rdata(dims(1),dims(2))
-complex(kind=dbl),INTENT(IN)            :: hpmask(dims(1),dims(2))
-complex(C_DOUBLE_COMPLEX),INTENT(INOUT) :: inp(dims(1),dims(2)), outp(dims(1),dims(2))
+integer(kind=irg),INTENT(IN)                       :: dims(2)
+real(kind=dbl),INTENT(IN)                          :: w
+real(kind=dbl),INTENT(IN)                          :: rdata(dims(1),dims(2))
+complex(kind=dbl),INTENT(IN)                       :: hpmask(dims(1),dims(2))
+complex(C_DOUBLE_COMPLEX),INTENT(INOUT)            :: inp(dims(1),dims(2)), outp(dims(1),dims(2))
 !f2py intent(in,out) ::  inp
-type(C_PTR),INTENT(IN)                  :: planf, planb
-complex(C_DOUBLE_COMPLEX), OPTIONAL, INTENT(INOUT)  :: convol(dims(1),dims(2))
-real(kind=dbl)                          :: fdata(dims(1),dims(2))
+type(C_PTR),INTENT(IN)                             :: planf, planb
+complex(C_DOUBLE_COMPLEX), OPTIONAL, INTENT(INOUT) :: convol(dims(1),dims(2))
+real(kind=dbl)                                     :: fdata(dims(1),dims(2))
 
-complex(kind=dbl)                       :: cone = cmplx(1.D0,0.D0), czero = cmplx(0.D0,0.D0)
-integer(kind=irg)                       :: i, j, k, ii, jj
-real(kind=dbl)                          :: x, y, val
+complex(kind=dbl)                                  :: cone = cmplx(1.D0,0.D0), czero = cmplx(0.D0,0.D0)
+integer(kind=irg)                                  :: i, j, k, ii, jj
+real(kind=dbl)                                     :: x, y, val
 
 ! apply the hi-pass mask to rdata
 do j=1,dims(1)
@@ -1527,14 +1527,14 @@ use mod_FFTW3
 
 IMPLICIT NONE
 
-integer(kind=irg),INTENT(IN)            :: dims(2)
-real(kind=dbl),INTENT(IN)               :: rdata(dims(1),dims(2)), lpmask(dims(1),dims(2)), hpmask(dims(1),dims(2))
+integer(kind=irg),INTENT(IN)                    :: dims(2)
+real(kind=dbl),INTENT(IN)                       :: rdata(dims(1),dims(2)), lpmask(dims(1),dims(2)), hpmask(dims(1),dims(2))
 complex(C_DOUBLE_COMPLEX),pointer,INTENT(INOUT) :: inp(:,:), outp(:,:)
-type(C_PTR),INTENT(IN)                  :: planf, planb
+type(C_PTR),INTENT(IN)                          :: planf, planb
 
-real(kind=dbl)                          :: fdata(dims(1),dims(2))
-integer(kind=irg)                       :: j, k
-complex(kind=dbl)                       :: hpmask_complex(dims(1),dims(2)), lpmask_complex(dims(1),dims(2))
+real(kind=dbl)                                  :: fdata(dims(1),dims(2))
+integer(kind=irg)                               :: j, k
+complex(kind=dbl)                               :: hpmask_complex(dims(1),dims(2)), lpmask_complex(dims(1),dims(2))
 
 ! apply the hi-pass mask to rdata
 do j=1,dims(1)

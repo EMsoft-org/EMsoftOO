@@ -286,19 +286,19 @@ type(EMsoft_T) function constructor(progname, progdesc, makeconfig, showconfig, 
 
 IMPLICIT NONE
 
-character(fnlen), INTENT(IN)      :: progname
+character(fnlen), INTENT(IN)            :: progname
  !! program name string
-character(fnlen), INTENT(IN)      :: progdesc
+character(fnlen), INTENT(IN)            :: progdesc
  !! program descriptor string
-logical, INTENT(IN), OPTIONAL     :: makeconfig
+logical, INTENT(IN), OPTIONAL           :: makeconfig
  !! optionally, generate the JSON configuration file
-logical, INTENT(IN), OPTIONAL     :: showconfig
+logical, INTENT(IN), OPTIONAL           :: showconfig
  !! optionally, print all the configuration parameters
-logical, INTENT(IN), OPTIONAL     :: silent
+logical, INTENT(IN), OPTIONAL           :: silent
  !! optionally, don't show any output
 integer(kind=irg), INTENT(IN), OPTIONAL :: tpl(:)
  !! list of template files to be created
-logical, INTENT(IN), OPTIONAL     :: noCLA
+logical, INTENT(IN), OPTIONAL           :: noCLA
  !! turn off Command Line Argument handling
 
 if (present(noCLA)) then
@@ -422,7 +422,7 @@ subroutine printConfigParameters(self)
   IMPLICIT NONE
 
   class(EMsoft_T),INTENT(INOUT) :: self
-  type(IO_T)               :: Message
+  type(IO_T)                    :: Message
 
   character(fnlen)              :: m
 
@@ -670,17 +670,17 @@ function generateFilePath(self, cp, fn) result(fp)
 
   IMPLICIT NONE
 
-  class(EMsoft_T),INTENT(INOUT)      :: self
-  character(*),INTENT(IN)            :: cp
+  class(EMsoft_T),INTENT(INOUT)    :: self
+  character(*),INTENT(IN)          :: cp
    !! configuration parameter string
-  character(*),INTENT(IN),OPTIONAL   :: fn
+  character(*),INTENT(IN),OPTIONAL :: fn
    !! optional file name with incomplete path
-  character(fnlen)                   :: fp
+  character(fnlen)                 :: fp
    !! completed file name (returned)
 
-  character(fnlen)                   :: path
+  character(fnlen)                 :: path
 
-  type(IO_T)                    :: Message
+  type(IO_T)                       :: Message
 
   path = trim(self % getConfigParameter(cp))
 
@@ -715,16 +715,16 @@ subroutine getEMsoftpathname(self)
   !!
   !! returns the EMsoftpathname variable from the EMsoftconfig.json file
 
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use, intrinsic                :: iso_fortran_env , only: error_unit, wp => real64
 use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)     :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-character(fnlen)                  :: EMsoftpathname, ep, envParam, envReturn, m
-integer                           :: l, status
-type(IO_T)                        :: Message
+character(fnlen)              :: EMsoftpathname, ep, envParam, envReturn, m
+integer                       :: l, status
+type(IO_T)                    :: Message
 
 
 ep = SC_EMsoftpathname
@@ -759,16 +759,16 @@ subroutine getEMXtalFolderpathname(self)
   !!
   !! returns the EMXtalFolderpathname variable from the EMsoftconfig.json file
 
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use, intrinsic                :: iso_fortran_env , only: error_unit, wp => real64
 use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)      :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-type(IO_T)                         :: Message
-character(fnlen)                   :: ep, envParam, envReturn
-integer                            :: l
+type(IO_T)                    :: Message
+character(fnlen)              :: ep, envParam, envReturn
+integer                       :: l
 
 ep = SC_EMXtalFolderpathname
 self%EMXtalFolderpathname = getJSONparameter(self, ep)
@@ -822,16 +822,16 @@ subroutine getEMdatapathname(self)
   !!
   !! returns the EMdatapathname variable from the EMsoftconfig.json file
 
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use, intrinsic                :: iso_fortran_env , only: error_unit, wp => real64
 use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)     :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-type(IO_T)                        :: Message
-character(fnlen)                  :: ep, envParam, envReturn
-integer                           :: l
+type(IO_T)                    :: Message
+character(fnlen)              :: ep, envParam, envReturn
+integer                       :: l
 
 ep = SC_EMdatapathname
 self%EMdatapathname = getJSONparameter(self, ep)
@@ -869,16 +869,16 @@ subroutine getEMtmppathname(self)
   !!
   !! returns the EMtmppathname variable from the EMsoftconfig.json file
 
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use, intrinsic                :: iso_fortran_env , only: error_unit, wp => real64
 use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)      :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
 type(IO_T)                    :: Message
-character(fnlen)                   :: ep, envParam, envReturn
-integer                            :: l
+character(fnlen)              :: ep, envParam, envReturn
+integer                       :: l
 
 ep = SC_EMtmppathname
 self%EMtmppathname = getJSONparameter(self, ep)
@@ -1064,10 +1064,10 @@ subroutine getEMdevelop(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)      :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-character(fnlen)                        :: EMstring, ep, envParam, envReturn
-logical                                 :: EMdevelop
+character(fnlen)              :: EMstring, ep, envParam, envReturn
+logical                       :: EMdevelop
 
 ! default: not in developer mode
 EMdevelop = .FALSE.
@@ -1279,10 +1279,10 @@ subroutine getUserHomePath(self)
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)      :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-character(9)      :: Home
-character(2)      :: HomeDrive
+character(9)                  :: Home
+character(2)                  :: HomeDrive
 
 HomeDrive = ''
 if (trim(self%EMsoftplatform).eq.SC_Windows) then
@@ -1503,13 +1503,13 @@ subroutine getEMsoftHDFtest(self)
   !!
   !! returns the EMsoftHDFtest environment variable
 
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use, intrinsic                :: iso_fortran_env , only: error_unit, wp => real64
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)      :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-character(fnlen)                   :: envParam, envReturn
+character(fnlen)              :: envParam, envReturn
 
 envParam = 'EMsoftHDFtest'
 call getenv(trim(envParam),envReturn)
@@ -1529,13 +1529,13 @@ subroutine getEMsoftAllocatetest(self)
   !!
   !! returns the EMsoftAllocatetest environment variable
 
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use, intrinsic                :: iso_fortran_env , only: error_unit, wp => real64
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)      :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-character(fnlen)                   :: envParam, envReturn
+character(fnlen)              :: envParam, envReturn
 
 envParam = 'EMsoftAllocatetest'
 call getenv(trim(envParam),envReturn)
@@ -1575,26 +1575,26 @@ function getJSONparameter(self, ep, nobackslash) result(param)
 
 use json_module
 
-use, intrinsic :: iso_fortran_env , only: error_unit, wp => real64
+use, intrinsic                           :: iso_fortran_env , only: error_unit, wp => real64
 use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)           :: self
+class(EMsoft_T),INTENT(INOUT)            :: self
 
-character(fnlen),INTENT(IN)             :: ep
+character(fnlen),INTENT(IN)              :: ep
  !! JSON variable name string
-logical,INTENT(IN),optional             :: nobackslash
+logical,INTENT(IN),optional              :: nobackslash
  !! optionally, omit the backslash from the output string
-character(fnlen)                        :: param
+character(fnlen)                         :: param
  !! subroutine return string
 
-type(IO_T)                         :: Message
-type(json_file)                         :: json
-integer(kind=irg)                       :: error_cnt, slen
-character(kind=jsonCK,len=:),allocatable:: cval
-character(fnlen)                        :: jsonfilename, jsonname, mm(2)
-logical                                 :: found, jexists, bs
+type(IO_T)                               :: Message
+type(json_file)                          :: json
+integer(kind=irg)                        :: error_cnt, slen
+character(kind=jsonCK,len=:),allocatable :: cval
+character(fnlen)                         :: jsonfilename, jsonname, mm(2)
+logical                                  :: found, jexists, bs
 
 Message = IO_T()
 
@@ -1751,15 +1751,15 @@ function toNativePath_(self, inpath) result(outpath)
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)    :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-character(fnlen),INTENT(IN)           :: inpath
+character(fnlen),INTENT(IN)   :: inpath
  !! path to be converted
-character(fnlen)                      :: outpath
+character(fnlen)              :: outpath
  !! output path
 
-integer(kind=irg)                     :: i, slen
-character(1)                          :: todelim, fromdelim, c
+integer(kind=irg)             :: i, slen
+character(1)                  :: todelim, fromdelim, c
 
 slen = len(inpath)
 outpath = ''
@@ -1836,10 +1836,10 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EMsoft_T),INTENT(INOUT)           :: self
+class(EMsoft_T),INTENT(INOUT) :: self
 
-type(IO_T)                         :: Message
-character(fnlen)                        :: pathstring, dirstring, ep, EMsoftpathname, EMdatapathname, &
+type(IO_T)                    :: Message
+character(fnlen)              :: pathstring, dirstring, ep, EMsoftpathname, EMdatapathname, &
                                            username, userlocn, useremail, m
 integer(kind=irg)                       :: i, error_cnt
 logical                                 :: found, fexists, jexists

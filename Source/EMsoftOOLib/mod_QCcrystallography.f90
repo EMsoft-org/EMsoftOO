@@ -1551,13 +1551,13 @@ use mod_math
 
 IMPLICIT NONE
 
-class(QCcell_T),INTENT(INOUT)       :: self
+class(QCcell_T),INTENT(INOUT) :: self
 
-real(kind=dbl)                    :: QClatparm_a, QClatparm_c, QClatparm
-real(kind=dbl),allocatable        :: s(:), c(:), s2(:), c2(:)
-real(kind=dbl)                    :: tmp(5,3), c3(4), s3(4), c4(4), s4(4), A, B, CC
-integer(kind=irg)                 :: i, j
-real(kind=dbl),parameter          :: ct = 1.D0/dsqrt(5.D0),&
+real(kind=dbl)                :: QClatparm_a, QClatparm_c, QClatparm
+real(kind=dbl),allocatable    :: s(:), c(:), s2(:), c2(:)
+real(kind=dbl)                :: tmp(5,3), c3(4), s3(4), c4(4), s4(4), A, B, CC
+integer(kind=irg)             :: i, j
+real(kind=dbl),parameter      :: ct = 1.D0/dsqrt(5.D0),&
                                      st = dsqrt(1.D0 - ct * ct)
 
 select type (self) 

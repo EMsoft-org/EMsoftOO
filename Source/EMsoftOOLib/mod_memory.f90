@@ -908,17 +908,17 @@ recursive subroutine alloc_ish1_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ish), INTENT(INOUT), allocatable       :: ar(:)
-integer(kind=irg), INTENT(IN)                    :: dims(1)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ish), INTENT(INOUT), allocatable :: ar(:)
+integer(kind=irg), INTENT(IN)                 :: dims(1)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ish), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(1)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -1033,17 +1033,17 @@ recursive subroutine alloc_ish2_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ish), INTENT(INOUT), allocatable       :: ar(:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(2)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ish), INTENT(INOUT), allocatable :: ar(:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(2)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ish), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(2)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -1158,17 +1158,17 @@ recursive subroutine alloc_ish3_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ish), INTENT(INOUT), allocatable       :: ar(:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(3)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ish), INTENT(INOUT), allocatable :: ar(:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(3)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ish), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(3)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -1283,17 +1283,17 @@ recursive subroutine alloc_ish4_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ish), INTENT(INOUT), allocatable       :: ar(:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(4)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ish), INTENT(INOUT), allocatable :: ar(:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(4)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ish), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(4)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -1408,17 +1408,17 @@ recursive subroutine alloc_ish5_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ish), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(5)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ish), INTENT(INOUT), allocatable :: ar(:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(5)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ish), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(5)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -1533,17 +1533,17 @@ recursive subroutine alloc_ish6_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ish), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(6)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ish), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ish), INTENT(INOUT), allocatable :: ar(:,:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(6)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ish), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(6)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -1659,17 +1659,17 @@ recursive subroutine alloc_irg1_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=irg), INTENT(INOUT), allocatable       :: ar(:)
-integer(kind=irg), INTENT(IN)                    :: dims(1)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(INOUT), allocatable :: ar(:)
+integer(kind=irg), INTENT(IN)                 :: dims(1)
+character(*),INTENT(IN)                       :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(1)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -1784,17 +1784,17 @@ recursive subroutine alloc_irg2_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=irg), INTENT(INOUT), allocatable       :: ar(:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(2)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(INOUT), allocatable :: ar(:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(2)
+character(*),INTENT(IN)                       :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(2)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -1909,17 +1909,17 @@ recursive subroutine alloc_irg3_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=irg), INTENT(INOUT), allocatable       :: ar(:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(3)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(INOUT), allocatable :: ar(:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(3)
+character(*),INTENT(IN)                       :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(3)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -2034,17 +2034,17 @@ recursive subroutine alloc_irg4_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=irg), INTENT(INOUT), allocatable       :: ar(:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(4)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(INOUT), allocatable :: ar(:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(4)
+character(*),INTENT(IN)                       :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(4)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -2159,17 +2159,17 @@ recursive subroutine alloc_irg5_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=irg), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(5)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(INOUT), allocatable :: ar(:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(5)
+character(*),INTENT(IN)                       :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(5)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -2284,17 +2284,17 @@ recursive subroutine alloc_irg6_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=irg), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(6)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(INOUT), allocatable :: ar(:,:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(6)
+character(*),INTENT(IN)                       :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(6)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -2410,17 +2410,17 @@ recursive subroutine alloc_ill1_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ill), INTENT(INOUT), allocatable       :: ar(:)
-integer(kind=irg), INTENT(IN)                    :: dims(1)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ill), INTENT(INOUT), allocatable :: ar(:)
+integer(kind=irg), INTENT(IN)                 :: dims(1)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ill), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(1)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -2535,17 +2535,17 @@ recursive subroutine alloc_ill2_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ill), INTENT(INOUT), allocatable       :: ar(:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(2)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ill), INTENT(INOUT), allocatable :: ar(:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(2)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ill), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(2)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -2660,17 +2660,17 @@ recursive subroutine alloc_ill3_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ill), INTENT(INOUT), allocatable       :: ar(:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(3)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ill), INTENT(INOUT), allocatable :: ar(:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(3)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ill), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(3)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -2785,17 +2785,17 @@ recursive subroutine alloc_ill4_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ill), INTENT(INOUT), allocatable       :: ar(:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(4)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ill), INTENT(INOUT), allocatable :: ar(:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(4)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ill), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(4)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -2910,17 +2910,17 @@ recursive subroutine alloc_ill5_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ill), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(5)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ill), INTENT(INOUT), allocatable :: ar(:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(5)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ill), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(5)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -3035,17 +3035,17 @@ recursive subroutine alloc_ill6_(self, ar, dims, varname, initval, TID, startdim
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-integer(kind=ill), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(6)
-character(*),INTENT(IN)                          :: varname
-integer(kind=ill), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
+class(memory_T), INTENT(INOUT)                :: self
+integer(kind=ill), INTENT(INOUT), allocatable :: ar(:,:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(6)
+character(*),INTENT(IN)                       :: varname
+integer(kind=ill), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(6)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -3248,14 +3248,14 @@ recursive subroutine dealloc_sgl1_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=sgl), INTENT(INOUT), allocatable    :: ar(:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=sgl), INTENT(INOUT), allocatable :: ar(:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -3373,14 +3373,14 @@ recursive subroutine dealloc_sgl2_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=sgl), INTENT(INOUT), allocatable    :: ar(:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -3498,14 +3498,14 @@ recursive subroutine dealloc_sgl3_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=sgl), INTENT(INOUT), allocatable    :: ar(:,:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -3623,14 +3623,14 @@ recursive subroutine dealloc_sgl4_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=sgl), INTENT(INOUT), allocatable    :: ar(:,:,:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:,:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -3748,14 +3748,14 @@ recursive subroutine dealloc_sgl5_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=sgl), INTENT(INOUT), allocatable    :: ar(:,:,:,:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:,:,:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -3874,14 +3874,14 @@ recursive subroutine dealloc_sgl6_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=sgl), INTENT(INOUT), allocatable    :: ar(:,:,:,:,:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:,:,:,:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -3999,14 +3999,14 @@ recursive subroutine dealloc_dbl1_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=dbl), INTENT(INOUT), allocatable    :: ar(:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=dbl), INTENT(INOUT), allocatable :: ar(:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -4124,14 +4124,14 @@ recursive subroutine dealloc_dbl2_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=dbl), INTENT(INOUT), allocatable    :: ar(:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -4249,14 +4249,14 @@ recursive subroutine dealloc_dbl3_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=dbl), INTENT(INOUT), allocatable    :: ar(:,:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -4374,14 +4374,14 @@ recursive subroutine dealloc_dbl4_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=dbl), INTENT(INOUT), allocatable    :: ar(:,:,:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:,:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -4499,14 +4499,14 @@ recursive subroutine dealloc_dbl5_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=dbl), INTENT(INOUT), allocatable    :: ar(:,:,:,:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:,:,:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -4625,14 +4625,14 @@ recursive subroutine dealloc_dbl6_(self, ar, varname, TID)
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-real(kind=dbl), INTENT(INOUT), allocatable    :: ar(:,:,:,:,:,:)
-character(*),INTENT(IN)                          :: varname
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
+class(memory_T), INTENT(INOUT)             :: self
+real(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:,:,:,:,:)
+character(*),INTENT(IN)                    :: varname
+integer(kind=irg), INTENT(IN), OPTIONAL    :: TID
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr
-integer(kind=irg)                                :: err, LID, sz 
+type(IO_T)                                 :: Message
+character(fnlen)                           :: estr
+integer(kind=irg)                          :: err, LID, sz 
 
 ! set the local thread identifier
 LID = 1
@@ -4663,17 +4663,17 @@ recursive subroutine alloc_cmplx1_(self, ar, dims, varname, initval, TID, startd
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=sgl), INTENT(INOUT), allocatable       :: ar(:)
-integer(kind=irg), INTENT(IN)                    :: dims(1)
-character(*),INTENT(IN)                          :: varname
-complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=sgl), INTENT(INOUT), allocatable :: ar(:)
+integer(kind=irg), INTENT(IN)                 :: dims(1)
+character(*),INTENT(IN)                       :: varname
+complex(kind=sgl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(1)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -4788,17 +4788,17 @@ recursive subroutine alloc_cmplx2_(self, ar, dims, varname, initval, TID, startd
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=sgl), INTENT(INOUT), allocatable       :: ar(:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(2)
-character(*),INTENT(IN)                          :: varname
-complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(2)
+character(*),INTENT(IN)                       :: varname
+complex(kind=sgl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(2)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -4913,17 +4913,17 @@ recursive subroutine alloc_cmplx3_(self, ar, dims, varname, initval, TID, startd
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=sgl), INTENT(INOUT), allocatable       :: ar(:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(3)
-character(*),INTENT(IN)                          :: varname
-complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(3)
+character(*),INTENT(IN)                       :: varname
+complex(kind=sgl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(3)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -5038,17 +5038,17 @@ recursive subroutine alloc_cmplx4_(self, ar, dims, varname, initval, TID, startd
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=sgl), INTENT(INOUT), allocatable       :: ar(:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(4)
-character(*),INTENT(IN)                          :: varname
-complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(4)
+character(*),INTENT(IN)                       :: varname
+complex(kind=sgl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(4)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -5163,17 +5163,17 @@ recursive subroutine alloc_cmplx5_(self, ar, dims, varname, initval, TID, startd
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=sgl), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(5)
-character(*),INTENT(IN)                          :: varname
-complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(5)
+character(*),INTENT(IN)                       :: varname
+complex(kind=sgl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(5)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -5288,17 +5288,17 @@ recursive subroutine alloc_cmplx6_(self, ar, dims, varname, initval, TID, startd
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=sgl), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(6)
-character(*),INTENT(IN)                          :: varname
-complex(kind=sgl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=sgl), INTENT(INOUT), allocatable :: ar(:,:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(6)
+character(*),INTENT(IN)                       :: varname
+complex(kind=sgl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(6)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1
@@ -5414,17 +5414,17 @@ recursive subroutine alloc_cmplxd1_(self, ar, dims, varname, initval, TID, start
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=dbl), INTENT(INOUT), allocatable       :: ar(:)
-integer(kind=irg), INTENT(IN)                    :: dims(1)
-character(*),INTENT(IN)                          :: varname
-complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(1)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=dbl), INTENT(INOUT), allocatable :: ar(:)
+integer(kind=irg), INTENT(IN)                 :: dims(1)
+character(*),INTENT(IN)                       :: varname
+complex(kind=dbl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(1)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(1) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(1) 
 
 ! set the local thread identifier
 LID = 1
@@ -5539,17 +5539,17 @@ recursive subroutine alloc_cmplxd2_(self, ar, dims, varname, initval, TID, start
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=dbl), INTENT(INOUT), allocatable       :: ar(:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(2)
-character(*),INTENT(IN)                          :: varname
-complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(2)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(2)
+character(*),INTENT(IN)                       :: varname
+complex(kind=dbl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(2)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(2) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(2) 
 
 ! set the local thread identifier
 LID = 1
@@ -5664,17 +5664,17 @@ recursive subroutine alloc_cmplxd3_(self, ar, dims, varname, initval, TID, start
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=dbl), INTENT(INOUT), allocatable       :: ar(:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(3)
-character(*),INTENT(IN)                          :: varname
-complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(3)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(3)
+character(*),INTENT(IN)                       :: varname
+complex(kind=dbl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(3)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(3) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(3) 
 
 ! set the local thread identifier
 LID = 1
@@ -5789,17 +5789,17 @@ recursive subroutine alloc_cmplxd4_(self, ar, dims, varname, initval, TID, start
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=dbl), INTENT(INOUT), allocatable       :: ar(:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(4)
-character(*),INTENT(IN)                          :: varname
-complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(4)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(4)
+character(*),INTENT(IN)                       :: varname
+complex(kind=dbl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(4)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(4) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(4) 
 
 ! set the local thread identifier
 LID = 1
@@ -5914,17 +5914,17 @@ recursive subroutine alloc_cmplxd5_(self, ar, dims, varname, initval, TID, start
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=dbl), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(5)
-character(*),INTENT(IN)                          :: varname
-complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(5)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(5)
+character(*),INTENT(IN)                       :: varname
+complex(kind=dbl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(5)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(5) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(5) 
 
 ! set the local thread identifier
 LID = 1
@@ -6039,17 +6039,17 @@ recursive subroutine alloc_cmplxd6_(self, ar, dims, varname, initval, TID, start
 
 IMPLICIT NONE
 
-class(memory_T), INTENT(INOUT)                   :: self
-complex(kind=dbl), INTENT(INOUT), allocatable       :: ar(:,:,:,:,:,:)
-integer(kind=irg), INTENT(IN)                    :: dims(6)
-character(*),INTENT(IN)                          :: varname
-complex(kind=dbl), INTENT(IN), OPTIONAL             :: initval
-integer(kind=irg), INTENT(IN), OPTIONAL          :: TID
-integer(kind=irg), INTENT(IN), OPTIONAL          :: startdims(6)
+class(memory_T), INTENT(INOUT)                :: self
+complex(kind=dbl), INTENT(INOUT), allocatable :: ar(:,:,:,:,:,:)
+integer(kind=irg), INTENT(IN)                 :: dims(6)
+character(*),INTENT(IN)                       :: varname
+complex(kind=dbl), INTENT(IN), OPTIONAL       :: initval
+integer(kind=irg), INTENT(IN), OPTIONAL       :: TID
+integer(kind=irg), INTENT(IN), OPTIONAL       :: startdims(6)
 
-type(IO_T)                                       :: Message
-character(fnlen)                                 :: estr, estr2, outstr, szstr, initstr
-integer(kind=irg)                                :: i, sz, err, LID, szar(6) 
+type(IO_T)                                    :: Message
+character(fnlen)                              :: estr, estr2, outstr, szstr, initstr
+integer(kind=irg)                             :: i, sz, err, LID, szar(6) 
 
 ! set the local thread identifier
 LID = 1

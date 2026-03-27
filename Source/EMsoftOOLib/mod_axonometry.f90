@@ -302,21 +302,21 @@ use mod_io
 
 IMPLICIT NONE
 
-class(axonometry_T),INTENT(INOUT)         :: self
-type(PostScript_T),INTENT(INOUT)          :: PS
-type(EMsoft_T),INTENT(INOUT)              :: EMsoft
-integer(kind=irg),INTENT(IN)              :: nx
-integer(kind=irg),INTENT(IN)              :: ny
-real(kind=sgl),INTENT(IN)                 :: zz(nx,ny)
-real(kind=sgl),INTENT(INOUT)              :: inten(nx,ny)
-character(6),INTENT(IN)                   :: dmode
-character(fnlen),INTENT(IN)               :: axname
+class(axonometry_T),INTENT(INOUT) :: self
+type(PostScript_T),INTENT(INOUT)  :: PS
+type(EMsoft_T),INTENT(INOUT)      :: EMsoft
+integer(kind=irg),INTENT(IN)      :: nx
+integer(kind=irg),INTENT(IN)      :: ny
+real(kind=sgl),INTENT(IN)         :: zz(nx,ny)
+real(kind=sgl),INTENT(INOUT)      :: inten(nx,ny)
+character(6),INTENT(IN)           :: dmode
+character(fnlen),INTENT(IN)       :: axname
 
-type(IO_T)                                :: Message 
+type(IO_T)                        :: Message 
 
-integer(kind=irg)   :: i,j,kk,ip,jp
-logical             :: pensw,ipp
-real(kind=sgl)      :: alfa,v1,v2,w1,w2,w3,n(3),e(3),l(3),h(3),pointx,pointy,xr,yr,xp,yp,xi,yi,u1,u2, &
+integer(kind=irg)                 :: i,j,kk,ip,jp
+logical                           :: pensw,ipp
+real(kind=sgl)                    :: alfa,v1,v2,w1,w2,w3,n(3),e(3),l(3),h(3),pointx,pointy,xr,yr,xp,yp,xi,yi,u1,u2, &
                        tv(4,2),pp(4,2),k_a,k_d,k_s,In_a,In_p,inmax,pn,zero,nl,hn,sx,sy, &
                        xmin,xmax,ymin,ymax,s,t,u,bb
     

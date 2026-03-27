@@ -2097,7 +2097,7 @@ IMPLICIT NONE
 class(gvectors_T),INTENT(INOUT) :: self
 integer(kind=irg),INTENT(IN)    :: nn                   !< number of strong beams
 complex(kind=dbl),INTENT(IN)    :: DynMat(nn,nn)
-type(Diffraction_T) :: Diff
+type(Diffraction_T)             :: Diff
 type(Cell_T)                    :: cell
 real(kind=sgl),INTENT(IN)       :: kn
 

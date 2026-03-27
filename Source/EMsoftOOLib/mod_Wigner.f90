@@ -588,17 +588,17 @@ contains
   recursive function Wigner_d3(j, k, m) result(djkm)
   !DEC$ ATTRIBUTES DLLEXPORT :: Wigner_d3
 
-    use, intrinsic :: IEEE_ARITHMETIC
+    use, intrinsic               :: IEEE_ARITHMETIC
 
   IMPLICIT NONE
 
-    integer(kind=ill),INTENT(IN)            :: j
-    integer(kind=ill),INTENT(IN)            :: k
-    integer(kind=ill),INTENT(IN)            :: m
-    real(kind=dbl)                          :: djkm
+    integer(kind=ill),INTENT(IN) :: j
+    integer(kind=ill),INTENT(IN) :: k
+    integer(kind=ill),INTENT(IN) :: m
+    real(kind=dbl)               :: djkm
 
-    real(kind=dbl)                          :: d_kkm, d_k1km, d_ikm, d_i1km, d_i2km 
-    integer(kind=ill)                       :: i
+    real(kind=dbl)               :: d_kkm, d_k1km, d_ikm, d_i1km, d_i2km 
+    integer(kind=ill)            :: i
 
     ! require 0 <= m <= k <= j (handle with symmetry where possible)
     ! we'll reorganize the indices by means of recursive calls to itself...
@@ -699,20 +699,20 @@ contains
   recursive function Wigner_d5(j, k, m, t, nB) result(djkm)
   !DEC$ ATTRIBUTES DLLEXPORT :: Wigner_d5
 
-  use, intrinsic :: IEEE_ARITHMETIC
+  use, intrinsic                 :: IEEE_ARITHMETIC
 
   IMPLICIT NONE
 
-    integer(kind=ill),INTENT(IN)            :: j
-    integer(kind=ill),INTENT(IN)            :: k
-    integer(kind=ill),INTENT(IN)            :: m
-    real(kind=dbl),INTENT(IN)               :: t 
-    logical,INTENT(IN)                      :: nB
-    real(kind=dbl)                          :: djkm
+    integer(kind=ill),INTENT(IN) :: j
+    integer(kind=ill),INTENT(IN) :: k
+    integer(kind=ill),INTENT(IN) :: m
+    real(kind=dbl),INTENT(IN)    :: t 
+    logical,INTENT(IN)           :: nB
+    real(kind=dbl)               :: djkm
 
-    real(kind=dbl)                          :: d_kkm, a_km, d_k1km, d_ikm, d_i1km, d_i2km, tc, c2, s2, cn, sn 
-    integer(kind=ill)                       :: i
-    integer(kind=irg)                       :: tp
+    real(kind=dbl)               :: d_kkm, a_km, d_k1km, d_ikm, d_i1km, d_i2km, tc, c2, s2, cn, sn 
+    integer(kind=ill)            :: i
+    integer(kind=irg)            :: tp
 
     ! require 0 <= m <= k <= j (handle with symmetry where possible)
     ! we'll reorganize the indices by means of recursive calls to itself...
@@ -1350,13 +1350,13 @@ contains
 
   IMPLICIT NONE
 
-    integer(kind=ill),INTENT(IN)            :: bw
-    logical                                  :: pass
+    integer(kind=ill),INTENT(IN) :: bw
+    logical                      :: pass
 
-    real(kind=dbl)                           :: wigD1(    0:bw-1,0:bw-1,0:bw-1)
-    real(kind=dbl)                           :: wigD2(0:1,0:bw-1,0:bw-1,0:bw-1)
-    real(kind=dbl)                           :: vF, vT, t, beta
-    integer(kind=ill)                        :: j, k, m
+    real(kind=dbl)               :: wigD1(    0:bw-1,0:bw-1,0:bw-1)
+    real(kind=dbl)               :: wigD2(0:1,0:bw-1,0:bw-1,0:bw-1)
+    real(kind=dbl)               :: vF, vT, t, beta
+    integer(kind=ill)            :: j, k, m
 
     ! test Wigner_dTable1(jMax, wigD)
     call Wigner_dTable1(int(bw, kind=irg), wigD1)

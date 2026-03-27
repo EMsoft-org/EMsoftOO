@@ -563,20 +563,20 @@ recursive subroutine write_DF3file_(self, df3name, volume, ndims, scalingmode)
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)   :: self
-character(fnlen),INTENT(IN)     :: df3name
+class(PoVRay_T),INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)   :: df3name
  !! output file name
-integer(kind=irg),INTENT(IN)    :: ndims(3)
+integer(kind=irg),INTENT(IN)  :: ndims(3)
  !! dimensions of the volume array
-real(kind=sgl),INTENT(INOUT)    :: volume(-ndims(1):ndims(1),-ndims(2):ndims(2),-ndims(3):ndims(3))
+real(kind=sgl),INTENT(INOUT)  :: volume(-ndims(1):ndims(1),-ndims(2):ndims(2),-ndims(3):ndims(3))
  !! volume array to be written to DF3 file
-character(3),INTENT(IN)         :: scalingmode
+character(3),INTENT(IN)       :: scalingmode
  !! scaling type: 'lin' or 'log' or 'lev'
 
-integer(kind=ish)                        :: ivol(-ndims(1):ndims(1),-ndims(2):ndims(2),-ndims(3):ndims(3))
-integer(kind=ish)                          :: idims(3), mval
-real(kind=sgl)                              :: mi, ma, levels(6)
-integer(kind=irg)                          :: recno, i, j, k
+integer(kind=ish)             :: ivol(-ndims(1):ndims(1),-ndims(2):ndims(2),-ndims(3):ndims(3))
+integer(kind=ish)             :: idims(3), mval
+real(kind=sgl)                :: mi, ma, levels(6)
+integer(kind=irg)             :: recno, i, j, k
 
 ! This format is described on the following web pages:
 ! http://wwwmpa.mpa-garching.mpg.de/~mselig/povray/povray.html
@@ -914,26 +914,26 @@ recursive subroutine getpos_FZ432_(self, dims, cpos, s_edge, t_edge, ns, d, nt, 
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self
+class(PoVRay_T),INTENT(INOUT)   :: self
 
-integer(kind=irg),INTENT(IN)          :: dims(3)
+integer(kind=irg),INTENT(IN)    :: dims(3)
  !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
+real(kind=dbl),INTENT(INOUT)    :: cpos(3,dims(1))
  !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
+integer(kind=irg),INTENT(INOUT) :: s_edge(2,dims(2))
  !! first set of edge connectivities
-integer(kind=irg),INTENT(INOUT)       :: t_edge(2,dims(3))
+integer(kind=irg),INTENT(INOUT) :: t_edge(2,dims(3))
  !! second set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
+integer(kind=irg),INTENT(OUT)   :: ns
  !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
+real(kind=dbl),INTENT(OUT)      :: d
  !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(OUT)   :: nt
  !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
+logical,OPTIONAL,INTENT(IN)     :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
 
-real(kind=dbl)  :: a = 0.41421356237D0, c = 0.17157287525D0, dt = 0.34314575050D0, ds = 0.6340506711D0, &
+real(kind=dbl)                  :: a = 0.41421356237D0, c = 0.17157287525D0, dt = 0.34314575050D0, ds = 0.6340506711D0, &
                    dd, e = 0.29289323D0, f = 0.333333333D0
 
 d = 0.610395774912
@@ -1064,27 +1064,27 @@ recursive subroutine getpos_FZ23_(self, dims, cpos, s_edge, t_edge, ns, d, nt, M
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self
+class(PoVRay_T),INTENT(INOUT)   :: self
 
-integer(kind=irg),INTENT(IN)          :: dims(3)
+integer(kind=irg),INTENT(IN)    :: dims(3)
  !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
+real(kind=dbl),INTENT(INOUT)    :: cpos(3,dims(1))
  !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
+integer(kind=irg),INTENT(INOUT) :: s_edge(2,dims(2))
  !! first set of edge connectivities
-integer(kind=irg),INTENT(INOUT)       :: t_edge(2,dims(3))
+integer(kind=irg),INTENT(INOUT) :: t_edge(2,dims(3))
  !! second set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
+integer(kind=irg),INTENT(OUT)   :: ns
  !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
+real(kind=dbl),INTENT(OUT)      :: d
  !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
+integer(kind=irg),INTENT(OUT)   :: nt
  !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
+logical,OPTIONAL,INTENT(IN)     :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-logical,OPTIONAL,INTENT(IN)           :: euler
+logical,OPTIONAL,INTENT(IN)     :: euler
 
-real(kind=dbl)  :: a = 1.D0, b = 0.0D0, c = 0.5773502692D0, e = 0.333333333D0, &
+real(kind=dbl)                  :: a = 1.D0, b = 0.0D0, c = 0.5773502692D0, e = 0.333333333D0, &
                    ds = 0.6340506711D0, dt = 1.4142135623730D0, dd, zz = 0.D0, oo = 1.D0
 
 d = 1.0
@@ -1154,28 +1154,28 @@ recursive subroutine getpos_FZ622_(self, dims, cpos, s_edge, t_edge, ns, d, nt, 
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self
+class(PoVRay_T),INTENT(INOUT)   :: self
 
-integer(kind=irg),INTENT(IN)          :: dims(3)
+integer(kind=irg),INTENT(IN)    :: dims(3)
  !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
+real(kind=dbl),INTENT(INOUT)    :: cpos(3,dims(1))
  !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
+integer(kind=irg),INTENT(INOUT) :: s_edge(2,dims(2))
  !! first set of edge connectivities
-integer(kind=irg),INTENT(INOUT)       :: t_edge(2,dims(3))
+integer(kind=irg),INTENT(INOUT) :: t_edge(2,dims(3))
  !! second set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
+integer(kind=irg),INTENT(OUT)   :: ns
  !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
+real(kind=dbl),INTENT(OUT)      :: d
  !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
-integer(kind=irg),INTENT(IN)          :: rotate
+integer(kind=irg),INTENT(OUT)   :: nt
+integer(kind=irg),INTENT(IN)    :: rotate
  !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
+logical,OPTIONAL,INTENT(IN)     :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-logical,OPTIONAL,INTENT(IN)           :: euler
+logical,OPTIONAL,INTENT(IN)     :: euler
 
-real(kind=dbl)  :: a = 1.0D0, b = 0.267949192431D0, c = 0.732050807569D0, &
+real(kind=dbl)                  :: a = 1.0D0, b = 0.267949192431D0, c = 0.732050807569D0, &
                    dt = 0.5358983848622454D0, ds = 0.5358983848622454D0, di =1.069389330154823D0, dd, &
                    z = 0.D0, o = 0.86602540378443D0, p = 0.5D0, crot, srot, xtmp, ytmp
 integer(kind=irg) :: i 
@@ -1342,28 +1342,28 @@ recursive subroutine getpos_FZ422_(self, dims, cpos, s_edge, t_edge, ns, d, nt, 
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self
+class(PoVRay_T),INTENT(INOUT)   :: self
 
-integer(kind=irg),INTENT(IN)          :: dims(3)
+integer(kind=irg),INTENT(IN)    :: dims(3)
  !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
+real(kind=dbl),INTENT(INOUT)    :: cpos(3,dims(1))
  !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
+integer(kind=irg),INTENT(INOUT) :: s_edge(2,dims(2))
  !! first set of edge connectivities
-integer(kind=irg),INTENT(INOUT)       :: t_edge(2,dims(3))
+integer(kind=irg),INTENT(INOUT) :: t_edge(2,dims(3))
  !! second set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
+integer(kind=irg),INTENT(OUT)   :: ns
  !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
+real(kind=dbl),INTENT(OUT)      :: d
  !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
-integer(kind=irg),INTENT(IN)          :: rotate
+integer(kind=irg),INTENT(OUT)   :: nt
+integer(kind=irg),INTENT(IN)    :: rotate
  !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
+logical,OPTIONAL,INTENT(IN)     :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-logical,OPTIONAL,INTENT(IN)           :: euler
+logical,OPTIONAL,INTENT(IN)     :: euler
 
-real(kind=dbl)    :: a = 1.0D0, b = 0.41421354D0, c = 0.41421354D0, dt = 0.8284270763397216D0, &
+real(kind=dbl)                  :: a = 1.0D0, b = 0.41421354D0, c = 0.41421354D0, dt = 0.8284270763397216D0, &
                      ds = 0.8284270763397216D0, dd, z = 0.D0, o = 0.70710678118654746D0, crot, srot, xtmp, ytmp
 integer(kind=irg) :: i 
 
@@ -1499,30 +1499,30 @@ recursive subroutine getpos_FZ32_(self, dims, cpos, s_edge, t_edge, ns, d, nt, r
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self
+class(PoVRay_T),INTENT(INOUT)   :: self
 
-integer(kind=irg),INTENT(IN)          :: dims(3)
+integer(kind=irg),INTENT(IN)    :: dims(3)
  !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
+real(kind=dbl),INTENT(INOUT)    :: cpos(3,dims(1))
  !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
+integer(kind=irg),INTENT(INOUT) :: s_edge(2,dims(2))
  !! first set of edge connectivities
-integer(kind=irg),INTENT(INOUT)       :: t_edge(2,dims(3))
+integer(kind=irg),INTENT(INOUT) :: t_edge(2,dims(3))
  !! second set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
+integer(kind=irg),INTENT(OUT)   :: ns
  !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
+real(kind=dbl),INTENT(OUT)      :: d
  !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
-integer(kind=irg),INTENT(IN)          :: rotate
+integer(kind=irg),INTENT(OUT)   :: nt
+integer(kind=irg),INTENT(IN)    :: rotate
  !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
+logical,OPTIONAL,INTENT(IN)     :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-logical,OPTIONAL,INTENT(IN)           :: euler
+logical,OPTIONAL,INTENT(IN)     :: euler
 
 ! [11/11/25, MDG] correction of a and b values to get proper scaling behavior with d ... 
 ! old values: a = 0.8660254038D0, b = 0.5D0, oo=1.D0
-real(kind=dbl)    :: a = 1.0D0, b = 0.5773502692D0, c = 0.5773502692D0, dt = 0.34314575050D0, &
+real(kind=dbl)                  :: a = 1.0D0, b = 0.5773502692D0, c = 0.5773502692D0, dt = 0.34314575050D0, &
                      ds = 0.6340506711D0, dd, z = 0.D0, oo = 1.1547005383792517D0, o = 0.86602540378443D0, p = 0.5D0, crot, srot, xtmp, ytmp
 integer(kind=irg) :: i 
 
@@ -1645,28 +1645,28 @@ recursive subroutine getpos_FZ222_(self, dims, cpos, s_edge, t_edge, ns, d, nt, 
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self
+class(PoVRay_T),INTENT(INOUT)   :: self
 
-integer(kind=irg),INTENT(IN)          :: dims(3)
+integer(kind=irg),INTENT(IN)    :: dims(3)
  !! array dimensions
-real(kind=dbl),INTENT(INOUT)          :: cpos(3,dims(1))
+real(kind=dbl),INTENT(INOUT)    :: cpos(3,dims(1))
  !! vertex coordinates
-integer(kind=irg),INTENT(INOUT)       :: s_edge(2,dims(2))
+integer(kind=irg),INTENT(INOUT) :: s_edge(2,dims(2))
  !! first set of edge connectivities
-integer(kind=irg),INTENT(INOUT)       :: t_edge(2,dims(3))
+integer(kind=irg),INTENT(INOUT) :: t_edge(2,dims(3))
  !! second set of edge connectivities
-integer(kind=irg),INTENT(OUT)         :: ns
+integer(kind=irg),INTENT(OUT)   :: ns
  !! aux parameter
-real(kind=dbl),INTENT(OUT)            :: d
+real(kind=dbl),INTENT(OUT)      :: d
  !! aux parameter
-integer(kind=irg),INTENT(OUT)         :: nt
-integer(kind=irg),INTENT(IN)          :: rotate
+integer(kind=irg),INTENT(OUT)   :: nt
+integer(kind=irg),INTENT(IN)    :: rotate
  !! aux parameter
-logical,OPTIONAL,INTENT(IN)           :: MFZ
+logical,OPTIONAL,INTENT(IN)     :: MFZ
  !! (optional) return coordinates for Mackenzie FZ instead of regular FZ
-logical,OPTIONAL,INTENT(IN)           :: euler
+logical,OPTIONAL,INTENT(IN)     :: euler
 
-real(kind=dbl)    :: a = 1.0D0, b = 1.0D0, c = 1D0, dt = 2.0D0, &
+real(kind=dbl)                  :: a = 1.0D0, b = 1.0D0, c = 1D0, dt = 2.0D0, &
                      ds = 2.0D0, dd, z = 0.D0, oo = 1.D0, crot, srot, xtmp, ytmp
 integer(kind=irg) :: i 
 
@@ -1814,29 +1814,29 @@ use mod_rotations
 
 IMPLICIT NONE
 
-class(PoVRay_T),INTENT(INOUT)         :: self
-type(so3_T),INTENT(INOUT)             :: SO
-integer(kind=irg),INTENT(IN)          :: rmode
+class(PoVRay_T),INTENT(INOUT)                  :: self
+type(so3_T),INTENT(INOUT)                      :: SO
+integer(kind=irg),INTENT(IN)                   :: rmode
  !! 1(cubochoric)|2(homochoric)|3(stereographic)|4(Rodrigues)|5(Euler)
-real(kind=dbl),INTENT(INOUT)          :: cylr
+real(kind=dbl),INTENT(INOUT)                   :: cylr
  !! cylinder radius
-integer(kind=irg),INTENT(IN)          :: outline
-type(QuaternionArray_T),INTENT(INOUT),OPTIONAL  :: qAR
-real(kind=sgl),INTENT(IN),OPTIONAL    :: FZoffset
+integer(kind=irg),INTENT(IN)                   :: outline
+type(QuaternionArray_T),INTENT(INOUT),OPTIONAL :: qAR
+real(kind=sgl),INTENT(IN),OPTIONAL             :: FZoffset
 
-type(e_T)                             :: eul, eu, euld, eulast
-type(r_T)                             :: ro1, ro2, rolast, ron, ro
-type(q_T)                             :: qu, qutmp
-type(s_T)                             :: sp, splast
-type(h_T)                             :: h, ho, holast, ho1, ho2
-type(o_T)                             :: om
-type(c_T)                             :: cu, culast, cu1, cu2
-type(a_T)                             :: axang
-type(orientation_T)                   :: ot
-type(IO_T)                            :: Message
-type(Quaternion_T)                    :: qu1, qu2, qtmp
+type(e_T)                                      :: eul, eu, euld, eulast
+type(r_T)                                      :: ro1, ro2, rolast, ron, ro
+type(q_T)                                      :: qu, qutmp
+type(s_T)                                      :: sp, splast
+type(h_T)                                      :: h, ho, holast, ho1, ho2
+type(o_T)                                      :: om
+type(c_T)                                      :: cu, culast, cu1, cu2
+type(a_T)                                      :: axang
+type(orientation_T)                            :: ot
+type(IO_T)                                     :: Message
+type(Quaternion_T)                             :: qu1, qu2, qtmp
 
-real(kind=dbl)                        :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, d, dd, eps = 1.0D-6, &
+real(kind=dbl)                                 :: rmax, dx, r, xmax, x, y, z, zsmall, ac, sh(3), xx, d, dd, eps = 1.0D-6, &
                                          tpi, hpi, aux(4), aux3(3), aux4a(4), aux4b(4), qul(4), sp1(3), sp2(3), roc(3)
 
 integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:), slist(:)

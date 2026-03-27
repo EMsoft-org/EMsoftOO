@@ -129,15 +129,15 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(Lorentz_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(Lorentz_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)     :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)     :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                  :: EMsoft 
+type(IO_T)                      :: Message       
+logical                         :: skipread = .FALSE.
 
 
 
@@ -178,16 +178,16 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(Lorentz_T), INTENT(INOUT)        :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(Lorentz_T), INTENT(INOUT) :: self 
+type(HDF_T), INTENT(INOUT)      :: HDF
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+integer(kind=irg),parameter     :: n_int = 11, n_real = 9
+integer(kind=irg)               :: hdferr,  io_int(n_int)
+real(kind=sgl)                  :: io_real(n_real)
+character(20)                   :: intlist(n_int), reallist(n_real)
+character(fnlen)                :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)    :: line2(1)
 
 associate( mcnl => self%nml )
 
@@ -202,24 +202,24 @@ recursive subroutine getPhaseMapMansuripur_(self, EMsoft, B0t, beam, nx, ny, Mag
 use mod_io
 use mod_EMsoft
 
-use, intrinsic :: iso_c_binding
+use, intrinsic                        :: iso_c_binding
 
-class(Lorentz_T),INTENT(INOUT)    :: self
-type(EMsoft_T),INTENT(INOUT)      :: EMsoft
-real(kind=dbl),INTENT(IN)         :: B0t
-real(kind=dbl),INTENT(IN)         :: beam(3)
-integer(kind=irg),INTENT(IN)      :: nx
-integer(kind=irg),INTENT(IN)      :: ny
-complex(kind=dbl),INTENT(IN)      :: Mag(3,nx,ny)
-real(kind=dbl),INTENT(OUT)        :: phasemap(nx,ny)
-logical,INTENT(IN),OPTIONAL       :: init
-logical,INTENT(IN),OPTIONAL       :: destroy
+class(Lorentz_T),INTENT(INOUT)        :: self
+type(EMsoft_T),INTENT(INOUT)          :: EMsoft
+real(kind=dbl),INTENT(IN)             :: B0t
+real(kind=dbl),INTENT(IN)             :: beam(3)
+integer(kind=irg),INTENT(IN)          :: nx
+integer(kind=irg),INTENT(IN)          :: ny
+complex(kind=dbl),INTENT(IN)          :: Mag(3,nx,ny)
+real(kind=dbl),INTENT(OUT)            :: phasemap(nx,ny)
+logical,INTENT(IN),OPTIONAL           :: init
+logical,INTENT(IN),OPTIONAL           :: destroy
 
-integer(kind=irg)                 :: ix, iy, iloc
-real(kind=dbl)                    :: prefac, b(3), sx, sy, fnx, fny, s, sigx, sigy, gp, pre, psig
-complex(C_DOUBLE_COMPLEX),allocatable  :: bx(:,:), by(:,:), bz(:,:)
-complex(kind=dbl)                 :: cone = cmplx(1.D0,0.D0), czero = cmplx(0.D0,0.D0), d, prex, prey
-logical                           :: igp
+integer(kind=irg)                     :: ix, iy, iloc
+real(kind=dbl)                        :: prefac, b(3), sx, sy, fnx, fny, s, sigx, sigy, gp, pre, psig
+complex(C_DOUBLE_COMPLEX),allocatable :: bx(:,:), by(:,:), bz(:,:)
+complex(kind=dbl)                     :: cone = cmplx(1.D0,0.D0), czero = cmplx(0.D0,0.D0), d, prex, prey
+logical                               :: igp
 
 
 ! are we just destroying the fftw plans ?
@@ -349,12 +349,12 @@ end subroutine getPhaseMapMansuripur_
 recursive subroutine getFFTWplans_1D_(self, dims)
 !DEC$ ATTRIBUTES DLLEXPORT :: getFFTWplans_1D_
 
-use, intrinsic :: iso_c_binding
+use, intrinsic               :: iso_c_binding
 use mod_FFTW3
 
-integer(kind=irg),INTENT(IN)            :: dims(1)
+integer(kind=irg),INTENT(IN) :: dims(1)
 
-complex(C_DOUBLE_COMPLEX)               :: inp(dims(1)), outp(dims(1))
+complex(C_DOUBLE_COMPLEX)    :: inp(dims(1)), outp(dims(1))
 
 inp = cmplx(0.D0,0.D0)
 outp = cmplx(0.D0,0.D0)
@@ -369,12 +369,12 @@ end subroutine getFFTWplans_1D_
 recursive subroutine getFFTWplans_2D_(self, dims)
 !DEC$ ATTRIBUTES DLLEXPORT :: getFFTWplans_2D_
 
-use, intrinsic :: iso_c_binding
+use, intrinsic               :: iso_c_binding
 use mod_FFTW3
 
-integer(kind=irg),INTENT(IN)            :: dims(2)
+integer(kind=irg),INTENT(IN) :: dims(2)
 
-complex(C_DOUBLE_COMPLEX)               :: inp(dims(1),dims(2)), outp(dims(1),dims(2))
+complex(C_DOUBLE_COMPLEX)    :: inp(dims(1),dims(2)), outp(dims(1),dims(2))
 
 inp = cmplx(0.D0,0.D0)
 outp = cmplx(0.D0,0.D0)
@@ -389,12 +389,12 @@ end subroutine getFFTWplans_2D_
 recursive subroutine getFFTWplans_3D_(self, dims)
 !DEC$ ATTRIBUTES DLLEXPORT :: getFFTWplans_3D_
 
-use, intrinsic :: iso_c_binding
+use, intrinsic               :: iso_c_binding
 use mod_FFTW3
 
-integer(kind=irg),INTENT(IN)            :: dims(3)
+integer(kind=irg),INTENT(IN) :: dims(3)
 
-complex(C_DOUBLE_COMPLEX)               :: inp(dims(1),dims(2),dims(3)), outp(dims(1),dims(2),dims(3))
+complex(C_DOUBLE_COMPLEX)    :: inp(dims(1),dims(2),dims(3)), outp(dims(1),dims(2),dims(3))
 
 inp = cmplx(0.D0,0.D0)
 outp = cmplx(0.D0,0.D0)
@@ -422,10 +422,10 @@ use mod_HDFnames
 
 IMPLICIT NONE 
 
-class(Lorentz_T), INTENT(INOUT)       :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(Lorentz_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
 end subroutine Lorentz_
 

@@ -98,23 +98,23 @@ contains
     use mod_io
     use mod_global
   implicit none
-    class    (SphereIndexer),INTENT(INOUT)              :: this
-    integer  (kind=irg     ),INTENT(IN)              :: bw
-    real     (kind=dbl     ),INTENT(IN)              :: sig
-    real     (kind=dbl     ),INTENT(IN)              :: L
-    real     (kind=dbl     ),INTENT(IN)              :: thetac
-    real     (kind=dbl     ),INTENT(IN)              :: delta
-    integer  (kind=irg     ),INTENT(IN)              :: nx
-    integer  (kind=irg     ),INTENT(IN)              :: ny
-    integer  (kind=irg     ),INTENT(IN)              :: npx
-    real     (kind=dbl     ),INTENT(IN)              :: mLPNH(-npx:npx,-npx:npx)
-    real     (kind=dbl     ),INTENT(IN)              :: mLPSH(-npx:npx,-npx:npx)
-    logical                 ,INTENT(IN)              :: cir
+    class    (SphereIndexer),INTENT(INOUT) :: this
+    integer  (kind=irg     ),INTENT(IN)    :: bw
+    real     (kind=dbl     ),INTENT(IN)    :: sig
+    real     (kind=dbl     ),INTENT(IN)    :: L
+    real     (kind=dbl     ),INTENT(IN)    :: thetac
+    real     (kind=dbl     ),INTENT(IN)    :: delta
+    integer  (kind=irg     ),INTENT(IN)    :: nx
+    integer  (kind=irg     ),INTENT(IN)    :: ny
+    integer  (kind=irg     ),INTENT(IN)    :: npx
+    real     (kind=dbl     ),INTENT(IN)    :: mLPNH(-npx:npx,-npx:npx)
+    real     (kind=dbl     ),INTENT(IN)    :: mLPSH(-npx:npx,-npx:npx)
+    logical                 ,INTENT(IN)    :: cir
 
-    type(IO_T)                                          :: Message
-    integer  (kind=irg     )                            :: d, dMP, nSph, nDet
-    character(fnlen        )                            :: layout
-    real     (kind=dbl     )                            :: omega
+    type(IO_T)                             :: Message
+    integer  (kind=irg     )               :: d, dMP, nSph, nDet
+    character(fnlen        )               :: layout
+    real     (kind=dbl     )               :: omega
     ! clean up an existing object
     call this%destroy()
 
@@ -212,9 +212,9 @@ contains
     use mod_global
   implicit none
     class  (SphereIndexer),INTENT(INOUT) :: this
-    real   (kind=dbl     ),INTENT(IN) :: pat(:,:)
-    real   (kind=dbl     ),INTENT(IN) :: xpc
-    real   (kind=dbl     ),INTENT(IN) :: ypc
+    real   (kind=dbl     ),INTENT(IN)    :: pat(:,:)
+    real   (kind=dbl     ),INTENT(IN)    :: xpc
+    real   (kind=dbl     ),INTENT(IN)    :: ypc
     type   (IdxRes       )               :: res
 
     real   (kind=dbl     )               :: eu(0:2), eps = 1.0D-2

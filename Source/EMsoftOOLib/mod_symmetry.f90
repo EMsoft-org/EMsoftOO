@@ -2511,20 +2511,20 @@ recursive subroutine CalcFamily_(self, ind, num, space, itmp)
 
 IMPLICIT NONE
 
-class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg),INTENT(OUT)           :: num
+class(SpaceGroup_T),INTENT(INOUT)          :: self
+integer(kind=irg),INTENT(OUT)              :: num
  !! number of equivalent entries generated
-integer(kind=irg),INTENT(IN)            :: ind(3)
+integer(kind=irg),INTENT(IN)               :: ind(3)
  !! input triplet
-character(1),INTENT(IN)                 :: space
+character(1),INTENT(IN)                    :: space
  !! 'd' or 'r'
 integer(kind=irg),allocatable, INTENT(OUT) :: itmp(:,:)
  !! array used for family computations etc
 
-integer(kind=irg)                       :: m,i,j
-real(kind=sgl)                          :: h,k,l,ih,ik,il,idiff
-logical                                 :: newpoint
-real,parameter                          :: eps=0.0001_sgl
+integer(kind=irg)                          :: m,i,j
+real(kind=sgl)                             :: h,k,l,ih,ik,il,idiff
+logical                                    :: newpoint
+real,parameter                             :: eps=0.0001_sgl
 
 allocate(itmp(self%NUMpt, 3))
 

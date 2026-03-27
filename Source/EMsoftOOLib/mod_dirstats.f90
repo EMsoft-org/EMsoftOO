@@ -742,7 +742,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(DirStat_T), INTENT(INOUT)      :: self
+class(DirStat_T), INTENT(INOUT) :: self
 real(kind=dbl),INTENT(IN)       :: x
 real(kind=dbl),INTENT(IN)       :: k
 real(kind=dbl),INTENT(INOUT)    :: C
@@ -779,7 +779,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(DirStat_T), INTENT(INOUT)      :: self
+class(DirStat_T), INTENT(INOUT) :: self
 real(kind=dbl),INTENT(IN)       :: x
 real(kind=dbl),INTENT(IN)       :: k
 real(kind=dbl),INTENT(INOUT)    :: C

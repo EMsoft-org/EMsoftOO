@@ -315,7 +315,7 @@ contains
   !DEC$ ATTRIBUTES DLLEXPORT :: FFTBuffer_AllocReal
   implicit none
     class  (FFTBuffer),INTENT(INOUT) :: this 
-    integer           ,INTENT(IN) :: sz
+    integer           ,INTENT(IN)    :: sz
     call this%free() ! free memory if it is already allocated
     allocate(this%ptr) ! allocate a new pointer
     this%ptr = fftw_alloc_real   (int(sz, C_SIZE_T)) ! allocate memory
@@ -327,7 +327,7 @@ contains
   !DEC$ ATTRIBUTES DLLEXPORT :: FFTBuffer_AllocCplx
   implicit none
     class  (FFTBuffer),INTENT(INOUT) :: this 
-    integer           ,INTENT(IN) :: sz
+    integer           ,INTENT(IN)    :: sz
     call this%free() ! free memory if it is already allocated
     allocate(this%ptr) ! allocate a new pointer
     this%ptr = fftw_alloc_complex(int(sz, C_SIZE_T)) ! allocate memory
@@ -403,13 +403,13 @@ contains
   recursive subroutine RealFFT_Init(this, sz, flg)
   !DEC$ ATTRIBUTES DLLEXPORT :: RealFFT_Init
   implicit none
-    class  (RealFFT         ),INTENT(INOUT)          :: this 
-    integer                  ,INTENT(IN)          :: sz
-    integer                  ,INTENT(IN),optional :: flg
-    type   (c_ptr           )                        :: pr, pc
-    real   (c_double        )              ,pointer  :: in (:)
-    complex(c_double_complex)              ,pointer  :: out(:)
-    integer                                          :: vFlg
+    class  (RealFFT         ),INTENT(INOUT)         :: this 
+    integer                  ,INTENT(IN)            :: sz
+    integer                  ,INTENT(IN),optional   :: flg
+    type   (c_ptr           )                       :: pr, pc
+    real   (c_double        )              ,pointer :: in (:)
+    complex(c_double_complex)              ,pointer :: out(:)
+    integer                                         :: vFlg
 
     ! clear plans if needed
     call this%pFwd%init()
@@ -441,8 +441,8 @@ contains
   recursive subroutine RealFFT_Fwd(this, signal, spectra)
   !DEC$ ATTRIBUTES DLLEXPORT :: RealFFT_Fwd
   implicit none
-    class  (RealFFT         ),INTENT(IN)         :: this
-    real   (c_double        ),INTENT(IN),pointer :: signal (:)
+    class  (RealFFT         ),INTENT(IN)            :: this
+    real   (c_double        ),INTENT(IN),pointer    :: signal (:)
     complex(c_double_complex),INTENT(INOUT),pointer :: spectra(:)
     call fftw_execute_dft_r2c(this%pFwd%ptr, signal, spectra) ! do fft
   end subroutine RealFFT_Fwd
@@ -453,8 +453,8 @@ contains
   recursive subroutine RealFFT_Inv(this, spectra, signal)
   !DEC$ ATTRIBUTES DLLEXPORT :: RealFFT_Inv
   implicit none
-    class  (RealFFT         ),INTENT(IN)         :: this
-    complex(c_double_complex),INTENT(IN),pointer :: spectra(:)
+    class  (RealFFT         ),INTENT(IN)            :: this
+    complex(c_double_complex),INTENT(IN),pointer    :: spectra(:)
     real   (c_double        ),INTENT(INOUT),pointer :: signal (:)
     call fftw_execute_dft_c2r(this%pRev%ptr, spectra, signal) ! do inverse fft
   end subroutine RealFFT_Inv
@@ -472,13 +472,13 @@ contains
   recursive subroutine Real3DFFT_Init(this, sz, flg)
   !DEC$ ATTRIBUTES DLLEXPORT :: Real3DFFT_Init
   implicit none
-    class  (Real3DFFT       ),INTENT(INOUT)          :: this 
-    integer                  ,INTENT(IN)          :: sz
-    integer                  ,INTENT(IN),optional :: flg
-    type   (c_ptr           )                        :: pr, pc
-    real   (c_double        )              ,pointer  :: in (:,:,:)
-    complex(c_double_complex)              ,pointer  :: out(:,:,:)
-    integer                                          :: vFlg, hz
+    class  (Real3DFFT       ),INTENT(INOUT)         :: this 
+    integer                  ,INTENT(IN)            :: sz
+    integer                  ,INTENT(IN),optional   :: flg
+    type   (c_ptr           )                       :: pr, pc
+    real   (c_double        )              ,pointer :: in (:,:,:)
+    complex(c_double_complex)              ,pointer :: out(:,:,:)
+    integer                                         :: vFlg, hz
 
     ! clear plan if needed
     call this%pRev%init()
@@ -509,8 +509,8 @@ contains
   recursive subroutine Real3DFFT_Inv(this, spectra, signal)
   !DEC$ ATTRIBUTES DLLEXPORT :: Real3DFFT_Inv
   implicit none
-    class  (Real3DFFT       ),INTENT(IN)         :: this
-    complex(c_double_complex),INTENT(IN),pointer :: spectra(:,:,:)
+    class  (Real3DFFT       ),INTENT(IN)            :: this
+    complex(c_double_complex),INTENT(IN),pointer    :: spectra(:,:,:)
     real   (c_double        ),INTENT(INOUT),pointer :: signal (:,:,:)
     call fftw_execute_dft_c2r(this%pRev%ptr, spectra, signal) ! do inverse fft
   end subroutine Real3DFFT_Inv
@@ -536,17 +536,17 @@ contains
   recursive subroutine RealSep3DFFT_Init(this, sz, flg)
   !DEC$ ATTRIBUTES DLLEXPORT :: RealSep3DFFT_Init
   implicit none
-    class  (RealSep3DFFT    ),INTENT(INOUT)          :: this 
-    integer                  ,INTENT(IN)          :: sz
-    integer                  ,INTENT(IN),optional :: flg
-    type   (c_ptr           )                        :: pr, pc
-    real   (c_double        )              ,pointer  :: out(:,:,:)
-    complex(c_double_complex)              ,pointer  :: in (:,:,:)
-    integer                                          :: vFlg, hz
+    class  (RealSep3DFFT    ),INTENT(INOUT)         :: this 
+    integer                  ,INTENT(IN)            :: sz
+    integer                  ,INTENT(IN),optional   :: flg
+    type   (c_ptr           )                       :: pr, pc
+    real   (c_double        )              ,pointer :: out(:,:,:)
+    complex(c_double_complex)              ,pointer :: in (:,:,:)
+    integer                                         :: vFlg, hz
 
-    integer                                          :: rank, nn(1), howmany, sign
-    integer                                          :: inembed(1), istride, idist
-    integer                                          :: onembed(1), ostride, odist
+    integer                                         :: rank, nn(1), howmany, sign
+    integer                                         :: inembed(1), istride, idist
+    integer                                         :: onembed(1), ostride, odist
 
     ! clear plan if needed
     call this%pX%init()
@@ -609,10 +609,10 @@ contains
   recursive subroutine RealSep3DFFT_Inv(this, spectra, signal, dx)
   !DEC$ ATTRIBUTES DLLEXPORT :: RealSep3DFFT_Inv
   implicit none
-    class  (RealSep3DFFT    ),INTENT(IN)         :: this
-    complex(c_double_complex),INTENT(IN),pointer :: spectra(:,:,:)
+    class  (RealSep3DFFT    ),INTENT(IN)            :: this
+    complex(c_double_complex),INTENT(IN),pointer    :: spectra(:,:,:)
     real   (c_double        ),INTENT(INOUT),pointer :: signal (:,:,:)
-    integer                  ,INTENT(IN)         :: dx
+    integer                  ,INTENT(IN)            :: dx
     integer                                         :: i
 
     do i = 1, this%vH, dx ! loop over yz planes doing 2d transforms

@@ -121,7 +121,7 @@ contains
   ! @return: image contained in file (as image_t)
   function bmp_read(filename, iostat, iomsg) result(im)
 !DEC$ ATTRIBUTES DLLEXPORT :: bmp_read
-    character(len=*), INTENT(IN) :: filename ! name of bitmap file to read
+    character(len=*), INTENT(IN)  :: filename ! name of bitmap file to read
     integer         , INTENT(OUT) :: iostat   ! error flag
     character(len=*), INTENT(OUT) :: iomsg    ! error message
     type(image_t)                 :: im       ! image data structure to hold result
@@ -258,10 +258,10 @@ contains
   ! @param iomsg: error message (only filled if iostat.ne.0)
   subroutine bmp_write(filename, im, iostat, iomsg)
 !DEC$ ATTRIBUTES DLLEXPORT :: bmp_write
-    character(len=*), INTENT(IN) :: filename ! name of bitmap file to read
+    character(len=*), INTENT(IN)  :: filename ! name of bitmap file to read
     integer         , INTENT(OUT) :: iostat   ! error flag
     character(len=*), INTENT(OUT) :: iomsg    ! error message
-    type(image_t)   , INTENT(IN) :: im       ! image data structure to hold result
+    type(image_t)   , INTENT(IN)  :: im       ! image data structure to hold result
     integer                       :: i, unit, rowBytes, fileRowBytes, offset
     type(bmp_header)              :: header
     type(bmp_info)                :: info

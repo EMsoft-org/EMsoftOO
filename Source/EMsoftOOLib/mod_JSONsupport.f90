@@ -97,18 +97,18 @@ recursive function JSONgetDouble(child,str,v) result(oval)
 !DEC$ ATTRIBUTES DLLEXPORT :: JSONgetDouble
 
 use mod_io
-use, intrinsic :: iso_fortran_env, only: wp => real64
+use, intrinsic                       :: iso_fortran_env, only: wp => real64
 
 IMPLICIT NONE
 
-type(json_value), pointer,INTENT(IN)            :: child
-type(IO_T)                                      :: Message
-character(fnlen)                                :: str
-integer(kind=irg),INTENT(IN)                    :: v
-real(kind=dbl)                                  :: oval
+type(json_value), pointer,INTENT(IN) :: child
+type(IO_T)                           :: Message
+character(fnlen)                     :: str
+integer(kind=irg),INTENT(IN)         :: v
+real(kind=dbl)                       :: oval
 
-real(kind=wp)                                   :: val
-real(kind=sgl)                                  :: io_real(1)
+real(kind=wp)                        :: val
+real(kind=sgl)                       :: io_real(1)
 
 call json_get(child, val)
 if (v.eq.1) then
@@ -138,19 +138,19 @@ recursive function JSONgetDoubleVector(child,nc,str,v) result(ovec)
 !DEC$ ATTRIBUTES DLLEXPORT :: JSONgetDoubleVector
 
 use mod_io
-use, intrinsic :: iso_fortran_env, only: wp => real64
+use, intrinsic                         :: iso_fortran_env, only: wp => real64
 
 IMPLICIT NONE
 
-type(json_value), pointer,INTENT(IN)            :: child
-type(IO_T)                                      :: Message
-integer(kind=irg),INTENT(IN)                    :: nc
-character(fnlen)                                :: str
-integer(kind=irg),INTENT(IN)                    :: v
-real(kind=dbl)                                  :: ovec(nc)
+type(json_value), pointer,INTENT(IN)   :: child
+type(IO_T)                             :: Message
+integer(kind=irg),INTENT(IN)           :: nc
+character(fnlen)                       :: str
+integer(kind=irg),INTENT(IN)           :: v
+real(kind=dbl)                         :: ovec(nc)
 
-real(kind=wp),dimension(:),allocatable          :: vec
-real(kind=sgl)                                  :: io_real(nc)
+real(kind=wp),dimension(:),allocatable :: vec
+real(kind=sgl)                         :: io_real(nc)
 
 allocate(vec(nc))
 call json_get(child, vec)

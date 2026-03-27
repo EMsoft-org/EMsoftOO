@@ -2115,7 +2115,7 @@ recursive subroutine simplectic2quat(self, c1, c2)
   !! perform an inverse simplectic transformation (single precision)
   !! Note: the simplectic transformation array has to be set first !
 
-use, intrinsic :: iso_c_binding 
+use, intrinsic                      :: iso_c_binding 
 
 IMPLICIT NONE
 
