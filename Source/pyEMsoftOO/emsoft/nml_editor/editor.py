@@ -109,39 +109,47 @@ class NmlEditor:
 
     def _build_ui(self):
         """Create all UI elements."""
-        # --- Top toolbar ---
+        # --- Top toolbar using grid for reliable sizing on macOS ---
         toolbar = tk.Frame(self.root, padx=5, pady=5)
         toolbar.pack(fill=tk.X)
 
-        btn_pad = dict(padx=4, pady=2)
-        ttk.Button(toolbar, text='Open .nml', command=self.open_file).pack(side=tk.LEFT, **btn_pad)
-        ttk.Button(toolbar, text=f'Save .nml ({MOD_LABEL}+S)',
-                   command=self.save_file).pack(side=tk.LEFT, **btn_pad)
+        col = 0
+        pad = dict(padx=3, pady=2)
 
-        tk.Label(toolbar, text=' | ').pack(side=tk.LEFT)
+        ttk.Button(toolbar, text='Open .nml', command=self.open_file).grid(
+            row=0, column=col, **pad); col += 1
+        ttk.Button(toolbar, text=f'Save .nml ({MOD_LABEL}+S)',
+                   command=self.save_file).grid(row=0, column=col, **pad); col += 1
+
+        ttk.Separator(toolbar, orient=tk.VERTICAL).grid(
+            row=0, column=col, sticky='ns', padx=6); col += 1
 
         ttk.Button(toolbar, text='Set Work Dir',
-                   command=self.set_work_dir).pack(side=tk.LEFT, **btn_pad)
+                   command=self.set_work_dir).grid(row=0, column=col, **pad); col += 1
 
-        tk.Label(toolbar, text=' | ').pack(side=tk.LEFT)
+        ttk.Separator(toolbar, orient=tk.VERTICAL).grid(
+            row=0, column=col, sticky='ns', padx=6); col += 1
 
         self.run_btn = ttk.Button(toolbar, text='Run Program', command=self.run_program,
                                   state=tk.DISABLED)
-        self.run_btn.pack(side=tk.LEFT, **btn_pad)
+        self.run_btn.grid(row=0, column=col, **pad); col += 1
 
         self.stop_btn = ttk.Button(toolbar, text='Stop', command=self.stop_program,
                                    state=tk.DISABLED)
-        self.stop_btn.pack(side=tk.LEFT, **btn_pad)
+        self.stop_btn.grid(row=0, column=col, **pad); col += 1
 
-        # Font size controls (right side of toolbar)
-        font_frame = tk.Frame(toolbar)
-        font_frame.pack(side=tk.RIGHT, padx=4)
-        tk.Label(font_frame, text='Font:').pack(side=tk.LEFT)
-        ttk.Button(font_frame, text=' \u2212 ', width=3, command=self._font_smaller).pack(side=tk.LEFT, padx=1)
+        # Spacer to push font controls to the right
+        toolbar.columnconfigure(col, weight=1); col += 1
+
+        # Font size controls
+        tk.Label(toolbar, text='Font:').grid(row=0, column=col); col += 1
+        ttk.Button(toolbar, text='\u2212', width=2,
+                   command=self._font_smaller).grid(row=0, column=col, padx=1); col += 1
         self.font_size_var = tk.StringVar(value=str(self.editor_font[1]))
-        tk.Label(font_frame, textvariable=self.font_size_var, width=3,
-                 anchor=tk.CENTER).pack(side=tk.LEFT)
-        ttk.Button(font_frame, text='+', width=3, command=self._font_larger).pack(side=tk.LEFT, padx=1)
+        tk.Label(toolbar, textvariable=self.font_size_var, width=3,
+                 anchor=tk.CENTER).grid(row=0, column=col); col += 1
+        ttk.Button(toolbar, text='+', width=2,
+                   command=self._font_larger).grid(row=0, column=col, padx=1); col += 1
 
         # --- Main paned layout: template list on left, editor+output on right ---
         h_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
