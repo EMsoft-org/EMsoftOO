@@ -84,6 +84,16 @@ class NmlEditor:
         tk.Button(toolbar, text=f'  Save .nml ({MOD_LABEL}+S)  ',
                   command=self.save_file).pack(side=tk.LEFT, padx=4)
 
+        # Font size controls (right side of toolbar)
+        font_frame = tk.Frame(toolbar)
+        font_frame.pack(side=tk.RIGHT, padx=4)
+        tk.Label(font_frame, text='Font:').pack(side=tk.LEFT)
+        tk.Button(font_frame, text=' \u2212 ', command=self._font_smaller).pack(side=tk.LEFT, padx=1)
+        self.font_size_var = tk.StringVar(value=str(self.editor_font[1]))
+        tk.Label(font_frame, textvariable=self.font_size_var, width=3,
+                 anchor=tk.CENTER).pack(side=tk.LEFT)
+        tk.Button(font_frame, text=' + ', command=self._font_larger).pack(side=tk.LEFT, padx=1)
+
         # --- Main paned layout: template list on left, editor on right ---
         paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
         paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 0))
@@ -186,6 +196,35 @@ class NmlEditor:
             filtered = self.display_names
         self._populate_list(filtered)
 
+    def _font_smaller(self):
+        """Decrease font size by 1 (minimum 8)."""
+        size = self.editor_font[1]
+        if size > 8:
+            self._set_font_size(size - 1)
+
+    def _font_larger(self):
+        """Increase font size by 1 (maximum 28)."""
+        size = self.editor_font[1]
+        if size < 28:
+            self._set_font_size(size + 1)
+
+    def _set_font_size(self, size):
+        """Update font size across all widgets."""
+        self.editor_font = (self.editor_font[0], size)
+        self.font_size_var.set(str(size))
+
+        self.editor.configure(font=self.editor_font)
+        self.linenums.configure(font=self.editor_font)
+        self.template_list.configure(font=('TkDefaultFont', size))
+
+        # Re-apply highlighting tags with new font size
+        self.editor.tag_configure('section',
+                                  font=self.editor_font + ('bold',))
+        self.editor.tag_configure('group',
+                                  font=self.editor_font + ('bold',))
+
+        self._update_line_numbers()
+
     def _bind_shortcuts(self):
         """Set up keyboard shortcuts."""
         mod = 'Command' if IS_MAC else 'Control'
@@ -193,6 +232,9 @@ class NmlEditor:
         self.root.bind(f'<{mod}-S>', lambda e: self.save_file())
         self.root.bind(f'<{mod}-o>', lambda e: self.open_file())
         self.root.bind(f'<{mod}-O>', lambda e: self.open_file())
+        self.root.bind(f'<{mod}-equal>', lambda e: self._font_larger())
+        self.root.bind(f'<{mod}-plus>', lambda e: self._font_larger())
+        self.root.bind(f'<{mod}-minus>', lambda e: self._font_smaller())
 
     def _apply_theme(self):
         """Apply consistent styling."""
