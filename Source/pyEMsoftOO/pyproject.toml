@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emsoft"
+version = "6.0.0"
+description = "Python interface to the EMsoftOO electron microscopy simulation library"
+readme = "README.md"
+license = {text = "BSD-3-Clause"}
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["emsoft*"]
