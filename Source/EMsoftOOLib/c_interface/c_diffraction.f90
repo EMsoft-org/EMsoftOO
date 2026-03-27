@@ -50,16 +50,19 @@ contains
 ! Constructor / destructor
 !--------------------------------------------------------------------------
 
-function c_diff_create(voltage_kv) result(handle) bind(c, name='emsoft_diff_create')
-  !! Create a Diffraction_T with the given accelerating voltage (keV).
-  !! Computes relativistic correction, wavelength, and interaction constant.
+function c_diff_create(voltage_kv, cell_handle) result(handle) &
+    bind(c, name='emsoft_diff_create')
+  !! Create a Diffraction_T with the given accelerating voltage (keV)
+  !! and a Cell_T for wavelength calculation.
   real(c_double), value, INTENT(IN) :: voltage_kv
+  type(c_ptr), value, INTENT(IN)   :: cell_handle
   type(c_ptr)                       :: handle
   type(Diffraction_T), pointer      :: obj
+  type(Cell_T), pointer             :: cell
 
   allocate(obj)
-  obj = Diffraction_T()
-  call obj%setV(voltage_kv)
+  call c_f_pointer(cell_handle, cell)
+  obj = Diffraction_T( voltage = voltage_kv, cell = cell )
   handle = c_loc(obj)
 
 end function c_diff_create

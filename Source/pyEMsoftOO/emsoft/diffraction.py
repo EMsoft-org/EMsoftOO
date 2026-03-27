@@ -23,7 +23,7 @@ _CHARGE = 1.602176634e-19      # C
 def _setup_bindings():
     lib = get_lib()
 
-    lib.emsoft_diff_create.argtypes = [c_double]
+    lib.emsoft_diff_create.argtypes = [c_double, c_void_p]
     lib.emsoft_diff_create.restype = c_void_p
 
     lib.emsoft_diff_destroy.argtypes = [c_void_p]
@@ -80,10 +80,14 @@ class Diffraction:
     ----------
     voltage : float
         Accelerating voltage in keV.
+    crystal : emsoft.crystallography.Crystal
+        Crystal unit cell (needed for wavelength calculation).
 
     Examples
     --------
-    >>> d = Diffraction(200.0)  # 200 keV
+    >>> from emsoft.crystallography import Crystal
+    >>> ni = Crystal(0.35236, 0.35236, 0.35236, 90, 90, 90)
+    >>> d = Diffraction(200.0, ni)
     >>> d.voltage
     200.0
     >>> d.wavelength  # in nm
@@ -92,9 +96,10 @@ class Diffraction:
 
     __slots__ = ('_handle', '_lib')
 
-    def __init__(self, voltage):
+    def __init__(self, voltage, crystal):
         self._lib = _ensure_bindings()
-        self._handle = self._lib.emsoft_diff_create(c_double(voltage))
+        self._handle = self._lib.emsoft_diff_create(c_double(voltage),
+                                                     crystal._handle)
 
     def __del__(self):
         if hasattr(self, '_handle') and self._handle is not None:
