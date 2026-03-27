@@ -84,13 +84,15 @@ class TestRotationConversions:
                             'to_rodrigues', 'to_homochoric', 'to_cubochoric',
                             'to_stereographic', 'to_rotvec']:
             rep = getattr(r, method_name)()
-            # Create from that representation and check Euler roundtrip
             from_name = method_name.replace('to_', 'from_')
             if from_name == 'from_matrix':
                 r2 = Rotation.from_matrix(rep)
-            elif rep.shape[0] == 4:
-                r2 = getattr(Rotation, from_name)(*rep) if from_name in ['from_quaternion'] \
-                    else getattr(Rotation, from_name)(rep)
+            elif from_name == 'from_quaternion':
+                r2 = Rotation.from_quaternion(*rep)
+            elif from_name == 'from_axisangle':
+                r2 = Rotation.from_axisangle(rep[:3], rep[3])
+            elif from_name == 'from_rodrigues':
+                r2 = Rotation.from_rodrigues(rep)
             else:
                 r2 = getattr(Rotation, from_name)(rep)
             eu2 = r2.to_euler(degrees=True)
