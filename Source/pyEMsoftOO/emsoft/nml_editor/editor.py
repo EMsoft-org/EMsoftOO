@@ -130,13 +130,15 @@ class NmlEditor:
         ttk.Separator(toolbar, orient=tk.VERTICAL).grid(
             row=0, column=col, sticky='ns', padx=6); col += 1
 
-        self.run_btn = ttk.Button(toolbar, text='Run Program', command=self.run_program,
-                                  state=tk.DISABLED)
+        self.run_btn = ttk.Button(toolbar, text='Run Program', width=14,
+                                  command=self.run_program)
         self.run_btn.grid(row=0, column=col, **pad); col += 1
+        self.run_btn.state(['disabled'])
 
-        self.stop_btn = ttk.Button(toolbar, text='Stop', command=self.stop_program,
-                                   state=tk.DISABLED)
+        self.stop_btn = ttk.Button(toolbar, text='Stop', width=8,
+                                   command=self.stop_program)
         self.stop_btn.grid(row=0, column=col, **pad); col += 1
+        self.stop_btn.state(['disabled'])
 
         # Spacer to push font controls to the right
         toolbar.columnconfigure(col, weight=1); col += 1
@@ -497,9 +499,9 @@ class NmlEditor:
         if self.current_file and self.current_file.endswith('.nml'):
             prog = _program_name_from_file(self.current_file)
             if prog and _find_executable(prog):
-                self.run_btn.config(state=tk.NORMAL)
+                self.run_btn.state(['!disabled'])
                 return
-        self.run_btn.config(state=tk.DISABLED)
+        self.run_btn.state(['disabled'])
 
     # --- Template loading ---
 
@@ -668,8 +670,8 @@ class NmlEditor:
         self._append_output(f'{"-" * 60}\n', 'info')
 
         self.status_var.set(f'Running {prog_name}...')
-        self.run_btn.config(state=tk.DISABLED)
-        self.stop_btn.config(state=tk.NORMAL)
+        self.run_btn.state(['disabled'])
+        self.stop_btn.state(['!disabled'])
 
         # Launch the process in a background thread
         self._process_thread = threading.Thread(
@@ -720,8 +722,8 @@ class NmlEditor:
     def _on_process_finished(self, retcode):
         """Called when the program finishes (on the main thread)."""
         self._process = None
-        self.run_btn.config(state=tk.NORMAL)
-        self.stop_btn.config(state=tk.DISABLED)
+        self.run_btn.state(['!disabled'])
+        self.stop_btn.state(['disabled'])
         self._update_run_button()
 
         self._append_output(f'\n{"-" * 60}\n', 'info')
