@@ -365,46 +365,46 @@ use mod_symmetry
 use mod_vendors
 use stringconstants
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(HROSM_T), INTENT(INOUT)           :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+class(HROSM_T), INTENT(INOUT)        :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname 
 
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: localHDFnames
-type(IO_T)                              :: Message
-type(Cell_T)                            :: cell
-type(SpaceGroup_T)                      :: SG
-type(EBSD_T)                            :: EBSD
-type(DIfile_T)                          :: DIFT
-type(MCfile_T)                          :: MCFT
-type(MPfile_T)                          :: MPFT
-type(DictionaryIndexingNameListType)    :: dinl, savedinl
-type(MCOpenCLNameListType)              :: mcnl
-type(SEMmasterNameListType)             :: mpnl
-type(Cluster_T)                         :: cluster
-type(Quaternion_T)                      :: quat
-type(QuaternionArray_T)                 :: sym, tmp, qAR
-type(q_T)                               :: qu 
-type(e_T)                               :: eu
-type(r_T)                               :: ro  
-type(so3_T)                             :: SO
-type(memory_T)                          :: mem
-type(Timing_T)                          :: timer
-type(IPF_T)                             :: IPF 
-type(IPFmap_T)                          :: IPFmap 
-type(Vendor_T)                          :: VT
+type(HDF_T)                          :: HDF
+type(HDFnames_T)                     :: localHDFnames
+type(IO_T)                           :: Message
+type(Cell_T)                         :: cell
+type(SpaceGroup_T)                   :: SG
+type(EBSD_T)                         :: EBSD
+type(DIfile_T)                       :: DIFT
+type(MCfile_T)                       :: MCFT
+type(MPfile_T)                       :: MPFT
+type(DictionaryIndexingNameListType) :: dinl, savedinl
+type(MCOpenCLNameListType)           :: mcnl
+type(SEMmasterNameListType)          :: mpnl
+type(Cluster_T)                      :: cluster
+type(Quaternion_T)                   :: quat
+type(QuaternionArray_T)              :: sym, tmp, qAR
+type(q_T)                            :: qu 
+type(e_T)                            :: eu
+type(r_T)                            :: ro  
+type(so3_T)                          :: SO
+type(memory_T)                       :: mem
+type(Timing_T)                       :: timer
+type(IPF_T)                          :: IPF 
+type(IPFmap_T)                       :: IPFmap 
+type(Vendor_T)                       :: VT
 
-character(fnlen)                        :: DIfile, fname, xtalname, TIFF_filename, IPFmapfile, IPFmode, nmldeffile
-character(fnlen)                        :: dataname, datagroupname, groupname, attributename, dataset
-character(11)                           :: dstr
-character(15)                           :: tstrb
-character(15)                           :: tstre
-character(2)                            :: listmode
-integer(kind=irg)                       :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4), icnt, nt, &
+character(fnlen)                     :: DIfile, fname, xtalname, TIFF_filename, IPFmapfile, IPFmode, nmldeffile
+character(fnlen)                     :: dataname, datagroupname, groupname, attributename, dataset
+character(11)                        :: dstr
+character(15)                        :: tstrb
+character(15)                        :: tstre
+character(2)                         :: listmode
+integer(kind=irg)                    :: hdferr, io_int(2), nSamples, binx, biny, bindx, i, ir, ic, ROI(4), icnt, nt, &
                                            FZcnt, ii, ROIoffset(2)
 real(kind=sgl), allocatable             :: mainOSM(:,:), OSMmap(:,:), mainEuler(:,:,:), mainResult(:,:),quatarray(:,:,:)  
 real(kind=sgl)                          :: mi, ma, memoryNeeded, io_real(1)

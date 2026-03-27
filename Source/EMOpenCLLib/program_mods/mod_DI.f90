@@ -108,26 +108,26 @@ IMPLICIT NONE
 ! interface for the callback routines
 ABSTRACT INTERFACE
    SUBROUTINE ProgCallBackTypeTimingdriver(objAddress, loopCompleted, totalLoops, timeRemaining) bind(C)
-    USE, INTRINSIC :: ISO_C_BINDING
-    INTEGER(c_size_t),INTENT(IN), VALUE             :: objAddress
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: loopCompleted
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: totalLoops
-    REAL(KIND=4),INTENT(IN), VALUE                  :: timeRemaining
+    USE, INTRINSIC                      :: ISO_C_BINDING
+    INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+    INTEGER(KIND=4), INTENT(IN), VALUE  :: loopCompleted
+    INTEGER(KIND=4), INTENT(IN), VALUE  :: totalLoops
+    REAL(KIND=4),INTENT(IN), VALUE      :: timeRemaining
    END SUBROUTINE ProgCallBackTypeTimingdriver
 
    SUBROUTINE ProgCallBackTypeDIdriver(objAddress, Ndict, euarr_cptr, dparr_cptr, indarr_cptr) bind(C)
-    USE, INTRINSIC :: ISO_C_BINDING
-    INTEGER(c_size_t),INTENT(IN), VALUE             :: objAddress
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: Ndict
-    type(c_ptr), INTENT(OUT)                        :: euarr_cptr
-    type(c_ptr), INTENT(OUT)                        :: dparr_cptr
-    type(c_ptr), INTENT(OUT)                        :: indarr_cptr
+    USE, INTRINSIC                      :: ISO_C_BINDING
+    INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+    INTEGER(KIND=4), INTENT(IN), VALUE  :: Ndict
+    type(c_ptr), INTENT(OUT)            :: euarr_cptr
+    type(c_ptr), INTENT(OUT)            :: dparr_cptr
+    type(c_ptr), INTENT(OUT)            :: indarr_cptr
    END SUBROUTINE ProgCallBackTypeDIdriver
 
    SUBROUTINE ProgCallBackTypeErrorDIdriver(objAddress, errorCode) bind(C)
-    USE, INTRINSIC :: ISO_C_BINDING
-    INTEGER(c_size_t),INTENT(IN), VALUE             :: objAddress
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: errorCode
+    USE, INTRINSIC                      :: ISO_C_BINDING
+    INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+    INTEGER(KIND=4), INTENT(IN), VALUE  :: errorCode
    END SUBROUTINE ProgCallBackTypeErrorDIdriver
 
 END INTERFACE

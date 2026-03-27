@@ -146,9 +146,9 @@ module mod_SEMCLwrappers
     !
     ABSTRACT INTERFACE
        SUBROUTINE ProgressCallBack(objAddress, patternCompleted) bind(C)
-        USE, INTRINSIC :: ISO_C_BINDING
-        INTEGER(c_size_t),INTENT(IN), VALUE          :: objAddress
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: patternCompleted
+        USE, INTRINSIC                      :: ISO_C_BINDING
+        INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: patternCompleted
        END SUBROUTINE ProgressCallBack
     END INTERFACE
     
@@ -156,23 +156,23 @@ module mod_SEMCLwrappers
     ! similar callback routine, with two integer arguments
     ABSTRACT INTERFACE
        SUBROUTINE ProgressCallBack2(objAddress, loopCompleted, totalLoops, bseYield) bind(C)
-        USE, INTRINSIC :: ISO_C_BINDING
-        INTEGER(c_size_t),INTENT(IN), VALUE          :: objAddress
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: loopCompleted
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: totalLoops
-        REAL(KIND=4),INTENT(IN), VALUE              :: bseYield
+        USE, INTRINSIC                      :: ISO_C_BINDING
+        INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: loopCompleted
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: totalLoops
+        REAL(KIND=4),INTENT(IN), VALUE      :: bseYield
        END SUBROUTINE ProgressCallBack2
     END INTERFACE
     
     ! similar callback routine, with two integer arguments
     ABSTRACT INTERFACE
        SUBROUTINE ProgressCallBack3(objAddress, loopCompleted, totalLoops, EloopCompleted, totalEloops) bind(C)
-        USE, INTRINSIC :: ISO_C_BINDING
-        INTEGER(c_size_t),INTENT(IN), VALUE          :: objAddress
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: loopCompleted
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: totalLoops
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: EloopCompleted
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: totalELoops
+        USE, INTRINSIC                      :: ISO_C_BINDING
+        INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: loopCompleted
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: totalLoops
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: EloopCompleted
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: totalELoops
        END SUBROUTINE ProgressCallBack3
     END INTERFACE
     
