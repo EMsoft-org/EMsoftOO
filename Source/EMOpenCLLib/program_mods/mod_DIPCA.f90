@@ -2580,9 +2580,7 @@ IMPLICIT NONE
 
 type(OpenCL_T),INTENT(INOUT)                        :: CL
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_expt
-!f2py intent(in,out) ::  cl_expt
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_dict
-!f2py intent(in,out) ::  cl_dict
 integer(kind=4),INTENT(IN)                          :: Ne
 integer(kind=4),INTENT(IN)                          :: Nd
 real(kind=4),INTENT(OUT),target                     :: results(Ne*Nd)
@@ -2590,11 +2588,8 @@ real(kind=4),INTENT(OUT),target                     :: results(Ne*Nd)
 integer(kind=4),INTENT(IN)                          :: correctsize
 integer(kind=irg),INTENT(IN)                        :: numd, selnumd
 integer(c_intptr_t),target,INTENT(INOUT)            :: context
-!f2py intent(in,out) ::  context
 integer(c_intptr_t),target,INTENT(INOUT)            :: kernel
-!f2py intent(in,out) ::  kernel
 integer(c_intptr_t),target,INTENT(INOUT)            :: command_queue
-!f2py intent(in,out) ::  command_queue
 
 integer(c_int32_t)                                  :: ierr, ierr2, pcnt
 integer(c_intptr_t),target                          :: cl_result

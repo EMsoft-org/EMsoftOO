@@ -2244,7 +2244,6 @@ IMPLICIT NONE
 
 class(EMsoft_T), INTENT(INOUT)          :: self
 character(fnlen),INTENT(INOUT)          :: nmldefault
-!f2py intent(in,out) ::  nmldefault
 integer(kind=irg),INTENT(IN)            :: numt
 integer(kind=irg),INTENT(IN)            :: templatelist(numt)
 character(fnlen),INTENT(IN)             :: progname

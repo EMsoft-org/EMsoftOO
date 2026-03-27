@@ -1725,7 +1725,6 @@ module mod_kvectors
  type(Cell_T),INTENT(INOUT)              :: cell
  type(Diffraction_T),INTENT(INOUT)       :: Diff
  type(symdata2D),INTENT(INOUT)           :: TDPG
- !f2py intent(in,out) ::  TDPG
  real(kind=dbl),INTENT(IN)               :: ga(3)
   !! "horizontal" reciprocal lattice vector
  integer(kind=irg),INTENT(IN)            :: npx

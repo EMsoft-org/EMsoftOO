@@ -728,7 +728,6 @@ integer(kind=irg),INTENT(IN)            :: L
 integer(HSIZE_T),INTENT(IN)             :: dims3(3)
 integer(HSIZE_T),INTENT(IN)             :: offset3(3)
 real(kind=sgl),INTENT(INOUT)            :: exppatarray(patsz * wd)
-!f2py intent(in,out) ::  exppatarray
 integer(kind=irg),OPTIONAL,INTENT(IN)   :: ROI(4)
 logical,OPTIONAL,INTENT(IN)             :: flipy
 character(fnlen),INTENT(IN),OPTIONAL    :: HDFstrings(10)
@@ -1051,7 +1050,6 @@ integer(kind=irg),INTENT(IN)            :: L
 integer(HSIZE_T),INTENT(IN)             :: dims3(3)
 integer(HSIZE_T),INTENT(IN)             :: offset3(3)
 real(kind=sgl),INTENT(INOUT)            :: exppat(patsz)
-!f2py intent(in,out) ::  exppat
 character(fnlen),INTENT(IN),OPTIONAL    :: HDFstrings(10)
 type(HDF_T),INTENT(INOUT),OPTIONAL      :: HDF
 
@@ -1376,7 +1374,6 @@ type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
 type(cell_T),INTENT(INOUT)                          :: cell
 type(SpaceGroup_T),INTENT(INOUT)                    :: SG
 class(DictionaryIndexingNameListType),INTENT(INOUT) :: nml
-!f2py intent(in,out) ::  nml
 integer(kind=irg),INTENT(IN)                        :: ipar(10)
 real(kind=sgl),INTENT(IN)                           :: fpar(2)
 integer(kind=irg),INTENT(IN)                        :: indexmain(ipar(1),ipar(2))
@@ -1877,10 +1874,8 @@ integer(kind=irg),INTENT(IN)                        :: ipar(4)
 type(cell_T),INTENT(INOUT)                          :: cells(ipar(2))
 type(SpaceGroup_T),INTENT(INOUT)                    :: SGs(ipar(2))
 class(DictionaryIndexingNameListType),INTENT(INOUT) :: nml
-!f2py intent(in,out) ::  nml
 real(kind=sgl),INTENT(IN)                           :: fpar(2)
 real(kind=sgl),INTENT(INOUT)                        :: eangles(3,ipar(1),ipar(2))
-!f2py intent(in,out) ::  eangles
 integer(kind=irg),INTENT(IN)                        :: phaseID(ipar(1))
 real(kind=sgl),INTENT(IN)                           :: dplist(ipar(1),ipar(2))
 real(kind=sgl),INTENT(IN)                           :: OSMlist(ipar(1),ipar(2))

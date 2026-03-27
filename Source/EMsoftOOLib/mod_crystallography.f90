@@ -1394,7 +1394,6 @@ IMPLICIT NONE
 class(Cell_T),INTENT(IN)                :: self
 real(kind=sgl),INTENT(INOUT)            :: p(3)
  !! input/output vector components
-!f2py intent(in,out) ::  p
 character(1),INTENT(IN)                 :: space
  !! space character ('d', 'r', or 'c')
 real(kind=sgl)                          :: x
@@ -1429,7 +1428,6 @@ IMPLICIT NONE
 class(Cell_T),INTENT(IN)                :: self
 real(kind=dbl),INTENT(INOUT)            :: p(3)
  !! input/output vector components
-!f2py intent(in,out) ::  p
 character(1),INTENT(IN)                 :: space
  !! space character ('d', 'r', or 'c')
 real(kind=dbl)                          :: x
@@ -1923,7 +1921,6 @@ end subroutine requestLatticeParameters
 ! IMPLICIT NONE
 
 ! class(Cell_T),intent(inout)             :: self
-! !f2py intent(in,out) ::  cell
 
 ! type(IO_T)                              :: Message
 ! logical                                 :: more

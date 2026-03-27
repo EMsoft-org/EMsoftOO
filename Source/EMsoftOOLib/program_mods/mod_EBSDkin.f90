@@ -2517,11 +2517,8 @@ class(EBSDkin_T), INTENT(INOUT)         :: self
 integer(kind=irg),INTENT(IN)            :: nsx
 integer(kind=irg),INTENT(IN)            :: nsy
 real(kind=sgl),INTENT(INOUT)            :: tgx(nsx,nsy)
-!f2py intent(in,out) ::  tgx
 real(kind=sgl),INTENT(INOUT)            :: tgy(nsx,nsy)
-!f2py intent(in,out) ::  tgy
 real(kind=sgl),INTENT(INOUT)            :: tgz(nsx,nsy)
-!f2py intent(in,out) ::  tgz
 real(kind=sgl),INTENT(IN)               :: patcntr(3)
 logical,INTENT(IN),OPTIONAL             :: bg
 

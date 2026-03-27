@@ -295,7 +295,6 @@ IMPLICIT NONE
 integer(kind=irg),INTENT(IN)                      :: ipar(10)
 integer(kind=irg),INTENT(IN)                      :: tmi(ipar(1),ipar(2))
 real(kind=sgl),INTENT(INOUT)                      :: ea(3,ipar(4))
-!f2py intent(in,out) ::  ea
 integer(kind=irg),INTENT(IN)                      :: nism
 integer(kind=irg),INTENT(IN)                      :: nnk
 integer(kind=irg),INTENT(IN)                      :: nt

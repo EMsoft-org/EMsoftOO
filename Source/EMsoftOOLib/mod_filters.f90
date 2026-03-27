@@ -160,7 +160,6 @@ end subroutine applyGaussianBeamSpread
 ! integer(kind=irg),INTENT(IN)    :: ny
 ! real(kind=sgl),INTENT(IN)       :: image(nx, ny)
 ! integer(K4B),INTENT(INOUT)      :: idum
-! !f2py intent(in,out) ::  idum
 ! real(kind=sgl)                  :: noisy(nx, ny)
 
 ! integer(kind=irg)               :: i, j
@@ -982,11 +981,8 @@ IMPLICIT NONE
 real(kind=dbl),INTENT(IN)               :: w
 integer(kind=irg),INTENT(IN)            :: dims(2)
 complex(kind=dbl),INTENT(INOUT)         :: hpmask(dims(1),dims(2))
-!f2py intent(in,out) ::  hpmask
 complex(C_DOUBLE_COMPLEX),INTENT(INOUT) :: inp(dims(1),dims(2)), outp(dims(1),dims(2))
-!f2py intent(in,out) ::  inp
 type(C_PTR),INTENT(INOUT)               :: planf, planb
-!f2py intent(in,out) ::  planf, planb
 
 integer(kind=irg)                       :: i, j
 real(kind=dbl)                          :: x, y, v2
@@ -1056,7 +1052,6 @@ real(kind=dbl),INTENT(IN)                          :: w
 real(kind=dbl),INTENT(IN)                          :: rdata(dims(1),dims(2))
 complex(kind=dbl),INTENT(IN)                       :: hpmask(dims(1),dims(2))
 complex(C_DOUBLE_COMPLEX),INTENT(INOUT)            :: inp(dims(1),dims(2)), outp(dims(1),dims(2))
-!f2py intent(in,out) ::  inp
 type(C_PTR),INTENT(IN)                             :: planf, planb
 complex(C_DOUBLE_COMPLEX), OPTIONAL, INTENT(INOUT) :: convol(dims(1),dims(2))
 real(kind=dbl)                                     :: fdata(dims(1),dims(2))

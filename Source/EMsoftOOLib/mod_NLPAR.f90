@@ -438,9 +438,7 @@ real(kind=sgl),INTENT(IN)                         :: masklin(binx*biny)
 integer(kind=irg),INTENT(IN)                      :: correctsize
 integer(kind=irg),INTENT(IN)                      :: totnumexpt
 real(kind=sgl),INTENT(INOUT),OPTIONAL             :: epatterns(correctsize, totnumexpt)
-!f2py intent(in,out) ::  epatterns
 real(kind=sgl),INTENT(INOUT),OPTIONAL             :: exptIQ(totnumexpt)
-!f2py intent(in,out) ::  exptIQ
 
 type(IO_T)                                        :: Message
 type(Vendor_T)                                    :: VT

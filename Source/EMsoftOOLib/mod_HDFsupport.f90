@@ -533,7 +533,6 @@ use mod_io
 IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)                 :: self
-!f2py intent(in,out) ::  self
 character(*),INTENT(IN),optional           :: origin
 
 integer                                    :: error, istat
@@ -623,7 +622,6 @@ use mod_io
 IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)                 :: self
-!f2py intent(in,out) ::  self
 character(*),INTENT(INOUT),optional        :: origin
 
 integer                                    :: error, istat

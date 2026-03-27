@@ -218,10 +218,8 @@ IMPLICIT NONE
 
 integer(kind=irg),INTENT(INOUT)         :: p(3)
  !! input/output vector
-!f2py intent(in,out) ::  p
 integer(kind=irg),INTENT(INOUT)         :: q(4)
  !! input/output vector
-!f2py intent(in,out) ::  q
 character(2),INTENT(IN)                 :: d
  !! direction string ('34' or '43')
 

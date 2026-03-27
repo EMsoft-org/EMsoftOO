@@ -1564,7 +1564,6 @@ use mod_misc
 IMPLICIT NONE
 
 class(PostScript_T),INTENT(INOUT) :: self
-!f2py intent(in,out) ::  PS
 logical,INTENT(IN)                :: hexset
 character(1),INTENT(IN)           :: S
  !! space character 'd' or 'r'
@@ -3191,7 +3190,6 @@ character(1),INTENT(IN)                 :: list(256)            !< input string
 integer(kind=irg),INTENT(OUT)           :: slect(256)           !< list of patterns to be drawn
 integer(kind=irg),INTENT(OUT)           :: np                           !< number of patterns
 logical,INTENT(INOUT)                   :: ppat                 !< powder pattern included ?
-!f2py intent(in,out) ::  ppat                 !< powder pattern included ?
 
 integer(kind=irg)                       :: comma(100),hyphen(100),ccnt,hcnt,i,j,k,ip,icnt,nd,n,istart,istop
 integer(kind=irg),parameter             :: nmb(48:57)=(/0,1,2,3,4,5,6,7,8,9/)

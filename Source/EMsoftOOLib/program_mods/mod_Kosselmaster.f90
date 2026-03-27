@@ -1509,7 +1509,6 @@ complex(kind=dbl),INTENT(IN)    :: DynMat(nn,nn)
 real(kind=sgl),INTENT(IN)       :: kn
 real(kind=sgl),INTENT(IN)       :: thresh               !< thickness fraction parameter
 real(kind=sgl),INTENT(INOUT)    :: Iz(1)                !< output (thickness)
-!f2py intent(in,out) ::  Iz
 
 type(diffraction_T)             :: Diff
 integer(kind=irg)               :: j, IPIV(nn), k
@@ -1569,7 +1568,6 @@ real(kind=sgl),INTENT(IN)       :: kn
 integer(kind=irg),INTENT(IN)    :: nt                   !< number of thickness values
 real(kind=sgl),INTENT(IN)       :: thick(nt)            !< thickness array
 real(kind=sgl),INTENT(INOUT)    :: Iz(nt)               !< output intensities
-!f2py intent(in,out) ::  Iz
 
 type(diffraction_T)             :: Diff
 integer(kind=irg)               :: j, IPIV(nn), k

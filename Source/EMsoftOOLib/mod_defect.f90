@@ -1636,7 +1636,6 @@ IMPLICIT NONE
 
 class(Defect_T), INTENT(INOUT)          :: self
 type(Cell_T)                            :: cell
-!f2py intent(in,out) ::  defects
 integer(kind=irg),INTENT(IN)            :: inum
 integer(kind=irg),INTENT(IN)            :: dinfo
 real(kind=sgl),INTENT(IN)               :: DF_L

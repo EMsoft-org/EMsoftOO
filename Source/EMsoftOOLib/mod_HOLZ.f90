@@ -1334,7 +1334,6 @@ IMPLICIT NONE
 class(HOLZ_T),INTENT(INOUT)             :: self
 type(Cell_T),INTENT(INOUT)              :: cell
 type(HOLZentries),INTENT(INOUT)         :: HOLZdata
-!f2py intent(in,out) ::  HOLZdata
 real(kind=sgl),INTENT(IN)               :: gg(3), kt(3), lambda
 
 real(kind=sgl)                          :: exer, g1len, g2len
@@ -1379,7 +1378,6 @@ IMPLICIT NONE
 class(HOLZ_T)                           :: self
 type(Cell_T),INTENT(INOUT)              :: cell          
 type(HOLZentries),INTENT(INOUT)         :: HOLZdata
-!f2py intent(in,out) ::  HOLZdata
 real(kind=sgl),INTENT(IN)               :: gg(3), kt(3), lambda
 
 real(kind=sgl)                          :: pxy(2), h1, h2, g11, g12, g22, z
@@ -1429,7 +1427,6 @@ IMPLICIT NONE
 class(HOLZ_T),INTENT(INOUT)             :: self
 type(Cell_T),INTENT(INOUT)              :: cell
 type(HOLZentries),INTENT(INOUT)         :: HOLZdata
-!f2py intent(in,out) ::  HOLZdata
 integer(kind=irg),INTENT(IN)            :: uvw(3), fn(3)
 real(kind=sgl),INTENT(IN)               :: g1(3), g2(3)
 

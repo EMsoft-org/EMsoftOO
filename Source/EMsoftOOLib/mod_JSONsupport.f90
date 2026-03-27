@@ -70,7 +70,6 @@ recursive subroutine JSON_failtest(error_cnt)
 IMPLICIT NONE
 
 integer(kind=irg),INTENT(INOUT)         :: error_cnt
-!f2py intent(in,out) ::  error_cnt
 
 if (json_failed().eqv..TRUE.) then
   call json_print_error_message(error_unit)

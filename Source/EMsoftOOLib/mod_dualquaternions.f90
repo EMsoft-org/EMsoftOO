@@ -2022,7 +2022,6 @@ end function dualquatLpd
 ! IMPLICIT NONE
 
 ! type(rng_t),INTENT(INOUT)           :: seed
-! !f2py intent(in,out) ::  seed
 ! type(Quaternion_T)                  :: q
 
 ! real(kind=dbl)                      :: x1,x2,y1,y2,s1,s2

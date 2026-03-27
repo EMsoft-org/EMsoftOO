@@ -350,7 +350,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(OUT)              :: res(3)
    !! transformation result
   integer(kind=irg)                       :: ierr
-   !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, qq, xy2(2)
 
@@ -402,7 +401,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(OUT)              :: res(3)
    !! transformation result
   integer(kind=irg)                       :: ierr
-   !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, qq, xy2(2)
 
@@ -457,7 +455,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(OUT)              :: res(2)
    !! output coordinate pair
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q
   real(kind=sgl),parameter                :: eps = 1.0E-6
@@ -505,7 +502,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(OUT)              :: res(2)
    !! output coordinate pair
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q
   real(kind=dbl),parameter                :: eps = 1.0D-12
@@ -560,7 +556,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, XX, YY, xp, yp, XY2(2), xyc(2)
   integer(kind=irg)                       :: ks
@@ -626,7 +621,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, XX, YY, xp, yp, XY2(2), xyc(2)
   integer(kind=irg)                       :: ks
@@ -696,7 +690,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(OUT)              :: res(2)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, qq, XX, YY, xxx, yyy, sgnX, XYZ2(3), xy(2)
   integer(kind=irg)                       :: ks
@@ -775,7 +768,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(OUT)              :: res(2)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, qq, XX, YY, xxx, yyy, sgnX, XYZ2(3), xy(2)
   integer(kind=irg)                       :: ks
@@ -949,7 +941,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: XYZ(3), sXYZ(3), T1, T2, c, s, q, LamXYZ(3), eps
   integer(kind=irg)                       :: p
@@ -1043,7 +1034,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: XYZ(3), sXYZ(3), T1, T2, c, s, q, LamXYZ(3), eps
   integer(kind=irg)                       :: p
@@ -1138,7 +1128,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: rs, xyz3(3), xyz2(3), qxy, q2xy, sq2xy, q, ac, T1inv, T2inv, &
                                              xyz1(3), sx, sy, qx2y, sqx2y, tt
@@ -1241,7 +1230,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: rs, xyz3(3), xyz2(3), qxy, q2xy, sq2xy, q, ac, T1inv, T2inv, &
                                              xyz1(3), sx, sy, qx2y, sqx2y, tt
@@ -1463,7 +1451,6 @@ IMPLICIT NONE
   type(Quaternion_T),INTENT(OUT)          :: res
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, x(21), ft, t
   real(kind=dbl)                          :: qd, xd(21), ftd, td
@@ -1548,7 +1535,6 @@ IMPLICIT NONE
   type(Quaternion_T),INTENT(OUT)          :: res
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q(3)
   real(kind=dbl)                          :: qd(3)
@@ -1588,7 +1574,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(IN),OPTIONAL      :: Radius
    !! optional sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl),parameter                :: eps = 1.E-7
 
@@ -1621,7 +1606,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(IN),OPTIONAL      :: Radius
    !! optional sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl),parameter                :: eps = 1.E-12
 
@@ -1661,7 +1645,6 @@ IMPLICIT NONE
   type(Quaternion_T),INTENT(IN),OPTIONAL :: quat
    !! optional rotation quaternion
   integer(kind=irg)                      :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                         :: q, qq
   logical                                :: torot
@@ -1708,7 +1691,6 @@ IMPLICIT NONE
   type(Quaternion_T),INTENT(IN),OPTIONAL  :: quat
    !! optional rotation quaternion
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, qq
   logical                                 :: torot
@@ -1757,7 +1739,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(IN),OPTIONAL      :: Radius
    !! projection sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q
   real(kind=sgl),parameter                :: eps = 1.E-7
@@ -1803,7 +1784,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(IN),OPTIONAL      :: Radius
    !! projection sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q
   real(kind=dbl),parameter                :: eps = 1.E-12
@@ -1849,7 +1829,6 @@ IMPLICIT NONE
   real(kind=sgl),INTENT(IN),OPTIONAL      :: Radius
    !! projection sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, tr
 
@@ -1887,7 +1866,6 @@ IMPLICIT NONE
   real(kind=dbl),INTENT(IN),OPTIONAL      :: Radius
    !! projection sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, tr
 
@@ -2082,7 +2060,6 @@ IMPLICIT NONE
 
 real(kind=sgl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master patter nsemi-edge
 real(kind=sgl),INTENT(IN)               :: m(-npx:npx,-npx:npx)
@@ -2118,7 +2095,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi-edge
 real(kind=dbl),INTENT(IN)               :: m(-npx:npx,-npx:npx)
@@ -2153,7 +2129,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi-edge
 integer(kind=irg),INTENT(IN)            :: nn
@@ -2196,7 +2171,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi-edge
 integer(kind=irg),INTENT(IN)            :: nn
@@ -2234,7 +2208,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi-edge
 integer(kind=irg),INTENT(IN)            :: nn
@@ -2274,7 +2247,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi edge
 real(kind=dbl),INTENT(IN)               :: m(4,4,-npx:npx,-npx:npx)
@@ -2478,9 +2450,7 @@ integer(kind=irg),INTENT(IN)    :: nix
 integer(kind=irg),INTENT(IN)    :: niy
 integer(kind=irg),INTENT(IN)    :: w
 real(kind=sgl),INTENT(INOUT)    :: mLPNH(-npx:npx, -npx:npx)
-!f2py intent(in,out) ::  mLPNH
 real(kind=sgl),INTENT(INOUT)    :: mLPSH(-npx:npx, -npx:npx)
-!f2py intent(in,out) ::  mLPSH
 real(kind=dbl),INTENT(IN)       :: LegendreArray(0:2*npx)
 
 real(kind=sgl)                  :: xyz(3), vmf , LegendreLattitude, p
@@ -2525,9 +2495,7 @@ IMPLICIT NONE
 
 class(Lambert_T), INTENT(INOUT) :: self
 integer(kind=irg),INTENT(INOUT) :: ix
-!f2py intent(in,out) ::  ix
 integer(kind=irg),INTENT(INOUT) :: iy
-!f2py intent(in,out) ::  iy
 integer(kind=irg),INTENT(IN)    :: npx
 logical,INTENT(IN)              :: North
 real(kind=sgl)                  :: xyz(3)

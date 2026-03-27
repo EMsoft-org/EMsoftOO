@@ -2692,9 +2692,7 @@ end subroutine CalcLghdepth_
 ! type(unitcell)                          :: cell
 ! type(reflisttype),pointer               :: reflist
 ! type(DynType),INTENT(INOUT)            :: Dyn
-! !f2py intent(in,out) ::  Dyn
 ! type(BetheParameterType),INTENT(INOUT) :: BetheParameter
-! !f2py intent(in,out) ::  BetheParameter
 ! character(*),INTENT(IN)         :: calcmode             !< computation mode
 ! real(kind=dbl),INTENT(IN)               :: kk(3),kt(3)          !< incident wave vector and tangential component
 ! logical,INTENT(IN)                      :: IgnoreFoilNormal     !< how to deal with the foil normal

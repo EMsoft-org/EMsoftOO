@@ -400,7 +400,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)    :: TT
-! !f2py intent(in,out) ::  TT
 
 ! TT%TIME_t_count = 0.0
 ! TT%TIME_unit_count = 0.0
@@ -434,7 +433,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 ! real(kind=sgl),intent(IN)           :: interval
 
 !  TT%TIME_interval = interval
@@ -461,7 +459,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 
 ! ! start the timing of the computation
 !  call Time_reset(TT)
@@ -490,7 +487,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 ! integer(kind=irg),intent(IN)         :: numk
 
 ! integer(kind=irg)              :: TIME_nc
@@ -530,7 +526,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 ! integer(kind=irg),intent(IN)       :: ik
 ! integer(kind=irg),intent(IN)       :: numk
 
@@ -634,7 +629,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 ! integer(kind=irg),INTENT(IN)          :: numk
 
 ! real(kind=sgl)                :: io_real(1)

@@ -458,7 +458,6 @@ IMPLICIT NONE
 integer(kind=irg),INTENT(IN)      :: npx
 integer(kind=irg),INTENT(IN)      :: npy
 real(kind=sgl),INTENT(INOUT)      :: pattern(npx, npy)
-!f2py intent(in,out) ::  pattern
 real(kind=sgl),INTENT(IN)         :: kp(3)
 real(kind=sgl),INTENT(IN)         :: sfs 
 real(kind=sgl),INTENT(IN)         :: spotw 
@@ -505,7 +504,6 @@ IMPLICIT NONE
 integer(kind=irg),INTENT(IN)      :: npx
 integer(kind=irg),INTENT(IN)      :: npy
 real(kind=sgl),INTENT(INOUT)      :: pattern(npx, npy)
-!f2py intent(in,out) ::  pattern
 real(kind=sgl),INTENT(IN)         :: kp(3)
 real(kind=sgl),INTENT(IN)         :: sfs 
 real(kind=sgl),INTENT(IN)         :: spotw 
