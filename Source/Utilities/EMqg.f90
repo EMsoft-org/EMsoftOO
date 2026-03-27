@@ -58,7 +58,7 @@ type(Diffraction_T)            :: Diff
 integer(kind=irg)              :: ind(3),ans, oi_int(3)
 real(kind=sgl)                 :: oi_real(7)
 complex(kind=sgl)              :: oi_cmplx(1)
-real(kind=sgl)                 :: preg, dmin, gstepsize
+real(kind=sgl)                 :: preg
 real(kind=dbl)                         :: eps = 1.0D-6
 character(fnlen)               :: xtalname
 character(200)                 :: parta
@@ -117,7 +117,4 @@ call Diff%setrlpmethod('WK')
  end do 
 
 end program EMqg
-       
-
-
 

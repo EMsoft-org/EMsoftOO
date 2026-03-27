@@ -84,41 +84,14 @@ program TestProgram
 
 use mod_kinds
 use mod_global
-use modA 
-use modB 
 use mod_memory
 
-! use mod_EMsoft
-! use mod_io
-! use mod_timing
-! use mod_quaternions 
-! use mod_rng
-use mod_HDFsupport
-use ISO_C_BINDING
 IMPLICIT NONE
 
-type(type1)  :: t1 
-type(type2)  :: t2 
-
-character(fnlen)        :: progname = 'this is the program name'
-character(kind=c_char)  :: Cprogname(fnlen)
-integer(kind=irg)       :: i, slen
-! character(fnlen)        :: progdesc = 'and this is the descriptor'
-! character(fnlen)        :: m
-
-! type(EMsoft_T)     :: EMsoft 
-! type(IO_T)         :: Message
-! type(Timing_T)     :: Timing
-
-! integer(kind=irg)       :: io_int(2), status
-! type(rng_t)             :: seed 
-! type(QuaternionArray_T) :: qra , qrb
-
-integer(kind=ish), allocatable :: ar(:) 
-real(kind=sgl), allocatable    :: ar3(:,:,:) 
-complex(kind=dbl), allocatable :: ar2(:,:) 
+integer(kind=ish), allocatable :: ar(:)
+complex(kind=dbl), allocatable :: ar2(:,:)
 character(fnlen), allocatable  :: str(:)
-type(memory_T)                 :: mem, memth 
+type(memory_T)                 :: mem
 
 ! memth = memory_T(nt = 2)
 mem = memory_T()

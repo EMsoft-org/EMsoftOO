@@ -55,7 +55,6 @@ character(fnlen)            :: progdesc = 'Computes the star of a lattice transl
 integer(kind=irg)           :: g(3),gg(3),ans,n,i, io_int(4)
 real(kind=dbl)              :: kk(3)
 real(kind=dbl),allocatable  :: stmp(:,:)
-logical                     :: first
 character(1)                :: space
 character(fnlen)            :: xtalname
 
@@ -79,7 +78,6 @@ do while (ans.eq.1)
   io_int(1) = n
   call Message%WriteValue(' Number of equivalent planes in star = ', io_int, 1, "(I3)")
 ! compute and display the structure factor
-  first = .TRUE.
   do i=1,n
    io_int(1) = i
    io_int(2:4) = nint(stmp(i,1:3))

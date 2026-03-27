@@ -32,40 +32,25 @@ use mod_global
 use mod_math
 use mod_rotations
 use mod_Lambert
-use,INTRINSIC :: ISO_C_BINDING
 
 IMPLICIT NONE 
 
-type(r_T)     :: r, rA, rB, rC  
-type(s_T)     :: s, ss 
-type(q_T)     :: q 
-type(a_T)     :: a 
-type(e_t)     :: e
+type(r_T)     :: r, rA, rB, rC
+type(s_T)     :: s, ss
+type(q_T)     :: q
+type(a_T)     :: a
 type(orientation_T)             :: oo
 
-integer(kind=irg) :: ierr 
 real(kind=dbl)    :: x =  1.D0/dsqrt(3.D0)
 
-type(e_T)                       :: ine, oute, int1e, int2e
-type(o_T)                       :: ino, outo, int1o, int2o
-type(a_T)                       :: ina, outa, int1a, int2a
-type(r_T)                       :: inr, outr, int1r, int2r
-type(q_T)                       :: inq, outq, int1q, int2q
-type(h_T)                       :: inh, outh, int1h, int2h
-type(c_T)                       :: inc, outc, int1c, int2c
-type(s_T)                       :: ins, outs, int1s, int2s
-type(v_T)                       :: inv, outv, int1v, int2v
+type(e_T)                       :: ine, int1e
+type(a_T)                       :: ina
+type(c_T)                       :: inc, outc
+type(v_T)                       :: inv, outv
 type(orientation_T)             :: ot
 
-integer(C_INT32_T)              :: res
-
-real(kind=dbl)                  :: iom(3,3), oom(3,3), omm(3,3), qd(4), qd2(4), ad(4), ad2(4), rd(4), rd2(4), &
-                                   hd(3), ccd(3), sd(3), vd(3), diff, diffmax, aux, ivec(3)
-real(kind=dbl),parameter        :: maxerr = 1.0D-9
-integer(kind=irg)               :: tcnt, i,  numarg, testcounter, testsfailed
-integer(kind=irg),parameter     :: rcnt = 75
-character(fnlen)                :: arg
-logical                         :: verbose
+real(kind=dbl)                  :: ccd(3), diff, aux
+integer(kind=irg)               :: i
 
 
  INTEGER, PARAMETER       :: GNX = 20
@@ -217,10 +202,6 @@ call rC%r_print('resulting vector : ')
 
 
 end program t
-
-
-
-
 
 
 

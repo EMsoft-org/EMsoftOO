@@ -59,7 +59,7 @@ character(fnlen)               :: progdesc = 'Stereographic projection of a fami
 character(1)                        :: sp
 logical                             :: nn,topbot
 real(kind=sgl)                      :: rr(3),g(3),r(3),M(3,3), CX, CY, CRad, negthresh,xst,yst
-integer(kind=irg)                   :: h,k,l,hkl(3),iview(3),cr,ans,sgn,i,j,num, io_int(1), imanum, sz(3)
+integer(kind=irg)                   :: h,k,l,hkl(3),iview(3),cr,ans,sgn,i,j,num, io_int(1), imanum
 character(fnlen)               :: xtalname
 character(200)                 :: parta
 integer(kind=irg),allocatable  :: itmp(:,:)

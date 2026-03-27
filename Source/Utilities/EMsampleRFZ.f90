@@ -46,7 +46,6 @@ IMPLICIT NONE
 
 character(fnlen)    :: progname = 'EMsampleRFZ.f90'
 character(fnlen)    :: progdesc = 'Create a uniform sampling of Rodrigues space and output angle list'
-character(fnlen)    :: nmlpath
 
 type(EMsoft_T)      :: EMsoft
 type(sampleRFZ_T)   :: RFZ 

@@ -50,7 +50,6 @@ type(IO_T)              :: Message
 type(SpaceGroup_T)      :: SG
 type(Cell_T)            :: cell
 
-character(fnlen)        :: flag   ! we need to test for the -w Wyckoff positions command line argument
 character(fnlen)        :: fname, source
 logical                 :: useWyckoff  = .FALSE., useHall = .FALSE.
 integer(kind=irg)       :: SGnum, TRIG(7)
