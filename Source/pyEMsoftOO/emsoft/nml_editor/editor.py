@@ -6,6 +6,7 @@ Launch with:
     python -m emsoft.nml_editor /path/to/NamelistTemplates
 """
 
+import json
 import os
 import sys
 import platform
@@ -21,8 +22,28 @@ MOD_KEY = 'Command' if IS_MAC else 'Control'
 MOD_LABEL = 'Cmd' if IS_MAC else 'Ctrl'
 
 
+def _read_emsoft_config():
+    """Read the EMsoftConfig.json file and return the config dict."""
+    config_path = os.path.join(os.path.expanduser('~'), '.config', 'EMsoft',
+                               'EMsoftConfig.json')
+    if os.path.isfile(config_path):
+        try:
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+    return {}
+
+
 def find_templates_dir(explicit_path=None):
-    """Locate the NamelistTemplates directory."""
+    """Locate the NamelistTemplates directory.
+
+    Search order:
+    1. Explicit path argument
+    2. EMSOFTOO_TEMPLATES environment variable
+    3. EMsoftConfig.json EMsoftpathname + NamelistTemplates
+    4. Walk up from this file to find the repo root
+    """
     candidates = []
 
     if explicit_path:
@@ -31,6 +52,12 @@ def find_templates_dir(explicit_path=None):
     env = os.environ.get('EMSOFTOO_TEMPLATES')
     if env:
         candidates.append(env)
+
+    # Read from EMsoftConfig.json
+    config = _read_emsoft_config()
+    emsoft_path = config.get('EMsoftpathname', '')
+    if emsoft_path:
+        candidates.append(os.path.join(emsoft_path, 'NamelistTemplates'))
 
     # Walk up from this file to find the repo root
     here = os.path.dirname(os.path.abspath(__file__))
@@ -49,7 +76,13 @@ def find_templates_dir(explicit_path=None):
 
 
 def _find_executable(program_name):
-    """Find an EMsoftOO executable by name."""
+    """Find an EMsoftOO executable by name.
+
+    Search order:
+    1. PATH
+    2. EMSOFTOO_BIN environment variable
+    3. EMsoftConfig.json EMsoftLibraryLocation
+    """
     # 1. Check PATH
     path = shutil.which(program_name)
     if path:
@@ -59,6 +92,14 @@ def _find_executable(program_name):
     bin_dir = os.environ.get('EMSOFTOO_BIN')
     if bin_dir:
         candidate = os.path.join(bin_dir, program_name)
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+
+    # 3. Check EMsoftConfig.json
+    config = _read_emsoft_config()
+    lib_path = config.get('EMsoftLibraryLocation', '')
+    if lib_path:
+        candidate = os.path.join(lib_path, program_name)
         if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
             return candidate
 
