@@ -1,1 +1,5 @@
 *.dylib
+*.so
+*.dll
+__pycache__/
+*.egg-info/
