@@ -10,6 +10,7 @@ set(C_INTERFACE_SOURCES
     c_diffraction.f90
     c_so3.f90
     c_lambert.f90
+    c_ebsd.f90
 )
 
 add_library(EMsoftOO_c SHARED ${C_INTERFACE_SOURCES})
