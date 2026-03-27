@@ -113,12 +113,12 @@ type(IO_T)                                  :: Message
 logical                                     :: skipread = .FALSE.
 integer(kind=irg)                           :: cnt
 
-integer(kind=irg)       :: reducetoRFZ
-integer(kind=irg)       :: symmetrize
-character(fnlen)        :: xtalname
-character(fnlen)        :: inputfile
-character(fnlen)        :: outputfile
-character(2)            :: outputrepresentation
+integer(kind=irg)                           :: reducetoRFZ
+integer(kind=irg)                           :: symmetrize
+character(fnlen)                            :: xtalname
+character(fnlen)                            :: inputfile
+character(fnlen)                            :: outputfile
+character(2)                                :: outputrepresentation
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EMConvertOrientations / inputfile, outputfile, outputrepresentation, &
@@ -205,22 +205,22 @@ use mod_HDFsupport
 
 IMPLICIT NONE
 
-class(ConvertOrientations_T), INTENT(INOUT)       :: self
-type(EMsoft_T), INTENT(INOUT)                     :: EMsoft
+class(ConvertOrientations_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)               :: EMsoft
 
-type(Cell_T)            :: cell
-type(SpaceGroup_T)      :: SG
-type(so3_T)             :: SO
-type(QuaternionArray_T) :: QA, qsym, qAR, qnew
-type(IO_T)              :: Message
-type(q_T)               :: qu, qm
-type(Quaternion_T)      :: qq, qs
-type(r_T)               :: roFZ
+type(Cell_T)                                :: cell
+type(SpaceGroup_T)                          :: SG
+type(so3_T)                                 :: SO
+type(QuaternionArray_T)                     :: QA, qsym, qAR, qnew
+type(IO_T)                                  :: Message
+type(q_T)                                   :: qu, qm
+type(Quaternion_T)                          :: qq, qs
+type(r_T)                                   :: roFZ
 
-integer(kind=irg)       :: i,j,k, ierr, io_int(3), pgnum, numor, qnum, ipos
-character(fnlen)        :: fname
-integer(kind=irg)       :: FZtype, FZorder
-type(FZpointd),pointer  :: FZhead, FZtmp
+integer(kind=irg)                           :: i,j,k, ierr, io_int(3), pgnum, numor, qnum, ipos
+character(fnlen)                            :: fname
+integer(kind=irg)                           :: FZtype, FZorder
+type(FZpointd),pointer                      :: FZhead, FZtmp
 
 call openFortranHDFInterface()
 

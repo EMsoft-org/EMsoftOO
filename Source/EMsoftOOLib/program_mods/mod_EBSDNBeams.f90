@@ -270,8 +270,8 @@ subroutine setdmin_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDNBeams_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%dmin = inp
 
@@ -288,8 +288,8 @@ function getdmin_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDNBeams_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%dmin
 
@@ -306,8 +306,8 @@ subroutine setnpx_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDNBeams_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%npx = inp
 
@@ -324,8 +324,8 @@ function getnpx_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDNBeams_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%npx
 
@@ -342,8 +342,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDNBeams_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%nthreads = inp
 
@@ -360,8 +360,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDNBeams_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%nthreads
 
@@ -378,7 +378,7 @@ subroutine setenergyfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
+class(EBSDNBeams_T), INTENT(INOUT) :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%energyfile = trim(inp)
@@ -396,7 +396,7 @@ function getenergyfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
+class(EBSDNBeams_T), INTENT(INOUT) :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%energyfile)
@@ -414,7 +414,7 @@ subroutine settiffprefix_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
+class(EBSDNBeams_T), INTENT(INOUT) :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%tiffprefix = trim(inp)
@@ -432,7 +432,7 @@ function gettiffprefix_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
+class(EBSDNBeams_T), INTENT(INOUT) :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%tiffprefix)
@@ -450,7 +450,7 @@ subroutine setBetheParametersFile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
+class(EBSDNBeams_T), INTENT(INOUT) :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%BetheParametersFile = trim(inp)
@@ -468,7 +468,7 @@ function getBetheParametersFile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)     :: self
+class(EBSDNBeams_T), INTENT(INOUT) :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%BetheParametersFile)
@@ -507,34 +507,34 @@ use mod_notifications
 use stringconstants
 use mod_MCfiles
 use mod_image
-use, intrinsic :: iso_fortran_env
+use, intrinsic                     :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(EBSDNBeams_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)       :: EMsoft
-character(fnlen),INTENT(IN)         :: progname
-type(HDFnames_T),INTENT(INOUT)      :: HDFnames
+class(EBSDNBeams_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)      :: EMsoft
+character(fnlen),INTENT(IN)        :: progname
+type(HDFnames_T),INTENT(INOUT)     :: HDFnames
 
-type(Cell_T)            :: cell
-type(DynType)           :: Dyn
-type(Timing_T)          :: timer
-type(IO_T)              :: Message
-type(Lambert_T)         :: L
-type(HDF_T)             :: HDF
-type(SpaceGroup_T)      :: SG
-type(Diffraction_T),save:: Diff
-type(MCfile_T)          :: MCFT
-type(MPfile_T)          :: MPFT
-type(kvectors_T)        :: kvec
-type(gvectors_T)        :: reflist
-type(HDFnames_T)        :: saveHDFnames
-type(memory_T)          :: mem, memth
+type(Cell_T)                       :: cell
+type(DynType)                      :: Dyn
+type(Timing_T)                     :: timer
+type(IO_T)                         :: Message
+type(Lambert_T)                    :: L
+type(HDF_T)                        :: HDF
+type(SpaceGroup_T)                 :: SG
+type(Diffraction_T),save           :: Diff
+type(MCfile_T)                     :: MCFT
+type(MPfile_T)                     :: MPFT
+type(kvectors_T)                   :: kvec
+type(gvectors_T)                   :: reflist
+type(HDFnames_T)                   :: saveHDFnames
+type(memory_T)                     :: mem, memth
 
-real(kind=dbl)          :: ctmp(192,3), arg, Radius, xyz(3)
-integer(HSIZE_T)        :: dims4(4), cnt4(4), offset4(4)
-integer(HSIZE_T)        :: dims3(3), cnt3(3), offset3(3)
-integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
+real(kind=dbl)                     :: ctmp(192,3), arg, Radius, xyz(3)
+integer(HSIZE_T)                   :: dims4(4), cnt4(4), offset4(4)
+integer(HSIZE_T)                   :: dims3(3), cnt3(3), offset3(3)
+integer(kind=irg)                  :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
                            numk, timestart, timestop, numsites, nthreads, & ! number of independent incident beam directions
                            ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
                            numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, sz(3), &

@@ -134,32 +134,32 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(sampler_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(sampler_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)     :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)     :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                  :: EMsoft 
+type(IO_T)                      :: Message       
+logical                         :: skipread = .FALSE.
 
-real(kind=dbl)    :: kappa(2)           ! concentration parameters
-real(kind=dbl)    :: dir1(3)            ! Rodrigues mean direction
-real(kind=dbl)    :: dir2(3)            ! Rodrigues mean direction
-real(kind=dbl)    :: dir3(3)            ! Rodrigues mean direction
-real(kind=dbl)    :: dir4(3)            ! Rodrigues mean direction
-real(kind=dbl)    :: viewangle          ! view angle of the observer in PoVray renderings
-integer(kind=irg) :: norientations      ! number of orientations per dataset
-integer(kind=irg) :: pgnum              ! point group number (for Laue point group)
-integer(kind=irg) :: seed1              ! seed 1 for pseudo-random number generator [sampling]
-integer(kind=irg) :: seed2              ! seed 2 for pseudo-random number generator [averaging]
-logical           :: reduce             ! reduce dir# parameters to RFZ before sampling ?
-character(fnlen)  :: hdfname            ! name of output HDF5 file
-character(fnlen)  :: imagefolder        ! folder path w.r.t EMdatapathname for image files
-character(fnlen)  :: prefix             ! prefix for image files (will be png files)
-character(fnlen)  :: PVexec             ! path to PoVray executable
-character(fnlen)  :: PVincludepath      ! path to PoVray include files
+real(kind=dbl)                  :: kappa(2)           ! concentration parameters
+real(kind=dbl)                  :: dir1(3)            ! Rodrigues mean direction
+real(kind=dbl)                  :: dir2(3)            ! Rodrigues mean direction
+real(kind=dbl)                  :: dir3(3)            ! Rodrigues mean direction
+real(kind=dbl)                  :: dir4(3)            ! Rodrigues mean direction
+real(kind=dbl)                  :: viewangle          ! view angle of the observer in PoVray renderings
+integer(kind=irg)               :: norientations      ! number of orientations per dataset
+integer(kind=irg)               :: pgnum              ! point group number (for Laue point group)
+integer(kind=irg)               :: seed1              ! seed 1 for pseudo-random number generator [sampling]
+integer(kind=irg)               :: seed2              ! seed 2 for pseudo-random number generator [averaging]
+logical                         :: reduce             ! reduce dir# parameters to RFZ before sampling ?
+character(fnlen)                :: hdfname            ! name of output HDF5 file
+character(fnlen)                :: imagefolder        ! folder path w.r.t EMdatapathname for image files
+character(fnlen)                :: prefix             ! prefix for image files (will be png files)
+character(fnlen)                :: PVexec             ! path to PoVray executable
+character(fnlen)                :: PVincludepath      ! path to PoVray include files
 
 namelist / EMsampler / kappa, dir1, dir2, dir3, dir4, norientations, pgnum, hdfname, reduce, &
                        imagefolder, prefix, PVexec, PVincludepath, seed1, seed2, viewangle 

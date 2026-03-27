@@ -334,54 +334,54 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)                :: self
-character(fnlen),INTENT(IN)                 :: nmlfile
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)  :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)                 :: initonly
+logical,OPTIONAL,INTENT(IN)  :: initonly
  !! fill in the default values only; do not read the file
-logical,OPTIONAL,INTENT(IN)                 :: isTKD
-logical,OPTIONAL,INTENT(IN)                 :: isKossel
+logical,OPTIONAL,INTENT(IN)  :: isTKD
+logical,OPTIONAL,INTENT(IN)  :: isKossel
 
-type(IO_T)                                  :: Message
-logical                                     :: skipread = .FALSE.
+type(IO_T)                   :: Message
+logical                      :: skipread = .FALSE.
 
-integer(kind=irg)       :: numsx
-integer(kind=irg)       :: numsy
-integer(kind=irg)       :: binning
-integer(kind=irg)       :: nthreads
-integer(kind=irg)       :: maskradius
-integer(kind=irg)       :: nregions
-real(kind=sgl)          :: L
-real(kind=sgl)          :: thetac
-real(kind=sgl)          :: delta
-real(kind=sgl)          :: xpc
-real(kind=sgl)          :: ypc
-real(kind=sgl)          :: energymin
-real(kind=sgl)          :: energymax
-real(kind=sgl)          :: gammavalue
-real(kind=sgl)          :: alphaBD
-real(kind=sgl)          :: axisangle(4)
-real(kind=sgl)          :: hipassw
-real(kind=dbl)          :: Ftensor(3,3)
-real(kind=dbl)          :: beamcurrent
-real(kind=dbl)          :: dwelltime
-logical                 :: superimposeNBeams
-character(1)            :: includebackground
-character(1)            :: poisson
-character(1)            :: makedictionary
-character(1)            :: applyDeformation
-character(1)            :: maskpattern
-character(1)            :: spatialaverage
-character(3)            :: scalingmode
-character(3)            :: eulerconvention
-character(3)            :: outputformat
-character(5)            :: bitdepth
-character(fnlen)        :: superimposeTIFF
-character(fnlen)        :: anglefile
-character(fnlen)        :: anglefiletype
-character(fnlen)        :: masterfile
-character(fnlen)        :: energyfile  ! removed from template file 05/16/19 [MDG]
-character(fnlen)        :: datafile
+integer(kind=irg)            :: numsx
+integer(kind=irg)            :: numsy
+integer(kind=irg)            :: binning
+integer(kind=irg)            :: nthreads
+integer(kind=irg)            :: maskradius
+integer(kind=irg)            :: nregions
+real(kind=sgl)               :: L
+real(kind=sgl)               :: thetac
+real(kind=sgl)               :: delta
+real(kind=sgl)               :: xpc
+real(kind=sgl)               :: ypc
+real(kind=sgl)               :: energymin
+real(kind=sgl)               :: energymax
+real(kind=sgl)               :: gammavalue
+real(kind=sgl)               :: alphaBD
+real(kind=sgl)               :: axisangle(4)
+real(kind=sgl)               :: hipassw
+real(kind=dbl)               :: Ftensor(3,3)
+real(kind=dbl)               :: beamcurrent
+real(kind=dbl)               :: dwelltime
+logical                      :: superimposeNBeams
+character(1)                 :: includebackground
+character(1)                 :: poisson
+character(1)                 :: makedictionary
+character(1)                 :: applyDeformation
+character(1)                 :: maskpattern
+character(1)                 :: spatialaverage
+character(3)                 :: scalingmode
+character(3)                 :: eulerconvention
+character(3)                 :: outputformat
+character(5)                 :: bitdepth
+character(fnlen)             :: superimposeTIFF
+character(fnlen)             :: anglefile
+character(fnlen)             :: anglefiletype
+character(fnlen)             :: masterfile
+character(fnlen)             :: energyfile  ! removed from template file 05/16/19 [MDG]
+character(fnlen)             :: datafile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EBSDdata / L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eulerconvention, masterfile, bitdepth, &
@@ -726,8 +726,8 @@ subroutine setnumsx_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%numsx = inp
 
@@ -744,8 +744,8 @@ function getnumsx_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%numsx
 
@@ -762,8 +762,8 @@ subroutine setnumsy_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%numsy = inp
 
@@ -780,8 +780,8 @@ function getnumsy_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%numsy
 
@@ -798,8 +798,8 @@ subroutine setbinning_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%binning = inp
 
@@ -816,8 +816,8 @@ function getbinning_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%binning
 
@@ -834,8 +834,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nthreads = inp
 
@@ -852,8 +852,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%nthreads
 
@@ -870,8 +870,8 @@ subroutine setmaskradius_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%maskradius = inp
 
@@ -888,8 +888,8 @@ function getmaskradius_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%maskradius
 
@@ -906,8 +906,8 @@ subroutine setnregions_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nregions = inp
 
@@ -924,8 +924,8 @@ function getnregions_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%nregions
 
@@ -1446,8 +1446,8 @@ subroutine setmakedictionary_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)     :: inp
 
 self%nml%makedictionary = trim(inp)
 
@@ -1464,8 +1464,8 @@ function getmakedictionary_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(1)                 :: out
 
 out = trim(self%nml%makedictionary)
 
@@ -1482,8 +1482,8 @@ subroutine setpoisson_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)     :: inp
 
 self%nml%poisson = trim(inp)
 
@@ -1500,8 +1500,8 @@ function getpoisson_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(1)                 :: out
 
 out = trim(self%nml%poisson)
 
@@ -1554,8 +1554,8 @@ subroutine setincludebackground_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)     :: inp
 
 self%nml%includebackground = trim(inp)
 
@@ -1572,8 +1572,8 @@ function getincludebackground_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(1)                 :: out
 
 out = trim(self%nml%includebackground)
 
@@ -1590,8 +1590,8 @@ subroutine setapplyDeformation_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)     :: inp
 
 self%nml%applyDeformation = trim(inp)
 
@@ -1608,8 +1608,8 @@ function getapplyDeformation_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(1)                 :: out
 
 out = trim(self%nml%applyDeformation)
 
@@ -1626,8 +1626,8 @@ subroutine setmaskpattern_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)     :: inp
 
 self%nml%maskpattern = trim(inp)
 
@@ -1644,8 +1644,8 @@ function getmaskpattern_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(1)                 :: out
 
 out = trim(self%nml%maskpattern)
 
@@ -1662,8 +1662,8 @@ subroutine setscalingmode_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)     :: inp
 
 self%nml%scalingmode = trim(inp)
 
@@ -1680,8 +1680,8 @@ function getscalingmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(3)                 :: out
 
 out = trim(self%nml%scalingmode)
 
@@ -1698,8 +1698,8 @@ subroutine seteulerconvention_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)     :: inp
 
 self%nml%eulerconvention = trim(inp)
 
@@ -1716,8 +1716,8 @@ function geteulerconvention_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(3)                 :: out
 
 out = trim(self%nml%eulerconvention)
 
@@ -1734,8 +1734,8 @@ subroutine setoutputformat_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)     :: inp
 
 self%nml%outputformat = trim(inp)
 
@@ -1752,8 +1752,8 @@ function getoutputformat_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(3)                 :: out
 
 out = trim(self%nml%outputformat)
 
@@ -1770,8 +1770,8 @@ subroutine setspatialaverage_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)     :: inp
 
 self%nml%spatialaverage = trim(inp)
 
@@ -1788,8 +1788,8 @@ function getspatialaverage_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(1)                 :: out
 
 out = trim(self%nml%spatialaverage)
 
@@ -1806,8 +1806,8 @@ subroutine setbitdepth_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(5), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(5), INTENT(IN)     :: inp
 
 self%nml%bitdepth = trim(inp)
 
@@ -1824,8 +1824,8 @@ function getbitdepth_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(5)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(5)                 :: out
 
 out = trim(self%nml%bitdepth)
 
@@ -1842,8 +1842,8 @@ subroutine setanglefile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%anglefile = trim(inp)
 
@@ -1860,8 +1860,8 @@ function getanglefile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%anglefile)
 
@@ -1878,8 +1878,8 @@ subroutine setsuperimposeTIFF_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%superimposeTIFF = trim(inp)
 
@@ -1896,8 +1896,8 @@ function getsuperimposeTIFF_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%superimposeTIFF)
 
@@ -1914,8 +1914,8 @@ subroutine setanglefiletype_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%anglefiletype = trim(inp)
 
@@ -1932,8 +1932,8 @@ function getanglefiletype_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%anglefiletype)
 
@@ -1950,8 +1950,8 @@ subroutine setmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%masterfile = trim(inp)
 
@@ -1968,8 +1968,8 @@ function getmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%masterfile)
 
@@ -1986,8 +1986,8 @@ subroutine setenergyfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%energyfile = trim(inp)
 
@@ -2004,8 +2004,8 @@ function getenergyfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%energyfile)
 
@@ -2022,8 +2022,8 @@ subroutine setdatafile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%datafile = trim(inp)
 
@@ -2040,8 +2040,8 @@ function getdatafile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSD_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%datafile)
 
@@ -2545,89 +2545,89 @@ use mod_memory
 
 IMPLICIT NONE
 
-class(EBSD_T), INTENT(INOUT)            :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-type(MCfile_T), INTENT(INOUT)           :: MCFT
-type(MPfile_T), INTENT(INOUT)           :: MPFT
-type(HDF_T),INTENT(INOUT)               :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
-type(EBSDmasterNameListType),INTENT(INOUT) :: mpnl
-type(memory_T), INTENT(INOUT)           :: mem 
-integer(kind=irg),INTENT(IN)            :: numangles
-type(QuaternionArray_T), INTENT(IN)     :: angles
-character(fnlen),INTENT(IN)             :: progname
-character(fnlen),INTENT(IN)             :: nmldeffile
+class(EBSD_T), INTENT(INOUT)                     :: self
+type(EMsoft_T), INTENT(INOUT)                    :: EMsoft
+type(MCfile_T), INTENT(INOUT)                    :: MCFT
+type(MPfile_T), INTENT(INOUT)                    :: MPFT
+type(HDF_T),INTENT(INOUT)                        :: HDF
+type(HDFnames_T), INTENT(INOUT)                  :: HDFnames
+type(EBSDmasterNameListType),INTENT(INOUT)       :: mpnl
+type(memory_T), INTENT(INOUT)                    :: mem 
+integer(kind=irg),INTENT(IN)                     :: numangles
+type(QuaternionArray_T), INTENT(IN)              :: angles
+character(fnlen),INTENT(IN)                      :: progname
+character(fnlen),INTENT(IN)                      :: nmldeffile
 
-type(SpaceGroup_T)                      :: SG
-type(IO_T)                              :: Message
-type(q_T)                               :: qq, qq1, qq2, qq3
-type(o_T)                               :: om
-type(e_T)                               :: eu
-type(Quaternion_T)                      :: quat
-type(Timing_T)                          :: timer
-type(Cell_T)                            :: cell
-type(memory_T)                          :: memth
+type(SpaceGroup_T)                               :: SG
+type(IO_T)                                       :: Message
+type(q_T)                                        :: qq, qq1, qq2, qq3
+type(o_T)                                        :: om
+type(e_T)                                        :: eu
+type(Quaternion_T)                               :: quat
+type(Timing_T)                                   :: timer
+type(Cell_T)                                     :: cell
+type(memory_T)                                   :: memth
 
 ! all geometrical parameters and filenames
-real(kind=dbl)                          :: prefactor, qz(3)
+real(kind=dbl)                                   :: prefactor, qz(3)
 
 ! allocatable arrays
-real(kind=sgl),allocatable              :: EBSDpattern(:,:), binned(:,:), beams(:,:)        ! array with EBSD patterns
-real(kind=sgl),allocatable              :: z(:,:)               ! used to store the computed patterns before writing to disk
-real(kind=sgl),allocatable              :: energywf(:), eulerangles(:,:)
+real(kind=sgl),allocatable                       :: EBSDpattern(:,:), binned(:,:), beams(:,:)        ! array with EBSD patterns
+real(kind=sgl),allocatable                       :: z(:,:)               ! used to store the computed patterns before writing to disk
+real(kind=sgl),allocatable                       :: energywf(:), eulerangles(:,:)
 
 ! arrays for each OpenMP thread
-real(kind=sgl),allocatable              :: tmLPNH(:,:,:) , tmLPSH(:,:,:), tNBeamsLPNH(:,:,:) , tNBeamsLPSH(:,:,:)
-real(kind=sgl),allocatable              :: trgx(:,:), trgy(:,:), trgz(:,:)          ! auxiliary detector arrays needed for interpolation
-real(kind=sgl),allocatable              :: taccum(:,:,:)
+real(kind=sgl),allocatable                       :: tmLPNH(:,:,:) , tmLPSH(:,:,:), tNBeamsLPNH(:,:,:) , tNBeamsLPSH(:,:,:)
+real(kind=sgl),allocatable                       :: trgx(:,:), trgy(:,:), trgz(:,:)          ! auxiliary detector arrays needed for interpolation
+real(kind=sgl),allocatable                       :: taccum(:,:,:)
 
 ! various items
-integer(kind=irg)                       :: i, j, iang, jang, k, io_int(6), hdferr, L, correctsize, dim1, dim2          ! various counters
-integer(kind=irg)                       :: istat, ipar(8), tick, tock, tickstart
-integer(kind=irg)                       :: nix, niy, binx, biny, nixp, niyp, maxthreads,nextra,ninlastbatch,nlastremainder, npy     ! various parameters
-integer(kind=irg)                       :: NUMTHREADS, TID   ! number of allocated threads, thread ID
-integer(kind=irg)                       :: ninbatch, nbatches,nremainder,ibatch,nthreads,maskradius,nlastbatches, totnumbatches
-integer(kind=irg),allocatable           :: istart(:,:), istop(:,:), patinbatch(:)
+integer(kind=irg)                                :: i, j, iang, jang, k, io_int(6), hdferr, L, correctsize, dim1, dim2          ! various counters
+integer(kind=irg)                                :: istat, ipar(8), tick, tock, tickstart
+integer(kind=irg)                                :: nix, niy, binx, biny, nixp, niyp, maxthreads,nextra,ninlastbatch,nlastremainder, npy     ! various parameters
+integer(kind=irg)                                :: NUMTHREADS, TID   ! number of allocated threads, thread ID
+integer(kind=irg)                                :: ninbatch, nbatches,nremainder,ibatch,nthreads,maskradius,nlastbatches, totnumbatches
+integer(kind=irg),allocatable                    :: istart(:,:), istop(:,:), patinbatch(:)
 
-real(kind=sgl)                          :: bindx, ma, mi, tstart, tstop, io_real(3)
-real(kind=dbl),parameter                :: nAmpere = 6.241D+18   ! Coulomb per second
-integer(kind=irg),parameter             :: storemax = 20        ! number of EBSD patterns stored in one output block
-integer(kind=irg)                       :: Emin, Emax      ! various parameters
-real(kind=dbl)                          :: dc(3), scl, nel, emult           ! direction cosine array
-real(kind=dbl)                          :: sx, dx, dxm, dy, dym, rhos, x         ! various parameters
-real(kind=dbl)                          :: ixy(2), tmp
+real(kind=sgl)                                   :: bindx, ma, mi, tstart, tstop, io_real(3)
+real(kind=dbl),parameter                         :: nAmpere = 6.241D+18   ! Coulomb per second
+integer(kind=irg),parameter                      :: storemax = 20        ! number of EBSD patterns stored in one output block
+integer(kind=irg)                                :: Emin, Emax      ! various parameters
+real(kind=dbl)                                   :: dc(3), scl, nel, emult           ! direction cosine array
+real(kind=dbl)                                   :: sx, dx, dxm, dy, dym, rhos, x         ! various parameters
+real(kind=dbl)                                   :: ixy(2), tmp
 
-real(kind=sgl),allocatable              :: mask(:,:), lx(:), ly(:), masklin(:), binnedvec(:)
-character(kind=c_char),allocatable      :: batchpatterns(:,:,:), bpat(:,:), threadbatchpatterns(:,:,:)
-integer(kind=irg),allocatable           :: batchpatternsint(:,:,:), bpatint(:,:), threadbatchpatternsint(:,:,:)
-real(kind=sgl),allocatable              :: batchpatterns32(:,:,:), threadbatchpatterns32(:,:,:), threadbatchpatterns32lin(:,:)
-real(kind=sgl),allocatable              :: batchpatterns32lin(:,:)
-integer(kind=irg),allocatable           :: acc_array(:,:)
-real(kind=sgl),allocatable              :: master_arrayNH(:,:), master_arraySH(:,:), wf(:)
-character(len=3)                        :: outputformat
+real(kind=sgl),allocatable                       :: mask(:,:), lx(:), ly(:), masklin(:), binnedvec(:)
+character(kind=c_char),allocatable               :: batchpatterns(:,:,:), bpat(:,:), threadbatchpatterns(:,:,:)
+integer(kind=irg),allocatable                    :: batchpatternsint(:,:,:), bpatint(:,:), threadbatchpatternsint(:,:,:)
+real(kind=sgl),allocatable                       :: batchpatterns32(:,:,:), threadbatchpatterns32(:,:,:), threadbatchpatterns32lin(:,:)
+real(kind=sgl),allocatable                       :: batchpatterns32lin(:,:)
+integer(kind=irg),allocatable                    :: acc_array(:,:)
+real(kind=sgl),allocatable                       :: master_arrayNH(:,:), master_arraySH(:,:), wf(:)
+character(len=3)                                 :: outputformat
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 ! parameter for random number generator
-integer, parameter                      :: K4B=selected_int_kind(9)      ! used by ran function in math.f90
-integer(K4B)                            :: idum
+integer, parameter                               :: K4B=selected_int_kind(9)      ! used by ran function in math.f90
+integer(K4B)                                     :: idum
 
-integer(HSIZE_T), dimension(1:3)        :: hdims, offset
-integer(HSIZE_T), dimension(1:2)        :: hdims2, offset2
-integer(HSIZE_T)                        :: dims2(2), dims3(3)
-character(fnlen,kind=c_char)            :: line2(1)
-character(fnlen)                        :: groupname, dataset, datagroupname, attributename, HDF_FileVersion
-character(11)                           :: dstr
-character(15)                           :: tstrb
-character(15)                           :: tstre
-character(10)                           :: char10
-character(fnlen)                        :: datafile
-logical                                 :: overwrite = .TRUE., insert = .TRUE., singlebatch, doNBeams
-character(5)                            :: bitmode
-integer(kind=irg)                       :: numbits, shp(3)
-real(kind=sgl)                          :: bitrange
+integer(HSIZE_T), dimension(1:3)                 :: hdims, offset
+integer(HSIZE_T), dimension(1:2)                 :: hdims2, offset2
+integer(HSIZE_T)                                 :: dims2(2), dims3(3)
+character(fnlen,kind=c_char)                     :: line2(1)
+character(fnlen)                                 :: groupname, dataset, datagroupname, attributename, HDF_FileVersion
+character(11)                                    :: dstr
+character(15)                                    :: tstrb
+character(15)                                    :: tstre
+character(10)                                    :: char10
+character(fnlen)                                 :: datafile
+logical                                          :: overwrite = .TRUE., insert = .TRUE., singlebatch, doNBeams
+character(5)                                     :: bitmode
+integer(kind=irg)                                :: numbits, shp(3)
+real(kind=sgl)                                   :: bitrange
 
 ! new stuff: deformation tensor
-real(kind=dbl)                          :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3,3), quF(4), Fmatrix_inverse(3,3), &
+real(kind=dbl)                                   :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3,3), quF(4), Fmatrix_inverse(3,3), &
                                            Gmatrix(3,3)
 logical                                 :: includeFmatrix=.FALSE., noise, isTKD=.FALSE., isKossel = .FALSE.
 
@@ -3790,32 +3790,32 @@ recursive subroutine writeColorTiff_(self, EMsoft, fn, n, binx, biny, binned, be
 use mod_io
 use mod_EMsoft
 use mod_image 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                :: iso_fortran_env
 
-class(EBSD_T), INTENT(INOUT)            :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(IN)            :: fn 
-integer(kind=irg), INTENT(IN)           :: n
-integer(kind=irg), INTENT(IN)           :: binx
-integer(kind=irg), INTENT(IN)           :: biny
-real(kind=sgl), INTENT(IN)              :: binned(binx,biny)
-real(kind=sgl), INTENT(IN)              :: beams(binx,biny)
+class(EBSD_T), INTENT(INOUT)  :: self
+type(EMsoft_T), INTENT(INOUT) :: EMsoft
+character(fnlen), INTENT(IN)  :: fn 
+integer(kind=irg), INTENT(IN) :: n
+integer(kind=irg), INTENT(IN) :: binx
+integer(kind=irg), INTENT(IN) :: biny
+real(kind=sgl), INTENT(IN)    :: binned(binx,biny)
+real(kind=sgl), INTENT(IN)    :: beams(binx,biny)
 
-type(IO_T)                              :: Message 
+type(IO_T)                    :: Message 
 
-real(kind=sgl)                          :: nmax, bmax 
-character(4)                            :: pnum
-character(fnlen)                        :: fname 
+real(kind=sgl)                :: nmax, bmax 
+character(4)                  :: pnum
+character(fnlen)              :: fname 
 
 ! declare variables for use in object oriented image module
-integer(kind=irg)                       :: RGBmap(3,binx,biny)
-integer                                 :: iostat
-character(len=128)                      :: iomsg
-logical                                 :: isInteger, OPC, PUC
-type(image_t)                           :: im
-integer(int8)                           :: TIFF_image(3*binx,biny)
-integer                                 :: dim2(2), Pm
-integer(c_int32_t)                      :: result
+integer(kind=irg)             :: RGBmap(3,binx,biny)
+integer                       :: iostat
+character(len=128)            :: iomsg
+logical                       :: isInteger, OPC, PUC
+type(image_t)                 :: im
+integer(int8)                 :: TIFF_image(3*binx,biny)
+integer                       :: dim2(2), Pm
+integer(c_int32_t)            :: result
 
 ! combine the original master pattern with this new NBeams pattern as an RGB image
 ! and store it in a tiff image file; master patter nin red channel, NBeams in green and blue.

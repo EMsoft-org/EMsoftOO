@@ -216,8 +216,8 @@ function get_ipf_ht_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%ipf_ht
 
@@ -234,8 +234,8 @@ subroutine set_ipf_ht_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%ipf_ht = inp
 
@@ -252,8 +252,8 @@ function get_ipf_wd_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%ipf_wd
 
@@ -270,8 +270,8 @@ subroutine set_ipf_wd_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%ipf_wd = inp
 
@@ -288,8 +288,8 @@ function get_maskradius_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%maskradius
 
@@ -306,8 +306,8 @@ subroutine set_maskradius_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%maskradius = inp
 
@@ -324,8 +324,8 @@ function get_numsx_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numsx
 
@@ -342,8 +342,8 @@ subroutine set_numsx_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numsx = inp
 
@@ -360,8 +360,8 @@ function get_numsy_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numsy
 
@@ -378,8 +378,8 @@ subroutine set_numsy_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numsy = inp
 
@@ -396,8 +396,8 @@ function get_nthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%nthreads
 
@@ -414,8 +414,8 @@ subroutine set_nthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%nthreads = inp
 
@@ -432,8 +432,8 @@ function get_nregions_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%nregions
 
@@ -450,8 +450,8 @@ subroutine set_nregions_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%nregions = inp
 
@@ -468,8 +468,8 @@ function get_logparam_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%logparam
 
@@ -486,8 +486,8 @@ subroutine set_logparam_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%logparam = inp
 
@@ -504,8 +504,8 @@ function get_ROI_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)               :: out(4)
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out(4)
 
 out = self%nml%ROI
 
@@ -522,8 +522,8 @@ subroutine set_ROI_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)   :: inp(4)
+class(ppEBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp(4)
 
 self%nml%ROI = inp
 
@@ -540,8 +540,8 @@ function get_hipassw_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-real(kind=dbl)                  :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+real(kind=dbl)                 :: out
 
 out = self%nml%hipassw
 
@@ -558,8 +558,8 @@ subroutine set_hipassw_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-real(kind=dbl), INTENT(IN)      :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+real(kind=dbl), INTENT(IN)     :: inp
 
 self%nml%hipassw = inp
 
@@ -576,8 +576,8 @@ function get_maskpattern_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(1)                    :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(1)                   :: out
 
 out = self%nml%maskpattern
 
@@ -594,8 +594,8 @@ subroutine set_maskpattern_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)        :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)       :: inp
 
 self%nml%maskpattern = inp
 
@@ -612,8 +612,8 @@ function get_exptfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen)               :: out
 
 out = self%nml%exptfile
 
@@ -630,8 +630,8 @@ subroutine set_exptfile_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)    :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)   :: inp
 
 self%nml%exptfile = inp
 
@@ -648,8 +648,8 @@ function get_filtertype_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen)               :: out
 
 out = self%nml%filtertype
 
@@ -666,8 +666,8 @@ subroutine set_filtertype_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)    :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)   :: inp
 
 self%nml%filtertype = inp
 
@@ -684,8 +684,8 @@ function get_tmpfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen)               :: out
 
 out = self%nml%tmpfile
 
@@ -702,8 +702,8 @@ subroutine set_tmpfile_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)    :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)   :: inp
 
 self%nml%tmpfile = inp
 
@@ -720,8 +720,8 @@ function get_maskfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen)               :: out
 
 out = self%nml%maskfile
 
@@ -738,8 +738,8 @@ subroutine set_maskfile_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)    :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)   :: inp
 
 self%nml%maskfile = inp
 
@@ -756,8 +756,8 @@ function get_inputtype_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                :: out
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen)               :: out
 
 out = self%nml%inputtype
 
@@ -774,8 +774,8 @@ subroutine set_inputtype_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)    :: inp
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)   :: inp
 
 self%nml%inputtype = inp
 
@@ -792,8 +792,8 @@ function get_HDFstrings_(self) result(out)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen)                :: out(10)
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen)               :: out(10)
 
 out = self%nml%HDFstrings
 
@@ -810,8 +810,8 @@ subroutine set_HDFstrings_(self,inp)
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)    :: inp(10)
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)   :: inp(10)
 
 self%nml%HDFstrings = inp
 
@@ -830,32 +830,32 @@ use mod_io
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)       :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(ppEBSD_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)    :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)    :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(IO_T)                     :: Message
+logical                        :: skipread = .FALSE.
 
-integer(kind=irg)  :: ipf_ht
-integer(kind=irg)  :: ipf_wd
-integer(kind=irg)  :: maskradius
-integer(kind=irg)  :: numsx
-integer(kind=irg)  :: numsy
-integer(kind=irg)  :: nthreads
-integer(kind=irg)  :: nregions
-integer(kind=irg)  :: ROI(4)
-integer(kind=irg)  :: logparam
-real(kind=dbl)     :: hipassw
-character(1)       :: maskpattern
-character(3)       :: filtertype
-character(fnlen)   :: exptfile
-character(fnlen)   :: tmpfile
-character(fnlen)   :: maskfile
-character(fnlen)   :: inputtype
-character(fnlen)   :: HDFstrings(10)
+integer(kind=irg)              :: ipf_ht
+integer(kind=irg)              :: ipf_wd
+integer(kind=irg)              :: maskradius
+integer(kind=irg)              :: numsx
+integer(kind=irg)              :: numsy
+integer(kind=irg)              :: nthreads
+integer(kind=irg)              :: nregions
+integer(kind=irg)              :: ROI(4)
+integer(kind=irg)              :: logparam
+real(kind=dbl)                 :: hipassw
+character(1)                   :: maskpattern
+character(3)                   :: filtertype
+character(fnlen)               :: exptfile
+character(fnlen)               :: tmpfile
+character(fnlen)               :: maskfile
+character(fnlen)               :: inputtype
+character(fnlen)               :: HDFstrings(10)
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / ppEBSDdata / numsx, numsy, nregions, maskpattern, nthreads, ipf_ht, ipf_wd, exptfile, maskradius, inputtype, &
@@ -961,20 +961,20 @@ use mod_HDFsupport
 use mod_DIfiles
 use mod_memory
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(ppEBSD_T), INTENT(INOUT)        :: self
-type(EMsoft_T), INTENT(INOUT)         :: EMsoft
-character(fnlen), INTENT(INOUT)       :: progname
+class(ppEBSD_T), INTENT(INOUT)  :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname
 
-type(IO_T)                            :: Message
-type(HDF_T)                           :: HDF
-type(memory_T)                        :: mem 
+type(IO_T)                      :: Message
+type(HDF_T)                     :: HDF
+type(memory_T)                  :: mem 
 
-integer(kind=irg)                     :: num,ierr,irec,istat
-integer(kind=irg)                     :: L,totnumexpt,imght,imgwd,nnk, recordsize, iii, hdferr,&
+integer(kind=irg)               :: num,ierr,irec,istat
+integer(kind=irg)               :: L,totnumexpt,imght,imgwd,nnk, recordsize, iii, hdferr,&
                                          recordsize_correct, patsz
 real(kind=sgl),allocatable            :: mask(:,:),masklin(:)
 

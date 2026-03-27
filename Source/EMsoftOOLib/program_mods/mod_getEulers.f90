@@ -145,22 +145,22 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(getEulers_T), INTENT(INOUT)    :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(getEulers_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)       :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)       :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                    :: EMsoft
+type(IO_T)                        :: Message
+logical                           :: skipread = .FALSE.
 
-character(8)            :: angledataset   ! 'original' or 'refined'
-character(3)            :: raddeg         ! 'rad' or 'deg'
-character(fnlen)        :: txtfile
-character(fnlen)        :: datafile
-character(fnlen)        :: EMEBSDnmlfile
-character(fnlen)        :: dotproductfile
+character(8)                      :: angledataset   ! 'original' or 'refined'
+character(3)                      :: raddeg         ! 'rad' or 'deg'
+character(fnlen)                  :: txtfile
+character(fnlen)                  :: datafile
+character(fnlen)                  :: EMEBSDnmlfile
+character(fnlen)                  :: dotproductfile
 
 namelist /Eulerslist/ datafile, txtfile, angledataset, dotproductfile, EMEBSDnmlfile, raddeg
 

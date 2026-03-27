@@ -223,8 +223,8 @@ subroutine setcnumstart_(self,inp)
 
 IMPLICIT NONE
 
-class(avdis_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(avdis_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%cnumstart = inp
 
@@ -241,8 +241,8 @@ function getcnumstart_(self) result(out)
 
 IMPLICIT NONE
 
-class(avdis_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(avdis_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%cnumstart
 
@@ -259,8 +259,8 @@ subroutine setcstepsize_(self,inp)
 
 IMPLICIT NONE
 
-class(avdis_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(avdis_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%cstepsize = inp
 
@@ -277,8 +277,8 @@ function getcstepsize_(self) result(out)
 
 IMPLICIT NONE
 
-class(avdis_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(avdis_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%cstepsize
 
@@ -295,8 +295,8 @@ subroutine setcnsteps_(self,inp)
 
 IMPLICIT NONE
 
-class(avdis_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(avdis_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%cnsteps = inp
 
@@ -313,8 +313,8 @@ function getcnsteps_(self) result(out)
 
 IMPLICIT NONE
 
-class(avdis_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(avdis_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%cnsteps
 
@@ -331,8 +331,8 @@ subroutine setavcsvfile_(self,inp)
 
 IMPLICIT NONE
 
-class(avdis_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(avdis_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)  :: inp
 
 self%nml%avcsvfile = trim(inp)
 
@@ -349,8 +349,8 @@ function getavcsvfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(avdis_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(avdis_T), INTENT(INOUT) :: self
+character(fnlen)              :: out
 
 out = trim(self%nml%avcsvfile)
 

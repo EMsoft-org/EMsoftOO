@@ -133,31 +133,31 @@ module mod_PEDZA
   
   IMPLICIT NONE 
   
-  class(PEDZA_T), INTENT(INOUT)        :: self
-  character(fnlen),INTENT(IN)          :: nmlfile
+  class(PEDZA_T), INTENT(INOUT) :: self
+  character(fnlen),INTENT(IN)   :: nmlfile
    !! full path to namelist file 
-  logical,OPTIONAL,INTENT(IN)          :: initonly
+  logical,OPTIONAL,INTENT(IN)   :: initonly
    !! fill in the default values only; do not read the file
   
-  type(EMsoft_T)                       :: EMsoft 
-  type(IO_T)                           :: Message       
-  logical                              :: skipread = .FALSE.
+  type(EMsoft_T)                :: EMsoft 
+  type(IO_T)                    :: Message       
+  logical                       :: skipread = .FALSE.
   
-  integer(kind=irg)       :: k(3)
-  integer(kind=irg)       :: fn(3)
-  integer(kind=irg)       :: precsample
-  integer(kind=irg)       :: precazimuthal
-  integer(kind=irg)       :: npix
-  integer(kind=irg)       :: nthreads
-  real(kind=sgl)          :: voltage
-  real(kind=sgl)          :: dmin
-  real(kind=sgl)          :: precangle
-  real(kind=sgl)          :: prechalfwidth
-  real(kind=sgl)          :: thickness
-  real(kind=sgl)          :: camlen
-  character(5)            :: filemode
-  character(fnlen)        :: xtalname
-  character(fnlen)        :: outname
+  integer(kind=irg)             :: k(3)
+  integer(kind=irg)             :: fn(3)
+  integer(kind=irg)             :: precsample
+  integer(kind=irg)             :: precazimuthal
+  integer(kind=irg)             :: npix
+  integer(kind=irg)             :: nthreads
+  real(kind=sgl)                :: voltage
+  real(kind=sgl)                :: dmin
+  real(kind=sgl)                :: precangle
+  real(kind=sgl)                :: prechalfwidth
+  real(kind=sgl)                :: thickness
+  real(kind=sgl)                :: camlen
+  character(5)                  :: filemode
+  character(fnlen)              :: xtalname
+  character(fnlen)              :: outname
   
   ! define the IO namelist to facilitate passing variables to the program.
   namelist /EMPEDZA/ xtalname, voltage, k, fn, dmin, precangle, prechalfwidth, precsample, precazimuthal, &

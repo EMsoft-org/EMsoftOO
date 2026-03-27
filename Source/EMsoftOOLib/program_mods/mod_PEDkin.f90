@@ -128,27 +128,27 @@ module mod_PEDkin
   
   IMPLICIT NONE 
   
-  class(PEDkin_T), INTENT(INOUT)          :: self
-  character(fnlen),INTENT(IN)          :: nmlfile
+  class(PEDkin_T), INTENT(INOUT) :: self
+  character(fnlen),INTENT(IN)    :: nmlfile
    !! full path to namelist file 
-  logical,OPTIONAL,INTENT(IN)          :: initonly
+  logical,OPTIONAL,INTENT(IN)    :: initonly
    !! fill in the default values only; do not read the file
   
-  type(EMsoft_T)                       :: EMsoft 
-  type(IO_T)                           :: Message       
-  logical                              :: skipread = .FALSE.
+  type(EMsoft_T)                 :: EMsoft 
+  type(IO_T)                     :: Message       
+  logical                        :: skipread = .FALSE.
   
-  integer(kind=irg)       :: npix
-  integer(kind=irg)       :: ncubochoric
-  integer(kind=irg)       :: nthreads
-  real(kind=sgl)          :: voltage
-  real(kind=sgl)          :: thickness
-  real(kind=sgl)          :: rnmpp
-  real(kind=sgl)          :: dmin
-  character(fnlen)        :: xtalname
-  character(fnlen)        :: outname
-  character(fnlen)        :: eulerfile
-  character(4)            :: sampling
+  integer(kind=irg)              :: npix
+  integer(kind=irg)              :: ncubochoric
+  integer(kind=irg)              :: nthreads
+  real(kind=sgl)                 :: voltage
+  real(kind=sgl)                 :: thickness
+  real(kind=sgl)                 :: rnmpp
+  real(kind=sgl)                 :: dmin
+  character(fnlen)               :: xtalname
+  character(fnlen)               :: outname
+  character(fnlen)               :: eulerfile
+  character(4)                   :: sampling
 
 ! define the IO namelist to facilitate passing variables to the program.
   namelist /PEDkinNameList/ xtalname, voltage, npix, rnmpp, ncubochoric, nthreads, &

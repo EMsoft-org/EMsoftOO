@@ -252,46 +252,46 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(OrientationViz_T), INTENT(INOUT)  :: self
-character(fnlen),INTENT(IN)             :: nmlfile
+class(OrientationViz_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)            :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)             :: initonly
+logical,OPTIONAL,INTENT(IN)            :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                          :: EMsoft
-type(IO_T)                              :: Message
-logical                                 :: skipread = .FALSE.
+type(EMsoft_T)                         :: EMsoft
+type(IO_T)                             :: Message
+logical                                :: skipread = .FALSE.
 
-integer(kind=irg) :: cubochoric
-integer(kind=irg) :: homochoric
-integer(kind=irg) :: rodrigues
-integer(kind=irg) :: stereographic
-integer(kind=irg) :: eulerspace
-integer(kind=irg) :: reducetoRFZ
-integer(kind=irg) :: drawRFZoutline
-integer(kind=irg) :: drawequivRFZoutlines
-integer(kind=irg) :: nx
-integer(kind=irg) :: ny
-integer(kind=irg) :: nz
-integer(kind=irg) :: overridepgnum
-integer(kind=irg) :: MacKenzieCell
-real(kind=sgl)    :: rgb(3)
-real(kind=sgl)    :: location(3)
-real(kind=sgl)    :: a_rotate_data1(4)
-real(kind=sgl)    :: a_rotate_data2(4)
-real(kind=sgl)    :: a_rotate_data3(4)
-real(kind=sgl)    :: sphrad
-real(kind=sgl)    :: cylrad
-real(kind=sgl)    :: FZoffset
-real(kind=sgl)    :: distance
-character(3)      :: scalingmode
-character(3)      :: mrcmode
-character(fnlen)  :: df3file
-character(fnlen)  :: mrcfile
-character(fnlen)  :: framemrcfile
-character(fnlen)  :: xtalname
-character(fnlen)  :: povrayfile
-character(fnlen)  :: anglefile
+integer(kind=irg)                      :: cubochoric
+integer(kind=irg)                      :: homochoric
+integer(kind=irg)                      :: rodrigues
+integer(kind=irg)                      :: stereographic
+integer(kind=irg)                      :: eulerspace
+integer(kind=irg)                      :: reducetoRFZ
+integer(kind=irg)                      :: drawRFZoutline
+integer(kind=irg)                      :: drawequivRFZoutlines
+integer(kind=irg)                      :: nx
+integer(kind=irg)                      :: ny
+integer(kind=irg)                      :: nz
+integer(kind=irg)                      :: overridepgnum
+integer(kind=irg)                      :: MacKenzieCell
+real(kind=sgl)                         :: rgb(3)
+real(kind=sgl)                         :: location(3)
+real(kind=sgl)                         :: a_rotate_data1(4)
+real(kind=sgl)                         :: a_rotate_data2(4)
+real(kind=sgl)                         :: a_rotate_data3(4)
+real(kind=sgl)                         :: sphrad
+real(kind=sgl)                         :: cylrad
+real(kind=sgl)                         :: FZoffset
+real(kind=sgl)                         :: distance
+character(3)                           :: scalingmode
+character(3)                           :: mrcmode
+character(fnlen)                       :: df3file
+character(fnlen)                       :: mrcfile
+character(fnlen)                       :: framemrcfile
+character(fnlen)                       :: xtalname
+character(fnlen)                       :: povrayfile
+character(fnlen)                       :: anglefile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EMOrientationViz / cubochoric, homochoric, rodrigues, stereographic, eulerspace, cylrad, &
@@ -1449,29 +1449,29 @@ use mod_HDFsupport, only: openFortranHDFInterface, closeFortranHDFInterface
 
 IMPLICIT NONE
 
-class(OrientationViz_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
-character(fnlen), INTENT(INOUT)         :: progdesc
+class(OrientationViz_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)          :: EMsoft
+character(fnlen), INTENT(INOUT)        :: progname
+character(fnlen), INTENT(INOUT)        :: progdesc
 
-type(IO_T)              :: Message
-type(PoVRay_T)          :: PoVcu, PoVho, PoVro, PoVst, PoVeu
-type(DirStat_T)         :: dict
-type(so3_T)             :: SO
-type(SpaceGroup_T)      :: SG
-type(cell_T)            :: cell
-type(QuaternionArray_T) :: qAR, dummy
-type(r_T)               :: ro
-type(h_T)               :: ho
-type(s_T)               :: st
-type(e_T)               :: eu
-type(c_T)               :: cu
-type(q_T)               :: qu, q
-type(a_T)               :: a
-type(Quaternion_T)      :: quat, qrot1, qrot2, qrot3
+type(IO_T)                             :: Message
+type(PoVRay_T)                         :: PoVcu, PoVho, PoVro, PoVst, PoVeu
+type(DirStat_T)                        :: dict
+type(so3_T)                            :: SO
+type(SpaceGroup_T)                     :: SG
+type(cell_T)                           :: cell
+type(QuaternionArray_T)                :: qAR, dummy
+type(r_T)                              :: ro
+type(h_T)                              :: ho
+type(s_T)                              :: st
+type(e_T)                              :: eu
+type(c_T)                              :: cu
+type(q_T)                              :: qu, q
+type(a_T)                              :: a
+type(Quaternion_T)                     :: quat, qrot1, qrot2, qrot3
 
-real(kind=dbl)          :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
-integer(kind=irg)       :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
+real(kind=dbl)                         :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
+integer(kind=irg)                      :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
                            ierr, ig, ix, iy, iz, num, ixyz(3), pgnum, io_int(2), nums(3)
 real(kind=dbl)          :: delta, eps = 1.0D-2
 character(fnlen)        :: locationline, fname, dataname, outname, lightline, skyline, rgbstring, locationlineeu, &

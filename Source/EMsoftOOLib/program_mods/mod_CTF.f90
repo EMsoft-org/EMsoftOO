@@ -139,21 +139,21 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(CTF_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(CTF_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)              :: EMsoft
+type(IO_T)                  :: Message
+logical                     :: skipread = .FALSE.
 
-character(4)            :: modality
-character(8)            :: angledataset   ! 'original' or 'refined'
-character(fnlen)        :: xtalname
-character(fnlen)        :: newctffile
-character(fnlen)        :: dotproductfile
+character(4)                :: modality
+character(8)                :: angledataset   ! 'original' or 'refined'
+character(fnlen)            :: xtalname
+character(fnlen)            :: newctffile
+character(fnlen)            :: dotproductfile
 
 namelist /CTFlist/ modality, xtalname, angledataset, dotproductfile, newctffile
 
@@ -415,37 +415,37 @@ use mod_io
 
 IMPLICIT NONE
 
-class(CTF_T), INTENT(INOUT)             :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
+class(CTF_T), INTENT(INOUT)                      :: self
+type(EMsoft_T), INTENT(INOUT)                    :: EMsoft
+character(fnlen), INTENT(INOUT)                  :: progname
 
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(IO_T)                              :: Message
-type(DIfile_T)                          :: DIFT
-type(cell_T)                            :: cell
-type(SpaceGroup_T)                      :: SG
-type(Vendor_T)                          :: VT
-type(DictionaryIndexingNameListType)    :: dinl
+type(HDF_T)                                      :: HDF
+type(HDFnames_T)                                 :: HDFnames
+type(IO_T)                                       :: Message
+type(DIfile_T)                                   :: DIFT
+type(cell_T)                                     :: cell
+type(SpaceGroup_T)                               :: SG
+type(Vendor_T)                                   :: VT
+type(DictionaryIndexingNameListType)             :: dinl
 
-logical                                 :: stat, readonly, noindex, g_exists
-character(fnlen)                        :: dpfile, masterfile, energyfile
-integer(kind=irg)                       :: hdferr, ii, jj, kk, iii, istat
+logical                                          :: stat, readonly, noindex, g_exists
+character(fnlen)                                 :: dpfile, masterfile, energyfile
+integer(kind=irg)                                :: hdferr, ii, jj, kk, iii, istat
 
-real(kind=sgl),allocatable              :: euler_best(:,:), CIlist(:)
-integer(kind=irg),allocatable           :: indexmain(:,:)
-real(kind=sgl),allocatable              :: resultmain(:,:)
-integer(HSIZE_T)                        :: dims(1)
+real(kind=sgl),allocatable                       :: euler_best(:,:), CIlist(:)
+integer(kind=irg),allocatable                    :: indexmain(:,:)
+real(kind=sgl),allocatable                       :: resultmain(:,:)
+integer(HSIZE_T)                                 :: dims(1)
 
-integer(kind=irg)                       :: numk, numdictsingle, numexptsingle
+integer(kind=irg)                                :: numk, numdictsingle, numexptsingle
 
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-character(fnlen)                        :: dataset, groupname
-character(fnlen)                        :: ename, fname
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen)                                 :: dataset, groupname
+character(fnlen)                                 :: ename, fname
 
-logical                                 :: verbose
-logical                                 :: f_exists, init=.TRUE., overwrite =.TRUE., refined
-real(kind=sgl)                          :: quat(4), ma, mi, dp, tstart, tstop, io_real(1), tmp, totnum_el, genfloat, &
+logical                                          :: verbose
+logical                                          :: f_exists, init=.TRUE., overwrite =.TRUE., refined
+real(kind=sgl)                                   :: quat(4), ma, mi, dp, tstart, tstop, io_real(1), tmp, totnum_el, genfloat, &
                                            vlen, fpar(2)
 integer(kind=irg)                       :: ipar(10), Emin, Emax, nthreads, TID, io_int(2), tick, tock, ierr, L
 integer(kind=irg)                       :: ll, mm, jpar(7), Nexp, pgnum, FZcnt, nlines, dims2(2), ss(1)

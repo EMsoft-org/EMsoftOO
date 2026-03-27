@@ -134,33 +134,33 @@ module mod_Lauemaster
   
   IMPLICIT NONE 
   
-  class(Lauemaster_T), INTENT(INOUT)          :: self
-  character(fnlen),INTENT(IN)          :: nmlfile
+  class(Lauemaster_T), INTENT(INOUT) :: self
+  character(fnlen),INTENT(IN)        :: nmlfile
    !! full path to namelist file 
-  logical,OPTIONAL,INTENT(IN)          :: initonly
+  logical,OPTIONAL,INTENT(IN)        :: initonly
    !! fill in the default values only; do not read the file
   
-  type(EMsoft_T)                       :: EMsoft 
-  type(IO_T)                           :: Message       
-  logical                              :: skipread = .FALSE.
+  type(EMsoft_T)                     :: EMsoft 
+  type(IO_T)                         :: Message       
+  logical                            :: skipread = .FALSE.
   
-  integer(kind=irg)       :: npx
-  integer(kind=irg)       :: patchw
-  real(kind=sgl)          :: lambdamin
-  real(kind=sgl)          :: lambdamax
-  real(kind=dbl)          :: kappaVMF
-  real(kind=dbl)          :: intfactor
-  character(3)            :: outformat
-  logical                 :: binarize
-  character(fnlen)        :: SHT_folder
-  character(fnlen)        :: SHT_formula
-  character(fnlen)        :: SHT_name
-  character(fnlen)        :: SHT_structuresymbol
-  character(fnlen)        :: addtoKiltHub
-  character(fnlen)        :: useDOI
-  character(fnlen)        :: hdfname
-  character(fnlen)        :: tiffname
-  character(fnlen)        :: xtalname
+  integer(kind=irg)                  :: npx
+  integer(kind=irg)                  :: patchw
+  real(kind=sgl)                     :: lambdamin
+  real(kind=sgl)                     :: lambdamax
+  real(kind=dbl)                     :: kappaVMF
+  real(kind=dbl)                     :: intfactor
+  character(3)                       :: outformat
+  logical                            :: binarize
+  character(fnlen)                   :: SHT_folder
+  character(fnlen)                   :: SHT_formula
+  character(fnlen)                   :: SHT_name
+  character(fnlen)                   :: SHT_structuresymbol
+  character(fnlen)                   :: addtoKiltHub
+  character(fnlen)                   :: useDOI
+  character(fnlen)                   :: hdfname
+  character(fnlen)                   :: tiffname
+  character(fnlen)                   :: xtalname
   
   ! define the IO namelist to facilitate passing variables to the program.
   namelist  / LaueMasterData / npx, lambdamin, lambdamax, kappaVMF, hdfname, xtalname, &
@@ -269,16 +269,16 @@ module mod_Lauemaster
   
   IMPLICIT NONE
   
-  class(Lauemaster_T), INTENT(INOUT)        :: self 
-  type(HDF_T), INTENT(INOUT)              :: HDF
-  type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+  class(Lauemaster_T), INTENT(INOUT) :: self 
+  type(HDF_T), INTENT(INOUT)         :: HDF
+  type(HDFnames_T), INTENT(INOUT)    :: HDFnames
   
-  integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-  integer(kind=irg)                       :: hdferr,  io_int(n_int)
-  real(kind=sgl)                          :: io_real(n_real)
-  character(20)                           :: intlist(n_int), reallist(n_real)
-  character(fnlen)                        :: dataset, sval(1),groupname
-  character(fnlen,kind=c_char)            :: line2(1)
+  integer(kind=irg),parameter        :: n_int = 11, n_real = 9
+  integer(kind=irg)                  :: hdferr,  io_int(n_int)
+  real(kind=sgl)                     :: io_real(n_real)
+  character(20)                      :: intlist(n_int), reallist(n_real)
+  character(fnlen)                   :: dataset, sval(1),groupname
+  character(fnlen,kind=c_char)       :: line2(1)
   
   associate( mcnl => self%nml )
   

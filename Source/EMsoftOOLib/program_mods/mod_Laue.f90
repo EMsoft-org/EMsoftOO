@@ -196,32 +196,32 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(Laue_T), INTENT(INOUT)         :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(Laue_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)  :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)  :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)               :: EMsoft 
+type(IO_T)                   :: Message       
+logical                      :: skipread = .FALSE.
 
-integer(kind=irg)       :: numpx
-integer(kind=irg)       :: numpy
-integer(kind=irg)       :: nthreads
-integer(kind=irg)       :: BPx
-real(kind=sgl)          :: spotw
-real(kind=sgl)          :: pixelsize
-real(kind=sgl)          :: maxVoltage
-real(kind=sgl)          :: minVoltage
-real(kind=sgl)          :: SDdistance
-real(kind=sgl)          :: gammavalue
-character(fnlen)        :: backprojection
-character(fnlen)        :: Lauemode
-character(fnlen)        :: orientationfile
-character(fnlen)        :: tiffprefix
-character(fnlen)        :: xtalname
-character(fnlen)        :: hdfname
+integer(kind=irg)            :: numpx
+integer(kind=irg)            :: numpy
+integer(kind=irg)            :: nthreads
+integer(kind=irg)            :: BPx
+real(kind=sgl)               :: spotw
+real(kind=sgl)               :: pixelsize
+real(kind=sgl)               :: maxVoltage
+real(kind=sgl)               :: minVoltage
+real(kind=sgl)               :: SDdistance
+real(kind=sgl)               :: gammavalue
+character(fnlen)             :: backprojection
+character(fnlen)             :: Lauemode
+character(fnlen)             :: orientationfile
+character(fnlen)             :: tiffprefix
+character(fnlen)             :: xtalname
+character(fnlen)             :: hdfname
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / LaueData / numpx, numpy, nthreads, spotw, pixelsize, maxVoltage, minVoltage, SDdistance, &
@@ -1002,58 +1002,58 @@ use omp_lib
 use mod_notifications
 use stringconstants
 use mod_image
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(Laue_T), INTENT(INOUT)            :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(Laue_T), INTENT(INOUT)    :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-type(Cell_T)                            :: cell
-type(Timing_T)                          :: timer
-type(IO_T)                              :: Message
-type(HDF_T)                             :: HDF
-type(SpaceGroup_T)                      :: SG
-type(Diffraction_T)                     :: Diff
-type(DynType)                           :: Dyn
-type(memory_T)                          :: mem, memth
-type(so3_T)                             :: SO
-type(QuaternionArray_T)                 :: qAR
-type(Quaternion_T)                      :: quat
-type(LaueReflist_T)                     :: LaueReflist
-type(q_T)                               :: qu
+type(Cell_T)                    :: cell
+type(Timing_T)                  :: timer
+type(IO_T)                      :: Message
+type(HDF_T)                     :: HDF
+type(SpaceGroup_T)              :: SG
+type(Diffraction_T)             :: Diff
+type(DynType)                   :: Dyn
+type(memory_T)                  :: mem, memth
+type(so3_T)                     :: SO
+type(QuaternionArray_T)         :: qAR
+type(Quaternion_T)              :: quat
+type(LaueReflist_T)             :: LaueReflist
+type(q_T)                       :: qu
 
-type(LaueReflist_T),pointer             :: reflist 
-integer(kind=irg)                       :: numangles, numbatches, remainder, ii, jj, pid, tickstart, gcnt
-integer(kind=irg),allocatable           :: batchnumangles(:)
-integer(kind=irg),parameter             :: batchsize = 100
+type(LaueReflist_T),pointer     :: reflist 
+integer(kind=irg)               :: numangles, numbatches, remainder, ii, jj, pid, tickstart, gcnt
+integer(kind=irg),allocatable   :: batchnumangles(:)
+integer(kind=irg),parameter     :: batchsize = 100
 
-integer(kind=irg)                       :: i, hdferr, npx, npy, refcnt, io_int(1), NUMTHREADS, TID, BPnpx, BPnpy, info
-real(kind=sgl)                          :: kouter, kinner, tstart, tstop, mi, ma, dmin, lambdamin
-real(kind=sgl),allocatable              :: pattern(:,:), patternbatch(:,:,:), bppatterns(:,:,:), bp(:,:)
-real(kind=dbl)                          :: intfactor
-real(kind=dbl),allocatable              :: LegendreArray(:), upd(:), diagonal(:)
+integer(kind=irg)               :: i, hdferr, npx, npy, refcnt, io_int(1), NUMTHREADS, TID, BPnpx, BPnpy, info
+real(kind=sgl)                  :: kouter, kinner, tstart, tstop, mi, ma, dmin, lambdamin
+real(kind=sgl),allocatable      :: pattern(:,:), patternbatch(:,:,:), bppatterns(:,:,:), bp(:,:)
+real(kind=dbl)                  :: intfactor
+real(kind=dbl),allocatable      :: LegendreArray(:), upd(:), diagonal(:)
 
-logical                                 :: verbose, f_exists, g_exists, insert=.TRUE., overwrite=.TRUE.
+logical                         :: verbose, f_exists, g_exists, insert=.TRUE., overwrite=.TRUE.
 
-character(fnlen)                        :: hdfname, groupname, datagroupname, attributename, dataset, fname, TIFF_filename
-character(11)                           :: dstr
-character(15)                           :: tstrb
-character(15)                           :: tstre
-character(4)                            :: pnum
-character(fnlen)                        :: HDF_FileVersion
-integer(HSIZE_T)                        :: dims3(3), cnt3(3), offset3(3)
-character(fnlen,kind=c_char)            :: line2(1)
+character(fnlen)                :: hdfname, groupname, datagroupname, attributename, dataset, fname, TIFF_filename
+character(11)                   :: dstr
+character(15)                   :: tstrb
+character(15)                   :: tstre
+character(4)                    :: pnum
+character(fnlen)                :: HDF_FileVersion
+integer(HSIZE_T)                :: dims3(3), cnt3(3), offset3(3)
+character(fnlen,kind=c_char)    :: line2(1)
 
 ! declare variables for use in object oriented image module
-integer                                 :: iostat, Lstart
-character(len=128)                      :: iomsg
-logical                                 :: isInteger
-type(image_t)                           :: im
-integer(int8)                           :: i8 (3,4)
-integer(int8), allocatable              :: TIFF_image(:,:)
+integer                         :: iostat, Lstart
+character(len=128)              :: iomsg
+logical                         :: isInteger
+type(image_t)                   :: im
+integer(int8)                   :: i8 (3,4)
+integer(int8), allocatable      :: TIFF_image(:,:)
 
 
 ! initialize the HDF class 

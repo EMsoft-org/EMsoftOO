@@ -557,8 +557,8 @@ subroutine setipf_ht_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%ipf_ht = inp
 
@@ -575,8 +575,8 @@ function getipf_ht_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%ipf_ht
 
@@ -593,8 +593,8 @@ subroutine setipf_wd_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%ipf_wd = inp
 
@@ -611,8 +611,8 @@ function getipf_wd_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%ipf_wd
 
@@ -665,8 +665,8 @@ subroutine setnumsx_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numsx = inp
 
@@ -683,8 +683,8 @@ function getnumsx_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numsx
 
@@ -701,8 +701,8 @@ subroutine setnumsy_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numsy = inp
 
@@ -719,8 +719,8 @@ function getnumsy_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numsy
 
@@ -737,8 +737,8 @@ subroutine setNGrid_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%NGrid = inp
 
@@ -755,8 +755,8 @@ function getNGrid_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%NGrid
 
@@ -773,8 +773,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%nthreads = inp
 
@@ -791,8 +791,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%nthreads
 
@@ -1069,7 +1069,7 @@ subroutine setVDtype_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
+class(EBSD4D_T), INTENT(INOUT) :: self
 character(4), INTENT(IN)       :: inp
 
 self%nml%VDtype = trim(inp)
@@ -1087,7 +1087,7 @@ function getVDtype_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
+class(EBSD4D_T), INTENT(INOUT) :: self
 character(4)                   :: out
 
 out = trim(self%nml%VDtype)
@@ -1105,7 +1105,7 @@ subroutine setVDreference_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
+class(EBSD4D_T), INTENT(INOUT) :: self
 character(4), INTENT(IN)       :: inp
 
 self%nml%VDreference = trim(inp)
@@ -1123,7 +1123,7 @@ function getVDreference_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
+class(EBSD4D_T), INTENT(INOUT) :: self
 character(4)                   :: out
 
 out = trim(self%nml%VDreference)
@@ -1177,8 +1177,8 @@ subroutine setVDlocx_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%VDlocx = inp
 
@@ -1195,8 +1195,8 @@ function getVDlocx_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%VDlocx
 
@@ -1213,8 +1213,8 @@ subroutine setVDlocy_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%VDlocy = inp
 
@@ -1231,8 +1231,8 @@ function getVDlocy_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%VDlocy
 
@@ -1249,8 +1249,8 @@ subroutine setEBSPlocx_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%EBSPlocx = inp
 
@@ -1267,8 +1267,8 @@ function getEBSPlocx_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%EBSPlocx
 
@@ -1285,8 +1285,8 @@ subroutine setEBSPlocy_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%EBSPlocy = inp
 
@@ -1303,8 +1303,8 @@ function getEBSPlocy_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%EBSPlocy
 
@@ -1321,8 +1321,8 @@ subroutine setVDSD_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%VDSD = inp
 
@@ -1339,8 +1339,8 @@ function getVDSD_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%VDSD
 
@@ -1357,8 +1357,8 @@ subroutine setVDHannAlpha_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%VDHannAlpha = inp
 
@@ -1375,8 +1375,8 @@ function getVDHannAlpha_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%VDHannAlpha
 
@@ -1393,8 +1393,8 @@ subroutine setVDsize_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%VDsize = inp
 
@@ -1411,8 +1411,8 @@ function getVDsize_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%VDsize
 
@@ -1429,8 +1429,8 @@ subroutine setVDstep_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%VDstep = inp
 
@@ -1447,8 +1447,8 @@ function getVDstep_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%VDstep
 
@@ -1465,8 +1465,8 @@ subroutine setradiuscutoff_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%radiuscutoff = inp
 
@@ -1483,8 +1483,8 @@ function getradiuscutoff_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSD4D_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSD4D_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%radiuscutoff
 
@@ -1574,27 +1574,27 @@ subroutine drawMPpositions_(self, n, ctmp, sz, MP)
 use mod_image
 use mod_io 
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                :: iso_fortran_env
 
-class(EBSD4D_T),INTENT(INOUT)     :: self
-integer(kind=irg),INTENT(IN)      :: n 
-real(kind=dbl),INTENT(IN)         :: ctmp(n,3)
-integer(kind=irg),INTENT(IN)      :: sz(3)
-real(kind=sgl),INTENT(IN)         :: MP(sz(1),sz(2),sz(3))
+class(EBSD4D_T),INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)  :: n 
+real(kind=dbl),INTENT(IN)     :: ctmp(n,3)
+integer(kind=irg),INTENT(IN)  :: sz(3)
+real(kind=sgl),INTENT(IN)     :: MP(sz(1),sz(2),sz(3))
 
-type(IO_T)                        :: Message 
+type(IO_T)                    :: Message 
 
-real(kind=sgl)                    :: SP(sz(1),sz(2)), ma, mi
-integer(kind=irg)                 :: i, j, npx, w, x, y
-character(fnlen)                  :: TIFF_filename
+real(kind=sgl)                :: SP(sz(1),sz(2)), ma, mi
+integer(kind=irg)             :: i, j, npx, w, x, y
+character(fnlen)              :: TIFF_filename
 
 ! declare variables for use in object oriented image module
-integer                           :: iostat
-character(len=128)                :: iomsg
-logical                           :: isInteger
-type(image_t)                     :: im
-integer(int8)                     :: i8 (3,4)
-integer(int8), allocatable        :: TIFF_image(:,:)
+integer                       :: iostat
+character(len=128)            :: iomsg
+logical                       :: isInteger
+type(image_t)                 :: im
+integer(int8)                 :: i8 (3,4)
+integer(int8), allocatable    :: TIFF_image(:,:)
 
 TIFF_filename = 'MPpositions.tiff'
 allocate(TIFF_image(sz(1),sz(2)))
@@ -1649,24 +1649,24 @@ subroutine drawEBSPpositions_(self, sz, pat)
 use mod_image
 use mod_io 
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                :: iso_fortran_env
 
-class(EBSD4D_T),INTENT(INOUT)     :: self
-integer(kind=irg),INTENT(IN)      :: sz(2)
-real(kind=sgl),INTENT(IN)         :: pat(sz(1),sz(2))
+class(EBSD4D_T),INTENT(INOUT) :: self
+integer(kind=irg),INTENT(IN)  :: sz(2)
+real(kind=sgl),INTENT(IN)     :: pat(sz(1),sz(2))
 
-type(IO_T)                        :: Message 
+type(IO_T)                    :: Message 
 
-real(kind=sgl)                    :: ma, mi
-character(fnlen)                  :: TIFF_filename
+real(kind=sgl)                :: ma, mi
+character(fnlen)              :: TIFF_filename
 
 ! declare variables for use in object oriented image module
-integer                           :: iostat
-character(len=128)                :: iomsg
-logical                           :: isInteger
-type(image_t)                     :: im
-integer(int8)                     :: i8 (3,4)
-integer(int8), allocatable        :: TIFF_image(:,:)
+integer                       :: iostat
+character(len=128)            :: iomsg
+logical                       :: isInteger
+type(image_t)                 :: im
+integer(int8)                 :: i8 (3,4)
+integer(int8), allocatable    :: TIFF_image(:,:)
 
 TIFF_filename = 'EBSPpositions.tiff'
 allocate(TIFF_image(sz(1),sz(2)))
@@ -1729,36 +1729,36 @@ use mod_image
 use mod_NLPAR
 use mod_memory
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(EBSD4D_T), INTENT(INOUT)          :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(EBSD4D_T), INTENT(INOUT)  :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-type(IO_T)                              :: Message
-type(HDF_T)                             :: HDF, HDF2
-type(timing_T)                          :: timer
-type(NLPAR_T)                           :: NLPAR 
-type(memory_T)                          :: mem
-type(Vendor_T)                          :: VT
-type(DIfile_T)                          :: DIFT
-type(MPfile_T)                          :: MPFT
-type(MCfile_T)                          :: MCFT
-type(QuaternionArray_T)                 :: qAR
-type(Quaternion_T)                      :: quat
-type(e_T)                               :: eu
-type(q_T)                               :: qu 
-type(HDFnames_T)                        :: saveHDFnames
-type(EBSDmasterNameListType)            :: mpnl
-type(MCOpenCLNameListType)              :: mcnl
-type(Cell_T)                            :: cell 
-type(SpaceGroup_T)                      :: SG
-type(PGA3D_T)                           :: mv_plane, mv_line, mv
+type(IO_T)                      :: Message
+type(HDF_T)                     :: HDF, HDF2
+type(timing_T)                  :: timer
+type(NLPAR_T)                   :: NLPAR 
+type(memory_T)                  :: mem
+type(Vendor_T)                  :: VT
+type(DIfile_T)                  :: DIFT
+type(MPfile_T)                  :: MPFT
+type(MCfile_T)                  :: MCFT
+type(QuaternionArray_T)         :: qAR
+type(Quaternion_T)              :: quat
+type(e_T)                       :: eu
+type(q_T)                       :: qu 
+type(HDFnames_T)                :: saveHDFnames
+type(EBSDmasterNameListType)    :: mpnl
+type(MCOpenCLNameListType)      :: mcnl
+type(Cell_T)                    :: cell 
+type(SpaceGroup_T)              :: SG
+type(PGA3D_T)                   :: mv_plane, mv_line, mv
 
-integer(kind=irg)                       :: L,totnumexpt,imght,imgwd, recordsize, hdferr, TID, iii, VDposx, VDposy, VDpx, VDpy,&
+integer(kind=irg)               :: L,totnumexpt,imght,imgwd, recordsize, hdferr, TID, iii, VDposx, VDposy, VDpx, VDpy,&
                                            TIFF_nx, TIFF_ny, itype, istat, iiistart, iiiend, jjstart, jjend, binx, biny, sz(3), &
                                            correctsize, dims(2), i, j, ii, jj, jjj, kk, patsz, Nexp, numhatn, io_int(4), sz2(2), &
                                            VDpxref, VDpyref, VDkk, ival, kkk, lll, numpatx, numpaty, VDgood, ix, jy, ipx, ipy
@@ -2339,24 +2339,24 @@ use mod_HDFsupport
 use ISO_C_BINDING
 use mod_memory
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(EBSD4D_T), INTENT(INOUT)          :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(EBSD4D_T), INTENT(INOUT)  :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-type(IO_T)                              :: Message
-type(HDF_T)                             :: HDF, HDF2
-type(DIfile_T)                          :: DIFT
-type(timing_T)                          :: timer
-type(memory_T)                          :: mem
-type(Vendor_T)                          :: VT
-type(HDFnames_T)                        :: saveHDFnames
+type(IO_T)                      :: Message
+type(HDF_T)                     :: HDF, HDF2
+type(DIfile_T)                  :: DIFT
+type(timing_T)                  :: timer
+type(memory_T)                  :: mem
+type(Vendor_T)                  :: VT
+type(HDFnames_T)                :: saveHDFnames
 
-integer(kind=irg)                       :: L,totnumexpt,imght,imgwd, recordsize, hdferr, TID, iii, &
+integer(kind=irg)               :: L,totnumexpt,imght,imgwd, recordsize, hdferr, TID, iii, &
                                            itype, istat, iiistart, iiiend, jjstart, jjend, binx, biny, sz(3), &
                                            correctsize, dims(2), i, j, k, ii, jj, jjj, kk, patsz, Nexp, numhatn, io_int(3), &
                                            sz2(2), ival

@@ -160,25 +160,25 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(dpmerge_T), INTENT(INOUT)      :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(dpmerge_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)     :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)     :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                  :: EMsoft
+type(IO_T)                      :: Message
+logical                         :: skipread = .FALSE.
 
-character(fnlen)        :: dotproductfile(5)
-character(fnlen)        :: ctfname
-character(fnlen)        :: angname
-character(fnlen)        :: phasemapname
-integer(kind=irg)       :: phasecolors(5)
-integer(kind=irg)       :: scaling
-real(kind=sgl)          :: scalefactors(5)  
-character(8)            :: usedp
-character(2)            :: indexingmode
+character(fnlen)                :: dotproductfile(5)
+character(fnlen)                :: ctfname
+character(fnlen)                :: angname
+character(fnlen)                :: phasemapname
+integer(kind=irg)               :: phasecolors(5)
+integer(kind=irg)               :: scaling
+real(kind=sgl)                  :: scalefactors(5)  
+character(8)                    :: usedp
+character(2)                    :: indexingmode
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / dpmerge / dotproductfile, ctfname, angname, usedp, indexingmode, phasemapname, phasecolors, scalefactors, scaling
@@ -590,43 +590,43 @@ use mod_vendors
 use ISO_C_BINDING
 use mod_image
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(dpmerge_T), INTENT(INOUT)         :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
+class(dpmerge_T), INTENT(INOUT)      :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname
 
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames, MPHDFnames
-type(IO_T)                              :: Message
-type(DIfile_T)                          :: DIFT
-type(MPfile_T)                          :: MPFT
-type(DictionaryIndexingNameListType)    :: dinl
-type(Vendor_T)                          :: VT
-type(cell_T),allocatable                :: cells(:)
-type(SpaceGroup_T),allocatable          :: SGs(:)
-type(EBSDmasterNameListType)            :: mpnl
+type(HDF_T)                          :: HDF
+type(HDFnames_T)                     :: HDFnames, MPHDFnames
+type(IO_T)                           :: Message
+type(DIfile_T)                       :: DIFT
+type(MPfile_T)                       :: MPFT
+type(DictionaryIndexingNameListType) :: dinl
+type(Vendor_T)                       :: VT
+type(cell_T),allocatable             :: cells(:)
+type(SpaceGroup_T),allocatable       :: SGs(:)
+type(EBSDmasterNameListType)         :: mpnl
 
-real(kind=sgl),allocatable              :: dplist(:,:), OSMlist(:,:), exptIQ(:), eangles(:,:,:), pfrac(:), pID(:), dpmap(:,:)
-integer(kind=irg),allocatable           :: phaseID(:), pnum(:)
-integer(kind=irg)                       :: ipf_wd, ipf_ht, irow, numpat, ml(1), ipar(4)
-integer(kind=irg)                       :: dims(1), hdferr, io_int(2), i, j, ii, numdp
-real(kind=sgl)                          :: io_real(1), mi, ma, fpar1(1), fpar2(2)
-character(fnlen)                        :: fname, xtalname(5), infile, rdxtalname, TIFF_filename, DIfile, modality
-logical                                 :: f_exists
-integer(kind=ish)                       :: imax = 255
-integer(kind=ish),allocatable           :: dpmapi(:,:)
+real(kind=sgl),allocatable           :: dplist(:,:), OSMlist(:,:), exptIQ(:), eangles(:,:,:), pfrac(:), pID(:), dpmap(:,:)
+integer(kind=irg),allocatable        :: phaseID(:), pnum(:)
+integer(kind=irg)                    :: ipf_wd, ipf_ht, irow, numpat, ml(1), ipar(4)
+integer(kind=irg)                    :: dims(1), hdferr, io_int(2), i, j, ii, numdp
+real(kind=sgl)                       :: io_real(1), mi, ma, fpar1(1), fpar2(2)
+character(fnlen)                     :: fname, xtalname(5), infile, rdxtalname, TIFF_filename, DIfile, modality
+logical                              :: f_exists
+integer(kind=ish)                    :: imax = 255
+integer(kind=ish),allocatable        :: dpmapi(:,:)
 
 ! declare variables for use in object oriented image module
-integer                                 :: iostat
-character(len=128)                      :: iomsg
-logical                                 :: isInteger
-type(image_t)                           :: im
-integer(int8), allocatable              :: TIFF_image(:,:)
-integer                                 :: dim2(2)
-integer(c_int32_t)                      :: result
+integer                              :: iostat
+character(len=128)                   :: iomsg
+logical                              :: isInteger
+type(image_t)                        :: im
+integer(int8), allocatable           :: TIFF_image(:,:)
+integer                              :: dim2(2)
+integer(c_int32_t)                   :: result
 
 
 associate(dpmnl=>self%nml, DIDT=>DIFT%DIDT, MPDT=>MPFT%MPDT)

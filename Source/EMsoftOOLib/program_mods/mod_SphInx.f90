@@ -210,40 +210,40 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(SphInx_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(SphInx_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)    :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)    :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                 :: EMsoft 
+type(IO_T)                     :: Message       
+logical                        :: skipread = .FALSE.
 
-integer(kind=irg)       :: bw
-logical                 :: normed 
-logical                 :: refine
-logical                 :: flipy
-integer(kind=irg)       :: ROImask(4)
-character(fnlen)        :: ROIfile
-integer(kind=irg)       :: nregions
-integer(kind=irg)       :: nthread
-integer(kind=irg)       :: batchsize
-real(kind=sgl)          :: scandims(4)
-integer(kind=sgl)       :: patdims(2)
-real(kind=sgl)          :: delta
-real(kind=sgl)          :: pctr(3)
-character(fnlen)        :: vendor
-real(kind=sgl)          :: thetac
-integer(kind=irg)       :: binning
-logical                 :: circmask
-character(fnlen)        :: masterfile
-character(fnlen)        :: patfile
-character(fnlen)        :: HDFstrings(10)
-character(fnlen)        :: inputtype
-character(fnlen)        :: datafile
-character(fnlen)        :: ctffile
-character(fnlen)        :: angfile
+integer(kind=irg)              :: bw
+logical                        :: normed 
+logical                        :: refine
+logical                        :: flipy
+integer(kind=irg)              :: ROImask(4)
+character(fnlen)               :: ROIfile
+integer(kind=irg)              :: nregions
+integer(kind=irg)              :: nthread
+integer(kind=irg)              :: batchsize
+real(kind=sgl)                 :: scandims(4)
+integer(kind=sgl)              :: patdims(2)
+real(kind=sgl)                 :: delta
+real(kind=sgl)                 :: pctr(3)
+character(fnlen)               :: vendor
+real(kind=sgl)                 :: thetac
+integer(kind=irg)              :: binning
+logical                        :: circmask
+character(fnlen)               :: masterfile
+character(fnlen)               :: patfile
+character(fnlen)               :: HDFstrings(10)
+character(fnlen)               :: inputtype
+character(fnlen)               :: datafile
+character(fnlen)               :: ctffile
+character(fnlen)               :: angfile
 
 namelist /SphInxNameList/ bw, normed, refine, ROImask, ROIfile, nregions, nthread, batchsize, thetac, delta, &
                           patdims, pctr, scandims, binning, circmask, masterfile, vendor, &
@@ -360,8 +360,8 @@ subroutine setbw_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%bw = inp
 
@@ -378,8 +378,8 @@ function getbw_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%bw
 
@@ -396,8 +396,8 @@ subroutine setnormed_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-logical, INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+logical, INTENT(IN)            :: inp
 
 self%nml%normed = inp
 
@@ -414,8 +414,8 @@ function getnormed_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-logical                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+logical                        :: out
 
 out = self%nml%normed
 
@@ -432,8 +432,8 @@ subroutine setrefine_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-logical, INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+logical, INTENT(IN)            :: inp
 
 self%nml%refine = inp
 
@@ -450,8 +450,8 @@ function getrefine_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-logical                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+logical                        :: out
 
 out = self%nml%refine
 
@@ -468,8 +468,8 @@ subroutine setflipy_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-logical, INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+logical, INTENT(IN)            :: inp
 
 self%nml%flipy = inp
 
@@ -486,8 +486,8 @@ function getflipy_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-logical                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+logical                        :: out
 
 out = self%nml%flipy
 
@@ -504,8 +504,8 @@ subroutine setROImask_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(4)
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp(4)
 
 self%nml%ROImask = inp
 
@@ -522,8 +522,8 @@ function getROImask_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(4)
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out(4)
 
 out = self%nml%ROImask
 
@@ -576,8 +576,8 @@ subroutine setnregions_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%nregions = inp
 
@@ -594,8 +594,8 @@ function getnregions_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%nregions
 
@@ -612,8 +612,8 @@ subroutine setnthread_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%nthread = inp
 
@@ -630,8 +630,8 @@ function getnthread_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%nthread
 
@@ -648,8 +648,8 @@ subroutine setbatchsize_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%batchsize = inp
 
@@ -666,8 +666,8 @@ function getbatchsize_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%batchsize
 
@@ -684,8 +684,8 @@ subroutine setscandims_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp(4)
+class(SphInx_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp(4)
 
 self%nml%scandims = inp
 
@@ -702,8 +702,8 @@ function getscandims_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out(4)
+class(SphInx_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out(4)
 
 out = self%nml%scandims
 
@@ -756,8 +756,8 @@ subroutine setdelta_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%delta = inp
 
@@ -774,8 +774,8 @@ function getdelta_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%delta
 
@@ -792,8 +792,8 @@ subroutine setpctr_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp(3)
+class(SphInx_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp(3)
 
 self%nml%pctr = inp
 
@@ -810,8 +810,8 @@ function getpctr_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out(3)
+class(SphInx_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out(3)
 
 out = self%nml%pctr
 
@@ -864,8 +864,8 @@ subroutine setthetac_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%thetac = inp
 
@@ -882,8 +882,8 @@ function getthetac_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%thetac
 
@@ -900,8 +900,8 @@ subroutine setbinning_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%binning = inp
 
@@ -918,8 +918,8 @@ function getbinning_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%binning
 
@@ -936,8 +936,8 @@ subroutine setcircmask_(self,inp)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-logical, INTENT(IN)       :: inp
+class(SphInx_T), INTENT(INOUT) :: self
+logical, INTENT(IN)            :: inp
 
 self%nml%circmask = inp
 
@@ -954,8 +954,8 @@ function getcircmask_(self) result(out)
 
 IMPLICIT NONE
 
-class(SphInx_T), INTENT(INOUT)     :: self
-logical                   :: out
+class(SphInx_T), INTENT(INOUT) :: self
+logical                        :: out
 
 out = self%nml%circmask
 

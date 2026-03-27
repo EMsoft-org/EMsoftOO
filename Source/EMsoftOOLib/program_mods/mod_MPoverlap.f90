@@ -139,38 +139,38 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(MPoverlap_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(MPoverlap_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)       :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)       :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                    :: EMsoft
+type(IO_T)                        :: Message
+logical                           :: skipread = .FALSE.
 
-integer(kind=irg)       :: newpgnum
-integer(kind=irg)       :: PatternAxisA(3)
-integer(kind=irg)       :: HorizontalAxisA(3)
-real(kind=sgl)          :: tA(3)
-real(kind=sgl)          :: tB(3)
-real(kind=sgl)          :: tC(3)
-real(kind=sgl)          :: tD(3)
-real(kind=sgl)          :: gA(3)
-real(kind=sgl)          :: gB(3)
-real(kind=sgl)          :: gC(3)
-real(kind=sgl)          :: gD(3)
-real(kind=sgl)          :: fracB
-real(kind=sgl)          :: fracC
-real(kind=sgl)          :: fracD
-character(fnlen)        :: masterfileA
-character(fnlen)        :: masterfileB
-character(fnlen)        :: masterfileC
-character(fnlen)        :: masterfileD
-character(fnlen)        :: h5copypath
-character(fnlen)        :: overlapmode
-character(fnlen)        :: datafile
-character(fnlen)        :: modality
+integer(kind=irg)                 :: newpgnum
+integer(kind=irg)                 :: PatternAxisA(3)
+integer(kind=irg)                 :: HorizontalAxisA(3)
+real(kind=sgl)                    :: tA(3)
+real(kind=sgl)                    :: tB(3)
+real(kind=sgl)                    :: tC(3)
+real(kind=sgl)                    :: tD(3)
+real(kind=sgl)                    :: gA(3)
+real(kind=sgl)                    :: gB(3)
+real(kind=sgl)                    :: gC(3)
+real(kind=sgl)                    :: gD(3)
+real(kind=sgl)                    :: fracB
+real(kind=sgl)                    :: fracC
+real(kind=sgl)                    :: fracD
+character(fnlen)                  :: masterfileA
+character(fnlen)                  :: masterfileB
+character(fnlen)                  :: masterfileC
+character(fnlen)                  :: masterfileD
+character(fnlen)                  :: h5copypath
+character(fnlen)                  :: overlapmode
+character(fnlen)                  :: datafile
+character(fnlen)                  :: modality
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist / MPoverlapdata / PatternAxisA, tA, tB, gA, gB, masterfileA, masterfileB, modality, &

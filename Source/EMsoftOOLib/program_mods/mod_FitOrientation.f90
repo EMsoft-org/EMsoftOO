@@ -195,36 +195,36 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(FitOrientation_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(FitOrientation_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)            :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)            :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                         :: EMsoft
+type(IO_T)                             :: Message
+logical                                :: skipread = .FALSE.
 
 
-integer(kind=irg)   :: nthreads
-integer(kind=irg)   :: matchdepth
-character(fnlen)    :: dotproductfile
-character(fnlen)    :: newdotproductfile
-character(fnlen)    :: usemasterpatternfile
-character(fnlen)    :: ctffile
-character(fnlen)    :: angfile
-character(fnlen)    :: tmpfile
-character(fnlen)    :: PSvariantfile
-character(fnlen)    :: method
-character(4)        :: modality
-logical             :: inRAM
-integer(kind=irg)   :: nmis
-integer(kind=irg)   :: niter
-real(kind=sgl)      :: step
-integer(kind=irg)   :: initialx
-integer(kind=irg)   :: initialy
-character(fnlen)    :: PCcorrection
-real(kind=sgl)      :: truedelta
+integer(kind=irg)                      :: nthreads
+integer(kind=irg)                      :: matchdepth
+character(fnlen)                       :: dotproductfile
+character(fnlen)                       :: newdotproductfile
+character(fnlen)                       :: usemasterpatternfile
+character(fnlen)                       :: ctffile
+character(fnlen)                       :: angfile
+character(fnlen)                       :: tmpfile
+character(fnlen)                       :: PSvariantfile
+character(fnlen)                       :: method
+character(4)                           :: modality
+logical                                :: inRAM
+integer(kind=irg)                      :: nmis
+integer(kind=irg)                      :: niter
+real(kind=sgl)                         :: step
+integer(kind=irg)                      :: initialx
+integer(kind=irg)                      :: initialy
+character(fnlen)                       :: PCcorrection
+real(kind=sgl)                         :: truedelta
 
 namelist / RefineOrientations / nthreads, dotproductfile, ctffile, modality, nmis, niter, step, inRAM, method, &
                                 matchdepth, PSvariantfile, tmpfile, angfile, initialx, initialy, PCcorrection, truedelta, &
@@ -1068,71 +1068,71 @@ use stringconstants
 
 IMPLICIT NONE
 
-class(FitOrientation_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
-logical,INTENT(IN),OPTIONAL             :: zero 
+class(FitOrientation_T), INTENT(INOUT)           :: self
+type(EMsoft_T), INTENT(INOUT)                    :: EMsoft
+character(fnlen), INTENT(INOUT)                  :: progname
+logical,INTENT(IN),OPTIONAL                      :: zero 
 
-type(IO_T)                              :: Message
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(Cell_T)                            :: cell
-type(SpaceGroup_T)                      :: SG
-type(q_T)                               :: qu, q, myqu
-type(Quaternion_T)                      :: qq, quat, quat2, qq2, qquat2, qqq, myquat
-type(QuaternionArray_T)                 :: quPS
-type(e_T)                               :: eu, myeu, euinp2
-type(a_T)                               :: ax
-type(r_T)                               :: rfz
-type(h_T)                               :: ho, myho
-type(c_T)                               :: cu
-type(MCfile_T)                          :: MCFT
-type(MPfile_T)                          :: MPFT
-type(DIfile_T)                          :: DIFT
-type(so3_T)                             :: SO
-type(QuaternionArray_T)                 :: qdummy, qAR
-type(Timing_T)                          :: timer
-type(EBSD_T)                            :: EBSD, myEBSD
-type(ECP_T)                             :: ECP
-type(Vendor_T)                          :: VT
-type(memory_T)                          :: mem, memth
+type(IO_T)                                       :: Message
+type(HDF_T)                                      :: HDF
+type(HDFnames_T)                                 :: HDFnames
+type(Cell_T)                                     :: cell
+type(SpaceGroup_T)                               :: SG
+type(q_T)                                        :: qu, q, myqu
+type(Quaternion_T)                               :: qq, quat, quat2, qq2, qquat2, qqq, myquat
+type(QuaternionArray_T)                          :: quPS
+type(e_T)                                        :: eu, myeu, euinp2
+type(a_T)                                        :: ax
+type(r_T)                                        :: rfz
+type(h_T)                                        :: ho, myho
+type(c_T)                                        :: cu
+type(MCfile_T)                                   :: MCFT
+type(MPfile_T)                                   :: MPFT
+type(DIfile_T)                                   :: DIFT
+type(so3_T)                                      :: SO
+type(QuaternionArray_T)                          :: qdummy, qAR
+type(Timing_T)                                   :: timer
+type(EBSD_T)                                     :: EBSD, myEBSD
+type(ECP_T)                                      :: ECP
+type(Vendor_T)                                   :: VT
+type(memory_T)                                   :: mem, memth
 
 ! type(EBSDIndexingNameListType)          :: dinl
-type(MCOpenCLNameListType)              :: mcnl
-type(EBSDMasterNameListType)            :: mpnl
+type(MCOpenCLNameListType)                       :: mcnl
+type(EBSDMasterNameListType)                     :: mpnl
 ! type(EBSDNameListType)                  :: ebsdnl
 
 
-logical                                 :: stat, readonly, noindex, ROIselected
-character(fnlen)                        :: dpfile, masterfile, energyfile
-integer(kind=irg)                       :: hdferr, ii, jj, kk, iii, istat, npy, jjj, iparecp(4)
+logical                                          :: stat, readonly, noindex, ROIselected
+character(fnlen)                                 :: dpfile, masterfile, energyfile
+integer(kind=irg)                                :: hdferr, ii, jj, kk, iii, istat, npy, jjj, iparecp(4)
 
-real(kind=dbl)                          :: misang       ! desired misorientation angle (degrees)
-integer(kind=irg)                       :: Nmis         ! desired number of sampling points along cube edge
-integer(kind=irg)                       :: CMcnt        ! number of entries in linked list
-type(FZpointd),pointer                  :: CMlist, CMtmp       ! pointer to start of linked list and temporary one
-real(kind=dbl)                          :: rhozero(4), hipassw
+real(kind=dbl)                                   :: misang       ! desired misorientation angle (degrees)
+integer(kind=irg)                                :: Nmis         ! desired number of sampling points along cube edge
+integer(kind=irg)                                :: CMcnt        ! number of entries in linked list
+type(FZpointd),pointer                           :: CMlist, CMtmp       ! pointer to start of linked list and temporary one
+real(kind=dbl)                                   :: rhozero(4), hipassw
 
-real(kind=sgl),allocatable              :: euPS(:,:), euler_bestmatch(:,:,:), CIlist(:), CMarray(:,:,:)
-integer(kind=irg),allocatable           :: indexmain(:,:), PScorrectionmapth(:), PScorrectionmap(:)
-real(kind=sgl),allocatable              :: resultmain(:,:), DPCX(:), DPCY(:), DPCL(:)
-integer(HSIZE_T)                        :: dims(1),dims2D(2),dims3(3),offset3(3)
+real(kind=sgl),allocatable                       :: euPS(:,:), euler_bestmatch(:,:,:), CIlist(:), CMarray(:,:,:)
+integer(kind=irg),allocatable                    :: indexmain(:,:), PScorrectionmapth(:), PScorrectionmap(:)
+real(kind=sgl),allocatable                       :: resultmain(:,:), DPCX(:), DPCY(:), DPCL(:)
+integer(HSIZE_T)                                 :: dims(1),dims2D(2),dims3(3),offset3(3)
 
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-character(fnlen)                        :: dataset, groupname
-character(fnlen)                        :: ename, fname
-character(2)                            :: anglemode
-real(kind=dbl),parameter                :: nAmpere = 6.241D+18   ! Coulomb per second
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen)                                 :: dataset, groupname
+character(fnlen)                                 :: ename, fname
+character(2)                                     :: anglemode
+real(kind=dbl),parameter                         :: nAmpere = 6.241D+18   ! Coulomb per second
 
-integer(c_size_t),allocatable           :: IPAR2(:)
-real(kind=dbl),allocatable              :: X(:), XL(:), XU(:)
-real(kind=sgl),allocatable              :: INITMEANVAL(:)
-real(kind=dbl)                          :: RHOBEG, RHOEND
-integer(kind=irg)                       :: NPT, N, IPRINT, NSTEP, NINIT
-integer(kind=irg),parameter             :: MAXFUN = 10000
-logical                                 :: verbose
+integer(c_size_t),allocatable                    :: IPAR2(:)
+real(kind=dbl),allocatable                       :: X(:), XL(:), XU(:)
+real(kind=sgl),allocatable                       :: INITMEANVAL(:)
+real(kind=dbl)                                   :: RHOBEG, RHOEND
+integer(kind=irg)                                :: NPT, N, IPRINT, NSTEP, NINIT
+integer(kind=irg),parameter                      :: MAXFUN = 10000
+logical                                          :: verbose
 
-logical                                 :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
+logical                                          :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
                                            isECP=.FALSE., switchwfoff, set2zero=.FALSE., isOverlap = .FALSE.
 integer(kind=irg),parameter             :: iunitexpt = 41, itmpexpt = 42
 integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo, status 

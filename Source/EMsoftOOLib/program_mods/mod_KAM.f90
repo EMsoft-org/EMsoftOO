@@ -250,8 +250,8 @@ subroutine setorav_(self,inp)
 
 IMPLICIT NONE
 
-class(KAM_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(KAM_T), INTENT(INOUT)   :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%orav = inp
 
@@ -268,8 +268,8 @@ function getorav_(self) result(out)
 
 IMPLICIT NONE
 
-class(KAM_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(KAM_T), INTENT(INOUT) :: self
+integer(kind=irg)           :: out
 
 out = self%nml%orav
 
@@ -286,8 +286,8 @@ subroutine setdotproductfile_(self,inp)
 
 IMPLICIT NONE
 
-class(KAM_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(KAM_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%dotproductfile = trim(inp)
 
@@ -304,8 +304,8 @@ function getdotproductfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(KAM_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(KAM_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%dotproductfile)
 
@@ -322,8 +322,8 @@ subroutine setkamtiff_(self,inp)
 
 IMPLICIT NONE
 
-class(KAM_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(KAM_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%kamtiff = trim(inp)
 
@@ -340,8 +340,8 @@ function getkamtiff_(self) result(out)
 
 IMPLICIT NONE
 
-class(KAM_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(KAM_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%kamtiff)
 
@@ -367,26 +367,26 @@ use mod_rotations
 use mod_quaternions
 use ISO_C_BINDING
 use mod_image
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(KAM_T), INTENT(INOUT)             :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+class(KAM_T), INTENT(INOUT)          :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname 
 
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(IO_T)                              :: Message
-type(DIfile_T)                          :: DIFT
-type(DictionaryIndexingNameListType)    :: dinl
+type(HDF_T)                          :: HDF
+type(HDFnames_T)                     :: HDFnames
+type(IO_T)                           :: Message
+type(DIfile_T)                       :: DIFT
+type(DictionaryIndexingNameListType) :: dinl
 ! type(QuaternionArray_T)                 :: qAR, sym
 ! type(e_T)                               :: e 
 ! type(q_T)                               :: q 
 ! type(Quaternion_T)                      :: qu
 
-logical                                 :: stat, readonly, noindex
-integer(kind=irg)                       :: hdferr, nlines, FZcnt, Nexp, nnm, nnk, Pmdims, i, j, k, olabel, Nd, Ne, ipar(10), &
+logical                              :: stat, readonly, noindex
+integer(kind=irg)                    :: hdferr, nlines, FZcnt, Nexp, nnm, nnk, Pmdims, i, j, k, olabel, Nd, Ne, ipar(10), &
                                            ipar2(6), pgnum, ipat, ipf_wd, ipf_ht, idims2(2), io_int(2), TIFF_nx, TIFF_ny
 character(fnlen)                        :: groupname, dataset, fname, TIFF_filename, DIfile
 integer(HSIZE_T)                        :: dims2(2)

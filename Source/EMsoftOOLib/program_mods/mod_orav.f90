@@ -128,20 +128,20 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(orav_T), INTENT(INOUT)         :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(orav_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)  :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)  :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)               :: EMsoft 
+type(IO_T)                   :: Message       
+logical                      :: skipread = .FALSE.
 
-character(fnlen)        :: orientationfilename
-integer(kind=irg)       :: pgnum
-integer(kind=irg)       :: NumEM
-integer(kind=irg)       :: NumIter
+character(fnlen)             :: orientationfilename
+integer(kind=irg)            :: pgnum
+integer(kind=irg)            :: NumEM
+integer(kind=irg)            :: NumIter
 
 namelist / orav /  orientationfilename, pgnum, NumEM, NumIter 
 

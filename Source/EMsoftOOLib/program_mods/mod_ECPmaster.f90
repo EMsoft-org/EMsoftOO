@@ -232,41 +232,41 @@ use mod_MCfiles
 
 IMPLICIT NONE
 
-class(ECPmaster_T), INTENT(INOUT)       :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen),INTENT(IN)             :: progname
+class(ECPmaster_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)     :: EMsoft
+character(fnlen),INTENT(IN)       :: progname
 
-type(Cell_T)            :: cell
-type(DynType)           :: Dyn
-type(Timing_T)          :: timer
-type(IO_T)              :: Message
-type(Lambert_T)         :: L
-type(HDF_T)             :: HDF
-type(SpaceGroup_T)      :: SG
-type(Diffraction_T),save:: Diff
-type(MCfile_T)          :: MCFT
-type(MPfile_T)          :: MPFT
-type(kvectors_T)        :: kvec
-type(gvectors_T)        :: reflist
-type(HDFnames_T)        :: HDFnames
+type(Cell_T)                      :: cell
+type(DynType)                     :: Dyn
+type(Timing_T)                    :: timer
+type(IO_T)                        :: Message
+type(Lambert_T)                   :: L
+type(HDF_T)                       :: HDF
+type(SpaceGroup_T)                :: SG
+type(Diffraction_T),save          :: Diff
+type(MCfile_T)                    :: MCFT
+type(MPfile_T)                    :: MPFT
+type(kvectors_T)                  :: kvec
+type(gvectors_T)                  :: reflist
+type(HDFnames_T)                  :: HDFnames
 
-real(kind=dbl)          :: frac
-integer(kind=irg)       :: gzero, istat, tickstart
-type(MCOpenCLNameListType) :: mcnl
+real(kind=dbl)                    :: frac
+integer(kind=irg)                 :: gzero, istat, tickstart
+type(MCOpenCLNameListType)        :: mcnl
 
-integer(kind=irg)       :: numangle, numzbins, nx, ny, npy, totnum_el, numsites ! reading from MC file
-real(kind=dbl)          :: EkeV, Ehistmin, Ebinsize, depthmax, depthstep, sig, omega  ! reading from MC file
-integer(kind=irg), allocatable :: acc_z(:,:,:,:),accum_z(:,:,:,:) ! reading from MC file
+integer(kind=irg)                 :: numangle, numzbins, nx, ny, npy, totnum_el, numsites ! reading from MC file
+real(kind=dbl)                    :: EkeV, Ehistmin, Ebinsize, depthmax, depthstep, sig, omega  ! reading from MC file
+integer(kind=irg), allocatable    :: acc_z(:,:,:,:),accum_z(:,:,:,:) ! reading from MC file
 
-integer(kind=irg)       :: io_int_sgl(1), io_int(6) ! integer output variable
-real(kind=dbl)          :: io_real(5) ! real output variable
+integer(kind=irg)                 :: io_int_sgl(1), io_int(6) ! integer output variable
+real(kind=dbl)                    :: io_real(5) ! real output variable
 
-integer(kind=irg)       :: i, j, ik, kkk, isym, pgnum, SamplingType, nix, nixp, niy, niyp, hkl(3) ! variables for point group and Laue group
-integer(kind=irg),parameter     :: LaueTest(11) = (/ 149, 151, 153, 156, 158, 160, 161, 164, 165, 166, 167 /)  ! space groups with 2 or mirror at 30 degrees
-integer(kind=irg)       :: npyhex, ijmax, numk, skip ! parameters for calckvectors and calcwavelength subroutine
+integer(kind=irg)                 :: i, j, ik, kkk, isym, pgnum, SamplingType, nix, nixp, niy, niyp, hkl(3) ! variables for point group and Laue group
+integer(kind=irg),parameter       :: LaueTest(11) = (/ 149, 151, 153, 156, 158, 160, 161, 164, 165, 166, 167 /)  ! space groups with 2 or mirror at 30 degrees
+integer(kind=irg)                 :: npyhex, ijmax, numk, skip ! parameters for calckvectors and calcwavelength subroutine
 
-integer(kind=irg)       :: ga(3), gb(3) ! shortest reciprocal lattice vector for zone axis
-real(kind=sgl), allocatable :: thick(:), mLPNH(:,:,:), mLPSH(:,:,:), svals(:), lambdaZ(:), klist(:,:), knlist(:),&
+integer(kind=irg)                 :: ga(3), gb(3) ! shortest reciprocal lattice vector for zone axis
+real(kind=sgl), allocatable       :: thick(:), mLPNH(:,:,:), mLPSH(:,:,:), svals(:), lambdaZ(:), klist(:,:), knlist(:),&
                                masterSPNH(:,:,:), masterSPSH(:,:,:), auxNH(:,:,:), auxSH(:,:,:)
 real(kind=dbl)          :: intthick, dc(3), dx, dxm, dy, dym, edge, scl, xy(2), Radius, tpi
 complex(kind=dbl),allocatable   :: Lgh(:,:),Sgh(:,:),Sghtmp(:,:,:)

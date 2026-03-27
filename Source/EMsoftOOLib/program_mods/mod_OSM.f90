@@ -135,20 +135,20 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(OSM_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(OSM_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)              :: EMsoft
+type(IO_T)                  :: Message
+logical                     :: skipread = .FALSE.
 
-integer(kind=irg)       :: nmatch(5)
-character(fnlen)        :: dotproductfile
-character(fnlen)        :: tiffname
-logical                 :: dpweighted
+integer(kind=irg)           :: nmatch(5)
+character(fnlen)            :: dotproductfile
+character(fnlen)            :: tiffname
+logical                     :: dpweighted
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / getOSM / nmatch, dotproductfile, tiffname, dpweighted
@@ -367,33 +367,33 @@ use mod_DIsupport
 use mod_DIfiles
 use ISO_C_BINDING
 use mod_image
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(OSM_T), INTENT(INOUT)             :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
+class(OSM_T), INTENT(INOUT)          :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname
 
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(IO_T)                              :: Message
-type(DIfile_T)                          :: DIFT
-type(DictionaryIndexingNameListType)    :: dinl
+type(HDF_T)                          :: HDF
+type(HDFnames_T)                     :: HDFnames
+type(IO_T)                           :: Message
+type(DIfile_T)                       :: DIFT
+type(DictionaryIndexingNameListType) :: dinl
 
-real(kind=sgl),allocatable              :: OSMmap(:,:)
-integer(kind=irg)                       :: dims(2), dimsOSM(2), hdferr, io_int(2), osmnum, i
-character(fnlen)                        :: fname, TIFF_filename, dpfile, groupname, dataset, DIfile
-character(2)                            :: fnum
-real(kind=sgl)                          :: ma, mi
+real(kind=sgl),allocatable           :: OSMmap(:,:)
+integer(kind=irg)                    :: dims(2), dimsOSM(2), hdferr, io_int(2), osmnum, i
+character(fnlen)                     :: fname, TIFF_filename, dpfile, groupname, dataset, DIfile
+character(2)                         :: fnum
+real(kind=sgl)                       :: ma, mi
 
 ! declare variables for use in object oriented image module
-integer                                 :: iostat
-character(len=128)                      :: iomsg
-logical                                 :: isInteger
-type(image_t)                           :: im
-integer(int8)                           :: i8 (3,4)
-integer(int8), allocatable              :: TIFF_image(:,:)
+integer                              :: iostat
+character(len=128)                   :: iomsg
+logical                              :: isInteger
+type(image_t)                        :: im
+integer(int8)                        :: i8 (3,4)
+integer(int8), allocatable           :: TIFF_image(:,:)
 
 associate(osmnl=>self%nml, DIDT=>DIFT%DIDT)
 

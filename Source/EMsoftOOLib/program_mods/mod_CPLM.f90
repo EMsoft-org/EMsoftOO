@@ -327,8 +327,8 @@ subroutine setphinum_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CPLM_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%phinum = inp
 
@@ -345,8 +345,8 @@ function getphinum_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CPLM_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%phinum
 
@@ -363,8 +363,8 @@ subroutine setnumpx_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CPLM_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%numpx = inp
 
@@ -381,8 +381,8 @@ function getnumpx_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CPLM_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%numpx
 
@@ -399,8 +399,8 @@ subroutine setnumpy_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CPLM_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%numpy = inp
 
@@ -417,8 +417,8 @@ function getnumpy_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CPLM_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%numpy
 
@@ -435,8 +435,8 @@ subroutine settiffprefix_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%tiffprefix = trim(inp)
 
@@ -453,8 +453,8 @@ function gettiffprefix_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%tiffprefix)
 
@@ -471,8 +471,8 @@ subroutine settifffolder_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%tifffolder = trim(inp)
 
@@ -489,8 +489,8 @@ function gettifffolder_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%tifffolder)
 
@@ -507,8 +507,8 @@ subroutine setmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%masterfile = trim(inp)
 
@@ -525,8 +525,8 @@ function getmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%masterfile)
 
@@ -543,8 +543,8 @@ subroutine setanglefile_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%anglefile = trim(inp)
 
@@ -561,8 +561,8 @@ function getanglefile_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%anglefile)
 
@@ -579,8 +579,8 @@ subroutine setoutputfile_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%outputfile = trim(inp)
 
@@ -597,8 +597,8 @@ function getoutputfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLM_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CPLM_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%outputfile)
 
@@ -630,33 +630,33 @@ use mod_Lambert
 use mod_timing
 use mod_platformsupport
 use mod_image
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(CPLM_T), INTENT(INOUT)            :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(CPLM_T), INTENT(INOUT)    :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-type(IO_T)                              :: Message 
-type(CPLMmaster_T)                      :: CPLMmaster
-type(HDFnames_T)                        :: saveHDFnames
-type(so3_T)                             :: SO
-type(Cell_T)                            :: cell
-type(SpaceGroup_T)                      :: SG
-type(HDF_T)                             :: HDF
-type(QuaternionArray_T)                 :: qAR
-type(Quaternion_T)                      :: quat
-type(a_T)                               :: ax
-type(q_T)                               :: qu
-type(memory_T)                          :: mem
-type(StokesVectorType)                  :: SVin, SV, SVout
-type(MuellerCalculus_T)                 :: MC
-type(MuellerMatrixType)                 :: MMsample, MMchain
-type(Timing_T)                          :: timer
+type(IO_T)                      :: Message 
+type(CPLMmaster_T)              :: CPLMmaster
+type(HDFnames_T)                :: saveHDFnames
+type(so3_T)                     :: SO
+type(Cell_T)                    :: cell
+type(SpaceGroup_T)              :: SG
+type(HDF_T)                     :: HDF
+type(QuaternionArray_T)         :: qAR
+type(Quaternion_T)              :: quat
+type(a_T)                       :: ax
+type(q_T)                       :: qu
+type(memory_T)                  :: mem
+type(StokesVectorType)          :: SVin, SV, SVout
+type(MuellerCalculus_T)         :: MC
+type(MuellerMatrixType)         :: MMsample, MMchain
+type(Timing_T)                  :: timer
   
-character(fnlen)                        :: fname, oname, descriptor, datafile, dataset, groupname, attributename, &
+character(fnlen)                :: fname, oname, descriptor, datafile, dataset, groupname, attributename, &
                                            datagroupname, HDF_FileVersion 
 logical                                 :: f_exists, g_exists, overwrite = .TRUE.
 integer(kind=irg)                       :: pgnum, hdferr, npx, numpoints, i, j, k, nix, niy, nixp, niyp, io_int(1), status

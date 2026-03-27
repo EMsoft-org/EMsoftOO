@@ -164,27 +164,27 @@ use mod_io
 
 IMPLICIT NONE 
 
-class(CPLMmaster_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(CPLMmaster_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)        :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)        :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(IO_T)                         :: Message       
+logical                            :: skipread = .FALSE.
 
-integer(kind=irg)                    :: npx
-integer(kind=irg)                    :: nthreads
-real(kind=sgl)                       :: eps1Re
-real(kind=sgl)                       :: eps1Im
-real(kind=sgl)                       :: eps2Re
-real(kind=sgl)                       :: eps2Im
-real(kind=sgl)                       :: wl
-real(kind=sgl)                       :: theta 
-logical                              :: normalize
-character(3)                         :: Notify
-character(fnlen)                     :: xtalname
-character(fnlen)                     :: masterfile
+integer(kind=irg)                  :: npx
+integer(kind=irg)                  :: nthreads
+real(kind=sgl)                     :: eps1Re
+real(kind=sgl)                     :: eps1Im
+real(kind=sgl)                     :: eps2Re
+real(kind=sgl)                     :: eps2Im
+real(kind=sgl)                     :: wl
+real(kind=sgl)                     :: theta 
+logical                            :: normalize
+character(3)                       :: Notify
+character(fnlen)                   :: xtalname
+character(fnlen)                   :: masterfile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / CPLMMasterData / npx, nthreads, eps1Re, eps1Im, eps2Re, eps2Im, wl, theta, &
@@ -272,16 +272,16 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)        :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(CPLMmaster_T), INTENT(INOUT) :: self 
+type(HDF_T), INTENT(INOUT)         :: HDF
+type(HDFnames_T), INTENT(INOUT)    :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 3, n_real = 6
-integer(kind=irg)                       :: hdferr,  io_int(n_int), nm
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+integer(kind=irg),parameter        :: n_int = 3, n_real = 6
+integer(kind=irg)                  :: hdferr,  io_int(n_int), nm
+real(kind=sgl)                     :: io_real(n_real)
+character(20)                      :: intlist(n_int), reallist(n_real)
+character(fnlen)                   :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)       :: line2(1)
 
 associate( omnl => self%nml )
 
@@ -345,23 +345,23 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)        :: self 
-type(EMsoft_T), INTENT(INOUT)             :: EMsoft
-type(HDF_T), INTENT(INOUT)                :: HDF
-type(HDFnames_T), INTENT(INOUT)           :: HDFnames
-character(fnlen),INTENT(IN)               :: mpfile
-integer(kind=irg),INTENT(OUT)             :: hdferr
-logical,INTENT(IN),OPTIONAL               :: getMaster
+class(CPLMmaster_T), INTENT(INOUT)               :: self 
+type(EMsoft_T), INTENT(INOUT)                    :: EMsoft
+type(HDF_T), INTENT(INOUT)                       :: HDF
+type(HDFnames_T), INTENT(INOUT)                  :: HDFnames
+character(fnlen),INTENT(IN)                      :: mpfile
+integer(kind=irg),INTENT(OUT)                    :: hdferr
+logical,INTENT(IN),OPTIONAL                      :: getMaster
 
-type(IO_T)                                :: Message 
+type(IO_T)                                       :: Message 
 
-character(fnlen)                          :: groupname, dataset, tmpnmlname 
-logical                                   :: g_exists, stat 
-integer(kind=irg)                         :: nlines, i, j, npx
-integer(HSIZE_T)                          :: sz(1), dims4(4)
-real(kind=dbl),allocatable                :: master(:,:,:,:)
+character(fnlen)                                 :: groupname, dataset, tmpnmlname 
+logical                                          :: g_exists, stat 
+integer(kind=irg)                                :: nlines, i, j, npx
+integer(HSIZE_T)                                 :: sz(1), dims4(4)
+real(kind=dbl),allocatable                       :: master(:,:,:,:)
 
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 ! is this a proper HDF5 file ?
 call h5fis_hdf5_f(trim(mpfile), stat, hdferr)
@@ -441,8 +441,8 @@ subroutine setnpx_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%npx = inp
 
@@ -459,8 +459,8 @@ function getnpx_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%npx
 
@@ -477,8 +477,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%nthreads = inp
 
@@ -495,8 +495,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%nthreads
 
@@ -513,8 +513,8 @@ subroutine seteps1Re_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%eps1Re = inp
 
@@ -531,8 +531,8 @@ function geteps1Re_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%eps1Re
 
@@ -549,8 +549,8 @@ subroutine seteps1Im_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%eps1Im = inp
 
@@ -567,8 +567,8 @@ function geteps1Im_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%eps1Im
 
@@ -585,8 +585,8 @@ subroutine seteps2Re_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%eps2Re = inp
 
@@ -603,8 +603,8 @@ function geteps2Re_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%eps2Re
 
@@ -621,8 +621,8 @@ subroutine seteps2Im_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%eps2Im = inp
 
@@ -639,8 +639,8 @@ function geteps2Im_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%eps2Im
 
@@ -657,8 +657,8 @@ subroutine setwl_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%wl = inp
 
@@ -675,8 +675,8 @@ function getwl_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%wl
 
@@ -693,8 +693,8 @@ subroutine settheta_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%theta = inp
 
@@ -711,8 +711,8 @@ function gettheta_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%theta
 
@@ -729,8 +729,8 @@ subroutine setnormalize_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-logical, INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+logical, INTENT(IN)                :: inp
 
 self%nml%normalize = inp
 
@@ -747,8 +747,8 @@ function getnormalize_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-logical                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+logical                            :: out
 
 out = self%nml%normalize
 
@@ -765,8 +765,8 @@ subroutine setNotify_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(CPLMmaster_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)           :: inp
 
 self%nml%Notify = trim(inp)
 
@@ -783,8 +783,8 @@ function getNotify_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(CPLMmaster_T), INTENT(INOUT) :: self
+character(3)                       :: out
 
 out = trim(self%nml%Notify)
 
@@ -801,7 +801,7 @@ subroutine setxtalname_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
+class(CPLMmaster_T), INTENT(INOUT) :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%xtalname = trim(inp)
@@ -819,7 +819,7 @@ function getxtalname_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
+class(CPLMmaster_T), INTENT(INOUT) :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%xtalname)
@@ -837,7 +837,7 @@ subroutine setmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
+class(CPLMmaster_T), INTENT(INOUT) :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%masterfile = trim(inp)
@@ -855,7 +855,7 @@ function getmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(CPLMmaster_T), INTENT(INOUT)     :: self
+class(CPLMmaster_T), INTENT(INOUT) :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%masterfile)

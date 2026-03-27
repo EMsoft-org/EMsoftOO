@@ -218,47 +218,47 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(hh_T), INTENT(INOUT)           :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(hh_T), INTENT(INOUT)  :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)              :: EMsoft 
+type(IO_T)                  :: Message       
+logical                     :: skipread = .FALSE.
 
-integer(kind=irg)       :: IROW
-integer(kind=irg)       :: ICOL
-integer(kind=irg)       :: LB(3), LD 
-integer(kind=irg)       :: LB2(3), LD2
-integer(kind=irg)       :: LB3(3), LD3
-integer(kind=irg)       :: LB4(3), LD4
-integer(kind=irg)       :: LU(3)
-integer(kind=irg)       :: LG(3)
-integer(kind=irg)       :: LBM(3)
-integer(kind=irg)       :: LFN(3)
-integer(kind=irg)       :: wnum
-integer(kind=irg)       :: LFP1(3), LFP(3), LFP3(3)
-integer(kind=irg)       :: LS1(3), LQ1 
-integer(kind=irg)       :: LS2(3), LQ2 
-integer(kind=irg)       :: LS3(3), LQ3 
-integer(kind=sgl)       :: LTEST
-real(kind=sgl)          :: kV
-real(kind=sgl)          :: THICK, START, FINISH
-real(kind=sgl)          :: wmin, wmax
-real(kind=sgl)          :: SEP, SEP2
-real(kind=sgl)          :: FAP1, FAP3
-real(kind=sgl)          :: D1row1(6)
-real(kind=sgl)          :: D1row2(6)
-real(kind=sgl)          :: D1row3(6)
-real(kind=sgl)          :: D1row4(6)
-real(kind=sgl)          :: D1row5(6)
-real(kind=sgl)          :: D1row6(6)
-character(fnlen)        :: xtalname
-character(fnlen)        :: outname
-character(fnlen)        :: imageprefix
-character(fnlen)        :: imagetype 
+integer(kind=irg)           :: IROW
+integer(kind=irg)           :: ICOL
+integer(kind=irg)           :: LB(3), LD 
+integer(kind=irg)           :: LB2(3), LD2
+integer(kind=irg)           :: LB3(3), LD3
+integer(kind=irg)           :: LB4(3), LD4
+integer(kind=irg)           :: LU(3)
+integer(kind=irg)           :: LG(3)
+integer(kind=irg)           :: LBM(3)
+integer(kind=irg)           :: LFN(3)
+integer(kind=irg)           :: wnum
+integer(kind=irg)           :: LFP1(3), LFP(3), LFP3(3)
+integer(kind=irg)           :: LS1(3), LQ1 
+integer(kind=irg)           :: LS2(3), LQ2 
+integer(kind=irg)           :: LS3(3), LQ3 
+integer(kind=sgl)           :: LTEST
+real(kind=sgl)              :: kV
+real(kind=sgl)              :: THICK, START, FINISH
+real(kind=sgl)              :: wmin, wmax
+real(kind=sgl)              :: SEP, SEP2
+real(kind=sgl)              :: FAP1, FAP3
+real(kind=sgl)              :: D1row1(6)
+real(kind=sgl)              :: D1row2(6)
+real(kind=sgl)              :: D1row3(6)
+real(kind=sgl)              :: D1row4(6)
+real(kind=sgl)              :: D1row5(6)
+real(kind=sgl)              :: D1row6(6)
+character(fnlen)            :: xtalname
+character(fnlen)            :: outname
+character(fnlen)            :: imageprefix
+character(fnlen)            :: imagetype 
 
 namelist /hhlist/ IROW, ICOL, LB, LD , LB2, LD2, LB3, LD3, LB4, LD4, LU, LG, LBM, LFN, &
                   wnum, LFP1, LFP, LFP3, LS1, LQ1 , LS2, LQ2 , LS3, LQ3 , LTEST, kV, THICK, START, FINISH, &
@@ -798,8 +798,8 @@ type(MA_block),INTENT(INOUT)      :: MA
 type(SCALE30_block),INTENT(INOUT) :: SCALE30
 !f2py intent(in,out) ::  SCALE30
 
-integer(kind=irg)              :: I, J, K, L, M, N, LT, KQ, KR, KS, KT, NJ, I1, I2, J1, J2, K1, K2, LP, LQ, KP, NL, ML
-integer(kind=irg),parameter    :: L1(6)=(/1,2,3,2,3,1/), L2(6)=(/1,2,3,3,1,2/), &
+integer(kind=irg)                 :: I, J, K, L, M, N, LT, KQ, KR, KS, KT, NJ, I1, I2, J1, J2, K1, K2, LP, LQ, KP, NL, ML
+integer(kind=irg),parameter       :: L1(6)=(/1,2,3,2,3,1/), L2(6)=(/1,2,3,3,1,2/), &
                                   L3(3,3)= reshape( (/1,6,5,6,2,4,5,4,3/), (/3,3/) ), & 
                                   N1(4)=(/2,4,2,1/), N2(4)=(/3,1,4,2/), N3(4)=(/4,3,1,3/), &
                                   NN(3)=(/6,2,4/), MM(3)=(/1,6,5/), NP(3) = (/2,3,1/), NQ(3) = (/3,1,2/)
@@ -1076,9 +1076,9 @@ type(SCALE30_block),INTENT(INOUT) :: SCALE30
 !*     SUBROUTINE PANCALC has been extended for a   * 
 !*     piezoelectric crystal with a core-charge "Q" * 
 !**************************************************** 
-complex(kind=sgl)           :: PC, AS, EL
-complex(kind=sgl)           :: A(4,4), AY(4), AXA(4,4), AXL(4,4), LXL(4,4), MXX(4), MXXX(4,4)
-real(kind=sgl)              :: C(6,6), EE(3,6), EN(3,3), QM(7,4), G(9), E(9), F(9), HI(12),  &
+complex(kind=sgl)                 :: PC, AS, EL
+complex(kind=sgl)                 :: A(4,4), AY(4), AXA(4,4), AXL(4,4), LXL(4,4), MXX(4), MXXX(4,4)
+real(kind=sgl)                    :: C(6,6), EE(3,6), EN(3,3), QM(7,4), G(9), E(9), F(9), HI(12),  &
                                PR(4), PI(4), X, Y, Z, PR1, PI1, PR2, PI2, PR3, PI3, PR4, PI4, AZ, &
                                BY, CY, D, AZZ, BZ, CZ, DZ
 integer(kind=irg)           :: I, J, K, L, M, N, LP, LQ, LT, LV, KP, KQ, KR, KS, KT, &
@@ -1854,11 +1854,11 @@ recursive subroutine DERIV(MRD)
 
 IMPLICIT NONE
 
-type(MRD_block),INTENT(INOUT)     :: MRD
+type(MRD_block),INTENT(INOUT) :: MRD
 !f2py intent(in,out) ::  MRD
 
-real       :: X11, X22, X33, X44, R1, R2, R3, R4, BETA1, BETA2, BETA3, BETA4, Z
-real,save  :: BETA
+real                          :: X11, X22, X33, X44, R1, R2, R3, R4, BETA1, BETA2, BETA3, BETA4, Z
+real,save                     :: BETA
 ! 
 ! 
  if (MRD%SKIP.eq.0.0) then
@@ -2000,39 +2000,39 @@ use mod_HDFnames
 use stringconstants
 use mod_image
 use mod_memory
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(hh_T), INTENT(INOUT)              :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
+class(hh_T), INTENT(INOUT)      :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
 
-type(Cell_T)                            :: cell
-type(SpaceGroup_T)                      :: SG
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(Timing_T)                          :: timer
-type(IO_T)                              :: Message
-type(memory_T)                          :: mem
-type(Diffraction_T)                     :: Diff
+type(Cell_T)                    :: cell
+type(SpaceGroup_T)              :: SG
+type(HDF_T)                     :: HDF
+type(HDFnames_T)                :: HDFnames
+type(Timing_T)                  :: timer
+type(IO_T)                      :: Message
+type(memory_T)                  :: mem
+type(Diffraction_T)             :: Diff
 
 ! all original COMMON blocks are replaced by user-defined structures in this module
-type(MAPN_block)              :: MAPN
-type(MA_block)                :: MA
-type(MKAP_block)              :: MKAP
-type(MRD_block)               :: MRD
-type(MT_block)                :: MT
-type(MKT_block)               :: MKT
-type(SCALE30_block)           :: SCALE30
-type(MP_block)                :: MP
-type(MAP_block)               :: MAP
+type(MAPN_block)                :: MAPN
+type(MA_block)                  :: MA
+type(MKAP_block)                :: MKAP
+type(MRD_block)                 :: MRD
+type(MT_block)                  :: MT
+type(MKT_block)                 :: MKT
+type(SCALE30_block)             :: SCALE30
+type(MP_block)                  :: MP
+type(MAP_block)                 :: MAP
 
 !=======================
 ! original hh4.f variables 
 !=======================
 ! regular integers
-integer(kind=irg)             :: LLQ, NNN, NNNN, I, J, JB, JC, K, L, KMIN, KMAX, KTOT, MOVE, LUCK, ISTORE, LSWITC, &
+integer(kind=irg)               :: LLQ, NNN, NNNN, I, J, JB, JC, K, L, KMIN, KMAX, KTOT, MOVE, LUCK, ISTORE, LSWITC, &
                                  IFLAG, JT, JM, KOUNTF, INDL, KK, JZ, IND, LD, LQ, LPIEZO
 ! regular integer arrays
 integer(kind=irg)             :: ITYPE(4)

@@ -174,63 +174,63 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(HREBSD_DIC_T), INTENT(INOUT)   :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(HREBSD_DIC_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)        :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)        :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                     :: EMsoft 
+type(IO_T)                         :: Message       
+logical                            :: skipread = .FALSE.
 
-integer(kind=irg)    :: patx
-integer(kind=irg)    :: paty
-integer(kind=irg)    :: nbx
-integer(kind=irg)    :: nby
-integer(kind=irg)    :: maxnumit
-integer(kind=irg)    :: nthreads
-integer(kind=irg)    :: ipf_ht
-integer(kind=irg)    :: ipf_wd
-integer(kind=irg)    :: maskradius
-integer(kind=irg)    :: exptnumsx
-integer(kind=irg)    :: exptnumsy
-integer(kind=irg)    :: binning
-integer(kind=irg)    :: nregions
-integer(kind=irg)    :: logparam
-real(kind=dbl)       :: hipassw
-real(kind=sgl)       :: L
-real(kind=sgl)       :: thetac
-real(kind=sgl)       :: sigma
-real(kind=sgl)       :: delta
-real(kind=sgl)       :: omega
-real(kind=sgl)       :: xpc
-real(kind=sgl)       :: ypc
-real(kind=sgl)       :: energymin        ! not used for now
-real(kind=sgl)       :: energymax        ! not used for now
-real(kind=sgl)       :: stepX
-real(kind=sgl)       :: stepY
-real(kind=sgl)       :: C11
-real(kind=sgl)       :: C12
-real(kind=sgl)       :: C44
-real(kind=sgl)       :: C13
-real(kind=sgl)       :: C33
-real(kind=dbl)       :: mindeltap
-real(kind=dbl)       :: scalingfactor
-character(fnlen)     :: pixelornormalized
-character(fnlen)     :: exptfile
-character(fnlen)     :: datafile
-character(fnlen)     :: tmpfile
-character(fnlen)     :: inputtype
-character(3)         :: crystal
-character(3)         :: filtertype
-character(1)         :: keeptmpfile
-character(1)         :: maskpattern
-logical              :: verbose
-integer(kind=irg)    :: cross(4)
-integer(kind=irg)    :: ROI(4)
-integer(kind=irg)    :: refpatpos(2)
-character(fnlen)     :: HDFstrings(10)
+integer(kind=irg)                  :: patx
+integer(kind=irg)                  :: paty
+integer(kind=irg)                  :: nbx
+integer(kind=irg)                  :: nby
+integer(kind=irg)                  :: maxnumit
+integer(kind=irg)                  :: nthreads
+integer(kind=irg)                  :: ipf_ht
+integer(kind=irg)                  :: ipf_wd
+integer(kind=irg)                  :: maskradius
+integer(kind=irg)                  :: exptnumsx
+integer(kind=irg)                  :: exptnumsy
+integer(kind=irg)                  :: binning
+integer(kind=irg)                  :: nregions
+integer(kind=irg)                  :: logparam
+real(kind=dbl)                     :: hipassw
+real(kind=sgl)                     :: L
+real(kind=sgl)                     :: thetac
+real(kind=sgl)                     :: sigma
+real(kind=sgl)                     :: delta
+real(kind=sgl)                     :: omega
+real(kind=sgl)                     :: xpc
+real(kind=sgl)                     :: ypc
+real(kind=sgl)                     :: energymin        ! not used for now
+real(kind=sgl)                     :: energymax        ! not used for now
+real(kind=sgl)                     :: stepX
+real(kind=sgl)                     :: stepY
+real(kind=sgl)                     :: C11
+real(kind=sgl)                     :: C12
+real(kind=sgl)                     :: C44
+real(kind=sgl)                     :: C13
+real(kind=sgl)                     :: C33
+real(kind=dbl)                     :: mindeltap
+real(kind=dbl)                     :: scalingfactor
+character(fnlen)                   :: pixelornormalized
+character(fnlen)                   :: exptfile
+character(fnlen)                   :: datafile
+character(fnlen)                   :: tmpfile
+character(fnlen)                   :: inputtype
+character(3)                       :: crystal
+character(3)                       :: filtertype
+character(1)                       :: keeptmpfile
+character(1)                       :: maskpattern
+logical                            :: verbose
+integer(kind=irg)                  :: cross(4)
+integer(kind=irg)                  :: ROI(4)
+integer(kind=irg)                  :: refpatpos(2)
+character(fnlen)                   :: HDFstrings(10)
 
 
 namelist / HREBSDDICdata / patx, paty, nthreads, C11, C12, C44, C13, C33, mindeltap, verbose, sigma, ROI, binning, & 

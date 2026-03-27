@@ -145,22 +145,22 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(DisOrMap_T), INTENT(INOUT)     :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(DisOrMap_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)      :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)      :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                   :: EMsoft 
+type(IO_T)                       :: Message       
+logical                          :: skipread = .FALSE.
 
-integer(kind=irg)   :: px(10)
-integer(kind=irg)   :: py(10)
-character(fnlen)    :: dotproductfile
-character(fnlen)    :: DisOrMapfile
-character(fnlen)    :: DisOrType
-character(fnlen)    :: angletype
+integer(kind=irg)                :: px(10)
+integer(kind=irg)                :: py(10)
+character(fnlen)                 :: dotproductfile
+character(fnlen)                 :: DisOrMapfile
+character(fnlen)                 :: DisOrType
+character(fnlen)                 :: angletype
 
 namelist / DisOrMap / px, py, dotproductfile, DisOrMapfile, DisOrType, angletype
 
@@ -458,29 +458,29 @@ use mod_rotations
 use ISO_C_BINDING
 use mod_DIsupport
 use mod_image
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(DisOrMap_T), INTENT(INOUT)      :: self
-type(EMsoft_T), INTENT(INOUT)         :: EMsoft
-character(fnlen), INTENT(INOUT)       :: progname 
+class(DisOrMap_T), INTENT(INOUT)     :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname 
 
-type(HDF_T)                           :: HDF
-type(HDFnames_T)                      :: HDFnames
-type(IO_T)                            :: Message
-type(DIfile_T)                        :: DIFT
-type(memory_T)                        :: mem
-type(DictionaryIndexingNameListType)  :: dinl
-type(so3_T)                           :: SO
-type(QuaternionArray_T)               :: qAR, qdummy, qInp
-type(Quaternion_T)                    :: quat
-type(e_T)                             :: eu 
-type(q_T)                             :: qu, quref
-type(a_T)                             :: disax
+type(HDF_T)                          :: HDF
+type(HDFnames_T)                     :: HDFnames
+type(IO_T)                           :: Message
+type(DIfile_T)                       :: DIFT
+type(memory_T)                       :: mem
+type(DictionaryIndexingNameListType) :: dinl
+type(so3_T)                          :: SO
+type(QuaternionArray_T)              :: qAR, qdummy, qInp
+type(Quaternion_T)                   :: quat
+type(e_T)                            :: eu 
+type(q_T)                            :: qu, quref
+type(a_T)                            :: disax
 
-character(fnlen)                      :: DIfile, TIFF_filename
-integer(kind=irg)                     :: hdferr, ipf_x, ipf_y, ipf_wd, ipf_ht, i, j, nump, &
+character(fnlen)                     :: DIfile, TIFF_filename
+integer(kind=irg)                    :: hdferr, ipf_x, ipf_y, ipf_wd, ipf_ht, i, j, nump, &
                                          io_int(2), numdis, Pmdims, FZt, FZo, ix, iy, mp(1), ipos
 real(kind=dbl),allocatable            :: disor(:,:), qdinp(:,:), dmap(:,:)
 real(kind=sgl),allocatable            :: kam(:,:)

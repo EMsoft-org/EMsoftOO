@@ -227,38 +227,38 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(ISEDI_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)   :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)   :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                :: EMsoft 
+type(IO_T)                    :: Message       
+logical                       :: skipread = .FALSE.
 
-integer(kind=irg)                    :: ipf_wd
-integer(kind=irg)                    :: ipf_ht
-integer(kind=irg)                    :: nnk
-integer(kind=irg)                    :: nosm
-integer(kind=irg)                    :: ncubochoric
-integer(kind=irg)                    :: nsteps
-integer(kind=irg)                    :: nbatch
-integer(kind=irg)                    :: nthreads
-integer(kind=irg)                    :: sw
-real(kind=sgl)                       :: stepX
-real(kind=sgl)                       :: stepY
-real(kind=sgl)                       :: omega
-real(kind=sgl)                       :: omega_step
-real(kind=sgl)                       :: lambda
-real(kind=sgl)                       :: tiltaxis(3)
-logical                              :: doNLPAR
-character(fnlen)                     :: HDFstrings(10)
-character(fnlen)                     :: exptfile
-character(fnlen)                     :: datafile
-character(fnlen)                     :: ctffile
-character(fnlen)                     :: angfile
-character(fnlen)                     :: masterfile
+integer(kind=irg)             :: ipf_wd
+integer(kind=irg)             :: ipf_ht
+integer(kind=irg)             :: nnk
+integer(kind=irg)             :: nosm
+integer(kind=irg)             :: ncubochoric
+integer(kind=irg)             :: nsteps
+integer(kind=irg)             :: nbatch
+integer(kind=irg)             :: nthreads
+integer(kind=irg)             :: sw
+real(kind=sgl)                :: stepX
+real(kind=sgl)                :: stepY
+real(kind=sgl)                :: omega
+real(kind=sgl)                :: omega_step
+real(kind=sgl)                :: lambda
+real(kind=sgl)                :: tiltaxis(3)
+logical                       :: doNLPAR
+character(fnlen)              :: HDFstrings(10)
+character(fnlen)              :: exptfile
+character(fnlen)              :: datafile
+character(fnlen)              :: ctffile
+character(fnlen)              :: angfile
+character(fnlen)              :: masterfile
 
 namelist / ISEDIdata / ipf_wd, ipf_ht, nnk, nosm, ncubochoric, nsteps, nbatch, nthreads, &
                        stepX, stepY, omega, omega_step, HDFstrings, exptfile, datafile, &
@@ -372,16 +372,16 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)        :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(ISEDI_T), INTENT(INOUT)   :: self 
+type(HDF_T), INTENT(INOUT)      :: HDF
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+integer(kind=irg),parameter     :: n_int = 11, n_real = 9
+integer(kind=irg)               :: hdferr,  io_int(n_int)
+real(kind=sgl)                  :: io_real(n_real)
+character(20)                   :: intlist(n_int), reallist(n_real)
+character(fnlen)                :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)    :: line2(1)
 
 associate( mcnl => self%nml )
 
@@ -400,8 +400,8 @@ subroutine setipf_wd_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%ipf_wd = inp
 
@@ -418,8 +418,8 @@ function getipf_wd_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%ipf_wd
 
@@ -436,8 +436,8 @@ subroutine setipf_ht_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%ipf_ht = inp
 
@@ -454,8 +454,8 @@ function getipf_ht_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%ipf_ht
 
@@ -472,8 +472,8 @@ subroutine setnnk_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nnk = inp
 
@@ -490,8 +490,8 @@ function getnnk_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%nnk
 
@@ -508,8 +508,8 @@ subroutine setsw_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%sw = inp
 
@@ -526,8 +526,8 @@ function getsw_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%sw
 
@@ -544,8 +544,8 @@ subroutine setlambda_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)    :: inp
 
 self%nml%lambda = inp
 
@@ -562,8 +562,8 @@ function getlambda_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl)                :: out
 
 out = self%nml%lambda
 
@@ -615,8 +615,8 @@ subroutine setnosm_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nosm = inp
 
@@ -633,8 +633,8 @@ function getnosm_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%nosm
 
@@ -651,8 +651,8 @@ subroutine setncubochoric_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%ncubochoric = inp
 
@@ -669,8 +669,8 @@ function getncubochoric_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%ncubochoric
 
@@ -687,8 +687,8 @@ subroutine setnsteps_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nsteps = inp
 
@@ -705,8 +705,8 @@ function getnsteps_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%nsteps
 
@@ -723,8 +723,8 @@ subroutine setnbatch_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nbatch = inp
 
@@ -741,8 +741,8 @@ function getnbatch_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%nbatch
 
@@ -759,8 +759,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nthreads = inp
 
@@ -777,8 +777,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+integer(kind=irg)             :: out
 
 out = self%nml%nthreads
 
@@ -795,8 +795,8 @@ subroutine setstepX_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)    :: inp
 
 self%nml%stepX = inp
 
@@ -813,8 +813,8 @@ function getstepX_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl)                :: out
 
 out = self%nml%stepX
 
@@ -831,8 +831,8 @@ subroutine setstepY_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)    :: inp
 
 self%nml%stepY = inp
 
@@ -849,8 +849,8 @@ function getstepY_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl)                :: out
 
 out = self%nml%stepY
 
@@ -867,8 +867,8 @@ subroutine settiltaxis_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp(3)
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)    :: inp(3)
 
 self%nml%tiltaxis = inp
 
@@ -885,8 +885,8 @@ function gettiltaxis_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out(3)
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl)                :: out(3)
 
 out = self%nml%tiltaxis
 
@@ -903,8 +903,8 @@ subroutine setomega_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)    :: inp
 
 self%nml%omega = inp
 
@@ -921,8 +921,8 @@ function getomega_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl)                :: out
 
 out = self%nml%omega
 
@@ -939,8 +939,8 @@ subroutine setomega_step_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)    :: inp
 
 self%nml%omega_step = inp
 
@@ -957,8 +957,8 @@ function getomega_step_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+real(kind=sgl)                :: out
 
 out = self%nml%omega_step
 
@@ -1019,8 +1019,8 @@ subroutine setexptfile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)  :: inp
 
 self%nml%exptfile = trim(inp)
 
@@ -1037,8 +1037,8 @@ function getexptfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen)              :: out
 
 out = trim(self%nml%exptfile)
 
@@ -1055,8 +1055,8 @@ subroutine setdatafile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)  :: inp
 
 self%nml%datafile = trim(inp)
 
@@ -1073,8 +1073,8 @@ function getdatafile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen)              :: out
 
 out = trim(self%nml%datafile)
 
@@ -1091,8 +1091,8 @@ subroutine setctffile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)  :: inp
 
 self%nml%ctffile = trim(inp)
 
@@ -1109,8 +1109,8 @@ function getctffile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen)              :: out
 
 out = trim(self%nml%ctffile)
 
@@ -1127,8 +1127,8 @@ subroutine setangfile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)  :: inp
 
 self%nml%angfile = trim(inp)
 
@@ -1145,8 +1145,8 @@ function getangfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen)              :: out
 
 out = trim(self%nml%angfile)
 
@@ -1163,8 +1163,8 @@ subroutine setmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)  :: inp
 
 self%nml%masterfile = trim(inp)
 
@@ -1181,8 +1181,8 @@ function getmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISEDI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISEDI_T), INTENT(INOUT) :: self
+character(fnlen)              :: out
 
 out = trim(self%nml%masterfile)
 

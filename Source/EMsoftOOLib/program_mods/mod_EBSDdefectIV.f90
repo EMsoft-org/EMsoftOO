@@ -194,7 +194,7 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(EBSDdefectIV_T), INTENT(INOUT)          :: self
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
 character(fnlen),INTENT(IN)          :: nmlfile
  !! full path to namelist file 
 logical,OPTIONAL,INTENT(IN)          :: initonly
@@ -403,8 +403,8 @@ subroutine setnumsx_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)        :: inp
 
 self%nml%numsx = inp
 
@@ -421,8 +421,8 @@ function getnumsx_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+integer(kind=irg)                    :: out
 
 out = self%nml%numsx
 
@@ -439,8 +439,8 @@ subroutine setnumsy_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)        :: inp
 
 self%nml%numsy = inp
 
@@ -457,8 +457,8 @@ function getnumsy_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+integer(kind=irg)                    :: out
 
 out = self%nml%numsy
 
@@ -475,8 +475,8 @@ subroutine setbinning_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)        :: inp
 
 self%nml%binning = inp
 
@@ -493,8 +493,8 @@ function getbinning_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+integer(kind=irg)                    :: out
 
 out = self%nml%binning
 
@@ -511,8 +511,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)        :: inp
 
 self%nml%nthreads = inp
 
@@ -529,8 +529,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+integer(kind=irg)                    :: out
 
 out = self%nml%nthreads
 
@@ -547,8 +547,8 @@ subroutine setthetac_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)           :: inp
 
 self%nml%thetac = inp
 
@@ -565,8 +565,8 @@ function getthetac_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=sgl)                       :: out
 
 out = self%nml%thetac
 
@@ -583,8 +583,8 @@ subroutine setdelta_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)           :: inp
 
 self%nml%delta = inp
 
@@ -601,8 +601,8 @@ function getdelta_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=sgl)                       :: out
 
 out = self%nml%delta
 
@@ -619,8 +619,8 @@ subroutine setspotsize_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)           :: inp
 
 self%nml%spotsize = inp
 
@@ -637,8 +637,8 @@ function getspotsize_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=sgl)                       :: out
 
 out = self%nml%spotsize
 
@@ -655,8 +655,8 @@ subroutine setgammavalue_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)           :: inp
 
 self%nml%gammavalue = inp
 
@@ -673,8 +673,8 @@ function getgammavalue_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=sgl)                       :: out
 
 out = self%nml%gammavalue
 
@@ -691,8 +691,8 @@ subroutine setbeamcurrent_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=dbl), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=dbl), INTENT(IN)           :: inp
 
 self%nml%beamcurrent = inp
 
@@ -709,8 +709,8 @@ function getbeamcurrent_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=dbl)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=dbl)                       :: out
 
 out = self%nml%beamcurrent
 
@@ -727,8 +727,8 @@ subroutine setdwelltime_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=dbl), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=dbl), INTENT(IN)           :: inp
 
 self%nml%dwelltime = inp
 
@@ -745,8 +745,8 @@ function getdwelltime_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-real(kind=dbl)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+real(kind=dbl)                       :: out
 
 out = self%nml%dwelltime
 
@@ -763,8 +763,8 @@ subroutine setscalingmode_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)             :: inp
 
 self%nml%scalingmode = trim(inp)
 
@@ -781,8 +781,8 @@ function getscalingmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(3)                         :: out
 
 out = trim(self%nml%scalingmode)
 
@@ -799,8 +799,8 @@ subroutine setsampleInteractionVolume_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-logical, INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+logical, INTENT(IN)                  :: inp
 
 self%nml%sampleInteractionVolume = inp
 
@@ -817,8 +817,8 @@ function getsampleInteractionVolume_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-logical                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+logical                              :: out
 
 out = self%nml%sampleInteractionVolume
 
@@ -835,8 +835,8 @@ subroutine setdeformationfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)         :: inp
 
 self%nml%deformationfile = trim(inp)
 
@@ -853,8 +853,8 @@ function getdeformationfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(fnlen)                     :: out
 
 out = trim(self%nml%deformationfile)
 
@@ -871,8 +871,8 @@ subroutine setivolfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)         :: inp
 
 self%nml%ivolfile = trim(inp)
 
@@ -889,8 +889,8 @@ function getivolfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(fnlen)                     :: out
 
 out = trim(self%nml%ivolfile)
 
@@ -907,8 +907,8 @@ subroutine setmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)         :: inp
 
 self%nml%masterfile = trim(inp)
 
@@ -925,8 +925,8 @@ function getmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(fnlen)                     :: out
 
 out = trim(self%nml%masterfile)
 
@@ -943,8 +943,8 @@ subroutine setdatafile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)         :: inp
 
 self%nml%datafile = trim(inp)
 
@@ -961,8 +961,8 @@ function getdatafile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefectIV_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSDdefectIV_T), INTENT(INOUT) :: self
+character(fnlen)                     :: out
 
 out = trim(self%nml%datafile)
 

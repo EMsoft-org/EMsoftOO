@@ -1864,34 +1864,34 @@ use stringconstants
 use mod_image
 use mod_Laue
 use mod_DREAM3D
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(LaueDCT_T), INTENT(INOUT)            :: self
-type(EMsoft_T), INTENT(INOUT)              :: EMsoft
-character(fnlen), INTENT(INOUT)            :: progname 
-type(HDFnames_T), INTENT(INOUT)            :: HDFnames 
+class(LaueDCT_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames 
 
-type(Cell_T)                               :: cell
-type(Timing_T)                             :: timer
-type(IO_T)                                 :: Message
-type(HDF_T)                                :: HDF
-type(SpaceGroup_T)                         :: SG
-type(Diffraction_T)                        :: Diff
-type(DynType)                              :: Dyn
-type(memory_T)                             :: mem, memth
-type(so3_T)                                :: SO
-type(QuaternionArray_T)                    :: qAR, orlist
-type(Quaternion_T)                         :: quat
-type(LaueReflist_T)                        :: LaueReflist
-type(q_T)                                  :: qu
-type(microstructure)                       :: microstr
-type(samplinglisttype), pointer            :: samplinglist, stmp, stmpb
+type(Cell_T)                    :: cell
+type(Timing_T)                  :: timer
+type(IO_T)                      :: Message
+type(HDF_T)                     :: HDF
+type(SpaceGroup_T)              :: SG
+type(Diffraction_T)             :: Diff
+type(DynType)                   :: Dyn
+type(memory_T)                  :: mem, memth
+type(so3_T)                     :: SO
+type(QuaternionArray_T)         :: qAR, orlist
+type(Quaternion_T)              :: quat
+type(LaueReflist_T)             :: LaueReflist
+type(q_T)                       :: qu
+type(microstructure)            :: microstr
+type(samplinglisttype), pointer :: samplinglist, stmp, stmpb
 
-integer(kind=irg)                          :: numangles, numbatches, remainder, ii, jj, pid, tickstart, shadow(2,4), np
+integer(kind=irg)               :: numangles, numbatches, remainder, ii, jj, pid, tickstart, shadow(2,4), np
 
-integer(kind=irg)                          :: i, j, icnt, numvox, hdferr, npx, npy, refcnt, io_int(4), Lstart, bsw, bsh, gcnt, &
+integer(kind=irg)               :: i, j, icnt, numvox, hdferr, npx, npy, refcnt, io_int(4), Lstart, bsw, bsh, gcnt, &
                                               g(3), gr(3), rf, NUMTHREADS, TID, BPnpx, BPnpy, m, betamin, betamax, NNy, NNz
 real(kind=sgl)                             :: l, kouter, kinner, tstart, tstop, mi, ma, lambdamin, lambdamax, kv(3), &
                                               scl, kv2(3), shortg, info, gg, mps, dmin, intfactor, io_real(3), fpar(20) 

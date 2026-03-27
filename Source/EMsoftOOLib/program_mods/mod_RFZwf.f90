@@ -128,20 +128,20 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(RFZwf_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(RFZwf_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)   :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)   :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                :: EMsoft 
+type(IO_T)                    :: Message       
+logical                       :: skipread = .FALSE.
 
-character(fnlen)  :: hdfname
-character(fnlen)  :: prefix
-character(fnlen)  :: PVexec             ! path to PoVray executable
-character(fnlen)  :: PVincludepath      ! path to PoVray include files
+character(fnlen)              :: hdfname
+character(fnlen)              :: prefix
+character(fnlen)              :: PVexec             ! path to PoVray executable
+character(fnlen)              :: PVincludepath      ! path to PoVray include files
 
 namelist / EMRFZwf / hdfname, prefix, PVexec, PVincludepath
 

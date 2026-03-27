@@ -164,24 +164,24 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(EBSDpc_T), INTENT(INOUT)       :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(EBSDpc_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)    :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)    :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                 :: EMsoft 
+type(IO_T)                     :: Message       
+logical                        :: skipread = .FALSE.
 
-real(kind=sgl)    :: xstar 
-real(kind=sgl)    :: ystar 
-real(kind=sgl)    :: zstar 
-real(kind=sgl)    :: delta
-integer(kind=irg) :: Nx
-integer(kind=irg) :: Ny
-integer(kind=irg) :: binning
-character(fnlen)  :: convention
+real(kind=sgl)                 :: xstar 
+real(kind=sgl)                 :: ystar 
+real(kind=sgl)                 :: zstar 
+real(kind=sgl)                 :: delta
+integer(kind=irg)              :: Nx
+integer(kind=irg)              :: Ny
+integer(kind=irg)              :: binning
+character(fnlen)               :: convention
 
 namelist /EBSDpc/ xstar, ystar, zstar, delta, Nx, Ny, binning, convention
 

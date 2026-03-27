@@ -235,35 +235,35 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(BSE_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(BSE_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)              :: EMsoft 
+type(IO_T)                  :: Message       
+logical                     :: skipread = .FALSE.
 
-real(kind=sgl)    :: energymin
-real(kind=sgl)    :: energymax
-real(kind=sgl)    :: incidence
-real(kind=sgl)    :: beamcurrent
-real(kind=sgl)    :: dwelltime
-real(kind=sgl)    :: gammavalue
-real(kind=sgl)    :: workingdistance
-real(kind=sgl)    :: BSEdistance
-real(kind=sgl)    :: rin
-real(kind=sgl)    :: rout
-integer(kind=irg) :: NsqL
-integer(kind=irg) :: nthreads
-character(fnlen)  :: useangles
-character(3)      :: scalingmode
-character(6)      :: scanmode
-character(fnlen)  :: masterfile
-character(fnlen)  :: Kosselmasterfile
-character(fnlen)  :: datafile
-character(fnlen)  :: imagefile
+real(kind=sgl)              :: energymin
+real(kind=sgl)              :: energymax
+real(kind=sgl)              :: incidence
+real(kind=sgl)              :: beamcurrent
+real(kind=sgl)              :: dwelltime
+real(kind=sgl)              :: gammavalue
+real(kind=sgl)              :: workingdistance
+real(kind=sgl)              :: BSEdistance
+real(kind=sgl)              :: rin
+real(kind=sgl)              :: rout
+integer(kind=irg)           :: NsqL
+integer(kind=irg)           :: nthreads
+character(fnlen)            :: useangles
+character(3)                :: scalingmode
+character(6)                :: scanmode
+character(fnlen)            :: masterfile
+character(fnlen)            :: Kosselmasterfile
+character(fnlen)            :: datafile
+character(fnlen)            :: imagefile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / BSEdata / energymin, energymax, incidence, beamcurrent, dwelltime, gammavalue, workingdistance, &
@@ -372,16 +372,16 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)        :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(BSE_T), INTENT(INOUT)     :: self 
+type(HDF_T), INTENT(INOUT)      :: HDF
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 11, n_real = 9
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+integer(kind=irg),parameter     :: n_int = 11, n_real = 9
+integer(kind=irg)               :: hdferr,  io_int(n_int)
+real(kind=sgl)                  :: io_real(n_real)
+character(20)                   :: intlist(n_int), reallist(n_real)
+character(fnlen)                :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)    :: line2(1)
 
 associate( mcnl => self%nml )
 
@@ -401,8 +401,8 @@ subroutine setenergymin_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%energymin = inp
 
@@ -419,8 +419,8 @@ function getenergymin_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%energymin
 
@@ -437,8 +437,8 @@ subroutine setenergymax_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%energymax = inp
 
@@ -455,8 +455,8 @@ function getenergymax_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%energymax
 
@@ -473,8 +473,8 @@ subroutine setincidence_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%incidence = inp
 
@@ -491,8 +491,8 @@ function getincidence_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%incidence
 
@@ -509,8 +509,8 @@ subroutine setbeamcurrent_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%beamcurrent = inp
 
@@ -527,8 +527,8 @@ function getbeamcurrent_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%beamcurrent
 
@@ -545,8 +545,8 @@ subroutine setdwelltime_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%dwelltime = inp
 
@@ -563,8 +563,8 @@ function getdwelltime_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%dwelltime
 
@@ -581,8 +581,8 @@ subroutine setgammavalue_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%gammavalue = inp
 
@@ -599,8 +599,8 @@ function getgammavalue_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%gammavalue
 
@@ -617,8 +617,8 @@ subroutine setworkingdistance_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%workingdistance = inp
 
@@ -635,8 +635,8 @@ function getworkingdistance_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%workingdistance
 
@@ -653,8 +653,8 @@ subroutine setBSEdistance_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%BSEdistance = inp
 
@@ -671,8 +671,8 @@ function getBSEdistance_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%BSEdistance
 
@@ -689,8 +689,8 @@ subroutine setrin_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%rin = inp
 
@@ -707,8 +707,8 @@ function getrin_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%rin
 
@@ -725,8 +725,8 @@ subroutine setrout_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%rout = inp
 
@@ -743,8 +743,8 @@ function getrout_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%rout
 
@@ -761,8 +761,8 @@ subroutine setNsqL_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT)   :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%NsqL = inp
 
@@ -779,8 +779,8 @@ function getNsqL_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+integer(kind=irg)           :: out
 
 out = self%nml%NsqL
 
@@ -797,8 +797,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT)   :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nthreads = inp
 
@@ -815,8 +815,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+integer(kind=irg)           :: out
 
 out = self%nml%nthreads
 
@@ -833,8 +833,8 @@ subroutine setuseangles_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%useangles = trim(inp)
 
@@ -851,8 +851,8 @@ function getuseangles_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%useangles)
 
@@ -869,8 +869,8 @@ subroutine setscalingmode_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)    :: inp
 
 self%nml%scalingmode = trim(inp)
 
@@ -887,8 +887,8 @@ function getscalingmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+character(3)                :: out
 
 out = trim(self%nml%scalingmode)
 
@@ -905,8 +905,8 @@ subroutine setscanmode_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)    :: inp
 
 self%nml%scanmode = trim(inp)
 
@@ -923,8 +923,8 @@ function getscanmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+character(3)                :: out
 
 out = trim(self%nml%scanmode)
 
@@ -942,8 +942,8 @@ subroutine setmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%masterfile = trim(inp)
 
@@ -960,8 +960,8 @@ function getmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%masterfile)
 
@@ -978,8 +978,8 @@ subroutine setKosselmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%Kosselmasterfile = trim(inp)
 
@@ -996,8 +996,8 @@ function getKosselmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%Kosselmasterfile)
 
@@ -1014,8 +1014,8 @@ subroutine setdatafile_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%datafile = trim(inp)
 
@@ -1032,8 +1032,8 @@ function getdatafile_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%datafile)
 
@@ -1050,8 +1050,8 @@ subroutine setimagefile_(self,inp)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(BSE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%imagefile = trim(inp)
 
@@ -1068,8 +1068,8 @@ function getimagefile_(self) result(out)
 
 IMPLICIT NONE
 
-class(BSE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(BSE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%imagefile)
 
@@ -1188,15 +1188,15 @@ use mod_rotations
 
 IMPLICIT NONE 
 
-class(BSE_T), INTENT(INOUT)                 :: self
-type(DictionaryIndexingNameListType),INTENT(IN)   :: dinl
-logical,INTENT(IN),OPTIONAL                 :: verbose 
+class(BSE_T), INTENT(INOUT)                     :: self
+type(DictionaryIndexingNameListType),INTENT(IN) :: dinl
+logical,INTENT(IN),OPTIONAL                     :: verbose 
 
 ! type(Quaternion_T)                          :: qu  
-type(IO_T)                                  :: Message
+type(IO_T)                                      :: Message
 
-real(kind=sgl)                              :: ctrx, ctry, px, py, WD2, th, ct, st, p, maxth, io_real(4)
-integer(kind=irg)                           :: ipf_wd, ipf_ht, pxstart, pystart, pxend, pyend, ix, iy 
+real(kind=sgl)                                  :: ctrx, ctry, px, py, WD2, th, ct, st, p, maxth, io_real(4)
+integer(kind=irg)                               :: ipf_wd, ipf_ht, pxstart, pystart, pxend, pyend, ix, iy 
 
 call setRotationPrecision('d')
 
@@ -1538,46 +1538,46 @@ use mod_so3
 use mod_memory
 use mod_image 
 use ISO_C_BINDING
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(BSE_T), INTENT(INOUT)         :: self
-type(EMsoft_T), INTENT(INOUT)       :: EMsoft
-character(fnlen), INTENT(INOUT)     :: progname 
+class(BSE_T), INTENT(INOUT)          :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname 
 
-type(MCfile_T)                      :: MCFT
-type(MPfile_T)                      :: MPFT
-type(HDF_T)                         :: HDF
-type(HDFnames_T)                    :: HDFnames
-type(so2_T)                         :: SO2
-type(IO_T)                          :: Message
-type(Quaternion_T)                  :: quat
-type(QuaternionArray_T)             :: qAR
-type(memory_T)                      :: mem
-type(DIfile_T)                      :: DIFT
-type(DictionaryIndexingNameListType):: dinl
-type(so3_T)                         :: SO
+type(MCfile_T)                       :: MCFT
+type(MPfile_T)                       :: MPFT
+type(HDF_T)                          :: HDF
+type(HDFnames_T)                     :: HDFnames
+type(so2_T)                          :: SO2
+type(IO_T)                           :: Message
+type(Quaternion_T)                   :: quat
+type(QuaternionArray_T)              :: qAR
+type(memory_T)                       :: mem
+type(DIfile_T)                       :: DIFT
+type(DictionaryIndexingNameListType) :: dinl
+type(so3_T)                          :: SO
 
-type(EBSDmasterNameListType)        :: mpnl
-type(MCOpenCLNameListType)          :: mcnl
+type(EBSDmasterNameListType)         :: mpnl
+type(MCOpenCLNameListType)           :: mcnl
 
-integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf
-integer(kind=irg)                   :: Emin, Emax, dims3(3)      ! various parameters
-character(fnlen)                    :: fname, DIfile
-logical                             :: refined
-real(kind=sgl)                      :: scl, mi, ma
-real(kind=sgl),allocatable          :: Eangles(:,:), BSEimage(:,:), BSEimagescan(:,:,:), weights(:)
+integer(kind=irg)                    :: i, sz(3), nx, hdferr, resang, resctf
+integer(kind=irg)                    :: Emin, Emax, dims3(3)      ! various parameters
+character(fnlen)                     :: fname, DIfile
+logical                              :: refined
+real(kind=sgl)                       :: scl, mi, ma
+real(kind=sgl),allocatable           :: Eangles(:,:), BSEimage(:,:), BSEimagescan(:,:,:), weights(:)
 
 ! declare variables for use in object oriented image module
-character(fnlen)                    :: TIFF_filename, dataset
-integer                             :: iostat
-character(len=128)                  :: iomsg
-logical                             :: isInteger
-type(image_t)                       :: im
-integer(int8), allocatable          :: TIFF_image(:,:)
-integer                             :: dim2(2)
-integer(c_int32_t)                  :: result
+character(fnlen)                     :: TIFF_filename, dataset
+integer                              :: iostat
+character(len=128)                   :: iomsg
+logical                              :: isInteger
+type(image_t)                        :: im
+integer(int8), allocatable           :: TIFF_image(:,:)
+integer                              :: dim2(2)
+integer(c_int32_t)                   :: result
 
 ! open the HDF interface
 call openFortranHDFInterface()

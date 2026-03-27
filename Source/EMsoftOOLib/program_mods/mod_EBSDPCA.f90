@@ -137,44 +137,44 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EBSDPCA_T), INTENT(INOUT)             :: self
-character(fnlen),INTENT(IN)                 :: nmlfile
-logical,OPTIONAL,INTENT(IN)                 :: initonly
+class(EBSDPCA_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)     :: nmlfile
+logical,OPTIONAL,INTENT(IN)     :: initonly
 
-type(IO_T)                                  :: Message
-logical                                     :: skipread = .FALSE.
+type(IO_T)                      :: Message
+logical                         :: skipread = .FALSE.
 
-integer(kind=irg)       :: numsx
-integer(kind=irg)       :: numsy
-integer(kind=irg)       :: binning
-integer(kind=irg)       :: nthreads
-integer(kind=irg)       :: maskradius
-integer(kind=irg)       :: nregions
-real(kind=sgl)          :: L
-real(kind=sgl)          :: thetac
-real(kind=sgl)          :: delta
-real(kind=sgl)          :: xpc
-real(kind=sgl)          :: ypc
-real(kind=sgl)          :: energymin
-real(kind=sgl)          :: energymax
-real(kind=sgl)          :: gammavalue
-real(kind=sgl)          :: alphaBD
-real(kind=sgl)          :: axisangle(4)
-real(kind=sgl)          :: hipassw
-real(kind=dbl)          :: beamcurrent
-real(kind=dbl)          :: dwelltime
-character(1)            :: includebackground
-character(1)            :: poisson
-character(1)            :: maskpattern
-character(1)            :: spatialaverage
-character(3)            :: scalingmode
-character(3)            :: eulerconvention
-character(3)            :: outputformat
-character(5)            :: bitdepth
-character(fnlen)        :: anglefile
-character(fnlen)        :: masterfile
-character(fnlen)        :: energyfile  ! removed from template file 05/16/19 [MDG]
-character(fnlen)        :: datafile
+integer(kind=irg)               :: numsx
+integer(kind=irg)               :: numsy
+integer(kind=irg)               :: binning
+integer(kind=irg)               :: nthreads
+integer(kind=irg)               :: maskradius
+integer(kind=irg)               :: nregions
+real(kind=sgl)                  :: L
+real(kind=sgl)                  :: thetac
+real(kind=sgl)                  :: delta
+real(kind=sgl)                  :: xpc
+real(kind=sgl)                  :: ypc
+real(kind=sgl)                  :: energymin
+real(kind=sgl)                  :: energymax
+real(kind=sgl)                  :: gammavalue
+real(kind=sgl)                  :: alphaBD
+real(kind=sgl)                  :: axisangle(4)
+real(kind=sgl)                  :: hipassw
+real(kind=dbl)                  :: beamcurrent
+real(kind=dbl)                  :: dwelltime
+character(1)                    :: includebackground
+character(1)                    :: poisson
+character(1)                    :: maskpattern
+character(1)                    :: spatialaverage
+character(3)                    :: scalingmode
+character(3)                    :: eulerconvention
+character(3)                    :: outputformat
+character(5)                    :: bitdepth
+character(fnlen)                :: anglefile
+character(fnlen)                :: masterfile
+character(fnlen)                :: energyfile  ! removed from template file 05/16/19 [MDG]
+character(fnlen)                :: datafile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EBSDPCAdata / L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eulerconvention, masterfile, bitdepth, &
@@ -329,18 +329,18 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(EBSDPCA_T), INTENT(INOUT)            :: self
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
-logical,OPTIONAL,INTENT(IN)             :: isTKD
+class(EBSDPCA_T), INTENT(INOUT) :: self
+type(HDF_T), INTENT(INOUT)      :: HDF
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
+logical,OPTIONAL,INTENT(IN)     :: isTKD
 
-integer(kind=irg),parameter             :: n_int = 6, n_real = 10
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: reallist(n_real)
-character(20)                           :: intlist(n_int)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+integer(kind=irg),parameter     :: n_int = 6, n_real = 10
+integer(kind=irg)               :: hdferr,  io_int(n_int)
+real(kind=sgl)                  :: io_real(n_real)
+character(20)                   :: reallist(n_real)
+character(20)                   :: intlist(n_int)
+character(fnlen)                :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)    :: line2(1)
 
 associate( enl => self%nml )
 
@@ -617,44 +617,44 @@ use mod_MPfiles
 use mod_memory
 use mod_image
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                             :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(EBSDPCA_T), INTENT(INOUT)         :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-type(MCfile_T), INTENT(INOUT)           :: MCFT
-type(MPfile_T), INTENT(INOUT)           :: MPFT
-type(HDF_T),INTENT(INOUT)               :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(EBSDPCA_T), INTENT(INOUT)            :: self
+type(EMsoft_T), INTENT(INOUT)              :: EMsoft
+type(MCfile_T), INTENT(INOUT)              :: MCFT
+type(MPfile_T), INTENT(INOUT)              :: MPFT
+type(HDF_T),INTENT(INOUT)                  :: HDF
+type(HDFnames_T), INTENT(INOUT)            :: HDFnames
 type(EBSDmasterNameListType),INTENT(INOUT) :: mpnl
-type(MCOpenCLNameListType),INTENT(INOUT):: mcnl
-type(memory_T), INTENT(INOUT)           :: mem 
-integer(kind=irg),INTENT(IN)            :: numangles
-type(QuaternionArray_T), INTENT(INOUT)  :: angles
-character(fnlen),INTENT(IN)             :: progname
-character(fnlen),INTENT(IN)             :: nmldeffile
+type(MCOpenCLNameListType),INTENT(INOUT)   :: mcnl
+type(memory_T), INTENT(INOUT)              :: mem 
+integer(kind=irg),INTENT(IN)               :: numangles
+type(QuaternionArray_T), INTENT(INOUT)     :: angles
+character(fnlen),INTENT(IN)                :: progname
+character(fnlen),INTENT(IN)                :: nmldeffile
 
 
-type(IO_T)                                          :: Message
-type(memory_T)                                      :: memth 
-type(Timing_T)                                      :: timer
-type(e_T)                                           :: eu, eee
-type(Quaternion_T)                                  :: qu, ququ
-type(q_T)                                           :: quat, qqq
-type(r_T)                                           :: ro
-type(SpaceGroup_T)                                  :: SG
-type(Cell_T)                                        :: cell
+type(IO_T)                                 :: Message
+type(memory_T)                             :: memth 
+type(Timing_T)                             :: timer
+type(e_T)                                  :: eu, eee
+type(Quaternion_T)                         :: qu, ququ
+type(q_T)                                  :: quat, qqq
+type(r_T)                                  :: ro
+type(SpaceGroup_T)                         :: SG
+type(Cell_T)                               :: cell
 
-integer(kind=irg)                                   :: num,ierr,irec,istat, jpar(8), SGnum, nlines
-integer(kind=irg),parameter                         :: iunit = 40
-integer(kind=irg),parameter                         :: iunitexpt = 41
-integer(kind=irg),parameter                         :: iunitdict = 42
-character(fnlen)                                    :: info ! info about the GPU
-real(kind=dbl),parameter                            :: nAmpere = 6.241D+18   ! Coulomb per second
+integer(kind=irg)                          :: num,ierr,irec,istat, jpar(8), SGnum, nlines
+integer(kind=irg),parameter                :: iunit = 40
+integer(kind=irg),parameter                :: iunitexpt = 41
+integer(kind=irg),parameter                :: iunitdict = 42
+character(fnlen)                           :: info ! info about the GPU
+real(kind=dbl),parameter                   :: nAmpere = 6.241D+18   ! Coulomb per second
 
 
-integer(kind=irg)                                   :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
+integer(kind=irg)                          :: Ne,Nd,L,totnumexpt,numdictsingle,numexptsingle,imght,imgwd,nnk,numE,&
                                                        recordsize, fratio, cratio, fratioE, cratioE, iii, itmpexpt, hdferr, &
                                                        nsig, numk, recordsize_correct, patsz, tickstart, tickstart2, tock, &
                                                        npy, sz(3), jjj

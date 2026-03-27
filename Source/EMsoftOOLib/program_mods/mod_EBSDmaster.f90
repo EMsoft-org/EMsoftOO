@@ -162,29 +162,29 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EBSDmaster_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)                 :: nmlfile
+class(EBSDmaster_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)        :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)                 :: initonly
+logical,OPTIONAL,INTENT(IN)        :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                                  :: Message
-logical                                     :: skipread = .FALSE.
+type(IO_T)                         :: Message
+logical                            :: skipread = .FALSE.
 
-integer(kind=irg) :: npx
-integer(kind=irg) :: Esel
-integer(kind=irg) :: nthreads
-real(kind=sgl)    :: dmin
-character(3)      :: Notify
-character(fnlen)  :: copyfromenergyfile
-character(fnlen)  :: energyfile
-character(fnlen)  :: BetheParametersFile
-character(fnlen)  :: h5copypath
-logical           :: combinesites
-logical           :: restart
-logical           :: uniform
-logical           :: doLegendre
-logical           :: kinematical
+integer(kind=irg)                  :: npx
+integer(kind=irg)                  :: Esel
+integer(kind=irg)                  :: nthreads
+real(kind=sgl)                     :: dmin
+character(3)                       :: Notify
+character(fnlen)                   :: copyfromenergyfile
+character(fnlen)                   :: energyfile
+character(fnlen)                   :: BetheParametersFile
+character(fnlen)                   :: h5copypath
+logical                            :: combinesites
+logical                            :: restart
+logical                            :: uniform
+logical                            :: doLegendre
+logical                            :: kinematical
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist /EBSDmastervars/ dmin,npx,nthreads,copyfromenergyfile,energyfile,Esel,restart,uniform,Notify, &
@@ -833,31 +833,31 @@ use mod_MCfiles
 
 IMPLICIT NONE
 
-class(EBSDmaster_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)       :: EMsoft
-character(fnlen),INTENT(IN)         :: progname
-type(HDFnames_T),INTENT(INOUT)      :: HDFnames
-real(kind=sgl),INTENT(IN),OPTIONAL  :: thickness  ! if present, then TKD mode
+class(EBSDmaster_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)      :: EMsoft
+character(fnlen),INTENT(IN)        :: progname
+type(HDFnames_T),INTENT(INOUT)     :: HDFnames
+real(kind=sgl),INTENT(IN),OPTIONAL :: thickness  ! if present, then TKD mode
 
-type(Cell_T)            :: cell
-type(DynType)           :: Dyn
-type(Timing_T)          :: timer
-type(IO_T)              :: Message
-type(Lambert_T)         :: L
-type(HDF_T)             :: HDF
-type(SpaceGroup_T)      :: SG
-type(Diffraction_T),save:: Diff
-type(MCfile_T)          :: MCFT
-type(MPfile_T)          :: MPFT
-type(kvectors_T)        :: kvec
-type(gvectors_T)        :: reflist
-type(HDFnames_T)        :: saveHDFnames
-type(memory_T)          :: mem, memth
+type(Cell_T)                       :: cell
+type(DynType)                      :: Dyn
+type(Timing_T)                     :: timer
+type(IO_T)                         :: Message
+type(Lambert_T)                    :: L
+type(HDF_T)                        :: HDF
+type(SpaceGroup_T)                 :: SG
+type(Diffraction_T),save           :: Diff
+type(MCfile_T)                     :: MCFT
+type(MPfile_T)                     :: MPFT
+type(kvectors_T)                   :: kvec
+type(gvectors_T)                   :: reflist
+type(HDFnames_T)                   :: saveHDFnames
+type(memory_T)                     :: mem, memth
 
-real(kind=dbl)          :: ctmp(192,3), arg, Radius, xyz(3)
-integer(HSIZE_T)        :: dims4(4), cnt4(4), offset4(4)
-integer(HSIZE_T)        :: dims3(3), cnt3(3), offset3(3)
-integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
+real(kind=dbl)                     :: ctmp(192,3), arg, Radius, xyz(3)
+integer(HSIZE_T)                   :: dims4(4), cnt4(4), offset4(4)
+integer(HSIZE_T)                   :: dims3(3), cnt3(3), offset3(3)
+integer(kind=irg)                  :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
                            numk, timestart, timestop, numsites, nthreads, & ! number of independent incident beam directions
                            ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
                            numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, sz(3), &
@@ -1940,31 +1940,31 @@ use mod_MCfiles
 
 IMPLICIT NONE
 
-class(EBSDmaster_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)       :: EMsoft
-character(fnlen),INTENT(IN)         :: progname
-type(HDFnames_T),INTENT(INOUT)      :: HDFnames
-real(kind=sgl),INTENT(IN),OPTIONAL  :: thickness  ! if present, then TKD mode
+class(EBSDmaster_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)      :: EMsoft
+character(fnlen),INTENT(IN)        :: progname
+type(HDFnames_T),INTENT(INOUT)     :: HDFnames
+real(kind=sgl),INTENT(IN),OPTIONAL :: thickness  ! if present, then TKD mode
 
-type(Cell_T)            :: cell
-type(DynType)           :: Dyn
-type(Timing_T)          :: timer
-type(IO_T)              :: Message
-type(Lambert_T)         :: L
-type(HDF_T)             :: HDF
-type(SpaceGroup_T)      :: SG
-type(Diffraction_T),save:: Diff
-type(MCfile_T)          :: MCFT
-type(MPfile_T)          :: MPFT
-type(kvectors_T)        :: kvec
-type(gvectors_T)        :: reflist
-type(HDFnames_T)        :: saveHDFnames
-type(memory_T)          :: mem, memth
+type(Cell_T)                       :: cell
+type(DynType)                      :: Dyn
+type(Timing_T)                     :: timer
+type(IO_T)                         :: Message
+type(Lambert_T)                    :: L
+type(HDF_T)                        :: HDF
+type(SpaceGroup_T)                 :: SG
+type(Diffraction_T),save           :: Diff
+type(MCfile_T)                     :: MCFT
+type(MPfile_T)                     :: MPFT
+type(kvectors_T)                   :: kvec
+type(gvectors_T)                   :: reflist
+type(HDFnames_T)                   :: saveHDFnames
+type(memory_T)                     :: mem, memth
 
-real(kind=dbl)          :: ctmp(192,3), arg, Radius, xyz(3)
-integer(HSIZE_T)        :: dims4(4), cnt4(4), offset4(4)
-integer(HSIZE_T)        :: dims3(3), cnt3(3), offset3(3)
-integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
+real(kind=dbl)                     :: ctmp(192,3), arg, Radius, xyz(3)
+integer(HSIZE_T)                   :: dims4(4), cnt4(4), offset4(4)
+integer(HSIZE_T)                   :: dims3(3), cnt3(3), offset3(3)
+integer(kind=irg)                  :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
                            numk, timestart, timestop, numsites, nthreads, & ! number of independent incident beam directions
                            ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
                            numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, sz(3), &
@@ -2909,24 +2909,24 @@ use mod_SEMwrappers
 
 IMPLICIT NONE
 
-class(EBSDmaster_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)       :: EMsoft
-character(fnlen),INTENT(IN)         :: progname
-type(HDFnames_T),INTENT(INOUT)      :: HDFnames
+class(EBSDmaster_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)      :: EMsoft
+character(fnlen),INTENT(IN)        :: progname
+type(HDFnames_T),INTENT(INOUT)     :: HDFnames
 
-type(Cell_T)            :: cell
-type(IO_T)              :: Message
-type(DynType)           :: Dyn
-type(HDF_T)             :: HDF
-type(SpaceGroup_T)      :: SG
-type(Diffraction_T)     :: Diff
-type(MCfile_T)          :: MCFT
-type(memory_T)          :: mem, memth
+type(Cell_T)                       :: cell
+type(IO_T)                         :: Message
+type(DynType)                      :: Dyn
+type(HDF_T)                        :: HDF
+type(SpaceGroup_T)                 :: SG
+type(Diffraction_T)                :: Diff
+type(MCfile_T)                     :: MCFT
+type(memory_T)                     :: mem, memth
 
-real(kind=dbl)          :: ctmp(192,3), arg, Radius, xyz(3)
-integer(HSIZE_T)        :: dims4(4), cnt4(4), offset4(4)
-integer(HSIZE_T)        :: dims3(3), cnt3(3), offset3(3)
-integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
+real(kind=dbl)                     :: ctmp(192,3), arg, Radius, xyz(3)
+integer(HSIZE_T)                   :: dims4(4), cnt4(4), offset4(4)
+integer(HSIZE_T)                   :: dims3(3), cnt3(3), offset3(3)
+integer(kind=irg)                  :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
                            numk, timestart, timestop, numsites, nthreads, & ! number of independent incident beam directions
                            ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, &
                            numset,n,ix,iy,iz, io_int(6), nns, nnw, nref, Estart, &

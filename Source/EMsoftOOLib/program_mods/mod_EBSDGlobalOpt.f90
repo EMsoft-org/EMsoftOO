@@ -232,39 +232,39 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)           :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)           :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                        :: EMsoft 
+type(IO_T)                            :: Message       
+logical                               :: skipread = .FALSE.
 
-integer(kind=irg)        :: NP
-integer(kind=irg)        :: itermax
-integer(kind=irg)        :: strategy 
-integer(kind=irg)        :: refresh
-integer(kind=irg)        :: iwrite
-integer(kind=irg)        :: method(3)
-integer(kind=irg)        :: GrainID
-real(kind=sgl)           :: VTR 
-real(kind=sgl)           :: CR_XC
-real(kind=sgl)           :: F_XC
-real(kind=sgl)           :: F_CR
-real(kind=sgl)           :: bound(3)
-real(kind=sgl)           :: w
-real(kind=sgl)           :: w_damp
-real(kind=sgl)           :: c1 
-real(kind=sgl)           :: c2 
-integer(kind=irg)        :: objective
-character(fnlen)         :: outputfile
-character(fnlen)         :: EBSDnmlfile
-character(1)             :: hybrid
-character(2)             :: globalopt
-character(1)             :: single_opt
-character(1)             :: single_grain
+integer(kind=irg)                     :: NP
+integer(kind=irg)                     :: itermax
+integer(kind=irg)                     :: strategy 
+integer(kind=irg)                     :: refresh
+integer(kind=irg)                     :: iwrite
+integer(kind=irg)                     :: method(3)
+integer(kind=irg)                     :: GrainID
+real(kind=sgl)                        :: VTR 
+real(kind=sgl)                        :: CR_XC
+real(kind=sgl)                        :: F_XC
+real(kind=sgl)                        :: F_CR
+real(kind=sgl)                        :: bound(3)
+real(kind=sgl)                        :: w
+real(kind=sgl)                        :: w_damp
+real(kind=sgl)                        :: c1 
+real(kind=sgl)                        :: c2 
+integer(kind=irg)                     :: objective
+character(fnlen)                      :: outputfile
+character(fnlen)                      :: EBSDnmlfile
+character(1)                          :: hybrid
+character(2)                          :: globalopt
+character(1)                          :: single_opt
+character(1)                          :: single_grain
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EBSDDEdata / NP, itermax, strategy, refresh, iwrite, method, VTR, CR_XC, F_XC, F_CR, bound, hybrid, globalopt, &
@@ -474,8 +474,8 @@ subroutine setNP_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%NP = inp
 
@@ -492,8 +492,8 @@ function getNP_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%NP
 
@@ -510,8 +510,8 @@ subroutine setitermax_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%itermax = inp
 
@@ -528,8 +528,8 @@ function getitermax_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%itermax
 
@@ -546,8 +546,8 @@ subroutine setstrategy_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%strategy = inp
 
@@ -564,8 +564,8 @@ function getstrategy_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%strategy
 
@@ -582,8 +582,8 @@ subroutine setrefresh_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%refresh = inp
 
@@ -600,8 +600,8 @@ function getrefresh_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%refresh
 
@@ -618,8 +618,8 @@ subroutine setiwrite_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%iwrite = inp
 
@@ -636,8 +636,8 @@ function getiwrite_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%iwrite
 
@@ -690,8 +690,8 @@ subroutine setGrainID_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%GrainID = inp
 
@@ -708,8 +708,8 @@ function getGrainID_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%GrainID
 
@@ -726,8 +726,8 @@ subroutine setVTR_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)            :: inp
 
 self%nml%VTR = inp
 
@@ -744,8 +744,8 @@ function getVTR_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl)                        :: out
 
 out = self%nml%VTR
 
@@ -762,8 +762,8 @@ subroutine setCR_XC_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)            :: inp
 
 self%nml%CR_XC = inp
 
@@ -780,8 +780,8 @@ function getCR_XC_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl)                        :: out
 
 out = self%nml%CR_XC
 
@@ -798,8 +798,8 @@ subroutine setF_XC_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)            :: inp
 
 self%nml%F_XC = inp
 
@@ -816,8 +816,8 @@ function getF_XC_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl)                        :: out
 
 out = self%nml%F_XC
 
@@ -834,8 +834,8 @@ subroutine setF_CR_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)            :: inp
 
 self%nml%F_CR = inp
 
@@ -852,8 +852,8 @@ function getF_CR_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl)                        :: out
 
 out = self%nml%F_CR
 
@@ -906,8 +906,8 @@ subroutine setw_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)            :: inp
 
 self%nml%w = inp
 
@@ -924,8 +924,8 @@ function getw_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl)                        :: out
 
 out = self%nml%w
 
@@ -942,8 +942,8 @@ subroutine setw_damp_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)            :: inp
 
 self%nml%w_damp = inp
 
@@ -960,8 +960,8 @@ function getw_damp_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl)                        :: out
 
 out = self%nml%w_damp
 
@@ -978,8 +978,8 @@ subroutine setc1_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)            :: inp
 
 self%nml%c1 = inp
 
@@ -996,8 +996,8 @@ function getc1_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl)                        :: out
 
 out = self%nml%c1
 
@@ -1014,8 +1014,8 @@ subroutine setc2_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)            :: inp
 
 self%nml%c2 = inp
 
@@ -1032,8 +1032,8 @@ function getc2_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+real(kind=sgl)                        :: out
 
 out = self%nml%c2
 
@@ -1050,8 +1050,8 @@ subroutine setobjective_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%objective = inp
 
@@ -1068,8 +1068,8 @@ function getobjective_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%objective
 
@@ -1086,8 +1086,8 @@ subroutine setoutputfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)          :: inp
 
 self%nml%outputfile = trim(inp)
 
@@ -1104,8 +1104,8 @@ function getoutputfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(fnlen)                      :: out
 
 out = trim(self%nml%outputfile)
 
@@ -1122,8 +1122,8 @@ subroutine setEBSDnmlfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)          :: inp
 
 self%nml%EBSDnmlfile = trim(inp)
 
@@ -1140,8 +1140,8 @@ function getEBSDnmlfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(fnlen)                      :: out
 
 out = trim(self%nml%EBSDnmlfile)
 
@@ -1158,8 +1158,8 @@ subroutine sethybrid_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)              :: inp
 
 self%nml%hybrid = trim(inp)
 
@@ -1176,8 +1176,8 @@ function gethybrid_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(1)                          :: out
 
 out = trim(self%nml%hybrid)
 
@@ -1194,8 +1194,8 @@ subroutine setglobalopt_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(2), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(2), INTENT(IN)              :: inp
 
 self%nml%globalopt = trim(inp)
 
@@ -1212,8 +1212,8 @@ function getglobalopt_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(2)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(2)                          :: out
 
 out = trim(self%nml%globalopt)
 
@@ -1230,8 +1230,8 @@ subroutine setsingle_opt_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)              :: inp
 
 self%nml%single_opt = trim(inp)
 
@@ -1248,8 +1248,8 @@ function getsingle_opt_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(1)                          :: out
 
 out = trim(self%nml%single_opt)
 
@@ -1266,8 +1266,8 @@ subroutine setsingle_grain_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(1), INTENT(IN)       :: inp
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(1), INTENT(IN)              :: inp
 
 self%nml%single_grain = trim(inp)
 
@@ -1284,8 +1284,8 @@ function getsingle_grain_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDGlobalOpt_T), INTENT(INOUT)     :: self
-character(1)                   :: out
+class(EBSDGlobalOpt_T), INTENT(INOUT) :: self
+character(1)                          :: out
 
 out = trim(self%nml%single_grain)
 

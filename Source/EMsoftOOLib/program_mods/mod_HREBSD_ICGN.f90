@@ -640,8 +640,8 @@ subroutine setnumsx_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numsx = inp
 
@@ -658,8 +658,8 @@ function getnumsx_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numsx
 
@@ -676,8 +676,8 @@ subroutine setnumsy_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numsy = inp
 
@@ -694,8 +694,8 @@ function getnumsy_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numsy
 
@@ -712,8 +712,8 @@ subroutine setipf_wd_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%ipf_wd = inp
 
@@ -730,8 +730,8 @@ function getipf_wd_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%ipf_wd
 
@@ -748,8 +748,8 @@ subroutine setipf_ht_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%ipf_ht = inp
 
@@ -766,8 +766,8 @@ function getipf_ht_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%ipf_ht
 
@@ -784,8 +784,8 @@ subroutine setpatx_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%patx = inp
 
@@ -802,8 +802,8 @@ function getpatx_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%patx
 
@@ -820,8 +820,8 @@ subroutine setpaty_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%paty = inp
 
@@ -838,8 +838,8 @@ function getpaty_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%paty
 
@@ -856,8 +856,8 @@ subroutine setN_ROI_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%N_ROI = inp
 
@@ -874,8 +874,8 @@ function getN_ROI_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%N_ROI
 
@@ -892,8 +892,8 @@ subroutine setsize_ROI_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%size_ROI = inp
 
@@ -910,8 +910,8 @@ function getsize_ROI_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%size_ROI
 
@@ -928,8 +928,8 @@ subroutine setroi_distance_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%roi_distance = inp
 
@@ -946,8 +946,8 @@ function getroi_distance_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%roi_distance
 
@@ -964,8 +964,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%nthreads = inp
 
@@ -982,8 +982,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%nthreads
 
@@ -1000,8 +1000,8 @@ subroutine setstep_size_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%step_size = inp
 
@@ -1018,8 +1018,8 @@ function getstep_size_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%step_size
 
@@ -1036,8 +1036,8 @@ subroutine setdelta_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%delta = inp
 
@@ -1054,8 +1054,8 @@ function getdelta_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%delta
 
@@ -1072,8 +1072,8 @@ subroutine setthetac_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%thetac = inp
 
@@ -1090,8 +1090,8 @@ function getthetac_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%thetac
 
@@ -1108,8 +1108,8 @@ subroutine sethighpass_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%highpass = inp
 
@@ -1126,8 +1126,8 @@ function gethighpass_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%highpass
 
@@ -1144,8 +1144,8 @@ subroutine setlowpass_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%lowpass = inp
 
@@ -1162,8 +1162,8 @@ function getlowpass_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%lowpass
 
@@ -1180,8 +1180,8 @@ subroutine setC11_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%C11 = inp
 
@@ -1198,8 +1198,8 @@ function getC11_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%C11
 
@@ -1216,8 +1216,8 @@ subroutine setC12_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%C12 = inp
 
@@ -1234,8 +1234,8 @@ function getC12_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%C12
 
@@ -1252,8 +1252,8 @@ subroutine setC44_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%C44 = inp
 
@@ -1270,8 +1270,8 @@ function getC44_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%C44
 
@@ -1288,8 +1288,8 @@ subroutine setC13_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%C13 = inp
 
@@ -1306,8 +1306,8 @@ function getC13_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%C13
 
@@ -1324,8 +1324,8 @@ subroutine setC33_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%C33 = inp
 
@@ -1342,8 +1342,8 @@ function getC33_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%C33
 
@@ -1360,8 +1360,8 @@ subroutine sethighpasswmax_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%highpasswmax = inp
 
@@ -1378,8 +1378,8 @@ function gethighpasswmax_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%highpasswmax
 
@@ -1396,8 +1396,8 @@ subroutine setlowpasswmax_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%lowpasswmax = inp
 
@@ -1414,8 +1414,8 @@ function getlowpasswmax_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(HREBSD_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%lowpasswmax
 
@@ -1764,7 +1764,7 @@ subroutine setRemap_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
+class(HREBSD_T), INTENT(INOUT) :: self
 character(1), INTENT(IN)       :: inp
 
 self%nml%Remap = trim(inp)
@@ -1782,7 +1782,7 @@ function getRemap_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
+class(HREBSD_T), INTENT(INOUT) :: self
 character(1)                   :: out
 
 out = trim(self%nml%Remap)
@@ -1800,7 +1800,7 @@ subroutine setPCrefine_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
+class(HREBSD_T), INTENT(INOUT) :: self
 character(1), INTENT(IN)       :: inp
 
 self%nml%PCrefine = trim(inp)
@@ -1818,7 +1818,7 @@ function getPCrefine_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
+class(HREBSD_T), INTENT(INOUT) :: self
 character(1)                   :: out
 
 out = trim(self%nml%PCrefine)
@@ -1836,7 +1836,7 @@ subroutine setcrystal_(self,inp)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
+class(HREBSD_T), INTENT(INOUT) :: self
 character(3), INTENT(IN)       :: inp
 
 self%nml%crystal = trim(inp)
@@ -1854,7 +1854,7 @@ function getcrystal_(self) result(out)
 
 IMPLICIT NONE
 
-class(HREBSD_T), INTENT(INOUT)     :: self
+class(HREBSD_T), INTENT(INOUT) :: self
 character(3)                   :: out
 
 out = trim(self%nml%crystal)
@@ -2648,7 +2648,7 @@ use mod_FFTW3
 IMPLICIT NONE
 
 class(HREBSD_T),INTENT(INOUT)               :: self
-integer(kind=irg),intent(in)                :: dims(2)
+integer(kind=irg),INTENT(IN)                :: dims(2)
 
 integer(kind=irg)                           :: cdims(2), i, j
 
@@ -2692,10 +2692,10 @@ use mod_FFTW3
 IMPLICIT NONE
 
 class(HREBSD_T),INTENT(INOUT)               :: self
-integer(kind=irg),intent(in)                :: dims(2)
-real(kind=dbl),intent(in)                   :: a(dims(1),dims(2)), b(dims(1),dims(2))
-real(kind=dbl),intent(out)                  :: c(2*dims(1)-1,2*dims(1)-1)
-integer(kind=irg),intent(out)               :: max_pos(2)
+integer(kind=irg),INTENT(IN)                :: dims(2)
+real(kind=dbl),INTENT(IN)                   :: a(dims(1),dims(2)), b(dims(1),dims(2))
+real(kind=dbl),INTENT(OUT)                  :: c(2*dims(1)-1,2*dims(1)-1)
+integer(kind=irg),INTENT(OUT)               :: max_pos(2)
 
 integer(kind=irg)                           :: cdims(2), i, j
 complex(C_DOUBLE_COMPLEX), allocatable      :: ffta(:,:), fftb(:,:), fftc(:,:)
@@ -2759,10 +2759,10 @@ use mod_Grid_Interpolation
 IMPLICIT NONE
 
 class(HREBSD_T),INTENT(INOUT):: self
-integer(kind=irg),intent(in) :: interp_size, size_interp, z_size, max_pos(2)
-real(kind=dbl),intent(in)    :: ngrid(interp_size), interp_step
-real(kind=dbl),intent(inout) :: interp_ngrid(size_interp), z(interp_size,interp_size)                       
-real(kind=dbl),intent(out)   :: q(2)
+integer(kind=irg),INTENT(IN) :: interp_size, size_interp, z_size, max_pos(2)
+real(kind=dbl),INTENT(IN)    :: ngrid(interp_size), interp_step
+real(kind=dbl),INTENT(INOUT) :: interp_ngrid(size_interp), z(interp_size,interp_size)                       
+real(kind=dbl),INTENT(OUT)   :: q(2)
 integer(kind=irg)            :: md, ixi, iyi, ier, max_pos_interp(2), interp_half
 real(kind=dbl)               :: zi(size_interp,size_interp)
 
@@ -2799,7 +2799,7 @@ end subroutine peak_interpolation_
 
   implicit none
 
-    real   (kind=dbl),INTENT(IN   ) :: p(-1:1,-1:1)
+    real   (kind=dbl),INTENT(IN)    :: p(-1:1,-1:1)
     real   (kind=dbl),INTENT(INOUT) :: x(0:1)
     real   (kind=dbl)               :: vPeak
 
@@ -2860,8 +2860,8 @@ integer(kind=irg), INTENT(IN)                   :: Lx, Ly
 real(kind=dbl), INTENT(IN)                      :: PC_x, PC_y, DD 
 integer(kind=irg),INTENT(IN)                    :: roi_distance
 integer(kind=irg), INTENT(IN)                   :: N_ROI
-integer(kind=irg),intent(inout)                 :: roi_centre(N_ROI,2)
-real(kind=dbl),intent(inout)                    :: r(3, N_ROI)
+integer(kind=irg),INTENT(INOUT)                 :: roi_centre(N_ROI,2)
+real(kind=dbl),INTENT(INOUT)                    :: r(3, N_ROI)
 
 integer(kind=irg)                               :: i
 real(kind=dbl)                                  :: x
@@ -2889,7 +2889,7 @@ use mod_rotations
 
 implicit NONE
 
-integer(kind=irg), INTENT(in) :: N
+integer(kind=irg), INTENT(IN) :: N
 real(kind=dbl), INTENT(INOUT) :: r(3, N), q(3, N), C_c(6,6), R_tilt(9)
 type(q_T),INTENT(INOUT)       :: qu
 real(kind=dbl)                :: Ftensor(9)
@@ -2998,7 +2998,7 @@ use mod_rotations
 
 implicit NONE
 
-integer(kind=irg), INTENT(in) :: N
+integer(kind=irg), INTENT(IN) :: N
 real(kind=dbl), INTENT(INOUT) :: r(3, N), q(3, N), C_c(6,6), R_tilt(9)
 type(q_T),INTENT(INOUT)       :: qu
 real(kind=dbl)                :: Ftensor(9)
@@ -3098,7 +3098,7 @@ end function Villert
 
   implicit NONE
 
-  integer(kind=irg), INTENT(in) :: NN
+  integer(kind=irg), INTENT(IN) :: NN
   real(kind=dbl), INTENT(IN)    :: r(3, NN), q(3, NN)
   integer(kind=irg), INTENT(IN) :: j, k, m, n 
   real(kind=dbl),INTENT(IN)     :: DD 
@@ -3121,15 +3121,15 @@ use mod_rotations
 
 implicit NONE
 
-real(kind=dbl), INTENT(out)   :: Ftensor(9), minf
-integer(kind=irg), INTENT(in) :: N
+real(kind=dbl), INTENT(OUT)   :: Ftensor(9), minf
+integer(kind=irg), INTENT(IN) :: N
 type(q_T),INTENT(INOUT)       :: qu
-real(kind=dbl), INTENT(in)    :: r(3, N), q(3, N), C_c(6,6), R_tilt(9)
+real(kind=dbl), INTENT(IN)    :: r(3, N), q(3, N), C_c(6,6), R_tilt(9)
 
-real(kind=dbl)    :: lb(9), ub(9), f(6,N), x(9), tol
-integer*8         :: opt
-integer(kind=irg) ::  ires, i
-real(kind=dbl) :: gs2c(3,3), gc2s(3,3), RM(6,6), RN(6,6), RM_inv(6,6), C_s(6,6), C(9,9)
+real(kind=dbl)                :: lb(9), ub(9), f(6,N), x(9), tol
+integer*8                     :: opt
+integer(kind=irg)             ::  ires, i
+real(kind=dbl)                :: gs2c(3,3), gc2s(3,3), RM(6,6), RN(6,6), RM_inv(6,6), C_s(6,6), C(9,9)
 
 include 'nlopt.f'
 
@@ -3344,7 +3344,7 @@ use mod_math
 
 IMPLICIT NONE
 type(q_T),INTENT(INOUT)     :: qu                  
-real(kind=dbl), intent(out) :: gs2c(3,3), gc2s(3,3), RM(6,6), RN(6,6) 
+real(kind=dbl), INTENT(OUT) :: gs2c(3,3), gc2s(3,3), RM(6,6), RN(6,6) 
 
 type(o_T)                   :: om
 
@@ -3400,8 +3400,8 @@ use mod_rotations
 
 implicit NONE
 
-real(kind=dbl),intent(in)    :: R_finite(3,3)
-real(kind=dbl),intent(inout) :: w(3,3)
+real(kind=dbl),INTENT(IN)    :: R_finite(3,3)
+real(kind=dbl),INTENT(INOUT) :: w(3,3)
 
 type (v_T)                   :: v
 type (o_T)                   :: om
@@ -3433,10 +3433,10 @@ use mod_math
 
 IMPLICIT NONE
 
-integer(kind=irg),intent(in)    :: binx, biny
-real(kind=dbl),intent(in)       :: R(3,3), PC(3), image(biny, binx)
-real(kind=dbl),intent(out)       :: image_rotated(biny, binx)
-real(kind=dbl)       :: yy, xx, P(4,4), rp(3,1), r_rot(3), row1, col1, &
+integer(kind=irg),INTENT(IN) :: binx, biny
+real(kind=dbl),INTENT(IN)    :: R(3,3), PC(3), image(biny, binx)
+real(kind=dbl),INTENT(OUT)   :: image_rotated(biny, binx)
+real(kind=dbl)               :: yy, xx, P(4,4), rp(3,1), r_rot(3), row1, col1, &
                        dx, dy, a, b, intensity
 integer(kind=irg)   :: row2, col2, x1, y1
 
@@ -3476,8 +3476,8 @@ end subroutine fRemapbicubic
 recursive function bicubicInterpolate(p, x, y) result (q)
 
 implicit NONE
-real(kind=dbl), intent(in) :: p(4,4), x, y
-real(kind=dbl)  :: q, q1, q2, q3, q4
+real(kind=dbl), INTENT(IN) :: p(4,4), x, y
+real(kind=dbl)             :: q, q1, q2, q3, q4
 
 q1 = cubicInterpolate(p(1,:), x)
 q2 = cubicInterpolate(p(2,:), x)
@@ -3491,9 +3491,9 @@ recursive function cubicInterpolate(p, x) result (q)
 
 implicit NONE
 
-real(kind=dbl), intent(in) :: p(4), x
+real(kind=dbl), INTENT(IN) :: p(4), x
 
-real(kind=dbl)  :: q
+real(kind=dbl)             :: q
 
 q = p(2) + 0.5 * x*(p(3) - p(1) + x*(2.0*p(1) - 5.0*p(2) + 4.0*p(3) - p(4) + x*(3.0*(p(2) - p(3)) + p(4) - p(1))))
 
@@ -3505,13 +3505,13 @@ recursive subroutine inv(nn, mm, A, Ainv)
 
 implicit NONE
 
-integer(kind=irg), intent(in) :: nn, mm
-real(kind=dbl), dimension(nn,mm), intent(in) :: A
-real(kind=dbl), dimension(nn,mm), intent(out) :: Ainv
+integer(kind=irg), INTENT(IN)                 :: nn, mm
+real(kind=dbl), dimension(nn,mm), INTENT(IN)  :: A
+real(kind=dbl), dimension(nn,mm), INTENT(OUT) :: Ainv
 
-real(kind=dbl),allocatable  :: work(:)  ! work array for LAPACK
-integer(kind=irg), dimension(nn) :: ipiv   ! pivot indices
-integer(kind=irg) :: n, info, LWORK
+real(kind=dbl),allocatable                    :: work(:)  ! work array for LAPACK
+integer(kind=irg), dimension(nn)              :: ipiv   ! pivot indices
+integer(kind=irg)                             :: n, info, LWORK
 
 ! ! External procedures defined in LAPACK
 ! external DGETRF
@@ -3660,9 +3660,9 @@ recursive subroutine ifftshift(dims, X, Y)
 
 IMPLICIT NONE
 
-integer(kind=irg),intent(in)                    :: dims(2)
-real(kind=dbl),intent(in)                       :: X(dims(1),dims(2))
-real(kind=dbl),intent(out)                      :: Y(dims(1),dims(2))
+integer(kind=irg),INTENT(IN)                    :: dims(2)
+real(kind=dbl),INTENT(IN)                       :: X(dims(1),dims(2))
+real(kind=dbl),INTENT(OUT)                      :: Y(dims(1),dims(2))
 
 ! shift the quadrants
 if (mod(dims(1),2).eq.0) then

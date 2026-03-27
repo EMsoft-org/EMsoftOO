@@ -368,31 +368,31 @@ use mod_EMsoft
 use mod_image
 use mod_io
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(BWshow_T),INTENT(INOUT)     :: self
-type(EMsoft_T),INTENT(INOUT)      :: EMsoft
-real(kind=sgl),INTENT(IN)         :: minthick
-real(kind=sgl),INTENT(IN)         :: maxthick
+class(BWshow_T),INTENT(INOUT) :: self
+type(EMsoft_T),INTENT(INOUT)  :: EMsoft
+real(kind=sgl),INTENT(IN)     :: minthick
+real(kind=sgl),INTENT(IN)     :: maxthick
 
-type(IO_T)                        :: Message 
+type(IO_T)                    :: Message 
 
-integer(kind=irg)                 :: i, j, k     
-real(kind=sgl),allocatable        :: images(:,:,:)
-real(kind=dbl)                    :: dz, z, arg, Wr(self%nn), Wi(self%nn)
-real(kind=sgl)                    :: mi, ma, ima(self%ns, self%ns) 
-complex(kind=dbl)                 :: amp, q(self%nn), diag(self%nn) 
-character(fnlen)                  :: TIFF_filename
+integer(kind=irg)             :: i, j, k     
+real(kind=sgl),allocatable    :: images(:,:,:)
+real(kind=dbl)                :: dz, z, arg, Wr(self%nn), Wi(self%nn)
+real(kind=sgl)                :: mi, ma, ima(self%ns, self%ns) 
+complex(kind=dbl)             :: amp, q(self%nn), diag(self%nn) 
+character(fnlen)              :: TIFF_filename
 
 ! declare variables for use in object oriented image module
-integer                           :: iostat
-character(len=128)                :: iomsg
-logical                           :: isInteger
-type(image_t)                     :: im
-integer(int8)                     :: i8 (3,4)
-integer(int8), allocatable        :: TIFF_image(:,:)
+integer                       :: iostat
+character(len=128)            :: iomsg
+logical                       :: isInteger
+type(image_t)                 :: im
+integer(int8)                 :: i8 (3,4)
+integer(int8), allocatable    :: TIFF_image(:,:)
 
 ! all images are square
 allocate(images(self%ns,self%ns,self%nn))

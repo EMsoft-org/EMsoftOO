@@ -522,32 +522,32 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(MCfile_T), INTENT(INOUT)  :: self
-type(HDF_T),INTENT(INOUT)       :: HDF
-type(HDFnames_T),INTENT(INOUT)  :: HDFnames
-logical,INTENT(IN),OPTIONAL     :: getAccume
+class(MCfile_T), INTENT(INOUT)                   :: self
+type(HDF_T),INTENT(INOUT)                        :: HDF
+type(HDFnames_T),INTENT(INOUT)                   :: HDFnames
+logical,INTENT(IN),OPTIONAL                      :: getAccume
  !! energy accumulator array switch
-logical,INTENT(IN),OPTIONAL     :: getAccumz
+logical,INTENT(IN),OPTIONAL                      :: getAccumz
  !! depth accumulator array switch
-logical,INTENT(IN),OPTIONAL     :: getAccumSP
+logical,INTENT(IN),OPTIONAL                      :: getAccumSP
  !! stereographic accumulator array switch
-logical,INTENT(IN),OPTIONAL     :: getAccumxyz
+logical,INTENT(IN),OPTIONAL                      :: getAccumxyz
  !! interaction volume array switch
-logical,INTENT(IN),OPTIONAL     :: getstrings
-logical,INTENT(IN),OPTIONAL     :: silent
+logical,INTENT(IN),OPTIONAL                      :: getstrings
+logical,INTENT(IN),OPTIONAL                      :: silent
 
-type(IO_T)                                          :: Message
-character(fnlen)                                    :: groupname, datagroupname, dataset
-logical                                             :: stat, readonly, g_exists, f_exists, FL
-integer(kind=irg)                                   :: ii, nlines, nx, ny, nz, hdferr
-real(kind=dbl)                                      :: x
-integer(kind=irg),allocatable                       :: iarray(:)
-real(kind=sgl),allocatable                          :: farray(:)
-integer(kind=irg),allocatable                       :: accum_e(:,:,:)
-integer(kind=irg),allocatable                       :: accum_xyz(:,:,:)
-integer(kind=irg),allocatable                       :: accum_z(:,:,:,:)
-integer(HSIZE_T)                                    :: dims(1), dims2(2), dims3(3), offset3(3), dims4(4)
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: groupname, datagroupname, dataset
+logical                                          :: stat, readonly, g_exists, f_exists, FL
+integer(kind=irg)                                :: ii, nlines, nx, ny, nz, hdferr
+real(kind=dbl)                                   :: x
+integer(kind=irg),allocatable                    :: iarray(:)
+real(kind=sgl),allocatable                       :: farray(:)
+integer(kind=irg),allocatable                    :: accum_e(:,:,:)
+integer(kind=irg),allocatable                    :: accum_xyz(:,:,:)
+integer(kind=irg),allocatable                    :: accum_z(:,:,:,:)
+integer(HSIZE_T)                                 :: dims(1), dims2(2), dims3(3), offset3(3), dims4(4)
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 associate( nml => self%nml, MCDT => self%MCDT )
 
