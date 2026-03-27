@@ -113,26 +113,25 @@ class NmlEditor:
         toolbar = tk.Frame(self.root, padx=5, pady=5)
         toolbar.pack(fill=tk.X)
 
-        tk.Button(toolbar, text='  Open .nml  ', command=self.open_file).pack(side=tk.LEFT, padx=4)
-        tk.Button(toolbar, text=f'  Save .nml ({MOD_LABEL}+S)  ',
-                  command=self.save_file).pack(side=tk.LEFT, padx=4)
+        self.open_btn = tk.Button(toolbar, text='  Open .nml  ', command=self.open_file)
+        self.open_btn.pack(side=tk.LEFT, padx=4)
 
-        # Separator
-        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
+        self.save_btn = tk.Button(toolbar, text=f'  Save .nml ({MOD_LABEL}+S)  ',
+                                  command=self.save_file)
+        self.save_btn.pack(side=tk.LEFT, padx=4)
 
-        # Working directory
-        tk.Button(toolbar, text='  Set Work Dir  ',
-                  command=self.set_work_dir).pack(side=tk.LEFT, padx=4)
+        tk.Label(toolbar, text='  |  ').pack(side=tk.LEFT)
 
-        # Separator
-        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
+        self.workdir_btn = tk.Button(toolbar, text='  Set Work Dir  ',
+                                     command=self.set_work_dir)
+        self.workdir_btn.pack(side=tk.LEFT, padx=4)
 
-        # Run button
+        tk.Label(toolbar, text='  |  ').pack(side=tk.LEFT)
+
         self.run_btn = tk.Button(toolbar, text='  Run Program  ', command=self.run_program,
                                  state=tk.DISABLED)
         self.run_btn.pack(side=tk.LEFT, padx=4)
 
-        # Stop button
         self.stop_btn = tk.Button(toolbar, text='  Stop  ', command=self.stop_program,
                                   state=tk.DISABLED, fg='red')
         self.stop_btn.pack(side=tk.LEFT, padx=4)
