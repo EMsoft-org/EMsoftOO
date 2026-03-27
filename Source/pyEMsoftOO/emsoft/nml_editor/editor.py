@@ -113,38 +113,35 @@ class NmlEditor:
         toolbar = tk.Frame(self.root, padx=5, pady=5)
         toolbar.pack(fill=tk.X)
 
-        self.open_btn = tk.Button(toolbar, text='  Open .nml  ', command=self.open_file)
-        self.open_btn.pack(side=tk.LEFT, padx=4)
+        btn_pad = dict(padx=4, pady=2)
+        ttk.Button(toolbar, text='Open .nml', command=self.open_file).pack(side=tk.LEFT, **btn_pad)
+        ttk.Button(toolbar, text=f'Save .nml ({MOD_LABEL}+S)',
+                   command=self.save_file).pack(side=tk.LEFT, **btn_pad)
 
-        self.save_btn = tk.Button(toolbar, text=f'  Save .nml ({MOD_LABEL}+S)  ',
-                                  command=self.save_file)
-        self.save_btn.pack(side=tk.LEFT, padx=4)
+        tk.Label(toolbar, text=' | ').pack(side=tk.LEFT)
 
-        tk.Label(toolbar, text='  |  ').pack(side=tk.LEFT)
+        ttk.Button(toolbar, text='Set Work Dir',
+                   command=self.set_work_dir).pack(side=tk.LEFT, **btn_pad)
 
-        self.workdir_btn = tk.Button(toolbar, text='  Set Work Dir  ',
-                                     command=self.set_work_dir)
-        self.workdir_btn.pack(side=tk.LEFT, padx=4)
+        tk.Label(toolbar, text=' | ').pack(side=tk.LEFT)
 
-        tk.Label(toolbar, text='  |  ').pack(side=tk.LEFT)
+        self.run_btn = ttk.Button(toolbar, text='Run Program', command=self.run_program,
+                                  state=tk.DISABLED)
+        self.run_btn.pack(side=tk.LEFT, **btn_pad)
 
-        self.run_btn = tk.Button(toolbar, text='  Run Program  ', command=self.run_program,
-                                 state=tk.DISABLED)
-        self.run_btn.pack(side=tk.LEFT, padx=4)
-
-        self.stop_btn = tk.Button(toolbar, text='  Stop  ', command=self.stop_program,
-                                  state=tk.DISABLED, fg='red')
-        self.stop_btn.pack(side=tk.LEFT, padx=4)
+        self.stop_btn = ttk.Button(toolbar, text='Stop', command=self.stop_program,
+                                   state=tk.DISABLED)
+        self.stop_btn.pack(side=tk.LEFT, **btn_pad)
 
         # Font size controls (right side of toolbar)
         font_frame = tk.Frame(toolbar)
         font_frame.pack(side=tk.RIGHT, padx=4)
         tk.Label(font_frame, text='Font:').pack(side=tk.LEFT)
-        tk.Button(font_frame, text=' \u2212 ', command=self._font_smaller).pack(side=tk.LEFT, padx=1)
+        ttk.Button(font_frame, text=' \u2212 ', width=3, command=self._font_smaller).pack(side=tk.LEFT, padx=1)
         self.font_size_var = tk.StringVar(value=str(self.editor_font[1]))
         tk.Label(font_frame, textvariable=self.font_size_var, width=3,
                  anchor=tk.CENTER).pack(side=tk.LEFT)
-        tk.Button(font_frame, text=' + ', command=self._font_larger).pack(side=tk.LEFT, padx=1)
+        ttk.Button(font_frame, text='+', width=3, command=self._font_larger).pack(side=tk.LEFT, padx=1)
 
         # --- Main paned layout: template list on left, editor+output on right ---
         h_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -233,8 +230,8 @@ class NmlEditor:
         output_header.pack(fill=tk.X)
         tk.Label(output_header, text='Program Output:',
                  font=('TkDefaultFont', 10, 'bold')).pack(side=tk.LEFT)
-        tk.Button(output_header, text=' Clear ', command=self.clear_output).pack(side=tk.RIGHT, padx=2)
-        tk.Button(output_header, text=' Save .log ', command=self.save_log).pack(side=tk.RIGHT, padx=2)
+        ttk.Button(output_header, text='Clear', command=self.clear_output).pack(side=tk.RIGHT, padx=2)
+        ttk.Button(output_header, text='Save .log', command=self.save_log).pack(side=tk.RIGHT, padx=2)
 
         # Output text widget
         output_frame = ttk.Frame(output_container)
