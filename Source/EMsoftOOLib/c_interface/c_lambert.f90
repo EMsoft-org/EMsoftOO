@@ -120,7 +120,7 @@ subroutine c_lambert_stereo_forward(xyz, xy, ierr) &
   type(Lambert_T)                :: L
 
   L = Lambert_T( xyzd = xyz )
-  ierr = L%StereoGraphicForward(xy)
+  ierr = L%StereoGraphicForward(xy, 1.D0)
 
 end subroutine c_lambert_stereo_forward
 
@@ -134,7 +134,7 @@ subroutine c_lambert_stereo_inverse(xy, xyz, ierr) &
   type(Lambert_T)                :: L
 
   L = Lambert_T( xyd = xy )
-  ierr = L%StereoGraphicInverse(xyz)
+  ierr = L%StereoGraphicInverse(xyz, 1.D0)
 
 end subroutine c_lambert_stereo_inverse
 
