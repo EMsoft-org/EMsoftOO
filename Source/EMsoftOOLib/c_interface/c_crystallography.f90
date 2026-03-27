@@ -37,6 +37,7 @@ use iso_c_binding
 use mod_kinds
 use mod_global
 use mod_crystallography
+use mod_symmetry
 
 IMPLICIT NONE
 
@@ -242,5 +243,70 @@ subroutine c_cell_calc_cross(handle, p, q, r, inspace, outspace) &
   call obj%calcCross(p, q, r, inspace, outspace, 0)
 
 end subroutine c_cell_calc_cross
+
+!--------------------------------------------------------------------------
+! Atom setup (programmatic crystal definition)
+!--------------------------------------------------------------------------
+
+subroutine c_cell_set_xtal_system(handle, xs) bind(c, name='emsoft_cell_set_xtal_system')
+  !! Set the crystal system number (1=cubic..7=triclinic).
+  type(c_ptr), value, INTENT(IN)    :: handle
+  integer(c_int), value, INTENT(IN) :: xs
+  type(Cell_T), pointer             :: obj
+
+  call c_f_pointer(handle, obj)
+  call obj%setXtalSystem(xs)
+
+end subroutine c_cell_set_xtal_system
+
+!--------------------------------------------------------------------------
+subroutine c_cell_set_natomtype(handle, n) bind(c, name='emsoft_cell_set_natomtype')
+  !! Set the number of atom types in the asymmetric unit.
+  type(c_ptr), value, INTENT(IN)    :: handle
+  integer(c_int), value, INTENT(IN) :: n
+  type(Cell_T), pointer             :: obj
+
+  call c_f_pointer(handle, obj)
+  call obj%setNatomtype(n)
+
+end subroutine c_cell_set_natomtype
+
+!--------------------------------------------------------------------------
+subroutine c_cell_setup_atoms(handle, sg_handle, natom, atomtypes, atomdata) &
+    bind(c, name='emsoft_cell_setup_atoms')
+  !! Set up all atoms in the asymmetric unit and compute equivalent positions.
+  !! atomtypes(natom): atomic numbers (e.g. 28 for Ni).
+  !! atomdata(natom, 5): each row is [x, y, z, occupancy, Debye-Waller].
+  !! Calls calcPositions internally so the cell is ready for diffraction.
+  type(c_ptr), value, INTENT(IN)    :: handle
+  type(c_ptr), value, INTENT(IN)    :: sg_handle
+  integer(c_int), value, INTENT(IN) :: natom
+  integer(c_int), INTENT(IN)        :: atomtypes(natom)
+  real(c_double), INTENT(IN)        :: atomdata(natom, 5)
+  type(Cell_T), pointer             :: obj
+  type(SpaceGroup_T), pointer       :: sg
+  real(kind=dbl)                    :: pos(maxpasym, 5)
+  integer(kind=irg)                 :: i
+
+  call c_f_pointer(handle, obj)
+  call c_f_pointer(sg_handle, sg)
+
+  call obj%setNatomtype(natom)
+  call obj%setXtalSystem(sg%getSpaceGroupXtalSystem())
+
+  ! Set atom types
+  call obj%setAtomtype(atomtypes(1:natom))
+
+  ! Set atom positions via the full array interface
+  pos = 0.D0
+  do i = 1, natom
+    pos(i, 1:5) = atomdata(i, 1:5)
+  end do
+  call obj%setAtomPos(pos)
+
+  ! Generate all equivalent positions
+  call obj%calcPositions(sg, 'v')
+
+end subroutine c_cell_setup_atoms
 
 end module c_crystallography

@@ -11,6 +11,7 @@ import numpy as np
 from ._lib import get_lib
 
 c_double = ctypes.c_double
+c_int = ctypes.c_int
 c_char = ctypes.c_char
 c_void_p = ctypes.c_void_p
 
@@ -54,6 +55,16 @@ def _setup_bindings():
     lib.emsoft_cell_calc_cross.argtypes = [c_void_p, c_double * 3, c_double * 3,
                                            c_double * 3, c_char, c_char]
     lib.emsoft_cell_calc_cross.restype = None
+
+    lib.emsoft_cell_setup_atoms.argtypes = [c_void_p, c_void_p, c_int,
+                                            ctypes.c_void_p, ctypes.c_void_p]
+    lib.emsoft_cell_setup_atoms.restype = None
+
+    lib.emsoft_cell_set_xtal_system.argtypes = [c_void_p, c_int]
+    lib.emsoft_cell_set_xtal_system.restype = None
+
+    lib.emsoft_cell_set_natomtype.argtypes = [c_void_p, c_int]
+    lib.emsoft_cell_set_natomtype.restype = None
 
     return lib
 
@@ -220,6 +231,42 @@ class Crystal:
                                          _space_char(in_space),
                                          _space_char(out_space))
         return np.array(rr, dtype=np.float64)
+
+    def setup_atoms(self, space_group, atoms):
+        """Define the atoms in the asymmetric unit and generate equivalent positions.
+
+        This must be called before using Diffraction calculations.
+
+        Parameters
+        ----------
+        space_group : emsoft.symmetry.SpaceGroup
+            The space group for generating equivalent positions.
+        atoms : list of tuples
+            Each tuple is (atomic_number, x, y, z, occupancy, debye_waller).
+            atomic_number: int (e.g. 28 for Ni, 14 for Si).
+            x, y, z: fractional coordinates.
+            occupancy: site occupancy (typically 1.0).
+            debye_waller: Debye-Waller factor in nm^2 (typically 0.003-0.006).
+
+        Examples
+        --------
+        >>> from emsoft.symmetry import SpaceGroup
+        >>> ni = Crystal(0.35236, 0.35236, 0.35236, 90, 90, 90)
+        >>> sg = SpaceGroup(225)  # Fm-3m
+        >>> ni.setup_atoms(sg, [(28, 0.0, 0.0, 0.0, 1.0, 0.003)])
+        """
+        natom = len(atoms)
+        atomtypes = np.array([a[0] for a in atoms], dtype=np.int32)
+        atomdata = np.zeros((natom, 5), dtype=np.float64, order='F')
+        for i, a in enumerate(atoms):
+            atomdata[i, :] = [a[1], a[2], a[3], a[4], a[5]]
+
+        self._lib.emsoft_cell_setup_atoms(
+            self._handle,
+            space_group._handle,
+            c_int(natom),
+            atomtypes.ctypes.data_as(c_void_p),
+            atomdata.ctypes.data_as(c_void_p))
 
     def interplanar_spacing(self, hkl):
         """Compute d-spacing for reflection (h, k, l) in nm."""

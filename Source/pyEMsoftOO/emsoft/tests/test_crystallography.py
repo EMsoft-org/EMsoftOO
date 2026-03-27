@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 from emsoft.crystallography import Crystal
+from emsoft.symmetry import SpaceGroup
 
 
 class TestCrystalCreation:
@@ -115,6 +116,23 @@ class TestCrystalCross:
         r = c.cross([1, 0, 0], [0, 1, 0], in_space='d', out_space='d')
         # In cubic, cross product of [100] x [010] = [001]
         np.testing.assert_allclose(r / r[2], [0, 0, 1], atol=1e-14)
+
+
+class TestSetupAtoms:
+    def test_setup_ni(self):
+        ni = Crystal(0.35236, 0.35236, 0.35236, 90, 90, 90)
+        sg = SpaceGroup(225)
+        # Should not raise
+        ni.setup_atoms(sg, [(28, 0.0, 0.0, 0.0, 1.0, 0.003529)])
+
+    def test_setup_multi_atom(self):
+        # NaCl: two atom types
+        nacl = Crystal(0.5640, 0.5640, 0.5640, 90, 90, 90)
+        sg = SpaceGroup(225)
+        nacl.setup_atoms(sg, [
+            (11, 0.0, 0.0, 0.0, 1.0, 0.005),   # Na
+            (17, 0.5, 0.0, 0.0, 1.0, 0.005),   # Cl
+        ])
 
 
 class TestInterplanarSpacing:
