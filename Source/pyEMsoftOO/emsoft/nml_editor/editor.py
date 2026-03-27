@@ -56,11 +56,19 @@ class NmlEditor:
         self._highlight_job = None
 
         self.root.title('EMsoftOO Namelist Editor')
-        self.root.geometry('820x650')
-        self.root.minsize(600, 400)
+        self.root.geometry('1000x700')
+        self.root.minsize(700, 450)
 
         # Handle window close
         self.root.protocol('WM_DELETE_WINDOW', self.on_close)
+
+        # Configure editor font (platform-specific)
+        if IS_MAC:
+            self.editor_font = ('Menlo', 13)
+        elif platform.system() == 'Windows':
+            self.editor_font = ('Consolas', 11)
+        else:
+            self.editor_font = ('Monospace', 11)
 
         self._build_ui()
         self._bind_shortcuts()
@@ -72,31 +80,63 @@ class NmlEditor:
         toolbar = ttk.Frame(self.root, padding=5)
         toolbar.pack(fill=tk.X)
 
-        ttk.Label(toolbar, text='Program:').pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(toolbar, text='Open .nml', command=self.open_file).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text=f'Save .nml ({MOD_LABEL}+S)',
+                   command=self.save_file).pack(side=tk.LEFT, padx=2)
 
-        # Template selector
-        self.templates = sorted(
+        # --- Main paned layout: template list on left, editor on right ---
+        paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
+        paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 0))
+
+        # --- Left panel: template list with search ---
+        left_frame = ttk.Frame(paned, padding=2)
+        paned.add(left_frame, weight=0)
+
+        ttk.Label(left_frame, text='Templates:').pack(anchor=tk.W)
+
+        # Search entry
+        search_frame = ttk.Frame(left_frame)
+        search_frame.pack(fill=tk.X, pady=(2, 4))
+        ttk.Label(search_frame, text='Filter:').pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add('write', self._on_search_changed)
+        search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=20)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
+
+        # Template listbox with scrollbar
+        list_frame = ttk.Frame(left_frame)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+
+        list_scroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL)
+        list_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.template_list = tk.Listbox(list_frame, width=28, activestyle='dotbox',
+                                         yscrollcommand=list_scroll.set,
+                                         font=('TkDefaultFont', 11))
+        self.template_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        list_scroll.config(command=self.template_list.yview)
+
+        self.template_list.bind('<<ListboxSelect>>', self.on_template_selected)
+
+        # Populate the list
+        self.all_templates = sorted(
             f for f in os.listdir(self.templates_dir) if f.endswith('.template')
         )
-        display_names = [f.replace('.template', '') for f in self.templates]
+        self.display_names = [f.replace('.template', '') for f in self.all_templates]
+        self._populate_list(self.display_names)
 
-        self.combo_var = tk.StringVar()
-        self.combo = ttk.Combobox(toolbar, textvariable=self.combo_var,
-                                  values=display_names, state='readonly', width=30)
-        self.combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.combo.bind('<<ComboboxSelected>>', self.on_template_selected)
+        # --- Right panel: editor ---
+        right_frame = ttk.Frame(paned, padding=2)
+        paned.add(right_frame, weight=1)
 
-        ttk.Button(toolbar, text='Open .nml', command=self.open_file).pack(side=tk.LEFT, padx=2)
-        ttk.Button(toolbar, text=f'Save .nml ({MOD_LABEL}+S)', command=self.save_file).pack(side=tk.LEFT, padx=2)
-
-        # --- Editor area ---
-        editor_frame = ttk.Frame(self.root)
-        editor_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 0))
+        editor_frame = ttk.Frame(right_frame)
+        editor_frame.pack(fill=tk.BOTH, expand=True)
 
         # Line numbers
         self.linenums = tk.Text(editor_frame, width=4, padx=4, pady=4,
                                 takefocus=0, border=0, state='disabled',
-                                background='#f0f0f0', foreground='#999999')
+                                background='#f0f0f0', foreground='#999999',
+                                font=self.editor_font)
         self.linenums.pack(side=tk.LEFT, fill=tk.Y)
 
         # Scrollbar
@@ -106,39 +146,45 @@ class NmlEditor:
         # Main text editor
         self.editor = tk.Text(editor_frame, wrap=tk.NONE, undo=True,
                               padx=6, pady=4, insertwidth=2,
+                              font=self.editor_font,
                               yscrollcommand=self._on_scroll)
         self.editor.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=self._scroll_both)
-
-        # Configure editor font
-        if IS_MAC:
-            font = ('Menlo', 13)
-        elif platform.system() == 'Windows':
-            font = ('Consolas', 11)
-        else:
-            font = ('Monospace', 11)
-
-        self.editor.configure(font=font)
-        self.linenums.configure(font=font)
 
         # Track modifications
         self.editor.bind('<<Modified>>', self._on_modified)
         self.editor.bind('<KeyRelease>', self._schedule_highlight)
 
         # --- Status bar ---
-        self.status_var = tk.StringVar(value='Select a program template to begin')
+        self.status_var = tk.StringVar(value='Select a template from the list to begin')
         status = ttk.Label(self.root, textvariable=self.status_var,
                            relief=tk.SUNKEN, anchor=tk.W, padding=(5, 2))
         status.pack(fill=tk.X, side=tk.BOTTOM)
 
         # --- Syntax highlighting tags ---
         self.editor.tag_configure('comment', foreground='#6a9955')
-        self.editor.tag_configure('section', foreground='#2e8b57', font=font + ('bold',))
-        self.editor.tag_configure('group', foreground='#0000cc', font=font + ('bold',))
+        self.editor.tag_configure('section', foreground='#2e8b57',
+                                  font=self.editor_font + ('bold',))
+        self.editor.tag_configure('group', foreground='#0000cc',
+                                  font=self.editor_font + ('bold',))
         self.editor.tag_configure('param', foreground='#001080')
         self.editor.tag_configure('string', foreground='#a31515')
         self.editor.tag_configure('boolean', foreground='#7b2fa0')
-        self.editor.tag_configure('number', foreground='#098658')
+
+    def _populate_list(self, names):
+        """Fill the listbox with template names."""
+        self.template_list.delete(0, tk.END)
+        for name in names:
+            self.template_list.insert(tk.END, name)
+
+    def _on_search_changed(self, *args):
+        """Filter the template list based on search text."""
+        query = self.search_var.get().lower()
+        if query:
+            filtered = [n for n in self.display_names if query in n.lower()]
+        else:
+            filtered = self.display_names
+        self._populate_list(filtered)
 
     def _bind_shortcuts(self):
         """Set up keyboard shortcuts."""
@@ -169,7 +215,6 @@ class NmlEditor:
 
     def _on_scroll(self, first, last):
         self.linenums.yview_moveto(first)
-        # Update scrollbar if it exists
         for child in self.editor.master.winfo_children():
             if isinstance(child, ttk.Scrollbar):
                 child.set(first, last)
@@ -185,7 +230,6 @@ class NmlEditor:
         lines = '\n'.join(str(i) for i in range(1, line_count + 1))
         self.linenums.insert('1.0', lines)
 
-        # Adjust width for large files
         width = max(4, len(str(line_count)) + 1)
         self.linenums.config(width=width, state='disabled')
 
@@ -201,9 +245,7 @@ class NmlEditor:
         """Apply syntax highlighting to the entire editor content."""
         self._highlight_job = None
 
-        # Remove existing tags
-        for tag in ('comment', 'section', 'group', 'param', 'string',
-                    'boolean', 'number'):
+        for tag in ('comment', 'section', 'group', 'param', 'string', 'boolean'):
             self.editor.tag_remove(tag, '1.0', tk.END)
 
         content = self.editor.get('1.0', tk.END)
@@ -240,12 +282,10 @@ class NmlEditor:
             # Lines with parameter = value
             if '=' in line and not stripped.startswith('!'):
                 eq_pos = line.index('=')
-                # Parameter name (before =)
-                param_start = line_start
                 param_end = f'{i + 1}.{eq_pos}'
-                self.editor.tag_add('param', param_start, param_end)
+                self.editor.tag_add('param', line_start, param_end)
 
-                # Check for inline comment after the value
+                # Find inline comment
                 value_part = line[eq_pos + 1:]
                 in_string = False
                 comment_offset = None
@@ -265,7 +305,7 @@ class NmlEditor:
                 else:
                     value_text = value_part
 
-                # Highlight strings in value
+                # Highlight strings
                 val_start = eq_pos + 1
                 in_str = False
                 str_begin = 0
@@ -303,7 +343,7 @@ class NmlEditor:
         title = 'EMsoftOO Namelist Editor'
         if self.current_file:
             name = os.path.basename(self.current_file)
-            title += f' — {name}'
+            title += f' \u2014 {name}'
         if self.modified:
             title += ' (modified)'
         self.root.title(title)
@@ -311,19 +351,22 @@ class NmlEditor:
     # --- Template loading ---
 
     def on_template_selected(self, event=None):
+        selection = self.template_list.curselection()
+        if not selection:
+            return
+
+        name = self.template_list.get(selection[0])
+
         if self.modified:
             if not messagebox.askyesno('Unsaved Changes',
                     'Current file has unsaved changes. Discard them?'):
-                # Restore the combo to the previous selection
                 return
 
-        name = self.combo_var.get()
         template_file = name + '.template'
         filepath = os.path.join(self.templates_dir, template_file)
 
         if os.path.isfile(filepath):
             self._load_file(filepath)
-            self.current_file = filepath
             line_count = int(self.editor.index('end-1c').split('.')[0])
             self.status_var.set(f'{template_file} loaded ({line_count} lines)')
         else:
@@ -337,12 +380,8 @@ class NmlEditor:
         self.editor.delete('1.0', tk.END)
         self.editor.insert('1.0', content)
 
-        # Remove trailing newline that tkinter adds
-        if self.editor.get('end-2c', 'end-1c') == '\n':
-            pass  # keep as-is
-
         self.editor.edit_modified(False)
-        self.editor.edit_reset()  # clear undo stack
+        self.editor.edit_reset()
         self.modified = False
         self.current_file = filepath
         self._update_title()
@@ -375,7 +414,6 @@ class NmlEditor:
 
     def save_file(self):
         """Save the editor content as a .nml file."""
-        # Suggest a filename
         if self.current_file:
             base = os.path.basename(self.current_file)
             default_name = base.replace('.template', '.nml')
@@ -418,14 +456,12 @@ class NmlEditor:
 
 def main(templates_path=None):
     """Launch the Namelist Editor GUI."""
-    # Check command-line arguments
     if templates_path is None and len(sys.argv) > 1:
         templates_path = sys.argv[1]
 
     templates_dir = find_templates_dir(templates_path)
 
     if templates_dir is None:
-        # Try to show a directory chooser
         root = tk.Tk()
         root.withdraw()
         templates_dir = filedialog.askdirectory(
