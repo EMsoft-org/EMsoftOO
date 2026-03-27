@@ -288,7 +288,7 @@ function c_quat_equal(h1, h2) result(res) bind(c, name='emsoft_quat_equal')
 
   call c_f_pointer(h1, q1)
   call c_f_pointer(h2, q2)
-  res = logical(q1 .eq. q2, c_bool)
+  res = logical(q1%quatsequal(q2), c_bool)
 
 end function c_quat_equal
 
