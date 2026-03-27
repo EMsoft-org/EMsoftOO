@@ -77,12 +77,12 @@ class NmlEditor:
     def _build_ui(self):
         """Create all UI elements."""
         # --- Top toolbar ---
-        toolbar = ttk.Frame(self.root, padding=5)
+        toolbar = tk.Frame(self.root, padx=5, pady=5)
         toolbar.pack(fill=tk.X)
 
-        ttk.Button(toolbar, text='Open .nml', command=self.open_file).pack(side=tk.LEFT, padx=2)
-        ttk.Button(toolbar, text=f'Save .nml ({MOD_LABEL}+S)',
-                   command=self.save_file).pack(side=tk.LEFT, padx=2)
+        tk.Button(toolbar, text='  Open .nml  ', command=self.open_file).pack(side=tk.LEFT, padx=4)
+        tk.Button(toolbar, text=f'  Save .nml ({MOD_LABEL}+S)  ',
+                  command=self.save_file).pack(side=tk.LEFT, padx=4)
 
         # --- Main paned layout: template list on left, editor on right ---
         paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
