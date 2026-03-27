@@ -56,11 +56,9 @@ subroutine c_lambert_square_to_sphere(xy, xyz, ierr) &
   real(c_double), INTENT(OUT)    :: xyz(3)
   integer(c_int), INTENT(OUT)    :: ierr
   type(Lambert_T)                :: L
-  integer(kind=irg)              :: err
 
   L = Lambert_T( xyd = xy )
-  xyz = L%LambertSquareToSphere(err)
-  ierr = err
+  ierr = L%LambertSquareToSphere(xyz)
 
 end subroutine c_lambert_square_to_sphere
 
@@ -72,11 +70,9 @@ subroutine c_lambert_sphere_to_square(xyz, xy, ierr) &
   real(c_double), INTENT(OUT)    :: xy(2)
   integer(c_int), INTENT(OUT)    :: ierr
   type(Lambert_T)                :: L
-  integer(kind=irg)              :: err
 
   L = Lambert_T( xyzd = xyz )
-  xy = L%LambertSphereToSquare(err)
-  ierr = err
+  ierr = L%LambertSphereToSquare(xy)
 
 end subroutine c_lambert_sphere_to_square
 
@@ -91,11 +87,9 @@ subroutine c_lambert_cube_to_ball(cube, ball, ierr) &
   real(c_double), INTENT(OUT)    :: ball(3)
   integer(c_int), INTENT(OUT)    :: ierr
   type(Lambert_T)                :: L
-  integer(kind=irg)              :: err
 
   L = Lambert_T( xyzd = cube )
-  ball = L%LambertCubeToBall(err)
-  ierr = err
+  ierr = L%LambertCubeToBall(ball)
 
 end subroutine c_lambert_cube_to_ball
 
@@ -107,11 +101,9 @@ subroutine c_lambert_ball_to_cube(ball, cube, ierr) &
   real(c_double), INTENT(OUT)    :: cube(3)
   integer(c_int), INTENT(OUT)    :: ierr
   type(Lambert_T)                :: L
-  integer(kind=irg)              :: err
 
   L = Lambert_T( xyzd = ball )
-  cube = L%LambertBallToCube(err)
-  ierr = err
+  ierr = L%LambertBallToCube(cube)
 
 end subroutine c_lambert_ball_to_cube
 
@@ -126,11 +118,9 @@ subroutine c_lambert_stereo_forward(xyz, xy, ierr) &
   real(c_double), INTENT(OUT)    :: xy(2)
   integer(c_int), INTENT(OUT)    :: ierr
   type(Lambert_T)                :: L
-  integer(kind=irg)              :: err
 
   L = Lambert_T( xyzd = xyz )
-  xy = L%StereoGraphicForward(err)
-  ierr = err
+  ierr = L%StereoGraphicForward(xy)
 
 end subroutine c_lambert_stereo_forward
 
@@ -142,11 +132,9 @@ subroutine c_lambert_stereo_inverse(xy, xyz, ierr) &
   real(c_double), INTENT(OUT)    :: xyz(3)
   integer(c_int), INTENT(OUT)    :: ierr
   type(Lambert_T)                :: L
-  integer(kind=irg)              :: err
 
   L = Lambert_T( xyd = xy )
-  xyz = L%StereoGraphicInverse(err)
-  ierr = err
+  ierr = L%StereoGraphicInverse(xyz)
 
 end subroutine c_lambert_stereo_inverse
 
