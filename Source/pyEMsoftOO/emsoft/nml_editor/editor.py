@@ -639,12 +639,12 @@ class NmlEditor:
 
     def _update_run_button(self):
         """Enable/disable the Run button based on current file."""
-        if self.current_file and self.current_file.endswith('.nml'):
+        if self.current_file:
             prog = _program_name_from_file(self.current_file)
             if prog and _find_executable(prog):
-                self.run_btn.state(['!disabled'])
+                self._set_btn_enabled(self.run_btn, True)
                 return
-        self.run_btn.state(['disabled'])
+        self._set_btn_enabled(self.run_btn, False)
 
     # --- Template loading ---
 
@@ -847,8 +847,8 @@ class NmlEditor:
         self._append_output(f'{"-" * 60}\n', 'info')
 
         self.status_var.set(f'Running {prog_name}...')
-        self.run_btn.state(['disabled'])
-        self.stop_btn.state(['!disabled'])
+        self._set_btn_enabled(self.run_btn, False)
+        self._set_btn_enabled(self.stop_btn, True)
 
         # Launch the process in a background thread
         self._process_thread = threading.Thread(
@@ -899,8 +899,7 @@ class NmlEditor:
     def _on_process_finished(self, retcode):
         """Called when the program finishes (on the main thread)."""
         self._process = None
-        self.run_btn.state(['!disabled'])
-        self.stop_btn.state(['disabled'])
+        self._set_btn_enabled(self.stop_btn, False)
         self._update_run_button()
 
         self._append_output(f'\n{"-" * 60}\n', 'info')
