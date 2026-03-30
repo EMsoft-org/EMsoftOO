@@ -199,16 +199,24 @@ class NmlEditor:
         lbl = tk.Label(parent, text=f'  {text}  ', relief=tk.RAISED, borderwidth=1,
                        padx=6, pady=3, cursor='hand2',
                        background='#e8e8e8', foreground='#000000')
-        if enabled:
-            lbl.bind('<Button-1>', lambda e: command())
-            lbl.bind('<ButtonRelease-1>',
-                     lambda e: lbl.config(relief=tk.RAISED))
-            lbl.bind('<ButtonPress-1>',
-                     lambda e: lbl.config(relief=tk.SUNKEN))
-        else:
-            lbl.config(foreground='#aaaaaa', cursor='arrow')
         lbl._command = command
         lbl._enabled = enabled
+
+        def on_press(event):
+            if lbl._enabled:
+                lbl.config(relief=tk.SUNKEN)
+
+        def on_release(event):
+            if lbl._enabled:
+                lbl.config(relief=tk.RAISED)
+                lbl._command()
+
+        lbl.bind('<ButtonPress-1>', on_press)
+        lbl.bind('<ButtonRelease-1>', on_release)
+
+        if not enabled:
+            lbl.config(foreground='#aaaaaa', cursor='arrow')
+
         return lbl
 
     def _set_btn_enabled(self, btn, enabled):
@@ -216,14 +224,8 @@ class NmlEditor:
         btn._enabled = enabled
         if enabled:
             btn.config(foreground='#000000', cursor='hand2')
-            btn.bind('<Button-1>', lambda e: btn._command())
-            btn.bind('<ButtonPress-1>', lambda e: btn.config(relief=tk.SUNKEN))
-            btn.bind('<ButtonRelease-1>', lambda e: btn.config(relief=tk.RAISED))
         else:
             btn.config(foreground='#aaaaaa', cursor='arrow')
-            btn.bind('<Button-1>', lambda e: None)
-            btn.bind('<ButtonPress-1>', lambda e: None)
-            btn.bind('<ButtonRelease-1>', lambda e: None)
 
     def _build_ui(self):
         """Create all UI elements."""
