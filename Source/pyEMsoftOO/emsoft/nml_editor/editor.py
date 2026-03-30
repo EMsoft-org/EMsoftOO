@@ -132,7 +132,7 @@ def _add_tooltip(widget, text, delay=600):
             label = tk.Label(tw, text=text, justify=tk.LEFT,
                              background='#ffffe0', foreground='#333333',
                              relief=tk.SOLID, borderwidth=1,
-                             font=('TkDefaultFont', 11),
+                             font=('TkDefaultFont', self.editor_font[1]),
                              padx=6, pady=4)
             label.pack()
             tip_window[0] = tw
@@ -322,7 +322,7 @@ class NmlEditor:
 
         self.template_list = tk.Listbox(list_frame, width=28,
                                          yscrollcommand=list_scroll.set,
-                                         font=('TkDefaultFont', 11),
+                                         font=('TkDefaultFont', self.editor_font[1]),
                                          exportselection=False)
         self.template_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         list_scroll.config(command=self.template_list.yview)
