@@ -149,7 +149,6 @@ def _add_tooltip(widget, text, delay=600):
 
     widget.bind('<Enter>', show, add='+')
     widget.bind('<Leave>', hide, add='+')
-    widget.bind('<ButtonPress>', hide, add='+')
 
 
 def _program_name_from_file(filepath):
@@ -219,11 +218,14 @@ class NmlEditor:
             row=0, column=col, sticky='ns', padx=6); col += 1
 
         self.run_btn = ttk.Button(toolbar, text='Run Program', width=14,
-                                  command=self.run_program)
+                                  command=self._on_run_clicked)
         self.run_btn.grid(row=0, column=col, **pad); col += 1
         self.run_btn.state(['disabled'])
-        # Shift+Click: choose a different .nml file to run
-        self.run_btn.bind('<Shift-ButtonRelease-1>', self._run_with_file_chooser)
+        self._shift_held = False
+        self.root.bind('<Shift_L>', lambda e: setattr(self, '_shift_held', True))
+        self.root.bind('<Shift_R>', lambda e: setattr(self, '_shift_held', True))
+        self.root.bind('<KeyRelease-Shift_L>', lambda e: setattr(self, '_shift_held', False))
+        self.root.bind('<KeyRelease-Shift_R>', lambda e: setattr(self, '_shift_held', False))
         _add_tooltip(self.run_btn,
                      'Click: run program with current .nml file\n'
                      'Shift+Click: choose a different .nml file to run')
@@ -722,6 +724,13 @@ class NmlEditor:
             self.status_var.set(f'Saved: {filepath}')
 
     # --- Program execution ---
+
+    def _on_run_clicked(self):
+        """Handle Run button click — regular or Shift+Click."""
+        if self._shift_held:
+            self._run_with_file_chooser()
+        else:
+            self.run_program()
 
     def _run_with_file_chooser(self, event=None):
         """Shift+Click handler: choose a .nml file to run instead of the default."""
