@@ -135,9 +135,11 @@ bottom of the window.
 
 ### Run Program
 
-Launches the EMsoftOO program corresponding to the current `.nml` file.
-The program name is derived from the filename (e.g., `EMEBSDmaster.nml`
-runs the `EMEBSDmaster` executable).
+Launches the EMsoftOO program corresponding to the current file. The
+program name is derived from the filename (e.g., `EMEBSDmaster.template`
+or `EMEBSDmaster.nml` both run the `EMEBSDmaster` executable). The
+button is enabled whenever a template or namelist file with an `EM*`
+program name is loaded.
 
 The editor finds executables by searching:
 
@@ -154,10 +156,10 @@ Before running:
 **Keyboard shortcut**: Cmd+R (macOS) / Ctrl+R (Windows/Linux)
 
 **Shift+Click**: Instead of running with the current editor file, a file
-dialog opens to select any `.nml` file. The program name is still derived
+dialog opens to select any `.nml` file. The program name is derived
 from the selected filename. This is useful for running a previously saved
-namelist without loading it into the editor. (Hover over the Run button
-to see this hint.)
+namelist without loading it into the editor. A tooltip with this hint
+appears when hovering over the Run button.
 
 ### Stop
 
@@ -267,9 +269,8 @@ manually.
 ### macOS
 
 - Keyboard shortcuts use Cmd (Command) key
-- tkinter buttons may occasionally require a precise click; this is a
-  known macOS tkinter limitation
-- The editor uses the Menlo font for the editor and output panels
+- The editor uses the Menlo font at size 15 by default
+- Default font sizes on Windows and Linux are 11
 
 ### Windows
 
@@ -299,15 +300,17 @@ python3 -m emsoft.nml_editor /path/to/EMsoftOO/NamelistTemplates
 
 ### Run button is grayed out
 
-The Run button is enabled only when:
+The Run button is enabled when the loaded file has a recognizable
+EMsoftOO program name (filename starts with "EM"). It is grayed out
+for non-program templates (e.g., `BetheParameters.template`).
 
-1. The current file is saved as a `.nml` file (not a `.template`)
-2. The corresponding executable is found (via PATH, EMSOFTOO_BIN,
-   or EMsoftConfig.json)
+If the button is enabled but clicking it shows "Program Not Found",
+check that:
 
-Check that the program name matches the filename (e.g., `EMEBSDmaster.nml`
-requires the `EMEBSDmaster` executable) and that the executable directory
-is correctly configured.
+1. The executable exists in your build directory
+2. The build directory is in your PATH, or
+3. `EMsoftLibraryLocation` in `EMsoftConfig.json` points to the
+   correct build `Bin/` directory
 
 ### Program does not produce output
 
