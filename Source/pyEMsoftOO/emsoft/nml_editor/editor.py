@@ -176,6 +176,8 @@ class NmlEditor:
                                   command=self.run_program)
         self.run_btn.grid(row=0, column=col, **pad); col += 1
         self.run_btn.state(['disabled'])
+        # Shift+Click: choose a different .nml file to run
+        self.run_btn.bind('<Shift-ButtonRelease-1>', self._run_with_file_chooser)
 
         self.stop_btn = ttk.Button(toolbar, text='Stop', width=8,
                                    command=self.stop_program)
@@ -672,35 +674,62 @@ class NmlEditor:
 
     # --- Program execution ---
 
-    def run_program(self):
-        """Launch the EMsoftOO program for the current .nml file."""
+    def _run_with_file_chooser(self, event=None):
+        """Shift+Click handler: choose a .nml file to run instead of the default."""
+        if 'disabled' in self.run_btn.state():
+            return
+
+        filepath = filedialog.askopenfilename(
+            title='Select Namelist File to Run',
+            filetypes=[
+                ('Namelist files', '*.nml'),
+                ('All files', '*.*'),
+            ],
+            initialdir=self.work_dir,
+        )
+        if filepath:
+            self.run_program(nml_override=filepath)
+
+    def run_program(self, nml_override=None):
+        """Launch the EMsoftOO program for the current .nml file.
+
+        Parameters
+        ----------
+        nml_override : str, optional
+            If provided, use this .nml file instead of the current editor file.
+            Used by Shift+Click on the Run button.
+        """
         if self._process is not None:
             messagebox.showinfo('Already Running', 'A program is already running.')
             return
 
-        if not self.current_file or not self.current_file.endswith('.nml'):
-            # Offer to save first
-            if messagebox.askyesno('Save First',
-                    'The file must be saved as .nml before running.\nSave now?'):
-                self.save_file()
-                if not self.current_file or not self.current_file.endswith('.nml'):
+        if nml_override:
+            run_nml = nml_override
+        else:
+            if not self.current_file or not self.current_file.endswith('.nml'):
+                # Offer to save first
+                if messagebox.askyesno('Save First',
+                        'The file must be saved as .nml before running.\nSave now?'):
+                    self.save_file()
+                    if not self.current_file or not self.current_file.endswith('.nml'):
+                        return
+                else:
                     return
-            else:
-                return
 
-        if self.modified:
-            if messagebox.askyesno('Unsaved Changes',
-                    'Save changes before running?'):
-                # Quick-save to current path
-                content = self.editor.get('1.0', 'end-1c')
-                with open(self.current_file, 'w') as f:
-                    f.write(content)
-                    if not content.endswith('\n'):
-                        f.write('\n')
-                self.modified = False
-                self._update_title()
+            if self.modified:
+                if messagebox.askyesno('Unsaved Changes',
+                        'Save changes before running?'):
+                    content = self.editor.get('1.0', 'end-1c')
+                    with open(self.current_file, 'w') as f:
+                        f.write(content)
+                        if not content.endswith('\n'):
+                            f.write('\n')
+                    self.modified = False
+                    self._update_title()
 
-        prog_name = _program_name_from_file(self.current_file)
+            run_nml = self.current_file
+
+        prog_name = _program_name_from_file(run_nml)
         if not prog_name:
             messagebox.showerror('Error',
                 'Could not determine program name from filename.\n'
@@ -716,7 +745,7 @@ class NmlEditor:
                 f'directory containing EMsoftOO executables.')
             return
 
-        nml_path = os.path.abspath(self.current_file)
+        nml_path = os.path.abspath(run_nml)
         work_dir = self.work_dir
         nml_basename = os.path.basename(nml_path)
 
