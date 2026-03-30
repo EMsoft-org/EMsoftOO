@@ -641,7 +641,7 @@ class NmlEditor:
         """Enable/disable the Run button based on current file."""
         if self.current_file:
             prog = _program_name_from_file(self.current_file)
-            if prog and _find_executable(prog):
+            if prog:
                 self._set_btn_enabled(self.run_btn, True)
                 return
         self._set_btn_enabled(self.run_btn, False)
@@ -760,6 +760,8 @@ class NmlEditor:
 
     def _on_run_clicked(self):
         """Handle Run button click — regular or Shift+Click."""
+        self.status_var.set('Run clicked...')
+        self.root.update_idletasks()
         if self._shift_held:
             self._run_with_file_chooser()
         else:
