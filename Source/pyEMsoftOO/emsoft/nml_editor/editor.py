@@ -194,33 +194,64 @@ class NmlEditor:
         self._apply_theme()
         self._setup_focus_follows_mouse()
 
+    def _make_toolbar_btn(self, parent, text, command, enabled=True):
+        """Create a Label-based button with reliable click handling on all platforms."""
+        lbl = tk.Label(parent, text=f'  {text}  ', relief=tk.RAISED, borderwidth=1,
+                       padx=6, pady=3, cursor='hand2',
+                       background='#e8e8e8', foreground='#000000')
+        if enabled:
+            lbl.bind('<Button-1>', lambda e: command())
+            lbl.bind('<ButtonRelease-1>',
+                     lambda e: lbl.config(relief=tk.RAISED))
+            lbl.bind('<ButtonPress-1>',
+                     lambda e: lbl.config(relief=tk.SUNKEN))
+        else:
+            lbl.config(foreground='#aaaaaa', cursor='arrow')
+        lbl._command = command
+        lbl._enabled = enabled
+        return lbl
+
+    def _set_btn_enabled(self, btn, enabled):
+        """Enable or disable a Label-based toolbar button."""
+        btn._enabled = enabled
+        if enabled:
+            btn.config(foreground='#000000', cursor='hand2')
+            btn.bind('<Button-1>', lambda e: btn._command())
+            btn.bind('<ButtonPress-1>', lambda e: btn.config(relief=tk.SUNKEN))
+            btn.bind('<ButtonRelease-1>', lambda e: btn.config(relief=tk.RAISED))
+        else:
+            btn.config(foreground='#aaaaaa', cursor='arrow')
+            btn.bind('<Button-1>', lambda e: None)
+            btn.bind('<ButtonPress-1>', lambda e: None)
+            btn.bind('<ButtonRelease-1>', lambda e: None)
+
     def _build_ui(self):
         """Create all UI elements."""
-        # --- Top toolbar using grid for reliable sizing on macOS ---
+        # --- Top toolbar using grid for reliable sizing ---
         toolbar = tk.Frame(self.root, padx=5, pady=5)
         toolbar.pack(fill=tk.X)
 
         col = 0
         pad = dict(padx=3, pady=2)
 
-        ttk.Button(toolbar, text='Open .nml', command=self.open_file).grid(
+        self._make_toolbar_btn(toolbar, 'Open .nml', self.open_file).grid(
             row=0, column=col, **pad); col += 1
-        ttk.Button(toolbar, text=f'Save .nml ({MOD_LABEL}+S)',
-                   command=self.save_file).grid(row=0, column=col, **pad); col += 1
+        self._make_toolbar_btn(toolbar, f'Save .nml ({MOD_LABEL}+S)',
+                               self.save_file).grid(row=0, column=col, **pad); col += 1
 
-        ttk.Separator(toolbar, orient=tk.VERTICAL).grid(
-            row=0, column=col, sticky='ns', padx=6); col += 1
+        tk.Label(toolbar, text=' | ', foreground='#999999').grid(
+            row=0, column=col); col += 1
 
-        ttk.Button(toolbar, text='Set Work Dir',
-                   command=self.set_work_dir).grid(row=0, column=col, **pad); col += 1
+        self._make_toolbar_btn(toolbar, 'Set Work Dir',
+                               self.set_work_dir).grid(row=0, column=col, **pad); col += 1
 
-        ttk.Separator(toolbar, orient=tk.VERTICAL).grid(
-            row=0, column=col, sticky='ns', padx=6); col += 1
+        tk.Label(toolbar, text=' | ', foreground='#999999').grid(
+            row=0, column=col); col += 1
 
-        self.run_btn = ttk.Button(toolbar, text='Run Program', width=14,
-                                  command=self._on_run_clicked)
+        # Run button — starts disabled
+        self.run_btn = self._make_toolbar_btn(toolbar, 'Run Program',
+                                              self._on_run_clicked, enabled=False)
         self.run_btn.grid(row=0, column=col, **pad); col += 1
-        self.run_btn.state(['disabled'])
         self._shift_held = False
         self.root.bind('<Shift_L>', lambda e: setattr(self, '_shift_held', True))
         self.root.bind('<Shift_R>', lambda e: setattr(self, '_shift_held', True))
@@ -230,23 +261,23 @@ class NmlEditor:
                      'Click: run program with current .nml file\n'
                      'Shift+Click: choose a different .nml file to run')
 
-        self.stop_btn = ttk.Button(toolbar, text='Stop', width=8,
-                                   command=self.stop_program)
+        # Stop button — starts disabled
+        self.stop_btn = self._make_toolbar_btn(toolbar, 'Stop',
+                                               self.stop_program, enabled=False)
         self.stop_btn.grid(row=0, column=col, **pad); col += 1
-        self.stop_btn.state(['disabled'])
 
         # Spacer to push font controls to the right
         toolbar.columnconfigure(col, weight=1); col += 1
 
         # Font size controls
         tk.Label(toolbar, text='Font:').grid(row=0, column=col); col += 1
-        ttk.Button(toolbar, text='\u2212', width=2,
-                   command=self._font_smaller).grid(row=0, column=col, padx=1); col += 1
+        self._make_toolbar_btn(toolbar, '\u2212',
+                               self._font_smaller).grid(row=0, column=col, padx=1); col += 1
         self.font_size_var = tk.StringVar(value=str(self.editor_font[1]))
         tk.Label(toolbar, textvariable=self.font_size_var, width=3,
                  anchor=tk.CENTER).grid(row=0, column=col); col += 1
-        ttk.Button(toolbar, text='+', width=2,
-                   command=self._font_larger).grid(row=0, column=col, padx=1); col += 1
+        self._make_toolbar_btn(toolbar, '+',
+                               self._font_larger).grid(row=0, column=col, padx=1); col += 1
 
         # --- Main paned layout: template list on left, editor+output on right ---
         h_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -336,8 +367,8 @@ class NmlEditor:
         output_header.pack(fill=tk.X)
         tk.Label(output_header, text='Program Output:',
                  font=('TkDefaultFont', 10, 'bold')).pack(side=tk.LEFT)
-        ttk.Button(output_header, text='Clear', command=self.clear_output).pack(side=tk.RIGHT, padx=2)
-        ttk.Button(output_header, text='Save .log', command=self.save_log).pack(side=tk.RIGHT, padx=2)
+        self._make_toolbar_btn(output_header, 'Clear', self.clear_output).pack(side=tk.RIGHT, padx=2)
+        self._make_toolbar_btn(output_header, 'Save .log', self.save_log).pack(side=tk.RIGHT, padx=2)
 
         # Output text widget
         output_frame = ttk.Frame(output_container)
@@ -734,7 +765,7 @@ class NmlEditor:
 
     def _run_with_file_chooser(self, event=None):
         """Shift+Click handler: choose a .nml file to run instead of the default."""
-        if 'disabled' in self.run_btn.state():
+        if not self.run_btn._enabled:
             return
 
         filepath = filedialog.askopenfilename(
