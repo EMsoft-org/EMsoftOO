@@ -106,6 +106,52 @@ def _find_executable(program_name):
     return None
 
 
+def _add_tooltip(widget, text, delay=600):
+    """Add a hover tooltip to a widget.
+
+    Parameters
+    ----------
+    widget : tk widget
+        The widget to attach the tooltip to.
+    text : str
+        Tooltip text (supports multiple lines).
+    delay : int
+        Milliseconds before the tooltip appears.
+    """
+    tip_window = [None]
+    after_id = [None]
+
+    def show(event):
+        def display():
+            tw = tk.Toplevel(widget)
+            tw.wm_overrideredirect(True)
+            # Position below and to the right of the cursor
+            x = event.x_root + 10
+            y = event.y_root + 15
+            tw.wm_geometry(f'+{x}+{y}')
+            label = tk.Label(tw, text=text, justify=tk.LEFT,
+                             background='#ffffe0', foreground='#333333',
+                             relief=tk.SOLID, borderwidth=1,
+                             font=('TkDefaultFont', 11),
+                             padx=6, pady=4)
+            label.pack()
+            tip_window[0] = tw
+
+        after_id[0] = widget.after(delay, display)
+
+    def hide(event):
+        if after_id[0]:
+            widget.after_cancel(after_id[0])
+            after_id[0] = None
+        if tip_window[0]:
+            tip_window[0].destroy()
+            tip_window[0] = None
+
+    widget.bind('<Enter>', show, add='+')
+    widget.bind('<Leave>', hide, add='+')
+    widget.bind('<ButtonPress>', hide, add='+')
+
+
 def _program_name_from_file(filepath):
     """Derive the EMsoftOO program name from a .nml or .template filename."""
     base = os.path.basename(filepath)
@@ -178,6 +224,9 @@ class NmlEditor:
         self.run_btn.state(['disabled'])
         # Shift+Click: choose a different .nml file to run
         self.run_btn.bind('<Shift-ButtonRelease-1>', self._run_with_file_chooser)
+        _add_tooltip(self.run_btn,
+                     'Click: run program with current .nml file\n'
+                     'Shift+Click: choose a different .nml file to run')
 
         self.stop_btn = ttk.Button(toolbar, text='Stop', width=8,
                                    command=self.stop_program)
