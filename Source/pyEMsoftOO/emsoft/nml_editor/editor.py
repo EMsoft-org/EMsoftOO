@@ -183,7 +183,7 @@ class NmlEditor:
 
         # Configure editor font (platform-specific)
         if IS_MAC:
-            self.editor_font = ('Menlo', 13)
+            self.editor_font = ('Menlo', 15)
         elif platform.system() == 'Windows':
             self.editor_font = ('Consolas', 11)
         else:
@@ -280,6 +280,19 @@ class NmlEditor:
                  anchor=tk.CENTER).grid(row=0, column=col); col += 1
         self._make_toolbar_btn(toolbar, '+',
                                self._font_larger).grid(row=0, column=col, padx=1); col += 1
+
+        # --- Status bar (pack before main content so it gets reserved space) ---
+        status_frame = tk.Frame(self.root)
+        status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+
+        self.workdir_var = tk.StringVar(value=f'Work dir: {self.work_dir}')
+        ttk.Label(status_frame, textvariable=self.workdir_var,
+                  relief=tk.SUNKEN, anchor=tk.W, padding=(5, 2),
+                  foreground='#555555').pack(fill=tk.X)
+
+        self.status_var = tk.StringVar(value='Select a template from the list to begin')
+        ttk.Label(status_frame, textvariable=self.status_var,
+                  relief=tk.SUNKEN, anchor=tk.W, padding=(5, 2)).pack(fill=tk.X)
 
         # --- Main paned layout: template list on left, editor+output on right ---
         h_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -392,20 +405,7 @@ class NmlEditor:
         self.output.tag_configure('info', foreground='#569cd6')
         self.output.tag_configure('success', foreground='#4ec9b0')
 
-        # --- Status bar (two rows: work dir + status) ---
-        status_frame = tk.Frame(self.root)
-        status_frame.pack(fill=tk.X, side=tk.BOTTOM)
-
-        self.workdir_var = tk.StringVar(value=f'Work dir: {self.work_dir}')
-        workdir_label = ttk.Label(status_frame, textvariable=self.workdir_var,
-                                  relief=tk.SUNKEN, anchor=tk.W, padding=(5, 2),
-                                  foreground='#555555')
-        workdir_label.pack(fill=tk.X)
-
-        self.status_var = tk.StringVar(value='Select a template from the list to begin')
-        status = ttk.Label(status_frame, textvariable=self.status_var,
-                           relief=tk.SUNKEN, anchor=tk.W, padding=(5, 2))
-        status.pack(fill=tk.X)
+        # (status bar is packed earlier, before the paned window)
 
         # --- Syntax highlighting tags ---
         self.editor.tag_configure('comment', foreground='#6a9955')
@@ -760,8 +760,6 @@ class NmlEditor:
 
     def _on_run_clicked(self):
         """Handle Run button click — regular or Shift+Click."""
-        self.status_var.set('Run clicked...')
-        self.root.update_idletasks()
         if self._shift_held:
             self._run_with_file_chooser()
         else:
