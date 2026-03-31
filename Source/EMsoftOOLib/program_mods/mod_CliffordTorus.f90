@@ -48,6 +48,7 @@ type, public :: CliffordTorusNameListType
   integer(kind=irg)       :: doRiesz
   integer(kind=irg)       :: n
   integer(kind=irg)       :: pgnum
+  integer(kind=irg)       :: nthreads
   character(fnlen)        :: hdffile
   character(fnlen)        :: anglefile
   character(fnlen)        :: sqtfile
@@ -80,6 +81,8 @@ private
   procedure, pass(self) :: getdoRiesz_
   procedure, pass(self) :: setn_
   procedure, pass(self) :: getn_
+  procedure, pass(self) :: setnthreads_
+  procedure, pass(self) :: getnthreads_
   procedure, pass(self) :: setpgnum_
   procedure, pass(self) :: getpgnum_
   procedure, pass(self) :: setanglefile_
@@ -118,6 +121,8 @@ private
   generic, public :: getpgnum => getpgnum_
   generic, public :: setn => setn_
   generic, public :: getn => getn_
+  generic, public :: setnthreads => setnthreads_
+  generic, public :: getnthreads => getnthreads_
   generic, public :: setanglefile => setanglefile_
   generic, public :: getanglefile => getanglefile_
   generic, public :: setsqtfile => setsqtfile_
@@ -541,6 +546,42 @@ out = self%nml%n
 end function getn_
 
 !--------------------------------------------------------------------------
+subroutine setnthreads_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnthreads_
+!! author: MDG
+!! version: 1.0
+!! date: 12/28/22
+!!
+!! set nthreads in the CliffordTorus_T class
+
+IMPLICIT NONE
+
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
+
+self%nml%nthreads = inp
+
+end subroutine setnthreads_
+
+!--------------------------------------------------------------------------
+function getnthreads_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnthreads_
+!! author: MDG
+!! version: 1.0
+!! date: 12/28/22
+!!
+!! get nthreads from the CliffordTorus_T class
+
+IMPLICIT NONE
+
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
+
+out = self%nml%nthreads
+
+end function getnthreads_
+
+!--------------------------------------------------------------------------
 subroutine setpgnum_(self,inp)
 !DEC$ ATTRIBUTES DLLEXPORT :: setpgnum_
 !! author: MDG
@@ -807,7 +848,7 @@ rieszoptimal = (/ 8.D0*dble(cnt)**2/3.D0/cPi, dble(cnt)**2, 2.D0*dble(cnt)**2*dl
 
 tsum = 0.D0
 thr = 1.0
-nthreads = OMP_GET_MAX_THREADS() 
+nthreads = self%nml%nthreads
 call OMP_SET_NUM_THREADS(nthreads)
 io_int(1) = nthreads
 call Message%WriteValue(' number of threads : ', io_int, 1)
@@ -1181,7 +1222,7 @@ z2 = z2*dble(nn)/cPi + dble(nn+w)
 
 call Message%printMessage('  - adding orientations to zone plate ')
 ! and fill the h arrays to obtain the zone plate; we'll use parallel threads to do this...
-nthreads = OMP_GET_MAX_THREADS()
+nthreads = self%nml%nthreads
 call OMP_SET_NUM_THREADS(nthreads)
 io_int(1) = nthreads
 call Message%WriteValue(' number of threads : ', io_int, 1)
