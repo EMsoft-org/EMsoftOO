@@ -214,6 +214,7 @@ integer(kind=irg)                     :: shownegativeq0
 integer(kind=irg)                     :: logarithmic
 integer(kind=irg)                     :: doRiesz
 integer(kind=irg)                     :: n
+integer(kind=irg)                     :: nthreads
 integer(kind=irg)                     :: pgnum
 character(fnlen)                      :: hdffile
 character(fnlen)                      :: anglefile
@@ -222,7 +223,7 @@ character(fnlen)                      :: zpfile
 character(1)                          :: background
 
 namelist  / CliffordTorus / reducetoRFZ, symmetrize, shownegativeq0, n, pgnum, anglefile, sqtfile, &
-                            zpfile, doRiesz, overlayRFZ, logarithmic, hdffile, background
+                            zpfile, doRiesz, overlayRFZ, logarithmic, hdffile, background, nthreads
 
 ! set the input parameters to default values
 anglefile = 'undefined' 
@@ -233,6 +234,7 @@ shownegativeq0 = 0
 logarithmic = 0
 doRiesz = 0
 n = 500
+nthreads = 13
 pgnum = 32
 hdffile = 'undefined'
 sqtfile = 'undefined'
@@ -268,6 +270,7 @@ self%nml%shownegativeq0 = shownegativeq0
 self%nml%logarithmic =logarithmic  
 self%nml%doRiesz =doRiesz 
 self%nml%n = n
+self%nml%nthreads = nthreads
 self%nml%pgnum = pgnum
 self%nml%sqtfile = sqtfile
 self%nml%zpfile = zpfile
