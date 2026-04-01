@@ -1358,15 +1358,14 @@ dictionaryloop: do ii = 1,cratio+1
               ququ = quaternion_T( qd = qqq%q_copyd() )
               call qAR%insertQuatinArray( icnt, ququ )
             end do 
-! note the switch of x and y to get the same IPF map convention as DREAM.3D
             if (ROIselected.eqv..TRUE.) then
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
-              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
               call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
-              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
               call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
@@ -1375,11 +1374,11 @@ dictionaryloop: do ii = 1,cratio+1
             else
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
-              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
               call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
-              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
               call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
@@ -1545,11 +1544,11 @@ if (trim(dinl%IPFprefix).ne.'undefined') then
   if (ROIselected.eqv..TRUE.) then
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
-    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
     call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
-    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
     call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
@@ -1558,11 +1557,11 @@ if (trim(dinl%IPFprefix).ne.'undefined') then
   else
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
-    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
     call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
-    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
     call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
