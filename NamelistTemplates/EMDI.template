@@ -149,6 +149,9 @@
 ! and with the data set name as the last name; leave the remaining strings empty (they should all
 ! be empty for the Binary and TSLup2 formats)
  HDFstrings = '' '' '' '' '' '' '' '' '' '',
+! sometimes the patterns end up being stored upside down in the data file;
+! set flipy to .TRUE. if that is the case
+ flipy = .FALSE.,
 !
 !###################################################################
 ! OTHER FILE PARAMETERS: COMMON TO 'STATIC' AND 'DYNAMIC'

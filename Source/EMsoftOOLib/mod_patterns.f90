@@ -166,7 +166,7 @@ end function computeEBSDIQ
 
 !--------------------------------------------------------------------------
 recursive subroutine PreProcessPatterns(EMsoft, HDF, inRAM, nml, binx, biny, masklin, correctsize, totnumexpt, &
-                                        epatterns, exptIQ, log, logparam, verbose)
+                                        epatterns, exptIQ, log, logparam, verbose, verticalflip)
 !DEC$ ATTRIBUTES DLLEXPORT :: PreProcessPatterns
 !! author: MDG
 !! version: 1.0
@@ -206,12 +206,13 @@ real(kind=sgl),INTENT(INOUT),OPTIONAL             :: exptIQ(totnumexpt)
 logical,INTENT(IN),OPTIONAL                       :: log
 integer(kind=irg),INTENT(IN),OPTIONAL             :: logparam
 logical,INTENT(IN),OPTIONAL                       :: verbose
+logical,INTENT(IN),OPTIONAL                       :: verticalflip
 
 type(IO_T)                                        :: Message
 type(Vendor_T)                                    :: VT
 type(timing_T)                                    :: timer
 
-logical                                           :: ROIselected, f_exists, dolog=.FALSE.
+logical                                           :: ROIselected, f_exists, dolog=.FALSE., vflip
 character(fnlen)                                  :: fname
 integer(kind=irg)                                 :: istat, L, recordsize, io_int(2), patsz, iii, lp, &
                                                      iiistart, iiiend, jjend, TID, jj, kk, ierr, itype
@@ -231,6 +232,13 @@ logical                                           :: isEBSD = .FALSE., isTKD = .
 if (present(verbose)) then 
     if (verbose.eqv..TRUE.) then
         verb = .TRUE.
+    end if 
+end if 
+
+vflip = .FALSE.
+if (present(verticalflip)) then 
+    if (verticalflip.eqv..TRUE.) then
+        vflip = .TRUE.
     end if 
 end if 
 
@@ -403,16 +411,16 @@ prepexperimentalloop: do iii = iiistart,iiiend
         if (ROIselected.eqv..TRUE.) then
           if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
             call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, nml%ROI, &
-                                     HDFstrings=nml%HDFstrings, HDF=HDF)
+                                     HDFstrings=nml%HDFstrings, HDF=HDF, flipy = vflip)
           else
-            call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, nml%ROI)
+            call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, nml%ROI, flipy = vflip)
           end if
         else
          if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
             call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
-                                     HDFstrings=nml%HDFstrings, HDF=HDF)
+                                     HDFstrings=nml%HDFstrings, HDF=HDF, flipy = vflip)
           else
-            call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray)
+            call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, flipy = vflip)
           end if
         end if
     end if
