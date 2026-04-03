@@ -544,7 +544,11 @@ end if
 
 do i=1,4
   inputquat(1:4,i) = meanquat(i)%get_quatd()
-end do  
+end do
+
+! initialize the local seed variables from the namelist parameters
+seed1 = enl%seed1
+seed2 = enl%seed2
 
 ! we'll do vMF sampling first and generate 8 orientation data sets 
 dictVMF = DirStat_T( DStype='VMF', PGnum=enl%pgnum )
@@ -560,6 +564,15 @@ do i=1,2      ! loop over the kappa concentration parameter values
     do k=1,enl%norientations 
       mu = qAR%getQuatfromArray(k)
       vMFquatarray(1:4,k,setcnt) = mu%get_quatd()
+    end do
+! FZ-reduce the sampled quaternions before averaging
+    do k=1,enl%norientations
+      mu = qAR%getQuatfromArray(k)
+      q = q_T( qdinp = mu%get_quatd() )
+      call SO%ReduceOrientationtoRFZ( q, qsym, r )
+      q = r%rq()
+      mu = Quaternion_T( qd = q%q_copyd() )
+      call qAR%insertQuatinArray(k, mu)
     end do
     io_int = (/ i, j /)
     call Message%WriteValue(' Averaging vMF data set ', io_int, 2)
@@ -613,6 +626,15 @@ do i=1,2      ! loop over the kappa concentration parameter values
       mu = qAR%getQuatfromArray(k)
       WATquatarray(1:4,k,setcnt) = mu%get_quatd()
     end do
+! FZ-reduce the sampled quaternions before averaging
+    do k=1,enl%norientations
+      mu = qAR%getQuatfromArray(k)
+      q = q_T( qdinp = mu%get_quatd() )
+      call SO%ReduceOrientationtoRFZ( q, qsym, r )
+      q = r%rq()
+      mu = Quaternion_T( qd = q%q_copyd() )
+      call qAR%insertQuatinArray(k, mu)
+    end do
     io_int = (/ i, j /)
     call Message%WriteValue(' Averaging WAT data set ', io_int, 2)
 ! and we might as well do the averaging at this point ...
@@ -660,6 +682,14 @@ if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray misor', hdferr)
 dataset = 'inputquat'
 hdferr = HDF%writeDatasetDoubleArray(dataset, inputquat, 4, 4)
 if (hdferr.ne.0) call HDF%error_check('writeDatasetDoubleArray inputquat', hdferr)
+
+dataset = 'NumEM'
+hdferr = HDF%writeDatasetInteger(dataset, 25)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetInteger NumEM', hdferr)
+
+dataset = 'NumIter'
+hdferr = HDF%writeDatasetInteger(dataset, 30)
+if (hdferr.ne.0) call HDF%error_check('writeDatasetInteger NumIter', hdferr)
 
 call HDF%pop() 
 call HDF%pop() 
