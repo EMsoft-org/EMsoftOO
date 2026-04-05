@@ -112,6 +112,11 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_DIC.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_cluster.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_CSL.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_KRsupport.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_KRcyclic.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_KRdihedral.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_KRtetrahedral.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_KRoctahedral.f90
 
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
