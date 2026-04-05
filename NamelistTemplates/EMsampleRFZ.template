@@ -75,6 +75,9 @@
 ! NEW FEATURE: SamplingLattice allows the user to select a Bravais lattice type
 ! for sampling... currently available 'cP' (default), and 'cF' (more dense sampling...)
  SamplingLattice = 'cP',
+! NEW FEATURE: Knothe-Rosenblatt remapping of points already sampled in the RFZ
+! this produces a more uniform set of points, in particular near the RFZ boundaries
+ KRremapping = .FALSE., 
 !=================
 ! parameters for FIB mode
 !=================

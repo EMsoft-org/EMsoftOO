@@ -57,6 +57,7 @@ type, public :: sampleRFZNameListType
     real(kind=dbl)    :: tcos(5)
     character(6)      :: SO3cover
     character(2)      :: SamplingLattice
+    logical           :: KRremapping
     character(fnlen)  :: xtalname
     character(fnlen)  :: samplemode
     character(fnlen)  :: euoutname
@@ -136,6 +137,7 @@ integer(kind=irg)                  :: pgnum, nsteps, gridtype, norientations, se
 real(kind=dbl)                     :: rodrigues(4), qFZ(4), axFZ(4), maxmisor, conevector(3), semiconeangle, tcos(5)
 character(6)                       :: SO3cover
 character(2)                       :: SamplingLattice
+logical                            :: KRremapping
 character(fnlen)                   :: samplemode
 character(fnlen)                   :: xtalname
 character(fnlen)                   :: euoutname
@@ -151,7 +153,7 @@ character(fnlen)                   :: stoutname
 ! namelist components
 namelist / RFZlist / pgnum, nsteps, gridtype, euoutname, cuoutname, hooutname, rooutname, quoutname, omoutname, axoutname, &
                      samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname, &
-                     norientations, SO3cover, seed, hkl, uvw, norient, tcos, SamplingLattice
+                     norientations, SO3cover, seed, hkl, uvw, norient, tcos, SamplingLattice, KRremapping
 
 ! initialize to default values
 pgnum = 32
@@ -172,6 +174,7 @@ SamplingLattice = 'cP'                    ! Bravais lattice to use for sampling
 ! or 'CON' for conical sampling around a unitvector for a cone with semi opening angle semiconangle
 conevector = (/ 0.D0, 0.D0, 1.D0 /)       ! default unit vector for cone axis
 semiconeangle = 2.0                       ! default opening semi-angle (in degrees)
+KRremapping = .FALSE.
 SO3cover = 'single'
 euoutname = 'undefined'
 xtalname = 'undefined'
@@ -215,6 +218,7 @@ self%nml%SamplingLattice = SamplingLattice
 self%nml%conevector = conevector
 self%nml%semiconeangle = semiconeangle
 self%nml%SO3cover = SO3cover
+self%nml%KRremapping = KRremapping
 self%nml%xtalname = xtalname
 self%nml%euoutname = euoutname
 self%nml%cuoutname = cuoutname
@@ -421,11 +425,14 @@ call SO%setFZordersign( FZorder )
 ! get the linked list for the FZ for point group symmetry pgnum for nsteps along the cubic semi-edge
 if (trim(rfznl%samplemode).eq.'RFZ') then
   if (rotateFZ.eqv..TRUE.) then
-    call SO%SampleRFZ(rfznl%nsteps,qFZ)
+    call SO%SampleRFZ(rfznl%nsteps, qFZ)
   else
     call SO%SampleRFZ(rfznl%nsteps)
   end if
   listmode = 'FZ'
+  if (rfznl%KRremapping.eqv..TRUE.) then
+    call SO%KRremap()
+  end if 
 end if
 if (trim(rfznl%samplemode).eq.'MIS') then
   io_dble = rfznl%rodrigues
