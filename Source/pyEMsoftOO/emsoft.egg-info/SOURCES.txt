@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+emsoft/__init__.py
+emsoft/_lib.py
+emsoft/quaternions.py
+emsoft.egg-info/PKG-INFO
+emsoft.egg-info/SOURCES.txt
+emsoft.egg-info/dependency_links.txt
+emsoft.egg-info/requires.txt
+emsoft.egg-info/top_level.txt
+emsoft/tests/__init__.py
+emsoft/tests/test_quaternions.py

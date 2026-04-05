@@ -1,0 +1,143 @@
+#!/bin/bash
+###################################################################
+# Copyright (c) 2014-2020, Marc De Graef Research Group/Carnegie Mellon University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification, are 
+# permitted provided that the following conditions are met:
+#
+#     - Redistributions of source code must retain the above copyright notice, this list 
+#        of conditions and the following disclaimer.
+#     - Redistributions in binary form must reproduce the above copyright notice, this 
+#        list of conditions and the following disclaimer in the documentation and/or 
+#        other materials provided with the distribution.
+#     - Neither the names of Marc De Graef, Carnegie Mellon University nor the names 
+#        of its contributors may be used to endorse or promote products derived from 
+#        this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+# USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# ###################################################################
+#--------------------------------------------------------------------------
+# EMsoftOO:run_docs.sh
+#--------------------------------------------------------------------------
+#
+# PROGRAM: run_docs.sh
+#
+#> @author Chayoi Zhu, Marc De Graef
+# 
+#> @note: bash script to generate the pyEMsoftOO documentation
+#
+#> @date 09/02/19 MDG 1.0 original 
+#> @date 19/13/19 MDG 1.1 added automatic CMake substitution of all folder paths 
+#--------------------------------------------------------------------------
+
+#=======================
+#=======================
+# this script assumes a properly functioning anaconda 3 environment 
+# along with a correctly installed f90wrap packagie; it is also assumed
+# that the .bash_profile set up file has the correct "conda init bash"
+# code in it.
+#=======================
+#=======================
+
+currentdir=`pwd`
+
+
+# declare the arrays of source files that need to be included in this python wrapper docs build;
+declare -a doc_source_files=("index.rst"
+	                         "Installation.rst"
+	                         "pyEMsoftOO.rst")
+
+declare -a module_source_files=("pyEMsoftOOLib.rst"
+                                "pyEMsoftOOToolsLib.rst")
+
+declare -a doc_config_files=("conf.py.in"
+					         "Makefile"
+					         "make.bat")
+
+#=======================
+# the following folders are set via CMake variables
+EMsoftOO_BUILDfolder=@EMsoftOO_BUILD_DIR@
+CODEfolder=${EMsoftOO_BUILDfolder}/pyEMsoftOO
+
+EMsoftOO_folder=@EMsoftOO_SOURCE_DIR@ 
+pyEMsoftOO_folder=@EMsoftOO_SOURCE_DIR@/Source/pyEMsoftOO
+
+DOCsourcefolder=${pyEMsoftOO_folder}/docs
+DOCfolder=${EMsoftOO_BUILDfolder}/Documentation
+pyEMsoftOO_DOCfolder=${DOCfolder}/pyEMsoftOO
+staticfolder=${pyEMsoftOO_DOCfolder}/_static
+modulefolder=${pyEMsoftOO_DOCfolder}/Modules
+
+DYLD_LIBRARY_PATH=${EMsoftOO_BUILDfolder}/Bin 
+
+#=======================
+# set the working directory to pyEMsoftOO_BUILDfolder (create it if necessary)
+[ ! -d ${pyEMsoftOO_DOCfolder} ] && mkdir -p ${pyEMsoftOO_DOCfolder}
+[ ! -d ${staticfolder} ] && mkdir -p ${staticfolder}
+[ ! -d ${modulefolder} ] && mkdir -p ${modulefolder}
+[ ! -d ${pyEMsoftOO_DOCfolder}/logs ] && mkdir -p ${pyEMsoftOO_DOCfolder}/logs
+cd ${pyEMsoftOO_DOCfolder}
+
+#=======================
+# copy all relevant source files to the present folder 
+echo " run_docs.sh: copying source files into place"
+for file in "${doc_source_files[@]}"
+do
+    cp ${DOCsourcefolder}/${file} .
+done
+for file in "${module_source_files[@]}"
+do
+    cp ${DOCsourcefolder}/Modules/${file} ${modulefolder}
+done
+for file in "${doc_config_files[@]}"
+do
+	cp ${DOCsourcefolder}/${file} .
+done
+
+#=======================
+# setting the correct document path
+echo " run_docs.sh: setting the correct document path"
+cp conf.py.in conf.py
+sed -i '.bak' "s|DOCPATH|${pyEMsoftOO_DOCfolder}|" conf.py 
+sed -i '.bak' "s|SOURCEPATH|${CODEfolder}|" conf.py 
+
+#=======================
+# generate the doc files; this could have a switch for each (html and latexpdf)
+echo " run_docs.sh: generating doc html and latex pdf files"
+make html 1>build.log 2>build_error.log
+make latexpdf 1>>build.log 2>>build_error.log
+
+#=======================
+# cleaning up
+echo " run_docs.sh: cleaning up"
+for file in "${doc_source_files[@]}"
+do
+    rm ${file} 
+done
+for file in "${module_source_files[@]}"
+do
+    rm ${modulefolder}/${file} 
+done
+for file in "${doc_config_files[@]}"
+do
+	rm ${file} 
+done
+rm *.*.bak 
+mv *.log logs
+rmdir ${modulefolder}
+
+# and return to the starting folder
+echo " run_docs.sh: run_docs build completed"
+cd ${currentdir}
+
+# that's it
