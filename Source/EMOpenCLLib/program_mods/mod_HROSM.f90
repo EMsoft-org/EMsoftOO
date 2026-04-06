@@ -808,11 +808,11 @@ if (trim(osmnl%IPFmap).ne.'undefined') then
 ! note the switch of x and y to get the same IPF map convention as DREAM.3D
   IPFmapfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%IPFmap)//'_IPFXmap.tiff'
   call IPF%set_IPFfilename(IPFmapfile)
-  call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+  call IPF%set_sampleDir( (/ 1, 0, 0 /) )
   call IPF%updateIPFmap(EMsoft, progname, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, IPFmapfile, qAR, sym) 
   IPFmapfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%IPFmap)//'_IPFYmap.tiff'
   call IPF%set_IPFfilename(IPFmapfile)
-  call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+  call IPF%set_sampleDir( (/ 0, 1, 0 /) )
   call IPF%updateIPFmap(EMsoft, progname, cluster%ipf_wd, cluster%ipf_ht, DIFT%DIDT%pgnum, IPFmapfile, qAR, sym) 
   IPFmapfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(osmnl%IPFmap)//'_IPFZmap.tiff'
   call IPF%set_IPFfilename(IPFmapfile)
