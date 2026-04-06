@@ -1290,6 +1290,7 @@ self%FZcnt = 0
 ! rotation axis to lie along the b (y) direction, not z !!!!
 ! BUT, when FZorder is -2, then we need to stick to the regular z orientation.
 
+write (*,*) ' type and order : ',self%FZtype, self%FZorder
 
 if (self%SamplingLattice.eq.'cP') then
 ! loop over the cube of volume pi^2; note that we do not want to include

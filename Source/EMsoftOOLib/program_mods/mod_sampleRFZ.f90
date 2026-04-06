@@ -424,15 +424,25 @@ call SO%setFZordersign( FZorder )
 
 ! get the linked list for the FZ for point group symmetry pgnum for nsteps along the cubic semi-edge
 if (trim(rfznl%samplemode).eq.'RFZ') then
-  if (rotateFZ.eqv..TRUE.) then
-    call SO%SampleRFZ(rfznl%nsteps, qFZ)
-  else
-    call SO%SampleRFZ(rfznl%nsteps)
-  end if
-  listmode = 'FZ'
   if (rfznl%KRremapping.eqv..TRUE.) then
+! for KR rearrangement, we need to sample the complete cubochoric cube, ignoring 
+! the rotational symmetry; that symmetry will be used in the remapping itself
+    call SO%setFZtypeandorder( 1 )
+    if (rotateFZ.eqv..TRUE.) then
+      call SO%SampleRFZ(rfznl%nsteps, qFZ)
+    else
+      call SO%SampleRFZ(rfznl%nsteps)
+    end if
+    call SO%setFZtypeandorder( rfznl%pgnum )
     call SO%KRremap()
+  else
+    if (rotateFZ.eqv..TRUE.) then
+      call SO%SampleRFZ(rfznl%nsteps, qFZ)
+    else
+      call SO%SampleRFZ(rfznl%nsteps)
+    end if
   end if 
+  listmode = 'FZ'
 end if
 if (trim(rfznl%samplemode).eq.'MIS') then
   io_dble = rfznl%rodrigues
