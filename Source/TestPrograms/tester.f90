@@ -7,11 +7,17 @@ use mod_EMsoft
 ! use mod_crystallography
 ! use mod_QCsymmetry
 ! use mod_QCcrystallography
-use mod_io
-use mod_dirstats
+! use mod_io
+! use mod_dirstats
+! 
 ! use mod_dualquaternions
-use mod_quaternions
+! use mod_quaternions
 use mod_rotations
+use mod_KRsupport
+use mod_KRcyclic
+use mod_KRdihedral
+use mod_KRtetrahedral
+use mod_KRoctahedral 
 ! use mod_octonions
 ! use mod_GBoctonions
 ! use mod_HDFsupport
@@ -22,9 +28,11 @@ use mod_rotations
 ! use mod_platformsupport
 ! use mod_PGA3D
 ! use mod_PGA3Dsupport
-use mod_axonometry
-use mod_postscript
+! use mod_axonometry
+! use mod_postscript
 
+use, intrinsic :: iso_fortran_env, only: real64
+  
 
 IMPLICIT NONE 
 
@@ -35,14 +43,14 @@ IMPLICIT NONE
 ! type(Postscript_T)          :: PS 
 type(EMsoft_T)              :: EMsoft
 
-type(c_T)                   :: cu 
+real(kind=real64)           :: h_in(3), h_out(3)
 type(q_T)                   :: qa, qb 
 
 integer(kind=irg)           :: offsets(3,12), pnum, N 
 integer(kind=irg)           :: nx, ny, i, j , k
 real(kind=dbl)              :: delta 
 
-
+real(kind=real64)           :: test_in(3,6)
 
 ! type(DirStat_T)             :: DSvmf, DSwat
 
@@ -122,9 +130,20 @@ real(kind=dbl)              :: delta
 ! delta = cPi**(2.D0/3.D0) / dble(2*N)
 ! pnum = 4*(2*N)**3
 
+test_in =  reshape( &
+    (/  0.000000000000000e+00_real64, 0.000000000000000e+00_real64, 0.000000000000000e+00_real64, &
+        1.000000000000000e-01_real64, 2.000000000000000e-02_real64, 3.000000000000000e-02_real64,&
+        1.500000000000000e-01_real64, 1.000000000000000e-01_real64, 5.000000000000000e-02_real64,&
+        2.000000000000000e-01_real64, 5.000000000000000e-02_real64, 1.100000000000000e-01_real64,&
+        2.500000000000000e-01_real64, 1.200000000000000e-01_real64, 1.000000000000000e-01_real64,&
+        3.000000000000000e-01_real64, 1.500000000000000e-01_real64, 1.500000000000000e-01_real64 /), (/ 3,6 /) )
 
-
-
+do i=1,6
+  h_in = test_in(1:3,i)
+  write (*,*) h_in
+  call KRcyclic(h_in, h_out, 2)
+  write (*,*) h_out
+end do 
 
 
 

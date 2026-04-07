@@ -164,7 +164,6 @@ integer(kind=irg),dimension(41)     :: FZoarray = (/ 0,0,2,2,2, 2,-2,2,4,4, 4,4,
                                                      6,6,6,6,6, 3,6,0,0,0, 0,0,0,8,10, 12,-3,-3,-3,-2, -3 /)
 
 
-
 ! public :: SampleRFZ, IsinsideFZ, CubochoricNeighbors
 
 ! logical functions to determine if point is inside specific FZ
@@ -245,6 +244,7 @@ type, public :: so3_T
     procedure, pass(self) :: getListCount_
     procedure, pass(self) :: setGridType_
     procedure, pass(self) :: setSamplingLattice_
+    procedure, pass(self) :: KRremap_
 
     procedure, pass(self) :: delete_FZlist_
     procedure, pass(self) :: nullifyList_
@@ -305,6 +305,7 @@ type, public :: so3_T
     generic, public :: getListCount => getListCount_
     generic, public :: setGridType => setGridType_
     generic, public :: setSamplingLattice => setSamplingLattice_
+    generic, public :: KRremap => KRremap_
 
     generic, public :: delete_FZlist => delete_FZlist_
     generic, public :: nullifyList => nullifyList_
@@ -1289,6 +1290,7 @@ self%FZcnt = 0
 ! rotation axis to lie along the b (y) direction, not z !!!!
 ! BUT, when FZorder is -2, then we need to stick to the regular z orientation.
 
+write (*,*) ' type and order : ',self%FZtype, self%FZorder
 
 if (self%SamplingLattice.eq.'cP') then
 ! loop over the cube of volume pi^2; note that we do not want to include
@@ -3258,6 +3260,66 @@ self%SamplingLattice = SL
 ! if (SL.eq.'cF') self%gridtype = 1
 
 end subroutine setSamplingLattice_
+
+!--------------------------------------------------------------------------
+recursive subroutine KRremap_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: KRremap_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 04/05/26
+  !!
+  !! perform Knothe-Rosenblatt remapping of the orientations in the FZlist
+
+use mod_KRsupport
+use mod_KRcyclic
+use mod_KRdihedral
+use mod_KRtetrahedral
+use mod_KRoctahedral 
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)    :: self
+
+type(r_T)                     :: rod
+type(h_T)                     :: hom
+type(q_T)                     :: qu
+
+type(FZpointd),pointer        :: FZptr, FZtmp
+real(kind=dbl),allocatable    :: h_in(:,:), h_out(:,:)
+integer(kind=irg)             :: i, N 
+
+N = self%FZcnt 
+allocate( h_in(3,N), h_out(3,N) )
+
+! get the homochoric input list
+FZtmp => self%getListHead('FZ')
+do i=1,N
+  hom = FZtmp%qu%qh()
+  h_in(1:3,i) = hom%h_copyd()
+  FZtmp => FZtmp%next
+end do 
+
+! apply the Knothe-Rosenblatt remapping
+if (self%FZtype.eq.1) then 
+  call KRcyclic( h_in, h_out, N, self%FZorder )
+else if (self%FZtype.eq.2) then
+       call KRdihedral( h_in, h_out, N, self%FZorder )
+     else if (self%FZtype.eq.3) then
+            call KRtetrahedral( h_in, h_out, N )
+          else if (self%FZtype.eq.4) then
+            call KRoctahedral( h_in, h_out, N )
+          end if 
+
+! and re-insert the new orientations in the FZlist
+FZtmp => self%getListHead('FZ')
+do i = 1, N
+  hom = h_t( hdinp = h_out(1:3,i) )
+  FZtmp%qu = hom%hq()
+  FZtmp%rod = hom%hr()
+  FZtmp => FZtmp%next
+end do
+
+end subroutine KRremap_
 
 !--------------------------------------------------------------------------
 recursive function IsinsideMFZ_(self, rod) result(insideMFZ)
