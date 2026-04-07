@@ -406,7 +406,7 @@ end function reflect_about_axis
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-subroutine KRdihedral_single(ho, k, mapped, eps)
+subroutine KRdihedral_single(ho, mapped, k, eps)
   !DEC$ ATTRIBUTES DLLEXPORT :: KRdihedral_single
   !! author: Z. Varley, adapted for EMsoftOO by MDG
   !! version: 1.0
@@ -510,7 +510,7 @@ IMPLICIT NONE
   
 !$omp parallel do default(none) shared(h_in, h_out, n, k)
   do i = 1, n
-    call KRdihedral_single(h_in(:,i), k, h_out(:,i))
+    call KRdihedral_single(h_in(:,i), h_out(:,i), k)
   end do
 !$omp end parallel do
 
