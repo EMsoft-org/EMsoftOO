@@ -47,6 +47,7 @@ use mod_KRcyclic
 use mod_KRdihedral
 use mod_KRtetrahedral
 use mod_KRoctahedral 
+use mod_KRicosahedral 
 
 use,INTRINSIC :: ISO_C_BINDING
 use, intrinsic :: iso_fortran_env, only: real64
@@ -301,18 +302,18 @@ if (diff.gt.epsilon) then
   return
 end if
 
-! ! I
-! diff = 0.0_real64
-! do i=1,6
-!   h_in = test_in(1:3,i)
-!   call KRicosahedral(h_in, h_out)
-!   diff = diff + maxval(abs(h_out(1:3)-I_ref(1:3,i)))
-! end do 
-! if (diff.gt.epsilon) then
-!   res = 9
-!   write (*,"('Icosahedral group I failed = ',D18.10)") diff
-!   return
-! end if
+! I
+diff = 0.0_real64
+do i=1,6
+  h_in = test_in(1:3,i)
+  call KRicosahedral(h_in, h_out)
+  diff = diff + maxval(abs(h_out(1:3)-I_ref(1:3,i)))
+end do 
+if (diff.gt.epsilon) then
+  res = 9
+  write (*,"('Icosahedral group I failed = ',D18.10)") diff
+  return
+end if
 
 end subroutine MODKRExecuteTest
 

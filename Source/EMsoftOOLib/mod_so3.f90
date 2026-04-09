@@ -1290,7 +1290,7 @@ self%FZcnt = 0
 ! rotation axis to lie along the b (y) direction, not z !!!!
 ! BUT, when FZorder is -2, then we need to stick to the regular z orientation.
 
-write (*,*) ' type and order : ',self%FZtype, self%FZorder
+write (*,*) ' FZ type and order : ',self%FZtype, self%FZorder
 
 if (self%SamplingLattice.eq.'cP') then
 ! loop over the cube of volume pi^2; note that we do not want to include
@@ -1303,11 +1303,11 @@ if (self%SamplingLattice.eq.'cP') then
  !   y = (dble(j)+shift)*delta
  !   do k=-nsteps+1,nsteps
  !    z = (dble(k)+shift)*delta
- do i=-nsteps+0,nsteps-1
+ do i=-nsteps,nsteps
   x = (dble(i)+shift)*delta
-  do j=-nsteps+0,nsteps-1
+  do j=-nsteps,nsteps
    y = (dble(j)+shift)*delta
-   do k=-nsteps+0,nsteps-1
+   do k=-nsteps,nsteps
     z = (dble(k)+shift)*delta
 ! make sure that this point lies inside the cubochoric cell
     if (maxval( (/ abs(x), abs(y), abs(z) /) ).le.sedge) then
@@ -1355,11 +1355,11 @@ cFshifts(1:3,2) = (/ 0.5D0, 0.0D0, 0.5D0 /)
 cFshifts(1:3,3) = (/ 0.0D0, 0.5D0, 0.5D0 /)
 
 do icF=0,3
- do i=-nsteps+1,nsteps
+ do i=-nsteps,nsteps
   x = (dble(i)+shift+cFshifts(1,icF))*delta
-  do j=-nsteps+1,nsteps
+  do j=-nsteps,nsteps
    y = (dble(j)+shift+cFshifts(2,icF))*delta
-   do k=-nsteps+1,nsteps
+   do k=-nsteps,nsteps
     z = (dble(k)+shift+cFshifts(3,icF))*delta
 ! make sure that this point lies inside the cubochoric cell
     if (maxval( (/ abs(x), abs(y), abs(z) /) ).le.sedge) then
