@@ -35,7 +35,7 @@ function(AddIFortCopyInstallRules)
 
     # Get the Actual Library Path and create Install and copy rules
     #message(STATUS "  fullPath: ${fullPath}")
-    if(NOT "${fullPath}" STREQUAL "LibPath-NOTFOUND")
+    if(NOT "${fullPath}" STREQUAL "LibPath-NOTFOUND" AND EXISTS "${fullPath}")
       if(NOT TARGET ZZ_${Z_LIBNAME}_DLL_${TYPE}-Copy)
         #message(STATUS "Creating Install And Copy Rule for ${fullPath}")
         install(FILES ${fullPath}
@@ -43,9 +43,6 @@ function(AddIFortCopyInstallRules)
           CONFIGURATIONS ${BTYPE}
           COMPONENT Applications)
 
-        if(NOT EXISTS "${fullPath}")
-          message(STATUS "DOES NOT EXIST: ${fullPath}")
-        endif()
         #message(STATUS " Output Dir: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${INTER_DIR}")
         ADD_CUSTOM_TARGET(ZZ_${Z_LIBNAME}_DLL_${TYPE}-Copy ALL
                           COMMAND ${CMAKE_COMMAND} -E copy_if_different ${fullPath}
@@ -55,6 +52,8 @@ function(AddIFortCopyInstallRules)
         set_target_properties(ZZ_${Z_LIBNAME}_DLL_${TYPE}-Copy PROPERTIES FOLDER ZZ_COPY_FILES/${BTYPE}/${Z_LIBNAME})
 
       endif()
+    elseif(NOT "${fullPath}" STREQUAL "LibPath-NOTFOUND")
+      message(STATUS "DOES NOT EXIST: ${fullPath}")
     endif()
   endforeach()
 endfunction()
@@ -88,6 +87,12 @@ get_filename_component(IFORT_COMPILER_ROOT_DIR ${IFORT_COMPILER_ROOT_DIR} DIRECT
 
 set(IFORT_COMPILER_RDIST_DIR "${IFORT_COMPILER_ROOT_DIR}/redist")
 set(IFORT_COMPILER_ROOT_DIR "${IFORT_COMPILER_ROOT_DIR}/compiler")
+get_filename_component(IFORT_COMPILER_BIN_DIR ${CMAKE_Fortran_COMPILER} DIRECTORY)
+
+set(IFORT_RUNTIME_LIBPATH "${IFORT_COMPILER_RDIST_DIR}/${IFORT_COMPILER_ARCH_DIR}/compiler")
+if(WIN32 AND CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
+  set(IFORT_RUNTIME_LIBPATH "${IFORT_COMPILER_BIN_DIR}")
+endif()
 
 if(CMAKE_FIND_DEBUG_MODE)
   message(STATUS "CMAKE_Fortran_COMPILER:  ${CMAKE_Fortran_COMPILER}")
@@ -102,34 +107,34 @@ set(IFORT_COMPILER_LIBRARIES "")
 if(WIN32)
   AddIFortCopyInstallRules(LIBNAME ifcoremd
                           LIBPREFIX lib
-                          LIBPATH ${IFORT_COMPILER_RDIST_DIR}/${IFORT_COMPILER_ARCH_DIR}/compiler
+                          LIBPATH ${IFORT_RUNTIME_LIBPATH}
                           TYPES ${BUILD_TYPES})
   AddIFortCopyInstallRules(LIBNAME mmd
                           LIBPREFIX lib
-                          LIBPATH ${IFORT_COMPILER_RDIST_DIR}/${IFORT_COMPILER_ARCH_DIR}/compiler
+                          LIBPATH ${IFORT_RUNTIME_LIBPATH}
                           TYPES ${BUILD_TYPES})
 
   # These next libraries do not seem to have a debug version....
   set(BUILD_TYPES Release)
   AddIFortCopyInstallRules(LIBNAME ifportmd
                           LIBPREFIX lib
-                          LIBPATH ${IFORT_COMPILER_RDIST_DIR}/${IFORT_COMPILER_ARCH_DIR}/compiler
+                          LIBPATH ${IFORT_RUNTIME_LIBPATH}
                           TYPES ${BUILD_TYPES})
   AddIFortCopyInstallRules(LIBNAME iomp5md
                           LIBPREFIX lib
-                          LIBPATH ${IFORT_COMPILER_RDIST_DIR}/${IFORT_COMPILER_ARCH_DIR}/compiler
+                          LIBPATH ${IFORT_RUNTIME_LIBPATH}
                           TYPES ${BUILD_TYPES})
   AddIFortCopyInstallRules(LIBNAME svml_dispmd
                           LIBPREFIX ""
-                          LIBPATH ${IFORT_COMPILER_RDIST_DIR}/${IFORT_COMPILER_ARCH_DIR}/compiler
+                          LIBPATH ${IFORT_RUNTIME_LIBPATH}
                           TYPES ${BUILD_TYPES})
 endif()
 
 # If we are using IFort
 set(FORTRAN_OPEN_MP_DEFS "")
-if (Fortran_COMPILER_NAME MATCHES "ifort.*")
+if (Fortran_COMPILER_NAME MATCHES "ifort.*|ifx.*")
   if(WIN32)
-    set(FORTRAN_OPEN_MP_DEFS "/Qopenmp /Qdiag-disable:11082 /Qip")
+    set(FORTRAN_OPEN_MP_DEFS "/Qopenmp /Qdiag-disable:11082")
   else()
     set(FORTRAN_OPEN_MP_DEFS "-qopenmp -assume byterecl")
   endif()

@@ -71,6 +71,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(shape_T) function shape_constructor( nmlfile ) result(shape)
+!DEC$ ATTRIBUTES DLLEXPORT :: shape_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/22/20

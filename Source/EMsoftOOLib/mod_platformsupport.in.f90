@@ -74,6 +74,24 @@ contains
 @CMAKE_USE_IFORT@end function system_chdir
 @CMAKE_USE_IFORT@
 @CMAKE_USE_IFORT@!--------------------------------------------------------------------------
+@CMAKE_USE_IFORT@function system_getcwd(c) result(status)
+@CMAKE_USE_IFORT@!DEC$ ATTRIBUTES DLLEXPORT :: system_getcwd
+@CMAKE_USE_IFORT@!! author: MDG
+@CMAKE_USE_IFORT@!! version: 1.0
+@CMAKE_USE_IFORT@!! date: 04/11/26
+@CMAKE_USE_IFORT@!!
+@CMAKE_USE_IFORT@!! get current directory wrapper for ifort/ifx
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@implicit none
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@character(*), INTENT(INOUT)   :: c
+@CMAKE_USE_IFORT@integer(kind=irg)             :: status
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@status = getcwd(c)
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@end function system_getcwd
+@CMAKE_USE_IFORT@
+@CMAKE_USE_IFORT@!--------------------------------------------------------------------------
 @CMAKE_USE_IFORT@function system_hostnm(c) result(status)
 @CMAKE_USE_IFORT@!DEC$ ATTRIBUTES DLLEXPORT :: system_hostnm
 @CMAKE_USE_IFORT@!! author: MDG
@@ -146,6 +164,24 @@ contains
 @CMAKE_USE_GFORTRAN@call chdir(c, status)
 @CMAKE_USE_GFORTRAN@
 @CMAKE_USE_GFORTRAN@end function system_chdir
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@!--------------------------------------------------------------------------
+@CMAKE_USE_GFORTRAN@function system_getcwd(c) result(status)
+@CMAKE_USE_GFORTRAN@!DEC$ ATTRIBUTES DLLEXPORT :: system_getcwd
+@CMAKE_USE_GFORTRAN@!! author: MDG
+@CMAKE_USE_GFORTRAN@!! version: 1.0
+@CMAKE_USE_GFORTRAN@!! date: 04/11/26
+@CMAKE_USE_GFORTRAN@!!
+@CMAKE_USE_GFORTRAN@!! get current directory wrapper for gfortran
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@implicit none
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@character(*), INTENT(INOUT)   :: c
+@CMAKE_USE_GFORTRAN@integer(kind=irg)             :: status
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@call getcwd(c, status)
+@CMAKE_USE_GFORTRAN@
+@CMAKE_USE_GFORTRAN@end function system_getcwd
 @CMAKE_USE_GFORTRAN@
 @CMAKE_USE_GFORTRAN@!--------------------------------------------------------------------------
 @CMAKE_USE_GFORTRAN@function system_hostnm(c) result(status)

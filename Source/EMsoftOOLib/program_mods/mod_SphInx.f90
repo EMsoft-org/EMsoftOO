@@ -166,6 +166,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(SphInx_T) function SphInx_constructor( nmlfile ) result(SphInx)
+!DEC$ ATTRIBUTES DLLEXPORT :: SphInx_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/08/23

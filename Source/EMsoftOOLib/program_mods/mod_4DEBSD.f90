@@ -213,6 +213,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(EBSD4D_T) function EBSD4D_constructor( nmlfile ) result(EBSD4D)
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSD4D_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 04/01/24

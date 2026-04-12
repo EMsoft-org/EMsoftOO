@@ -141,6 +141,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(TBSRBW_T) function TBSRBW_constructor( nmlfile ) result(TBSRBW)
+!DEC$ ATTRIBUTES DLLEXPORT :: TBSRBW_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/21/24

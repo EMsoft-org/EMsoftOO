@@ -649,7 +649,7 @@ end function get_usemasterpatternfile_
 
 !--------------------------------------------------------------------------
 subroutine set_usemasterpatternfile_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: set_dotproductfile_
+!DEC$ ATTRIBUTES DLLEXPORT :: set_usemasterpatternfile_
 !! author: MDG
 !! version: 1.0
 !! date: 04/08/20
@@ -1103,7 +1103,7 @@ type(EBSDMasterNameListType)            :: mpnl
 ! type(EBSDNameListType)                  :: ebsdnl
 
 
-logical                                 :: stat, readonly, noindex, ROIselected
+logical                                 :: readonly, noindex, ROIselected
 character(fnlen)                        :: dpfile, masterfile, energyfile
 integer(kind=irg)                       :: hdferr, ii, jj, kk, iii, istat, npy, jjj, iparecp(4)
 

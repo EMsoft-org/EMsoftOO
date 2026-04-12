@@ -125,6 +125,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(BWEW_T) function BWEW_constructor( nmlfile ) result(BWEW)
+!DEC$ ATTRIBUTES DLLEXPORT :: BWEW_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/19/24

@@ -85,6 +85,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(HROSM_T) function HROSM_constructor( nmlfile ) result(HROSM)
+!DEC$ ATTRIBUTES DLLEXPORT :: HROSM_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/21/25

@@ -93,6 +93,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(axonometry_T) function axonometry_constructor( progdesc, axw, xll, yll ) result(axonometry)
+!DEC$ ATTRIBUTES DLLEXPORT :: axonometry_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/22/24

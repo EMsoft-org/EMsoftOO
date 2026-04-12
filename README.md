@@ -33,7 +33,9 @@ EMsoft started as a source code base used for the creation of all figures in the
 
 If you want to build EMsoftOO yourself, it would make sense to first get a GitHub account, and fork this repository into your account. Then clone the repo *from your account* onto your local computer. Before you can compile things, you need to first build the Software Developer Kit (EMsoftOO_SDK), which you can find [here](https://github.com/EMsoft-org/EMsoftSuperbuild); follow the instructions for your platform, starting from the DevelopOO branch. In addition, you will need to clone the *EMsoftData* repository, also from *EMsoft-org*, in a folder at the same level as the main repository folder. 
 
-Then, starting in the top folder where you have cloned the EMsoftOO repository, carry out the following commands (for UNIX-type builds; on Windows, use nmake instead of make):
+Then, starting in the top folder where you have cloned the EMsoftOO repository, carry out the following commands for your platform.
+
+For UNIX-type builds:
 
 ```fortran
   mkdir EMsoftOOBuild
@@ -49,7 +51,27 @@ Then, starting in the top folder where you have cloned the EMsoftOO repository, 
   make -j
 
 ```
-Note that *somepath* should be replaced with wherever you installed the SDK.  These commands should compile both a Release and a Debug version of EMsoftOO. You can then add the path to the EMsoftOOBuild/Release/Bin folder to your shell path and start using the programs.  Note that the Debug version of the executables will run much more slowly than the Release version, but, if something goes wrong during the run, the error message of the Debug version will nearly always be more informative than for the Release version.
+
+For Windows 11 builds with the Intel oneAPI `ifx` compiler and Visual Studio 2022, use a fresh build folder from a `cmd.exe` session after loading the Intel/VS2022 toolchain:
+
+```bat
+  call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat" intel64 vs2022
+
+  cmake -S . -B build-ifx-release -G "NMake Makefiles" ^
+    -DBUILD_SHARED_LIBS=ON ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_Fortran_COMPILER=ifx ^
+    -DEMsoftOO_SDK=C:/somepath/EMsoftOO_SDK ^
+    -DEMsoftOO_ENABLE_TESTING=OFF ^
+    -DJSONFORTRAN_INSTALL=C:/somepath/EMsoftOO_SDK/jsonfortran-4.2.1-Release ^
+    -DJSONFORTRAN_DIR=C:/somepath/EMsoftOO_SDK/jsonfortran-4.2.1-Release/lib/cmake/jsonfortran-intelllvm-4.2.1 ^
+    -Djsonfortran-intelllvm_DIR=C:/somepath/EMsoftOO_SDK/jsonfortran-4.2.1-Release/lib/cmake/jsonfortran-intelllvm-4.2.1 ^
+    -DNLopt_DIR=C:/somepath/EMsoftOO_SDK/nlopt-2.7.0-Release/lib/cmake/nlopt
+
+  cmake --build build-ifx-release
+```
+
+Note that *somepath* should be replaced with wherever you installed the SDK.  The UNIX commands above compile both a Release and a Debug version of EMsoftOO; the Windows 11 example shows a clean Release build tree.  If you also need a Debug tree on Windows, repeat the same configure/build sequence with a different build folder name and `-DCMAKE_BUILD_TYPE=Debug`.  If CMake cannot locate the B-spline package from the SDK automatically, also pass `-DBSPLINEFORTRAN_INSTALL=...` and `-DBSPLINEFORTRAN_DIR=...`.  If you are building with the classic Intel compiler rather than `ifx`, use `jsonfortran-intel_DIR` instead of `jsonfortran-intelllvm_DIR`.  You can then add the path to the EMsoftOOBuild/Release/Bin folder or the Windows build `Bin` folder to your shell path and start using the programs.  Note that the Debug version of the executables will run much more slowly than the Release version, but, if something goes wrong during the run, the error message of the Debug version will nearly always be more informative than for the Release version.
 
 To always maintain an up-to-date version of the package, you may want to create a little script that will help you synchronize the repositories and compile in one step.  Here is an example shell script for UNIX-flavored systems; the assumptions are that the EMsoftOO repository has been cloned into the folder EMsoftOOPublic, and the EMsoftData repository into EMsoftData:
 

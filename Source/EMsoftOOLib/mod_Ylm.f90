@@ -91,6 +91,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(Ylm_T) function Ylm_constructor( ) result(Ylm)
+!DEC$ ATTRIBUTES DLLEXPORT :: Ylm_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/07/23

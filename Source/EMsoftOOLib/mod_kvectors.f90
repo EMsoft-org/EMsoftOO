@@ -34,11 +34,21 @@ module mod_kvectors
   !! variables and types needed to determine lists of wave vectors
  
  use mod_kinds
- use mod_global
+ use mod_global, only: fnlen, cPi, dtor, rtod, reportDestructor
  
  IMPLICIT NONE
  
  private
+
+ real(kind=dbl), parameter :: LP_srt  = 0.5D0 * sqrt(3.D0)
+ real(kind=dbl), parameter :: LP_isrt = 1.D0 / sqrt(3.D0)
+ real(kind=dbl), parameter :: LP_iPi  = 1.D0 / cPi
+ real(kind=dbl), parameter :: LP_prea = 3.D0**0.25D0 / sqrt(2.D0 * cPi)
+ real(kind=dbl), parameter :: LP_preb = 2.D0 * LP_prea
+ real(kind=dbl), parameter :: LP_prec = cPi / (2.D0 * sqrt(3.D0))
+ real(kind=dbl), parameter :: LP_pred = 2.D0 * cPi / 3.D0
+ real(kind=dbl), parameter :: LP_rtt  = sqrt(3.D0)
+ real(kind=dbl), parameter :: LP_ap   = cPi**(2.D0 / 3.D0)
  
  ! linked list of wave vectors (used by all diffraction programs)
  type, public :: kvectorlist
@@ -1062,14 +1072,14 @@ module mod_kvectors
                do i=istart,iend
                    xy = (/ dble(i), dble(j) /) * self%delta
                    xx = dble(i)-dble(j)/2.D0
-                   yy = dble(j)*LPs%srt
+                   yy = dble(j)*LP_srt
                    check = .TRUE.
                    if (xx.lt.0.D0) then
                      check = .FALSE.
                    else
                      if (xx.ge.0.D0) then
                        yy = datan2(yy,xx)
-                       if (yy .lt. (LPs%Pi/6.D0-eps)) check = .FALSE.
+                       if (yy .lt. (cPi/6.D0-eps)) check = .FALSE.
                      end if
                    end if
                    if (InsideHexGrid(xy).and.(check)) call self%AddkVector(cell,Diff,ktail,xy,i,j,hexgrid)
@@ -1087,7 +1097,7 @@ module mod_kvectors
              do i=istart,iend
                  xy = (/ dble(i), dble(j) /) * self%delta
                  xx = dble(i)-dble(j)/2.D0
-                 yy = dble(j)*LPs%srt
+                 yy = dble(j)*LP_srt
                  check = .TRUE.
                  if (xx.lt.0.D0) then
                     check = .FALSE.
@@ -1111,7 +1121,7 @@ module mod_kvectors
              do i=istart,iend
                  xy = (/ dble(i), dble(j) /) * self%delta
                  xx = dble(i)-dble(j)/2.D0
-                 yy = dble(j)*LPs%srt
+                 yy = dble(j)*LP_srt
                  check = .TRUE.
                  if (xx.lt.0.D0) then
                     check = .FALSE.
@@ -1135,7 +1145,7 @@ module mod_kvectors
              do i=istart,iend
                  xy = (/ dble(i), dble(j) /) * self%delta
                  xx = dble(i)-dble(j)/2.D0
-                 yy = dble(j)*LPs%srt
+                 yy = dble(j)*LP_srt
  
                  check = .TRUE.
                  if (xx.lt.0.D0) then
@@ -1143,7 +1153,7 @@ module mod_kvectors
                  else
                     if (xx.ge.0.D0) then
                       yy = datan2(yy, xx)
-                      if (yy.gt.(LPs%Pi/6.D0+eps)) check = .FALSE.
+                      if (yy.gt.(cPi/6.D0+eps)) check = .FALSE.
                     end if
  
                  end if
@@ -1454,14 +1464,14 @@ module mod_kvectors
                do i=istart,iend
                    xy = (/ dble(i), dble(j) /) * self%delta
                    xx = dble(i)-dble(j)/2.D0
-                   yy = dble(j)*LPs%srt
+                   yy = dble(j)*LP_srt
                    check = .TRUE.
                    if (xx.lt.0.D0) then
                      check = .FALSE.
                    else
                      if (xx.ge.0.D0) then
                        yy = datan2(yy,xx)
-                       if (yy .lt. (LPs%Pi/6.D0-eps)) check = .FALSE.
+                       if (yy .lt. (cPi/6.D0-eps)) check = .FALSE.
                      end if
                    end if
                  sqring = maxval( (/ abs(i), abs(j) /) )
@@ -1481,7 +1491,7 @@ module mod_kvectors
              do i=istart,iend
                  xy = (/ dble(i), dble(j) /) * self%delta
                  xx = dble(i)-dble(j)/2.D0
-                 yy = dble(j)*LPs%srt
+                 yy = dble(j)*LP_srt
                  check = .TRUE.
                  if (xx.lt.0.D0) then
                     check = .FALSE.
@@ -1507,7 +1517,7 @@ module mod_kvectors
              do i=istart,iend
                  xy = (/ dble(i), dble(j) /) * self%delta
                  xx = dble(i)-dble(j)/2.D0
-                 yy = dble(j)*LPs%srt
+                 yy = dble(j)*LP_srt
                  check = .TRUE.
                  if (xx.lt.0.D0) then
                     check = .FALSE.
@@ -1533,7 +1543,7 @@ module mod_kvectors
              do i=istart,iend
                  xy = (/ dble(i), dble(j) /) * self%delta
                  xx = dble(i)-dble(j)/2.D0
-                 yy = dble(j)*LPs%srt
+                 yy = dble(j)*LP_srt
  
                  check = .TRUE.
                  if (xx.lt.0.D0) then
@@ -1541,7 +1551,7 @@ module mod_kvectors
                  else
                     if (xx.ge.0.D0) then
                       yy = datan2(yy, xx)
-                      if (yy.gt.(LPs%Pi/6.D0+eps)) check = .FALSE.
+                      if (yy.gt.(cPi/6.D0+eps)) check = .FALSE.
                     end if
  
                  end if
@@ -1582,7 +1592,6 @@ module mod_kvectors
  !> @date  03/05/14 MDG 1.0 original
  !> @date  11/28/14 MDG 2.0 rewrite without global variables
  !--------------------------------------------------------------------------
- use mod_global
  use mod_io
  use mod_diffraction
  use mod_crystallography
@@ -1699,12 +1708,12 @@ module mod_kvectors
  ! first of all, take the absolute values and see if the transformed point lies inside the
  ! rectangular box with edge lengths (1,sqrt(3)/2)
  ax = abs(xy(1)-0.5D0*xy(2))
- ay = abs(xy(2)*LPs%srt)
+ay = abs(xy(2)*LP_srt)
  
- if ((ax.gt.1.D0).or.(ay.gt.LPs%srt)) res = .FALSE.
+if ((ax.gt.1.D0).or.(ay.gt.LP_srt)) res = .FALSE.
  ! then check for the inclined edge
  if (res) then
-   if (ax+ay*LPs%isrt .gt. 1.D0) res = .FALSE.
+  if (ax+ay*LP_isrt .gt. 1.D0) res = .FALSE.
  end if
  
  end function InsideHexGrid
@@ -2173,24 +2182,24 @@ module mod_kvectors
          ktail%i = centralpix(1)
          ktail%j = centralpix(2)
          x = (i - j*0.5)*self%delta
-         y = j*self%delta*LPs%srt
+        y = j*self%delta*LP_srt
          rr = x*x+y*y
          hex = .TRUE.
          ks = GetSextant(x,y)
          select case (ks)
          case (0,3)
-             XX = LPs%preb*y*dcos(x*LPs%prec/y)
-             YY = LPs%preb*y*dsin(x*LPs%prec/y)
+            XX = LP_preb*y*dcos(x*LP_prec/y)
+            YY = LP_preb*y*dsin(x*LP_prec/y)
          case (1,4)
-             xp = y+LPs%rtt*x
-             yp = y*LPs%pred/xp
-             XX = LPs%prea*xp*dsin(yp)
-             YY = LPs%prea*xp*dcos(yp)
+            xp = y+LP_rtt*x
+            yp = y*LP_pred/xp
+            XX = LP_prea*xp*dsin(yp)
+            YY = LP_prea*xp*dcos(yp)
          case (2,5)
-             xp = y-LPs%rtt*x
-             yp = y*LPs%pred/xp
-             XX = LPs%prea*xp*dsin(yp)
-             YY = -LPs%prea*xp*dcos(yp)
+            xp = y-LP_rtt*x
+            yp = y*LP_pred/xp
+            XX = LP_prea*xp*dsin(yp)
+            YY = -LP_prea*xp*dcos(yp)
          end select
  
          q = XX**2+YY**2
@@ -2214,11 +2223,11 @@ module mod_kvectors
              self%kstar = (/0.D0,0.D0,1.D0/)
          else
              if (dabs(x).le.dabs(y)) then
-                 q = 2.D0*y*LPs%iPi*dsqrt(cPi-y*y)
-                 self%kstar = (/ q*dsin(x*LPs%Pi*0.25D0/y), q*dcos(x*LPs%Pi*0.25D0/y), 1.D0-2.D0*y*y*LPs%iPi /)
+                q = 2.D0*y*LP_iPi*dsqrt(cPi-y*y)
+                self%kstar = (/ q*dsin(x*cPi*0.25D0/y), q*dcos(x*cPi*0.25D0/y), 1.D0-2.D0*y*y*LP_iPi /)
              else
-                 q = 2.D0*x*LPs%iPi*dsqrt(cPi-x*x)
-                 self%kstar = (/ q*dcos(y*LPs%Pi*0.25D0/x), q*dsin(y*LPs%Pi*0.25D0/x), 1.D0-2.D0*x*x*LPs%iPi /)
+                q = 2.D0*x*LP_iPi*dsqrt(cPi-x*x)
+                self%kstar = (/ q*dcos(y*cPi*0.25D0/x), q*dsin(y*cPi*0.25D0/x), 1.D0-2.D0*x*x*LP_iPi /)
              end if
          end if
  
@@ -2231,7 +2240,7 @@ module mod_kvectors
          ktail%kn = 1.0/Diff%getWaveLength()
      end if
  else
-     self%delta = LPs%ap/dble(npx)
+    self%delta = LP_ap/dble(npx)
      ktail%i = centralpix(1)
      ktail%j = centralpix(2)
      x = centralpix(1)*self%delta
@@ -2243,11 +2252,11 @@ module mod_kvectors
      else
  
          if (dabs(x).le.dabs(y)) then
-             q = 2.D0*y*LPs%iPi*dsqrt(cPi-y*y)
-             self%kstar = (/ q*dsin(x*LPs%Pi*0.25D0/y), q*dcos(x*LPs%Pi*0.25D0/y), 1.D0-2.D0*y*y*LPs%iPi /)
+            q = 2.D0*y*LP_iPi*dsqrt(cPi-y*y)
+            self%kstar = (/ q*dsin(x*cPi*0.25D0/y), q*dcos(x*cPi*0.25D0/y), 1.D0-2.D0*y*y*LP_iPi /)
          else
-             q = 2.D0*x*LPs%iPi*dsqrt(cPi-x*x)
-             self%kstar = (/ q*dcos(y*LPs%Pi*0.25D0/x), q*dsin(y*LPs%Pi*0.25D0/x), 1.D0-2.D0*x*x*LPs%iPi /)
+            q = 2.D0*x*LP_iPi*dsqrt(cPi-x*x)
+            self%kstar = (/ q*dcos(y*cPi*0.25D0/x), q*dsin(y*cPi*0.25D0/x), 1.D0-2.D0*x*x*LP_iPi /)
          end if
      end if
      ktail%i = centralpix(1)

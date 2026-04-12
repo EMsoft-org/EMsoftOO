@@ -222,7 +222,7 @@ set(EMsoft_HDF5_110_DEFINES "
 ")
 endif()
 
-if (Fortran_COMPILER_NAME MATCHES "ifort.*")
+if (Fortran_COMPILER_NAME MATCHES "ifort.*|ifx.*")
   set(CMAKE_USE_IFORT "") 
   set(CMAKE_USE_GFORTRAN "! ") 
 else()
@@ -267,16 +267,27 @@ GetHDF5LinkLibraries(EMSOFTOO)
 
 add_library(EMsoftOOLib ${LIB_TYPE} ${EMsoftOOLib_SRCS})
 
+find_library(BSPLINEFORTRAN_LIBRARY
+             NAMES bspline-fortran libbspline-fortran
+             PATHS
+               ${BSPLINEFORTRAN_INSTALL}/lib
+               ${BSPLINEFORTRAN_DIR}
+             NO_DEFAULT_PATH)
+
+if(NOT BSPLINEFORTRAN_LIBRARY)
+  message(FATAL_ERROR "Unable to locate the BSPLINEFORTRAN library. Checked ${BSPLINEFORTRAN_INSTALL}/lib and ${BSPLINEFORTRAN_DIR}")
+endif()
+
 target_link_libraries(EMsoftOOLib
                 # EMsoftOOLib_C
                 # EMsoftOOLib_Cpp
                 ${EMSOFTOO_hdf5LinkLibs}
                 jsonfortran
-                ${BSPLINEFORTRAN_DIR}/libbspline-fortran.a
+                ${BSPLINEFORTRAN_LIBRARY}
                 bcls::bcls
 )
 
-if (Fortran_COMPILER_NAME MATCHES "ifort.*")
+if (Fortran_COMPILER_NAME MATCHES "ifort.*|ifx.*")
   target_link_libraries(EMsoftOOLib
                   ${MKL_LIBRARIES}
   )
@@ -291,13 +302,19 @@ if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   )
 endif()
 
+set(EMsoftOOLib_PUBLIC_INCLUDE_DIRS
+    ${CLFortran_INCLUDE_DIRS}
+    ${HDF5_INCLUDE_DIR}
+    ${HDF5_INCLUDE_DIR_FORTRAN}
+    ${BSPLINEFORTRAN_DIR})
+
+if(FFTW3_INCLUDE_DIR AND EXISTS "${FFTW3_INCLUDE_DIR}")
+  list(APPEND EMsoftOOLib_PUBLIC_INCLUDE_DIRS ${FFTW3_INCLUDE_DIR})
+endif()
+
 target_include_directories(EMsoftOOLib
                           PUBLIC
-                            ${CLFortran_INCLUDE_DIRS}
-                            ${FFTW3_INCLUDE_DIR}
-                            ${HDF5_INCLUDE_DIR}
-                            ${HDF5_INCLUDE_DIR_FORTRAN}
-                            ${BSPLINEFORTRAN_DIR}
+                            ${EMsoftOOLib_PUBLIC_INCLUDE_DIRS}
                           PRIVATE
                             "${EMsoftOO_SOURCE_DIR}/Source"
                           )
@@ -321,7 +338,6 @@ if(WIN32)
                           $<$<COMPILE_LANGUAGE:Fortran>:/Qopenmp>
                           $<$<COMPILE_LANGUAGE:Fortran>:/Qdiag-disable:11082>
                           $<$<COMPILE_LANGUAGE:Fortran>:/Qdiag-disable:7025>
-                          $<$<COMPILE_LANGUAGE:Fortran>:/Qip>
                           $<$<COMPILE_LANGUAGE:Fortran>:/traceback>
                           #$<$<COMPILE_LANGUAGE:Fortran>:/warn:all>
                         #  $<$<COMPILE_LANGUAGE:Fortran>:/heap-arrays>
@@ -346,7 +362,7 @@ else()
                           $<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:Release>>:-O3>
     )
 
-  elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
+  elseif (Fortran_COMPILER_NAME MATCHES "ifort.*|ifx.*")
   # First, Flags that should be used under any build condition
     target_compile_options(EMsoftOOLib PUBLIC
                                             #$<$<COMPILE_LANGUAGE:Fortran>:-heap-arrays>
