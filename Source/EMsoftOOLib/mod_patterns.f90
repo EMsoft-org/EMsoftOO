@@ -166,7 +166,7 @@ end function computeEBSDIQ
 
 !--------------------------------------------------------------------------
 recursive subroutine PreProcessPatterns(EMsoft, HDF, inRAM, nml, binx, biny, masklin, correctsize, totnumexpt, &
-                                        epatterns, exptIQ, log, logparam, verbose, verticalflip)
+                                        epatterns, exptIQ, log, logparam, verbose)
 !DEC$ ATTRIBUTES DLLEXPORT :: PreProcessPatterns
 !! author: MDG
 !! version: 1.0
@@ -206,7 +206,6 @@ real(kind=sgl),INTENT(INOUT),OPTIONAL             :: exptIQ(totnumexpt)
 logical,INTENT(IN),OPTIONAL                       :: log
 integer(kind=irg),INTENT(IN),OPTIONAL             :: logparam
 logical,INTENT(IN),OPTIONAL                       :: verbose
-logical,INTENT(IN),OPTIONAL                       :: verticalflip
 
 type(IO_T)                                        :: Message
 type(Vendor_T)                                    :: VT
@@ -236,10 +235,8 @@ if (present(verbose)) then
 end if 
 
 vflip = .FALSE.
-if (present(verticalflip)) then 
-    if (verticalflip.eqv..TRUE.) then
-        vflip = .TRUE.
-    end if 
+if (nml%flipy.eqv..TRUE.) then 
+  vflip = .TRUE.
 end if 
 
 if (verb) call Message%printMessage(' Preprocessing experimental patterns')
