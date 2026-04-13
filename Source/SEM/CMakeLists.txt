@@ -35,14 +35,14 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
   #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
   #                       )
 
-  # Add_EMsoftOO_Executable(TARGET EMEBSDFull
-  #                       SOURCES ${APP_DIR}/EMEBSDFull.f90
-  #                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
-  #                       TEMPLATE ${TMPLT_DIR}/EMEBSDFull.template
-  #                       SOLUTION_FOLDER EMsoftOOPublic/SEM
-  #                       INSTALL_PROGRAM TRUE
-  #                       INCLUDE_DIRS ${EMsoftHDFLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
-  #                       )
+  Add_EMSoftOO_Executable(TARGET EMEBSDFull
+                        SOURCES ${APP_DIR}/EMEBSDFull.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EMEBSDFull.template
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
+                        )
 
 
 endif()

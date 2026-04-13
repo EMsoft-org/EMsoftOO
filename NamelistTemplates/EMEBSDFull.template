@@ -1,4 +1,12 @@
 &EBSDFulldata
+! direct/full EBSD template for EMsoftOO:
+! this input drives the direct EMEBSDFull solver, which performs a full
+! Monte Carlo calculation for the requested detector geometry and then
+! computes orientation-specific dynamical EBSD patterns directly, without
+! generating weighted master patterns through EMEBSDmaster.
+! the output is written directly to datafile.  The Bethe parameter namelist
+! is expected next to the output file; by default the solver looks for a file
+! named BetheParameters.nml in the same folder as datafile.
 
 !===============================================================
 !=====================MATERIAL SPECIFICATION====================
