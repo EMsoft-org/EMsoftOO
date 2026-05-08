@@ -1376,6 +1376,7 @@ if (adpnl%usetmpfile.eq.'n') then
   dinl%HDFstrings = adpnl%HDFstrings
   dinl%nregions = adpnl%nregions
   dinl%DIModality = 'EBSD'
+  dinl%flipy = .FALSE.
 
   if (adpnl%doNLPAR.eqv..TRUE.) then 
     NLPAR = NLPAR_T()

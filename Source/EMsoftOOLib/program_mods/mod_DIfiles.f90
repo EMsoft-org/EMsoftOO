@@ -94,6 +94,7 @@ type, public :: DictionaryIndexingNameListType
   logical            :: doNLPAR
   logical            :: whitenPCA
   logical            :: flipy
+  logical            :: KRremapping
   character(1)       :: maskpattern
   character(3)       :: scalingmode
   character(3)       :: Notify
@@ -475,7 +476,7 @@ logical,OPTIONAL,INTENT(IN)    :: nt
 
 type(EMsoft_T)                 :: EMsoft
 type(IO_T)                     :: Message
-logical                        :: skipread = .FALSE., dotest = .TRUE.
+logical                        :: skipread = .FALSE., dotest = .TRUE. 
 
 integer(kind=irg)              :: numsx
 integer(kind=irg)              :: numsy
@@ -522,6 +523,7 @@ real(kind=sgl)                 :: lambda
 logical                        :: doNLPAR
 logical                        :: whitenPCA
 logical                        :: flipy
+logical                        :: KRremapping
 character(1)                   :: maskpattern
 character(1)                   :: keeptmpfile
 character(1)                   :: usetmpfile
@@ -564,7 +566,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, CPUGPU, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
-                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix, flipy
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix, flipy, KRremapping
 
 namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
                      beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
@@ -614,6 +616,7 @@ lambda          = 0.375
 doNLPAR         = .FALSE.
 whitenPCA       = .TRUE.
 flipy           = .FALSE.
+KRremapping     = .FALSE.
 keeptmpfile     = 'n'
 usetmpfile      = 'n'
 maskpattern     = 'n'           ! 'y' or 'n' to include a circular mask
@@ -727,6 +730,7 @@ self%nml%lambda        = lambda
 self%nml%doNLPAR       = doNLPAR
 self%nml%whitenPCA     = whitenPCA
 self%nml%flipy         = flipy
+self%nml%KRremapping   = KRremapping
 self%nml%datafile      = trim(datafile)
 self%nml%tmpfile       = trim(tmpfile)
 self%nml%ctffile       = trim(ctffile)
@@ -843,6 +847,7 @@ real(kind=sgl)                                   :: lambda
 logical                                          :: doNLPAR 
 logical                                          :: whitenPCA 
 logical                                          :: flipy
+logical                                          :: KRremapping
 character(1)                                     :: maskpattern 
 character(1)                                     :: keeptmpfile 
 character(1)                                     :: usetmpfile 
@@ -885,7 +890,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, CPUGPU, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
-                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix, flipy
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix, flipy, KRremapping
 
 numsx = dinl%numsx
 numsy = dinl%numsy
@@ -931,6 +936,7 @@ lambda = dinl%lambda
 doNLPAR = dinl%doNLPAR
 whitenPCA = dinl%whitenPCA
 flipy = dinl%flipy
+KRremapping = dinl%KRremapping
 maskpattern = dinl%maskpattern
 keeptmpfile = dinl%keeptmpfile
 usetmpfile = dinl%usetmpfile
@@ -1009,7 +1015,7 @@ type(HDFnames_T), INTENT(INOUT)                     :: HDFnames
 class(DictionaryIndexingNameListType), INTENT(INOUT):: emnl
 
 type(IO_T)                                          :: Message
-integer(kind=irg)                                   :: n_int, n_real, NLPAR, WPCA, FLIP
+integer(kind=irg)                                   :: n_int, n_real, NLPAR, WPCA, FLIP, KRREMAP
 integer(kind=irg)                                   :: hdferr
 integer(kind=irg),allocatable                       :: io_int(:)
 real(kind=sgl),allocatable                          :: io_real(:)
@@ -1028,7 +1034,7 @@ modality = trim(self%getModality())
 select case(trim(modality))
   case('EBSD')
     isEBSD = .TRUE.
-    n_int = 25
+    n_int = 26
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
@@ -1056,12 +1062,14 @@ WPCA = 1
 if (emnl%whitenPCA.eqv..FALSE.) WPCA=0
 FLIP = 0
 if (emnl%flipy.eqv..TRUE.) FLIP=1
+KRREMAP = 0
+if (emnl%KRremapping.eqv..TRUE.) KRREMAP=1
 
 ! write all the single integers
 io_int = (/ emnl%ncubochoric, emnl%numexptsingle, emnl%numdictsingle, emnl%ipf_ht, &
             emnl%ipf_wd, emnl%nnk, emnl%maskradius, emnl%numsx, emnl%numsy, emnl%binning, &
             emnl%nthreads, emnl%devid, emnl%platid, emnl%nregions, emnl%nnav, &
-            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR, emnl%npc, WPCA, FLIP /)
+            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR, emnl%npc, WPCA, FLIP, KRREMAP /)
 intlist(1) = 'Ncubochoric'
 intlist(2) = 'numexptsingle'
 intlist(3) = 'numdictsingle'
@@ -1087,6 +1095,7 @@ intlist(22) = 'NLPAR'
 intlist(23) = 'npc'
 intlist(24) = 'whitenPCA'
 intlist(25) = 'flipy'
+intlist(26) = 'KRremapping'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 io_real = (/ emnl%L, emnl%thetac, emnl%delta, emnl%omega, emnl%xpc, &

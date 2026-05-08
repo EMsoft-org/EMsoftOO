@@ -77,7 +77,15 @@
 !
 ! =============================
 ! ==== FOR ALL MODALITIES 
+! 
+! the following switch selects either traditional RFZ rejection sampling, 
+! or the new KR remapping algorithm; traditional sampling works well with 
+! a value of ncubochoric=100; for KRremapping, this number should be reduced
+! quite a bit and a value of ncubochoric=30 or slightly larger is probably 
+! appropriate
+ KRremapping = .FALSE.,
 ! number of cubochoric points to generate list of orientations
+!ncubochoric = 30,
  ncubochoric = 100,
 ! intensity scaling mode 'not' = no scaling, 'lin' = linear, 'gam' = gamma correction
  scalingmode = 'not',

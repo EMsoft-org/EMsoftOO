@@ -237,6 +237,9 @@ end if
 vflip = .FALSE.
 if (nml%flipy.eqv..TRUE.) then 
   vflip = .TRUE.
+  call Message%printMessage('#####################################################')
+  call Message%printMessage('#PATTERNS WILL BE FLIPPED VERTICALLY BEFORE INDEXING#')
+  call Message%printMessage('#####################################################')
 end if 
 
 if (verb) call Message%printMessage(' Preprocessing experimental patterns')

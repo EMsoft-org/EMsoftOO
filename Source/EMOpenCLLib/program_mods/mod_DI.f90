@@ -817,7 +817,7 @@ end if
 !=====================================================
 ! SAMPLING OF RODRIGUES FUNDAMENTAL ZONE
 !=====================================================
-! if eulerfile is not defined, then we use the standard RFZ sampling;
+! if eulerfile is not defined, then we use the standard or KRremapping RFZ sampling;
 ! if it is defined, then we read the Eulerangle triplets from the file
 ! and generate the FZlist here... this can be useful to index patterns that
 ! have only a small misorientation range with respect to a known orientation,
@@ -831,7 +831,15 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
       io_int(2) = ncubochoric
       call Message%WriteValue(' Point group number and number of cubochoric sampling points : ',io_int,2,"(I4,',',I5)")
 
-      call SO%sampleRFZ(ncubochoric)
+      if (dinl%KRremapping.eqv..TRUE.) then 
+        call Message%printMessage(' Using Knothe-Rosenblatt (KR) rearrangements for FZ sampling ')
+        call SO%setFZtypeandorder(1)
+        call SO%SampleRFZ(ncubochoric)
+        call SO%setFZtypeandorder(pgnum)
+        call SO%KRremap()
+      else
+        call SO%sampleRFZ(ncubochoric)
+      end if
       FZcnt = SO%getListCount('FZ')
 
       if (Clinked.eqv..TRUE.) then
