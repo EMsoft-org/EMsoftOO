@@ -46,6 +46,7 @@ type, public :: OrientationVizNameListType
   integer(kind=irg) :: stereographic
   integer(kind=irg) :: eulerspace
   integer(kind=irg) :: reducetoRFZ
+  integer(kind=irg) :: applysymmetry
   integer(kind=irg) :: drawRFZoutline
   integer(kind=irg) :: drawequivRFZoutlines
   integer(kind=irg) :: nx
@@ -89,6 +90,7 @@ private
   procedure, pass(self) :: get_stereographic_
   procedure, pass(self) :: get_eulerspace_
   procedure, pass(self) :: get_reducetoRFZ_
+  procedure, pass(self) :: get_applysymmetry_
   procedure, pass(self) :: get_drawRFZoutline_
   procedure, pass(self) :: get_drawequivRFZoutlines_
   procedure, pass(self) :: get_nx_
@@ -117,6 +119,7 @@ private
   procedure, pass(self) :: set_stereographic_
   procedure, pass(self) :: set_eulerspace_
   procedure, pass(self) :: set_reducetoRFZ_
+  procedure, pass(self) :: set_applysymmetry_
   procedure, pass(self) :: set_nx_
   procedure, pass(self) :: set_ny_
   procedure, pass(self) :: set_nz_
@@ -147,6 +150,7 @@ private
   generic, public :: get_stereographic => get_stereographic_
   generic, public :: get_eulerspace => get_eulerspace_
   generic, public :: get_reducetoRFZ => get_reducetoRFZ_
+  generic, public :: get_applysymmetry => get_applysymmetry_
   generic, public :: get_drawRFZoutline => get_drawRFZoutline_
   generic, public :: get_drawequivRFZoutlines => get_drawequivRFZoutlines_
   generic, public :: get_nx => get_nx_
@@ -175,6 +179,7 @@ private
   generic, public :: set_stereographic => set_stereographic_
   generic, public :: set_eulerspace => set_eulerspace_
   generic, public :: set_reducetoRFZ => set_reducetoRFZ_
+  generic, public :: set_applysymmetry => set_applysymmetry_
   generic, public :: set_nx => set_nx_
   generic, public :: set_ny => set_ny_
   generic, public :: set_nz => set_nz_
@@ -268,6 +273,7 @@ integer(kind=irg)                      :: rodrigues
 integer(kind=irg)                      :: stereographic
 integer(kind=irg)                      :: eulerspace
 integer(kind=irg)                      :: reducetoRFZ
+integer(kind=irg)                      :: applysymmetry
 integer(kind=irg)                      :: drawRFZoutline
 integer(kind=irg)                      :: drawequivRFZoutlines
 integer(kind=irg)                      :: nx
@@ -298,7 +304,7 @@ namelist  / EMOrientationViz / cubochoric, homochoric, rodrigues, stereographic,
                                xtalname, povrayfile, anglefile, reducetoRFZ, rgb, sphrad, df3file, location, &
                                mrcfile, framemrcfile, mrcmode, drawRFZoutline, drawequivRFZoutlines, a_rotate_data1, &
                                nx, ny, nz, distance, scalingmode, overridepgnum, MacKenzieCell, FZoffset, &
-                               a_rotate_data2, a_rotate_data3
+                               a_rotate_data2, a_rotate_data3, applysymmetry
 
 ! initialize
 cubochoric = 0
@@ -307,6 +313,7 @@ rodrigues = 0
 stereographic = 0
 eulerspace = 0
 reducetoRFZ = 1
+applysymmetry = 0
 drawRFZoutline = 1
 drawequivRFZoutlines = 0
 overridepgnum = 0
@@ -372,6 +379,7 @@ self%nml%rodrigues = rodrigues
 self%nml%stereographic = stereographic
 self%nml%eulerspace = eulerspace
 self%nml%reducetoRFZ = reducetoRFZ
+self%nml%applysymmetry = applysymmetry
 self%nml%drawRFZoutline = drawRFZoutline
 self%nml%drawequivRFZoutlines = drawequivRFZoutlines
 self%nml%nx = nx
@@ -616,6 +624,24 @@ out = self%nml%reducetoRFZ
 end function get_reducetoRFZ_
 
 !--------------------------------------------------------------------------
+function get_applysymmetry_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_applysymmetry_
+!! author: MDG
+!! version: 1.0
+!! date: 05/18/26
+!!
+!! get applysymmetry from the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+integer(kind=irg)                          :: out
+
+out = self%nml%applysymmetry
+
+end function get_applysymmetry_
+
+!--------------------------------------------------------------------------
 function get_drawRFZoutline_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_drawRFZoutline_
 !! author: MDG
@@ -668,6 +694,24 @@ integer(kind=irg), INTENT(IN)              :: inp
 self%nml%reducetoRFZ = inp
 
 end subroutine set_reducetoRFZ_
+
+!--------------------------------------------------------------------------
+subroutine set_applysymmetry_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_applysymmetry_
+!! author: MDG
+!! version: 1.0
+!! date: 05/18/26
+!!
+!! set applysymmetry in the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)              :: inp
+
+self%nml%applysymmetry = inp
+
+end subroutine set_applysymmetry_
 
 !--------------------------------------------------------------------------
 function get_nx_(self) result(out)
@@ -1466,14 +1510,14 @@ type(h_T)                              :: ho
 type(s_T)                              :: st
 type(e_T)                              :: eu
 type(c_T)                              :: cu
-type(q_T)                              :: qu, q
+type(q_T)                              :: qu, q, qq
 type(a_T)                              :: a
-type(Quaternion_T)                     :: quat, qrot1, qrot2, qrot3
+type(Quaternion_T)                     :: quat, qrot1, qrot2, qrot3, qm, qus
 
 real(kind=dbl)                         :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
 integer(kind=irg)                      :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
-                           ierr, ig, ix, iy, iz, num, ixyz(3), pgnum, io_int(2), nums(3)
-real(kind=dbl)          :: delta, eps = 1.0D-2
+                           ierr, ig, ix, iy, iz, num, ixyz(3), pgnum, io_int(2), nums(3), FZcnt, oldFZcnt
+real(kind=dbl)          :: delta, eps = 1.0D-2, xx(4)
 character(fnlen)        :: locationline, fname, dataname, outname, lightline, skyline, rgbstring, locationlineeu, &
                            colorstring, df3name, mrcname
 character(11)           :: p0
@@ -1490,7 +1534,7 @@ real(kind=dbl)          :: muhat(4), kappahat
 real(kind=sgl),allocatable :: rovol(:,:,:), spvol(:,:,:), euvol(:,:,:), cuvol(:,:,:), hovol(:,:,:)
 real(kind=sgl)          :: maxRFZdis(5), rodx, rody, rodz, eudx, eudy, eudz, spdx, spdy, spdz, cudx, cudy, cudz, &
                            hodx, hody, hodz, scalefactors(3,5), acubo, ahomo, grid3(3,3,3), eyepos(3)
-type(FZpointd),pointer  :: FZtmp
+type(FZpointd),pointer  :: FZtmp, FZtail, FZhead
 
 associate( enl=>self%nml )
 
@@ -1730,8 +1774,47 @@ else
   call SO%ReducelisttoMFZ(SG)  ! this requires the full crystal point group
 end if
 
+! do we need to expand the orientation list by adding all symmetrically equivalent orientations?
+if (enl%applysymmetry.eq.1) then 
+  call Message%printMessage(' applying crystal symmetry to the orientation set')
+
+! get a pointer to the end of the current linked list
+  FZhead => SO%getListHead('FZ')
+  FZtail => SO%getListHead('FZ')
+  FZcnt = SO%getListCount('FZ')
+  oldFZcnt = FZcnt
+  do i=1,FZcnt
+    FZtail => FZtail%next
+  end do
+
+! loop over all current orientations and generate the equivalent ones
+! keep in mind that the identity operator is always the first one in the list so we skip it
+  do k=2,num 
+    FZtmp => FZhead
+    qm = qAr%getQuatfromArray(k)
+    do i=1,oldFZcnt
+      xx = FZtmp%qu%q_copyd() 
+      qus = qm * Quaternion_T( qd = xx )
+      qq = q_T( qdinp = qus%get_quatd() )
+      allocate(FZtail%next)
+      FZtail%qu = qq
+      FZtail%weight = 1.0
+      FZtail%rod = qq%qr()
+      FZtail => FZtail%next
+      nullify(FZtail%next)       
+      FZtmp => FZtmp%next
+    end do
+  end do
+  FZcnt = num*FZcnt 
+  call SO%setFZcnt(FZcnt, 'FZ')
+  io_int(1) = FZcnt
+  call Message%WriteValue(' FZcnt after symmetrization = ', io_int, 1)
+end if
+
 FZtmp => SO%getListHead('FZ')          ! point to the top of the list
 numpoints = SO%getListCount('FZ')
+
+
 
 pointloop: do ix = 1,numpoints
   ro = FZtmp%rod
