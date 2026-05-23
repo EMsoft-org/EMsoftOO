@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -202,18 +202,16 @@ real(kind=sgl),INTENT(IN)                         :: masklin(binx*biny)
 integer(kind=irg),INTENT(IN)                      :: correctsize
 integer(kind=irg),INTENT(IN)                      :: totnumexpt
 real(kind=sgl),INTENT(INOUT),OPTIONAL             :: epatterns(correctsize, totnumexpt)
-!f2py intent(in,out) ::  epatterns
 real(kind=sgl),INTENT(INOUT),OPTIONAL             :: exptIQ(totnumexpt)
 logical,INTENT(IN),OPTIONAL                       :: log
 integer(kind=irg),INTENT(IN),OPTIONAL             :: logparam
 logical,INTENT(IN),OPTIONAL                       :: verbose
-!f2py intent(in,out) ::  exptIQ
 
 type(IO_T)                                        :: Message
 type(Vendor_T)                                    :: VT
 type(timing_T)                                    :: timer
 
-logical                                           :: ROIselected, f_exists, dolog=.FALSE.
+logical                                           :: ROIselected, f_exists, dolog=.FALSE., vflip
 character(fnlen)                                  :: fname
 integer(kind=irg)                                 :: istat, L, recordsize, io_int(2), patsz, iii, lp, &
                                                      iiistart, iiiend, jjend, TID, jj, kk, ierr, itype
@@ -234,6 +232,14 @@ if (present(verbose)) then
     if (verbose.eqv..TRUE.) then
         verb = .TRUE.
     end if 
+end if 
+
+vflip = .FALSE.
+if (nml%flipy.eqv..TRUE.) then 
+  vflip = .TRUE.
+  call Message%printMessage('#####################################################')
+  call Message%printMessage('#PATTERNS WILL BE FLIPPED VERTICALLY BEFORE INDEXING#')
+  call Message%printMessage('#####################################################')
 end if 
 
 if (verb) call Message%printMessage(' Preprocessing experimental patterns')
@@ -405,16 +411,16 @@ prepexperimentalloop: do iii = iiistart,iiiend
         if (ROIselected.eqv..TRUE.) then
           if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
             call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, nml%ROI, &
-                                     HDFstrings=nml%HDFstrings, HDF=HDF)
+                                     HDFstrings=nml%HDFstrings, HDF=HDF, flipy = vflip)
           else
-            call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, nml%ROI)
+            call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, nml%ROI, flipy = vflip)
           end if
         else
          if ( (itype.eq.4) .or. (itype.eq.6) .or. (itype.eq.7) .or. (itype.eq.8) ) then
             call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
-                                     HDFstrings=nml%HDFstrings, HDF=HDF)
+                                     HDFstrings=nml%HDFstrings, HDF=HDF, flipy = vflip)
           else
-            call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray)
+            call VT%getExpPatternRow(iii, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, flipy = vflip)
           end if
         end if
     end if

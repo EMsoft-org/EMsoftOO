@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2014-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2014-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -46,7 +46,6 @@ IMPLICIT NONE
 
 character(fnlen)    :: progname = 'EMsampleRFZ.f90'
 character(fnlen)    :: progdesc = 'Create a uniform sampling of Rodrigues space and output angle list'
-character(fnlen)    :: nmlpath
 
 type(EMsoft_T)      :: EMsoft
 type(sampleRFZ_T)   :: RFZ 

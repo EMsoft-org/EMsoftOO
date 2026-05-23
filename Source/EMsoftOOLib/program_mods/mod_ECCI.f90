@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -160,45 +160,45 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(ECCI_T), INTENT(INOUT)      :: self
-character(fnlen),INTENT(IN)      :: nmlfile
+class(ECCI_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)  :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)      :: initonly
+logical,OPTIONAL,INTENT(IN)  :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                   :: EMsoft
-type(IO_T)                       :: Message
-logical                          :: skipread = .FALSE.
+type(EMsoft_T)               :: EMsoft
+type(IO_T)                   :: Message
+logical                      :: skipread = .FALSE.
 
 ! parameters for the standard ECCI program
-integer(kind=irg)       :: stdout
-integer(kind=irg)       :: nthreads
-integer(kind=irg)       :: k(3)
-integer(kind=irg)       :: nktstep
-integer(kind=irg)       :: DF_npix
-integer(kind=irg)       :: DF_npiy
-real(kind=sgl)          :: voltage
-real(kind=sgl)          :: dkt
-real(kind=sgl)          :: ktmax
-real(kind=sgl)          :: euler(3)
-real(kind=sgl)          :: lauec(2)
-real(kind=sgl)          :: lauec2(2)
-real(kind=sgl)          :: dmin
-real(kind=sgl)          :: DF_L
-real(kind=sgl)          :: DF_slice
-character(4)            :: dispmode
-character(4)            :: summode
-character(5)            :: progmode
-character(4)            :: mode
-character(fnlen)        :: xtalname
-character(fnlen)        :: montagename
-character(fnlen)        :: defectfilename
-character(fnlen)        :: dispfile
-character(fnlen)        :: energyfile
-character(fnlen)        :: dataname
-character(fnlen)        :: ECPname
-character(fnlen)        :: sgname
-character(fnlen)        :: BetheParametersFile
+integer(kind=irg)            :: stdout
+integer(kind=irg)            :: nthreads
+integer(kind=irg)            :: k(3)
+integer(kind=irg)            :: nktstep
+integer(kind=irg)            :: DF_npix
+integer(kind=irg)            :: DF_npiy
+real(kind=sgl)               :: voltage
+real(kind=sgl)               :: dkt
+real(kind=sgl)               :: ktmax
+real(kind=sgl)               :: euler(3)
+real(kind=sgl)               :: lauec(2)
+real(kind=sgl)               :: lauec2(2)
+real(kind=sgl)               :: dmin
+real(kind=sgl)               :: DF_L
+real(kind=sgl)               :: DF_slice
+character(4)                 :: dispmode
+character(4)                 :: summode
+character(5)                 :: progmode
+character(4)                 :: mode
+character(fnlen)             :: xtalname
+character(fnlen)             :: montagename
+character(fnlen)             :: defectfilename
+character(fnlen)             :: dispfile
+character(fnlen)             :: energyfile
+character(fnlen)             :: dataname
+character(fnlen)             :: ECPname
+character(fnlen)             :: sgname
+character(fnlen)             :: BetheParametersFile
 
 namelist / ECCIlist / DF_L, DF_npix, DF_npiy, DF_slice, dmin, sgname, stdout, &
                       progmode, dispfile, ktmax, dkt, ECPname, summode, lauec, lauec2, &
@@ -451,23 +451,23 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(ECCI_T), INTENT(INOUT)           :: self 
+class(ECCI_T), INTENT(INOUT)             :: self 
 
-type(HDF_T)                                 :: HDF
-type(HDFnames_T)                            :: HDFnames
-type(io_T)                                  :: Message
-character(fnlen),INTENT(IN)                 :: fname
-integer(kind=irg),INTENT(INOUT)             :: ipar(3)
-real(kind=dbl),allocatable,INTENT(INOUT)    :: dispfield(:,:,:,:)
-integer(kind=irg)                           :: io_int(1), i, hdferr
+type(HDF_T)                              :: HDF
+type(HDFnames_T)                         :: HDFnames
+type(io_T)                               :: Message
+character(fnlen),INTENT(IN)              :: fname
+integer(kind=irg),INTENT(INOUT)          :: ipar(3)
+real(kind=dbl),allocatable,INTENT(INOUT) :: dispfield(:,:,:,:)
+integer(kind=irg)                        :: io_int(1), i, hdferr
 
-real(kind=sgl),parameter                    :: dtor = 0.0174533  ! convert from degrees to radians
-integer(kind=irg)                           :: istat
-character(fnlen)                            :: deformationfile, groupname, dataset
-logical                                     :: g_exists 
+real(kind=sgl),parameter                 :: dtor = 0.0174533  ! convert from degrees to radians
+integer(kind=irg)                        :: istat
+character(fnlen)                         :: deformationfile, groupname, dataset
+logical                                  :: g_exists 
 
-real(kind=dbl),allocatable                  :: pcxy(:,:), x(:,:)
-integer(HSIZE_T)                            :: dims1(1), dims2(2), dims3(3), dims4(4)
+real(kind=dbl),allocatable               :: pcxy(:,:), x(:,:)
+integer(HSIZE_T)                         :: dims1(1), dims2(2), dims3(3), dims4(4)
 
 call openFortranHDFInterface()
 HDF = HDF_T()
@@ -547,45 +547,45 @@ use mod_image
 use mod_rotations
 use mod_memory
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(ECCI_T), INTENT(INOUT)             :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
-character(fnlen), INTENT(INOUT)         :: nmldeffile
+class(ECCI_T), INTENT(INOUT)    :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname
+character(fnlen), INTENT(INOUT) :: nmldeffile
 
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(Cell_T)                            :: cell
-type(DynType)                           :: Dyn
-type(SpaceGroup_T)                      :: SG
-type(Diffraction_T)                     :: Diff
-type(IO_T)                              :: Message
-type(Defect_T)                          :: Defects
-type(gvectors_T)                        :: reflist
-type(kvectors_T)                        :: kvec
-type(reflisttype),pointer               :: firstw, rltmp, rltmpa, rltmpb
-type(image_t)                           :: im
-type(Timing_T)                          :: timer
-type(MCfile_T)                          :: MCFT
-type(e_T)                               :: eu
-type(q_t)                               :: qu
-type(Quaternion_T)                      :: quat
-type(memory_T)                          :: mem, memth 
+type(HDF_T)                     :: HDF
+type(HDFnames_T)                :: HDFnames
+type(Cell_T)                    :: cell
+type(DynType)                   :: Dyn
+type(SpaceGroup_T)              :: SG
+type(Diffraction_T)             :: Diff
+type(IO_T)                      :: Message
+type(Defect_T)                  :: Defects
+type(gvectors_T)                :: reflist
+type(kvectors_T)                :: kvec
+type(reflisttype),pointer       :: firstw, rltmp, rltmpa, rltmpb
+type(image_t)                   :: im
+type(Timing_T)                  :: timer
+type(MCfile_T)                  :: MCFT
+type(e_T)                       :: eu
+type(q_t)                       :: qu
+type(Quaternion_T)              :: quat
+type(memory_T)                  :: mem, memth 
 
-type(MCOpenCLNameListType) :: mcnl
+type(MCOpenCLNameListType)      :: mcnl
 
-integer(kind=irg)       :: numangle, numzbins, nx, ny, npx, npy, totnum_el, numsites ! reading from MC file
-real(kind=dbl)          :: EkeV, Ehistmin, Ebinsize, depthmax, depthstep, sig, omega  ! reading from MC file
-integer(kind=irg), allocatable :: acc_z(:,:,:,:),accum_z(:,:,:,:) ! reading from MC file
-integer(kind=irg)       ::num_el, etotal, nsx, nsy, izz, iz
+integer(kind=irg)               :: numangle, numzbins, nx, ny, npx, npy, totnum_el, numsites ! reading from MC file
+real(kind=dbl)                  :: EkeV, Ehistmin, Ebinsize, depthmax, depthstep, sig, omega  ! reading from MC file
+integer(kind=irg), allocatable  :: acc_z(:,:,:,:),accum_z(:,:,:,:) ! reading from MC file
+integer(kind=irg)               ::num_el, etotal, nsx, nsy, izz, iz
 
-integer(kind=irg)       :: pgnum, SamplingType, nns, nnw, ipar(3)
+integer(kind=irg)               :: pgnum, SamplingType, nns, nnw, ipar(3)
 real(kind=dbl),allocatable      :: dispfield(:,:,:,:)
 
-integer(kind=irg)                       :: kkk, nn,i,j,npix,npiy,ii,jj, numset, t_interval,nat(maxpasym), montage_nx, montage_ny, &
+integer(kind=irg)               :: kkk, nn,i,j,npix,npiy,ii,jj, numset, t_interval,nat(maxpasym), montage_nx, montage_ny, &
                                            DF_nums_new,DF_npix_new,DF_npiy_new, numstart,numstop, isg, TID, tickstart, &
                                            NTHR, SETNTHR, isym, ir, ga(3), gb(3),ic,g,numd,ix,iy,nkt,nbeams, ik, ig, &
                                            k, numk,ixp,iyp, io_int(6), skip, gg(3), error_cnt, dinfo, nref, maxXY, hdferr, ijmax

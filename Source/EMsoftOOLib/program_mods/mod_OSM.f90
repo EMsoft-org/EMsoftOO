@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -42,6 +42,7 @@ IMPLICIT NONE
 type, public :: OSMNameListType
   integer(kind=irg)  :: nmatch(5)
   character(fnlen)   :: dotproductfile
+  logical            :: dpweighted
   character(fnlen)   :: tiffname
 end type OSMNameListType
 
@@ -59,6 +60,8 @@ private
   procedure, pass(self) :: get_nmatch_
   procedure, pass(self) :: get_dotproductfile_
   procedure, pass(self) :: get_tiffname_
+  procedure, pass(self) :: get_dpweighted_
+  procedure, pass(self) :: set_dpweighted_
   procedure, pass(self) :: set_nmatch_
   procedure, pass(self) :: set_dotproductfile_
   procedure, pass(self) :: set_tiffname_
@@ -69,6 +72,8 @@ private
   generic, public :: get_nmatch => get_nmatch_
   generic, public :: get_dotproductfile => get_dotproductfile_
   generic, public :: get_tiffname => get_tiffname_
+  generic, public :: get_dpweighted => get_dpweighted_
+  generic, public :: set_dpweighted => set_dpweighted_
   generic, public :: set_nmatch => set_nmatch_
   generic, public :: set_dotproductfile => set_dotproductfile_
   generic, public :: set_tiffname => set_tiffname_
@@ -130,27 +135,29 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(OSM_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(OSM_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)              :: EMsoft
+type(IO_T)                  :: Message
+logical                     :: skipread = .FALSE.
 
-integer(kind=irg)       :: nmatch(5)
-character(fnlen)        :: dotproductfile
-character(fnlen)        :: tiffname
+integer(kind=irg)           :: nmatch(5)
+character(fnlen)            :: dotproductfile
+character(fnlen)            :: tiffname
+logical                     :: dpweighted
 
 ! define the IO namelist to facilitate passing variables to the program.
-namelist  / getOSM / nmatch, dotproductfile, tiffname
+namelist  / getOSM / nmatch, dotproductfile, tiffname, dpweighted
 
 ! set the input parameters to default values
 nmatch = (/ 20, 0, 0, 0, 0 /)
 dotproductfile = 'undefined'
 tiffname = 'undefined'
+dpweighted = .FALSE.
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -176,6 +183,7 @@ if (.not.skipread) then
 self%nml%nmatch = nmatch
 self%nml%dotproductfile = dotproductfile
 self%nml%tiffname = tiffname
+self%nml%dpweighted = dpweighted
 
 end subroutine readNameList_
 
@@ -306,6 +314,42 @@ self%nml%tiffname = inp
 end subroutine set_tiffname_
 
 !--------------------------------------------------------------------------
+function get_dpweighted_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_dpweighted_
+!! author: MDG
+!! version: 1.0
+!! date: 04/06/20
+!!
+!! get dpweighted from the OSM_T class
+
+IMPLICIT NONE
+
+class(OSM_T), INTENT(INOUT)     :: self
+logical                         :: out
+
+out = self%nml%dpweighted
+
+end function get_dpweighted_
+
+!--------------------------------------------------------------------------
+subroutine set_dpweighted_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_dpweighted_
+!! author: MDG
+!! version: 1.0
+!! date: 04/06/20
+!!
+!! set dpweighted in the OSM_T class
+
+IMPLICIT NONE
+
+class(OSM_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)             :: inp
+
+self%nml%dpweighted = inp
+
+end subroutine set_dpweighted_
+
+!--------------------------------------------------------------------------
 subroutine OSM_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: OSM_
 !! author: MDG
@@ -323,33 +367,33 @@ use mod_DIsupport
 use mod_DIfiles
 use ISO_C_BINDING
 use mod_image
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(OSM_T), INTENT(INOUT)             :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
+class(OSM_T), INTENT(INOUT)          :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname
 
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(IO_T)                              :: Message
-type(DIfile_T)                          :: DIFT
-type(DictionaryIndexingNameListType)    :: dinl
+type(HDF_T)                          :: HDF
+type(HDFnames_T)                     :: HDFnames
+type(IO_T)                           :: Message
+type(DIfile_T)                       :: DIFT
+type(DictionaryIndexingNameListType) :: dinl
 
-real(kind=sgl),allocatable              :: OSMmap(:,:)
-integer(kind=irg)                       :: dims(2), dimsOSM(2), hdferr, io_int(2), osmnum, i
-character(fnlen)                        :: fname, TIFF_filename, dpfile, groupname, dataset, DIfile
-character(2)                            :: fnum
-real(kind=sgl)                          :: ma, mi
+real(kind=sgl),allocatable           :: OSMmap(:,:)
+integer(kind=irg)                    :: dims(2), dimsOSM(2), hdferr, io_int(2), osmnum, i
+character(fnlen)                     :: fname, TIFF_filename, dpfile, groupname, dataset, DIfile
+character(2)                         :: fnum
+real(kind=sgl)                       :: ma, mi
 
 ! declare variables for use in object oriented image module
-integer                                 :: iostat
-character(len=128)                      :: iomsg
-logical                                 :: isInteger
-type(image_t)                           :: im
-integer(int8)                           :: i8 (3,4)
-integer(int8), allocatable              :: TIFF_image(:,:)
+integer                              :: iostat
+character(len=128)                   :: iomsg
+logical                              :: isInteger
+type(image_t)                        :: im
+integer(int8)                        :: i8 (3,4)
+integer(int8), allocatable           :: TIFF_image(:,:)
 
 associate(osmnl=>self%nml, DIDT=>DIFT%DIDT)
 

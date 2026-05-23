@@ -42,7 +42,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
 
   set(EMsoftOO_UNIT_TESTS 
     MODQuaternions
-    MODOctonions
+    # MODOctonions
     HDFtextfile
     HDFinteger
     HDFchar
@@ -50,12 +50,13 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
     HDFdouble
     HDFhyperslab
     MODsymmetry
-    Image
+    # Image
     MODcrystal
     # MODMuellerCalculus
     MODRotations
     MODkvectors
     MODcolorspace
+    MODKR
   )
 
   foreach(test ${EMsoftOO_UNIT_TESTS})

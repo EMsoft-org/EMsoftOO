@@ -1,6 +1,6 @@
 !* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 !*                                                                     *
-!* Copyright (c) 2019-2025, De Graef Group, Carnegie Mellon University *
+!* Copyright (c) 2019-2026, De Graef Group, Carnegie Mellon University *
 !* All rights reserved.                                                *
 !*                                                                     *
 !* Author: William C. Lenthe                                           *
@@ -116,13 +116,13 @@ contains
     use mod_global
   implicit none
     class    (InverseEBSDDetector),INTENT(INOUT) :: this
-    real     (kind=dbl           ),INTENT(IN   ) :: L
-    real     (kind=dbl           ),INTENT(IN   ) :: sig
-    real     (kind=dbl           ),INTENT(IN   ) :: thetac
-    integer  (kind=irg           ),INTENT(IN   ) :: d
-    real     (kind=dbl           ),INTENT(IN   ) :: delta
-    integer  (kind=irg           ),INTENT(IN   ) :: nx
-    integer  (kind=irg           ),INTENT(IN   ) :: ny
+    real     (kind=dbl           ),INTENT(IN)    :: L
+    real     (kind=dbl           ),INTENT(IN)    :: sig
+    real     (kind=dbl           ),INTENT(IN)    :: thetac
+    integer  (kind=irg           ),INTENT(IN)    :: d
+    real     (kind=dbl           ),INTENT(IN)    :: delta
+    integer  (kind=irg           ),INTENT(IN)    :: nx
+    integer  (kind=irg           ),INTENT(IN)    :: ny
 
     real     (kind=dbl           )               :: alp, ca, sa
     real     (kind=dbl           )               :: dc(3,-d:d,-d:d)
@@ -162,8 +162,8 @@ contains
   !DEC$ ATTRIBUTES DLLEXPORT :: InverseEBSDDetector_Resize
   implicit none
     class    (InverseEBSDDetector),INTENT(INOUT) :: this
-    integer  (kind=irg           ),INTENT(IN   ) :: wNew
-    integer  (kind=irg           ),INTENT(IN   ) :: hNew
+    integer  (kind=irg           ),INTENT(IN)    :: wNew
+    integer  (kind=irg           ),INTENT(IN)    :: hNew
     this%numsx = wNew
     this%numsy = hNew
   end subroutine InverseEBSDDetector_Resize
@@ -198,18 +198,18 @@ contains
   recursive subroutine InverseEBSDDetector_Unproject(this, pat, nh, sh, xpc, ypc, cir, flip)
   !DEC$ ATTRIBUTES DLLEXPORT :: InverseEBSDDetector_Unproject
   implicit none
-    class  (InverseEBSDDetector),INTENT(IN   ) :: this
-    real   (kind=dbl           ),INTENT(IN   ) :: pat(:,:) ! the code currently assumes that this is 0:numsx-1,0:numsy-1
-    real   (kind=dbl           ),INTENT(INOUT) :: nh(-this%d:this%d, -this%d:this%d)
-    real   (kind=dbl           ),INTENT(INOUT) :: sh(-this%d:this%d, -this%d:this%d)
-    real   (kind=dbl           ),INTENT(IN   ) :: xpc
-    real   (kind=dbl           ),INTENT(IN   ) :: ypc
-    logical                     ,INTENT(IN   ) :: cir
-    logical                     ,INTENT(IN   ),OPTIONAL :: flip
+    class  (InverseEBSDDetector),INTENT(IN)          :: this
+    real   (kind=dbl           ),INTENT(IN)          :: pat(:,:) ! the code currently assumes that this is 0:numsx-1,0:numsy-1
+    real   (kind=dbl           ),INTENT(INOUT)       :: nh(-this%d:this%d, -this%d:this%d)
+    real   (kind=dbl           ),INTENT(INOUT)       :: sh(-this%d:this%d, -this%d:this%d)
+    real   (kind=dbl           ),INTENT(IN)          :: xpc
+    real   (kind=dbl           ),INTENT(IN)          :: ypc
+    logical                     ,INTENT(IN)          :: cir
+    logical                     ,INTENT(IN),OPTIONAL :: flip
 
-    real   (kind=dbl           )               :: x, y, fx, fy, cx, cy, v, mean, rx, ry, rr, hx, hy, hh, px, py, stdv
-    integer(kind=irg           )               :: i, j, k, x0, y0, x1, y1, cnt
-    logical                                    :: flipit = .FALSE.
+    real   (kind=dbl           )                     :: x, y, fx, fy, cx, cy, v, mean, rx, ry, rr, hx, hy, hh, px, py, stdv
+    integer(kind=irg           )                     :: i, j, k, x0, y0, x1, y1, cnt
+    logical                                          :: flipit = .FALSE.
 
     if (present(flip)) then
       if (flip.eqv..TRUE.) flipit = .TRUE.
@@ -325,12 +325,12 @@ contains
   recursive function InverseEBSDDetector_SolidAngle(this, xpc, ypc) result(omg)
   !DEC$ ATTRIBUTES DLLEXPORT :: InverseEBSDDetector_SolidAngle
   implicit none
-    class  (InverseEBSDDetector),INTENT(IN   ) :: this
-    real   (kind=dbl           ),INTENT(IN   ) :: xpc
-    real   (kind=dbl           ),INTENT(IN   ) :: ypc
-    real   (kind=dbl           )               :: omg
-    integer                                    :: cnt, i, j, k, x0, y0
-    real   (kind=dbl           )               :: x, y
+    class  (InverseEBSDDetector),INTENT(IN) :: this
+    real   (kind=dbl           ),INTENT(IN) :: xpc
+    real   (kind=dbl           ),INTENT(IN) :: ypc
+    real   (kind=dbl           )            :: omg
+    integer                                 :: cnt, i, j, k, x0, y0
+    real   (kind=dbl           )            :: x, y
 
     ! loop over spherical grid counting point that hit the detector
     cnt = 0

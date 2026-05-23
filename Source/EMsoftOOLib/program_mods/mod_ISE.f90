@@ -1,5 +1,5 @@
 !! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -199,29 +199,29 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(ISE_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(ISE_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)              :: EMsoft 
+type(IO_T)                  :: Message       
+logical                     :: skipread = .FALSE.
 
-real(kind=sgl)    :: gammavalue
-real(kind=sgl)    :: omega 
-real(kind=sgl)    :: omega_step
-real(kind=sgl)    :: tiltaxis(3)
-integer(kind=irg) :: nsteps
-integer(kind=irg) :: nthreads
-integer(kind=irg) :: ROI(4)
-character(3)      :: scalingmode
-character(fnlen)  :: useangles
-character(fnlen)  :: masterfile
-character(fnlen)  :: datafile
-character(fnlen)  :: outputfile
-character(fnlen)  :: imagefile
+real(kind=sgl)              :: gammavalue
+real(kind=sgl)              :: omega 
+real(kind=sgl)              :: omega_step
+real(kind=sgl)              :: tiltaxis(3)
+integer(kind=irg)           :: nsteps
+integer(kind=irg)           :: nthreads
+integer(kind=irg)           :: ROI(4)
+character(3)                :: scalingmode
+character(fnlen)            :: useangles
+character(fnlen)            :: masterfile
+character(fnlen)            :: datafile
+character(fnlen)            :: outputfile
+character(fnlen)            :: imagefile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / ISEdata / gammavalue, nthreads, useangles, scalingmode, masterfile, datafile, imagefile, &
@@ -299,17 +299,17 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)            :: self
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(ISE_T), INTENT(INOUT)     :: self
+type(HDF_T), INTENT(INOUT)      :: HDF
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 2, n_real = 3
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: reallist(n_real)
-character(20)                           :: intlist(n_int)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+integer(kind=irg),parameter     :: n_int = 2, n_real = 3
+integer(kind=irg)               :: hdferr,  io_int(n_int)
+real(kind=sgl)                  :: io_real(n_real)
+character(20)                   :: reallist(n_real)
+character(20)                   :: intlist(n_int)
+character(fnlen)                :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)    :: line2(1)
 
 associate( enl => self%nml )
 
@@ -405,8 +405,8 @@ subroutine setgammavalue_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%gammavalue = inp
 
@@ -423,8 +423,8 @@ function getgammavalue_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%gammavalue
 
@@ -441,8 +441,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT)   :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nthreads = inp
 
@@ -459,8 +459,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+integer(kind=irg)           :: out
 
 out = self%nml%nthreads
 
@@ -477,8 +477,8 @@ subroutine setROI_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(4)
+class(ISE_T), INTENT(INOUT)   :: self
+integer(kind=irg), INTENT(IN) :: inp(4)
 
 self%nml%ROI = inp
 
@@ -495,8 +495,8 @@ function getROI_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(4)
+class(ISE_T), INTENT(INOUT) :: self
+integer(kind=irg)           :: out(4)
 
 out = self%nml%ROI
 
@@ -513,8 +513,8 @@ subroutine setscalingmode_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)    :: inp
 
 self%nml%scalingmode = trim(inp)
 
@@ -531,8 +531,8 @@ function getscalingmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+character(3)                :: out
 
 out = trim(self%nml%scalingmode)
 
@@ -549,8 +549,8 @@ subroutine setuseangles_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%useangles = trim(inp)
 
@@ -567,8 +567,8 @@ function getuseangles_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%useangles)
 
@@ -585,8 +585,8 @@ subroutine setmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%masterfile = trim(inp)
 
@@ -603,8 +603,8 @@ function getmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%masterfile)
 
@@ -621,8 +621,8 @@ subroutine setISEMPfile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%ISEMPfile = trim(inp)
 
@@ -639,8 +639,8 @@ function getISEMPfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%ISEMPfile)
 
@@ -657,8 +657,8 @@ subroutine setdatafile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%datafile = trim(inp)
 
@@ -675,8 +675,8 @@ function getdatafile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%datafile)
 
@@ -693,8 +693,8 @@ subroutine setimagefile_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT)  :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%imagefile = trim(inp)
 
@@ -711,8 +711,8 @@ function getimagefile_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+character(fnlen)            :: out
 
 out = trim(self%nml%imagefile)
 
@@ -729,8 +729,8 @@ subroutine setomega_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(ISE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp
 
 self%nml%omega = inp
 
@@ -747,8 +747,8 @@ function getomega_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(ISE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out
 
 out = self%nml%omega
 
@@ -765,8 +765,8 @@ subroutine settiltaxis_(self,inp)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp(3)
+class(ISE_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)  :: inp(3)
 
 self%nml%tiltaxis = inp
 
@@ -783,8 +783,8 @@ function gettiltaxis_(self) result(out)
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out(3)
+class(ISE_T), INTENT(INOUT) :: self
+real(kind=sgl)              :: out(3)
 
 out = self%nml%tiltaxis
 
@@ -1051,25 +1051,25 @@ use mod_quaternions
 use mod_rotations
 use mod_Lambert
 use ISO_C_BINDING
-use, intrinsic :: iso_fortran_env
+use, intrinsic                      :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)                 :: self
-type(Quaternion_T), INTENT(IN)              :: quat 
-type(QuaternionArray_T), INTENT(IN)         :: Qartilt
-integer(kind=irg), INTENT(IN)               :: nsteps 
-integer(kind=irg), INTENT(IN)               :: npx
-real(kind=sgl), INTENT(IN)                  :: scl 
-real(kind=sgl), INTENT(IN)                  :: mLPNH(-npx:npx,-npx:npx)
-real(kind=sgl), INTENT(IN)                  :: mLPSH(-npx:npx,-npx:npx)
-real(kind=dbl), INTENT(OUT)                 :: ISEvector(nsteps)
+class(ISE_T), INTENT(INOUT)         :: self
+type(Quaternion_T), INTENT(IN)      :: quat 
+type(QuaternionArray_T), INTENT(IN) :: Qartilt
+integer(kind=irg), INTENT(IN)       :: nsteps 
+integer(kind=irg), INTENT(IN)       :: npx
+real(kind=sgl), INTENT(IN)          :: scl 
+real(kind=sgl), INTENT(IN)          :: mLPNH(-npx:npx,-npx:npx)
+real(kind=sgl), INTENT(IN)          :: mLPSH(-npx:npx,-npx:npx)
+real(kind=dbl), INTENT(OUT)         :: ISEvector(nsteps)
 
-type(Quaternion_T)                          :: qu 
+type(Quaternion_T)                  :: qu 
 
-integer(kind=irg)                           :: jj, nix, niy, nixp, niyp
-real(kind=sgl)                              :: dx, dy, dxm, dym, dc(3) 
-real(kind=dbl)                              :: s, ddc(3)
+integer(kind=irg)                   :: jj, nix, niy, nixp, niyp
+real(kind=sgl)                      :: dx, dy, dxm, dym, dc(3) 
+real(kind=dbl)                      :: s, ddc(3)
 
 do jj=1, nsteps
   s = 0.D0
@@ -1117,30 +1117,30 @@ use mod_Lambert
 use mod_image 
 use omp_lib
 use ISO_C_BINDING
-use, intrinsic :: iso_fortran_env
+use, intrinsic                         :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(ISE_T), INTENT(INOUT)                 :: self
-integer(kind=irg),INTENT(IN)                :: numang 
-real(kind=sgl),INTENT(IN)                   :: Eangles(3,numang)
-real(kind=sgl),INTENT(OUT),allocatable      :: ISEimage(:,:,:)
+class(ISE_T), INTENT(INOUT)            :: self
+integer(kind=irg),INTENT(IN)           :: numang 
+real(kind=sgl),INTENT(IN)              :: Eangles(3,numang)
+real(kind=sgl),INTENT(OUT),allocatable :: ISEimage(:,:,:)
 
-type(IO_T)                                  :: Message
-type(Quaternion_T)                          :: quat, qu 
-type(QuaternionArray_T)                     :: Qartilt
-type(e_T)                                   :: eu
-type(q_T)                                   :: q
-type(a_T)                                   :: ax
-type(Lambert_T)                             :: L
+type(IO_T)                             :: Message
+type(Quaternion_T)                     :: quat, qu 
+type(QuaternionArray_T)                :: Qartilt
+type(e_T)                              :: eu
+type(q_T)                              :: q
+type(a_T)                              :: ax
+type(Lambert_T)                        :: L
 
-integer(kind=irg)                           :: ix, iy, icnt, jd, sz(3), nxmc
-real(kind=sgl)                              :: s, dc(3), ixy(2), scl, sclmc, io_real(2)
-real(kind=dbl)                              :: ddc(3), tiltaxis(3), angle
-real(kind=sgl)                              :: dx, dy, dxm, dym, x, y, z
-integer(kind=irg)                           :: ii, jj, kk, istat
-integer(kind=irg)                           :: nix, niy, nixp, niyp, nixmc, niymc, TID
-real(kind=sgl),allocatable                  :: image(:,:,:)
+integer(kind=irg)                      :: ix, iy, icnt, jd, sz(3), nxmc
+real(kind=sgl)                         :: s, dc(3), ixy(2), scl, sclmc, io_real(2)
+real(kind=dbl)                         :: ddc(3), tiltaxis(3), angle
+real(kind=sgl)                         :: dx, dy, dxm, dym, x, y, z
+integer(kind=irg)                      :: ii, jj, kk, istat
+integer(kind=irg)                      :: nix, niy, nixp, niyp, nixmc, niymc, TID
+real(kind=sgl),allocatable             :: image(:,:,:)
 
 call setRotationPrecision('d')
 
@@ -1249,48 +1249,48 @@ use mod_memory
 use mod_image 
 use ISO_C_BINDING
 use mod_timing
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(ISE_T), INTENT(INOUT)         :: self
-type(EMsoft_T), INTENT(INOUT)       :: EMsoft
-character(fnlen), INTENT(INOUT)     :: progname 
+class(ISE_T), INTENT(INOUT)          :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname 
 
-type(HDF_T)                         :: HDF
-type(HDFnames_T)                    :: HDFnames
-type(so3_T)                         :: SO
-type(IO_T)                          :: Message
-type(Quaternion_T)                  :: quat
-type(QuaternionArray_T)             :: qAR
-type(memory_T)                      :: mem
-type(DIfile_T)                      :: DIFT
-type(DictionaryIndexingNameListType):: dinl
-type(Timing_T)                      :: timer
+type(HDF_T)                          :: HDF
+type(HDFnames_T)                     :: HDFnames
+type(so3_T)                          :: SO
+type(IO_T)                           :: Message
+type(Quaternion_T)                   :: quat
+type(QuaternionArray_T)              :: qAR
+type(memory_T)                       :: mem
+type(DIfile_T)                       :: DIFT
+type(DictionaryIndexingNameListType) :: dinl
+type(Timing_T)                       :: timer
 
-type(ISEmasterNameListType)         :: mpnml
+type(ISEmasterNameListType)          :: mpnml
 
-integer(kind=irg)                   :: i, sz(3), nx, hdferr, resang, resctf, nlines, jj
-character(fnlen)                    :: fname, DIfile
-character(3)                        :: fnumber
-logical                             :: refined
-real(kind=sgl),allocatable          :: Eangles(:,:), weights(:)
-real(kind=sgl)                      :: mi, ma, io_real(2)
-real(kind=sgl),allocatable          :: ISEimage(:,:,:)
-character(fnlen)                    :: groupname, datagroupname, attributename, HDF_FileVersion, dataset
-character(11)                       :: dstr
-character(15)                       :: tstrb
-character(15)                       :: tstre
+integer(kind=irg)                    :: i, sz(3), nx, hdferr, resang, resctf, nlines, jj
+character(fnlen)                     :: fname, DIfile
+character(3)                         :: fnumber
+logical                              :: refined
+real(kind=sgl),allocatable           :: Eangles(:,:), weights(:)
+real(kind=sgl)                       :: mi, ma, io_real(2)
+real(kind=sgl),allocatable           :: ISEimage(:,:,:)
+character(fnlen)                     :: groupname, datagroupname, attributename, HDF_FileVersion, dataset
+character(11)                        :: dstr
+character(15)                        :: tstrb
+character(15)                        :: tstre
 
 ! declare variables for use in object oriented image module
-character(fnlen)                    :: TIFF_filename
-integer                             :: iostat
-character(len=128)                  :: iomsg
-logical                             :: isInteger
-type(image_t)                       :: im
-integer(int8), allocatable          :: TIFF_image(:,:)
-integer                             :: dim2(2)
-integer(c_int32_t)                  :: result
+character(fnlen)                     :: TIFF_filename
+integer                              :: iostat
+character(len=128)                   :: iomsg
+logical                              :: isInteger
+type(image_t)                        :: im
+integer(int8), allocatable           :: TIFF_image(:,:)
+integer                              :: dim2(2)
+integer(c_int32_t)                   :: result
 
 timer = timing_T()
 tstrb = timer%getTimeString()

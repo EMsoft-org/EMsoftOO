@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -37,6 +37,19 @@ module mod_so3
   !! Rodrigues vectors after discovery of some uniformity issues related to 
   !! rotations by 180° ... Quaternions behave better in this case; this problem 
   !! was discovered by plotting the orientations on a Clifford Torus zone plate.
+  !!
+  !! 10/21/25: we were not covering the rotated versions of several of the point
+  !! groups, in particular the trigonal groups (e.g., 321 and 312); this is now 
+  !! corrected.
+  !! Changes have been propagated to all programs that use this module. The main 
+  !! change is that the orientations are rotated by the proper angle (pi/2n) around 
+  !! the RFZs z-axis.  This uses a pre-existing option in EMsampleRFZ to rotate
+  !! all orientations after sampling.  It also updates the visualization code by
+  !! correcting the wire frames for the affected FZs.
+  !!
+  !! 11/10/25: conversation with Zach Varley about using Bravais lattices instead of 
+  !! simple (primitive) cubic sampling lattice... fcc has significantly denser packing
+  !! than cP... added new option for fcc sampling 
 
 use mod_kinds
 use mod_global
@@ -129,13 +142,26 @@ integer(kind=irg), dimension(32,32) :: FZtypeTable = reshape( (/ &
 ! 2        dihedral symmetry
 ! 3        tetrahedral symmetry
 ! 4        octahedral symmetry
+! 5        icosahedral symmetry
 !
-integer(kind=irg),dimension(36)     :: FZtarray = (/ 0,0,1,1,1,2,2,2,1,1,1,2,2,2,2,1,1,2, &
-                                                     2,2,1,1,1,2,2,2,2,3,3,4,3,4,5,2,2,2 /)
+! entries 33-36 cover icosahedral symmetry (33) and three dihedral groups of orders
+! 8, 10, and 12.
+!
+!================
+! update 10/21/25: account for the rotated FZs in point group pairs like 32 and 312
+! 
+! corrections to FZtarray and FZoarray... the entries should be cyclic groups when there
+! is only one rotation axis... for instance, 6mm should have the six-fold cyclic RFZ...
+!
+! we also introduced point groups 312, 31m, -31m, -4m2, and -62m as groups 37 through 41; they have 
+! a negative value for the FZoarray ... mm2 is also an exception because the orientation of the 
+! cyclic 2-fold axis is different from that in the monoclinic groups...
+!
+integer(kind=irg),dimension(41)     :: FZtarray = (/ 0,0,1,1,1, 2,1,2,1,1, 1,2,1,2,2, 1,1,2,1,2, &
+                                                     1,1,1,2,1, 2,2,3,3,4, 3,4,5,2,2, 2,2,1,2,2, 2 /)
 
-integer(kind=irg),dimension(36)     :: FZoarray = (/ 0,0,2,2,2,2,2,2,4,4,4,4,4,4,4,3,3,3, &
-                                                     3,3,6,6,6,6,6,6,6,0,0,0,0,0,0,8,10,12 /)
-
+integer(kind=irg),dimension(41)     :: FZoarray = (/ 0,0,2,2,2, 2,-2,2,4,4, 4,4,4,2,4, 3,3,3,3,3, &
+                                                     6,6,6,6,6, 3,6,0,0,0, 0,0,0,8,10, 12,-3,-3,-3,-2, -3 /)
 
 
 ! public :: SampleRFZ, IsinsideFZ, CubochoricNeighbors
@@ -157,7 +183,7 @@ end type FZpointd
 type, public :: so3_T
   private
     integer(kind=irg)       :: FZtype
-    integer(kind=irg)       :: FZ2type
+    integer(kind=irg)       :: FZordersign = 1! used to distinguish pg 321 from 312 for instance
     integer(kind=irg)       :: FZorder
     integer(kind=irg)       :: MFZtype
     integer(kind=irg)       :: MFZorder
@@ -174,6 +200,7 @@ type, public :: so3_T
     integer(kind=irg)       :: MAcnt
     integer(kind=irg)       :: UNcnt
     integer(kind=irg)       :: VZcnt
+    character(2)            :: SamplingLattice = 'cP'
     type(FZpointd),pointer  :: FZlist
     type(FZpointd),pointer  :: CMlist  ! CM = Constant Misorientation
     type(FZpointd),pointer  :: COlist  ! CO = Cone sampling
@@ -182,11 +209,16 @@ type, public :: so3_T
     type(FZpointd),pointer  :: MAlist  ! MA = Marsaglia random quaternions
     type(FZpointd),pointer  :: UNlist  ! UN = straight uniform sampling
     type(FZpointd),pointer  :: VZlist  ! only used for Clifford torus visualization purposes
+    real(kind=dbl)          :: cPshifts(3,6)
+    real(kind=dbl)          :: cIshifts(3,14)
+    real(kind=dbl)          :: cFshifts(3,12)
+    integer(kind=irg)       :: nshifts
   contains
   private
 
     procedure, pass(self) :: getFZtypeandorder_
     procedure, pass(self) :: setFZtypeandorder_
+    procedure, pass(self) :: setFZordersign_
     procedure, pass(self) :: getMFZtypeandorder_
     procedure, pass(self) :: setMFZtypeandorder_
     procedure, pass(self) :: setFZcnt_
@@ -211,6 +243,8 @@ type, public :: so3_T
     procedure, pass(self) :: getListHead_
     procedure, pass(self) :: getListCount_
     procedure, pass(self) :: setGridType_
+    procedure, pass(self) :: setSamplingLattice_
+    procedure, pass(self) :: KRremap_
 
     procedure, pass(self) :: delete_FZlist_
     procedure, pass(self) :: nullifyList_
@@ -231,6 +265,7 @@ type, public :: so3_T
     procedure, pass(self) :: getAnglesfromCTFfile_
     procedure, pass(self) :: getVertex_
     procedure, pass(self) :: getMacKenzieDistribution_
+    procedure, pass(self) :: getcuboNN_
 ! some other related routines
     procedure, pass(self) :: ReducelisttoRFZ_
     procedure, pass(self) :: ReducelisttoMFZ_
@@ -244,6 +279,7 @@ type, public :: so3_T
 
     generic, public :: getFZtypeandorder => getFZtypeandorder_
     generic, public :: setFZtypeandorder => setFZtypeandorder_
+    generic, public :: setFZordersign => setFZordersign_
     generic, public :: getMFZtypeandorder => getMFZtypeandorder_
     generic, public :: setMFZtypeandorder => setMFZtypeandorder_
     generic, public :: setFZcnt => setFZcnt_
@@ -268,6 +304,8 @@ type, public :: so3_T
     generic, public :: getListHead => getListHead_
     generic, public :: getListCount => getListCount_
     generic, public :: setGridType => setGridType_
+    generic, public :: setSamplingLattice => setSamplingLattice_
+    generic, public :: KRremap => KRremap_
 
     generic, public :: delete_FZlist => delete_FZlist_
     generic, public :: nullifyList => nullifyList_
@@ -288,6 +326,7 @@ type, public :: so3_T
     generic, public :: writeOrientationstoFile => writeOrientationstoFile_
     generic, public :: getVertex => getVertex_
     generic, public :: getMacKenzieDistribution => getMacKenzieDistribution_
+    generic, public :: getcuboNN => getcuboNN_
 
     generic, public :: ReducelisttoRFZ => ReducelisttoRFZ_
     generic, public :: ReducelisttoMFZ => ReducelisttoMFZ_
@@ -306,7 +345,7 @@ end interface so3_T
 contains
 
 !--------------------------------------------------------------------------
-type(so3_T) function so3_constructor( pgnum, pgnum2, zerolist ) result(SO)
+type(so3_T) function so3_constructor( pgnum, pgnum2, zerolist, initshifts ) result(SO)
 !DEC$ ATTRIBUTES DLLEXPORT :: so3_constructor
 !! author: MDG
 !! version: 1.0
@@ -322,6 +361,7 @@ integer(kind=irg), INTENT(IN), OPTIONAL   :: pgnum2
  !! optional secondary point group
 character(2), INTENT(IN), OPTIONAL        :: zerolist
  !! optional selector for linked list to be reset
+character(2), INTENT(IN), OPTIONAL        :: initshifts
 
 if (present(pgnum2)) then
   call SO%setFZtypeandorder(pgnum, pgnum2)
@@ -335,6 +375,47 @@ if (present(zerolist)) then
   call SO%nullifyList(zerolist)
 else
   call SO%nullifyList()
+end if
+
+if (present(initshifts)) then
+  if (initshifts.eq.'cP') then 
+    SO%cPshifts(1:3,1) = (/ 1.D0, 0.D0, 0.D0 /)
+    SO%cPshifts(1:3,2) = (/-1.D0, 0.D0, 0.D0 /)
+    SO%cPshifts(1:3,3) = (/ 0.D0, 1.D0, 0.D0 /)
+    SO%cPshifts(1:3,4) = (/ 0.D0,-1.D0, 0.D0 /)
+    SO%cPshifts(1:3,5) = (/ 0.D0, 0.D0, 1.D0 /)
+    SO%cPshifts(1:3,6) = (/ 0.D0, 0.D0,-1.D0 /)
+  end if 
+  if (initshifts.eq.'cI') then 
+    SO%cIshifts(1:3,1) = (/ 0.5D0, 0.5D0,-0.5D0 /)
+    SO%cIshifts(1:3,2) = (/ 0.5D0,-0.5D0,-0.5D0 /)
+    SO%cIshifts(1:3,3) = (/-0.5D0, 0.5D0,-0.5D0 /)
+    SO%cIshifts(1:3,4) = (/-0.5D0,-0.5D0,-0.5D0 /)
+    SO%cIshifts(1:3,5) = (/ 0.5D0, 0.5D0, 0.5D0 /)
+    SO%cIshifts(1:3,6) = (/ 0.5D0,-0.5D0, 0.5D0 /)
+    SO%cIshifts(1:3,7) = (/-0.5D0, 0.5D0, 0.5D0 /)
+    SO%cIshifts(1:3,8) = (/-0.5D0,-0.5D0, 0.5D0 /)
+    SO%cIshifts(1:3,9) = (/ 1.D0, 0.D0, 0.D0 /)
+    SO%cIshifts(1:3,10) = (/-1.D0, 0.D0, 0.D0 /)
+    SO%cIshifts(1:3,11) = (/ 0.D0, 1.D0, 0.D0 /)
+    SO%cIshifts(1:3,12) = (/ 0.D0,-1.D0, 0.D0 /)
+    SO%cIshifts(1:3,13) = (/ 0.D0, 0.D0, 1.D0 /)
+    SO%cIshifts(1:3,14) = (/ 0.D0, 0.D0,-1.D0 /)
+  end if 
+  if (initshifts.eq.'cF') then
+    SO%cFshifts(1:3,1) = (/ 0.5D0, 0.5D0, 0.0D0 /)
+    SO%cFshifts(1:3,2) = (/-0.5D0, 0.5D0, 0.0D0 /)
+    SO%cFshifts(1:3,3) = (/ 0.5D0,-0.5D0, 0.0D0 /)
+    SO%cFshifts(1:3,4) = (/-0.5D0,-0.5D0, 0.0D0 /)
+    SO%cFshifts(1:3,5) = (/ 0.5D0, 0.0D0, 0.5D0 /)
+    SO%cFshifts(1:3,6) = (/-0.5D0, 0.0D0, 0.5D0 /)
+    SO%cFshifts(1:3,7) = (/ 0.0D0, 0.5D0, 0.5D0 /)
+    SO%cFshifts(1:3,8) = (/ 0.0D0,-0.5D0, 0.5D0 /)
+    SO%cFshifts(1:3,9) = (/ 0.5D0, 0.0D0,-0.5D0 /)
+    SO%cFshifts(1:3,10) = (/-0.5D0, 0.0D0,-0.5D0 /)
+    SO%cFshifts(1:3,11) = (/ 0.0D0, 0.5D0,-0.5D0 /)
+    SO%cFshifts(1:3,12) = (/ 0.0D0,-0.5D0,-0.5D0 /)
+  end if 
 end if
 
 end function so3_constructor
@@ -429,6 +510,12 @@ end subroutine nullifyList_
 !
 ! this routine also allows for icosahedral symmetry, although this is not part
 ! of the paper above.
+!
+! In a project with BlueQuartz we discovered that we are not correctly handling
+! the rotated alternatives of the point groups; for instance, we do cover 32, but
+! not 312, which is rotated 30° with respect to 32.  There are several other cases
+! but not just for the Laue groups... -42m and -4m2 is another example.  The code
+! was updated in Ooctober 2025 to correct for this omission.
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 
@@ -494,9 +581,29 @@ if (twophase.eqv..TRUE.) then
 else  ! single phase so use the old way of doing things...
   self%FZtype = FZtarray(pgnum1)
   self%FZorder = FZoarray(pgnum1)
+  call self%setFZordersign(self%FZorder)
 end if
 
 end subroutine setFZtypeandorder_
+
+!--------------------------------------------------------------------------
+recursive subroutine setFZordersign_(self, FZorder)
+!DEC$ ATTRIBUTES DLLEXPORT :: setFZordersign_
+!! author: MDG
+!! version: 1.0
+!! date: 10/23/25
+!!
+!! set the sign parameter for the FZorder
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)                :: self
+integer(kind=irg), INTENT(OUT)            :: FZorder
+
+self%FZordersign = 1
+if (FZorder.lt.0) self%FZordersign = -1
+
+end subroutine setFZordersign_
 
 !--------------------------------------------------------------------------
 recursive subroutine getFZtypeandorder_(self, FZtype, FZorder)
@@ -843,12 +950,12 @@ if (x(4).ne.inftyd()) then
       res = dabs(x(3)*x(4)).le.LPs%BP(self%MFZorder)
     end if
   else
-    if ((self%FZtype.eq.1.).and.(self%FZorder.eq.2)) then
+    if ((self%FZtype.eq.1.).and.(abs(self%FZorder).eq.2).and.(self%FZordersign.eq.1) ) then
 ! check the y-component vs. tan(pi/2n)
       res = dabs(x(2)*x(4)).le.LPs%BP(self%FZorder)
     else
 ! check the z-component vs. tan(pi/2n)
-      res = dabs(x(3)*x(4)).le.LPs%BP(self%FZorder)
+      res = dabs(x(3)*x(4)).le.LPs%BP(abs(self%FZorder))
     end if
   end if
 else
@@ -877,6 +984,9 @@ recursive function insideDihedralFZ_(self, rod, order) result(res)
   !! date: 01/21/20
   !!
   !! does Rodrigues point lie inside dihedral FZ (for 2, 3, 4, and 6-fold)?
+  !!
+  !! [10/22/25] added support for rotated dihedral FZs, e.g., for 312, 31m, -31m,
+  !! 222 (rotated 45°)
 
 IMPLICIT NONE
 
@@ -897,21 +1007,24 @@ else
   r(1:3) = x(1:3) * x(4)
 
   ! first, check the z-component vs. tan(pi/2n)  (same as insideCyclicFZ)
-  c1 = dabs(r(3)).le.(LPs%BP(order)+eps)
+  c1 = dabs(r(3)).le.(LPs%BP(abs(order))+eps)
   res = .FALSE.
 
   ! check the square boundary planes if c1=.TRUE.
   if (c1) then
     select case (order)
-      case (2)
+      case (2)  ! 222
         c2 = maxval(dabs(r)).le.(r1+eps)
+      case (-2) ! 222 rotated 45° around the z axis
+        c2 = ((dabs(r(1)+r(2)).le.LPs%r2).and.(dabs(r(1)-r(2)).le.LPs%r2))
       case (3)
-        ! c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
-        ! c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
-        ! c2 = c2.and.( dabs(r(2)).le.r1 )
         c2 =          dabs( LPs%srt*r(2)+0.5D0*r(1)).le.(r1+eps)
         c2 = c2.and.( dabs( LPs%srt*r(2)-0.5D0*r(1)).le.(r1+eps) )
         c2 = c2.and.( dabs(r(1)).le.(r1+eps) )
+      case (-3)
+        c2 =          dabs( LPs%srt*r(1)+0.5D0*r(2)).le.r1
+        c2 = c2.and.( dabs( LPs%srt*r(1)-0.5D0*r(2)).le.r1 )
+        c2 = c2.and.( dabs(r(2)).le.r1 )
       case (4)
         c2 = (dabs(r(1)).le.r1).and.(dabs(r(2)).le.r1)
         c2 = c2.and.((LPs%r22*dabs(r(1)+r(2)).le.r1).and.(LPs%r22*dabs(r(1)-r(2)).le.r1))
@@ -1152,8 +1265,9 @@ type(r_T)                            :: rod
 type(c_T)                            :: cu
 type(q_T)                            :: q 
 real(kind=dbl)                       :: x, y, z, delta, shift, sedge, ztmp
+real(kind=dbl)                       :: cFshifts(3,0:3) ! face centering vectors
 type(FZpointd), pointer              :: FZtmp, FZtmp2
-integer(kind=irg)                    :: i, j, k
+integer(kind=irg)                    :: i, j, k, icF
 logical                              :: b, rotateFZ = .FALSE.
 
 if (present(qFZ)) rotateFZ = .TRUE.
@@ -1174,16 +1288,26 @@ self%FZcnt = 0
 
 ! note that when FZtype is cyclic (1) and FZorder is 2, then we must rotate the
 ! rotation axis to lie along the b (y) direction, not z !!!!
+! BUT, when FZorder is -2, then we need to stick to the regular z orientation.
 
+write (*,*) ' type and order : ',self%FZtype, self%FZorder
+
+if (self%SamplingLattice.eq.'cP') then
 ! loop over the cube of volume pi^2; note that we do not want to include
 ! the opposite edges/facets of the cube, to avoid double counting rotations
 ! with a rotation angle of 180 degrees.  This only affects the cyclic groups.
 
- do i=-nsteps+1,nsteps
+ ! do i=-nsteps+1,nsteps
+ !  x = (dble(i)+shift)*delta
+ !  do j=-nsteps+1,nsteps
+ !   y = (dble(j)+shift)*delta
+ !   do k=-nsteps+1,nsteps
+ !    z = (dble(k)+shift)*delta
+ do i=-nsteps+0,nsteps-1
   x = (dble(i)+shift)*delta
-  do j=-nsteps+1,nsteps
+  do j=-nsteps+0,nsteps-1
    y = (dble(j)+shift)*delta
-   do k=-nsteps+1,nsteps
+   do k=-nsteps+0,nsteps-1
     z = (dble(k)+shift)*delta
 ! make sure that this point lies inside the cubochoric cell
     if (maxval( (/ abs(x), abs(y), abs(z) /) ).le.sedge) then
@@ -1215,9 +1339,63 @@ self%FZcnt = 0
         self%FZcnt = self%FZcnt + 1
        end if
     end if
+   end do
+  end do
+ end do
+end if
+
+if (self%SamplingLattice.eq.'cF') then ! use an fcc sampling lattice
+! loop over the cube of volume pi^2; note that we do not want to include
+! the opposite edges/facets of the cube, to avoid double counting rotations
+! with a rotation angle of 180 degrees.  This only affects the cyclic groups.
+
+cFshifts(1:3,0) = (/ 0.D0, 0.D0, 0.D0 /)
+cFshifts(1:3,1) = (/ 0.5D0, 0.5D0, 0.D0 /)
+cFshifts(1:3,2) = (/ 0.5D0, 0.0D0, 0.5D0 /)
+cFshifts(1:3,3) = (/ 0.0D0, 0.5D0, 0.5D0 /)
+
+do icF=0,3
+ do i=-nsteps+1,nsteps
+  x = (dble(i)+shift+cFshifts(1,icF))*delta
+  do j=-nsteps+1,nsteps
+   y = (dble(j)+shift+cFshifts(2,icF))*delta
+   do k=-nsteps+1,nsteps
+    z = (dble(k)+shift+cFshifts(3,icF))*delta
+! make sure that this point lies inside the cubochoric cell
+    if (maxval( (/ abs(x), abs(y), abs(z) /) ).le.sedge) then
+
+! convert to Rodrigues representation
+      cu = c_T( cdinp = (/ x, y, z /) )
+      q = cu%cq()
+      rod = cu%cr()
+
+! If insideFZ=.TRUE., then add this point to the linked list FZlist and keep
+! track of how many points there are on this list
+       if (rotateFZ.eqv..TRUE.) then
+         b = self%IsinsideFZ(rod, qFZ)
+       else
+         b = self%IsinsideFZ(rod)
+       end if
+       if (b) then
+        if (.not.associated(self%FZlist)) then
+          allocate(self%FZlist)
+          FZtmp => self%FZlist
+        else
+          allocate(FZtmp%next)
+          FZtmp => FZtmp%next
+        end if
+        nullify(FZtmp%next)
+        FZtmp%rod = rod
+        FZtmp%qu = q
+        FZtmp%gridpt(1:3) = (/i, j, k/)
+        self%FZcnt = self%FZcnt + 1
+       end if
+    end if
+   end do
   end do
  end do
 end do
+end if 
 
 end subroutine SampleRFZ_
 
@@ -1649,8 +1827,12 @@ type(c_T)                               :: cu
 type(q_T)                               :: q
 type(FZpointd),pointer                  :: tmp, tmp2
 
-real(kind=dbl),parameter                :: tau = 0.6180339887498D0, & ! inverse of golden ratio 
-                                           psi = 0.6519962431791D0    ! inverse of psi constant
+! real(kind=dbl),parameter                :: tau = 0.6180339887498D0, & ! inverse of golden ratio 
+                                           ! psi = 0.68232780386376D0 ! 0.6519962431791D0    ! inverse of psi constant
+
+real(kind=dbl),parameter                :: tau = 0.7071067811865475244D0, & ! inverse of sqrt(2.0)
+                                           psi = 0.6519962431791345448D0 ! inverse of real positive root of p^4=p+4
+
 real(kind=dbl)                          :: s, t, d, r, RR, alpha, beta, nsi, x(4) 
 integer(kind=irg)                       :: i, j, nsamples, io_int(1)
 
@@ -1658,7 +1840,7 @@ integer(kind=irg)                       :: i, j, nsamples, io_int(1)
 self%SFcnt = 0
 
 ! make sure the linked list is empty
-if (associated(self%SFlist)) call self%delete_FZlist('SF')
+! if (associated(self%SFlist)) call self%delete_FZlist('SF')
 
 ! allocate the linked list and insert the origin
 allocate(self%SFlist)
@@ -1739,7 +1921,7 @@ integer(kind=irg)                       :: i, nsamples, io_int(1), seed
 self%SFcnt = 0
 
 ! make sure the linked list is empty
-if (associated(self%SFlist)) call self%delete_FZlist('SF')
+! if (associated(self%SFlist)) call self%delete_FZlist('SF')
 
 ! allocate the linked list and insert the origin
 allocate(self%SFlist)
@@ -2003,37 +2185,37 @@ use mod_quaternions
 
 IMPLICIT NONE
 
-class(so3_T),INTENT(INOUT)              :: self
+class(so3_T),INTENT(INOUT)                     :: self
 
-character(fnlen),INTENT(IN)             :: filename
+character(fnlen),INTENT(IN)                    :: filename
  !! complete path to input file name
-integer(kind=irg),INTENT(IN),OPTIONAL   :: listN 
-logical,INTENT(IN),OPTIONAL             :: symmetrize
+integer(kind=irg),INTENT(IN),OPTIONAL          :: listN 
+logical,INTENT(IN),OPTIONAL                    :: symmetrize
 type(QuaternionArray_T),INTENT(INOUT),OPTIONAL :: qarray
-type(Quaternion_T),INTENT(IN),OPTIONAL  :: qrot
+type(Quaternion_T),INTENT(IN),OPTIONAL         :: qrot
 
-type(e_T)                               :: e
-type(o_T)                               :: o
-type(a_T)                               :: a
-type(r_T)                               :: r
-type(q_T)                               :: q
-type(h_T)                               :: h
-type(c_T)                               :: c
-type(s_T)                               :: s
-type(v_T)                               :: v
-type(IO_T)                              :: Message
-type(Quaternion_T)                      :: qin, qout
-type(Quaternion_T)                      :: qm, qus 
-type(q_T)                               :: qq
+type(e_T)                                      :: e
+type(o_T)                                      :: o
+type(a_T)                                      :: a
+type(r_T)                                      :: r
+type(q_T)                                      :: q
+type(h_T)                                      :: h
+type(c_T)                                      :: c
+type(s_T)                                      :: s
+type(v_T)                                      :: v
+type(IO_T)                                     :: Message
+type(Quaternion_T)                             :: qin, qout
+type(Quaternion_T)                             :: qm, qus 
+type(q_T)                                      :: qq
 
-character(2)                            :: anglemode
-integer(kind=irg)                       :: numang, i, k, num, ipf_wd, ipf_ht, sz(2), FZcnt, oldFZcnt, io_int(2) 
-real(kind=dbl)                          :: xx(4), qqd(4)
-real(kind=sgl),allocatable              :: Eangles(:,:), weights(:)
-real(kind=sgl)                          :: StepX, StepY
-real(kind=dbl)                          :: x3(3), x4(4), x9(9), w
-type(FZpointd),pointer                  :: FZtail, FZtmp, FZhead
-logical                                 :: fread
+character(2)                                   :: anglemode
+integer(kind=irg)                              :: numang, i, k, num, ipf_wd, ipf_ht, sz(2), FZcnt, oldFZcnt, io_int(2) 
+real(kind=dbl)                                 :: xx(4), qqd(4)
+real(kind=sgl),allocatable                     :: Eangles(:,:), weights(:)
+real(kind=sgl)                                 :: StepX, StepY
+real(kind=dbl)                                 :: x3(3), x4(4), x9(9), w
+type(FZpointd),pointer                         :: FZtail, FZtmp, FZhead
+logical                                        :: fread
 
 ! is this a .txt file ?  If so, use the standard file read process
 ! if not, then maybe it is an .ang or .ctf file ?
@@ -3060,6 +3242,86 @@ self%gridtype = g
 end subroutine setGridType_
 
 !--------------------------------------------------------------------------
+recursive subroutine setSamplingLattice_(self, SL)
+!DEC$ ATTRIBUTES DLLEXPORT :: setSamplingLattice_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/10/25
+  !!
+  !! set the SamplingLattice parameter
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)    :: self
+character(2)                  :: SL
+
+self%SamplingLattice = SL
+! for cF, the gridtype should always be 1
+! if (SL.eq.'cF') self%gridtype = 1
+
+end subroutine setSamplingLattice_
+
+!--------------------------------------------------------------------------
+recursive subroutine KRremap_(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: KRremap_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 04/05/26
+  !!
+  !! perform Knothe-Rosenblatt remapping of the orientations in the FZlist
+
+use mod_KRsupport
+use mod_KRcyclic
+use mod_KRdihedral
+use mod_KRtetrahedral
+use mod_KRoctahedral 
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)    :: self
+
+type(r_T)                     :: rod
+type(h_T)                     :: hom
+type(q_T)                     :: qu
+
+type(FZpointd),pointer        :: FZptr, FZtmp
+real(kind=dbl),allocatable    :: h_in(:,:), h_out(:,:)
+integer(kind=irg)             :: i, N 
+
+N = self%FZcnt 
+allocate( h_in(3,N), h_out(3,N) )
+
+! get the homochoric input list
+FZtmp => self%getListHead('FZ')
+do i=1,N
+  hom = FZtmp%qu%qh()
+  h_in(1:3,i) = hom%h_copyd()
+  FZtmp => FZtmp%next
+end do 
+
+! apply the Knothe-Rosenblatt remapping
+if (self%FZtype.eq.1) then 
+  call KRcyclic( h_in, h_out, N, self%FZorder )
+else if (self%FZtype.eq.2) then
+       call KRdihedral( h_in, h_out, N, self%FZorder )
+     else if (self%FZtype.eq.3) then
+            call KRtetrahedral( h_in, h_out, N )
+          else if (self%FZtype.eq.4) then
+            call KRoctahedral( h_in, h_out, N )
+          end if 
+
+! and re-insert the new orientations in the FZlist
+FZtmp => self%getListHead('FZ')
+do i = 1, N
+  hom = h_t( hdinp = h_out(1:3,i) )
+  FZtmp%qu = hom%hq()
+  FZtmp%rod = hom%hr()
+  FZtmp => FZtmp%next
+end do
+
+end subroutine KRremap_
+
+!--------------------------------------------------------------------------
 recursive function IsinsideMFZ_(self, rod) result(insideMFZ)
 !DEC$ ATTRIBUTES DLLEXPORT :: IsinsideMFZ_
   !! author: MDG
@@ -3151,13 +3413,13 @@ recursive function insideDihedralMFZ_(self, rod) result(res)
 
 IMPLICIT NONE
 
-class(so3_T),INTENT(INOUT)    :: self
+class(so3_T),INTENT(INOUT) :: self
 
-type(r_T), INTENT(INOUT)         :: rod
+type(r_T), INTENT(INOUT)   :: rod
 
-logical                       :: res, c0, c1, c2, c3
-real(kind=dbl)                :: r(3), x(4)
-real(kind=dbl),parameter      :: v = 0.57735026918962584D0
+logical                    :: res, c0, c1, c2, c3
+real(kind=dbl)             :: r(3), x(4)
+real(kind=dbl),parameter   :: v = 0.57735026918962584D0
 
 res = .FALSE.
 
@@ -3487,6 +3749,77 @@ end if
 end subroutine getMacKenzieDistribution_
 
 !--------------------------------------------------------------------------
+recursive subroutine getcuboNN_(self, cu, delta, sampletype, NNlist, n, nvalid)
+!DEC$ ATTRIBUTES DLLEXPORT :: getcuboNN_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 11/15/25
+  !!
+  !! returns the n nearest neighbors of a cubochoric point for a given sampling
+  !! type ('CP', 'cI', 'cF') and sampling step size delta
+  !!
+
+use mod_io
+use mod_rotations
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)       :: self
+type(c_T),INTENT(INOUT)          :: cu
+real(kind=dbl),INTENT(IN)        :: delta
+character(2),INTENT(IN)          :: sampletype
+integer(kind=irg),INTENT(IN)     :: n
+type(c_T),INTENT(INOUT)          :: NNlist(n)
+integer(kind=irg),INTENT(INOUT)  :: nvalid
+
+type(IO_T)                       :: Message 
+type(c_T)                        :: ctry 
+
+integer(kind=irg)                :: i, j, k 
+real(kind=dbl)                   :: coor(3), coorNN(3)
+
+
+coor = cu%c_copyd()
+nvalid = 0 
+
+select case(sampletype)
+  case('cP')
+    self%nshifts = 6
+    do i=1,self%nshifts
+      coorNN = coor + self%cPshifts(1:3,i)*delta 
+      if (maxval(abs(coorNN)).lt.0.5D0*LPs%ap) then 
+        nvalid = nvalid+1
+        NNlist(nvalid) = c_T( cdinp = coorNN(1:3) )
+      end if 
+    end do
+
+  case('cI')
+    self%nshifts = 14
+    do i=1,self%nshifts
+      coorNN = coor + self%cIshifts(1:3,i)*delta 
+      if (maxval(abs(coorNN)).lt.0.5D0*LPs%ap) then 
+        nvalid = nvalid+1
+        NNlist(nvalid) = c_T( cdinp = coorNN(1:3) )
+      end if 
+    end do
+
+  case('cF')
+    self%nshifts = 12
+    do i=1,self%nshifts
+      coorNN = coor + self%cFshifts(1:3,i)*delta 
+      if (maxval(abs(coorNN)).lt.0.5D0*LPs%ap) then 
+        nvalid = nvalid+1
+        NNlist(nvalid) = c_T( cdinp = coorNN(1:3) )
+      end if 
+    end do
+
+  case default
+    call Message%printError('getcuboNN_', 'unknown sampling type')
+end select
+
+end subroutine getcuboNN_
+
+!--------------------------------------------------------------------------
 recursive subroutine ReduceDisorientationtoMFZ_(self, ro, SG, roMFZ)
 !DEC$ ATTRIBUTES DLLEXPORT :: ReduceDisorientationtoMFZ_
   !! author: MDG
@@ -3685,22 +4018,22 @@ use mod_math
 
 IMPLICIT NONE
 
-class(so3_T),INTENT(INOUT)             :: self
-class(*), INTENT(INOUT)                :: rot
-type(QuaternionArray_T),INTENT(INOUT)  :: Pm
-type(r_T), INTENT(OUT)                 :: roFZ
-logical,OPTIONAL,INTENT(IN)            :: MFZ
+class(so3_T),INTENT(INOUT)               :: self
+class(*), INTENT(INOUT)                  :: rot
+type(QuaternionArray_T),INTENT(INOUT)    :: Pm
+type(r_T), INTENT(OUT)                   :: roFZ
+logical,OPTIONAL,INTENT(IN)              :: MFZ
 integer(kind=irg),OPTIONAL,INTENT(INOUT) :: bin
-logical,OPTIONAL,INTENT(IN)            :: verbose
+logical,OPTIONAL,INTENT(IN)              :: verbose
 
-type(IO_T)                             :: Message
-type(Quaternion_T)                     :: Mu, qu, qS, pp
-type(q_T)                              :: qq
-type(r_T)                              :: rod
-real(kind=dbl)                         :: x(4), y(3), Mux(4)
-integer(kind=irg)                      :: i, j, Pmdims
-logical                                :: useMFZ = .FALSE., verb = .FALSE.
-real(kind=dbl)                         :: tol, eps = 1.0D-6
+type(IO_T)                               :: Message
+type(Quaternion_T)                       :: Mu, qu, qS, pp
+type(q_T)                                :: qq
+type(r_T)                                :: rod
+real(kind=dbl)                           :: x(4), y(3), Mux(4)
+integer(kind=irg)                        :: i, j, Pmdims
+logical                                  :: useMFZ = .FALSE., verb = .FALSE.
+real(kind=dbl)                           :: tol, eps = 1.0D-6
 
 tol = 1.0D+5
 

@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -217,36 +217,36 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)      :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)      :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                   :: EMsoft 
+type(IO_T)                       :: Message       
+logical                          :: skipread = .FALSE.
 
-integer(kind=irg) :: DF_npix
-integer(kind=irg) :: DF_npiy
-integer(kind=irg) :: dinfo
-integer(kind=irg) :: t_interval
-integer(kind=irg) :: nthreads
-integer(kind=irg) :: SRG(3)
-integer(kind=irg) :: SRF(3)
-integer(kind=irg) :: Grange
-real(kind=sgl)    :: voltage
-real(kind=sgl)    :: GLaue
-real(kind=sgl)    :: DF_L
-real(kind=sgl)    :: DF_slice
-real(kind=sgl)    :: dmin
-character(4)      :: progmode
-character(3)      :: dispmode
-character(fnlen)  :: outname
-character(fnlen)  :: dispfile
-character(fnlen)  :: xtalname
-character(fnlen)  :: STEMnmlfile
-character(fnlen)  :: defectjsonfile
+integer(kind=irg)                :: DF_npix
+integer(kind=irg)                :: DF_npiy
+integer(kind=irg)                :: dinfo
+integer(kind=irg)                :: t_interval
+integer(kind=irg)                :: nthreads
+integer(kind=irg)                :: SRG(3)
+integer(kind=irg)                :: SRF(3)
+integer(kind=irg)                :: Grange
+real(kind=sgl)                   :: voltage
+real(kind=sgl)                   :: GLaue
+real(kind=sgl)                   :: DF_L
+real(kind=sgl)                   :: DF_slice
+real(kind=sgl)                   :: dmin
+character(4)                     :: progmode
+character(3)                     :: dispmode
+character(fnlen)                 :: outname
+character(fnlen)                 :: dispfile
+character(fnlen)                 :: xtalname
+character(fnlen)                 :: STEMnmlfile
+character(fnlen)                 :: defectjsonfile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist /SRdeflist/ DF_L, DF_npix, DF_npiy, DF_slice, dmin, progmode,&
@@ -464,8 +464,8 @@ subroutine setDF_npix_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)    :: inp
 
 self%nml%DF_npix = inp
 
@@ -482,8 +482,8 @@ function getDF_npix_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                :: out
 
 out = self%nml%DF_npix
 
@@ -500,8 +500,8 @@ subroutine setDF_npiy_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)    :: inp
 
 self%nml%DF_npiy = inp
 
@@ -518,8 +518,8 @@ function getDF_npiy_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                :: out
 
 out = self%nml%DF_npiy
 
@@ -536,8 +536,8 @@ subroutine setdinfo_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)    :: inp
 
 self%nml%dinfo = inp
 
@@ -554,8 +554,8 @@ function getdinfo_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                :: out
 
 out = self%nml%dinfo
 
@@ -572,8 +572,8 @@ subroutine sett_interval_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)    :: inp
 
 self%nml%t_interval = inp
 
@@ -590,8 +590,8 @@ function gett_interval_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                :: out
 
 out = self%nml%t_interval
 
@@ -608,8 +608,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)    :: inp
 
 self%nml%nthreads = inp
 
@@ -626,8 +626,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                :: out
 
 out = self%nml%nthreads
 
@@ -644,8 +644,8 @@ subroutine setSRG_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)    :: inp(3)
 
 self%nml%SRG = inp
 
@@ -662,8 +662,8 @@ function getSRG_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                :: out(3)
 
 out = self%nml%SRG
 
@@ -680,8 +680,8 @@ subroutine setSRF_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)    :: inp(3)
 
 self%nml%SRF = inp
 
@@ -698,8 +698,8 @@ function getSRF_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                :: out(3)
 
 out = self%nml%SRF
 
@@ -716,8 +716,8 @@ subroutine setGrange_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)    :: inp
 
 self%nml%Grange = inp
 
@@ -734,8 +734,8 @@ function getGrange_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                :: out
 
 out = self%nml%Grange
 
@@ -752,7 +752,7 @@ subroutine setvoltage_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl), INTENT(IN)       :: inp
 
 self%nml%voltage = inp
@@ -770,7 +770,7 @@ function getvoltage_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl)                   :: out
 
 out = self%nml%voltage
@@ -788,7 +788,7 @@ subroutine setGLaue_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl), INTENT(IN)       :: inp
 
 self%nml%GLaue = inp
@@ -806,7 +806,7 @@ function getGLaue_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl)                   :: out
 
 out = self%nml%GLaue
@@ -824,7 +824,7 @@ subroutine setDF_L_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl), INTENT(IN)       :: inp
 
 self%nml%DF_L = inp
@@ -842,7 +842,7 @@ function getDF_L_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl)                   :: out
 
 out = self%nml%DF_L
@@ -860,7 +860,7 @@ subroutine setDF_slice_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl), INTENT(IN)       :: inp
 
 self%nml%DF_slice = inp
@@ -878,7 +878,7 @@ function getDF_slice_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl)                   :: out
 
 out = self%nml%DF_slice
@@ -896,7 +896,7 @@ subroutine setdmin_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl), INTENT(IN)       :: inp
 
 self%nml%dmin = inp
@@ -914,7 +914,7 @@ function getdmin_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
+class(SRdefect_T), INTENT(INOUT) :: self
 real(kind=sgl)                   :: out
 
 out = self%nml%dmin
@@ -932,8 +932,8 @@ subroutine setprogmode_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(4), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+character(4), INTENT(IN)         :: inp
 
 self%nml%progmode = trim(inp)
 
@@ -950,8 +950,8 @@ function getprogmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(4)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+character(4)                     :: out
 
 out = trim(self%nml%progmode)
 
@@ -968,8 +968,8 @@ subroutine setdispmode_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)         :: inp
 
 self%nml%dispmode = trim(inp)
 
@@ -986,8 +986,8 @@ function getdispmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+character(3)                     :: out
 
 out = trim(self%nml%dispmode)
 
@@ -1004,8 +1004,8 @@ subroutine setoutname_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)     :: inp
 
 self%nml%outname = trim(inp)
 
@@ -1022,8 +1022,8 @@ function getoutname_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen)                 :: out
 
 out = trim(self%nml%outname)
 
@@ -1040,8 +1040,8 @@ subroutine setdispfile_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)     :: inp
 
 self%nml%dispfile = trim(inp)
 
@@ -1058,8 +1058,8 @@ function getdispfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen)                 :: out
 
 out = trim(self%nml%dispfile)
 
@@ -1076,8 +1076,8 @@ subroutine setxtalname_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)     :: inp
 
 self%nml%xtalname = trim(inp)
 
@@ -1094,8 +1094,8 @@ function getxtalname_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen)                 :: out
 
 out = trim(self%nml%xtalname)
 
@@ -1112,8 +1112,8 @@ subroutine setSTEMnmlfile_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)     :: inp
 
 self%nml%STEMnmlfile = trim(inp)
 
@@ -1130,8 +1130,8 @@ function getSTEMnmlfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen)                 :: out
 
 out = trim(self%nml%STEMnmlfile)
 
@@ -1148,8 +1148,8 @@ subroutine setdefectjsonfile_(self,inp)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)     :: inp
 
 self%nml%defectjsonfile = trim(inp)
 
@@ -1166,8 +1166,8 @@ function getdefectjsonfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRdefect_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(SRdefect_T), INTENT(INOUT) :: self
+character(fnlen)                 :: out
 
 out = trim(self%nml%defectjsonfile)
 

@@ -11,6 +11,11 @@ include("${EMsoftOO_SOURCE_DIR}/Source/EMsoftOO_Functions.cmake")
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/Source/EMsoftOOLib ${PROJECT_BINARY_DIR}/EMsoftOOLib)
 
+option(EMsoftOO_ENABLE_PYTHON_SUPPORT "Build the C-interop shared library for Python bindings" OFF)
+if( ${EMsoftOO_ENABLE_PYTHON_SUPPORT} )
+  add_subdirectory(${PROJECT_SOURCE_DIR}/Source/EMsoftOOLib/c_interface ${PROJECT_BINARY_DIR}/EMsoftOO_c)
+endif()
+
 option(EMsoftOO_ENABLE_HDF5_SUPPORT "Enable HDF5 based I/O" ON)
 
 option(EMsoftOO_ENABLE_OpenCL_SUPPORT "Enable OpenCL support" ON)
@@ -22,7 +27,7 @@ set(MODALITY_DIRS
     CTEMbook
     Demag
     DictionaryIndexing
-    # GBs
+    GBs
     # EEC
     # OLIO
     OM

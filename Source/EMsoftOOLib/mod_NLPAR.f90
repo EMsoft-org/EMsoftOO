@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -438,9 +438,7 @@ real(kind=sgl),INTENT(IN)                         :: masklin(binx*biny)
 integer(kind=irg),INTENT(IN)                      :: correctsize
 integer(kind=irg),INTENT(IN)                      :: totnumexpt
 real(kind=sgl),INTENT(INOUT),OPTIONAL             :: epatterns(correctsize, totnumexpt)
-!f2py intent(in,out) ::  epatterns
 real(kind=sgl),INTENT(INOUT),OPTIONAL             :: exptIQ(totnumexpt)
-!f2py intent(in,out) ::  exptIQ
 
 type(IO_T)                                        :: Message
 type(Vendor_T)                                    :: VT

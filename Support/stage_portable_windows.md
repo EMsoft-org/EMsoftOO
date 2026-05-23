@@ -7,7 +7,7 @@ This is the manual procedure for making a portable EMsoftOO runtime that can be 
 Create a folder such as:
 
 ```text
-C:\Users\westraadt.1\Desktop\EMsoftOO-portable
+C:\Tools\EMsoftOO-portable
 ```
 
 Use this layout:
@@ -27,7 +27,7 @@ EMsoftOO-portable/
 Copy all files from:
 
 ```text
-C:\Users\westraadt.1\EMSOFT\EMsoftOOBuild\Release\Bin\
+C:\path\to\EMsoftOO\build-ifx-release\Bin\
 ```
 
 into:
@@ -43,9 +43,9 @@ Do not select individual executables. Copy the complete contents of `Bin`.
 Copy these folders from the repo:
 
 ```text
-C:\Users\westraadt.1\Repos\EMsoftOO\NamelistTemplates\
-C:\Users\westraadt.1\Repos\EMsoftOO\resources\
-C:\Users\westraadt.1\Repos\EMsoftOO\opencl\
+C:\path\to\EMsoftOO\NamelistTemplates\
+C:\path\to\EMsoftOO\resources\
+C:\path\to\EMsoftOO\opencl\
 ```
 
 into:
@@ -74,10 +74,10 @@ EMsoftOO-portable\bin\
 from:
 
 ```text
-C:\Users\westraadt.1\EMSOFT\EMsoftOO_SDK\nlopt-2.7.0-Release\bin\nlopt.dll
-C:\Users\westraadt.1\EMSOFT\EMsoftOO_SDK\bcls-0.1-Release\bin\bcls.dll
-C:\Users\westraadt.1\EMSOFT\EMsoftOO_SDK\tbb-2020.1-win\tbb\bin\intel64\vc14\tbb.dll
-C:\Users\westraadt.1\EMSOFT\EMsoftOO_SDK\tbb-2020.1-win\tbb\bin\intel64\vc14\tbbmalloc.dll
+C:\path\to\EMsoftOO_SDK\nlopt-2.7.0-Release\bin\nlopt.dll
+C:\path\to\EMsoftOO_SDK\bcls-0.1-Release\bin\bcls.dll
+C:\path\to\EMsoftOO_SDK\tbb-2020.1-win\tbb\bin\intel64\vc14\tbb.dll
+C:\path\to\EMsoftOO_SDK\tbb-2020.1-win\tbb\bin\intel64\vc14\tbbmalloc.dll
 ```
 
 You do not need to copy the full `EMsoftOO_SDK`.

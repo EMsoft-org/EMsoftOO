@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -155,23 +155,23 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(kinematical_T), INTENT(INOUT)  :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(kinematical_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)         :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)         :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                      :: EMsoft
+type(IO_T)                          :: Message
+logical                             :: skipread = .FALSE.
 
-real(kind=sgl)   :: dmin
-real(kind=sgl)   :: thr
-real(kind=sgl)   :: voltage
-integer(kind=irg):: nx
-character(fnlen) :: xtalname
-character(fnlen) :: datafile
-character(5)     :: mode
+real(kind=sgl)                      :: dmin
+real(kind=sgl)                      :: thr
+real(kind=sgl)                      :: voltage
+integer(kind=irg)                   :: nx
+character(fnlen)                    :: xtalname
+character(fnlen)                    :: datafile
+character(5)                        :: mode
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist /EMkinematical/ dmin, voltage, thr, xtalname, datafile, mode, nx

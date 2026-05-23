@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef selfearch Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef selfearch Group/Carnegie Mellon University
 ! All rights selferved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -778,19 +778,19 @@ use mod_io
 
 IMPLICIT NONE
 
-class(MuellerCalculus_T), INTENT(INOUT)  :: self
-type(IO_T)                          :: Message
+class(MuellerCalculus_T), INTENT(INOUT) :: self
+type(IO_T)                              :: Message
 
-real(kind=dbl),INTENT(IN)           :: wl
-complex(kind=dbl),INTENT(IN)        :: epsac(2)
-real(kind=dbl),INTENT(IN)           :: nincident
-real(kind=dbl),INTENT(IN)           :: dc(3)
-real(kind=dbl),INTENT(IN)           :: beamtilt
-complex(kind=dbl)                   :: rvals(4)
+real(kind=dbl),INTENT(IN)               :: wl
+complex(kind=dbl),INTENT(IN)            :: epsac(2)
+real(kind=dbl),INTENT(IN)               :: nincident
+real(kind=dbl),INTENT(IN)               :: dc(3)
+real(kind=dbl),INTENT(IN)               :: beamtilt
+complex(kind=dbl)                       :: rvals(4)
 
-real(kind=dbl)                      :: k, theta1, ct, st, tt, gamma, theta
-complex(kind=dbl)                   :: eps0, Deps, eps1, epsgam, no, n1, ko, k1, KK, q1, qt, qo, qroot, qe, q
-complex(kind=dbl)                   :: A, B, Ap, Bp, factor, cdc(3), ke, ro, re, nne, ngam, etaO, etaE, cone
+real(kind=dbl)                          :: k, theta1, ct, st, tt, gamma, theta
+complex(kind=dbl)                       :: eps0, Deps, eps1, epsgam, no, n1, ko, k1, KK, q1, qt, qo, qroot, qe, q
+complex(kind=dbl)                       :: A, B, Ap, Bp, factor, cdc(3), ke, ro, re, nne, ngam, etaO, etaE, cone
 
 rvals = cmplx(0.D0,0.D0)
 cone = cmplx(1.D0,0.D0)
@@ -878,11 +878,11 @@ use mod_io
 
 IMPLICIT NONE
 
-class(MuellerCalculus_T), INTENT(INOUT)  :: self
+class(MuellerCalculus_T), INTENT(INOUT) :: self
 
-real(kind=dbl)                         :: MM(4,4)
-complex(kind=dbl),INTENT(IN)           :: rvals(4)
-complex(kind=dbl)                      :: rpp2, rsp2, rps2, rss2, &
+real(kind=dbl)                          :: MM(4,4)
+complex(kind=dbl),INTENT(IN)            :: rvals(4)
+complex(kind=dbl)                       :: rpp2, rsp2, rps2, rss2, &
                                           rssrsp, rssrps, rssrpp, rsprss, rsprps, rsprpp, &
                                           rpsrss, rpsrsp, rpsrpp, rpprss, rpprsp, rpprps
 

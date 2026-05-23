@@ -1,0 +1,17 @@
+ &avdis
+!
+! this program will cover all the crystallographic rotational point groups
+!
+! relative path to the output csv file [relative to EMdatapathname]
+ avcsvfile = 'undefined',
+! smallest number of cubochoric samples
+ cnumstart = 20,
+! step size for refined sampling
+ cstepsize = 20,
+! number of steps to be taken 
+ cnsteps = 16,
+! sample type: 'cP', 'cI', 'cF'
+ sampletype = 'cP',
+! sample offset 'none', 'half'
+ sampleoffset =  'none',
+ /

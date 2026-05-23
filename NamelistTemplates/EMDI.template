@@ -77,7 +77,15 @@
 !
 ! =============================
 ! ==== FOR ALL MODALITIES 
+! 
+! the following switch selects either traditional RFZ rejection sampling, 
+! or the new KR remapping algorithm; traditional sampling works well with 
+! a value of ncubochoric=100; for KRremapping, this number should be reduced
+! quite a bit and a value of ncubochoric=30 or slightly larger is probably 
+! appropriate
+ KRremapping = .FALSE.,
 ! number of cubochoric points to generate list of orientations
+!ncubochoric = 30,
  ncubochoric = 100,
 ! intensity scaling mode 'not' = no scaling, 'lin' = linear, 'gam' = gamma correction
  scalingmode = 'not',
@@ -149,6 +157,9 @@
 ! and with the data set name as the last name; leave the remaining strings empty (they should all
 ! be empty for the Binary and TSLup2 formats)
  HDFstrings = '' '' '' '' '' '' '' '' '' '',
+! sometimes the patterns end up being stored upside down in the data file;
+! set flipy to .TRUE. if that is the case
+ flipy = .FALSE.,
 !
 !###################################################################
 ! OTHER FILE PARAMETERS: COMMON TO 'STATIC' AND 'DYNAMIC'

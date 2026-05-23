@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -1551,13 +1551,13 @@ use mod_math
 
 IMPLICIT NONE
 
-class(QCcell_T),INTENT(INOUT)       :: self
+class(QCcell_T),INTENT(INOUT) :: self
 
-real(kind=dbl)                    :: QClatparm_a, QClatparm_c, QClatparm
-real(kind=dbl),allocatable        :: s(:), c(:), s2(:), c2(:)
-real(kind=dbl)                    :: tmp(5,3), c3(4), s3(4), c4(4), s4(4), A, B, CC
-integer(kind=irg)                 :: i, j
-real(kind=dbl),parameter          :: ct = 1.D0/dsqrt(5.D0),&
+real(kind=dbl)                :: QClatparm_a, QClatparm_c, QClatparm
+real(kind=dbl),allocatable    :: s(:), c(:), s2(:), c2(:)
+real(kind=dbl)                :: tmp(5,3), c3(4), s3(4), c4(4), s4(4), A, B, CC
+integer(kind=irg)             :: i, j
+real(kind=dbl),parameter      :: ct = 1.D0/dsqrt(5.D0),&
                                      st = dsqrt(1.D0 - ct * ct)
 
 select type (self) 
@@ -1838,7 +1838,7 @@ recursive subroutine TransSpaceQC5_(self, t, d, inspace, outspace)
 
 IMPLICIT NONE
 
-class(QCcell_axial_T),intent(inout)   :: self
+class(QCcell_axial_T),INTENT(INOUT)   :: self
 real(kind=dbl),INTENT(IN)             :: t(5)
 real(kind=dbl),INTENT(OUT)            :: d(5)
 character(1),INTENT(IN)               :: inspace
@@ -1902,7 +1902,7 @@ recursive subroutine TransSpaceQC6_(self, t, d, inspace, outspace)
 
 IMPLICIT NONE
 
-class(QCcell_icosahedral_T),intent(inout)   :: self
+class(QCcell_icosahedral_T),INTENT(INOUT)   :: self
 real(kind=dbl),INTENT(IN)                   :: t(6)
 real(kind=dbl),INTENT(OUT)                  :: d(6)
 character(1),INTENT(IN)                     :: inspace
@@ -2562,7 +2562,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(QCcell_T),intent(inout)           :: self
+class(QCcell_T),INTENT(INOUT)           :: self
 type (IO_T)                             :: Message
 
 call Message%printMessage( (/ &

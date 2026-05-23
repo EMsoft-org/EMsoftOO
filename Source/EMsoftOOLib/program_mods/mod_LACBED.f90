@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -137,30 +137,30 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(LACBED_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(LACBED_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)    :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)    :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                 :: EMsoft 
+type(IO_T)                     :: Message       
+logical                        :: skipread = .FALSE.
 
-integer(kind=irg)       :: k(3)
-integer(kind=irg)       :: fn(3)
-integer(kind=irg)       :: maxHOLZ
-integer(kind=irg)       :: numthick
-integer(kind=irg)       :: npix
-integer(kind=irg)       :: nthreads
-real(kind=sgl)          :: voltage
-real(kind=sgl)          :: dmin
-real(kind=sgl)          :: convergence
-real(kind=sgl)          :: startthick
-real(kind=sgl)          :: thickinc
-real(kind=sgl)          :: minten
-character(fnlen)        :: xtalname
-character(fnlen)        :: outname
+integer(kind=irg)              :: k(3)
+integer(kind=irg)              :: fn(3)
+integer(kind=irg)              :: maxHOLZ
+integer(kind=irg)              :: numthick
+integer(kind=irg)              :: npix
+integer(kind=irg)              :: nthreads
+real(kind=sgl)                 :: voltage
+real(kind=sgl)                 :: dmin
+real(kind=sgl)                 :: convergence
+real(kind=sgl)                 :: startthick
+real(kind=sgl)                 :: thickinc
+real(kind=sgl)                 :: minten
+character(fnlen)               :: xtalname
+character(fnlen)               :: outname
 
 namelist /LACBEDlist/ xtalname, voltage, k, fn, dmin, convergence, minten, &
                               nthreads, startthick, thickinc, numthick, outname, npix, maxHOLZ
@@ -391,19 +391,19 @@ use mod_symmetry
 use mod_io
 
 IMPLICIT NONE
-class(LACBED_T),INTENT(INOUT)           :: self
-type(Cell_T)                            :: cell
-type(SpaceGroup_T)                      :: SG
-type(IO_T)                              :: Message  
-integer(kind=irg),INTENT(IN)            :: k(3)         !< zone axis
-integer(kind=irg),INTENT(IN)            :: ga(3)        !< g-vector
+class(LACBED_T),INTENT(INOUT)   :: self
+type(Cell_T)                    :: cell
+type(SpaceGroup_T)              :: SG
+type(IO_T)                      :: Message  
+integer(kind=irg),INTENT(IN)    :: k(3)         !< zone axis
+integer(kind=irg),INTENT(IN)    :: ga(3)        !< g-vector
 integer(kind=irg),INTENT(INOUT) :: isym         !< 2D point group number
 
-real(kind=sgl),INTENT(OUT)              :: thetam       !< rotation angle (degrees, CCW)
+real(kind=sgl),INTENT(OUT)      :: thetam       !< rotation angle (degrees, CCW)
 
-integer(kind=irg)                       :: num
-real(kind=sgl)                          :: io_real(1)
-integer(kind=irg), allocatable          :: itmp(:,:)   !< array used for family computations etc
+integer(kind=irg)               :: num
+real(kind=sgl)                  :: io_real(1)
+integer(kind=irg), allocatable  :: itmp(:,:)   !< array used for family computations etc
 
 ! no action is needed for the following 2D point groups: 1, 2, 2mm, 3, 4, 4mm, 6, 6mm
 thetam = 0.0
@@ -466,40 +466,40 @@ use stringconstants
 
 use ISO_C_BINDING
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(LACBED_T), INTENT(INOUT)          :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
-character(fnlen), INTENT(INOUT)         :: nmldeffile
+class(LACBED_T), INTENT(INOUT)  :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname
+character(fnlen), INTENT(INOUT) :: nmldeffile
 
-type(LACBEDNameListType)                  :: nml
-type(Cell_T)                              :: cell
-type(reflisttype),pointer                 :: firstw, nexts, rl, rltmpa, rltmpb
-type(gvectors_T)                          :: reflist
-type(BetheParameterType)                  :: BetheParameters
-type(gnode),save                          :: rlp
-type(DynType),save                        :: Dyn
-type(Diffraction_T)                       :: Diff, lDiff
-type(HDF_T)                               :: HDF
-type(HDFnames_T)                          :: HDFnames
-type(kvectorlist),pointer                 :: klist, ktmp
-type(kvectors_T)                          :: kvec
-type(Timing_T)                            :: timer
-type(SpaceGroup_T)                        :: SG
-type(IO_T)                                :: Message
-type(HOLZ_T)                              :: HOLZ
-logical                                   :: verbose
+type(LACBEDNameListType)        :: nml
+type(Cell_T)                    :: cell
+type(reflisttype),pointer       :: firstw, nexts, rl, rltmpa, rltmpb
+type(gvectors_T)                :: reflist
+type(BetheParameterType)        :: BetheParameters
+type(gnode),save                :: rlp
+type(DynType),save              :: Dyn
+type(Diffraction_T)             :: Diff, lDiff
+type(HDF_T)                     :: HDF
+type(HDFnames_T)                :: HDFnames
+type(kvectorlist),pointer       :: klist, ktmp
+type(kvectors_T)                :: kvec
+type(Timing_T)                  :: timer
+type(SpaceGroup_T)              :: SG
+type(IO_T)                      :: Message
+type(HOLZ_T)                    :: HOLZ
+logical                         :: verbose
 
-integer(kind=irg)                         :: sLUT, i, ii, jj, ik, ithick, parity, hkl(6,23), Pmdims, h(6), gindex, io_int(6)
-complex(kind=dbl)                         :: Ucg, qg, Ucg2, qg0
-real(kind=dbl)                            :: Vmod, Vpmod, xig, xgp
-real(kind=dbl)                            :: lgpar, lgperp, st, nfact
-integer(HSIZE_T)                          :: dims4(4), cnt4(4), offset4(4)
+integer(kind=irg)               :: sLUT, i, ii, jj, ik, ithick, parity, hkl(6,23), Pmdims, h(6), gindex, io_int(6)
+complex(kind=dbl)               :: Ucg, qg, Ucg2, qg0
+real(kind=dbl)                  :: Vmod, Vpmod, xig, xgp
+real(kind=dbl)                  :: lgpar, lgperp, st, nfact
+integer(HSIZE_T)                :: dims4(4), cnt4(4), offset4(4)
 
-real(kind=sgl)                            :: FN(3), kk(3), dmin, kp(3), ku(3), io_real(3), qu(4), gx(3), cen, delta, gac(3), sc,&
+real(kind=sgl)                  :: FN(3), kk(3), dmin, kp(3), ku(3), io_real(3), qu(4), gx(3), cen, delta, gac(3), sc,&
                                              ktmax, rad, theta, thetacr, voltage, ma, mi, kkk(3), bragg, galen, minten, thetam
 real(kind=dbl)                            :: epar(6,3), mLambda
 integer(kind=irg)                         :: nref, nns, nnw, counter, numk, ierr, ga(3), gb(3), imax, imin, ir, istat, isym

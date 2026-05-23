@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -161,23 +161,23 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(ISEmaster_T), INTENT(INOUT)    :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(ISEmaster_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)       :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)       :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                    :: EMsoft 
+type(IO_T)                        :: Message       
+logical                           :: skipread = .FALSE.
 
-integer(kind=irg)       :: npx
-integer(kind=irg)       :: nthreads
-real(kind=sgl)          :: iscale(3)
-real(kind=sgl)          :: multiplier
-character(fnlen)        :: outname
-character(fnlen)        :: tiffname
-character(fnlen)        :: xtalname
+integer(kind=irg)                 :: npx
+integer(kind=irg)                 :: nthreads
+real(kind=sgl)                    :: iscale(3)
+real(kind=sgl)                    :: multiplier
+character(fnlen)                  :: outname
+character(fnlen)                  :: tiffname
+character(fnlen)                  :: xtalname
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist /ISEmastervars/ npx,nthreads,xtalname,outname,iscale,tiffname,multiplier 
@@ -722,31 +722,31 @@ use mod_postscript
 use stringconstants
 use omp_lib
 use ISO_C_BINDING
-use, intrinsic :: iso_fortran_env
+use, intrinsic                    :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(ISEmaster_T), INTENT(INOUT)       :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames                
+class(ISEmaster_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)     :: EMsoft
+character(fnlen), INTENT(INOUT)   :: progname 
+type(HDFnames_T), INTENT(INOUT)   :: HDFnames                
 
-type(Cell_T)            :: cell
-type(HDF_T)             :: HDF
-type(Diffraction_T)     :: Diff
-type(IO_T)              :: Message
-type(SpaceGroup_T)      :: SG
-type(timing_T)          :: timer
-type(DynType)           :: Dyn
-type(memory_T)          :: mem
-type(Lambert_T)         :: L
-type(kvectors_T)        :: kvec
-type(kvectorlist), pointer :: ktmp
-type(poslist),pointer   :: plist, ptmp 
+type(Cell_T)                      :: cell
+type(HDF_T)                       :: HDF
+type(Diffraction_T)               :: Diff
+type(IO_T)                        :: Message
+type(SpaceGroup_T)                :: SG
+type(timing_T)                    :: timer
+type(DynType)                     :: Dyn
+type(memory_T)                    :: mem
+type(Lambert_T)                   :: L
+type(kvectors_T)                  :: kvec
+type(kvectorlist), pointer        :: ktmp
+type(poslist),pointer             :: plist, ptmp 
 
-real(kind=dbl)          :: arg, Radius, xyz(3)
-integer(HSIZE_T)        :: dims2(2), cnt2(2), offset2(2)
-integer(kind=irg)       :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
+real(kind=dbl)                    :: arg, Radius, xyz(3)
+integer(HSIZE_T)                  :: dims2(2), cnt2(2), offset2(2)
+integer(kind=irg)                 :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,iE,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
                            numk, timestart, timestop, numsites, nthreads, k2, icnt, k, mm, mp, & ! number of independent incident beam directions
                            ir,nat(maxpasym),kk(3), skip, ijmax, one, NUMTHREADS, TID, SamplingType, npx, &
                            numset,n,ix,iy,iz, io_int(6), maxlat(1), numcells(3), ncells, atomcnt, ii, TIFF_nx, TIFF_ny, &

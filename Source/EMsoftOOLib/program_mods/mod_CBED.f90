@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -196,32 +196,32 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(CBED_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(CBED_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)  :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)  :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)               :: EMsoft 
+type(IO_T)                   :: Message       
+logical                      :: skipread = .FALSE.
 
-integer(kind=irg)       :: k(3)
-integer(kind=irg)       :: fn(3)
-integer(kind=irg)       :: maxHOLZ
-integer(kind=irg)       :: numthick
-integer(kind=irg)       :: npix
-integer(kind=irg)       :: nthreads
-real(kind=sgl)          :: voltage
-real(kind=sgl)          :: camlen
-real(kind=sgl)          :: klaue(2)
-real(kind=sgl)          :: dmin
-real(kind=sgl)          :: convergence
-real(kind=sgl)          :: startthick
-real(kind=sgl)          :: thickinc
-character(fnlen)        :: xtalname
-character(fnlen)        :: tiffprefix
-character(fnlen)        :: outname
+integer(kind=irg)            :: k(3)
+integer(kind=irg)            :: fn(3)
+integer(kind=irg)            :: maxHOLZ
+integer(kind=irg)            :: numthick
+integer(kind=irg)            :: npix
+integer(kind=irg)            :: nthreads
+real(kind=sgl)               :: voltage
+real(kind=sgl)               :: camlen
+real(kind=sgl)               :: klaue(2)
+real(kind=sgl)               :: dmin
+real(kind=sgl)               :: convergence
+real(kind=sgl)               :: startthick
+real(kind=sgl)               :: thickinc
+character(fnlen)             :: xtalname
+character(fnlen)             :: tiffprefix
+character(fnlen)             :: outname
 
 namelist /CBEDlist/ xtalname, voltage, k, fn, dmin, convergence, klaue, camlen, tiffprefix, &
                     nthreads, startthick, thickinc, numthick, outname, npix, maxHOLZ
@@ -319,16 +319,16 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)        :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(CBED_T), INTENT(INOUT)    :: self 
+type(HDF_T), INTENT(INOUT)      :: HDF
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 4, n_real = 6
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+integer(kind=irg),parameter     :: n_int = 4, n_real = 6
+integer(kind=irg)               :: hdferr,  io_int(n_int)
+real(kind=sgl)                  :: io_real(n_real)
+character(20)                   :: intlist(n_int), reallist(n_real)
+character(fnlen)                :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)    :: line2(1)
 
 associate( enl => self%nml )
 
@@ -400,8 +400,8 @@ subroutine setmaxHOLZ_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CBED_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%maxHOLZ = inp
 
@@ -418,8 +418,8 @@ function getmaxHOLZ_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CBED_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%maxHOLZ
 
@@ -436,8 +436,8 @@ subroutine setnpix_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CBED_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%npix = inp
 
@@ -454,8 +454,8 @@ function getnpix_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CBED_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%npix
 
@@ -472,8 +472,8 @@ subroutine setnumthick_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CBED_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%numthick = inp
 
@@ -490,8 +490,8 @@ function getnumthick_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CBED_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%numthick
 
@@ -508,8 +508,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CBED_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%nthreads = inp
 
@@ -526,8 +526,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CBED_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%nthreads
 
@@ -544,8 +544,8 @@ subroutine setk_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(CBED_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp(3)
 
 self%nml%k = inp
 
@@ -562,8 +562,8 @@ function getk_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(CBED_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out(3)
 
 out = self%nml%k
 
@@ -580,8 +580,8 @@ subroutine setfn_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(CBED_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp(3)
 
 self%nml%fn = inp
 
@@ -598,8 +598,8 @@ function getfn_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(CBED_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out(3)
 
 out = self%nml%fn
 
@@ -868,8 +868,8 @@ subroutine setxtalname_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CBED_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%xtalname = trim(inp)
 
@@ -886,8 +886,8 @@ function getxtalname_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CBED_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%xtalname)
 
@@ -904,8 +904,8 @@ subroutine settiffprefix_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CBED_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%tiffprefix = trim(inp)
 
@@ -922,8 +922,8 @@ function gettiffprefix_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CBED_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%tiffprefix)
 
@@ -940,8 +940,8 @@ subroutine setoutname_(self,inp)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CBED_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%outname = trim(inp)
 
@@ -958,8 +958,8 @@ function getoutname_(self) result(out)
 
 IMPLICIT NONE
 
-class(CBED_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CBED_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%outname)
 
@@ -996,17 +996,17 @@ use stringconstants
 use ISO_C_BINDING
 use mod_image
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 
 IMPLICIT NONE 
 
-class(CBED_T), INTENT(INOUT)          :: self
-type(EMsoft_T), INTENT(INOUT)         :: EMsoft
-character(fnlen), INTENT(INOUT)       :: progname 
-type(HDFnames_T), INTENT(INOUT)       :: HDFnames
+class(CBED_T), INTENT(INOUT)    :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-real(kind=sgl)                        :: ktmax, io_real(3), galen, bragg, RR, gg(3), thetac, &
+real(kind=sgl)                  :: ktmax, io_real(3), galen, bragg, RR, gg(3), thetac, &
                                          sc, scmax, PX, frac, klaue(2), pxy(2), mi, ma
 real(kind=dbl)                        :: WL, kinp(3), kv(3) 
 integer(kind=irg)                     :: ijmax,ga(3),gb(3), cnt, skip, istat, dgn, badpoints, DynNbeamsLinked, maxthreads, &

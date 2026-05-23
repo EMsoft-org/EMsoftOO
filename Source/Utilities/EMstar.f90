@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -56,7 +56,7 @@ character(fnlen)            :: progdesc = 'Computes the star of a reciprocal lat
 
 integer(kind=irg)           :: g(3),gg(3),ans,n,i, io_int(3)
 real(kind=dbl)              :: kk(3)
-real(kind=dbl),allocatable  :: stmp(:,:)
+real(kind=dbl), allocatable :: stmp(:,:)
 logical                     :: first
 character(1)                :: space
 character(fnlen)            :: xtalname

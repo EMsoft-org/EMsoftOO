@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -215,7 +215,7 @@ recursive function nan() result(x)
 
  IMPLICIT NONE
 
-real(kind=sgl)        :: x
+real(kind=sgl)  :: x
 
 x = ieee_value(x, ieee_quiet_nan)
 
@@ -235,7 +235,7 @@ recursive function nan_d() result(x)
 
  IMPLICIT NONE
 
-real(kind=dbl)        :: x
+real(kind=dbl)  :: x
 
 x = ieee_value(x, ieee_quiet_nan)
 
@@ -985,7 +985,7 @@ recursive function bessj0(x)
 
 IMPLICIT NONE
 
-real(kind=dbl)      :: x,bessj0,ax,fr,fs,z,fp,fq,xx
+real(kind=dbl)           :: x,bessj0,ax,fr,fs,z,fp,fq,xx
 
 !     This subroutine calculates the First Kind Bessel Function of
 !     order 0, for any real number X. The polynomial approximation by
@@ -2527,12 +2527,12 @@ recursive subroutine TransFourthRankTensor(al,cin,cout)
 
 IMPLICIT NONE
 
-real(kind=dbl),INTENT(IN)       :: al(3,3)
-real(kind=sgl),INTENT(IN)       :: cin(6,6)
-real(kind=sgl),INTENT(OUT)      :: cout(6,6)
+real(kind=dbl),INTENT(IN)  :: al(3,3)
+real(kind=sgl),INTENT(IN)  :: cin(6,6)
+real(kind=sgl),INTENT(OUT) :: cout(6,6)
 
-real(kind=sgl)                          :: cold(3,3,3,3), cnew(3,3,3,3)
-integer(kind=irg)                       :: i,j,k,l,p,q,r,s,delta(3,3),gamma(6,2)
+real(kind=sgl)             :: cold(3,3,3,3), cnew(3,3,3,3)
+integer(kind=irg)          :: i,j,k,l,p,q,r,s,delta(3,3),gamma(6,2)
 
 ! initalize a bunch of variables
 cold = 0.0
@@ -2620,7 +2620,6 @@ IMPLICIT NONE
 complex(kind=dbl),INTENT(IN)    :: a(*)
 integer(kind=irg),INTENT(IN)    :: m
 complex(kind=dbl),INTENT(INOUT) :: x
-!f2py intent(in,out) ::  x
 real(kind=sgl),INTENT(IN)       :: eps
 logical,INTENT(IN)              :: polish
 
@@ -2698,11 +2697,11 @@ use mod_kinds
 
 IMPLICIT NONE
 
-complex(kind=dbl),INTENT(IN)            :: a(7)
-complex(kind=dbl),INTENT(OUT)           ::roots(6)
-integer(kind=irg)                                       :: i,j,jj,m
-real,parameter                                          :: eps = 1.E-6
-complex(kind=dbl)                               :: ad(7), x, b, c, czero
+complex(kind=dbl),INTENT(IN)  :: a(7)
+complex(kind=dbl),INTENT(OUT) ::roots(6)
+integer(kind=irg)             :: i,j,jj,m
+real,parameter                :: eps = 1.E-6
+complex(kind=dbl)             :: ad(7), x, b, c, czero
 
  m=6
  czero = cmplx(0.0,0.0,dbl)
@@ -3434,7 +3433,6 @@ integer(kind=irg),INTENT(IN)    :: NClusters
 integer(kind=irg),INTENT(IN)    :: NSC
 integer(kind=irg),INTENT(IN)    :: NSR
 integer(kind=irg),INTENT(INOUT) :: IndexArray(NRow)
-!f2py intent(in,out) ::  IndexArray
 
 integer(kind=irg)               :: IA(NSC,NSR), NinC(NClusters)
 integer(kind=irg)               :: i, j, k, ic, nc, ix, px, py, Emax(1), Emin(1), nloop, nchanged, totswap
@@ -4055,12 +4053,12 @@ contains
         ! that will be used by the LMDIF routine.
 
         implicit none
-        real(kind=dbl), intent(in) :: parameters(n)
-        integer(kind=irg), intent(in) :: m, n, iflag
-        real(kind=dbl), intent(out) :: residuals(m)
-        real(kind=dbl) :: amplitude, x0, y0, sigma_x, sigma_y, background
-        real(kind=dbl) :: dx, dy, dx2, dy2, arg_x, arg_y, fit_value
-        integer(kind=irg) :: i, j, data_idx
+        real(kind=dbl), INTENT(IN)    :: parameters(n)
+        integer(kind=irg), INTENT(IN) :: m, n, iflag
+        real(kind=dbl), INTENT(OUT)   :: residuals(m)
+        real(kind=dbl)                :: amplitude, x0, y0, sigma_x, sigma_y, background
+        real(kind=dbl)                :: dx, dy, dx2, dy2, arg_x, arg_y, fit_value
+        integer(kind=irg)             :: i, j, data_idx
 
         ! Extract the parameters
         amplitude = parameters(1)

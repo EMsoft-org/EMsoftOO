@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2016-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2016-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -39,8 +39,9 @@ program EMsoftinit
   !! users who prefer not to create json files manually...
 
 use mod_kinds
-use mod_global 
-use mod_EMsoft 
+use mod_global
+use mod_EMsoft
+use mod_io
 
 IMPLICIT NONE
 
@@ -48,11 +49,12 @@ character(fnlen)    :: progname = 'EMsoftinit'
 character(fnlen)    :: progdesc = 'Initialize the EMsoft configuration file'
 
 type(EMsoft_T)      :: EMsoft
+type(IO_T)          :: Message
 
-write (*,*) ' Important Note :'
-write (*,*) ' '
-write (*,*) ' This program requires that the EMSOFTPATHNAME variable be defined '
-write (*,*) ' '
+call Message%printMessage(' Important Note :')
+call Message%printMessage(' ')
+call Message%printMessage(' This program requires that the EMSOFTPATHNAME variable be defined ')
+call Message%printMessage(' ')
 
 EMsoft = EMsoft_T( progname, progdesc, makeconfig=.TRUE. )
 

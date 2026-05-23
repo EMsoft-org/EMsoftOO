@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -42,6 +42,8 @@ IMPLICIT NONE
 type, public :: oravNameListType
   character(fnlen)        :: orientationfilename
   integer(kind=irg)       :: pgnum
+  integer(kind=irg)       :: NumEM
+  integer(kind=irg)       :: NumIter
 end type oravNameListType
 
 ! class definition
@@ -126,22 +128,26 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(orav_T), INTENT(INOUT)         :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(orav_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)  :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)  :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)               :: EMsoft 
+type(IO_T)                   :: Message       
+logical                      :: skipread = .FALSE.
 
-character(fnlen)        :: orientationfilename
-integer(kind=irg)       :: pgnum
+character(fnlen)             :: orientationfilename
+integer(kind=irg)            :: pgnum
+integer(kind=irg)            :: NumEM
+integer(kind=irg)            :: NumIter
 
-namelist / orav /  orientationfilename, pgnum 
+namelist / orav /  orientationfilename, pgnum, NumEM, NumIter 
 
 orientationfilename = 'undefined'
+NumEM = 5
+NumIter = 10
 
 if (present(initonly)) then
   if (initonly) skipread = .TRUE.
@@ -160,6 +166,8 @@ end if
 
 self%nml%orientationfilename = trim(orientationfilename)
 self%nml%pgnum = pgnum 
+self%nml%NumEM = NumEM 
+self%nml%NumIter = NumIter 
 
 end subroutine readNameList_
 
@@ -332,13 +340,13 @@ qAR = QuaternionArray_T( n=numors, qd=samples )
 call SO%delete_FZlist()
 
 ! initialize the directional statistics classes for von Mises-Fisher and Watson distributions
-dictVMF = DirStat_T( DStype='VMF', pgnum = pgnum)
-call dictVMF%setNumEM(25)
-call dictVMF%setNumIter(30)
+dictVMF = DirStat_T( DStype='VMF', pgnum = pgnum, test=134)
+call dictVMF%setNumEM(nml%NumEM)
+call dictVMF%setNumIter(nml%NumIter)
 
-dictWAT = DirStat_T( DStype='WAT', pgnum = pgnum)
-call dictWAT%setNumEM(25)
-call dictWAT%setNumIter(30)
+dictWAT = DirStat_T( DStype='WAT', pgnum = pgnum, test=135)
+call dictWAT%setNumEM(nml%NumEM)
+call dictWAT%setNumIter(nml%NumIter)
 
 ! next we need to store the qAR array into both dict classes and clean up qAR 
 call dictVMF%setQuatArray( qAR )

@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -47,7 +47,7 @@ character(fnlen)              :: progdesc = 'Sends a simple test message to the 
 type(EMsoft_T)                :: EMsoft 
 
 type(IO_T)                    :: Message
-character(fnlen),ALLOCATABLE  :: MessageLines(:)
+character(fnlen), allocatable :: MessageLines(:)
 integer(kind=irg)             :: NumLines, i
 integer(kind=4)               :: hnStat
 character(fnlen)              :: MessageTitle, line

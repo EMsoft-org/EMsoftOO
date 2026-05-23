@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -81,11 +81,11 @@ module mod_bobyqa_refinement
             real(kind=sgl),INTENT(IN)            :: rgz(ipar(2),ipar(3))
             real(kind=sgl),INTENT(IN)            :: mask(ipar(2)/ipar(1),ipar(3)/ipar(1))
             real(kind=dbl),INTENT(IN)            :: prefactor
-            integer(irg),intent(in)              :: n
-            real(dbl),dimension(n),intent(in)    :: x
-            real(dbl),intent(out)                :: f
-            real(kind=sgl),intent(in)            :: gammavalue
-            logical,intent(in),optional          :: verbose
+            integer(irg),INTENT(IN)              :: n
+            real(dbl),dimension(n),INTENT(IN)    :: x
+            real(dbl),INTENT(OUT)                :: f
+            real(kind=sgl),INTENT(IN)            :: gammavalue
+            logical,INTENT(IN),optional          :: verbose
         end subroutine func2
     end interface
  
@@ -135,10 +135,10 @@ contains
 
         implicit none
                 
-        integer(c_size_t),intent(in)        :: ipar(10)
-        real(sgl),intent(in)                :: initmeanval(3)
-        real(sgl),intent(in)                :: stepsize(3)
-        real(kind=sgl),intent(in)           :: expt(ipar(2)*ipar(3)/ipar(1)**2)
+        integer(c_size_t),INTENT(IN)        :: ipar(10)
+        real(sgl),INTENT(IN)                :: initmeanval(3)
+        real(sgl),INTENT(IN)                :: stepsize(3)
+        real(kind=sgl),INTENT(IN)           :: expt(ipar(2)*ipar(3)/ipar(1)**2)
         real(kind=sgl),INTENT(IN)           :: accum(ipar(6),ipar(2),ipar(3))
         real(kind=sgl),INTENT(IN)           :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
         real(kind=sgl),INTENT(IN)           :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
@@ -147,39 +147,39 @@ contains
         real(kind=sgl),INTENT(IN)           :: rgz(ipar(2),ipar(3))
         real(kind=sgl),INTENT(IN)           :: mask(ipar(2)/ipar(1),ipar(3)/ipar(1))
         real(kind=dbl)                      :: prefactor
-        real(kind=sgl),intent(in)           :: gammavalue
+        real(kind=sgl),INTENT(IN)           :: gammavalue
 
-        logical,intent(in),optional         :: verbose
+        logical,INTENT(IN),optional         :: verbose
  
-        integer,intent(in)                  :: n       !! number of variables (must be at least two)
-        integer,intent(in)                  :: npt     !! number of interpolation conditions. Its value must be in
+        integer,INTENT(IN)                  :: n       !! number of variables (must be at least two)
+        integer,INTENT(IN)                  :: npt     !! number of interpolation conditions. Its value must be in
                                                        !! the interval [N+2,(N+1)(N+2)/2]. Choices that exceed 2*N+1 are not
                                                        !! recommended.
-        real(dbl),dimension(n),intent(inout) :: x       !! Initial values of the variables must be set in X(1),X(2),...,X(N). They
+        real(dbl),dimension(n),INTENT(INOUT) :: x       !! Initial values of the variables must be set in X(1),X(2),...,X(N). They
                                                        !! will be changed to the values that give the least calculated F.
-        real(dbl),dimension(n),intent(in)    :: xl      !! lower bounds on x. The construction of quadratic models
+        real(dbl),dimension(n),INTENT(IN)    :: xl      !! lower bounds on x. The construction of quadratic models
                                                        !! requires XL(I) to be strictly less than XU(I) for each I. Further,
                                                        !! the contribution to a model from changes to the I-th variable is
                                                        !! damaged severely by rounding errors if XU(I)-XL(I) is too small.
-        real(dbl),dimension(n),intent(in)    :: xu      !! upper bounds on x. The construction of quadratic models
+        real(dbl),dimension(n),INTENT(IN)    :: xu      !! upper bounds on x. The construction of quadratic models
                                                        !! requires XL(I) to be strictly less than XU(I) for each I. Further,
                                                        !! the contribution to a model from changes to the I-th variable is
                                                        !! damaged severely by rounding errors if XU(I)-XL(I) is too small.
-        real(dbl),intent(in)                 :: rhobeg  !! RHOBEG must be set to the initial value of a trust region radius.  
+        real(dbl),INTENT(IN)                 :: rhobeg  !! RHOBEG must be set to the initial value of a trust region radius.  
                                                        !! It must be positive, and typically should be about one tenth of the greatest
                                                        !! expected change to a variable.  An error return occurs if any of 
                                                        !! the differences XU(I)-XL(I), I=1,...,N, is less than 2*RHOBEG.
-        real(dbl),intent(in)                 :: rhoend  !! RHOEND must be set to the final value of a trust
+        real(dbl),INTENT(IN)                 :: rhoend  !! RHOEND must be set to the final value of a trust
                                                        !! region radius. It must be positive with RHOEND no greater than
                                                        !! RHOBEG. Typically, RHOEND should indicate the
                                                        !! accuracy that is required in the final values of the variables.
-        integer,intent(in)                  :: iprint  !! IPRINT should be set to 0, 1, 2 or 3, which controls the
+        integer,INTENT(IN)                  :: iprint  !! IPRINT should be set to 0, 1, 2 or 3, which controls the
                                                        !! amount of printing. Specifically, there is no output if IPRINT=0 and
                                                        !! there is output only at the return if IPRINT=1. Otherwise, each new
                                                        !! value of RHO is printed, with the best vector of variables so far and
                                                        !! the corresponding value of the objective function. Further, each new
                                                        !! value of F with its variables are output if IPRINT=3.
-        integer,intent(in)                  :: maxfun  !! an upper bound on the number of calls of CALFUN.
+        integer,INTENT(IN)                  :: maxfun  !! an upper bound on the number of calls of CALFUN.
 
         procedure (func2)                   :: calfun  !! SUBROUTINE CALFUN has to be provided by the user. It must set
                                                        !! F to the value of the objective function for the current values of the
@@ -300,10 +300,10 @@ contains
         
         implicit real (dbl) (a-h, o-z)
         
-        integer(c_size_t),intent(in):: ipar(10)
-        real(sgl),intent(in)        :: initmeanval(3)
-        real(sgl),intent(in)        :: stepsize(3)
-        real(sgl),intent(in)        :: expt1(ipar(2)*ipar(3)/ipar(1)**2)
+        integer(c_size_t),INTENT(IN):: ipar(10)
+        real(sgl),INTENT(IN)        :: initmeanval(3)
+        real(sgl),INTENT(IN)        :: stepsize(3)
+        real(sgl),INTENT(IN)        :: expt1(ipar(2)*ipar(3)/ipar(1)**2)
         real(kind=sgl),INTENT(IN)   :: accum(ipar(6),ipar(2),ipar(3))
         real(kind=sgl),INTENT(IN)   :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
         real(kind=sgl),INTENT(IN)   :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
@@ -312,10 +312,10 @@ contains
         real(kind=sgl),INTENT(IN)   :: rgz(ipar(2),ipar(3))
         real(kind=sgl),INTENT(IN)   :: mask(ipar(2)/ipar(1),ipar(3)/ipar(1))
         real(kind=dbl)              :: prefactor
-        real(kind=sgl),intent(in)   :: gammavalue
+        real(kind=sgl),INTENT(IN)   :: gammavalue
 
 
-        logical,intent(in),optional :: verbose
+        logical,INTENT(IN),optional :: verbose
         dimension x (*), xl (*), xu (*), xbase (*), xpt (npt,*), fval (*), xopt (*), &
                   gopt (*), hq (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*), &
                   xnew (*), xalt (*), d (*), vlag (*), w (*)
@@ -1383,10 +1383,10 @@ contains
    
         implicit real (dbl) (a-h, o-z)
 
-        integer(8),intent(in)       :: ipar(10)
-        real(sgl),intent(in)        :: initmeanval(3)
-        real(sgl),intent(in)        :: stepsize(3)
-        real(sgl),intent(in)        :: expt1(ipar(2)*ipar(3)/ipar(1)**2)
+        integer(8),INTENT(IN)       :: ipar(10)
+        real(sgl),INTENT(IN)        :: initmeanval(3)
+        real(sgl),INTENT(IN)        :: stepsize(3)
+        real(sgl),INTENT(IN)        :: expt1(ipar(2)*ipar(3)/ipar(1)**2)
         real(kind=sgl),INTENT(IN)   :: accum(ipar(6),ipar(2),ipar(3))
         real(kind=sgl),INTENT(IN)   :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
         real(kind=sgl),INTENT(IN)   :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
@@ -1395,9 +1395,9 @@ contains
         real(kind=sgl),INTENT(IN)   :: rgz(ipar(2),ipar(3))
         real(kind=sgl),INTENT(IN)   :: mask(ipar(2)/ipar(1),ipar(3)/ipar(1))
         real(kind=dbl)              :: prefactor
-        real(kind=sgl),intent(in)   :: gammavalue
+        real(kind=sgl),INTENT(IN)   :: gammavalue
 
-        logical,intent(in),optional :: verbose   
+        logical,INTENT(IN),optional :: verbose   
         dimension x (*), xl (*), xu (*), xbase (*), xpt (npt,*), fval (*), gopt (*), hq &
        & (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*)
         procedure (func2) :: calfun
@@ -1580,10 +1580,10 @@ contains
    
         implicit real (dbl) (a-h, o-z)
 
-        integer(8),intent(in)       :: ipar(10)
-        real(sgl),intent(in)        :: initmeanval(3)
-        real(sgl),intent(in)        :: stepsize(3)
-        real(sgl),intent(in)        :: expt1(ipar(2)*ipar(3)/ipar(1)**2)
+        integer(8),INTENT(IN)       :: ipar(10)
+        real(sgl),INTENT(IN)        :: initmeanval(3)
+        real(sgl),INTENT(IN)        :: stepsize(3)
+        real(sgl),INTENT(IN)        :: expt1(ipar(2)*ipar(3)/ipar(1)**2)
         real(kind=sgl),INTENT(IN)   :: accum(ipar(6),ipar(2),ipar(3))
         real(kind=sgl),INTENT(IN)   :: mLPNH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
         real(kind=sgl),INTENT(IN)   :: mLPSH(-ipar(4):ipar(4),-ipar(5):ipar(5),ipar(7))
@@ -1592,9 +1592,9 @@ contains
         real(kind=sgl),INTENT(IN)   :: rgz(ipar(2),ipar(3))
         real(kind=sgl),INTENT(IN)   :: mask(ipar(2)/ipar(1),ipar(3)/ipar(1))
         real(kind=dbl)              :: prefactor
-        real(kind=sgl),intent(in)   :: gammavalue
+        real(kind=sgl),INTENT(IN)   :: gammavalue
 
-        logical,intent(in),optional :: verbose   
+        logical,INTENT(IN),optional :: verbose   
       
         dimension xl (*), xu (*), xbase (*), xpt (npt,*), fval (*), xopt (*), gopt (*), &
        & hq (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*), vlag (*), ptsaux &

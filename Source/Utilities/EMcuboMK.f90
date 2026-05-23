@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2015-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2015-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -46,20 +46,20 @@ use mod_symmetry
 
 IMPLICIT NONE 
 
-character(fnlen)            :: progname = 'EMcuboMK.f90'
-character(fnlen)            :: progdesc = 'Generate MacKenzie histogram for rotational symmetry based on cubochoric sampling'
+character(fnlen)             :: progname = 'EMcuboMK.f90'
+character(fnlen)             :: progdesc = 'Generate MacKenzie histogram for rotational symmetry based on cubochoric sampling'
 
-type(EMsoft_T)                 :: EMsoft 
-type(SpaceGroup_T)            :: SG 
-type(so3_T)                    :: SO
-type(IO_T)                    :: Message 
-type(r_T)                    :: rod 
-type(c_T)                    :: cu 
+type(EMsoft_T)               :: EMsoft
+type(SpaceGroup_T)           :: SG
+type(so3_T)                  :: SO
+type(IO_T)                   :: Message
+type(r_T)                    :: rod
+type(c_T)                    :: cu
 
 integer(kind=irg)            :: pgnum, FZorder, FZtype, nsteps, n, i, j, k, io_int(3), ntot, pgrotOrder
-real(kind=dbl)                :: sedge, delta, x, y, z, tot, rho, ho2(3), ho1(3), vol, xx(4)
-real(kind=dbl),allocatable    :: misor(:), histogram(:), e(:), mk(:)
-logical                     :: b
+real(kind=dbl)               :: sedge, delta, x, y, z, tot, rho, ho2(3), ho1(3), vol, xx(4)
+real(kind=dbl), allocatable  :: misor(:), histogram(:), e(:), mk(:)
+logical                      :: b
 
 ! print the header information and handle command line arguments
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 906 /) )

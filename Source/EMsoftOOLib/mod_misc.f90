@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -58,11 +58,11 @@ recursive subroutine IndexReduce(hkl)
 
 IMPLICIT NONE
 
-integer(kind=irg),INTENT(INOUT)      :: hkl(3)
+integer(kind=irg),INTENT(INOUT) :: hkl(3)
  !! indices
 
-integer(kind=irg)                        :: mi,i,j
-real(kind=sgl)                           :: rhkl(3),ir
+integer(kind=irg)               :: mi,i,j
+real(kind=sgl)                  :: rhkl(3),ir
 
  mi=100
  do i=1,3
@@ -94,11 +94,11 @@ recursive subroutine IndexReduceMB(hkl)
 IMPLICIT NONE
 
 
-integer(kind=irg),INTENT(INOUT)      :: hkl(4)
+integer(kind=irg),INTENT(INOUT) :: hkl(4)
  !! indices
 
-integer(kind=irg)                        :: mi,i,j
-real(kind=sgl)                           :: rhkl(4),ir
+integer(kind=irg)               :: mi,i,j
+real(kind=sgl)                  :: rhkl(4),ir
 
  mi=100
  do i=1,4
@@ -129,16 +129,16 @@ recursive subroutine IndexString(hexset,st,hkl,sp)
 
 IMPLICIT NONE
 
-logical,INTENT(IN)                      :: hexset
-character(12),INTENT(OUT)                   :: st
+logical,INTENT(IN)              :: hexset
+character(12),INTENT(OUT)       :: st
  !! output string
-integer(kind=irg),INTENT(INOUT)         :: hkl(3)
+integer(kind=irg),INTENT(INOUT) :: hkl(3)
  !! index triplet
-character(1),INTENT(IN)                     :: sp
+character(1),INTENT(IN)         :: sp
  !! space character 'd' or 'r'
 
-integer(kind=irg)                             :: l,hkil(4),i
-character(1),parameter                  :: numbers(0:9) = (/'0','1','2','3','4','5','6','7','8','9'/)
+integer(kind=irg)               :: l,hkil(4),i
+character(1),parameter          :: numbers(0:9) = (/'0','1','2','3','4','5','6','7','8','9'/)
 
  do l=1,12
   st(l:l) = ' '
@@ -218,10 +218,8 @@ IMPLICIT NONE
 
 integer(kind=irg),INTENT(INOUT)         :: p(3)
  !! input/output vector
-!f2py intent(in,out) ::  p
 integer(kind=irg),INTENT(INOUT)         :: q(4)
  !! input/output vector
-!f2py intent(in,out) ::  q
 character(2),INTENT(IN)                 :: d
  !! direction string ('34' or '43')
 
@@ -459,7 +457,7 @@ character(1),INTENT(IN)       :: sp
  !! space 'd' or 'r'
 
 type(IO_T)                    :: Message
-integer(kind=irg)               :: jnd(4)
+integer(kind=irg)             :: jnd(4)
 
  if (sp.eq.'d') then
   if (hexset.eqv..FALSE.) then

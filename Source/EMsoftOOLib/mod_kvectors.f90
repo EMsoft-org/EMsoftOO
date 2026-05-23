@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -272,12 +272,12 @@ module mod_kvectors
  
  IMPLICIT NONE
  
- class(kvectors_T),INTENT(INOUT)       :: self
- character(fnlen),INTENT(IN),OPTIONAL  :: mp
- logical                               :: ok
+ class(kvectors_T),INTENT(INOUT)      :: self
+ character(fnlen),INTENT(IN),OPTIONAL :: mp
+ logical                              :: ok
  
- integer(kind=irg) :: i
- character(20)     :: modes(6) = (/ 'Conical             ', &
+ integer(kind=irg)                    :: i
+ character(20)                        :: modes(6) = (/ 'Conical             ', &
                                     'ECCI                ', &
                                     'Standard            ', &
                                     'StandardConical     ', &
@@ -1734,7 +1734,6 @@ if ((ax.gt.1.D0).or.(ay.gt.LP_srt)) res = .FALSE.
  type(Cell_T),INTENT(INOUT)              :: cell
  type(Diffraction_T),INTENT(INOUT)       :: Diff
  type(symdata2D),INTENT(INOUT)           :: TDPG
- !f2py intent(in,out) ::  TDPG
  real(kind=dbl),INTENT(IN)               :: ga(3)
   !! "horizontal" reciprocal lattice vector
  integer(kind=irg),INTENT(IN)            :: npx
@@ -1900,11 +1899,11 @@ if ((ax.gt.1.D0).or.(ay.gt.LP_srt)) res = .FALSE.
  
  IMPLICIT NONE
  
- real(kind=dbl),INTENT(IN):: x, y
+ real(kind=dbl),INTENT(IN) :: x, y
  
- real(kind=dbl),parameter        :: srt = 1.732050808   ! sqrt(3.D0)
- integer(kind=irg)               :: res
- real(kind=dbl)                  :: xx
+ real(kind=dbl),parameter  :: srt = 1.732050808   ! sqrt(3.D0)
+ integer(kind=irg)         :: res
+ real(kind=dbl)            :: xx
  
  xx = dabs(x*srt)        ! |x| sqrt(3)
  

@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2015-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2015-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -57,9 +57,9 @@ type(r_T)                     :: ro1, roFZ
 type(e_T)                     :: eu, eu2
 type(Quaternion_T)            :: qm, qq, q2 
 
-type(a_T),allocatable         :: axlist(:)
-type(e_T),allocatable         :: eulist(:)
-integer(kind=irg),allocatable :: unique(:)
+type(a_T), allocatable        :: axlist(:)
+type(e_T), allocatable        :: eulist(:)
+integer(kind=irg), allocatable :: unique(:)
 
 integer(kind=irg)             :: pgnum, io_int(1), num, k, FZtype, FZorder, i, j
 real(kind=dbl)                :: ro(4), rod(3), io_dbl(4), qus(4), io_dbl3(3), &

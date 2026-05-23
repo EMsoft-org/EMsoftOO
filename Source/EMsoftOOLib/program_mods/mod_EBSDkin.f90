@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -173,39 +173,39 @@ use mod_io
 
 IMPLICIT NONE
 
-class(EBSDkin_T), INTENT(INOUT)             :: self
-character(fnlen),INTENT(IN)                 :: nmlfile
+class(EBSDkin_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)     :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)                 :: initonly
+logical,OPTIONAL,INTENT(IN)     :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                                  :: Message
-logical                                     :: skipread = .FALSE.
+type(IO_T)                      :: Message
+logical                         :: skipread = .FALSE.
 
-integer(kind=irg)       :: numsx
-integer(kind=irg)       :: numsy
-integer(kind=irg)       :: binning
-integer(kind=irg)       :: nthreads
-integer(kind=irg)       :: maskradius
-real(kind=sgl)          :: L
-real(kind=sgl)          :: thetac
-real(kind=sgl)          :: sigma
-real(kind=sgl)          :: omega
-real(kind=sgl)          :: delta
-real(kind=sgl)          :: xpc
-real(kind=sgl)          :: ypc
-real(kind=sgl)          :: alphaBD
-real(kind=dbl)          :: Ftensor(3,3)
-character(1)            :: makedictionary
-character(1)            :: applyDeformation
-character(1)            :: maskpattern
-character(3)            :: eulerconvention
-character(3)            :: outputformat
-character(5)            :: bitdepth
-character(fnlen)        :: anglefile
-character(fnlen)        :: anglefiletype
-character(fnlen)        :: masterfile
-character(fnlen)        :: datafile
+integer(kind=irg)               :: numsx
+integer(kind=irg)               :: numsy
+integer(kind=irg)               :: binning
+integer(kind=irg)               :: nthreads
+integer(kind=irg)               :: maskradius
+real(kind=sgl)                  :: L
+real(kind=sgl)                  :: thetac
+real(kind=sgl)                  :: sigma
+real(kind=sgl)                  :: omega
+real(kind=sgl)                  :: delta
+real(kind=sgl)                  :: xpc
+real(kind=sgl)                  :: ypc
+real(kind=sgl)                  :: alphaBD
+real(kind=dbl)                  :: Ftensor(3,3)
+character(1)                    :: makedictionary
+character(1)                    :: applyDeformation
+character(1)                    :: maskpattern
+character(3)                    :: eulerconvention
+character(3)                    :: outputformat
+character(5)                    :: bitdepth
+character(fnlen)                :: anglefile
+character(fnlen)                :: anglefiletype
+character(fnlen)                :: masterfile
+character(fnlen)                :: datafile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EBSDkindata / L, thetac, delta, numsx, numsy, xpc, ypc, anglefile, eulerconvention, masterfile, bitdepth, &
@@ -752,22 +752,22 @@ use mod_quaternions
 
 IMPLICIT NONE
 
-class(EBSDkin_T), INTENT(INOUT)            :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-integer(kind=irg),INTENT(OUT)           :: numangles
-type(QuaternionArray_T), INTENT(INOUT)  :: qAR
-type(EBSDkinAnglePCDefType),INTENT(INOUT)  :: orpcdef
-logical,INTENT(IN),OPTIONAL             :: verbose
+class(EBSDkin_T), INTENT(INOUT)           :: self
+type(EMsoft_T), INTENT(INOUT)             :: EMsoft
+integer(kind=irg),INTENT(OUT)             :: numangles
+type(QuaternionArray_T), INTENT(INOUT)    :: qAR
+type(EBSDkinAnglePCDefType),INTENT(INOUT) :: orpcdef
+logical,INTENT(IN),OPTIONAL               :: verbose
 
-type(IO_T)                              :: Message
-type(e_T)                               :: e
-type(q_T)                               :: q
-type(Quaternion_T)                      :: qq
+type(IO_T)                                :: Message
+type(e_T)                                 :: e
+type(q_T)                                 :: q
+type(Quaternion_T)                        :: qq
 
-integer(kind=irg)                       :: io_int(1), i, istat
-character(2)                            :: atype
-real(kind=sgl)                          :: eulang(3)
-character(fnlen)                        :: fname
+integer(kind=irg)                         :: io_int(1), i, istat
+character(2)                              :: atype
+real(kind=sgl)                            :: eulang(3)
+character(fnlen)                          :: fname
 
 associate( nml => self%nml )
 
@@ -939,86 +939,86 @@ use mod_memory
 
 IMPLICIT NONE
 
-class(EBSDkin_T), INTENT(INOUT)         :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-type(HDF_T),INTENT(INOUT)               :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
-type(memory_T), INTENT(INOUT)           :: mem 
-integer(kind=irg),INTENT(IN)            :: numangles
-type(QuaternionArray_T), INTENT(IN)     :: angles
-character(fnlen),INTENT(IN)             :: progname
-character(fnlen),INTENT(IN)             :: nmldeffile
+class(EBSDkin_T), INTENT(INOUT)                  :: self
+type(EMsoft_T), INTENT(INOUT)                    :: EMsoft
+type(HDF_T),INTENT(INOUT)                        :: HDF
+type(HDFnames_T), INTENT(INOUT)                  :: HDFnames
+type(memory_T), INTENT(INOUT)                    :: mem 
+integer(kind=irg),INTENT(IN)                     :: numangles
+type(QuaternionArray_T), INTENT(IN)              :: angles
+character(fnlen),INTENT(IN)                      :: progname
+character(fnlen),INTENT(IN)                      :: nmldeffile
 
-type(SpaceGroup_T)                      :: SG
-type(IO_T)                              :: Message
-type(q_T)                               :: qq, qq1, qq2, qq3
-type(o_T)                               :: om
-type(e_T)                               :: eu
-type(Quaternion_T)                      :: quat
-type(Timing_T)                          :: timer
-type(Cell_T)                            :: cell
-type(memory_T)                          :: memth
+type(SpaceGroup_T)                               :: SG
+type(IO_T)                                       :: Message
+type(q_T)                                        :: qq, qq1, qq2, qq3
+type(o_T)                                        :: om
+type(e_T)                                        :: eu
+type(Quaternion_T)                               :: quat
+type(Timing_T)                                   :: timer
+type(Cell_T)                                     :: cell
+type(memory_T)                                   :: memth
 
 ! all geometrical parameters and filenames
-real(kind=dbl)                          :: prefactor, qz(3)
+real(kind=dbl)                                   :: prefactor, qz(3)
 
 ! allocatable arrays
-real(kind=sgl),allocatable              :: EBSDkinpattern(:,:), binned(:,:)        ! array with EBSDkin patterns
-real(kind=sgl),allocatable              :: z(:,:)               ! used to store the computed patterns before writing to disk
-real(kind=sgl),allocatable              :: energywf(:), eulerangles(:,:)
+real(kind=sgl),allocatable                       :: EBSDkinpattern(:,:), binned(:,:)        ! array with EBSDkin patterns
+real(kind=sgl),allocatable                       :: z(:,:)               ! used to store the computed patterns before writing to disk
+real(kind=sgl),allocatable                       :: energywf(:), eulerangles(:,:)
 
 ! arrays for each OpenMP thread
-real(kind=sgl),allocatable              :: tmLPNH(:,:) , tmLPSH(:,:)
-real(kind=sgl),allocatable              :: trgx(:,:), trgy(:,:), trgz(:,:)          ! auxiliary detector arrays needed for interpolation
-real(kind=sgl),allocatable              :: taccum(:,:,:)
+real(kind=sgl),allocatable                       :: tmLPNH(:,:) , tmLPSH(:,:)
+real(kind=sgl),allocatable                       :: trgx(:,:), trgy(:,:), trgz(:,:)          ! auxiliary detector arrays needed for interpolation
+real(kind=sgl),allocatable                       :: taccum(:,:,:)
 
 ! various items
-integer(kind=irg)                       :: i, j, iang, jang, k, io_int(6), hdferr, L, correctsize, dim1, dim2          ! various counters
-integer(kind=irg)                       :: istat, ipar(7), tick, tock, tickstart
-integer(kind=irg)                       :: nix, niy, binx, biny, nixp, niyp, maxthreads,nextra,ninlastbatch,nlastremainder, npy     ! various parameters
-integer(kind=irg)                       :: NUMTHREADS, TID   ! number of allocated threads, thread ID
-integer(kind=irg)                       :: ninbatch, nbatches,nremainder,ibatch,nthreads,maskradius,nlastbatches, totnumbatches
-integer(kind=irg),allocatable           :: istart(:,:), istop(:,:), patinbatch(:)
+integer(kind=irg)                                :: i, j, iang, jang, k, io_int(6), hdferr, L, correctsize, dim1, dim2          ! various counters
+integer(kind=irg)                                :: istat, ipar(7), tick, tock, tickstart
+integer(kind=irg)                                :: nix, niy, binx, biny, nixp, niyp, maxthreads,nextra,ninlastbatch,nlastremainder, npy     ! various parameters
+integer(kind=irg)                                :: NUMTHREADS, TID   ! number of allocated threads, thread ID
+integer(kind=irg)                                :: ninbatch, nbatches,nremainder,ibatch,nthreads,maskradius,nlastbatches, totnumbatches
+integer(kind=irg),allocatable                    :: istart(:,:), istop(:,:), patinbatch(:)
 
-real(kind=sgl)                          :: bindx, ma, mi, tstart, tstop, io_real(3)
-real(kind=dbl),parameter                :: nAmpere = 6.241D+18   ! Coulomb per second
-integer(kind=irg),parameter             :: storemax = 20        ! number of EBSDkin patterns stored in one output block
-integer(kind=irg)                       :: Emin, Emax      ! various parameters
-real(kind=dbl)                          :: dc(3), scl, nel, emult           ! direction cosine array
-real(kind=dbl)                          :: sx, dx, dxm, dy, dym, rhos, x         ! various parameters
-real(kind=dbl)                          :: ixy(2), tmp
+real(kind=sgl)                                   :: bindx, ma, mi, tstart, tstop, io_real(3)
+real(kind=dbl),parameter                         :: nAmpere = 6.241D+18   ! Coulomb per second
+integer(kind=irg),parameter                      :: storemax = 20        ! number of EBSDkin patterns stored in one output block
+integer(kind=irg)                                :: Emin, Emax      ! various parameters
+real(kind=dbl)                                   :: dc(3), scl, nel, emult           ! direction cosine array
+real(kind=dbl)                                   :: sx, dx, dxm, dy, dym, rhos, x         ! various parameters
+real(kind=dbl)                                   :: ixy(2), tmp
 
-real(kind=sgl),allocatable              :: mask(:,:), lx(:), ly(:), masklin(:), binnedvec(:)
-character(kind=c_char),allocatable      :: batchpatterns(:,:,:), bpat(:,:), threadbatchpatterns(:,:,:)
-integer(kind=irg),allocatable           :: batchpatternsint(:,:,:), bpatint(:,:), threadbatchpatternsint(:,:,:)
-real(kind=sgl),allocatable              :: batchpatterns32(:,:,:), threadbatchpatterns32(:,:,:), threadbatchpatterns32lin(:,:)
-real(kind=sgl),allocatable              :: batchpatterns32lin(:,:)
-integer(kind=irg),allocatable           :: acc_array(:,:)
-real(kind=sgl),allocatable              :: master_arrayNH(:,:), master_arraySH(:,:), wf(:)
-character(len=3)                        :: outputformat
+real(kind=sgl),allocatable                       :: mask(:,:), lx(:), ly(:), masklin(:), binnedvec(:)
+character(kind=c_char),allocatable               :: batchpatterns(:,:,:), bpat(:,:), threadbatchpatterns(:,:,:)
+integer(kind=irg),allocatable                    :: batchpatternsint(:,:,:), bpatint(:,:), threadbatchpatternsint(:,:,:)
+real(kind=sgl),allocatable                       :: batchpatterns32(:,:,:), threadbatchpatterns32(:,:,:), threadbatchpatterns32lin(:,:)
+real(kind=sgl),allocatable                       :: batchpatterns32lin(:,:)
+integer(kind=irg),allocatable                    :: acc_array(:,:)
+real(kind=sgl),allocatable                       :: master_arrayNH(:,:), master_arraySH(:,:), wf(:)
+character(len=3)                                 :: outputformat
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 ! parameter for random number generator
-integer, parameter                      :: K4B=selected_int_kind(9)      ! used by ran function in math.f90
-integer(K4B)                            :: idum
+integer, parameter                               :: K4B=selected_int_kind(9)      ! used by ran function in math.f90
+integer(K4B)                                     :: idum
 
-integer(HSIZE_T), dimension(1:3)        :: hdims, offset
-integer(HSIZE_T), dimension(1:2)        :: hdims2, offset2
-integer(HSIZE_T)                        :: dims2(2), dims3(3)
-character(fnlen,kind=c_char)            :: line2(1)
-character(fnlen)                        :: groupname, dataset, datagroupname, attributename, HDF_FileVersion
-character(11)                           :: dstr
-character(15)                           :: tstrb
-character(15)                           :: tstre
-character(10)                           :: char10
-character(fnlen)                        :: datafile
-logical                                 :: overwrite = .TRUE., insert = .TRUE., singlebatch
-character(5)                            :: bitmode
-integer(kind=irg)                       :: numbits
-real(kind=sgl)                          :: bitrange
+integer(HSIZE_T), dimension(1:3)                 :: hdims, offset
+integer(HSIZE_T), dimension(1:2)                 :: hdims2, offset2
+integer(HSIZE_T)                                 :: dims2(2), dims3(3)
+character(fnlen,kind=c_char)                     :: line2(1)
+character(fnlen)                                 :: groupname, dataset, datagroupname, attributename, HDF_FileVersion
+character(11)                                    :: dstr
+character(15)                                    :: tstrb
+character(15)                                    :: tstre
+character(10)                                    :: char10
+character(fnlen)                                 :: datafile
+logical                                          :: overwrite = .TRUE., insert = .TRUE., singlebatch
+character(5)                                     :: bitmode
+integer(kind=irg)                                :: numbits
+real(kind=sgl)                                   :: bitrange
 
 ! new stuff: deformation tensor
-real(kind=dbl)                          :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3,3), quF(4), Fmatrix_inverse(3,3), &
+real(kind=dbl)                                   :: Umatrix(3,3), Fmatrix(3,3), Smatrix(3,3), quF(4), Fmatrix_inverse(3,3), &
                                            Gmatrix(3,3)
 logical                                 :: includeFmatrix=.FALSE., noise, isTKD=.FALSE.
 
@@ -2517,11 +2517,8 @@ class(EBSDkin_T), INTENT(INOUT)         :: self
 integer(kind=irg),INTENT(IN)            :: nsx
 integer(kind=irg),INTENT(IN)            :: nsy
 real(kind=sgl),INTENT(INOUT)            :: tgx(nsx,nsy)
-!f2py intent(in,out) ::  tgx
 real(kind=sgl),INTENT(INOUT)            :: tgy(nsx,nsy)
-!f2py intent(in,out) ::  tgy
 real(kind=sgl),INTENT(INOUT)            :: tgz(nsx,nsy)
-!f2py intent(in,out) ::  tgz
 real(kind=sgl),INTENT(IN)               :: patcntr(3)
 logical,INTENT(IN),OPTIONAL             :: bg
 

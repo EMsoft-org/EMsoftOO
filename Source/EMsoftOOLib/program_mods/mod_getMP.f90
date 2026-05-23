@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -130,20 +130,20 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(getMP_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(getMP_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)   :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)   :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                :: EMsoft
+type(IO_T)                    :: Message
+logical                       :: skipread = .FALSE.
 
-character(fnlen)  :: masterfile
-character(fnlen)  :: projectionmode
-character(fnlen)  :: outputfile
-logical           :: ratioimage
+character(fnlen)              :: masterfile
+character(fnlen)              :: projectionmode
+character(fnlen)              :: outputfile
+logical                       :: ratioimage
 
 namelist / getMPlist / masterfile, projectionmode, outputfile, ratioimage
 
@@ -325,35 +325,35 @@ use mod_image
 use mod_Lambert
 use stringconstants
 use ISO_C_BINDING
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(getMP_T), INTENT(INOUT)           :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
+class(getMP_T), INTENT(INOUT)   :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname
 
-type(IO_T)                              :: Message
-type(MCfile_T)                          :: MCFT
-type(MPfile_T)                          :: MPFT
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(Lambert_T)                         :: L
-type(SEMmasterNameListType)             :: mpnl
+type(IO_T)                      :: Message
+type(MCfile_T)                  :: MCFT
+type(MPfile_T)                  :: MPFT
+type(HDF_T)                     :: HDF
+type(HDFnames_T)                :: HDFnames
+type(Lambert_T)                 :: L
+type(SEMmasterNameListType)     :: mpnl
 
-character(fnlen)                        :: fname, modality, TIFF_filename1, TIFF_filename2, TIFF_filename3
-integer(kind=irg)                       :: i, j, ierr, n, d, TIFF_nx, TIFF_ny, sz(3)
-real(kind=sgl),allocatable              :: mLPNH(:,:), mLPSH(:,:), weights(:), masterSPNH(:,:), masterSPSH(:,:), ratio(:,:)
-real(kind=sgl)                          :: avNH, avSH, mi, ma, xyzs(3)
-real(kind=dbl)                          :: xyz(3), Radius
+character(fnlen)                :: fname, modality, TIFF_filename1, TIFF_filename2, TIFF_filename3
+integer(kind=irg)               :: i, j, ierr, n, d, TIFF_nx, TIFF_ny, sz(3)
+real(kind=sgl),allocatable      :: mLPNH(:,:), mLPSH(:,:), weights(:), masterSPNH(:,:), masterSPSH(:,:), ratio(:,:)
+real(kind=sgl)                  :: avNH, avSH, mi, ma, xyzs(3)
+real(kind=dbl)                  :: xyz(3), Radius
 
 ! declare variables for use in object oriented image module
-integer                                 :: iostat
-character(len=128)                      :: iomsg
-logical                                 :: isInteger
-type(image_t)                           :: im
-integer(int8)                           :: i8 (3,4)
-integer(int8), allocatable              :: TIFF_image1(:,:), TIFF_image2(:,:), TIFF_ratio(:,:)
+integer                         :: iostat
+character(len=128)              :: iomsg
+logical                         :: isInteger
+type(image_t)                   :: im
+integer(int8)                   :: i8 (3,4)
+integer(int8), allocatable      :: TIFF_image1(:,:), TIFF_image2(:,:), TIFF_ratio(:,:)
 
 
 associate(enl=>self%nml, MCDT=>MCFT%MCDT, MPDT=>MPFT%MPDT)

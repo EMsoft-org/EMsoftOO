@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2014-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2014-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -376,12 +376,13 @@ IMPLICIT NONE
 
 !> 32 3D point group symbols in International Tables order; additional quasi-crystal rotational
 !> groups are added at the end of the list
-  character(5), public, dimension(36):: PGTHD =(/ '    1','   -1','    2','    m','  2/m','  222', &
+  character(5), public, dimension(41):: PGTHD =(/ '    1','   -1','    2','    m','  2/m','  222', &
                                                   '  mm2','  mmm','    4','   -4','  4/m','  422', &
                                                   '  4mm',' -42m','4/mmm','    3','   -3','   32', &
                                                   '   3m','  -3m','    6','   -6','  6/m','  622', &
                                                   '  6mm',' -6m2','6/mmm','   23','   m3','  432', &
-                                                  ' -43m',' m-3m','  532','  822',' 1022',' 1222' /)
+                                                  ' -43m',' m-3m','  532','  822',' 1022',' 1222', &
+                                                  '  312','  31m',' -31m',' -4m2',' -62m' /)
 !DEC$ ATTRIBUTES DLLEXPORT :: PGTHD
 
 !> 32 3D point group orders in International Tables order
@@ -399,10 +400,11 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: RPGorder
 
 !> 3D point groups : purely rotational point groups corresponding to each point group
-  integer(kind=irg), public, dimension(36)   :: PGrot = (/ &
+! updated with special cases of point groups with two orientations [10/22/25]
+  integer(kind=irg), public, dimension(41)   :: PGrot = (/ &
                                                 1,1,3,1,3,6,3,6,9,3,9,12,9,6,12,16,16, &
                                                 18,16,18,21,16,21,24,21,18,24,28,28,30, &
-                                                28,30,33,34,35,36/)
+                                                28,30,33,34,35,36,37,16,37,40,37/)
 !DEC$ ATTRIBUTES DLLEXPORT :: PGrot
 
 !> 3D point groups : Laue group number
@@ -825,13 +827,13 @@ use mod_io
 
 IMPLICIT NONE
 
-integer(kind=irg), intent(in), OPTIONAL :: SGnumber
-integer(kind=irg), intent(in), OPTIONAL :: xtalSystem
-integer(kind=irg), intent(in), OPTIONAL :: setting
-real(kind=dbl), intent(in),OPTIONAL     :: dmt(3,3)
-real(kind=dbl), intent(in),OPTIONAL     :: rmt(3,3)
-logical, intent(in), OPTIONAL           :: useHall
-integer(kind=irg), intent(in), OPTIONAL :: HallSGnumber
+integer(kind=irg), INTENT(IN), OPTIONAL :: SGnumber
+integer(kind=irg), INTENT(IN), OPTIONAL :: xtalSystem
+integer(kind=irg), INTENT(IN), OPTIONAL :: setting
+real(kind=dbl), INTENT(IN),OPTIONAL     :: dmt(3,3)
+real(kind=dbl), INTENT(IN),OPTIONAL     :: rmt(3,3)
+logical, INTENT(IN), OPTIONAL           :: useHall
+integer(kind=irg), INTENT(IN), OPTIONAL :: HallSGnumber
 
 type(IO_T)                              :: Message
 type(PointGroup_T)                      :: PG 
@@ -1028,7 +1030,7 @@ recursive subroutine SpaceGroup_destructor(self)
 
 IMPLICIT NONE
 
-type(SpaceGroup_T), intent(inout)     :: self
+type(SpaceGroup_T), INTENT(INOUT)     :: self
 
 call reportDestructor('SpaceGroup_T')
 
@@ -1050,8 +1052,8 @@ type(PointGroup_T) function PointGroup_constructor( SG, dmt, rmt ) result(PG)
 IMPLICIT NONE
 
 class(SpaceGroup_T), INTENT(INOUT)  :: SG
-real(kind=dbl), intent(in)          :: dmt(3,3)
-real(kind=dbl), intent(in)          :: rmt(3,3)
+real(kind=dbl), INTENT(IN)          :: dmt(3,3)
+real(kind=dbl), INTENT(IN)          :: rmt(3,3)
 
 integer(kind=irg)                   :: i, pgnum, SGnumber 
 
@@ -1100,7 +1102,7 @@ recursive subroutine PointGroup_destructor(self)
 
 IMPLICIT NONE
 
-type(PointGroup_T), intent(inout)     :: self
+type(PointGroup_T), INTENT(INOUT)     :: self
 
 call reportDestructor('SpaceGroup_T')
 
@@ -1119,7 +1121,7 @@ recursive subroutine resetSpaceGroup_(self)
 
 IMPLICIT NONE
 
-class(SpaceGroup_T), intent(inout)     :: self
+class(SpaceGroup_T), INTENT(INOUT)     :: self
 
 if (allocated(self%data)) deallocate(self%data)
 if (allocated(self%direc)) deallocate(self%direc)
@@ -1151,7 +1153,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(SpaceGroup_T), intent(inout)     :: self
+class(SpaceGroup_T), INTENT(INOUT)     :: self
 
 type(IO_T)                             :: Message
 integer(kind=irg)                      :: io_int(1)
@@ -1212,7 +1214,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(SpaceGroup_T), intent(inout)     :: self
+class(SpaceGroup_T), INTENT(INOUT)     :: self
 
 type(IO_T)                             :: Message
 integer(kind=irg)                      :: sgmin,sgmax,i,j,TRIG(7), io_int(1), HallSGnumber
@@ -1366,7 +1368,7 @@ use mod_HallSG
 
 IMPLICIT NONE
 
-class(SpaceGroup_T), intent(inout)      :: self
+class(SpaceGroup_T), INTENT(INOUT)      :: self
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: io_int(1), TRIG(7)
@@ -1512,7 +1514,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(SpaceGroup_T),intent(inout)     :: self
+class(SpaceGroup_T),INTENT(INOUT)     :: self
 
 real(kind=dbl)                        :: lp(6)
 
@@ -2509,20 +2511,20 @@ recursive subroutine CalcFamily_(self, ind, num, space, itmp)
 
 IMPLICIT NONE
 
-class(SpaceGroup_T),INTENT(INOUT)       :: self
-integer(kind=irg),INTENT(OUT)           :: num
+class(SpaceGroup_T),INTENT(INOUT)          :: self
+integer(kind=irg),INTENT(OUT)              :: num
  !! number of equivalent entries generated
-integer(kind=irg),INTENT(IN)            :: ind(3)
+integer(kind=irg),INTENT(IN)               :: ind(3)
  !! input triplet
-character(1),INTENT(IN)                 :: space
+character(1),INTENT(IN)                    :: space
  !! 'd' or 'r'
 integer(kind=irg),allocatable, INTENT(OUT) :: itmp(:,:)
  !! array used for family computations etc
 
-integer(kind=irg)                       :: m,i,j
-real(kind=sgl)                          :: h,k,l,ih,ik,il,idiff
-logical                                 :: newpoint
-real,parameter                          :: eps=0.0001_sgl
+integer(kind=irg)                          :: m,i,j
+real(kind=sgl)                             :: h,k,l,ih,ik,il,idiff
+logical                                    :: newpoint
+real,parameter                             :: eps=0.0001_sgl
 
 allocate(itmp(self%NUMpt, 3))
 

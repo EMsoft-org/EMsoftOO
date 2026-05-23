@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -57,7 +57,7 @@ character(fnlen)            :: progdesc = 'List equivalent positions for arbitra
 character(3)                :: pos
 integer(kind=irg)           :: p(4),ii,jj,i, io_int(1), HSGnum
 real(kind=sgl)              :: ppp, io_real(1)
-real(kind=dbl),allocatable  :: sgdata(:,:,:)
+real(kind=dbl), allocatable :: sgdata(:,:,:)
 character(fnlen)            :: mess
 character(16)               :: HS
 

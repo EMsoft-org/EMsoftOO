@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -150,22 +150,22 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(IPF_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(IPF_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)              :: EMsoft 
+type(IO_T)                  :: Message       
+logical                     :: skipread = .FALSE.
 
-character(fnlen)        :: dotproductfile
-character(fnlen)        :: IPFfilename
-character(fnlen)        :: IPFmode
-integer(kind=irg)       :: sampleDir(3)
-integer(kind=irg)       :: nthreads
-integer(kind=irg)       :: pgnum
+character(fnlen)            :: dotproductfile
+character(fnlen)            :: IPFfilename
+character(fnlen)            :: IPFmode
+integer(kind=irg)           :: sampleDir(3)
+integer(kind=irg)           :: nthreads
+integer(kind=irg)           :: pgnum
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / getIPF / dotproductfile, IPFfilename, sampleDir, nthreads, IPFmode, pgnum

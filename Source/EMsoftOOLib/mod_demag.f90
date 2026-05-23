@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -229,20 +229,20 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(demag_T), INTENT(INOUT)        :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(demag_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)   :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)   :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                :: EMsoft 
+type(IO_T)                    :: Message       
+logical                       :: skipread = .FALSE.
 
-integer(kind=irg)         :: dims
-logical                   :: dtf
-character(fnlen)          :: shampFilename
-character(fnlen)          :: outname
+integer(kind=irg)             :: dims
+logical                       :: dtf
+character(fnlen)              :: shampFilename
+character(fnlen)              :: outname
 
 namelist / Demag / dims, dtf, shampFilename, outname 
 

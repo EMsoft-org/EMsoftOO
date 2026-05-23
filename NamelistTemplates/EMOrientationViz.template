@@ -28,6 +28,8 @@
  eulerspace = 1,
 ! reduce orientations to RFZ (1) or display all equivalent orientations (0)
  reducetoRFZ = 1,
+! sometimes it is useful to be able to generate all the symmetrically equivalent orientations
+ applysymmetry = 0, 
 ! should we draw the RFZ outline ?  1 for yes, 0 for no 
  drawRFZoutline = 1,
 ! [experimental] draw all equivalent RFZs in different colors; supercedes drawRFZoutline

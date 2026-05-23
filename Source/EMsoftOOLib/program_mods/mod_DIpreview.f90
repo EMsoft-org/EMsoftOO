@@ -200,34 +200,34 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(DIpreview_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(DIpreview_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)       :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)       :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                    :: EMsoft
+type(IO_T)                        :: Message
+logical                           :: skipread = .FALSE.
 
 
-integer(kind=irg) :: numsx
-integer(kind=irg) :: numsy
-integer(kind=irg) :: hipasswnsteps
-integer(kind=irg) :: nregionsmin
-integer(kind=irg) :: nregionsmax
-integer(kind=irg) :: nregionsstepsize
-integer(kind=irg) :: patx
-integer(kind=irg) :: paty
-integer(kind=irg) :: ipf_wd
-integer(kind=irg) :: ipf_ht
-integer(kind=irg) :: numav
-real(kind=sgl)    :: hipasswmax
-character(fnlen)  :: patternfile
-character(fnlen)  :: tifffile
-character(fnlen)  :: exptfile
-character(fnlen)  :: inputtype
-character(fnlen)  :: HDFstrings(10)
+integer(kind=irg)                 :: numsx
+integer(kind=irg)                 :: numsy
+integer(kind=irg)                 :: hipasswnsteps
+integer(kind=irg)                 :: nregionsmin
+integer(kind=irg)                 :: nregionsmax
+integer(kind=irg)                 :: nregionsstepsize
+integer(kind=irg)                 :: patx
+integer(kind=irg)                 :: paty
+integer(kind=irg)                 :: ipf_wd
+integer(kind=irg)                 :: ipf_ht
+integer(kind=irg)                 :: numav
+real(kind=sgl)                    :: hipasswmax
+character(fnlen)                  :: patternfile
+character(fnlen)                  :: tifffile
+character(fnlen)                  :: exptfile
+character(fnlen)                  :: inputtype
+character(fnlen)                  :: HDFstrings(10)
 
 namelist / EBSDDIpreviewdata / numsx, numsy, hipasswmax, hipasswnsteps, nregionsstepsize, &
           nregionsmax, nregionsmin, patx, paty, tifffile, exptfile, inputtype, HDFstrings, ipf_wd, &
@@ -943,7 +943,7 @@ subroutine DIpreview_(self, EMsoft, progname)
 
 use mod_EMsoft
 use mod_image
-use, intrinsic :: iso_fortran_env
+use, intrinsic                    :: iso_fortran_env
 use mod_io
 use mod_filters
 use mod_vendors
@@ -952,16 +952,16 @@ use mod_HDFsupport
 
 IMPLICIT NONE
 
-class(DIpreview_T), INTENT(INOUT)       :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
+class(DIpreview_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)     :: EMsoft
+character(fnlen), INTENT(INOUT)   :: progname
 
-type(Vendor_T)                          :: VT
-type(IO_T)                              :: Message
-type(HDF_T)                             :: HDF
+type(Vendor_T)                    :: VT
+type(IO_T)                        :: Message
+type(HDF_T)                       :: HDF
 
-character(fnlen)                        :: ename, image_filename, fname
-integer(kind=irg)                       :: iunitexpt, recordsize, ierr, kk, ii, jj, i, j, numr, numw, binx, biny, &
+character(fnlen)                  :: ename, image_filename, fname
+integer(kind=irg)                 :: iunitexpt, recordsize, ierr, kk, ii, jj, i, j, numr, numw, binx, biny, &
                                            xoffset, yoffset, io_int(2), istat, L, patsz , hdferr, nx, ny
 integer(HSIZE_T)                        :: dims3(3), offset3(3)
 logical                                 :: f_exists

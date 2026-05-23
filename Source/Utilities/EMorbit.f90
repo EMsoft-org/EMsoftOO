@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -50,8 +50,8 @@ type(SpaceGroup_T)          :: SG
 character(fnlen)            :: progname = 'EMorbit.f90'
 character(fnlen)            :: progdesc = 'List the orbit of a given position'
 
-real(kind=dbl),allocatable  :: ctmp(:,:)
-integer(kind=irg)           :: i,m,n,ans, io_int(1) 
+real(kind=dbl), allocatable :: ctmp(:,:)
+integer(kind=irg)           :: i,n,ans, io_int(1)
 real(kind=sgl)              :: io_real(3)
 character(fnlen)            :: xtalname
 

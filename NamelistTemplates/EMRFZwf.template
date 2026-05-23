@@ -1,0 +1,13 @@
+ &EMRFZwf
+! The line above must not be changed
+!
+! The values below are the default values for this program
+!
+! output hdf5 file name (relative to EMdatapathname)
+ hdfname = 'undefined',
+! prefix for png PoVray renderings (relative to EMdatapathname)
+ prefix = 'undefined',
+! PoVray paths 
+ PVexec = 'undefined',
+ PVincludepath = 'undefined',
+ /

@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -193,19 +193,19 @@ type(EMsoft_T)                       :: EMsoft
 type(IO_T)                           :: Message
 logical                              :: skipread = .FALSE.
 
-integer(kind=irg)       :: numthick
-integer(kind=irg)       :: npx
-integer(kind=irg)       :: nthreads
-real(kind=sgl)          :: sig
-real(kind=sgl)          :: voltage
-real(kind=sgl)          :: dmin
-real(kind=sgl)          :: startthick
-real(kind=sgl)          :: thickinc
-real(kind=sgl)          :: tfraction
-character(6)            :: Kosselmode
-character(fnlen)        :: xtalname
-character(fnlen)        :: outname
-character(fnlen)        :: BetheParametersFile
+integer(kind=irg)                    :: numthick
+integer(kind=irg)                    :: npx
+integer(kind=irg)                    :: nthreads
+real(kind=sgl)                       :: sig
+real(kind=sgl)                       :: voltage
+real(kind=sgl)                       :: dmin
+real(kind=sgl)                       :: startthick
+real(kind=sgl)                       :: thickinc
+real(kind=sgl)                       :: tfraction
+character(6)                         :: Kosselmode
+character(fnlen)                     :: xtalname
+character(fnlen)                     :: outname
+character(fnlen)                     :: BetheParametersFile
 
 namelist /Kosselmasterlist/ xtalname, voltage, dmin, nthreads, BetheParametersFile, sig, &
                             startthick, thickinc, numthick, tfraction, outname, npx, Kosselmode
@@ -850,27 +850,27 @@ use stringconstants
 
 IMPLICIT NONE
 
-class(Kosselmaster_T), INTENT(INOUT)    :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
+class(Kosselmaster_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)        :: EMsoft
+character(fnlen), INTENT(INOUT)      :: progname
 
-type(Cell_T)                    :: cell
-type(DynType)                   :: Dyn
-type(Timing_T)                  :: timer
-type(IO_T)                      :: Message
-type(Lambert_T)                 :: L
-type(HDF_T)                     :: HDF
-type(SpaceGroup_T)              :: SG
-type(Diffraction_T)             :: Diff
-type(MPfile_T)                  :: MPFT
-type(kvectors_T)                :: kvec
-type(gvectors_T)                :: reflist
-type(HDFnames_T)                :: HDFnames
+type(Cell_T)                         :: cell
+type(DynType)                        :: Dyn
+type(Timing_T)                       :: timer
+type(IO_T)                           :: Message
+type(Lambert_T)                      :: L
+type(HDF_T)                          :: HDF
+type(SpaceGroup_T)                   :: SG
+type(Diffraction_T)                  :: Diff
+type(MPfile_T)                       :: MPFT
+type(kvectors_T)                     :: kvec
+type(gvectors_T)                     :: reflist
+type(HDFnames_T)                     :: HDFnames
 
-real(kind=dbl)                  :: ctmp(192,3), arg
-integer(HSIZE_T)                :: dims3(3), cnt3(3), offset3(3)
-integer(HSIZE_T)                :: dims2(2), cnt2(2), offset2(2)
-integer(kind=irg)               :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
+real(kind=dbl)                       :: ctmp(192,3), arg
+integer(HSIZE_T)                     :: dims3(3), cnt3(3), offset3(3)
+integer(HSIZE_T)                     :: dims2(2), cnt2(2), offset2(2)
+integer(kind=irg)                    :: isym,i,j,ik,npy,ipx,ipy,ipz,debug,izz, izzmax, iequiv(3,48), nequiv, num_el, MCnthreads, & ! counters
                                    SamplingType,numk,numthick,  nthreads, & ! number of independent incident beam directions
                                    ir,kk(3), npyhex, skip, ijmax, one, NUMTHREADS, TID, hdferr, tickstart, &
                                    n,ix,iy, io_int(6), nns, nnw, nref, nix, niy, nixp, niyp, ierr, &
@@ -1509,7 +1509,6 @@ complex(kind=dbl),INTENT(IN)    :: DynMat(nn,nn)
 real(kind=sgl),INTENT(IN)       :: kn
 real(kind=sgl),INTENT(IN)       :: thresh               !< thickness fraction parameter
 real(kind=sgl),INTENT(INOUT)    :: Iz(1)                !< output (thickness)
-!f2py intent(in,out) ::  Iz
 
 type(diffraction_T)             :: Diff
 integer(kind=irg)               :: j, IPIV(nn), k
@@ -1569,7 +1568,6 @@ real(kind=sgl),INTENT(IN)       :: kn
 integer(kind=irg),INTENT(IN)    :: nt                   !< number of thickness values
 real(kind=sgl),INTENT(IN)       :: thick(nt)            !< thickness array
 real(kind=sgl),INTENT(INOUT)    :: Iz(nt)               !< output intensities
-!f2py intent(in,out) ::  Iz
 
 type(diffraction_T)             :: Diff
 integer(kind=irg)               :: j, IPIV(nn), k

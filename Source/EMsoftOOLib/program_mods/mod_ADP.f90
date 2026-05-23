@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -1016,37 +1016,37 @@ use mod_io
 
 IMPLICIT NONE
 
-class(ADP_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(ADP_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(IO_T)                  :: Message
+logical                     :: skipread = .FALSE.
 
-integer(kind=irg)       :: ipf_ht
-integer(kind=irg)       :: ipf_wd
-integer(kind=irg)       :: maskradius
-integer(kind=irg)       :: numsx
-integer(kind=irg)       :: numsy
-integer(kind=irg)       :: nthreads
-integer(kind=irg)       :: nregions
-integer(kind=irg)       :: ROI(4)
-integer(kind=irg)       :: sw
-real(kind=dbl)          :: hipassw
-real(kind=sgl)          :: lambda
-character(1)            :: maskpattern
-character(1)            :: filterpattern
-character(1)            :: keeptmpfile
-character(1)            :: usetmpfile
-character(fnlen)        :: exptfile
-character(fnlen)        :: tmpfile
-character(fnlen)        :: tiffname
-character(fnlen)        :: maskfile
-character(fnlen)        :: inputtype
-character(fnlen)        :: HDFstrings(10)
-logical                 :: doNLPAR
+integer(kind=irg)           :: ipf_ht
+integer(kind=irg)           :: ipf_wd
+integer(kind=irg)           :: maskradius
+integer(kind=irg)           :: numsx
+integer(kind=irg)           :: numsy
+integer(kind=irg)           :: nthreads
+integer(kind=irg)           :: nregions
+integer(kind=irg)           :: ROI(4)
+integer(kind=irg)           :: sw
+real(kind=dbl)              :: hipassw
+real(kind=sgl)              :: lambda
+character(1)                :: maskpattern
+character(1)                :: filterpattern
+character(1)                :: keeptmpfile
+character(1)                :: usetmpfile
+character(fnlen)            :: exptfile
+character(fnlen)            :: tmpfile
+character(fnlen)            :: tiffname
+character(fnlen)            :: maskfile
+character(fnlen)            :: inputtype
+character(fnlen)            :: HDFstrings(10)
+logical                     :: doNLPAR
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / getADP / numsx, numsy, nregions, maskpattern, nthreads, ipf_ht, ipf_wd, exptfile, maskradius, inputtype, &
@@ -1175,27 +1175,27 @@ use mod_image
 use mod_NLPAR
 use mod_memory
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(ADP_T), INTENT(INOUT)                         :: self
-type(EMsoft_T), INTENT(INOUT)                       :: EMsoft
-character(fnlen), INTENT(INOUT)                     :: progname
+class(ADP_T), INTENT(INOUT)     :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname
 
-type(IO_T)                                          :: Message
-type(HDF_T)                                         :: HDF
-type(timing_T)                                      :: timer
-type(NLPAR_T)                                       :: NLPAR 
-type(memory_T)                                      :: mem 
+type(IO_T)                      :: Message
+type(HDF_T)                     :: HDF
+type(timing_T)                  :: timer
+type(NLPAR_T)                   :: NLPAR 
+type(memory_T)                  :: mem 
 
-integer(kind=irg)                                   :: num,ierr,irec,istat
-integer(kind=irg),parameter                         :: iunit = 40
-integer(kind=irg),parameter                         :: iunitexpt = 41
-integer(kind=irg),parameter                         :: iunitdict = 42
-integer(kind=irg),parameter                         :: itmpexpt = 43
+integer(kind=irg)               :: num,ierr,irec,istat
+integer(kind=irg),parameter     :: iunit = 40
+integer(kind=irg),parameter     :: iunitexpt = 41
+integer(kind=irg),parameter     :: iunitdict = 42
+integer(kind=irg),parameter     :: itmpexpt = 43
 
-integer(kind=irg)                                   :: L,totnumexpt,imght,imgwd,nnk, recordsize, iii, hdferr,&
+integer(kind=irg)               :: L,totnumexpt,imght,imgwd,nnk, recordsize, iii, hdferr,&
                                                        recordsize_correct, patsz, TIFF_nx, TIFF_ny
 real(kind=sgl),allocatable                          :: imageexpt(:),mask(:,:),masklin(:),exppatarray(:),tmpexppatarray(:),exptIQ(:)
 real(kind=sgl),allocatable                          :: imageexptflt(:),binned(:,:),imagedictflt(:),imagedictfltflip(:), &
@@ -1376,6 +1376,7 @@ if (adpnl%usetmpfile.eq.'n') then
   dinl%HDFstrings = adpnl%HDFstrings
   dinl%nregions = adpnl%nregions
   dinl%DIModality = 'EBSD'
+  dinl%flipy = .FALSE.
 
   if (adpnl%doNLPAR.eqv..TRUE.) then 
     NLPAR = NLPAR_T()

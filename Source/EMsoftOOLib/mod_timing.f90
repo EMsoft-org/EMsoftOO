@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -149,7 +149,7 @@ recursive subroutine Time_tick(self, n)
 IMPLICIT NONE
 
 class(Timing_T)                         :: self
-integer(kind=irg), intent(IN), OPTIONAL :: n
+integer(kind=irg), INTENT(IN), OPTIONAL :: n
  !! integer labeling the counter to be used
 
 integer(kind=irg)                       :: i, t
@@ -175,7 +175,7 @@ recursive subroutine Time_tock(self, n)
 IMPLICIT NONE
 
 class(Timing_T)                         :: self
-integer(kind=irg), intent(in), OPTIONAL :: n
+integer(kind=irg), INTENT(IN), OPTIONAL :: n
  !! integer labeling the counter to be used
 
 integer(kind=irg)                       :: i, now, clock_rate
@@ -202,7 +202,7 @@ recursive subroutine Time_reset(self, n)
 IMPLICIT NONE
 
 class(Timing_T)                         :: self
-integer(kind=irg), intent(in), OPTIONAL :: n
+integer(kind=irg), INTENT(IN), OPTIONAL :: n
  !! selects which clock to reset; if absent, reset all
 
 integer(kind=irg)                       :: i
@@ -232,7 +232,7 @@ recursive function getInterval(self, n) result(t)
 IMPLICIT NONE
 
 class(Timing_T)                         :: self
-integer(kind=irg), intent(in), OPTIONAL :: n
+integer(kind=irg), INTENT(IN), OPTIONAL :: n
  !! optional selected timer
 
 real(kind=sgl)                          :: t
@@ -332,7 +332,7 @@ subroutine makeTimeStamp (self)
 
   IMPLICIT NONE
 
-  class(Timing_T),intent(inout)         :: self
+  class(Timing_T),INTENT(INOUT)         :: self
 
   integer(kind=irg)                     :: d, h, mo, mm, n, s, v(8), y
   character ( len = 8 )                 :: ampm, date
@@ -400,7 +400,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)    :: TT
-! !f2py intent(in,out) ::  TT
 
 ! TT%TIME_t_count = 0.0
 ! TT%TIME_unit_count = 0.0
@@ -434,7 +433,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 ! real(kind=sgl),intent(IN)           :: interval
 
 !  TT%TIME_interval = interval
@@ -461,7 +459,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 
 ! ! start the timing of the computation
 !  call Time_reset(TT)
@@ -490,7 +487,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 ! integer(kind=irg),intent(IN)         :: numk
 
 ! integer(kind=irg)              :: TIME_nc
@@ -530,7 +526,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 ! integer(kind=irg),intent(IN)       :: ik
 ! integer(kind=irg),intent(IN)       :: numk
 
@@ -634,7 +629,6 @@ end subroutine makeTimeStamp
 ! IMPLICIT NONE
 
 ! type(timetype),INTENT(INOUT)        :: TT
-! !f2py intent(in,out) ::  TT
 ! integer(kind=irg),INTENT(IN)          :: numk
 
 ! real(kind=sgl)                :: io_real(1)

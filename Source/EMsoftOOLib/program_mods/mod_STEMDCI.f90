@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -205,34 +205,34 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(STEMDCI_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)     :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)     :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                  :: EMsoft 
+type(IO_T)                      :: Message       
+logical                         :: skipread = .FALSE.
 
-integer(kind=irg) :: DF_npix
-integer(kind=irg) :: DF_npiy
-integer(kind=irg) :: dinfo
-integer(kind=irg) :: nthreads
-integer(kind=irg) :: t_interval
-integer(kind=irg) :: kk(3)
-real(kind=sgl)    :: voltage
-real(kind=sgl)    :: lauec(2)
-real(kind=sgl)    :: DF_L
-real(kind=sgl)    :: DF_slice
-real(kind=sgl)    :: dmin
-character(4)      :: progmode
-character(3)      :: dispmode
-character(fnlen)  :: outname
-character(fnlen)  :: dispfile
-character(fnlen)  :: xtalname
-character(fnlen)  :: STEMnmlfile
-character(fnlen)  :: defectjsonfile
+integer(kind=irg)               :: DF_npix
+integer(kind=irg)               :: DF_npiy
+integer(kind=irg)               :: dinfo
+integer(kind=irg)               :: nthreads
+integer(kind=irg)               :: t_interval
+integer(kind=irg)               :: kk(3)
+real(kind=sgl)                  :: voltage
+real(kind=sgl)                  :: lauec(2)
+real(kind=sgl)                  :: DF_L
+real(kind=sgl)                  :: DF_slice
+real(kind=sgl)                  :: dmin
+character(4)                    :: progmode
+character(3)                    :: dispmode
+character(fnlen)                :: outname
+character(fnlen)                :: dispfile
+character(fnlen)                :: xtalname
+character(fnlen)                :: STEMnmlfile
+character(fnlen)                :: defectjsonfile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist / STEMDCIdata / nthreads, voltage, progmode, xtalname, kk, lauec, STEMnmlfile, &
@@ -657,8 +657,8 @@ subroutine setvoltage_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)      :: inp
 
 self%nml%voltage = inp
 
@@ -675,8 +675,8 @@ function getvoltage_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl)                  :: out
 
 out = self%nml%voltage
 
@@ -693,8 +693,8 @@ subroutine setlauec_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp(2)
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)      :: inp(2)
 
 self%nml%lauec = inp
 
@@ -711,8 +711,8 @@ function getlauec_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out(2)
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl)                  :: out(2)
 
 out = self%nml%lauec
 
@@ -729,8 +729,8 @@ subroutine setDF_L_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)      :: inp
 
 self%nml%DF_L = inp
 
@@ -747,8 +747,8 @@ function getDF_L_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl)                  :: out
 
 out = self%nml%DF_L
 
@@ -765,8 +765,8 @@ subroutine setDF_slice_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)      :: inp
 
 self%nml%DF_slice = inp
 
@@ -783,8 +783,8 @@ function getDF_slice_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl)                  :: out
 
 out = self%nml%DF_slice
 
@@ -801,8 +801,8 @@ subroutine setdmin_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)      :: inp
 
 self%nml%dmin = inp
 
@@ -819,8 +819,8 @@ function getdmin_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+real(kind=sgl)                  :: out
 
 out = self%nml%dmin
 
@@ -837,8 +837,8 @@ subroutine setprogmode_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(4), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(4), INTENT(IN)        :: inp
 
 self%nml%progmode = trim(inp)
 
@@ -855,8 +855,8 @@ function getprogmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(4)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(4)                    :: out
 
 out = trim(self%nml%progmode)
 
@@ -873,8 +873,8 @@ subroutine setdispmode_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)        :: inp
 
 self%nml%dispmode = trim(inp)
 
@@ -891,8 +891,8 @@ function getdispmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(3)                    :: out
 
 out = trim(self%nml%dispmode)
 
@@ -909,8 +909,8 @@ subroutine setoutname_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)    :: inp
 
 self%nml%outname = trim(inp)
 
@@ -927,8 +927,8 @@ function getoutname_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen)                :: out
 
 out = trim(self%nml%outname)
 
@@ -945,8 +945,8 @@ subroutine setdispfile_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)    :: inp
 
 self%nml%dispfile = trim(inp)
 
@@ -963,8 +963,8 @@ function getdispfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen)                :: out
 
 out = trim(self%nml%dispfile)
 
@@ -981,8 +981,8 @@ subroutine setxtalname_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)    :: inp
 
 self%nml%xtalname = trim(inp)
 
@@ -999,8 +999,8 @@ function getxtalname_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen)                :: out
 
 out = trim(self%nml%xtalname)
 
@@ -1017,8 +1017,8 @@ subroutine setSTEMnmlfile_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)    :: inp
 
 self%nml%STEMnmlfile = trim(inp)
 
@@ -1035,8 +1035,8 @@ function getSTEMnmlfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen)                :: out
 
 out = trim(self%nml%STEMnmlfile)
 
@@ -1053,8 +1053,8 @@ subroutine setdefectjsonfile_(self,inp)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)    :: inp
 
 self%nml%defectjsonfile = trim(inp)
 
@@ -1071,8 +1071,8 @@ function getdefectjsonfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEMDCI_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(STEMDCI_T), INTENT(INOUT) :: self
+character(fnlen)                :: out
 
 out = trim(self%nml%defectjsonfile)
 

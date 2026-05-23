@@ -48,6 +48,7 @@ type, public :: CliffordTorusNameListType
   integer(kind=irg)       :: doRiesz
   integer(kind=irg)       :: n
   integer(kind=irg)       :: pgnum
+  integer(kind=irg)       :: nthreads
   character(fnlen)        :: hdffile
   character(fnlen)        :: anglefile
   character(fnlen)        :: sqtfile
@@ -80,6 +81,8 @@ private
   procedure, pass(self) :: getdoRiesz_
   procedure, pass(self) :: setn_
   procedure, pass(self) :: getn_
+  procedure, pass(self) :: setnthreads_
+  procedure, pass(self) :: getnthreads_
   procedure, pass(self) :: setpgnum_
   procedure, pass(self) :: getpgnum_
   procedure, pass(self) :: setanglefile_
@@ -118,6 +121,8 @@ private
   generic, public :: getpgnum => getpgnum_
   generic, public :: setn => setn_
   generic, public :: getn => getn_
+  generic, public :: setnthreads => setnthreads_
+  generic, public :: getnthreads => getnthreads_
   generic, public :: setanglefile => setanglefile_
   generic, public :: getanglefile => getanglefile_
   generic, public :: setsqtfile => setsqtfile_
@@ -192,32 +197,33 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(CliffordTorus_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(CliffordTorus_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)           :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)           :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                        :: EMsoft 
+type(IO_T)                            :: Message       
+logical                               :: skipread = .FALSE.
 
-integer(kind=irg)       :: reducetoRFZ 
-integer(kind=irg)       :: overlayRFZ 
-integer(kind=irg)       :: symmetrize
-integer(kind=irg)       :: shownegativeq0
-integer(kind=irg)       :: logarithmic
-integer(kind=irg)       :: doRiesz
-integer(kind=irg)       :: n
-integer(kind=irg)       :: pgnum
-character(fnlen)        :: hdffile
-character(fnlen)        :: anglefile
-character(fnlen)        :: sqtfile
-character(fnlen)        :: zpfile 
-character(1)            :: background
+integer(kind=irg)                     :: reducetoRFZ 
+integer(kind=irg)                     :: overlayRFZ 
+integer(kind=irg)                     :: symmetrize
+integer(kind=irg)                     :: shownegativeq0
+integer(kind=irg)                     :: logarithmic
+integer(kind=irg)                     :: doRiesz
+integer(kind=irg)                     :: n
+integer(kind=irg)                     :: nthreads
+integer(kind=irg)                     :: pgnum
+character(fnlen)                      :: hdffile
+character(fnlen)                      :: anglefile
+character(fnlen)                      :: sqtfile
+character(fnlen)                      :: zpfile 
+character(1)                          :: background
 
 namelist  / CliffordTorus / reducetoRFZ, symmetrize, shownegativeq0, n, pgnum, anglefile, sqtfile, &
-                            zpfile, doRiesz, overlayRFZ, logarithmic, hdffile, background
+                            zpfile, doRiesz, overlayRFZ, logarithmic, hdffile, background, nthreads
 
 ! set the input parameters to default values
 anglefile = 'undefined' 
@@ -228,6 +234,7 @@ shownegativeq0 = 0
 logarithmic = 0
 doRiesz = 0
 n = 500
+nthreads = 13
 pgnum = 32
 hdffile = 'undefined'
 sqtfile = 'undefined'
@@ -263,6 +270,7 @@ self%nml%shownegativeq0 = shownegativeq0
 self%nml%logarithmic =logarithmic  
 self%nml%doRiesz =doRiesz 
 self%nml%n = n
+self%nml%nthreads = nthreads
 self%nml%pgnum = pgnum
 self%nml%sqtfile = sqtfile
 self%nml%zpfile = zpfile
@@ -299,8 +307,8 @@ subroutine setreducetoRFZ_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%reducetoRFZ = inp
 
@@ -317,8 +325,8 @@ function getreducetoRFZ_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%reducetoRFZ
 
@@ -335,8 +343,8 @@ subroutine setoverlayRFZ_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%overlayRFZ = inp
 
@@ -353,8 +361,8 @@ function getoverlayRFZ_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%overlayRFZ
 
@@ -371,8 +379,8 @@ subroutine setsymmetrize_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%symmetrize = inp
 
@@ -389,8 +397,8 @@ function getsymmetrize_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%symmetrize
 
@@ -407,8 +415,8 @@ subroutine setshownegativeq0_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%shownegativeq0 = inp
 
@@ -425,8 +433,8 @@ function getshownegativeq0_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%shownegativeq0
 
@@ -443,8 +451,8 @@ subroutine setlogarithmic_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%logarithmic = inp
 
@@ -461,8 +469,8 @@ function getlogarithmic_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%logarithmic
 
@@ -515,8 +523,8 @@ subroutine setn_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%n = inp
 
@@ -533,12 +541,48 @@ function getn_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%n
 
 end function getn_
+
+!--------------------------------------------------------------------------
+subroutine setnthreads_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnthreads_
+!! author: MDG
+!! version: 1.0
+!! date: 12/28/22
+!!
+!! set nthreads in the CliffordTorus_T class
+
+IMPLICIT NONE
+
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
+
+self%nml%nthreads = inp
+
+end subroutine setnthreads_
+
+!--------------------------------------------------------------------------
+function getnthreads_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnthreads_
+!! author: MDG
+!! version: 1.0
+!! date: 12/28/22
+!!
+!! get nthreads from the CliffordTorus_T class
+
+IMPLICIT NONE
+
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
+
+out = self%nml%nthreads
+
+end function getnthreads_
 
 !--------------------------------------------------------------------------
 subroutine setpgnum_(self,inp)
@@ -551,8 +595,8 @@ subroutine setpgnum_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)         :: inp
 
 self%nml%pgnum = inp
 
@@ -569,8 +613,8 @@ function getpgnum_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+integer(kind=irg)                     :: out
 
 out = self%nml%pgnum
 
@@ -587,8 +631,8 @@ subroutine setanglefile_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)          :: inp
 
 self%nml%anglefile = trim(inp)
 
@@ -605,8 +649,8 @@ function getanglefile_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+character(fnlen)                      :: out
 
 out = trim(self%nml%anglefile)
 
@@ -623,8 +667,8 @@ subroutine setsqtfile_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)          :: inp
 
 self%nml%sqtfile = trim(inp)
 
@@ -641,8 +685,8 @@ function getsqtfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+character(fnlen)                      :: out
 
 out = trim(self%nml%sqtfile)
 
@@ -659,8 +703,8 @@ subroutine setzpfile_(self,inp)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(CliffordTorus_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN)          :: inp
 
 self%nml%zpfile = trim(inp)
 
@@ -677,8 +721,8 @@ function getzpfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(CliffordTorus_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(CliffordTorus_T), INTENT(INOUT) :: self
+character(fnlen)                      :: out
 
 out = trim(self%nml%zpfile)
 
@@ -807,7 +851,7 @@ rieszoptimal = (/ 8.D0*dble(cnt)**2/3.D0/cPi, dble(cnt)**2, 2.D0*dble(cnt)**2*dl
 
 tsum = 0.D0
 thr = 1.0
-nthreads = OMP_GET_MAX_THREADS() 
+nthreads = self%nml%nthreads
 call OMP_SET_NUM_THREADS(nthreads)
 io_int(1) = nthreads
 call Message%WriteValue(' number of threads : ', io_int, 1)
@@ -871,25 +915,25 @@ use mod_rotations
 use mod_povray
 use ISO_C_BINDING
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(CliffordTorus_T),INTENT(INOUT)    :: self
-type(so3_T),INTENT(INOUT)               :: SO
-character(4),INTENT(IN)                 :: XYZ
-integer(kind=irg),INTENT(IN)            :: num
-integer(int8),INTENT(INOUT)             :: TIFF_image(num,num)
+class(CliffordTorus_T),INTENT(INOUT) :: self
+type(so3_T),INTENT(INOUT)            :: SO
+character(4),INTENT(IN)              :: XYZ
+integer(kind=irg),INTENT(IN)         :: num
+integer(int8),INTENT(INOUT)          :: TIFF_image(num,num)
 
-type(PoVRay_T)                          :: POV
-type(r_T)                               :: ro1, ro2, ro
-type(q_T)                               :: qu, q 
+type(PoVRay_T)                       :: POV
+type(r_T)                            :: ro1, ro2, ro
+type(q_T)                            :: qu, q 
 
-integer(kind=irg)                       :: dims(3), FZtype, FZorder, ns, nt, i, j, intXY(2), offset
-real(kind=dbl)                          :: d, dx, tpi, hpi, aux(4), xx, rod(3), XY(2), scl
-integer(kind=irg),allocatable           :: s_edge(:,:), t_edge(:,:)
-real(kind=dbl),allocatable              :: cpos(:,:)
-logical                                 :: twostep
+integer(kind=irg)                    :: dims(3), FZtype, FZorder, ns, nt, i, j, intXY(2), offset, rotate
+real(kind=dbl)                       :: d, dx, tpi, hpi, aux(4), xx, rod(3), XY(2), scl
+integer(kind=irg),allocatable        :: s_edge(:,:), t_edge(:,:)
+real(kind=dbl),allocatable           :: cpos(:,:)
+logical                              :: twostep
 
 call setRotationPrecision('Double')
 tpi = 2.D0 * cPi
@@ -898,6 +942,13 @@ scl = dble((num-1)/2)/cPi
 offset = (num-1)/2 + 1
 
 call SO%getFZtypeandorder(FZtype, FZorder)
+
+rotate = 0
+if (FZorder.lt.0) then
+  FZorder = abs(FZorder)
+  call POV%set_roto(FZorder)
+  rotate = FZorder 
+end if 
 
 ! there is no need to instantiate the PoVRay_T class; we only need to call 
 ! one of its methods which does not affect any parameters in the class 
@@ -908,25 +959,25 @@ if (FZtype.eq.2) then
     twostep = .TRUE.
     dims = (/ 24, 24, 12 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ622(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
   if (FZorder.eq.4) then
     twostep = .TRUE.
     dims = (/ 16, 16, 8 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ422(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
   if (FZorder.eq.3) then
     twostep = .TRUE.
     dims = (/ 12, 12, 6 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ32(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
   if (FZorder.eq.2) then
     twostep = .TRUE.
     dims = (/ 8, 8, 4 /)
     allocate(cpos(3,dims(1)), s_edge(2,dims(2)), t_edge(2,dims(3)))
-    call POV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt)
+    call POV%getpos_FZ222(dims, cpos, s_edge, t_edge, ns, d, nt, rotate)
   end if
 end if
 
@@ -1130,7 +1181,7 @@ type(q_T)                               :: q
 type(IO_T)                              :: Message 
 
 integer(kind=irg)                       :: i, j, k, nn, ixx, iyy, px, py, io_int(2), nthreads, TID, sw  
-real(kind=dbl)                          :: ss, kk, dx, dy, zx, ee, qq(4), XY(2), z1(cnt), z2(cnt)
+real(kind=dbl)                          :: ss, kk, dx, dy, zx, ee, qq(4), XY(2), z1(cnt), z2(cnt), io_dbl(2)
 real(kind=dbl),parameter                :: s2 = 1.D0/sqrt(2.D0), r(4) = (/ s2, 0.D0, s2, 0.D0 /)
 real(kind=dbl),allocatable              :: hlocal(:,:), h2local(:,:)
 
@@ -1138,10 +1189,12 @@ sw = 0
 if (present(swap)) sw = swap 
 
 nn = self%nml%n
-ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
-kk = 40.D0 * dble(self%nml%n) / 500.D0
+! ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
+! kk = 40.D0 * dble(self%nml%n) / 500.D0
+ss = 0.25D0 * 500.D0 / dble(self%nml%n)    ! initial plots were made on a 1001x1001 grid
+kk = 40.D0 * 500.D0 / dble(self%nml%n) 
 
-ss = ss * 0.25D0
+! ss = ss * 0.25D0
 
 ! compute the arc-tangent coordinates by projecting the Clifford torus onto a square
 do i=1,cnt 
@@ -1166,12 +1219,13 @@ do i=1,cnt
 end do 
 
 ! rescale the arctangent coordinates to the output grid
-z1 = z1*dble(nn)/cPi
-z2 = z2*dble(nn)/cPi
+! incorporate the offset into the arry here...
+z1 = z1*dble(nn)/cPi + dble(nn+w)
+z2 = z2*dble(nn)/cPi + dble(nn+w)
 
 call Message%printMessage('  - adding orientations to zone plate ')
 ! and fill the h arrays to obtain the zone plate; we'll use parallel threads to do this...
-nthreads = OMP_GET_MAX_THREADS()
+nthreads = self%nml%nthreads
 call OMP_SET_NUM_THREADS(nthreads)
 io_int(1) = nthreads
 call Message%WriteValue(' number of threads : ', io_int, 1)
@@ -1191,8 +1245,8 @@ do i=1,cnt
   dx = z1(i) - dble(ixx)
   dy = z2(i) - dble(iyy)
   zx = 0.5D0 * (1.D0 + cos( kk * acos( sum( qu(1:4,i) * r(1:4) ))**2 ))
-  px = offset+ixx-w-1
-  py = offset+iyy-w-1 
+  px = ixx-w-1
+  py = iyy-w-1 
   if ((px.gt.0).and.(px.lt.num+2*w).and.(py.gt.0).and.(py.lt.num+2*w)) then
     do j=1,2*w+1
       do k=1,2*w+1
@@ -1216,6 +1270,17 @@ h2 = h2 + h2local
 
 !$OMP END PARALLEL
 
+write (*,*) ' array dims ', num, w, shape(h), w+1, w+num
+
+io_dbl(1) = minval(h(w+1:w+num,w+1:w+num),mask=(h(w+1:w+num,w+1:w+num) > 0.D0))
+io_dbl(2) = maxval(h(w+1:w+num,w+1:w+num))
+call Message%WriteValue('  - range of h ', io_dbl, 2)
+
+io_dbl(1) = minval(h2(w+1:w+num,w+1:w+num),mask=(h2(w+1:w+num,w+1:w+num) > 0.D0))
+io_dbl(2) = maxval(h2(w+1:w+num,w+1:w+num))
+call Message%WriteValue('  - range of h2 ', io_dbl, 2)
+
+
 end subroutine makeSquareTorus_
 
 !--------------------------------------------------------------------------
@@ -1233,29 +1298,29 @@ use ISO_C_BINDING
 use mod_io
 use mod_so3
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
-class(CliffordTorus_T),INTENT(INOUT)    :: self
-type(EMsoft_T),INTENT(INOUT)            :: EMsoft
-type(so3_T),INTENT(INOUT)               :: SO
-integer(kind=irg),INTENT(IN)            :: num
-integer(kind=irg),INTENT(IN)            :: w
-real(kind=dbl),INTENT(INOUT)            :: h(num+2*w,num+2*w)
-character(*),INTENT(IN)                 :: mode
-character(4),INTENT(IN)                 :: XYZ
+class(CliffordTorus_T),INTENT(INOUT) :: self
+type(EMsoft_T),INTENT(INOUT)         :: EMsoft
+type(so3_T),INTENT(INOUT)            :: SO
+integer(kind=irg),INTENT(IN)         :: num
+integer(kind=irg),INTENT(IN)         :: w
+real(kind=dbl),INTENT(INOUT)         :: h(num+2*w,num+2*w)
+character(*),INTENT(IN)              :: mode
+character(4),INTENT(IN)              :: XYZ
 
-type(IO_T)                              :: Message
+type(IO_T)                           :: Message
 
-integer(kind=irg)                       :: i, j 
-character(fnlen)                        :: str, fname
+integer(kind=irg)                    :: i, j 
+character(fnlen)                     :: str, fname
 
 ! declare variables for use in object oriented image module
-integer                                 :: iostat
-character(len=128)                      :: iomsg
-logical                                 :: isInteger
-type(image_t)                           :: im
-integer(int8)                           :: i8 (3,4)
-integer(int8), allocatable              :: TIFF_image(:,:)
+integer                              :: iostat
+character(len=128)                   :: iomsg
+logical                              :: isInteger
+type(image_t)                        :: im
+integer(int8)                        :: i8 (3,4)
+integer(int8), allocatable           :: TIFF_image(:,:)
 
 if (trim(mode).eq.'SQT') then 
   str = trim(self%nml%sqtfile)//XYZ//'_SQT.tiff'
@@ -1311,30 +1376,30 @@ use mod_io
 use mod_so3
 use mod_colorspace
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                       :: iso_fortran_env
 
-class(CliffordTorus_T),INTENT(INOUT)    :: self
-type(EMsoft_T),INTENT(INOUT)            :: EMsoft
-type(so3_T),INTENT(INOUT)               :: SO
-integer(kind=irg),INTENT(IN)            :: num
-integer(kind=irg),INTENT(IN)            :: w
-real(kind=dbl),INTENT(INOUT)            :: r(num+2*w,num+2*w)
-real(kind=dbl),INTENT(INOUT)            :: g(num+2*w,num+2*w)
-real(kind=dbl),INTENT(INOUT)            :: b(num+2*w,num+2*w)
+class(CliffordTorus_T),INTENT(INOUT) :: self
+type(EMsoft_T),INTENT(INOUT)         :: EMsoft
+type(so3_T),INTENT(INOUT)            :: SO
+integer(kind=irg),INTENT(IN)         :: num
+integer(kind=irg),INTENT(IN)         :: w
+real(kind=dbl),INTENT(INOUT)         :: r(num+2*w,num+2*w)
+real(kind=dbl),INTENT(INOUT)         :: g(num+2*w,num+2*w)
+real(kind=dbl),INTENT(INOUT)         :: b(num+2*w,num+2*w)
 
-type(IO_T)                              :: Message
-type(colorspace_T)                      :: clr
+type(IO_T)                           :: Message
+type(colorspace_T)                   :: clr
 
-integer(kind=irg)                       :: i, j, k 
-character(fnlen)                        :: str, fname
+integer(kind=irg)                    :: i, j, k 
+character(fnlen)                     :: str, fname
 
 ! declare variables for use in object oriented image module
-integer                                 :: iostat
-character(len=128)                      :: iomsg
-logical                                 :: isInteger
-type(image_t)                           :: im
-integer(int8)                           :: i8 (3,4)
-integer(int8), allocatable              :: TIFF_image(:,:)
+integer                              :: iostat
+character(len=128)                   :: iomsg
+logical                              :: isInteger
+type(image_t)                        :: im
+integer(int8)                        :: i8 (3,4)
+integer(int8), allocatable           :: TIFF_image(:,:)
 
 r = r - minval(r)
 r = r / maxval(r)
@@ -1404,18 +1469,18 @@ use mod_so3
 
 IMPLICIT NONE
 
-class(CliffordTorus_T),INTENT(INOUT)   :: self
-type(EMsoft_T),INTENT(INOUT)    :: EMsoft
-type(so3_T),INTENT(INOUT)       :: SO
-character(2),INTENT(IN)         :: listmode
+class(CliffordTorus_T),INTENT(INOUT) :: self
+type(EMsoft_T),INTENT(INOUT)         :: EMsoft
+type(so3_T),INTENT(INOUT)            :: SO
+character(2),INTENT(IN)              :: listmode
 
-type(q_T)                       :: q 
-type(IO_T)                      :: Message
-type(HDF_T)                     :: HDF
+type(q_T)                            :: q 
+type(IO_T)                           :: Message
+type(HDF_T)                          :: HDF
 
-integer(kind=irg)               :: i, j, k, cnt, num, w, nn, offset, io_int(1), hdferr
-type(FZpointd), pointer         :: FZtmp, FZviz
-real(kind=dbl),allocatable      :: qu(:,:), h(:,:), h2(:,:), xx(:,:), yy(:,:), l(:), g(:,:), &
+integer(kind=irg)                    :: i, j, k, cnt, num, w, nn, offset, io_int(1), hdferr
+type(FZpointd), pointer              :: FZtmp, FZviz
+real(kind=dbl),allocatable           :: qu(:,:), h(:,:), h2(:,:), xx(:,:), yy(:,:), l(:), g(:,:), &
                                    red(:,:), blue(:,:), green(:,:)
 real(kind=dbl)                  :: x(4), d, d1, d2, dx, dy, ss, zx, ee, kk, logoffset 
 character(fnlen)                :: vizname, fname, dataset, groupname 
@@ -1424,7 +1489,7 @@ character(fnlen)                :: vizname, fname, dataset, groupname
 nn = self%nml%n
 num = 2*nn+1
 w = 5 
-offset = w+(num-1)/2
+offset = w+nn
 ss = 0.25D0 * dble(self%nml%n) / 500.D0    ! initial plots were made on a 1001x1001 grid
 kk = 40.D0 * dble(self%nml%n) / 500.D0
 

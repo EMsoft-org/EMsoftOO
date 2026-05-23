@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -146,9 +146,9 @@ module mod_SEMwrappers
     !
     ABSTRACT INTERFACE
        SUBROUTINE ProgressCallBack(objAddress, patternCompleted) bind(C)
-        USE, INTRINSIC :: ISO_C_BINDING
-        INTEGER(c_size_t),INTENT(IN), VALUE          :: objAddress
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: patternCompleted
+        USE, INTRINSIC                      :: ISO_C_BINDING
+        INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: patternCompleted
        END SUBROUTINE ProgressCallBack
     END INTERFACE
     
@@ -156,23 +156,23 @@ module mod_SEMwrappers
     ! similar callback routine, with two integer arguments
     ABSTRACT INTERFACE
        SUBROUTINE ProgressCallBack2(objAddress, loopCompleted, totalLoops, bseYield) bind(C)
-        USE, INTRINSIC :: ISO_C_BINDING
-        INTEGER(c_size_t),INTENT(IN), VALUE          :: objAddress
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: loopCompleted
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: totalLoops
-        REAL(KIND=4),INTENT(IN), VALUE              :: bseYield
+        USE, INTRINSIC                      :: ISO_C_BINDING
+        INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: loopCompleted
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: totalLoops
+        REAL(KIND=4),INTENT(IN), VALUE      :: bseYield
        END SUBROUTINE ProgressCallBack2
     END INTERFACE
     
     ! similar callback routine, with two integer arguments
     ABSTRACT INTERFACE
        SUBROUTINE ProgressCallBack3(objAddress, loopCompleted, totalLoops, EloopCompleted, totalEloops) bind(C)
-        USE, INTRINSIC :: ISO_C_BINDING
-        INTEGER(c_size_t),INTENT(IN), VALUE          :: objAddress
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: loopCompleted
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: totalLoops
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: EloopCompleted
-        INTEGER(KIND=4), INTENT(IN), VALUE           :: totalELoops
+        USE, INTRINSIC                      :: ISO_C_BINDING
+        INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: loopCompleted
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: totalLoops
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: EloopCompleted
+        INTEGER(KIND=4), INTENT(IN), VALUE  :: totalELoops
        END SUBROUTINE ProgressCallBack3
     END INTERFACE
     
@@ -1426,31 +1426,31 @@ use mod_EMsoft
 use mod_kinds
 use mod_Lambert
 use mod_quaternions
-use,INTRINSIC :: ISO_C_BINDING
+use,INTRINSIC                   :: ISO_C_BINDING
 
 IMPLICIT NONE
 
-integer(c_size_t),PARAMETER             :: nipar=6
-integer(c_size_t),PARAMETER             :: nfpar=1
-integer(c_size_t),PARAMETER             :: nq=4
-integer(c_size_t),INTENT(IN)            :: ipar(nipar)
-real(kind=sgl),INTENT(IN)               :: fpar(nfpar)
-real(kind=sgl),INTENT(OUT)              :: Kosselpattern(ipar(2),ipar(2),ipar(4))
-real(kind=sgl),INTENT(IN)               :: quats(nq,ipar(4))
-real(kind=sgl),INTENT(IN)               :: mLPNH(-ipar(3):ipar(3), -ipar(3):ipar(3),ipar(5))
-real(kind=sgl),INTENT(IN)               :: mLPSH(-ipar(3):ipar(3), -ipar(3):ipar(3),ipar(5))
+integer(c_size_t),PARAMETER     :: nipar=6
+integer(c_size_t),PARAMETER     :: nfpar=1
+integer(c_size_t),PARAMETER     :: nq=4
+integer(c_size_t),INTENT(IN)    :: ipar(nipar)
+real(kind=sgl),INTENT(IN)       :: fpar(nfpar)
+real(kind=sgl),INTENT(OUT)      :: Kosselpattern(ipar(2),ipar(2),ipar(4))
+real(kind=sgl),INTENT(IN)       :: quats(nq,ipar(4))
+real(kind=sgl),INTENT(IN)       :: mLPNH(-ipar(3):ipar(3), -ipar(3):ipar(3),ipar(5))
+real(kind=sgl),INTENT(IN)       :: mLPSH(-ipar(3):ipar(3), -ipar(3):ipar(3),ipar(5))
 
-type(Quaternion_T)                      :: quat
+type(Quaternion_T)              :: quat
 
-real(kind=sgl),allocatable,save         :: klist(:,:,:)
+real(kind=sgl),allocatable,save :: klist(:,:,:)
 
-real(kind=dbl),parameter                :: Rtod = 57.2957795131D0
-real(kind=dbl),parameter                :: dtoR = 0.01745329251D0
+real(kind=dbl),parameter        :: Rtod = 57.2957795131D0
+real(kind=dbl),parameter        :: dtoR = 0.01745329251D0
 
-real(kind=sgl)                          :: kk(3), thetacr, ktmax, delta
-integer(kind=irg)                       :: istat, imin, imax, jmin, jmax, ii ,jj, nsig, ip
-integer(kind=irg)                       :: isig, nix, niy, nixp, niyp, isigp
-real(kind=sgl)                          :: dc(3), scl, ixy(2), dx, dy, dxm, dym, dp
+real(kind=sgl)                  :: kk(3), thetacr, ktmax, delta
+integer(kind=irg)               :: istat, imin, imax, jmin, jmax, ii ,jj, nsig, ip
+integer(kind=irg)               :: isig, nix, niy, nixp, niyp, isigp
+real(kind=sgl)                  :: dc(3), scl, ixy(2), dx, dy, dxm, dym, dp
 
 
 !==================================================================================

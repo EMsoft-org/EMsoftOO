@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -54,29 +54,28 @@ recursive function getEBSDPatternsWrapper(argc, argv) bind(c, name='getEBSDPatte
   !!
   !! see example at https://groups.google.com/forum/#!topic/comp.lang.idl-pvwave/Gk0xxVFbW8E
 
-use,INTRINSIC :: ISO_C_BINDING
+use,INTRINSIC                                :: ISO_C_BINDING
 use mod_SEMwrappers
 
 IMPLICIT NONE
 
-INTEGER(c_size_t), VALUE, INTENT(IN)            :: argc 
-type(c_ptr), dimension(argc), INTENT(INOUT)     :: argv
-!f2py intent(in,out) ::  argv
-REAL(c_float)                                   :: getEBSDPatternsWrapper
+INTEGER(c_size_t), VALUE, INTENT(IN)         :: argc 
+type(c_ptr), dimension(argc), INTENT(INOUT)  :: argv
+REAL(c_float)                                :: getEBSDPatternsWrapper
 
 ! wrapper function dependent declarations; they are all pointers 
 ! since we pass everything by reference from IDL 
-integer(c_int32_t)                              :: nq
-integer(c_int32_t),dimension(:), pointer        :: ipar
-real(c_float), dimension(:), pointer            :: fpar
-real(c_float), dimension(:,:), pointer          :: quats
-real(c_float), dimension(:,:,:), pointer        :: EBSDpattern 
-integer(c_int32_t),dimension(:,:,:), pointer    :: accum_e 
-real(c_float), dimension(:,:,:,:),pointer       :: mLPNH, mLPSH
+integer(c_int32_t)                           :: nq
+integer(c_int32_t),dimension(:), pointer     :: ipar
+real(c_float), dimension(:), pointer         :: fpar
+real(c_float), dimension(:,:), pointer       :: quats
+real(c_float), dimension(:,:,:), pointer     :: EBSDpattern 
+integer(c_int32_t),dimension(:,:,:), pointer :: accum_e 
+real(c_float), dimension(:,:,:,:),pointer    :: mLPNH, mLPSH
 
-TYPE(C_FUNPTR)                                  :: cproc
-integer(c_size_t)                               :: objAddress
-character(len=1)                                :: cancel
+TYPE(C_FUNPTR)                               :: cproc
+integer(c_size_t)                            :: objAddress
+character(len=1)                             :: cancel
 
 ! the following line just helps in identifying the correct order of the subroutine arguments...
 !                             1      2      3           4         5       6     7
@@ -142,27 +141,26 @@ recursive function getECPatternsWrapper(argc, argv) bind(c, name='getECPatternsW
   !!
   !! see example at https://groups.google.com/forum/#!topic/comp.lang.idl-pvwave/Gk0xxVFbW8E
 
-use,INTRINSIC :: ISO_C_BINDING
+use,INTRINSIC                               :: ISO_C_BINDING
 use mod_SEMwrappers
 
 IMPLICIT NONE
 
-INTEGER(c_size_t), VALUE, INTENT(IN)            :: argc 
-type(c_ptr), dimension(argc), INTENT(INOUT)     :: argv
-!f2py intent(in,out) ::  argv
-REAL(c_float)                                   :: getECPatternsWrapper
+INTEGER(c_size_t), VALUE, INTENT(IN)        :: argc 
+type(c_ptr), dimension(argc), INTENT(INOUT) :: argv
+REAL(c_float)                               :: getECPatternsWrapper
 
 ! wrapper function dependent declarations; they are all pointers 
 ! since we pass everything by reference from IDL 
-integer(c_int32_t)                              :: nipar, nfpar, nq
-integer(c_int32_t),dimension(:), pointer        :: ipar
-real(c_float), dimension(:), pointer            :: fpar
-real(c_float), dimension(:,:,:), pointer        :: accum_e 
-real(c_float), dimension(:,:,:), pointer        :: mLPNH, mLPSH, ECPattern
-real(c_float), dimension(:,:), pointer          :: quats
-TYPE(C_FUNPTR)                                  :: cproc
-integer(c_size_t)                               :: objAddress
-character(len=1)                                :: cancel
+integer(c_int32_t)                          :: nipar, nfpar, nq
+integer(c_int32_t),dimension(:), pointer    :: ipar
+real(c_float), dimension(:), pointer        :: fpar
+real(c_float), dimension(:,:,:), pointer    :: accum_e 
+real(c_float), dimension(:,:,:), pointer    :: mLPNH, mLPSH, ECPattern
+real(c_float), dimension(:,:), pointer      :: quats
+TYPE(C_FUNPTR)                              :: cproc
+integer(c_size_t)                           :: objAddress
+character(len=1)                            :: cancel
 
 ! ipar(1) = detnumpix
 ! ipar(2) = numangle
@@ -214,23 +212,22 @@ recursive function getKosselPatternsWrapper(argc, argv) bind(c, name='getKosselP
   !!
   !! see example at https://groups.google.com/forum/#!topic/comp.lang.idl-pvwave/Gk0xxVFbW8E
 
-use,INTRINSIC :: ISO_C_BINDING
+use,INTRINSIC                               :: ISO_C_BINDING
 use mod_SEMwrappers
 
 IMPLICIT NONE
 
-INTEGER(c_size_t), VALUE, INTENT(IN)            :: argc 
-type(c_ptr), dimension(argc), INTENT(INOUT)     :: argv
-!f2py intent(in,out) ::  argv
-REAL(c_float)                                   :: getKosselPatternsWrapper
+INTEGER(c_size_t), VALUE, INTENT(IN)        :: argc 
+type(c_ptr), dimension(argc), INTENT(INOUT) :: argv
+REAL(c_float)                               :: getKosselPatternsWrapper
 
 ! wrapper function dependent declarations; they are all pointers 
 ! since we pass everything by reference from IDL 
-integer(c_size_t)                               :: nipar, nfpar, nq
-integer(c_size_t),dimension(:), pointer         :: ipar
-real(c_float), dimension(:), pointer            :: fpar
-real(c_float), dimension(:,:), pointer          :: quats
-real(c_float), dimension(:,:,:), pointer        :: KosselPattern, mLPNH, mLPSH
+integer(c_size_t)                           :: nipar, nfpar, nq
+integer(c_size_t),dimension(:), pointer     :: ipar
+real(c_float), dimension(:), pointer        :: fpar
+real(c_float), dimension(:,:), pointer      :: quats
+real(c_float), dimension(:,:,:), pointer    :: KosselPattern, mLPNH, mLPSH
 
 ! the following line just helps in identifying the correct order of the subroutine arguments...
 !                             1      2     3             4       5       6

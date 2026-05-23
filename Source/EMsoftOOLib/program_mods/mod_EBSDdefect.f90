@@ -62,7 +62,7 @@ end type EBSDdefectNameListType
 ! class definition
 type, public :: EBSDdefect_T
 private 
-  character(fnlen)       :: nmldeffile = 'EMEBSDdefect.nml'
+  character(fnlen)              :: nmldeffile = 'EMEBSDdefect.nml'
   type(EBSDdefectNameListType)  :: nml 
 
 contains
@@ -206,35 +206,35 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(EBSDdefect_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(EBSDdefect_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)        :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)        :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                     :: EMsoft 
+type(IO_T)                         :: Message       
+logical                            :: skipread = .FALSE.
 
-real(kind=sgl)         :: L
-real(kind=sgl)         :: thetac
-real(kind=sgl)         :: delta
-real(kind=sgl)         :: xpc
-real(kind=sgl)         :: ypc
-real(kind=sgl)         :: gammavalue
-real(kind=sgl)         :: rotang
-real(kind=sgl)         :: DF_L
-real(kind=dbl)         :: k(3)
-real(kind=dbl)         :: q(3)
-integer(kind=irg)      :: numsx
-integer(kind=irg)      :: numsy
-integer(kind=irg)      :: DF_npix
-integer(kind=irg)      :: DF_npiy
-integer(kind=irg)      :: nthreads
-character(3)           :: scalingmode
-character(fnlen)       :: masterfile
-character(fnlen)       :: datafile
-character(fnlen)       :: defectfilename
+real(kind=sgl)                     :: L
+real(kind=sgl)                     :: thetac
+real(kind=sgl)                     :: delta
+real(kind=sgl)                     :: xpc
+real(kind=sgl)                     :: ypc
+real(kind=sgl)                     :: gammavalue
+real(kind=sgl)                     :: rotang
+real(kind=sgl)                     :: DF_L
+real(kind=dbl)                     :: k(3)
+real(kind=dbl)                     :: q(3)
+integer(kind=irg)                  :: numsx
+integer(kind=irg)                  :: numsy
+integer(kind=irg)                  :: DF_npix
+integer(kind=irg)                  :: DF_npiy
+integer(kind=irg)                  :: nthreads
+character(3)                       :: scalingmode
+character(fnlen)                   :: masterfile
+character(fnlen)                   :: datafile
+character(fnlen)                   :: defectfilename
 
 namelist / EBSDdefectdata / L, thetac, delta, xpc, ypc, gammavalue, rotang, DF_L, &
                             numsx, numsy, k, q, DF_npix, DF_npiy, nthreads, scalingmode, &
@@ -342,16 +342,16 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)        :: self 
-type(HDF_T), INTENT(INOUT)              :: HDF
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(EBSDdefect_T), INTENT(INOUT) :: self 
+type(HDF_T), INTENT(INOUT)         :: HDF
+type(HDFnames_T), INTENT(INOUT)    :: HDFnames
 
-integer(kind=irg),parameter             :: n_int = 5, n_real = 7
-integer(kind=irg)                       :: hdferr,  io_int(n_int)
-real(kind=sgl)                          :: io_real(n_real)
-character(20)                           :: intlist(n_int), reallist(n_real)
-character(fnlen)                        :: dataset, sval(1),groupname
-character(fnlen,kind=c_char)            :: line2(1)
+integer(kind=irg),parameter        :: n_int = 5, n_real = 7
+integer(kind=irg)                  :: hdferr,  io_int(n_int)
+real(kind=sgl)                     :: io_real(n_real)
+character(20)                      :: intlist(n_int), reallist(n_real)
+character(fnlen)                   :: dataset, sval(1),groupname
+character(fnlen,kind=c_char)       :: line2(1)
 
 associate( enl => self%nml )
 
@@ -427,8 +427,8 @@ subroutine setL_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%L = inp
 
@@ -445,8 +445,8 @@ function getL_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%L
 
@@ -463,8 +463,8 @@ subroutine setthetac_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%thetac = inp
 
@@ -481,8 +481,8 @@ function getthetac_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%thetac
 
@@ -499,8 +499,8 @@ subroutine setdelta_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%delta = inp
 
@@ -517,8 +517,8 @@ function getdelta_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%delta
 
@@ -535,8 +535,8 @@ subroutine setxpc_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%xpc = inp
 
@@ -553,8 +553,8 @@ function getxpc_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%xpc
 
@@ -571,8 +571,8 @@ subroutine setypc_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%ypc = inp
 
@@ -589,8 +589,8 @@ function getypc_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%ypc
 
@@ -607,8 +607,8 @@ subroutine setgammavalue_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%gammavalue = inp
 
@@ -625,8 +625,8 @@ function getgammavalue_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%gammavalue
 
@@ -643,8 +643,8 @@ subroutine setDF_L_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)         :: inp
 
 self%nml%DF_L = inp
 
@@ -661,8 +661,8 @@ function getDF_L_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+real(kind=sgl)                     :: out
 
 out = self%nml%DF_L
 
@@ -679,8 +679,8 @@ subroutine setnumsx_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%numsx = inp
 
@@ -697,8 +697,8 @@ function getnumsx_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%numsx
 
@@ -715,8 +715,8 @@ subroutine setnumsy_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%numsy = inp
 
@@ -733,8 +733,8 @@ function getnumsy_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%numsy
 
@@ -751,8 +751,8 @@ subroutine setk_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)    :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp(3)
 
 self%nml%k = inp
 
@@ -769,8 +769,8 @@ function getk_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)    :: self
-integer(kind=irg)                   :: out(3)
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out(3)
 
 out = self%nml%k
 
@@ -787,8 +787,8 @@ subroutine setq_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)    :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp(3)
 
 self%nml%q = inp
 
@@ -805,8 +805,8 @@ function getq_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)    :: self
-integer(kind=irg)                   :: out(3)
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out(3)
 
 out = self%nml%q
 
@@ -823,8 +823,8 @@ subroutine setDF_npix_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%DF_npix = inp
 
@@ -841,8 +841,8 @@ function getDF_npix_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%DF_npix
 
@@ -859,8 +859,8 @@ subroutine setDF_npiy_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%DF_npiy = inp
 
@@ -877,8 +877,8 @@ function getDF_npiy_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%DF_npiy
 
@@ -895,8 +895,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)      :: inp
 
 self%nml%nthreads = inp
 
@@ -913,8 +913,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+integer(kind=irg)                  :: out
 
 out = self%nml%nthreads
 
@@ -931,8 +931,8 @@ subroutine setscalingmode_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-character(3), INTENT(IN)       :: inp
+class(EBSDdefect_T), INTENT(INOUT) :: self
+character(3), INTENT(IN)           :: inp
 
 self%nml%scalingmode = trim(inp)
 
@@ -949,8 +949,8 @@ function getscalingmode_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
-character(3)                   :: out
+class(EBSDdefect_T), INTENT(INOUT) :: self
+character(3)                       :: out
 
 out = trim(self%nml%scalingmode)
 
@@ -967,7 +967,7 @@ subroutine setmasterfile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
+class(EBSDdefect_T), INTENT(INOUT) :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%masterfile = trim(inp)
@@ -985,7 +985,7 @@ function getmasterfile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
+class(EBSDdefect_T), INTENT(INOUT) :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%masterfile)
@@ -1003,7 +1003,7 @@ subroutine setdatafile_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
+class(EBSDdefect_T), INTENT(INOUT) :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%datafile = trim(inp)
@@ -1021,7 +1021,7 @@ function getdatafile_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
+class(EBSDdefect_T), INTENT(INOUT) :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%datafile)
@@ -1039,7 +1039,7 @@ subroutine setdefectfilename_(self,inp)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
+class(EBSDdefect_T), INTENT(INOUT) :: self
 character(fnlen), INTENT(IN)       :: inp
 
 self%nml%defectfilename = trim(inp)
@@ -1057,7 +1057,7 @@ function getdefectfilename_(self) result(out)
 
 IMPLICIT NONE
 
-class(EBSDdefect_T), INTENT(INOUT)     :: self
+class(EBSDdefect_T), INTENT(INOUT) :: self
 character(fnlen)                   :: out
 
 out = trim(self%nml%defectfilename)
@@ -1065,7 +1065,7 @@ out = trim(self%nml%defectfilename)
 end function getdefectfilename_
 
 !--------------------------------------------------------------------------
-subroutine EBSDdefect_(self, EMsoft, progname, HDFnames)
+subroutine EBSDdefect_(self, EMsoft, progname)
 !DEC$ ATTRIBUTES DLLEXPORT :: EBSDdefect_
 !! author: MDG 
 !! version: 1.0 
@@ -1096,66 +1096,66 @@ use h5im
 use h5lt
 use mod_image
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                                   :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(EBSDdefect_T), INTENT(INOUT)      :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname 
-type(HDFnames_T), INTENT(INOUT)         :: HDFnames
+class(EBSDdefect_T), INTENT(INOUT)               :: self
+type(EMsoft_T), INTENT(INOUT)                    :: EMsoft
+character(fnlen), INTENT(INOUT)                  :: progname 
 
-type(MCfile_T)                          :: MCFT
-type(MPfile_T)                          :: MPFT
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: saveHDFnames
-type(so3_T)                             :: SO
-type(IO_T)                              :: Message
-type(Quaternion_T)                      :: quat
-type(QuaternionArray_T)                 :: qAR
-type(memory_T)                          :: mem
-type(SpaceGroup_T)                      :: SG
-type(Cell_T)                            :: cell
-type(q_T)                               :: q
-type(o_T)                               :: o
-type(e_T)                               :: eu
-type(Timing_T)                          :: timer
-type(Defect_T)                          :: Defects
+type(HDFnames_T)                                 :: HDFnames
+type(MCfile_T)                                   :: MCFT
+type(MPfile_T)                                   :: MPFT
+type(HDF_T)                                      :: HDF
+type(HDFnames_T)                                 :: saveHDFnames
+type(so3_T)                                      :: SO
+type(IO_T)                                       :: Message
+type(Quaternion_T)                               :: quat
+type(QuaternionArray_T)                          :: qAR
+type(memory_T)                                   :: mem
+type(SpaceGroup_T)                               :: SG
+type(Cell_T)                                     :: cell
+type(q_T)                                        :: q
+type(o_T)                                        :: o
+type(e_T)                                        :: eu
+type(Timing_T)                                   :: timer
+type(Defect_T)                                   :: Defects
 
-type(SEMmasterNameListType)             :: mpnl
-type(MCOpenCLNameListType)              :: mcnl
+type(SEMmasterNameListType)                      :: mpnl
+type(MCOpenCLNameListType)                       :: mcnl
 
-logical                                 :: verbose, insert = .TRUE., overwrite = .TRUE., g_exists
-character(fnlen)                        :: fname, nmldeffile, datafile
-integer(kind=irg)                       :: numangles, istat, i, j, k, error_cnt, npix, npiy, hdferr, ix, iy
-type(FZpointd),pointer                  :: FZtmp
-type(r_T)                               :: rr
-integer(kind=irg)                       :: ga(3), gb(3), io_int(6), sh(3), ipar(8), iipar(8)
-real(kind=dbl)                          :: kc(3), gac(3), gbc(3), FF(3,3), FF_inv(3,3), prefactor
-real(kind=dbl)                          :: om(3,3), pctr(3)
-real(kind=sgl)                          :: io_real(1), xpos, ypos, mi, ma
-real(kind=sgl),allocatable              :: patarray(:,:,:,:), trial(:,:,:,:), quarray(:,:), binned(:,:)
-real(kind=dbl),allocatable              :: tFij(:,:,:), Fmatrix(:,:,:)
-real(kind=sgl),allocatable              :: tmLPNH(:,:,:) , tmLPSH(:,:,:)
-real(kind=sgl),allocatable              :: trgx(:,:), trgy(:,:), trgz(:,:) ! auxiliary detector arrays needed for interpolation
-integer(kind=irg)                       :: NUMTHREADS, TID   ! number of allocated threads, thread ID
-integer(kind=irg)                       :: nthreads
+logical                                          :: verbose, insert = .TRUE., overwrite = .TRUE., g_exists
+character(fnlen)                                 :: fname, nmldeffile, datafile
+integer(kind=irg)                                :: numangles, istat, i, j, k, error_cnt, npix, npiy, hdferr, ix, iy
+type(FZpointd),pointer                           :: FZtmp
+type(r_T)                                        :: rr
+integer(kind=irg)                                :: ga(3), gb(3), io_int(6), sh(3), ipar(8), iipar(8)
+real(kind=dbl)                                   :: kc(3), gac(3), gbc(3), FF(3,3), FF_inv(3,3), prefactor
+real(kind=dbl)                                   :: om(3,3), pctr(3)
+real(kind=sgl)                                   :: io_real(1), xpos, ypos, mi, ma
+real(kind=sgl),allocatable                       :: patarray(:,:,:,:), trial(:,:,:,:), quarray(:,:), binned(:,:)
+real(kind=dbl),allocatable                       :: tFij(:,:,:), Fmatrix(:,:,:)
+real(kind=sgl),allocatable                       :: tmLPNH(:,:,:) , tmLPSH(:,:,:)
+real(kind=sgl),allocatable                       :: trgx(:,:), trgy(:,:), trgz(:,:) ! auxiliary detector arrays needed for interpolation
+integer(kind=irg)                                :: NUMTHREADS, TID   ! number of allocated threads, thread ID
+integer(kind=irg)                                :: nthreads
 
-character(fnlen)                        :: groupname, dataset, datagroupname, attributename, HDF_FileVersion, TIFF_filename
-character(11)                           :: dstr
-character(15)                           :: tstrb
-character(15)                           :: tstre
-integer(HSIZE_T)                        :: dims4(4), cnt4(4), offset4(4)
-character(fnlen,kind=c_char)            :: line2(1)
+character(fnlen)                                 :: groupname, dataset, datagroupname, attributename, HDF_FileVersion, TIFF_filename
+character(11)                                    :: dstr
+character(15)                                    :: tstrb
+character(15)                                    :: tstre
+integer(HSIZE_T)                                 :: dims4(4), cnt4(4), offset4(4)
+character(fnlen,kind=c_char)                     :: line2(1)
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 ! declare variables for use in object oriented image module
-integer                                 :: iostat
-character(len=128)                      :: iomsg
-logical                                 :: isInteger
-type(image_t)                           :: im
-integer(int8)                           :: i8 (3,4)
-integer(int8), allocatable              :: TIFF_image(:,:)
+integer                                          :: iostat
+character(len=128)                               :: iomsg
+logical                                          :: isInteger
+type(image_t)                                    :: im
+integer(int8)                                    :: i8 (3,4)
+integer(int8), allocatable                       :: TIFF_image(:,:)
 
 associate( enl => self%nml, EBSDMCdata => MCFT%MCDT )
 
@@ -1206,7 +1206,6 @@ call HDFnames%set_ProgramData(SC_EBSDdefect)
 call HDFnames%set_NMLlist(SC_EBSDdefectNameList)
 call HDFnames%set_NMLfilename(SC_EBSDdefectNML)
 call HDFnames%set_Variable(SC_MCOpenCL)
-
 
 ! 3. create the output HDF file 
 ! Create a new file using the default properties.
@@ -1278,9 +1277,9 @@ stringarray(1)= trim(MPFT%MPDT%xtalname)
 hdferr = HDF%writeDatasetStringArray(dataset, stringarray, 1)
 if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray xtalname', hdferr)
 
-dataset = 'TransformationQuaternion'
-hdferr = HDF%writeDatasetDoubleArray(dataset, quat%get_quatd(), 4 )
-if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray quat', hdferr)
+! dataset = 'TransformationQuaternion'
+! hdferr = HDF%writeDatasetDoubleArray(dataset, quat%get_quatd(), 4 )
+! if (hdferr.ne.0) call HDF%error_check('HDF_writeDatasetStringArray quat', hdferr)
 
 ! generate a 4D hyperslab array to store the individual EBSD patterns
 dataset = SC_EBSDpatterns
@@ -1303,6 +1302,7 @@ dataset = SC_EBSDpatterns
 call cell%getCrystalData(MPFT%MPDT%xtalname, SG, EMsoft, useHDF=HDF)
 
 ! copy some of the namelist parameters into the defects structure
+Defects = Defect_T()
 Defects%DF_npix = enl%DF_npix
 Defects%DF_npiy = enl%DF_npiy
 Defects%DF_L = enl%DF_L

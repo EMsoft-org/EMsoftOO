@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -97,47 +97,47 @@ use mod_io
 
 IMPLICIT NONE
 
-class(MCOpenCL_T), INTENT(INOUT)            :: self
-character(fnlen),INTENT(IN)                 :: nmlfile
+class(MCOpenCL_T), INTENT(INOUT)     :: self
+character(fnlen),INTENT(IN)          :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)                 :: initonly
+logical,OPTIONAL,INTENT(IN)          :: initonly
  !! fill in the default values only; do not read the file
-character(fnlen),INTENT(IN),optional        :: writetofile
+character(fnlen),INTENT(IN),optional :: writetofile
  !! file name to which to write out the entire namelist
 
-type(IO_T)                                  :: Message
-logical                                     :: skipread = .FALSE.
+type(IO_T)                           :: Message
+logical                              :: skipread = .FALSE.
 
-integer(kind=irg) :: stdout
-integer(kind=irg) :: numsx
-integer(kind=irg) :: ivolx
-integer(kind=irg) :: ivoly
-integer(kind=irg) :: ivolz
-integer(kind=irg) :: globalworkgrpsz
-integer(kind=irg) :: num_el
-integer(kind=irg) :: totnum_el
-integer(kind=irg) :: multiplier
-integer(kind=irg) :: devid
-integer(kind=irg) :: platid
-real(kind=sgl)    :: ivolstepx
-real(kind=sgl)    :: ivolstepy
-real(kind=sgl)    :: ivolstepz
-real(kind=dbl)    :: sig
-real(kind=dbl)    :: sigstart
-real(kind=dbl)    :: sigend
-real(kind=dbl)    :: sigstep
-real(kind=dbl)    :: omega
-real(kind=dbl)    :: EkeV
-real(kind=dbl)    :: Ehistmin
-real(kind=dbl)    :: Ebinsize
-real(kind=dbl)    :: thickness
-real(kind=dbl)    :: depthmax
-real(kind=dbl)    :: depthstep
-character(3)      :: Notify
-character(4)      :: MCmode
-character(fnlen)  :: xtalname
-character(fnlen)  :: dataname
-character(fnlen)  :: mode
+integer(kind=irg)                    :: stdout
+integer(kind=irg)                    :: numsx
+integer(kind=irg)                    :: ivolx
+integer(kind=irg)                    :: ivoly
+integer(kind=irg)                    :: ivolz
+integer(kind=irg)                    :: globalworkgrpsz
+integer(kind=irg)                    :: num_el
+integer(kind=irg)                    :: totnum_el
+integer(kind=irg)                    :: multiplier
+integer(kind=irg)                    :: devid
+integer(kind=irg)                    :: platid
+real(kind=sgl)                       :: ivolstepx
+real(kind=sgl)                       :: ivolstepy
+real(kind=sgl)                       :: ivolstepz
+real(kind=dbl)                       :: sig
+real(kind=dbl)                       :: sigstart
+real(kind=dbl)                       :: sigend
+real(kind=dbl)                       :: sigstep
+real(kind=dbl)                       :: omega
+real(kind=dbl)                       :: EkeV
+real(kind=dbl)                       :: Ehistmin
+real(kind=dbl)                       :: Ebinsize
+real(kind=dbl)                       :: thickness
+real(kind=dbl)                       :: depthmax
+real(kind=dbl)                       :: depthstep
+character(3)                         :: Notify
+character(4)                         :: MCmode
+character(fnlen)                     :: xtalname
+character(fnlen)                     :: dataname
+character(fnlen)                     :: mode
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / MCCLdata / stdout, xtalname, sigstart, numsx, num_el, globalworkgrpsz, EkeV, multiplier, &
@@ -304,93 +304,93 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(MCOpenCL_T), INTENT(INOUT)   :: self
-type(EMsoft_T), INTENT(INOUT)      :: EMsoft
-character(fnlen),INTENT(IN)        :: progname
+class(MCOpenCL_T), INTENT(INOUT)                 :: self
+type(EMsoft_T), INTENT(INOUT)                    :: EMsoft
+character(fnlen),INTENT(IN)                      :: progname
 
-type(Cell_T)            :: cell
-type(DynType)           :: Dyn
-type(Timing_T)          :: timer
-type(IO_T)              :: Message
-type(OpenCL_T)          :: CL
-type(Lambert_T)         :: Lambert
-type(HDF_T)             :: HDF
-type(HDFnames_T)        :: HDFnames
-type(SpaceGroup_T)      :: SG
-type(Diffraction_T)     :: Diff
-type(MCfile_T)          :: MCFT
+type(Cell_T)                                     :: cell
+type(DynType)                                    :: Dyn
+type(Timing_T)                                   :: timer
+type(IO_T)                                       :: Message
+type(OpenCL_T)                                   :: CL
+type(Lambert_T)                                  :: Lambert
+type(HDF_T)                                      :: HDF
+type(HDFnames_T)                                 :: HDFnames
+type(SpaceGroup_T)                               :: SG
+type(Diffraction_T)                              :: Diff
+type(MCfile_T)                                   :: MCFT
 
-integer(kind=irg)       :: numsy        ! number of Lambert map points along y
-integer(kind=irg)       :: nx           ! no. of pixels
-integer(kind=irg)       :: j,k,l,ip,istat, ivx, ivy, ivz
-integer(kind=ill)       :: i, io_int(1), num_max, totnum_el_nml, multiplier
-real(kind=4),target     :: Ze           ! average atomic number
-real(kind=4),target     :: density      ! density in g/cm^3
-real(kind=4),target     :: at_wt        ! average atomic weight in g/mole
-logical                 :: verbose
-real(kind=4)            :: dens, avA, avZ, io_real(3), dmin, Radius  ! used with CalcDensity routine
-real(kind=8)            :: io_dble(3)
-real(kind=4),target     :: EkeV, sig, omega ! input values to the kernel. Can only be real kind=4 otherwise values are not properly passed
-integer(kind=ill)       :: totnum_el, bse     ! total number of electrons to simulate and no. of backscattered electrons
-integer(kind=4)         :: prime ! input values to the kernel
-integer(kind=4),target  :: globalworkgrpsz, num_el, steps ! input values to the kernel
-integer(kind=8)         :: size_in_bytes,size_in_bytes_seeds ! size of arrays passed to kernel. Only accepts kind=8 integers by clCreateBuffer etc., so donot change
-integer(kind=8),target  :: globalsize(2), localsize(2) ! size of global and local work groups. Again only kind=8 is accepted by clEnqueueNDRangeKernel
-character(4)            :: mode
+integer(kind=irg)                                :: numsy        ! number of Lambert map points along y
+integer(kind=irg)                                :: nx           ! no. of pixels
+integer(kind=irg)                                :: j,k,l,ip,istat, ivx, ivy, ivz
+integer(kind=ill)                                :: i, io_int(1), num_max, totnum_el_nml, multiplier
+real(kind=4),target                              :: Ze           ! average atomic number
+real(kind=4),target                              :: density      ! density in g/cm^3
+real(kind=4),target                              :: at_wt        ! average atomic weight in g/mole
+logical                                          :: verbose
+real(kind=4)                                     :: dens, avA, avZ, io_real(3), dmin, Radius  ! used with CalcDensity routine
+real(kind=8)                                     :: io_dble(3)
+real(kind=4),target                              :: EkeV, sig, omega ! input values to the kernel. Can only be real kind=4 otherwise values are not properly passed
+integer(kind=ill)                                :: totnum_el, bse     ! total number of electrons to simulate and no. of backscattered electrons
+integer(kind=4)                                  :: prime ! input values to the kernel
+integer(kind=4),target                           :: globalworkgrpsz, num_el, steps ! input values to the kernel
+integer(kind=8)                                  :: size_in_bytes,size_in_bytes_seeds ! size of arrays passed to kernel. Only accepts kind=8 integers by clCreateBuffer etc., so donot change
+integer(kind=8),target                           :: globalsize(2), localsize(2) ! size of global and local work groups. Again only kind=8 is accepted by clEnqueueNDRangeKernel
+character(4)                                     :: mode
 ! results from kernel stored here
-real(kind=4),allocatable, target :: Lamresx(:), Lamresy(:), Lamresz(:), depthres(:), energyres(:)
+real(kind=4),allocatable, target                 :: Lamresx(:), Lamresy(:), Lamresz(:), depthres(:), energyres(:)
 
 ! final results stored here
 ! integer(kind=4),allocatable :: accum_e(:,:,:), accum_z(:,:,:,:), accum_xyz(:,:,:), rnseeds(:)
 ! real(kind=sgl),allocatable  :: accumSP(:,:,:)
-integer(kind=4),allocatable :: rnseeds(:)
-integer(kind=ill),allocatable :: accum_e_ill(:,:,:)
-integer(kind=4),allocatable,target  :: init_seeds(:)
-integer(kind=4)         :: idxy(2), iE, px, py, iz, nseeds, hdferr, tstart, tstop ! auxiliary variables
-real(kind=4)            :: cxyz(3), edis, xy(2) ! auxiliary variables
-integer(kind=irg)       :: xs, ys, zs
-real(kind=8)            :: delta,rand, xyz(3)
-real(kind=4), target    :: thickness
-character(11)           :: dstr
-character(15)           :: tstrb
-character(15)           :: tstre
-logical                 :: f_exists
+integer(kind=4),allocatable                      :: rnseeds(:)
+integer(kind=ill),allocatable                    :: accum_e_ill(:,:,:)
+integer(kind=4),allocatable,target               :: init_seeds(:)
+integer(kind=4)                                  :: idxy(2), iE, px, py, iz, nseeds, hdferr, tstart, tstop ! auxiliary variables
+real(kind=4)                                     :: cxyz(3), edis, xy(2) ! auxiliary variables
+integer(kind=irg)                                :: xs, ys, zs
+real(kind=8)                                     :: delta,rand, xyz(3)
+real(kind=4), target                             :: thickness
+character(11)                                    :: dstr
+character(15)                                    :: tstrb
+character(15)                                    :: tstre
+logical                                          :: f_exists
 
-integer(c_size_t),target       :: slocal(2), localout
+integer(c_size_t),target                         :: slocal(2), localout
 
 ! OpenCL variables
-integer(c_intptr_t),allocatable, target  :: platform(:)
-integer(c_intptr_t),allocatable, target  :: device(:)
-integer(c_intptr_t),target     :: context
-integer(c_intptr_t),target     :: command_queue
-integer(c_intptr_t),target     :: prog
-integer(c_intptr_t),target     :: kernel
-integer(c_intptr_t),target     :: LamX, LamY, LamZ, depth, energy, seeds
-type(c_ptr)                    :: event
-integer(c_int32_t)             :: ierr, pcnt, ierr2
-integer(c_size_t),target       :: slength
-integer(c_intptr_t),target     :: ctx_props(3)
-character(3),target            :: kernelname
-character(6),target            :: kernelname2
-character(19),target           :: progoptions
-character(fnlen),target        :: info ! info about the GPU
-integer(c_int64_t)             :: cmd_queue_props
+integer(c_intptr_t),allocatable, target          :: platform(:)
+integer(c_intptr_t),allocatable, target          :: device(:)
+integer(c_intptr_t),target                       :: context
+integer(c_intptr_t),target                       :: command_queue
+integer(c_intptr_t),target                       :: prog
+integer(c_intptr_t),target                       :: kernel
+integer(c_intptr_t),target                       :: LamX, LamY, LamZ, depth, energy, seeds
+type(c_ptr)                                      :: event
+integer(c_int32_t)                               :: ierr, pcnt, ierr2
+integer(c_size_t),target                         :: slength
+integer(c_intptr_t),target                       :: ctx_props(3)
+character(3),target                              :: kernelname
+character(6),target                              :: kernelname2
+character(19),target                             :: progoptions
+character(fnlen),target                          :: info ! info about the GPU
+integer(c_int64_t)                               :: cmd_queue_props
 
-integer, parameter      :: iunit = 10
-integer, parameter      :: source_length = 50000
-character(len=source_length),target  :: source
+integer, parameter                               :: iunit = 10
+integer, parameter                               :: source_length = 50000
+character(len=source_length),target              :: source
 character(len=source_length, KIND=c_char),TARGET :: csource
-type(c_ptr), target :: psource
-integer(c_int)         :: nump, numd, irec, val,val1 ! auxiliary variables
-integer(c_size_t)      :: cnum, cnuminfo
-character(fnlen)        :: groupname, dataset, instring, dataname, fname, sourcefile, datagroupname, attributename, HDF_FileVersion
-integer(kind=irg)       :: iang
+type(c_ptr), target                              :: psource
+integer(c_int)                                   :: nump, numd, irec, val,val1 ! auxiliary variables
+integer(c_size_t)                                :: cnum, cnuminfo
+character(fnlen)                                 :: groupname, dataset, instring, dataname, fname, sourcefile, datagroupname, attributename, HDF_FileVersion
+integer(kind=irg)                                :: iang
 
-character(fnlen),ALLOCATABLE      :: MessageLines(:)
-integer(kind=irg)                 :: NumLines
-character(fnlen)                  :: SlackUsername, exectime
-character(100)                    :: c
-integer(kind=4)                   :: hnStat
+character(fnlen),ALLOCATABLE                     :: MessageLines(:)
+integer(kind=irg)                                :: NumLines
+character(fnlen)                                 :: SlackUsername, exectime
+character(100)                                   :: c
+integer(kind=4)                                  :: hnStat
 
 
 associate (mcnl => self%nml, MCDT => MCFT%MCDT )
@@ -1053,64 +1053,64 @@ use mod_SEMCLwrappers
 
 IMPLICIT NONE
 
-class(MCOpenCL_T), INTENT(INOUT)   :: self
-type(EMsoft_T), INTENT(INOUT)      :: EMsoft
-character(fnlen),INTENT(IN)        :: progname
+class(MCOpenCL_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)    :: EMsoft
+character(fnlen),INTENT(IN)      :: progname
 
-type(Cell_T)            :: cell
-type(DynType)           :: Dyn
-type(IO_T)              :: Message
-type(HDF_T)             :: HDF
-type(HDFnames_T)        :: HDFnames
-type(SpaceGroup_T)      :: SG
-type(Diffraction_T)     :: Diff
-type(MCfile_T)          :: MCFT
+type(Cell_T)                     :: cell
+type(DynType)                    :: Dyn
+type(IO_T)                       :: Message
+type(HDF_T)                      :: HDF
+type(HDFnames_T)                 :: HDFnames
+type(SpaceGroup_T)               :: SG
+type(Diffraction_T)              :: Diff
+type(MCfile_T)                   :: MCFT
 
-integer(kind=irg)       :: numsy        ! number of Lambert map points along y
-integer(kind=irg)       :: nx           ! no. of pixels
-integer(kind=irg)       :: j,k,l,ip,istat, ivx, ivy, ivz, numsites
-integer(kind=ill)       :: i, io_int(1), num_max, totnum_el_nml, multiplier, s4(4), s3(3)
-real(kind=4),target     :: Ze           ! average atomic number
-real(kind=4),target     :: density      ! density in g/cm^3
-real(kind=4),target     :: at_wt        ! average atomic weight in g/mole
-logical                 :: verbose
-real(kind=4)            :: dens, avA, avZ, io_real(3), dmin, Radius  ! used with CalcDensity routine
-real(kind=8)            :: io_dble(3)
-real(kind=4),target     :: EkeV, sig, omega ! input values to the kernel. Can only be real kind=4 otherwise values are not properly passed
-integer(kind=ill)       :: totnum_el, bse     ! total number of electrons to simulate and no. of backscattered electrons
-integer(kind=4)         :: prime ! input values to the kernel
-integer(kind=4),target  :: globalworkgrpsz, num_el, steps ! input values to the kernel
-integer(kind=8)         :: size_in_bytes,size_in_bytes_seeds ! size of arrays passed to kernel. Only accepts kind=8 integers by clCreateBuffer etc., so donot change
-integer(kind=8),target  :: globalsize(2), localsize(2) ! size of global and local work groups. Again only kind=8 is accepted by clEnqueueNDRangeKernel
-character(4)            :: mode
+integer(kind=irg)                :: numsy        ! number of Lambert map points along y
+integer(kind=irg)                :: nx           ! no. of pixels
+integer(kind=irg)                :: j,k,l,ip,istat, ivx, ivy, ivz, numsites
+integer(kind=ill)                :: i, io_int(1), num_max, totnum_el_nml, multiplier, s4(4), s3(3)
+real(kind=4),target              :: Ze           ! average atomic number
+real(kind=4),target              :: density      ! density in g/cm^3
+real(kind=4),target              :: at_wt        ! average atomic weight in g/mole
+logical                          :: verbose
+real(kind=4)                     :: dens, avA, avZ, io_real(3), dmin, Radius  ! used with CalcDensity routine
+real(kind=8)                     :: io_dble(3)
+real(kind=4),target              :: EkeV, sig, omega ! input values to the kernel. Can only be real kind=4 otherwise values are not properly passed
+integer(kind=ill)                :: totnum_el, bse     ! total number of electrons to simulate and no. of backscattered electrons
+integer(kind=4)                  :: prime ! input values to the kernel
+integer(kind=4),target           :: globalworkgrpsz, num_el, steps ! input values to the kernel
+integer(kind=8)                  :: size_in_bytes,size_in_bytes_seeds ! size of arrays passed to kernel. Only accepts kind=8 integers by clCreateBuffer etc., so donot change
+integer(kind=8),target           :: globalsize(2), localsize(2) ! size of global and local work groups. Again only kind=8 is accepted by clEnqueueNDRangeKernel
+character(4)                     :: mode
 
-integer(kind=4)         :: idxy(2), iE, px, py, iz, nseeds, hdferr, tstart, tstop ! auxiliary variables
-real(kind=4)            :: cxyz(3), edis, xy(2) ! auxiliary variables
-integer(kind=irg)       :: xs, ys, zs
-real(kind=8)            :: delta,rand, xyz(3)
-real(kind=4), target    :: thickness
-character(11)           :: dstr
-character(15)           :: tstrb
-character(15)           :: tstre
-logical                 :: f_exists
+integer(kind=4)                  :: idxy(2), iE, px, py, iz, nseeds, hdferr, tstart, tstop ! auxiliary variables
+real(kind=4)                     :: cxyz(3), edis, xy(2) ! auxiliary variables
+integer(kind=irg)                :: xs, ys, zs
+real(kind=8)                     :: delta,rand, xyz(3)
+real(kind=4), target             :: thickness
+character(11)                    :: dstr
+character(15)                    :: tstrb
+character(15)                    :: tstre
+logical                          :: f_exists
 
-integer(c_size_t),target       :: slocal(2), localout
+integer(c_size_t),target         :: slocal(2), localout
 
-integer(c_int)         :: nump, numd, irec, val,val1 ! auxiliary variables
-integer(c_size_t)      :: cnum, cnuminfo
-character(fnlen)       :: s, pdesc, pname, outname, dataset
-integer(kind=irg)      :: iang
+integer(c_int)                   :: nump, numd, irec, val,val1 ! auxiliary variables
+integer(c_size_t)                :: cnum, cnuminfo
+character(fnlen)                 :: s, pdesc, pname, outname, dataset
+integer(kind=irg)                :: iang
 
-real(kind=sgl), allocatable     :: atompos(:,:)
-integer(kind=irg),allocatable   :: atomtypes(:)
-real(kind=sgl),allocatable      :: atpos(:,:)
-integer(kind=irg),allocatable   :: attp(:)
-real(kind=sgl)                  :: latparm(6)
-integer(c_int32_t)              :: ipar(wraparraysize)
-real(kind=sgl)                  :: fpar(wraparraysize)
-character(kind=c_char, len=1)   :: spar(wraparraysize*fnlen)
-integer(c_size_t)               :: objAddress
-character(len=1)                :: cancel
+real(kind=sgl), allocatable      :: atompos(:,:)
+integer(kind=irg),allocatable    :: atomtypes(:)
+real(kind=sgl),allocatable       :: atpos(:,:)
+integer(kind=irg),allocatable    :: attp(:)
+real(kind=sgl)                   :: latparm(6)
+integer(c_int32_t)               :: ipar(wraparraysize)
+real(kind=sgl)                   :: fpar(wraparraysize)
+character(kind=c_char, len=1)    :: spar(wraparraysize*fnlen)
+integer(c_size_t)                :: objAddress
+character(len=1)                 :: cancel
 
 
 associate (mcnl => self%nml, MCDT => MCFT%MCDT )

@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2014-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2014-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -67,7 +67,6 @@ use mod_io
 IMPLICIT NONE
 
 type (symdata2D),INTENT(INOUT)  :: TDPG
-!f2py intent(in,out) ::  TDPG
 integer(kind=irg),INTENT(IN)    :: pgn          !< point group number
 type(IO_T)                      :: Message 
 
@@ -199,7 +198,6 @@ use mod_io
 IMPLICIT NONE
 
 type(symdata2D),INTENT(INOUT)      :: TDPG
-!f2py intent(in,out) ::  TDPG   
 integer(kind=irg),INTENT(IN)       :: ipx
 integer(kind=irg),INTENT(IN)       :: ipy
 integer(kind=irg),INTENT(IN)       :: isym

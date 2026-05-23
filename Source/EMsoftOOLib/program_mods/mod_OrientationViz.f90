@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -46,6 +46,7 @@ type, public :: OrientationVizNameListType
   integer(kind=irg) :: stereographic
   integer(kind=irg) :: eulerspace
   integer(kind=irg) :: reducetoRFZ
+  integer(kind=irg) :: applysymmetry
   integer(kind=irg) :: drawRFZoutline
   integer(kind=irg) :: drawequivRFZoutlines
   integer(kind=irg) :: nx
@@ -89,6 +90,7 @@ private
   procedure, pass(self) :: get_stereographic_
   procedure, pass(self) :: get_eulerspace_
   procedure, pass(self) :: get_reducetoRFZ_
+  procedure, pass(self) :: get_applysymmetry_
   procedure, pass(self) :: get_drawRFZoutline_
   procedure, pass(self) :: get_drawequivRFZoutlines_
   procedure, pass(self) :: get_nx_
@@ -117,6 +119,7 @@ private
   procedure, pass(self) :: set_stereographic_
   procedure, pass(self) :: set_eulerspace_
   procedure, pass(self) :: set_reducetoRFZ_
+  procedure, pass(self) :: set_applysymmetry_
   procedure, pass(self) :: set_nx_
   procedure, pass(self) :: set_ny_
   procedure, pass(self) :: set_nz_
@@ -147,6 +150,7 @@ private
   generic, public :: get_stereographic => get_stereographic_
   generic, public :: get_eulerspace => get_eulerspace_
   generic, public :: get_reducetoRFZ => get_reducetoRFZ_
+  generic, public :: get_applysymmetry => get_applysymmetry_
   generic, public :: get_drawRFZoutline => get_drawRFZoutline_
   generic, public :: get_drawequivRFZoutlines => get_drawequivRFZoutlines_
   generic, public :: get_nx => get_nx_
@@ -175,6 +179,7 @@ private
   generic, public :: set_stereographic => set_stereographic_
   generic, public :: set_eulerspace => set_eulerspace_
   generic, public :: set_reducetoRFZ => set_reducetoRFZ_
+  generic, public :: set_applysymmetry => set_applysymmetry_
   generic, public :: set_nx => set_nx_
   generic, public :: set_ny => set_ny_
   generic, public :: set_nz => set_nz_
@@ -252,53 +257,54 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(OrientationViz_T), INTENT(INOUT)  :: self
-character(fnlen),INTENT(IN)             :: nmlfile
+class(OrientationViz_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)            :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)             :: initonly
+logical,OPTIONAL,INTENT(IN)            :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                          :: EMsoft
-type(IO_T)                              :: Message
-logical                                 :: skipread = .FALSE.
+type(EMsoft_T)                         :: EMsoft
+type(IO_T)                             :: Message
+logical                                :: skipread = .FALSE.
 
-integer(kind=irg) :: cubochoric
-integer(kind=irg) :: homochoric
-integer(kind=irg) :: rodrigues
-integer(kind=irg) :: stereographic
-integer(kind=irg) :: eulerspace
-integer(kind=irg) :: reducetoRFZ
-integer(kind=irg) :: drawRFZoutline
-integer(kind=irg) :: drawequivRFZoutlines
-integer(kind=irg) :: nx
-integer(kind=irg) :: ny
-integer(kind=irg) :: nz
-integer(kind=irg) :: overridepgnum
-integer(kind=irg) :: MacKenzieCell
-real(kind=sgl)    :: rgb(3)
-real(kind=sgl)    :: location(3)
-real(kind=sgl)    :: a_rotate_data1(4)
-real(kind=sgl)    :: a_rotate_data2(4)
-real(kind=sgl)    :: a_rotate_data3(4)
-real(kind=sgl)    :: sphrad
-real(kind=sgl)    :: cylrad
-real(kind=sgl)    :: FZoffset
-real(kind=sgl)    :: distance
-character(3)      :: scalingmode
-character(3)      :: mrcmode
-character(fnlen)  :: df3file
-character(fnlen)  :: mrcfile
-character(fnlen)  :: framemrcfile
-character(fnlen)  :: xtalname
-character(fnlen)  :: povrayfile
-character(fnlen)  :: anglefile
+integer(kind=irg)                      :: cubochoric
+integer(kind=irg)                      :: homochoric
+integer(kind=irg)                      :: rodrigues
+integer(kind=irg)                      :: stereographic
+integer(kind=irg)                      :: eulerspace
+integer(kind=irg)                      :: reducetoRFZ
+integer(kind=irg)                      :: applysymmetry
+integer(kind=irg)                      :: drawRFZoutline
+integer(kind=irg)                      :: drawequivRFZoutlines
+integer(kind=irg)                      :: nx
+integer(kind=irg)                      :: ny
+integer(kind=irg)                      :: nz
+integer(kind=irg)                      :: overridepgnum
+integer(kind=irg)                      :: MacKenzieCell
+real(kind=sgl)                         :: rgb(3)
+real(kind=sgl)                         :: location(3)
+real(kind=sgl)                         :: a_rotate_data1(4)
+real(kind=sgl)                         :: a_rotate_data2(4)
+real(kind=sgl)                         :: a_rotate_data3(4)
+real(kind=sgl)                         :: sphrad
+real(kind=sgl)                         :: cylrad
+real(kind=sgl)                         :: FZoffset
+real(kind=sgl)                         :: distance
+character(3)                           :: scalingmode
+character(3)                           :: mrcmode
+character(fnlen)                       :: df3file
+character(fnlen)                       :: mrcfile
+character(fnlen)                       :: framemrcfile
+character(fnlen)                       :: xtalname
+character(fnlen)                       :: povrayfile
+character(fnlen)                       :: anglefile
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / EMOrientationViz / cubochoric, homochoric, rodrigues, stereographic, eulerspace, cylrad, &
                                xtalname, povrayfile, anglefile, reducetoRFZ, rgb, sphrad, df3file, location, &
                                mrcfile, framemrcfile, mrcmode, drawRFZoutline, drawequivRFZoutlines, a_rotate_data1, &
                                nx, ny, nz, distance, scalingmode, overridepgnum, MacKenzieCell, FZoffset, &
-                               a_rotate_data2, a_rotate_data3
+                               a_rotate_data2, a_rotate_data3, applysymmetry
 
 ! initialize
 cubochoric = 0
@@ -307,6 +313,7 @@ rodrigues = 0
 stereographic = 0
 eulerspace = 0
 reducetoRFZ = 1
+applysymmetry = 0
 drawRFZoutline = 1
 drawequivRFZoutlines = 0
 overridepgnum = 0
@@ -343,8 +350,8 @@ if (.not.skipread) then
  close(UNIT=dataunit,STATUS='keep')
 
 ! check for required entries
- if (trim(xtalname).eq.'undefined') then
-  call Message%printError('readNameList:',' structure file name is undefined in '//nmlfile)
+ if ( (trim(xtalname).eq.'undefined') .and. (overridepgnum.eq.0) ) then
+  call Message%printError('readNameList:',' no point group number available in '//nmlfile)
  end if
  if (mrcmode.eq.'off') then
    if (trim(povrayfile).eq.'undefined') then
@@ -372,6 +379,7 @@ self%nml%rodrigues = rodrigues
 self%nml%stereographic = stereographic
 self%nml%eulerspace = eulerspace
 self%nml%reducetoRFZ = reducetoRFZ
+self%nml%applysymmetry = applysymmetry
 self%nml%drawRFZoutline = drawRFZoutline
 self%nml%drawequivRFZoutlines = drawequivRFZoutlines
 self%nml%nx = nx
@@ -616,6 +624,24 @@ out = self%nml%reducetoRFZ
 end function get_reducetoRFZ_
 
 !--------------------------------------------------------------------------
+function get_applysymmetry_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_applysymmetry_
+!! author: MDG
+!! version: 1.0
+!! date: 05/18/26
+!!
+!! get applysymmetry from the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+integer(kind=irg)                          :: out
+
+out = self%nml%applysymmetry
+
+end function get_applysymmetry_
+
+!--------------------------------------------------------------------------
 function get_drawRFZoutline_(self) result(out)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_drawRFZoutline_
 !! author: MDG
@@ -668,6 +694,24 @@ integer(kind=irg), INTENT(IN)              :: inp
 self%nml%reducetoRFZ = inp
 
 end subroutine set_reducetoRFZ_
+
+!--------------------------------------------------------------------------
+subroutine set_applysymmetry_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_applysymmetry_
+!! author: MDG
+!! version: 1.0
+!! date: 05/18/26
+!!
+!! set applysymmetry in the OrientationViz_T class
+
+IMPLICIT NONE
+
+class(OrientationViz_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)              :: inp
+
+self%nml%applysymmetry = inp
+
+end subroutine set_applysymmetry_
 
 !--------------------------------------------------------------------------
 function get_nx_(self) result(out)
@@ -1449,31 +1493,31 @@ use mod_HDFsupport, only: openFortranHDFInterface, closeFortranHDFInterface
 
 IMPLICIT NONE
 
-class(OrientationViz_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
-character(fnlen), INTENT(INOUT)         :: progdesc
+class(OrientationViz_T), INTENT(INOUT) :: self
+type(EMsoft_T), INTENT(INOUT)          :: EMsoft
+character(fnlen), INTENT(INOUT)        :: progname
+character(fnlen), INTENT(INOUT)        :: progdesc
 
-type(IO_T)              :: Message
-type(PoVRay_T)          :: PoVcu, PoVho, PoVro, PoVst, PoVeu
-type(DirStat_T)         :: dict
-type(so3_T)             :: SO
-type(SpaceGroup_T)      :: SG
-type(cell_T)            :: cell
-type(QuaternionArray_T) :: qAR, dummy
-type(r_T)               :: ro
-type(h_T)               :: ho
-type(s_T)               :: st
-type(e_T)               :: eu
-type(c_T)               :: cu
-type(q_T)               :: qu, q
-type(a_T)               :: a
-type(Quaternion_T)      :: quat, qrot1, qrot2, qrot3
+type(IO_T)                             :: Message
+type(PoVRay_T)                         :: PoVcu, PoVho, PoVro, PoVst, PoVeu
+type(DirStat_T)                        :: dict
+type(so3_T)                            :: SO
+type(SpaceGroup_T)                     :: SG
+type(cell_T)                           :: cell
+type(QuaternionArray_T)                :: qAR, dummy
+type(r_T)                              :: ro
+type(h_T)                              :: ho
+type(s_T)                              :: st
+type(e_T)                              :: eu
+type(c_T)                              :: cu
+type(q_T)                              :: qu, q, qq
+type(a_T)                              :: a
+type(Quaternion_T)                     :: quat, qrot1, qrot2, qrot3, qm, qus
 
-real(kind=dbl)          :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
-integer(kind=irg)       :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
-                           ierr, ig, ix, iy, iz, num, ixyz(3), pgnum, io_int(2), nums(3)
-real(kind=dbl)          :: delta, eps = 1.0D-2
+real(kind=dbl)                         :: rod(4), sh(3), xyz(3), xyz4(4), XY(2), euFZ(3), rstep, ac, dd, qur(4)
+integer(kind=irg)                      :: i,j,k, icnt, imax, nt, npx, ngroups, groups(10), dataunit4=25, dataunit5=40, &
+                           ierr, ig, ix, iy, iz, num, ixyz(3), pgnum, io_int(2), nums(3), FZcnt, oldFZcnt
+real(kind=dbl)          :: delta, eps = 1.0D-2, xx(4)
 character(fnlen)        :: locationline, fname, dataname, outname, lightline, skyline, rgbstring, locationlineeu, &
                            colorstring, df3name, mrcname
 character(11)           :: p0
@@ -1490,7 +1534,7 @@ real(kind=dbl)          :: muhat(4), kappahat
 real(kind=sgl),allocatable :: rovol(:,:,:), spvol(:,:,:), euvol(:,:,:), cuvol(:,:,:), hovol(:,:,:)
 real(kind=sgl)          :: maxRFZdis(5), rodx, rody, rodz, eudx, eudy, eudz, spdx, spdy, spdz, cudx, cudy, cudz, &
                            hodx, hody, hodz, scalefactors(3,5), acubo, ahomo, grid3(3,3,3), eyepos(3)
-type(FZpointd),pointer  :: FZtmp
+type(FZpointd),pointer  :: FZtmp, FZtail, FZhead
 
 associate( enl=>self%nml )
 
@@ -1506,18 +1550,21 @@ grid3 = trilinear_splat( (/ 0.0, 0.0, 0.0/), (/ 0.0, 0.0, 0.0/), init=.TRUE.)
 ! define some parameters
 sh = (/ sngl(cPi), sngl(cPi/2.D0), sngl(cPi) /)   ! offset parameter for primary Euler cell
 
-! get the space group symmetry
-call openFortranHDFInterface()
-call cell%getCrystalData(enl%xtalname, SG, EMsoft)
-call closeFortranHDFInterface()
-pgnum = SG%getPGnumber()
-
 ! set the FZtype and FZorder parameters in the SO class
 if (enl%overridepgnum.ne.0) then
   pgnum = enl%overridepgnum
+else
+! get the space group symmetry
+  call openFortranHDFInterface()
+  call cell%getCrystalData(enl%xtalname, SG, EMsoft)
+  call closeFortranHDFInterface()
+  pgnum = SG%getPGnumber()
 end if
 SO = so3_T( pgnum, zerolist='FZ')
 call SO%getFZtypeandorder(FZtype, FZorder)
+
+io_int(1:2) = (/ FZtype, FZorder /)
+call Message%WriteValue(' FZtype/order : ',io_int, 2)
 
 ! Regular or MacKenzie FZ ?
 if (enl%MacKenzieCell.eq.1) then
@@ -1587,9 +1634,9 @@ end if
 if (enl%cubochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
     if (num.eq.0) then 
-      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline )
+      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline, FZorder )
     else
-      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline, qAR )
+      call initFiles(EMsoft, enl, PoVcu, SO, 'cu', outname, dataunit, locationline, FZorder, qAR )
     end if
   end if
 ! create the rendering volume
@@ -1609,9 +1656,9 @@ end if
 if (enl%homochoric.ne.0) then
   if (enl%mrcmode.eq.'off') then
     if (num.eq.0) then 
-      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline)
+      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline, FZorder)
     else
-      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline, qAR)
+      call initFiles(EMsoft, enl, PoVho, SO, 'ho', outname, dataunit2, locationline, FZorder, qAR)
     end if 
   end if
 ! create the rendering volume
@@ -1631,9 +1678,9 @@ end if
 if (enl%rodrigues.ne.0) then
   if (enl%mrcmode.eq.'off') then
     if (num.eq.0) then
-      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline)
+      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline, FZorder)
     else
-      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline, qAR )
+      call initFiles(EMsoft, enl, PoVro, SO, 'ro', outname, dataunit3, locationline, FZorder, qAR )
     end if
   end if
 ! create the rendering volume
@@ -1655,9 +1702,9 @@ end if
 if (enl%stereographic.ne.0) then
   if (enl%mrcmode.eq.'off') then
     if (num.eq.0) then 
-      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline)
+      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline, FZorder)
     else
-      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline, qAR )
+      call initFiles(EMsoft, enl, PoVst, SO, 'st', outname, dataunit4, locationline, FZorder, qAR )
     end if
   end if
 ! create the rendering volume
@@ -1682,9 +1729,9 @@ if (enl%eulerspace.ne.0) then
     PoVeu = PoVRay_T( EMsoft, fname, dunit=dataunit5, nmlfile=EMsoft%nmldeffile, skyline = skyline, &
                       locationline = locationlineeu )
     if (num.eq.0) then
-      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu)
+      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu, FZorder)
     else
-      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu, qAR )
+      call initFiles(EMsoft, enl, PoVeu, SO, 'eu', outname, dataunit5, locationlineeu, FZorder, qAR )
     end if 
   end if
 ! create the rendering volume
@@ -1727,8 +1774,47 @@ else
   call SO%ReducelisttoMFZ(SG)  ! this requires the full crystal point group
 end if
 
+! do we need to expand the orientation list by adding all symmetrically equivalent orientations?
+if (enl%applysymmetry.eq.1) then 
+  call Message%printMessage(' applying crystal symmetry to the orientation set')
+
+! get a pointer to the end of the current linked list
+  FZhead => SO%getListHead('FZ')
+  FZtail => SO%getListHead('FZ')
+  FZcnt = SO%getListCount('FZ')
+  oldFZcnt = FZcnt
+  do i=1,FZcnt
+    FZtail => FZtail%next
+  end do
+
+! loop over all current orientations and generate the equivalent ones
+! keep in mind that the identity operator is always the first one in the list so we skip it
+  do k=2,num 
+    FZtmp => FZhead
+    qm = qAr%getQuatfromArray(k)
+    do i=1,oldFZcnt
+      xx = FZtmp%qu%q_copyd() 
+      qus = qm * Quaternion_T( qd = xx )
+      qq = q_T( qdinp = qus%get_quatd() )
+      allocate(FZtail%next)
+      FZtail%qu = qq
+      FZtail%weight = 1.0
+      FZtail%rod = qq%qr()
+      FZtail => FZtail%next
+      nullify(FZtail%next)       
+      FZtmp => FZtmp%next
+    end do
+  end do
+  FZcnt = num*FZcnt 
+  call SO%setFZcnt(FZcnt, 'FZ')
+  io_int(1) = FZcnt
+  call Message%WriteValue(' FZcnt after symmetrization = ', io_int, 1)
+end if
+
 FZtmp => SO%getListHead('FZ')          ! point to the top of the list
 numpoints = SO%getListCount('FZ')
+
+
 
 pointloop: do ix = 1,numpoints
   ro = FZtmp%rod
@@ -1977,7 +2063,7 @@ end subroutine OrientationViz_
 
 
 !--------------------------------------------------------------------------
-subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit, locationline, qAR)
+subroutine initFiles(EMsoft, enl, PoV, SO, rep, outname, dunit, locationline, FZO, qAR)
 !DEC$ ATTRIBUTES DLLEXPORT :: initFiles
 !! author: MDG
 !! version: 1.0
@@ -2001,6 +2087,7 @@ type(so3_T),INTENT(INOUT)                         :: SO
 character(fnlen),INTENT(IN)                       :: outname
 integer(kind=irg),INTENT(IN)                      :: dunit
 character(fnlen),INTENT(IN)                       :: locationline
+integer(kind=irg),INTENT(IN)                      :: FZO
 type(QuaternionArray_T),INTENT(INOUT),OPTIONAL    :: qAR
 
 type(IO_T)                                        :: Message
@@ -2028,6 +2115,7 @@ fname = trim(outname)//'-'//rep//'.pov'
 call Message%printMessage('opening '//trim(fname))
 if (rep.ne.'eu') then
   PoV = PoVRay_T( EMsoft, fname, dunit=dunit, nmlfile=EMsoft%nmldeffile, locationline=locationline )
+  if (FZO.lt.0) call PoV%set_roto(abs(FZO))
 end if
 
 ! output the color definitions for equivalent RFZ drawings

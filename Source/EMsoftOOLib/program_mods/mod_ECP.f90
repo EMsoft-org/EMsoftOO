@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -168,33 +168,33 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(ECP_T), INTENT(INOUT)      :: self
-character(fnlen),INTENT(IN)      :: nmlfile
+class(ECP_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN) :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)      :: initonly
+logical,OPTIONAL,INTENT(IN) :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                   :: EMsoft
-type(IO_T)                       :: Message
-logical                          :: skipread = .FALSE.
+type(EMsoft_T)              :: EMsoft
+type(IO_T)                  :: Message
+logical                     :: skipread = .FALSE.
 
 ! parameters for the standard ECP program
-integer(kind=irg)       :: nthreads
-integer(kind=irg)       :: npix
-real(kind=sgl)          :: conesemiangle
-character(fnlen)        :: xtalname
-character(fnlen)        :: energyfile
-character(fnlen)        :: masterfile
-character(fnlen)        :: datafile
-character(1)            :: maskpattern
-character(fnlen)        :: anglefile
-character(3)            :: eulerconvention
-real(kind=sgl)          :: gammavalue
-character(3)            :: outputformat
-real(kind=dbl)          :: sampletilt
-real(kind=sgl)          :: workingdistance
-real(kind=sgl)          :: Rin
-real(kind=sgl)          :: Rout
+integer(kind=irg)           :: nthreads
+integer(kind=irg)           :: npix
+real(kind=sgl)              :: conesemiangle
+character(fnlen)            :: xtalname
+character(fnlen)            :: energyfile
+character(fnlen)            :: masterfile
+character(fnlen)            :: datafile
+character(1)                :: maskpattern
+character(fnlen)            :: anglefile
+character(3)                :: eulerconvention
+real(kind=sgl)              :: gammavalue
+character(3)                :: outputformat
+real(kind=dbl)              :: sampletilt
+real(kind=sgl)              :: workingdistance
+real(kind=sgl)              :: Rin
+real(kind=sgl)              :: Rout
 
 
 namelist /ECPlist/ xtalname, anglefile, nthreads, conesemiangle, npix, maskpattern, eulerconvention, Rin, Rout, &

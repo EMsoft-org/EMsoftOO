@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -283,8 +283,8 @@ function getNameList_(self) result(nml)
 
 IMPLICIT NONE 
 
-class(TBSRBW_T), INTENT(INOUT)          :: self
-type(BWNameListType)                :: nml
+class(TBSRBW_T), INTENT(INOUT) :: self
+type(BWNameListType)           :: nml
 
 nml = self%nml
 
@@ -390,8 +390,8 @@ subroutine setg_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp(3)
 
 self%nml%g = inp
 
@@ -408,8 +408,8 @@ function getg_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out(3)
 
 out = self%nml%g
 
@@ -426,8 +426,8 @@ subroutine setk_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp(3)
 
 self%nml%k = inp
 
@@ -444,8 +444,8 @@ function getk_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out(3)
 
 out = self%nml%k
 
@@ -462,8 +462,8 @@ subroutine setf_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp(3)
 
 self%nml%f = inp
 
@@ -480,8 +480,8 @@ function getf_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out(3)
 
 out = self%nml%f
 
@@ -498,8 +498,8 @@ subroutine setnumkt_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numkt = inp
 
@@ -516,8 +516,8 @@ function getnumkt_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numkt
 
@@ -534,8 +534,8 @@ subroutine setmaxng_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%maxng = inp
 
@@ -552,8 +552,8 @@ function getmaxng_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%maxng
 
@@ -570,8 +570,8 @@ subroutine setktmax_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(TBSRBW_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%ktmax = inp
 
@@ -588,8 +588,8 @@ function getktmax_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(TBSRBW_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%ktmax
 
@@ -606,8 +606,8 @@ subroutine setvoltage_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(TBSRBW_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%voltage = inp
 
@@ -624,8 +624,8 @@ function getvoltage_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(TBSRBW_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%voltage
 
@@ -786,8 +786,8 @@ subroutine setnumthick_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numthick = inp
 
@@ -804,8 +804,8 @@ function getnumthick_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(TBSRBW_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numthick
 
@@ -822,8 +822,8 @@ subroutine setstartthick_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(TBSRBW_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%startthick = inp
 
@@ -840,8 +840,8 @@ function getstartthick_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(TBSRBW_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%startthick
 
@@ -858,8 +858,8 @@ subroutine setthickinc_(self,inp)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(TBSRBW_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%thickinc = inp
 
@@ -876,8 +876,8 @@ function getthickinc_(self) result(out)
 
 IMPLICIT NONE
 
-class(TBSRBW_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(TBSRBW_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%thickinc
 
@@ -912,30 +912,30 @@ use HDF5
 use mod_HDFsupport
 use stringconstants
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 use ISO_C_BINDING
 
 IMPLICIT NONE 
 
-class(TBSRBW_T), INTENT(INOUT)      :: self
-type(EMsoft_T), INTENT(INOUT)     :: EMsoft
-character(fnlen), INTENT(INOUT)   :: progname 
-type(HDFnames_T), INTENT(INOUT)   :: HDFnames
+class(TBSRBW_T), INTENT(INOUT)  :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-type(Cell_T)                      :: Cell 
-type(Spacegroup_T)                :: SG 
-type(Diffraction_T)               :: Diff
-type(DynType)                     :: Dyn
-type(IO_T)                        :: Message
-type(Memory_T)                    :: mem
-type(gnode)                       :: rlp
-type(gvectors_T)                  :: gvec
-type(kvectors_T)                  :: kvec
-type(HDF_T)                       :: HDF
-type(Timing_T)                    :: timer
-type(reflisttype),pointer         :: reflist, rltmpa, rl, firstw
+type(Cell_T)                    :: Cell 
+type(Spacegroup_T)              :: SG 
+type(Diffraction_T)             :: Diff
+type(DynType)                   :: Dyn
+type(IO_T)                      :: Message
+type(Memory_T)                  :: mem
+type(gnode)                     :: rlp
+type(gvectors_T)                :: gvec
+type(kvectors_T)                :: kvec
+type(HDF_T)                     :: HDF
+type(Timing_T)                  :: timer
+type(reflisttype),pointer       :: reflist, rltmpa, rl, firstw
 
-real(kind=sgl)                    :: Vmod,Vphase,Vpmod,Vpphase,pre,upzero,find(3), dmin,&
+real(kind=sgl)                  :: Vmod,Vphase,Vpmod,Vpphase,pre,upzero,find(3), dmin,&
                                      kk,kt(3),kz,io_real(1),pre2,dkt,gg,s,ktmax, duration
 real(kind=dbl)                    :: lambda
 complex(kind=dbl),allocatable     :: M(:,:),alph(:),CGinv(:,:),Mcp(:,:),CG(:,:),W(:)

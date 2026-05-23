@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -93,6 +93,8 @@ type, public :: DictionaryIndexingNameListType
   real(kind=sgl)     :: lambda
   logical            :: doNLPAR
   logical            :: whitenPCA
+  logical            :: flipy
+  logical            :: KRremapping
   character(1)       :: maskpattern
   character(3)       :: scalingmode
   character(3)       :: Notify
@@ -404,14 +406,14 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(DIfile_T), INTENT(INOUT)    :: self
-type(HDF_T), INTENT(INOUT)        :: HDF
-character(fnlen), INTENT(IN)      :: DIfile
+class(DIfile_T), INTENT(INOUT)                   :: self
+type(HDF_T), INTENT(INOUT)                       :: HDF
+character(fnlen), INTENT(IN)                     :: DIfile
 
-type(IO_T)                        :: Message
-character(fnlen)                  :: dataset
-logical                           :: f_exists, g_exists, stat
-integer(kind=irg)                 :: hdferr, nlines
+type(IO_T)                                       :: Message
+character(fnlen)                                 :: dataset
+logical                                          :: f_exists, g_exists, stat
+integer(kind=irg)                                :: hdferr, nlines
 character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 ! we assume that DIfile contains the full path to the master pattern file
@@ -464,94 +466,96 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(DIfile_T), INTENT(INOUT)      :: self
-character(fnlen),INTENT(IN)         :: nmlfile
+class(DIfile_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)    :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)         :: initonly
+logical,OPTIONAL,INTENT(IN)    :: initonly
  !! fill in the default values only; do not read the file
-logical,OPTIONAL,INTENT(IN)         :: inRAM
-logical,OPTIONAL,INTENT(IN)         :: nt 
+logical,OPTIONAL,INTENT(IN)    :: inRAM
+logical,OPTIONAL,INTENT(IN)    :: nt 
 
-type(EMsoft_T)                      :: EMsoft
-type(IO_T)                          :: Message
-logical                             :: skipread = .FALSE., dotest = .TRUE.
+type(EMsoft_T)                 :: EMsoft
+type(IO_T)                     :: Message
+logical                        :: skipread = .FALSE., dotest = .TRUE. 
 
-integer(kind=irg)  :: numsx
-integer(kind=irg)  :: numsy
-integer(kind=irg)  :: exptnumsx
-integer(kind=irg)  :: exptnumsy
-integer(kind=irg)  :: ROI(4)
-integer(kind=irg)  :: binning
-integer(kind=irg)  :: devid
-integer(kind=irg)  :: multidevid(8)
-integer(kind=irg)  :: usenumd
-integer(kind=irg)  :: platid
-integer(kind=irg)  :: nregions
-integer(kind=irg)  :: nlines
-integer(kind=irg)  :: nthreads
-integer(kind=irg)  :: ncubochoric
-integer(kind=irg)  :: numexptsingle
-integer(kind=irg)  :: numdictsingle
-integer(kind=irg)  :: ipf_ht
-integer(kind=irg)  :: ipf_wd
-integer(kind=irg)  :: nnk
-integer(kind=irg)  :: nnav
-integer(kind=irg)  :: nosm
-integer(kind=irg)  :: nism
-integer(kind=irg)  :: maskradius
-integer(kind=irg)  :: sw
-integer(kind=irg)  :: npc
-integer(kind=irg)  :: energyaverage  ! no longer used but kept for compatibility with older files
-real(kind=sgl)     :: L
-real(kind=sgl)     :: thetac
-real(kind=sgl)     :: delta
-real(kind=sgl)     :: xpc
-real(kind=sgl)     :: ypc
-real(kind=sgl)     :: isangle
-real(kind=sgl)     :: gammavalue
-real(kind=sgl)     :: omega
-real(kind=sgl)     :: stepX
-real(kind=sgl)     :: stepY
-real(kind=sgl)     :: energymin
-real(kind=sgl)     :: energymax
-real(kind=sgl)     :: beamcurrent
-real(kind=sgl)     :: dwelltime
-real(kind=sgl)     :: hipassw
-real(kind=sgl)     :: lambda
-logical            :: doNLPAR
-logical            :: whitenPCA
-character(1)       :: maskpattern
-character(1)       :: keeptmpfile
-character(1)       :: usetmpfile
-character(1)       :: spatialaverage  ! no longer used but kept for compatibility with older files
-character(3)       :: scalingmode
-character(3)       :: Notify
-character(3)       :: similaritymetric
-character(3)       :: CPUGPU
-character(fnlen)   :: IPFprefix
-character(fnlen)   :: dotproductfile
-character(fnlen)   :: masterfile
-character(fnlen)   :: tmpfile
-character(fnlen)   :: datafile
-character(fnlen)   :: ctffile
-character(fnlen)   :: avctffile
-character(fnlen)   :: angfile
-character(fnlen)   :: eulerfile
-character(fnlen)   :: inputtype
-character(fnlen)   :: HDFstrings(10)
-character(fnlen)   :: refinementNMLfile
-character(fnlen)   :: exptfile
-character(fnlen)   :: dictfile
-character(fnlen)   :: maskfile
-character(fnlen)   :: indexingmode
-character(fnlen)   :: DIModality
+integer(kind=irg)              :: numsx
+integer(kind=irg)              :: numsy
+integer(kind=irg)              :: exptnumsx
+integer(kind=irg)              :: exptnumsy
+integer(kind=irg)              :: ROI(4)
+integer(kind=irg)              :: binning
+integer(kind=irg)              :: devid
+integer(kind=irg)              :: multidevid(8)
+integer(kind=irg)              :: usenumd
+integer(kind=irg)              :: platid
+integer(kind=irg)              :: nregions
+integer(kind=irg)              :: nlines
+integer(kind=irg)              :: nthreads
+integer(kind=irg)              :: ncubochoric
+integer(kind=irg)              :: numexptsingle
+integer(kind=irg)              :: numdictsingle
+integer(kind=irg)              :: ipf_ht
+integer(kind=irg)              :: ipf_wd
+integer(kind=irg)              :: nnk
+integer(kind=irg)              :: nnav
+integer(kind=irg)              :: nosm
+integer(kind=irg)              :: nism
+integer(kind=irg)              :: maskradius
+integer(kind=irg)              :: sw
+integer(kind=irg)              :: npc
+integer(kind=irg)              :: energyaverage  ! no longer used but kept for compatibility with older files
+real(kind=sgl)                 :: L
+real(kind=sgl)                 :: thetac
+real(kind=sgl)                 :: delta
+real(kind=sgl)                 :: xpc
+real(kind=sgl)                 :: ypc
+real(kind=sgl)                 :: isangle
+real(kind=sgl)                 :: gammavalue
+real(kind=sgl)                 :: omega
+real(kind=sgl)                 :: stepX
+real(kind=sgl)                 :: stepY
+real(kind=sgl)                 :: energymin
+real(kind=sgl)                 :: energymax
+real(kind=sgl)                 :: beamcurrent
+real(kind=sgl)                 :: dwelltime
+real(kind=sgl)                 :: hipassw
+real(kind=sgl)                 :: lambda
+logical                        :: doNLPAR
+logical                        :: whitenPCA
+logical                        :: flipy
+logical                        :: KRremapping
+character(1)                   :: maskpattern
+character(1)                   :: keeptmpfile
+character(1)                   :: usetmpfile
+character(1)                   :: spatialaverage  ! no longer used but kept for compatibility with older files
+character(3)                   :: scalingmode
+character(3)                   :: Notify
+character(3)                   :: similaritymetric
+character(3)                   :: CPUGPU
+character(fnlen)               :: IPFprefix
+character(fnlen)               :: dotproductfile
+character(fnlen)               :: masterfile
+character(fnlen)               :: tmpfile
+character(fnlen)               :: datafile
+character(fnlen)               :: ctffile
+character(fnlen)               :: avctffile
+character(fnlen)               :: angfile
+character(fnlen)               :: eulerfile
+character(fnlen)               :: inputtype
+character(fnlen)               :: HDFstrings(10)
+character(fnlen)               :: refinementNMLfile
+character(fnlen)               :: exptfile
+character(fnlen)               :: dictfile
+character(fnlen)               :: maskfile
+character(fnlen)               :: indexingmode
+character(fnlen)               :: DIModality
 ! ECP parameters
-real(kind=sgl)     :: workingdistance
-real(kind=sgl)     :: Rin
-real(kind=sgl)     :: Rout
-real(kind=sgl)     :: conesemiangle
-real(kind=sgl)     :: sampletilt
-integer(kind=irg)  :: npix
+real(kind=sgl)                 :: workingdistance
+real(kind=sgl)                 :: Rin
+real(kind=sgl)                 :: Rout
+real(kind=sgl)                 :: conesemiangle
+real(kind=sgl)                 :: sampletilt
+integer(kind=irg)              :: npix
 
 
 ! define the IO namelist to facilitate passing variables to the program.
@@ -562,7 +566,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, CPUGPU, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
-                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix, flipy, KRremapping
 
 namelist  / DIRAMdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
                      beamcurrent, dwelltime, binning, gammavalue, energymin, nregions, nlines, maskfile, &
@@ -611,6 +615,8 @@ stepY           = 1.0           ! sampling step size along Y
 lambda          = 0.375
 doNLPAR         = .FALSE.
 whitenPCA       = .TRUE.
+flipy           = .FALSE.
+KRremapping     = .FALSE.
 keeptmpfile     = 'n'
 usetmpfile      = 'n'
 maskpattern     = 'n'           ! 'y' or 'n' to include a circular mask
@@ -723,6 +729,8 @@ self%nml%npc           = npc
 self%nml%lambda        = lambda 
 self%nml%doNLPAR       = doNLPAR
 self%nml%whitenPCA     = whitenPCA
+self%nml%flipy         = flipy
+self%nml%KRremapping   = KRremapping
 self%nml%datafile      = trim(datafile)
 self%nml%tmpfile       = trim(tmpfile)
 self%nml%ctffile       = trim(ctffile)
@@ -791,86 +799,88 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(DIfile_T), INTENT(INOUT)                    :: self
-character(fnlen),INTENT(IN)                       :: nmldeffile
-type(DictionaryIndexingNameListType), INTENT(IN)  :: dinl
+class(DIfile_T), INTENT(INOUT)                   :: self
+character(fnlen),INTENT(IN)                      :: nmldeffile
+type(DictionaryIndexingNameListType), INTENT(IN) :: dinl
 
-integer(kind=irg)  :: numsx 
-integer(kind=irg)  :: numsy 
-integer(kind=irg)  :: exptnumsx
-integer(kind=irg)  :: exptnumsy
-integer(kind=irg)  :: ROI(4)
-integer(kind=irg)  :: binning
-integer(kind=irg)  :: devid
-integer(kind=irg)  :: multidevid(8)
-integer(kind=irg)  :: usenumd
-integer(kind=irg)  :: platid
-integer(kind=irg)  :: nregions
-integer(kind=irg)  :: nlines
-integer(kind=irg)  :: nthreads
-integer(kind=irg)  :: ncubochoric
-integer(kind=irg)  :: numexptsingle
-integer(kind=irg)  :: numdictsingle
-integer(kind=irg)  :: ipf_ht
-integer(kind=irg)  :: ipf_wd
-integer(kind=irg)  :: nnk
-integer(kind=irg)  :: nnav
-integer(kind=irg)  :: nosm
-integer(kind=irg)  :: nism
-integer(kind=irg)  :: maskradius
-integer(kind=irg)  :: sw
-integer(kind=irg)  :: npc 
-real(kind=sgl)     :: L 
-real(kind=sgl)     :: thetac 
-real(kind=sgl)     :: delta 
-real(kind=sgl)     :: xpc 
-real(kind=sgl)     :: ypc 
-real(kind=sgl)     :: isangle 
-real(kind=sgl)     :: gammavalue 
-real(kind=sgl)     :: omega 
-real(kind=sgl)     :: stepX 
-real(kind=sgl)     :: stepY 
-real(kind=sgl)     :: energymin 
-real(kind=sgl)     :: energymax 
-real(kind=sgl)     :: beamcurrent 
-real(kind=sgl)     :: dwelltime 
-real(kind=sgl)     :: hipassw 
-real(kind=sgl)     :: lambda 
-logical            :: doNLPAR 
-logical            :: whitenPCA 
-character(1)       :: maskpattern 
-character(1)       :: keeptmpfile 
-character(1)       :: usetmpfile 
-character(3)       :: scalingmode 
-character(3)       :: Notify 
-character(3)       :: similaritymetric 
-character(3)       :: CPUGPU 
-character(fnlen)   :: IPFprefix 
+integer(kind=irg)                                :: numsx 
+integer(kind=irg)                                :: numsy 
+integer(kind=irg)                                :: exptnumsx
+integer(kind=irg)                                :: exptnumsy
+integer(kind=irg)                                :: ROI(4)
+integer(kind=irg)                                :: binning
+integer(kind=irg)                                :: devid
+integer(kind=irg)                                :: multidevid(8)
+integer(kind=irg)                                :: usenumd
+integer(kind=irg)                                :: platid
+integer(kind=irg)                                :: nregions
+integer(kind=irg)                                :: nlines
+integer(kind=irg)                                :: nthreads
+integer(kind=irg)                                :: ncubochoric
+integer(kind=irg)                                :: numexptsingle
+integer(kind=irg)                                :: numdictsingle
+integer(kind=irg)                                :: ipf_ht
+integer(kind=irg)                                :: ipf_wd
+integer(kind=irg)                                :: nnk
+integer(kind=irg)                                :: nnav
+integer(kind=irg)                                :: nosm
+integer(kind=irg)                                :: nism
+integer(kind=irg)                                :: maskradius
+integer(kind=irg)                                :: sw
+integer(kind=irg)                                :: npc 
+real(kind=sgl)                                   :: L 
+real(kind=sgl)                                   :: thetac 
+real(kind=sgl)                                   :: delta 
+real(kind=sgl)                                   :: xpc 
+real(kind=sgl)                                   :: ypc 
+real(kind=sgl)                                   :: isangle 
+real(kind=sgl)                                   :: gammavalue 
+real(kind=sgl)                                   :: omega 
+real(kind=sgl)                                   :: stepX 
+real(kind=sgl)                                   :: stepY 
+real(kind=sgl)                                   :: energymin 
+real(kind=sgl)                                   :: energymax 
+real(kind=sgl)                                   :: beamcurrent 
+real(kind=sgl)                                   :: dwelltime 
+real(kind=sgl)                                   :: hipassw 
+real(kind=sgl)                                   :: lambda 
+logical                                          :: doNLPAR 
+logical                                          :: whitenPCA 
+logical                                          :: flipy
+logical                                          :: KRremapping
+character(1)                                     :: maskpattern 
+character(1)                                     :: keeptmpfile 
+character(1)                                     :: usetmpfile 
+character(3)                                     :: scalingmode 
+character(3)                                     :: Notify 
+character(3)                                     :: similaritymetric 
+character(3)                                     :: CPUGPU 
+character(fnlen)                                 :: IPFprefix 
 ! character(fnlen)   :: dotproductfile 
-character(fnlen)   :: masterfile 
-character(fnlen)   :: tmpfile 
-character(fnlen)   :: datafile 
-character(fnlen)   :: ctffile 
-character(fnlen)   :: avctffile 
-character(fnlen)   :: angfile 
-character(fnlen)   :: eulerfile 
-character(fnlen)   :: inputtype 
-character(fnlen)   :: HDFstrings(10) 
-character(fnlen)   :: refinementNMLfile 
-character(fnlen)   :: exptfile 
-character(fnlen)   :: dictfile 
-character(fnlen)   :: maskfile 
-character(fnlen)   :: indexingmode 
-character(fnlen)   :: DIModality 
+character(fnlen)                                 :: masterfile 
+character(fnlen)                                 :: tmpfile 
+character(fnlen)                                 :: datafile 
+character(fnlen)                                 :: ctffile 
+character(fnlen)                                 :: avctffile 
+character(fnlen)                                 :: angfile 
+character(fnlen)                                 :: eulerfile 
+character(fnlen)                                 :: inputtype 
+character(fnlen)                                 :: HDFstrings(10) 
+character(fnlen)                                 :: refinementNMLfile 
+character(fnlen)                                 :: exptfile 
+character(fnlen)                                 :: dictfile 
+character(fnlen)                                 :: maskfile 
+character(fnlen)                                 :: indexingmode 
+character(fnlen)                                 :: DIModality 
 ! ECP parameters 
-real(kind=sgl)     :: workingdistance 
-real(kind=sgl)     :: Rin 
-real(kind=sgl)     :: Rout 
-real(kind=sgl)     :: conesemiangle 
-real(kind=sgl)     :: sampletilt 
-integer(kind=irg)  :: npix 
-character(1)       :: spatialaverage  ! no longer used but kept for compatibility with older files
-integer(kind=irg)  :: energyaverage  ! no longer used but kept for compatibility with older files
+real(kind=sgl)                                   :: workingdistance 
+real(kind=sgl)                                   :: Rin 
+real(kind=sgl)                                   :: Rout 
+real(kind=sgl)                                   :: conesemiangle 
+real(kind=sgl)                                   :: sampletilt 
+integer(kind=irg)                                :: npix 
+character(1)                                     :: spatialaverage  ! no longer used but kept for compatibility with older files
+integer(kind=irg)                                :: energyaverage  ! no longer used but kept for compatibility with older files
 
 ! define the IO namelist to facilitate passing variables to the program.
 namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, platid, inputtype, DIModality, &
@@ -880,7 +890,7 @@ namelist  / DIdata / thetac, delta, numsx, numsy, xpc, ypc, masterfile, devid, p
                      dictfile, indexingmode, hipassw, stepX, stepY, tmpfile, avctffile, nosm, eulerfile, Notify, &
                      HDFstrings, ROI, keeptmpfile, multidevid, usenumd, nism, isangle, refinementNMLfile, CPUGPU, &
                      workingdistance, Rin, Rout, conesemiangle, sampletilt, npix, doNLPAR, sw, lambda, similaritymetric, &
-                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix
+                     exptnumsx, exptnumsy, usetmpfile, energyaverage, spatialaverage, npc, IPFprefix, flipy, KRremapping
 
 numsx = dinl%numsx
 numsy = dinl%numsy
@@ -925,6 +935,8 @@ hipassw = dinl%hipassw
 lambda = dinl%lambda
 doNLPAR = dinl%doNLPAR
 whitenPCA = dinl%whitenPCA
+flipy = dinl%flipy
+KRremapping = dinl%KRremapping
 maskpattern = dinl%maskpattern
 keeptmpfile = dinl%keeptmpfile
 usetmpfile = dinl%usetmpfile
@@ -1003,7 +1015,7 @@ type(HDFnames_T), INTENT(INOUT)                     :: HDFnames
 class(DictionaryIndexingNameListType), INTENT(INOUT):: emnl
 
 type(IO_T)                                          :: Message
-integer(kind=irg)                                   :: n_int, n_real, NLPAR, WPCA
+integer(kind=irg)                                   :: n_int, n_real, NLPAR, WPCA, FLIP, KRREMAP
 integer(kind=irg)                                   :: hdferr
 integer(kind=irg),allocatable                       :: io_int(:)
 real(kind=sgl),allocatable                          :: io_real(:)
@@ -1022,7 +1034,7 @@ modality = trim(self%getModality())
 select case(trim(modality))
   case('EBSD')
     isEBSD = .TRUE.
-    n_int = 24
+    n_int = 26
     n_real = 20
     allocate( io_int(n_int), intlist(n_int), io_real(n_real), reallist(n_real) )
   case('ECP')
@@ -1048,12 +1060,16 @@ NLPAR = 0
 if (emnl%doNLPAR.eqv..TRUE.) NLPAR=1
 WPCA = 1 
 if (emnl%whitenPCA.eqv..FALSE.) WPCA=0
+FLIP = 0
+if (emnl%flipy.eqv..TRUE.) FLIP=1
+KRREMAP = 0
+if (emnl%KRremapping.eqv..TRUE.) KRREMAP=1
 
 ! write all the single integers
 io_int = (/ emnl%ncubochoric, emnl%numexptsingle, emnl%numdictsingle, emnl%ipf_ht, &
             emnl%ipf_wd, emnl%nnk, emnl%maskradius, emnl%numsx, emnl%numsy, emnl%binning, &
             emnl%nthreads, emnl%devid, emnl%platid, emnl%nregions, emnl%nnav, &
-            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR, emnl%npc, WPCA /)
+            emnl%nosm, emnl%nlines, emnl%usenumd, emnl%nism, emnl%npix, emnl%sw, NLPAR, emnl%npc, WPCA, FLIP, KRREMAP /)
 intlist(1) = 'Ncubochoric'
 intlist(2) = 'numexptsingle'
 intlist(3) = 'numdictsingle'
@@ -1078,6 +1094,8 @@ intlist(21) = 'sw'
 intlist(22) = 'NLPAR'
 intlist(23) = 'npc'
 intlist(24) = 'whitenPCA'
+intlist(25) = 'flipy'
+intlist(26) = 'KRremapping'
 call HDF%writeNMLintegers(io_int, intlist, n_int)
 
 io_real = (/ emnl%L, emnl%thetac, emnl%delta, emnl%omega, emnl%xpc, &
@@ -1955,20 +1973,16 @@ type(HDF_T), INTENT(INOUT)                          :: HDF
 type(HDFnames_T), INTENT(INOUT)                     :: HDFnames
 character(3),INTENT(IN)                             :: vendor   ! 'TSL' 'HKL' 'BRU'
 ! type(DictionaryIndexingNameListType),INTENT(INOUT)  :: ebsdnl
-!f2py intent(in,out) ::  ebsdnl
 type(MCOpenCLNameListType),INTENT(INOUT)            :: mcnl
 character(fnlen),INTENT(IN)                         :: xtalname
 character(11),INTENT(INOUT)                         :: dstr
-!f2py intent(in,out) ::  dstr
 character(15),INTENT(IN)                            :: tstrb
 character(15),INTENT(IN)                            :: tstre
 integer(kind=irg),INTENT(INOUT)                     :: ipar(10)
-!f2py intent(in,out) ::  ipar
 real(kind=sgl),INTENT(IN)                           :: resultmain(ipar(1),ipar(2))
 real(kind=sgl),INTENT(IN)                           :: exptIQ(ipar(3))
 integer(kind=irg),INTENT(IN)                        :: indexmain(ipar(1),ipar(2))
 real(kind=sgl),INTENT(INOUT)                        :: dicteulerarray(3,ipar(4))
-!f2py intent(in,out) ::  dicteulerarray
 real(kind=sgl),INTENT(IN)                           :: dpmap(ipar(3))
 character(fnlen),INTENT(IN)                         :: progname
 character(fnlen),INTENT(IN)                         :: nmldeffile
@@ -2505,12 +2519,10 @@ type(HDF_T),INTENT(INOUT)                           :: HDF
 type(HDFnames_T),INTENT(INOUT)                      :: HDFnames
 integer(kind=irg),INTENT(IN)                        :: filetype
 character(11),INTENT(INOUT)                         :: dstr
-!f2py intent(in,out) ::  dstr
 character(15),INTENT(IN)                            :: tstrb
 character(15),INTENT(IN)                            :: tstre
 character(fnlen),INTENT(IN)                         :: progname
 type(DictionaryIndexingNameListType),INTENT(INOUT)  :: ebsdnl
-!f2py intent(in,out) ::  ebsdnl
 character(fnlen),INTENT(IN)                         :: nmldeffile
 
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
@@ -2579,20 +2591,20 @@ use mod_io
 
 IMPLICIT NONE
 
-type(HDF_T),INTENT(INOUT)               :: HDF
-character(fnlen),INTENT(IN)             :: dataset
-integer(kind=irg),INTENT(IN)            :: nump
-real(kind=sgl),INTENT(IN)               :: inpvec(nump)
-type(DictionaryIndexingNameListType),INTENT(IN)  :: ebsdnl
-real(kind=sgl),OPTIONAL,INTENT(IN)      :: binary
+type(HDF_T),INTENT(INOUT)                       :: HDF
+character(fnlen),INTENT(IN)                     :: dataset
+integer(kind=irg),INTENT(IN)                    :: nump
+real(kind=sgl),INTENT(IN)                       :: inpvec(nump)
+type(DictionaryIndexingNameListType),INTENT(IN) :: ebsdnl
+real(kind=sgl),OPTIONAL,INTENT(IN)              :: binary
 
-type(IO_T)                              :: Message
-real(kind=sgl)                          :: mi, ma
-integer(kind=irg)                       :: istat, ii, jj, hdferr
-real(kind=sgl),allocatable              :: newvec(:)
-integer(kind=irg),allocatable           :: image(:,:)
-integer(HSIZE_T)                        :: width, height
-logical                                 :: isbinary
+type(IO_T)                                      :: Message
+real(kind=sgl)                                  :: mi, ma
+integer(kind=irg)                               :: istat, ii, jj, hdferr
+real(kind=sgl),allocatable                      :: newvec(:)
+integer(kind=irg),allocatable                   :: image(:,:)
+integer(HSIZE_T)                                :: width, height
+logical                                         :: isbinary
 
 isbinary = .FALSE.
 if (present(binary)) isbinary=.TRUE.
@@ -2820,27 +2832,27 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-type(EMsoft_T),INTENT(INOUT)                      :: EMsoft
-type(HDF_T),INTENT(INOUT)                         :: HDF
-character(fnlen),intent(IN)                       :: groupname
-character(fnlen),intent(IN)                       :: xtalname
+type(EMsoft_T),INTENT(INOUT)                     :: EMsoft
+type(HDF_T),INTENT(INOUT)                        :: HDF
+character(fnlen),INTENT(IN)                      :: groupname
+character(fnlen),INTENT(IN)                      :: xtalname
 
-type(HDF_T)                                       :: localHDF
-type(cell_T)                                      :: cell
-type(SpaceGroup_T)                                :: SG
+type(HDF_T)                                      :: localHDF
+type(cell_T)                                     :: cell
+type(SpaceGroup_T)                               :: SG
 
-character(fnlen)                                  :: dataset, grname, filename
-integer(kind=irg)                                 :: istat, SGnum, hdferr
-real(kind=dbl),allocatable                        :: cellparams(:)
-integer(HSIZE_T)                                  :: dims(1)
-logical                                           :: readonly, stat
+character(fnlen)                                 :: dataset, grname, filename
+integer(kind=irg)                                :: istat, SGnum, hdferr
+real(kind=dbl),allocatable                       :: cellparams(:)
+integer(HSIZE_T)                                 :: dims(1)
+logical                                          :: readonly, stat
 
 
-integer(kind=irg)                                 :: i, pgnum
-character(fnlen, KIND=c_char),allocatable,TARGET  :: stringarray(:)
+integer(kind=irg)                                :: i, pgnum
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 ! TSL point group labels [courtesy of S. Wright]
-character(26),parameter       :: TSLpgname(32) = (/ "Triclinic (C1) [1]        ", "Triclinic (S2, Ci) [-1]   ",&
+character(26),parameter                          :: TSLpgname(32) = (/ "Triclinic (C1) [1]        ", "Triclinic (S2, Ci) [-1]   ",&
                         "Monoclinic b (C2)[2]      ", "Monoclinic b (C1h, Cs) [m]", "Monoclinic b (C2h) [2/m]  ",&
                         "Orthorhombic (D2) [222]   ", "Orthorhombic (C2v) [mm2]  ", "Orthorhombic (D2h) [mmm]  ",&
                         "Tetragonal (C4) [4]       ", "Tetragonal (S4) [-4]      ", "Tetragonal (C4h) [4/m]    ",&
@@ -3400,12 +3412,10 @@ type(HDF_T),INTENT(INOUT)                           :: HDF
 type(HDFnames_T),INTENT(INOUT)                      :: HDFnames
 integer(kind=irg),INTENT(IN)                        :: filetype
 character(11),INTENT(INOUT)                         :: dstr
-!f2py intent(in,out) ::  dstr
 character(15),INTENT(IN)                            :: tstrb
 character(15),INTENT(IN)                            :: tstre
 character(fnlen),INTENT(IN)                         :: progname
 type(SphInxNameListType),INTENT(INOUT)              :: sinl
-!f2py intent(in,out) ::  ebsdnl
 character(fnlen),INTENT(IN)                         :: nmldeffile
 
 character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
@@ -3699,27 +3709,27 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-type(EMsoft_T),INTENT(INOUT)                      :: EMsoft
-type(HDF_T),INTENT(INOUT)                         :: HDF
-character(fnlen),intent(IN)                       :: groupname
-character(fnlen),intent(IN)                       :: xtalname
+type(EMsoft_T),INTENT(INOUT)                     :: EMsoft
+type(HDF_T),INTENT(INOUT)                        :: HDF
+character(fnlen),INTENT(IN)                      :: groupname
+character(fnlen),INTENT(IN)                      :: xtalname
 
-type(HDF_T)                                       :: localHDF
-type(cell_T)                                      :: cell
-type(SpaceGroup_T)                                :: SG
+type(HDF_T)                                      :: localHDF
+type(cell_T)                                     :: cell
+type(SpaceGroup_T)                               :: SG
 
-character(fnlen)                                  :: dataset, grname, filename
-integer(kind=irg)                                 :: istat, SGnum, hdferr
-real(kind=dbl),allocatable                        :: cellparams(:)
-integer(HSIZE_T)                                  :: dims(1)
-logical                                           :: readonly, stat
+character(fnlen)                                 :: dataset, grname, filename
+integer(kind=irg)                                :: istat, SGnum, hdferr
+real(kind=dbl),allocatable                       :: cellparams(:)
+integer(HSIZE_T)                                 :: dims(1)
+logical                                          :: readonly, stat
 
 
-integer(kind=irg)                                 :: i, pgnum
-character(fnlen, KIND=c_char),allocatable,TARGET  :: stringarray(:)
+integer(kind=irg)                                :: i, pgnum
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 ! TSL point group labels [courtesy of S. Wright]
-character(26),parameter       :: TSLpgname(32) = (/ "Triclinic (C1) [1]        ", "Triclinic (S2, Ci) [-1]   ",&
+character(26),parameter                          :: TSLpgname(32) = (/ "Triclinic (C1) [1]        ", "Triclinic (S2, Ci) [-1]   ",&
                         "Monoclinic b (C2)[2]      ", "Monoclinic b (C1h, Cs) [m]", "Monoclinic b (C2h) [2/m]  ",&
                         "Orthorhombic (D2) [222]   ", "Orthorhombic (C2v) [mm2]  ", "Orthorhombic (D2h) [mmm]  ",&
                         "Tetragonal (C4) [4]       ", "Tetragonal (S4) [-4]      ", "Tetragonal (C4h) [4/m]    ",&

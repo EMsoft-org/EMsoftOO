@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -153,13 +153,13 @@ subroutine writeSTLfile_(self, MCAlist)
 
 IMPLICIT NONE 
 
-class(STL_T), INTENT(INOUT)       :: self
-type(MCAtriangle), INTENT(IN), pointer     :: MCAlist
+class(STL_T), INTENT(INOUT)            :: self
+type(MCAtriangle), INTENT(IN), pointer :: MCAlist
 
-type(STLtriangle)                 :: tr 
-integer(kind=irg)                 :: i 
-real(c_float)                     :: nv(3)
-type(MCAtriangle),pointer         :: tmp, tmp2
+type(STLtriangle)                      :: tr 
+integer(kind=irg)                      :: i 
+real(c_float)                          :: nv(3)
+type(MCAtriangle),pointer              :: tmp, tmp2
 
 tmp => MCAlist
 

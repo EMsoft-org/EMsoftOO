@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -345,12 +345,11 @@ recursive function Lambert2DSquareForwardSingle(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(3)
+  real(kind=sgl),INTENT(OUT)              :: res(3)
    !! transformation result
   integer(kind=irg)                       :: ierr
-   !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, qq, xy2(2)
 
@@ -397,12 +396,11 @@ recursive function Lambert2DSquareForwardDouble(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(3)
+  real(kind=dbl),INTENT(OUT)              :: res(3)
    !! transformation result
   integer(kind=irg)                       :: ierr
-   !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, qq, xy2(2)
 
@@ -452,12 +450,11 @@ recursive function Lambert2DSquareInverseSingle(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(2)
+  real(kind=sgl),INTENT(OUT)              :: res(2)
    !! output coordinate pair
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q
   real(kind=sgl),parameter                :: eps = 1.0E-6
@@ -500,12 +497,11 @@ recursive function Lambert2DSquareInverseDouble(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(2)
+  real(kind=dbl),INTENT(OUT)              :: res(2)
    !! output coordinate pair
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q
   real(kind=dbl),parameter                :: eps = 1.0D-12
@@ -555,12 +551,11 @@ recursive function Lambert2DHexForwardSingle(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(3)
+  real(kind=sgl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, XX, YY, xp, yp, XY2(2), xyc(2)
   integer(kind=irg)                       :: ks
@@ -621,12 +616,11 @@ recursive function Lambert2DHexForwardDouble(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(3)
+  real(kind=dbl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, XX, YY, xp, yp, XY2(2), xyc(2)
   integer(kind=irg)                       :: ks
@@ -691,12 +685,11 @@ recursive function Lambert2DHexInverseSingle(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(2)
+  real(kind=sgl),INTENT(OUT)              :: res(2)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, qq, XX, YY, xxx, yyy, sgnX, XYZ2(3), xy(2)
   integer(kind=irg)                       :: ks
@@ -770,12 +763,11 @@ recursive function Lambert2DHexInverseDouble(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(2)
+  real(kind=dbl),INTENT(OUT)              :: res(2)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, qq, XX, YY, xxx, yyy, sgnX, XYZ2(3), xy(2)
   integer(kind=irg)                       :: ks
@@ -944,12 +936,11 @@ recursive function Lambert3DCubeForwardSingle(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(3)
+  real(kind=sgl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: XYZ(3), sXYZ(3), T1, T2, c, s, q, LamXYZ(3), eps
   integer(kind=irg)                       :: p
@@ -1038,12 +1029,11 @@ recursive function Lambert3DCubeForwardDouble(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(3)
+  real(kind=dbl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: XYZ(3), sXYZ(3), T1, T2, c, s, q, LamXYZ(3), eps
   integer(kind=irg)                       :: p
@@ -1133,12 +1123,11 @@ recursive function Lambert3DCubeInverseSingle(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(3)
+  real(kind=sgl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: rs, xyz3(3), xyz2(3), qxy, q2xy, sq2xy, q, ac, T1inv, T2inv, &
                                              xyz1(3), sx, sy, qx2y, sqx2y, tt
@@ -1236,12 +1225,11 @@ recursive function Lambert3DCubeInverseDouble(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(3)
+  real(kind=dbl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: rs, xyz3(3), xyz2(3), qxy, q2xy, sq2xy, q, ac, T1inv, T2inv, &
                                              xyz1(3), sx, sy, qx2y, sqx2y, tt
@@ -1458,12 +1446,11 @@ recursive function Lambert3DBallToQuaternion(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  type(Quaternion_T),intent(out)          :: res
+  type(Quaternion_T),INTENT(OUT)          :: res
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, x(21), ft, t
   real(kind=dbl)                          :: qd, xd(21), ftd, td
@@ -1543,12 +1530,11 @@ recursive function Lambert3DCubeToQuaternion(self, res) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  type(Quaternion_T),intent(out)          :: res
+  type(Quaternion_T),INTENT(OUT)          :: res
    !! output coordinate triplet
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q(3)
   real(kind=dbl)                          :: qd(3)
@@ -1581,14 +1567,13 @@ recursive function StereoGraphicForwardSingle(self, res, Radius) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(2)
+  real(kind=sgl),INTENT(OUT)              :: res(2)
    !! output coordinate triplet
   real(kind=sgl),INTENT(IN),OPTIONAL      :: Radius
    !! optional sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl),parameter                :: eps = 1.E-7
 
@@ -1614,14 +1599,13 @@ recursive function StereoGraphicForwardDouble(self, res, Radius) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(2)
+  real(kind=dbl),INTENT(OUT)              :: res(2)
    !! output coordinate triplet
   real(kind=dbl),INTENT(IN),OPTIONAL      :: Radius
    !! optional sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl),parameter                :: eps = 1.E-12
 
@@ -1652,19 +1636,18 @@ recursive function StereoGraphicInverseSingle(self, res, Radius, quat) result(ie
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)            :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(3)
+  real(kind=sgl),INTENT(OUT)             :: res(3)
    !! output coordinate triplet
-  real(kind=sgl),INTENT(IN)               :: Radius
+  real(kind=sgl),INTENT(IN)              :: Radius
    !! projection sphere radius
-  type(Quaternion_T),INTENT(IN),OPTIONAL  :: quat
+  type(Quaternion_T),INTENT(IN),OPTIONAL :: quat
    !! optional rotation quaternion
-  integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
+  integer(kind=irg)                      :: ierr
 
-  real(kind=sgl)                          :: q, qq
-  logical                                                 :: torot
+  real(kind=sgl)                         :: q, qq
+  logical                                :: torot
 
 torot = .FALSE.
 if(present(quat)) torot = .TRUE.
@@ -1699,16 +1682,15 @@ recursive function StereoGraphicInverseDouble(self, res, Radius, quat) result(ie
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(3)
+  real(kind=dbl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   real(kind=dbl),INTENT(IN)               :: Radius
    !! projection sphere radius
   type(Quaternion_T),INTENT(IN),OPTIONAL  :: quat
    !! optional rotation quaternion
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, qq
   logical                                 :: torot
@@ -1750,14 +1732,13 @@ recursive function LambertForwardSingle(self, res, Radius) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(2)
+  real(kind=sgl),INTENT(OUT)              :: res(2)
    !! output coordinate triplet
   real(kind=sgl),INTENT(IN),OPTIONAL      :: Radius
    !! projection sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q
   real(kind=sgl),parameter                :: eps = 1.E-7
@@ -1796,14 +1777,13 @@ recursive function LambertForwardDouble(self, res, Radius) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(2)
+  real(kind=dbl),INTENT(OUT)              :: res(2)
    !! output coordinate triplet
   real(kind=dbl),INTENT(IN),OPTIONAL      :: Radius
    !! projection sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q
   real(kind=dbl),parameter                :: eps = 1.E-12
@@ -1842,14 +1822,13 @@ recursive function LambertInverseSingle(self, res, Radius) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=sgl),intent(out)              :: res(3)
+  real(kind=sgl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   real(kind=sgl),INTENT(IN),OPTIONAL      :: Radius
    !! projection sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=sgl)                          :: q, tr
 
@@ -1880,14 +1859,13 @@ recursive function LambertInverseDouble(self, res, Radius) result(ierr)
 
 IMPLICIT NONE
 
-  class(Lambert_T),intent(in)             :: self
+  class(Lambert_T),INTENT(IN)             :: self
    !! input Lambert class
-  real(kind=dbl),intent(out)              :: res(3)
+  real(kind=dbl),INTENT(OUT)              :: res(3)
    !! output coordinate triplet
   real(kind=dbl),INTENT(IN),OPTIONAL      :: Radius
    !! projection sphere radius
   integer(kind=irg)                       :: ierr
-  !f2py intent(in,out) ::  ierr
 
   real(kind=dbl)                          :: q, tr
 
@@ -2082,7 +2060,6 @@ IMPLICIT NONE
 
 real(kind=sgl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master patter nsemi-edge
 real(kind=sgl),INTENT(IN)               :: m(-npx:npx,-npx:npx)
@@ -2118,7 +2095,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi-edge
 real(kind=dbl),INTENT(IN)               :: m(-npx:npx,-npx:npx)
@@ -2153,7 +2129,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi-edge
 integer(kind=irg),INTENT(IN)            :: nn
@@ -2196,7 +2171,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi-edge
 integer(kind=irg),INTENT(IN)            :: nn
@@ -2234,7 +2208,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi-edge
 integer(kind=irg),INTENT(IN)            :: nn
@@ -2274,7 +2247,6 @@ IMPLICIT NONE
 
 real(kind=dbl),INTENT(INOUT)            :: dc(3)
  !! direction cosines
-!f2py intent(in,out) ::  dc
 integer(kind=irg),INTENT(IN)            :: npx
  !! number of pixels along master pattern semi edge
 real(kind=dbl),INTENT(IN)               :: m(4,4,-npx:npx,-npx:npx)
@@ -2312,27 +2284,27 @@ use mod_io
 
 IMPLICIT NONE
 
-class(Lambert_T), INTENT(INOUT) :: self
-type(Cell_T),INTENT(INOUT)      :: cell
-type(SpaceGroup_T),INTENT(INOUT):: SG
-integer(kind=irg),INTENT(IN)    :: ipx
-integer(kind=irg),INTENT(IN)    :: ipy
-integer(kind=irg),INTENT(IN)    :: ipz
-integer(kind=irg),INTENT(IN)    :: npx
-integer(kind=irg),INTENT(OUT)   :: iequiv(3,48)
-integer(kind=irg),INTENT(OUT)   :: nequiv
-logical,INTENT(IN),OPTIONAL     :: usehex
-logical,INTENT(IN),OPTIONAL     :: stereographic
+class(Lambert_T), INTENT(INOUT)       :: self
+type(Cell_T),INTENT(INOUT)            :: cell
+type(SpaceGroup_T),INTENT(INOUT)      :: SG
+integer(kind=irg),INTENT(IN)          :: ipx
+integer(kind=irg),INTENT(IN)          :: ipy
+integer(kind=irg),INTENT(IN)          :: ipz
+integer(kind=irg),INTENT(IN)          :: npx
+integer(kind=irg),INTENT(OUT)         :: iequiv(3,48)
+integer(kind=irg),INTENT(OUT)         :: nequiv
+logical,INTENT(IN),OPTIONAL           :: usehex
+logical,INTENT(IN),OPTIONAL           :: stereographic
 integer(kind=irg),INTENT(IN),OPTIONAL :: cubictype
 
-type(Lambert_T)                 :: L
-type(IO_T)                      :: Message
-real(kind=dbl)                  :: xy(2), xyz(3), kstar(3)
-real(kind=dbl),parameter        :: neps = -0.0001D0
-integer(kind=irg)               :: ierr, i, ix, iy
-real(kind=dbl),allocatable      :: stmp(:,:)            !< output array with equivalent vectors
-integer(kind=irg)               :: n                    !< number of entries in equivalent vector array
-character(1)                    :: space                !< 'd' or 'r'
+type(Lambert_T)                       :: L
+type(IO_T)                            :: Message
+real(kind=dbl)                        :: xy(2), xyz(3), kstar(3)
+real(kind=dbl),parameter              :: neps = -0.0001D0
+integer(kind=irg)                     :: ierr, i, ix, iy
+real(kind=dbl),allocatable            :: stmp(:,:)            !< output array with equivalent vectors
+integer(kind=irg)                     :: n                    !< number of entries in equivalent vector array
+character(1)                          :: space                !< 'd' or 'r'
 
 
 ! for the cubic groups, we need to apply a lower symmetry group due to the fact that we
@@ -2469,23 +2441,21 @@ IMPLICIT NONE
 
 
 class(Lambert_T), INTENT(INOUT) :: self
-real(kind=sgl),INTENT(IN)     :: mu(3)
-real(kind=dbl),INTENT(IN)     :: kappa
-real(kind=dbl),INTENT(IN)     :: VMFscale
-real(kind=dbl),INTENT(IN)     :: inten
-integer(kind=irg),INTENT(IN)  :: npx
-integer(kind=irg),INTENT(IN)  :: nix
-integer(kind=irg),INTENT(IN)  :: niy
-integer(kind=irg),INTENT(IN)  :: w
-real(kind=sgl),INTENT(INOUT)  :: mLPNH(-npx:npx, -npx:npx)
-!f2py intent(in,out) ::  mLPNH
-real(kind=sgl),INTENT(INOUT)  :: mLPSH(-npx:npx, -npx:npx)
-!f2py intent(in,out) ::  mLPSH
-real(kind=dbl),INTENT(IN)     :: LegendreArray(0:2*npx)
+real(kind=sgl),INTENT(IN)       :: mu(3)
+real(kind=dbl),INTENT(IN)       :: kappa
+real(kind=dbl),INTENT(IN)       :: VMFscale
+real(kind=dbl),INTENT(IN)       :: inten
+integer(kind=irg),INTENT(IN)    :: npx
+integer(kind=irg),INTENT(IN)    :: nix
+integer(kind=irg),INTENT(IN)    :: niy
+integer(kind=irg),INTENT(IN)    :: w
+real(kind=sgl),INTENT(INOUT)    :: mLPNH(-npx:npx, -npx:npx)
+real(kind=sgl),INTENT(INOUT)    :: mLPSH(-npx:npx, -npx:npx)
+real(kind=dbl),INTENT(IN)       :: LegendreArray(0:2*npx)
 
-real(kind=sgl)                :: xyz(3), vmf , LegendreLattitude, p
-integer(kind=irg)             :: i, j, ix, iy
-logical                       :: North, xN, yN  
+real(kind=sgl)                  :: xyz(3), vmf , LegendreLattitude, p
+integer(kind=irg)               :: i, j, ix, iy
+logical                         :: North, xN, yN  
 
 North = .TRUE.
 if (mu(3).lt.0.0) North = .FALSE.
@@ -2524,17 +2494,15 @@ recursive function HemiCheck_(self, ix, iy, npx, North) result(xyz)
 IMPLICIT NONE 
 
 class(Lambert_T), INTENT(INOUT) :: self
-integer(kind=irg),INTENT(INOUT)     :: ix
-!f2py intent(in,out) ::  ix
-integer(kind=irg),INTENT(INOUT)     :: iy
-!f2py intent(in,out) ::  iy
-integer(kind=irg),INTENT(IN)        :: npx
-logical,INTENT(IN)                  :: North
-real(kind=sgl)                      :: xyz(3)
+integer(kind=irg),INTENT(INOUT) :: ix
+integer(kind=irg),INTENT(INOUT) :: iy
+integer(kind=irg),INTENT(IN)    :: npx
+logical,INTENT(IN)              :: North
+real(kind=sgl)                  :: xyz(3)
 
-type(Lambert_T)                     :: L
+type(Lambert_T)                 :: L
 
-integer(kind=irg)                   :: ierr 
+integer(kind=irg)               :: ierr 
 
 if ((abs(ix).le.npx).and.(abs(iy).le.npx)) then
 ! regular case

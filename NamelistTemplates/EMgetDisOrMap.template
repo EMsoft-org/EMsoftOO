@@ -22,4 +22,6 @@
 ! lowest disorientation value from the complete set will be used if DisOrType='point';
 ! otherwise the average disorientation w.r.t. the nearest neighbors will be used
  DisOrMapfile= 'undefined',
+! use regular or refined Euler angles ?
+ angletype = 'regular',
  /

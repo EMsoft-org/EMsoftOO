@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2014-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2014-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -459,9 +459,9 @@ SUBROUTINE GETWK (Z,SYMBOL,A,B)
 
 
 ! DATEN VON UND FUER DIE AUFRUFENDE ROUTINE
-integer       :: Z
-real(kind=sgl):: A(4),B(4)
-character(2)  :: SYMBOL 
+integer                :: Z
+real(kind=sgl)         :: A(4),B(4)
+character(2)           :: SYMBOL 
 
 ! DATEN, DIE NUR INTERN BENOETIGT WERDEN
 character(2),parameter :: SY(98) = (/'H ','He','Li','Be','B ','C ','N ','O ','F ','Ne', &

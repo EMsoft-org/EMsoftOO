@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -86,7 +86,7 @@ character(fnlen)                        :: h5copypath, xtalfile, energyfile, gro
 character(fnlen)                        :: infile1, infile2, outfile          !< file names
 character(fnlen)                        :: mess, xtalname
 logical                                 :: f_exists, readonly
-character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen, kind=c_char), allocatable, target :: stringarray(:)
 
 ! print the header information
 EMsoft = EMsoft_T( progname, progdesc, noCLA = .TRUE. )

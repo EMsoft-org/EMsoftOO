@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -354,10 +354,10 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)    :: self
+  class(DualQuaternion_T),INTENT(IN) :: self
    !! input dual quaternion
 
-  type(IO_T)                        :: Message
+  type(IO_T)                         :: Message
 
   if (self%s.eq.'s') then
     call Message % WriteValue('', self%q, 8, frm="('(',8f12.6,'); precision: '$)")
@@ -380,7 +380,7 @@ recursive function getdualquats(self) result(qs)
 
 IMPLICIT NONE
 
-class(DualQuaternion_T),intent(in)    :: self
+class(DualQuaternion_T),INTENT(IN)    :: self
  !! input quaternion
 real(kind=sgl)                        :: qs(8)
 
@@ -399,7 +399,7 @@ recursive function getdualquatd(self) result(qd)
 
 IMPLICIT NONE
 
-class(DualQuaternion_T),intent(in)    :: self
+class(DualQuaternion_T),INTENT(IN)    :: self
  !! input dual quaternion
 real(kind=dbl)                        :: qd(8)
 
@@ -418,8 +418,8 @@ recursive subroutine setdualquats(self, qs)
 
 IMPLICIT NONE
 
-class(DualQuaternion_T),intent(inout)    :: self
-real(kind=sgl),intent(in)                :: qs(8)
+class(DualQuaternion_T),INTENT(INOUT)    :: self
+real(kind=sgl),INTENT(IN)                :: qs(8)
  !! input dual quaternion
 
 self%q = qs
@@ -438,8 +438,8 @@ recursive subroutine setdualquatd(self, qd)
 
 IMPLICIT NONE
 
-class(DualQuaternion_T),intent(inout)    :: self
-real(kind=dbl),intent(in)                :: qd(8)
+class(DualQuaternion_T),INTENT(INOUT)    :: self
+real(kind=dbl),INTENT(IN)                :: qd(8)
  !! input dual quaternion
 
 self%qd = qd
@@ -460,7 +460,7 @@ use mod_io
 
 IMPLICIT NONE 
 
-  class(DualQuaternionArray_T),intent(in)   :: self
+  class(DualQuaternionArray_T),INTENT(IN)   :: self
    !! input dual quaternion 
   integer(kind=irg),INTENT(IN),OPTIONAL     :: listN
 
@@ -495,7 +495,7 @@ pure recursive subroutine dualquatflip(self)
 
 IMPLICIT NONE
 
-class(DualQuaternion_T),intent(inout) :: self
+class(DualQuaternion_T),INTENT(INOUT) :: self
 
 if (self%s.eq.'s') then
   self%q = -self%q
@@ -516,7 +516,7 @@ pure recursive subroutine dualquatpos(self)
 
 IMPLICIT NONE
 
-class(DualQuaternion_T),intent(inout) :: self
+class(DualQuaternion_T),INTENT(INOUT) :: self
 
 if (self%s.eq.'s') then
   if (self%q(1).lt.0.0) self%q = -self%q
@@ -537,7 +537,7 @@ pure recursive function dualquatadd(self, y) result(qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in) :: self, y
+  class(DualQuaternion_T),INTENT(IN) :: self, y
   type(DualQuaternion_T)             :: qres
 
   if (self%s.eq.'s') then
@@ -563,7 +563,7 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in) :: self, y
+  class(DualQuaternionArray_T),INTENT(IN) :: self, y
   type(DualQuaternionArray_T)             :: qres
 
   type(IO_T)                              :: Message
@@ -613,7 +613,7 @@ recursive function dualquatsubtract(self, y) result(qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in) :: self, y
+  class(DualQuaternion_T),INTENT(IN) :: self, y
   type(DualQuaternion_T)             :: qres
 
   if (self%s.eq.'s') then
@@ -639,7 +639,7 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in) :: self, y
+  class(DualQuaternionArray_T),INTENT(IN) :: self, y
   type(DualQuaternionArray_T)             :: qres
 
   type(IO_T)                              :: Message
@@ -692,7 +692,7 @@ use mod_quaternions
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in) :: self, y
+  class(DualQuaternion_T),INTENT(IN) :: self, y
    !! input dual quaternions
   type(DualQuaternion_T)             :: qres
    !! output dual quaternion
@@ -745,7 +745,7 @@ use mod_OMPsupport
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in) :: self, y
+  class(DualQuaternionArray_T),INTENT(IN) :: self, y
    !! input quaternion arrays
   type(DualQuaternionArray_T)             :: qres
    !! output quaternion array
@@ -821,7 +821,7 @@ pure recursive function dualquatsmult(self, s) result(qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)   :: self
+  class(DualQuaternion_T),INTENT(IN)   :: self
    !! input dual quaternion
   real(kind=sgl), INTENT(IN)           :: s
    !! scalar input
@@ -844,7 +844,7 @@ pure recursive function dualquatarraysmult(self, s) result(qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in)   :: self
+  class(DualQuaternionArray_T),INTENT(IN)   :: self
    !! input quaternion
   real(kind=sgl), INTENT(IN)                :: s
    !! scalar input
@@ -878,7 +878,7 @@ pure recursive function dualquatsmultd(self, s) result(qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)   :: self
+  class(DualQuaternion_T),INTENT(IN)   :: self
    !! input quaternion
   real(kind=dbl), INTENT(IN)           :: s
    !! scalar input
@@ -901,7 +901,7 @@ pure recursive function dualquatarraysmultd(self, s) result(qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in)   :: self
+  class(DualQuaternionArray_T),INTENT(IN)   :: self
    !! input dual quaternion array
   real(kind=dbl), INTENT(IN)                :: s
    !! scalar input
@@ -945,7 +945,7 @@ pure recursive function dualquatconjg(self) result (qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)    :: self
+  class(DualQuaternion_T),INTENT(IN)    :: self
    !! input dual quaternion
   type(DualQuaternion_T)                :: qres
    !! output dual quaternion
@@ -971,7 +971,7 @@ pure recursive function dualquatarrayconjg(self) result (qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in)    :: self
+  class(DualQuaternionArray_T),INTENT(IN)    :: self
    !! input dual quaternion array
   type(DualQuaternionArray_T)                :: qres
    !! output dual quaternion array
@@ -1021,7 +1021,7 @@ pure recursive function dualquatnorm(self) result (res)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in) :: self
+  class(DualQuaternion_T),INTENT(IN) :: self
    !! input quaternion
   real(kind=dbl)                     :: res
    !! output norm
@@ -1053,7 +1053,7 @@ pure recursive function dualquatarraynorm(self) result (res)
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in) :: self
+  class(DualQuaternionArray_T),INTENT(IN) :: self
    !! input quaternion
   real(kind=dbl)                          :: res(self%n)
    !! output norm
@@ -1092,7 +1092,7 @@ recursive subroutine dualquatnormalize(self)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(inout) :: self
+  class(DualQuaternion_T),INTENT(INOUT) :: self
    !! input quaternion
 
   type(DualQuaternion_T)                :: q
@@ -1124,7 +1124,7 @@ recursive subroutine dualquatarraynormalize(self)
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(inout) :: self
+  class(DualQuaternionArray_T),INTENT(INOUT) :: self
    !! input quaternion
 
   real(kind=sgl),allocatable                 :: n(:)
@@ -1166,7 +1166,7 @@ recursive function dualquatdiv(self, y) result (qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)    :: self, y
+  class(DualQuaternion_T),INTENT(IN)    :: self, y
    !! input quaternions
   type(DualQuaternion_T)                :: qres
    !! output quaternion
@@ -1203,7 +1203,7 @@ recursive function dualquatarraydiv(self, y) result (qres)
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in)    :: self, y
+  class(DualQuaternionArray_T),INTENT(IN)    :: self, y
    !! input quaternions
   type(DualQuaternionArray_T)                :: qres
    !! output quaternion
@@ -1244,7 +1244,7 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)    :: self
+  class(DualQuaternion_T),INTENT(IN)    :: self
    !! input quaternion (numerator)
   real(kind=sgl), INTENT(IN)            :: s
    !! input quaternion (denominator)
@@ -1275,7 +1275,7 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in)    :: self
+  class(DualQuaternionArray_T),INTENT(IN)    :: self
    !! input quaternion (numerator)
   real(kind=sgl), INTENT(IN)                 :: s
    !! input quaternion (denominator)
@@ -1315,7 +1315,7 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)    :: self
+  class(DualQuaternion_T),INTENT(IN)    :: self
    !! input quaternion (numerator)
   real(kind=dbl), INTENT(IN)            :: s
    !! input quaternion (denominator)
@@ -1346,7 +1346,7 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in)    :: self
+  class(DualQuaternionArray_T),INTENT(IN)    :: self
    !! input quaternion (numerator)
   real(kind=dbl), INTENT(IN)                 :: s
    !! input quaternion (denominator)
@@ -1384,7 +1384,7 @@ pure recursive function dualquatinnerproduct(self, y) result (res)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)    :: self, y
+  class(DualQuaternion_T),INTENT(IN)    :: self, y
    !! input quaternions
   real(kind=dbl)                        :: res
    !! inner product
@@ -1414,7 +1414,7 @@ use mod_io
 
 IMPLICIT NONE
 
-  class(DualQuaternionArray_T),intent(in)    :: self, y
+  class(DualQuaternionArray_T),INTENT(IN)    :: self, y
    !! input quaternions
   real(kind=dbl)                             :: res(self%n)
    !! inner product
@@ -1458,11 +1458,11 @@ use mod_quaternions
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(inout) :: self
-  real(kind=dbl),intent(in)             :: ang
-  real(kind=dbl),intent(in)             :: ax(3)
-  real(kind=dbl),intent(in)             :: tr(3)
-  real(kind=dbl),intent(in)             :: sc
+  class(DualQuaternion_T),INTENT(INOUT) :: self
+  real(kind=dbl),INTENT(IN)             :: ang
+  real(kind=dbl),INTENT(IN)             :: ax(3)
+  real(kind=dbl),INTENT(IN)             :: tr(3)
+  real(kind=dbl),INTENT(IN)             :: sc
 
   type(DualQuaternion_T)                :: qr, qt, qp
   real(kind=sgl)                        :: ss 
@@ -1499,9 +1499,9 @@ recursive function dualquatLp(self, v) result (res)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)    :: self
+  class(DualQuaternion_T),INTENT(IN)    :: self
    !! input quaternion
-  real(kind=sgl),intent(in)             :: v(3)
+  real(kind=sgl),INTENT(IN)             :: v(3)
    !! input vector to be rotated
   real(kind=sgl)                        :: res(3)
    !! output vector
@@ -1527,9 +1527,9 @@ recursive function dualquatLpd(self, v) result (res)
 
 IMPLICIT NONE
 
-  class(DualQuaternion_T),intent(in)    :: self
+  class(DualQuaternion_T),INTENT(IN)    :: self
    !! input quaternion
-  real(kind=dbl),intent(in)             :: v(3)
+  real(kind=dbl),INTENT(IN)             :: v(3)
    !! input vector to be rotated
   real(kind=dbl)                        :: res(3)
    !! output vector
@@ -2022,7 +2022,6 @@ end function dualquatLpd
 ! IMPLICIT NONE
 
 ! type(rng_t),INTENT(INOUT)           :: seed
-! !f2py intent(in,out) ::  seed
 ! type(Quaternion_T)                  :: q
 
 ! real(kind=dbl)                      :: x1,x2,y1,y2,s1,s2

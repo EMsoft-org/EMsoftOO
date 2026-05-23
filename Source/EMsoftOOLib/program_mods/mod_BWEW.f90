@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -386,8 +386,8 @@ subroutine setnpix_(self,inp)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(BWEW_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%npix = inp
 
@@ -404,8 +404,8 @@ function getnpix_(self) result(out)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(BWEW_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%npix
 
@@ -422,8 +422,8 @@ subroutine setnumthick_(self,inp)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(BWEW_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%numthick = inp
 
@@ -440,8 +440,8 @@ function getnumthick_(self) result(out)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(BWEW_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%numthick
 
@@ -638,8 +638,8 @@ subroutine setxtalname_(self,inp)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(BWEW_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%xtalname = trim(inp)
 
@@ -656,8 +656,8 @@ function getxtalname_(self) result(out)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(BWEW_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%xtalname)
 
@@ -674,8 +674,8 @@ subroutine setoutname_(self,inp)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(BWEW_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%outname = trim(inp)
 
@@ -692,8 +692,8 @@ function getoutname_(self) result(out)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(BWEW_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%outname)
 
@@ -710,8 +710,8 @@ subroutine settiffprefix_(self,inp)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-character(fnlen), INTENT(IN)       :: inp
+class(BWEW_T), INTENT(INOUT) :: self
+character(fnlen), INTENT(IN) :: inp
 
 self%nml%tiffprefix = trim(inp)
 
@@ -728,8 +728,8 @@ function gettiffprefix_(self) result(out)
 
 IMPLICIT NONE
 
-class(BWEW_T), INTENT(INOUT)     :: self
-character(fnlen)                   :: out
+class(BWEW_T), INTENT(INOUT) :: self
+character(fnlen)             :: out
 
 out = trim(self%nml%tiffprefix)
 
@@ -765,29 +765,29 @@ use mod_image
 use HDF5
 use mod_HDFsupport
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                  :: iso_fortran_env
 
 IMPLICIT NONE 
 
-class(BWEW_T), INTENT(INOUT)      :: self
-type(EMsoft_T), INTENT(INOUT)     :: EMsoft
-character(fnlen), INTENT(INOUT)   :: progname 
-type(HDFnames_T), INTENT(INOUT)   :: HDFnames
+class(BWEW_T), INTENT(INOUT)    :: self
+type(EMsoft_T), INTENT(INOUT)   :: EMsoft
+character(fnlen), INTENT(INOUT) :: progname 
+type(HDFnames_T), INTENT(INOUT) :: HDFnames
 
-type(Cell_T)                      :: Cell 
-type(Spacegroup_T)                :: SG 
-type(Diffraction_T)               :: Diff
-type(DynType)                     :: Dyn
-type(IO_T)                        :: Message
-type(Memory_T)                    :: mem
-type(Timing_T)                    :: timer
-type(gnode)                       :: rlp
-type(gvectors_T)                  :: gvec
-type(kvectors_T)                  :: kvec
-type(HDF_T)                       :: HDF
-type(reflisttype),pointer         :: reflist, rltmpa, rl, firstw
+type(Cell_T)                    :: Cell 
+type(Spacegroup_T)              :: SG 
+type(Diffraction_T)             :: Diff
+type(DynType)                   :: Dyn
+type(IO_T)                      :: Message
+type(Memory_T)                  :: mem
+type(Timing_T)                  :: timer
+type(gnode)                     :: rlp
+type(gvectors_T)                :: gvec
+type(kvectors_T)                :: kvec
+type(HDF_T)                     :: HDF
+type(reflisttype),pointer       :: reflist, rltmpa, rl, firstw
 
-real(kind=sgl)                    :: laL,kt,z0,thc,thb,hkl(3),ind(3),fn(3),thick,mi, ma, galen, &
+real(kind=sgl)                  :: laL,kt,z0,thc,thb,hkl(3),ind(3),fn(3),thick,mi, ma, galen, &
                                      dom,glen,c(3),RR,gx(3),gy(3),gg(3),kstar(3),gad(3),gbd(3),frac,gal,gbl, &
                                      gmax,gamax,gbmax,gadl,gbdl, io_real(3), dmin, DynWV(3), lambda, Upz, xgpz
 real(kind=dbl)                    :: arg,th,maxsamint,dummy(3),pixpos(3)

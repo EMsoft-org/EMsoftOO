@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -178,29 +178,29 @@ use mod_EMsoft
 
 IMPLICIT NONE 
 
-class(SRCBED_T), INTENT(INOUT)       :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(SRCBED_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)    :: nmlfile
  !! full path to namelist file 
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)    :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft 
-type(IO_T)                           :: Message       
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                 :: EMsoft 
+type(IO_T)                     :: Message       
+logical                        :: skipread = .FALSE.
 
-integer(kind=irg) :: nthreads
-integer(kind=irg) :: SRG(3)
-integer(kind=irg) :: SRK(3)
-integer(kind=irg) :: Grange
-integer(kind=irg) :: numrows
-real(kind=sgl)    :: ktonG(10)
-real(kind=sgl)    :: voltage
-real(kind=sgl)    :: camlen
-real(kind=sgl)    :: convergence
-real(kind=sgl)    :: thick
-character(fnlen)  :: outname
-character(fnlen)  :: xtalname
-character(fnlen)  :: tiffprefix
+integer(kind=irg)              :: nthreads
+integer(kind=irg)              :: SRG(3)
+integer(kind=irg)              :: SRK(3)
+integer(kind=irg)              :: Grange
+integer(kind=irg)              :: numrows
+real(kind=sgl)                 :: ktonG(10)
+real(kind=sgl)                 :: voltage
+real(kind=sgl)                 :: camlen
+real(kind=sgl)                 :: convergence
+real(kind=sgl)                 :: thick
+character(fnlen)               :: outname
+character(fnlen)               :: xtalname
+character(fnlen)               :: tiffprefix
 
 namelist /SRCBEDlist/ nthreads, SRG, SRK, Grange, numrows, ktonG, voltage, xtalname, convergence, &
                         thick, outname, tiffprefix, camlen
@@ -288,8 +288,8 @@ subroutine setnthreads_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%nthreads = inp
 
@@ -306,8 +306,8 @@ function getnthreads_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%nthreads
 
@@ -324,8 +324,8 @@ subroutine setSRG_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp(3)
 
 self%nml%SRG = inp
 
@@ -342,8 +342,8 @@ function getSRG_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out(3)
 
 out = self%nml%SRG
 
@@ -360,8 +360,8 @@ subroutine setSRK_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp(3)
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp(3)
 
 self%nml%SRK = inp
 
@@ -378,8 +378,8 @@ function getSRK_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out(3)
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out(3)
 
 out = self%nml%SRK
 
@@ -396,8 +396,8 @@ subroutine setGrange_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%Grange = inp
 
@@ -414,8 +414,8 @@ function getGrange_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%Grange
 
@@ -432,8 +432,8 @@ subroutine setnumrows_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg), INTENT(IN)  :: inp
 
 self%nml%numrows = inp
 
@@ -450,8 +450,8 @@ function getnumrows_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(SRCBED_T), INTENT(INOUT) :: self
+integer(kind=irg)              :: out
 
 out = self%nml%numrows
 
@@ -505,8 +505,8 @@ subroutine setvoltage_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(SRCBED_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%voltage = inp
 
@@ -523,8 +523,8 @@ function getvoltage_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(SRCBED_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%voltage
 
@@ -541,8 +541,8 @@ subroutine setcamlen_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(SRCBED_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%camlen = inp
 
@@ -559,8 +559,8 @@ function getcamlen_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(SRCBED_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%camlen
 
@@ -577,8 +577,8 @@ subroutine setconvergence_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(SRCBED_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%convergence = inp
 
@@ -595,8 +595,8 @@ function getconvergence_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(SRCBED_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%convergence
 
@@ -613,8 +613,8 @@ subroutine setthick_(self,inp)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-real(kind=sgl), INTENT(IN)       :: inp
+class(SRCBED_T), INTENT(INOUT) :: self
+real(kind=sgl), INTENT(IN)     :: inp
 
 self%nml%thick = inp
 
@@ -631,8 +631,8 @@ function getthick_(self) result(out)
 
 IMPLICIT NONE
 
-class(SRCBED_T), INTENT(INOUT)     :: self
-real(kind=sgl)                   :: out
+class(SRCBED_T), INTENT(INOUT) :: self
+real(kind=sgl)                 :: out
 
 out = self%nml%thick
 
@@ -769,24 +769,24 @@ use mod_timing
 use mod_initializers
 use mod_image
 
-use, intrinsic :: iso_fortran_env
+use, intrinsic                :: iso_fortran_env
 
 IMPLICIT NONE
 
-class(SRCBED_T),INTENT(INOUT)     :: self
-type(EMsoft_T),INTENT(INOUT)      :: EMsoft 
-character(fnlen),INTENT(IN)       :: progname
+class(SRCBED_T),INTENT(INOUT) :: self
+type(EMsoft_T),INTENT(INOUT)  :: EMsoft 
+character(fnlen),INTENT(IN)   :: progname
 
-type(Cell_T)                      :: Cell 
-type(Spacegroup_T)                :: SPG 
-type(Diffraction_T)               :: Diff
-type(DynType)                     :: Dyn
-type(IO_T)                        :: Message
-type(Memory_T)                    :: mem
-type(Timing_T)                    :: timer
-type(gnode)                       :: rlp
+type(Cell_T)                  :: Cell 
+type(Spacegroup_T)            :: SPG 
+type(Diffraction_T)           :: Diff
+type(DynType)                 :: Dyn
+type(IO_T)                    :: Message
+type(Memory_T)                :: mem
+type(Timing_T)                :: timer
+type(gnode)                   :: rlp
 
-real(kind=dbl)                    :: laL,z0,alp,thc,thb,omega_c,omega_min,omega_max,dmin, mi, ma, camlen, Upz,&
+real(kind=dbl)                :: laL,z0,alp,thc,thb,omega_c,omega_min,omega_max,dmin, mi, ma, camlen, Upz,&
                                      dom,glen,xgpz, io_real(2),sc,omega,exer,sl,thr,zmax,att,gc,gci, lambda
 integer(kind=irg)                 :: g(3),ira,dpcnt,ppi,io_int(2),nn,izero,npix,i,j,numi,n,l,ll,np2,nps,nsl,&
                                      is,iq,npx,npy,ipos,istart,istop,rowmax,imo,k, wpix,hkl(3), ii, imanum

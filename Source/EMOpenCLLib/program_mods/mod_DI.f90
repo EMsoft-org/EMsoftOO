@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -108,26 +108,26 @@ IMPLICIT NONE
 ! interface for the callback routines
 ABSTRACT INTERFACE
    SUBROUTINE ProgCallBackTypeTimingdriver(objAddress, loopCompleted, totalLoops, timeRemaining) bind(C)
-    USE, INTRINSIC :: ISO_C_BINDING
-    INTEGER(c_size_t),INTENT(IN), VALUE             :: objAddress
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: loopCompleted
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: totalLoops
-    REAL(KIND=4),INTENT(IN), VALUE                  :: timeRemaining
+    USE, INTRINSIC                      :: ISO_C_BINDING
+    INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+    INTEGER(KIND=4), INTENT(IN), VALUE  :: loopCompleted
+    INTEGER(KIND=4), INTENT(IN), VALUE  :: totalLoops
+    REAL(KIND=4),INTENT(IN), VALUE      :: timeRemaining
    END SUBROUTINE ProgCallBackTypeTimingdriver
 
    SUBROUTINE ProgCallBackTypeDIdriver(objAddress, Ndict, euarr_cptr, dparr_cptr, indarr_cptr) bind(C)
-    USE, INTRINSIC :: ISO_C_BINDING
-    INTEGER(c_size_t),INTENT(IN), VALUE             :: objAddress
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: Ndict
-    type(c_ptr), INTENT(OUT)                        :: euarr_cptr
-    type(c_ptr), INTENT(OUT)                        :: dparr_cptr
-    type(c_ptr), INTENT(OUT)                        :: indarr_cptr
+    USE, INTRINSIC                      :: ISO_C_BINDING
+    INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+    INTEGER(KIND=4), INTENT(IN), VALUE  :: Ndict
+    type(c_ptr), INTENT(OUT)            :: euarr_cptr
+    type(c_ptr), INTENT(OUT)            :: dparr_cptr
+    type(c_ptr), INTENT(OUT)            :: indarr_cptr
    END SUBROUTINE ProgCallBackTypeDIdriver
 
    SUBROUTINE ProgCallBackTypeErrorDIdriver(objAddress, errorCode) bind(C)
-    USE, INTRINSIC :: ISO_C_BINDING
-    INTEGER(c_size_t),INTENT(IN), VALUE             :: objAddress
-    INTEGER(KIND=4), INTENT(IN), VALUE              :: errorCode
+    USE, INTRINSIC                      :: ISO_C_BINDING
+    INTEGER(c_size_t),INTENT(IN), VALUE :: objAddress
+    INTEGER(KIND=4), INTENT(IN), VALUE  :: errorCode
    END SUBROUTINE ProgCallBackTypeErrorDIdriver
 
 END INTERFACE
@@ -817,7 +817,7 @@ end if
 !=====================================================
 ! SAMPLING OF RODRIGUES FUNDAMENTAL ZONE
 !=====================================================
-! if eulerfile is not defined, then we use the standard RFZ sampling;
+! if eulerfile is not defined, then we use the standard or KRremapping RFZ sampling;
 ! if it is defined, then we read the Eulerangle triplets from the file
 ! and generate the FZlist here... this can be useful to index patterns that
 ! have only a small misorientation range with respect to a known orientation,
@@ -831,7 +831,15 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
       io_int(2) = ncubochoric
       call Message%WriteValue(' Point group number and number of cubochoric sampling points : ',io_int,2,"(I4,',',I5)")
 
-      call SO%sampleRFZ(ncubochoric)
+      if (dinl%KRremapping.eqv..TRUE.) then 
+        call Message%printMessage(' Using Knothe-Rosenblatt (KR) rearrangements for FZ sampling ')
+        call SO%setFZtypeandorder(1)
+        call SO%SampleRFZ(ncubochoric)
+        call SO%setFZtypeandorder(pgnum)
+        call SO%KRremap()
+      else
+        call SO%sampleRFZ(ncubochoric)
+      end if
       FZcnt = SO%getListCount('FZ')
 
       if (Clinked.eqv..TRUE.) then
@@ -1358,15 +1366,14 @@ dictionaryloop: do ii = 1,cratio+1
               ququ = quaternion_T( qd = qqq%q_copyd() )
               call qAR%insertQuatinArray( icnt, ququ )
             end do 
-! note the switch of x and y to get the same IPF map convention as DREAM.3D
             if (ROIselected.eqv..TRUE.) then
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
-              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
               call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
-              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
               call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
@@ -1375,11 +1382,11 @@ dictionaryloop: do ii = 1,cratio+1
             else
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
-              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
               call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
-              call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+              call IPF%set_sampleDir( (/ 0, 1, 0 /) )
               call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
               IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
               call IPF%set_IPFfilename(IPFmapfile)
@@ -1545,11 +1552,11 @@ if (trim(dinl%IPFprefix).ne.'undefined') then
   if (ROIselected.eqv..TRUE.) then
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
-    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
     call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
-    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
     call IPF%updateIPFmap(EMsoft, progname, dinl%ROI(3), dinl%ROI(4), pgnum, IPFmapfile, qAR, sym) 
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
@@ -1558,11 +1565,11 @@ if (trim(dinl%IPFprefix).ne.'undefined') then
   else
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFXmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
-    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
+    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
     call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFYmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
-    call IPF%set_sampleDir( (/ 1, 0, 0 /) )
+    call IPF%set_sampleDir( (/ 0, 1, 0 /) )
     call IPF%updateIPFmap(EMsoft, progname, dinl%ipf_wd, dinl%ipf_ht, pgnum, IPFmapfile, qAR, sym) 
     IPFmapfile = trim(dinl%IPFprefix)//'_IPFZmap.tiff'
     call IPF%set_IPFfilename(IPFmapfile)
@@ -4615,9 +4622,7 @@ IMPLICIT NONE
 
 type(OpenCL_T),INTENT(INOUT)                        :: CL
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_expt
-!f2py intent(in,out) ::  cl_expt
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_dict
-!f2py intent(in,out) ::  cl_dict
 integer(kind=4),INTENT(IN)                          :: Ne
 integer(kind=4),INTENT(IN)                          :: Nd
 real(kind=4),INTENT(OUT),target                     :: results(Ne*Nd)
@@ -4625,11 +4630,8 @@ real(kind=4),INTENT(OUT),target                     :: results(Ne*Nd)
 integer(kind=4),INTENT(IN)                          :: correctsize
 integer(kind=irg),INTENT(IN)                        :: numd, selnumd
 integer(c_intptr_t),target,INTENT(INOUT)            :: context
-!f2py intent(in,out) ::  context
 integer(c_intptr_t),target,INTENT(INOUT)            :: kernel
-!f2py intent(in,out) ::  kernel
 integer(c_intptr_t),target,INTENT(INOUT)            :: command_queue
-!f2py intent(in,out) ::  command_queue
 
 integer(c_int32_t)                                  :: ierr, ierr2, pcnt
 integer(c_intptr_t),target                          :: cl_result

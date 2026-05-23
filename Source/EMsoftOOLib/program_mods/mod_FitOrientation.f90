@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -195,36 +195,36 @@ use mod_EMsoft
 
 IMPLICIT NONE
 
-class(FitOrientation_T), INTENT(INOUT)          :: self
-character(fnlen),INTENT(IN)          :: nmlfile
+class(FitOrientation_T), INTENT(INOUT) :: self
+character(fnlen),INTENT(IN)            :: nmlfile
  !! full path to namelist file
-logical,OPTIONAL,INTENT(IN)          :: initonly
+logical,OPTIONAL,INTENT(IN)            :: initonly
  !! fill in the default values only; do not read the file
 
-type(EMsoft_T)                       :: EMsoft
-type(IO_T)                           :: Message
-logical                              :: skipread = .FALSE.
+type(EMsoft_T)                         :: EMsoft
+type(IO_T)                             :: Message
+logical                                :: skipread = .FALSE.
 
 
-integer(kind=irg)   :: nthreads
-integer(kind=irg)   :: matchdepth
-character(fnlen)    :: dotproductfile
-character(fnlen)    :: newdotproductfile
-character(fnlen)    :: usemasterpatternfile
-character(fnlen)    :: ctffile
-character(fnlen)    :: angfile
-character(fnlen)    :: tmpfile
-character(fnlen)    :: PSvariantfile
-character(fnlen)    :: method
-character(4)        :: modality
-logical             :: inRAM
-integer(kind=irg)   :: nmis
-integer(kind=irg)   :: niter
-real(kind=sgl)      :: step
-integer(kind=irg)   :: initialx
-integer(kind=irg)   :: initialy
-character(fnlen)    :: PCcorrection
-real(kind=sgl)      :: truedelta
+integer(kind=irg)                      :: nthreads
+integer(kind=irg)                      :: matchdepth
+character(fnlen)                       :: dotproductfile
+character(fnlen)                       :: newdotproductfile
+character(fnlen)                       :: usemasterpatternfile
+character(fnlen)                       :: ctffile
+character(fnlen)                       :: angfile
+character(fnlen)                       :: tmpfile
+character(fnlen)                       :: PSvariantfile
+character(fnlen)                       :: method
+character(4)                           :: modality
+logical                                :: inRAM
+integer(kind=irg)                      :: nmis
+integer(kind=irg)                      :: niter
+real(kind=sgl)                         :: step
+integer(kind=irg)                      :: initialx
+integer(kind=irg)                      :: initialy
+character(fnlen)                       :: PCcorrection
+real(kind=sgl)                         :: truedelta
 
 namelist / RefineOrientations / nthreads, dotproductfile, ctffile, modality, nmis, niter, step, inRAM, method, &
                                 matchdepth, PSvariantfile, tmpfile, angfile, initialx, initialy, PCcorrection, truedelta, &
@@ -273,7 +273,7 @@ if (.not.skipread) then
         call Message%printError('readNameList:',' tmp file name is undefined in '//nmlfile)
     end if
 
-    if ( (trim(newdotproductfile).ne.'undefined').and.(trim(usemasterpatternfile).eq.'undefined')) then 
+    if ( (trim(newdotproductfile).ne.'undefined').and.(trim(usemasterpatternfile).eq.'undefined')) then
         call Message%printError('readNameList:','  newdotproductfile requires usemasterpatternfile in '//nmlfile)
     end if
 
@@ -294,10 +294,10 @@ self%nml%nmis = nmis
 self%nml%niter = niter
 self%nml%step = step
 self%nml%modality = modality
-self%nml%initialx = initialx 
+self%nml%initialx = initialx
 self%nml%initialy = initialy
 self%nml%PCcorrection = PCcorrection
-self%nml%truedelta = truedelta 
+self%nml%truedelta = truedelta
 
 end subroutine readNameList_
 
@@ -354,9 +354,9 @@ associate( ronl => self%nml )
 ! create the group for this namelist
 hdferr = HDF%createGroup(HDFnames%get_NMLlist())
 
-! integers 
+! integers
 io_int = (/ ronl%nthreads, ronl%matchdepth, ronl%nmis, ronl%niter, 0 , ronl%initialx, ronl%initialy/)
-if (ronl%inRAM.eqv..TRUE.) then 
+if (ronl%inRAM.eqv..TRUE.) then
   io_int(5) = 1
 end if
 intlist(1) = 'nthreads'
@@ -380,7 +380,7 @@ call HDF%writeNMLreals(io_real, reallist, n_real)
 dataset = 'PCcorrection'
 line2(1) = ronl%PCcorrection
 call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
-if (g_exists) then 
+if (g_exists) then
   hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
 else
   hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
@@ -1068,74 +1068,74 @@ use stringconstants
 
 IMPLICIT NONE
 
-class(FitOrientation_T), INTENT(INOUT)  :: self
-type(EMsoft_T), INTENT(INOUT)           :: EMsoft
-character(fnlen), INTENT(INOUT)         :: progname
-logical,INTENT(IN),OPTIONAL             :: zero 
+class(FitOrientation_T), INTENT(INOUT)           :: self
+type(EMsoft_T), INTENT(INOUT)                    :: EMsoft
+character(fnlen), INTENT(INOUT)                  :: progname
+logical,INTENT(IN),OPTIONAL                      :: zero
 
-type(IO_T)                              :: Message
-type(HDF_T)                             :: HDF
-type(HDFnames_T)                        :: HDFnames
-type(Cell_T)                            :: cell
-type(SpaceGroup_T)                      :: SG
-type(q_T)                               :: qu, q, myqu
-type(Quaternion_T)                      :: qq, quat, quat2, qq2, qquat2, qqq, myquat
-type(QuaternionArray_T)                 :: quPS
-type(e_T)                               :: eu, myeu, euinp2
-type(a_T)                               :: ax
-type(r_T)                               :: rfz
-type(h_T)                               :: ho, myho
-type(c_T)                               :: cu
-type(MCfile_T)                          :: MCFT
-type(MPfile_T)                          :: MPFT
-type(DIfile_T)                          :: DIFT
-type(so3_T)                             :: SO
-type(QuaternionArray_T)                 :: qdummy, qAR
-type(Timing_T)                          :: timer
-type(EBSD_T)                            :: EBSD, myEBSD
-type(ECP_T)                             :: ECP
-type(Vendor_T)                          :: VT
-type(memory_T)                          :: mem, memth
+type(IO_T)                                       :: Message
+type(HDF_T)                                      :: HDF
+type(HDFnames_T)                                 :: HDFnames
+type(Cell_T)                                     :: cell
+type(SpaceGroup_T)                               :: SG
+type(q_T)                                        :: qu, q, myqu
+type(Quaternion_T)                               :: qq, quat, quat2, qq2, qquat2, qqq, myquat
+type(QuaternionArray_T)                          :: quPS
+type(e_T)                                        :: eu, myeu, euinp2
+type(a_T)                                        :: ax
+type(r_T)                                        :: rfz
+type(h_T)                                        :: ho, myho
+type(c_T)                                        :: cu
+type(MCfile_T)                                   :: MCFT
+type(MPfile_T)                                   :: MPFT
+type(DIfile_T)                                   :: DIFT
+type(so3_T)                                      :: SO
+type(QuaternionArray_T)                          :: qdummy, qAR
+type(Timing_T)                                   :: timer
+type(EBSD_T)                                     :: EBSD, myEBSD
+type(ECP_T)                                      :: ECP
+type(Vendor_T)                                   :: VT
+type(memory_T)                                   :: mem, memth
 
 ! type(EBSDIndexingNameListType)          :: dinl
-type(MCOpenCLNameListType)              :: mcnl
-type(EBSDMasterNameListType)            :: mpnl
+type(MCOpenCLNameListType)                       :: mcnl
+type(EBSDMasterNameListType)                     :: mpnl
 ! type(EBSDNameListType)                  :: ebsdnl
 
 
-logical                                 :: readonly, noindex, ROIselected
-character(fnlen)                        :: dpfile, masterfile, energyfile
-integer(kind=irg)                       :: hdferr, ii, jj, kk, iii, istat, npy, jjj, iparecp(4)
+logical                                          :: readonly, noindex, ROIselected
+character(fnlen)                                 :: dpfile, masterfile, energyfile
+integer(kind=irg)                                :: hdferr, ii, jj, kk, iii, istat, npy, jjj, iparecp(4)
 
-real(kind=dbl)                          :: misang       ! desired misorientation angle (degrees)
-integer(kind=irg)                       :: Nmis         ! desired number of sampling points along cube edge
-integer(kind=irg)                       :: CMcnt        ! number of entries in linked list
-type(FZpointd),pointer                  :: CMlist, CMtmp       ! pointer to start of linked list and temporary one
-real(kind=dbl)                          :: rhozero(4), hipassw
+real(kind=dbl)                                   :: misang       ! desired misorientation angle (degrees)
+integer(kind=irg)                                :: Nmis         ! desired number of sampling points along cube edge
+integer(kind=irg)                                :: CMcnt        ! number of entries in linked list
+type(FZpointd),pointer                           :: CMlist, CMtmp       ! pointer to start of linked list and temporary one
+real(kind=dbl)                                   :: rhozero(4), hipassw
 
-real(kind=sgl),allocatable              :: euPS(:,:), euler_bestmatch(:,:,:), CIlist(:), CMarray(:,:,:)
-integer(kind=irg),allocatable           :: indexmain(:,:), PScorrectionmapth(:), PScorrectionmap(:)
-real(kind=sgl),allocatable              :: resultmain(:,:), DPCX(:), DPCY(:), DPCL(:)
-integer(HSIZE_T)                        :: dims(1),dims2D(2),dims3(3),offset3(3)
+real(kind=sgl),allocatable                       :: euPS(:,:), euler_bestmatch(:,:,:), CIlist(:), CMarray(:,:,:)
+integer(kind=irg),allocatable                    :: indexmain(:,:), PScorrectionmapth(:), PScorrectionmap(:)
+real(kind=sgl),allocatable                       :: resultmain(:,:), DPCX(:), DPCY(:), DPCL(:)
+integer(HSIZE_T)                                 :: dims(1),dims2D(2),dims3(3),offset3(3)
 
-character(fnlen, KIND=c_char),allocatable,TARGET    :: stringarray(:)
-character(fnlen)                        :: dataset, groupname
-character(fnlen)                        :: ename, fname
-character(2)                            :: anglemode
-real(kind=dbl),parameter                :: nAmpere = 6.241D+18   ! Coulomb per second
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
+character(fnlen)                                 :: dataset, groupname
+character(fnlen)                                 :: ename, fname
+character(2)                                     :: anglemode
+real(kind=dbl),parameter                         :: nAmpere = 6.241D+18   ! Coulomb per second
 
-integer(c_size_t),allocatable           :: IPAR2(:)
-real(kind=dbl),allocatable              :: X(:), XL(:), XU(:)
-real(kind=sgl),allocatable              :: INITMEANVAL(:)
-real(kind=dbl)                          :: RHOBEG, RHOEND
-integer(kind=irg)                       :: NPT, N, IPRINT, NSTEP, NINIT
-integer(kind=irg),parameter             :: MAXFUN = 10000
-logical                                 :: verbose
+integer(c_size_t),allocatable                    :: IPAR2(:)
+real(kind=dbl),allocatable                       :: X(:), XL(:), XU(:)
+real(kind=sgl),allocatable                       :: INITMEANVAL(:)
+real(kind=dbl)                                   :: RHOBEG, RHOEND
+integer(kind=irg)                                :: NPT, N, IPRINT, NSTEP, NINIT
+integer(kind=irg),parameter                      :: MAXFUN = 10000
+logical                                          :: verbose
 
-logical                                 :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
+logical                                          :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
                                            isECP=.FALSE., switchwfoff, set2zero=.FALSE., isOverlap = .FALSE.
 integer(kind=irg),parameter             :: iunitexpt = 41, itmpexpt = 42
-integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo, status 
+integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo, status
 real(kind=sgl),allocatable              :: tmpimageexpt(:), EBSDPattern(:,:), mask(:,:), masklin(:), imageexpt(:)
 real(kind=sgl),allocatable              :: imagedictflt(:), exppatarray(:)
 real(kind=sgl),allocatable              :: EBSDpatternintd(:,:), binned(:,:), euler_best(:,:)
@@ -1167,11 +1167,11 @@ real(kind=sgl),allocatable              :: exptpatterns(:,:)
 real(kind=sgl),allocatable              :: STEPSIZE(:), OSMmap(:,:), IQmap(:)
 character(fnlen)                        :: modalityname, DIfile, xtalname
 
-! should we set the precomputed dot products equal to zero ?  This is useful 
+! should we set the precomputed dot products equal to zero ?  This is useful
 ! for the PCA indexing version, where the dot products are not normalized...
-if (present(zero)) then 
+if (present(zero)) then
   if (zero.eqv..TRUE.) set2zero = .TRUE.
-end if 
+end if
 
 call setRotationPrecision('d')
 call OMP_showAvailableThreads()
@@ -1190,16 +1190,16 @@ verbose = .FALSE.
 call openFortranHDFInterface()
 HDF = HDF_T()
 
-! are we doing a regular refinement, or are we using a different dot product file and a 
+! are we doing a regular refinement, or are we using a different dot product file and a
 ! new master pattern file to use a previous indexing as starting point ?
-if (trim(ronl%newdotproductfile).ne.'undefined') then 
+if (trim(ronl%newdotproductfile).ne.'undefined') then
 ! first copy the old dotproduct file into the new one and reset the dotproductfile parameter
   fname = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%dotproductfile)
   ename = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%newdotproductfile)
   status = system_system('cp '//trim(fname)//' '//trim(ename))
-  call self%set_dotproductfile_( ronl%newdotproductfile ) 
+  call self%set_dotproductfile_( ronl%newdotproductfile )
   write (*,*) 'dot product file set to '//trim(ronl%dotproductfile)
-end if 
+end if
 DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(ronl%dotproductfile)
 
 ! first we need to get the DIModality from the dot product file; this then
@@ -1209,9 +1209,9 @@ DIFT = DIfile_T()
 call DIFT%readDIModality(HDF, DIfile)
 modalityname = DIFT%getModality()
 
-! maybe this is an old dot product file (pre-6.0) so we use the modality switch in the 
-! namelist for this program to set the modality 
-if (trim(modalityname).eq.'unknown') then    
+! maybe this is an old dot product file (pre-6.0) so we use the modality switch in the
+! namelist for this program to set the modality
+if (trim(modalityname).eq.'unknown') then
   modalityname = trim(ronl%modality)
 end if
 
@@ -1234,8 +1234,8 @@ memth = memory_T( nt = ronl%nthreads )
 ! read the relevant fields from the dot product HDF5 file
 !====================================
 if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD').or.(trim(modalityname) .eq. 'Overlap') )  then
-  if ( (ronl%matchdepth.eq.1).or.(trim(ronl%method).eq.'SUB') ) then 
-    if (trim(ronl%newdotproductfile).eq.'undefined') then 
+  if ( (ronl%matchdepth.eq.1).or.(trim(ronl%method).eq.'SUB') ) then
+    if (trim(ronl%newdotproductfile).eq.'undefined') then
       call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
                                    getCI=.TRUE., &
                                    getIQ=.TRUE., &
@@ -1264,7 +1264,7 @@ if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD').or.(tri
     euler_bestmatch(3,1,1:Nexp) = DIDT%Phi2(1:Nexp)
     deallocate(DIDT%Phi1,DIDT%Phi,DIDT%Phi2)
   else
-    if (trim(ronl%newdotproductfile).eq.'undefined') then 
+    if (trim(ronl%newdotproductfile).eq.'undefined') then
       call DIFT%readDotProductFile(EMsoft, HDF, HDFnames, DIfile, hdferr, &
                                    getCI=.TRUE., &
                                    getIQ=.TRUE., &
@@ -1298,11 +1298,11 @@ if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD').or.(tri
     deallocate(DIDT%DictionaryEulerAngles, DIDT%TopMatchIndices)
   end if
 
-  ! only use the dot product values from the DI program if the indexing did NOT use 
+  ! only use the dot product values from the DI program if the indexing did NOT use
   ! the PCA compressed dictionary version...
-  if (set2zero.eqv..FALSE.) then 
+  if (set2zero.eqv..FALSE.) then
     CIlist(1:Nexp) = DIDT%CI(1:Nexp)
-  end if 
+  end if
 
   deallocate(DIDT%CI)
 
@@ -1311,7 +1311,7 @@ if ( (trim(modalityname) .eq. 'EBSD').or.(trim(modalityname) .eq. 'TKD').or.(tri
 !   IQmap = EBSDDIdata%IQ
 
 else  ! ECP modality (to be written)
-   call Message%printError('FitOrientation','This program only handles EBSPs; use EMECPDIrefine for ECPs') 
+   call Message%printError('FitOrientation','This program only handles EBSPs; use EMECPDIrefine for ECPs')
 end if
 
 call Message%printMessage(' -> completed reading of dot product file')
@@ -1400,7 +1400,7 @@ call MPFT%readMPfile(HDF, HDFnames, mpnl, getmLPNH=.TRUE., getmLPSH=.TRUE.)
 
 ! the following is a place holder but needs to be fixed in the readMPfile routine
 ! when dealing with an overlap master pattern ... [MDG, 2/13/25]
-if (mpnl%npx.eq.0) mpnl%npx = 500 
+if (mpnl%npx.eq.0) mpnl%npx = 500
 
 ! set the HDFnames for the current program (same for all modalities)
 call HDFnames%set_ProgramData(SC_EMDI)
@@ -1585,7 +1585,7 @@ if (trim(ronl%PSvariantfile).ne.'undefined') then
     call Message%printMessage('Reading pseudo-symmetry variant operators: ')
     dpfile = trim(EMsoft%getConfigParameter('EMdatapathname'))//trim(ronl%PSvariantfile)
 
-    ! this is a simple text file, similar to an euler angle file; 
+    ! this is a simple text file, similar to an euler angle file;
     ! the input is either euler angles or axis-angle pair
     open(unit=53,file=trim(dpfile),status='old',action='read')
     read (53,*) anglemode
@@ -1713,41 +1713,41 @@ end if
 !========Pattern center correction parameters===================
 !===============================================================
 
-if (trim(ronl%PCcorrection).eq.'on') then 
-  alpha = 0.5 * sngl(cPi) - (mcnl%sig - dinl%thetac) * dtor  
+if (trim(ronl%PCcorrection).eq.'on') then
+  alpha = 0.5 * sngl(cPi) - (mcnl%sig - dinl%thetac) * dtor
   ca = cos(alpha)
   c2a = cos(2.0*alpha)
   sa = sin(alpha)
   s2a = sin(2.0*alpha)
-! determine the shift vector for each sampling point (on the sample!) with respect to the 
+! determine the shift vector for each sampling point (on the sample!) with respect to the
 ! (initialx, initialy) position
-  if (ROIselected.eqv..TRUE.) then 
+  if (ROIselected.eqv..TRUE.) then
     call mem%alloc(DPCX, (/ dinl%ROI(3) /), 'DPCX', 0.0)
     call mem%alloc(DPCY, (/ dinl%ROI(4) /), 'DPCY', 0.0)
     call mem%alloc(DPCL, (/ dinl%ROI(4) /), 'DPCL', 0.0)
     do i=1,dinl%ROI(3)
       DPCX(i) = - ( ronl%initialx - (dinl%ROI(1)+(i-1)) ) * dinl%StepX
-    end do 
+    end do
     do j=1,dinl%ROI(4)
       DPCY(j) = - ( ronl%initialy - (dinl%ROI(2)+(j-1)) ) * dinl%StepY
-    end do 
+    end do
   else
     call mem%alloc(DPCX, (/ dinl%ipf_wd /), 'DPCX', 0.0)
     call mem%alloc(DPCY, (/ dinl%ipf_ht /), 'DPCY', 0.0)
     call mem%alloc(DPCL, (/ dinl%ipf_ht /), 'DPCL', 0.0)
     do i=1,dinl%ipf_wd
       DPCX(i) = - ( ronl%initialx - i ) * dinl%StepX
-    end do 
+    end do
     do j=1,dinl%ipf_ht
       DPCY(j) = - ( ronl%initialy - j ) * dinl%StepY
-    end do 
+    end do
   end if
-! convert these shifts to shifts in the detector reference frame 
-! and put them in units of the detector pixel size 
+! convert these shifts to shifts in the detector reference frame
+! and put them in units of the detector pixel size
   DPCX = - DPCX / dinl%delta
-  DPCL = - DPCY * sa 
+  DPCL = - DPCY * sa
   DPCY = - DPCY * ca / dinl%delta
-end if  
+end if
 
 !=================================
 !========LOOP VARIABLES===========
@@ -1794,11 +1794,11 @@ end if
 !===================================================================================
 call OMP_setNThreads(ronl%nthreads)
 
-if (ROIselected.eqv..TRUE.) then 
+if (ROIselected.eqv..TRUE.) then
   maxeindex = dinl%ROI(3) * dinl%ROI(4)
-else 
+else
   maxeindex = dinl%ipf_wd * dinl%ipf_ht
-end if 
+end if
 
 timer = Timing_T()
 call timer%Time_tick()
@@ -1806,12 +1806,12 @@ call timer%Time_tick()
 call mem%alloc(exptpatterns, (/ binx*biny, dinl%numexptsingle /), 'exptpatterns', 0.0)
 call mem%alloc(PScorrectionmap, (/ Nexp /), 'PScorrectionmap', initval=0)
 
-unchanged = 0 
+unchanged = 0
 
 ! call mem%allocated_memory_use()
 
 ! parameters for orientation correction
-! if (trim(ronl%PCcorrection).eq.'on') then 
+! if (trim(ronl%PCcorrection).eq.'on') then
 !   alpha = cPi/2.D0 - (ebsdnl%MCsig - ebsdnl%thetac)*cPi/180.0
 !   ca = cos(alpha)
 !   sa = sin(alpha)
@@ -1823,7 +1823,7 @@ unchanged = 0
 !   rho = sqrt(xs**2 + ys**2 + zs**2)
 !   !r = (/(ys*ca + zs*sa)/rho, -xs/rho, (-ys*sa + zs*ca)/rho /)
 !   r = (/sa, 0.D0, ca/)
-! end if 
+! end if
 
 ! depending on the ronl%method, we perform the optimization with different routines...
 if (ronl%method.eq.'FIT') then
@@ -1861,24 +1861,24 @@ if (ronl%method.eq.'FIT') then
 
           call memth%alloc(tmpimageexpt, (/ binx*biny /), 'tmpimageexpt', 0.0, TID=TID)
           call memth%alloc(binned, (/ binx,biny /), 'binned', 0.0, TID=TID)
-          
+
           call memth%alloc(EBSDpatternintd, (/ binx,biny /), 'EBSDpatternintd', 0.0, TID=TID)
           call memth%alloc(EBSDpatterninteger, (/ binx,biny /), 'EBSDpatterninteger', 0, TID=TID)
           call memth%alloc(EBSDpatternad, (/ binx,biny /), 'EBSDpatternad', 0, TID=TID)
           call memth%alloc(imagedictflt, (/ binx*biny /), 'imagedictflt', 0.0, TID=TID)
 
-          if (trim(ronl%PCcorrection).eq.'on') then 
-! allocate the necessary arrays 
+          if (trim(ronl%PCcorrection).eq.'on') then
+! allocate the necessary arrays
             call memth%alloc(myEBSD%det%rgx, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgx', 0.0, TID=TID)
             call memth%alloc(myEBSD%det%rgy, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgy', 0.0, TID=TID)
             call memth%alloc(myEBSD%det%rgz, (/ dinl%numsx, dinl%numsy /), 'myEBSD%det%rgz', 0.0, TID=TID)
             call memth%alloc(myEBSD%det%accum_e_detector, (/ MCDT%numEbins, dinl%numsx, dinl%numsy /), &
                              'mydet%accum_e_detector', 0.0, TID=TID)
             myEBSD%det%accum_e_detector = EBSD%det%accum_e_detector
-          end if 
+          end if
 
 ! call memth%thread_memory_use()
-!$OMP END CRITICAL 
+!$OMP END CRITICAL
 !$OMP BARRIER
 
 !$OMP DO SCHEDULE(DYNAMIC)
@@ -1928,24 +1928,24 @@ if (ronl%method.eq.'FIT') then
                     dpPS(kk,ll) = 1.D0 - F
 
 ! do we need to perform a pattern center correction ?  This would be necessary for large area
-! scans.  First, we apply the equivalent rotation to the refined orientation, then we create a 
+! scans.  First, we apply the equivalent rotation to the refined orientation, then we create a
 ! new set of detector arrays for this pattern center location, and we do another refinement step
-! to get the final corrected orientation.  At the end, we make sure the new orientation falls in 
+! to get the final corrected orientation.  At the end, we make sure the new orientation falls in
 ! the appropriate RFZ.
-                    if ( (trim(ronl%PCcorrection).eq.'on') .and. (eindex.le.maxeindex) ) then  
+                    if ( (trim(ronl%PCcorrection).eq.'on') .and. (eindex.le.maxeindex) ) then
                       ! get the corrected pattern center coordinates
                       ! first undo the pattern center shift by an equivalent rotation (see J. Appl. Cryst. (2017). 50, 1664–1676)
-                      
-                      ! generate the new detector arrays 
 
-                      if (ROIselected.eqv..TRUE.) then 
+                      ! generate the new detector arrays
+
+                      if (ROIselected.eqv..TRUE.) then
                         samplex = mod(eindex-1, dinl%ROI(3))+1
                         sampley = (eindex-1)/dinl%ROI(3)+1
-                      else 
+                      else
                         samplex = mod(eindex-1, dinl%ipf_wd)+1
                         sampley = (eindex-1)/dinl%ipf_wd+1
-                      end if 
-                      myEBSD%nml = enl 
+                      end if
+                      myEBSD%nml = enl
                       dx = DPCX(samplex)
                       dy = DPCY(sampley)
                       myEBSD%nml%xpc = enl%xpc - dx
@@ -1954,16 +1954,16 @@ if (ronl%method.eq.'FIT') then
                       call EBSD%GeneratemyEBSDDetector(MCFT, dinl%numsx, dinl%numsy, MCDT%numEbins, myEBSD%det%rgx, &
                       myEBSD%det%rgy, myEBSD%det%rgz, myEBSD%det%accum_e_detector, &
                       (/ myEBSD%nml%xpc, myEBSD%nml%ypc, myEBSD%nml%L /))
-                      
-                      ! first undo the pattern center shift by an equivalent rotation 
+
+                      ! first undo the pattern center shift by an equivalent rotation
                       ! (see J. Appl. Cryst. (2017). 50, 1664–1676, eq.15)
-                      if ((dx.ne.0.0).or.(dy.ne.0.0)) then 
+                      if ((dx.ne.0.0).or.(dy.ne.0.0)) then
                         myeu = e_T(edinp = dble(eulerPS(1:3,kk,ll)))
                         myqu = myeu%eq()
                         rho = dx**2+dy**2
                         nn = -(/dx*ca,-dy,-dx*sa/)/sqrt(rho)
                         omega = acos(1.0/sqrt(1.0 + dinl%delta**2 * rho/myEBSD%nml%L**2))
-                        qqq = Quaternion_T( qd = dble((/ cos(omega*0.5), sin(omega*0.5) * nn, 0.0, 0.0 /)) ) 
+                        qqq = Quaternion_T( qd = dble((/ cos(omega*0.5), sin(omega*0.5) * nn, 0.0, 0.0 /)) )
                         myquat = Quaternion_T(qd = myqu%q_copyd())
 
                         qquat2 = myquat * qqq
@@ -1975,9 +1975,9 @@ if (ronl%method.eq.'FIT') then
                         myeu = e_T(edinp = dble(eulerPS(1:3,kk,ll)))
                         myho = myeu%eh()
                         INITMEANVAL(1:3) = sngl(myho%h_copyd())
-                      end if 
+                      end if
 
-                      ! refine the orientation using the new detector array and initial orientation 
+                      ! refine the orientation using the new detector array and initial orientation
                       ! INITMEANVAL(1:3) = ho%h_copyd()
                       X = 0.5D0
                       call bobyqa (IPAR2, INITMEANVAL, tmpimageexpt, N, NPT, X, XL, &
@@ -1985,7 +1985,7 @@ if (ronl%method.eq.'FIT') then
                                 myEBSD%det%accum_e_detector,MPDT%mLPNH, MPDT%mLPSH, mask, prefactor, &
                                 myEBSD%det%rgx, myEBSD%det%rgy, myEBSD%det%rgz, STEPSIZE, DIFT%nml%gammavalue, &
                                 verbose)
-                      
+
                       ho = h_T( hdinp = dble(X*2.0*STEPSIZE - STEPSIZE + INITMEANVAL) )
                       eu = ho%he()
                       eulerPS(1:3,kk,ll) = eu%e_copyd()
@@ -1996,7 +1996,7 @@ if (ronl%method.eq.'FIT') then
                            DIFT%nml%gammavalue, verbose)
 
                       dpPS(kk,ll) = 1.D0 - F
-              
+
                       ! and return this orientation to the RFZ
                       euinp(1:3) = eulerPS(1:3,kk,ll)
                       euinp2 = e_T( edinp = euinp(1:3) )
@@ -2004,8 +2004,8 @@ if (ronl%method.eq.'FIT') then
                       call SO%ReduceOrientationtoRFZ(q, qAR, rfz)
                       eu = rfz%re()
                       eulerPS(1:3,kk,ll) = sngl(eu%e_copyd())
-                    end if 
-                      
+                    end if
+
                 end do
             end do
 
@@ -2019,7 +2019,7 @@ if (ronl%method.eq.'FIT') then
             else
               euler_best(1:3,eindex) = euler_bestmatch(1:3,1,eindex)
               !$OMP CRITICAL
-              unchanged = unchanged + 1 
+              unchanged = unchanged + 1
               !$OMP END CRITICAL
             end if
 
@@ -2056,7 +2056,7 @@ if (ronl%method.eq.'FIT') then
         end if
 !$OMP END CRITICAL
 
-    !$OMP BARRIER    
+    !$OMP BARRIER
     !$OMP END PARALLEL
 
     end do
@@ -2095,7 +2095,7 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
           call memth%alloc(imagedictflt, (/ binx*biny /), 'imagedictflt', 0.0, TID=TID)
 !$OMP END CRITICAL
 
-!$OMP DO SCHEDULE(DYNAMIC)      
+!$OMP DO SCHEDULE(DYNAMIC)
             do ii = 1,ppendE(iii)
 
                eindex = (iii - 1)*DIFT%nml%numexptsingle + ii
@@ -2168,7 +2168,7 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
         call memth%dealloc(EBSDpatternad, 'EBSDpatternad', TID=TID)
         call memth%dealloc(imagedictflt, 'imagedictflt', TID=TID)
 !$OMP END CRITICAL
-!$OMP BARRIER 
+!$OMP BARRIER
 !$OMP END PARALLEL
 
         stpsz = stpsz/2.D0
@@ -2204,11 +2204,11 @@ dataset = trim(HDFnames%get_NMLfilename())
 hdferr = HDF%writeDatasetTextFile(dataset, EMsoft%nmldeffile)
 
 ! if there is a pseudosymmetric orientations file, then also add this file
-if (trim(ronl%PSvariantfile).ne.'undefined') then 
+if (trim(ronl%PSvariantfile).ne.'undefined') then
   fname = trim(EMsoft%getConfigParameter('EMdatapathname'))//trim(ronl%PSvariantfile)
   dataset = 'PSvariantfile'
   hdferr = HDF%writeDatasetTextFile(dataset, fname)
-end if 
+end if
 
 ! leave this group
 call HDF%pop()

@@ -32,8 +32,7 @@ module mod_EBSDFull
   !! date: 04/13/26
   !!
   !! Direct/full EBSD pattern simulator.
-  !! This is a repo-native port of the corrected EMsoft implementation in
-  !! C:\Users\westraadt.1\Repos\EMsoft\Source\SEM\EMEBSDFull.f90.
+  !! This is a repo-native port of the corrected legacy EMsoft EMEBSDFull implementation.
   !! It runs a full Monte Carlo calculation for the detector geometry and then
   !! computes the dynamical EBSD patterns directly for each orientation and
   !! energy bin, without going through EMEBSDmaster.

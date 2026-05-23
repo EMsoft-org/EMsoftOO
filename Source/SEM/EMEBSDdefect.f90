@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2016-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2016-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -38,7 +38,6 @@ use mod_kinds
 use mod_global
 use mod_EMsoft
 use mod_EBSDdefect
-use mod_HDFnames
 use stringconstants
 
 IMPLICIT NONE
@@ -48,7 +47,6 @@ character(fnlen)                :: progdesc = 'Generate EBSD patterns for a scan
 
 type(EMsoft_T)                  :: EMsoft
 type(EBSDdefect_T)              :: EBSDdef 
-type(HDFnames_T)                :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 0, 3, 140, 200 /) )
@@ -56,13 +54,7 @@ EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 0, 3, 140, 200 /) )
 ! deal with the namelist stuff
 EBSDdef = EBSDdefect_T(EMsoft%nmldeffile)
 
-HDFnames = HDFnames_T() 
-call HDFnames%set_ProgramData(SC_EBSDdefect) 
-call HDFnames%set_NMLlist(SC_EBSDdefectNameList) 
-call HDFnames%set_NMLfilename(SC_EBSDdefectNML) 
-call HDFnames%set_Variable(SC_MCOpenCL) 
-
 ! perform the computations
-call EBSDdef%EBSDdefect(EMsoft, progname, HDFnames)
+call EBSDdef%EBSDdefect(EMsoft, progname)
 
 end program EMEBSDdefect

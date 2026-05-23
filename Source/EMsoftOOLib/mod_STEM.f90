@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -356,8 +356,8 @@ subroutine setnumberofsvalues_(self,inp)
 
 IMPLICIT NONE
 
-class(STEM_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(STEM_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%numberofsvalues = inp
 
@@ -374,8 +374,8 @@ function getnumberofsvalues_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEM_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(STEM_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%numberofsvalues
 
@@ -392,8 +392,8 @@ subroutine setnumCL_(self,inp)
 
 IMPLICIT NONE
 
-class(STEM_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(STEM_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%nml%numCL = inp
 
@@ -410,8 +410,8 @@ function getnumCL_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEM_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(STEM_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%nml%numCL
 
@@ -428,8 +428,8 @@ subroutine setnumk_(self,inp)
 
 IMPLICIT NONE
 
-class(STEM_T), INTENT(INOUT)     :: self
-integer(kind=irg), INTENT(IN)       :: inp
+class(STEM_T), INTENT(INOUT)  :: self
+integer(kind=irg), INTENT(IN) :: inp
 
 self%numk = inp
 
@@ -446,8 +446,8 @@ function getnumk_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEM_T), INTENT(INOUT)     :: self
-integer(kind=irg)                   :: out
+class(STEM_T), INTENT(INOUT) :: self
+integer(kind=irg)            :: out
 
 out = self%numk
 
@@ -752,8 +752,8 @@ subroutine setgeometry_(self,inp)
 
 IMPLICIT NONE
 
-class(STEM_T), INTENT(INOUT)     :: self
-character(2), INTENT(IN)       :: inp
+class(STEM_T), INTENT(INOUT) :: self
+character(2), INTENT(IN)     :: inp
 
 self%nml%geometry = trim(inp)
 
@@ -770,8 +770,8 @@ function getgeometry_(self) result(out)
 
 IMPLICIT NONE
 
-class(STEM_T), INTENT(INOUT)     :: self
-character(2)                   :: out
+class(STEM_T), INTENT(INOUT) :: self
+character(2)                 :: out
 
 out = trim(self%nml%geometry)
 
@@ -1310,19 +1310,19 @@ use mod_gvectors
 
 IMPLICIT NONE
 
-class(STEM_T),INTENT(INOUT)         :: self
-type(STEMGeometryNameListType),INTENT(INOUT)    :: stemnl
-type(Cell_T),INTENT(INOUT)          :: cell
-real(kind=dbl),INTENT(INOUT)        :: F(3)
-type(Diffraction_T),INTENT(INOUT)   :: Diff
-type(kvectorlist),pointer           :: khead
-type(reflisttype),pointer           :: reflist
-integer(kind=irg),INTENT(IN)        :: nn
+class(STEM_T),INTENT(INOUT)                  :: self
+type(STEMGeometryNameListType),INTENT(INOUT) :: stemnl
+type(Cell_T),INTENT(INOUT)                   :: cell
+real(kind=dbl),INTENT(INOUT)                 :: F(3)
+type(Diffraction_T),INTENT(INOUT)            :: Diff
+type(kvectorlist),pointer                    :: khead
+type(reflisttype),pointer                    :: reflist
+integer(kind=irg),INTENT(IN)                 :: nn
 
-integer(kind=irg)                   :: ik,ig, iCL
-real(kind=sgl)                      :: ll(3), lpg(3), gg(3), glen, gplen, kpg, lambda
-type(kvectorlist),pointer           :: ktmp
-type(reflisttype),pointer           :: rltmpa
+integer(kind=irg)                            :: ik,ig, iCL
+real(kind=sgl)                               :: ll(3), lpg(3), gg(3), glen, gplen, kpg, lambda
+type(kvectorlist),pointer                    :: ktmp
+type(reflisttype),pointer                    :: rltmpa
 
 ! this routine initializes the excitation error arrays and the weight-factor arrays for zone axis STEM signals
 ! the weightfactors are quite a bit different from the ones for the systematic row case;

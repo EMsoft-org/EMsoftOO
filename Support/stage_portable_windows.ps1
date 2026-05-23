@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param(
-  [string]$RepoRoot = 'C:\Users\westraadt.1\Repos\EMsoftOO',
-  [string]$BuildRoot = 'C:\Users\westraadt.1\EMSOFT\EMsoftOOBuild\Release',
-  [string]$StageRoot = 'C:\Users\westraadt.1\EMSOFT\EMsoftOO-portable',
-  [string]$SDKRoot = 'C:\Users\westraadt.1\EMSOFT\EMsoftOO_SDK',
+  [string]$RepoRoot = '',
+  [string]$BuildRoot = '',
+  [string]$StageRoot = '',
+  [string]$SDKRoot = $env:EMsoftOO_SDK,
   [string]$XtalFolder = '',
   [string[]]$InputData = @(),
   [string]$ZipPath = '',
@@ -81,6 +81,22 @@ function Remove-StageRoot {
   }
 
   Remove-Item -LiteralPath $target -Recurse -Force
+}
+
+if ($RepoRoot -eq '') {
+  $RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+}
+
+if ($BuildRoot -eq '') {
+  $BuildRoot = Join-Path $RepoRoot 'build-ifx-release'
+}
+
+if ($StageRoot -eq '') {
+  $StageRoot = Join-Path (Get-Location) 'EMsoftOO-portable'
+}
+
+if ($SDKRoot -eq '') {
+  throw 'SDKRoot is required. Pass -SDKRoot or set the EMsoftOO_SDK environment variable.'
 }
 
 $RepoRoot = Resolve-ExistingPath -Path $RepoRoot -Label 'RepoRoot'

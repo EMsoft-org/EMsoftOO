@@ -1,5 +1,5 @@
 !###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -482,17 +482,17 @@ use mod_io
 
 IMPLICIT NONE
 
-class(HDF_T), INTENT(INOUT)              :: self
-character(LEN=1),INTENT(IN)             :: oT
+class(HDF_T), INTENT(INOUT)      :: self
+character(LEN=1),INTENT(IN)      :: oT
  !! object type character
-integer(HID_T),INTENT(IN)               :: oID
+integer(HID_T),INTENT(IN)        :: oID
  !! oID object identifier
-character(fnlen),INTENT(IN)             :: oName
+character(fnlen),INTENT(IN)      :: oName
  !! oName name
 
-type(HDFobjectStackType),pointer        :: node
-integer(kind=irg)                       :: istat
-type(IO_T)                              :: Message
+type(HDFobjectStackType),pointer :: node
+integer(kind=irg)                :: istat
+type(IO_T)                       :: Message
 
 ! the stack always exists but we never use the top level
 if (.not.associated(self%head%next)) then
@@ -533,7 +533,6 @@ use mod_io
 IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)                 :: self
-!f2py intent(in,out) ::  self
 character(*),INTENT(IN),optional           :: origin
 
 integer                                    :: error, istat
@@ -623,7 +622,6 @@ use mod_io
 IMPLICIT NONE
 
 class(HDF_T),INTENT(INOUT)                 :: self
-!f2py intent(in,out) ::  self
 character(*),INTENT(INOUT),optional        :: origin
 
 integer                                    :: error, istat
@@ -1128,24 +1126,24 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                              :: self
-character(fnlen),INTENT(IN)                             :: dataname
-integer(kind=irg),INTENT(OUT)                           :: nlines
+class(HDF_T),INTENT(INOUT)                                         :: self
+character(fnlen),INTENT(IN)                                        :: dataname
+integer(kind=irg),INTENT(OUT)                                      :: nlines
 
-integer(kind=irg),INTENT(OUT)                           :: hdferr
-character(len=fnlen, KIND=c_char),allocatable, TARGET, INTENT(OUT)   :: stringarray(:)
-logical,INTENT(IN),OPTIONAL                             :: UTF
+integer(kind=irg),INTENT(OUT)                                      :: hdferr
+character(len=fnlen, KIND=c_char),allocatable, TARGET, INTENT(OUT) :: stringarray(:)
+logical,INTENT(IN),OPTIONAL                                        :: UTF
 
-integer(HID_T)                                          :: filetype, space, memtype! Handles
-integer                                                 :: i, length
-integer(HSIZE_T), DIMENSION(1:1)                        :: dims
-integer(HSIZE_T), DIMENSION(1:1)                        :: maxdims
-integer(SIZE_T)                                         :: size
+integer(HID_T)                                                     :: filetype, space, memtype! Handles
+integer                                                            :: i, length
+integer(HSIZE_T), DIMENSION(1:1)                                   :: dims
+integer(HSIZE_T), DIMENSION(1:1)                                   :: maxdims
+integer(SIZE_T)                                                    :: size
 
-character(len = fnlen, kind=c_char),  POINTER           :: pfstr ! A pointer to a Fortran string
-TYPE(C_PTR), DIMENSION(:), ALLOCATABLE, TARGET          :: rdata ! Read buffer
-character(len=fnlen), TARGET                            :: fl_rdata
-TYPE(C_PTR)                                             :: f_ptr
+character(len = fnlen, kind=c_char),  POINTER                      :: pfstr ! A pointer to a Fortran string
+TYPE(C_PTR), DIMENSION(:), ALLOCATABLE, TARGET                     :: rdata ! Read buffer
+character(len=fnlen), TARGET                                       :: fl_rdata
+TYPE(C_PTR)                                                        :: f_ptr
 
 ! Open dataset.
 !
@@ -2674,19 +2672,19 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-real(kind=sgl),INTENT(IN)                  :: fltval
+class(HDF_T),INTENT(INOUT)                :: self
+character(fnlen),INTENT(IN)               :: dataname
+real(kind=sgl),INTENT(IN)                 :: fltval
 
-logical,INTENT(IN),OPTIONAL                :: overwrite
-integer(kind=irg)                          :: success
+logical,INTENT(IN),OPTIONAL               :: overwrite
+integer(kind=irg)                         :: success
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: hdferr, rnk
-integer(HSIZE_T), DIMENSION(1:1)           :: dims
+integer(HID_T)                            :: space, dset ! Handles
+integer                                   :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:1)          :: dims
 
-real(real_kind_7), dimension(1:1), TARGET   :: wdata
-TYPE(C_PTR)                                :: f_ptr
+real(real_kind_7), dimension(1:1), TARGET :: wdata
+TYPE(C_PTR)                               :: f_ptr
 
 success = 0
 
@@ -2764,7 +2762,7 @@ integer(HID_T)                             :: space, dset ! Handles
 integer                                    :: hdferr, rnk
 integer(HSIZE_T), DIMENSION(1:1)           :: dims
 
-real(real_kind_15), dimension(1:1), TARGET   :: wdata
+real(real_kind_15), dimension(1:1), TARGET :: wdata
 TYPE(C_PTR)                                :: f_ptr
 
 success = 0
@@ -2832,20 +2830,20 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg),INTENT(IN)               :: dim0
-real(kind=sgl),INTENT(IN)                  :: fltarr(dim0)
-logical,INTENT(IN),OPTIONAL                :: overwrite
-integer(kind=irg)                          :: success, istat
+class(HDF_T),INTENT(INOUT)           :: self
+character(fnlen),INTENT(IN)          :: dataname
+integer(kind=irg),INTENT(IN)         :: dim0
+real(kind=sgl),INTENT(IN)            :: fltarr(dim0)
+logical,INTENT(IN),OPTIONAL          :: overwrite
+integer(kind=irg)                    :: success, istat
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: hdferr, rnk
-integer(HSIZE_T), DIMENSION(1:1)           :: dims
+integer(HID_T)                       :: space, dset ! Handles
+integer                              :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:1)     :: dims
 
-real(real_kind_7),allocatable,TARGET        :: wdata(:)
+real(real_kind_7),allocatable,TARGET :: wdata(:)
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                          :: f_ptr
 
 success = 0
 
@@ -2915,21 +2913,21 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg),INTENT(IN)               :: dim0
-integer(kind=irg),INTENT(IN)               :: dim1
-real(kind=sgl),INTENT(IN)                  :: fltarr(dim0, dim1)
-logical,INTENT(IN),OPTIONAL                :: overwrite
-integer(kind=irg)                          :: success, istat
+class(HDF_T),INTENT(INOUT)           :: self
+character(fnlen),INTENT(IN)          :: dataname
+integer(kind=irg),INTENT(IN)         :: dim0
+integer(kind=irg),INTENT(IN)         :: dim1
+real(kind=sgl),INTENT(IN)            :: fltarr(dim0, dim1)
+logical,INTENT(IN),OPTIONAL          :: overwrite
+integer(kind=irg)                    :: success, istat
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: hdferr, rnk
-integer(HSIZE_T), DIMENSION(1:2)           :: dims
+integer(HID_T)                       :: space, dset ! Handles
+integer                              :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:2)     :: dims
 
-real(real_kind_7),allocatable,TARGET        :: wdata(:,:)
+real(real_kind_7),allocatable,TARGET :: wdata(:,:)
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                          :: f_ptr
 
 success = 0
 allocate(wdata(dim0, dim1), stat=istat)
@@ -3000,22 +2998,22 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg),INTENT(IN)               :: dim0
-integer(kind=irg),INTENT(IN)               :: dim1
-integer(kind=irg),INTENT(IN)               :: dim2
-real(kind=sgl),INTENT(IN)                  :: fltarr(dim0, dim1, dim2)
-logical,INTENT(IN),OPTIONAL                :: overwrite
-integer(kind=irg)                          :: success, istat
+class(HDF_T),INTENT(INOUT)           :: self
+character(fnlen),INTENT(IN)          :: dataname
+integer(kind=irg),INTENT(IN)         :: dim0
+integer(kind=irg),INTENT(IN)         :: dim1
+integer(kind=irg),INTENT(IN)         :: dim2
+real(kind=sgl),INTENT(IN)            :: fltarr(dim0, dim1, dim2)
+logical,INTENT(IN),OPTIONAL          :: overwrite
+integer(kind=irg)                    :: success, istat
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: hdferr, rnk
-integer(HSIZE_T), DIMENSION(1:3)           :: dims
+integer(HID_T)                       :: space, dset ! Handles
+integer                              :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:3)     :: dims
 
-real(real_kind_7),allocatable,TARGET        :: wdata(:,:,:)
+real(real_kind_7),allocatable,TARGET :: wdata(:,:,:)
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                          :: f_ptr
 
 success = 0
 
@@ -3086,23 +3084,23 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg),INTENT(IN)               :: dim0
-integer(kind=irg),INTENT(IN)               :: dim1
-integer(kind=irg),INTENT(IN)               :: dim2
-integer(kind=irg),INTENT(IN)               :: dim3
-real(kind=sgl),INTENT(IN)                  :: fltarr(dim0, dim1, dim2, dim3)
-logical,INTENT(IN),OPTIONAL                :: overwrite
-integer(kind=irg)                          :: success, istat
+class(HDF_T),INTENT(INOUT)           :: self
+character(fnlen),INTENT(IN)          :: dataname
+integer(kind=irg),INTENT(IN)         :: dim0
+integer(kind=irg),INTENT(IN)         :: dim1
+integer(kind=irg),INTENT(IN)         :: dim2
+integer(kind=irg),INTENT(IN)         :: dim3
+real(kind=sgl),INTENT(IN)            :: fltarr(dim0, dim1, dim2, dim3)
+logical,INTENT(IN),OPTIONAL          :: overwrite
+integer(kind=irg)                    :: success, istat
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: hdferr, rnk
-integer(HSIZE_T), DIMENSION(1:4)           :: dims
+integer(HID_T)                       :: space, dset ! Handles
+integer                              :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:4)     :: dims
 
-real(real_kind_7),allocatable,TARGET        :: wdata(:,:,:,:)
+real(real_kind_7),allocatable,TARGET :: wdata(:,:,:,:)
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                          :: f_ptr
 
 success = 0
 
@@ -3340,20 +3338,20 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg),INTENT(IN)               :: dim0
-integer(kind=irg),INTENT(IN)               :: dim1
-real(kind=dbl),INTENT(IN)                  :: dblarr(dim0, dim1)
-logical,INTENT(IN),OPTIONAL                :: overwrite
-integer(kind=irg)                          :: success, istat
+class(HDF_T),INTENT(INOUT)            :: self
+character(fnlen),INTENT(IN)           :: dataname
+integer(kind=irg),INTENT(IN)          :: dim0
+integer(kind=irg),INTENT(IN)          :: dim1
+real(kind=dbl),INTENT(IN)             :: dblarr(dim0, dim1)
+logical,INTENT(IN),OPTIONAL           :: overwrite
+integer(kind=irg)                     :: success, istat
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: hdferr, rnk
-integer(HSIZE_T), DIMENSION(1:2)           :: dims
+integer(HID_T)                        :: space, dset ! Handles
+integer                               :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:2)      :: dims
 
-real(real_kind_15),allocatable,TARGET        :: wdata(:,:)
-TYPE(C_PTR)                                :: f_ptr
+real(real_kind_15),allocatable,TARGET :: wdata(:,:)
+TYPE(C_PTR)                           :: f_ptr
 
 success = 0
 
@@ -3421,22 +3419,22 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg),INTENT(IN)               :: dim0
-integer(kind=irg),INTENT(IN)               :: dim1
-integer(kind=irg),INTENT(IN)               :: dim2
-real(kind=dbl),INTENT(IN)                  :: dblarr(dim0, dim1, dim2)
-logical,INTENT(IN),OPTIONAL                :: overwrite
-integer(kind=irg)                          :: success, istat
+class(HDF_T),INTENT(INOUT)            :: self
+character(fnlen),INTENT(IN)           :: dataname
+integer(kind=irg),INTENT(IN)          :: dim0
+integer(kind=irg),INTENT(IN)          :: dim1
+integer(kind=irg),INTENT(IN)          :: dim2
+real(kind=dbl),INTENT(IN)             :: dblarr(dim0, dim1, dim2)
+logical,INTENT(IN),OPTIONAL           :: overwrite
+integer(kind=irg)                     :: success, istat
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: hdferr, rnk
-integer(HSIZE_T), DIMENSION(1:3)           :: dims
+integer(HID_T)                        :: space, dset ! Handles
+integer                               :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:3)      :: dims
 
-real(real_kind_15),allocatable,TARGET        :: wdata(:,:,:)
+real(real_kind_15),allocatable,TARGET :: wdata(:,:,:)
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                           :: f_ptr
 
 success = 0
 
@@ -3504,22 +3502,22 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg),INTENT(IN)               :: dim0
-integer(kind=irg),INTENT(IN)               :: dim1
-integer(kind=irg),INTENT(IN)               :: dim2
-integer(kind=irg),INTENT(IN)               :: dim3
-real(kind=dbl),INTENT(IN)                  :: dblarr(dim0, dim1, dim2, dim3)
-logical,INTENT(IN),OPTIONAL                :: overwrite
-integer(kind=irg)                          :: success, istat
+class(HDF_T),INTENT(INOUT)            :: self
+character(fnlen),INTENT(IN)           :: dataname
+integer(kind=irg),INTENT(IN)          :: dim0
+integer(kind=irg),INTENT(IN)          :: dim1
+integer(kind=irg),INTENT(IN)          :: dim2
+integer(kind=irg),INTENT(IN)          :: dim3
+real(kind=dbl),INTENT(IN)             :: dblarr(dim0, dim1, dim2, dim3)
+logical,INTENT(IN),OPTIONAL           :: overwrite
+integer(kind=irg)                     :: success, istat
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: hdferr, rnk
-integer(HSIZE_T), DIMENSION(1:4)           :: dims
+integer(HID_T)                        :: space, dset ! Handles
+integer                               :: hdferr, rnk
+integer(HSIZE_T), DIMENSION(1:4)      :: dims
 
-real(real_kind_15),allocatable,TARGET        :: wdata(:,:,:,:)
-TYPE(C_PTR)                                :: f_ptr
+real(real_kind_15),allocatable,TARGET :: wdata(:,:,:,:)
+TYPE(C_PTR)                           :: f_ptr
 
 success = 0
 
@@ -3595,17 +3593,17 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(1)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-character(len=1), dimension(:), allocatable, TARGET, INTENT(OUT)     :: rdata
+class(HDF_T),INTENT(INOUT)                                       :: self
+character(fnlen),INTENT(IN)                                      :: dataname
+integer(HSIZE_T),INTENT(OUT)                                     :: dims(1)
+integer(kind=irg), INTENT(OUT)                                   :: hdferr
+character(len=1), dimension(:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:1)           :: maxdims
+integer(HID_T)                                                   :: space, dset ! Handles
+integer                                                          :: rnk
+integer(HSIZE_T), DIMENSION(1:1)                                 :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                      :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -3660,17 +3658,17 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(2)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-character(len=1), dimension(:,:), allocatable, TARGET, INTENT(OUT)   :: rdata
+class(HDF_T),INTENT(INOUT)                                         :: self
+character(fnlen),INTENT(IN)                                        :: dataname
+integer(HSIZE_T),INTENT(OUT)                                       :: dims(2)
+integer(kind=irg), INTENT(OUT)                                     :: hdferr
+character(len=1), dimension(:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:2)           :: maxdims
+integer(HID_T)                                                     :: space, dset ! Handles
+integer                                                            :: rnk
+integer(HSIZE_T), DIMENSION(1:2)                                   :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                        :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -3725,17 +3723,17 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(3)
-integer(kind=irg), INTENT(OUT)             :: hdferr
+class(HDF_T),INTENT(INOUT)                                           :: self
+character(fnlen),INTENT(IN)                                          :: dataname
+integer(HSIZE_T),INTENT(OUT)                                         :: dims(3)
+integer(kind=irg), INTENT(OUT)                                       :: hdferr
 character(len=1), dimension(:,:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:3)           :: maxdims
+integer(HID_T)                                                       :: space, dset ! Handles
+integer                                                              :: rnk
+integer(HSIZE_T), DIMENSION(1:3)                                     :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                          :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -3790,17 +3788,17 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(4)
-integer(kind=irg), INTENT(OUT)             :: hdferr
+class(HDF_T),INTENT(INOUT)                                             :: self
+character(fnlen),INTENT(IN)                                            :: dataname
+integer(HSIZE_T),INTENT(OUT)                                           :: dims(4)
+integer(kind=irg), INTENT(OUT)                                         :: hdferr
 character(len=1), dimension(:,:,:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:4)           :: maxdims
+integer(HID_T)                                                         :: space, dset ! Handles
+integer                                                                :: rnk
+integer(HSIZE_T), DIMENSION(1:4)                                       :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                            :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -3911,17 +3909,17 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(1)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-integer, dimension(:), allocatable, TARGET, INTENT(OUT)              :: rdata
+class(HDF_T),INTENT(INOUT)                              :: self
+character(fnlen),INTENT(IN)                             :: dataname
+integer(HSIZE_T),INTENT(OUT)                            :: dims(1)
+integer(kind=irg), INTENT(OUT)                          :: hdferr
+integer, dimension(:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:1)           :: maxdims
+integer(HID_T)                                          :: space, dset ! Handles
+integer                                                 :: rnk
+integer(HSIZE_T), DIMENSION(1:1)                        :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                             :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -3976,17 +3974,17 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(2)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-integer, dimension(:,:), allocatable, TARGET, INTENT(OUT)            :: rdata
+class(HDF_T),INTENT(INOUT)                                :: self
+character(fnlen),INTENT(IN)                               :: dataname
+integer(HSIZE_T),INTENT(OUT)                              :: dims(2)
+integer(kind=irg), INTENT(OUT)                            :: hdferr
+integer, dimension(:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:2)           :: maxdims
+integer(HID_T)                                            :: space, dset ! Handles
+integer                                                   :: rnk
+integer(HSIZE_T), DIMENSION(1:2)                          :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                               :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4041,17 +4039,17 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(3)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-integer, dimension(:,:,:), allocatable, TARGET, INTENT(OUT)          :: rdata
+class(HDF_T),INTENT(INOUT)                                  :: self
+character(fnlen),INTENT(IN)                                 :: dataname
+integer(HSIZE_T),INTENT(OUT)                                :: dims(3)
+integer(kind=irg), INTENT(OUT)                              :: hdferr
+integer, dimension(:,:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:3)           :: maxdims
+integer(HID_T)                                              :: space, dset ! Handles
+integer                                                     :: rnk
+integer(HSIZE_T), DIMENSION(1:3)                            :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                 :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4106,18 +4104,18 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(4)
-integer(kind=irg), INTENT(OUT)             :: hdferr
+class(HDF_T),INTENT(INOUT)                       :: self
+character(fnlen),INTENT(IN)                      :: dataname
+integer(HSIZE_T),INTENT(OUT)                     :: dims(4)
+integer(kind=irg), INTENT(OUT)                   :: hdferr
 !integer, dimension(:,:,:,:), allocatable, TARGET, INTENT(OUT)        :: rdata
-integer, dimension(:,:,:,:), allocatable, TARGET        :: rdata
+integer, dimension(:,:,:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:4)           :: maxdims
+integer(HID_T)                                   :: space, dset ! Handles
+integer                                          :: rnk
+integer(HSIZE_T), DIMENSION(1:4)                 :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                      :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4232,17 +4230,17 @@ use iso_fortran_env, only: int64
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(1)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-integer(kind=int64), dimension(:), allocatable, TARGET, INTENT(OUT)              :: rdata
+class(HDF_T),INTENT(INOUT)                                          :: self
+character(fnlen),INTENT(IN)                                         :: dataname
+integer(HSIZE_T),INTENT(OUT)                                        :: dims(1)
+integer(kind=irg), INTENT(OUT)                                      :: hdferr
+integer(kind=int64), dimension(:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:1)           :: maxdims
+integer(HID_T)                                                      :: space, dset ! Handles
+integer                                                             :: rnk
+integer(HSIZE_T), DIMENSION(1:1)                                    :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                         :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4298,17 +4296,17 @@ use iso_fortran_env, only: int64
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(2)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-integer(kind=int64), dimension(:,:), allocatable, TARGET, INTENT(OUT)            :: rdata
+class(HDF_T),INTENT(INOUT)                                            :: self
+character(fnlen),INTENT(IN)                                           :: dataname
+integer(HSIZE_T),INTENT(OUT)                                          :: dims(2)
+integer(kind=irg), INTENT(OUT)                                        :: hdferr
+integer(kind=int64), dimension(:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:2)           :: maxdims
+integer(HID_T)                                                        :: space, dset ! Handles
+integer                                                               :: rnk
+integer(HSIZE_T), DIMENSION(1:2)                                      :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                           :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4364,17 +4362,17 @@ use iso_fortran_env, only: int64
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(3)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-integer(kind=int64), dimension(:,:,:), allocatable, TARGET, INTENT(OUT)          :: rdata
+class(HDF_T),INTENT(INOUT)                                              :: self
+character(fnlen),INTENT(IN)                                             :: dataname
+integer(HSIZE_T),INTENT(OUT)                                            :: dims(3)
+integer(kind=irg), INTENT(OUT)                                          :: hdferr
+integer(kind=int64), dimension(:,:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:3)           :: maxdims
+integer(HID_T)                                                          :: space, dset ! Handles
+integer                                                                 :: rnk
+integer(HSIZE_T), DIMENSION(1:3)                                        :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                             :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4430,18 +4428,18 @@ use iso_fortran_env, only: int64
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(4)
-integer(kind=irg), INTENT(OUT)             :: hdferr
+class(HDF_T),INTENT(INOUT)                                   :: self
+character(fnlen),INTENT(IN)                                  :: dataname
+integer(HSIZE_T),INTENT(OUT)                                 :: dims(4)
+integer(kind=irg), INTENT(OUT)                               :: hdferr
 !integer, dimension(:,:,:,:), allocatable, TARGET, INTENT(OUT)        :: rdata
-integer(kind=int64), dimension(:,:,:,:), allocatable, TARGET        :: rdata
+integer(kind=int64), dimension(:,:,:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:4)           :: maxdims
+integer(HID_T)                                               :: space, dset ! Handles
+integer                                                      :: rnk
+integer(HSIZE_T), DIMENSION(1:4)                             :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                  :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4499,14 +4497,14 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_7), TARGET, INTENT(OUT)      :: rdata
+class(HDF_T),INTENT(INOUT)             :: self
+character(fnlen),INTENT(IN)            :: dataname
+integer(kind=irg), INTENT(OUT)         :: hdferr
+real(real_kind_7), TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
+integer(HID_T)                         :: space, dset ! Handles
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                            :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4556,17 +4554,17 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(1)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_7), dimension(:), allocatable, TARGET, INTENT(OUT)      :: rdata
+class(HDF_T),INTENT(INOUT)                                        :: self
+character(fnlen),INTENT(IN)                                       :: dataname
+integer(HSIZE_T),INTENT(OUT)                                      :: dims(1)
+integer(kind=irg), INTENT(OUT)                                    :: hdferr
+real(real_kind_7), dimension(:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:1)           :: maxdims
+integer(HID_T)                                                    :: space, dset ! Handles
+integer                                                           :: rnk
+integer(HSIZE_T), DIMENSION(1:1)                                  :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                       :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4622,17 +4620,17 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(2)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_7), dimension(:,:), allocatable, TARGET, INTENT(OUT)    :: rdata
+class(HDF_T),INTENT(INOUT)                                          :: self
+character(fnlen),INTENT(IN)                                         :: dataname
+integer(HSIZE_T),INTENT(OUT)                                        :: dims(2)
+integer(kind=irg), INTENT(OUT)                                      :: hdferr
+real(real_kind_7), dimension(:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:2)           :: maxdims
+integer(HID_T)                                                      :: space, dset ! Handles
+integer                                                             :: rnk
+integer(HSIZE_T), DIMENSION(1:2)                                    :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                         :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4688,17 +4686,17 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(3)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_7), dimension(:,:,:), allocatable, TARGET, INTENT(OUT)  :: rdata
+class(HDF_T),INTENT(INOUT)                                            :: self
+character(fnlen),INTENT(IN)                                           :: dataname
+integer(HSIZE_T),INTENT(OUT)                                          :: dims(3)
+integer(kind=irg), INTENT(OUT)                                        :: hdferr
+real(real_kind_7), dimension(:,:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:3)           :: maxdims
+integer(HID_T)                                                        :: space, dset ! Handles
+integer                                                               :: rnk
+integer(HSIZE_T), DIMENSION(1:3)                                      :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                           :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4753,17 +4751,17 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(4)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_7), dimension(:,:,:,:), allocatable, TARGET, INTENT(OUT):: rdata
+class(HDF_T),INTENT(INOUT)                                              :: self
+character(fnlen),INTENT(IN)                                             :: dataname
+integer(HSIZE_T),INTENT(OUT)                                            :: dims(4)
+integer(kind=irg), INTENT(OUT)                                          :: hdferr
+real(real_kind_7), dimension(:,:,:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:4)           :: maxdims
+integer(HID_T)                                                          :: space, dset ! Handles
+integer                                                                 :: rnk
+integer(HSIZE_T), DIMENSION(1:4)                                        :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                             :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4818,14 +4816,14 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_15), TARGET, INTENT(OUT)      :: rdata
+class(HDF_T),INTENT(INOUT)              :: self
+character(fnlen),INTENT(IN)             :: dataname
+integer(kind=irg), INTENT(OUT)          :: hdferr
+real(real_kind_15), TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
+integer(HID_T)                          :: space, dset ! Handles
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                             :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4874,17 +4872,17 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(1)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_15), dimension(:), allocatable, TARGET, INTENT(OUT)      :: rdata
+class(HDF_T),INTENT(INOUT)                                         :: self
+character(fnlen),INTENT(IN)                                        :: dataname
+integer(HSIZE_T),INTENT(OUT)                                       :: dims(1)
+integer(kind=irg), INTENT(OUT)                                     :: hdferr
+real(real_kind_15), dimension(:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:1)           :: maxdims
+integer(HID_T)                                                     :: space, dset ! Handles
+integer                                                            :: rnk
+integer(HSIZE_T), DIMENSION(1:1)                                   :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                        :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -4939,17 +4937,17 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(2)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_15), dimension(:,:), allocatable, TARGET, INTENT(OUT)    :: rdata
+class(HDF_T),INTENT(INOUT)                                           :: self
+character(fnlen),INTENT(IN)                                          :: dataname
+integer(HSIZE_T),INTENT(OUT)                                         :: dims(2)
+integer(kind=irg), INTENT(OUT)                                       :: hdferr
+real(real_kind_15), dimension(:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:2)           :: maxdims
+integer(HID_T)                                                       :: space, dset ! Handles
+integer                                                              :: rnk
+integer(HSIZE_T), DIMENSION(1:2)                                     :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                          :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -5005,17 +5003,17 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(3)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_15), dimension(:,:,:), allocatable, TARGET, INTENT(OUT)  :: rdata
+class(HDF_T),INTENT(INOUT)                                             :: self
+character(fnlen),INTENT(IN)                                            :: dataname
+integer(HSIZE_T),INTENT(OUT)                                           :: dims(3)
+integer(kind=irg), INTENT(OUT)                                         :: hdferr
+real(real_kind_15), dimension(:,:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:3)           :: maxdims
+integer(HID_T)                                                         :: space, dset ! Handles
+integer                                                                :: rnk
+integer(HSIZE_T), DIMENSION(1:3)                                       :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                            :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -5072,17 +5070,17 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(OUT)               :: dims(4)
-integer(kind=irg), INTENT(OUT)             :: hdferr
-real(real_kind_15), dimension(:,:,:,:), allocatable, TARGET, INTENT(OUT):: rdata
+class(HDF_T),INTENT(INOUT)                                               :: self
+character(fnlen),INTENT(IN)                                              :: dataname
+integer(HSIZE_T),INTENT(OUT)                                             :: dims(4)
+integer(kind=irg), INTENT(OUT)                                           :: hdferr
+real(real_kind_15), dimension(:,:,:,:), allocatable, TARGET, INTENT(OUT) :: rdata
 
-integer(HID_T)                             :: space, dset ! Handles
-integer                                    :: rnk
-integer(HSIZE_T), DIMENSION(1:4)           :: maxdims
+integer(HID_T)                                                           :: space, dset ! Handles
+integer                                                                  :: rnk
+integer(HSIZE_T), DIMENSION(1:4)                                         :: maxdims
 
-TYPE(C_PTR)                                :: f_ptr
+TYPE(C_PTR)                                                              :: f_ptr
 
 ! open the data set
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
@@ -5881,15 +5879,15 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(2)
-integer(HSIZE_T),INTENT(IN)                :: dims(2)
-character(len=1,kind=c_char), dimension(:,:), allocatable, TARGET   :: rdata
+class(HDF_T),INTENT(INOUT)                                        :: self
+character(fnlen),INTENT(IN)                                       :: dataname
+integer(HSIZE_T),INTENT(IN)                                       :: offset(2)
+integer(HSIZE_T),INTENT(IN)                                       :: dims(2)
+character(len=1,kind=c_char), dimension(:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(2), max_dims(2)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                                    :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                                  :: hdims(2), max_dims(2)
+integer                                                           :: hdferr, rnk
 
 allocate(rdata(1:dims(1),1:dims(2)))
 
@@ -5945,15 +5943,15 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname3
-integer(HSIZE_T),INTENT(IN)                :: offset3(3)
-integer(HSIZE_T),INTENT(IN)                :: dims3(3)
-character(kind=c_char), dimension(:,:,:), allocatable, TARGET   :: rdata3
+class(HDF_T),INTENT(INOUT)                                    :: self
+character(fnlen),INTENT(IN)                                   :: dataname3
+integer(HSIZE_T),INTENT(IN)                                   :: offset3(3)
+integer(HSIZE_T),INTENT(IN)                                   :: dims3(3)
+character(kind=c_char), dimension(:,:,:), allocatable, TARGET :: rdata3
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(3), max_dims(3)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                                :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                              :: hdims(3), max_dims(3)
+integer                                                       :: hdferr, rnk
 
 allocate(rdata3(1:dims3(1),1:dims3(2),1:dims3(3)))
 
@@ -6006,15 +6004,15 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname4
-integer(HSIZE_T),INTENT(IN)                :: offset4(4)
-integer(HSIZE_T),INTENT(IN)                :: dims4(4)
-character(len=1,kind=c_char), dimension(:,:,:,:), allocatable, TARGET   :: rdata4
+class(HDF_T),INTENT(INOUT)                                            :: self
+character(fnlen),INTENT(IN)                                           :: dataname4
+integer(HSIZE_T),INTENT(IN)                                           :: offset4(4)
+integer(HSIZE_T),INTENT(IN)                                           :: dims4(4)
+character(len=1,kind=c_char), dimension(:,:,:,:), allocatable, TARGET :: rdata4
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(4), max_dims(4)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                                        :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                                      :: hdims(4), max_dims(4)
+integer                                                               :: hdferr, rnk
 
 allocate(rdata4(1:dims4(1),1:dims4(2),1:dims4(3),1:dims4(4)))
 
@@ -6067,15 +6065,15 @@ recursive function readHyperslabIntegerArray2D_(self, dataname, offset, dims) re
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(2)
-integer(HSIZE_T),INTENT(IN)                :: dims(2)
+class(HDF_T),INTENT(INOUT)                   :: self
+character(fnlen),INTENT(IN)                  :: dataname
+integer(HSIZE_T),INTENT(IN)                  :: offset(2)
+integer(HSIZE_T),INTENT(IN)                  :: dims(2)
 integer, dimension(:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(2), max_dims(2)
-integer                                    :: hdferr, rnk
+integer(HID_T)                               :: memspace, space, dset ! Handles
+integer(HSIZE_T)                             :: hdims(2), max_dims(2)
+integer                                      :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray2D:h5dopen_f:'//trim(dataname), hdferr)
@@ -6125,15 +6123,15 @@ recursive function readHyperslabIntegerArray3D_(self, dataname, offset, dims) re
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(3)
-integer(HSIZE_T),INTENT(IN)                :: dims(3)
+class(HDF_T),INTENT(INOUT)                     :: self
+character(fnlen),INTENT(IN)                    :: dataname
+integer(HSIZE_T),INTENT(IN)                    :: offset(3)
+integer(HSIZE_T),INTENT(IN)                    :: dims(3)
 integer, dimension(:,:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(3), max_dims(3)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                 :: memspace, space, dset ! Handles
+integer(HSIZE_T)                               :: hdims(3), max_dims(3)
+integer                                        :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray3D:h5dopen_f:'//trim(dataname), hdferr)
@@ -6185,15 +6183,15 @@ recursive function readHyperslabIntegerArray4D_(self, dataname, offset, dims) re
 
 IMPLICIT NONE
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(4)
-integer(HSIZE_T),INTENT(IN)                :: dims(4)
+class(HDF_T),INTENT(INOUT)                       :: self
+character(fnlen),INTENT(IN)                      :: dataname
+integer(HSIZE_T),INTENT(IN)                      :: offset(4)
+integer(HSIZE_T),INTENT(IN)                      :: dims(4)
 integer, dimension(:,:,:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(4), max_dims(4)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                   :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                 :: hdims(4), max_dims(4)
+integer                                          :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readHyperslabIntegerArray4D:h5dopen_f:'//trim(dataname), hdferr)
@@ -6246,15 +6244,15 @@ recursive function readHyperslabFloatArray2D_(self, dataname, offset, dims) resu
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(2)
-integer(HSIZE_T),INTENT(IN)                :: dims(2)
-real(real_kind_7), dimension(:,:), allocatable, TARGET    :: rdata
+class(HDF_T),INTENT(INOUT)                             :: self
+character(fnlen),INTENT(IN)                            :: dataname
+integer(HSIZE_T),INTENT(IN)                            :: offset(2)
+integer(HSIZE_T),INTENT(IN)                            :: dims(2)
+real(real_kind_7), dimension(:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(2), max_dims(2)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                         :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                       :: hdims(2), max_dims(2)
+integer                                                :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readHyperslabFloatArray2D:h5dopen_f:'//trim(dataname), hdferr)
@@ -6307,15 +6305,15 @@ recursive function readHyperslabFloatArray3D_(self, dataname, offset, dims) resu
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(3)
-integer(HSIZE_T),INTENT(IN)                :: dims(3)
-real(real_kind_7), dimension(:,:,:), allocatable, TARGET  :: rdata
+class(HDF_T),INTENT(INOUT)                               :: self
+character(fnlen),INTENT(IN)                              :: dataname
+integer(HSIZE_T),INTENT(IN)                              :: offset(3)
+integer(HSIZE_T),INTENT(IN)                              :: dims(3)
+real(real_kind_7), dimension(:,:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(3), max_dims(3)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                           :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                         :: hdims(3), max_dims(3)
+integer                                                  :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readHyperslabFloatArray3D:h5dopen_f:'//trim(dataname), hdferr)
@@ -6368,15 +6366,15 @@ recursive function readHyperslabFloatArray4D_(self, dataname, offset, dims) resu
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(4)
-integer(HSIZE_T),INTENT(IN)                :: dims(4)
-real(real_kind_7), dimension(:,:,:,:), allocatable, TARGET:: rdata
+class(HDF_T),INTENT(INOUT)                                 :: self
+character(fnlen),INTENT(IN)                                :: dataname
+integer(HSIZE_T),INTENT(IN)                                :: offset(4)
+integer(HSIZE_T),INTENT(IN)                                :: dims(4)
+real(real_kind_7), dimension(:,:,:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(4), max_dims(4)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                             :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                           :: hdims(4), max_dims(4)
+integer                                                    :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readHyperslabFloatArray4D:h5dopen_f:'//trim(dataname), hdferr)
@@ -6429,15 +6427,15 @@ recursive function readHyperslabDoubleArray2D_(self, dataname, offset, dims) res
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(2)
-integer(HSIZE_T),INTENT(IN)                :: dims(2)
-real(real_kind_15), dimension(:,:), allocatable, TARGET    :: rdata
+class(HDF_T),INTENT(INOUT)                              :: self
+character(fnlen),INTENT(IN)                             :: dataname
+integer(HSIZE_T),INTENT(IN)                             :: offset(2)
+integer(HSIZE_T),INTENT(IN)                             :: dims(2)
+real(real_kind_15), dimension(:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(2), max_dims(2)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                          :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                        :: hdims(2), max_dims(2)
+integer                                                 :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readHyperslabDoubleArray2D:h5dopen_f:'//trim(dataname), hdferr)
@@ -6490,15 +6488,15 @@ recursive function readHyperslabDoubleArray3D_(self, dataname, offset, dims) res
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(3)
-integer(HSIZE_T),INTENT(IN)                :: dims(3)
-real(real_kind_15), dimension(:,:,:), allocatable, TARGET  :: rdata
+class(HDF_T),INTENT(INOUT)                                :: self
+character(fnlen),INTENT(IN)                               :: dataname
+integer(HSIZE_T),INTENT(IN)                               :: offset(3)
+integer(HSIZE_T),INTENT(IN)                               :: dims(3)
+real(real_kind_15), dimension(:,:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(3), max_dims(3)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                            :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                          :: hdims(3), max_dims(3)
+integer                                                   :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'readHyperslabDoubleArray3D:h5dopen_f:'//trim(dataname), hdferr)
@@ -6551,15 +6549,15 @@ recursive function readHyperslabDoubleArray4D_(self, dataname, offset, dims) res
 IMPLICIT NONE
 
 
-class(HDF_T),INTENT(INOUT)                 :: self
-character(fnlen),INTENT(IN)                :: dataname
-integer(HSIZE_T),INTENT(IN)                :: offset(4)
-integer(HSIZE_T),INTENT(IN)                :: dims(4)
-real(real_kind_15), dimension(:,:,:,:), allocatable, TARGET:: rdata
+class(HDF_T),INTENT(INOUT)                                  :: self
+character(fnlen),INTENT(IN)                                 :: dataname
+integer(HSIZE_T),INTENT(IN)                                 :: offset(4)
+integer(HSIZE_T),INTENT(IN)                                 :: dims(4)
+real(real_kind_15), dimension(:,:,:,:), allocatable, TARGET :: rdata
 
-integer(HID_T)                             :: memspace, space, dset ! Handles
-integer(HSIZE_T)                           :: hdims(4), max_dims(4)
-integer                                    :: hdferr, rnk
+integer(HID_T)                                              :: memspace, space, dset ! Handles
+integer(HSIZE_T)                                            :: hdims(4), max_dims(4)
+integer                                                     :: hdferr, rnk
 
 call h5dopen_f(self%head%next%objectID, cstringify(dataname), dset, hdferr)
 call error_check_(self, 'hdf_readHyperslabDoubleArray4D:h5dopen_f:'//trim(dataname), hdferr)

@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2014-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2014-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -277,7 +277,7 @@ recursive subroutine resetUnitCell(self)
 
 IMPLICIT NONE
 
-class(Cell_T), intent(inout)    :: self
+class(Cell_T), INTENT(INOUT)    :: self
 
 ! initialize cell to zero
  self%a = 0.0_dbl
@@ -317,8 +317,8 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),intent(inout)    :: self
-character(*), intent(in)       :: p
+class(Cell_T),INTENT(INOUT)    :: self
+character(*), INTENT(IN)       :: p
 
 real(kind=dbl)                 :: lp
 
@@ -352,9 +352,9 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),intent(inout)    :: self
-character(*), intent(in)       :: p
-real(kind=dbl), intent(in)     :: lp
+class(Cell_T),INTENT(INOUT)    :: self
+character(*), INTENT(IN)       :: p
+real(kind=dbl), INTENT(IN)     :: lp
 
 select case(p)
   case('a')
@@ -386,7 +386,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),intent(inout)    :: self
+class(Cell_T),INTENT(INOUT)    :: self
 
 real(kind=dbl)                 :: lp(6)
 
@@ -407,8 +407,8 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),intent(inout)    :: self
-real(kind=dbl),intent(in)      :: lp(6)
+class(Cell_T),INTENT(INOUT)    :: self
+real(kind=dbl),INTENT(IN)      :: lp(6)
 
 self%a = lp(1)
 self%b = lp(2)
@@ -433,7 +433,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),intent(inout)   :: self
+class(Cell_T),INTENT(INOUT)   :: self
 
 type(IO_T)                    :: Message
 
@@ -540,8 +540,8 @@ use mod_HallSG
 
 IMPLICIT NONE
 
-class(Cell_T), intent(inout)            :: self
-type(SpaceGroup_T), intent(inout)       :: SG
+class(Cell_T), INTENT(INOUT)            :: self
+type(SpaceGroup_T), INTENT(INOUT)       :: SG
 
 type(IO_T)                              :: Message
 
@@ -1143,7 +1143,7 @@ recursive subroutine TransSpaceSingle(self, t, d, inspace, outspace)
 
 IMPLICIT NONE
 
-class(Cell_T), intent(in)       :: self
+class(Cell_T), INTENT(IN)       :: self
 real(kind=sgl),INTENT(IN)       :: t(3)
  !! input vector in inspace reference frame
 real(kind=sgl),INTENT(OUT)      :: d(3)
@@ -1211,7 +1211,7 @@ recursive subroutine TransSpaceDouble(self,t,d,inspace,outspace)
 
 IMPLICIT NONE
 
-class(Cell_T), intent(in)       :: self
+class(Cell_T), INTENT(IN)       :: self
 real(kind=dbl),INTENT(IN)       :: t(3)
  !! input vector in inspace reference frame
 real(kind=dbl),INTENT(OUT)      :: d(3)
@@ -1283,7 +1283,7 @@ recursive subroutine transformCoordinates(self, t, d, talpha, space, direction)
 
 IMPLICIT NONE
 
-class(Cell_T), intent(in)       :: self
+class(Cell_T), INTENT(IN)       :: self
 real(kind=dbl),INTENT(IN)       :: t(3)
  !! input vector w.r.t. input space reference frame
 real(kind=dbl),INTENT(OUT)      :: d(3)
@@ -1327,7 +1327,7 @@ recursive function CalcDotSingle(self, p, q, space) result(cdot)
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)        :: self
+class(Cell_T),INTENT(IN)        :: self
 real(kind=sgl),INTENT(IN)       :: p(3)
  !! first input vector in space reference frame
 real(kind=sgl),INTENT(IN)       :: q(3)
@@ -1357,7 +1357,7 @@ recursive function CalcDotDouble(self, p, q, space) result(cdot)
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)        :: self
+class(Cell_T),INTENT(IN)        :: self
 real(kind=dbl),INTENT(IN)       :: p(3)
  !! first input vector in space reference frame
 real(kind=dbl),INTENT(IN)       :: q(3)
@@ -1391,10 +1391,9 @@ recursive subroutine NormVecSingle(self, p, space)
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)                :: self
+class(Cell_T),INTENT(IN)                :: self
 real(kind=sgl),INTENT(INOUT)            :: p(3)
  !! input/output vector components
-!f2py intent(in,out) ::  p
 character(1),INTENT(IN)                 :: space
  !! space character ('d', 'r', or 'c')
 real(kind=sgl)                          :: x
@@ -1426,10 +1425,9 @@ recursive subroutine NormVecDouble(self, p, space)
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)                :: self
+class(Cell_T),INTENT(IN)                :: self
 real(kind=dbl),INTENT(INOUT)            :: p(3)
  !! input/output vector components
-!f2py intent(in,out) ::  p
 character(1),INTENT(IN)                 :: space
  !! space character ('d', 'r', or 'c')
 real(kind=dbl)                          :: x
@@ -1455,7 +1453,7 @@ recursive function CalcLengthSingle(self, p, space) result(x)
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)                :: self
+class(Cell_T),INTENT(IN)                :: self
 real(kind=sgl),INTENT(IN)               :: p(3)
  !! input/output vector components
 character(1),INTENT(IN)                 :: space
@@ -1478,7 +1476,7 @@ recursive function CalcLengthDouble(self, p, space) result(x)
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)                :: self
+class(Cell_T),INTENT(IN)                :: self
 real(kind=dbl),INTENT(IN)               :: p(3)
  !! input/output vector components
 character(1),INTENT(IN)                 :: space
@@ -1504,7 +1502,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)                :: self
+class(Cell_T),INTENT(IN)                :: self
 real(kind=sgl),INTENT(IN)               :: p(3)
   !! first vector components
 real(kind=sgl),INTENT(IN)               :: q(3)
@@ -1552,7 +1550,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)                :: self
+class(Cell_T),INTENT(IN)                :: self
 real(kind=dbl),INTENT(IN)               :: p(3)
  !! first vector components
 real(kind=dbl),INTENT(IN)               :: q(3)
@@ -1605,7 +1603,7 @@ recursive subroutine CalcCrossSingle(self,p,q,r,inspace,outspace,iv)
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)                :: self
+class(Cell_T),INTENT(IN)                :: self
 real(kind=sgl),INTENT(IN)               :: p(3)
  !! first input vector (order is important here !)
 real(kind=sgl),INTENT(IN)               :: q(3)
@@ -1685,7 +1683,7 @@ recursive subroutine CalcCrossDouble(self,p,q,r,inspace,outspace,iv)
 
 IMPLICIT NONE
 
-class(Cell_T),intent(in)                :: self
+class(Cell_T),INTENT(IN)                :: self
 real(kind=dbl),INTENT(IN)               :: p(3)
  !! first input vector (order is important here !)
 real(kind=dbl),INTENT(IN)               :: q(3)
@@ -1774,8 +1772,8 @@ use mod_HallSG
 
 IMPLICIT NONE
 
-class(Cell_T),intent(inout)             :: self
-type(SpaceGroup_T), intent(inout)       :: SG
+class(Cell_T),INTENT(INOUT)             :: self
+type(SpaceGroup_T), INTENT(INOUT)       :: SG
 
 type(IO_T)                              :: Message
 integer(kind=irg)                       :: io_int(1), TRIG(7)
@@ -1923,7 +1921,6 @@ end subroutine requestLatticeParameters
 ! IMPLICIT NONE
 
 ! class(Cell_T),intent(inout)             :: self
-! !f2py intent(in,out) ::  cell
 
 ! type(IO_T)                              :: Message
 ! logical                                 :: more
@@ -2096,7 +2093,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(Cell_T),intent(inout)             :: self
+class(Cell_T),INTENT(INOUT)             :: self
 type (IO_T)                             :: Message
 
 call Message%printMessage( (/ &
@@ -2240,14 +2237,14 @@ use mod_global
 
 IMPLICIT NONE
 
-class(Cell_T),intent(inout)             :: self
+class(Cell_T),INTENT(INOUT)                     :: self
 
-real(kind=sgl),OPTIONAL,INTENT(OUT),allocatable  :: Z2percent(:)
+real(kind=sgl),OPTIONAL,INTENT(OUT),allocatable :: Z2percent(:)
  !! optional array with percentages of Z^2 values for each general atom type
 
-real(kind=sgl),allocatable              :: Z2list(:)
-real(kind=dbl)                          :: AW, Z
-integer(kind=irg)                       :: i
+real(kind=sgl),allocatable                      :: Z2list(:)
+real(kind=dbl)                                  :: AW, Z
+integer(kind=irg)                               :: i
 
 ! compute the total atomic weight for the unit cell (g/mol)
 ! also compute the total atomic number
@@ -2808,14 +2805,14 @@ use mod_symmetry
 
 IMPLICIT NONE
 
-class(Cell_T),INTENT(INOUT)     :: self
-type(SpaceGroup_T),INTENT(INOUT):: SG
-character(1),INTENT(IN)         :: switch ! if switch='m', then multiple unit cells, otherwise single cell
+class(Cell_T),INTENT(INOUT)           :: self
+type(SpaceGroup_T),INTENT(INOUT)      :: SG
+character(1),INTENT(IN)               :: switch ! if switch='m', then multiple unit cells, otherwise single cell
 integer(kind=irg),INTENT(IN),OPTIONAL :: numcells(3)
 
-type(IO_T)                      :: Message
-logical                         :: inside                       ! auxiliary logical
-integer(kind=irg)               :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3), &
+type(IO_T)                            :: Message
+logical                               :: inside                       ! auxiliary logical
+integer(kind=irg)                     :: i,j,k,l,mm,icnt,celln(3),ncells,n,kk,ier, io_int(3), &
                                    jstart, kstart, lstart       ! various auxiliary variables
 real(kind=dbl)                  :: ff(3),sh(3)                  ! auxiliary variables
 real(kind=sgl)                  :: r(3),g(3)                    ! auxiliary variables

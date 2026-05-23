@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -42,6 +42,8 @@ use mod_io
 use mod_postscript
 use mod_diffraction
 use mod_HDFsupport
+
+IMPLICIT NONE
 
 character(fnlen)        :: progname = 'EMzap.f90'
 character(fnlen)        :: progdesc = 'Kinematical Zone Axis Diffraction Patterns'

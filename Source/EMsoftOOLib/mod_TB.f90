@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2014-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2014-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -59,24 +59,24 @@ recursive subroutine TBCalcSM(Ar,Ai,sg,z,xig,xigp,xizero,betag)
 
 IMPLICIT NONE
 
-real(kind=sgl),INTENT(IN)       :: sg
+real(kind=sgl),INTENT(IN)  :: sg
  !! excitation error
-real(kind=sgl),INTENT(IN)       :: z
+real(kind=sgl),INTENT(IN)  :: z
  !! thickness
-real(kind=sgl),INTENT(IN)       :: xig
+real(kind=sgl),INTENT(IN)  :: xig
  !! extinction distance
-real(kind=sgl),INTENT(IN)       :: xigp
+real(kind=sgl),INTENT(IN)  :: xigp
  !! anomalous absorption length
-real(kind=sgl),INTENT(IN)       :: xizero
+real(kind=sgl),INTENT(IN)  :: xizero
  !! normal absorption length
-real(kind=sgl),INTENT(IN)       :: betag
+real(kind=sgl),INTENT(IN)  :: betag
  !! phase parameter
-real(kind=sgl),INTENT(OUT)      :: Ar(2,2)
+real(kind=sgl),INTENT(OUT) :: Ar(2,2)
  !! real part of result
-real(kind=sgl),INTENT(OUT)      :: Ai(2,2)
+real(kind=sgl),INTENT(OUT) :: Ai(2,2)
  !! imaginary part of result
 
-real(kind=sgl)  :: pr, pi, cs, ss, ch, sh, q, q1, q2, sgs, sr, si, o , p, sb, cb, e, r, sq, xigi, xigpi
+real(kind=sgl)             :: pr, pi, cs, ss, ch, sh, q, q1, q2, sgs, sr, si, o , p, sb, cb, e, r, sq, xigi, xigpi
 
 ! setup auxiliary variables
  xigi = 1.00/xig
@@ -152,24 +152,24 @@ recursive subroutine TBCalcInten(It,Is,sg,z,xig,xigp,xizero,betag)
 
 IMPLICIT NONE
 
-real(kind=sgl),INTENT(IN)       :: sg
+real(kind=sgl),INTENT(IN)  :: sg
  !! excitation error
-real(kind=sgl),INTENT(IN)       :: z
+real(kind=sgl),INTENT(IN)  :: z
  !! thickness
-real(kind=sgl),INTENT(IN)       :: xig
+real(kind=sgl),INTENT(IN)  :: xig
  !! extinction distance
-real(kind=sgl),INTENT(IN)       :: xigp
+real(kind=sgl),INTENT(IN)  :: xigp
  !! anomalous absorption length
-real(kind=sgl),INTENT(IN)       :: xizero
+real(kind=sgl),INTENT(IN)  :: xizero
  !! normal absorption length
-real(kind=sgl),INTENT(IN)       :: betag
+real(kind=sgl),INTENT(IN)  :: betag
  !! phase parameter
-real(kind=sgl),INTENT(OUT)      :: It
+real(kind=sgl),INTENT(OUT) :: It
  !! transmitted intensity
-real(kind=sgl),INTENT(OUT)      :: Is
+real(kind=sgl),INTENT(OUT) :: Is
  !! scattered intensity
 
-real(kind=sgl) :: q, r, sq, qgsi, e, sr, si, cp, ch, pr, pi, xigi, xigpi, sgs
+real(kind=sgl)             :: q, r, sq, qgsi, e, sr, si, cp, ch, pr, pi, xigi, xigpi, sgs
 
 ! setup auxiliary variables
  xigi = 1.0/xig

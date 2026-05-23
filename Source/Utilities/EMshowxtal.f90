@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -78,9 +78,10 @@ type(HDF_T)                     :: HDF
 
 character(fnlen)                :: xtalname, fname, dataset, groupname
 logical                         :: verbose=.TRUE., g_exists
-integer(kind=irg)               :: i, j, hdferr, N_Axial
+integer(kind=irg)               :: i, j, hdferr, N_Axial, io_int(1)
 character(1)                    :: yesno
-real(kind=dbl),allocatable      :: data(:,:,:), direc(:,:,:), recip(:,:,:)
+character(fnlen)                :: charline
+real(kind=dbl), allocatable     :: data(:,:,:), direc(:,:,:), recip(:,:,:)
 
 ! header and command line arguments, if any
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 921 /) ) 
@@ -101,24 +102,32 @@ if (i.eq.0) then ! regular crystal structure file
   if (yesno.eq.'y') then
     call Message%printMessage('Space group operators (last column = translation)')
     data = SG%getSpaceGroupDataMatrices()
-    do i=1,SG%getSpaceGroupMATnum() 
-       write (*,*) i,':'
-       write (*,*) (data(i,1,j),j=1,4)
-       write (*,*) (data(i,2,j),j=1,4)
-       write (*,*) (data(i,3,j),j=1,4)
-       write (*,*) ' '
+    do i=1,SG%getSpaceGroupMATnum()
+       io_int(1) = i
+       call Message%WriteValue('', io_int, 1, "(I4,':')")
+       write(charline, "(4F12.6)") (data(i,1,j),j=1,4)
+       call Message%printMessage(trim(charline))
+       write(charline, "(4F12.6)") (data(i,2,j),j=1,4)
+       call Message%printMessage(trim(charline))
+       write(charline, "(4F12.6)") (data(i,3,j),j=1,4)
+       call Message%printMessage(trim(charline))
+       call Message%printMessage(' ')
     end do
 
     call Message%printMessage('Point group operators')
     call Message%printMessage(' Direct space           Reciprocal space')
     direc = SG%getSpaceGroupPGdirecMatrices()
     recip = SG%getSpaceGroupPGrecipMatrices()
-    do i=1,SG%getSpaceGroupNUMpt() 
-       write (*,*) i,':'
-       write (*,*) (direc(i,1,j),j=1,3),'       ',(recip(i,1,j),j=1,3)
-       write (*,*) (direc(i,2,j),j=1,3),'       ',(recip(i,2,j),j=1,3)
-       write (*,*) (direc(i,3,j),j=1,3),'       ',(recip(i,3,j),j=1,3)
-       write (*,*) ' '
+    do i=1,SG%getSpaceGroupNUMpt()
+       io_int(1) = i
+       call Message%WriteValue('', io_int, 1, "(I4,':')")
+       write(charline, "(3F12.6,'       ',3F12.6)") (direc(i,1,j),j=1,3),(recip(i,1,j),j=1,3)
+       call Message%printMessage(trim(charline))
+       write(charline, "(3F12.6,'       ',3F12.6)") (direc(i,2,j),j=1,3),(recip(i,2,j),j=1,3)
+       call Message%printMessage(trim(charline))
+       write(charline, "(3F12.6,'       ',3F12.6)") (direc(i,3,j),j=1,3),(recip(i,3,j),j=1,3)
+       call Message%printMessage(trim(charline))
+       call Message%printMessage(' ')
     end do
   endif    
 else  ! quasi-crystal structure file

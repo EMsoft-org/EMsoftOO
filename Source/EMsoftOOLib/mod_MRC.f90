@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -548,7 +548,7 @@ subroutine Write_Byte_Into_Buffer(self, Bite)
 IMPLICIT NONE
 
 class(MRC_T),INTENT(INOUT)    :: self
-character(len=1),intent(IN)   :: Bite
+character(len=1),INTENT(IN)   :: Bite
  !! byte variable
 
 ! increment byte counter
@@ -580,8 +580,8 @@ subroutine Write_Word(self, Word, Length)
 IMPLICIT NONE
 
 class(MRC_T),INTENT(INOUT)      :: self
-integer(kind=irg),intent(IN)    :: Word   !< 4-byte word
-integer(kind=irg),intent(IN)    :: Length !< length parameter
+integer(kind=irg),INTENT(IN)    :: Word   !< 4-byte word
+integer(kind=irg),INTENT(IN)    :: Length !< length parameter
 
 integer(kind=irg)               :: L_Word
 integer(kind=irg)               :: j
@@ -609,7 +609,7 @@ IMPLICIT NONE
 
 class(MRC_T),INTENT(INOUT)      :: self
 integer(kind=ish),INTENT(IN)    :: Word   !< 2 byte integer
-integer(kind=irg),intent(IN)    :: Length !< length parameter
+integer(kind=irg),INTENT(IN)    :: Length !< length parameter
 
 integer(kind=irg)               :: L_Word
 integer(kind=irg)               :: j
@@ -650,7 +650,7 @@ IMPLICIT NONE
 
 class(MRC_T),INTENT(INOUT)      :: self
 real(kind=sgl),INTENT(IN)       :: RWord  !< 4 byte real
-integer(kind=irg),intent(IN)    :: Length !< length parameter
+integer(kind=irg),INTENT(IN)    :: Length !< length parameter
 
 integer(kind=irg)               :: L_Word
 integer(kind=irg)               :: j
@@ -677,8 +677,8 @@ subroutine Write_String(self, Str, Length)
 IMPLICIT NONE
 
 class(MRC_T),INTENT(INOUT)      :: self
-character(*),intent(IN)         :: Str      !< input string
-integer(kind=irg),intent(IN)    :: Length   !< length parameter
+character(*),INTENT(IN)         :: Str      !< input string
+integer(kind=irg),INTENT(IN)    :: Length   !< length parameter
 
 integer(kind=irg)               :: j
 

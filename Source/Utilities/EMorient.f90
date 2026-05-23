@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are 
@@ -60,7 +60,7 @@ type(PostScript_T)    :: PS
 character(1)              :: sp
 logical                   :: nn,topbot
 type(OrientationRelation) :: orel
-real(kind=sgl)            :: rr(3),gg(3),g(3),r(3),M(3,3),negthresh,p(3),Ep(3,3),E(3,3),TT(3,3), io_real(3), &
+real(kind=sgl)            :: rr(3),gg(3),g(3),r(3),M(3,3),negthresh,TT(3,3), io_real(3), &
                                  CX, CY, CRad, xst, yst
 real(kind=dbl)            :: dE(3,3),dgg(3)
 integer(kind=irg)         :: h,k,l,cr,hkl(3),iview(3),inm, i, ih, ik, il, imanum

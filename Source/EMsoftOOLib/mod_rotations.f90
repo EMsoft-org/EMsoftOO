@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -2553,7 +2553,7 @@ recursive subroutine toDegrees(self)
 
 IMPLICIT NONE
 
-class(*), intent(inout)  :: self
+class(*), INTENT(INOUT)  :: self
 
 select type(self)
   class is (e_T)
@@ -2588,7 +2588,7 @@ recursive subroutine toRadians(self)
 
 IMPLICIT NONE
 
-class(*), intent(inout)  :: self
+class(*), INTENT(INOUT)  :: self
 
 select type(self)
   class is (e_T)
@@ -2774,7 +2774,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
@@ -2818,7 +2818,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
@@ -2861,7 +2861,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)  :: self
+class(o_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
@@ -2929,7 +2929,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
@@ -2970,7 +2970,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
@@ -3019,7 +3019,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
@@ -3064,7 +3064,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
@@ -3106,7 +3106,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_t)                 :: Message
@@ -3157,7 +3157,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 integer(kind=irg)          :: res
 
 type(IO_T)                 :: Message
@@ -3199,8 +3199,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(r_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(4)
@@ -3232,8 +3232,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(s_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(3)
@@ -3265,8 +3265,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(o_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(3)
@@ -3305,8 +3305,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(h_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(3)
@@ -3338,8 +3338,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(a_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(4)
@@ -3371,8 +3371,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(v_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(3)
@@ -3404,8 +3404,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(c_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(3)
@@ -3437,8 +3437,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(e_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 logical,INTENT(IN),OPTIONAL         :: deg
 
 type(IO_T)                          :: Message
@@ -3473,8 +3473,8 @@ use mod_io
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)           :: self
-character(*), intent(in)            :: str
+class(q_T), INTENT(INOUT)           :: self
+character(*), INTENT(IN)            :: str
 
 type(IO_T)                          :: Message
 real(kind=sgl)                      :: io_sngl(4)
@@ -3558,7 +3558,7 @@ recursive function rs_(self) result(s)
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 type(s_T)                  :: s
 
 type(q_T)                  :: q
@@ -3579,7 +3579,7 @@ recursive function ro_(self) result(o)
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 type(o_T)                  :: o
 
 type(a_T)                  :: a
@@ -3602,7 +3602,7 @@ use mod_math, only: infty, inftyd
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 type(h_T)                  :: h
 
 real(kind=sgl)             :: rv, f, t
@@ -3655,7 +3655,7 @@ use mod_math, only: infty, inftyd
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 type(a_T)                  :: a
 
 real(kind=sgl)             :: ta, angle
@@ -3706,7 +3706,7 @@ recursive function rv_(self) result(v)
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 type(v_T)                  :: v
 
 type(e_T)                  :: e
@@ -3727,7 +3727,7 @@ recursive function rc_(self) result(c)
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 type(c_T)                  :: c
 
 type(h_T)                  :: h
@@ -3748,7 +3748,7 @@ recursive function re_(self) result(e)
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 type(e_T)                  :: e
 
 type(o_T)                  :: o
@@ -3791,7 +3791,7 @@ recursive function rq_(self) result(q)
 
 IMPLICIT NONE
 
-class(r_T), intent(inout)  :: self
+class(r_T), INTENT(INOUT)  :: self
 type(q_T)                  :: q
 
 type(a_T)                  :: a
@@ -3827,7 +3827,7 @@ use mod_math, only: infty, inftyd
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 type(r_T)                  :: r
 
 real(kind=sgl)             :: l, tmp(3)
@@ -3874,7 +3874,7 @@ recursive function so_(self) result(o)
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 type(o_T)                  :: o
 
 real(kind=sgl)             :: l, tmp(3)
@@ -3930,7 +3930,7 @@ recursive function sh_(self) result(h)
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 type(h_T)                  :: h
 
 real(kind=sgl)             :: l, tmp(3), angle
@@ -3971,7 +3971,7 @@ recursive function sa_(self) result(a)
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 type(a_T)                  :: a
 
 real(kind=sgl)             :: l, tmp(3)
@@ -4018,7 +4018,7 @@ recursive function sv_(self) result(v)
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 type(v_T)                  :: v
 
 type(e_T)                  :: e
@@ -4039,7 +4039,7 @@ recursive function sc_(self) result(c)
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 type(c_T)                  :: c
 
 real(kind=sgl)             :: l, tmp(3), angle
@@ -4084,7 +4084,7 @@ recursive function se_(self) result(e)
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 type(e_T)                  :: e
 
 real(kind=sgl)             :: l, tmp(3)
@@ -4134,7 +4134,7 @@ recursive function sq_(self) result(q)
 
 IMPLICIT NONE
 
-class(s_T), intent(inout)  :: self
+class(s_T), INTENT(INOUT)  :: self
 type(q_T)                  :: q
 
 real(kind=sgl)             :: l, tmp(3)
@@ -4184,7 +4184,7 @@ recursive function or_(self) result(r)
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)  :: self
+class(o_T), INTENT(INOUT)  :: self
 type(r_T)                  :: r
 
 type(e_T)                  :: e
@@ -4205,7 +4205,7 @@ recursive function os_(self) result(s)
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)  :: self
+class(o_T), INTENT(INOUT)  :: self
 type(s_T)                  :: s
 
 type(q_T)                  :: q
@@ -4226,7 +4226,7 @@ recursive function oh_(self) result(h)
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)  :: self
+class(o_T), INTENT(INOUT)  :: self
 type(h_T)                  :: h
 
 type(a_T)                  :: a
@@ -4249,7 +4249,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)   :: self
+class(o_T), INTENT(INOUT)   :: self
 type(a_T)                   :: a
 
 type(IO_T)                  :: Message
@@ -4366,7 +4366,7 @@ recursive function ov_(self) result(v)
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)  :: self
+class(o_T), INTENT(INOUT)  :: self
 type(v_T)                  :: v
 
 type(q_T)                  :: q
@@ -4387,7 +4387,7 @@ recursive function oc_(self) result(c)
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)  :: self
+class(o_T), INTENT(INOUT)  :: self
 type(c_T)                  :: c
 
 type(h_T)                  :: h
@@ -4408,7 +4408,7 @@ recursive function oe_(self) result(e)
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)  :: self
+class(o_T), INTENT(INOUT)  :: self
 type(e_T)                  :: e
 
 real(kind=sgl)             :: zeta
@@ -4477,7 +4477,7 @@ recursive function oq_(self) result(q)
 
 IMPLICIT NONE
 
-class(o_T), intent(inout)  :: self
+class(o_T), INTENT(INOUT)  :: self
 type(q_T)                  :: q
 
 type(a_T)                  :: oax
@@ -4580,7 +4580,7 @@ recursive function hr_(self) result(r)
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 type(r_T)                  :: r
 
 type(a_T)                  :: a
@@ -4601,7 +4601,7 @@ recursive function hs_(self) result(s)
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 type(s_T)                  :: s
 
 type(q_T)                  :: q
@@ -4622,7 +4622,7 @@ recursive function ho_(self) result(o)
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 type(o_T)                  :: o
 
 type(a_T)                  :: a
@@ -4643,7 +4643,7 @@ recursive function ha_(self) result(a)
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 type(a_T)                  :: a
 
 integer(kind=irg)          :: i
@@ -4714,7 +4714,7 @@ recursive function hv_(self) result(v)
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 type(v_T)                  :: v
 
 type(e_T)                  :: e
@@ -4737,7 +4737,7 @@ use mod_Lambert
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 type(c_T)                  :: c
 
 type(Lambert_T)            :: Lambert
@@ -4764,7 +4764,7 @@ recursive function he_(self) result(e)
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 type(e_T)                  :: e
 
 type(a_T)                  :: a
@@ -4785,7 +4785,7 @@ recursive function hq_(self) result(q)
 
 IMPLICIT NONE
 
-class(h_T), intent(inout)  :: self
+class(h_T), INTENT(INOUT)  :: self
 type(q_T)                  :: q
 
 type(a_T)                  :: a
@@ -4808,7 +4808,7 @@ use mod_math, only: infty, inftyd
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 type(r_T)                  :: r
 
 real(kind=sgl)             :: t
@@ -4862,7 +4862,7 @@ recursive function as_(self) result(s)
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 type(s_T)                  :: s
 
 type(q_T)                  :: q
@@ -4883,7 +4883,7 @@ recursive function ao_(self) result(o)
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 type(o_T)                  :: o
 
 real(kind=sgl)             :: q, c, s, omc
@@ -4949,7 +4949,7 @@ recursive function ah_(self) result(h)
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 type(h_T)                  :: h
 
 real(kind=sgl)             :: f
@@ -4980,7 +4980,7 @@ recursive function av_(self) result(v)
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 type(v_T)                  :: v
 
 if (rotdoubleprecision) then
@@ -5002,7 +5002,7 @@ recursive function ac_(self) result(c)
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 type(c_T)                  :: c
 
 type(h_T)                  :: h
@@ -5023,7 +5023,7 @@ recursive function ae_(self) result(e)
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 type(e_T)                  :: e
 
 type(o_T)                  :: o
@@ -5044,7 +5044,7 @@ recursive function aq_(self) result(q)
 
 IMPLICIT NONE
 
-class(a_T), intent(inout)  :: self
+class(a_T), INTENT(INOUT)  :: self
 type(q_T)                  :: q
 
 real(kind=sgl)             :: c, s
@@ -5081,7 +5081,7 @@ recursive function vr_(self) result(r)
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 type(r_T)                  :: r
 
 type(a_T)                  :: a
@@ -5102,7 +5102,7 @@ recursive function vs_(self) result(s)
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 type(s_T)                  :: s
 
 type(a_T)                  :: a
@@ -5123,7 +5123,7 @@ recursive function vo_(self) result(o)
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 type(o_T)                  :: o
 
 type(a_T)                  :: a
@@ -5144,7 +5144,7 @@ recursive function vh_(self) result(h)
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 type(h_T)                  :: h
 
 type(a_T)                  :: a
@@ -5165,7 +5165,7 @@ recursive function va_(self) result(a)
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 type(a_T)                  :: a
 
 real(kind=sgl)             :: an, n(3)
@@ -5208,7 +5208,7 @@ recursive function vc_(self) result(c)
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 type(c_T)                  :: c
 
 type(a_T)                  :: a
@@ -5229,7 +5229,7 @@ recursive function ve_(self) result(e)
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 type(e_T)                  :: e
 
 type(a_T)                  :: a
@@ -5250,7 +5250,7 @@ recursive function vq_(self) result(q)
 
 IMPLICIT NONE
 
-class(v_T), intent(inout)  :: self
+class(v_T), INTENT(INOUT)  :: self
 type(q_T)                  :: q
 
 type(a_T)                  :: a
@@ -5271,7 +5271,7 @@ recursive function cr_(self) result(r)
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 type(r_T)                  :: r
 
 type(h_T)                  :: h
@@ -5292,7 +5292,7 @@ recursive function cs_(self) result(s)
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 type(s_T)                  :: s
 
 type(q_T)                  :: q
@@ -5313,7 +5313,7 @@ recursive function co_(self) result(o)
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 type(o_T)                  :: o
 
 type(h_T)                  :: h
@@ -5336,7 +5336,7 @@ use mod_Lambert
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 type(h_T)                  :: h
 
 integer(kind=irg)          :: ierr
@@ -5363,7 +5363,7 @@ recursive function ca_(self) result(a)
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 type(a_T)                  :: a
 
 type(h_T)                  :: h
@@ -5384,7 +5384,7 @@ recursive function cv_(self) result(v)
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 type(v_T)                  :: v
 
 type(e_T)                  :: e
@@ -5405,7 +5405,7 @@ recursive function ce_(self) result(e)
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 type(e_T)                  :: e
 
 type(h_T)                  :: h
@@ -5426,7 +5426,7 @@ recursive function cq_(self) result(q)
 
 IMPLICIT NONE
 
-class(c_T), intent(inout)  :: self
+class(c_T), INTENT(INOUT)  :: self
 type(q_T)                  :: q
 
 type(h_T)                  :: h
@@ -5449,7 +5449,7 @@ use mod_math
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 type(r_T)                  :: r
 
 type(a_T)                  :: a
@@ -5508,7 +5508,7 @@ recursive function es_(self) result(s)
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 type(s_T)                  :: s
 
 type(q_T)                  :: q
@@ -5529,7 +5529,7 @@ recursive function eo_(self) result(o)
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 type(o_T)                  :: o
 
 integer(kind=irg)          :: i,j
@@ -5599,7 +5599,7 @@ recursive function eh_(self) result(h)
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 type(h_T)                  :: h
 
 type(a_T)                  :: a
@@ -5620,7 +5620,7 @@ recursive function ea_(self) result(a)
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 type(a_T)                  :: a
 
 real(kind=sgl)             :: t, del, tau, alpha, sig
@@ -5692,7 +5692,7 @@ recursive function ev_(self) result(v)
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 type(v_T)                  :: v
 type(a_T)                  :: ax
 
@@ -5717,7 +5717,7 @@ recursive function ec_(self) result(c)
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 type(c_T)                  :: c
 
 type(h_T)                  :: h
@@ -5738,7 +5738,7 @@ recursive function eq_(self) result(q)
 
 IMPLICIT NONE
 
-class(e_T), intent(inout)  :: self
+class(e_T), INTENT(INOUT)  :: self
 type(q_T)                  :: q
 
 real(kind=sgl)             :: ee(3), cPhi, cp, cm, sPhi, sp, sm
@@ -5787,7 +5787,7 @@ use mod_math, only: infty, inftyd
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 type(r_T)                  :: r
 
 real(kind=sgl)             :: omega, t, s
@@ -5845,7 +5845,7 @@ recursive function qs_(self) result(s)
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 type(s_T)                  :: s
 
 if (rotdoubleprecision) then
@@ -5873,7 +5873,7 @@ recursive function qo_(self) result(o)
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 type(o_T)                  :: o
 
 real(kind=sgl)             :: qq, qc(4)
@@ -5928,7 +5928,7 @@ recursive function qh_(self) result(h)
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 type(h_T)                  :: h
 
 real(kind=sgl)             :: omega, s, f
@@ -5971,7 +5971,7 @@ recursive function qa_(self) result(a)
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 type(a_T)                  :: a
 real(kind=sgl)             :: omega, s
 real(kind=dbl)             :: omegad, sd
@@ -6017,7 +6017,7 @@ recursive function qv_(self) result(v)
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 type(v_T)                  :: v
 
 type(e_T)                  :: e
@@ -6038,7 +6038,7 @@ recursive function qc_(self) result(c)
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 type(c_T)                  :: c
 
 type(h_T)                  :: h
@@ -6059,7 +6059,7 @@ recursive function qe_(self) result(e)
 
 IMPLICIT NONE
 
-class(q_T), intent(inout)  :: self
+class(q_T), INTENT(INOUT)  :: self
 type(e_T)                  :: e
 
 real(kind=sgl)             :: q12, q03, chi, Phi, phi1, phi2
@@ -6322,6 +6322,14 @@ if (doTmatrix.eqv..TRUE.) then
 
 ! call the eigenvalue solver
   call dgeev(JOBVL,JOBVR,nn,Tmat,LDA,Wr,Wi,VL,LDVL,VR,LDVR,WORK,LWORK,INFO)
+
+write (*,*) 'Eigenvalue-eigenvector information : '
+write (*,*) 'Eigenvalues : ',Wr 
+write (*,*) '  Imag. part: ',Wi 
+do i=1,4
+  write (*,*) VR(i,1:4)
+end do
+
   pos = maxloc(Wr)
   res(1:4) = VR(1:4,pos(1))
   qstdev = Wr

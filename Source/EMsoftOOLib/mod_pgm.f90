@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -49,15 +49,15 @@ recursive subroutine PGM_Write_File(fname, nx, ny, image)
   !!
   !! write image to .pgm file
 
-character(fnlen),INTENT(IN)         :: fname
+character(fnlen),INTENT(IN)  :: fname
  !! complete path (native) to output file
-integer(kind=irg),INTENT(IN)          :: nx,ny
+integer(kind=irg),INTENT(IN) :: nx,ny
  !! image dimensions
-integer(kind=irg),INTENT(IN)           :: image(nx,ny)
+integer(kind=irg),INTENT(IN) :: image(nx,ny)
  !! image array
 
-type(IO_T)                          :: Message
-integer(kind=irg)                    :: j, stl
+type(IO_T)                   :: Message
+integer(kind=irg)            :: j, stl
 
     stl = len(trim(fname))
     call Message%printMessage('Creating PGM file : '//fname(1:stl), frm = "(A)")

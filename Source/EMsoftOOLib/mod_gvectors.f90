@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2014-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2014-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -2097,7 +2097,7 @@ IMPLICIT NONE
 class(gvectors_T),INTENT(INOUT) :: self
 integer(kind=irg),INTENT(IN)    :: nn                   !< number of strong beams
 complex(kind=dbl),INTENT(IN)    :: DynMat(nn,nn)
-type(Diffraction_T) :: Diff
+type(Diffraction_T)             :: Diff
 type(Cell_T)                    :: cell
 real(kind=sgl),INTENT(IN)       :: kn
 
@@ -2692,9 +2692,7 @@ end subroutine CalcLghdepth_
 ! type(unitcell)                          :: cell
 ! type(reflisttype),pointer               :: reflist
 ! type(DynType),INTENT(INOUT)            :: Dyn
-! !f2py intent(in,out) ::  Dyn
 ! type(BetheParameterType),INTENT(INOUT) :: BetheParameter
-! !f2py intent(in,out) ::  BetheParameter
 ! character(*),INTENT(IN)         :: calcmode             !< computation mode
 ! real(kind=dbl),INTENT(IN)               :: kk(3),kt(3)          !< incident wave vector and tangential component
 ! logical,INTENT(IN)                      :: IgnoreFoilNormal     !< how to deal with the foil normal

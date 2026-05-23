@@ -215,6 +215,22 @@ if("${EMsoftOOSearchDirs}" STREQUAL "")
 
 endif()
 
+#------------------------------------------------------------------------------
+# Download (During CMake Time) the SHTfile project from GitHub.com
+# This will configure the "sht_file.hpp" file that is included in several of the 
+# libraries and executables.
+include(FetchContent)
+set(FETCHCONTENT_BASE_DIR  ${EMsoftOO_BINARY_DIR}/SHTfile)
+FetchContent_Declare(
+  SHTfile
+  GIT_REPOSITORY "https://github.com/EMsoft-org/SHTfile"
+# GIT_TAG        "cd75885" # just get the most recent version for now
+  GIT_PROGRESS    TRUE # its currently only 1 file, we probably don't need to print out progress
+)
+
+set(FETCHCONTENT_QUIET NO) # again only 1 file
+FetchContent_MakeAvailable(SHTfile)
+FetchContent_GetProperties(SHTfile BINARY_DIR SHTfile_BINARY_DIR)
 
 # Set the Application Name to with the correct icons and badges
 set(CMP_HEADER_DIR ${EMsoftOO_BINARY_DIR})
@@ -302,6 +318,10 @@ include (${PROJECT_SOURCE_DIR}/Support/ExtLib/ExtLibraries.cmake)
 OPTION(EMsoftOO_ENABLE_TESTING "Compile the test programs" OFF)
 set(EMsoftOO_TESTING_DIR "${EMsoftOO_BINARY_DIR}/Testing")
 
+# -----------------------------------------------------------------------
+# Build SHTfile Project
+# -----------------------------------------------------------------------
+add_subdirectory(${SHTfile_SOURCE_DIR} ${EMsoftOO_BINARY_DIR}/SHTfile)
 
 # -----------------------------------------------------------------------
 # Set a Global Prefix where everthing is going to get intalled. For OS X we are

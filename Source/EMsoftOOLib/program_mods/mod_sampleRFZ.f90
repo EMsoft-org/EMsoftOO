@@ -1,5 +1,5 @@
 ! ###################################################################
-! Copyright (c) 2013-2025, Marc De Graef Research Group/Carnegie Mellon University
+! Copyright (c) 2013-2026, Marc De Graef Research Group/Carnegie Mellon University
 ! All rights reserved.
 !
 ! Redistribution and use in source and binary forms, with or without modification, are
@@ -56,6 +56,8 @@ type, public :: sampleRFZNameListType
     real(kind=dbl)    :: semiconeangle
     real(kind=dbl)    :: tcos(5)
     character(6)      :: SO3cover
+    character(2)      :: SamplingLattice
+    logical           :: KRremapping
     character(fnlen)  :: xtalname
     character(fnlen)  :: samplemode
     character(fnlen)  :: euoutname
@@ -134,6 +136,8 @@ logical                            :: skipread = .FALSE.
 integer(kind=irg)                  :: pgnum, nsteps, gridtype, norientations, seed, hkl(15), uvw(15), norient(5)
 real(kind=dbl)                     :: rodrigues(4), qFZ(4), axFZ(4), maxmisor, conevector(3), semiconeangle, tcos(5)
 character(6)                       :: SO3cover
+character(2)                       :: SamplingLattice
+logical                            :: KRremapping
 character(fnlen)                   :: samplemode
 character(fnlen)                   :: xtalname
 character(fnlen)                   :: euoutname
@@ -149,7 +153,7 @@ character(fnlen)                   :: stoutname
 ! namelist components
 namelist / RFZlist / pgnum, nsteps, gridtype, euoutname, cuoutname, hooutname, rooutname, quoutname, omoutname, axoutname, &
                      samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname, &
-                     norientations, SO3cover, seed, hkl, uvw, norient, tcos
+                     norientations, SO3cover, seed, hkl, uvw, norient, tcos, SamplingLattice, KRremapping
 
 ! initialize to default values
 pgnum = 32
@@ -166,9 +170,11 @@ axFZ= (/ 0.D0, 0.D0, 1.D0, 0.D0 /)        ! initialize as the identity rotation
 maxmisor = 5.D0                           ! in degrees
 tcos = (/ 5.D0, 0.D0, 0.D0, 0.D0, 0.D0 /) ! in degrees
 samplemode = 'RFZ'                        ! or 'MIS' for sampling inside a ball with constant misorientation w.r.t. rodrigues
+SamplingLattice = 'cP'                    ! Bravais lattice to use for sampling
 ! or 'CON' for conical sampling around a unitvector for a cone with semi opening angle semiconangle
 conevector = (/ 0.D0, 0.D0, 1.D0 /)       ! default unit vector for cone axis
 semiconeangle = 2.0                       ! default opening semi-angle (in degrees)
+KRremapping = .FALSE.
 SO3cover = 'single'
 euoutname = 'undefined'
 xtalname = 'undefined'
@@ -208,9 +214,11 @@ self%nml%axFZ = axFZ
 self%nml%maxmisor = maxmisor
 self%nml%tcos = tcos
 self%nml%samplemode = samplemode
+self%nml%SamplingLattice = SamplingLattice
 self%nml%conevector = conevector
 self%nml%semiconeangle = semiconeangle
 self%nml%SO3cover = SO3cover
+self%nml%KRremapping = KRremapping
 self%nml%xtalname = xtalname
 self%nml%euoutname = euoutname
 self%nml%cuoutname = cuoutname
@@ -264,6 +272,7 @@ end function getNameList_
 !> @date 12/23/22 MDG 3.1 added Marsaglia and uniform sampling
 !> @date 01/09/23 MDG 3.2 added von Mises-Fisher and Watson sampling
 !> @date 01/10/23 MDG 3.3 added texture component sampling
+!> @date 10/21/25 MDG 3.4 added handling of alternate point group settings
 !--------------------------------------------------------------------------
 subroutine CreateSampling_(self, EMsoft)
 !DEC$ ATTRIBUTES DLLEXPORT :: CreateSampling_
@@ -409,14 +418,30 @@ end if
 ! determine which function we should call for this point group symmetry
 SO = so3_T( rfznl%pgnum )
 call SO%setGridType( rfznl%gridtype )
+if (rfznl%SamplingLattice.ne.'cP') call SO%setSamplingLattice( rfznl%SamplingLattice )
+call SO%getFZtypeandorder( FZtype, FZorder )
+call SO%setFZordersign( FZorder )
 
 ! get the linked list for the FZ for point group symmetry pgnum for nsteps along the cubic semi-edge
 if (trim(rfznl%samplemode).eq.'RFZ') then
-  if (rotateFZ.eqv..TRUE.) then
-    call SO%SampleRFZ(rfznl%nsteps,qFZ)
+  if (rfznl%KRremapping.eqv..TRUE.) then
+! for KR rearrangement, we need to sample the complete cubochoric cube, ignoring 
+! the rotational symmetry; that symmetry will be used in the remapping itself
+    call SO%setFZtypeandorder( 1 )
+    if (rotateFZ.eqv..TRUE.) then
+      call SO%SampleRFZ(rfznl%nsteps, qFZ)
+    else
+      call SO%SampleRFZ(rfznl%nsteps)
+    end if
+    call SO%setFZtypeandorder( rfznl%pgnum )
+    call SO%KRremap()
   else
-    call SO%SampleRFZ(rfznl%nsteps)
-  end if
+    if (rotateFZ.eqv..TRUE.) then
+      call SO%SampleRFZ(rfznl%nsteps, qFZ)
+    else
+      call SO%SampleRFZ(rfznl%nsteps)
+    end if
+  end if 
   listmode = 'FZ'
 end if
 if (trim(rfznl%samplemode).eq.'MIS') then

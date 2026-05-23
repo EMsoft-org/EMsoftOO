@@ -158,7 +158,7 @@ subroutine printMessageSingle(self, mess, frm, advance, redirect)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)               :: self
+  class(IO_T),INTENT(INOUT)               :: self
 
   character(*),INTENT(IN)                 :: mess
    !! message string
@@ -205,7 +205,7 @@ subroutine printMessageMultiple(self, mess, frm, redirect)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)               :: self
+  class(IO_T),INTENT(INOUT)               :: self
 
   character(*),INTENT(IN)                 :: mess(:)
    !! message array of strings
@@ -245,7 +245,7 @@ subroutine printShortError(self, s1, s2)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT) :: self
 
   character(*), INTENT(IN)  :: s1
    !! first part of error message (routine name)
@@ -268,7 +268,7 @@ subroutine printErrorStatus(self, s1, status, s2)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)           :: self
+  class(IO_T),INTENT(INOUT)           :: self
 
   character(*), INTENT(IN)            :: s1
    !! first part of error message (routine name)
@@ -305,7 +305,7 @@ subroutine printWarning(self, s1, s2)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout)           :: self
+  class(IO_T),INTENT(INOUT)           :: self
 
   character(*), INTENT(IN)            :: s1
    !! first part of error message (routine name)
@@ -342,13 +342,13 @@ subroutine ReadValueString(self, Qstring, rd_string, frm)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)        :: self
 
-  character(*),INTENT(IN)                         :: Qstring
+  character(*),INTENT(IN)          :: Qstring
    !! user prompt string
-  character(*),INTENT(OUT)                        :: rd_string
+  character(*),INTENT(OUT)         :: rd_string
    !! string to be read
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL :: frm
    !! optional formatting string
 
   call self % printMessage(Qstring, frm = "(' ',A,' ')", advance="no")
@@ -372,18 +372,18 @@ subroutine ReadValueStringArray(self, Qstring, rd_string, num, frm)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)        :: self
 
-  character(*),INTENT(IN)                         :: Qstring
+  character(*),INTENT(IN)          :: Qstring
    !! user prompt string
-  character(1),INTENT(OUT)                        :: rd_string(num)
+  character(1),INTENT(OUT)         :: rd_string(num)
    !! array of strings to be read
-  integer(kind=irg),INTENT(IN)                    :: num
+  integer(kind=irg),INTENT(IN)     :: num
    !! number of strings to read
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL :: frm
    !! optional formatting string
 
-  integer(kind=irg)                               :: i
+  integer(kind=irg)                :: i
 
   call self % printMessage(Qstring, frm = "(' ',A,' ')",advance="no")
 
@@ -410,16 +410,16 @@ subroutine ReadValueIntShort(self, Qstring, rd_int, num)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! user prompt string
-  integer(kind=ish),INTENT(OUT)                   :: rd_int(*)
+  integer(kind=ish),INTENT(OUT)         :: rd_int(*)
    !! output array of short integers
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! number of integers to read
 
-  integer(kind=irg)                               :: i
+  integer(kind=irg)                     :: i
 
   call self % printMessage(Qstring, frm = "(' ',A,' ')",advance="no")
 
@@ -443,16 +443,16 @@ subroutine ReadValueIntLong(self, Qstring, rd_int, num)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! user prompt string
-  integer(kind=irg),INTENT(OUT)                   :: rd_int(*)
+  integer(kind=irg),INTENT(OUT)         :: rd_int(*)
    !! array to hold integers
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! number of integers to read
 
-  integer(kind=irg)                               :: i
+  integer(kind=irg)                     :: i
 
   call self % printMessage(Qstring, frm = "(' ',A,' ')",advance="no")
 
@@ -476,16 +476,16 @@ subroutine ReadValueRealSingle(self, Qstring, rd_real, num)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! user prompt string
-  real(kind=sgl),INTENT(OUT)                      :: rd_real(*)
+  real(kind=sgl),INTENT(OUT)            :: rd_real(*)
    !! array to hold single precision reals
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! number of reals to read
 
-  integer(kind=irg)                               :: i
+  integer(kind=irg)                     :: i
 
   call self % printMessage(Qstring, frm = "(' ',A,' ')",advance="no")
 
@@ -509,16 +509,16 @@ subroutine ReadValueRealDouble(self, Qstring, rd_real, num)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! user prompt string
-  real(kind=dbl),INTENT(OUT)                      :: rd_real(*)
+  real(kind=dbl),INTENT(OUT)            :: rd_real(*)
    !! array to hold double precision reals
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! number of doubles to read
 
-  integer(kind=irg)                               :: i
+  integer(kind=irg)                     :: i
 
   call self % printMessage(Qstring, frm = "(' ',A,' ')",advance="no")
 
@@ -542,17 +542,17 @@ subroutine WriteValueString(self, Qstring, out_string, frm, advance, redirect)
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*),INTENT(IN)                         :: Qstring
+  character(*),INTENT(IN)               :: Qstring
    !! comment string
-  character(*),INTENT(IN)                         :: out_string
+  character(*),INTENT(IN)               :: out_string
    !! output string
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL      :: frm
    !! optional formatting string
-  character(*),INTENT(IN),OPTIONAL                :: advance
+  character(*),INTENT(IN),OPTIONAL      :: advance
    !! optional hold on linefeed
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+  integer(kind=irg),INTENT(IN),OPTIONAL :: redirect
    !! optional redirect to a different output unit
 
   ! send Qstring to the output only if it is non-zero length
@@ -600,22 +600,22 @@ subroutine WriteValueIntShort(self, Qstring, out_int, num, frm, advance, redirec
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! comment string
-  integer(kind=ish),INTENT(IN)                    :: out_int(*)
+  integer(kind=ish),INTENT(IN)          :: out_int(*)
    !! one or more output short integers
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL      :: frm
    !! optional formatting string
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! optional number of integers to write
-  character(*),INTENT(IN),OPTIONAL                :: advance
+  character(*),INTENT(IN),OPTIONAL      :: advance
    !! optional hold on linefeed
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+  integer(kind=irg),INTENT(IN),OPTIONAL :: redirect
    !! optional redirect to other output unit
 
-  integer(kind=irg)                               :: i, unit
+  integer(kind=irg)                     :: i, unit
 
   unit = stdout
   if (present(redirect)) unit = redirect
@@ -664,22 +664,22 @@ subroutine WriteValueIntLong(self, Qstring, out_int, num, frm, advance, redirect
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! comment string
-  integer(kind=irg),INTENT(IN)                    :: out_int(*)
+  integer(kind=irg),INTENT(IN)          :: out_int(*)
    !! one or more output short integers
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL      :: frm
    !! optional formatting string
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! optional number of integers to write
-  character(*),INTENT(IN),OPTIONAL                :: advance
+  character(*),INTENT(IN),OPTIONAL      :: advance
    !! optional hold on linefeed
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+  integer(kind=irg),INTENT(IN),OPTIONAL :: redirect
    !! optional redirect to other output unit
 
-  integer(kind=irg)                               :: i, unit
+  integer(kind=irg)                     :: i, unit
 
   unit = stdout
   if (present(redirect)) unit = redirect
@@ -728,22 +728,22 @@ subroutine WriteValueIntLongLong(self, Qstring, out_int, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! comment string
-  integer(kind=ill),INTENT(IN)                    :: out_int(*)
+  integer(kind=ill),INTENT(IN)          :: out_int(*)
    !! one or more output short integers
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL      :: frm
    !! optional formatting string
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! optional number of integers to write
-  character(*),INTENT(IN),OPTIONAL                :: advance
+  character(*),INTENT(IN),OPTIONAL      :: advance
    !! optional hold on linefeed
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+  integer(kind=irg),INTENT(IN),OPTIONAL :: redirect
    !! optional redirect to other output unit
 
-  integer(kind=irg)                               :: i, unit
+  integer(kind=irg)                     :: i, unit
 
   unit = stdout
   if (present(redirect)) unit = redirect
@@ -792,22 +792,22 @@ subroutine WriteValueRealSingle(self, Qstring, out_real, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! comment string
-  real(kind=sgl),INTENT(IN)                       :: out_real(*)
+  real(kind=sgl),INTENT(IN)             :: out_real(*)
    !! one or more output single precision reals
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL      :: frm
    !! optional formatting string
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! optional number of reals to write
-  character(*),INTENT(IN),OPTIONAL                :: advance
+  character(*),INTENT(IN),OPTIONAL      :: advance
    !! optional hold on linefeed
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+  integer(kind=irg),INTENT(IN),OPTIONAL :: redirect
    !! optional redirect to other output unit
 
-  integer(kind=irg)                               :: i, unit
+  integer(kind=irg)                     :: i, unit
 
   unit = stdout
   if (present(redirect)) unit = redirect
@@ -856,22 +856,22 @@ subroutine WriteValueRealDouble(self, Qstring, out_real, num, frm, advance, redi
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! comment string
-  real(kind=dbl),INTENT(IN)                       :: out_real(*)
+  real(kind=dbl),INTENT(IN)             :: out_real(*)
    !! one or more output double precision reals
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL      :: frm
    !! optional formatting string
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! optional number of reals to write
-  character(*),INTENT(IN),OPTIONAL                :: advance
+  character(*),INTENT(IN),OPTIONAL      :: advance
    !! optional hold on linefeed
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+  integer(kind=irg),INTENT(IN),OPTIONAL :: redirect
    !! optional redirect to other output unit
 
-  integer(kind=irg)                               :: i, unit
+  integer(kind=irg)                     :: i, unit
 
   unit = stdout
   if (present(redirect)) unit = redirect
@@ -920,22 +920,22 @@ subroutine WriteValueRealComplex(self, Qstring, out_cmplx, num, frm, advance, re
 
 IMPLICIT NONE
 
-  class(IO_T),intent(inout) :: self
+  class(IO_T),INTENT(INOUT)             :: self
 
-  character(*), INTENT(IN)                        :: Qstring
+  character(*), INTENT(IN)              :: Qstring
    !! comment string
-  complex(kind=sgl),INTENT(IN)                    :: out_cmplx(*)
+  complex(kind=sgl),INTENT(IN)          :: out_cmplx(*)
    !! one or more output single precision complex numbers
-  character(*),INTENT(IN),OPTIONAL                :: frm
+  character(*),INTENT(IN),OPTIONAL      :: frm
    !! optional formatting string
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: num
+  integer(kind=irg),INTENT(IN),OPTIONAL :: num
    !! optional number of complex numbers to write
-  character(*),INTENT(IN),OPTIONAL                :: advance
+  character(*),INTENT(IN),OPTIONAL      :: advance
    !! optional hold on linefeed
-  integer(kind=irg),INTENT(IN),OPTIONAL           :: redirect
+  integer(kind=irg),INTENT(IN),OPTIONAL :: redirect
    !! optional redirect to other output unit
 
-  integer(kind=irg)                               :: i, unit
+  integer(kind=irg)                     :: i, unit
 
    unit = stdout
   if (present(redirect)) unit = redirect

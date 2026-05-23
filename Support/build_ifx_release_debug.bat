@@ -5,17 +5,23 @@ rem Build both Release and Debug EMsoftOO trees with Intel ifx + NMake.
 rem Usage:
 rem   build_ifx_release_debug.bat [SDK_ROOT] [REPO_ROOT]
 rem Example:
-rem   build_ifx_release_debug.bat C:\Users\westraadt.1\Repos\EMsoftSuperbuild\EMsoftOO_SDK C:\Users\westraadt.1\Repos\EMsoftOO
+rem   build_ifx_release_debug.bat C:\path\to\EMsoftOO_SDK C:\path\to\EMsoftOO
 
 set "SCRIPT_DIR=%~dp0"
 set "DEFAULT_REPO_ROOT=%SCRIPT_DIR%.."
 for %%I in ("%DEFAULT_REPO_ROOT%") do set "DEFAULT_REPO_ROOT=%%~fI"
 
-set "SDK_ROOT=C:\Users\westraadt.1\Repos\EMsoftSuperbuild\EMsoftOO_SDK"
+set "SDK_ROOT=%EMsoftOO_SDK%"
 set "REPO_ROOT=%DEFAULT_REPO_ROOT%"
 
 if not "%~1"=="" set "SDK_ROOT=%~1"
 if not "%~2"=="" set "REPO_ROOT=%~2"
+
+if "%SDK_ROOT%"=="" (
+  echo [ERROR] SDK root is required.
+  echo [ERROR] Pass it as the first argument or set the EMsoftOO_SDK environment variable.
+  exit /b 1
+)
 
 for %%I in ("%SDK_ROOT%") do set "SDK_ROOT=%%~fI"
 for %%I in ("%REPO_ROOT%") do set "REPO_ROOT=%%~fI"
