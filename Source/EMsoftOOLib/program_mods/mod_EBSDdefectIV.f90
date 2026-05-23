@@ -150,6 +150,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(EBSDdefectIV_T) function EBSDdefectIV_constructor( nmlfile ) result(EBSDdefectIV)
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDdefectIV_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 01/30/26
