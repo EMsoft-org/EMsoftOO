@@ -220,7 +220,7 @@ end function C_src_phi_O
 
 !--------------------------------------------------------------------------
 pure function phi_inv_O(u) result(phi)
-!DEC$ ATTRIBUTES DLLEXPORT :: chebval_T
+!DEC$ ATTRIBUTES DLLEXPORT :: phi_inv_O
   !! author: Z. Varley, adapted for EMsoftOO by MDG
   !! version: 1.0
   !! date: 04/05/26
