@@ -44,7 +44,6 @@ use mod_diffraction, only: Diffraction_T
 implicit none
 private
 
-real(kind=dbl),parameter :: dtoR = 0.017453292519943295D0
 real(kind=dbl),parameter :: nAmpere = 6.241D18
 integer,parameter        :: source_length = 50000
 
