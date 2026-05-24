@@ -278,7 +278,7 @@ if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   get_filename_component (Fortran_COMPILER_PATH ${CMAKE_Fortran_COMPILER} DIRECTORY)
   set(GFortran_LIB_DIR "${Fortran_COMPILER_PATH}/../lib")
 
-elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
+elseif (Fortran_COMPILER_NAME MATCHES "ifort.*|ifx.*")
   if(WIN32)
     set (CMAKE_SHARED_LINKER_FLAGS "/ignore:4217 /ignore:4049")
   else()

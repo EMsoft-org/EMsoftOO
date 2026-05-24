@@ -109,7 +109,7 @@ end function a_polar
 
 !--------------------------------------------------------------------------
 pure function rho_bound(thp, php, k) result(rho)
-  !DEC$ ATTRIBUTES DLLEXPORT :: a_polar
+  !DEC$ ATTRIBUTES DLLEXPORT :: rho_bound
   !! author: Z. Varley, adapted for EMsoftOO by MDG
   !! version: 1.0
   !! date: 04/05/26
@@ -134,7 +134,7 @@ end function rho_bound
 
 !--------------------------------------------------------------------------
 pure function F_pc(theta, a) result(F)
-  !DEC$ ATTRIBUTES DLLEXPORT :: a_polar
+  !DEC$ ATTRIBUTES DLLEXPORT :: F_pc
   !! author: Z. Varley, adapted for EMsoftOO by MDG
   !! version: 1.0
   !! date: 04/05/26

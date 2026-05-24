@@ -119,6 +119,10 @@ find_path(FFTW3_INCLUDE_DIR
         NAMES fftw3.f03
         PATHS ${MKL_INCLUDE_SEARCH_DIRS}
         )
+
+if(NOT FFTW3_INCLUDE_DIR AND EXISTS "${MKL_INCLUDE_DIR}/fftw/fftw3.f03")
+    set(FFTW3_INCLUDE_DIR "${MKL_INCLUDE_DIR}/fftw" CACHE PATH "FFTW3 include directory provided by MKL" FORCE)
+endif()
 # message(STATUS "FFTW3_INCLUDE_DIR: ${FFTW3_INCLUDE_DIR}")
 
 

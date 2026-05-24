@@ -160,6 +160,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(STEMDCI_T) function STEMDCI_constructor( nmlfile ) result(STEMDCI)
+!DEC$ ATTRIBUTES DLLEXPORT :: STEMDCI_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/14/24

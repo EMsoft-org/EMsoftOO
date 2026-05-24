@@ -186,6 +186,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(EBSDGlobalOpt_T) function EBSDGlobalOpt_constructor( nmlfile ) result(EBSDGlobalOpt)
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDGlobalOpt_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/06/23

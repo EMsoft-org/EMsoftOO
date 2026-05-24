@@ -71,6 +71,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(EBSDVA_T) function EBSDVA_constructor( nmlfile ) result(EBSDVA)
+!DEC$ ATTRIBUTES DLLEXPORT :: EBSDVA_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 03/26/24

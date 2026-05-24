@@ -151,6 +151,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(CBED_T) function CBED_constructor( nmlfile ) result(CBED)
+!DEC$ ATTRIBUTES DLLEXPORT :: CBED_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/01/24

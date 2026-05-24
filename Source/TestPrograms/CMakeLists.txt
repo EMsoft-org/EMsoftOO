@@ -2,6 +2,19 @@ set(APP_DIR "${EMsoftOO_SOURCE_DIR}/Source/TestPrograms")
 set(TMPLT_DIR "${EMsoftOO_SOURCE_DIR}/NamelistTemplates")
 set(LIB_SEARCH_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
+if(NOT BSPLINEFORTRAN_LIBRARY)
+  find_library(BSPLINEFORTRAN_LIBRARY
+               NAMES bspline-fortran libbspline-fortran
+               PATHS
+                 ${BSPLINEFORTRAN_INSTALL}/lib
+                 ${BSPLINEFORTRAN_DIR}
+               NO_DEFAULT_PATH)
+endif()
+
+if((EMsoftOO_ENABLE_HDF5_SUPPORT OR EMsoftOO_ENABLE_OpenCL_SUPPORT) AND NOT BSPLINEFORTRAN_LIBRARY)
+  message(FATAL_ERROR "Unable to locate the BSPLINEFORTRAN library. Checked ${BSPLINEFORTRAN_INSTALL}/lib and ${BSPLINEFORTRAN_DIR}")
+endif()
+
 if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
 
   GetHDF5LinkLibraries(EMSOFTOO)
@@ -12,7 +25,7 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
           clfortran
           EMsoftOOLib 
           EMOpenCLLib
-          ${BSPLINEFORTRAN_DIR}/libbspline-fortran.a
+          ${BSPLINEFORTRAN_LIBRARY}
           ${EMSOFTOO_hdf5LinkLibs}
   )
 

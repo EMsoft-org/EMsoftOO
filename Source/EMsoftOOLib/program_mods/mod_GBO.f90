@@ -78,6 +78,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(GBO_T) function GBO_constructor( nmlfile ) result(GBO)
+!DEC$ ATTRIBUTES DLLEXPORT :: GBO_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/21/25

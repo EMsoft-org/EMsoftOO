@@ -91,6 +91,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(sampler_T) function sampler_constructor( nmlfile ) result(sampler)
+!DEC$ ATTRIBUTES DLLEXPORT :: sampler_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/02/25

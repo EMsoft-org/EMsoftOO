@@ -63,6 +63,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(CayleyDickson_T) function CayleyDickson_constructor( ) result(CayleyDickson)
+!DEC$ ATTRIBUTES DLLEXPORT :: CayleyDickson_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/29/24

@@ -2273,7 +2273,7 @@ dictionaryloop: do ii = 1,cratio+1
        end do
     end if
 
-    call OMP_SET_NESTED(.TRUE.)
+    call OMP_SET_MAX_ACTIVE_LEVELS(2)
 
 !$OMP PARALLEL NUM_THREADS(dinl%nthreads) DEFAULT(SHARED) PRIVATE(TID,iii,jj,ll,mm,pp,ierr,io_int, tock, ttime) &
 !$OMP& PRIVATE(resultarray, indexarray)

@@ -174,6 +174,7 @@ contains
 !--------------------------------------------------------------------------
 ! type(axis_T) function axis_constructor( PS, axw, xll, yll ) result(axis)
 type(axis_T) function axis_constructor( axw, xll, yll ) result(axis)
+!DEC$ ATTRIBUTES DLLEXPORT :: axis_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/22/24

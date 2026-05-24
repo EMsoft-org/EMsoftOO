@@ -110,6 +110,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(IPFmap_T) function IPFmap_constructor( ) result(IPF)
+!DEC$ ATTRIBUTES DLLEXPORT :: IPFmap_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/03/21

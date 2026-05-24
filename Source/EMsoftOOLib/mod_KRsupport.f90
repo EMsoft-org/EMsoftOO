@@ -197,7 +197,7 @@ end function rho3_from_c
 
 !--------------------------------------------------------------------------
 pure function R_from_c(c) result(R)
-!DEC$ ATTRIBUTES DLLEXPORT :: rho3_from_c
+!DEC$ ATTRIBUTES DLLEXPORT :: R_from_c
   !! author: Z. Varley, adapted for EMsoftOO by MDG
   !! version: 1.0
   !! date: 04/05/26

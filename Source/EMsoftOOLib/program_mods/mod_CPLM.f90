@@ -689,7 +689,7 @@ tstrb = timer%getTimeString()
 call timer%Time_tick(1)
 
 ! get the current folder 
-call getcwd(cwd)
+status = system_getcwd(cwd)
 
 associate(nml => self%nml)
 

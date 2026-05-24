@@ -133,6 +133,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(SRCBED_T) function SRCBED_constructor( nmlfile ) result(SRCBED)
+!DEC$ ATTRIBUTES DLLEXPORT :: SRCBED_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/16/24

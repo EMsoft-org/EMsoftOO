@@ -84,6 +84,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(RFZwf_T) function RFZwf_constructor( nmlfile ) result(RFZwf)
+!DEC$ ATTRIBUTES DLLEXPORT :: RFZwf_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 09/08/25
@@ -1198,7 +1199,7 @@ integer(kind=irg),INTENT(IN),OPTIONAL :: rotorder
 type(r_T)                             :: ro1, ro2, rolast, ro
 type(PoVRay_T)                        :: PoV
 
-real(kind=dbl)                        :: aux4b(4), d, aux(3), xx, dx
+real(kind=dbl)                        :: aux4b(4), d, aux(4), xx, dx
 
 integer(kind=irg)                     :: i,j,k, icnt, dims(3), nt, ns, rotate
 integer(kind=irg),allocatable         :: s_edge(:,:), t_edge(:,:)

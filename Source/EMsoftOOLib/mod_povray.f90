@@ -143,6 +143,7 @@ type(PoVRay_T) function PoVRay_constructor( EMsoft, fname, dunit, nmlfile, locat
 !! constructor for the PoVRay_T Class
 
 use mod_EMsoft
+use mod_platformsupport
 
 IMPLICIT NONE
 
@@ -345,6 +346,7 @@ recursive subroutine openFile_(self, EMsoft, viewangle)
  !! open a PoVRay file and add some information as comments
 
 use mod_EMsoft
+use mod_platformsupport
 
 IMPLICIT NONE
 
@@ -361,7 +363,7 @@ write (self%dunit,"(A)") "//Created by EMsoft package"
 
 ! should we copy the complete namelist file as a comment at this point ?
 if (trim(self%nmlfile).ne.'undefined') then
-  call getcwd(cwd)
+  io = system_getcwd(cwd)
   fname = trim(cwd)//'/'//trim(self%nmlfile)
   fname = EMsoft%toNativePath(fname)
   write(self%dunit,"(A)") "// "

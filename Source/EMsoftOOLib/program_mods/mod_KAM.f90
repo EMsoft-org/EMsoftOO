@@ -89,6 +89,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(KAM_T) function KAM_constructor( nmlfile ) result(KAM)
+!DEC$ ATTRIBUTES DLLEXPORT :: KAM_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 12/27/24

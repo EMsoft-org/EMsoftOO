@@ -19,16 +19,25 @@ if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   endif()
 endif()
 
-if (Fortran_COMPILER_NAME MATCHES "ifort.*")
+if (Fortran_COMPILER_NAME MATCHES "ifort.*|ifx.*")
 
   # Find specific IFort libraries.
   include(${CMP_SOURCE_DIR}/ExtLib/IFortSupport.cmake)
-  
-  find_package(jsonfortran-intel REQUIRED)
-  if( NOT jsonfortran-intel_FOUND)
-    message(STATUS "jsonfortran is REQUIRED for this project.")
-    message(STATUS "jsonfortran source repository is at https://github.com/jacobwilliams/json-fortran")
-    message(FATAL_ERROR "Please Download, Build and install. After install export the environment variable JSONFORTRAN_INSTALL to point to the installation location.")
+
+  if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
+    find_package(jsonfortran-intelllvm REQUIRED)
+    if( NOT jsonfortran-intelllvm_FOUND)
+      message(STATUS "jsonfortran is REQUIRED for this project.")
+      message(STATUS "jsonfortran source repository is at https://github.com/jacobwilliams/json-fortran")
+      message(FATAL_ERROR "Please Download, Build and install. After install export the environment variable JSONFORTRAN_INSTALL to point to the installation location.")
+    endif()
+  else()
+    find_package(jsonfortran-intel REQUIRED)
+    if( NOT jsonfortran-intel_FOUND)
+      message(STATUS "jsonfortran is REQUIRED for this project.")
+      message(STATUS "jsonfortran source repository is at https://github.com/jacobwilliams/json-fortran")
+      message(FATAL_ERROR "Please Download, Build and install. After install export the environment variable JSONFORTRAN_INSTALL to point to the installation location.")
+    endif()
   endif()
 endif()
 
@@ -43,7 +52,7 @@ include_directories(${jsonfortran_INCLUDE_DIRS})
 #------------------------------------------------------------------------------
 # Find the Intel Math Kernel Library (MKL) which has FFT functions
 # On mac systems, we will also need to build up the RPATH
-if (Fortran_COMPILER_NAME MATCHES "ifort.*")
+if (Fortran_COMPILER_NAME MATCHES "ifort.*|ifx.*")
   # Define the interface layers and link type for MKL
   set(MKL_Link_Type Static)
   set(MKL_Interface_Layer 32)

@@ -99,6 +99,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(avdis_T) function avdis_constructor( nmlfile ) result(avdis)
+!DEC$ ATTRIBUTES DLLEXPORT :: avdis_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 11/15/25

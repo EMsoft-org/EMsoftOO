@@ -77,6 +77,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(Cluster_T) function cluster_constructor( DIFT, gangle, dilate, orav, numEM, numIter, debug ) result(cluster)
+!DEC$ ATTRIBUTES DLLEXPORT :: cluster_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 05/22/25

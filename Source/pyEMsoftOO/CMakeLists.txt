@@ -14,7 +14,7 @@ if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
                                 CONFIGURED_TEMPLATE_PATH   ${APP_DIR}/run_docs.sh.in  )
 endif()
 
-if (Fortran_COMPILER_NAME MATCHES "ifort.*")
+if (Fortran_COMPILER_NAME MATCHES "ifort.*|ifx.*")
   if(WIN32)
     #Message(STATUS "Python wrapper script is currently not available on Windows")
       set(APP_DIR "${EMsoftOO_SOURCE_DIR}/Source/pyEMsoftOO")

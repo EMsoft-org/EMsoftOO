@@ -150,6 +150,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(STEM_T) function STEM_constructor( nmlfile ) result(STEM)
+!DEC$ ATTRIBUTES DLLEXPORT :: STEM_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/13/24

@@ -88,6 +88,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(oSLERP_T) function oSLERP_constructor( nmlfile ) result(oSLERP)
+!DEC$ ATTRIBUTES DLLEXPORT :: oSLERP_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/18/25
@@ -288,7 +289,7 @@ type(QuaternionArray_T)                 :: qAR
 type(q_T)                               :: qu
 type(o_T)                               :: om
 
-integer(kind=irg)                       :: hdferr, pgnum, i, sgnum, numf, status, io_int(1) 
+integer(kind=irg)                       :: hdferr, pgnum, i, sgnum, numf, status, io_int(1), istat
 character(fnlen)                        :: fname, pvcmd, subfolder, povname, str, dirstring, xname
 real(kind=dbl)                          :: Omega, dOmega, qn1(4), qn2(4), qmat(3,3), OB(3,3), ON(3,3), p, pA(4), pB(4), pC(4), &
                                            qinter(4), ointer(8), pD(4), qq(3), phiA, phiC, msA(3), msC(3), pp(3), io_real(1)
@@ -572,12 +573,12 @@ if (fexists.eqv..TRUE.) then
     call Message%printMessage('')
     if (nml%silentrender.eqv..TRUE.) then
       call Message%printMessage('Found PovRay command line executable; rendering frames in silent mode (may take a while)')
-      call Message%printMessage('Executing '//trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
-      call system(trim(pvcmd)//' povray.ini >/dev/null 2>/dev/null')
+      call Message%printMessage('Executing '//trim(pvcmd)//' povray.ini >nul 2>nul')
+      istat = system(trim(pvcmd)//' povray.ini >nul 2>nul')
     else
       call Message%printMessage('Found PovRay command line executable; rendering frames')
       call Message%printMessage('Executing '//trim(pvcmd)//' povray.ini')
-      call system(trim(pvcmd)//' povray.ini')
+      istat = system(trim(pvcmd)//' povray.ini')
     end if 
     frames_generated = .TRUE.
 else
@@ -634,8 +635,8 @@ else if (fexists.eqv..TRUE.) then
     end if
     call Message%printMessage('')
     call Message%printMessage('Found ffmpeg executable; silently converting frames into mp4 file...')
-    call Message%printMessage('Executing '//trim(pvcmd)//' >/dev/null 2>/dev/null')
-    call system(trim(pvcmd)//' >/dev/null 2>/dev/null')
+    call Message%printMessage('Executing '//trim(pvcmd)//' >nul 2>nul')
+    istat = system(trim(pvcmd)//' >nul 2>nul')
 end if
 end associate
 

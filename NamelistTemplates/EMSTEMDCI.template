@@ -54,5 +54,7 @@
 ! number of y-columns (=number of y-pixels in output image)
  DF_npiy = 256,
 ! slice thickness for scattering matrix approach [nm]
- DF_slice = 1.0
+ DF_slice = 1.0,
+! minimum diffraction vector [nm^-1]
+ dmin = 0.03
  /

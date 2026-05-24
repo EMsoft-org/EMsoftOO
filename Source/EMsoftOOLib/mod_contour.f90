@@ -129,6 +129,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(contour_T) function contour_constructor( PS, Cdata, n ) result(contour)
+!DEC$ ATTRIBUTES DLLEXPORT :: contour_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/22/24

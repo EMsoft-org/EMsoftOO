@@ -125,6 +125,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(PGA3D_T) function PGA3D_constructor( val, ind ) result(PGA3D)
+!DEC$ ATTRIBUTES DLLEXPORT :: PGA3D_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 07/20/21

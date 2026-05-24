@@ -171,6 +171,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(SRdefect_T) function SRdefect_constructor( nmlfile ) result(SRdefect)
+!DEC$ ATTRIBUTES DLLEXPORT :: SRdefect_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/13/24
@@ -634,7 +635,7 @@ end function getnthreads_
 
 !--------------------------------------------------------------------------
 subroutine setSRG_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: setSRG(3)_
+!DEC$ ATTRIBUTES DLLEXPORT :: setSRG_
 !! author: MDG
 !! version: 1.0
 !! date: 02/13/24
@@ -670,7 +671,7 @@ end function getSRG_
 
 !--------------------------------------------------------------------------
 subroutine setSRF_(self,inp)
-!DEC$ ATTRIBUTES DLLEXPORT :: setSRF(3)_
+!DEC$ ATTRIBUTES DLLEXPORT :: setSRF_
 !! author: MDG
 !! version: 1.0
 !! date: 02/13/24
@@ -1648,7 +1649,6 @@ memth = Memory_T( nt = self%getnthreads() )
 !$OMP    PARALLEL PRIVATE(TID,i,j,k,ii,jj,iCL,amp,amp2,Azz,inten,weights,ic) &
 !$OMP&   SHARED(NTHR,npix,npiy,DF_nums,disparray,DF_Sarray,DF_Svoid,progmode,Nmat, &
 !$OMP&   BFweightsarray,ADFweightsarray,att,STEMimages,t_interval,nn,numCL,izero,isg)
-!$OMP     
 
 TID = OMP_GET_THREAD_NUM()   
 call memth%alloc(Azz, (/ nn,nn /),'Azz',initval = czero,TID=TID)

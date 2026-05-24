@@ -72,6 +72,7 @@ contains
 
 !--------------------------------------------------------------------------
 type(BWshow_T) function BWshow_constructor( ) result(BWshow)
+!DEC$ ATTRIBUTES DLLEXPORT :: BWshow_constructor
 !! author: MDG 
 !! version: 1.0 
 !! date: 02/23/24
