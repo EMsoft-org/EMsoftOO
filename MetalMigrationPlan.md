@@ -48,8 +48,32 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
   `IndexingSuccessRate`); these are *not* downstream of the (identical) dot products and trace
   to pre-existing non-determinism in the FZ reduction (`mod_so3`/`mod_sampleRFZ`, which carry
   unrelated uncommitted edits) — a separate known issue, not caused by Phase 0.
-- **Remaining Phase 0 work:** `mod_EBSDFull.f90`, `mod_SEMCLwrappers.f90` (and confirm
-  `mod_HROSM.f90`, which currently has no direct cl calls).
+- **2026-05-29 — `mod_EBSDFull.f90` migrated** onto the wrappers. Its GPU section is the
+  embedded Monte Carlo simulation in `ComputeFullEBSDPatterns_` (`EMMC.cl`, the same 14-arg
+  `MC` kernel as `mod_MCOpenCL`'s full mode — already verified bit-identical). Converted the
+  build, 5 buffers, seed write, 14 kernel args, dispatch/finish/4 reads, and all releases
+  (`release_context_queue` for queue+context). The CPU dynamical-pattern code
+  (`ComputeFullDynamicalPatterns`/`CalcLghSM`) is untouched. No active raw `cl*` verbs remain.
+  **Pending build + verification** (EMEBSDFull); low risk as the kernel/args are identical to
+  the verified MC path.
+- **2026-05-29 — wrappers gained an optional `quiet` flag.** `mod_CLsupport`'s GPU-op
+  wrappers now take `quiet` (via a small `checkq_` helper): when `.TRUE.` they skip the fatal
+  `error_check_` (and, for `build_program`, the build-log print). Default is unchanged
+  (fatal checking), so the already-verified `mod_MCOpenCL`/`mod_DI`/`mod_EBSDFull` call paths
+  are byte-for-byte unaffected.
+- **2026-05-29 — `mod_SEMCLwrappers.f90` migrated** (the C-callable `EMsoftCgetMCOpenCL`, an
+  embedded MC sim using the same `MC` kernel/14 args). Routed through the wrappers with
+  `quiet=.TRUE.` throughout to preserve its original "ignore CL errors, defer to the caller"
+  semantics — important because it is invoked from external host programs and `error_check_`
+  would otherwise `stop` the process. No active raw `cl*` verbs remain.
+- **`mod_HROSM.f90` confirmed** — no GPU code (only matched the scan via `MCOpenCL`
+  HDF group-name constants); nothing to migrate.
+- **Phase 0 active scope complete.** All compiled GPU consumers
+  (`mod_MCOpenCL`, `mod_DI`, `mod_EBSDFull`, `mod_SEMCLwrappers`) route through `OpenCL_T`'s
+  wrappers; `mod_HROSM` has no GPU code.
+- **Deferred / TODO:** `mod_DIPCA.f90` is **not compiled** (absent from every CMakeLists — a
+  dead WIP PCA-DI variant) and still contains raw `clfortran` calls. It must be migrated *if
+  it is ever re-enabled*; left untouched now since it cannot be built or verified.
 
 ---
 

@@ -1282,13 +1282,43 @@ end subroutine error_check_
 !--------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------
-recursive function build_program_(self, csource, slength) result(prog)
+recursive subroutine checkq_(self, routine, ierr, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: checkq_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 05/29/26
+  !!
+  !! error-check helper for the GPU-op wrappers: behaves like error_check_, but
+  !! when quiet is present and .TRUE. it skips the check entirely.  This lets the
+  !! C-callable wrappers (e.g. EMsoftCgetMCOpenCL in mod_SEMCLwrappers) keep their
+  !! original "ignore CL errors, defer to the caller" behaviour rather than
+  !! aborting the host process via Message%printError.
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(OpenCL_T), INTENT(INOUT)          :: self
+character(*), INTENT(IN)                :: routine
+integer(c_int32_t), INTENT(IN)          :: ierr
+logical, INTENT(IN), OPTIONAL           :: quiet
+
+if (present(quiet)) then
+  if (quiet.eqv..TRUE.) return
+end if
+call error_check_(self, routine, ierr)
+
+end subroutine checkq_
+
+!--------------------------------------------------------------------------
+recursive function build_program_(self, csource, slength, quiet) result(prog)
 !DEC$ ATTRIBUTES DLLEXPORT :: build_program_
   !! author: MDG
   !! version: 1.0
   !! date: 05/29/26
   !!
   !! create and build a program from kernel source, printing the build log
+  !! (quiet=.TRUE. suppresses both the build-log print and the error checks)
 
 use ISO_C_BINDING
 use mod_io
@@ -1298,6 +1328,7 @@ IMPLICIT NONE
 class(OpenCL_T), INTENT(INOUT)                   :: self
 character(len=*, kind=c_char), target,INTENT(IN) :: csource
 integer(c_size_t), target, INTENT(IN)            :: slength
+logical, INTENT(IN), OPTIONAL                    :: quiet
 integer(c_intptr_t)                              :: prog
 
 type(IO_T)                                       :: Message
@@ -1306,6 +1337,10 @@ integer(c_intptr_t), allocatable, target         :: devlist(:)
 integer(c_int32_t)                               :: ierr, ierr2
 integer(c_size_t)                                :: cnum
 character(len=50000), target                     :: buildlog
+logical                                          :: beQuiet
+
+beQuiet = .FALSE.
+if (present(quiet)) beQuiet = quiet
 
 ! local target copy of the device list (C_LOC requires a TARGET; a derived-type
 ! component would force the whole object to be a target)
@@ -1314,24 +1349,24 @@ devlist = self%devices(1:self%numdev)
 
 psource = C_LOC(csource)
 prog = clCreateProgramWithSource(self%context, 1, C_LOC(psource), C_LOC(slength), ierr)
-call error_check_(self, 'build_program:clCreateProgramWithSource', ierr)
+call checkq_(self, 'build_program:clCreateProgramWithSource', ierr, quiet)
 
 ierr = clBuildProgram(prog, self%numdev, C_LOC(devlist), C_NULL_PTR, C_NULL_FUNPTR, C_NULL_PTR)
 
-! retrieve and print the build log before checking the build status
+! retrieve and (unless quiet) print the build log before checking the build status
 buildlog = ''
 ierr2 = clGetProgramBuildInfo(prog, self%devices(self%seldev), CL_PROGRAM_BUILD_LOG, &
                               sizeof(buildlog), C_LOC(buildlog), cnum)
-if (len(trim(buildlog)) > 0) call Message%printMessage(trim(buildlog(1:cnum)), frm='(A)')
-call error_check_(self, 'build_program:clBuildProgram', ierr)
-call error_check_(self, 'build_program:clGetProgramBuildInfo', ierr2)
+if ((.not.beQuiet) .and. (len(trim(buildlog)) > 0)) call Message%printMessage(trim(buildlog(1:cnum)), frm='(A)')
+call checkq_(self, 'build_program:clBuildProgram', ierr, quiet)
+call checkq_(self, 'build_program:clGetProgramBuildInfo', ierr2, quiet)
 
 deallocate(devlist)
 
 end function build_program_
 
 !--------------------------------------------------------------------------
-recursive function get_kernel_(self, prog, kernelname) result(kernel)
+recursive function get_kernel_(self, prog, kernelname, quiet) result(kernel)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_kernel_
   !! author: MDG
   !! version: 1.0
@@ -1346,6 +1381,7 @@ IMPLICIT NONE
 class(OpenCL_T), INTENT(INOUT)                       :: self
 integer(c_intptr_t), INTENT(IN)                      :: prog
 character(len=*), INTENT(IN)                         :: kernelname
+logical, INTENT(IN), OPTIONAL                        :: quiet
 integer(c_intptr_t)                                  :: kernel
 
 character(len=len_trim(kernelname)+1, kind=c_char), target :: cname
@@ -1353,12 +1389,12 @@ integer(c_int32_t)                                   :: ierr
 
 cname = trim(kernelname)//C_NULL_CHAR
 kernel = clCreateKernel(prog, C_LOC(cname), ierr)
-call error_check_(self, 'get_kernel:clCreateKernel:'//trim(kernelname), ierr)
+call checkq_(self, 'get_kernel:clCreateKernel:'//trim(kernelname), ierr, quiet)
 
 end function get_kernel_
 
 !--------------------------------------------------------------------------
-recursive subroutine release_program_(self, prog)
+recursive subroutine release_program_(self, prog, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: release_program_
   !! author: MDG
   !! release a program object
@@ -1369,15 +1405,16 @@ IMPLICIT NONE
 
 class(OpenCL_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: prog
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
 ierr = clReleaseProgram(prog)
-call error_check_(self, 'release_program:clReleaseProgram', ierr)
+call checkq_(self, 'release_program:clReleaseProgram', ierr, quiet)
 
 end subroutine release_program_
 
 !--------------------------------------------------------------------------
-recursive function create_buffer_(self, flags, nbytes, label) result(buf)
+recursive function create_buffer_(self, flags, nbytes, label, quiet) result(buf)
 !DEC$ ATTRIBUTES DLLEXPORT :: create_buffer_
   !! author: MDG
   !! version: 1.0
@@ -1393,17 +1430,18 @@ class(OpenCL_T), INTENT(INOUT)          :: self
 integer(c_int64_t), INTENT(IN)          :: flags
 integer(c_size_t), INTENT(IN)           :: nbytes
 character(len=*), INTENT(IN)            :: label
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_intptr_t)                     :: buf
 
 integer(c_int32_t)                      :: ierr
 
 buf = clCreateBuffer(self%context, flags, nbytes, C_NULL_PTR, ierr)
-call error_check_(self, 'create_buffer:'//trim(label), ierr)
+call checkq_(self, 'create_buffer:'//trim(label), ierr, quiet)
 
 end function create_buffer_
 
 !--------------------------------------------------------------------------
-recursive subroutine write_buffer_(self, buf, hostptr, nbytes, label)
+recursive subroutine write_buffer_(self, buf, hostptr, nbytes, label, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: write_buffer_
   !! author: MDG
   !! blocking host->device copy of nbytes into buf
@@ -1417,16 +1455,17 @@ integer(c_intptr_t), INTENT(IN)         :: buf
 type(c_ptr), INTENT(IN)                 :: hostptr
 integer(c_size_t), INTENT(IN)           :: nbytes
 character(len=*), INTENT(IN)            :: label
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
 ierr = clEnqueueWriteBuffer(self%command_queue, buf, CL_TRUE, 0_8, nbytes, hostptr, &
                             0, C_NULL_PTR, C_NULL_PTR)
-call error_check_(self, 'write_buffer:'//trim(label), ierr)
+call checkq_(self, 'write_buffer:'//trim(label), ierr, quiet)
 
 end subroutine write_buffer_
 
 !--------------------------------------------------------------------------
-recursive subroutine read_buffer_(self, buf, hostptr, nbytes, label)
+recursive subroutine read_buffer_(self, buf, hostptr, nbytes, label, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: read_buffer_
   !! author: MDG
   !! blocking device->host copy of nbytes from buf
@@ -1440,16 +1479,17 @@ integer(c_intptr_t), INTENT(IN)         :: buf
 type(c_ptr), INTENT(IN)                 :: hostptr
 integer(c_size_t), INTENT(IN)           :: nbytes
 character(len=*), INTENT(IN)            :: label
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
 ierr = clEnqueueReadBuffer(self%command_queue, buf, CL_TRUE, 0_8, nbytes, hostptr, &
                            0, C_NULL_PTR, C_NULL_PTR)
-call error_check_(self, 'read_buffer:'//trim(label), ierr)
+call checkq_(self, 'read_buffer:'//trim(label), ierr, quiet)
 
 end subroutine read_buffer_
 
 !--------------------------------------------------------------------------
-recursive subroutine set_kernel_arg_(self, kernel, argindex, argsize, argptr, label)
+recursive subroutine set_kernel_arg_(self, kernel, argindex, argsize, argptr, label, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: set_kernel_arg_
   !! author: MDG
   !! set a single kernel argument; caller supplies sizeof(x) and C_LOC(x)
@@ -1464,15 +1504,16 @@ integer(c_int32_t), INTENT(IN)          :: argindex
 integer(c_size_t), INTENT(IN)           :: argsize
 type(c_ptr), INTENT(IN)                 :: argptr
 character(len=*), INTENT(IN)            :: label
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
 ierr = clSetKernelArg(kernel, argindex, argsize, argptr)
-call error_check_(self, 'set_kernel_arg:'//trim(label), ierr)
+call checkq_(self, 'set_kernel_arg:'//trim(label), ierr, quiet)
 
 end subroutine set_kernel_arg_
 
 !--------------------------------------------------------------------------
-recursive subroutine enqueue_kernel_(self, kernel, globalsize, label, localsize)
+recursive subroutine enqueue_kernel_(self, kernel, globalsize, label, localsize, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: enqueue_kernel_
   !! author: MDG
   !! version: 1.0
@@ -1490,6 +1531,7 @@ integer(c_intptr_t), INTENT(IN)            :: kernel
 integer(c_int64_t), INTENT(IN)             :: globalsize(:)
 character(len=*), INTENT(IN)               :: label
 integer(c_int64_t), INTENT(IN), OPTIONAL   :: localsize(:)
+logical, INTENT(IN), OPTIONAL              :: quiet
 
 integer(c_size_t), allocatable, target     :: gs(:), ls(:)
 integer(c_int32_t)                         :: ierr, work_dim
@@ -1508,13 +1550,13 @@ else
   ierr = clEnqueueNDRangeKernel(self%command_queue, kernel, work_dim, C_NULL_PTR, &
                                 C_LOC(gs), C_NULL_PTR, 0, C_NULL_PTR, C_NULL_PTR)
 end if
-call error_check_(self, 'enqueue_kernel:'//trim(label), ierr)
+call checkq_(self, 'enqueue_kernel:'//trim(label), ierr, quiet)
 deallocate(gs)
 
 end subroutine enqueue_kernel_
 
 !--------------------------------------------------------------------------
-recursive subroutine finish_(self)
+recursive subroutine finish_(self, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: finish_
   !! author: MDG
   !! block until all queued commands have completed
@@ -1524,15 +1566,16 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 class(OpenCL_T), INTENT(INOUT)          :: self
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
 ierr = clFinish(self%command_queue)
-call error_check_(self, 'finish:clFinish', ierr)
+call checkq_(self, 'finish:clFinish', ierr, quiet)
 
 end subroutine finish_
 
 !--------------------------------------------------------------------------
-recursive subroutine release_buffer_(self, buf)
+recursive subroutine release_buffer_(self, buf, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: release_buffer_
   !! author: MDG
   !! release a device memory buffer
@@ -1543,15 +1586,16 @@ IMPLICIT NONE
 
 class(OpenCL_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: buf
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
 ierr = clReleaseMemObject(buf)
-call error_check_(self, 'release_buffer:clReleaseMemObject', ierr)
+call checkq_(self, 'release_buffer:clReleaseMemObject', ierr, quiet)
 
 end subroutine release_buffer_
 
 !--------------------------------------------------------------------------
-recursive subroutine release_kernel_(self, kernel)
+recursive subroutine release_kernel_(self, kernel, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: release_kernel_
   !! author: MDG
   !! release a kernel object
@@ -1562,15 +1606,16 @@ IMPLICIT NONE
 
 class(OpenCL_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: kernel
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
 ierr = clReleaseKernel(kernel)
-call error_check_(self, 'release_kernel:clReleaseKernel', ierr)
+call checkq_(self, 'release_kernel:clReleaseKernel', ierr, quiet)
 
 end subroutine release_kernel_
 
 !--------------------------------------------------------------------------
-recursive subroutine release_context_queue_(self)
+recursive subroutine release_context_queue_(self, quiet)
 !DEC$ ATTRIBUTES DLLEXPORT :: release_context_queue_
   !! author: MDG
   !! release the cached command queue and context
@@ -1580,12 +1625,13 @@ use ISO_C_BINDING
 IMPLICIT NONE
 
 class(OpenCL_T), INTENT(INOUT)          :: self
+logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
 ierr = clReleaseCommandQueue(self%command_queue)
-call error_check_(self, 'release_context_queue:clReleaseCommandQueue', ierr)
+call checkq_(self, 'release_context_queue:clReleaseCommandQueue', ierr, quiet)
 ierr = clReleaseContext(self%context)
-call error_check_(self, 'release_context_queue:clReleaseContext', ierr)
+call checkq_(self, 'release_context_queue:clReleaseContext', ierr, quiet)
 
 end subroutine release_context_queue_
 
