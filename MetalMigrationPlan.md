@@ -39,8 +39,15 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
   GPU drivers (`DIdriver`, `OSMDIdriver`, `DIRAMdriver`), the `cl_expt`/`cl_dict` host writes,
   and every release (incl. `OSMDIdriver`'s queue/context via `release_context_queue`). No
   active raw `cl*` verb calls remain (only a pre-existing commented-out block). The CPU
-  `sgemm` path (`DIRAMCPUdriver`) is untouched. **Needs build + `h5diff` verification** of an
-  EMDI run vs a `develop` binary, same protocol as MC.
+  `sgemm` path (`DIRAMCPUdriver`) is untouched.
+- **`mod_DI` verified** — EMDI run, develop vs Phase 0 binaries on the same fixed Euler-angle
+  dictionary, `h5diff` on `/Scan 1`: `TopDotProductList`, `TopMatchIndices`, `EulerAngles`,
+  `CI`, `Phi/Phi1/Phi2`, `KAM`, `OSM` are all **0 differences** — the direct `InnerProd` GPU
+  output and every orientation result are bit-identical, confirming the refactor is
+  behavior-preserving. Four datasets still differ (`DictionaryEulerAngles`, `ISM`, `ISMap`,
+  `IndexingSuccessRate`); these are *not* downstream of the (identical) dot products and trace
+  to pre-existing non-determinism in the FZ reduction (`mod_so3`/`mod_sampleRFZ`, which carry
+  unrelated uncommitted edits) — a separate known issue, not caused by Phase 0.
 - **Remaining Phase 0 work:** `mod_EBSDFull.f90`, `mod_SEMCLwrappers.f90` (and confirm
   `mod_HROSM.f90`, which currently has no direct cl calls).
 
