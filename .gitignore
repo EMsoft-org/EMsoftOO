@@ -12,3 +12,5 @@ resources/EMSphInx.wisdom
 Claude/
 # downloaded metal-cpp archive (the extracted headers under ExternalProjects/metal-cpp/ are vendored)
 ExternalProjects/metal-cpp.zip
+# build-time Metal libraries copied next to the .cl sources (built from metal/*.metal)
+opencl/*.metallib

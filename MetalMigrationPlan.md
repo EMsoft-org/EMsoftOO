@@ -75,6 +75,92 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
   dead WIP PCA-DI variant) and still contains raw `clfortran` calls. It must be migrated *if
   it is ever re-enabled*; left untouched now since it cannot be built or verified.
 
+### Phase 1 — Metal backend (in progress, on `feature/metal-backend`)
+
+- **`Source/EMOpenCLLib/metal/EMMC.metal`** — MSL translation of `opencl/EMMC.cl` (the MC
+  kernel). Behaviour-preserving: LFSR113 RNG, Lambert projection and MC physics reproduced
+  exactly; all single precision (Apple GPUs have no fp64). Buffer indices match the OpenCL
+  `clSetKernelArg` indices so the *same* host code drives either backend. Can be compiled
+  standalone for an early check: `xcrun -sdk macosx metal -c EMMC.metal -o EMMC.air`.
+- **`Source/EMOpenCLLib/metal/emtl_shim.h` + `emtl_shim.cpp`** — C-ABI shim over metal-cpp
+  (the vendored headers). Key design choices:
+  - Handles are `int64_t` (= metal-cpp pointers cast), so the Fortran side keeps using
+    `integer(c_intptr_t)` handles exactly as for OpenCL.
+  - Buffers use `MTLResourceStorageModeShared` (unified memory) — write/read are plain
+    `memcpy` to/from `buffer->contents()`.
+  - **Arg discrimination:** `emtl_set_arg(index, ptr, size)` checks a live-buffer registry —
+    if `*ptr` is a registered buffer handle it binds with `setBuffer`, else `setBytes`. This
+    lets the host call one uniform `set_kernel_arg(index, size, ptr)` for both buffers and
+    scalars, exactly like OpenCL — so **no program-module changes** are needed.
+  - **Set-once / dispatch-many:** the OpenCL host sets args once then enqueues in a loop;
+    Metal binds per-encoder, so the shim *caches* arg bindings per pipeline and re-applies
+    them inside `emtl_enqueue` (which builds a fresh command buffer/encoder, commits without
+    waiting). `emtl_finish` waits on the last commit — mirroring `clEnqueueNDRangeKernel` +
+    `clFinish`. Dispatch supports auto threadgroup (`dispatchThreads`) and explicit local
+    size (`dispatchThreadgroups`, for the tiled DI kernel in Phase 2).
+- **Backend-selection decision (chosen): CMake source-swap.** The Metal backend will live in
+  `Source/EMOpenCLLib/mod_CLsupport_metal.f90`, which defines the **same** module name
+  (`mod_CLsupport`) and type (`OpenCL_T`) with the **same public method surface** as the
+  OpenCL `mod_CLsupport.f90`, but backed by `emtl_shim`. CMake compiles **one** of the two
+  files depending on `EMsoftOO_ENABLE_Metal_SUPPORT`. Result: **zero changes** to the program
+  modules (`mod_MCOpenCL` etc. keep `use mod_CLsupport` / `type(OpenCL_T)`), no Fortran
+  preprocessor needed. The `OpenCL_*` names remain under Metal until the Phase 4 rename to
+  `GPU_T`/`EMGPULib`. (Considered and rejected for the PoC: `#ifdef` preprocessor — needs
+  `-cpp`; and an immediate `GPU_T` rename — re-touches verified Phase 0 code.)
+- **Still to do this phase:** `mod_CLsupport_metal.f90` (drop-in `OpenCL_T` over `emtl_shim`,
+  mirroring every public method incl. the `quiet` flag; `read_source_file` derives the
+  `.metallib` path, `build_program` loads it, `get_kernel` builds the pipeline,
+  `enqueue_kernel` maps global/local sizes); CMake (Metal option, compile `emtl_shim.cpp` as
+  C++17 with the vendored metal-cpp includes, link `-framework Metal -framework Foundation
+  -framework QuartzCore`, build `EMMC.metal`→`EMMC.metallib` at build time and install to
+  `Bin/metal/`, swap the Fortran backend source); then run `EMMCOpenCL` on Metal and
+  `h5diff` against `reference.h5`.
+- **Standalone checks (DONE — both compile clean):**
+  `xcrun -sdk macosx metal -c .../EMMC.metal` validated the kernel; `clang++ -std=c++17
+  -I ExternalProjects/metal-cpp -c .../emtl_shim.cpp` validated the shim against metal-cpp.
+- **2026-05-29 — Phase 1 implementation landed (CMake source-swap backend):**
+  - `Source/EMOpenCLLib/mod_CLsupport_metal.f90` — drop-in `module mod_CLsupport` /
+    `type OpenCL_T` over `emtl_shim`. Mirrors every public method of the OpenCL backend
+    (incl. the `quiet` flag). `read_source_file` maps the requested `*.cl` name to the
+    prebuilt `*.metallib` (resolved via `OpenCLpathname`); `build_program` loads the
+    library; `get_kernel` builds the compute pipeline; `enqueue_kernel` maps global/local
+    sizes; buffers/args/finish/release go through the shim. Handles stay
+    `integer(c_intptr_t)`.
+  - `Source/EMOpenCLLib/clfortran_metal_stub.f90` — a tiny `module clfortran` providing just
+    `CL_MEM_READ_WRITE/WRITE_ONLY/READ_ONLY` (+ `CL_TRUE/FALSE`), compiled only in a Metal
+    build so the program modules' `use clfortran` resolves without the real library. (Audit
+    confirmed those are the only active clfortran symbols the program modules reference.)
+  - **CMake:** `EMsoftOO_ENABLE_Metal_SUPPORT` option (OFF by default, Apple-only);
+    `Source.cmake` widens the EMOpenCLLib gate to `OpenCL OR Metal`; `EMOpenCLLib/CMakeLists.txt`
+    swaps the backend source set, compiles `emtl_shim.cpp` as C++17 with the vendored
+    metal-cpp include, links `-framework Metal/Foundation/QuartzCore` + `c++`, and builds each
+    `*.metal`→`*.metallib` at build time into `Bin/opencl/` (next to the `.cl` files, so the
+    runtime path resolution is reused). Only `EMMC` is enabled in the kernel list (DI/MB are
+    Phase 2/3).
+  - **No program-module changes** — `mod_MCOpenCL` etc. are untouched; the source-swap makes
+    `mod_CLsupport`/`OpenCL_T` resolve to the Metal implementation.
+- **2026-05-29 — Metal MC PoC BUILT and VALIDATED.** `cmake -DEMsoftOO_ENABLE_Metal_SUPPORT=ON`
+  + `make` built clean (MSL→metallib, C++ shim, Fortran backend, stub, mixed C++/Fortran link
+  all OK). `EMMCOpenCL` ran on Metal; `h5diff /EMData` vs the OpenCL `reference.h5`:
+  - `accumSP` (the energy-summed master pattern that feeds EBSD): **0 differences** (bit-identical).
+  - `accum_e`: 4126 bins differ, but only **4** by more than 1 count and **none** by more than 2.
+  - `accum_z`: 2733 differ, **25** by more than 1, **none** by more than 2.
+  Every difference is essentially a single electron (±1) crossing a histogram bin edge; no
+  systematic shift. This is inherent chaotic-MC floating-point divergence: the kernel's
+  transcendentals (`pow`/`log`/`acos`/`sin`/…) and FMA contraction differ ~1 ULP between the
+  Metal and OpenCL compilers, and over ~300 random-walk steps that occasionally nudges an
+  electron across a bin. Bit-identity is unattainable for a chaotic MC across two different
+  GPU compilers (an OpenCL run on a different GPU vendor would jitter the same way); `accumSP`
+  averaging confirms the physics is equivalent. **The Metal backend is proven end-to-end.**
+- **Runtime path fix:** the dev `OpenCLpathname` resolves to the source-tree `opencl/` folder
+  (where the `.cl` files are version-controlled), so CMake now also copies each built
+  `*.metallib` there (in addition to `Bin/opencl/`); `opencl/*.metallib` is gitignored.
+- **Phase 1 complete.** Remaining migration work: Phase 2 (DI `InnerProd`/`ParamEstm` — and/or
+  MPS/Accelerate), Phase 3 (multibeam complex kernels), Phase 4 (rename to `GPU_T`/`EMGPULib`,
+  install rules for metallibs, default Metal ON on Apple). Note for Phase 2+: validation must
+  use statistical/tolerance comparison for any chaotic or reduction-order-sensitive output,
+  and bit-identity only where the computation is linear (e.g. the DI dot products).
+
 ---
 
 ## 1. Motivation
