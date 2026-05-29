@@ -28,16 +28,26 @@ option(EMsoftOO_ENABLE_OpenCL_SUPPORT "Enable OpenCL support" ON)
 if(APPLE)
   option(EMsoftOO_ENABLE_Metal_SUPPORT "Enable Apple Metal GPU backend (macOS)" ON)
   if(EMsoftOO_ENABLE_Metal_SUPPORT)
-    # warn (don't fail) if the Metal toolchain is missing, e.g. a Command-Line-
-    # Tools-only install without full Xcode -- the *.metal -> *.metallib build
-    # step needs `xcrun -sdk macosx metal`.
+    # The *.metal -> *.metallib build step needs the Metal compiler
+    # (`xcrun -sdk macosx metal`), which lives in full Xcode (and, on Xcode 16+,
+    # its separately-downloaded Metal Toolchain component) -- it is NOT in a
+    # Command-Line-Tools-only install.  If it is missing, fall back to the OpenCL
+    # backend rather than failing the build, so a clean default build still works.
     execute_process(COMMAND xcrun -sdk macosx -f metal
                     RESULT_VARIABLE EMsoftOO_METAL_CC_RC OUTPUT_QUIET ERROR_QUIET)
     if(NOT EMsoftOO_METAL_CC_RC EQUAL 0)
       message(WARNING
-        "EMsoftOO_ENABLE_Metal_SUPPORT is ON but the Metal compiler "
-        "(`xcrun -sdk macosx metal`) was not found. Install full Xcode, or "
-        "reconfigure with -DEMsoftOO_ENABLE_Metal_SUPPORT=OFF to use OpenCL.")
+        "The Metal compiler (`xcrun -sdk macosx metal`) was not found -- full "
+        "Xcode (plus its Metal Toolchain component on Xcode 16+) is required to "
+        "build the Metal backend. Falling back to the OpenCL GPU backend. Install "
+        "the Metal toolchain and reconfigure with -DEMsoftOO_ENABLE_Metal_SUPPORT=ON "
+        "to use Metal.")
+      set(EMsoftOO_ENABLE_Metal_SUPPORT OFF CACHE BOOL "Enable Apple Metal GPU backend (macOS)" FORCE)
+      # make sure a GPU backend still gets built (OpenCL) after the fallback
+      if(NOT EMsoftOO_ENABLE_OpenCL_SUPPORT)
+        set(EMsoftOO_ENABLE_OpenCL_SUPPORT ON CACHE BOOL "Enable OpenCL support" FORCE)
+        message(STATUS "Re-enabling EMsoftOO_ENABLE_OpenCL_SUPPORT for the Metal->OpenCL fallback.")
+      endif()
     endif()
   endif()
 else()

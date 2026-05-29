@@ -220,12 +220,15 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
   `*.metallib` (from `Bin/opencl/`) to `<install>/opencl/` when Metal is enabled, via
   `INSTALL(DIRECTORY ... FILES_MATCHING PATTERN "*.metallib")` — so `make install`/packaged
   builds resolve them, with no hard-coded kernel list.
-- **DONE — default Metal ON for Apple** (user decision). `Source.cmake` now defaults
-  `EMsoftOO_ENABLE_Metal_SUPPORT` to ON on `APPLE` (OFF/forced-off elsewhere). A non-fatal
-  configure `WARNING` fires if `xcrun -sdk macosx -f metal` is absent (e.g. a Command-Line-
-  Tools-only install without full Xcode), pointing to `-DEMsoftOO_ENABLE_Metal_SUPPORT=OFF`.
-  Note: `EMsoftOO_ENABLE_OpenCL_SUPPORT` stays ON by default too, but when Metal is ON the
-  EMOpenCLLib source-swap selects the Metal backend, so OpenCL/clfortran are not linked.
+- **DONE — default Metal ON for Apple, with OpenCL fallback** (user decision). `Source.cmake`
+  defaults `EMsoftOO_ENABLE_Metal_SUPPORT` to ON on `APPLE` (OFF/forced-off elsewhere). At
+  configure it probes for the Metal compiler (`xcrun -sdk macosx -f metal`); if absent (e.g. a
+  Command-Line-Tools-only install, or Xcode 16+ without the Metal Toolchain component) it
+  **automatically falls back to the OpenCL backend** — forces `EMsoftOO_ENABLE_Metal_SUPPORT`
+  OFF (re-enabling OpenCL if it had been turned off) and emits a `WARNING` explaining how to
+  enable Metal later. So a clean default build succeeds on any Mac: Metal where the toolchain
+  exists, OpenCL otherwise. (When Metal is ON, the EMOpenCLLib source-swap selects the Metal
+  backend and OpenCL/clfortran are not linked.)
 - **DEFERRED (user decision) — rename `OpenCL_T`/`mod_CLsupport`/`EMOpenCLLib` →
   `GPU_T`/`mod_GPUsupport`/`EMGPULib`.** Cosmetic, high-churn (every GPU module, both backend
   files, `Source.cmake`, every modality `CMakeLists` linking `EMOpenCLLib`, export/install
