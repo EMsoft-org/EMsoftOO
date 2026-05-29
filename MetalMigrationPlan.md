@@ -220,19 +220,27 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
   `*.metallib` (from `Bin/opencl/`) to `<install>/opencl/` when Metal is enabled, via
   `INSTALL(DIRECTORY ... FILES_MATCHING PATTERN "*.metallib")` — so `make install`/packaged
   builds resolve them, with no hard-coded kernel list.
-- **DEFERRED — default Metal ON for Apple.** Intentionally still OFF by default. Two reasons:
-  (1) the foil/Ivol/EBSDFull/SEMCLwrappers Metal paths are not yet runtime-verified, so a
-  silent default switch would be premature; (2) `xcrun metal` (the Metal toolchain) is not
-  always present in a Command-Line-Tools-only install, so an unconditional default-on could
-  break Apple builds lacking full Xcode. Recommended approach when ready: default ON on Apple
-  *only if* the Metal compiler is detected at configure time (`xcrun -sdk macosx -f metal`),
-  else OFF with a status message. Flip this after the remaining verifications pass.
-- **OPEN DECISION — rename `OpenCL_T`/`mod_CLsupport`/`EMOpenCLLib` → `GPU_T`/`mod_GPUsupport`/
-  `EMGPULib`.** Purely cosmetic (the abstraction already works); high churn — it touches every
-  GPU program module, both backend files, `Source.cmake`, and every modality `CMakeLists` that
-  links `EMOpenCLLib`, plus the export/install targets. Given zero functional benefit and that
-  it can't be compile-verified in this environment, recommendation is to **defer** it to a
-  dedicated, separately-built branch (or skip — the `OpenCL_*` names are internal and harmless).
+- **DONE — default Metal ON for Apple** (user decision). `Source.cmake` now defaults
+  `EMsoftOO_ENABLE_Metal_SUPPORT` to ON on `APPLE` (OFF/forced-off elsewhere). A non-fatal
+  configure `WARNING` fires if `xcrun -sdk macosx -f metal` is absent (e.g. a Command-Line-
+  Tools-only install without full Xcode), pointing to `-DEMsoftOO_ENABLE_Metal_SUPPORT=OFF`.
+  Note: `EMsoftOO_ENABLE_OpenCL_SUPPORT` stays ON by default too, but when Metal is ON the
+  EMOpenCLLib source-swap selects the Metal backend, so OpenCL/clfortran are not linked.
+- **DEFERRED (user decision) — rename `OpenCL_T`/`mod_CLsupport`/`EMOpenCLLib` →
+  `GPU_T`/`mod_GPUsupport`/`EMGPULib`.** Cosmetic, high-churn (every GPU module, both backend
+  files, `Source.cmake`, every modality `CMakeLists` linking `EMOpenCLLib`, export/install
+  targets), no functional benefit, and not compile-verifiable here. To be done later as a
+  dedicated, separately-built branch. The `OpenCL_*` names remain (internal, harmless).
+
+## Migration outcome
+
+The OpenCL→Metal migration is functionally complete on `feature/metal-backend`. Every live
+OpenCL kernel (`EMMC`/`EMMCfoil`/`EMMCxyz` MC family, `InnerProd` for DI) is ported to MSL and
+runs through a drop-in Metal backend selected by a CMake source-swap; Metal is the default GPU
+backend on Apple. Validated: MC (default mode) and DI dot products. Remaining before declaring
+production-ready: runtime-verify the foil/Ivol MC modes and the `mod_EBSDFull`/`mod_SEMCLwrappers`
+Metal paths (all reuse already-validated kernels, so low risk). Deferred polish: the
+`GPU_T`/`EMGPULib` rename.
 
 ---
 

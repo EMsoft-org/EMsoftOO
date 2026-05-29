@@ -20,13 +20,28 @@ option(EMsoftOO_ENABLE_HDF5_SUPPORT "Enable HDF5 based I/O" ON)
 
 option(EMsoftOO_ENABLE_OpenCL_SUPPORT "Enable OpenCL support" ON)
 
-# Apple Metal GPU backend (Phase 1 of the OpenCL->Metal migration; see
-# MetalMigrationPlan.md).  When ON, EMOpenCLLib is built with the Metal backend
-# (mod_CLsupport_metal.f90 + metal-cpp shim) instead of the OpenCL one; the two
-# expose the identical mod_CLsupport / OpenCL_T interface, so the program modules
-# are unchanged.  Apple-only; forced OFF elsewhere.
-option(EMsoftOO_ENABLE_Metal_SUPPORT "Enable Apple Metal GPU backend (macOS)" OFF)
-if(NOT APPLE)
+# Apple Metal GPU backend (see MetalMigrationPlan.md).  When ON, EMOpenCLLib is
+# built with the Metal backend (mod_CLsupport_metal.f90 + metal-cpp shim) instead
+# of the OpenCL one; the two expose the identical mod_CLsupport / OpenCL_T
+# interface, so the program modules are unchanged.  Defaults ON on Apple (where
+# Apple OpenCL is deprecated), OFF and forced off elsewhere.
+if(APPLE)
+  option(EMsoftOO_ENABLE_Metal_SUPPORT "Enable Apple Metal GPU backend (macOS)" ON)
+  if(EMsoftOO_ENABLE_Metal_SUPPORT)
+    # warn (don't fail) if the Metal toolchain is missing, e.g. a Command-Line-
+    # Tools-only install without full Xcode -- the *.metal -> *.metallib build
+    # step needs `xcrun -sdk macosx metal`.
+    execute_process(COMMAND xcrun -sdk macosx -f metal
+                    RESULT_VARIABLE EMsoftOO_METAL_CC_RC OUTPUT_QUIET ERROR_QUIET)
+    if(NOT EMsoftOO_METAL_CC_RC EQUAL 0)
+      message(WARNING
+        "EMsoftOO_ENABLE_Metal_SUPPORT is ON but the Metal compiler "
+        "(`xcrun -sdk macosx metal`) was not found. Install full Xcode, or "
+        "reconfigure with -DEMsoftOO_ENABLE_Metal_SUPPORT=OFF to use OpenCL.")
+    endif()
+  endif()
+else()
+  option(EMsoftOO_ENABLE_Metal_SUPPORT "Enable Apple Metal GPU backend (macOS)" OFF)
   set(EMsoftOO_ENABLE_Metal_SUPPORT OFF CACHE BOOL "Enable Apple Metal GPU backend (macOS)" FORCE)
 endif()
 
