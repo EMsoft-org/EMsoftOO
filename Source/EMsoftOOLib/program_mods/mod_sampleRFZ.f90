@@ -482,7 +482,7 @@ if (trim(rfznl%samplemode).eq.'FIB') then
 end if
 if (trim(rfznl%samplemode).eq.'SHO') then
   call Message%printMessage(' performing Shoemake sampling ')
-  call SO%sample_SHO( rfznl%norientations, rfznl%pgnum )
+  call SO%sample_SHO( rfznl%norientations, rfznl%pgnum, rfznl%seed )
   io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of Shoemake orientations requested = ',io_int,1,"(I10)")
   listmode = 'SF'

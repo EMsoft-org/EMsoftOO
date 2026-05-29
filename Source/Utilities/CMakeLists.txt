@@ -272,6 +272,14 @@ Add_EMsoftOO_Executable(TARGET EMcuboMK
                               INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                               )
 
+Add_EMsoftOO_Executable(TARGET EMdispersion
+                              SOURCES ${APP_DIR}/EMdispersion.f90
+                              LINK_LIBRARIES EMsoftOOLib
+                              SOLUTION_FOLDER EMsoftOOPublic/Utilities
+                              INSTALL_PROGRAM TRUE
+                              INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                              )
+
 Add_EMsoftOO_Executable(TARGET EMavdis
                               SOURCES ${APP_DIR}/EMavdis.f90
                               LINK_LIBRARIES EMsoftOOLib

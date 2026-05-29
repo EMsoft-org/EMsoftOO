@@ -10,3 +10,5 @@ patches/
 resources/EMSphInx.wisdom
 .claude/
 Claude/
+# downloaded metal-cpp archive (the extracted headers under ExternalProjects/metal-cpp/ are vendored)
+ExternalProjects/metal-cpp.zip
