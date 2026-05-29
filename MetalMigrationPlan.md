@@ -33,10 +33,16 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
   `multiplier`, `numEbins`, `numzbins`, `totnum_el`) and the `HDF_FileVersion` attribute.
   The MC output is bit-identical, confirming the wrapper seam is behavior-preserving. (Only
   the timestamp in the metadata groups differs, as expected.)
-- **Remaining Phase 0 work:** route the other GPU consumers through the same wrappers —
-  `mod_DI.f90`, `mod_EBSDFull.f90`, `mod_SEMCLwrappers.f90` (and confirm `mod_HROSM.f90`,
-  which currently has no direct cl calls). `mod_DI` also has multi-kernel build/`InnerProd`
-  paths and a CPU `sgemm` fallback to preserve.
+- **2026-05-29 — `mod_DI.f90` migrated** onto the wrappers (commit 19551a5 covered the MC
+  milestone; DI follows). Converted the shared `InnerProdGPU` helper (buffer/5 args/dispatch
+  with explicit 16×16 local size/finish/read/release), the build+buffer blocks in all three
+  GPU drivers (`DIdriver`, `OSMDIdriver`, `DIRAMdriver`), the `cl_expt`/`cl_dict` host writes,
+  and every release (incl. `OSMDIdriver`'s queue/context via `release_context_queue`). No
+  active raw `cl*` verb calls remain (only a pre-existing commented-out block). The CPU
+  `sgemm` path (`DIRAMCPUdriver`) is untouched. **Needs build + `h5diff` verification** of an
+  EMDI run vs a `develop` binary, same protocol as MC.
+- **Remaining Phase 0 work:** `mod_EBSDFull.f90`, `mod_SEMCLwrappers.f90` (and confirm
+  `mod_HROSM.f90`, which currently has no direct cl calls).
 
 ---
 
