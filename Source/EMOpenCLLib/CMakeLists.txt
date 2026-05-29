@@ -98,9 +98,12 @@ if(EMsoftOO_ENABLE_Metal_SUPPORT)
   # and place them next to the .cl files in the runtime opencl folder, so that
   # mod_CLsupport_metal's read_source_file resolves them via OpenCLpathname.
   set(EMsoftOO_METAL_KERNELS
-    EMMC
+    EMMC              # Phase 1 (MC: full/bse1 modes)
     DictIndx          # Phase 2 (InnerProd)
-    # MBmoduleOpenCL  # Phase 3
+    EMMCfoil          # Phase 3 (MC: foil mode)
+    EMMCxyz           # Phase 3 (MCxyz: Ivol mode)
+    # MBmoduleOpenCL is dead code (no compiled module uses it; master patterns
+    # use the CPU ZGEEV CalcLgh in mod_gvectors) -- intentionally not built.
   )
   if(NOT EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/opencl")
     file(MAKE_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/opencl")

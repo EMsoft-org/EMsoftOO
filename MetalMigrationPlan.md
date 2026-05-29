@@ -188,6 +188,32 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
 - **Runtime path:** as with MC, the built `DictIndx.metallib` is auto-copied next to the `.cl`
   files (CMake), so no manual copy is needed after a rebuild.
 
+### Phase 3 — remaining active GPU kernels (scoping correction + translation)
+
+- **Scoping finding: the multibeam kernels are dead code.** `MBmoduleOpenCL.cl`
+  (`ScatMat`/`CalcLgh`/`CalcLghMaster`) is **not loaded by any module** — the only `MBmodule`
+  reference in `Source/` is the CMake comment + the `opencl/SourceList.cmake` copy rule. The
+  master-pattern programs (`EBSDmaster`/`ECPmaster`/`TKDmaster`) compute the scattering matrix
+  on the **CPU** via `mod_gvectors::CalcLgh_` (LAPACK `ZGEEV`). So the original "Phase 3 =
+  multibeam" is a no-op; `MBmoduleOpenCL.cl` is dead (like `mod_DIPCA`) and is intentionally
+  **not** built to a metallib.
+- **The real remaining active GPU kernels were the MC variants** used by `mod_MCOpenCL`'s
+  `foil` and `Ivol` modes (Phase 1 only covered the default MC mode):
+  - **`metal/EMMCfoil.metal`** — `MC` (15 args) for foil geometry: tracks electrons through a
+    slab of `thickness`, accumulates transmitted electrons (z >= thickness) in the southern
+    hemisphere (`LamxSH`/`LamySH`). Uses LFSR113 + Lambert. Port of `EMMCfoil.cl`.
+  - **`metal/EMMCxyz.metal`** — `MCxyz` (13 args) for the Ivol (interaction-volume) mode:
+    outputs (x,y,z) exit positions (`Lamx`/`Lamy`/`Lamz`), no Lambert. Port of `EMMCxyz.cl`.
+  Both share `EMMC.metal`'s validated MC structure (only geometry/output differ) and
+  `mod_MCOpenCL` already routes them through the wrappers, so no host changes are needed.
+- **CMake:** `EMMCfoil` and `EMMCxyz` added to `EMsoftOO_METAL_KERNELS`.
+- **Coverage:** with these, **every live OpenCL kernel** (`EMMC`/`EMMCfoil`/`EMMCxyz`/`InnerProd`)
+  is now ported to Metal; the only untranslated `.cl` are dead code (`MBmoduleOpenCL.cl`,
+  `DictIndx.cl`'s `ParamEstm`).
+- **To verify:** rebuild Metal ON; run `EMMCOpenCL` with `mode='Ivol'` and `mode='foil'`
+  namelists, compare `accumSP`/outputs to OpenCL (expect chaotic-MC ±1 jitter like the default
+  MC mode, `accumSP` bit-identical).
+
 ---
 
 ## 1. Motivation
