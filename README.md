@@ -9,6 +9,19 @@ EMsoftOO Version 6.0 should be considered a beta version; the code is still very
 ## New in this Release !!
 There is now a lightweight graphical user interface, written in python, that allows the user to load any of the namelist template files, edit it with the proper parameters, save the file to the correct working directory, and then execute the program. The usual command line output is displayed in a separate region of the GUI and can be saved to a log file.  This is a very early implementation of what will likely become a more powerful user interface. The nml_editor.py is located in the Source/pyEMsoftOO/emsoft folder and requires a standard python environment like miniconda.
 
+## Apple Metal GPU backend (macOS)
+Apple has deprecated OpenCL and no longer supports it natively on Apple Silicon (M-series) hardware. EMsoftOO now includes a native **Apple Metal** GPU backend so that the GPU-accelerated programs continue to work — and run faster — on modern Macs. All of the GPU compute kernels that are actually used by the package (the Monte Carlo electron-trajectory kernels behind `EMMCOpenCL`, including the foil and interaction-volume modes, and the dictionary-indexing inner-product kernel used by `EMDI`) have been translated to the Metal Shading Language; on Apple Silicon the Metal versions typically run about twice as fast as the old OpenCL path, thanks to Metal's native compiler and the unified-memory architecture.
+
+The migration is transparent: the same programs are used in exactly the same way, with the same namelist files and the same output. The Metal backend is a drop-in replacement for the OpenCL one, selected at build time, so no source code in the individual programs changed.
+
+A few practical notes:
+
+- **It is on by default on macOS.** On Apple builds, `EMsoftOO_ENABLE_Metal_SUPPORT` defaults to `ON` and the Metal backend is used in place of OpenCL. To force the OpenCL backend instead, configure with `-DEMsoftOO_ENABLE_Metal_SUPPORT=OFF`. On non-Apple platforms the option is always off and OpenCL is used as before.
+- **No extra library to install.** Apple's `metal-cpp` headers are vendored inside the repository (`ExternalProjects/metal-cpp`), and the Metal/Foundation frameworks ship with macOS, so nothing additional needs to be installed for the build to find them.
+- **The Metal shader compiler is required to build the kernels.** The `*.metal` kernels are compiled to `.metallib` files at build time using `xcrun metal`, which is part of a full **Xcode** installation (and, on Xcode 16 and later, the separately-downloaded *Metal Toolchain* component). It is **not** included in the Command-Line-Tools-only install. If the Metal compiler is not found at configure time, EMsoftOO automatically **falls back to the OpenCL backend** (with a warning) rather than failing the build, so a clean default build still works on any Mac.
+
+This is a beta feature; the Monte Carlo and dictionary-indexing paths have been validated against the OpenCL results, and further GPU programs are being verified.
+
 ## Financial Support 
 EBSD/ECP/EKP development of this package, including dictionary indexing for EBSD/ECP, was started with support from an AFOSR/MURI grant, FA9550-12-1-0458; the original EBSD code from CTEMsoft 2.0 was developed with support from an ONR grant, N00014-12-1-0075.  All recent development of EMsoft was performed with support from an ONR Vannevar Bush Faculty Fellowship, N00014-­16-­1-­2821, and an NSF research program DMR \#1904629. Current development is carried out with support from NSF grant DMR-2203378. MDG would also like to acknowledge support from the John and Claire Bertucci Distinguished Professorship in Engineering.
 
