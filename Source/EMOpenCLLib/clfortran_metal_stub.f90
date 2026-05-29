@@ -12,11 +12,11 @@ module clfortran
   !! (EMsoftOO_ENABLE_Metal_SUPPORT). When the Metal backend is selected the real
   !! clfortran library is not linked, but the GPU program modules still
   !! `use clfortran` to obtain a couple of memory-flag constants that they pass to
-  !! OpenCL_T%create_buffer. The Metal backend ignores the flag value (unified
+  !! GPU_T%create_buffer. The Metal backend ignores the flag value (unified
   !! memory), so only the symbols' existence and integer kind matter here.
   !!
   !! This file is compiled ONLY in a Metal build, in place of the real clfortran
-  !! `.mod`. See MetalMigrationPlan.md (Phase 1) and mod_CLsupport_metal.f90.
+  !! `.mod`. See MetalMigrationPlan.md (Phase 1) and mod_GPUsupport_metal.f90.
 
 use ISO_C_BINDING
 

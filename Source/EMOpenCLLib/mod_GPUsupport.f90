@@ -25,13 +25,13 @@
 ! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
-module mod_CLsupport
+module mod_GPUsupport
   !! author: MDG
   !! version: 1.0
   !! date: 01/12/20
   !!
   !! OpenCL module; this module is based on the following code, but modified
-  !! substantially and turned into an OpenCL_T class :
+  !! substantially and turned into an GPU_T class :
   !!--------------------------------------------------------------------------
   !!--------------------------------------------------------------------------
   !! original Copyright information (clfortran's query_platforms_devices.f90)
@@ -141,7 +141,7 @@ IMPLICIT NONE
         'CL_INVALID_DEVICE_PARTITION_COUNT            ' /)  ! = -68
 
 
-  type,public :: OpenCL_T
+  type,public :: GPU_T
     private
 ! platform variables
       character(fnlen), allocatable             :: p_profile(:)
@@ -238,17 +238,17 @@ IMPLICIT NONE
         generic, public :: release_kernel => release_kernel_
         generic, public :: release_context_queue => release_context_queue_
 
-  end type OpenCL_T
+  end type GPU_T
 
   ! the constructor routine for this class
-  interface OpenCL_T
+  interface GPU_T
     module procedure CL_constructor
-  end interface OpenCL_T
+  end interface GPU_T
 
 contains
 
 !--------------------------------------------------------------------------
-type(OpenCL_T) function CL_constructor( verb, skipCPU ) result(CL)
+type(GPU_T) function CL_constructor( verb, skipCPU ) result(CL)
 !DEC$ ATTRIBUTES DLLEXPORT :: CL_constructor
   !! author: MDG
   !! version: 1.0
@@ -387,8 +387,8 @@ subroutine CL_destructor( CL )
 
 IMPLICIT NONE
 
-type(OpenCL_T),INTENT(INOUT)  :: CL
-  call reportDestructor('OpenCL_T')
+type(GPU_T),INTENT(INOUT)  :: CL
+  call reportDestructor('GPU_T')
   if (allocated(CL%p_profile)) deallocate(CL%p_profile)
   if (allocated(CL%p_version)) deallocate(CL%p_version)
   if (allocated(CL%p_name)) deallocate(CL%p_name)
@@ -434,7 +434,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT) :: self
+class(GPU_T), INTENT(INOUT) :: self
 integer(kind=irg), INTENT(IN)  :: p_id
 logical,INTENT(IN),OPTIONAL    :: verbose 
 logical,INTENT(IN),OPTIONAL    :: skCPU
@@ -719,7 +719,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(IN)     :: self
+class(GPU_T),INTENT(IN)     :: self
 
 type(IO_T)                     :: Message
 integer(kind=irg)              :: io_int(9), i, j
@@ -816,7 +816,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(INOUT)   :: self
+class(GPU_T),INTENT(INOUT)   :: self
 integer(kind=8),INTENT(IN)      :: Nr
 integer(kind=8),INTENT(IN)      :: Nd
 integer(kind=8),INTENT(IN)      :: Ne
@@ -866,7 +866,7 @@ IMPLICIT NONE
 
 integer, parameter                      :: source_length = 50000
 
-class(OpenCL_T),INTENT(IN)              :: self
+class(GPU_T),INTENT(IN)              :: self
 type(EMsoft_T),intent(INOUT)            :: EMsoft
 character(fnlen), INTENT(IN)            :: sourcefile
 character(len=source_length, KIND=c_char),INTENT(OUT) :: csource
@@ -969,7 +969,7 @@ IMPLICIT NONE
 
 integer, parameter                      :: source_length = 50000
 
-class(OpenCL_T), INTENT(IN)             :: self
+class(GPU_T), INTENT(IN)             :: self
 character(fnlen), INTENT(IN)            :: sourcefile
 character(len=source_length, KIND=c_char),INTENT(OUT) :: csource
 integer(c_size_t),INTENT(OUT)           :: slength
@@ -1026,7 +1026,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(INOUT)            :: self
+class(GPU_T),INTENT(INOUT)            :: self
 integer(c_intptr_t),allocatable, target  :: platform(:)
  !! platform
 integer(kind=irg), INTENT(OUT)           :: nump
@@ -1128,7 +1128,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(INOUT)            :: self
+class(GPU_T),INTENT(INOUT)            :: self
 integer(c_intptr_t),allocatable, target  :: platform(:)
  !! platform
 integer(kind=irg), INTENT(OUT)           :: nump
@@ -1236,7 +1236,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 character(*),INTENT(IN)                 :: routine
 integer(kind=c_int32_t),INTENT(IN)      :: ierr
 logical,INTENT(IN),OPTIONAL             :: nonfatal
@@ -1255,7 +1255,7 @@ if (ierr.ne.0) then
 
   if (present(nonfatal)) then
     if (nonfatal.eqv..TRUE.) then
-      print*,"mod_CLsupport:error_check:"//trim(routine)//" Non fatal error "//trim(estr)
+      print*,"mod_GPUsupport:error_check:"//trim(routine)//" Non fatal error "//trim(estr)
 !     call Message%printMessage('error_check', ' Non-fatal error: '//trim(estr) )
 !     Temporary commented Clément Lafond : avoid a fatal error when executing  EMMCOpenCL, need to understand why
     end if
@@ -1273,7 +1273,7 @@ end subroutine error_check_
 !
 ! These methods encapsulate the raw clfortran calls that, historically, were
 ! scattered directly through the program modules (mod_MCOpenCL, mod_DI, ...).
-! Routing every GPU verb through OpenCL_T gives a single error-checked entry
+! Routing every GPU verb through GPU_T gives a single error-checked entry
 ! point per operation and, crucially, a stable method surface that a future
 ! mod_MTLsupport (Metal) can replicate so the program modules need not change.
 ! Context, command queue and device list are taken from the object (cached by
@@ -1298,7 +1298,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 character(*), INTENT(IN)                :: routine
 integer(c_int32_t), INTENT(IN)          :: ierr
 logical, INTENT(IN), OPTIONAL           :: quiet
@@ -1325,7 +1325,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)                   :: self
+class(GPU_T), INTENT(INOUT)                   :: self
 character(len=*, kind=c_char), target,INTENT(IN) :: csource
 integer(c_size_t), target, INTENT(IN)            :: slength
 logical, INTENT(IN), OPTIONAL                    :: quiet
@@ -1378,7 +1378,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)                       :: self
+class(GPU_T), INTENT(INOUT)                       :: self
 integer(c_intptr_t), INTENT(IN)                      :: prog
 character(len=*), INTENT(IN)                         :: kernelname
 logical, INTENT(IN), OPTIONAL                        :: quiet
@@ -1403,7 +1403,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: prog
 logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
@@ -1426,7 +1426,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_int64_t), INTENT(IN)          :: flags
 integer(c_size_t), INTENT(IN)           :: nbytes
 character(len=*), INTENT(IN)            :: label
@@ -1450,7 +1450,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: buf
 type(c_ptr), INTENT(IN)                 :: hostptr
 integer(c_size_t), INTENT(IN)           :: nbytes
@@ -1474,7 +1474,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: buf
 type(c_ptr), INTENT(IN)                 :: hostptr
 integer(c_size_t), INTENT(IN)           :: nbytes
@@ -1498,7 +1498,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: kernel
 integer(c_int32_t), INTENT(IN)          :: argindex
 integer(c_size_t), INTENT(IN)           :: argsize
@@ -1526,7 +1526,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)             :: self
+class(GPU_T), INTENT(INOUT)             :: self
 integer(c_intptr_t), INTENT(IN)            :: kernel
 integer(c_int64_t), INTENT(IN)             :: globalsize(:)
 character(len=*), INTENT(IN)               :: label
@@ -1565,7 +1565,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
@@ -1584,7 +1584,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: buf
 logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
@@ -1604,7 +1604,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: kernel
 logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
@@ -1624,7 +1624,7 @@ use ISO_C_BINDING
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 logical, INTENT(IN), OPTIONAL           :: quiet
 integer(c_int32_t)                      :: ierr
 
@@ -1636,4 +1636,4 @@ call checkq_(self, 'release_context_queue:clReleaseContext', ierr, quiet)
 end subroutine release_context_queue_
 
 
-end module mod_CLsupport
+end module mod_GPUsupport

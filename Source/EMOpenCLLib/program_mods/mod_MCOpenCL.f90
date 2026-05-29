@@ -294,7 +294,7 @@ use mod_timing
 use mod_diffraction
 use mod_Lambert
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use HDF5
 use mod_HDFsupport
 use mod_HDFnames
@@ -312,7 +312,7 @@ type(Cell_T)                                     :: cell
 type(DynType)                                    :: Dyn
 type(Timing_T)                                   :: timer
 type(IO_T)                                       :: Message
-type(OpenCL_T)                                   :: CL
+type(GPU_T)                                   :: CL
 type(Lambert_T)                                  :: Lambert
 type(HDF_T)                                      :: HDF
 type(HDFnames_T)                                 :: HDFnames
@@ -507,7 +507,7 @@ delta = dble(nx)
 !=====================
 ! INITIALIZATION
 !=====================
-CL = OpenCL_T()
+CL = GPU_T()
 call CL%init_PDCCQ(platform, nump, mcnl%platid, device, numd, mcnl%devid, info, context, command_queue)
 
 !=====================

@@ -574,7 +574,7 @@ use mod_Lambert
 use mod_math
 use HDF5
 use mod_HDFsupport
-use mod_CLsupport
+use mod_GPUsupport
 use mod_timing
 use clfortran
 use omp_lib
@@ -594,7 +594,7 @@ type(Timing_T)                            :: timer
 type(Cell_T)                              :: cell
 type(DynType)                             :: Dyn
 type(HDF_T)                               :: HDF
-type(OpenCL_T)                            :: CL
+type(GPU_T)                            :: CL
 type(gvectors_T)                          :: reflist
 type(reflisttype),pointer                 :: firstw
 type(Quaternion_T)                        :: quat, quinv
@@ -740,7 +740,7 @@ energyres = 0.0
 size_in_bytes = int(num_max,kind=8) * sizeof(EkeV)
 size_in_bytes_seeds = int(4*globalworkgrpsz*globalworkgrpsz,kind=8) * sizeof(EkeV)
 
-CL = OpenCL_T()
+CL = GPU_T()
 call CL%init_PDCCQ(platform, nump, enl%platid, device, numd, enl%devid, info, context, command_queue)
 
 sourcefile = 'EMMC.cl'

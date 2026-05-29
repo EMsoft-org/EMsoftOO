@@ -26,18 +26,18 @@
 ! DAMAGE.
 ! ###################################################################
 
-module mod_CLsupport
+module mod_GPUsupport
   !! author: MDG / Claude Code
   !! version: 1.0
   !! date: 05/29/26
   !!
   !! Apple Metal backend for the GPU abstraction (Phase 1 of the OpenCL->Metal
   !! migration; see MetalMigrationPlan.md).  This module is a DROP-IN replacement
-  !! for the OpenCL mod_CLsupport.f90: it defines the same module name
-  !! (mod_CLsupport) and the same type (OpenCL_T) with the identical public
+  !! for the OpenCL mod_GPUsupport.f90: it defines the same module name
+  !! (mod_GPUsupport) and the same type (GPU_T) with the identical public
   !! method surface, but every GPU operation is routed through the metal-cpp C
   !! shim (emtl_shim.{h,cpp}).  CMake compiles EITHER this file OR the OpenCL
-  !! mod_CLsupport.f90 depending on EMsoftOO_ENABLE_Metal_SUPPORT, so the program
+  !! mod_GPUsupport.f90 depending on EMsoftOO_ENABLE_Metal_SUPPORT, so the program
   !! modules (mod_MCOpenCL, mod_DI, ...) are unchanged.
   !!
   !! Handles (device/queue/library/pipeline/buffer) are integer(c_intptr_t),
@@ -140,7 +140,7 @@ IMPLICIT NONE
   end interface
 
 !--------------------------------------------------------------------------
-  type, public :: OpenCL_T
+  type, public :: GPU_T
     private
       integer(c_intptr_t) :: device        = 0
       integer(c_intptr_t) :: queue         = 0
@@ -191,16 +191,16 @@ IMPLICIT NONE
         generic, public :: release_kernel => release_kernel_
         generic, public :: release_context_queue => release_context_queue_
 
-  end type OpenCL_T
+  end type GPU_T
 
-  interface OpenCL_T
+  interface GPU_T
     module procedure CL_constructor
-  end interface OpenCL_T
+  end interface GPU_T
 
 contains
 
 !--------------------------------------------------------------------------
-type(OpenCL_T) function CL_constructor( verb, skipCPU ) result(CL)
+type(GPU_T) function CL_constructor( verb, skipCPU ) result(CL)
 !DEC$ ATTRIBUTES DLLEXPORT :: CL_constructor
   !! Metal constructor: create the system default device.
 
@@ -223,7 +223,7 @@ subroutine CL_destructor( CL )
 
 IMPLICIT NONE
 
-type(OpenCL_T), INTENT(INOUT) :: CL
+type(GPU_T), INTENT(INOUT) :: CL
 
 if (CL%queue.ne.0)  call emtl_release(CL%queue)
 if (CL%device.ne.0) call emtl_release(CL%device)
@@ -241,7 +241,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)        :: self
+class(GPU_T), INTENT(INOUT)        :: self
 character(*), INTENT(IN)              :: routine
 logical, INTENT(IN), OPTIONAL         :: quiet
 
@@ -278,7 +278,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 character(*), INTENT(IN)                :: routine
 integer(kind=c_int32_t), INTENT(IN)     :: ierr
 logical, INTENT(IN), OPTIONAL           :: nonfatal
@@ -290,12 +290,12 @@ if (ierr.ne.0) then
   if (present(nonfatal)) then
     if (nonfatal.eqv..TRUE.) then
       iout(1) = ierr
-      call Message%WriteValue('mod_CLsupport(Metal):'//trim(routine)//' non-fatal error code ', iout, 1)
+      call Message%WriteValue('mod_GPUsupport(Metal):'//trim(routine)//' non-fatal error code ', iout, 1)
       return
     end if
   end if
   iout(1) = ierr
-  call Message%WriteValue('mod_CLsupport(Metal):'//trim(routine)//' error code ', iout, 1)
+  call Message%WriteValue('mod_GPUsupport(Metal):'//trim(routine)//' error code ', iout, 1)
 end if
 call mtl_check_(self, routine, nonfatal)
 
@@ -310,7 +310,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)   :: self
+class(GPU_T), INTENT(INOUT)   :: self
 integer(kind=irg), INTENT(IN)    :: p_id
 logical, INTENT(IN), OPTIONAL    :: verbose
 logical, INTENT(IN), OPTIONAL    :: skCPU
@@ -331,7 +331,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)   :: self
+class(GPU_T), INTENT(INOUT)   :: self
 type(IO_T)                       :: Message
 
 call Message%printMessage(' GPU backend: Apple Metal (1 device)')
@@ -345,7 +345,7 @@ recursive subroutine DI_memory_estimate_(self, Nr, Nd, Ne, pl, gpu)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)   :: self
+class(GPU_T), INTENT(INOUT)   :: self
 integer(kind=8), INTENT(IN)      :: Nr
 integer(kind=8), INTENT(IN)      :: Nd
 integer(kind=8), INTENT(IN)      :: Ne
@@ -394,7 +394,7 @@ end if
 fullpath = EMsoft%generateFilePath('OpenCLpathname', mlib)
 inquire(file=trim(fullpath), exist=fexist)
 if (.not.fexist) then
-  call Message%printError('mod_CLsupport(Metal):metallib_path', &
+  call Message%printError('mod_GPUsupport(Metal):metallib_path', &
                           'Metal library not found: '//trim(fullpath))
 end if
 
@@ -409,7 +409,7 @@ recursive subroutine read_source_file_(self, EMsoft, sourcefile, csource, slengt
 IMPLICIT NONE
 
 integer, parameter                                    :: source_length = 50000
-class(OpenCL_T), INTENT(IN)                           :: self
+class(GPU_T), INTENT(IN)                           :: self
 type(EMsoft_T), intent(INOUT)                         :: EMsoft
 character(fnlen), INTENT(IN)                          :: sourcefile
 character(len=source_length, KIND=c_char), INTENT(OUT):: csource
@@ -433,7 +433,7 @@ recursive subroutine read_source_file_wrapper_(self, sourcefile, csource, slengt
 IMPLICIT NONE
 
 integer, parameter                                    :: source_length = 50000
-class(OpenCL_T), INTENT(IN)                           :: self
+class(GPU_T), INTENT(IN)                           :: self
 character(fnlen), INTENT(IN)                          :: sourcefile
 character(len=source_length, KIND=c_char), INTENT(OUT):: csource
 integer(c_size_t), INTENT(OUT)                        :: slength
@@ -464,7 +464,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)           :: self
+class(GPU_T), INTENT(INOUT)           :: self
 integer(c_intptr_t), allocatable, target :: platform(:)
 integer(kind=irg), INTENT(OUT)           :: nump
 integer(kind=irg), INTENT(IN)            :: selnump
@@ -504,7 +504,7 @@ recursive subroutine init_multiPDCCQ_(self, platform, nump, selnump, device, num
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)            :: self
+class(GPU_T), INTENT(INOUT)            :: self
 integer(c_intptr_t), allocatable, target  :: platform(:)
 integer(kind=irg), INTENT(OUT)            :: nump
 integer(kind=irg), INTENT(IN)             :: selnump
@@ -546,7 +546,7 @@ recursive function build_program_(self, csource, slength, quiet) result(prog)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)                   :: self
+class(GPU_T), INTENT(INOUT)                   :: self
 character(len=*, kind=c_char), target, INTENT(IN):: csource
 integer(c_size_t), target, INTENT(IN)            :: slength
 logical, INTENT(IN), OPTIONAL                    :: quiet
@@ -571,7 +571,7 @@ recursive function get_kernel_(self, prog, kernelname, quiet) result(kernel)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)                       :: self
+class(GPU_T), INTENT(INOUT)                       :: self
 integer(c_intptr_t), INTENT(IN)                      :: prog
 character(len=*), INTENT(IN)                         :: kernelname
 logical, INTENT(IN), OPTIONAL                        :: quiet
@@ -591,7 +591,7 @@ recursive subroutine release_program_(self, prog, quiet)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: prog
 logical, INTENT(IN), OPTIONAL           :: quiet
 
@@ -605,7 +605,7 @@ recursive function create_buffer_(self, flags, nbytes, label, quiet) result(buf)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_int64_t), INTENT(IN)          :: flags
 integer(c_size_t), INTENT(IN)           :: nbytes
 character(len=*), INTENT(IN)            :: label
@@ -623,7 +623,7 @@ recursive subroutine write_buffer_(self, buf, hostptr, nbytes, label, quiet)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: buf
 type(c_ptr), INTENT(IN)                 :: hostptr
 integer(c_size_t), INTENT(IN)           :: nbytes
@@ -641,7 +641,7 @@ recursive subroutine read_buffer_(self, buf, hostptr, nbytes, label, quiet)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: buf
 type(c_ptr), INTENT(IN)                 :: hostptr
 integer(c_size_t), INTENT(IN)           :: nbytes
@@ -661,7 +661,7 @@ recursive subroutine set_kernel_arg_(self, kernel, argindex, argsize, argptr, la
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: kernel
 integer(c_int32_t), INTENT(IN)          :: argindex
 integer(c_size_t), INTENT(IN)           :: argsize
@@ -682,7 +682,7 @@ recursive subroutine enqueue_kernel_(self, kernel, globalsize, label, localsize,
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)             :: self
+class(GPU_T), INTENT(INOUT)             :: self
 integer(c_intptr_t), INTENT(IN)            :: kernel
 integer(c_int64_t), INTENT(IN)             :: globalsize(:)
 character(len=*), INTENT(IN)               :: label
@@ -722,7 +722,7 @@ recursive subroutine finish_(self, quiet)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 logical, INTENT(IN), OPTIONAL           :: quiet
 
 call emtl_finish()
@@ -736,7 +736,7 @@ recursive subroutine release_buffer_(self, buf, quiet)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: buf
 logical, INTENT(IN), OPTIONAL           :: quiet
 
@@ -750,7 +750,7 @@ recursive subroutine release_kernel_(self, kernel, quiet)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 integer(c_intptr_t), INTENT(IN)         :: kernel
 logical, INTENT(IN), OPTIONAL           :: quiet
 
@@ -765,7 +765,7 @@ recursive subroutine release_context_queue_(self, quiet)
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 logical, INTENT(IN), OPTIONAL           :: quiet
 
 if (self%queue.ne.0) then
@@ -775,4 +775,4 @@ end if
 
 end subroutine release_context_queue_
 
-end module mod_CLsupport
+end module mod_GPUsupport

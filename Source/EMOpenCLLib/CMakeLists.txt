@@ -15,19 +15,19 @@ elseif(WIN32)
 endif()
 
 
-# GPU backend source: the OpenCL mod_CLsupport.f90, OR (when Metal is enabled)
-# the drop-in mod_CLsupport_metal.f90 + the metal-cpp C shim.  Both provide the
-# identical mod_CLsupport / OpenCL_T interface, so the program modules below are
+# GPU backend source: the OpenCL mod_GPUsupport.f90, OR (when Metal is enabled)
+# the drop-in mod_GPUsupport_metal.f90 + the metal-cpp C shim.  Both provide the
+# identical mod_GPUsupport / GPU_T interface, so the program modules below are
 # unchanged.  See MetalMigrationPlan.md (Phase 1).
 if(EMsoftOO_ENABLE_Metal_SUPPORT)
   set(EMOpenCLLib_GPU_BACKEND_SRCS
     ${EMOpenCLLib_SOURCE_DIR}/clfortran_metal_stub.f90   # provides 'use clfortran' constants
-    ${EMOpenCLLib_SOURCE_DIR}/mod_CLsupport_metal.f90
+    ${EMOpenCLLib_SOURCE_DIR}/mod_GPUsupport_metal.f90
     ${EMOpenCLLib_SOURCE_DIR}/metal/emtl_shim.cpp
   )
 else()
   set(EMOpenCLLib_GPU_BACKEND_SRCS
-    ${EMOpenCLLib_SOURCE_DIR}/mod_CLsupport.f90
+    ${EMOpenCLLib_SOURCE_DIR}/mod_GPUsupport.f90
   )
 endif()
 
@@ -96,7 +96,7 @@ if(EMsoftOO_ENABLE_Metal_SUPPORT)
 
   # Compile the .metal kernels to .metallib at build time (xcrun metal/metallib)
   # and place them next to the .cl files in the runtime opencl folder, so that
-  # mod_CLsupport_metal's read_source_file resolves them via OpenCLpathname.
+  # mod_GPUsupport_metal's read_source_file resolves them via OpenCLpathname.
   set(EMsoftOO_METAL_KERNELS
     EMMC              # Phase 1 (MC: full/bse1 modes)
     DictIndx          # Phase 2 (InnerProd)

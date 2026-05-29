@@ -69,7 +69,7 @@ use mod_rotations
 use mod_so3
 use mod_math
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use omp_lib
 use mod_OMPsupport
 use h5im
@@ -119,7 +119,7 @@ type(EBSD_T)                                        :: EBSD
 type(ECP_T)                                         :: ECP
 type(Timing_T)                                      :: timer
 type(IO_T)                                          :: Message
-type(OpenCL_T)                                      :: CL
+type(GPU_T)                                      :: CL
 type(SpaceGroup_T)                                  :: SG
 type(so3_T)                                         :: SO
 type(q_T)                                           :: quat, qqq
@@ -604,7 +604,7 @@ patsz              = correctsize
 
 ! do a quick sanity check for the requested GPU memory
 call Message%printMessage(' --> Initializing OpenCL device')
-CL = OpenCL_T()
+CL = GPU_T()
 Nres = Ne*Nd*4
 ! temporarily disabled lines (until we figure out why they don't work on Linux...)
 !call CL%query_platform_info(dinl%platid)
@@ -1559,7 +1559,7 @@ use mod_rotations
 use mod_so3
 use mod_math
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use omp_lib
 use mod_OMPsupport
 use h5im
@@ -1596,7 +1596,7 @@ type(EBSD_T)                                        :: EBSD
 type(ECP_T)                                         :: ECP
 type(Timing_T)                                      :: timer
 type(IO_T)                                          :: Message
-type(OpenCL_T)                                      :: CL
+type(GPU_T)                                      :: CL
 type(SpaceGroup_T)                                  :: SG
 type(so3_T)                                         :: SO
 type(q_T)                                           :: quat
@@ -1930,7 +1930,7 @@ patsz              = correctsize
 
 ! do a quick sanity check for the requested GPU memory
 call Message%printMessage(' --> Initializing OpenCL device')
-CL = OpenCL_T()
+CL = GPU_T()
 Nres = Ne*Nd*4
 call CL%query_platform_info(dinl%platid)
 call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
@@ -2572,13 +2572,13 @@ recursive subroutine InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,n
 !DEC$ ATTRIBUTES DLLEXPORT :: InnerProdGPU
 
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use ISO_C_BINDING
 use mod_io
 
 IMPLICIT NONE
 
-type(OpenCL_T),INTENT(INOUT)                        :: CL
+type(GPU_T),INTENT(INOUT)                        :: CL
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_expt
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_dict
 integer(kind=4),INTENT(IN)                          :: Ne

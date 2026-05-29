@@ -229,11 +229,25 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
   enable Metal later. So a clean default build succeeds on any Mac: Metal where the toolchain
   exists, OpenCL otherwise. (When Metal is ON, the EMOpenCLLib source-swap selects the Metal
   backend and OpenCL/clfortran are not linked.)
-- **DEFERRED (user decision) — rename `OpenCL_T`/`mod_CLsupport`/`EMOpenCLLib` →
-  `GPU_T`/`mod_GPUsupport`/`EMGPULib`.** Cosmetic, high-churn (every GPU module, both backend
-  files, `Source.cmake`, every modality `CMakeLists` linking `EMOpenCLLib`, export/install
-  targets), no functional benefit, and not compile-verifiable here. To be done later as a
-  dedicated, separately-built branch. The `OpenCL_*` names remain (internal, harmless).
+- **DONE (partial) — backend-neutral type/module rename.** Renamed the abstraction type
+  `OpenCL_T` → `GPU_T` and the module `mod_CLsupport` → `mod_GPUsupport` (files
+  `mod_CLsupport.f90`/`mod_CLsupport_metal.f90` → `mod_GPUsupport.f90`/`mod_GPUsupport_metal.f90`),
+  across both backends and all consumers (`mod_MCOpenCL`, `mod_DI`, `mod_EBSDFull`,
+  `mod_SEMCLwrappers`, the dead `mod_DIPCA`, `Utilities/EMOpenCLinfo`, the clfortran stub, and
+  the CMake source paths). The rename used a word-boundary-safe substitution so `MCOpenCL_T`
+  (the MC program class) was left intact. **By user decision the library/folder name
+  `EMOpenCLLib` was kept** (renaming it to `EMGPULib` is pure churn across every modality
+  CMakeLists + export targets, with no functional benefit). Local handle variables stay named
+  `CL`. The OpenCL backend file still uses `clfortran`; only the public abstraction names changed.
+
+## Migration complete
+
+All phases done on `feature/metal-backend`: every live OpenCL kernel ported to Metal, a
+backend-neutral `GPU_T`/`mod_GPUsupport` abstraction selected by CMake source-swap, Metal
+default-on for Apple with automatic OpenCL fallback, install rules, README + plan docs.
+Runtime-verified by the user (MC default/foil/Ivol, DI, EBSDFull, SEMCLwrappers): no issues.
+Only `EMOpenCLLib` library name and the dead `MBmoduleOpenCL.cl`/`ParamEstm`/`mod_DIPCA`
+remain as-is (deliberately).
 
 ## Migration outcome
 

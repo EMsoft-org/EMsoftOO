@@ -276,7 +276,7 @@ use stringconstants
 use mod_diffraction
 use mod_Lambert
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use mod_notifications
 use mod_math
 use mod_memory
@@ -302,7 +302,7 @@ type(EMsoft_T)          :: EMsoft
 type(Cell_T)            :: cell
 type(DynType)           :: Dyn
 type(IO_T)              :: Message
-type(OpenCL_T)          :: CL
+type(GPU_T)          :: CL
 type(Lambert_T)         :: Lambert
 type(SpaceGroup_T)      :: SG
 type(Diffraction_T)     :: Diff
@@ -460,7 +460,7 @@ accum_z = 0
 !======================
 ! OpenCL INITIALIZATION
 !======================
-CL = OpenCL_T( verb = .FALSE. )
+CL = GPU_T( verb = .FALSE. )
 call CL%init_PDCCQ(platform, nump, int(ipar(7)), device, numd, int(ipar(6)), info, context, command_queue)
 
 !=====================
