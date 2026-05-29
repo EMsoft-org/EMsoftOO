@@ -294,7 +294,7 @@ use mod_timing
 use mod_diffraction
 use mod_Lambert
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use HDF5
 use mod_HDFsupport
 use mod_HDFnames
@@ -312,7 +312,7 @@ type(Cell_T)                                     :: cell
 type(DynType)                                    :: Dyn
 type(Timing_T)                                   :: timer
 type(IO_T)                                       :: Message
-type(OpenCL_T)                                   :: CL
+type(GPU_T)                                   :: CL
 type(Lambert_T)                                  :: Lambert
 type(HDF_T)                                      :: HDF
 type(HDFnames_T)                                 :: HDFnames
@@ -507,7 +507,7 @@ delta = dble(nx)
 !=====================
 ! INITIALIZATION
 !=====================
-CL = OpenCL_T()
+CL = GPU_T()
 call CL%init_PDCCQ(platform, nump, mcnl%platid, device, numd, mcnl%devid, info, context, command_queue)
 
 !=====================
@@ -525,39 +525,22 @@ end if
 call Message%printMessage(' OpenCL source file set to : '//trim(sourcefile))
 call CL%read_source_file(EMsoft, sourcefile, csource, slength)
 
-! create the program
+! create and build the program (the build log is printed inside the wrapper)
 io_int(1) = slength
 call Message%WriteValue(' Kernel source length (characters) : ',io_int,1)
-pcnt = 1
-psource = C_LOC(csource)
-prog = clCreateProgramWithSource(context, pcnt, C_LOC(psource), C_LOC(slength), ierr)
-call CL%error_check('DoMCsimulation:clCreateProgramWithSource', ierr)
-
-! build the program
-ierr = clBuildProgram(prog, numd, C_LOC(device), C_NULL_PTR, C_NULL_FUNPTR, C_NULL_PTR)
-
-! get the compilation log
-ierr2 = clGetProgramBuildInfo(prog, device(mcnl%devid), CL_PROGRAM_BUILD_LOG, sizeof(source), C_LOC(source), cnum)
-if(len(trim(source)) > 0) call Message%printMessage(trim(source(1:cnum)),frm='(A)')
-call CL%error_check('DoMCsimulation:clBuildProgram', ierr)
-call CL%error_check('DoMCsimulation:clGetProgramBuildInfo', ierr2)
+prog = CL%build_program(csource, slength)
 
 ! if we get here, then the program build was successful and we can proceed with the creation of the kernel
 call Message%printMessage(' Program Build Successful... Creating kernel')
 
 ! finally get the kernel and release the program
 if (mode.eq.'Ivol') then
-  kernelname2 = 'MCxyz'//CHAR(0)
-  kernel = clCreateKernel(prog, C_LOC(kernelname2), ierr)
-  call CL%error_check('DoMCsimulation:clCreateKernel:MCxyz', ierr)
+  kernel = CL%get_kernel(prog, 'MCxyz')
 else
-  kernelname = 'MC'//CHAR(0)
-  kernel = clCreateKernel(prog, C_LOC(kernelname), ierr)
-  call CL%error_check('DoMCsimulation:clCreateKernel:MC', ierr)
+  kernel = CL%get_kernel(prog, 'MC')
 end if
 
-ierr = clReleaseProgram(prog)
-call CL%error_check('DoMCsimulation:clReleaseProgram', ierr)
+call CL%release_program(prog)
 
 ! get the random number generator seeds for use on the GPU
 fname = EMsoft%generateFilePath('Randomseedfilename')
@@ -591,29 +574,19 @@ do i = 1,globalworkgrpsz
 end do
 
 ! create device memory buffers
-LamX = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
-call CL%error_check('DoMCsimulation:clCreateBuffer:LamX', ierr)
-
-LamY = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
-call CL%error_check('DoMCsimulation:clCreateBuffer:LamY', ierr)
+LamX = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'LamX')
+LamY = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'LamY')
 
 if (mode.eq.'Ivol') then
-  LamZ = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
-  call CL%error_check('DoMCsimulation:clCreateBuffer:LamZ', ierr)
+  LamZ = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'LamZ')
 else
-  depth = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
-  call CL%error_check('DoMCsimulation:clCreateBuffer:depth', ierr)
-
-  energy = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
-  call CL%error_check('DoMCsimulation:clCreateBuffer:energy', ierr)
+  depth = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'depth')
+  energy = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'energy')
 end if
 
-seeds = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes, C_NULL_PTR, ierr)
-call CL%error_check('DoMCsimulation:clCreateBuffer:seeds', ierr)
+seeds = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes, 'seeds')
 
-ierr = clEnqueueWriteBuffer(command_queue, seeds, CL_TRUE, 0_8, size_in_bytes_seeds, C_LOC(init_seeds(1)), &
-                            0, C_NULL_PTR, C_NULL_PTR)
-call CL%error_check('DoMCsimulation:clEnqueueWriteBuffer', ierr)
+call CL%write_buffer(seeds, C_LOC(init_seeds(1)), size_in_bytes_seeds, 'seeds')
 
 if (mode .eq. 'bse1') then
    call Message%printMessage(' Monte Carlo mode set to bse1. Calculating statistics for tilt series...',frm='(/A/)')
@@ -644,160 +617,69 @@ angleloop: do iang = 1,MCDT%numangle
 ! set the kernel arguments
 if (mode.ne.'Ivol') then
   if (mode .ne. 'foil') then
-        ierr = clSetKernelArg(kernel, 0, sizeof(LamX), C_LOC(LamX))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:LamX', ierr)
-
-        ierr = clSetKernelArg(kernel, 1, sizeof(LamY), C_LOC(LamY))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:LamY', ierr)
-
-        ierr = clSetKernelArg(kernel, 2, sizeof(EkeV), C_LOC(EkeV))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:EkeV', ierr)
-
-        ierr = clSetKernelArg(kernel, 3, sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:globalworkgrpsz', ierr)
-
-        ierr = clSetKernelArg(kernel, 4, sizeof(Ze), C_LOC(Ze))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:Ze', ierr)
-
-        ierr = clSetKernelArg(kernel, 5, sizeof(density), C_LOC(density))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:density', ierr)
-
-        ierr = clSetKernelArg(kernel, 6, sizeof(at_wt), C_LOC(at_wt))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:at_wt', ierr)
-
-        ierr = clSetKernelArg(kernel, 7, sizeof(num_el), C_LOC(num_el))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:num_el', ierr)
-
-        ierr = clSetKernelArg(kernel, 8, sizeof(seeds), C_LOC(seeds))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:seeds', ierr)
-
-        ierr = clSetKernelArg(kernel, 9, sizeof(sig), C_LOC(sig))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:sig', ierr)
-
-        ierr = clSetKernelArg(kernel, 10, sizeof(omega), C_LOC(omega))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:omega', ierr)
-
-        ierr = clSetKernelArg(kernel, 11, sizeof(depth), C_LOC(depth))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:depth', ierr)
-
-        ierr = clSetKernelArg(kernel, 12, sizeof(energy), C_LOC(energy))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:energy', ierr)
-
-        ierr = clSetKernelArg(kernel, 13, sizeof(steps), C_LOC(steps))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:steps', ierr)
+        call CL%set_kernel_arg(kernel, 0,  sizeof(LamX),            C_LOC(LamX),            'LamX')
+        call CL%set_kernel_arg(kernel, 1,  sizeof(LamY),            C_LOC(LamY),            'LamY')
+        call CL%set_kernel_arg(kernel, 2,  sizeof(EkeV),            C_LOC(EkeV),            'EkeV')
+        call CL%set_kernel_arg(kernel, 3,  sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz), 'globalworkgrpsz')
+        call CL%set_kernel_arg(kernel, 4,  sizeof(Ze),              C_LOC(Ze),              'Ze')
+        call CL%set_kernel_arg(kernel, 5,  sizeof(density),         C_LOC(density),         'density')
+        call CL%set_kernel_arg(kernel, 6,  sizeof(at_wt),           C_LOC(at_wt),           'at_wt')
+        call CL%set_kernel_arg(kernel, 7,  sizeof(num_el),          C_LOC(num_el),          'num_el')
+        call CL%set_kernel_arg(kernel, 8,  sizeof(seeds),           C_LOC(seeds),           'seeds')
+        call CL%set_kernel_arg(kernel, 9,  sizeof(sig),             C_LOC(sig),             'sig')
+        call CL%set_kernel_arg(kernel, 10, sizeof(omega),           C_LOC(omega),           'omega')
+        call CL%set_kernel_arg(kernel, 11, sizeof(depth),           C_LOC(depth),           'depth')
+        call CL%set_kernel_arg(kernel, 12, sizeof(energy),          C_LOC(energy),          'energy')
+        call CL%set_kernel_arg(kernel, 13, sizeof(steps),           C_LOC(steps),           'steps')
       else
-        ierr = clSetKernelArg(kernel, 0, sizeof(EkeV), C_LOC(EkeV))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:EkeV', ierr)
-
-        ierr = clSetKernelArg(kernel, 1, sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:globalworkgrpsz', ierr)
-
-        ierr = clSetKernelArg(kernel, 2, sizeof(Ze), C_LOC(Ze))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:Ze', ierr)
-
-        ierr = clSetKernelArg(kernel, 3, sizeof(density), C_LOC(density))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:density', ierr)
-
-        ierr = clSetKernelArg(kernel, 4, sizeof(at_wt), C_LOC(at_wt))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:at_wt', ierr)
-
-        ierr = clSetKernelArg(kernel, 5, sizeof(num_el), C_LOC(num_el))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:num_el', ierr)
-
-        ierr = clSetKernelArg(kernel, 6, sizeof(seeds), C_LOC(seeds))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:seeds', ierr)
-
-        ierr = clSetKernelArg(kernel, 7, sizeof(sig), C_LOC(sig))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:sig', ierr)
-
-        ierr = clSetKernelArg(kernel, 8, sizeof(omega), C_LOC(omega))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:omega', ierr)
-
-        ierr = clSetKernelArg(kernel, 9, sizeof(depth), C_LOC(depth))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:depth', ierr)
-
-        ierr = clSetKernelArg(kernel, 10, sizeof(energy), C_LOC(energy))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:energy', ierr)
-
-        ierr = clSetKernelArg(kernel, 11, sizeof(steps), C_LOC(steps))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:steps', ierr)
-
-        ierr = clSetKernelArg(kernel, 12, sizeof(thickness), C_LOC(thickness))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:thickness', ierr)
-
-        ierr = clSetKernelArg(kernel, 13, sizeof(LamX), C_LOC(LamX))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:LamXSH', ierr)
-
-        ierr = clSetKernelArg(kernel, 14, sizeof(LamY), C_LOC(LamY))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:LamYSH', ierr)
+        call CL%set_kernel_arg(kernel, 0,  sizeof(EkeV),            C_LOC(EkeV),            'EkeV')
+        call CL%set_kernel_arg(kernel, 1,  sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz), 'globalworkgrpsz')
+        call CL%set_kernel_arg(kernel, 2,  sizeof(Ze),              C_LOC(Ze),              'Ze')
+        call CL%set_kernel_arg(kernel, 3,  sizeof(density),         C_LOC(density),         'density')
+        call CL%set_kernel_arg(kernel, 4,  sizeof(at_wt),           C_LOC(at_wt),           'at_wt')
+        call CL%set_kernel_arg(kernel, 5,  sizeof(num_el),          C_LOC(num_el),          'num_el')
+        call CL%set_kernel_arg(kernel, 6,  sizeof(seeds),           C_LOC(seeds),           'seeds')
+        call CL%set_kernel_arg(kernel, 7,  sizeof(sig),             C_LOC(sig),             'sig')
+        call CL%set_kernel_arg(kernel, 8,  sizeof(omega),           C_LOC(omega),           'omega')
+        call CL%set_kernel_arg(kernel, 9,  sizeof(depth),           C_LOC(depth),           'depth')
+        call CL%set_kernel_arg(kernel, 10, sizeof(energy),          C_LOC(energy),          'energy')
+        call CL%set_kernel_arg(kernel, 11, sizeof(steps),           C_LOC(steps),           'steps')
+        call CL%set_kernel_arg(kernel, 12, sizeof(thickness),       C_LOC(thickness),       'thickness')
+        call CL%set_kernel_arg(kernel, 13, sizeof(LamX),            C_LOC(LamX),            'LamXSH')
+        call CL%set_kernel_arg(kernel, 14, sizeof(LamY),            C_LOC(LamY),            'LamYSH')
       end if
 else
-        ierr = clSetKernelArg(kernel, 0, sizeof(LamX), C_LOC(LamX))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:LamX', ierr)
-
-        ierr = clSetKernelArg(kernel, 1, sizeof(LamY), C_LOC(LamY))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:LamY', ierr)
-
-        ierr = clSetKernelArg(kernel, 2, sizeof(LamZ), C_LOC(LamZ))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:LamZ', ierr)
-
-        ierr = clSetKernelArg(kernel, 3, sizeof(EkeV), C_LOC(EkeV))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:EkeV', ierr)
-
-        ierr = clSetKernelArg(kernel, 4, sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:globalworkgrpsz', ierr)
-
-        ierr = clSetKernelArg(kernel, 5, sizeof(Ze), C_LOC(Ze))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:Ze', ierr)
-
-        ierr = clSetKernelArg(kernel, 6, sizeof(density), C_LOC(density))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:density', ierr)
-
-        ierr = clSetKernelArg(kernel, 7, sizeof(at_wt), C_LOC(at_wt))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:at_wt', ierr)
-
-        ierr = clSetKernelArg(kernel, 8, sizeof(num_el), C_LOC(num_el))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:num_el', ierr)
-
-        ierr = clSetKernelArg(kernel, 9, sizeof(seeds), C_LOC(seeds))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:seeds', ierr)
-
-        ierr = clSetKernelArg(kernel, 10, sizeof(sig), C_LOC(sig))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:sig', ierr)
-
-        ierr = clSetKernelArg(kernel, 11, sizeof(omega), C_LOC(omega))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:omega', ierr)
-
-        ierr = clSetKernelArg(kernel, 12, sizeof(steps), C_LOC(steps))
-        call CL%error_check('DoMCsimulation:clSetKernelArg:steps', ierr)
+        call CL%set_kernel_arg(kernel, 0,  sizeof(LamX),            C_LOC(LamX),            'LamX')
+        call CL%set_kernel_arg(kernel, 1,  sizeof(LamY),            C_LOC(LamY),            'LamY')
+        call CL%set_kernel_arg(kernel, 2,  sizeof(LamZ),            C_LOC(LamZ),            'LamZ')
+        call CL%set_kernel_arg(kernel, 3,  sizeof(EkeV),            C_LOC(EkeV),            'EkeV')
+        call CL%set_kernel_arg(kernel, 4,  sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz), 'globalworkgrpsz')
+        call CL%set_kernel_arg(kernel, 5,  sizeof(Ze),              C_LOC(Ze),              'Ze')
+        call CL%set_kernel_arg(kernel, 6,  sizeof(density),         C_LOC(density),         'density')
+        call CL%set_kernel_arg(kernel, 7,  sizeof(at_wt),           C_LOC(at_wt),           'at_wt')
+        call CL%set_kernel_arg(kernel, 8,  sizeof(num_el),          C_LOC(num_el),          'num_el')
+        call CL%set_kernel_arg(kernel, 9,  sizeof(seeds),           C_LOC(seeds),           'seeds')
+        call CL%set_kernel_arg(kernel, 10, sizeof(sig),             C_LOC(sig),             'sig')
+        call CL%set_kernel_arg(kernel, 11, sizeof(omega),           C_LOC(omega),           'omega')
+        call CL%set_kernel_arg(kernel, 12, sizeof(steps),           C_LOC(steps),           'steps')
 end if
 
-! execute the kernel
-        ierr = clEnqueueNDRangeKernel(command_queue, kernel, 2, C_NULL_PTR, C_LOC(globalsize), C_NULL_PTR, &
-                                      0, C_NULL_PTR, C_NULL_PTR)
-        call CL%error_check('DoMCsimulation:clEnqueueNDRangeKernel', ierr)
+! execute the kernel (2-D work group; the work dimension is inferred from globalsize)
+        call CL%enqueue_kernel(kernel, globalsize, 'MC')
 
 ! wait for the commands to finish
-        ierr = clFinish(command_queue)
-        call CL%error_check('DoMCsimulation:clFinish', ierr)
+        call CL%finish()
 
 ! read the resulting vector from device memory
 if (mode.ne.'Ivol') then
-        ierr = clEnqueueReadBuffer(command_queue,LamX,CL_TRUE,0_8,size_in_bytes,C_LOC(Lamresx(1)),0,C_NULL_PTR,C_NULL_PTR)
-        call CL%error_check('DoMCsimulation:clEnqueueReadBuffer:Lamresx', ierr)
-        ierr = clEnqueueReadBuffer(command_queue,LamY,CL_TRUE,0_8,size_in_bytes,C_LOC(Lamresy(1)),0,C_NULL_PTR,C_NULL_PTR)
-        call CL%error_check('DoMCsimulation:clEnqueueReadBuffer:Lamresy', ierr)
-        ierr = clEnqueueReadBuffer(command_queue,depth,CL_TRUE,0_8,size_in_bytes,C_LOC(depthres(1)),0,C_NULL_PTR,C_NULL_PTR)
-        call CL%error_check('DoMCsimulation:clEnqueueReadBuffer:depthres', ierr)
-        ierr = clEnqueueReadBuffer(command_queue,energy,CL_TRUE,0_8,size_in_bytes,C_LOC(energyres(1)),0,C_NULL_PTR,C_NULL_PTR)
-        call CL%error_check('DoMCsimulation:clEnqueueReadBuffer:energyres', ierr)
+        call CL%read_buffer(LamX,   C_LOC(Lamresx(1)),   size_in_bytes, 'Lamresx')
+        call CL%read_buffer(LamY,   C_LOC(Lamresy(1)),   size_in_bytes, 'Lamresy')
+        call CL%read_buffer(depth,  C_LOC(depthres(1)),  size_in_bytes, 'depthres')
+        call CL%read_buffer(energy, C_LOC(energyres(1)), size_in_bytes, 'energyres')
 else
-        ierr = clEnqueueReadBuffer(command_queue,LamX,CL_TRUE,0_8,size_in_bytes,C_LOC(Lamresx(1)),0,C_NULL_PTR,C_NULL_PTR)
-        call CL%error_check('DoMCsimulation:clEnqueueReadBuffer:Lamresx', ierr)
-        ierr = clEnqueueReadBuffer(command_queue,LamY,CL_TRUE,0_8,size_in_bytes,C_LOC(Lamresy(1)),0,C_NULL_PTR,C_NULL_PTR)
-        call CL%error_check('DoMCsimulation:clEnqueueReadBuffer:Lamresy', ierr)
-        ierr = clEnqueueReadBuffer(command_queue,LamZ,CL_TRUE,0_8,size_in_bytes,C_LOC(Lamresz(1)),0,C_NULL_PTR,C_NULL_PTR)
-        call CL%error_check('DoMCsimulation:clEnqueueReadBuffer:Lamresz', ierr)
+        call CL%read_buffer(LamX,   C_LOC(Lamresx(1)),   size_in_bytes, 'Lamresx')
+        call CL%read_buffer(LamY,   C_LOC(Lamresy(1)),   size_in_bytes, 'Lamresy')
+        call CL%read_buffer(LamZ,   C_LOC(Lamresz(1)),   size_in_bytes, 'Lamresz')
 end if
 
 !    call clEnqueueReadBuffer(command_queue, seeds, cl_bool(.true.), 0_8, size_in_bytes_seeds, init_seeds(1), ierr)
@@ -982,27 +864,17 @@ call closeFortranHDFInterface()
 ! RELEASE EVERYTHING
 !=====================
 
-ierr = clReleaseKernel(kernel)
-call CL%error_check('DoMCsimulation:clReleaseKernel', ierr)
-ierr = clReleaseCommandQueue(command_queue)
-call CL%error_check('DoMCsimulation:clReleaseCommandQueue', ierr)
-ierr = clReleaseContext(context)
-call CL%error_check('DoMCsimulation:clReleaseContext', ierr)
-ierr = clReleaseMemObject(LamX)
-call CL%error_check('DoMCsimulation:clReleaseMemObject:LamX', ierr)
-ierr = clReleaseMemObject(LamY)
-call CL%error_check('DoMCsimulation:clReleaseMemObject:LamY', ierr)
+call CL%release_kernel(kernel)
+call CL%release_context_queue()
+call CL%release_buffer(LamX)
+call CL%release_buffer(LamY)
 if (mode.eq.'Ivol') then
-  ierr = clReleaseMemObject(LamZ)
-  call CL%error_check('DoMCsimulation:clReleaseMemObject:LamZ', ierr)
+  call CL%release_buffer(LamZ)
 else
-  ierr = clReleaseMemObject(depth)
-  call CL%error_check('DoMCsimulation:clReleaseMemObject:depth', ierr)
-  ierr = clReleaseMemObject(energy)
-  call CL%error_check('DoMCsimulation:clReleaseMemObject:energy', ierr)
+  call CL%release_buffer(depth)
+  call CL%release_buffer(energy)
 end if
-ierr = clReleaseMemObject(seeds)
-call CL%error_check('DoMCsimulation:clReleaseMemObject:seeds', ierr)
+call CL%release_buffer(seeds)
 
 
 ! if requested, we notify the user that this program has completed its run

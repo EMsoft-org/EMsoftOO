@@ -276,7 +276,7 @@ use stringconstants
 use mod_diffraction
 use mod_Lambert
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use mod_notifications
 use mod_math
 use mod_memory
@@ -302,7 +302,7 @@ type(EMsoft_T)          :: EMsoft
 type(Cell_T)            :: cell
 type(DynType)           :: Dyn
 type(IO_T)              :: Message
-type(OpenCL_T)          :: CL
+type(GPU_T)          :: CL
 type(Lambert_T)         :: Lambert
 type(SpaceGroup_T)      :: SG
 type(Diffraction_T)     :: Diff
@@ -460,7 +460,7 @@ accum_z = 0
 !======================
 ! OpenCL INITIALIZATION
 !======================
-CL = OpenCL_T( verb = .FALSE. )
+CL = GPU_T( verb = .FALSE. )
 call CL%init_PDCCQ(platform, nump, int(ipar(7)), device, numd, int(ipar(6)), info, context, command_queue)
 
 !=====================
@@ -473,25 +473,14 @@ emmcPath=EMsoft%toNativePath(emmcPath)
 
 call CL%read_source_file(EMsoft, emmcPath, csource, slength)
 
-! create the program
-pcnt = 1
-psource = C_LOC(csource)
-prog = clCreateProgramWithSource(context, pcnt, C_LOC(psource), C_LOC(slength), ierr)
+! create and build the program.  quiet=.TRUE. preserves the original behaviour of
+! this C-callable wrapper: no build-log print and no fatal error check (CL errors
+! are deferred to the calling program rather than aborting the host process).
+prog = CL%build_program(csource, slength, quiet=.TRUE.)
 
-! build the program
-ierr = clBuildProgram(prog, numd, C_LOC(device), C_NULL_PTR, C_NULL_FUNPTR, C_NULL_PTR)
-if (ierr.le.0) then
-  ierr = clGetProgramBuildInfo(prog, device(ipar(6)), CL_PROGRAM_BUILD_LOG, sizeof(source), C_LOC(source), cnum)
-endif
-
-! get the compilation log
-ierr = clGetProgramBuildInfo(prog, device(ipar(6)), CL_PROGRAM_BUILD_LOG, sizeof(source), C_LOC(source), cnum)
-
-! if we get here, then the program build was successful and we can proceed with the creation of the kernel
 ! finally get the kernel and release the program
-kernelname = 'MC'//CHAR(0)
-kernel = clCreateKernel(prog, C_LOC(kernelname), ierr)
-ierr = clReleaseProgram(prog)
+kernel = CL%get_kernel(prog, 'MC', quiet=.TRUE.)
+call CL%release_program(prog, quiet=.TRUE.)
 
 open(unit = iunit, file = trim(EMsoft%toNativePath(EMsoft%getConfigParameter('Randomseedfilename'))), &
      form='unformatted', status='old')
@@ -513,18 +502,13 @@ do i = 1,globalworkgrpsz
 end do
 
 ! create device memory buffers
-LamX = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
+LamX   = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'LamX',   quiet=.TRUE.)
+LamY   = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'LamY',   quiet=.TRUE.)
+depth  = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'depth',  quiet=.TRUE.)
+energy = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'energy', quiet=.TRUE.)
+seeds  = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes, 'seeds',  quiet=.TRUE.)
 
-LamY = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
-
-depth = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
-
-energy = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, C_NULL_PTR, ierr)
-
-seeds = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes, C_NULL_PTR, ierr)
-
-ierr = clEnqueueWriteBuffer(command_queue, seeds, CL_TRUE, 0_8, size_in_bytes_seeds, C_LOC(init_seeds(1)), &
-                            0, C_NULL_PTR, C_NULL_PTR)
+call CL%write_buffer(seeds, C_LOC(init_seeds(1)), size_in_bytes_seeds, 'seeds', quiet=.TRUE.)
 
 ! set the callback parameters
 dn = 1
@@ -543,46 +527,32 @@ angleloop: do iang = 1,numangle
   mainloop: do i = 1,(totnum_el/num_max+1)
 
 ! set the kernel arguments
-    ierr = clSetKernelArg(kernel, 0, sizeof(LamX), C_LOC(LamX))
-
-    ierr = clSetKernelArg(kernel, 1, sizeof(LamY), C_LOC(LamY))
-
-    ierr = clSetKernelArg(kernel, 2, sizeof(EkeV), C_LOC(EkeV))
-
-    ierr = clSetKernelArg(kernel, 3, sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz))
-
-    ierr = clSetKernelArg(kernel, 4, sizeof(Ze), C_LOC(Ze))
-
-    ierr = clSetKernelArg(kernel, 5, sizeof(density), C_LOC(density))
-
-    ierr = clSetKernelArg(kernel, 6, sizeof(at_wt), C_LOC(at_wt))
-
-    ierr = clSetKernelArg(kernel, 7, sizeof(num_el), C_LOC(num_el))
-
-    ierr = clSetKernelArg(kernel, 8, sizeof(seeds), C_LOC(seeds))
-
-    ierr = clSetKernelArg(kernel, 9, sizeof(sig), C_LOC(sig))
-
-    ierr = clSetKernelArg(kernel, 10, sizeof(omega), C_LOC(omega))
-
-    ierr = clSetKernelArg(kernel, 11, sizeof(depth), C_LOC(depth))
-
-    ierr = clSetKernelArg(kernel, 12, sizeof(energy), C_LOC(energy))
-
-    ierr = clSetKernelArg(kernel, 13, sizeof(steps), C_LOC(steps))
+    call CL%set_kernel_arg(kernel, 0,  sizeof(LamX),            C_LOC(LamX),            'LamX',            quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 1,  sizeof(LamY),            C_LOC(LamY),            'LamY',            quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 2,  sizeof(EkeV),            C_LOC(EkeV),            'EkeV',            quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 3,  sizeof(globalworkgrpsz), C_LOC(globalworkgrpsz), 'globalworkgrpsz', quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 4,  sizeof(Ze),              C_LOC(Ze),              'Ze',              quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 5,  sizeof(density),         C_LOC(density),         'density',         quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 6,  sizeof(at_wt),           C_LOC(at_wt),           'at_wt',           quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 7,  sizeof(num_el),          C_LOC(num_el),          'num_el',          quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 8,  sizeof(seeds),           C_LOC(seeds),           'seeds',           quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 9,  sizeof(sig),             C_LOC(sig),             'sig',             quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 10, sizeof(omega),           C_LOC(omega),           'omega',           quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 11, sizeof(depth),           C_LOC(depth),           'depth',           quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 12, sizeof(energy),          C_LOC(energy),          'energy',          quiet=.TRUE.)
+    call CL%set_kernel_arg(kernel, 13, sizeof(steps),           C_LOC(steps),           'steps',           quiet=.TRUE.)
 
 ! execute the kernel
-    ierr = clEnqueueNDRangeKernel(command_queue, kernel, 2, C_NULL_PTR, C_LOC(globalsize), C_NULL_PTR, &
-                                  0, C_NULL_PTR, C_NULL_PTR)
+    call CL%enqueue_kernel(kernel, globalsize, 'MC', quiet=.TRUE.)
 
 ! wait for the commands to finish
-    ierr = clFinish(command_queue)
+    call CL%finish(quiet=.TRUE.)
 
 ! read the resulting vector from device memory
-    ierr = clEnqueueReadBuffer(command_queue,LamX,CL_TRUE,0_8,size_in_bytes,C_LOC(Lamresx(1)),0,C_NULL_PTR,C_NULL_PTR)
-    ierr = clEnqueueReadBuffer(command_queue,LamY,CL_TRUE,0_8,size_in_bytes,C_LOC(Lamresy(1)),0,C_NULL_PTR,C_NULL_PTR)
-    ierr = clEnqueueReadBuffer(command_queue,depth,CL_TRUE,0_8,size_in_bytes,C_LOC(depthres(1)),0,C_NULL_PTR,C_NULL_PTR)
-    ierr = clEnqueueReadBuffer(command_queue,energy,CL_TRUE,0_8,size_in_bytes,C_LOC(energyres(1)),0,C_NULL_PTR,C_NULL_PTR)
+    call CL%read_buffer(LamX,   C_LOC(Lamresx(1)),   size_in_bytes, 'Lamresx',   quiet=.TRUE.)
+    call CL%read_buffer(LamY,   C_LOC(Lamresy(1)),   size_in_bytes, 'Lamresy',   quiet=.TRUE.)
+    call CL%read_buffer(depth,  C_LOC(depthres(1)),  size_in_bytes, 'depthres',  quiet=.TRUE.)
+    call CL%read_buffer(energy, C_LOC(energyres(1)), size_in_bytes, 'energyres', quiet=.TRUE.)
 
     if (mode .eq. 'full') then
       val = 0
@@ -669,14 +639,13 @@ end do angleloop
 ! RELEASE EVERYTHING
 !=====================
 
-ierr = clReleaseKernel(kernel)
-ierr = clReleaseCommandQueue(command_queue)
-ierr = clReleaseContext(context)
-ierr = clReleaseMemObject(LamX)
-ierr = clReleaseMemObject(LamY)
-ierr = clReleaseMemObject(depth)
-ierr = clReleaseMemObject(energy)
-ierr = clReleaseMemObject(seeds)
+call CL%release_kernel(kernel, quiet=.TRUE.)
+call CL%release_context_queue(quiet=.TRUE.)
+call CL%release_buffer(LamX,   quiet=.TRUE.)
+call CL%release_buffer(LamY,   quiet=.TRUE.)
+call CL%release_buffer(depth,  quiet=.TRUE.)
+call CL%release_buffer(energy, quiet=.TRUE.)
+call CL%release_buffer(seeds,  quiet=.TRUE.)
 
 ! and deallocate all arrays 
 call mem%dealloc(Lamresx, 'Lamresx')

@@ -574,7 +574,7 @@ use mod_Lambert
 use mod_math
 use HDF5
 use mod_HDFsupport
-use mod_CLsupport
+use mod_GPUsupport
 use mod_timing
 use clfortran
 use omp_lib
@@ -594,7 +594,7 @@ type(Timing_T)                            :: timer
 type(Cell_T)                              :: cell
 type(DynType)                             :: Dyn
 type(HDF_T)                               :: HDF
-type(OpenCL_T)                            :: CL
+type(GPU_T)                            :: CL
 type(gvectors_T)                          :: reflist
 type(reflisttype),pointer                 :: firstw
 type(Quaternion_T)                        :: quat, quinv
@@ -740,30 +740,18 @@ energyres = 0.0
 size_in_bytes = int(num_max,kind=8) * sizeof(EkeV)
 size_in_bytes_seeds = int(4*globalworkgrpsz*globalworkgrpsz,kind=8) * sizeof(EkeV)
 
-CL = OpenCL_T()
+CL = GPU_T()
 call CL%init_PDCCQ(platform, nump, enl%platid, device, numd, enl%devid, info, context, command_queue)
 
 sourcefile = 'EMMC.cl'
 call Message%printMessage(' OpenCL source file set to : '//trim(sourcefile))
 call CL%read_source_file(EMsoft, sourcefile, csource, slength)
 
-pcnt = 1
-psource = c_loc(csource)
-prog = clCreateProgramWithSource(context, pcnt, c_loc(psource), c_loc(slength), ierr)
-call CL%error_check('ComputeFullEBSDPatterns:clCreateProgramWithSource', ierr)
-
-ierr = clBuildProgram(prog, numd, c_loc(device), c_null_ptr, c_null_funptr, c_null_ptr)
-ierr2 = clGetProgramBuildInfo(prog, device(enl%devid), CL_PROGRAM_BUILD_LOG, sizeof(source), c_loc(source), cnum)
-if (len(trim(source)).gt.0) call Message%printMessage(trim(source(1:cnum)), frm='(A)')
-call CL%error_check('ComputeFullEBSDPatterns:clBuildProgram', ierr)
-call CL%error_check('ComputeFullEBSDPatterns:clGetProgramBuildInfo', ierr2)
+prog = CL%build_program(csource, slength)
 
 call Message%printMessage(' Program Build Successful... Creating kernel')
-kernelname = 'MC'//char(0)
-kernel = clCreateKernel(prog, c_loc(kernelname), ierr)
-call CL%error_check('ComputeFullEBSDPatterns:clCreateKernel:MC', ierr)
-ierr = clReleaseProgram(prog)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseProgram', ierr)
+kernel = CL%get_kernel(prog, 'MC')
+call CL%release_program(prog)
 
 fname = EMsoft%generateFilePath('Randomseedfilename')
 open(unit=10,file=trim(fname),form='unformatted',status='old')
@@ -794,68 +782,42 @@ do i=1,globalworkgrpsz
   end do
 end do
 
-LamX = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, c_null_ptr, ierr)
-call CL%error_check('ComputeFullEBSDPatterns:clCreateBuffer:LamX', ierr)
-LamY = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, c_null_ptr, ierr)
-call CL%error_check('ComputeFullEBSDPatterns:clCreateBuffer:LamY', ierr)
-depth = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, c_null_ptr, ierr)
-call CL%error_check('ComputeFullEBSDPatterns:clCreateBuffer:depth', ierr)
-energy = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_in_bytes, c_null_ptr, ierr)
-call CL%error_check('ComputeFullEBSDPatterns:clCreateBuffer:energy', ierr)
-seeds = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes, c_null_ptr, ierr)
-call CL%error_check('ComputeFullEBSDPatterns:clCreateBuffer:seeds', ierr)
+LamX   = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'LamX')
+LamY   = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'LamY')
+depth  = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'depth')
+energy = CL%create_buffer(CL_MEM_WRITE_ONLY, size_in_bytes, 'energy')
+seeds  = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes, 'seeds')
 
-ierr = clEnqueueWriteBuffer(command_queue, seeds, CL_TRUE, 0_8, size_in_bytes_seeds, c_loc(init_seeds(1)), 0, c_null_ptr, c_null_ptr)
-call CL%error_check('ComputeFullEBSDPatterns:clEnqueueWriteBuffer', ierr)
+call CL%write_buffer(seeds, c_loc(init_seeds(1)), size_in_bytes_seeds, 'seeds')
 call Message%printMessage(' Monte Carlo mode set to full. Performing full calculation...', frm='(A/)')
 
-ierr = clSetKernelArg(kernel, 0, sizeof(LamX), c_loc(LamX))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:LamX', ierr)
-ierr = clSetKernelArg(kernel, 1, sizeof(LamY), c_loc(LamY))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:LamY', ierr)
-ierr = clSetKernelArg(kernel, 2, sizeof(EkeV), c_loc(EkeV))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:EkeV', ierr)
-ierr = clSetKernelArg(kernel, 3, sizeof(globalworkgrpsz), c_loc(globalworkgrpsz))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:globalworkgrpsz', ierr)
-ierr = clSetKernelArg(kernel, 4, sizeof(Ze), c_loc(Ze))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:Ze', ierr)
-ierr = clSetKernelArg(kernel, 5, sizeof(density), c_loc(density))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:density', ierr)
-ierr = clSetKernelArg(kernel, 6, sizeof(at_wt), c_loc(at_wt))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:at_wt', ierr)
-ierr = clSetKernelArg(kernel, 7, sizeof(num_el), c_loc(num_el))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:num_el', ierr)
-ierr = clSetKernelArg(kernel, 8, sizeof(seeds), c_loc(seeds))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:seeds', ierr)
-ierr = clSetKernelArg(kernel, 9, sizeof(sig), c_loc(sig))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:sig', ierr)
-ierr = clSetKernelArg(kernel, 10, sizeof(omega), c_loc(omega))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:omega', ierr)
-ierr = clSetKernelArg(kernel, 11, sizeof(depth), c_loc(depth))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:depth', ierr)
-ierr = clSetKernelArg(kernel, 12, sizeof(energy), c_loc(energy))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:energy', ierr)
-ierr = clSetKernelArg(kernel, 13, sizeof(steps), c_loc(steps))
-call CL%error_check('ComputeFullEBSDPatterns:clSetKernelArg:steps', ierr)
+call CL%set_kernel_arg(kernel, 0,  sizeof(LamX),            c_loc(LamX),            'LamX')
+call CL%set_kernel_arg(kernel, 1,  sizeof(LamY),            c_loc(LamY),            'LamY')
+call CL%set_kernel_arg(kernel, 2,  sizeof(EkeV),            c_loc(EkeV),            'EkeV')
+call CL%set_kernel_arg(kernel, 3,  sizeof(globalworkgrpsz), c_loc(globalworkgrpsz), 'globalworkgrpsz')
+call CL%set_kernel_arg(kernel, 4,  sizeof(Ze),              c_loc(Ze),              'Ze')
+call CL%set_kernel_arg(kernel, 5,  sizeof(density),         c_loc(density),         'density')
+call CL%set_kernel_arg(kernel, 6,  sizeof(at_wt),           c_loc(at_wt),           'at_wt')
+call CL%set_kernel_arg(kernel, 7,  sizeof(num_el),          c_loc(num_el),          'num_el')
+call CL%set_kernel_arg(kernel, 8,  sizeof(seeds),           c_loc(seeds),           'seeds')
+call CL%set_kernel_arg(kernel, 9,  sizeof(sig),             c_loc(sig),             'sig')
+call CL%set_kernel_arg(kernel, 10, sizeof(omega),           c_loc(omega),           'omega')
+call CL%set_kernel_arg(kernel, 11, sizeof(depth),           c_loc(depth),           'depth')
+call CL%set_kernel_arg(kernel, 12, sizeof(energy),          c_loc(energy),          'energy')
+call CL%set_kernel_arg(kernel, 13, sizeof(steps),           c_loc(steps),           'steps')
 
 call timer%Time_tick()
 val = 0_ill
 loopcount = int(totnum_el/num_max + 1_ill, kind=irg)
 
 do batch=1,loopcount
-  ierr = clEnqueueNDRangeKernel(command_queue, kernel, 2, c_null_ptr, c_loc(globalsize), c_null_ptr, 0, c_null_ptr, c_null_ptr)
-  call CL%error_check('ComputeFullEBSDPatterns:clEnqueueNDRangeKernel', ierr)
-  ierr = clFinish(command_queue)
-  call CL%error_check('ComputeFullEBSDPatterns:clFinish', ierr)
+  call CL%enqueue_kernel(kernel, globalsize, 'MC')
+  call CL%finish()
 
-  ierr = clEnqueueReadBuffer(command_queue, LamX, CL_TRUE, 0_8, size_in_bytes, c_loc(Lamresx(1)), 0, c_null_ptr, c_null_ptr)
-  call CL%error_check('ComputeFullEBSDPatterns:clEnqueueReadBuffer:Lamresx', ierr)
-  ierr = clEnqueueReadBuffer(command_queue, LamY, CL_TRUE, 0_8, size_in_bytes, c_loc(Lamresy(1)), 0, c_null_ptr, c_null_ptr)
-  call CL%error_check('ComputeFullEBSDPatterns:clEnqueueReadBuffer:Lamresy', ierr)
-  ierr = clEnqueueReadBuffer(command_queue, depth, CL_TRUE, 0_8, size_in_bytes, c_loc(depthres(1)), 0, c_null_ptr, c_null_ptr)
-  call CL%error_check('ComputeFullEBSDPatterns:clEnqueueReadBuffer:depthres', ierr)
-  ierr = clEnqueueReadBuffer(command_queue, energy, CL_TRUE, 0_8, size_in_bytes, c_loc(energyres(1)), 0, c_null_ptr, c_null_ptr)
-  call CL%error_check('ComputeFullEBSDPatterns:clEnqueueReadBuffer:energyres', ierr)
+  call CL%read_buffer(LamX,   c_loc(Lamresx(1)),   size_in_bytes, 'Lamresx')
+  call CL%read_buffer(LamY,   c_loc(Lamresy(1)),   size_in_bytes, 'Lamresy')
+  call CL%read_buffer(depth,  c_loc(depthres(1)),  size_in_bytes, 'depthres')
+  call CL%read_buffer(energy, c_loc(energyres(1)), size_in_bytes, 'energyres')
 
   do j=1,int(num_max,kind=irg)
     if ((Lamresx(j).ne.-10.0).and.(Lamresy(j).ne.-10.0).and.(depthres(j).ne.10.0).and.(energyres(j).ne.0.0)) then
@@ -901,22 +863,13 @@ call Message%WriteValue('Total number of BSE electrons intercepted by detector =
 io_real(1) = real(val,kind=sgl) / real(totnum_el,kind=sgl)
 call Message%WriteValue('Backscatter yield on detector = ', io_real, 1, '(F15.6)')
 
-ierr = clReleaseKernel(kernel)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseKernel', ierr)
-ierr = clReleaseCommandQueue(command_queue)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseCommandQueue', ierr)
-ierr = clReleaseContext(context)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseContext', ierr)
-ierr = clReleaseMemObject(LamX)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseMemObject:LamX', ierr)
-ierr = clReleaseMemObject(LamY)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseMemObject:LamY', ierr)
-ierr = clReleaseMemObject(depth)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseMemObject:depth', ierr)
-ierr = clReleaseMemObject(energy)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseMemObject:energy', ierr)
-ierr = clReleaseMemObject(seeds)
-call CL%error_check('ComputeFullEBSDPatterns:clReleaseMemObject:seeds', ierr)
+call CL%release_kernel(kernel)
+call CL%release_context_queue()
+call CL%release_buffer(LamX)
+call CL%release_buffer(LamY)
+call CL%release_buffer(depth)
+call CL%release_buffer(energy)
+call CL%release_buffer(seeds)
 
 call ComputeFullDynamicalPatterns(self, EMsoft, HDF, cell, SG, timer, datafile, numangles, angles, &
                                   numEbins, numzbins, totnum_el, num_max)

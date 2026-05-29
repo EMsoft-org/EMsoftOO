@@ -80,7 +80,7 @@ use mod_rotations
 use mod_so3
 use mod_math
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use omp_lib
 use mod_OMPsupport
 use h5im
@@ -157,7 +157,7 @@ type(EBSD_T)                                        :: EBSD
 type(ECP_T)                                         :: ECP
 type(Timing_T)                                      :: timer
 type(IO_T)                                          :: Message
-type(OpenCL_T)                                      :: CL
+type(GPU_T)                                      :: CL
 type(SpaceGroup_T)                                  :: SG
 type(so3_T)                                         :: SO
 type(q_T)                                           :: quat, qqq
@@ -750,7 +750,7 @@ end if
 
 ! do a quick sanity check for the requested GPU memory
 call Message%printMessage(' --> Initializing OpenCL device')
-CL = OpenCL_T(skipCPU=.TRUE.)
+CL = GPU_T(skipCPU=.TRUE.)
 Nres = Ne*Nd*4
 ! temporarily disabled lines (until we figure out why they don't work on Linux...)
 !call CL%query_platform_info(dinl%platid)
@@ -888,42 +888,20 @@ sourcefile = 'DictIndx.cl'
 call CL%read_source_file(EMsoft, sourcefile, csource, slength)
 
 ! allocate device memory for experimental and dictionary patterns
-cl_expt = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_expt, C_NULL_PTR, ierr)
-call CL%error_check('DIdriver:clCreateBuffer', ierr)
-
-cl_dict = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_dict, C_NULL_PTR, ierr)
-call CL%error_check('DIdriver:clCreateBuffer', ierr)
+cl_expt = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes_expt, 'cl_expt')
+cl_dict = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes_dict, 'cl_dict')
 
 !================================
 ! the following lines were originally in the InnerProdGPU routine, but there is no need
 ! to execute them each time that routine is called so we move them here...
 !================================
-! create the program
-pcnt = 1
-psource = C_LOC(csource)
-prog = clCreateProgramWithSource(context, pcnt, C_LOC(psource), C_LOC(slength), ierr)
-call CL%error_check('InnerProdGPU:clCreateProgramWithSource', ierr)
-
-! build the program
-ierr = clBuildProgram(prog, numd, C_LOC(device), C_NULL_PTR, C_NULL_FUNPTR, C_NULL_PTR)
-
-! get the compilation log
-ierr2 = clGetProgramBuildInfo(prog, device(dinl%devid), CL_PROGRAM_BUILD_LOG, sizeof(source), C_LOC(source), cnum)
-if (len(trim(source)) > 0) call Message%printMessage(trim(source(1:cnum)),frm='(A)')
-call CL%error_check('InnerProdGPU:clBuildProgram', ierr)
-call CL%error_check('InnerProdGPU:clGetProgramBuildInfo', ierr2)
-
+! create and build the program (build log printed inside the wrapper)
+prog = CL%build_program(csource, slength)
 call Message%printMessage(' Program Build Successful... Creating kernel')
 
-! finally get the kernel and release the program
-kernelname = 'InnerProd'
-ckernelname = kernelname
-ckernelname(10:10) = C_NULL_CHAR
-kernel = clCreateKernel(prog, C_LOC(ckernelname), ierr)
-call CL%error_check('InnerProdGPU:clCreateKernel', ierr)
-
-ierr = clReleaseProgram(prog)
-call CL%error_check('InnerProdGPU:clReleaseProgram', ierr)
+! finally get the InnerProd kernel and release the program
+kernel = CL%get_kernel(prog, 'InnerProd')
+call CL%release_program(prog)
 
 ! the remainder is done in the InnerProdGPU routine
 !=========================================
@@ -1272,9 +1250,7 @@ dictionaryloop: do ii = 1,cratio+1
         end do
       end do
 !$OMP END PARALLEL DO 
-      ierr = clEnqueueWriteBuffer(command_queue, cl_dict, CL_TRUE, 0_8, size_in_bytes_dict, C_LOC(dicttranspose(1)), &
-                                  0, C_NULL_PTR, C_NULL_PTR)
-      call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
+      call CL%write_buffer(cl_dict, C_LOC(dicttranspose(1)), size_in_bytes_dict, 'cl_dict')
 
       mvres = 0.0
 
@@ -1287,9 +1263,7 @@ dictionaryloop: do ii = 1,cratio+1
           expt((pp-1)*correctsize+1:pp*correctsize) = tmpimageexpt
         end do
 
-        ierr = clEnqueueWriteBuffer(command_queue, cl_expt, CL_TRUE, 0_8, size_in_bytes_expt, C_LOC(expt(1)), &
-                                    0, C_NULL_PTR, C_NULL_PTR)
-        call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
+        call CL%write_buffer(cl_expt, C_LOC(expt(1)), size_in_bytes_expt, 'cl_expt')
 
         call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,DIFT%nml%devid,kernel,context,command_queue)
 
@@ -1579,12 +1553,10 @@ if (trim(dinl%IPFprefix).ne.'undefined') then
 end if
 
 !-----
-ierr = clReleaseMemObject(cl_dict)
-call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
+call CL%release_buffer(cl_dict)
 
 !-----
-ierr = clReleaseMemObject(cl_expt)
-call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
+call CL%release_buffer(cl_expt)
 
 if (cancelled.eqv..FALSE.) then
 
@@ -1595,8 +1567,7 @@ if (cancelled.eqv..FALSE.) then
   end if
 
 ! release the OpenCL kernel
-  ierr = clReleaseKernel(kernel)
-  call CL%error_check('DIdriver:clReleaseKernel', ierr)
+  call CL%release_kernel(kernel)
 
   if (trim(dinl%indexingmode).eq.'static') then
     call HDF%popall()
@@ -1786,7 +1757,7 @@ use mod_rotations
 use mod_so3
 use mod_math
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use omp_lib
 use mod_OMPsupport
 use h5im
@@ -1832,7 +1803,7 @@ type(HDFnames_T)                                    :: HDFnames
 type(ECP_T)                                         :: ECP
 type(Timing_T)                                      :: timer
 type(IO_T)                                          :: Message
-type(OpenCL_T)                                      :: CL
+type(GPU_T)                                      :: CL
 type(q_T)                                           :: quat, qqq
 type(e_T)                                           :: eu, eee
 type(r_T)                                           :: ro
@@ -2055,7 +2026,7 @@ recordsize_correct = correctsize*4
 patsz              = correctsize
 
 ! do a quick sanity check for the requested GPU memory
-CL = OpenCL_T(skipCPU=.TRUE.)
+CL = GPU_T(skipCPU=.TRUE.)
 Nres = Ne*Nd*4
 ! temporarily disabled lines (until we figure out why they don't work on Linux...)
 !call CL%query_platform_info(dinl%platid)
@@ -2128,40 +2099,19 @@ sourcefile = 'DictIndx.cl'
 call CL%read_source_file(EMsoft, sourcefile, csource, slength)
 
 ! allocate device memory for experimental and dictionary patterns
-cl_expt = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_expt, C_NULL_PTR, ierr)
-call CL%error_check('DIdriver:clCreateBuffer', ierr)
-
-cl_dict = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_dict, C_NULL_PTR, ierr)
-call CL%error_check('DIdriver:clCreateBuffer', ierr)
+cl_expt = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes_expt, 'cl_expt')
+cl_dict = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes_dict, 'cl_dict')
 
 !================================
 ! the following lines were originally in the InnerProdGPU routine, but there is no need
 ! to execute them each time that routine is called so we move them here...
 !================================
-! create the program
-pcnt = 1
-psource = C_LOC(csource)
-prog = clCreateProgramWithSource(context, pcnt, C_LOC(psource), C_LOC(slength), ierr)
-call CL%error_check('InnerProdGPU:clCreateProgramWithSource', ierr)
+! create and build the program (build log printed inside the wrapper)
+prog = CL%build_program(csource, slength)
 
-! build the program
-ierr = clBuildProgram(prog, numd, C_LOC(device), C_NULL_PTR, C_NULL_FUNPTR, C_NULL_PTR)
-
-! get the compilation log
-ierr2 = clGetProgramBuildInfo(prog, device(dinl%devid), CL_PROGRAM_BUILD_LOG, sizeof(source), C_LOC(source), cnum)
-if (len(trim(source)) > 0) call Message%printMessage(trim(source(1:cnum)),frm='(A)')
-call CL%error_check('InnerProdGPU:clBuildProgram', ierr)
-call CL%error_check('InnerProdGPU:clGetProgramBuildInfo', ierr2)
-
-! finally get the kernel and release the program
-kernelname = 'InnerProd'
-ckernelname = kernelname
-ckernelname(10:10) = C_NULL_CHAR
-kernel = clCreateKernel(prog, C_LOC(ckernelname), ierr)
-call CL%error_check('InnerProdGPU:clCreateKernel', ierr)
-
-ierr = clReleaseProgram(prog)
-call CL%error_check('InnerProdGPU:clReleaseProgram', ierr)
+! finally get the InnerProd kernel and release the program
+kernel = CL%get_kernel(prog, 'InnerProd')
+call CL%release_program(prog)
 
 ! the remainder is done in the InnerProdGPU routine
 !=========================================
@@ -2370,9 +2320,7 @@ dictionaryloop: do ii = 1,cratio+1
         end do
       end do
 !$OMP END PARALLEL DO 
-      ierr = clEnqueueWriteBuffer(command_queue, cl_dict, CL_TRUE, 0_8, size_in_bytes_dict, C_LOC(dicttranspose(1)), &
-                                  0, C_NULL_PTR, C_NULL_PTR)
-      call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
+      call CL%write_buffer(cl_dict, C_LOC(dicttranspose(1)), size_in_bytes_dict, 'cl_dict')
 
       mvres = 0.0
 
@@ -2391,9 +2339,7 @@ dictionaryloop: do ii = 1,cratio+1
           end do
         end if 
 
-        ierr = clEnqueueWriteBuffer(command_queue, cl_expt, CL_TRUE, 0_8, size_in_bytes_expt, C_LOC(expt(1)), &
-                                    0, C_NULL_PTR, C_NULL_PTR)
-        call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
+        call CL%write_buffer(cl_expt, C_LOC(expt(1)), size_in_bytes_expt, 'cl_expt')
 
         call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,numd,DIFT%nml%devid,kernel,context,command_queue)
 
@@ -2550,24 +2496,16 @@ else
 end if
 
 !-----
-ierr = clReleaseMemObject(cl_dict)
-call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
+call CL%release_buffer(cl_dict)
 
 !-----
-ierr = clReleaseMemObject(cl_expt)
-call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
+call CL%release_buffer(cl_expt)
 
 ! release the OpenCL kernel
-ierr = clReleaseKernel(kernel)
-call CL%error_check('DIdriver:clReleaseKernel', ierr)
+call CL%release_kernel(kernel)
 
 !-----
-ierr = clReleaseCommandQueue(command_queue)
-call CL%error_check('DIdriver:clReleaseCommandQueue', ierr)
-
-!-----
-ierr = clReleaseContext(context)
-call CL%error_check('DIdriver:clReleaseContext', ierr)
+call CL%release_context_queue()
 
 ! ===================
 ! MAIN OUTPUT SECTION
@@ -2656,7 +2594,7 @@ end subroutine OSMDIdriver
 ! use mod_so3
 ! use mod_math
 ! use clfortran
-! use mod_CLsupport
+! use mod_GPUsupport
 ! use omp_lib
 ! use mod_OMPsupport
 ! use h5im
@@ -2700,7 +2638,7 @@ end subroutine OSMDIdriver
 ! type(Timing_T)                                      :: timer
 ! type(HDF_T)                                         :: HDF
 ! type(IO_T)                                          :: Message
-! type(OpenCL_T)                                      :: CL
+! type(GPU_T)                                      :: CL
 ! type(q_T)                                           :: quat, qqq
 ! type(e_T)                                           :: eu, eee
 ! type(r_T)                                           :: ro
@@ -2907,7 +2845,7 @@ end subroutine OSMDIdriver
 ! patsz              = correctsize
 
 ! ! do a quick sanity check for the requested GPU memory
-! CL = OpenCL_T( verb=.FALSE., skipCPU=.TRUE. )
+! CL = GPU_T( verb=.FALSE., skipCPU=.TRUE. )
 ! Nres = Ne*Nd*4
 ! ! temporarily disabled lines (until we figure out why they don't work on Linux...)
 ! !call CL%query_platform_info(dinl%platid)
@@ -3498,7 +3436,7 @@ use mod_rotations
 use mod_so3
 use mod_math
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use omp_lib
 use mod_OMPsupport
 use h5im
@@ -3535,7 +3473,7 @@ type(EBSD_T)                                        :: EBSD
 type(ECP_T)                                         :: ECP
 type(Timing_T)                                      :: timer
 type(IO_T)                                          :: Message
-type(OpenCL_T)                                      :: CL
+type(GPU_T)                                      :: CL
 type(SpaceGroup_T)                                  :: SG
 type(so3_T)                                         :: SO
 type(q_T)                                           :: quat
@@ -3927,7 +3865,7 @@ end if
 
 ! do a quick sanity check for the requested GPU memory
 call Message%printMessage(' --> Initializing OpenCL device')
-CL = OpenCL_T()
+CL = GPU_T()
 Nres = Ne*Nd*4
 ! call CL%query_platform_info(dinl%platid)
 ! call CL%DI_memory_estimate(Nres, size_in_bytes_dict, size_in_bytes_expt, dinl%platid, dinl%devid)
@@ -3951,42 +3889,20 @@ sourcefile = 'DictIndx.cl'
 call CL%read_source_file(EMsoft, sourcefile, csource, slength)
 
 ! allocate device memory for experimental and dictionary patterns
-cl_expt = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_expt, C_NULL_PTR, ierr)
-call CL%error_check('DIdriver:clCreateBuffer', ierr)
-
-cl_dict = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_dict, C_NULL_PTR, ierr)
-call CL%error_check('DIdriver:clCreateBuffer', ierr)
+cl_expt = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes_expt, 'cl_expt')
+cl_dict = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes_dict, 'cl_dict')
 
 !================================
 ! the following lines were originally in the InnerProdGPU routine, but there is no need
 ! to execute them each time that routine is called so we move them here...
 !================================
-! create the program
-pcnt = 1
-psource = C_LOC(csource)
-prog = clCreateProgramWithSource(context, pcnt, C_LOC(psource), C_LOC(slength), ierr)
-call CL%error_check('InnerProdGPU:clCreateProgramWithSource', ierr)
-
-! build the program
-ierr = clBuildProgram(prog, numd, C_LOC(device), C_NULL_PTR, C_NULL_FUNPTR, C_NULL_PTR)
-
-! get the compilation log
-ierr2 = clGetProgramBuildInfo(prog, device(dinl%devid), CL_PROGRAM_BUILD_LOG, sizeof(source), C_LOC(source), cnum)
-if (len(trim(source)) > 0) call Message%printMessage(trim(source(1:cnum)),frm='(A)')
-call CL%error_check('InnerProdGPU:clBuildProgram', ierr)
-call CL%error_check('InnerProdGPU:clGetProgramBuildInfo', ierr2)
-
+! create and build the program (build log printed inside the wrapper)
+prog = CL%build_program(csource, slength)
 call Message%printMessage(' Program Build Successful... Creating kernel')
 
-! finally get the kernel and release the program
-kernelname = 'InnerProd'
-ckernelname = kernelname
-ckernelname(10:10) = C_NULL_CHAR
-kernel = clCreateKernel(prog, C_LOC(ckernelname), ierr)
-call CL%error_check('InnerProdGPU:clCreateKernel', ierr)
-
-ierr = clReleaseProgram(prog)
-call CL%error_check('InnerProdGPU:clReleaseProgram', ierr)
+! finally get the InnerProd kernel and release the program
+kernel = CL%get_kernel(prog, 'InnerProd')
+call CL%release_program(prog)
 
 ! the remainder is done in the InnerProdGPU routine
 !=========================================
@@ -4341,9 +4257,7 @@ dictionaryloop: do ii = 1,cratio+1
         end if
       end if
 
-      ierr = clEnqueueWriteBuffer(command_queue, cl_dict, CL_TRUE, 0_8, size_in_bytes_dict, C_LOC(dicttranspose(1)), &
-                                  0, C_NULL_PTR, C_NULL_PTR)
-      call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
+      call CL%write_buffer(cl_dict, C_LOC(dicttranspose(1)), size_in_bytes_dict, 'cl_dict')
 
 
       experimentalloop: do jj = 1,cratioE
@@ -4356,9 +4270,7 @@ dictionaryloop: do ii = 1,cratio+1
           expt((pp-1)*correctsize+1:pp*correctsize) = tmpimageexpt(1:correctsize)
         end do
 
-        ierr = clEnqueueWriteBuffer(command_queue, cl_expt, CL_TRUE, 0_8, size_in_bytes_expt, C_LOC(expt(1)), &
-                                    0, C_NULL_PTR, C_NULL_PTR)
-        call CL%error_check('DIdriver:clEnqueueWriteBuffer:cl_expt', ierr)
+        call CL%write_buffer(cl_expt, C_LOC(expt(1)), size_in_bytes_expt, 'cl_expt')
 
         call InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,res,numd,DIFT%nml%devid,kernel,context,command_queue)
 
@@ -4446,16 +4358,13 @@ dictionaryloop: do ii = 1,cratio+1
 end do dictionaryloop
 
 !-----
-ierr = clReleaseMemObject(cl_dict)
-call CL%error_check('DIdriver:clReleaseMemObject:cl_dict', ierr)
+call CL%release_buffer(cl_dict)
 
 !-----
-ierr = clReleaseMemObject(cl_expt)
-call CL%error_check('DIdriver:clReleaseMemObject:cl_expt', ierr)
+call CL%release_buffer(cl_expt)
 
 ! release the OpenCL kernel
-ierr = clReleaseKernel(kernel)
-call CL%error_check('DIdriver:clReleaseKernel', ierr)
+call CL%release_kernel(kernel)
 
 
 ! perform some timing stuff
@@ -4614,13 +4523,13 @@ recursive subroutine InnerProdGPU(CL,cl_expt,cl_dict,Ne,Nd,correctsize,results,n
 !DEC$ ATTRIBUTES DLLEXPORT :: InnerProdGPU
 
 use clfortran
-use mod_CLsupport
+use mod_GPUsupport
 use ISO_C_BINDING
 use mod_io
 
 IMPLICIT NONE
 
-type(OpenCL_T),INTENT(INOUT)                        :: CL
+type(GPU_T),INTENT(INOUT)                        :: CL
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_expt
 integer(c_intptr_t),target,INTENT(INOUT)            :: cl_dict
 integer(kind=4),INTENT(IN)                          :: Ne
@@ -4656,42 +4565,27 @@ globalsize = (/Ne,Nd/)
 !=====================
 
 ! create buffer
-cl_result = clCreateBuffer(context, CL_MEM_READ_WRITE, size_in_bytes_result, C_NULL_PTR, ierr)
-call CL%error_check('InnerProdGPU:clCreateBuffer', ierr)
+cl_result = CL%create_buffer(CL_MEM_READ_WRITE, size_in_bytes_result, 'cl_result')
 
 ! ----
 
 ! set kernel arguments
-ierr =  clSetKernelArg(kernel, 0, sizeof(cl_expt), C_LOC(cl_expt))
-call CL%error_check('InnerProdGPU:clSetKernelArg:cl_expt', ierr)
+call CL%set_kernel_arg(kernel, 0, sizeof(cl_expt),   C_LOC(cl_expt),   'cl_expt')
+call CL%set_kernel_arg(kernel, 1, sizeof(cl_dict),   C_LOC(cl_dict),   'cl_dict')
+call CL%set_kernel_arg(kernel, 2, sizeof(Wexp),      C_LOC(Wexp),      'Wexp')
+call CL%set_kernel_arg(kernel, 3, sizeof(Wdict),     C_LOC(Wdict),     'Wdict')
+call CL%set_kernel_arg(kernel, 4, sizeof(cl_result), C_LOC(cl_result), 'cl_result')
 
-ierr = clSetKernelArg(kernel, 1, sizeof(cl_dict), C_LOC(cl_dict))
-call CL%error_check('InnerProdGPU:clSetKernelArg:cl_dict', ierr)
-
-ierr = clSetKernelArg(kernel, 2, sizeof(Wexp), C_LOC(Wexp))
-call CL%error_check('InnerProdGPU:clSetKernelArg:Wexp', ierr)
-
-ierr = clSetKernelArg(kernel, 3, sizeof(Wdict), C_LOC(Wdict))
-call CL%error_check('InnerProdGPU:clSetKernelArg:Wdict', ierr)
-
-ierr = clSetKernelArg(kernel, 4, sizeof(cl_result), C_LOC(cl_result))
-call CL%error_check('InnerProdGPU:clSetKernelArg:cl_result', ierr)
-
-!execute the kernel
-ierr = clEnqueueNDRangeKernel(command_queue, kernel, 2, C_NULL_PTR, C_LOC(globalsize), C_LOC(localsize), &
-                              0, C_NULL_PTR, C_NULL_PTR)
-call CL%error_check('InnerProdGPU:clEnqueueNDRangeKernel', ierr)
+!execute the kernel (2-D work group inferred from globalsize; explicit local size)
+call CL%enqueue_kernel(kernel, globalsize, 'InnerProd', localsize)
 
 ! wait for the commands to finish
-ierr = clFinish(command_queue)
-call CL%error_check('InnerProdGPU:clFinish', ierr)
+call CL%finish()
 
 ! read the resulting vector from device memory
-ierr = clEnqueueReadBuffer(command_queue,cl_result,CL_TRUE,0_8,size_in_bytes_result,C_LOC(results(1)),0,C_NULL_PTR,C_NULL_PTR)
-call CL%error_check('InnerProdGPU:clEnqueueReadBuffer', ierr)
+call CL%read_buffer(cl_result, C_LOC(results(1)), size_in_bytes_result, 'cl_result')
 
-ierr = clReleaseMemObject(cl_result)
-call CL%error_check('InnerProdGPU:clReleaseMemObject:cl_result', ierr)
+call CL%release_buffer(cl_result)
 
 ! ---
 end subroutine InnerProdGPU

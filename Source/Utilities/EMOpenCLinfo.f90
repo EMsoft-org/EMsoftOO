@@ -35,13 +35,13 @@ program EMOpenCLinfo
 
 use mod_EMsoft
 use mod_global
-use mod_CLsupport
+use mod_GPUsupport
 
 IMPLICIT NONE
 
 character(fnlen)  :: progname, progdesc
 
-type(OpenCL_T)    :: CL
+type(GPU_T)    :: CL
 type(EMsoft_T)    :: EMsoft 
 
 progname = 'EMOpenCLinfo.f90'
@@ -49,7 +49,7 @@ progdesc = 'List OpenCL platform and device information'
 EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 904, 930 /) )
 
 ! initialize the OpenCL class and print all OpenCL information
-CL = OpenCL_T()
+CL = GPU_T()
 call CL%print_platform_info()
 
 end program EMOpenCLinfo

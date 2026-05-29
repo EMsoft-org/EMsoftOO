@@ -25,13 +25,13 @@
 ! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
-module mod_CLsupport
+module mod_GPUsupport
   !! author: MDG
   !! version: 1.0
   !! date: 01/12/20
   !!
   !! OpenCL module; this module is based on the following code, but modified
-  !! substantially and turned into an OpenCL_T class :
+  !! substantially and turned into an GPU_T class :
   !!--------------------------------------------------------------------------
   !!--------------------------------------------------------------------------
   !! original Copyright information (clfortran's query_platforms_devices.f90)
@@ -141,7 +141,7 @@ IMPLICIT NONE
         'CL_INVALID_DEVICE_PARTITION_COUNT            ' /)  ! = -68
 
 
-  type,public :: OpenCL_T
+  type,public :: GPU_T
     private
 ! platform variables
       character(fnlen), allocatable             :: p_profile(:)
@@ -178,9 +178,20 @@ IMPLICIT NONE
       integer(c_int32_t),allocatable            :: num_GPUdevices(:)
       logical,allocatable                       :: noCPUdevices(:)
       logical,allocatable                       :: noGPUdevices(:)
-! general error status 
+! general error status
       integer(c_int32_t)                        :: CL_SUCCESS = 0
-      
+! cached context / command queue / device list, set by init_PDCCQ so that the
+! GPU-operation wrappers below do not require the caller to pass them around.
+! This is the backend-neutral seam for the Metal migration (Phase 0): program
+! modules call the verb wrappers (build_program, create_buffer, set_kernel_arg,
+! enqueue_kernel, ...) instead of the raw clfortran API, so a future Metal
+! implementation can present the same method surface.  See MetalMigrationPlan.md.
+      integer(c_intptr_t)                       :: context = 0
+      integer(c_intptr_t)                       :: command_queue = 0
+      integer(kind=irg)                         :: numdev = 0
+      integer(kind=irg)                         :: seldev = 0
+      integer(c_intptr_t), allocatable          :: devices(:)
+
     contains
       private
         procedure, pass(self) :: error_check_
@@ -191,6 +202,19 @@ IMPLICIT NONE
         procedure, pass(self) :: init_PDCCQ_
         procedure, pass(self) :: init_multiPDCCQ_
         procedure, pass(self) :: DI_memory_estimate_
+! GPU-operation wrappers (Phase 0 backend-neutral seam)
+        procedure, pass(self) :: build_program_
+        procedure, pass(self) :: get_kernel_
+        procedure, pass(self) :: release_program_
+        procedure, pass(self) :: create_buffer_
+        procedure, pass(self) :: write_buffer_
+        procedure, pass(self) :: read_buffer_
+        procedure, pass(self) :: set_kernel_arg_
+        procedure, pass(self) :: enqueue_kernel_
+        procedure, pass(self) :: finish_
+        procedure, pass(self) :: release_buffer_
+        procedure, pass(self) :: release_kernel_
+        procedure, pass(self) :: release_context_queue_
         final :: CL_destructor
 
         generic, public :: error_check => error_check_
@@ -200,18 +224,31 @@ IMPLICIT NONE
         generic, public :: read_source_file_wrapper => read_source_file_wrapper_
         generic, public :: init_PDCCQ => init_PDCCQ_, init_multiPDCCQ_
         generic, public :: DI_memory_estimate => DI_memory_estimate_
+! GPU-operation wrappers
+        generic, public :: build_program => build_program_
+        generic, public :: get_kernel => get_kernel_
+        generic, public :: release_program => release_program_
+        generic, public :: create_buffer => create_buffer_
+        generic, public :: write_buffer => write_buffer_
+        generic, public :: read_buffer => read_buffer_
+        generic, public :: set_kernel_arg => set_kernel_arg_
+        generic, public :: enqueue_kernel => enqueue_kernel_
+        generic, public :: finish => finish_
+        generic, public :: release_buffer => release_buffer_
+        generic, public :: release_kernel => release_kernel_
+        generic, public :: release_context_queue => release_context_queue_
 
-  end type OpenCL_T
+  end type GPU_T
 
   ! the constructor routine for this class
-  interface OpenCL_T
+  interface GPU_T
     module procedure CL_constructor
-  end interface OpenCL_T
+  end interface GPU_T
 
 contains
 
 !--------------------------------------------------------------------------
-type(OpenCL_T) function CL_constructor( verb, skipCPU ) result(CL)
+type(GPU_T) function CL_constructor( verb, skipCPU ) result(CL)
 !DEC$ ATTRIBUTES DLLEXPORT :: CL_constructor
   !! author: MDG
   !! version: 1.0
@@ -350,8 +387,8 @@ subroutine CL_destructor( CL )
 
 IMPLICIT NONE
 
-type(OpenCL_T),INTENT(INOUT)  :: CL
-  call reportDestructor('OpenCL_T')
+type(GPU_T),INTENT(INOUT)  :: CL
+  call reportDestructor('GPU_T')
   if (allocated(CL%p_profile)) deallocate(CL%p_profile)
   if (allocated(CL%p_version)) deallocate(CL%p_version)
   if (allocated(CL%p_name)) deallocate(CL%p_name)
@@ -397,7 +434,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT) :: self
+class(GPU_T), INTENT(INOUT) :: self
 integer(kind=irg), INTENT(IN)  :: p_id
 logical,INTENT(IN),OPTIONAL    :: verbose 
 logical,INTENT(IN),OPTIONAL    :: skCPU
@@ -682,7 +719,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(IN)     :: self
+class(GPU_T),INTENT(IN)     :: self
 
 type(IO_T)                     :: Message
 integer(kind=irg)              :: io_int(9), i, j
@@ -779,7 +816,7 @@ use mod_io
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(INOUT)   :: self
+class(GPU_T),INTENT(INOUT)   :: self
 integer(kind=8),INTENT(IN)      :: Nr
 integer(kind=8),INTENT(IN)      :: Nd
 integer(kind=8),INTENT(IN)      :: Ne
@@ -829,7 +866,7 @@ IMPLICIT NONE
 
 integer, parameter                      :: source_length = 50000
 
-class(OpenCL_T),INTENT(IN)              :: self
+class(GPU_T),INTENT(IN)              :: self
 type(EMsoft_T),intent(INOUT)            :: EMsoft
 character(fnlen), INTENT(IN)            :: sourcefile
 character(len=source_length, KIND=c_char),INTENT(OUT) :: csource
@@ -932,7 +969,7 @@ IMPLICIT NONE
 
 integer, parameter                      :: source_length = 50000
 
-class(OpenCL_T), INTENT(IN)             :: self
+class(GPU_T), INTENT(IN)             :: self
 character(fnlen), INTENT(IN)            :: sourcefile
 character(len=source_length, KIND=c_char),INTENT(OUT) :: csource
 integer(c_size_t),INTENT(OUT)           :: slength
@@ -989,7 +1026,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(INOUT)            :: self
+class(GPU_T),INTENT(INOUT)            :: self
 integer(c_intptr_t),allocatable, target  :: platform(:)
  !! platform
 integer(kind=irg), INTENT(OUT)           :: nump
@@ -1060,6 +1097,17 @@ cmd_queue_props = CL_QUEUE_PROFILING_ENABLE
 command_queue = clCreateCommandQueue(context, device(selnumd), cmd_queue_props, ierr)
 call error_check_(self, 'CLinit_PDCCQ:clCreateCommandQueue',ierr)
 
+! cache the context, command queue and device list inside the object so the
+! GPU-operation wrappers (build_program, create_buffer, ...) can use them
+! without the caller having to pass them on every call (Phase 0 seam).
+self%context       = context
+self%command_queue = command_queue
+self%numdev        = numd
+self%seldev        = selnumd
+if (allocated(self%devices)) deallocate(self%devices)
+allocate(self%devices(numd))
+self%devices = device(1:numd)
+
 end subroutine init_PDCCQ_
 
 !--------------------------------------------------------------------------
@@ -1080,7 +1128,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T),INTENT(INOUT)            :: self
+class(GPU_T),INTENT(INOUT)            :: self
 integer(c_intptr_t),allocatable, target  :: platform(:)
  !! platform
 integer(kind=irg), INTENT(OUT)           :: nump
@@ -1188,7 +1236,7 @@ use mod_global
 
 IMPLICIT NONE
 
-class(OpenCL_T), INTENT(INOUT)          :: self
+class(GPU_T), INTENT(INOUT)          :: self
 character(*),INTENT(IN)                 :: routine
 integer(kind=c_int32_t),INTENT(IN)      :: ierr
 logical,INTENT(IN),OPTIONAL             :: nonfatal
@@ -1207,7 +1255,7 @@ if (ierr.ne.0) then
 
   if (present(nonfatal)) then
     if (nonfatal.eqv..TRUE.) then
-      print*,"mod_CLsupport:error_check:"//trim(routine)//" Non fatal error "//trim(estr)
+      print*,"mod_GPUsupport:error_check:"//trim(routine)//" Non fatal error "//trim(estr)
 !     call Message%printMessage('error_check', ' Non-fatal error: '//trim(estr) )
 !     Temporary commented Clément Lafond : avoid a fatal error when executing  EMMCOpenCL, need to understand why
     end if
@@ -1219,5 +1267,373 @@ end if
 
 end subroutine error_check_
 
+!--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
+! GPU-operation wrappers (Phase 0 of the Metal migration).
+!
+! These methods encapsulate the raw clfortran calls that, historically, were
+! scattered directly through the program modules (mod_MCOpenCL, mod_DI, ...).
+! Routing every GPU verb through GPU_T gives a single error-checked entry
+! point per operation and, crucially, a stable method surface that a future
+! mod_MTLsupport (Metal) can replicate so the program modules need not change.
+! Context, command queue and device list are taken from the object (cached by
+! init_PDCCQ), so callers no longer pass them on every call.
+! See MetalMigrationPlan.md.
+!--------------------------------------------------------------------------
 
-end module mod_CLsupport
+!--------------------------------------------------------------------------
+recursive subroutine checkq_(self, routine, ierr, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: checkq_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 05/29/26
+  !!
+  !! error-check helper for the GPU-op wrappers: behaves like error_check_, but
+  !! when quiet is present and .TRUE. it skips the check entirely.  This lets the
+  !! C-callable wrappers (e.g. EMsoftCgetMCOpenCL in mod_SEMCLwrappers) keep their
+  !! original "ignore CL errors, defer to the caller" behaviour rather than
+  !! aborting the host process via Message%printError.
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+character(*), INTENT(IN)                :: routine
+integer(c_int32_t), INTENT(IN)          :: ierr
+logical, INTENT(IN), OPTIONAL           :: quiet
+
+if (present(quiet)) then
+  if (quiet.eqv..TRUE.) return
+end if
+call error_check_(self, routine, ierr)
+
+end subroutine checkq_
+
+!--------------------------------------------------------------------------
+recursive function build_program_(self, csource, slength, quiet) result(prog)
+!DEC$ ATTRIBUTES DLLEXPORT :: build_program_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 05/29/26
+  !!
+  !! create and build a program from kernel source, printing the build log
+  !! (quiet=.TRUE. suppresses both the build-log print and the error checks)
+
+use ISO_C_BINDING
+use mod_io
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)                   :: self
+character(len=*, kind=c_char), target,INTENT(IN) :: csource
+integer(c_size_t), target, INTENT(IN)            :: slength
+logical, INTENT(IN), OPTIONAL                    :: quiet
+integer(c_intptr_t)                              :: prog
+
+type(IO_T)                                       :: Message
+type(c_ptr), target                              :: psource
+integer(c_intptr_t), allocatable, target         :: devlist(:)
+integer(c_int32_t)                               :: ierr, ierr2
+integer(c_size_t)                                :: cnum
+character(len=50000), target                     :: buildlog
+logical                                          :: beQuiet
+
+beQuiet = .FALSE.
+if (present(quiet)) beQuiet = quiet
+
+! local target copy of the device list (C_LOC requires a TARGET; a derived-type
+! component would force the whole object to be a target)
+allocate(devlist(self%numdev))
+devlist = self%devices(1:self%numdev)
+
+psource = C_LOC(csource)
+prog = clCreateProgramWithSource(self%context, 1, C_LOC(psource), C_LOC(slength), ierr)
+call checkq_(self, 'build_program:clCreateProgramWithSource', ierr, quiet)
+
+ierr = clBuildProgram(prog, self%numdev, C_LOC(devlist), C_NULL_PTR, C_NULL_FUNPTR, C_NULL_PTR)
+
+! retrieve and (unless quiet) print the build log before checking the build status
+buildlog = ''
+ierr2 = clGetProgramBuildInfo(prog, self%devices(self%seldev), CL_PROGRAM_BUILD_LOG, &
+                              sizeof(buildlog), C_LOC(buildlog), cnum)
+if ((.not.beQuiet) .and. (len(trim(buildlog)) > 0)) call Message%printMessage(trim(buildlog(1:cnum)), frm='(A)')
+call checkq_(self, 'build_program:clBuildProgram', ierr, quiet)
+call checkq_(self, 'build_program:clGetProgramBuildInfo', ierr2, quiet)
+
+deallocate(devlist)
+
+end function build_program_
+
+!--------------------------------------------------------------------------
+recursive function get_kernel_(self, prog, kernelname, quiet) result(kernel)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_kernel_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 05/29/26
+  !!
+  !! create a kernel by name from a built program
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)                       :: self
+integer(c_intptr_t), INTENT(IN)                      :: prog
+character(len=*), INTENT(IN)                         :: kernelname
+logical, INTENT(IN), OPTIONAL                        :: quiet
+integer(c_intptr_t)                                  :: kernel
+
+character(len=len_trim(kernelname)+1, kind=c_char), target :: cname
+integer(c_int32_t)                                   :: ierr
+
+cname = trim(kernelname)//C_NULL_CHAR
+kernel = clCreateKernel(prog, C_LOC(cname), ierr)
+call checkq_(self, 'get_kernel:clCreateKernel:'//trim(kernelname), ierr, quiet)
+
+end function get_kernel_
+
+!--------------------------------------------------------------------------
+recursive subroutine release_program_(self, prog, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: release_program_
+  !! author: MDG
+  !! release a program object
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+integer(c_intptr_t), INTENT(IN)         :: prog
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_int32_t)                      :: ierr
+
+ierr = clReleaseProgram(prog)
+call checkq_(self, 'release_program:clReleaseProgram', ierr, quiet)
+
+end subroutine release_program_
+
+!--------------------------------------------------------------------------
+recursive function create_buffer_(self, flags, nbytes, label, quiet) result(buf)
+!DEC$ ATTRIBUTES DLLEXPORT :: create_buffer_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 05/29/26
+  !!
+  !! allocate a device memory buffer of nbytes with the given access flags
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+integer(c_int64_t), INTENT(IN)          :: flags
+integer(c_size_t), INTENT(IN)           :: nbytes
+character(len=*), INTENT(IN)            :: label
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_intptr_t)                     :: buf
+
+integer(c_int32_t)                      :: ierr
+
+buf = clCreateBuffer(self%context, flags, nbytes, C_NULL_PTR, ierr)
+call checkq_(self, 'create_buffer:'//trim(label), ierr, quiet)
+
+end function create_buffer_
+
+!--------------------------------------------------------------------------
+recursive subroutine write_buffer_(self, buf, hostptr, nbytes, label, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: write_buffer_
+  !! author: MDG
+  !! blocking host->device copy of nbytes into buf
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+integer(c_intptr_t), INTENT(IN)         :: buf
+type(c_ptr), INTENT(IN)                 :: hostptr
+integer(c_size_t), INTENT(IN)           :: nbytes
+character(len=*), INTENT(IN)            :: label
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_int32_t)                      :: ierr
+
+ierr = clEnqueueWriteBuffer(self%command_queue, buf, CL_TRUE, 0_8, nbytes, hostptr, &
+                            0, C_NULL_PTR, C_NULL_PTR)
+call checkq_(self, 'write_buffer:'//trim(label), ierr, quiet)
+
+end subroutine write_buffer_
+
+!--------------------------------------------------------------------------
+recursive subroutine read_buffer_(self, buf, hostptr, nbytes, label, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: read_buffer_
+  !! author: MDG
+  !! blocking device->host copy of nbytes from buf
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+integer(c_intptr_t), INTENT(IN)         :: buf
+type(c_ptr), INTENT(IN)                 :: hostptr
+integer(c_size_t), INTENT(IN)           :: nbytes
+character(len=*), INTENT(IN)            :: label
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_int32_t)                      :: ierr
+
+ierr = clEnqueueReadBuffer(self%command_queue, buf, CL_TRUE, 0_8, nbytes, hostptr, &
+                           0, C_NULL_PTR, C_NULL_PTR)
+call checkq_(self, 'read_buffer:'//trim(label), ierr, quiet)
+
+end subroutine read_buffer_
+
+!--------------------------------------------------------------------------
+recursive subroutine set_kernel_arg_(self, kernel, argindex, argsize, argptr, label, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_kernel_arg_
+  !! author: MDG
+  !! set a single kernel argument; caller supplies sizeof(x) and C_LOC(x)
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+integer(c_intptr_t), INTENT(IN)         :: kernel
+integer(c_int32_t), INTENT(IN)          :: argindex
+integer(c_size_t), INTENT(IN)           :: argsize
+type(c_ptr), INTENT(IN)                 :: argptr
+character(len=*), INTENT(IN)            :: label
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_int32_t)                      :: ierr
+
+ierr = clSetKernelArg(kernel, argindex, argsize, argptr)
+call checkq_(self, 'set_kernel_arg:'//trim(label), ierr, quiet)
+
+end subroutine set_kernel_arg_
+
+!--------------------------------------------------------------------------
+recursive subroutine enqueue_kernel_(self, kernel, globalsize, label, localsize, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: enqueue_kernel_
+  !! author: MDG
+  !! version: 1.0
+  !! date: 05/29/26
+  !!
+  !! enqueue an N-D range kernel; the work dimension is inferred from the
+  !! length of globalsize.  localsize is optional (NULL -> runtime chooses).
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)             :: self
+integer(c_intptr_t), INTENT(IN)            :: kernel
+integer(c_int64_t), INTENT(IN)             :: globalsize(:)
+character(len=*), INTENT(IN)               :: label
+integer(c_int64_t), INTENT(IN), OPTIONAL   :: localsize(:)
+logical, INTENT(IN), OPTIONAL              :: quiet
+
+integer(c_size_t), allocatable, target     :: gs(:), ls(:)
+integer(c_int32_t)                         :: ierr, work_dim
+
+work_dim = int(size(globalsize), c_int32_t)
+allocate(gs(size(globalsize)))
+gs = int(globalsize, c_size_t)
+
+if (present(localsize)) then
+  allocate(ls(size(localsize)))
+  ls = int(localsize, c_size_t)
+  ierr = clEnqueueNDRangeKernel(self%command_queue, kernel, work_dim, C_NULL_PTR, &
+                                C_LOC(gs), C_LOC(ls), 0, C_NULL_PTR, C_NULL_PTR)
+  deallocate(ls)
+else
+  ierr = clEnqueueNDRangeKernel(self%command_queue, kernel, work_dim, C_NULL_PTR, &
+                                C_LOC(gs), C_NULL_PTR, 0, C_NULL_PTR, C_NULL_PTR)
+end if
+call checkq_(self, 'enqueue_kernel:'//trim(label), ierr, quiet)
+deallocate(gs)
+
+end subroutine enqueue_kernel_
+
+!--------------------------------------------------------------------------
+recursive subroutine finish_(self, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: finish_
+  !! author: MDG
+  !! block until all queued commands have completed
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_int32_t)                      :: ierr
+
+ierr = clFinish(self%command_queue)
+call checkq_(self, 'finish:clFinish', ierr, quiet)
+
+end subroutine finish_
+
+!--------------------------------------------------------------------------
+recursive subroutine release_buffer_(self, buf, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: release_buffer_
+  !! author: MDG
+  !! release a device memory buffer
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+integer(c_intptr_t), INTENT(IN)         :: buf
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_int32_t)                      :: ierr
+
+ierr = clReleaseMemObject(buf)
+call checkq_(self, 'release_buffer:clReleaseMemObject', ierr, quiet)
+
+end subroutine release_buffer_
+
+!--------------------------------------------------------------------------
+recursive subroutine release_kernel_(self, kernel, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: release_kernel_
+  !! author: MDG
+  !! release a kernel object
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+integer(c_intptr_t), INTENT(IN)         :: kernel
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_int32_t)                      :: ierr
+
+ierr = clReleaseKernel(kernel)
+call checkq_(self, 'release_kernel:clReleaseKernel', ierr, quiet)
+
+end subroutine release_kernel_
+
+!--------------------------------------------------------------------------
+recursive subroutine release_context_queue_(self, quiet)
+!DEC$ ATTRIBUTES DLLEXPORT :: release_context_queue_
+  !! author: MDG
+  !! release the cached command queue and context
+
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)          :: self
+logical, INTENT(IN), OPTIONAL           :: quiet
+integer(c_int32_t)                      :: ierr
+
+ierr = clReleaseCommandQueue(self%command_queue)
+call checkq_(self, 'release_context_queue:clReleaseCommandQueue', ierr, quiet)
+ierr = clReleaseContext(self%context)
+call checkq_(self, 'release_context_queue:clReleaseContext', ierr, quiet)
+
+end subroutine release_context_queue_
+
+
+end module mod_GPUsupport

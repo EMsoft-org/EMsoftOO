@@ -1886,7 +1886,7 @@ call Message%WriteValue('count at end of routine ', io_int, 1)
 end subroutine sample_SFS_
 
 !--------------------------------------------------------------------------
-recursive subroutine sample_SHO_(self, num, pgnum)
+recursive subroutine sample_SHO_(self, num, pgnum, seed)
 !DEC$ ATTRIBUTES DLLEXPORT :: sample_SHO_
   !! author: MDG
   !! version: 1.0
@@ -1906,6 +1906,7 @@ IMPLICIT NONE
 class(so3_T),INTENT(INOUT)              :: self
 integer(kind=irg),INTENT(IN)            :: num
 integer(kind=irg),INTENT(IN)            :: pgnum
+integer(kind=irg),INTENT(IN)            :: seed
 
 type(IO_T)                              :: Message 
 type(quaternion_T)                      :: qu
@@ -1915,7 +1916,7 @@ type(q_T)                               :: q
 type(FZpointd),pointer                  :: tmp, tmp2
 
 real(kind=dbl)                          :: a, b, u(3), nsi 
-integer(kind=irg)                       :: i, nsamples, io_int(1), seed
+integer(kind=irg)                       :: i, nsamples, io_int(1)
 
 ! initialize parameters
 self%SFcnt = 0
@@ -1929,7 +1930,6 @@ tmp => self%SFlist
 nullify(tmp%next)
 
 ! we'll use the Mersenne twister routines here
-seed = 4324
 call genrand_init( put=seed )
 
 ! we generate a series of num points inside the RFZ, using a simple algorithm

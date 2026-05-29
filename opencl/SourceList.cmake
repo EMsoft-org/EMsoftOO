@@ -33,3 +33,17 @@ INSTALL(FILES ${EMSoft_CL_SRCS}
   COMPONENT Applications
   DESTINATION ${extra_install_dir}/opencl
 )
+
+#---------------------------------------------------------------------
+# When the Metal backend is enabled, EMOpenCLLib builds the *.metallib files
+# into ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/opencl/ at build time (see
+# Source/EMOpenCLLib/CMakeLists.txt).  Install them next to the .cl files so
+# packaged/installed runs resolve them via OpenCLpathname.  FILES_MATCHING picks
+# up whatever metallibs were actually built (no hard-coded list to keep in sync).
+if(EMsoftOO_ENABLE_Metal_SUPPORT)
+  INSTALL(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/opencl/
+    COMPONENT Applications
+    DESTINATION ${extra_install_dir}/opencl
+    FILES_MATCHING PATTERN "*.metallib"
+  )
+endif()
