@@ -240,6 +240,19 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
   CMakeLists + export targets, with no functional benefit). Local handle variables stay named
   `CL`. The OpenCL backend file still uses `clfortran`; only the public abstraction names changed.
 
+## Build-directory hygiene (Metal vs OpenCL)
+
+`clfortran_metal_stub.f90` defines `module clfortran` (constants only) and is compiled **only**
+in a Metal build, producing a small `clfortran.mod` in that build tree. If the *same* build
+directory is later reconfigured for OpenCL (`-DEMsoftOO_ENABLE_Metal_SUPPORT=OFF`), the OpenCL
+backend's `use clfortran` can pick up that stale stub `.mod` (which lacks `CL_SUCCESS`,
+`clGetPlatformIDs`, …) instead of the real `clfortran`, giving "Symbol … has no IMPLICIT type"
+errors in `mod_GPUsupport.f90`. **Use separate build directories for Metal and OpenCL** (a clean
+OpenCL tree never compiles the stub and uses the real `clfortran`). Non-Apple OpenCL builds are
+unaffected. A more invasive alternative (not taken) is to drop the stub and put the real
+`clfortran` headers on the Metal include path (constants only, no OpenCL link) — that removes
+the footgun but couples Metal builds to `CLFortran_INSTALL` and needs Metal re-validation.
+
 ## Migration complete
 
 All phases done on `feature/metal-backend`: every live OpenCL kernel ported to Metal, a
