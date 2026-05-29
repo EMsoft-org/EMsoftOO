@@ -155,11 +155,38 @@ becomes the default GPU backend on Apple Silicon. Metal kernels are precompiled 
 - **Runtime path fix:** the dev `OpenCLpathname` resolves to the source-tree `opencl/` folder
   (where the `.cl` files are version-controlled), so CMake now also copies each built
   `*.metallib` there (in addition to `Bin/opencl/`); `opencl/*.metallib` is gitignored.
-- **Phase 1 complete.** Remaining migration work: Phase 2 (DI `InnerProd`/`ParamEstm` — and/or
-  MPS/Accelerate), Phase 3 (multibeam complex kernels), Phase 4 (rename to `GPU_T`/`EMGPULib`,
-  install rules for metallibs, default Metal ON on Apple). Note for Phase 2+: validation must
-  use statistical/tolerance comparison for any chaotic or reduction-order-sensitive output,
-  and bit-identity only where the computation is linear (e.g. the DI dot products).
+- **Phase 1 complete** (committed `666086a`). Remaining: Phase 2 (DI), Phase 3 (multibeam),
+  Phase 4 (rename to `GPU_T`/`EMGPULib`, metallib install rules, default Metal ON on Apple).
+  Validation note for Phase 2+: bit-identity only where the computation is linear (DI dot
+  products); tolerance/statistical comparison for chaotic or reduction-order-sensitive output.
+- **Footnote (observed):** on Apple Silicon the Metal MC ran ~2x faster than the OpenCL MC.
+  Expected — Apple OpenCL is a deprecated non-native 1.2 compatibility layer, while Metal is
+  native with a modern compiler, hardware-tuned scheduling, true unified memory (our
+  `StorageModeShared` buffers need no host<->device copy), and build-time `.metallib` (no JIT).
+
+### Phase 2 — dictionary indexing (in progress)
+
+- **`Source/EMOpenCLLib/metal/DictIndx.metal`** — MSL port of the `InnerProd` tiled GEMM
+  (BLOCK_SIZE=16). `get_group_id`/`get_local_id`/`get_global_id` →
+  `[[threadgroup_position_in_grid]]`/`[[thread_position_in_threadgroup]]`/`[[thread_position_in_grid]]`;
+  `get_global_size(0)` → `[[threads_per_grid]].x`; `__local`→`threadgroup`;
+  `barrier(CLK_LOCAL_MEM_FENCE)`→`threadgroup_barrier(mem_flags::mem_threadgroup)`. Arg indices
+  match (0 expt,1 dict,2 Wexp,3 Wdict,4 result). The (16,16) local size routes through
+  `emtl_enqueue`'s `dispatchThreadgroups` path. `ParamEstm` omitted (unused by any compiled module).
+- **CMake:** `DictIndx` added to `EMsoftOO_METAL_KERNELS` → built to `DictIndx.metallib`.
+- **No other changes:** `mod_DI` was wrapper-routed in Phase 0, so everything else flows through
+  the existing Metal backend (read_source_file→DictIndx.metallib, get_kernel('InnerProd'),
+  expt/dict/result auto-detected as buffers, Wexp/Wdict as scalar bytes, (16,16) dispatch).
+- **2026-05-29 — Phase 2 VALIDATED.** Rebuilt Metal ON, ran `EMDI`, `h5diff /Scan 1` vs the
+  OpenCL reference: `TopDotProductList`, `TopMatchIndices`, `EulerAngles`, `CI`, `Phi/Phi1/Phi2`,
+  `KAM`, `OSM` are all **0 differences** — the Metal `InnerProd` dot products are **bit-identical**
+  to OpenCL (the fixed-order tiled accumulation reproduced exactly; no FMA divergence, so
+  `-fno-fast-math` is unnecessary). The only residuals — `DictionaryEulerAngles` (131),
+  `ISM` (121), `ISMap` (36), `IndexingSuccessRate` (1) — are the same datasets that differed in
+  the Phase 0 OpenCL-vs-OpenCL DI run: pre-existing FZ-sampling non-determinism
+  (`mod_so3`/`mod_sampleRFZ`), not the Metal backend. **Phase 2 complete.**
+- **Runtime path:** as with MC, the built `DictIndx.metallib` is auto-copied next to the `.cl`
+  files (CMake), so no manual copy is needed after a rebuild.
 
 ---
 

@@ -99,7 +99,7 @@ if(EMsoftOO_ENABLE_Metal_SUPPORT)
   # mod_CLsupport_metal's read_source_file resolves them via OpenCLpathname.
   set(EMsoftOO_METAL_KERNELS
     EMMC
-    # DictIndx        # Phase 2
+    DictIndx          # Phase 2 (InnerProd)
     # MBmoduleOpenCL  # Phase 3
   )
   if(NOT EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/opencl")
