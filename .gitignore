@@ -10,6 +10,8 @@ patches/
 resources/EMSphInx.wisdom
 .claude/
 Claude/
+# machine-specific Claude Code notes (the shareable CLAUDE.md is committed)
+CLAUDE.local.md
 # downloaded metal-cpp archive (the extracted headers under ExternalProjects/metal-cpp/ are vendored)
 ExternalProjects/metal-cpp.zip
 # build-time Metal libraries copied next to the .cl sources (built from metal/*.metal)
