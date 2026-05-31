@@ -21,7 +21,7 @@
 !==================================================
 ! HDF5 I/O SECTION
 !==================================================
-! name of the energy statistics file produced by EMMCOpenCL program; relative to EMdatapathname
+! name of the energy statistics file produced by the EMMCGPU program; relative to EMdatapathname
 ! this file will also contain the output of the master program
  datafile = 'EMCBEDout.h5',
 !==================================================

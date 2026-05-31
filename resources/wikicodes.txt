@@ -89,7 +89,7 @@
 270EMGBOdm
 902EMHOLZ
 903EMKikuchiMap
-904EMOpenCLinfo
+904EMGPUinfo
 905EMZAgeom
 906EMcuboMK
 907EMdpextract

@@ -6,7 +6,7 @@
 !
 ! number of OpenMP threads (0 to use the maximum available)
  nthreads = 1,
-! name of the energy statistics file produced by EMMCOpenCL program; relative to EMdatapathname;
+! name of the energy statistics file produced by the EMMCGPU program; relative to EMdatapathname;
  energyfile = 'MCoutput.h5',
 ! BetheParameters file name
  BetheParametersFile = 'BetheParameters.nml',

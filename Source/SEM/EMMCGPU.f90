@@ -26,12 +26,17 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMMCOpenCL
+program EMMCGPU
   !! author: MDG
-  !! version: 1.0 
+  !! version: 1.0
   !! date: 02/04/20
   !!
-  !! Monte Carlo backscattered electron simulation
+  !! Monte Carlo backscattered electron simulation (GPU-accelerated).
+  !! Formerly EMMCOpenCL; renamed because the GPU compute now runs on either
+  !! OpenCL or Apple Metal.  The old EMMCOpenCL command is still built as an
+  !! alias, and the program identity embedded in the output HDF5 files is kept
+  !! as 'EMMCOpenCL.f90' (see MCfileProgName below) so that existing Monte Carlo
+  !! files remain compatible with the master-pattern programs that read them.
 
 use mod_kinds
 use mod_global
@@ -40,19 +45,25 @@ use mod_MCOpenCL
 
 IMPLICIT NONE
 
-character(fnlen)     :: progname = 'EMMCOpenCL.f90'
+character(fnlen)     :: progname = 'EMMCGPU.f90'
 character(fnlen)     :: progdesc = 'Monte Carlo backscattered electron simulation'
 
-type(EMsoft_T)       :: EMsoft
-type(MCOpenCL_T)     :: MCCL 
+! Program name written into the output HDF5 file header.  This MUST stay
+! 'EMMCOpenCL.f90' for backward/forward compatibility: downstream readers
+! (mod_HDFFileInfo, the EBSD/ECP/TKD master programs) match Monte Carlo files on
+! this exact string, and existing files in the wild carry it.
+character(fnlen)     :: MCfileProgName = 'EMMCOpenCL.f90'
 
-! print the EMsoft header and handle any command line arguments  
+type(EMsoft_T)       :: EMsoft
+type(MCOpenCL_T)     :: MCCL
+
+! print the EMsoft header and handle any command line arguments
 EMsoft = EMsoft_T( progname, progdesc, tpl = (/ 42 /) )
 
 ! deal with the namelist stuff
 MCCL = MCOpenCL_T(EMsoft%nmldeffile)
 
 ! perform the sampling algorithm
-call MCCL%MCOpenCL(EMsoft, progname)
+call MCCL%MCOpenCL(EMsoft, MCfileProgName)
 
-end program EMMCOpenCL
+end program EMMCGPU

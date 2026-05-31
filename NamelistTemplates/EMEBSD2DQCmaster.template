@@ -6,7 +6,7 @@
  dmin_qc = 0.4,
  ! periodic dimension
  dmin_p  = 0.05,
-! name of the energy statistics file produced by EMMCOpenCL program; relative to EMdatapathname
+! name of the energy statistics file produced by the EMMCGPU program; relative to EMdatapathname
 ! this file will also contain the output of the master program
  energyfile = 'MCoutput.data',
 ! number of threads to run the master pattern

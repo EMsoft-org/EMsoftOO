@@ -26,12 +26,15 @@
 ! USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ! ###################################################################
 
-program EMOpenCLinfo
-  !! author: MDG 
-  !! version: 1.0 
+program EMGPUinfo
+  !! author: MDG
+  !! version: 1.0
   !! date: 01/12/20
   !!
-  !! show information for OpenCL devices
+  !! show information for the active GPU backend (OpenCL platforms/devices, or
+  !! Apple Metal devices when the Metal backend is enabled).  Both backends
+  !! expose the same GPU_T interface, so this single program reports either one.
+  !! (formerly EMOpenCLinfo, which is still built as an alias.)
 
 use mod_EMsoft
 use mod_global
@@ -42,14 +45,14 @@ IMPLICIT NONE
 character(fnlen)  :: progname, progdesc
 
 type(GPU_T)    :: CL
-type(EMsoft_T)    :: EMsoft 
+type(EMsoft_T)    :: EMsoft
 
-progname = 'EMOpenCLinfo.f90'
-progdesc = 'List OpenCL platform and device information'
+progname = 'EMGPUinfo.f90'
+progdesc = 'List GPU platform and device information (OpenCL or Apple Metal)'
 EMsoft = EMsoft_T(progname, progdesc, tpl = (/ 904, 930 /) )
 
-! initialize the OpenCL class and print all OpenCL information
+! initialize the GPU class and print all platform/device information
 CL = GPU_T()
 call CL%print_platform_info()
 
-end program EMOpenCLinfo
+end program EMGPUinfo

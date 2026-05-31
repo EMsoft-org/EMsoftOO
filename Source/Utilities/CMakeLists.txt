@@ -15,10 +15,20 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
           ${EMSOFTOO_hdf5LinkLibs}
   )
 
-  Add_EMSoftOO_Executable(TARGET EMOpenCLinfo 
-                        SOURCES ${APP_DIR}/EMOpenCLinfo.f90 
-                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-                        SOLUTION_FOLDER EMsoftOOPublic/Utilities 
+  Add_EMSoftOO_Executable(TARGET EMGPUinfo
+                        SOURCES ${APP_DIR}/EMGPUinfo.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        SOLUTION_FOLDER EMsoftOOPublic/Utilities
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
+                        )
+
+  # Backward-compatible alias: EMOpenCLinfo is built from the same source as
+  # EMGPUinfo so existing scripts keep working after the rename.
+  Add_EMSoftOO_Executable(TARGET EMOpenCLinfo
+                        SOURCES ${APP_DIR}/EMGPUinfo.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        SOLUTION_FOLDER EMsoftOOPublic/Utilities
                         INSTALL_PROGRAM TRUE
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
                         )

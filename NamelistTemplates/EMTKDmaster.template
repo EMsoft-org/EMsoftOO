@@ -14,7 +14,7 @@
  kinematical = .FALSE., 
 ! do you wish to receive a notification (Email or Slack) when the program completes ?
  Notify = 'Off', 
-! name of EMMCOpenCL output file to be used to copy the MC data from for this master pattern run;
+! name of EMMCGPU output file to be used to copy the MC data from for this master pattern run;
 ! This can be used to perform multiple master pattern runs starting from the same MC data set without
 ! having to rerun the MC computation.  Leave this variable set to 'undefined' if not needed.
  copyfromenergyfile = 'undefined',

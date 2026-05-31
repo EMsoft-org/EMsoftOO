@@ -137,6 +137,80 @@ IMPLICIT NONE
       integer(c_int), value :: buflen
       integer(c_int) :: s
     end function emtl_last_error
+
+    ! ---- device enumeration / properties (informational; drives EMGPUinfo) ----
+    function emtl_device_count() bind(C, name='emtl_device_count') result(n)
+      import :: c_int
+      integer(c_int) :: n
+    end function emtl_device_count
+
+    function emtl_device_name(idx, buf, buflen) bind(C, name='emtl_device_name') result(n)
+      import :: c_int, c_char
+      integer(c_int), value :: idx
+      character(kind=c_char), dimension(*) :: buf
+      integer(c_int), value :: buflen
+      integer(c_int) :: n
+    end function emtl_device_name
+
+    function emtl_device_recommended_working_set(idx) &
+             bind(C, name='emtl_device_recommended_working_set') result(v)
+      import :: c_int, c_int64_t
+      integer(c_int), value :: idx
+      integer(c_int64_t) :: v
+    end function emtl_device_recommended_working_set
+
+    function emtl_device_max_buffer_length(idx) &
+             bind(C, name='emtl_device_max_buffer_length') result(v)
+      import :: c_int, c_int64_t
+      integer(c_int), value :: idx
+      integer(c_int64_t) :: v
+    end function emtl_device_max_buffer_length
+
+    function emtl_device_max_threadgroup_memory(idx) &
+             bind(C, name='emtl_device_max_threadgroup_memory') result(v)
+      import :: c_int, c_int64_t
+      integer(c_int), value :: idx
+      integer(c_int64_t) :: v
+    end function emtl_device_max_threadgroup_memory
+
+    function emtl_device_current_allocated(idx) &
+             bind(C, name='emtl_device_current_allocated') result(v)
+      import :: c_int, c_int64_t
+      integer(c_int), value :: idx
+      integer(c_int64_t) :: v
+    end function emtl_device_current_allocated
+
+    function emtl_device_registry_id(idx) bind(C, name='emtl_device_registry_id') result(v)
+      import :: c_int, c_int64_t
+      integer(c_int), value :: idx
+      integer(c_int64_t) :: v
+    end function emtl_device_registry_id
+
+    subroutine emtl_device_max_threads_per_threadgroup(idx, x, y, z) &
+               bind(C, name='emtl_device_max_threads_per_threadgroup')
+      import :: c_int, c_int64_t
+      integer(c_int), value :: idx
+      integer(c_int64_t) :: x, y, z
+    end subroutine emtl_device_max_threads_per_threadgroup
+
+    function emtl_device_flags(idx) bind(C, name='emtl_device_flags') result(f)
+      import :: c_int
+      integer(c_int), value :: idx
+      integer(c_int) :: f
+    end function emtl_device_flags
+
+    function emtl_device_location(idx) bind(C, name='emtl_device_location') result(loc)
+      import :: c_int
+      integer(c_int), value :: idx
+      integer(c_int) :: loc
+    end function emtl_device_location
+
+    function emtl_device_location_number(idx) &
+             bind(C, name='emtl_device_location_number') result(v)
+      import :: c_int, c_int64_t
+      integer(c_int), value :: idx
+      integer(c_int64_t) :: v
+    end function emtl_device_location_number
   end interface
 
 !--------------------------------------------------------------------------
@@ -326,17 +400,167 @@ end subroutine query_platform_info_
 !--------------------------------------------------------------------------
 recursive subroutine print_platform_info_(self)
 !DEC$ ATTRIBUTES DLLEXPORT :: print_platform_info_
+  !! author: MDG / Claude Code
+  !!
+  !! Enumerate every Metal device (MTL::CopyAllDevices via the shim) and report
+  !! the per-device properties that most closely correspond to the OpenCL
+  !! backend's output (working-set/global memory, max buffer/allocation size,
+  !! threadgroup memory, max threads per threadgroup), plus Metal-specific
+  !! attributes (unified memory, low-power, headless, removable, location).
+
+use mod_io
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+class(GPU_T), INTENT(INOUT)            :: self
+type(IO_T)                                :: Message
+
+integer(c_int)                            :: ndev, i, nc, flags, loc
+character(len=256, kind=c_char)           :: cname
+character(fnlen)                          :: dname, line, attr, locstr
+integer(c_int64_t)                        :: ws, mbl, tgm, calloc, regid, locnum
+integer(c_int64_t)                        :: tx, ty, tz
+integer(kind=irg)                         :: io_int(4)
+
+ndev = emtl_device_count()
+
+call Message%printMessage(' ')
+call Message%printMessage('GPU backend: Apple Metal')
+call Message%printMessage('------------------------')
+io_int(1) = int(ndev)
+call Message%WriteValue('Number of Metal devices: ', io_int, 1, "(I2)")
+call Message%printMessage('------------------------')
+
+if (ndev.lt.1) then
+  call Message%printMessage( &
+     (/ 'No Metal devices were found; this means that EMsoftOO programs with GPU      ', &
+        'functionality will not work properly.  Please check your Metal configuration.' /) )
+  return
+end if
+
+do i = 0, ndev-1
+! device name
+  cname = ''
+  nc = emtl_device_name(i, cname, 256_c_int)
+  dname = ''
+  call c2f_string_(cname, dname)
+
+  io_int(1) = int(i+1)
+  call Message%WriteValue('Device #', io_int, 1, "(I2)")
+  call pv_(Message, 'Name:', trim(dname))
+
+! boolean attributes
+  flags = emtl_device_flags(i)
+  attr = ''
+  if (iand(flags, 1).ne.0) attr = trim(attr)//' unified-memory'
+  if (iand(flags, 2).ne.0) attr = trim(attr)//' low-power'
+  if (iand(flags, 4).ne.0) attr = trim(attr)//' headless'
+  if (iand(flags, 8).ne.0) attr = trim(attr)//' removable'
+  if (len_trim(attr).eq.0) attr = ' (none)'
+  call pv_(Message, 'Attributes:', trim(adjustl(attr)))
+
+! location
+  loc    = emtl_device_location(i)
+  locnum = emtl_device_location_number(i)
+  select case (loc)
+    case (0)
+      locstr = 'built-in'
+    case (1)
+      write (locstr,'(A,I0,A)') 'slot (', locnum, ')'
+    case (2)
+      write (locstr,'(A,I0,A)') 'external (', locnum, ')'
+    case default
+      locstr = 'unspecified'
+  end select
+  call pv_(Message, 'Location:', trim(locstr))
+
+! registry id
+  regid = emtl_device_registry_id(i)
+  write (line,'(I0)') regid
+  call pv_(Message, 'Registry ID:', trim(adjustl(line)))
+
+! recommended max working set size (analogous to OpenCL global memory size)
+  ws = emtl_device_recommended_working_set(i)
+  write (line,'(F12.2,A)') real(ws,dbl)/1024.0_dbl/1024.0_dbl/1024.0_dbl, ' GB'
+  call pv_(Message, 'Recommended working set:', trim(adjustl(line)))
+
+! max buffer length (analogous to OpenCL max allocatable memory size)
+  mbl = emtl_device_max_buffer_length(i)
+  write (line,'(F14.1,A)') real(mbl,dbl)/1024.0_dbl/1024.0_dbl, ' MB'
+  call pv_(Message, 'Max buffer length:', trim(adjustl(line)))
+
+! current allocated size
+  calloc = emtl_device_current_allocated(i)
+  write (line,'(F14.1,A)') real(calloc,dbl)/1024.0_dbl/1024.0_dbl, ' MB'
+  call pv_(Message, 'Currently allocated:', trim(adjustl(line)))
+
+! max threadgroup memory (analogous to OpenCL local memory size)
+  tgm = emtl_device_max_threadgroup_memory(i)
+  write (line,'(I0,A)') tgm/1024_c_int64_t, ' KB'
+  call pv_(Message, 'Max threadgroup memory:', trim(adjustl(line)))
+
+! max threads per threadgroup (analogous to OpenCL max work item sizes, 3D)
+  call emtl_device_max_threads_per_threadgroup(i, tx, ty, tz)
+  write (line,'(I0,A,I0,A,I0)') tx, ' x ', ty, ' x ', tz
+  call pv_(Message, 'Max threads/threadgroup:', trim(adjustl(line)))
+
+  call Message%printMessage('------------------------')
+end do
+
+call Message%printMessage( &
+  (/ '                                                                  ', &
+     ' Notes: Apple GPUs use unified memory, so the recommended working ', &
+     ' set is the suggested resident budget rather than a hard limit.   ', &
+     ' Max buffer length is the largest single allocation; max          ', &
+     ' threadgroup memory is the per-threadgroup (local) memory.        ' /) )
+
+end subroutine print_platform_info_
+
+!--------------------------------------------------------------------------
+! print a left-justified "  <label> <value>" line with the value column
+! aligned across all device properties.
+!--------------------------------------------------------------------------
+recursive subroutine pv_(Message, label, val)
 
 use mod_io
 
 IMPLICIT NONE
 
-class(GPU_T), INTENT(INOUT)   :: self
-type(IO_T)                       :: Message
+type(IO_T), INTENT(INOUT)    :: Message
+character(*), INTENT(IN)     :: label
+character(*), INTENT(IN)     :: val
 
-call Message%printMessage(' GPU backend: Apple Metal (1 device)')
+character(fnlen)             :: line
+character(len=26)            :: lab
 
-end subroutine print_platform_info_
+! assigning to a fixed-length variable left-justifies and right-pads the label,
+! so the value column lines up (the Aw edit descriptor would right-justify)
+lab = label
+write (line,'(2X,A,A)') lab, trim(val)
+call Message%printMessage(trim(line))
+
+end subroutine pv_
+
+!--------------------------------------------------------------------------
+! copy a NUL-terminated c_char buffer into a Fortran character variable
+!--------------------------------------------------------------------------
+recursive subroutine c2f_string_(cstr, fstr)
+
+IMPLICIT NONE
+
+character(len=*, kind=c_char), INTENT(IN) :: cstr
+character(len=*), INTENT(OUT)             :: fstr
+
+integer(kind=irg)                         :: i
+
+fstr = ''
+do i = 1, min(len(cstr), len(fstr))
+  if (cstr(i:i).eq.C_NULL_CHAR) exit
+  fstr(i:i) = cstr(i:i)
+end do
+
+end subroutine c2f_string_
 
 !--------------------------------------------------------------------------
 recursive subroutine DI_memory_estimate_(self, Nr, Nd, Ne, pl, gpu)
@@ -378,7 +602,9 @@ logical                         :: fexist
 ! strip any directory component -> base name
 islash = 0
 do i = 1, len_trim(sourcefile)
-  if (sourcefile(i:i).eq.'/' .or. sourcefile(i:i).eq.'\') islash = i
+  if (sourcefile(i:i).eq.'/' .or. sourcefile(i:i).eq.'\') then ! '
+    islash = i
+  end if
 end do
 base = trim(sourcefile(islash+1:len_trim(sourcefile)))
 

@@ -15,8 +15,19 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
           EMOpenCLLib
   )
 
+  Add_EMSoftOO_Executable(TARGET EMMCGPU
+                        SOURCES ${APP_DIR}/EMMCGPU.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EMMCOpenCL.template
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR} ${EMOpenCLLib_BINARY_DIR}
+                        )
+
+  # Backward-compatible alias: EMMCOpenCL is built from the same source as
+  # EMMCGPU so existing scripts and namelists keep working after the rename.
   Add_EMSoftOO_Executable(TARGET EMMCOpenCL
-                        SOURCES ${APP_DIR}/EMMCOpenCL.f90
+                        SOURCES ${APP_DIR}/EMMCGPU.f90
                         LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
                         TEMPLATE ${TMPLT_DIR}/EMMCOpenCL.template
                         SOLUTION_FOLDER EMsoftOOPublic/SEM

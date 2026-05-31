@@ -272,6 +272,27 @@ production-ready: runtime-verify the foil/Ivol MC modes and the `mod_EBSDFull`/`
 Metal paths (all reuse already-validated kernels, so low risk). Deferred polish: the
 `GPU_T`/`EMGPULib` rename.
 
+## Post-migration: program renames (2026-05-31)
+
+Now that the GPU compute is backend-neutral, two user-facing programs were renamed away from
+the OpenCL-specific names (both old names remain installed as build aliases, so existing
+scripts keep working):
+
+- **`EMOpenCLinfo` → `EMGPUinfo`** (`Source/Utilities/EMGPUinfo.f90`). The Metal backend's
+  `print_platform_info` was also fleshed out: instead of the previous one-liner it now
+  enumerates every Metal device (`MTL::CopyAllDevices` via new `emtl_device_*` shim calls) and
+  reports name, unified-memory/low-power/headless/removable attributes, location, recommended
+  working-set size, max buffer length, max threadgroup memory, and max threads per
+  threadgroup — the Metal analogues of the OpenCL per-device report.
+- **`EMMCOpenCL` → `EMMCGPU`** (`Source/SEM/EMMCGPU.f90`). **Important:** the program identity
+  embedded in the Monte Carlo HDF5 output is deliberately kept as `'EMMCOpenCL.f90'`
+  (`MCfileProgName` in the driver) because downstream readers (`mod_HDFFileInfo`, the
+  EBSD/ECP/TKD master programs) match MC files on that exact string and existing files carry
+  it. Only the executable/CLI name and the console header changed.
+
+The implementation module/type names (`mod_MCOpenCL`/`MCOpenCL_T`) and the `EMOpenCLLib`
+library name are intentionally left unchanged.
+
 ---
 
 ## 1. Motivation

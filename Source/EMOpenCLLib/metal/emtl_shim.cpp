@@ -272,4 +272,156 @@ int emtl_last_error(char* buf, int buflen)
     return g_lastError.empty() ? 0 : 1;
 }
 
+// ---- device enumeration / properties (informational; drives EMGPUinfo) ------
+//
+// MTL::CopyAllDevices() (macOS) returns every Metal device.  We cache the array
+// on first use; emtl_device(idx) returns the idx-th MTL::Device* (or nullptr).
+namespace {
+
+NS::Array* g_allDevices = nullptr;
+
+NS::Array* allDevices()
+{
+    if (g_allDevices == nullptr) {
+        g_allDevices = MTL::CopyAllDevices();   // retained; never released (process-lifetime)
+        if (g_allDevices == nullptr || g_allDevices->count() == 0) {
+            // headless / older systems: fall back to the system default device
+            MTL::Device* def = MTL::CreateSystemDefaultDevice();
+            if (def != nullptr) {
+                const NS::Object* objs[1] = { def };
+                g_allDevices = NS::Array::array(objs, 1);
+                g_allDevices->retain();
+            }
+        }
+    }
+    return g_allDevices;
+}
+
+MTL::Device* deviceAt(int idx)
+{
+    NS::Array* arr = allDevices();
+    if (arr == nullptr || idx < 0 || (NS::UInteger)idx >= arr->count()) return nullptr;
+    return arr->object<MTL::Device>((NS::UInteger)idx);
+}
+
+} // namespace
+
+int emtl_device_count(void)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    NS::Array* arr = allDevices();
+    int n = arr ? (int)arr->count() : 0;
+    pool->release();
+    return n;
+}
+
+int emtl_device_name(int idx, char* buf, int buflen)
+{
+    if (buf == nullptr || buflen <= 0) return 0;
+    buf[0] = '\0';
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    int n = 0;
+    if (dev && dev->name()) {
+        const char* nm = dev->name()->utf8String();
+        if (nm) {
+            n = (int)std::strlen(nm);
+            if (n > buflen - 1) n = buflen - 1;
+            std::memcpy(buf, nm, (size_t)n);
+            buf[n] = '\0';
+        }
+    }
+    pool->release();
+    return n;
+}
+
+uint64_t emtl_device_recommended_working_set(int idx)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    uint64_t v = dev ? (uint64_t)dev->recommendedMaxWorkingSetSize() : 0;
+    pool->release();
+    return v;
+}
+
+uint64_t emtl_device_max_buffer_length(int idx)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    uint64_t v = dev ? (uint64_t)dev->maxBufferLength() : 0;
+    pool->release();
+    return v;
+}
+
+uint64_t emtl_device_max_threadgroup_memory(int idx)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    uint64_t v = dev ? (uint64_t)dev->maxThreadgroupMemoryLength() : 0;
+    pool->release();
+    return v;
+}
+
+uint64_t emtl_device_current_allocated(int idx)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    uint64_t v = dev ? (uint64_t)dev->currentAllocatedSize() : 0;
+    pool->release();
+    return v;
+}
+
+uint64_t emtl_device_registry_id(int idx)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    uint64_t v = dev ? (uint64_t)dev->registryID() : 0;
+    pool->release();
+    return v;
+}
+
+void emtl_device_max_threads_per_threadgroup(int idx, uint64_t* x, uint64_t* y, uint64_t* z)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    MTL::Size s = dev ? dev->maxThreadsPerThreadgroup() : MTL::Size::Make(0, 0, 0);
+    if (x) *x = (uint64_t)s.width;
+    if (y) *y = (uint64_t)s.height;
+    if (z) *z = (uint64_t)s.depth;
+    pool->release();
+}
+
+int emtl_device_flags(int idx)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    int f = 0;
+    if (dev) {
+        if (dev->hasUnifiedMemory()) f |= 1;
+        if (dev->lowPower())         f |= 2;
+        if (dev->headless())         f |= 4;
+        if (dev->removable())        f |= 8;
+    }
+    pool->release();
+    return f;
+}
+
+int emtl_device_location(int idx)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    int loc = dev ? (int)dev->location() : -1;
+    pool->release();
+    return loc;
+}
+
+uint64_t emtl_device_location_number(int idx)
+{
+    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+    MTL::Device* dev = deviceAt(idx);
+    uint64_t v = dev ? (uint64_t)dev->locationNumber() : 0;
+    pool->release();
+    return v;
+}
+
 } // extern "C"

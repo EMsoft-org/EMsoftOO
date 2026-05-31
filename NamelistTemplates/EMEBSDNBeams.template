@@ -5,7 +5,7 @@
  npx = 500,
 ! number of OpenMP threads (0 to use the maximum available)
  nthreads = 1,
-! EMMCOpenCL energy (or EMEBSDmaster) file
+! EMMCGPU energy (or EMEBSDmaster) file
  energyfile = 'undefined', 
 ! tiff output prefix (no extension, relative to EMdatapathname)
  tiffprefix = 'undefined',

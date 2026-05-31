@@ -87,6 +87,32 @@ void emtl_release(emtl_handle h);
  * buflen-1 chars of the last message into buf (NUL-terminated). */
 int  emtl_last_error(char* buf, int buflen);
 
+/* ---- device enumeration / properties (informational; drives EMGPUinfo) ----
+ * On macOS every Metal device is enumerated via MTL::CopyAllDevices(); idx is
+ * 0-based in [0, emtl_device_count()).  These mirror, as closely as Metal
+ * allows, the per-device fields the OpenCL backend reports.  Sizes are in bytes;
+ * the Fortran side converts to GB/MB/KB for display.  Out-of-range idx yields 0
+ * (or an empty name). */
+int      emtl_device_count(void);
+/* copies up to buflen-1 chars of the device name into buf (NUL-terminated);
+ * returns the number of chars copied. */
+int      emtl_device_name(int idx, char* buf, int buflen);
+uint64_t emtl_device_recommended_working_set(int idx);  /* recommendedMaxWorkingSetSize */
+uint64_t emtl_device_max_buffer_length(int idx);         /* maxBufferLength */
+uint64_t emtl_device_max_threadgroup_memory(int idx);    /* maxThreadgroupMemoryLength */
+uint64_t emtl_device_current_allocated(int idx);         /* currentAllocatedSize */
+uint64_t emtl_device_registry_id(int idx);               /* registryID */
+/* maxThreadsPerThreadgroup as a 3-tuple (each component written if non-NULL) */
+void     emtl_device_max_threads_per_threadgroup(int idx,
+                                                 uint64_t* x, uint64_t* y, uint64_t* z);
+/* packed boolean attributes:
+ *   bit0 = hasUnifiedMemory, bit1 = lowPower, bit2 = headless, bit3 = removable */
+int      emtl_device_flags(int idx);
+/* DeviceLocation enum (0 built-in, 1 slot, 2 external, else unspecified) and its
+ * location number */
+int      emtl_device_location(int idx);
+uint64_t emtl_device_location_number(int idx);
+
 #ifdef __cplusplus
 }
 #endif
