@@ -1,0 +1,251 @@
+name: macOS M1 Metal Build & Test
+
+# Builds the EMsoftOO_SDK (from EMsoftSuperbuild, branch developOO) and then
+# builds EMsoftOO with the Apple Metal GPU backend on a GitHub-hosted Apple
+# Silicon (M1) runner, and verifies that the new Metal capabilities register:
+#   * the *.metallib kernels are produced at build time, and
+#   * EMGPUinfo enumerates at least one Metal device ("GPU backend: Apple Metal").
+#
+# Runs on push / PR to develop (and on manual dispatch from the Actions tab).
+# Also runs on any fork, since the EMsoftOO checkout below uses the repository
+# that triggered the workflow.
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+  workflow_dispatch:
+
+# Cancel an in-progress run when a newer commit is pushed to the same ref.
+concurrency:
+  group: macos-m1-metal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-metal:
+    name: Build SDK + EMsoftOO, verify Metal (macOS M1)
+    # macos-14 is GitHub's Apple Silicon (M1) image. (macos-13 is Intel.)
+    runs-on: macos-14
+    timeout-minutes: 150
+
+    env:
+      # The SDK is installed here and cached between runs (keyed on the
+      # EMsoftSuperbuild commit) so it is only rebuilt when the superbuild changes.
+      EMSOFTOO_SDK: ${{ github.workspace }}/EMsoftOO_SDK
+
+    steps:
+      - name: Checkout EMsoftOO (the repo that triggered this run)
+        uses: actions/checkout@v4
+        with:
+          path: EMsoftOO
+
+      - name: Checkout EMsoftSuperbuild (developOO)
+        uses: actions/checkout@v4
+        with:
+          repository: EMsoft-org/EMsoftSuperbuild
+          ref: developOO
+          path: EMsoftSuperbuild
+
+      - name: Resolve EMsoftSuperbuild commit (for SDK cache key)
+        id: sb
+        run: echo "sha=$(git -C EMsoftSuperbuild rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Install build tools (ninja, gfortran)
+        run: |
+          set -euxo pipefail
+          brew update
+          brew install ninja
+          # gcc provides gfortran on the runner; ensure it is present.
+          brew list gcc >/dev/null 2>&1 || brew install gcc
+          # Some superbuild dependencies (e.g. nlopt 2.7.0) declare a
+          # cmake_minimum_required below 3.5, which CMake 4.x rejects as a hard
+          # error. Make sure a plain `gfortran` symlink exists for nlopt's own
+          # Fortran auto-detection (it is not passed the Fortran compiler).
+          if ! command -v gfortran >/dev/null 2>&1; then
+            FCV="$(ls /opt/homebrew/bin/gfortran-* 2>/dev/null | sort -V | tail -n 1)"
+            if [ -n "${FCV}" ]; then ln -sf "${FCV}" /opt/homebrew/bin/gfortran; fi
+          fi
+
+      - name: Pin CMake 3.31.x (older deps reject CMake 4.x policy minimum)
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.31.6'
+
+      - name: Select toolchain and verify the Metal compiler
+        id: toolchain
+        run: |
+          set -euxo pipefail
+          sw_vers
+          echo "arch: $(uname -m)"
+          cmake --version
+          # Pick the newest available gfortran (brew installs e.g. gfortran-14).
+          FC="$( (ls /opt/homebrew/bin/gfortran-* 2>/dev/null; command -v gfortran || true) | sort -V | tail -n 1 )"
+          if [ -z "${FC}" ]; then echo "::error::gfortran not found"; exit 1; fi
+          echo "Using Fortran compiler: ${FC}"
+          "${FC}" --version
+          echo "fc=${FC}" >> "$GITHUB_OUTPUT"
+          # The Metal backend needs the Metal compiler (full Xcode). If it is
+          # missing, EMsoftOO would silently fall back to OpenCL, which would
+          # defeat the purpose of this workflow -- so fail loudly here instead.
+          xcode-select -p
+          if ! xcrun -sdk macosx metal --version; then
+            echo "::error::The Metal compiler (xcrun -sdk macosx metal) is unavailable on this runner; cannot build/verify the Metal backend."
+            exit 1
+          fi
+
+      - name: Restore cached EMsoftOO_SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.EMSOFTOO_SDK }}
+          key: emsoftoo-sdk-macos14-${{ steps.sb.outputs.sha }}-v1
+
+      - name: Build EMsoftOO_SDK (EMsoftSuperbuild, developOO)
+        id: build-sdk
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          set -euxo pipefail
+          cmake --version
+          mkdir -p EMsoftSuperbuild/Release
+          cd EMsoftSuperbuild/Release
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_Fortran_COMPILER="${{ steps.toolchain.outputs.fc }}" \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DEMsoftOO_SDK="${EMSOFTOO_SDK}" \
+            -DINSTALL_QT5=OFF \
+            ..
+          cmake --build . --parallel
+
+      - name: Dump SDK dependency configure logs on failure
+        if: failure() && steps.build-sdk.outcome == 'failure'
+        run: |
+          # Surface the real error from any failed ExternalProject configure
+          # (nlopt, bcls, hdf5, ...). The generic "Command failed: 1" in the main
+          # log is just the wrapper; the *-configure-*.log holds the actual cause.
+          set +e
+          SB="${EMSOFTOO_SDK}/superbuild"
+          echo "==== searching for configure/build logs under ${SB} ===="
+          find "${SB}" -name "*-configure-*.log" -o -name "*-build-*.log" 2>/dev/null | while read -r f; do
+            echo ""
+            echo "########## ${f} ##########"
+            tail -n 120 "${f}"
+          done
+
+
+      - name: Configure EMsoftOO (Metal backend ON)
+        run: |
+          set -euxo pipefail
+          mkdir -p EMsoftOOBuild/Release
+          cd EMsoftOOBuild/Release
+          # Metal defaults ON on Apple; we set it explicitly to be unambiguous.
+          # OpenCL_SUPPORT + HDF5_SUPPORT stay ON because the EMGPUinfo target is
+          # gated on them. Most modalities are disabled to keep CI focused on the
+          # GPU/Metal stack (flip them ON for a full build).
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_Fortran_COMPILER="${{ steps.toolchain.outputs.fc }}" \
+            -DEMsoftOO_SDK="${EMSOFTOO_SDK}" \
+            -DEMsoftOO_ENABLE_Metal_SUPPORT=ON \
+            -DEMsoftOO_ENABLE_OpenCL_SUPPORT=ON \
+            -DEMsoftOO_ENABLE_HDF5_SUPPORT=ON \
+            -DEMsoftOO_ENABLE_Utilities=ON \
+            -DEMsoftOO_ENABLE_SEM=OFF \
+            -DEMsoftOO_ENABLE_TEM=OFF \
+            -DEMsoftOO_ENABLE_DictionaryIndexing=OFF \
+            -DEMsoftOO_ENABLE_SphInx=OFF \
+            -DEMsoftOO_ENABLE_QC=OFF \
+            -DEMsoftOO_ENABLE_GBs=OFF \
+            -DEMsoftOO_ENABLE_XRay=OFF \
+            -DEMsoftOO_ENABLE_OM=OFF \
+            -DEMsoftOO_ENABLE_Demag=OFF \
+            -DEMsoftOO_ENABLE_Shapes=OFF \
+            -DEMsoftOO_ENABLE_CTEMbook=OFF \
+            -DEMsoftOO_ENABLE_TestPrograms=OFF \
+            ../../EMsoftOO
+
+      - name: Build EMsoftOO
+        run: |
+          set -euxo pipefail
+          cmake --build EMsoftOOBuild/Release --parallel
+
+      - name: Verify Metal kernels were compiled (*.metallib)
+        run: |
+          set -euxo pipefail
+          OPENCL_DIR="EMsoftOOBuild/Release/Bin/opencl"
+          echo "Contents of ${OPENCL_DIR}:"
+          ls -l "${OPENCL_DIR}" || true
+          missing=0
+          for k in EMMC DictIndx EMMCfoil EMMCxyz; do
+            if [ -f "${OPENCL_DIR}/${k}.metallib" ]; then
+              echo "OK: ${k}.metallib built"
+            else
+              echo "::error::Expected Metal library ${k}.metallib was not built"
+              missing=1
+            fi
+          done
+          [ "${missing}" -eq 0 ]
+
+      - name: Set up a minimal EMsoftConfig.json
+        run: |
+          set -euxo pipefail
+          mkdir -p "${HOME}/.config/EMsoft/tmp"
+          cat > "${HOME}/.config/EMsoft/EMsoftConfig.json" <<JSON
+          {
+            "EMsoftpathname": "${GITHUB_WORKSPACE}/EMsoftOO/",
+            "EMXtalFolderpathname": "${GITHUB_WORKSPACE}/XtalFolder",
+            "EMdatapathname": "${GITHUB_WORKSPACE}/EMPlay",
+            "EMtmppathname": "${HOME}/.config/EMsoft/tmp/",
+            "EMsoftLibraryLocation": "${GITHUB_WORKSPACE}/EMsoftOOBuild/Release/Bin/",
+            "EMNotify": "",
+            "Develop": "No",
+            "UserName": "GitHub Actions",
+            "UserLocation": "CI",
+            "UserEmail": "",
+            "Release": "Yes"
+          }
+          JSON
+          mkdir -p "${GITHUB_WORKSPACE}/XtalFolder" "${GITHUB_WORKSPACE}/EMPlay"
+
+      - name: Run EMGPUinfo and verify the Metal backend registers
+        run: |
+          set -euxo pipefail
+          BIN="EMsoftOOBuild/Release/Bin/EMGPUinfo"
+          if [ ! -x "${BIN}" ]; then
+            echo "::error::EMGPUinfo was not built at ${BIN}"
+            exit 1
+          fi
+          # Capture the output; do not let a nonzero exit abort before we inspect it.
+          set +e
+          "${BIN}" | tee gpuinfo.txt
+          set -e
+          echo "----- EMGPUinfo output captured above -----"
+          # 1) The active backend must be Apple Metal.
+          if ! grep -q "GPU backend: Apple Metal" gpuinfo.txt; then
+            echo "::error::EMGPUinfo did not report the Apple Metal backend (it may have fallen back to OpenCL)."
+            exit 1
+          fi
+          # 2) There must be no 'no devices' message.
+          if grep -q "No Metal devices were found" gpuinfo.txt; then
+            echo "::error::EMGPUinfo found no Metal devices."
+            exit 1
+          fi
+          # 3) At least one Metal device must be enumerated.
+          NDEV="$(grep -E "Number of Metal devices:" gpuinfo.txt | grep -oE "[0-9]+" | tail -n 1 || true)"
+          echo "Reported Metal device count: ${NDEV:-unknown}"
+          if [ -z "${NDEV}" ] || [ "${NDEV}" -lt 1 ]; then
+            echo "::error::EMGPUinfo did not enumerate any Metal devices."
+            exit 1
+          fi
+          echo "Metal backend registered with ${NDEV} device(s). ✔"
+
+      - name: Upload EMGPUinfo output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emgpuinfo-output
+          path: gpuinfo.txt
+          if-no-files-found: ignore
