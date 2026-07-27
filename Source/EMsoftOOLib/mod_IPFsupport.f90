@@ -1898,7 +1898,7 @@ real(kind=dbl),INTENT(IN)       :: chiMin
 real(kind=dbl),INTENT(IN)       :: chiMax 
 logical                         :: inside 
 
-real(kind=dbl),parameter        :: eps = 1.0D-12
+real(kind=dbl),parameter        :: eps = 1.0D-7
 
 inside = .FALSE.
 
@@ -2025,6 +2025,7 @@ if ( (trim(self%ipf_mode).ne.'Euler')  ) then
     eta = atan2(refDir(2),refDir(1))
     etaDeg = eta * rtod
     chiDeg = chi * rtod
+
 ! does this lie in the unit triangle ? 
     select case (self%ipf_LaueClass)
       case(1,2)     ! triclinic, monoclinic

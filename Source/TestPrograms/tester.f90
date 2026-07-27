@@ -3,7 +3,7 @@ program tester
 use mod_global 
 use mod_kinds
 use mod_EMsoft
-! use mod_symmetry
+use mod_symmetry
 ! use mod_crystallography
 ! use mod_QCsymmetry
 ! use mod_QCcrystallography
@@ -11,7 +11,7 @@ use mod_EMsoft
 ! use mod_dirstats
 ! 
 ! use mod_dualquaternions
-! use mod_quaternions
+use mod_quaternions
 use mod_rotations
 use mod_KRsupport
 use mod_KRcyclic
@@ -20,7 +20,8 @@ use mod_KRtetrahedral
 use mod_KRoctahedral 
 ! use mod_octonions
 ! use mod_GBoctonions
-! use mod_HDFsupport
+use mod_IPFsupport
+use mod_IPF
 ! use HDF5
 ! use mod_vendors
 ! use mod_HallSG
@@ -42,15 +43,19 @@ IMPLICIT NONE
 ! type(axonometry_T)          :: AXO 
 ! type(Postscript_T)          :: PS 
 type(EMsoft_T)              :: EMsoft
+type(QuaternionArray_T)     :: qAR, sym
+type(IPF_T)                 :: IPF
+type(IPFmap_T)              :: IPFmap
 
 real(kind=real64)           :: h_in(3), h_out(3)
-type(q_T)                   :: qa, qb 
+type(q_T)                   :: q
+type(e_T)                   :: eu
+type(Quaternion_T)          :: qu
 
-integer(kind=irg)           :: offsets(3,12), pnum, N 
+integer(kind=irg)           :: offsets(3,12), pgnum, Nexp, Pm 
 integer(kind=irg)           :: nx, ny, i, j , k
 real(kind=dbl)              :: delta 
-
-real(kind=real64)           :: test_in(3,6)
+integer(kind=ish)           :: RGB(3)
 
 ! type(DirStat_T)             :: DSvmf, DSwat
 
@@ -130,27 +135,45 @@ real(kind=real64)           :: test_in(3,6)
 ! delta = cPi**(2.D0/3.D0) / dble(2*N)
 ! pnum = 4*(2*N)**3
 
-test_in =  reshape( &
-    (/  0.000000000000000e+00_real64, 0.000000000000000e+00_real64, 0.000000000000000e+00_real64, &
-        1.000000000000000e-01_real64, 2.000000000000000e-02_real64, 3.000000000000000e-02_real64,&
-        1.500000000000000e-01_real64, 1.000000000000000e-01_real64, 5.000000000000000e-02_real64,&
-        2.000000000000000e-01_real64, 5.000000000000000e-02_real64, 1.100000000000000e-01_real64,&
-        2.500000000000000e-01_real64, 1.200000000000000e-01_real64, 1.000000000000000e-01_real64,&
-        3.000000000000000e-01_real64, 1.500000000000000e-01_real64, 1.500000000000000e-01_real64 /), (/ 3,6 /) )
+call setRotationPrecision( 'd' )
 
-do i=1,6
-  h_in = test_in(1:3,i)
-  write (*,*) h_in
-  call KRcyclic(h_in, h_out, 2)
-  write (*,*) h_out
-end do 
+eu = e_T( edinp = (/ 5.51503D0, 0.79857D0, 1.02226D0 /) )
+call eu%e_print(' test ')
 
+pgnum = 19
+Nexp = 1
 
+IPF = IPF_T()
+call IPF%set_pgnum( pgnum )
+qAR = QuaternionArray_T( Nexp, s = 'd')
+q = eu%eq()
+qu = quaternion_T( qd = q%q_copyd() )
+call qAR%insertQuatinArray( 1, qu )
 
+! create the IPFmap class, set the parameters, and generate the IPF map 
+IPFmap = IPFmap_T()
+call IPFmap%set_ipf_LaueClass(PGLaueinv(pgnum))
+nx = 1
+ny = 1
+call IPFmap%set_ipf_wd(nx)
+call IPFmap%set_ipf_ht(ny)
+call IPFmap%set_ipf_mode('TSL')
+call IPFmap%set_ipf_nthreads(1)
 
+call qAR%QSym_Init(pgnum, sym)
+Pm = sym%getQnumber()
 
+write (*,*) ' Number of operators : ', Pm
+call sym%quat_print()
 
+RGB = IPFmap%get_ipf_RGB( (/ 1.D0, 0.D0, 0.D0 /), qu, sym, Pm)
+write (*,*) ' X color triplet : ', RGB
 
+RGB = IPFmap%get_ipf_RGB( (/ 0.D0, 1.D0, 0.D0 /), qu, sym, Pm)
+write (*,*) ' Y color triplet : ', RGB
+
+RGB = IPFmap%get_ipf_RGB( (/ 0.D0, 0.D0, 1.D0 /), qu, sym, Pm)
+write (*,*) ' Z color triplet : ', RGB
 
 
 

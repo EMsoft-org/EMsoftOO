@@ -2740,6 +2740,11 @@ select case (prot)
                 call Message%printError('QSym_Init','unknown rotational point group number')
 end select
 
+! make sure the quaternion scalar parts are all positive 
+do i=1,Nqsym
+  if (Pm(1,i).lt.0.D0) Pm(1:4,i) = -Pm(1:4,i)
+end do 
+
 ! and initialize the quaternion array class
 qsym = QuaternionArray_T( n = Nqsym, nthreads = 1, qd = Pm )
 
