@@ -559,7 +559,7 @@ character(7),public, parameter :: sitesym(48) = (/ '222    ',' -1    ','222/n  '
 
 character(2), public, dimension(32) :: TSLsymtype = (/' 1',' 1',' 2',' 2',' 2','22','22','22', &
                                                        ' 4',' 4',' 4','42','42','42','42',' 3', &
-                                                       ' 3','32','3','32',' 6',' 6',' 6','62', &
+                                                       ' 3','32',' 3','32',' 6',' 6',' 6','62', &
                                                        '62','62','62','23','23','43','43','43'/)
 !DEC$ ATTRIBUTES DLLEXPORT :: TSLsymtype
 
@@ -2883,11 +2883,11 @@ if (self%trigonal.eqv..TRUE.) then ! yes, it is
 
 ! point group 3m
   if ((sg.eq.156).or.(sg.eq.158)) stnum = 14
-  if ((sg.eq.157).or.(sg.eq.159)) stnum = 15
+  if ((sg.eq.157).or.(sg.eq.159)) stnum = 14
   if ((sg.eq.160).or.(sg.eq.161)) stnum = 14
 
 ! point group bar3m
-  if ((sg.eq.162).or.(sg.eq.163)) stnum = 17
+  if ((sg.eq.162).or.(sg.eq.163)) stnum = 16
   if ((sg.eq.164).or.(sg.eq.165)) stnum = 16
   if ((sg.eq.166).or.(sg.eq.167)) stnum = 16
 else
@@ -2900,7 +2900,7 @@ else
     end if
   end if
   if (pgnum.eq.26) then
-    if ((sg.eq.187).or.(sg.eq.188)) then
+    if ((sg.eq.187).or.(sg.eq.188).or.(sg.eq.189).or.(sg.eq.190)) then
       stnum = 16
     else
       stnum = 17
