@@ -193,6 +193,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_sampler.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_RFZwf.f90 
   ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_avdis.f90 
+  ${EMsoftOOLib_SOURCE_DIR}/program_mods/mod_Nbeams.f90 
 
   ${EMsoftOOLib_Additional_SRCS}
 )

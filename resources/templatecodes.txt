@@ -90,6 +90,7 @@
 112EMgetEulers
 120EMSphInx
 121EMEECmaster
+122EMgetNbeams
 140EM4DEBSD
 200EMdefectdata
 210MDElectronProp
