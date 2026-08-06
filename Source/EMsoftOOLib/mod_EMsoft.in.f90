@@ -2019,7 +2019,12 @@ sts = system_system('pandoc -v | wc -l > linecount')
 open(unit=dataunit,file='linecount',status='old',form='formatted')
 read(dataunit,"(I10)") nlines
 close(unit=dataunit,status='delete')
-if (nlines.gt.1) pandoc_found=.TRUE.
+if (nlines.gt.1) then 
+  pandoc_found=.TRUE.
+  call Message%printMessage(' pandoc program found ')
+else
+  call Message%printError('ConvertWiki2PDF',' pandoc program not found; please install it')
+end if
 
 if (pandoc_found.eqv..TRUE.) then
 ! read the wikifile resources file to get all relevant file names
@@ -2027,6 +2032,8 @@ if (pandoc_found.eqv..TRUE.) then
   inquire(file=trim(wcf),exist=fexist)
   if (.not.fexist) then
     call Message%printError('ConvertWiki2PDF','wiki code file not found: '//wcf)
+  else
+    call Message%printMessage(' ConvertWiki2PDF: wiki code file found: '//wcf)
   end if
 
   open(UNIT=dataunit,FILE=trim(wcf), STATUS='old', FORM='formatted',ACCESS='sequential')
@@ -2050,6 +2057,7 @@ if (pandoc_found.eqv..TRUE.) then
 
   if (fexist.eqv..TRUE.) then
     defcmd = '-V fontsize=10pt --template '//trim(pandoc_tpl)
+    call Message%printMessage(' pandoc default.latex template file found')
   else
     defcmd = ''
     call Message%printWarning(' the pandoc default.latex template file could not be found; continuing... ')
@@ -2064,11 +2072,13 @@ if (pandoc_found.eqv..TRUE.) then
     inquire(file=trim(input_name),exist=fexist)
 
     if (fexist.eqv..TRUE.) then  ! create a shell script that will call pandoc and generate the PDF file
+      call Message%printMessage(' found wiki file '//trim(input_name)//'; starting conversion ')
       output_name = trim(tpl)//pdfextension
 ! example command string:
 !  pandoc -V fontsize=10pt --template EMsoftResourcesFolder/default.latex -s EMGBOdm.md -o EMGBOdm.pdf
       cmd = 'pandoc '//trim(defcmd)//' -s '//trim(input_name)//' -o '//trim(output_name)
-      open(unit=dataunit,file='wiki2pdf',status='unknown',form='formatted')
+      ! call Message%printMessage(' pandoc command : '//trim(cmd))
+      open(unit=dataunit,file='./wiki2pdf',status='unknown',form='formatted')
       write(dataunit,"(A)") '#!/bin/bash'
       write(dataunit,"(A)") 'cdir=`pwd`'
       write(dataunit,"(A)") 'cd '//trim(wikipath)
@@ -2078,7 +2088,7 @@ if (pandoc_found.eqv..TRUE.) then
       close(unit=dataunit, status='keep')
       sts = system_system('chmod +x wiki2pdf')
       sts = system_system('./wiki2pdf')
-      open(unit=dataunit,file='wiki2pdf',status='unknown',form='formatted')
+      open(unit=dataunit,file='./wiki2pdf',status='unknown',form='formatted')
       close(unit=dataunit, status='delete')
       call Message%printMessage(' wiki file converted to PDF: '//trim(output_name))
     else
@@ -2252,6 +2262,7 @@ type(IO_T)                              :: Message
 integer(kind=irg)                       :: numarg       ! number of command line arguments
 integer(kind=irg)                       :: iargc        ! external function for command line
 character(fnlen)                        :: arg          ! to be read from the command line
+character(fnlen)                        :: pname        ! progname without .f90 extension
 character(fnlen)                        :: nmlfile      ! nml file name
 integer(kind=irg)                       :: i, io_int(1)
 logical                                 :: haltprogram, json
@@ -2271,6 +2282,9 @@ end if
 haltprogram = .FALSE.
 if (numarg.ge.1) haltprogram = .TRUE.
 
+! trim .f90 from progname
+pname = progname(1:LEN_TRIM(progname)-4)
+
 if (numarg.gt.0) then ! there is at least one argument
   do i=1,numarg
 !   call getarg(i,arg)
@@ -2280,11 +2294,12 @@ if (numarg.gt.0) then ! there is at least one argument
     if (arg(1:1).eq.'-') then
       if (trim(arg).eq.'-h') then
         call Message%printMessage(' Program should be called as follows: ', frm = "(/A)")
-        call Message%printMessage('        '//trim(progname)//' -h -t -j [nmlfile]', frm = "(A)")
+        call Message%printMessage('        '//trim(pname)//' -h -t -j -pdf [nmlfile]', frm = "(A)")
         call Message%printMessage(' where nmlfile is an optional file name for the namelist file;', frm = "(A/)")
         call Message%printMessage(' If absent, the default name '''//trim(nmldefault)//''' will be used.', frm = "(A)")
-        call Message%printMessage(' To create templates of all possible input files, type '//trim(progname)//' -t', frm = "(A)")
-        call Message%printMessage(' To produce this message, type '//trim(progname)//' -h', frm = "(A)")
+        call Message%printMessage(' To create templates of all possible input files, type '//trim(pname)//' -t', frm = "(A)")
+        call Message%printMessage(' To produce this message, type '//trim(pname)//' -h', frm = "(A)")
+        call Message%printMessage(' To convert the program wiki file to pdf, use the -pdf option;  ', frm = "(A)")
         call Message%printMessage(' All program arguments can be combined in the same order;  ', frm = "(A)")
         call Message%printMessage(' the argument without - will be interpreted as the input file name.', frm = "(A/)")
       end if

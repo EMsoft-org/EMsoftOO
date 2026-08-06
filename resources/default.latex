@@ -347,6 +347,11 @@ $endif$
 \evensidemargin=0.0in
 \topmargin=-0.5in
 
+\usepackage{graphicx}
+\makeatletter
+\def\pandocbounded#1#2{#1{#2}}
+\makeatother
+
 \begin{document}
 $if(title)$
 $if(beamer)$
