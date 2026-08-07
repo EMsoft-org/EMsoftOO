@@ -1388,7 +1388,7 @@ type(EBSDmasterNameListType)              :: ebsdnl
 type(ECPmasterNameListType)               :: ecpnl
 type(TKDmasterNameListType)               :: tkdnl
 real(kind=sgl), allocatable               :: nh(:,:,:), sh(:,:,:), ev(:)
-character(fnlen)                          :: fname, dgname
+character(fnlen)                          :: fname
 integer(kind=irg)                         :: nx
 
 MPFT = MPfile_T()
@@ -1410,25 +1410,22 @@ select case (trim(self%modality))
     call HDFnames%set_NMLlist(SC_EBSDmasterNameList)
     call HDFnames%set_NMLfilename(SC_EBSDmasterNML)
     call HDFnames%set_Variable(SC_MCOpenCL)
-    call MPFT%readMPfile(HDF, HDFnames, ebsdnl, getmLPNH = .TRUE., getmLPSH = .TRUE.)
+    call MPFT%readMPfile(HDF, HDFnames, ebsdnl, getkeVs = .TRUE., getmLPNH = .TRUE., getmLPSH = .TRUE.)
     nx = ebsdnl%npx
-    dgname = SC_EBSDmaster
   case ('TKD')
     call HDFnames%set_ProgramData(SC_TKDmaster)
     call HDFnames%set_NMLlist(SC_TKDmasterNameList)
     call HDFnames%set_NMLfilename(SC_TKDmasterNML)
     call HDFnames%set_Variable(SC_MCOpenCL)
-    call MPFT%readMPfile(HDF, HDFnames, tkdnl, getmLPNH = .TRUE., getmLPSH = .TRUE.)
+    call MPFT%readMPfile(HDF, HDFnames, tkdnl, getkeVs = .TRUE., getmLPNH = .TRUE., getmLPSH = .TRUE.)
     nx = tkdnl%npx
-    dgname = SC_TKDmaster
   case ('ECP')
     call HDFnames%set_ProgramData(SC_ECPmaster)
     call HDFnames%set_NMLlist(SC_ECPmasterNameList)
     call HDFnames%set_NMLfilename(SC_ECPmasterNML)
     call HDFnames%set_Variable(SC_MCOpenCL)
-    call MPFT%readMPfile(HDF, HDFnames, ecpnl, getmLPNH = .TRUE., getmLPSH = .TRUE.)
+    call MPFT%readMPfile(HDF, HDFnames, ecpnl, getkeVs = .TRUE., getmLPNH = .TRUE., getmLPSH = .TRUE.)
     nx = ecpnl%npx
-    dgname = SC_ECPmaster
   case default
     call Message%printError('readMasterPattern', 'unsupported master pattern modality '//trim(self%modality))
 end select
@@ -1436,9 +1433,8 @@ end select
 call MPFT%copymLPNH(nh)
 call MPFT%copymLPSH(sh)
 
-! the energy list is not read through readMPfile, because that routine looks for
-! a dataset named keVs whereas the master pattern programs write EkeVs
-call readEnergies_(HDF, fname, dgname, ev)
+! ev is left unallocated for the single energy modalities, which have no energy list
+call MPFT%copykeVs(ev)
 
 if (allocated(ev)) then
   call self%setMasterPattern_(nx, nh, sh, ev)
@@ -1452,57 +1448,6 @@ deallocate(nh, sh)
 if (allocated(ev)) deallocate(ev)
 
 end subroutine readMasterPattern_
-
-!--------------------------------------------------------------------------
-recursive subroutine readEnergies_(HDF, fname, datagroupname, ev)
-!DEC$ ATTRIBUTES DLLEXPORT :: readEnergies_
-!! author: MDG
-!! version: 1.0
-!! date: 08/07/26
-!!
-!! read the energy bin centers from a master pattern file, if they are there
-!!
-!! The master pattern programs store this array as EkeVs; some other file types
-!! call it keVs, so both names are tried.  ev is left unallocated when neither is
-!! present, which is a normal outcome for single-energy modalities.
-
-use HDF5
-use mod_HDFsupport
-use stringconstants
-
-IMPLICIT NONE
-
-type(HDF_T), INTENT(INOUT)                  :: HDF
-character(fnlen), INTENT(IN)                :: fname
-character(fnlen), INTENT(IN)                :: datagroupname
-real(kind=sgl), allocatable, INTENT(INOUT)  :: ev(:)
-
-character(fnlen)                            :: groupname, dataset
-logical                                     :: g_exists
-integer(kind=irg)                           :: hdferr
-integer(HSIZE_T)                            :: dims(1)
-
-if (allocated(ev)) deallocate(ev)
-
-hdferr = HDF%openFile(fname, readonly = .TRUE.)
-
-groupname = SC_EMData
-hdferr = HDF%openGroup(groupname)
-groupname = trim(datagroupname)
-hdferr = HDF%openGroup(groupname)
-
-dataset = SC_EkeVs
-call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
-if (.not.g_exists) then
-  dataset = SC_keVs
-  call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
-end if
-
-if (g_exists) call HDF%readDatasetFloatArray(dataset, dims, hdferr, ev)
-
-call HDF%popall()
-
-end subroutine readEnergies_
 
 !--------------------------------------------------------------------------
 recursive subroutine setMasterPattern_(self, npx, nh, sh, keVs)

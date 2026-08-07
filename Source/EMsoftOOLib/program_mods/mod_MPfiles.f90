@@ -219,6 +219,9 @@ subroutine copykeVs_(self, acc, keep)
 !! date: 02/17/20
 !!
 !! copy the keVs array
+!!
+!! acc is left unallocated when the file has no energy list, so the caller should
+!! test for that with allocated()
 
 IMPLICIT NONE
 
@@ -227,6 +230,8 @@ real(kind=sgl), allocatable, INTENT(OUT)      :: acc(:)
 logical, INTENT(IN), OPTIONAL                 :: keep
 
 integer(kind=irg)                             :: s(1)
+
+if (.not.allocated(self%MPDT%keVs)) return
 
 s = shape(self%MPDT%keVs)
 allocate(acc(s(1)))
@@ -1300,8 +1305,21 @@ end if
 ! various optional arrays
 if (present(getkeVs)) then
   if (getkeVs.eqv..TRUE.) then
-    dataset = SC_keVs
-    call HDF%readDatasetFloatArray(dataset, dims, hdferr, MPDT%keVs)
+! the master pattern programs write this array as EkeVs; some other file types
+! call it keVs, so we try both names.  Neither is necessarily present, since the
+! single energy modalities have no energy list at all, so the existence of each
+! one is checked first and MPDT%keVs is simply left unallocated if there is none.
+    dataset = SC_EkeVs
+    call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
+    if (.not.g_exists) then
+      dataset = SC_keVs
+      call H5Lexists_f(HDF%getobjectID(), trim(dataset), g_exists, hdferr)
+    end if
+    if (g_exists) then
+      call HDF%readDatasetFloatArray(dataset, dims, hdferr, MPDT%keVs)
+    else
+      call Message%printWarning('readMPfile_', (/ 'no energy list in this master pattern file' /) )
+    end if
   end if
 end if
 
