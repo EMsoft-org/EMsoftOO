@@ -1,0 +1,77 @@
+ &icoMPdata
+! The line above must not be changed
+!
+! The values below are the default values for this program
+!
+!###################################################################
+! INPUT AND OUTPUT FILES
+!###################################################################
+!
+! master pattern file (EBSD, ECP or TKD); path relative to EMdatapathname
+ masterfile = 'undefined',
+! output numpy .npz file; path relative to EMdatapathname
+ npzfile = 'undefined',
+! master pattern modality; 'EBSD', 'ECP', 'TKD', or 'undefined' to read it from the file
+ modality = 'undefined',
+!
+!###################################################################
+! ICOSPHERE
+!###################################################################
+!
+! subdivision level, 0-8; the sphere has 10*4^level+2 vertices, so level 5 gives
+! 10242 vertices (about 2.2 degrees) and level 8 gives 655362 (about 0.28 degrees)
+ level = 5,
+!
+!###################################################################
+! ENERGY AXIS
+!###################################################################
+!
+! how to collapse the energy axis of the master pattern:
+!   'sum'      add all energy bins into a single channel
+!   'all'      keep every energy bin as a separate channel
+!   'index'    use a single energy bin, selected by energybin
+!   'weighted' weighted sum over the energy bins, using energyweights
+ energymode = 'sum',
+! energy bin to use when energymode = 'index'; NOTE that this is ZERO-BASED, so
+! energybin = 0 is the first bin, to match the python master_to_icosphere.py program
+ energybin = 0,
+! weight factors when energymode = 'weighted'; one per energy bin, in order.
+! Entries beyond the number of energy bins in the master pattern are ignored.
+ energyweights = 100*0.0,
+!
+!###################################################################
+! SAMPLING
+!###################################################################
+!
+! average the master pattern over each vertex cell instead of point sampling it;
+! this is much less prone to aliasing and costs aarings*aaazim interpolations per vertex
+ antialias = .TRUE.,
+! size of the equal-area disc quadrature used for the cell average
+ aarings = 6,
+ aaazim = 10,
+! interpolation kernel: 'bilinear', 'bicubic', or 'auto' to pick bicubic only when
+! the master pattern is barely finer than the vertex cells (fewer than 4 pixels per cell)
+ interpolation = 'auto',
+!
+!###################################################################
+! OUTPUT OPTIONS
+!###################################################################
+!
+! per-channel normalization of the vertex signal: 'none', 'zscore', 'minmax' or 'mean1'
+ normalize = 'none',
+! store the real arrays as float64 instead of float32
+ doubleprecision = .FALSE.,
+! also store the cotangent Laplacian in COO form, and the barycentric vertex areas
+ laplacian = .FALSE.,
+!
+!###################################################################
+! CHECKS
+!###################################################################
+!
+! before resampling, verify that the interpolation reproduces the master pattern
+! exactly at its own grid nodes, and that the equator seam is continuous
+ verify = .FALSE.,
+! run the icosphere geometry self tests and exit; needs no master pattern.
+! The tests run for all levels from 0 up to min(level,6).
+ selftest = .FALSE.,
+ /

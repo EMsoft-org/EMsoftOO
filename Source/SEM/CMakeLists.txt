@@ -99,6 +99,15 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                         INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
                         )
 
+  Add_EMsoftOO_Executable(TARGET EMicoMP
+                        SOURCES ${APP_DIR}/EMicoMP.f90
+                        LINK_LIBRARIES ${EXE_LINK_LIBRARIES}
+                        TEMPLATE ${TMPLT_DIR}/EMicoMP.template
+                        SOLUTION_FOLDER EMsoftOOPublic/SEM
+                        INSTALL_PROGRAM TRUE
+                        INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
+                        )
+
  Add_EMsoftOO_Executable(TARGET EMgetNbeams
                         SOURCES ${APP_DIR}/EMgetNbeams.f90
                         LINK_LIBRARIES ${EXE_LINK_LIBRARIES}

@@ -118,6 +118,8 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/mod_KRtetrahedral.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_KRoctahedral.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_KRicosahedral.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_npz.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_icoMP.f90
 
   # ${EMsoftOOLib_SOURCE_DIR}/mod_shapes.f90
 
