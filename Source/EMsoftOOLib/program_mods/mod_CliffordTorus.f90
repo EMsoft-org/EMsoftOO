@@ -50,7 +50,7 @@ type, public :: CliffordTorusNameListType
   integer(kind=irg)       :: pgnum
   integer(kind=irg)       :: nthreads
   character(fnlen)        :: hdffile
-  character(fnlen)        :: anglefile
+  character(fnlen)        :: anglefile(5)
   character(fnlen)        :: sqtfile
   character(fnlen)        :: zpfile 
   character(1)            :: background
@@ -217,7 +217,7 @@ integer(kind=irg)                     :: n
 integer(kind=irg)                     :: nthreads
 integer(kind=irg)                     :: pgnum
 character(fnlen)                      :: hdffile
-character(fnlen)                      :: anglefile
+character(fnlen)                      :: anglefile(5)
 character(fnlen)                      :: sqtfile
 character(fnlen)                      :: zpfile 
 character(1)                          :: background
@@ -226,7 +226,7 @@ namelist  / CliffordTorus / reducetoRFZ, symmetrize, shownegativeq0, n, pgnum, a
                             zpfile, doRiesz, overlayRFZ, logarithmic, hdffile, background, nthreads
 
 ! set the input parameters to default values
-anglefile = 'undefined' 
+anglefile = (/ 'undefined', 'undefined', 'undefined', 'undefined', 'undefined' /) 
 reducetoRFZ = 1
 overlayRFZ = 0
 symmetrize = 0 
@@ -252,8 +252,8 @@ if (.not.skipread) then
     close(UNIT=dataunit,STATUS='keep')
 
 ! check for required entries
-    if (trim(anglefile).eq.'undefined') then
-        call Message%printError('readNameList:',' anglefile file name is undefined in '//nmlfile)
+    if (trim(anglefile(1)).eq.'undefined') then
+        call Message%printError('readNameList:',' at least one anglefile must be defined in '//nmlfile)
     end if
 
     if ( (trim(sqtfile).eq.'undefined').and.(trim(zpfile).eq.'undefined') ) then
@@ -632,9 +632,13 @@ subroutine setanglefile_(self,inp)
 IMPLICIT NONE
 
 class(CliffordTorus_T), INTENT(INOUT) :: self
-character(fnlen), INTENT(IN)          :: inp
+character(fnlen), INTENT(IN)          :: inp(5)
 
-self%nml%anglefile = trim(inp)
+integer(kind=irg)                     :: i 
+
+do i=1,5
+  self%nml%anglefile(i) = trim(inp(i))
+end do
 
 end subroutine setanglefile_
 
@@ -650,9 +654,13 @@ function getanglefile_(self) result(out)
 IMPLICIT NONE
 
 class(CliffordTorus_T), INTENT(INOUT) :: self
-character(fnlen)                      :: out
+character(fnlen)                      :: out(5)
 
-out = trim(self%nml%anglefile)
+integer(kind=irg)                     :: i 
+
+do i=1,5
+  out(i) = trim(self%nml%anglefile(i))
+end do
 
 end function getanglefile_
 
@@ -1699,7 +1707,7 @@ class(CliffordTorus_T), INTENT(INOUT)   :: self
 type(EMsoft_T), INTENT(INOUT)           :: EMsoft
 character(fnlen), INTENT(INOUT)         :: progname 
 
-type(so3_T)                             :: SO
+type(so3_T)                             :: SO, SO2
 type(IO_T)                              :: Message 
 type(QuaternionArray_T)                 :: Pm, dummy 
 type(Quaternion_T)                      :: qm, qus 
@@ -1714,10 +1722,31 @@ logical                                 :: weights
 ! initialize the SO3 class
 SO = so3_T( self%nml%pgnum, zerolist='FZ' )
 
-! read all the orientations from the anglefile
-oname = EMsoft%generateFilePath('EMdatapathname',self%nml%anglefile)
+! read all the orientations from the anglefiles
+! we know that there is at least one angle file so let's start with that file
+oname = EMsoft%generateFilePath('EMdatapathname',self%nml%anglefile(1))
 call Message%printMessage(' Reading orientations from file '//trim(oname))
 call SO%getOrientationsfromFile( oname, listN=10)
+io_int(1) = SO%getListCount('FZ')
+call Message%WriteValue(' Orientation list length : ', io_int, 1)
+
+! are there more angle files to be read ?
+if (trim(self%nml%anglefile(2)).ne.'undefined') then ! read each file and append to the orientation list
+ i = 2
+ SO2 = so3_T( self%nml%pgnum, zerolist='FZ' )
+
+ do while ( (trim(self%nml%anglefile(i)).ne.'undefined').and.(i.lt.6) )
+  oname = EMsoft%generateFilePath('EMdatapathname',self%nml%anglefile(i))
+  call Message%printMessage(' Reading orientations from file '//trim(oname))
+  call SO2%getOrientationsfromFile( oname, listN=10)
+  call SO2%listtoQuaternionArray(dummy, 'FZ')
+! append the new orientation list to the existing one
+  call SO%QuaternionArrayappendtolist( dummy, 'FZ')
+  io_int(1) = SO%getListCount('FZ')
+  call Message%WriteValue(' New orientation list length : ', io_int, 1)
+  i = i+1
+ end do 
+end if
 
 ! are we using weighted orientations ?  This could happen with .wxt files that are derived
 ! from programs like POPLA that extract orientations from an ODF based on pole figures

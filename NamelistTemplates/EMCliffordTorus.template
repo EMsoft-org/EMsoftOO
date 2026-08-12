@@ -15,7 +15,7 @@
 !
 ! case 2: either an .ang file (EDAX/TSL) or a .ctf file (Oxford); the file extension 
 ! must be .ang or .ctf!
- anglefile = 'undefined', 
+ anglefile = 'undefined' 'undefined' 'undefined' 'undefined' 'undefined',
 ! reduce orientations to RFZ (1) or display all equivalent orientations (0)
  reducetoRFZ = 1,
 ! overlay a line drawing of the Rodrigues FZ onto the Square Torus plot ?
