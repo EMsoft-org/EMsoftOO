@@ -42,6 +42,7 @@
 049EMEBSDSGtest
 050EMoverlap
 060Orientation-Sampling
+061EMCliffordTorus
 070EMECPIndexing
 071EMECPSingle
 072EMECPDI

@@ -316,7 +316,7 @@ type(Quaternion_T)                 :: mu
 type(QuaternionArray_T)            :: qAR
 
 integer(kind=irg)                  :: i, j, num, m, io_int(4), FZcnt, FZtype, FZorder, numTC, seed
-real(kind=dbl)                     :: ax(4), calpha, conevector(3), x, kappa, cnvec(3), cbvec(3), t(3), &
+real(kind=dbl)                     :: ax(4), calpha, conevector(3), x, kappa, cnvec(3), cbvec(3), t(3), mag, &
                                       h, k, l, ih, ik, il, idiff, eps = 0.0001D0, om(3,3), io_dble(4)
 real(kind=dbl),allocatable         :: itmp(:,:)
 logical                            :: doeu = .FALSE., docu = .FALSE., doho = .FALSE., doqu = .FALSE., dorv = .FALSE., &
@@ -445,6 +445,8 @@ if (trim(rfznl%samplemode).eq.'RFZ') then
   listmode = 'FZ'
 end if
 if (trim(rfznl%samplemode).eq.'MIS') then
+  mag = sum( rfznl%rodrigues(1:3)**2 )
+  if (mag.ne.0D0) rfznl%rodrigues(1:3) = rfznl%rodrigues(1:3)/sqrt(mag)
   io_dble = rfznl%rodrigues
   call Message%WriteValue(' Rodrigues vector = ', io_dble, 4)
   call SO%sample_isoCubeFilled(rfznl%maxmisor, rfznl%nsteps)
