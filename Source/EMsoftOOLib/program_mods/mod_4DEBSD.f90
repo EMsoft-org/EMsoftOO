@@ -1761,7 +1761,7 @@ type(PGA3D_T)                   :: mv_plane, mv_line, mv
 
 integer(kind=irg)               :: L,totnumexpt,imght,imgwd, recordsize, hdferr, TID, iii, VDposx, VDposy, VDpx, VDpy,&
                                            TIFF_nx, TIFF_ny, itype, istat, iiistart, iiiend, jjstart, jjend, binx, biny, sz(3), &
-                                           correctsize, dims(2), i, j, ii, jj, jjj, kk, patsz, Nexp, numhatn, io_int(4), sz2(2), &
+                                           dims(2), i, j, ii, jj, jjj, kk, patsz, Nexp, numhatn, io_int(4), sz2(2), &
                                            VDpxref, VDpyref, VDkk, ival, kkk, lll, numpatx, numpaty, VDgood, ix, jy, ipx, ipy
 integer(kind=ill)                       :: jjpat
 logical                                 :: ROIselected
@@ -1808,16 +1808,7 @@ recordsize = L*4
 dims = (/ imght, imgwd /)
 binx = nml%numsx
 biny = nml%numsy
-
-! make sure that correctsize is a multiple of 16; if not, make it so
-! this is not really relevant for this program, but several routines 
-! rely on this being the case so we impose it here
-if (mod(L,16) .ne. 0) then
-    correctsize = 16*ceiling(float(L)/16.0)
-else
-    correctsize = L
-end if
-patsz = correctsize
+patsz = L 
 
 ROIselected = .FALSE.
 if (sum(nml%ROI).ne.0) ROIselected = .TRUE.
@@ -2077,8 +2068,8 @@ if (nml%VDreference.eq.'MPat') then
         VDpy = DIFT%nml%exptnumsy - nint(pos(2)) 
         if ( (VDpx.gt.0).and.(VDpx.le.DIFT%nml%exptnumsx).and.(VDpy.gt.0).and.(VDpy.le.DIFT%nml%exptnumsy) ) then 
           dis = sqrt( real( (DIFT%nml%exptnumsx/2-VDpx)**2 + (DIFT%nml%exptnumsy/2-VDpy)**2 ) )
-          EBSP(maxval((/1,VDpx-1/)):minval((/nml%ipf_wd,VDpx+1/)), &
-               maxval((/1,VDpy-1/)):minval((/nml%ipf_ht,VDpy+1/))) = maxval(EBSP)
+          EBSP(maxval((/1,VDpx-1/)):minval((/DIFT%nml%exptnumsx,VDpx+1/)), &
+               maxval((/1,VDpy-1/)):minval((/DIFT%nml%exptnumsy,VDpy+1/))) = maxval(EBSP)
           if ( dis .lt. VDpositions(3,jj) ) then 
             VDpositions(1:3,jj) = (/ pos(1), DIFT%nml%exptnumsy - pos(2), dis /)
             VDkk = kk
@@ -2092,8 +2083,8 @@ if (nml%VDreference.eq.'MPat') then
 ! draw the virtual detector position on the diffraction pattern
   VDpxref = nint(VDpositions(1,jj))
   VDpyref = nint(VDpositions(2,jj))
-  EBSP(maxval((/1,VDpxref-2/)):minval((/nml%ipf_wd,VDpxref+2/)), &
-       maxval((/1,VDpyref-2/)):minval((/nml%ipf_ht,VDpyref+2/))) = maxval(EBSP)
+  EBSP(maxval((/1,VDpxref-3/)):minval((/DIFT%nml%exptnumsx,VDpxref+3/)), &
+       maxval((/1,VDpyref-3/)):minval((/DIFT%nml%exptnumsy,VDpyref+3/))) = maxval(EBSP)
   call Message%printMessage(' ---> the larger square indicates the position closest to the detector center.')
 
   sz2 = shape(EBSP)
@@ -2248,7 +2239,7 @@ end if
               VDposx = -10
             end if 
             if (VDposx.gt.0) then 
-              montage(VDpx, VDpy) = Pat( VDposx+VDpos(1,ii,jj),VDposy + VDpos(2,ii,jj) )
+              montage(VDpx, VDpy) = Pat( VDpos(1,ii,jj), VDpos(2,ii,jj) )
             else
               montage(VDpx,VDpy) = 0.0
             end if 

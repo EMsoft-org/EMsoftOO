@@ -1384,7 +1384,7 @@ if (adpnl%usetmpfile.eq.'n') then
     call NLPAR%setLambda(adpnl%lambda) 
     call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
   else 
-    call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
+    call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ, verbose=.TRUE.)
   end if 
 end if
 
