@@ -1922,8 +1922,9 @@ end if
 
 ! allocate the output image array
 ! note that as of 4/29/24, ROI handling is still incorrect
+! [9/1/26: start testruns]
 if (ROIselected.eqv..TRUE.) then
-  call mem%alloc(VDimage, (/ nml%ROI(3), nml%ROI(4) /), 'VDimage')
+  call mem%alloc(VDimage, (/ (2*nml%NGrid+1)*nml%ROI(3), (2*nml%NGrid+1)*nml%ROI(4) /), 'VDimage')
 else
   call mem%alloc(VDimage, (/ (2*nml%NGrid+1)*nml%ipf_wd, (2*nml%NGrid+1)*nml%ipf_ht /), 'VDimage')
 end if
@@ -2153,10 +2154,15 @@ end if
 if (trim(nml%VDtype).eq.'Array') then
   numpatx = nml%numsx / nml%VDstep 
   numpaty = nml%numsy / nml%VDstep 
-  TIFF_nx = nml%ipf_wd * numpatx
-  TIFF_ny = nml%ipf_ht * numpaty
+  if (ROIselected.eqv..TRUE.) then
+    TIFF_nx = nml%ROI(3) * numpatx
+    TIFF_ny = nml%ROI(4) * numpaty
+  else
+    TIFF_nx = nml%ipf_wd * numpatx
+    TIFF_ny = nml%ipf_ht * numpaty
+  end if
   io_int(1:4) = (/ numpatx, numpaty, TIFF_nx, TIFF_ny /)
-  call Message%WriteValue(' preparing to generate ', io_int, 4, '(I4," by ",I4," patterns in image of size ",I6," x ",I6)')
+  call Message%WriteValue(' Preparing to generate ', io_int, 4, '(I4," by ",I4," patterns in image of size ",I6," x ",I6)')
   allocate( TIFF_image(TIFF_nx, TIFF_ny), montage(TIFF_nx, TIFF_ny) ) 
 
 ! define the pixel coordinates that need to be used as offsets into the diffraction patterns
@@ -2225,10 +2231,17 @@ end if
 
       do jj= 1, numpaty   ! double loop to determine the offset of this virtual detector
         do ii= 1, numpatx ! in the VDpositions array
-          VDpx = nml%ipf_wd * (ii-1) + j-jjstart+1
-          VDpy = nml%ipf_ht * (jj-1) + iii
+          if (ROIselected.eqv..TRUE.) then
+            VDpx = nml%ROI(3) * (ii-1) + j-jjstart+1
+            VDpy = nml%ROI(4) * (jj-1) + iii
+          else
+            VDpx = nml%ipf_wd * (ii-1) + j-jjstart+1
+            VDpy = nml%ipf_ht * (jj-1) + iii
+          end if
           if ( (nml%VDreference.eq.'EBSP') .or. (nml%VDtype.eq.'Array') ) then
-            montage(VDpx, VDpy) = Pat(VDpos(1,ii,jj),VDpos(2,ii,jj))
+            if ( (VDpx.le.TIFF_nx).and.(VDpy.le.TIFF_ny) ) then
+              montage(VDpx, VDpy) = Pat(VDpos(1,ii,jj),VDpos(2,ii,jj))
+            end if
           end if 
           if (nml%VDreference.eq.'MPat') then 
             ival = (iii-1)*nml%ipf_wd + jjj
