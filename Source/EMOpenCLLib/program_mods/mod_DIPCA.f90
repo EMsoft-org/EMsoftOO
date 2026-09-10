@@ -86,6 +86,7 @@ use mod_IPFsupport
 use mod_HDFnames
 use mod_EBSD
 use mod_EBSDPCA
+use mod_ECP
 use mod_so3
 use mod_vendors
 use mod_NLPAR
@@ -96,17 +97,17 @@ IMPLICIT NONE
 
 character(fnlen), INTENT(IN)                        :: nmldeffile
 character(kind=c_char), INTENT(IN)                  :: progname
-TYPE(C_FUNPTR), INTENT(IN), VALUE                   :: cproc
-TYPE(C_FUNPTR), INTENT(IN), VALUE                   :: ctimeproc
-TYPE(C_FUNPTR), INTENT(IN), VALUE                   :: cerrorproc
-integer(c_size_t),INTENT(IN), VALUE                 :: objAddress
-character(len=1),INTENT(IN), OPTIONAL               :: cancel
+! TYPE(C_FUNPTR), INTENT(IN), VALUE                   :: cproc
+! TYPE(C_FUNPTR), INTENT(IN), VALUE                   :: ctimeproc
+! TYPE(C_FUNPTR), INTENT(IN), VALUE                   :: cerrorproc
+! integer(c_size_t),INTENT(IN), VALUE                 :: objAddress
+! character(len=1),INTENT(IN), OPTIONAL               :: cancel
 
 ! callback procedure pointer definitions
-PROCEDURE(ProgCallBackTypeDIdriver), POINTER        :: proc
-PROCEDURE(ProgCallBackTypeTimingdriver), POINTER    :: timeproc
-PROCEDURE(ProgCallBackTypeErrorDIdriver), POINTER   :: errorproc
-type(c_ptr)                                         :: dparr_cptr=c_null_ptr, euarr_cptr=c_null_ptr, indarr_cptr=c_null_ptr
+! PROCEDURE(ProgCallBackTypeDIdriver), POINTER        :: proc
+! PROCEDURE(ProgCallBackTypeTimingdriver), POINTER    :: timeproc
+! PROCEDURE(ProgCallBackTypeErrorDIdriver), POINTER   :: errorproc
+! type(c_ptr)                                         :: dparr_cptr=c_null_ptr, euarr_cptr=c_null_ptr, indarr_cptr=c_null_ptr
 
 type(MCfile_T)                                      :: MCFT
 type(MPfile_T)                                      :: MPFT
@@ -119,7 +120,7 @@ type(EBSD_T)                                        :: EBSD
 type(ECP_T)                                         :: ECP
 type(Timing_T)                                      :: timer
 type(IO_T)                                          :: Message
-type(GPU_T)                                      :: CL
+type(GPU_T)                                         :: CL
 type(SpaceGroup_T)                                  :: SG
 type(so3_T)                                         :: SO
 type(q_T)                                           :: quat, qqq
@@ -232,7 +233,7 @@ integer(kind=irg)                                   :: ipar(10)
 
 character(fnlen),ALLOCATABLE                        :: MessageLines(:)
 integer(kind=irg)                                   :: NumLines
-character(fnlen)                                    :: TitleMessage, exectime, progname, nmldeffile
+character(fnlen)                                    :: TitleMessage, exectime
 character(100)                                      :: c
 integer(kind=4)                                     :: hnStat
 character(1000)                                     :: charline
@@ -1529,7 +1530,7 @@ end if
 
 end associate
 
-end subroutine DIdriver
+end subroutine DIPCAdriver
 
 
 !--------------------------------------------------------------------------

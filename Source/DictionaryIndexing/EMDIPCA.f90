@@ -37,7 +37,8 @@ program EMDIPCA
 use mod_kinds
 use mod_global
 use mod_EMsoft
-use mod_DI
+use mod_DIPCA
+use mod_HDFnames
 use mod_HDFsupport
 use ISO_C_BINDING
 use mod_FitOrientation
@@ -48,7 +49,7 @@ character(fnlen)        :: progname = 'EMDIPCA.f90'
 character(fnlen)        :: progdesc = 'Indexing of EBSD patterns using a PCA compressed pattern dictionary'
 
 type(EMsoft_T)          :: EMsoft
-type(SDPCA_T)         :: EBSDPCA
+type(EBSDPCA_T)         :: EBSDPCA
 type(HDFnames_T)        :: HDFnames
 
 ! print the EMsoft header and handle any command line arguments  

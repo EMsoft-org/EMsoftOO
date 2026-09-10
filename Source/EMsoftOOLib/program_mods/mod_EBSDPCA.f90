@@ -911,7 +911,7 @@ dictionaryloop: do ii = 1,FZcnt
    if (mod(ii,1000).eq.0) then 
        io_int(1) = ii
        io_int(2) = FZcnt
-       call Message%WriteValue(' completed pattern ',io_int,2,"(I6,' out of ',I8)")
+       call Message%WriteValue(' completed pattern ',io_int,2,"(I8,' out of ',I8)")
    end if
 end do dictionaryloop
 !$OMP END DO
