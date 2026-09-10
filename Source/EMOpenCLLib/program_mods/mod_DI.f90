@@ -34,6 +34,7 @@ module mod_DI
   !! routines for the EMDI program
   !!
   !! 05/10/23: addition of static indexing with PCA compressed dictionary (staticPCA mode)
+  !! 09/10/26: addition of experimental pattern binning
 
 use mod_kinds
 use mod_global
@@ -250,7 +251,7 @@ integer(c_int)                                      :: numd, nump
 type(C_PTR)                                         :: planf, HPplanf, HPplanb
 integer(HSIZE_T)                                    :: dims2(2), offset2(2), dims3(3), offset3(3), dms(1)
 
-integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn, icnt
+integer(kind=irg)                                   :: i,j,ii,jj,kk,ll,mm,pp,qq, cn, dn, totn, icnt, maskrad
 integer(kind=irg)                                   :: FZcnt, pgnum, io_int(4), ncubochoric, pc, ecpipar(4)
 type(FZpointd),pointer                              :: FZlist, FZtmp
 integer(kind=irg),allocatable                       :: indexlist(:),indexarray(:),indexmain(:,:),indextmp(:,:)
@@ -267,7 +268,7 @@ integer(kind=irg)                                   :: indx
 integer(kind=irg)                                   :: correctsize
 logical                                             :: f_exists, init, ROIselected, Clinked, cancelled, isTKD = .FALSE.,  &
                                                        isOverlap = .FALSE., isEBSD = .FALSE., isECP = .FALSE., switchwfoff, &
-                                                       PCA=.FALSE.
+                                                       PCA=.FALSE., rebin_patterns=.FALSE.
 
 integer(kind=irg)                                   :: ipar(10)
 
@@ -312,6 +313,9 @@ end if
 ! deal with the namelist stuff
 DIFT = DIfile_T(nmldeffile)
 
+
+
+
 if (trim(DIFT%nml%IPFprefix).ne.'undefined') then 
 ! initialize the IPF map class; since we are not using an nmlfile argument here,
 ! we must manually initialize the parameters in this class
@@ -333,6 +337,15 @@ HDFnames = HDFnames_T()
 call setRotationPrecision('d')
 
 associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
+
+! check the experimental and simulated pattern sizes 
+if ( ( (dinl%exptnumsx/dinl%binning).ne.dinl%numsx ).or.( (dinl%exptnumsy/dinl%binning).ne.dinl%numsy ) ) then 
+  call Message%printMessage( (/' Inconsistent experimental and dictionary pattern sizes.', &
+                               ' The parameters (exptnumsx,exptnumsy) divided by the    ', &
+                               ' binning factor MUST be equal to (numsx,numsy).         '/) )
+  stop ' Program run aborted; please fix the nml file.'
+end if
+
 
 ! initialize the memory allocation classes
 mem = memory_T()
@@ -432,9 +445,6 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
       binx = dinl%exptnumsx/dinl%binning
       biny = dinl%exptnumsy/dinl%binning
       bindx = 1.0/float(dinl%binning)**2
-      ! we also force the dictionary patterns to have this size 
-      dinl%numsx = binx
-      dinl%numsy = biny
 
       call mem%alloc(det%rgx, (/ dinl%numsx,dinl%numsy /), 'det%rgx') 
       call mem%alloc(det%rgy, (/ dinl%numsx,dinl%numsy /), 'det%rgy') 
@@ -669,21 +679,42 @@ verbose = .FALSE.
 init = .TRUE.
 Ne = dinl%numexptsingle
 Nd = dinl%numdictsingle
-L = dinl%numsx*dinl%numsy/dinl%binning**2
 if (ROIselected.eqv..TRUE.) then
     totnumexpt = dinl%ROI(3)*dinl%ROI(4)
 else
     totnumexpt = dinl%ipf_wd*dinl%ipf_ht
 end if
-imght = dinl%numsx
-imgwd = dinl%numsy
-dims = (/imght, imgwd/)
 nnk = dinl%nnk
 ncubochoric = dinl%ncubochoric
-recordsize = 4*dinl%numsx*dinl%numsy/dinl%binning**2
 itmpexpt = 43
 w = dinl%hipassw
 source_l = source_length
+
+! we need to be careful here with the following set of parameters;
+! if binning is not equal to 1, then that means that we need to 
+! first pre-process the full size patterns from the input file, 
+! and then rebin them to the correct size.  So (exptnumsx,exptnumsy)
+! are the correct sizes to use if binning is not set to 1.  This
+! will require redefining some parameters after the binning step.
+if (dinl%binning.ne.1) then 
+  rebin_patterns = .TRUE.
+end if 
+
+if (rebin_patterns.eqv..TRUE.) then ! use the experimental pattern size, then rebin
+  L = dinl%exptnumsx*dinl%exptnumsy
+  imght = dinl%exptnumsx
+  imgwd = dinl%exptnumsy
+  dims = (/imght, imgwd/)
+  recordsize = 4*dinl%exptnumsx*dinl%exptnumsy
+else ! use the dictionary pattern size from the start
+  L = dinl%numsx*dinl%numsy
+  imght = dinl%numsx
+  imgwd = dinl%numsy
+  dims = (/imght, imgwd/)
+  recordsize = 4*dinl%numsx*dinl%numsy
+end if 
+binx = dinl%exptnumsx
+biny = dinl%exptnumsy
 
 ! initialize the qAR and sym quaternion arrays to periodically generate an IPF map file
 qAR = QuaternionArray_T( totnumexpt, s = 'd')
@@ -913,18 +944,10 @@ call Message%printMessage(' --> Allocating various arrays for indexing')
 
 ! call mem%toggle_verbose() 
 
-call mem%alloc(expt, (/ Ne*correctsize /), 'expt', initval = 0.0)
-call mem%alloc(dict1, (/ Nd*correctsize /), 'dict1', initval = 0.0)
-call mem%alloc(dict2, (/ Nd*correctsize /), 'dict2', initval = 0.0)
-dict => dict1
+! this is the first batch of array allocations; there's a second batch after the preprocessing step
+call mem%alloc(masklin, (/ binx*biny /), 'masklin', initval = 0.0)
+call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
 call mem%alloc(results, (/ Ne*Nd /), 'results', initval = 0.0)
-call mem%alloc(masklin, (/ L /), 'masklin', initval = 0.0)
-call mem%alloc(imageexpt, (/ L /), 'imageexpt', initval = 0.0) 
-call mem%alloc(imageexptflt, (/ correctsize /), 'imageexptflt', initval = 0.0)
-call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
-call mem%alloc(meandict, (/ correctsize /), 'meandict', initval = 0.0)
-call mem%alloc(meanexpt, (/ correctsize /), 'meanexpt', initval = 0.0) 
-call mem%alloc(imagedict, (/ correctsize /), 'imagedict', initval = 0.0)
 call mem%alloc(resultarray, (/ Nd /), 'resultarray', initval = 0.0)
 call mem%alloc(indexarray, (/ Nd /), 'indexarray', initval = 0)
 call mem%alloc(indexlist, (/ Nd*(ceiling(float(FZcnt)/float(Nd))) /), 'indexlist')
@@ -945,10 +968,7 @@ end if
 call mem%alloc(exptIQ, (/ totnumexpt /), 'exptIQ')
 call mem%alloc(exptCI, (/ totnumexpt /), 'exptCI') 
 call mem%alloc(exptFit, (/ totnumexpt /), 'exptFit')
-call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
-call mem%alloc(pattern, (/ binx,biny /), 'pattern', initval = 0.0)
-call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
-call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
+
 
 !=====================================================
 ! determine loop variables to avoid having to duplicate
@@ -1020,11 +1040,7 @@ end if
 
 ! convert the mask to a linear (1D) array
 if (PCA.eqv..FALSE.) then 
-  do ii = 1,biny
-      do jj = 1,binx
-          masklin((ii-1)*binx+jj) = mask(jj,ii)
-      end do
-  end do
+  masklin = reshape( mask, [binx*biny] )
 end if
 
 !=====================================================
@@ -1043,6 +1059,65 @@ else
   call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
                           exptIQ=exptIQ, verbose=.TRUE.)
 end if 
+
+! if we need to rebin, then we also need to redefine some parameters
+if (rebin_patterns.eqv..TRUE.) then 
+  call resize_patterns(EMsoft, dinl, recordsize_correct, totnumexpt)
+
+! reset some parameters for the remainder of the program
+  L = dinl%numsx*dinl%numsy
+  imght = dinl%numsx
+  imgwd = dinl%numsy
+  dims = (/imght, imgwd/)
+  binx = dinl%numsx
+  biny = dinl%numsy
+  recordsize = 4*dinl%numsx*dinl%numsy
+  if (mod(L,16) .ne. 0) then
+    correctsize = 16*ceiling(float(L)/16.0)
+  else
+    correctsize = L
+  end if
+  recordsize_correct = 4*correctsize
+  size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
+  size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
+  recordsize_correct = correctsize*4
+  patsz              = correctsize
+
+  call mem%dealloc(masklin, 'masklin')
+  call mem%dealloc(mask, 'mask')
+
+end if 
+
+! allocate a few important arrays now that we know the final pattern sizes
+call mem%alloc(masklin, (/ binx*biny /), 'masklin', initval = 0.0)
+call mem%alloc(mask, (/ binx,biny /), 'mask', initval = 1.0)
+call mem%alloc(imageexpt, (/ binx*biny /), 'imageexpt', initval = 0.0) 
+call mem%alloc(pattern, (/ binx,biny /), 'pattern', initval = 0.0)
+call mem%alloc(rdata, (/ binx,biny /), 'rdata', initval = 0.D0) 
+call mem%alloc(fdata, (/ binx,biny /), 'fdata', initval = 0.D0)
+call mem%alloc(expt, (/ Ne*correctsize /), 'expt', initval = 0.0)
+call mem%alloc(dict1, (/ Nd*correctsize /), 'dict1', initval = 0.0)
+call mem%alloc(dict2, (/ Nd*correctsize /), 'dict2', initval = 0.0)
+dict => dict1
+call mem%alloc(imageexptflt, (/ correctsize /), 'imageexptflt', initval = 0.0)
+call mem%alloc(tmpimageexpt, (/ correctsize /), 'tmpimageexpt', initval = 0.0)
+call mem%alloc(meandict, (/ correctsize /), 'meandict', initval = 0.0)
+call mem%alloc(meanexpt, (/ correctsize /), 'meanexpt', initval = 0.0) 
+call mem%alloc(imagedict, (/ correctsize /), 'imagedict', initval = 0.0)
+
+if (dinl%maskpattern.eq.'y') then
+  maskrad = dinl%maskradius / dinl%binning
+  do ii = 1,biny
+      do jj = 1,binx
+          if((ii-biny/2)**2 + (jj-binx/2)**2 .ge. maskrad**2) then
+              mask(jj,ii) = 0.0
+          end if
+      end do
+  end do
+end if
+if (PCA.eqv..FALSE.) then 
+  masklin = reshape( mask, [binx*biny] )
+end if
 
 !=====================================================
 call Message%printMessage(' --> computing Average Dot Product map (ADP)')

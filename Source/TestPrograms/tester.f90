@@ -135,6 +135,53 @@ integer(kind=ish)           :: RGB(3)
 ! delta = cPi**(2.D0/3.D0) / dble(2*N)
 ! pnum = 4*(2*N)**3
 
+integer(kind=irg)   :: exptnumsx, exptnumsy, numsx, numsy, bin, bi, bj, start_i, end_i, start_j, end_j
+real(kind=sgl)      :: bin2
+real(kind=sgl),allocatable :: imageexpt(:), pattern(:,:), binned(:,:), binned1D(:)
+
+
+exptnumsx = 4
+exptnumsy = 8
+bin = 2
+bin2 = 1.0/real(bin)**2
+numsx = exptnumsx/bin 
+numsy = exptnumsy/bin 
+
+allocate(imageexpt(exptnumsx*exptnumsy), pattern(exptnumsx, exptnumsy), binned(numsx, numsy), &
+          binned1D(numsx * numsy) )
+
+do i=1, exptnumsx*exptnumsy
+    imageexpt(i) = real(i)
+end do
+
+    pattern = reshape( imageexpt, [exptnumsx, exptnumsy])
+    do bj = 1, numsy
+        start_j = (bj - 1) * bin + 1
+        end_j   = bj * bin
+        
+        do bi = 1, numsx
+            start_i = (bi - 1) * bin + 1
+            end_i   = bi * bin
+            
+            ! Slice a contiguous sub-matrix and compute its average
+            binned(bi, bj) = sum(pattern(start_i:end_i, start_j:end_j)) * bin2
+        end do
+    end do
+
+! and turn binned into a 1D array to write it to the output file
+    binned1D = reshape( binned, [numsx * numsy])
+
+do i=1,exptnumsy
+    write(*,*) pattern(1:exptnumsx,i)
+end do 
+write (*,*) ' '
+do i=1,numsy
+    write(*,*) binned(1:numsx,i)
+end do
+write (*,*) binned1D
+
+stop
+
 call setRotationPrecision( 'd' )
 
 eu = e_T( edinp = (/ 5.51503D0, 0.79857D0, 1.02226D0 /) )

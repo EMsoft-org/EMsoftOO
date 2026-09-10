@@ -44,6 +44,134 @@ IMPLICIT NONE
 contains
 
 !--------------------------------------------------------------------------
+recursive subroutine rename_file(old_name, new_name)
+!DEC$ ATTRIBUTES DLLEXPORT :: rename_file
+!! author: MDG
+!! version: 1.0
+!! date: 09/10/26
+
+use mod_io 
+use, intrinsic :: iso_c_binding, only: c_char, c_int, c_null_char
+
+implicit none
+
+interface
+    ! Bind directly to the standard C library's rename function
+    integer(c_int) function c_rename(oldpath, newpath) bind(c, name="rename")
+        import :: c_char, c_int
+        character(kind=c_char), intent(in) :: oldpath(*), newpath(*)
+    end function c_rename
+end interface
+
+character(fnlen), INTENT(IN)    :: old_name, new_name
+integer(c_int)                  :: status
+integer(kind=irg)               :: io_int(1)
+
+type(IO_T)                      :: Message
+
+! Call the C function, ensuring strings are null-terminated
+status = c_rename(trim(old_name) // c_null_char, trim(new_name) // c_null_char)
+
+if (status == 0) then
+    call Message%printMessage(" Temporary data file successfully renamed.")
+else
+    io_int(1) = status
+    call Message%WriteValue("C error code:", io_int, 1)
+    call Message%printError("rename_file:",  "Error: Failed to rename the dinl%tmpfile file. ")
+end if
+
+end subroutine rename_file
+
+!--------------------------------------------------------------------------
+recursive subroutine resize_patterns(EMsoft, dinl, recordsize_correct, totnumexpt)
+!DEC$ ATTRIBUTES DLLEXPORT :: resize_patterns
+!! author: MDG
+!! version: 1.0
+!! date: 09/10/26
+!!
+
+use mod_EMsoft
+use mod_io
+use omp_lib
+use mod_DIfiles
+use mod_OMPsupport
+use ISO_C_BINDING
+
+IMPLICIT NONE
+
+type(EMsoft_T),INTENT(INOUT)                        :: EMsoft
+class(DictionaryIndexingNameListType),INTENT(IN)    :: dinl
+integer(kind=irg),INTENT(IN)                        :: recordsize_correct
+integer(kind=irg),INTENT(IN)                        :: totnumexpt
+
+type(IO_T)                                          :: Message 
+
+character(fnlen)                                    :: old_name, new_name
+integer(kind=irg)                                   :: i, j, iii, ierr, ierr2, recordsize_new, L, kk, bin, &
+                                                       start_i, end_i, start_j, end_j, bi, bj
+real(kind=sgl)                                      :: bin2
+real(kind=sgl), allocatable                         :: imageexpt(:), pattern(:,:), binned(:,:), binned1D(:)
+
+bin = dinl%binning
+bin2 = 1.0/real(bin**2)
+
+! this routine will first rename the file containing the preprocessed full size
+! patterns, and then create a new file in the tmp folder that contains the 
+! binned and preprocessed experimental patterns.
+call Message%printMessage(' Starting rebinning of preprocessed experimental patterns.')
+
+old_name = EMsoft%generateFilePath('EMtmppathname',trim(dinl%tmpfile))
+new_name = EMsoft%generateFilePath('EMtmppathname','temporary.data')
+call rename_file(old_name, new_name)
+
+! determine the new record size
+L = dinl%numsx*dinl%numsy
+if (mod(L,16) .ne. 0) then
+    recordsize_new = 4*16*ceiling(float(L)/16.0)
+else
+    recordsize_new = 4*L
+end if
+allocate( imageexpt(dinl%exptnumsx*dinl%exptnumsy), pattern(dinl%exptnumsx, dinl%exptnumsy), binned(dinl%numsx, dinl%numsy), &
+          binned1D(dinl%numsx * dinl%numsy) )
+
+! open the new_name file to read individual patterns and resize them 
+open(unit=50,file=trim(new_name),&
+     status='old',form='unformatted',access='direct',recl=recordsize_correct,iostat=ierr)
+! also create the new output file containing the resized patterns
+open(unit=52,file=trim(old_name),&
+     status='unknown',form='unformatted',access='direct',recl=recordsize_new,iostat=ierr2)
+
+do iii = 1,totnumexpt
+    read(unit=50,rec=iii) imageexpt
+    pattern = reshape( imageexpt, [dinl%exptnumsx, dinl%exptnumsy])
+    do bj = 1, dinl%numsy
+        start_j = (bj - 1) * bin + 1
+        end_j   = bj * bin
+        
+        do bi = 1, dinl%numsx
+            start_i = (bi - 1) * bin + 1
+            end_i   = bi * bin
+            
+            ! Slice a contiguous sub-matrix and compute its average
+            binned(bi, bj) = sum(pattern(start_i:end_i, start_j:end_j)) * bin2
+        end do
+    end do
+
+! and turn binned into a 1D array to write it to the output file
+    binned1D = reshape( binned, [dinl%numsx * dinl%numsy])
+    write(unit=52,rec=iii) binned1D
+end do
+
+deallocate( imageexpt, pattern, binned, binned1D )
+
+close(unit=50,status='delete')
+close(unit=52,status='keep')
+
+call Message%printMessage(' ---> Done.')
+
+end subroutine resize_patterns
+
+!--------------------------------------------------------------------------
 recursive subroutine init_getEBSDIQ(dimx, dimy, pattern, ksqarray, Jres, planf)
 !DEC$ ATTRIBUTES DLLEXPORT :: init_getEBSDIQ
 !! author: MDG

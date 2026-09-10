@@ -43,7 +43,7 @@
  maskfile = 'undefined',
 ! mask or not
  maskpattern = 'n',
-! mask radius (in pixels, AFTER application of the binning operation)
+! mask radius (in pixels, BEFORE application of the binning operation)
  maskradius = 240,
 ! hi pass filter w parameter; 0.05 is a reasonable value
  hipassw = 0.05,
@@ -99,25 +99,30 @@
 ! tilt angle of the camera (positive below horizontal, [degrees])
  thetac = 10.0,
 !=================================================================================================!
-! The following three parameters require some careful consideration.                              ! 
+! The following parameters require some careful consideration.                                    ! 
 ! Please check the wiki EMEBSDDI help page for detailed information on how to set these parameters!
 ! This change was implemented starting with EMsoft 5.0.3.                                         !
 !=================================================================================================!
-! CCD pixel size on the scintillator surface [microns]; this refers to effective pixel size AFTER BINNING
+! CCD pixel size on the scintillator surface [microns]; this refers to effective pixel size AFTER BINNING;
+! so, if the detector pixel size is d microns, and the binning is set to 4, then the delta should be set
+! equal to 4*d.
  delta = 50.0,
-! pattern center coordinates in units of pixels AFTER BINNING
+! pattern center coordinates in units of pixels AFTER BINNING; careful, there is some subtlety here... 
+! if you performed the pattern center determination using using experimental patterns of size w*h pixels,
+! and you set the binning factor to, for example, 4x, then you must divide the two pattern center coordinates
+! by 4, since the effective pixels have size 4*d.  The parameter L is not affected by binning.
  xpc = 0.0,
  ypc = 0.0,
-! size of the *Experimental* patterns in pixels, and the binning factor to be used.
+! size of the actual *Experimental* patterns in pixels, and the binning factor to be used.
 ! Note that the binning factor is *only* applied to the experimental patterns. The 
 ! dictionary patterns will be computed directly for the binned pattern size. 
+! To be clear, exptnumsx and exptnumsy are the actual pattern sizes in the input file; the binning
+! factor is not necessarily the binning factor that was used to record the patterns.
  exptnumsx = 640,
  exptnumsy = 480,
  binning = 1, 
-! size of the *Dictionary* patterns in pixels; this will be set to be equal to the size
-! of the experimental patterns divided by the binning factor by the EMDI program.
-! You can set the next two parameters to the correct values if you wish, but these 
-! parameters will be overwritten by the program; you can also comment out these two lines. 
+! size of the simulated *Dictionary* patterns in pixels; this must be equal to the experimental
+! pattern size divided by the binning factor; the program will abort if this is not the case.
  numsx = 640,
  numsy = 480,
 ! angle between normal of sample and detector
@@ -125,7 +130,8 @@
 ! minimum and maximum energy to use for interpolation [keV]
  energymin = 10.0,
  energymax = 20.0,
-! incident beam current [nA]
+! incident beam current [nA]; this and the next parameter don't really matter but neither of 
+! them should be set to 0.0
  beamcurrent = 150.0,
 ! beam dwell time [micro s]
  dwelltime = 100.0,
