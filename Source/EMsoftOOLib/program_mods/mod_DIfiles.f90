@@ -101,7 +101,7 @@ type, public :: DictionaryIndexingNameListType
   character(3)       :: similaritymetric
   character(3)       :: CPUGPU
   character(1)       :: keeptmpfile
-  character(1)       :: usetmpfile
+  character(fnlen)   :: usetmpfile
   character(fnlen)   :: IPFprefix
   character(fnlen)   :: exptfile
   character(fnlen)   :: masterfile
@@ -526,7 +526,7 @@ logical                        :: flipy
 logical                        :: KRremapping
 character(1)                   :: maskpattern
 character(1)                   :: keeptmpfile
-character(1)                   :: usetmpfile
+character(fnlen)               :: usetmpfile
 character(1)                   :: spatialaverage  ! no longer used but kept for compatibility with older files
 character(3)                   :: scalingmode
 character(3)                   :: Notify
@@ -618,7 +618,7 @@ whitenPCA       = .TRUE.
 flipy           = .FALSE.
 KRremapping     = .FALSE.
 keeptmpfile     = 'n'
-usetmpfile      = 'n'
+usetmpfile      = 'undefined'
 maskpattern     = 'n'           ! 'y' or 'n' to include a circular mask
 Notify          = 'Off'
 scalingmode     = 'not'         ! intensity selector ('lin', 'gam', or 'not')
@@ -850,7 +850,7 @@ logical                                          :: flipy
 logical                                          :: KRremapping
 character(1)                                     :: maskpattern 
 character(1)                                     :: keeptmpfile 
-character(1)                                     :: usetmpfile 
+character(fnlen)                                 :: usetmpfile 
 character(3)                                     :: scalingmode 
 character(3)                                     :: Notify 
 character(3)                                     :: similaritymetric 
@@ -1174,6 +1174,11 @@ dataset = SC_datafile
 line2(1) = emnl%datafile
 hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create datafile dataset', hdferr)
+
+dataset = 'usetmpfile'
+line2(1) = emnl%usetmpfile
+hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create usetmpfile dataset', hdferr)
 
 dataset = SC_tmpfile
 line2(1) = emnl%tmpfile

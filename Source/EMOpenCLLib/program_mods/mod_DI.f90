@@ -176,7 +176,7 @@ type(IPFmap_T)                                      :: IPFmap
 type(MCOpenCLNameListType)                          :: mcnl
 type(SEMmasterNameListType)                         :: mpnl
 
-logical                                             :: verbose
+logical                                             :: verbose, usetmpfile=.FALSE.
 
 type(DynType)                                       :: Dyn
 type(gnode)                                         :: rlp
@@ -338,6 +338,10 @@ call setRotationPrecision('d')
 
 associate( dinl=>DIFT%nml, MPDT=>MPFT%MPDT, MCDT=>MCFT%MCDT, det=>EBSD%det, enl=>EBSD%nml, ecpnl=>ECP%nml )
 
+if (trim(dinl%usetmpfile).ne.'undefined') then 
+  usetmpfile = .TRUE.
+end if 
+
 ! check the experimental and simulated pattern sizes 
 if ( ( (dinl%exptnumsx/dinl%binning).ne.dinl%numsx ).or.( (dinl%exptnumsy/dinl%binning).ne.dinl%numsy ) ) then 
   call Message%printMessage( (/' Inconsistent experimental and dictionary pattern sizes.', &
@@ -345,7 +349,6 @@ if ( ( (dinl%exptnumsx/dinl%binning).ne.dinl%numsx ).or.( (dinl%exptnumsy/dinl%b
                                ' binning factor MUST be equal to (numsx,numsy).         '/) )
   stop ' Program run aborted; please fix the nml file.'
 end if
-
 
 ! initialize the memory allocation classes
 mem = memory_T()
@@ -442,8 +445,8 @@ if (trim(dinl%indexingmode).eq.'dynamic') then
     ! 3. for EBSD/TKD copy a few parameters from dinl to enl
     ! and generate the detector arrays
     if ( (isEBSD.eqv..TRUE.) .or. (isTKD.eqv..TRUE.) .or. (isOverlap.eqv..TRUE.) ) then
-      binx = dinl%exptnumsx/dinl%binning
-      biny = dinl%exptnumsy/dinl%binning
+      binx = dinl%numsx
+      biny = dinl%numsy
       bindx = 1.0/float(dinl%binning)**2
 
       call mem%alloc(det%rgx, (/ dinl%numsx,dinl%numsy /), 'det%rgx') 
@@ -700,21 +703,29 @@ if (dinl%binning.ne.1) then
   rebin_patterns = .TRUE.
 end if 
 
-if (rebin_patterns.eqv..TRUE.) then ! use the experimental pattern size, then rebin
-  L = dinl%exptnumsx*dinl%exptnumsy
-  imght = dinl%exptnumsx
-  imgwd = dinl%exptnumsy
-  dims = (/imght, imgwd/)
-  recordsize = 4*dinl%exptnumsx*dinl%exptnumsy
-else ! use the dictionary pattern size from the start
-  L = dinl%numsx*dinl%numsy
-  imght = dinl%numsx
-  imgwd = dinl%numsy
-  dims = (/imght, imgwd/)
-  recordsize = 4*dinl%numsx*dinl%numsy
+if (usetmpfile.eqv..TRUE.) then 
+    L = dinl%numsx*dinl%numsy
+    imght = dinl%numsx
+    imgwd = dinl%numsy
+    dims = (/imght, imgwd/)
+    recordsize = 4*dinl%numsx*dinl%numsy
+else
+  if (rebin_patterns.eqv..TRUE.) then ! use the experimental pattern size, then rebin
+    L = dinl%exptnumsx*dinl%exptnumsy
+    imght = dinl%exptnumsx
+    imgwd = dinl%exptnumsy
+    dims = (/imght, imgwd/)
+    recordsize = 4*dinl%exptnumsx*dinl%exptnumsy
+  else ! use the dictionary pattern size from the start
+    L = dinl%numsx*dinl%numsy
+    imght = dinl%numsx
+    imgwd = dinl%numsy
+    dims = (/imght, imgwd/)
+    recordsize = 4*dinl%numsx*dinl%numsy
+  end if 
+  binx = dinl%exptnumsx
+  biny = dinl%exptnumsy
 end if 
-binx = dinl%exptnumsx
-biny = dinl%exptnumsy
 
 ! initialize the qAR and sym quaternion arrays to periodically generate an IPF map file
 qAR = QuaternionArray_T( totnumexpt, s = 'd')
@@ -1050,42 +1061,44 @@ end if
 ! new addition 3/18/21: option to use NLPAR as part of 
 ! the preprocessing step!
 !=====================================================
-if (dinl%doNLPAR.eqv..TRUE.) then 
-  NLPAR = NLPAR_T()
-  call NLPAR%setSearchWindow(dinl%sw)
-  call NLPAR%setLambda(dinl%lambda) 
-  call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
-else 
-  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
-                          exptIQ=exptIQ, verbose=.TRUE.)
-end if 
+if (usetmpfile.eqv..FALSE.) then 
+  if (dinl%doNLPAR.eqv..TRUE.) then 
+    NLPAR = NLPAR_T()
+    call NLPAR%setSearchWindow(dinl%sw)
+    call NLPAR%setLambda(dinl%lambda) 
+    call NLPAR%doNLPAR(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, exptIQ=exptIQ)
+  else 
+    call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt, &
+                            exptIQ=exptIQ, verbose=.TRUE.)
+  end if 
 
 ! if we need to rebin, then we also need to redefine some parameters
-if (rebin_patterns.eqv..TRUE.) then 
-  call resize_patterns(EMsoft, dinl, recordsize_correct, totnumexpt)
+  if (rebin_patterns.eqv..TRUE.) then 
+    call resize_patterns(EMsoft, dinl, recordsize_correct, totnumexpt)
 
 ! reset some parameters for the remainder of the program
-  L = dinl%numsx*dinl%numsy
-  imght = dinl%numsx
-  imgwd = dinl%numsy
-  dims = (/imght, imgwd/)
-  binx = dinl%numsx
-  biny = dinl%numsy
-  recordsize = 4*dinl%numsx*dinl%numsy
-  if (mod(L,16) .ne. 0) then
-    correctsize = 16*ceiling(float(L)/16.0)
-  else
-    correctsize = L
-  end if
-  recordsize_correct = 4*correctsize
-  size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
-  size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
-  recordsize_correct = correctsize*4
-  patsz              = correctsize
+    L = dinl%numsx*dinl%numsy
+    imght = dinl%numsx
+    imgwd = dinl%numsy
+    dims = (/imght, imgwd/)
+    binx = dinl%numsx
+    biny = dinl%numsy
+    recordsize = 4*dinl%numsx*dinl%numsy
+    if (mod(L,16) .ne. 0) then
+      correctsize = 16*ceiling(float(L)/16.0)
+    else
+      correctsize = L
+    end if
+    recordsize_correct = 4*correctsize
+    size_in_bytes_dict = Nd*correctsize*sizeof(correctsize)
+    size_in_bytes_expt = Ne*correctsize*sizeof(correctsize)
+    recordsize_correct = correctsize*4
+    patsz              = correctsize
 
-  call mem%dealloc(masklin, 'masklin')
-  call mem%dealloc(mask, 'mask')
+    call mem%dealloc(masklin, 'masklin')
+    call mem%dealloc(mask, 'mask')
 
+  end if 
 end if 
 
 ! allocate a few important arrays now that we know the final pattern sizes
@@ -1125,10 +1138,16 @@ call Message%printMessage(' ')
 
 ! re-open the temporary file
 if (dinl%tmpfile(1:1).ne.EMsoft%getConfigParameter('EMsoftnativedelimiter')) then
-  fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(dinl%tmpfile)
+  if (usetmpfile.eqv..FALSE.) then 
+    fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(dinl%tmpfile)
+  else
+    fname = trim(EMsoft%generateFilePath('EMtmppathname'))//trim(dinl%usetmpfile)
+  end if
 else
   fname = trim(dinl%tmpfile)
 end if
+
+write (*,*) ' looking for temporary file : ',trim(fname)
 
 open(unit=itmpexpt,file=trim(fname),&
      status='old',form='unformatted',access='direct',recl=recordsize_correct,iostat=ierr)

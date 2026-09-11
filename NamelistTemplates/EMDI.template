@@ -174,6 +174,8 @@
 ! temporary data storage file name ; will be stored in $HOME/.config/EMsoft/tmp
  tmpfile = 'EMEBSDDict_tmp.data',
  keeptmpfile = 'n',
+! set this parameter if you want to use an existing temporary file
+ usetmpfile = 'undefined',
 ! output file ; path relative to EMdatapathname
  datafile = 'undefined',
 ! ctf output file ; path relative to EMdatapathname
