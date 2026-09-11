@@ -20,8 +20,11 @@
 ! name of ang output file for refined orientations
  angfile = 'undefined',
 ! name of temporary file for pre-processed patterns 
-! (will override the temporary file name defined in the dot product file)
+! there are two options, and one of them must be selected:
+! tmpfile will override the temporary file name defined in the dot product file
  tmpfile = 'undefined',
+! usetmpfile means the program will use an existing temporary file
+ usetmpfile = 'undefined'
 ! modality ('EBSD' or 'ECP')
  modality = 'EBSD',
 ! keep the pre-processed patterns all in memory?

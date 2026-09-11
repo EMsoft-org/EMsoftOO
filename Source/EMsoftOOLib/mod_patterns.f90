@@ -109,7 +109,7 @@ type(IO_T)                                          :: Message
 character(fnlen)                                    :: old_name, new_name
 integer(kind=irg)                                   :: i, j, iii, ierr, ierr2, recordsize_new, L, kk, bin, &
                                                        start_i, end_i, start_j, end_j, bi, bj
-real(kind=sgl)                                      :: bin2
+real(kind=sgl)                                      :: bin2, nm
 real(kind=sgl), allocatable                         :: imageexpt(:), pattern(:,:), binned(:,:), binned1D(:)
 
 bin = dinl%binning
@@ -159,6 +159,8 @@ do iii = 1,totnumexpt
 
 ! and turn binned into a 1D array to write it to the output file
     binned1D = reshape( binned, [dinl%numsx * dinl%numsy])
+    nm = 1.0/sqrt(sum(binned1D*binned1D))
+    binned1D = binned1D * nm
     write(unit=52,rec=iii) binned1D
 end do
 

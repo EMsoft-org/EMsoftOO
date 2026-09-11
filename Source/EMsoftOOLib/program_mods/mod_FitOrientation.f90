@@ -48,6 +48,7 @@ type, public :: FitOrientationNameListType
   character(fnlen)  :: ctffile
   character(fnlen)  :: angfile
   character(fnlen)  :: tmpfile
+  character(fnlen)  :: usetmpfile
   character(fnlen)  :: PSvariantfile
   character(fnlen)  :: method
   character(4)      :: modality
@@ -81,6 +82,7 @@ private
   procedure, pass(self) :: get_ctffile_
   procedure, pass(self) :: get_angfile_
   procedure, pass(self) :: get_tmpfile_
+  procedure, pass(self) :: get_usetmpfile_
   procedure, pass(self) :: get_PSvariantfile_
   procedure, pass(self) :: get_method_
   procedure, pass(self) :: get_modality_
@@ -95,6 +97,7 @@ private
   procedure, pass(self) :: set_dotproductfile_
   procedure, pass(self) :: set_ctffile_
   procedure, pass(self) :: set_angfile_
+  procedure, pass(self) :: set_usetmpfile_
   procedure, pass(self) :: set_tmpfile_
   procedure, pass(self) :: set_PSvariantfile_
   procedure, pass(self) :: set_method_
@@ -116,6 +119,7 @@ private
   generic, public :: get_ctffile => get_ctffile_
   generic, public :: get_angfile => get_angfile_
   generic, public :: get_tmpfile => get_tmpfile_
+  generic, public :: get_usetmpfile => get_usetmpfile_
   generic, public :: get_PSvariantfile => get_PSvariantfile_
   generic, public :: get_method => get_method_
   generic, public :: get_modality => get_modality_
@@ -131,6 +135,7 @@ private
   generic, public :: set_ctffile => set_ctffile_
   generic, public :: set_angfile => set_angfile_
   generic, public :: set_tmpfile => set_tmpfile_
+  generic, public :: set_usetmpfile => set_usetmpfile_
   generic, public :: set_PSvariantfile => set_PSvariantfile_
   generic, public :: set_method => set_method_
   generic, public :: set_modality => set_modality_
@@ -214,6 +219,7 @@ character(fnlen)                       :: usemasterpatternfile
 character(fnlen)                       :: ctffile
 character(fnlen)                       :: angfile
 character(fnlen)                       :: tmpfile
+character(fnlen)                       :: usetmpfile
 character(fnlen)                       :: PSvariantfile
 character(fnlen)                       :: method
 character(4)                           :: modality
@@ -228,7 +234,7 @@ real(kind=sgl)                         :: truedelta
 
 namelist / RefineOrientations / nthreads, dotproductfile, ctffile, modality, nmis, niter, step, inRAM, method, &
                                 matchdepth, PSvariantfile, tmpfile, angfile, initialx, initialy, PCcorrection, truedelta, &
-                                usemasterpatternfile, newdotproductfile
+                                usemasterpatternfile, newdotproductfile, usetmpfile
 
 nthreads = 1
 matchdepth = 1
@@ -238,6 +244,7 @@ usemasterpatternfile = 'undefined'
 ctffile = 'undefined'
 angfile = 'undefined'
 tmpfile = 'undefined'
+usetmpfile = 'undefined'
 PSvariantfile = 'undefined'
 method = 'FIT'
 inRAM = .FALSE.
@@ -269,8 +276,8 @@ if (.not.skipread) then
         call Message%printError('readNameList:',' either ctf or ang file name must be undefined in '//nmlfile)
     end if
 
-    if (trim(tmpfile).eq.'undefined') then
-        call Message%printError('readNameList:',' tmp file name is undefined in '//nmlfile)
+    if ( (trim(tmpfile).eq.'undefined').and.(trim(usetmpfile).eq.'undefined') ) then
+        call Message%printError('readNameList:',' both tmp file names are undefined in '//nmlfile)
     end if
 
     if ( (trim(newdotproductfile).ne.'undefined').and.(trim(usemasterpatternfile).eq.'undefined')) then
@@ -287,6 +294,7 @@ self%nml%usemasterpatternfile = usemasterpatternfile
 self%nml%ctffile = ctffile
 self%nml%angfile = angfile
 self%nml%tmpfile = tmpfile
+self%nml%usetmpfile = usetmpfile
 self%nml%PSvariantfile = PSvariantfile
 self%nml%method = method
 self%nml%inRAM = inRAM
@@ -456,6 +464,16 @@ else
   hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
 end if
 if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create tmpfile dataset',hdferr)
+
+dataset = 'usetmpfile'
+line2(1) = ronl%usetmpfile
+call H5Lexists_f(HDF%getobjectID(),trim(dataset),g_exists, hdferr)
+if (g_exists) then
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1, overwrite)
+else
+  hdferr = HDF%writeDatasetStringArray(dataset, line2, 1)
+end if
+if (hdferr.ne.0) call HDF%error_check('writeHDFNameList: unable to create usetmpfile dataset',hdferr)
 
 dataset = 'PSvariantfile'
 line2(1) = ronl%PSvariantfile
@@ -772,6 +790,42 @@ character(fnlen), INTENT(IN)               :: inp
 self%nml%tmpfile = inp
 
 end subroutine set_tmpfile_
+
+!--------------------------------------------------------------------------
+function get_usetmpfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_usetmpfile_
+!! author: MDG
+!! version: 1.0
+!! date: 04/08/20
+!!
+!! get usetmpfile from the FitOrientation_T class
+
+IMPLICIT NONE
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen)                           :: out
+
+out = self%nml%usetmpfile
+
+end function get_usetmpfile_
+
+!--------------------------------------------------------------------------
+subroutine set_usetmpfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_usetmpfile_
+!! author: MDG
+!! version: 1.0
+!! date: 04/08/20
+!!
+!! set usetmpfile in the FitOrientation_T class
+
+IMPLICIT NONE
+
+class(FitOrientation_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)               :: inp
+
+self%nml%usetmpfile = inp
+
+end subroutine set_usetmpfile_
 
 !--------------------------------------------------------------------------
 function get_PSvariantfile_(self) result(out)
@@ -1133,7 +1187,7 @@ integer(kind=irg),parameter                      :: MAXFUN = 10000
 logical                                          :: verbose
 
 logical                                          :: f_exists, init, g_exists, overwrite, isEBSD=.FALSE., isTKD=.FALSE., &
-                                           isECP=.FALSE., switchwfoff, set2zero=.FALSE., isOverlap = .FALSE.
+                                           isECP=.FALSE., switchwfoff, set2zero=.FALSE., isOverlap = .FALSE., usetmpfile=.FALSE.
 integer(kind=irg),parameter             :: iunitexpt = 41, itmpexpt = 42
 integer(kind=irg)                       :: binx, biny, recordsize, pos(2), nsig, numk, FZt, FZo, status
 real(kind=sgl),allocatable              :: tmpimageexpt(:), EBSDPattern(:,:), mask(:,:), masklin(:), imageexpt(:)
@@ -1182,6 +1236,9 @@ associate(ronl=>self%nml, dinl=>DIFT%nml, DIDT=>DIFT%DIDT, MCDT=>MCFT%MCDT, &
 init = .TRUE.
 overwrite = .TRUE.
 verbose = .FALSE.
+if (trim(ronl%usetmpfile).ne.'undefined') then 
+  usetmpfile = .TRUE.
+end if
 
 !====================================
 ! read the relevant fields from the dot product HDF5 file
@@ -1525,8 +1582,8 @@ if (Emax .gt. MCDT%numEbins) Emax = MCDT%numEbins
 !==========fill important parameters in namelist======
 !=====================================================
 
-binx = dinl%numsx/dinl%binning
-biny = dinl%numsy/dinl%binning
+binx = dinl%numsx
+biny = dinl%numsy
 recordsize = binx*biny*4
 L = binx*biny
 npy = mpnl%npx
@@ -1546,7 +1603,7 @@ patsz              = correctsize
 allocate(IPAR2(10))
 
 ! define the jpar array
-jpar(1) = dinl%binning
+jpar(1) = 1 ! use to be dinl%binning; we assume the patterns are of the correct size
 jpar(2) = dinl%numsx
 jpar(3) = dinl%numsy
 jpar(4) = mpnl%npx
@@ -1695,19 +1752,22 @@ end do
 !======== pre-process the experimental patterns=================
 !===============================================================
 ! is the output to a temporary file or will it be kept in memory?
-if (ronl%inRAM.eqv..TRUE.) then
-! allocate the array that will hold all the processed experimental patterns
-  call mem%alloc(epatterns, (/ correctsize,totnumexpt /), 'epatterns', 0.0)
-  call PreProcessPatterns(EMsoft, HDF, .TRUE., dinl, binx, biny, masklin, correctsize, totnumexpt, epatterns=epatterns)
-  io_real(1) = minval(epatterns)
-  io_real(2) = maxval(epatterns)
-  call Message%WriteValue(' --> preprocessed patterns intensity range (kept in RAM) = ',io_real,2)
-else
-  ! get the tmp file name from the input name list instead of the dot product file
-  ! to allow for multiple instantiations of this program to run simultaneously
-  dinl%tmpfile = trim(ronl%tmpfile)
-  call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
-end if
+! if usetmpfile=.TRUE. then there is no reason to preprocess the patterns.
+if (usetmpfile.eqv..FALSE.) then
+  if (ronl%inRAM.eqv..TRUE.) then
+  ! allocate the array that will hold all the processed experimental patterns
+    call mem%alloc(epatterns, (/ correctsize,totnumexpt /), 'epatterns', 0.0)
+    call PreProcessPatterns(EMsoft, HDF, .TRUE., dinl, binx, biny, masklin, correctsize, totnumexpt, epatterns=epatterns)
+    io_real(1) = minval(epatterns)
+    io_real(2) = maxval(epatterns)
+    call Message%WriteValue(' --> preprocessed patterns intensity range (kept in RAM) = ',io_real,2)
+  else
+    ! get the tmp file name from the input name list instead of the dot product file
+    ! to allow for multiple instantiations of this program to run simultaneously
+    dinl%tmpfile = trim(ronl%tmpfile)
+    call PreProcessPatterns(EMsoft, HDF, .FALSE., dinl, binx, biny, masklin, correctsize, totnumexpt)
+  end if
+end if 
 
 !===============================================================
 !========Pattern center correction parameters===================
@@ -1784,9 +1844,13 @@ NPT = N + 6
 verbose = .FALSE.
 
 if (ronl%inRAM.eqv..FALSE.) then
-   fname = trim(EMsoft%getConfigParameter('EMtmppathname'))//trim(dinl%tmpfile)
-   open(unit=itmpexpt,file=trim(fname),&
-   status='unknown',form='unformatted',access='direct',recl=correctsize*4,iostat=ierr)
+  if (usetmpfile.eqv..FALSE.) then
+    fname = trim(EMsoft%getConfigParameter('EMtmppathname'))//trim(dinl%tmpfile)
+  else
+    fname = trim(EMsoft%getConfigParameter('EMtmppathname'))//trim(dinl%usetmpfile)
+  end if
+  open(unit=itmpexpt,file=trim(fname),&
+  status='unknown',form='unformatted',access='direct',recl=correctsize*4,iostat=ierr)
 end if
 
 !===================================================================================
