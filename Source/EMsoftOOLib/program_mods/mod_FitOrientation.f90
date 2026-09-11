@@ -2243,7 +2243,15 @@ else  ! sub-divide the cubochoric grid in half steps and determine for which gri
 end if
 
 if (ronl%inRAM.eqv..FALSE.) then
-   close(unit=itmpexpt, status='delete')
+! if usetmpfile=.TRUE. then we likely will reuse the temporary file
+! so we keep it; otherwise we delete it.
+  if (usetmpfile.eqv..FALSE.) then 
+    close(unit=itmpexpt, status='delete')
+  else
+    close(unit=itmpexpt, status='keep')
+    call Message%printMessage(' ---> The temporary file '//trim(ronl%usetmpfile)//' in .config/EMsoft/tmp will not be deleted;')
+    call Message%printMessage(' ---> if you no longer need it, please delete it manually.')
+  end if
 end if
 
 !===========================================
