@@ -1847,10 +1847,11 @@ if (ronl%inRAM.eqv..FALSE.) then
   if (usetmpfile.eqv..FALSE.) then
     fname = trim(EMsoft%getConfigParameter('EMtmppathname'))//trim(dinl%tmpfile)
   else
-    fname = trim(EMsoft%getConfigParameter('EMtmppathname'))//trim(dinl%usetmpfile)
+    fname = trim(EMsoft%getConfigParameter('EMtmppathname'))//trim(ronl%usetmpfile)
   end if
   open(unit=itmpexpt,file=trim(fname),&
   status='unknown',form='unformatted',access='direct',recl=correctsize*4,iostat=ierr)
+  call Message%printMessage(' Temporary file name : '//trim(fname))
 end if
 
 !===================================================================================
