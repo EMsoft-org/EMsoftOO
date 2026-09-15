@@ -538,11 +538,21 @@ end if
 ! Some parts are done with OpenMP so set the number of threads here
 call OMP_setNThreads(nml%nthreads)
 
+! for large size patterns and large data sets we need to make sure to use ill-type integers 
+! this means that we use the regular allocate function for arrays that have ill-type dimensions
+wdll = nml%ipf_wd 
+htll = nml%ipf_ht
+psll = patsz 
+swll = SW 
+
 ! allocate the array that holds the experimental patterns from (2*SW+1) rows of the region of interest
 ! as well as the exppatarray and sigEst arrays; all are 1D arrays to speed things up
-call mem%alloc(exppatarray, (/patsz * nml%ipf_wd/), 'exppatarray')
-call mem%alloc(exptblock, (/patsz * nml%ipf_wd * (2*SW+2)/), 'exptblock')
-call mem%alloc(sigEst, (/nml%ipf_wd * (2*SW+1)/), 'sigEst')
+! call mem%alloc(exppatarray, (/patsz * nml%ipf_wd/), 'exppatarray')
+! call mem%alloc(exptblock, (/patsz * nml%ipf_wd * (2*SW+2)/), 'exptblock')
+! call mem%alloc(sigEst, (/nml%ipf_wd * (2*SW+1)/), 'sigEst')
+allocate(exppatarray(psll * wdll))
+allocate(exptblock(psll * wdll * (2*swll+2)))
+allocate(sigEst(wdll * (2*swll+2)))
 
 if (present(exptIQ)) then  ! this is only used in the dictionary indexing environment
 ! prepare the fftw plan for this pattern size to compute pattern quality (pattern sharpness Q)
@@ -572,11 +582,7 @@ memth = memory_T( nt = nml%nthreads, silent = .TRUE. )
 !==================================================
 ! perform the NLPAR algorithm + regular pre-processing
 !==================================================
-! for large size patterns and large data sets we need to make sure to use ill-type integers 
-wdll = nml%ipf_wd 
-htll = nml%ipf_ht
-psll = patsz 
-swll = SW 
+
 
 ! Loop over all the rows and make sure that we always have 2*SW+1 rows in the exptblock array; so,
 ! we read the first 2*SW+1 rows and then start the row loop.  To keep things simple, we read complete rows 
@@ -670,7 +676,7 @@ do jrow=1,nml%ipf_ht ! loop over all the experimental rows.
   do jj=1,nml%ipf_wd
 ! convert imageexpt to 2D EBSD Pattern array
       do kk=1,biny
-        Pat(1:binx,kk) = exppatarray((jj-1)*patsz+(kk-1)*binx+1:(jj-1)*patsz+kk*binx)
+        Pat(1:binx,kk) = exppatarray((jj-1)*psll+(kk-1)*binx+1_ill:(jj-1)*psll+kk*binx)
       end do
 
       if (present(exptIQ)) then
@@ -692,16 +698,16 @@ do jrow=1,nml%ipf_ht ! loop over all the experimental rows.
 
 ! convert back to 1D vector
       do kk=1,biny
-        exppatarray((jj-1)*patsz+(kk-1)*binx+1:(jj-1)*patsz+kk*binx) = Pat(1:binx,kk)
+        exppatarray((jj-1)*psll+(kk-1)*binx+1_ill:(jj-1)*psll+kk*binx) = Pat(1:binx,kk)
       end do
 
 ! apply circular mask and normalize for the dot product computation
-      exppatarray((jj-1)*patsz+1:(jj-1)*patsz+L) = exppatarray((jj-1)*patsz+1:(jj-1)*patsz+L) * masklin(1:L)
-      vlen = vecnorm(exppatarray((jj-1)*patsz+1:(jj-1)*patsz+L))
+      exppatarray((jj-1)*psll+1:(jj-1)*psll+L) = exppatarray((jj-1)*psll+1:(jj-1)*psll+L) * masklin(1:L)
+      vlen = vecnorm(exppatarray((jj-1)*psll+1:(jj-1)*psll+L))
       if (vlen.ne.0.0) then
-        exppatarray((jj-1)*patsz+1:(jj-1)*patsz+L) = exppatarray((jj-1)*patsz+1:(jj-1)*patsz+L)/vlen
+        exppatarray((jj-1)*psll+1:(jj-1)*psll+L) = exppatarray((jj-1)*psll+1:(jj-1)*psll+L)/vlen
       else
-        exppatarray((jj-1)*patsz+1:(jj-1)*patsz+L) = 0.0
+        exppatarray((jj-1)*psll+1:(jj-1)*psll+L) = 0.0
       end if
   end do
 !$OMP END DO
@@ -720,11 +726,11 @@ do jrow=1,nml%ipf_ht ! loop over all the experimental rows.
 ! and we either write the resulting patterns to the temp file or we keep them in RAM 
       if (inRAM.eqv..TRUE.) then
         do jj=1,jjend
-          epatterns(1:patsz,(jrow-iiistart)*jjend + jj) = exppatarray((jj-1)*patsz+1:jj*patsz)
+          epatterns(1:patsz,(jrow-iiistart)*jjend + jj) = exppatarray((jj-1)*psll+1:jj*psll)
         end do
       else
         do jj=1,jjend
-          write(itmpexpt,rec=(jrow-iiistart)*jjend + jj) exppatarray((jj-1)*patsz+1:jj*patsz)
+          write(itmpexpt,rec=(jrow-iiistart)*jjend + jj) exppatarray((jj-1)*psll+1:jj*psll)
         end do
       end if
 
@@ -759,11 +765,13 @@ end if
 !====================================
 ! that should be it... some clean up and we return to the calling program
 !====================================
-call mem%dealloc(exppatarray, 'exppatarray')
-call mem%dealloc(exptblock, 'exptblock')
-call mem%dealloc(sigEst, 'sigEst')
+! call mem%dealloc(exppatarray, 'exppatarray')
+! call mem%dealloc(exptblock, 'exptblock')
+! call mem%dealloc(sigEst, 'sigEst')
 call mem%dealloc(hpmask, 'hpmask')
 call mem%dealloc(wtfactors, 'wtfactors')
+
+deallocate(exppatarray,exptblock,sigEst)
 
 if (present(exptIQ)) then
   call mem%dealloc(ksqarray, 'ksqarray')
