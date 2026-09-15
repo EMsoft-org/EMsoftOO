@@ -525,7 +525,7 @@ call VT%set_filename(nml%exptfile)
 ! open the file and leave it open, then use the getExpPatternRow() routine to read a row
 ! of patterns into the exppatarray variable ...  at the end, we use closeExpPatternFile() to
 ! properly close the experimental pattern file
-if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) .or. (itype.eq.11) ) then
   istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, nml%HDFstrings, HDF)
 else
   istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize)
