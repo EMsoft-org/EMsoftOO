@@ -525,7 +525,7 @@ call VT%set_filename(nml%exptfile)
 ! open the file and leave it open, then use the getExpPatternRow() routine to read a row
 ! of patterns into the exppatarray variable ...  at the end, we use closeExpPatternFile() to
 ! properly close the experimental pattern file
-if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) .or. (itype.eq.11) ) then
+if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) .or. (itype.eq.6) ) then
   istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize, nml%HDFstrings, HDF)
 else
   istat = VT%openExpPatternFile(EMsoft, nml%ipf_wd, L, recordsize)
@@ -584,7 +584,7 @@ swll = SW
 dims3 = (/ binx, biny, nml%ipf_wd /)
 do jrow = 1, 2*SW+1+1  ! the second +1 is to have enough rows for the sigEst routine
   offset3 = (/ 0, 0, (jrow-1)*nml%ipf_wd /)
-  if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+  if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) .or. (itype.eq.6) ) then
     call VT%getExpPatternRow(jrow, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
                              HDFstrings=nml%HDFstrings, HDF=HDF)
   else
@@ -610,7 +610,7 @@ do jrow=1,nml%ipf_ht ! loop over all the experimental rows.
     sigEst = cshift(sigEst, wdll)                       ! corresponding estimated sigma^2 values
     offset3 = (/ 0, 0, (jrow+SW)* nml%ipf_wd /)
     if (jrow.ne.(nml%ipf_ht-SW)) then  ! read the next row unless we're already at the end
-      if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) ) then
+      if ( (itype.eq.4) .or. (itype.eq.7) .or. (itype.eq.8) .or. (itype.eq.6)) then
         call VT%getExpPatternRow(jrow+SW+1, nml%ipf_wd, patsz, L, dims3, offset3, exppatarray, &
                                  HDFstrings=nml%HDFstrings, HDF=HDF)
       else
