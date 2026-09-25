@@ -179,6 +179,7 @@ private
       procedure, pass(self) :: getEMsoftpathname
       procedure, pass(self) :: getXtalpathname
       procedure, pass(self) :: getEMdatapathname
+      procedure, pass(self) :: getEMsoftLibraryLocation
       procedure, pass(self) :: getEMtmppathname
       procedure, pass(self) :: getSlackWebHookURL
       procedure, pass(self) :: getSlackChannel
@@ -380,6 +381,7 @@ subroutine init(self)
 ! from here on the order does not matter
   call self % getXtalpathname()
   call self % getEMdatapathname()
+  call self % getEMsoftLibraryLocation()
   call self % getEMtmppathname()
   call self % getSlackWebHookURL()
   call self % getSlackChannel()
@@ -859,6 +861,50 @@ end if
 
 end subroutine getEMdatapathname
 
+!--------------------------------------------------------------------------
+subroutine getEMsoftLibraryLocation(self)
+!DEC$ ATTRIBUTES DLLEXPORT :: getEMsoftLibraryLocation
+  !! author: MDG
+  !! version: 1.0
+  !! date: 09/25/26
+  !!
+  !! returns the EMsoftLibraryLocation variable from the EMsoftconfig.json file
+
+use, intrinsic                :: iso_fortran_env , only: error_unit, wp => real64
+use mod_io
+
+IMPLICIT NONE
+
+class(EMsoft_T),INTENT(INOUT) :: self
+
+type(IO_T)                    :: Message
+character(fnlen)              :: ep, envParam, envReturn
+integer                       :: l
+
+ep = SC_EMsoftLibraryLocation
+self%EMsoftLibraryLocation = getJSONparameter(self, ep)
+
+if (trim(self%EMsoftLibraryLocation).eq.'tryEnvironmentVariable') then
+  envParam = 'EMSOFTLIBRARYLOCATION'
+  call getenv(trim(envParam),envReturn)
+  if (trim(envReturn).ne.'') then
+    self%EMsoftLibraryLocation= trim(envReturn)
+    l = len(trim(self%EMsoftLibraryLocation))
+    if ( (self%EMsoftLibraryLocation(l:l).ne.'/') .and. (self%EMsoftLibraryLocation(l:l).ne.'\') ) then !'
+      self%EMsoftLibraryLocation = trim(self%EMsoftLibraryLocation)//'/'
+    end if
+  else
+    if (displayEMsoftWarningMessages.eq.0) then
+      Message = IO_T()
+      call Message % printWarning('EMsoftLibraryLocation was not defined in the json file', &
+                                  (/'----> IDL functionality may be compromised            '/) )
+      displayEMsoftWarningMessages = displayEMsoftWarningMessages+1
+    end if
+    self%EMsoftLibraryLocation = ''
+  end if
+end if
+
+end subroutine getEMsoftLibraryLocation
 
 !--------------------------------------------------------------------------
 subroutine getEMtmppathname(self)
