@@ -580,7 +580,6 @@ select case (self%itype)
         end if
         ! get the first byte to check if this file is version 1-3 or 4
         ! version 4 has an extra byte in the header...
-        ! now there is also a version 5 file with some differences ... 
         read(unit=self%funit, pos=1, iostat=ios) header
         ebspversion = 256-iachar(header)
         io_int(1) = ebspversion
@@ -850,12 +849,13 @@ select case (self%itype)
     case(5)  ! "OxfordBinary"
 
 ! read position of patterns in file for a single row from the header
-      if (ebspversion.gt.3) then 
+      if ((ebspversion.eq.4).or.(ebspversion.eq.7)) then 
         read(unit=self%funit, pos=(liii-1)*lwd*8+10, iostat=ios) patoffsets
       else
         read(unit=self%funit, pos=(liii-1)*lwd*8+9, iostat=ios) patoffsets
       end if 
       if (ebspversion.eq.5) patoffsets = patoffsets + 25_8
+      if (ebspversion.eq.7) patoffsets = patoffsets + 8_8
 
 ! generate a buffer to load individual patterns into
       buffersize = lL
@@ -1146,12 +1146,13 @@ write (*,*) 'mod_vendors : ', minval(exppat), maxval(exppat)
       l1 = mod(offset3(3),wd)
       lL = L
       lwd = wd
-      if (ebspversion.gt.3) then 
+      if ((ebspversion.eq.4).or.(ebspversion.eq.7)) then 
         read(unit=self%funit, pos=(liii-1)*lwd*8+10, iostat=ios) patoffsets
       else
         read(unit=self%funit, pos=(liii-1)*lwd*8+9, iostat=ios) patoffsets
       end if
       if (ebspversion.eq.5) patoffsets = patoffsets + 25_8
+      if (ebspversion.eq.7) patoffsets = patoffsets + 8_8
 
 ! generate buffers to load individual pattern into
       buffersize = lL
