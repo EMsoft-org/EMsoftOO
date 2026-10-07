@@ -401,6 +401,9 @@ type(Vendor_T)                       :: VT
 
 character(fnlen)                     :: DIfile, fname, xtalname, TIFF_filename, IPFmapfile, IPFmode, nmldeffile
 character(fnlen)                     :: dataname, datagroupname, groupname, attributename, dataset
+integer(kind=irg),allocatable        :: indexmain(:,:)
+real(kind=sgl),allocatable           :: resultmain(:,:), exptIQ(:)
+real(kind=sgl)                       :: fpar1(1)
 character(11)                        :: dstr
 character(15)                        :: tstrb
 character(15)                        :: tstre
@@ -410,9 +413,8 @@ integer(kind=irg)                    :: hdferr, io_int(2), nSamples, binx, biny,
 real(kind=sgl), allocatable             :: mainOSM(:,:), OSMmap(:,:), mainEuler(:,:,:), mainResult(:,:),quatarray(:,:,:)  
 real(kind=sgl)                          :: mi, ma, memoryNeeded, io_real(1)
 real(kind=sgl),allocatable              :: rodarray(:,:,:), maineu(:,:)
-real(kind=sgl),allocatable              :: resultmain(:,:)
 type(FZpointd),pointer                  :: FZlist, FZtmp
-
+integer(kind=irg)                       :: ipar(10)
 logical                                 :: verbose=.FALSE., f_exists, inRAM
 character(fnlen,kind=c_char)            :: HDF_FileVersion
 
@@ -823,33 +825,37 @@ if (trim(osmnl%IPFmap).ne.'undefined') then
 end if
 
 
-! if ( (trim(osmnl%angfile).ne.'undefined').or.(trim(osmnl%ctffile).ne.'undefined') ) then 
-!   VT = Vendor_T()
-!   call VT%set_Modality(MPFT%getModality())
-!   ipar = 0
-!   ipar(1) = nnk
-!   ipar(2) = Ne*ceiling(float(totnumexpt)/float(Ne))
-!   ipar(3) = totnumexpt
-!   ipar(4) = Nd*ceiling(float(FZcnt)/float(Nd))
-!   ipar(5) = FZcnt
-!   ipar(6) = pgnum
-!   if (ROIselected.eqv..TRUE.) then
-!     ipar(7) = dinl%ROI(3)
-!     ipar(8) = dinl%ROI(4)
-!   else
-!     ipar(7) = dinl%ipf_wd
-!     ipar(8) = dinl%ipf_ht
-!   end if
-! end if 
+if ( (trim(osmnl%angfile).ne.'undefined').or.(trim(osmnl%ctffile).ne.'undefined') ) then 
+  VT = Vendor_T()
+  call VT%set_Modality(MPFT%getModality())
+  ipar = 0
+  ipar(1) = 1
+  ipar(2) = nt
+  ipar(3) = nt
+  ipar(4) = nt
+  ipar(5) = 0
+  ipar(6) = DIFT%DIDT%pgnum
+  if (sum(dinl%ROI).ne.0) then
+    ipar(7) = dinl%ROI(3)
+    ipar(8) = dinl%ROI(4)
+  else
+    ipar(7) = dinl%ipf_wd
+    ipar(8) = dinl%ipf_ht
+  end if
+end if 
 
-! ! 7. if requested, produce an ang file
-! if (trim(osmnl%angfile).ne.'undefined') then 
-!   fpar1(1) = WD
-!   call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,eulerarray,resultmain,exptIQ)
-!   call Message%printMessage(' Data stored in ang file : '//trim(dinl%angfile))
+allocate(indexmain(ipar(1),1:ipar(2)),resultmain(ipar(1),1:ipar(2)))
+indexmain = 0
+resultmain(1,1:ipar(2)) = reshape(mainResult, (/ nt /) )   !CIlist(1:Nexp)
+allocate(exptIQ(nt))
+exptIQ = 0.0
 
-
-! end if 
+! 7. if requested, produce an ang file
+if (trim(osmnl%angfile).ne.'undefined') then 
+  fpar1(1) =10.0 
+  call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,reshape(mainEuler, (/ 3, nt /)),resultmain,exptIQ,noindex=.TRUE.)
+  call Message%printMessage(' Data stored in ang file : '//trim(dinl%angfile))
+end if 
 
 ! ! 8. if requested, produce a ctf file 
 ! if (trim(osmnl%ctffile).ne.'undefined') then 
