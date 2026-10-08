@@ -853,6 +853,7 @@ exptIQ = 0.0
 ! 7. if requested, produce an ang file
 if (trim(osmnl%angfile).ne.'undefined') then 
   fpar1(1) =10.0 
+  dinl%angfile = trim(osmnl%angfile)
   call VT%ang_writeFile(EMsoft,cell,SG,dinl,ipar,fpar1,indexmain,reshape(mainEuler, (/ 3, nt /)),resultmain,exptIQ,noindex=.TRUE.)
   call Message%printMessage(' Data stored in ang file : '//trim(dinl%angfile))
 end if 
