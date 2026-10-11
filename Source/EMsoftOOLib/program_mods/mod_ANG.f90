@@ -42,6 +42,7 @@ IMPLICIT NONE
 type, public :: ANGNameListType
   character(4)      :: modality
   character(8)      :: angledataset   ! 'original' or 'refined'
+  logical           :: isHROSM
   character(fnlen)  :: xtalname
   character(fnlen)  :: newangfile
   character(fnlen)  :: dotproductfile
@@ -59,11 +60,13 @@ private
   procedure, pass(self) :: getNameList_
   procedure, pass(self) :: ANG_
   procedure, pass(self) :: get_mod_
+  procedure, pass(self) :: get_isHROSM_
   procedure, pass(self) :: get_angledataset_
   procedure, pass(self) :: get_xtalname_
   procedure, pass(self) :: get_newangfile_
   procedure, pass(self) :: get_dotproductfile_
   procedure, pass(self) :: set_mod_
+  procedure, pass(self) :: set_isHROSM_
   procedure, pass(self) :: set_angledataset_
   procedure, pass(self) :: set_xtalname_
   procedure, pass(self) :: set_newangfile_
@@ -73,11 +76,13 @@ private
   generic, public :: readNameList => readNameList_
   generic, public :: ANG => ANG_
   generic, public :: get_mod => get_mod_
+  generic, public :: get_isHROSM => get_isHROSM_
   generic, public :: get_angledataset => get_angledataset_
   generic, public :: get_xtalname => get_xtalname_
   generic, public :: get_newangfile => get_newangfile_
   generic, public :: get_dotproductfile => get_dotproductfile_
   generic, public :: set_mod => set_mod_
+  generic, public :: set_isHROSM => set_isHROSM_
   generic, public :: set_angledataset => set_angledataset_
   generic, public :: set_xtalname => set_xtalname_
   generic, public :: set_newangfile => set_newangfile_
@@ -151,14 +156,16 @@ logical                     :: skipread = .FALSE.
 
 character(4)                :: modality
 character(8)                :: angledataset   ! 'original' or 'refined'
+logical                     :: isHROSM
 character(fnlen)            :: xtalname
 character(fnlen)            :: newangfile
 character(fnlen)            :: dotproductfile
 
-namelist /ANGlist/ modality, xtalname, angledataset, dotproductfile, newangfile
+namelist /ANGlist/ modality, xtalname, angledataset, dotproductfile, newangfile, isHROSM
 
 dotproductfile = 'undefined'
 newangfile = 'undefined'
+isHROSM = .FALSE.
 xtalname = 'undefined'
 modality = 'EBSD'
 angledataset = 'original'
@@ -189,6 +196,7 @@ end if
 
 self%nml%dotproductfile = dotproductfile
 self%nml%newangfile = newangfile
+self%nml%isHROSM = isHROSM
 self%nml%xtalname = xtalname
 self%nml%modality = trim(modality)
 self%nml%angledataset = trim(angledataset)
@@ -249,6 +257,42 @@ character(4), INTENT(IN)        :: inp
 self%nml%modality = inp
 
 end subroutine set_mod_
+
+!--------------------------------------------------------------------------
+function get_isHROSM_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_isHROSM_
+!! author: MDG
+!! version: 1.0
+!! date: 04/06/20
+!!
+!! get isHROSM from the ANG_T class
+
+IMPLICIT NONE
+
+class(ANG_T), INTENT(INOUT)     :: self
+logical                         :: out
+
+out = self%nml%isHROSM
+
+end function get_isHROSM_
+
+!--------------------------------------------------------------------------
+subroutine set_isHROSM_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: set_isHROSM_
+!! author: MDG
+!! version: 1.0
+!! date: 04/06/20
+!!
+!! set isHROSM in the ANG_T class
+
+IMPLICIT NONE
+
+class(ANG_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)             :: inp
+
+self%nml%isHROSM = inp
+
+end subroutine set_isHROSM_
 
 !--------------------------------------------------------------------------
 function get_angledataset_(self) result(out)
@@ -428,29 +472,29 @@ type(SpaceGroup_T)                               :: SG
 type(Vendor_T)                                   :: VT
 type(DictionaryIndexingNameListType)             :: dinl
 
-logical                                          :: stat, readonly, noindex, g_exists
+logical                                          :: stat, noindex, g_exists
 character(fnlen)                                 :: dpfile, masterfile, energyfile
-integer(kind=irg)                                :: hdferr, ii, jj, kk, iii, istat
+integer(kind=irg)                                :: hdferr, i, ii, jj, kk, iii, istat
 
-real(kind=sgl),allocatable                       :: euler_best(:,:), CIlist(:)
+real(kind=sgl),allocatable                       :: euler_best(:,:), CIlist(:), neweulers(:,:,:), newCI(:,:)
 integer(kind=irg),allocatable                    :: indexmain(:,:)
 real(kind=sgl),allocatable                       :: resultmain(:,:)
-integer(HSIZE_T)                                 :: dims(1)
+integer(HSIZE_T)                                 :: dims(1), sz(1), dims3(3), ddims2(2)
 
 integer(kind=irg)                                :: numk, numdictsingle, numexptsingle
 
-character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 character(fnlen)                                 :: dataset, groupname
 character(fnlen)                                 :: ename, fname
 
-logical                                          :: verbose
+logical                                          :: verbose, readonly = .TRUE.
 logical                                          :: f_exists, init=.TRUE., overwrite =.TRUE., refined
 real(kind=sgl)                                   :: quat(4), ma, mi, dp, tstart, tstop, io_real(1), tmp, totnum_el, genfloat, &
-                                           vlen, fpar(1)
-integer(kind=irg)                       :: ipar(10), Emin, Emax, nthreads, TID, io_int(2), tick, tock, ierr, L
-integer(kind=irg)                       :: ll, mm, jpar(7), Nexp, pgnum, FZcnt, nlines, dims2(2), ss(1)
-real(kind=dbl)                          :: prefactor, F
-character(fnlen)                        :: modality, DIfile
+                                                    vlen, fpar(1)
+integer(kind=irg)                                :: ipar(10), Emin, Emax, nthreads, TID, io_int(2), tick, tock, ierr, L, pos
+integer(kind=irg)                                :: ll, mm, jpar(7), Nexp, pgnum, FZcnt, dims2(2), ss(1), nlines, stlen 
+real(kind=dbl)                                   :: prefactor, F
+character(fnlen)                                 :: modality, DIfile, tmpnmlname, dotproductfile, targ
+character(fnlen, KIND=c_char),allocatable,TARGET :: stringarray(:)
 
 VT = Vendor_T()
 call VT%set_Modality(self%nml%modality)
@@ -459,12 +503,60 @@ associate(enl=>self%nml, DIDT=>DIFT%DIDT)
 
 !====================================
 ! read the relevant fields from the dot product HDF5 file
+dotproductfile = trim(enl%dotproductfile)
 
 ! open the HDF interface
 call openFortranHDFInterface()
 HDF = HDF_T()
 
 HDFnames = HDFnames_T()
+
+! if this is an EMHROSM output file, then we need to get the original dpfile
+! parameter from its NMLparameters; then we make sure that file exists
+! 
+if (enl%isHROSM.eqv..TRUE.) then 
+    call HDFnames%set_NMLfiles(SC_NMLfiles)
+    call HDFnames%set_NMLfilename(SC_HROSMNML)
+    call HDFnames%set_NMLparameters(SC_NMLparameters)
+    call HDFnames%set_NMLlist(SC_HROSMNameListType)
+    DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(enl%dotproductfile)
+    DIFT = DIfile_T( fname = trim(DIfile) )
+! is this a proper HDF5 file ?
+    call h5fis_hdf5_f(trim(DIfile), stat, hdferr)
+    if (stat.eqv..FALSE.) then ! the file exists, so let's open it an first make sure it is an EBSD dot product file
+       call Message%printError('ANG_','This is not a proper HDF5 file: '//trim(DIfile))
+    end if
+    hdferr =  HDF%openFile(DIfile, readonly)
+! make sure this is an HROSM dot product file
+    hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+
+    dataset = trim(HDFnames%get_NMLfilename())
+      call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..FALSE.) then
+       call Message%printError('ANG_','No HROSMNML data set found in '//trim(DIfile))
+    end if
+    call HDF%pop()
+!====================================
+! find the line with dpfile in the namelist field
+!====================================
+    hdferr = HDF%openGroup(HDFnames%get_NMLfiles())
+    dataset = trim(HDFnames%get_NMLfilename())
+    call HDF%readdatasetstringarray(dataset, nlines, hdferr, stringarray)
+! close the HDF file
+    call HDF%popall()
+    sz = shape(stringarray)
+    targ = 'dpfile'
+! find the string that has dpfile in it...
+    do i=1,sz(1)
+      pos = index(stringarray(i), trim(targ))
+      if (pos.ne.0) then
+        pos = index(stringarray(i), " = ")
+        stlen = len_trim(stringarray(i))
+        targ = stringarray(i)(pos+4:stlen-2)
+        call self%set_dotproductfile( targ )        
+      end if 
+    end do
+end if 
 
 call HDFnames%set_NMLfiles(SC_NMLfiles)
 call HDFnames%set_NMLfilename(SC_DictionaryIndexingNML)
@@ -497,7 +589,6 @@ end if
 
 dinl = DIFT%getNameList()
 
-
 if (DIDT%Nexp.eq.-1) then
     ss = shape(DIDT%Phi1)
     Nexp = ss(1)
@@ -510,29 +601,65 @@ if (istat .ne. 0) then
 end if
 euler_best = 0.0
 CIlist = 0.0
-if (refined.eqv..FALSE.) then
-    euler_best(1,1:Nexp) = DIDT%Phi1(1:Nexp)*rtod
-    euler_best(2,1:Nexp) = DIDT%Phi(1:Nexp)*rtod
-    euler_best(3,1:Nexp) = DIDT%Phi2(1:Nexp)*rtod
-    if (allocated(DIDT%Phi1)) deallocate(DIDT%Phi1)
-    if (allocated(DIDT%Phi)) deallocate(DIDT%Phi)
-    if (allocated(DIDT%Phi2)) deallocate(DIDT%Phi2)
-    call Message%printMessage(' Using original Euler angles from dot product/SI file')
-    if (allocated(DIDT%CI)) then 
-      CIlist(1:Nexp) = DIDT%CI(1:Nexp)
-      deallocate(DIDT%CI)
-  end if
+! is this an EMHROSM output file ?
+! if it is, then we need to replace the Euler angles by a new set of Euler angles...
+if (enl%isHROSM.eqv..FALSE.) then 
+    if (refined.eqv..FALSE.) then
+        euler_best(1,1:Nexp) = DIDT%Phi1(1:Nexp)*rtod
+        euler_best(2,1:Nexp) = DIDT%Phi(1:Nexp)*rtod
+        euler_best(3,1:Nexp) = DIDT%Phi2(1:Nexp)*rtod
+        if (allocated(DIDT%Phi1)) deallocate(DIDT%Phi1)
+        if (allocated(DIDT%Phi)) deallocate(DIDT%Phi)
+        if (allocated(DIDT%Phi2)) deallocate(DIDT%Phi2)
+        call Message%printMessage(' Using original Euler angles from dot product/SI file')
+        if (allocated(DIDT%CI)) then 
+          CIlist(1:Nexp) = DIDT%CI(1:Nexp)
+          deallocate(DIDT%CI)
+      end if
+    else
+        euler_best(1,1:Nexp) = DIDT%RefinedEulerAngles(1,1:Nexp)*rtod
+        euler_best(2,1:Nexp) = DIDT%RefinedEulerAngles(2,1:Nexp)*rtod
+        euler_best(3,1:Nexp) = DIDT%RefinedEulerAngles(3,1:Nexp)*rtod
+        if (allocated(DIDT%RefinedEulerAngles)) deallocate(DIDT%RefinedEulerAngles)
+        if (allocated(DIDT%RefinedDotProducts)) then 
+          CIlist(1:Nexp) = DIDT%RefinedDotProducts(1:Nexp)
+          deallocate(DIDT%RefinedDotProducts)
+        end if 
+        call Message%printMessage(' Using refined Euler angles from dot product/SI file')
+    end if
 else
-    euler_best(1,1:Nexp) = DIDT%RefinedEulerAngles(1,1:Nexp)*rtod
-    euler_best(2,1:Nexp) = DIDT%RefinedEulerAngles(2,1:Nexp)*rtod
-    euler_best(3,1:Nexp) = DIDT%RefinedEulerAngles(3,1:Nexp)*rtod
-    if (allocated(DIDT%RefinedEulerAngles)) deallocate(DIDT%RefinedEulerAngles)
-    if (allocated(DIDT%RefinedDotProducts)) then 
-      CIlist(1:Nexp) = DIDT%RefinedDotProducts(1:Nexp)
-      deallocate(DIDT%RefinedDotProducts)
-    end if 
-    call Message%printMessage(' Using refined Euler angles from dot product/SI file')
-end if
+! directly read the newEuler array from the EMHROSM output file and generate the proper arrays
+    call HDFnames%set_NMLfiles(SC_NMLfiles)
+    call HDFnames%set_NMLfilename(SC_HROSMNML)
+    call HDFnames%set_NMLparameters(SC_NMLparameters)
+    call HDFnames%set_NMLlist(SC_HROSMNameListType)
+    DIfile = trim(EMsoft%generateFilePath('EMdatapathname'))//trim(dotproductfile)
+    hdferr = HDF%openFile(DIfile, readonly)
+    groupname = 'EMData'
+    hdferr = HDF%openGroup(groupname)
+    groupname = 'HROSM'
+    hdferr = HDF%openGroup(groupname)
+    dataset = 'newEuler'
+    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, dims3, hdferr, neweulers)
+    else
+      call Message%printError('ANG_ ', '  --> no newEuler data set found')
+    end if
+    euler_best = reshape( neweulers, (/ 3, Nexp /) ) * rtod
+    deallocate(neweulers)
+!
+    dataset = 'newCI'
+    call H5Lexists_f(HDF%getObjectID(),trim(dataset),g_exists, hdferr)
+    if (g_exists.eqv..TRUE.) then
+      call HDF%readDatasetFloatArray(dataset, ddims2, hdferr, newCI)
+    else
+      call Message%printError('ANG_ ', '  --> no newCI data set found')
+    end if
+    CIlist = reshape( newCI, (/ Nexp /) )
+    deallocate(newCI)
+    call HDF%popall()
+end if 
 
 call cell%setFileName(enl%xtalname)
 call cell%readDataHDF(SG, EMsoft, HDF)

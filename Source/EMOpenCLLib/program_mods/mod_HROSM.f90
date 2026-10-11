@@ -70,11 +70,76 @@ private
   procedure, pass(self) :: writeHDFNameList_
   ! procedure, pass(self) :: mygetNameList_
   procedure, pass(self) :: HROSM_
+  procedure, pass(self) :: setnsamples_
+  procedure, pass(self) :: getnsamples_
+  procedure, pass(self) :: setnosm_
+  procedure, pass(self) :: getnosm_
+  procedure, pass(self) :: setgangle_
+  procedure, pass(self) :: getgangle_
+  procedure, pass(self) :: setmisorang_
+  procedure, pass(self) :: getmisorang_
+  procedure, pass(self) :: setmaxRAMmem_
+  procedure, pass(self) :: getmaxRAMmem_
+  procedure, pass(self) :: setdilate_
+  procedure, pass(self) :: getdilate_
+  procedure, pass(self) :: setorav_
+  procedure, pass(self) :: getorav_
+  procedure, pass(self) :: setdebug_
+  procedure, pass(self) :: getdebug_
+  procedure, pass(self) :: setnumEM_
+  procedure, pass(self) :: getnumEM_
+  procedure, pass(self) :: setnumIter_
+  procedure, pass(self) :: getnumIter_
+  procedure, pass(self) :: setdpfile_
+  procedure, pass(self) :: getdpfile_
+  procedure, pass(self) :: setOSMfile_
+  procedure, pass(self) :: getOSMfile_
+  procedure, pass(self) :: setOSMtiff_
+  procedure, pass(self) :: getOSMtiff_
+  procedure, pass(self) :: setIPFmap_
+  procedure, pass(self) :: getIPFmap_
+  procedure, pass(self) :: setctffile_
+  procedure, pass(self) :: getctffile_
+  procedure, pass(self) :: setangfile_
+  procedure, pass(self) :: getangfile_
 
   ! generic, private :: mygetNameList => mygetNameList_
   generic, public :: writeHDFNameList => writeHDFNameList_
   generic, public :: readNameList => readNameList_
   generic, public :: HROSM => HROSM_
+
+  generic, public :: setnsamples => setnsamples_
+  generic, public :: getnsamples => getnsamples_
+  generic, public :: setnosm => setnosm_
+  generic, public :: getnosm => getnosm_
+  generic, public :: setgangle => setgangle_
+  generic, public :: getgangle => getgangle_
+  generic, public :: setmisorang => setmisorang_
+  generic, public :: getmisorang => getmisorang_
+  generic, public :: setmaxRAMmem => setmaxRAMmem_
+  generic, public :: getmaxRAMmem => getmaxRAMmem_
+  generic, public :: setdilate => setdilate_
+  generic, public :: getdilate => getdilate_
+  generic, public :: setorav => setorav_
+  generic, public :: getorav => getorav_
+  generic, public :: setdebug => setdebug_
+  generic, public :: getdebug => getdebug_
+  generic, public :: setnumEM => setnumEM_
+  generic, public :: getnumEM => getnumEM_
+  generic, public :: setnumIter => setnumIter_
+  generic, public :: getnumIter => getnumIter_
+  generic, public :: setdpfile => setdpfile_
+  generic, public :: getdpfile => getdpfile_
+  generic, public :: setOSMfile => setOSMfile_
+  generic, public :: getOSMfile => getOSMfile_
+  generic, public :: setOSMtiff => setOSMtiff_
+  generic, public :: getOSMtiff => getOSMtiff_
+  generic, public :: setIPFmap => setIPFmap_
+  generic, public :: getIPFmap => getIPFmap_
+  generic, public :: setctffile => setctffile_
+  generic, public :: getctffile => getctffile_
+  generic, public :: setangfile => setangfile_
+  generic, public :: getangfile => getangfile_
 
 end type HROSM_T
 
@@ -98,7 +163,9 @@ IMPLICIT NONE
 
 character(fnlen), OPTIONAL   :: nmlfile 
 
-call HROSM%readNameList(nmlfile)
+if (present(nmlfile)) then 
+  call HROSM%readNameList(nmlfile)
+end if 
 
 end function HROSM_constructor
 
@@ -328,6 +395,582 @@ call HDF%pop()
 end associate
 
 end subroutine writeHDFNameList_
+
+!--------------------------------------------------------------------------
+subroutine setnsamples_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnsamples_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set nsamples in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%nsamples = inp
+
+end subroutine setnsamples_
+
+!--------------------------------------------------------------------------
+function getnsamples_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnsamples_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get nsamples from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%nsamples
+
+end function getnsamples_
+
+!--------------------------------------------------------------------------
+subroutine setnosm_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnosm_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set nosm in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%nosm = inp
+
+end subroutine setnosm_
+
+!--------------------------------------------------------------------------
+function getnosm_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnosm_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get nosm from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%nosm
+
+end function getnosm_
+
+!--------------------------------------------------------------------------
+subroutine setgangle_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setgangle_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set gangle in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%gangle = inp
+
+end subroutine setgangle_
+
+!--------------------------------------------------------------------------
+function getgangle_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getgangle_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get gangle from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%gangle
+
+end function getgangle_
+
+!--------------------------------------------------------------------------
+subroutine setmisorang_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setmisorang_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set misorang in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%misorang = inp
+
+end subroutine setmisorang_
+
+!--------------------------------------------------------------------------
+function getmisorang_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmisorang_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get misorang from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%misorang
+
+end function getmisorang_
+
+!--------------------------------------------------------------------------
+subroutine setmaxRAMmem_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setmaxRAMmem_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set maxRAMmem in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+real(kind=sgl), INTENT(IN)       :: inp
+
+self%nml%maxRAMmem = inp
+
+end subroutine setmaxRAMmem_
+
+!--------------------------------------------------------------------------
+function getmaxRAMmem_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getmaxRAMmem_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get maxRAMmem from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+real(kind=sgl)                   :: out
+
+out = self%nml%maxRAMmem
+
+end function getmaxRAMmem_
+
+!--------------------------------------------------------------------------
+subroutine setdilate_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setdilate_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set dilate in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)       :: inp
+
+self%nml%dilate = inp
+
+end subroutine setdilate_
+
+!--------------------------------------------------------------------------
+function getdilate_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getdilate_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get dilate from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+logical                   :: out
+
+out = self%nml%dilate
+
+end function getdilate_
+
+!--------------------------------------------------------------------------
+subroutine setorav_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setorav_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set orav in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%orav = trim(inp)
+
+end subroutine setorav_
+
+!--------------------------------------------------------------------------
+function getorav_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getorav_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get orav from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%orav)
+
+end function getorav_
+
+!--------------------------------------------------------------------------
+subroutine setdebug_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setdebug_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set debug in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+logical, INTENT(IN)       :: inp
+
+self%nml%debug = inp
+
+end subroutine setdebug_
+
+!--------------------------------------------------------------------------
+function getdebug_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getdebug_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get debug from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+logical                   :: out
+
+out = self%nml%debug
+
+end function getdebug_
+
+!--------------------------------------------------------------------------
+subroutine setnumEM_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnumEM_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set numEM in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%numEM = inp
+
+end subroutine setnumEM_
+
+!--------------------------------------------------------------------------
+function getnumEM_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumEM_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get numEM from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%numEM
+
+end function getnumEM_
+
+!--------------------------------------------------------------------------
+subroutine setnumIter_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setnumIter_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set numIter in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+integer(kind=irg), INTENT(IN)       :: inp
+
+self%nml%numIter = inp
+
+end subroutine setnumIter_
+
+!--------------------------------------------------------------------------
+function getnumIter_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getnumIter_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get numIter from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+integer(kind=irg)                   :: out
+
+out = self%nml%numIter
+
+end function getnumIter_
+
+!--------------------------------------------------------------------------
+subroutine setdpfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setdpfile_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set dpfile in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%dpfile = trim(inp)
+
+end subroutine setdpfile_
+
+!--------------------------------------------------------------------------
+function getdpfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getdpfile_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get dpfile from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%dpfile)
+
+end function getdpfile_
+
+!--------------------------------------------------------------------------
+subroutine setOSMfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setOSMfile_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set OSMfile in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%OSMfile = trim(inp)
+
+end subroutine setOSMfile_
+
+!--------------------------------------------------------------------------
+function getOSMfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getOSMfile_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get OSMfile from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%OSMfile)
+
+end function getOSMfile_
+
+!--------------------------------------------------------------------------
+subroutine setOSMtiff_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setOSMtiff_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set OSMtiff in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%OSMtiff = trim(inp)
+
+end subroutine setOSMtiff_
+
+!--------------------------------------------------------------------------
+function getOSMtiff_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getOSMtiff_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get OSMtiff from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%OSMtiff)
+
+end function getOSMtiff_
+
+!--------------------------------------------------------------------------
+subroutine setIPFmap_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setIPFmap_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set IPFmap in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%IPFmap = trim(inp)
+
+end subroutine setIPFmap_
+
+!--------------------------------------------------------------------------
+function getIPFmap_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getIPFmap_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get IPFmap from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%IPFmap)
+
+end function getIPFmap_
+
+!--------------------------------------------------------------------------
+subroutine setctffile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setctffile_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set ctffile in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%ctffile = trim(inp)
+
+end subroutine setctffile_
+
+!--------------------------------------------------------------------------
+function getctffile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getctffile_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get ctffile from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%ctffile)
+
+end function getctffile_
+
+!--------------------------------------------------------------------------
+subroutine setangfile_(self,inp)
+!DEC$ ATTRIBUTES DLLEXPORT :: setangfile_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! set angfile in the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen), INTENT(IN)       :: inp
+
+self%nml%angfile = trim(inp)
+
+end subroutine setangfile_
+
+!--------------------------------------------------------------------------
+function getangfile_(self) result(out)
+!DEC$ ATTRIBUTES DLLEXPORT :: getangfile_
+!! author: MDG
+!! version: 1.0
+!! date: 10/11/26
+!!
+!! get angfile from the HROSM_T class
+
+IMPLICIT NONE
+
+class(HROSM_T), INTENT(INOUT)     :: self
+character(fnlen)                   :: out
+
+out = trim(self%nml%angfile)
+
+end function getangfile_
 
 !--------------------------------------------------------------------------
 subroutine HROSM_(self, EMsoft, progname)

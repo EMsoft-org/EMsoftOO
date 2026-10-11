@@ -53,6 +53,15 @@ if((EMsoftOO_ENABLE_HDF5_SUPPORT) AND (EMsoftOO_ENABLE_OpenCL_SUPPORT))
                       INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}  ${EMOpenCLLib_BINARY_DIR}
                       )
 
+  Add_EMsoftOO_Executable(TARGET EMgetANG
+                      SOURCES ${APP_DIR}/EMgetANG.f90 
+                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
+                      TEMPLATE ${TMPLT_DIR}/EMgetANG.template 
+                      SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
+                      INSTALL_PROGRAM TRUE
+                      INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}  ${EMOpenCLLib_BINARY_DIR}
+                      )
+
   # Add_EMsoftOO_Executable(TARGET EMECPDI
   #                     SOURCES ${APP_DIR}/EMECPDI.f90 
   #                     LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
@@ -119,15 +128,6 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
                       SOURCES ${APP_DIR}/EMgetCTF.f90 
                       LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
                       TEMPLATE ${TMPLT_DIR}/EMgetCTF.template 
-                      SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
-                      INSTALL_PROGRAM TRUE
-                      INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
-                      )
-
-  Add_EMsoftOO_Executable(TARGET EMgetANG
-                      SOURCES ${APP_DIR}/EMgetANG.f90 
-                      LINK_LIBRARIES ${EXE_LINK_LIBRARIES} 
-                      TEMPLATE ${TMPLT_DIR}/EMgetANG.template 
                       SOLUTION_FOLDER EMsoftOOPublic/DictionaryIndexing
                       INSTALL_PROGRAM TRUE
                       INCLUDE_DIRS ${EMsoftOOLib_BINARY_DIR}
