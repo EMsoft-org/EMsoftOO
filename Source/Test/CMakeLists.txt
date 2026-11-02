@@ -57,6 +57,7 @@ if(EMsoftOO_ENABLE_HDF5_SUPPORT)
     MODkvectors
     MODcolorspace
     MODKR
+    MODproductgrid
   )
 
   foreach(test ${EMsoftOO_UNIT_TESTS})

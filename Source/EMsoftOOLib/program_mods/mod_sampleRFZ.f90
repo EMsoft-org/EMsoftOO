@@ -44,6 +44,7 @@ type, public :: sampleRFZNameListType
     integer(kind=irg) :: nsteps
     integer(kind=irg) :: gridtype
     integer(kind=irg) :: norientations
+    integer(kind=irg) :: frequency
     integer(kind=irg) :: seed
     integer(kind=irg) :: hkl(15)
     integer(kind=irg) :: uvw(15)
@@ -133,7 +134,7 @@ logical,OPTIONAL,INTENT(IN)        :: initonly
 
 logical                            :: skipread = .FALSE.
 
-integer(kind=irg)                  :: pgnum, nsteps, gridtype, norientations, seed, hkl(15), uvw(15), norient(5)
+integer(kind=irg)                  :: pgnum, nsteps, gridtype, norientations, frequency, seed, hkl(15), uvw(15), norient(5)
 real(kind=dbl)                     :: rodrigues(4), qFZ(4), axFZ(4), maxmisor, conevector(3), semiconeangle, tcos(5)
 character(6)                       :: SO3cover
 character(2)                       :: SamplingLattice
@@ -153,7 +154,7 @@ character(fnlen)                   :: stoutname
 ! namelist components
 namelist / RFZlist / pgnum, nsteps, gridtype, euoutname, cuoutname, hooutname, rooutname, quoutname, omoutname, axoutname, &
                      samplemode, rodrigues, maxmisor, conevector, semiconeangle, xtalname, qFZ, axFZ, rvoutname, stoutname, &
-                     norientations, SO3cover, seed, hkl, uvw, norient, tcos, SamplingLattice, KRremapping
+                     norientations, SO3cover, seed, hkl, uvw, norient, tcos, SamplingLattice, KRremapping, frequency
 
 ! initialize to default values
 pgnum = 32
@@ -164,6 +165,7 @@ norient = (/ 100000, 0, 0, 0, 0 /)
 hkl = (/ 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0 /)
 uvw = (/ 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0 /)
 seed = 1234
+frequency = 10
 rodrigues = (/ 0.D0, 0.D0, 0.D0, 0.D0 /)  ! initialize as the identity rotation
 qFZ= (/ 1.D0, 0.D0, 0.D0, 0.D0 /)         ! initialize as the identity rotation
 axFZ= (/ 0.D0, 0.D0, 1.D0, 0.D0 /)        ! initialize as the identity rotation
@@ -214,6 +216,7 @@ self%nml%axFZ = axFZ
 self%nml%maxmisor = maxmisor
 self%nml%tcos = tcos
 self%nml%samplemode = samplemode
+self%nml%frequency = frequency
 self%nml%SamplingLattice = SamplingLattice
 self%nml%conevector = conevector
 self%nml%semiconeangle = semiconeangle
@@ -494,6 +497,13 @@ if (trim(rfznl%samplemode).eq.'SFS') then
   call SO%sample_SFS( rfznl%norientations, rfznl%pgnum )
   io_int(1) = rfznl%norientations
   call Message%WriteValue('Number of Super-Fibonacci orientations requested = ',io_int,1,"(I10)")
+  listmode = 'SF'
+end if
+if (trim(rfznl%samplemode).eq.'PRD') then
+  call Message%printMessage(' performing Hopf fibration product grid sampling ')
+  call SO%sample_PRD( rfznl%frequency )
+  io_int(1) = SO%getListCount('SF')
+  call Message%WriteValue('Number of product grid orientations = ',io_int,1,"(I10)")
   listmode = 'SF'
 end if
 if (trim(rfznl%samplemode).eq.'MAR') then
