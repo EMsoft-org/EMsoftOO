@@ -921,6 +921,8 @@ recursive function insideCyclicFZ_(self, rod, M) result(res)
   !! date: 01/21/20
   !!
   !! does Rodrigues point lie inside cyclic FZ (for 2, 3, 4, and 6-fold)?
+  !!
+  !! [11/03/26] use quaternion form for stable finite and infinite length tests.
 
 use mod_math
 
@@ -931,7 +933,9 @@ type(r_T), INTENT(INOUT)          :: rod
 logical,INTENT(IN),OPTIONAL       :: M
 
 logical                           :: res, doM
-real(kind=dbl)                    :: x(4)
+real(kind=dbl)                    :: x(4), n, t, c, s
+real(kind=dbl),parameter          :: eps = 1.0D-10
+integer(kind=irg)                 :: order
 
 res = .FALSE.
 doM = .FALSE.
@@ -940,39 +944,29 @@ if (present(M)) then
 end if
 
 x = rod%r_copyd()
-if (x(4).ne.inftyd()) then
-  if (doM.eqv..TRUE.) then
-    if ((self%MFZtype.eq.1.).and.(self%MFZorder.eq.2)) then
-! check the y-component vs. tan(pi/2n)
-      res = dabs(x(2)*x(4)).le.LPs%BP(self%MFZorder)
-    else
-! check the z-component vs. tan(pi/2n)
-      res = dabs(x(3)*x(4)).le.LPs%BP(self%MFZorder)
-    end if
-  else
-    if ((self%FZtype.eq.1.).and.(abs(self%FZorder).eq.2).and.(self%FZordersign.eq.1) ) then
-! check the y-component vs. tan(pi/2n)
-      res = dabs(x(2)*x(4)).le.LPs%BP(self%FZorder)
-    else
-! check the z-component vs. tan(pi/2n)
-      res = dabs(x(3)*x(4)).le.LPs%BP(abs(self%FZorder))
-    end if
-  end if
+n = x(3)
+if (doM.eqv..TRUE.) then
+  order = self%MFZorder
+  if ((self%MFZtype.eq.1.).and.(self%MFZorder.eq.2)) n = x(2)
 else
-  if (doM.eqv..TRUE.) then
-    if ((self%MFZtype.eq.1.).and.(self%MFZorder.eq.2)) then
-      if(x(2) .eq. 0.D0) res = .TRUE.
-    else
-      if (x(3).eq.0.D0) res = .TRUE.
-    end if
+  order = abs(self%FZorder)
+  if ((self%FZtype.eq.1.).and.(order.eq.2).and.(self%FZordersign.eq.1)) n = x(2)
+end if
+
+t = x(4)
+if (t.eq.inftyd()) then
+  c = 0.D0
+  s = 1.D0
+else
+  if (dabs(t).gt.1.D0) then
+    c = (1.D0/dabs(t))/dsqrt(1.D0+(1.D0/t)**2)
   else
-    if ((self%FZtype.eq.1.).and.(self%FZorder.eq.2)) then
-      if(x(2) .eq. 0.D0) res = .TRUE.
-    else
-      if (x(3).eq.0.D0) res = .TRUE.
-    end if
+    c = 1.D0/dsqrt(1.D0+t*t)
   end if
-endif
+  s = t*c
+end if
+! same inequality as |x(3)*x(4)| <= tan(pi/2n), written to avoid inf*0 and huge-length roundoff.
+res = dabs(n)*s.le.LPs%BP(order)*c + eps
 
 end function insideCyclicFZ_
 
@@ -4010,6 +4004,8 @@ recursive subroutine ReduceOrientationtoRFZ_(self, rot, Pm, roFZ, MFZ, bin, verb
   !! [no longer uses dict module but requires that the calling program
   !! initializes the Pm QuaternionArray_T class for the correct point group
   !! using the QSym_Init method in mod_quaternions]
+  !!
+  !! [11/03/26] preserve near-half-turn lengths and select a deterministic RFZ boundary representative.
 
 use mod_quaternions
 use mod_symmetry
@@ -4029,13 +4025,11 @@ logical,OPTIONAL,INTENT(IN)              :: verbose
 type(IO_T)                               :: Message
 type(Quaternion_T)                       :: Mu, qu, qS, pp
 type(q_T)                                :: qq
-type(r_T)                                :: rod
-real(kind=dbl)                           :: x(4), y(3), Mux(4)
+type(r_T)                                :: rod, bestrod
+real(kind=dbl)                           :: x(4), y(3), Mux(4), bestx(4)
 integer(kind=irg)                        :: i, j, Pmdims
-logical                                  :: useMFZ = .FALSE., verb = .FALSE.
-real(kind=dbl)                           :: tol, eps = 1.0D-6
-
-tol = 1.0D+5
+logical                                  :: useMFZ = .FALSE., verb = .FALSE., found, better
+real(kind=dbl),parameter                 :: eps = 1.0D-10
 
 if (present(verbose)) then
   if (verbose.eqv..TRUE.) then 
@@ -4076,38 +4070,68 @@ end select
 Mu = Quaternion_T( qd = qq%q_copyd() )
 call Mu%quat_pos()
 Mux = Mu%get_quatd()
+found = .FALSE.
 
 FZloop: do j=1,Pmdims
   qu = Pm%getQuatfromArray(j)*Mu
   call qu%quat_pos()
   x = qu%get_quatd()
+  if (useMFZ.eqv..FALSE.) then
+! q and -q describe the same half-turn; choose a consistent axis sign.
+    if (dabs(x(1)).lt.eps) then
+      do i=2,4
+        if (dabs(x(i)).gt.eps) then
+          if (x(i).lt.0.D0) x = -x
+          EXIT
+        end if
+      end do
+    end if
+  end if
   qq = q_T( qdinp = x )
   rod = qq%qr()
-  x = rod%r_copyd()
-  if(abs(x(4)) .gt. tol) rod = r_T( rdinp = (/ x(1:3), inftyd() /) )
+! The length clamp turned valid near-half-turn representatives into infinite ones rejected by the cyclic test.
 
   if (useMFZ.eqv..TRUE.) then
-    if (self%IsinsideMFZ(rod)) EXIT FZloop
-  else
-    if (self%IsinsideFZ(rod))  then 
-      if (present(bin)) bin = j
+    if (self%IsinsideMFZ(rod)) then
+      found = .TRUE.
       EXIT FZloop
-    end if 
-  end if
-  ! we really should never get to the following line ...
-  if (present(verbose)) then
-    if (verbose.eqv..TRUE.) then 
-      if (j.eq.Pmdims) then 
-        call Mu%quat_print()
-        if (present(bin)) bin=-1
-        call Message%printWarning( 'ReduceOrientationtoRFZ: no solution found')
-        call qq%q_print(' -> ')
-        call qu%quat_print()
-        ! stop
-      end if 
-    end if 
+    end if
+  else
+    if (self%IsinsideFZ(rod)) then
+      better = .not.found
+      if (found) then
+! Compare (w,x,y,z) lexicographically, treating differences within eps as equal.
+        do i=1,4
+          if (dabs(x(i)-bestx(i)).le.eps) cycle
+          better = x(i).gt.bestx(i)
+          EXIT
+        end do
+      end if
+      if (better) then
+        bestx = x
+        bestrod = rod
+        if (present(bin)) bin = j
+      end if
+      found = .TRUE.
+    end if
   end if
 end do FZloop
+
+! we really should never get to the following line ...
+if (.not.found) then
+  if (present(verbose)) then
+    if (verbose.eqv..TRUE.) then
+      call Mu%quat_print()
+      if (present(bin)) bin=-1
+      call Message%printWarning( 'ReduceOrientationtoRFZ: no solution found')
+      call qq%q_print(' -> ')
+      call qu%quat_print()
+      ! stop
+    end if
+  end if
+else
+  if (useMFZ.eqv..FALSE.) rod = bestrod
+end if
 
 roFZ = rod
 
