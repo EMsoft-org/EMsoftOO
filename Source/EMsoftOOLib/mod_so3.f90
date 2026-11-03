@@ -256,6 +256,7 @@ type, public :: so3_T
     procedure, pass(self) :: sample_Fiber_
     procedure, pass(self) :: sample_SFS_
     procedure, pass(self) :: sample_SHO_
+    procedure, pass(self) :: sample_PRD_
     procedure, pass(self) :: sample_MAR_
     procedure, pass(self) :: sample_UNI_
     procedure, pass(self) :: SampleIsoMisorientation_
@@ -317,6 +318,7 @@ type, public :: so3_T
     generic, public :: sample_Fiber => sample_Fiber_
     generic, public :: sample_SFS => sample_SFS_
     generic, public :: sample_SHO => sample_SHO_
+    generic, public :: sample_PRD => sample_PRD_
     generic, public :: sample_MAR => sample_MAR_
     generic, public :: sample_UNI => sample_UNI_
     generic, public :: SampleIsoMisorientation => SampleIsoMisorientation_
@@ -1965,6 +1967,68 @@ io_int(1) = self%SFcnt
 call Message%WriteValue('count at end of routine ', io_int, 1) 
 
 end subroutine sample_SHO_
+
+!--------------------------------------------------------------------------
+recursive subroutine sample_PRD_(self, frequency)
+!DEC$ ATTRIBUTES DLLEXPORT :: sample_PRD_
+  !! author: ZTV
+  !! version: 1.0
+  !! date: 11/02/26
+  !!
+  !! generate the product grid on the Hopf fibration for the current fundamental zone
+  !! at the given frequency; see mod_productgrid for the construction
+
+use mod_io
+use mod_productgrid
+
+IMPLICIT NONE
+
+class(so3_T),INTENT(INOUT)              :: self
+integer(kind=irg),INTENT(IN)            :: frequency
+
+type(IO_T)                              :: Message
+type(q_T)                               :: q
+type(r_T)                               :: rod
+type(FZpointd),pointer                  :: tmp
+
+real(kind=dbl),allocatable              :: qFZ(:,:)
+real(kind=dbl)                          :: x(4)
+integer(kind=irg)                       :: i, info, io_int(1)
+
+call productGrid(self%FZtype, self%FZorder, self%FZordersign, frequency, qFZ, info)
+if (info.ne.0) then
+  io_int(1) = info
+  call Message%WriteValue(' productGrid error code ', io_int, 1)
+  call Message%printError('sample_PRD','no product grid for this fundamental zone and frequency')
+end if
+
+! initialize parameters
+self%SFcnt = 0
+
+! allocate the linked list
+allocate(self%SFlist)
+tmp => self%SFlist
+nullify(tmp%next)
+
+! the grid is already in the fundamental zone, so nothing is rejected here; a point on
+! a face of the zone can test as outside by rounding, so it is moved inside by a negligible amount
+do i=1,size(qFZ,2)
+  q = q_T( qdinp = qFZ(1:4,i) )
+  rod = q%qr()
+  if (.not.self%IsinsideFZ(rod)) then
+    x = (/ qFZ(1,i), qFZ(2:4,i)*(1.D0-1.D-14) /)
+    q = q_T( qdinp = x/sqrt(sum(x*x)) )
+    rod = q%qr()
+  end if
+  tmp%qu = q
+  tmp%rod = rod
+  allocate(tmp%next)
+  tmp => tmp%next
+  nullify(tmp%next)
+  self%SFcnt = self%SFcnt + 1
+end do
+
+end subroutine sample_PRD_
 
 !--------------------------------------------------------------------------
 recursive subroutine sample_MAR_(self, num)

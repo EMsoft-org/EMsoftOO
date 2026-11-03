@@ -47,6 +47,7 @@ set(EMsoftOOLib_SRCS
   ${EMsoftOOLib_SOURCE_DIR}/minpack.f
   ${EMsoftOOLib_SOURCE_DIR}/mod_rotations.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_povray.f90
+  ${EMsoftOOLib_SOURCE_DIR}/mod_productgrid.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_so3.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_dirstats.f90
   ${EMsoftOOLib_SOURCE_DIR}/mod_notifications.f90

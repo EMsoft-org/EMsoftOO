@@ -8,6 +8,7 @@
 ! 'UNI' for linear uniform random quaternions;
 ! 'SHO' for the Shoemake algorithm;
 ! 'SFS' for Super-Fibonacci sampling; 
+! 'PRD' for the product grid on the Hopf fibration (all rotational point groups except 822, 1022, 1222);
 ! 'vMF' von Mises-Fisher sampling on the three-sphere (non-uniform);
 ! 'WAT' Watson sampling on the three-sphere (non-uniform);
 ! 'TXC' sample one or more texture components using Watson sampling of the three-sphere
@@ -78,6 +79,12 @@
 ! NEW FEATURE: Knothe-Rosenblatt remapping of points already sampled in the RFZ
 ! this produces a more uniform set of points, in particular near the RFZ boundaries
  KRremapping = .FALSE., 
+!=================
+! parameters for PRD mode
+!=================
+! frequency of the sphere grid; the number of orientations grows approximately with its cube, and is written
+! to the terminal. It is exact and depends on the rotational point group only; qFZ and axFZ are ignored.
+ frequency = 10,
 !=================
 ! parameters for FIB mode
 !=================
